@@ -41,16 +41,22 @@ class UiInvoker
 {
 public:
     // `generation` (any thread) counts UI rebuilds; a closure posted before a rebuild does not run
-    // after it.
-    UiInvoker(UiDispatcher& dispatcher, std::function<GuardState()> guards_on_ui, std::function<uint64_t()> generation = {});
+    // after it. `open_dialogs` (any thread) describes the open modals outermost first, as
+    // ModalTracker::snapshot() does; it names a native dialog that holds the UI thread when the
+    // UI thread itself can't answer.
+    UiInvoker(UiDispatcher& dispatcher, std::function<GuardState()> guards_on_ui, std::function<uint64_t()> generation = {},
+              std::function<nlohmann::json()> open_dialogs = {});
     ~UiInvoker();
 
     // Runs `fn` on the UI thread under `guard` and returns its value. Throws ToolFailure when a
     // guard refuses, when the UI thread does not pick the closure up within `queue_timeout`
-    // (the closure is then abandoned and never runs), or on shutdown. `tool` names the caller in
-    // busy messages.
+    // (the closure is then abandoned and never runs; the failure names the native dialog holding
+    // the UI thread, if that is why), or on shutdown. `tool` names the caller in busy messages.
     nlohmann::json run(GuardClass guard, const std::string& tool, const std::function<nlohmann::json()>& fn,
                        std::chrono::milliseconds queue_timeout = std::chrono::seconds(10));
+
+    // The open modals from `open_dialogs`, read without the UI thread; an empty array without one.
+    nlohmann::json open_dialogs() const;
 
     // UI-thread state for the request thread's blocked_by_dialog decision: whether any UI call is
     // running (i.e. we are inside its nested event loop) and the guard state. nullopt when the UI
@@ -78,5 +84,10 @@ private:
     std::shared_ptr<Shared> m_shared;
     UiDispatcher&           m_dispatcher;
 };
+
+// True when the topmost (last) of `dialogs`, a snapshot like ModalTracker::snapshot(), is native.
+// A native dialog can hold the UI thread: on macOS, file and folder pickers and message boxes pause
+// wx's pending events, and with them every closure posted to the UI thread, until they close.
+bool topmost_dialog_is_native(const nlohmann::json& dialogs);
 
 }}} // namespace Slic3r::GUI::Mcp

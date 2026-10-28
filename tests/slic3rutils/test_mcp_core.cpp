@@ -127,14 +127,33 @@ private:
     std::thread                       m_thread;
 };
 
+// A file picker as ModalTracker describes it: native, and untitled on macOS.
+const json kNativePicker = json::array({{{"title", ""}, {"message", "Choose one or more files"}, {"native", true}}});
+
+// Sets `flag` when the test leaves, failed assertions included, so a closure holding the fake UI
+// thread lets go before the harness joins that thread. Declare the flag before the harness and this
+// after it: the flag must outlive that join, and be set before it starts.
+struct SetOnExit
+{
+    std::atomic<bool>& flag;
+    ~SetOnExit() { flag = true; }
+};
+
 struct Harness
 {
     FakeUiThread ui;
     std::mutex   guards_mutex;
     GuardState   guards;
-    UiInvoker    invoker{ui, [this] {
+    // The guards' dialogs double as the snapshot ModalTracker publishes to other threads.
+    UiInvoker    invoker{ui,
+                      [this] {
                           std::lock_guard<std::mutex> lock(guards_mutex);
                           return guards;
+                      },
+                      {},
+                      [this] {
+                          std::lock_guard<std::mutex> lock(guards_mutex);
+                          return guards.dialogs;
                       }};
     JobRegistry  jobs;
     Journal      journal;
@@ -161,6 +180,16 @@ struct Harness
     {
         set_modal(true, std::move(dialogs));
         ui.loop_until([&] { return release.load(); });
+        set_modal(false);
+    }
+
+    // Dialogs that hold the UI thread until `release` is set: they are published, but nothing posted
+    // meanwhile runs, as when macOS pauses wx's pending events behind a native file picker.
+    void hold_ui(std::atomic<bool>& release, json dialogs)
+    {
+        set_modal(true, std::move(dialogs));
+        while (!release)
+            std::this_thread::sleep_for(5ms);
         set_modal(false);
     }
 
@@ -200,6 +229,41 @@ TEST_CASE("a UI call that is never picked up is abandoned and never runs", "[Mcp
     CHECK(error.find("safe to retry") != std::string::npos);
     ui.drain();
     CHECK_FALSE(ran);
+}
+
+TEST_CASE("a UI call that times out behind a native dialog names the dialog", "[Mcp]")
+{
+    ManualDispatcher ui;
+    UiInvoker        invoker(ui, [] { return GuardState{}; }, {}, [] { return kNativePicker; });
+    bool             ran = false;
+    std::string      error;
+    json             details;
+    try {
+        invoker.run(GuardClass::Inspect, "get_state", [&] { ran = true; return json(); }, 100ms);
+    } catch (const ToolFailure& f) {
+        error   = f.what();
+        details = f.details;
+    }
+    CHECK(error.find("native dialog") != std::string::npos);
+    CHECK(details.value("dialogs", json()) == kNativePicker);
+    ui.drain();
+    CHECK_FALSE(ran);
+}
+
+TEST_CASE("a UI call that times out behind a wx dialog keeps the busy message", "[Mcp]")
+{
+    ManualDispatcher ui;
+    // The topmost dialog has no "native" field, as Orca's own dialogs in these tests don't.
+    const json dialogs = json::array({kNativePicker[0], {{"title", "Preferences"}}});
+    UiInvoker  invoker(ui, [] { return GuardState{}; }, {}, [&] { return dialogs; });
+    std::string error;
+    try {
+        invoker.run(GuardClass::Inspect, "get_state", [] { return json(); }, 100ms);
+    } catch (const ToolFailure& f) {
+        error = f.what();
+    }
+    CHECK(error.find("safe to retry") != std::string::npos);
+    ui.drain();
 }
 
 TEST_CASE("a UI call returns the closure's value", "[Mcp]")
@@ -286,7 +350,7 @@ TEST_CASE("a mutate call is refused inside another call's nested loop but inspec
         });
     });
     ui.pump_until([&] { return outer.wait_for(0ms) == std::future_status::ready; });
-    outer.get();
+    (void) outer.get();
     CHECK(nested_mutate.find("Busy: outer") != std::string::npos);
     CHECK(nested_inspect == "seen");
 }
@@ -337,7 +401,7 @@ TEST_CASE("a recover call that targets outside the dialog applies the mutate gua
         });
     });
     ui.pump_until([&] { return outer.wait_for(0ms) == std::future_status::ready; });
-    outer.get();
+    (void) outer.get();
     CHECK(nested.find("Busy: outer") != std::string::npos);
 }
 
@@ -381,6 +445,103 @@ TEST_CASE("blocked_by_dialog is reported after the soft budget when the probe se
     auto result = h.jobs.wait(envelope.data["job"], 3000ms);
     REQUIRE(result.has_value());
     CHECK(result->data["closed"] == true);
+}
+
+TEST_CASE("blocked_by_dialog is reported from the snapshot when a native dialog holds the UI thread", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    h.registry.add(tool("pick_file", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.hold_ui(release, kNativePicker);
+            return json();
+        });
+        return ToolResult::ok({{"closed", true}});
+    }));
+    h.start();
+
+    const ToolResult envelope = h.call("pick_file");
+    release                   = true;
+    REQUIRE(envelope.data["status"] == "blocked_by_dialog");
+    CHECK(envelope.data["dialogs"] == kNativePicker);
+    const std::string note = envelope.data.value("note", "");
+    CHECK(note.find("only a person") != std::string::npos);
+    CHECK(note.find("tools that need the UI thread fail") != std::string::npos);
+    CHECK(note.find("Answer the dialog") == std::string::npos);
+    auto result = h.jobs.wait(envelope.data["job"], 3000ms);
+    REQUIRE(result.has_value());
+    CHECK(result->data["closed"] == true);
+}
+
+TEST_CASE("a held UI thread under a wx dialog is not reported as blocked_by_dialog", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    ToolDef           hold = tool("hold", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.hold_ui(release, json::array({kNativePicker[0], {{"title", "Preferences"}}}));
+            return json();
+        });
+        return ToolResult::ok();
+    });
+    hold.budget_ms = 1000;
+    h.registry.add(hold);
+    h.start();
+
+    const ToolResult envelope = h.call("hold");
+    release                   = true;
+    CHECK(envelope.data["status"] == "running");
+    CHECK(h.jobs.wait(envelope.data["job"], 3000ms).has_value());
+}
+
+TEST_CASE("shutdown during an unanswered probe replies shutting down", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    h.registry.add(tool("pick_file", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.hold_ui(release, kNativePicker);
+            return json();
+        });
+        return ToolResult::ok();
+    }));
+    h.start();
+
+    // 300 ms lands inside the probe window: past the 100 ms soft budget, before the 500 ms probe
+    // gives up. A stop that lands earlier gets the same reply from the check before the probe.
+    auto reply = std::async(std::launch::async, [&] { return h.call("pick_file"); });
+    std::this_thread::sleep_for(300ms);
+    h.invoker.shutdown();
+    const ToolResult r = reply.get();
+    release            = true;
+    CHECK(r.is_error);
+    CHECK(r.message.find("shutting down") != std::string::npos);
+}
+
+TEST_CASE("a native dialog that the probe sees gets the native note", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    h.registry.add(tool("pick_file", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.modal_loop(release, kNativePicker);
+            return json();
+        });
+        return ToolResult::ok();
+    }));
+    h.start();
+
+    const ToolResult envelope = h.call("pick_file");
+    release                   = true;
+    REQUIRE(envelope.data["status"] == "blocked_by_dialog");
+    const std::string note = envelope.data.value("note", "");
+    CHECK(note.find("only a person") != std::string::npos);
+    CHECK(note.find("tools that need the UI thread fail") == std::string::npos);
+    CHECK(h.jobs.wait(envelope.data["job"], 3000ms).has_value());
 }
 
 TEST_CASE("inspect tools run inline and recover tools run as jobs while another job is blocked", "[Mcp]")
@@ -494,7 +655,7 @@ TEST_CASE("without a blocking slot a job call returns its envelope at once and a
     CHECK(pending.data["status"] == "pending");
     CHECK(std::chrono::steady_clock::now() - start < 500ms);
     release = true;
-    holder.get();
+    (void) holder.get();
     CHECK(h.jobs.wait(job.data["job"], 3000ms).has_value());
 }
 
@@ -612,7 +773,7 @@ TEST_CASE("operation admission is checked again when a mutate call reaches the U
     CHECK(edited.is_error);
     CHECK(edited.message.find("Busy: job") != std::string::npos);
     release = true;
-    s.get();
+    (void) s.get();
 }
 
 TEST_CASE("only one operation runs at a time", "[Mcp]")
@@ -693,7 +854,7 @@ TEST_CASE("drain reports a job thread that has not returned", "[Mcp]")
     h.core->shutdown();
     CHECK_FALSE(h.core->drain(200ms));
     release = true;
-    call.get();
+    (void) call.get();
     CHECK(h.core->drain(2000ms));
 }
 
@@ -719,7 +880,7 @@ TEST_CASE("destroying a core waits for a job thread still inside it", "[Mcp]")
     release = true;
     destroy.get();
     CHECK(returned);
-    call.get();
+    (void) call.get();
 }
 
 TEST_CASE("the journal records client calls in order and replays jobs with await false", "[Mcp]")

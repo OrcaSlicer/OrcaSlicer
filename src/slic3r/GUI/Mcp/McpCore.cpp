@@ -2,6 +2,7 @@
 
 #include "McpJournal.hpp"
 #include "McpTypes.hpp"
+#include "UiInvoker.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -205,6 +206,21 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     };
     const std::string running_note = "The call is still running and will finish on its own; do not retry it. "
                                      "Use wait {for:\"job\", job:\"" + job + "\"} for its result.";
+    // dialog_respond can't press a native dialog's buttons, so its note asks for a person instead.
+    auto blocked = [&](nlohmann::json dialogs, bool ui_held) {
+        std::string note;
+        if (topmost_dialog_is_native(dialogs)) {
+            note = "The call is waiting on a native dialog, which only a person can answer (dialog_respond can't); do not retry it. ";
+            if (ui_held)
+                note += "Until it closes, tools that need the UI thread fail. ";
+            note += "Once it is answered, wait {for:\"job\", job:\"" + job +
+                    "\"}. Register dialog_auto_answer before a step that opens a native dialog.";
+        } else {
+            note = "The call is waiting on a dialog and continues after it closes; do not retry it. "
+                   "Answer the dialog (ui_snapshot, dialog_respond), then wait {for:\"job\", job:\"" + job + "\"}.";
+        }
+        return envelope("blocked_by_dialog", {{"dialogs", std::move(dialogs)}, {"note", note}});
+    };
     if (!acquire_slot())
         return finish(envelope("running", {{"note", running_note}}));
     struct SlotGuard { McpCore* core; ~SlotGuard() { core->release_slot(); } } slot_guard{this};
@@ -222,14 +238,24 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
         if (std::chrono::steady_clock::now() >= deadline)
             break;
         // Past the soft budget: if a modal dialog is open, the job is almost certainly waiting on it.
-        if (auto p = m_ui.probe(m_timing.probe_timeout); p && p->guards.modal) {
+        const auto p = m_ui.probe(m_timing.probe_timeout);
+        // A stop makes the probe return nothing, which must not read as a held UI thread.
+        if (m_ui.is_shutdown())
+            return finish(ToolResult::error("OrcaSlicer is shutting down"));
+        if (p && p->guards.modal) {
             // A dialog can close between the probe and here; a finished job wins.
             if (auto r = m_jobs.wait(job, std::chrono::milliseconds(0)))
                 return finish(std::move(*r));
-            return finish(envelope("blocked_by_dialog",
-                                   {{"dialogs", p->guards.dialogs},
-                                    {"note", "The call is waiting on a dialog and continues after it closes; do not retry it. "
-                                             "Answer the dialog (ui_snapshot, dialog_respond), then wait {for:\"job\", job:\"" + job + "\"}."}}));
+            return finish(blocked(p->guards.dialogs, false));
+        }
+        // An unanswered probe with a native dialog on top: that dialog holds the UI thread, so the
+        // snapshot published for other threads is all there is to report.
+        if (!p) {
+            if (nlohmann::json dialogs = m_ui.open_dialogs(); topmost_dialog_is_native(dialogs)) {
+                if (auto r = m_jobs.wait(job, std::chrono::milliseconds(0)))
+                    return finish(std::move(*r));
+                return finish(blocked(std::move(dialogs), true));
+            }
         }
         next_probe = std::chrono::steady_clock::now() + m_timing.soft_budget;
     }

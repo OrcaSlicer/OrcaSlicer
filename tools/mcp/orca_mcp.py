@@ -22,6 +22,7 @@ import argparse
 import base64
 import json
 import os
+import platform
 import shutil
 import signal
 import subprocess
@@ -148,6 +149,13 @@ def find_binary(explicit):
     here = os.path.dirname(os.path.abspath(__file__))
     repo = os.path.dirname(os.path.dirname(here))
     exe = ".exe" if os.name == "nt" else ""
+    if sys.platform == "darwin":
+        # The CMake target's bundle, then the one build_release_macos.sh assembles; this machine's
+        # architecture first.
+        arches = sorted(("arm64", "x86_64"), key=lambda a: a != platform.machine()) + ["universal"]
+        for tree in [os.path.join("build", a) for a in arches] + ["build"]:
+            for bundle in (os.path.join("src", "Release", "OrcaSlicer.app"), os.path.join("OrcaSlicer", "OrcaSlicer.app")):
+                candidates.append(os.path.join(repo, tree, bundle, "Contents", "MacOS", "OrcaSlicer"))
     # build_win.bat names a clang-cl tree build-clang.
     candidates += [os.path.join(repo, tree, "src", "Release", "orca-slicer" + exe) for tree in ("build", "build-clang")]
     candidates += [os.path.join(repo, "build", "package", "bin", "orca-slicer"),
@@ -220,6 +228,8 @@ def park_pointer(display, width, height):
 
 
 def launch(args):
+    if args.xvfb and not sys.platform.startswith("linux"):
+        sys.exit("--xvfb runs only on Linux; elsewhere the app opens on the desktop")
     token = os.environ.get("ORCA_MCP_TOKEN") or base64.b16encode(os.urandom(32)).decode().lower()
     datadir = os.path.abspath(args.datadir or tempfile.mkdtemp(prefix="orca-mcp-"))
     printer = DEFAULT_PRINTER

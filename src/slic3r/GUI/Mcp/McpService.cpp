@@ -96,7 +96,9 @@ const char* kInstructions =
     "- For anything else use the GUI tools: ui_snapshot lists widgets, menus, 3D toolbar items, gizmos and ImGui "
     "items with refs; ui_click / ui_input / ui_key / ui_mouse act on refs from the latest snapshot.\n"
     "- A call that takes long or opens a dialog returns {status:\"running\"|\"blocked_by_dialog\", job}. It keeps "
-    "running: never retry it. Answer dialogs with dialog_respond (see get_state.dialogs), then wait {for:\"job\"}.\n"
+    "running: never retry it. Answer dialogs with dialog_respond (see get_state.dialogs), then wait {for:\"job\"}. "
+    "A dialog marked native: true (a file or folder picker, a message box) can't be answered; register "
+    "dialog_auto_answer before the step that opens one.\n"
     "- While a slice or export runs, other changes are refused; use wait or cancel.\n"
     "- Paths are absolute. Outputs never overwrite an existing file unless overwrite is true.\n"
     "- screenshot returns a downscaled image plus the full-size PNG path; target \"canvas\" is the 3D view.\n"
@@ -156,7 +158,8 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
         m_dispatcher = std::make_unique<WxDispatcher>();
         m_modals     = std::make_unique<ModalTracker>();
         m_inspector  = std::make_unique<UiInspector>(*this);
-        m_invoker    = std::make_unique<UiInvoker>(*m_dispatcher, [this] { return guards_on_ui(); }, [this] { return m_generation.load(); });
+        m_invoker    = std::make_unique<UiInvoker>(*m_dispatcher, [this] { return guards_on_ui(); }, [this] { return m_generation.load(); },
+                                                [this] { return m_modals->snapshot(); });
         m_core       = std::make_unique<McpCore>(m_registry, *m_invoker, m_jobs, &m_journal);
         register_tools();
         if (ImGuiWrapper* imgui = wxGetApp().imgui())

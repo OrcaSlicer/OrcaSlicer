@@ -21,6 +21,10 @@ tools/mcp/orca_mcp.py launch --xvfb --print-config
 On Windows, build with `build_win.bat` and run `python tools/mcp/orca_mcp.py launch --print-config`
 (there is no `--xvfb`); it finds `build-clang\src\Release\orca-slicer.exe` too.
 
+On macOS, build with `cmake --build build/arm64 --config Release --target all --` and run
+`tools/mcp/orca_mcp.py launch --print-config` (there is no `--xvfb`); it finds the app bundle's
+binary under `build/<arch>`.
+
 `launch` starts `build/src/Release/orca-slicer` (or `--bin PATH`) with `--mcp` and a fresh
 temporary datadir. The datadir is seeded with a finished setup wizard and one printer, Bambu Lab X1
 Carbon 0.4 by default. To use another printer, pass
@@ -179,3 +183,18 @@ lets a step fail without stopping the run.
   windows cover OrcaSlicer, web views and the 3D views included. A minimized window can't be captured.
 - The app takes the foreground for a moment while it starts, so keystrokes typed elsewhere then can
   reach it. The GUI tools synthesize their input inside the app and never move the real pointer.
+
+## macOS notes
+
+- The app opens on your desktop and takes the focus while it starts. The GUI tools synthesize their
+  input inside the app and never move the real pointer.
+- `canvas` screenshots are exact. `window`, `dialog` and widget screenshots come back `approximate`:
+  they are drawn from the window's content view, without the title bar, and web views may be blank.
+- A native dialog (a file or folder picker, a message box) holds the UI thread until a person answers
+  it. The call that opened it returns `blocked_by_dialog` with the dialog marked `native: true` in
+  `dialogs`, and until the dialog closes every tool that needs the UI thread fails, naming it. Register `dialog_auto_answer` before
+  any step that can open one. A folder picker is matched by its prompt, such as
+  "Choose Download Directory".
+- In `ui_key`, `Ctrl` and `Cmd` both mean Command, as in the app's shortcuts, and `RawCtrl` is the
+  Control key. In the `modifiers` of `ui_click` and `ui_mouse`, `ctrl` is the Control key and `cmd`
+  is Command.

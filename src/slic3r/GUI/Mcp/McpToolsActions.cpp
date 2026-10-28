@@ -124,7 +124,8 @@ void register_action_tools(McpService& service)
         "Run one action by the id list_actions returned, with its param when it takes one (a percent, tab id, plate index, "
         "or an absolute path - commands with a path parameter skip their file dialog; outputs need {\"path\": ..., "
         "\"overwrite\": true} to replace a file). Actions that open a dialog return blocked_by_dialog; answer it with "
-        "dialog_respond. An export_gcode with a path completes when the file is written.",
+        "dialog_respond, or, for a native one, register dialog_auto_answer before the call. An export_gcode with a path "
+        "completes when the file is written.",
         object_schema({{"id", prop("string", "Action id from list_actions.")},
                        {"param", prop("string", "Parameter, when the action takes one.")}},
                       {"id"}),

@@ -128,12 +128,13 @@ private:
     ToolRegistry                   m_registry;
     JobRegistry                    m_jobs;
     Journal                        m_journal;
+    // Before the invoker, so it outlives the invoker's callbacks, which read it.
+    std::unique_ptr<ModalTracker>  m_modals;
     std::unique_ptr<UiInvoker>     m_invoker;
     std::unique_ptr<McpCore>       m_core;
     std::unique_ptr<McpProtocol>   m_protocol;
     std::unique_ptr<McpHttpServer> m_http;
     std::shared_ptr<RequestGate>   m_gate;
-    std::unique_ptr<ModalTracker>  m_modals;
     std::unique_ptr<UiInspector>   m_inspector;
 
     std::mutex                              m_rules_mutex;

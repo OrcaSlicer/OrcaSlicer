@@ -36,9 +36,10 @@ struct UiCall
 // State shared with posted closures, which may run after the invoker is gone.
 struct UiInvoker::Shared
 {
-    std::function<GuardState()> guards_on_ui;
-    std::function<uint64_t()>   generation;
-    std::atomic<bool>           stopped{false};
+    std::function<GuardState()>     guards_on_ui;
+    std::function<uint64_t()>       generation;
+    std::function<nlohmann::json()> open_dialogs;
+    std::atomic<bool>               stopped{false};
 
     // UI-thread only: the calls currently executing, outermost first. More than one means a call is
     // running inside another call's nested event loop.
@@ -48,11 +49,13 @@ struct UiInvoker::Shared
     std::vector<std::weak_ptr<UiCall>>   waiters;
 };
 
-UiInvoker::UiInvoker(UiDispatcher& dispatcher, std::function<GuardState()> guards_on_ui, std::function<uint64_t()> generation)
+UiInvoker::UiInvoker(UiDispatcher& dispatcher, std::function<GuardState()> guards_on_ui, std::function<uint64_t()> generation,
+                     std::function<nlohmann::json()> open_dialogs)
     : m_shared(std::make_shared<Shared>()), m_dispatcher(dispatcher)
 {
     m_shared->guards_on_ui = std::move(guards_on_ui);
     m_shared->generation   = std::move(generation);
+    m_shared->open_dialogs = std::move(open_dialogs);
 }
 
 UiInvoker::~UiInvoker() { shutdown(); }
@@ -126,8 +129,13 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
     call->cv.wait_for(lock, queue_timeout, [&] { return call->state != CallState::Queued || m_shared->stopped; });
     if (call->state == CallState::Queued) {
         call->state = CallState::Abandoned;
-        throw ToolFailure(m_shared->stopped ? "OrcaSlicer is shutting down"
-                                            : "The UI thread is busy and did not run the call; it was not run, so it is safe to retry");
+        if (m_shared->stopped)
+            throw ToolFailure("OrcaSlicer is shutting down");
+        if (nlohmann::json dialogs = open_dialogs(); topmost_dialog_is_native(dialogs))
+            throw ToolFailure("A native dialog holds the UI thread until a person answers it, so the call was not run; register "
+                              "dialog_auto_answer before the step that opens one",
+                              {{"dialogs", std::move(dialogs)}});
+        throw ToolFailure("The UI thread is busy and did not run the call; it was not run, so it is safe to retry");
     }
     // Once running, the closure may use this thread's stack (fn's captures), so it is waited for
     // even through shutdown; it ends when the UI thread unwinds out of it.
@@ -200,5 +208,12 @@ void UiInvoker::shutdown()
 }
 
 bool UiInvoker::is_shutdown() const { return m_shared->stopped; }
+
+nlohmann::json UiInvoker::open_dialogs() const { return m_shared->open_dialogs ? m_shared->open_dialogs() : nlohmann::json::array(); }
+
+bool topmost_dialog_is_native(const nlohmann::json& dialogs)
+{
+    return dialogs.is_array() && !dialogs.empty() && dialogs.back().is_object() && dialogs.back().value("native", false);
+}
 
 }}} // namespace Slic3r::GUI::Mcp

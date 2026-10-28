@@ -23,7 +23,11 @@ Carbon 0.4 by default), with update checks and daily tips turned off. The token 
 line. On Linux, `launch` also sets `SSL_CERT_FILE`, so a fresh datadir doesn't prompt for a CA
 bundle. On Windows, it gives the instance its own WebView2 profile in the datadir, apart from the one
 your own OrcaSlicer uses, and finds `build-clang\src\Release\orca-slicer.exe` as well; run the
-commands as `python tools/mcp/orca_mcp.py …`. `--xvfb` starts Xvfb on a free display between `:90`
+commands as `python tools/mcp/orca_mcp.py …`. On macOS, it finds the app bundle's binary under
+`build/arm64`, `build/x86_64`, `build/universal` or `build`: the bundle the CMake target builds in
+`src/Release`, or the one `build_release_macos.sh` assembles in `OrcaSlicer`. The app opens on the
+desktop and takes focus while it starts, and needs no CA-bundle setting. `--xvfb` is Linux only. It
+starts Xvfb on a free display between `:90`
 and `:119`, with `--width`×`--height` (default 1600×1000), and sets `GDK_BACKEND=x11`. Xvfb runs with `-noreset`,
 and its pointer is parked in the bottom-right corner. In the middle of the screen, the pointer would
 raise tooltips over whatever opens there, and they would show in screenshots. The app's output goes to

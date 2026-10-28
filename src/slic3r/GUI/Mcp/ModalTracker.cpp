@@ -126,6 +126,8 @@ json describe_dialog(wxDialog* dialog)
             message += "\n" + into_u8(md->GetExtendedMessage());
     } else if (auto* fd = dynamic_cast<wxFileDialogBase*>(dialog)) {
         message = into_u8(fd->GetMessage());
+    } else if (auto* dd = dynamic_cast<wxDirDialogBase*>(dialog)) {
+        message = into_u8(dd->GetMessage());
     } else {
         collect(dialog, message, buttons);
     }

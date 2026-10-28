@@ -168,9 +168,22 @@ job keeps going until `wait {for: "job"}` (at most 50 s per call) returns its re
 never retries a mutating call, and every envelope tells the model not to either.
 
 **blocked_by_dialog.** A handler that opens a modal blocks in its nested loop, so every 1.5 s the
-request thread posts a probe closure, which runs inside that loop and returns the `ModalTracker`
-snapshot as JSON; no `wxDialog*` crosses threads. With a modal open, the reply is
-`{status: "blocked_by_dialog", job, dialogs}`. A probe unanswered within 1 s changes nothing.
+request thread posts a probe closure, which runs inside a wx dialog's loop and returns the
+`ModalTracker` snapshot as JSON; no `wxDialog*` crosses threads. With a modal open, the reply is
+`{status: "blocked_by_dialog", job, dialogs}`. Its note says how to answer the topmost dialog:
+`dialog_respond` for a wx dialog, a person for one marked `native: true`, which `dialog_respond` can't
+press.
+
+On macOS a file picker, folder picker or message box pauses wx's pending events while it is open
+(`wxCFEventLoopPauseIdleEvents` in its `ShowModal()`), and `CallAfter` closures with them, so behind
+one the probe goes unanswered and so does every `run_ui()` call. A probe unanswered within 1 s
+therefore falls back to the snapshot `ModalTracker` publishes for any thread: if its topmost dialog is
+native, the reply is `blocked_by_dialog` with those dialogs and a note that tools needing the UI
+thread fail until the dialog closes. Otherwise the request keeps waiting. A `run_ui()` call that times
+out with a native dialog on top fails naming it, instead of reporting a busy UI thread. The dispatcher
+stays `CallAfter`: running closures some other way inside the Cocoa modal session would bypass wx's
+pause and re-enter the app while the dialog is up, and native dialogs can only be answered ahead
+anyway.
 
 **Blocking slots.** A request that may block (an inline call, or a job call within its budget)
 first takes one of 32 slots. Without one, a job call returns its `running` envelope at once and an
@@ -400,7 +413,11 @@ focused window inside the topmost modal, else that modal, else the focused windo
 canvas.
 
 `ModalTracker`, a `wxModalDialogHook`, sees every `ShowModal()`, native dialogs included, and
-publishes the snapshot `[{title, message, class, native, buttons}]`. `dialog_respond` presses the
+publishes the snapshot `[{title, message, class, native, buttons}]`. Message boxes and file and folder
+pickers are native; a picker's message is its prompt, such as "Choose Download Directory", since its
+title is often empty. Colour and font choosers are not classified as native, because on GTK they are
+wx dialogs that `dialog_respond` ends; on macOS and Windows they are OS choosers, best answered ahead
+with a `dialog_auto_answer` rule. `dialog_respond` presses the
 topmost wx dialog's button, so the dialog's own handler runs, or ends the dialog with that id when
 no such button exists. A native dialog can only be answered ahead with a `dialog_auto_answer` rule:
 a regex over title and message, and a button. `Enter()` then returns that button's id without
@@ -544,8 +561,9 @@ Unit tests are Catch2 cases tagged `[Mcp]` in `tests/slic3rutils/test_mcp_*.cpp`
 jobs, blocked_by_dialog, admission, slots, idle, journal); `test_mcp_operations` the slice and
 export outcomes; `test_mcp_script` parsing, substitution, matchers and await; `test_mcp_ui` labels,
 snapshot text, ref liveness and synthetic key state; `test_mcp_tools` setting serialization. End to end, `tools/mcp/orca_mcp.py` launches
-the app on a private Xvfb display (with `-noreset`, and the pointer parked in a corner so no tooltip
-lands in a screenshot) and runs `tools/mcp/smoke_test.json`. `tools/mcp/tests/script_basic.json`
+the app on a private Xvfb display on Linux (with `-noreset`, and the pointer parked in a corner so no
+tooltip lands in a screenshot), or on the desktop on macOS and Windows, and runs
+`tools/mcp/smoke_test.json`. `tools/mcp/tests/script_basic.json`
 checks `--mcp-script` headless, `tools/mcp/test_stdio_bridge.py` the stdio bridge, and
 `tools/mcp/test_recovery_under_load.py` answering a dialog while stalled clients hold every
 connection. See `tools/mcp/README.md` and the `orca-mcp` skill.
