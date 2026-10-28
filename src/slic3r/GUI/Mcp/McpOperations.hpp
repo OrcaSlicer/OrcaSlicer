@@ -82,6 +82,10 @@ struct SliceObservation
 // plates run for the same request, so they count.
 std::vector<SliceRunRecord> own_runs(const SliceTicketState& ticket, const SliceObservation& obs);
 
+// Whether the plate's current result can be the operation's: no run touched the plate since the
+// operation began (it was already sliced), or the latest run that did is one of its own.
+bool plate_result_is_own(int plate, const SliceTicketState& ticket, const SliceObservation& obs);
+
 enum class TicketStatus { Pending, Done, Superseded };
 
 // How long a slice that never visibly started may stay pending before it counts as finished (all

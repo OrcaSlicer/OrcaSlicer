@@ -379,10 +379,11 @@ void register_scene_tools(McpService& service)
                         json p{{"index", ticket->plates[i]}, {"outcome", to_string(results[i].outcome)}};
                         if (results[i].outcome == PlateOutcome::Ok) {
                             // The statistics are the plate's current result, so only while the
-                            // project is as the operation sliced it.
+                            // project is as the operation sliced it and nobody sliced the plate since.
                             PartPlate* plate = list.get_plate(ticket->plates[i]);
                             if (plate != nullptr && plate->is_slice_result_valid() &&
-                                plater.project_revision() == ticket->state.revision_at_start)
+                                plater.project_revision() == ticket->state.revision_at_start &&
+                                plate_result_is_own(ticket->plates[i], ticket->state, obs))
                                 p.update(plate_stats(*plate));
                             else
                                 p["note"] = "The plate changed after it was sliced; slice again for its statistics.";

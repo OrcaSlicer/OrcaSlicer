@@ -77,6 +77,18 @@ std::vector<PlateResult> classify_plates(const std::vector<int>& requested, cons
     return out;
 }
 
+bool plate_result_is_own(int plate, const SliceTicketState& ticket, const SliceObservation& obs)
+{
+    const SliceRunRecord* latest = nullptr;
+    for (const SliceRunRecord& run : obs.runs_since_start)
+        if (run.plate == plate && (latest == nullptr || run.seq > latest->seq))
+            latest = &run;
+    if (latest == nullptr)
+        return true;
+    const std::vector<SliceRunRecord> mine = own_runs(ticket, obs);
+    return std::any_of(mine.begin(), mine.end(), [latest](const SliceRunRecord& run) { return run.seq == latest->seq; });
+}
+
 TicketStatus slice_status(const SliceTicketState& ticket, const SliceObservation& obs, std::chrono::steady_clock::time_point now)
 {
     const bool later_request = obs.request_seq != ticket.request_seq_mine;

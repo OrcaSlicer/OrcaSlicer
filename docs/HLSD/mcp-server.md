@@ -199,7 +199,9 @@ entry point, not by internal restarts) and background runs (`slice_run_seq`). It
 result, and the project revision and request sequence at its finish. A slice request the validation
 refused before running is recorded too, as a finished run carrying the validation error; other
 updates validate as well, but only a refusal met by a slice request, or by Slice All moving to its
-next plate, is recorded. `Plater` also notes each request that a later request reached while it was
+next plate, is recorded. So is a request `Plater::reslice()` turns away before validating (a plate
+already refused, a broken mixed filament, missing plugins, a UI job that won't stop), with the
+reason, so it is never taken for a cached result. `Plater` also notes each request that a later request reached while it was
 still slicing (`slice_request_interrupted()`).
 `Plater::project_revision()` rises with every undoable model edit, undo/redo, load, new project and
 config change, but not when a plate is selected (`Plater::take_plate_selection_snapshot()`), since
@@ -217,8 +219,9 @@ run's message, or `cancelled`. A plate no own run reached is `empty`, `ok` when 
 sliced, `error` with the latest validation message when the configuration was refused before the
 request so no run started (`Plater::plate_validation_error()`), `cancelled` when the operation was
 cancelled, or `skipped` (Slice All stops at a failing plate). Statistics come with an `ok` plate
-only while the project is as the operation sliced it. `cancel` also drops a pending automatic
-reslice, including one already queued to run. An export is numbered in `export_seq` once scheduled, so an
+only while the project is as the operation sliced it and nobody has sliced that plate since
+(`plate_result_is_own()`). `cancel` also drops a pending automatic reslice, including one whose
+timer event or call is already queued. An export is numbered in `export_seq` once scheduled, so an
 unchanged number means it never started; otherwise its `ExportRecord` ends `ok`, `failed`,
 `cancelled` or `superseded`. A G-code export with a path is refused while slicing runs, and
 `run_action export_gcode` needs a path: without one it would ask in a native file dialog that MCP

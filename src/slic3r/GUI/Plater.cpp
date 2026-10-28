@@ -7250,6 +7250,13 @@ struct Plater::priv
     // A background run started; a run still open from before was restarted, so it ends cancelled.
     void note_run_started();
     void note_run_rejected(const std::string& error);
+    // A slice request that Plater::reslice() turns away before validating: recorded like a
+    // validation refusal, with the reason, so the request is not taken for a cached result.
+    void note_request_refused(const std::string& reason)
+    {
+        if (in_slice_request)
+            note_run_rejected(reason);
+    }
     // The message of the latest validation of the current plate, "" when it passed.
     std::string last_validation_error;
     // The background process reported completion: closes the open run and any export in flight.
@@ -11222,6 +11229,9 @@ void Plater::priv::schedule_auto_reslice_if_needed()
 
 void Plater::priv::trigger_auto_reslice_now()
 {
+    // Plater::cancel_slicing() dropped it, though its timer event or call was already queued.
+    if (!this->auto_reslice_pending)
+        return;
     this->auto_reslice_pending = false;
 
     AppConfig* cfg = wxGetApp().app_config;
@@ -20881,6 +20891,7 @@ void Plater::reslice()
     if (p->process_completed_with_error == p->partplate_list.get_curr_plate_index())
     {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": process_completed_with_error, return directly");
+        p->note_request_refused(plate_validation_error(p->partplate_list.get_curr_plate_index()));
         reset_gcode_toolpaths();
         return;
     }
@@ -20891,13 +20902,16 @@ void Plater::reslice()
     // here too instead of letting the engine slice the broken slot as a plain filament.
     if (sidebar().has_broken_mixed_filament()) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": broken mixed filament detected, refuse to slice";
+        p->note_request_refused("A mixed filament has a deleted or mismatched component");
         return;
     }
 
     // In case SLA gizmo is in editing mode, refuse to continue
     // and notify user that he should leave it first.
-    if (get_view3D_canvas3D()->get_gizmos_manager().is_in_editing_mode(true))
+    if (get_view3D_canvas3D()->get_gizmos_manager().is_in_editing_mode(true)) {
+        p->note_request_refused("A gizmo is in editing mode; leave it first");
         return;
+    }
 
     // Enforce the missing-plugin block at the slicing choke point: menu/keyboard/queued triggers can
     // carry a stale enabled state while plugins load asynchronously. refresh_missing_plugin_block
@@ -20908,6 +20922,7 @@ void Plater::reslice()
         p->partplate_list.get_curr_plate()->update_slice_ready_status(false);
         p->main_frame->update_slice_print_status(MainFrame::eEventPlateUpdate, false);
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": required plugins missing; slicing blocked.";
+        p->note_request_refused("Plugins the project needs are missing");
         return;
     }
 
@@ -20917,6 +20932,7 @@ void Plater::reslice()
     if (!stop_queue(this->get_ui_job_worker(), timeout_ms)) {
         BOOST_LOG_TRIVIAL(error) << "Could not stop UI job within "
                                  << timeout_ms << " milliseconds timeout!";
+        p->note_request_refused("A running arrange or orient job did not stop");
         return;
     }
 

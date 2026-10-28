@@ -186,6 +186,27 @@ TEST_CASE("a later request supersedes at once only when it came while the slice 
     CHECK(slice_status(t, observe(5, 1, {run(11, 0, 0, false, false)}, true), now) == TicketStatus::Pending);
 }
 
+TEST_CASE("a plate's result is the operation's until someone else slices it", "[Mcp]")
+{
+    const SliceTicketState t = ticket(5, 10, 1);
+    // Already sliced: no run touched plate 0.
+    CHECK(plate_result_is_own(0, t, observe(5, 1, {})));
+    // Our run was the plate's last.
+    CHECK(plate_result_is_own(0, t, observe(5, 1, {plate_run(11, 0)})));
+    // A person sliced plate 0 again after ours finished (request 6).
+    CHECK_FALSE(plate_result_is_own(0, t, observe(6, 1, {plate_run(11, 0), run(12, 1, 6, false, true, 6, 0)})));
+    // Their slice of another plate leaves ours alone.
+    CHECK(plate_result_is_own(0, t, observe(6, 1, {plate_run(11, 0), run(12, 1, 6, false, true, 6, 1)})));
+}
+
+TEST_CASE("a slice request refused before validating reports the refusal over a cached result", "[Mcp]")
+{
+    // Plater records the refusal (a broken mixed filament here) as a rejected run of the request.
+    const auto results = classify_plates({0}, {{0, true, false}}, {plate_run(11, 0, "A mixed filament has a deleted or mismatched component")});
+    CHECK(results[0].outcome == PlateOutcome::Error);
+    CHECK(results[0].error == "A mixed filament has a deleted or mismatched component");
+}
+
 TEST_CASE("a run already slicing that the request left running is the operation's", "[Mcp]")
 {
     const auto       now = std::chrono::steady_clock::now();
