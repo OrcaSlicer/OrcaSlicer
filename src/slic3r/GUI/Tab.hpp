@@ -587,6 +587,9 @@ public:
 	void		update() override;
 	void		clear_pages() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
+	// Column of the extruder's variant in the per-variant process vectors, as the extruder switch
+	// selects it; -1 when the printer has no such extruder variant.
+	int			extruder_variant_index(int extruder_id, NozzleVolumeType nozzle_type);
 
 private:
 	ogStaticText*	m_recommended_thin_wall_thickness_description_line = nullptr;
