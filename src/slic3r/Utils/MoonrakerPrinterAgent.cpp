@@ -838,9 +838,10 @@ std::string MoonrakerPrinterAgent::normalize_color_value(const std::string& colo
     return normalized;
 }
 
-// Fetch filament info from moonraker database
-bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
+// Fetch the optional lane metadata shared by Moonraker and Snapmaker printers.
+bool MoonrakerPrinterAgent::fetch_lane_data(nlohmann::json& lanes)
 {
+    lanes = nlohmann::json::object();
     // Fetch lane data from Moonraker database
     std::string url = join_url(device_info.base_url, "/server/database/item?namespace=lane_data");
 
@@ -871,24 +872,33 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         .perform_sync();
 
     if (!success) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Failed to fetch lane data: " << http_error;
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_lane_data: Failed to fetch lane data: " << http_error;
         return false;
     }
 
     auto json = nlohmann::json::parse(response_body, nullptr, false, true);
     if (json.is_discarded()) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Invalid JSON response";
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_lane_data: Invalid JSON response";
         return false;
     }
 
     // Expected structure: { "result": { "namespace": "lane_data", "value": { "lane1": {...}, ... } } }
     if (!json.contains("result") || !json["result"].contains("value") || !json["result"]["value"].is_object()) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Unexpected JSON structure or no lane_data found";
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_lane_data: Unexpected JSON structure or no lane_data found";
         return false;
     }
 
-    // Parse response into AmsTrayData
-    const auto& value = json["result"]["value"];
+    lanes = std::move(json["result"]["value"]);
+    return true;
+}
+
+// Fetch filament info from moonraker database
+bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
+{
+    nlohmann::json value;
+    if (!fetch_lane_data(value))
+        return false;
+
     trays.clear();
     max_lane_index = 0;
 
