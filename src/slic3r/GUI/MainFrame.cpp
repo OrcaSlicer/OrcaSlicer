@@ -851,13 +851,19 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
         return false;
 
     switch (*shortcut) {
+    case Shortcut::GoToHome:    m_tabpanel->SelectPageByName(TAB_ID_HOME); break;
+#ifdef SLIC3R_CAD
+    case Shortcut::GoToDesign:  m_tabpanel->SelectPageByName(TAB_ID_DESIGN); break;
+#endif
     case Shortcut::GoToPrepare: m_tabpanel->SelectPageByName(TAB_ID_PREPARE); break;
     case Shortcut::GoToPreview: m_tabpanel->SelectPageByName(TAB_ID_PREVIEW); break;
     case Shortcut::GoToDevice:
         if (!m_tabpanel->SelectPageByName(TAB_ID_MONITOR))
             m_tabpanel->SelectPageByName(TAB_ID_MONITOR_WEB);
         break;
-    case Shortcut::GoToProject: m_tabpanel->SelectPageByName(TAB_ID_PROJECT); break;
+    case Shortcut::GoToMultiDevice: m_tabpanel->SelectPageByName(TAB_ID_MULTI_DEVICE); break;
+    case Shortcut::GoToProject:     m_tabpanel->SelectPageByName(TAB_ID_PROJECT); break;
+    case Shortcut::GoToCalibration: m_tabpanel->SelectPageByName(TAB_ID_CALIBRATION); break;
     case Shortcut::TabNext:
     case Shortcut::TabPrevious: {
         // Cycle through the tab bar, wrapping around at either end
