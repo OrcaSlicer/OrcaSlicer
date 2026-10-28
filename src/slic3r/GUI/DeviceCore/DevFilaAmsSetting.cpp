@@ -1,6 +1,7 @@
 #include "DevFilaAmsSetting.h"
 #include "DevUtil.h"
 #include "slic3r/GUI/DeviceCore/DevCtrl.h"
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 

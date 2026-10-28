@@ -3,8 +3,11 @@
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_tostring.hpp>
+#include <boost/filesystem/operations.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/calib.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/Print.hpp"
@@ -19,9 +22,12 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include <algorithm>
+#include <cctype>
 #include <cstddef>
 #include <fstream>
 #include <ios>
+#include <regex>
+#include <set>
 #include <map>
 #include <sstream>
 #include <string>
@@ -30,6 +36,49 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using namespace Slic3r;
+
+TEST_CASE("Kobra 2 layer-change templates do not emit numeric commands", "[GCode][Kobra2][Regression]")
+{
+    const char *template_key = GENERATE("before_layer_change_gcode", "layer_change_gcode");
+    const std::string profile_path = std::string(PROFILES_DIR) + "/Anycubic/machine/Anycubic Kobra 2 0.4 nozzle.json";
+    // CI test artifacts may omit the shipped profiles.
+    if (!boost::filesystem::exists(profile_path))
+        SKIP("shipped profile not present: " << profile_path);
+
+    DynamicPrintConfig machine;
+    ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Enable};
+    std::map<std::string, std::string> metadata;
+    std::string reason;
+    machine.load_from_json(profile_path, substitutions, false, metadata, reason);
+    INFO("profile: " << profile_path << "\nload reason: " << reason);
+    REQUIRE(machine.has(template_key));
+    REQUIRE_FALSE(machine.opt_string(template_key).empty());
+
+    auto config = Test::multifilament_config(1, {
+        {"gcode_flavor", "marlin"},
+        {"layer_height", "0.2"},
+        {"first_layer_height", "0.2"},
+        {"use_relative_e_distances", "0"},
+        {"machine_start_gcode", ""},
+        {"machine_end_gcode", ""},
+        {"before_layer_change_gcode", ""},
+        {"layer_change_gcode", ""},
+    });
+    // Exercise each shipped template separately through a real G-code export.
+    config.set_key_value(template_key, machine.option(template_key)->clone());
+    const std::string gcode = Test::slice({Test::cube(1.)}, config);
+    INFO("template: " << template_key);
+    REQUIRE(gcode.find(";LAYER_CHANGE") != std::string::npos);
+
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        const auto command = line.cmd();
+        if (!command.empty()) {
+            INFO("executable line: " << line.raw());
+            CHECK_FALSE(std::isdigit(static_cast<unsigned char>(command.front())));
+        }
+    });
+}
 
 TEST_CASE("Klipper object labels name each copy without the characters Klipper cannot parse", "[GCode]")
 {
@@ -92,6 +141,28 @@ TEST_CASE("The exclude object tolerance defaults to the former fixed 0.1 mm", "[
 {
     CHECK_THAT(DynamicPrintConfig::full_print_config().opt_float("exclude_object_tolerance"),
                Catch::Matchers::WithinAbs(0.1, 1e-9));
+}
+
+TEST_CASE("The filament flow ratio scales the extruded length once", "[GCode]")
+{
+    // Retraction off, so every positive relative E move is extrusion and scales with the ratio.
+    auto extruded_length = [](double flow_ratio) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({ { "use_relative_e_distances", "1" }, { "retraction_length", "0" }, { "wipe", "0" } });
+        config.set_key_value("filament_flow_ratio", new ConfigOptionFloatsNullable{ flow_ratio });
+        double total = 0.;
+        GCodeReader reader;
+        reader.parse_buffer(Test::slice({ Test::cube(20) }, config),
+                            [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+                                if ((line.cmd_is("G1") || line.cmd_is("G2") || line.cmd_is("G3")) && line.has_e() && line.e() > 0.f)
+                                    total += line.e();
+                            });
+        return total;
+    };
+
+    const double full = extruded_length(1.);
+    REQUIRE(full > 0.);
+    CHECK_THAT(extruded_length(0.9) / full, Catch::Matchers::WithinRel(0.9, 1e-3));
 }
 
 // Firmwares read the compatibility header lines (Anycubic's GoKlipper heats the bed with
@@ -300,6 +371,63 @@ TEST_CASE("Sparse infill only arc fitting emits arcs in the sparse infill alone"
     CHECK(arcs_per_type("disabled").empty());
 }
 
+TEST_CASE("Exported moves use the decimal places selected by the G-code precision option, and supports use the standard ones", "[GCode]")
+{
+    const bool high_precision = GENERATE(false, true);
+    CAPTURE(high_precision);
+    // The pressure equalizer rewrites moves after the writer has formatted them.
+    const std::string gcode = Test::slice({ Test::TestMesh::overhang }, {
+        { "high_precision_gcode",                high_precision },
+        { "max_volumetric_extrusion_rate_slope", 10 },
+        { "enable_support",                      1 },
+        { "use_relative_e_distances",            1 },
+    });
+
+    // Trailing zeros are not written, so the longest fraction per axis shows the precision in use.
+    // Only the extrusions of a support are counted apart: its travels that change Z, and the travel to the object
+    // path after it, keep the precision of the option.
+    std::map<char, size_t> max_decimals;
+    std::map<char, size_t> max_support_decimals;
+    size_t support_extrusions = 0;
+    bool in_support = false;
+    std::istringstream input(gcode);
+    std::string line;
+    while (std::getline(input, line)) {
+        if (line.rfind(";TYPE:", 0) == 0)
+            in_support = line.rfind(";TYPE:Support", 0) == 0;
+        if (line.rfind("G1 ", 0) != 0 && line.rfind("G2 ", 0) != 0 && line.rfind("G3 ", 0) != 0)
+            continue;
+        std::istringstream words(line.substr(0, line.find(';')));
+        std::string word;
+        words >> word;
+        std::map<char, std::string> values;
+        while (words >> word)
+            values[word.front()] = word.substr(1);
+        // With relative E distances, a positive E on an XY move is an extrusion.
+        const bool extrusion = (values.count('X') || values.count('Y')) && values.count('E') && values['E'].front() != '-';
+        const bool support_extrusion = in_support && extrusion;
+        support_extrusions += support_extrusion;
+        for (const auto &[axis, value] : values) {
+            const size_t point = value.find('.');
+            size_t &decimals = (support_extrusion ? max_support_decimals : max_decimals)[axis];
+            decimals = std::max(decimals, point == std::string::npos ? size_t(0) : value.size() - point - 1);
+        }
+    }
+
+    const size_t xyz_decimals = high_precision ? 4 : 3;
+    const size_t e_decimals   = high_precision ? 6 : 5;
+    CHECK(max_decimals['X'] == xyz_decimals);
+    CHECK(max_decimals['Y'] == xyz_decimals);
+    CHECK(max_decimals['Z'] <= xyz_decimals);
+    CHECK(max_decimals['E'] == e_decimals);
+    CHECK(max_decimals['F'] <= 3);
+    // Supports are removed after printing, so they keep the standard precision.
+    REQUIRE(support_extrusions > 0);
+    CHECK(max_support_decimals['X'] == 3);
+    CHECK(max_support_decimals['Y'] == 3);
+    CHECK(max_support_decimals['E'] == 5);
+}
+
 TEST_CASE("An exported G-code's settings load back as the settings it was sliced with", "[GCode]")
 {
     // Two filaments, so the config block carries the flush matrix already multiplied by flush_multiplier.
@@ -334,4 +462,67 @@ TEST_CASE("An exported G-code's settings load back as the settings it was sliced
     REQUIRE(multiplier.size() == 1);
     CHECK_THAT(matrix[1] * multiplier[0], Catch::Matchers::WithinAbs(140., 1e-6));
     CHECK(bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value == PrimeVolumeMode::pvmFast);
+}
+
+// A temperature tower re-targets the hotend at every layer. On a multi-tool printer that
+// command has to name the tool printing the tower: a bare M104 goes to whichever tool the
+// firmware considers active, which the first-layer M109 right before it already addresses by
+// tool index. A single-tool printer keeps the bare form.
+TEST_CASE("The temperature tower steps the temperature of the tool printing it", "[GCode][Calib]")
+{
+    const bool multi_tool = GENERATE(false, true);
+    DYNAMIC_SECTION((multi_tool ? "two direct drive tools, the tower on the second one (filament 2 -> T1)" : "one tool")) {
+        DynamicPrintConfig config = multi_tool ?
+            Test::multifilament_config(2, {
+                {"nozzle_diameter", "0.4,0.4"},
+                {"printer_extruder_id", "1,2"},
+                {"printer_extruder_variant", "Direct Drive Standard,Direct Drive Standard"},
+                {"extruder_printable_height", "0,0"},
+                {"filament_self_index", "1,2"},
+                {"single_extruder_multi_material", 0},
+                {"enable_prime_tower", 0},
+                {"nozzle_temperature_initial_layer", "230,230"},
+                {"nozzle_temperature", "230,230"},
+            }) :
+            DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            {"skirt_loops", 0},
+            {"brim_type", "no_brim"},
+            // Without the end G-code's heater-off M104 S0, every temperature command after the
+            // first layer change is the tower's.
+            {"machine_end_gcode", ""},
+        });
+        if (multi_tool)
+            Test::size_flush_to_nozzles(config);
+
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{"extruder", multi_tool ? 2 : 1}}};
+        Print print;
+        Model model;
+        // A 20 mm cube at the default 0.2 mm layer height is 100 layers, more than ten per band.
+        Test::init_print({Test::cube(20)}, print, model, config, &overrides);
+        Calib_Params params;
+        params.mode  = CalibMode::Calib_Temp_Tower;
+        params.start = 230;
+        params.end   = 190;
+        params.step  = 5;
+        print.set_calib_params(params);
+        const std::string gcode = Test::gcode(print);
+
+        const size_t layers_begin = gcode.find(";LAYER_CHANGE");
+        REQUIRE(layers_begin != std::string::npos);
+        const std::regex      temperature_command(R"(^M10[49] S(\d+)(?: T(\d+))?)");
+        std::set<int>         temperatures;
+        std::set<std::string> tools;
+        std::istringstream    stream(gcode.substr(layers_begin));
+        for (std::string line; std::getline(stream, line);) {
+            std::smatch m;
+            if (!std::regex_search(line, m, temperature_command))
+                continue;
+            temperatures.insert(std::stoi(m[1]));
+            tools.insert(m[2].matched ? m[2].str() : "none");
+        }
+        // Every 5 degree band from the start to the end temperature, and nothing else.
+        CHECK(temperatures == std::set<int>{190, 195, 200, 205, 210, 215, 220, 225, 230});
+        CHECK(tools == std::set<std::string>{multi_tool ? "1" : "none"});
+    }
 }

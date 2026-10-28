@@ -117,6 +117,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GLModel.hpp"
+#include <nlohmann/json.hpp>
 
 class wxFont;
 
@@ -3632,15 +3633,18 @@ std::map<int, size_t> PartPlate::get_object_filament_extruders(
             filament_ids.emplace(interface_filament);
     }
 
+    // A mixed filament prints with its component filaments.
+    std::vector<int> physical_filament_ids =
+        expand_mixed_filament_ids(std::vector<int>(filament_ids.begin(), filament_ids.end()), g_config);
     // Match Orca's normal fallback for an unassigned object.
-    if (filament_ids.empty())
-        filament_ids.emplace(1);
+    if (physical_filament_ids.empty())
+        physical_filament_ids.emplace_back(1);
 
-    const size_t required_filament_count = filament_ids.empty() ? 0 : size_t(*filament_ids.rbegin());
+    const size_t required_filament_count = size_t(physical_filament_ids.back());
     const std::vector<int> filament_map = get_effective_exclusion_filament_maps(
         g_config, required_filament_count, extruder_count);
     std::map<int, size_t> result;
-    for (const int filament_id : filament_ids) {
+    for (const int filament_id : physical_filament_ids) {
         if (filament_id <= 0)
             continue;
 
@@ -4334,6 +4338,32 @@ void PartPlate::invalidate_plate_name_texture()
 	}
 }
 
+// True if a G-code template uses {plate_name}. filename_format is skipped: the file name is
+// built from the current plate name at export time, so it never needs a new export.
+static bool uses_plate_name(const DynamicPrintConfig& config)
+{
+    for (const std::string& key : config.keys()) {
+        if (key == "filename_format")
+            continue;
+        const ConfigOption* opt = config.option(key);
+        if ((opt->type() == coString || opt->type() == coStrings) && opt->serialize().find("plate_name") != std::string::npos)
+            return true;
+    }
+    return false;
+}
+
+void PartPlate::sync_plate_name_to_print()
+{
+    if (m_print == nullptr || m_print->get_plate_name() == m_name)
+        return;
+    // The G-code may hold the old name. Invalidate first so a running export stops.
+    if (!(m_plater && m_plater->is_loading_project()) && uses_plate_name(m_print->full_print_config())) {
+        m_print->set_gcode_file_invalidated();
+        update_slice_result_valid_state(false);
+    }
+    m_print->set_plate_name(m_name);
+}
+
 void PartPlate::set_plate_name(const std::string& name) 
 { 
 	// compare if name equal to m_name, case sensitive
@@ -4342,8 +4372,7 @@ void PartPlate::set_plate_name(const std::string& name)
 
 	const std::string previous_name = m_name;
 	m_name = name;
-    if (m_print != nullptr)
-        m_print->set_plate_name(name);
+    sync_plate_name_to_print();
 
 	invalidate_plate_name_texture();
 
@@ -4384,6 +4413,8 @@ void PartPlate::set_print(PrintBase* print, GCodeResult* result, int index)
 
 	m_print->set_plate_origin(m_origin);
     invalidate_exclusion_volume_preview();
+    // Undo/redo reattaches Prints that may still carry another name.
+    sync_plate_name_to_print();
 
 	return;
 }
@@ -5501,9 +5532,6 @@ int PartPlate::load_gcode_from_file(const std::string& filename)
 	}
 	DynamicPrintConfig full_config   = preset_bundle->full_config(false, filament_maps, f_volume_maps);
 	full_config.apply(m_config, true);
-	m_print->apply(*m_model, full_config, false);
-	//BBS: need to apply two times, for after the first apply, the m_print got its object,
-	//which will affect the config when new_full_config.normalize_fdm(used_filaments);
 	m_print->apply(*m_model, full_config, false);
 
 	// BBS: use backup path to save temp gcode
@@ -7399,6 +7427,19 @@ int PartPlateList::notify_instance_removed(int obj_id, int instance_id)
 	}
 
 	if (instance_id == -1) {
+		// The object's other instances go with it, and may sit on other plates: left in place,
+		// update_object_index below would renumber them onto the previous object.
+		std::set<int> other_instances;
+		for (PartPlate* p : m_plate_list)
+			for (const std::pair<int, int>& obj_inst : p->obj_to_instance_set)
+				if (obj_inst.first == obj_id)
+					other_instances.insert(obj_inst.second);
+		for (const std::pair<int, int>& obj_inst : unprintable_plate.obj_to_instance_set)
+			if (obj_inst.first == obj_id)
+				other_instances.insert(obj_inst.second);
+		for (int other_instance : other_instances)
+			notify_instance_removed(obj_id, other_instance);
+
 		//update all the obj_ids which is bigger
 		for (unsigned int i = 0; i < (unsigned int)m_plate_list.size(); ++i)
 		{

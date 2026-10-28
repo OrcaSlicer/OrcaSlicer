@@ -29,28 +29,12 @@ else ()
     set(_wx_precomp ON)
 endif ()
 
-set(_wx_patch_command "")
-if (APPLE)
-    set(_wx_patch_command
-        ${GIT_EXECUTABLE} checkout -f -- src/osx/cocoa/colour.mm
-        COMMAND ${GIT_EXECUTABLE} apply --verbose
-                ${CMAKE_CURRENT_LIST_DIR}/0001-macos-use-srgb-colour-components.patch
-    )
-elseif (MSVC)
-    set(_wx_patch_command
-        ${GIT_EXECUTABLE} checkout -f -- src/msw/webview_edge.cpp
-        COMMAND ${GIT_EXECUTABLE} apply --verbose
-                ${CMAKE_CURRENT_LIST_DIR}/0002-msw-webview2-monitor-dpi-rasterization.patch
-    )
-endif ()
-
 orcaslicer_add_cmake_project(
     wxWidgets
     GIT_REPOSITORY "https://github.com/OrcaSlicer/Orca-deps-wxWidgets"
-    GIT_TAG v3.3.2
+    GIT_TAG 5b7e8c0cde6b975d63613188d2ac6c1ab8769fbc
     GIT_SHALLOW ON
     GIT_SUBMODULES 3rdparty/catch 3rdparty/pcre 3rdparty/libwebp
-    PATCH_COMMAND ${_wx_patch_command}
     DEPENDS ${PNG_PKG} ${ZLIB_PKG} ${EXPAT_PKG} ${JPEG_PKG}
     CMAKE_ARGS
         -DwxBUILD_PRECOMP=${_wx_precomp}
