@@ -974,7 +974,7 @@ TEST_CASE("unresolved_plugin_capabilities skips a value whose manifest entry is 
 
     CHECK(unresolved.empty());
     CHECK(manifest == std::vector<std::string>{"Pack;3f2a6c1e;offline"});
-
+}
 TEST_CASE("H2C/A2L-era multi-nozzle and pre-heat config keys exist", "[config]") {
     // Foundation keys backing H2C 6-nozzle cluster grouping, the pre-heat/pre-cool time
     // model, and wipe-tower nozzle-change handling. Defaults must keep existing
