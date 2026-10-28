@@ -45,7 +45,7 @@ AdaptivePAProcessor::AdaptivePAProcessor(GCode &gcodegen)
       m_current_feedrate(0.0),
       m_modal_feedrate(0.0),
       m_last_config_index(-1),
-      m_pa_change_pattern(R"(; PA_CHANGE:T(\d+) MM3MM:([0-9]*\.[0-9]+) ACCEL:(\d+) BR:(\d+) RC:(\d+) OV:(\d+))"),
+      m_pa_change_pattern(R"(; PA_CHANGE:T(\d+) EX:(\d+) MM3MM:([0-9]*\.[0-9]+) ACCEL:(\d+) BR:(\d+) RC:(\d+) OV:(\d+))"),
       m_g1_f_pattern(R"(G1 F([0-9]+))")
 {
     const size_t indices = std::max(m_config.adaptive_pressure_advance.size(), m_config.enable_pressure_advance.size());
@@ -142,11 +142,13 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
             if (std::regex_search(line, m_match, m_pa_change_pattern)) {
                 // The tag carries the filament config index, which selects the PA settings of the filament's extruder variant
                 int config_index = std::stoi(m_match[1].str());
-                mm3mm_value = std::stod(m_match[2].str());
-                accel_value = std::stod(m_match[3].str());
-                int isBridge = std::stoi(m_match[4].str());
-                int roleChange = std::stoi(m_match[5].str());
-                int isOverhang = std::stoi(m_match[6].str());
+                // The extruder printing the path; the writer may already be on another one, layers ahead
+                const int extruder_id = std::stoi(m_match[2].str());
+                mm3mm_value = std::stod(m_match[3].str());
+                accel_value = std::stod(m_match[4].str());
+                int isBridge = std::stoi(m_match[5].str());
+                int roleChange = std::stoi(m_match[6].str());
+                int isOverhang = std::stoi(m_match[7].str());
                 
                 // Check if the filament config index has changed
                 bool config_index_changed = (config_index != m_last_config_index);
@@ -316,7 +318,7 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                     output << "; APA Prev PA: " << std::to_string(m_last_predicted_pa) << " New PA: " << std::to_string(predicted_pa) << "\n"; 
                 }
                 if (config_index_changed || std::fabs(predicted_pa - m_last_predicted_pa) > EPSILON) {
-                    output << m_gcodegen.writer().set_pressure_advance(predicted_pa); // Use m_writer to set pressure advance
+                    output << m_gcodegen.writer().set_pressure_advance(predicted_pa, -1, extruder_id); // Use m_writer to set pressure advance
                     m_last_predicted_pa = predicted_pa; // Update the last predicted PA value
                 }
             }

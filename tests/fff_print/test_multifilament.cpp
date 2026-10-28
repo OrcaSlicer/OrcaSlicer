@@ -1889,6 +1889,29 @@ TEST_CASE("Adaptive pressure advance predicts the same values after layers only 
     CHECK(pressure_advance_sequence(slice_with("0,0,0,1"), 1) == expected);
 }
 
+TEST_CASE("RepRapFirmware pressure advance goes to the drive of the extruder printing, adaptive changes included", "[MultiFilament]")
+{
+    // walls on extruder 1 and infill on extruder 2, so every layer switches extruders partway through
+    DynamicPrintConfig config = two_extruder_pressure_advance_config("1,2", "1,1,1,1", 1, 2);
+    config.set_deserialize_strict({ { "gcode_flavor", "reprapfirmware" } });
+    const std::string gcode = slice({ cube(20) }, config);
+
+    std::set<int> drives;
+    int tool = -1;
+    std::istringstream stream(gcode);
+    for (std::string line; std::getline(stream, line);) {
+        if (line.size() > 1 && line[0] == 'T' && std::isdigit((unsigned char) line[1]))
+            tool = std::stoi(line.substr(1));
+        else if (line.rfind("M572 D", 0) == 0) {
+            INFO(line);
+            // filament_map puts tool N on extruder N + 1, which is drive N
+            CHECK(std::stoi(line.substr(6)) == tool);
+            drives.insert(std::stoi(line.substr(6)));
+        }
+    }
+    CHECK(drives == std::set<int>{ 0, 1 });
+}
+
 TEST_CASE("Adaptive pressure advance on an unused extruder variant leaves the G-code unchanged", "[MultiFilament]")
 {
     const std::string adaptive = GENERATE("0,1,0,0", "0,0,1,0");

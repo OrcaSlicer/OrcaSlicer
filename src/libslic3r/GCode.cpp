@@ -9640,6 +9640,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     // If adaptive PA is enabled, by default evaluate PA on all extrusion moves
     // The PA settings and the PA_CHANGE tags use the filament config index of the filament's extruder variant
     const unsigned int pa_config_index = (unsigned int) get_filament_config_index(m_writer.filament()->id());
+    // The extruder printing the path: the adaptive PA post processor runs layers behind the writer, so it takes its M572 drive from here.
+    const unsigned int pa_extruder_id = m_writer.filament()->extruder_id();
     const bool adaptive_pa = m_config.adaptive_pressure_advance.get_at(pa_config_index) && m_config.enable_pressure_advance.get_at(pa_config_index);
     const bool adaptive_pa_overhangs = adaptive_pa && m_config.adaptive_pressure_advance_overhangs.get_at(pa_config_index);
     bool is_pa_calib = m_curr_print->calib_mode() == CalibMode::Calib_PA_Line ||
@@ -9731,6 +9733,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     // Variables published to the post processor:
     // 1) Tag to trigger a PA evaluation (because a role change was identified and the user has requested dynamic PA adjustments)
     // 2) Current filament config index (to identify the PA model for the currently used filament and its extruder variant)
+    // 2b) Extruder printing the path (to address its drive on RepRapFirmware, since the post processor runs layers behind the writer)
     // 3) mm3_per_mm value (to then multiply by the final model print speed after slowdown for cooling is applied)
     // 4) the current acceleration (to pass to the model for evaluation)
     // 5) whether this is an external perimeter (for future use)
@@ -9739,9 +9742,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     if (evaluate_adaptive_pa) {
         bool isOverhangPerimeter = (path.role() == erOverhangPerimeter);
         if (m_multi_flow_segment_path_average_mm3_per_mm > 0) {
-            sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
+            sprintf(buf, ";%sT%u EX:%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
                     GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
-                    pa_config_index,
+                    pa_config_index, pa_extruder_id,
                     m_multi_flow_segment_path_average_mm3_per_mm,
                     acceleration_i,
                     ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
@@ -9752,9 +9755,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                                     // Check if mm3_mm value is greater than zero as the wipe before external perimeter
                                     // is a zero mm3_mm path to force de-retraction to happen and we dont want
                                     // to issue a zero flow PA change command for this
-            sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
+            sprintf(buf, ";%sT%u EX:%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
                     GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
-                    pa_config_index,
+                    pa_config_index, pa_extruder_id,
                     _mm3_per_mm,
                     acceleration_i,
                     ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
@@ -9863,9 +9866,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                         sprintf(buf, "; Ramp down-non-variable\n");
                         gcode += buf;
                     }
-                    sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
+                    sprintf(buf, ";%sT%u EX:%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
                             GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
-                            pa_config_index,
+                            pa_config_index, pa_extruder_id,
                             _mm3_per_mm,
                             acceleration_i,
                             ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
@@ -9878,9 +9881,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                         sprintf(buf, "; Ramp up-non-variable\n");
                         gcode += buf;
                     }
-                    sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
+                    sprintf(buf, ";%sT%u EX:%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
                             GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
-                            pa_config_index,
+                            pa_config_index, pa_extruder_id,
                             _mm3_per_mm,
                             acceleration_i,
                             ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
@@ -10090,9 +10093,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                             sprintf(buf, "; Ramp up-variable\n");
                             gcode += buf;
                         }
-                        sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
+                        sprintf(buf, ";%sT%u EX:%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
                                 GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
-                                pa_config_index,
+                                pa_config_index, pa_extruder_id,
                                 _mm3_per_mm,
                                 acceleration_i,
                                 ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),
@@ -10105,9 +10108,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                             sprintf(buf, "; Ramp down-variable\n");
                             gcode += buf;
                         }
-                        sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
+                        sprintf(buf, ";%sT%u EX:%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
                                 GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
-                                pa_config_index,
+                                pa_config_index, pa_extruder_id,
                                 _mm3_per_mm,
                                 acceleration_i,
                                 ((path.role() == erBridgeInfill) ||(path.role() == erOverhangPerimeter)),

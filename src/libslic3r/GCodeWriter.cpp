@@ -596,7 +596,7 @@ std::string GCodeWriter::set_junction_deviation(double junction_deviation){
     return gcode.str();
 }
 
-std::string GCodeWriter::set_pressure_advance(double pa, int tool) const
+std::string GCodeWriter::set_pressure_advance(double pa, int tool, int extruder_id) const
 {
     std::ostringstream gcode;
     if (pa < 0)
@@ -616,8 +616,8 @@ std::string GCodeWriter::set_pressure_advance(double pa, int tool) const
     } else if (FLAVOR_IS(gcfRepRapFirmware)) {
         // RRF: M572 D<n> targets a specific extruder; a bare M572 applies to whatever tool is
         // currently selected and errors when there isn't one. Callers with no tool index address
-        // the active extruder, so a second extruder gets its own PA (D0 before any extruder is set).
-        gcode << "M572 D" << (tool >= 0 ? tool : std::max(m_curr_extruder_id, 0))
+        // the given or active extruder, so a second extruder gets its own PA (D0 before any extruder is set).
+        gcode << "M572 D" << (tool >= 0 ? tool : extruder_id >= 0 ? extruder_id : std::max(m_curr_extruder_id, 0))
               << " S" << std::setprecision(4) << pa << "; Override pressure advance value\n";
     } else if (FLAVOR_IS(gcfRepetier)) {
         // Repetier M233: X is quadratic (K), Y is linear (L).
