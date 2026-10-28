@@ -5,14 +5,6 @@
 	"from": "system",
 	"setting_id": "RYvlbbgaUvI7xKQ6",
 	"instantiation": "true",
-	"filament_change_length": [
-		"10"
-	],
-	"filament_cooling_before_tower": [
-		"10",
-		"10",
-		"10"
-	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"
 	],
@@ -26,36 +18,15 @@
 		"0",
 		"0"
 	],
-	"filament_flush_volumetric_speed": [
-		"0",
-		"0",
-		"0"
-	],
 	"filament_max_volumetric_speed": [
 		"17",
 		"17",
 		"17"
 	],
-	"filament_pre_cooling_temperature_nc": [
-		"0",
-		"0",
-		"0"
-	],
 	"filament_preheat_temperature_delta": [
 		"10",
 		"10",
 		"10"
-	],
-	"filament_prime_volume": [
-		"45"
-	],
-	"filament_prime_volume_nc": [
-		"60"
-	],
-	"filament_ramming_travel_time_nc": [
-		"0",
-		"0",
-		"0"
 	],
 	"filament_retract_length_nc": [
 		"14",
@@ -69,9 +40,6 @@
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"
-	],
-	"filament_tower_interface_print_temp": [
-		"-1"
 	],
 	"filament_wipe": [
 		"1",
@@ -93,11 +61,6 @@
 	],
 	"hot_plate_temp_initial_layer": [
 		"70"
-	],
-	"long_retractions_when_ec": [
-		"0",
-		"0",
-		"0"
 	],
 	"retraction_distances_when_ec": [
 		"0",

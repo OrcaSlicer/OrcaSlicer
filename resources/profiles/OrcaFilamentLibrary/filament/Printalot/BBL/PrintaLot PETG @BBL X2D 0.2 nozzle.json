@@ -5,15 +5,6 @@
 	"from": "system",
 	"setting_id": "I998kWd5XwKZznv8",
 	"instantiation": "true",
-	"filament_change_length": [
-		"10"
-	],
-	"filament_cooling_before_tower": [
-		"10",
-		"10",
-		"10",
-		"10"
-	],
 	"filament_end_gcode": [
 		"; filament end gcode \n\n"
 	],
@@ -22,9 +13,6 @@
 		"Direct Drive High Flow",
 		"Bowden Standard",
 		"Bowden High Flow"
-	],
-	"filament_flush_temp_fast": [
-		"0"
 	],
 	"filament_flush_volumetric_speed": [
 		"3",
@@ -38,29 +26,11 @@
 		"1",
 		"1"
 	],
-	"filament_pre_cooling_temperature_nc": [
-		"0",
-		"0",
-		"0",
-		"0"
-	],
 	"filament_preheat_temperature_delta": [
 		"10",
 		"10",
 		"10",
 		"10"
-	],
-	"filament_prime_volume": [
-		"45"
-	],
-	"filament_prime_volume_nc": [
-		"60"
-	],
-	"filament_ramming_travel_time_nc": [
-		"0",
-		"0",
-		"0",
-		"0"
 	],
 	"filament_retract_length_nc": [
 		"14",

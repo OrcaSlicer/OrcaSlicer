@@ -11,11 +11,6 @@
 	"filament_change_length_nc": [
 		"4"
 	],
-	"filament_cooling_before_tower": [
-		"10",
-		"10",
-		"10"
-	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"
 	],
@@ -25,11 +20,6 @@
 		"Direct Drive E3D High Flow"
 	],
 	"filament_flush_temp_fast": [
-		"0",
-		"0",
-		"0"
-	],
-	"filament_flush_volumetric_speed": [
 		"0",
 		"0",
 		"0"
@@ -73,9 +63,6 @@
 	"filament_start_gcode": [
 		"; filament start gcode\n"
 	],
-	"filament_tower_interface_print_temp": [
-		"-1"
-	],
 	"filament_wipe": [
 		"1",
 		"1",
@@ -91,9 +78,6 @@
 		"Spiral Lift",
 		"Spiral Lift"
 	],
-	"first_x_layer_fan_speed": [
-		"0"
-	],
 	"hot_plate_temp": [
 		"70"
 	],
@@ -104,11 +88,6 @@
 		"1",
 		"1",
 		"1"
-	],
-	"retraction_distances_when_ec": [
-		"10",
-		"10",
-		"10"
 	],
 	"slow_down_min_speed": [
 		"20",
