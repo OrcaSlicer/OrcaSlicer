@@ -13,6 +13,7 @@ commands:
   update-index     regenerate the *_list sections of <vendor>.json
   legacy-compat    write the printers user presets can be migrated back to
   gcode-diff       print a readable markdown diff of changed custom G-code
+  version-check    fail unless every changed bundle's version was bumped
 
 options shared by several commands:
   --vendor VENDOR      act on one vendor bundle only; repeatable, empty means all
@@ -3409,7 +3410,7 @@ def gcode_diff(profiles_dir, base, head=None, vendors=None):
     return GCODE_DIFF_HEADER + "".join(sections[:shown]) + note
 
 
-def _default_gcode_diff_base(profiles_dir, head):
+def _default_diff_base(profiles_dir, head):
     for main in ("upstream/main", "origin/main"):
         try:
             return _git(profiles_dir, "merge-base", head or "HEAD", main).decode().strip()
@@ -3420,7 +3421,7 @@ def _default_gcode_diff_base(profiles_dir, head):
 
 def run_gcode_diff(profiles_dir, vendors, base, head):
     try:
-        markdown = gcode_diff(profiles_dir, base or _default_gcode_diff_base(profiles_dir, head),
+        markdown = gcode_diff(profiles_dir, base or _default_diff_base(profiles_dir, head),
                               head, vendors)
     # UnicodeDecodeError means git listed a file name that is not UTF-8.
     except (OSError, RuntimeError, UnicodeDecodeError, subprocess.CalledProcessError) as e:
@@ -3429,6 +3430,167 @@ def run_gcode_diff(profiles_dir, vendors, base, head):
         return 1
     sys.stdout.write(markdown)
     return 0
+
+
+# ---------------------------------------------------------------------------
+# version-check
+# ---------------------------------------------------------------------------
+
+# What the app's Semver::parse reads: three or four dot-separated numbers. Bundles write
+# four, MM.mm.pp.bb, and the OTA profile update's asset name requires all four.
+VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:\.\d+)?$")
+# The files a version-check error names before "and N more".
+VERSION_CHECK_SUMMARY_FILES = 3
+
+
+def _version_key(version):
+    """The version as the app orders it, or None when it does not parse. The fourth
+    component is folded into the third (patch * 100 + build), so 02.04.00.100 is not
+    newer than 02.04.01.00."""
+    if not isinstance(version, str) or not VERSION_RE.match(version):
+        return None
+    parts = [int(part) for part in version.split(".")]
+    build = parts[3] if len(parts) == 4 else 0
+    return (parts[0], parts[1], parts[2] * 100 + build)
+
+
+def next_version(version):
+    """The version after this one, in its own notation: the last component plus one,
+    carrying .99 into the third (02.03.02.99 -> 02.03.03.00). A three-part version
+    gains the fourth component (1.0.0 -> 1.0.0.01)."""
+    parts = version.split(".")
+    if len(parts) == 3:
+        return version + ".01"
+    patch, build = int(parts[2]), int(parts[3]) + 1
+    if build > 99:
+        patch, build = patch + 1, 0
+    return ".".join((parts[0], parts[1], str(patch).zfill(len(parts[2])),
+                     str(build).zfill(len(parts[3]))))
+
+
+def _changed_paths(profiles_dir, base, head):
+    """Every path under profiles_dir, relative to it, that differs between base and
+    head (the working tree, untracked files included, when None). Renames are not
+    paired, so a file moved between bundles changes both."""
+    out = _git(profiles_dir, "diff", "--name-only", "-z", "--no-renames", "--relative", base,
+               *([head] if head else []), "--", ".")
+    paths = [rel for rel in out.decode("utf-8").split("\0") if rel]
+    if head is None:
+        out = _git(profiles_dir, "ls-files", "-z", "--others", "--exclude-standard", "--", ".")
+        paths += [rel for rel in out.decode("utf-8").split("\0") if rel]
+    return paths
+
+
+def _is_dir_at(profiles_dir, ref, rel):
+    """Whether rel (relative to profiles_dir) is a directory at ref, or in the working
+    tree when ref is None."""
+    if ref is None:
+        return os.path.isdir(os.path.join(profiles_dir, rel))
+    prefix = _git(profiles_dir, "rev-parse", "--show-prefix").decode("utf-8").strip()
+    try:
+        return _git(profiles_dir, "cat-file", "-t", f"{ref}:{prefix}{rel}").strip() == b"tree"
+    except subprocess.CalledProcessError:
+        return False
+
+
+def _file_summary(files):
+    shown = ", ".join(files[:VERSION_CHECK_SUMMARY_FILES])
+    if len(files) > VERSION_CHECK_SUMMARY_FILES + 1:  # never "and 1 more"
+        return f"{shown} and {len(files) - VERSION_CHECK_SUMMARY_FILES} more"
+    return ", ".join(files)
+
+
+def version_check(profiles_dir, base, head=None, vendors=None):
+    """(bumped, errors) over the vendor bundles with a file that differs between base
+    and head: bumped lists (vendor, old version or None, new version, changed file
+    count) for each whose <Vendor>.json version at head is newer than at base (or that
+    base does not have); errors describes each whose version is unchanged, older,
+    missing, or not four numbers, and one whose index is gone while <Vendor>/ remains.
+    A top-level .json without a version and without a <Vendor>/ directory, such as
+    blacklist.json, is not a bundle; nor is one head deletes whole."""
+    files_by_vendor = defaultdict(list)
+    for rel in _changed_paths(profiles_dir, base, head):
+        top, sep, _ = rel.partition("/")
+        vendor = top if sep else (top[:-5] if top.endswith(".json") else "")
+        if vendor and vendor != USER_DIR and (not vendors or vendor in vendors):
+            files_by_vendor[vendor].append(rel)
+    if not files_by_vendor:
+        return [], []
+
+    specs = [(base, f"{vendor}.json") for vendor in files_by_vendor]
+    if head:
+        specs += [(head, f"{vendor}.json") for vendor in files_by_vendor]
+    blobs = _blobs_at(profiles_dir, specs)
+
+    def index_version(ref, vendor):
+        """(found, version) of <vendor>.json at ref, or in the working tree."""
+        if ref:
+            raw = blobs[(ref, f"{vendor}.json")]
+        else:
+            try:
+                raw = Path(profiles_dir, f"{vendor}.json").read_bytes()
+            except FileNotFoundError:
+                raw = None
+        if raw is None:
+            return False, None
+        try:
+            index = json.loads(raw.decode("utf-8-sig"))
+        except ValueError:
+            return True, None
+        return True, index.get("version") if isinstance(index, dict) else None
+
+    bumped, errors = [], []
+    where = head or "the working tree"
+    for vendor, files in sorted(files_by_vendor.items()):
+        found, new = index_version(head, vendor)
+        if not found:
+            if _is_dir_at(profiles_dir, head, vendor):
+                errors.append(f"{vendor}.json is missing in {where} while {vendor}/ still has "
+                              f"files; restore the index or delete the directory")
+            continue
+        if new is None:
+            if _is_dir_at(profiles_dir, head, vendor):
+                errors.append(f"{vendor}.json has no version in {where}, so the app never "
+                              f"installs the bundle; write one (MM.mm.pp.bb)")
+            continue
+        new_key = _version_key(new)
+        if new_key is None or new.count(".") != 3:
+            errors.append(f'{vendor}.json: version "{new}" in {where} is not four numbers '
+                          f"(MM.mm.pp.bb), which the profile update needs")
+            continue
+        found, old = index_version(base, vendor)
+        old_key = _version_key(old)
+        if old_key is None or new_key > old_key:
+            # No comparable base: a bundle base lacks, or whose index there has no
+            # usable version.
+            label = None if not found else ("no version" if old is None else str(old))
+            bumped.append((vendor, label, new, len(files)))
+        else:
+            what = (f"version {new} was not bumped" if new == old
+                    else f"version {new} is not newer than {old} at {base}")
+            count = f"{len(files)} file" + ("" if len(files) == 1 else "s")
+            errors.append(f"{vendor}.json: {what}, but {count} of the bundle changed "
+                          f"({_file_summary(files)}); bump it to {next_version(old)}")
+    return bumped, errors
+
+
+def run_version_check(profiles_dir, vendors, base, head):
+    try:
+        base = base or _default_diff_base(profiles_dir, head)
+        bumped, errors = version_check(profiles_dir, base, head, vendors)
+    # UnicodeDecodeError means git listed a file name that is not UTF-8.
+    except (OSError, RuntimeError, UnicodeDecodeError, subprocess.CalledProcessError) as e:
+        stderr = getattr(e, "stderr", None)
+        print_error(stderr.decode(errors="replace").strip() if stderr else str(e))
+        return 1
+    for vendor, old, new, count in bumped:
+        print(f"{vendor}: {old or 'new bundle'} -> {new}, {count} file"
+              f"{'' if count == 1 else 's'} changed")
+    for error in errors:
+        print_error(error)
+    if not bumped and not errors:
+        print(f"no profile bundle changed since {base}")
+    return 1 if errors else 0
 
 
 # ---------------------------------------------------------------------------
@@ -3458,6 +3620,9 @@ examples:
   orca_profile_tool.py gcode-diff > gcode.md
       the changed custom G-code of the working tree since it left upstream/main,
       as markdown with one collapsed diff per setting
+  orca_profile_tool.py version-check
+      fail unless every bundle the working tree changed since it left
+      upstream/main has a newer version in its <Vendor>.json
 
 after adding, renaming or deleting profile files, run in this order:
   normalize -> update-index -> generate-id -> check
@@ -3625,11 +3790,23 @@ def build_parser():
         "The settings are the *_gcode and multiline string options PrintConfig.cpp\n"
         "defines, the options Tab.cpp edits as code (such as filename_format), and any\n"
         "string value that spans several lines.")
-    gcode_cmd.add_argument("--base", metavar="REF",
-                           help="compare against this git ref (default: the merge base "
-                                "with upstream/main, else origin/main)")
-    gcode_cmd.add_argument("--head", metavar="REF",
-                           help="compare this git ref (default: the working tree)")
+
+    version_cmd = add(
+        "version-check", [vendor_opt, profiles_opt],
+        "fail unless every changed bundle's version was bumped",
+        "Fail unless every vendor bundle with a file that differs between --base and\n"
+        "--head (<Vendor>.json, or anything under <Vendor>/) has, at --head, a version\n"
+        "in <Vendor>.json that is newer than at --base and written as four numbers\n"
+        "(MM.mm.pp.bb). A bundle --base does not have passes. The app installs a\n"
+        "bundled profile only when its version is newer than the installed one, and\n"
+        "the OTA profile update is named after it, so a change without a bump never\n"
+        "reaches users. CI runs it on profile PRs against the branch they merge into.")
+    for cmd in (gcode_cmd, version_cmd):
+        cmd.add_argument("--base", metavar="REF",
+                         help="compare against this git ref (default: the merge base "
+                              "with upstream/main, else origin/main)")
+        cmd.add_argument("--head", metavar="REF",
+                         help="compare this git ref (default: the working tree)")
 
     return parser
 
@@ -3669,6 +3846,9 @@ def main(argv=None):
 
     if args.command == "gcode-diff":
         return run_gcode_diff(profiles_dir, vendors, args.base, args.head)
+
+    if args.command == "version-check":
+        return run_version_check(profiles_dir, vendors, args.base, args.head)
 
     if args.command == "fix-variant":
         _changed, errors = fix_variant_arrays(profiles_dir, vendors, dry_run=args.dry_run,

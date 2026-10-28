@@ -338,8 +338,17 @@ private:
     //std::vector<std::pair<std::string, Preset::Type>>  names_and_types;
     // additional action buttons used in dialog
     int m_buttons { ActionButtons::TRANSFER | ActionButtons::SAVE };
+    // Set only by the preset-switch constructor; used to re-check a remembered Save choice.
+    PresetCollection* m_dependent_presets { nullptr };
 
     std::string m_new_selected_preset_name;
+
+    // The config PresetBundle::save_changes_for_preset writes for this collection's edited preset:
+    // the edited values with the unselected options reverted to the selected preset's values.
+    DynamicPrintConfig make_save_config(PresetCollection& presets);
+    // True when the presets this Save action would write contain a reportable unresolved plugin
+    // value. Checks the same configs as save(), without showing a dialog.
+    bool selected_save_needs_plugin_warning();
 
 public:
 

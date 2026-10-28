@@ -372,7 +372,7 @@ bool prune_stale_plugin_overrides(DynamicConfig& config, const std::string& over
 
     // Capability names currently referenced by a plugin-backed option's value(s) — e.g.
     // slicing_pipeline_plugin's ConfigOptionStrings entries name SlicingPipeline capabilities
-    // directly, the same raw values save_plugin_collection() resolves into the "plugins" manifest.
+    // directly, the same raw values ConfigBase::collect_plugin_manifest() resolves into the manifest.
     std::set<std::pair<PluginCapabilityType, std::string>> referenced;
     const ConfigDef* def = config.def();
     for (const std::string& opt_key : config.keys()) {

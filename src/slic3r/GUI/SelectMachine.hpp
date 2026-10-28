@@ -323,6 +323,7 @@ private:
     bool                                m_is_canceled{ false };
     bool                                m_is_rename_mode{ false };
     bool                                m_check_flag {false};
+    bool                                m_pull_filament_pending{false};
     bool                                m_ext_change_assist{ false };
     PrintPageMode                       m_print_page_mode{PrintPageMode::PrintPageModePrepare};
     std::string                         m_print_error_msg;
