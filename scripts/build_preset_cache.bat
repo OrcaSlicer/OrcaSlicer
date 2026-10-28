@@ -120,10 +120,11 @@ set /a PRUNED=0
 for %%c in ("%PROFILES%\*.opc") do (
     set /a SHIPPED+=1
     set "VENDOR=%%~nc"
-    rem Prune the vendor directory first: it reads the profile's preset list,
-    rem and with --prune-source the profile is the target's own.
+    rem Prune the vendor directory first: it reads the preset list from the
+    rem target's own profile, which the delete below removes. The source profile
+    rem may already be gone when an earlier target pruned it.
     if exist "%TARGET%\!VENDOR!\" (
-        call :prune_listed_presets "%PROFILES%\!VENDOR!.json" "%TARGET%\!VENDOR!"
+        call :prune_listed_presets "%TARGET%\!VENDOR!.json" "%TARGET%\!VENDOR!"
         rem Deepest first, so a directory the delete above emptied goes too; rd
         rem refuses the ones still holding covers, meshes or data files.
         for /f "delims=" %%d in ('dir /s /b /ad "%TARGET%\!VENDOR!" 2^>nul ^| sort /r') do rd "%%d" 2>nul
