@@ -535,7 +535,6 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 tray_json["tray_info_idx"] = tray->tray_info_idx;
                 tray_json["tray_type"] = tray->tray_type;
                 tray_json["tray_color"] = normalize_color_value(tray->tray_color);
-                // Sent for every tray, since update_filament_multi_color() stops at the first tray without "cols".
                 // "ctype" uses the filament_colour_type values (0 = gradient, 1 = solid or segments).
                 const bool     multi = tray->tray_colors.size() > 1;
                 nlohmann::json cols  = nlohmann::json::array();

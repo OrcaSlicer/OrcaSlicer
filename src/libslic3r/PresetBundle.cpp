@@ -5070,7 +5070,7 @@ void PresetBundle::update_filament_multi_color()
     const auto &single_colors = project_config.option<ConfigOptionStrings>("filament_colour")->values;
     std::vector<std::string> exsit_multi_colors;
     for (auto &fil_item : ams_multi_color_filment){
-        // Orca: trays that report a single colour (e.g. Creality CFS) carry no multi-colour list.
+        // Orca: placeholder slots that sync_ams_list() pushes as {} carry no multi-colour list.
         // Fall back to the slot's own colour so the list stays aligned with filament_colour.
         if (fil_item.empty()) {
             const size_t idx = exsit_multi_colors.size();
