@@ -31,7 +31,8 @@
 #include <utility>
 #include <vector>
 
-#if defined(__GNUC__) || defined(__clang__)
+// Itanium-ABI demangling; clang-cl defines __clang__ but follows the MSVC ABI and has no cxxabi.h.
+#ifndef _MSC_VER
 #include <cxxabi.h>
 #endif
 
@@ -88,7 +89,7 @@ std::string class_name(const wxWindow* window)
     if (window == nullptr)
         return {};
     const char* raw = typeid(*window).name();
-#if defined(__GNUC__) || defined(__clang__)
+#ifndef _MSC_VER
     int   status    = 0;
     char* demangled = abi::__cxa_demangle(raw, nullptr, nullptr, &status);
     std::string out = status == 0 && demangled != nullptr ? demangled : raw;

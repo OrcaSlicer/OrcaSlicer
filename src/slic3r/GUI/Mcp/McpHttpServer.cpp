@@ -62,7 +62,8 @@ namespace {
 void keep_from_children(tcp::socket::native_handle_type handle)
 {
 #ifdef _WIN32
-    ::SetHandleInformation(reinterpret_cast<HANDLE>(handle), HANDLE_FLAG_INHERIT, 0);
+    // Asio's IOCP native handle is a wrapper class that only converts to SOCKET.
+    ::SetHandleInformation(reinterpret_cast<HANDLE>(static_cast<SOCKET>(handle)), HANDLE_FLAG_INHERIT, 0);
 #else
     ::fcntl(handle, F_SETFD, ::fcntl(handle, F_GETFD) | FD_CLOEXEC);
 #endif

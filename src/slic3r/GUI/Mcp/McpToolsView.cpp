@@ -209,10 +209,10 @@ void register_view_tools(McpService& service)
             ToolResult out = ToolResult::ok(info);
             if (arg_bool(args, "include_image", true)) {
                 const wxSize  size  = fit_within(full.GetSize(), max_dim);
-                const wxImage small = size == full.GetSize() ? full : full.Scale(size.x, size.y, wxIMAGE_QUALITY_HIGH);
+                const wxImage scaled = size == full.GetSize() ? full : full.Scale(size.x, size.y, wxIMAGE_QUALITY_HIGH);
                 out.data["image_width"]  = size.x;
                 out.data["image_height"] = size.y;
-                out.content.push_back({{"type", "image"}, {"mimeType", "image/png"}, {"data", base64(encode_png(small))}});
+                out.content.push_back({{"type", "image"}, {"mimeType", "image/png"}, {"data", base64(encode_png(scaled))}});
             }
             return out;
         });
