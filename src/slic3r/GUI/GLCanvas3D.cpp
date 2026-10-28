@@ -1013,8 +1013,9 @@ void GLCanvas3D::Labels::render(const std::vector<const ModelInstance*>& sorted_
 // The sums a solid adds to a marker.
 static GCodeProcessorResult::ObjectMass::Sum mass_sum(const MassProperties& solid)
 {
-    return { solid.mass, solid.volume, solid.mass * solid.center,
-             solid.mass * (solid.spread + solid.center * solid.center.transpose()) };
+    GCodeProcessorResult::ObjectMass::Sum sum{ solid.mass, solid.volume, solid.mass * solid.center };
+    sum.set_second_moments(solid.mass * (solid.spread + solid.center * solid.center.transpose()));
+    return sum;
 }
 
 // The ImGui id of the window with a marker's details, whatever its title.
@@ -1293,7 +1294,7 @@ void GLCanvas3D::CenterOfMass::render_details(GLCanvas3D& canvas)
     const Sum&    sum    = marker.sum;
     const Vec3d   center = marker.center();
     // About the axes through the center, from how far the mass spreads along the two others.
-    const Vec3d spread  = (sum.second / sum.mass - center * center.transpose()).diagonal().cwiseMax(0.);
+    const Vec3d spread  = (sum.second / sum.mass - center.cwiseProduct(center)).cwiseMax(0.);
     const Vec3d inertia = sum.mass * Vec3d(spread.y() + spread.z(), spread.x() + spread.z(), spread.x() + spread.y());
 
     // Beside the marker.

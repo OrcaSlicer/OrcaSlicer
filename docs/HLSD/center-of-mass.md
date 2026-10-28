@@ -128,10 +128,13 @@ the moves carry, which are also the layers of libvgcode and of the slider; in a 
 follow the order of printing, so the solid markers show the objects printed so far as they are.
 
 The belt printers' upright view draws the toolpaths through the affine map that takes the moves back
-to the model's frame, and `GCodeViewer` maps the masses with it as well: their mass and volume stay
-as printed, and their moments and second moments follow the map. The map shears, so the box of a
-box's mapped corners would reach far past the moves, and the details leave the boxes out. The raw
-view draws the moves as they are, and the masses with them.
+to the model's frame: `BeltTransformPipeline::build_gcode_back_transform()`, then a translation that
+lays them on the model. `GCodeViewer` maps the masses with it as well: their mass and volume stay as
+printed, and their moments and second moments follow the map. The map shears, so mapping the corners
+of a mass's box would give a box far larger than the moves. On a belt print the processor therefore
+keeps a second box for each mass, of the ends of each segment, half the bead's height below and
+above, mapped by the linear part of the map, which depends on the config alone; the translation then
+moves it into place. The raw view draws the moves as they are, and the masses with them.
 
 ## Drawing
 
@@ -172,10 +175,12 @@ Its title says what the marker stands for: the plate, an object, an assembly or 
 an assembly. The G-code export lists the object instances for the processor, marking assemblies, as
 it hands it the locator.
 
-Each marker carries its sums: mass, volume, first moments and the second moments about the origin,
-`Σ m x xᵀ`, which add up from parts to objects to plates, and which a shear such as the belt's maps
-only whole. The moment of inertia about the axis through the center parallel to x is then
-`m (σy² + σz²)`, with `σ²` the diagonal of `Σ m x xᵀ / m - c cᵀ`, and likewise for y and z. Masses are
+Each marker carries its sums: mass, volume, first moments and the second moments about the origin
+along each axis, `Σ m x²`, `Σ m y²` and `Σ m z²`, and across them, `Σ m x y`, `Σ m x z` and `Σ m y z`,
+which add up from parts to objects to plates. Together they make the symmetric `Σ m x xᵀ`, which a
+shear such as the belt's maps only whole. The moment of inertia about the axis through the center
+parallel to x is then `m (σy² + σz²)`, with `σ² = Σ m x² / m - c²` along each axis, and likewise for
+y and z. Masses are
 kept in mg, volume times density in g/cm³, and shown in g, volumes in cm³ and moments of inertia in
 g·mm². In Preview the box tells the finished print from what is printed up to the layer shown, the
 two weighing differently, and both are placed in the bounding box of everything the marker holds
