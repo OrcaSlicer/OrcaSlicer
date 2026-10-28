@@ -1,21 +1,3 @@
-# About this fork
-
-This is Niels Fenkl's development fork of [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer). It exists to develop and test improvements to support structures and to the model layers printed above support interfaces, with the aim of contributing these changes upstream.
-
-The fork adds:
-
-- **Local speed and cooling controls above support interfaces:** adjust the speed and part-cooling fan for affected model segments without changing the settings for the entire model.
-- **A gradual return to normal settings:** apply the adjustment across several model layers and optionally expand the affected area horizontally.
-- **More tree-support wall loops:** use explicit wall counts above two, with branch sizing adjusted to make room for the requested walls where geometry permits.
-
-Physical print tests have been performed, and I observed a noticeable improvement in the support structures. Results depend on the printer, material, model, and settings. The new above-support speed and fan controls are disabled by default.
-
-**AI assistance:** A substantial part of the implementation was developed with AI assistance. I remain responsible for the contribution and its validation.
-
-These changes are proposed in [upstream pull request #16944](https://github.com/OrcaSlicer/OrcaSlicer/pull/16944). This fork is maintained independently; builds published here are custom fork builds rather than official OrcaSlicer releases.
-
----
-
 <div align="center">
 
 <picture>
