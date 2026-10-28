@@ -330,7 +330,7 @@ TEST_CASE("A printer preset names its pack in its own manifest, and an inactive 
     const std::vector<std::string> expected_manifest{plugin_key + ";;Voron Bed"};
     CHECK(config->option("plugins") == nullptr);
     CHECK(config->option<ConfigOptionStrings>("printer_plugins")->values == expected_manifest);
-    CHECK(std::string(plugin_manifest_key(Preset::TYPE_PRINTER)) == "printer_plugins");
+    CHECK(config->plugin_manifest_key() == "printer_plugins");
 
     Preset printer(Preset::TYPE_PRINTER, "Voron with bed pack");
     printer.config = *config;
