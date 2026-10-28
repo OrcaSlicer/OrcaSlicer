@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "libslic3r/Config.hpp"
 #include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
@@ -99,12 +100,13 @@ static std::vector<std::string> adaptive_pa_model_warnings(const std::string &mo
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
-        { "enable_pressure_advance",         "1" },
-        { "adaptive_pressure_advance",       "1" },
-        { "adaptive_pressure_advance_model", model },
+        { "enable_pressure_advance",   "1" },
+        { "adaptive_pressure_advance", "1" },
         // the default config fails validation on relative extrusion without a G92 E0 at each layer
-        { "use_relative_e_distances",        "0" },
+        { "use_relative_e_distances",  "0" },
     });
+    // set as a value so that an empty model stays one filament column, as a preset holds it
+    config.option<ConfigOptionStrings>("adaptive_pressure_advance_model")->values = { model };
     Print print;
     Model model_instance;
     init_print({ cube(20) }, print, model_instance, config);
