@@ -1345,14 +1345,15 @@ void ViewerImpl::update_enabled_entities()
     std::vector<uint32_t> enabled_options;
 #ifndef ENABLE_OPENGL_ES
     // the reduced set is filled by the same walk, so switching to it costs no rebuild. Whatever the
-    // mode leaves out, the bottom and top layers of the visible range are kept whole: they are the
-    // surfaces the range cuts open
+    // mode leaves out, the layers at the bottom and top of the visible range are kept whole: they
+    // are the surfaces the range cuts open
     const EReducedDetailMode reduced_mode = m_settings.reduced_detail_mode;
     const bool build_reduced = reduced_mode != EReducedDetailMode::Off;
     const bool hide_infill = m_settings.reduced_detail_hide_infill;
     std::vector<uint32_t> enabled_segments_reduced;
     std::vector<uint32_t> enabled_options_reduced;
     const Interval& layers_range = m_layers.get_view_range();
+    const Interval whole_layers = build_reduced ? get_reduced_detail_whole_layers() : Interval{ 0, 0 };
 #endif // ENABLE_OPENGL_ES
     Interval range = m_view_range.get_visible();
 
@@ -1404,7 +1405,8 @@ void ViewerImpl::update_enabled_entities()
 
 #ifndef ENABLE_OPENGL_ES
         if (build_reduced) {
-            const bool end_layer = v.layer_id == layers_range[0] || v.layer_id == layers_range[1];
+            const bool end_layer = (v.layer_id >= layers_range[0] && v.layer_id <= whole_layers[0]) ||
+                                   (v.layer_id >= whole_layers[1] && v.layer_id <= layers_range[1]);
             if (end_layer)
                 (v.is_option() ? enabled_options_reduced : enabled_segments_reduced).push_back(static_cast<uint32_t>(i));
             else if (reduced_mode == EReducedDetailMode::EndLayersOnly) {

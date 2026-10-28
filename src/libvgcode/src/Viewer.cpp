@@ -169,6 +169,11 @@ bool Viewer::is_reduced_detail() const
     return m_impl->is_reduced_detail();
 }
 
+Interval Viewer::get_reduced_detail_whole_layers() const
+{
+    return m_impl->get_reduced_detail_whole_layers();
+}
+
 bool Viewer::is_option_visible(EOptionType type) const
 {
     return m_impl->is_option_visible(type);

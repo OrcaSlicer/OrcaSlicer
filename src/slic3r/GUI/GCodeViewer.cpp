@@ -59,6 +59,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libvgcode/include/GCodeInputData.hpp"
 #include "libvgcode/include/ColorRange.hpp"
+#include <cfloat>
 #include <optional>
 #include "libslic3r_version.h"
 #include <wx/busycursor.h>
@@ -3553,8 +3554,8 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     if (shader == nullptr)
         return;
 
-    // The range's end layers are drawn as toolpaths, so the solid runs from the top of the bottom
-    // one to the bottom of the top one. A face of the model in either layer's plane would otherwise
+    // The layers at the range's ends are drawn as toolpaths, so the solid runs from the top of the
+    // bottom ones to the bottom of the top ones. A face of the model in either plane would otherwise
     // fight the toolpaths for the same pixels and flicker while dragging.
     // The layer heights are the toolpaths', which the printer's z offset is already taken out of, so
     // they are in the shells' frame as they are.
@@ -3566,8 +3567,12 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
         return z;
     };
     const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
-    const float z_top = (layers[1] > 0) ? layer_top(layers[1] - 1) - 0.001f : -FLT_MAX;
-    const float z_bottom = layer_top(layers[0]) + 0.001f;
+    const libvgcode::Interval whole = m_viewer.get_reduced_detail_whole_layers();
+    const float z_top = (whole[1] > 0) ? layer_top(whole[1] - 1) - 0.001f : -FLT_MAX;
+    const float z_bottom = layer_top(whole[0]) + 0.001f;
+    // the toolpaths cover the whole range
+    if (z_top <= z_bottom)
+        return;
 
     std::vector<float> alphas;
     alphas.reserve(m_shells.volumes.volumes.size());

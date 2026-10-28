@@ -134,6 +134,9 @@ public:
         m_settings.reduced_detail = value;
     }
     bool is_reduced_detail() const { return m_settings.reduced_detail; }
+    // how far the whole end bands of the reduced set reach for a layer with infill, see Layers
+    static constexpr std::size_t REDUCED_DETAIL_END_DEPTH = 8;
+    Interval get_reduced_detail_whole_layers() const { return m_layers.get_whole_end_layers(REDUCED_DETAIL_END_DEPTH); }
 
     // ORCA: whether the filament colors keep their opacity, see get_vertex_alpha()
     bool is_translucent_filaments() const { return m_settings.translucent_filaments; }

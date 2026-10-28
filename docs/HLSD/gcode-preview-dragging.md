@@ -24,8 +24,16 @@ binding, never a rebuild. A change of mode does rebuild. Nothing is built while 
 is off, and the reduced buffers are then uploaded empty so that the last set does not stay
 allocated.
 
-Whatever the mode leaves out, the bottom and top layers of the visible range are kept whole: they
-are the faces the range cuts open, and the top is what the user is looking at.
+Whatever the mode leaves out, the layers at the bottom and top of the visible range are kept whole:
+they are the faces the range cuts open, and the top is what the user is looking at. An end layer
+with no infill of its own does not close the print there: infill combination prints the sparse
+infill of a few layers in one, leaving the others walls alone, and a support layer with no object
+layer at its height gets a layer of its own. Each end therefore runs from the range's end layer to
+the nearest layer with sparse infill, at most eight layers deep (`Layers::get_whole_end_layers()`),
+and the `Viewer` reports the two bands so that the solid model's cut can sit at their edges. The
+layer table is the whole plate's, so another object's top surface on the layer says nothing about
+this one's combined infill; a layer with only solid infill ends the band when no sparse infill is
+within reach, as on a print with none.
 
 The realistic view's shadow-caster pass draws whichever set is bound, so the key of the static
 shadow map includes whether the reduced set is: a map built during a drag is rebuilt on release.
@@ -33,7 +41,7 @@ With the mode off the reduced flag is never raised, and a drag changes nothing i
 
 ### Modes
 
-- `EndLayersOnly` (`solid` in the preference) keeps only the two end layers and the supports.
+- `EndLayersOnly` (`solid` in the preference) keeps only the end bands and the supports.
   `GCodeViewer` then draws the sliced objects and the prime tower as opaque solids, see below.
 - `ShellOnly` (`shell`) keeps every role but the sparse infill, internal solid infill, internal
   bridge infill and gap fill, which lie under the skins or between the walls. Walls, top and
@@ -49,17 +57,18 @@ With the mode off the reduced flag is never raised, and a drag changes nothing i
 
 The preview already loads the sliced objects as shells for its translucent ghost.
 `GCodeViewer::render_solid_model()` draws those shells opaque, in their filament colors, with the
-`gouraud` shader, whose z range cuts them to the visible layer range: from the top of the range's
-bottom layer to the bottom of its top layer, since those two layers are drawn as toolpaths and a
-face of the model in either layer's plane would flicker against them. The translucent ghost is
+`gouraud` shader, whose z range cuts them to the visible layer range: from the top of the bottom
+band to the bottom of the top band, since those layers are drawn as toolpaths and a face of the
+model in either plane would flicker against them. The translucent ghost is
 drawn first, as in every other mode, so the part above the cut stays visible while dragging. The
 cut itself is capped, one body at a time: a pass counts, per pixel and with the depth test off,
 the body's back faces less its front faces into the stencil buffer, which is zero for a closed
 body and one where the cut has opened it, and a quad in each cut plane, in the body's colour
 darkened, is drawn where it is not zero. Between the lines of a sparse layer on the cut, that quad is what shows, rather than
 the first layer or the bed far below moving with the camera. A view through both cut planes of
-a body with neither wall in the way is not capped. The two toolpath layers of the reduced set are
-drawn afterwards and cap the cut with what was really printed there. The shells hold only the objects, so while this mode is on the prime tower is added from its sliced
+a body with neither wall in the way is not capped. The toolpath layers of the reduced set are
+drawn afterwards and cap the cut with what was really printed there; the band's reach to a layer
+with infill is what puts real infill lines, not a bare cap, inside the walls. The shells hold only the objects, so while this mode is on the prime tower is added from its sliced
 mesh, positioned as the print placed it. It is added or removed on its own when the mode changes,
 without reloading the objects, keeps its opaque color so that it never appears among the
 translucent shells, and stays out of their bounding box. Supports have no mesh, so the reduced set
@@ -68,7 +77,7 @@ as they do at rest. `load_shells()` drops every non-model-part volume, so a nega
 cut out.
 
 A plate whose shells are not loaded keeps drawing toolpaths, since the solid model would leave
-only the end layers. So does a print whose layers do not rise in height from one to the next, as
+only the end bands. So does a print whose layers do not rise in height from one to the next, as
 when it is printed object by object: the cut is a single height range for the whole plate, which
 the ends of the layer range then do not bound. And so does a preview with a section view active:
 the section cuts the toolpaths open to show their inside, which a solid would cover.
