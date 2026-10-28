@@ -540,9 +540,6 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
     // Extrude like a regular print with the selected filament: its diameter and flow ratio, times the print flow ratio.
     const Extruder *filament      = writer.filament();
     const auto      line_e_per_mm = [&](double line_width) {
-        if (filament == nullptr)
-            return CalibPressureAdvance::e_per_mm(line_width, m_height_layer, m_nozzle_diameter, config.filament_diameter.get_at(0),
-                                                  config.print_flow_ratio);
         return filament->e_per_mm(Flow(line_width, m_height_layer, m_nozzle_diameter).mm3_per_mm() * config.print_flow_ratio);
     };
     const double e_per_mm        = line_e_per_mm(m_line_width);
