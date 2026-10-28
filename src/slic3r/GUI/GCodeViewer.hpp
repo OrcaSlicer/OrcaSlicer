@@ -375,6 +375,7 @@ mutable bool m_no_render_path { false };
     // ORCA: section view, as the viewer has it. What it cuts away casts no shadow.
     std::array<float, 4> m_clipping_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
     bool m_loaded_as_preview{ false };
+    std::vector<int> m_filament_display_ids;
 
 public:
     GCodeViewer();
@@ -385,6 +386,12 @@ public:
     void set_scale(float scale = 1.0);
     void init(ConfigOptionMode mode, Slic3r::PresetBundle* preset_bundle);
     void update_by_mode(ConfigOptionMode mode);
+    // Orca: the 0-based project slot of each g-code tool, for labels on compacted plates. Empty = identity.
+    void set_filament_display_ids(std::vector<int> ids) { m_filament_display_ids = std::move(ids); }
+    // 1-based label for a 0-based g-code tool id.
+    int filament_display_number(size_t tool_id) const {
+        return tool_id < m_filament_display_ids.size() ? m_filament_display_ids[tool_id] + 1 : int(tool_id) + 1;
+    }
 
     // extract rendering data from the given parameters
     //BBS: add only gcode mode

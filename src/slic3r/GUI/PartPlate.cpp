@@ -31,6 +31,7 @@
 #include "libslic3r/ParameterUtils.hpp"
 #include <imgui.h>
 #include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/FilamentCompaction.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include <cstdlib>
@@ -3675,12 +3676,37 @@ std::vector<int> PartPlate::get_used_filaments()
 	return std::vector(used_extruders_set.begin(), used_extruders_set.end());
 }
 
+std::vector<int> PartPlate::get_device_filaments() const
+{
+    std::vector<int> filaments;
+    // A .gcode.3mf plate has no objects, so no Print ever applied it.
+    if (check_objects_empty_and_gcode3mf(filaments) || m_print == nullptr)
+        return filaments;
+    const FilamentCompaction& compaction = m_print->filament_compaction();
+    // Sliced G-code tools mapped back to project filament numbers.
+    if (m_slice_result_valid && m_gcode_result != nullptr) {
+        std::set<int> printed;
+        for (const auto& [tool, volume] : m_gcode_result->print_statistics.total_volumes_per_extruder)
+            printed.insert(compaction.project_slot_of_tool(int(tool)) + 1);
+        if (!printed.empty())
+            return std::vector<int>(printed.begin(), printed.end());
+    }
+    for (int slot : compaction.used_slots)
+        filaments.push_back(slot + 1);
+    return filaments;
+}
+
 bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxString& error_message)
 {
     error_message.clear();
     FilamentMapMode mode = this->get_real_filament_map_mode(config);
     // only check printablity if we have explicit map result
     if (mode != fmmManual)
+        return true;
+
+    // Orca: filament_printable is a left/right dual-nozzle bitmask (default 3); on a device-resolved
+    // toolchanger it would reject every filament on tool >= 2.
+    if (device_resolves_filament_mapping(config))
         return true;
 
     std::vector<int> used_filaments = get_extruders(true);  // 1 base
@@ -8545,7 +8571,7 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
 	return ret;
 }
 
-int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int filament_count)
+int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int filament_count, int nozzle_count)
 {
 	int ret = 0;
 
@@ -8556,11 +8582,23 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
 	}
 	clear(true, true);
 	set_filament_count(filament_count);
+	// The CLI has no wxApp and no preset bundle to ask; leave the 3mf's maps untouched there.
+	const bool have_authoritative_counts = nozzle_count >= 0 || wxApp::GetInstance() != nullptr;
+	if (nozzle_count < 0 && wxApp::GetInstance() != nullptr)
+		nozzle_count = (int) wxGetApp().preset_bundle->get_printer_extruder_count();
 	for (unsigned int i = 0; i < (unsigned int)plate_data_list.size(); ++i)
 	{
 		int index = create_plate(false);
 		m_plate_list[index]->m_locked = plate_data_list[i]->locked;
 		m_plate_list[index]->config()->apply(plate_data_list[i]->config);
+
+		// A 3MF's per-plate filament_map may mismatch the filament count or reference missing tools.
+		if (have_authoritative_counts) {
+			if (ConfigOptionInts* plate_map = m_plate_list[index]->config()->option<ConfigOptionInts>("filament_map")) {
+				normalize_plate_filament_map(plate_map->values, (size_t) filament_count, (size_t) nozzle_count);
+			}
+		}
+
 		m_plate_list[index]->set_plate_name(plate_data_list[i]->plate_name);
 		if (plate_data_list[i]->plate_index != index)
 		{

@@ -201,7 +201,9 @@
 #include "GUI_Factories.hpp"
 #include "wxExtensions.hpp"
 #include "../Utils/PrintHost.hpp"
+#include "../Utils/Moonraker.hpp"
 #include "MainFrame.hpp"
+#include "libslic3r/FilamentCompaction.hpp"
 #ifdef SLIC3R_CAD
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #endif
@@ -290,6 +292,7 @@
 
 #include "PhysicalPrinterDialog.hpp"
 #include "PrintHostDialogs.hpp"
+#include "DevicePrintOptionsDialog.hpp"
 #include "PlateSettingsDialog.hpp"
 #include "DailyTips.hpp"
 #include "CreatePresetsDialog.hpp"
@@ -298,6 +301,11 @@
 #include "../Utils/OrcaCloudServiceAgent.hpp"
 #include "StepMeshDialog.hpp"
 #include "FilamentMapDialog.hpp"
+#include "FilamentInventoryEditor.hpp"
+#include "ActivePrinterSession.hpp"
+#include "FilamentInventoryStore.hpp"
+#include "libslic3r/FilamentInventory.hpp"
+#include "DeviceManager.hpp"
 #include "CloneDialog.hpp"
 #include "PurgeModeDialog.hpp"
 
@@ -976,6 +984,8 @@ struct Sidebar::priv
     ScalableButton* m_printer_connect = nullptr;
     ScalableButton* m_printer_bbl_sync = nullptr;
     ScalableButton* m_printer_setting = nullptr;
+    // Orca: opens FilamentInventoryEditor; visibility set in Sidebar::show_SEMM_buttons.
+    ScalableButton* m_printer_inventory = nullptr;
     wxStaticText *  m_text_printer_settings = nullptr;
     wxPanel* m_panel_printer_content = nullptr;
     // Filament Track Switch status overlay: an icon floated over the left/single extruder AMS area,
@@ -2761,14 +2771,19 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
 
 void Sidebar::update_sync_ams_btn_enable(wxUpdateUIEvent &e)
  {
-     if (m_last_slice_state != p->plater->is_background_process_slicing()) {
+     // Orca: a device-resolved printer also requires a live printer session for the selected preset.
+     bool live_ok = !device_resolves_filament_mapping(active_printer_session().profile().config) || active_printer_session().live();
+     bool should_enable_ams = !p->plater->is_background_process_slicing() && live_ok;
+     if (m_last_slice_state != p->plater->is_background_process_slicing() || ams_btn->IsEnabled() != should_enable_ams) {
          m_last_slice_state = p->plater->is_background_process_slicing();
          //btn_sync->Enable(!m_last_slice_state);
          p->m_printer_bbl_sync->Enable(!m_last_slice_state);
-         ams_btn->Enable(!m_last_slice_state);
+         ams_btn->Enable(should_enable_ams);
          Refresh();
      }
  }
+
+template<typename T> void setup_dialog_position(T& info);
 
 Sidebar::Sidebar(Plater *parent)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(39 * wxGetApp().em_unit(), -1)), p(new priv(parent))
@@ -2856,6 +2871,30 @@ Sidebar::Sidebar(Plater *parent)
             wxGetApp().run_wizard(RunReason::RR_USER, StartPage::SP_PRINTERS);
             });
 
+        p->m_printer_inventory = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "menu_filament");
+        p->m_printer_inventory->SetToolTip(_L("Printer Material Settings"));
+        p->m_printer_inventory->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+            // Defer the modal: otherwise the button's LEFT_UP can be re-delivered to the title panel
+            // when the modal loop exits, collapsing the printer section.
+            CallAfter([this]() {
+                const Preset  &printer_preset = active_printer_session().profile();
+                FilamentInventoryEditor dlg(this, printer_preset.name, addressable_tool_count_of(printer_preset));
+                // Restore the saved position, else place beside the printer section. Size always refits,
+                // since it depends on the tool count.
+                if (wxGetApp().window_pos_restore(&dlg, "filament_inventory_editor")) {
+                    dlg.Fit();
+                } else {
+                    struct { wxPoint dialog_pos; bool dialog_pos_align_right = true; } at;
+                    setup_dialog_position(at);
+                    const int x = at.dialog_pos_align_right ? at.dialog_pos.x : at.dialog_pos.x - dlg.GetSize().x;
+                    dlg.SetPosition(wxPoint(x, p->m_panel_printer_title->GetScreenPosition().y));
+                }
+                wxGetApp().window_pos_sanitize(&dlg);
+                dlg.ShowModal();
+                wxGetApp().window_pos_save(&dlg, "filament_inventory_editor");
+            });
+        });
+
         wxBoxSizer* h_sizer_title = new wxBoxSizer(wxHORIZONTAL);
         h_sizer_title->Add(p->m_printer_icon, 0, wxALIGN_CENTRE | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
         h_sizer_title->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
@@ -2863,6 +2902,7 @@ Sidebar::Sidebar(Plater *parent)
         //h_sizer_title->AddStretchSpacer();
         h_sizer_title->Add(p->m_printer_connect , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
         h_sizer_title->Add(p->m_printer_bbl_sync, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
+        h_sizer_title->Add(p->m_printer_inventory, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
         h_sizer_title->Add(p->m_printer_setting, 0, wxALIGN_CENTER);
         h_sizer_title->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
         h_sizer_title->SetMinSize(-1, 3 * em);
@@ -3818,12 +3858,15 @@ void Sidebar::update_all_preset_comboboxes()
         p->m_printer_connect->Hide();
         //only show sync-ams button for BBL printer
         p->m_bpButton_ams_filament->Show();
+        ams_btn->SetToolTip(_L("Synchronize filament list from AMS"));
         //update print button default value for bbl or third-party printer
         p_mainframe->set_print_button_to_default(MainFrame::PrintSelectType::ePrintPlate);
     } else {
         //p->btn_connect_printer->Show();
         // ORCA: hide the physical-printer connection button when printer agents are enabled
         p->m_printer_connect->Show(!use_printer_agents);
+        ams_btn->SetToolTip(device_resolves_filament_mapping(cfg) ? _L("Synchronize filament list from printer")
+                                                                  : _L("Synchronize filament list from AMS"));
 
         // ORCA: show/hide sync-ams button based on filament sync mode
         auto agent = wxGetApp().getAgent();
@@ -5731,6 +5774,11 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
         recalc_filament_scroll_sizes();
         update_mixed_filament_list();
         update_dynamic_filament_list();
+        // Orca: the count is unchanged but the presets/colors behind it may not be (e.g. printer
+        // reselect), and nothing else refreshes the combos in that case.
+        if (device_resolves_filament_mapping(wxGetApp().preset_bundle->printers.get_edited_preset().config))
+            for (PlaterPresetComboBox *choice : choices)
+                choice->update();
         return;
     }
 
@@ -6101,6 +6149,8 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
     // For pull-mode agents (e.g., HTTP REST API), refresh DevFilaSystem first
     auto* agent = wxGetApp().getDeviceManager()->get_agent();
     if (agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull) {
+        if (device_resolves_filament_mapping(active_printer_session().profile().config) && obj == active_printer_session().live_machine())
+            active_printer_session().bind_agent();
         if (!agent->fetch_filament_info(obj->get_dev_id())) {
             return filament_ams_list;
         }
@@ -6312,6 +6362,13 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     auto obj = wxGetApp().getDeviceManager()->get_selected_machine();
     if (!obj)
         return;
+
+    // Orca: same gate as update_sync_ams_btn_enable; other entry points bypass the button state.
+    if (device_resolves_filament_mapping(active_printer_session().profile().config) && !active_printer_session().live()) {
+        auto printer_name = p->plater->get_selected_printer_name_in_combox();
+        p->plater->pop_warning_and_go_to_device_page(printer_name, Plater::PrinterWarningType::NOT_CONNECTED, _L("Sync printer information"));
+        return;
+    }
     GUI::wxGetApp().sidebar().load_ams_list(obj);
 
     auto & list = wxGetApp().preset_bundle->filament_ams_list;
@@ -6341,6 +6398,16 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     if (!wxGetApp().plater()->is_same_printer_for_connected_and_selected()) {
         return;
     }
+    // Orca: the dialog's slot picker reads the stored inventory; fill it from the report just read.
+    // A reported changer is cached into the printer preset here, which makes it device-resolved.
+    if (obj == active_printer_session().live_machine() && obj->GetFilaSystem() && obj->GetFilaSystem()->IsAllToolchanger()) {
+        FilamentInventories store;
+        FilamentInventory&  inventory = load_active_printer_inventory(store);
+        sync_filament_inventory_from_printer(store, inventory, /*fetch=*/false);
+    }
+    // Orca: a changer this sync reported can show the Printer Material Settings button.
+    if (obj == active_printer_session().live_machine())
+        show_SEMM_buttons();
     std::string ams_filament_ids = wxGetApp().app_config->get("ams_filament_ids", p->ams_list_device);
     std::vector<std::string> list2;
     if (!ams_filament_ids.empty()) {
@@ -6566,12 +6633,40 @@ bool Sidebar::should_show_SEMM_buttons()
     bool is_bbl_vendor = preset_bundle.is_bbl_vendor();
     auto cfg = preset_bundle.printers.get_edited_preset().config;
 
-    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
+    // Also for device-owned protocols: the filament list can still outgrow the tool count.
+    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor || device_resolves_filament_mapping(cfg);
+}
+
+// Orca: the changer the live printer reports, else the one recorded by an earlier sync.
+static std::string reported_changer_dialect()
+{
+    const ActivePrinterSession& session = active_printer_session();
+    if (MachineObject* machine = session.live_machine())
+        if (std::shared_ptr<DevFilaSystem> fila_system = machine->GetFilaSystem(); fila_system && !fila_system->GetChangerDialect().empty())
+            return fila_system->GetChangerDialect();
+    const FilamentInventories store = load_filament_inventories();
+    const auto                it    = store.by_preset.find(session.profile().name);
+    return it != store.by_preset.end() ? it->second.dialect : std::string();
+}
+
+// Orca: needs a configured connection to read the printer's filaments; not gated on host_type since
+// the agent layer picks its own transport. BBL printers have their own AMS sync.
+static bool show_printer_materials_button()
+{
+    const ActivePrinterSession& session = active_printer_session();
+    if (!session.connection().configured())
+        return false;
+    const DynamicPrintConfig& cfg = session.profile().config;
+    return (!wxGetApp().preset_bundle->is_bbl_vendor() && printer_has_viewable_filaments(cfg, reported_changer_dialect())) ||
+           device_resolves_filament_mapping(cfg);
 }
 
 void Sidebar::show_SEMM_buttons()
 {
     // ORCA
+    if (p && p->m_printer_inventory)
+        p->m_printer_inventory->Show(show_printer_materials_button());
+
     if (!p || p->combos_filament.empty() || !p->m_bpButton_add_filament || !p->m_bpButton_del_filament || !p->m_flushing_volume_btn)
         return;
     
@@ -6583,7 +6678,15 @@ void Sidebar::show_SEMM_buttons()
 
     p->m_bpButton_add_filament->Show(single_or_bbl);
     p->m_bpButton_del_filament->Show(is_multi);
-    p->m_flushing_volume_btn->Show(  is_multi);
+    // Orca: a device-resolved printer shows it only where filament swaps through a nozzle; a plain toolchanger never purges.
+    {
+        const auto& printer_cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        const auto* nozzles     = printer_cfg.option<ConfigOptionFloats>("nozzle_diameter");
+        const bool  multi_nozzle = nozzles != nullptr && nozzles->size() > 1;
+        const bool  swaps = !device_resolves_filament_mapping(printer_cfg) || printer_cfg.opt_bool("single_extruder_multi_material") ||
+                            (multi_nozzle && !reported_changer_of(printer_cfg).empty());
+        p->m_flushing_volume_btn->Show(is_multi && swaps);
+    }
 
     if (is_multi) {
         for (auto &c : p->combos_filament)
@@ -7230,6 +7333,8 @@ struct Plater::priv
     bool m_ignore_event{false};
     bool m_slice_all{false};
     bool m_is_slicing {false};
+    // Orca: back-to-back reslices asked for by FilamentRenumberRequired; one is allowed.
+    int  m_filament_renumber_reslices {0};
     // Missing-plugin set signatures (sorted full refs joined by '\n'), one per notification. They
     // gate plugin-load re-validation and avoid needlessly recreating the notification when the set
     // is unchanged. Whether missing plugins block slicing is derived directly from PluginResolver
@@ -7656,6 +7761,7 @@ struct Plater::priv
     void on_action_print_all(SimpleEvent&);
     void on_action_export_gcode(SimpleEvent&);
     void on_action_send_gcode(SimpleEvent&);
+    void on_action_upload_gcode(SimpleEvent&);
     void on_action_export_sliced_file(SimpleEvent&);
     void on_action_export_all_sliced_file(SimpleEvent&);
     void on_action_select_sliced_plate(wxCommandEvent& evt);
@@ -8234,6 +8340,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         q->Bind(EVT_GLTOOLBAR_PRINT_ALL, &priv::on_action_print_all, this);
         q->Bind(EVT_GLTOOLBAR_EXPORT_GCODE, &priv::on_action_export_gcode, this);
         q->Bind(EVT_GLTOOLBAR_SEND_GCODE, &priv::on_action_send_gcode, this);
+        q->Bind(EVT_GLTOOLBAR_UPLOAD_GCODE, &priv::on_action_upload_gcode, this);
         q->Bind(EVT_GLTOOLBAR_EXPORT_SLICED_FILE, &priv::on_action_export_sliced_file, this);
         q->Bind(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE, &priv::on_action_export_all_sliced_file, this);
         q->Bind(EVT_GLTOOLBAR_SEND_TO_PRINTER, &priv::on_action_export_to_sdcard, this);
@@ -9446,7 +9553,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 partplate_list.reset_size(current_width + Bed3D::Axes::DefaultTipRadius, current_depth + Bed3D::Axes::DefaultTipRadius, current_height, false);
                             }
                             project_filament_count = config_loaded.option<ConfigOptionStrings>("filament_colour")->size();
-                            partplate_list.load_from_3mf_structure(plate_data, project_filament_count);
+                            // The loaded project's nozzle count: its printer preset is applied only later below.
+                            int project_nozzle_count = 1;
+                            if (const ConfigOptionFloats* project_nozzle_diameter = config_loaded.option<ConfigOptionFloats>("nozzle_diameter"))
+                                project_nozzle_count = (int) project_nozzle_diameter->size();
+                            partplate_list.load_from_3mf_structure(plate_data, project_filament_count, project_nozzle_count);
                             partplate_list.update_slice_context_to_current_plate(background_process);
                             this->preview->update_gcode_result(partplate_list.get_current_slice_result());
                             release_PlateData_list(plate_data);
@@ -13366,6 +13477,21 @@ bool Plater::priv::warnings_dialog()
 }
 
 //BBS: add project slice logic
+// Orca: Print::process asks for one more apply when the plate's filaments fit the printer but were
+// numbered past its last tool (see FilamentRenumberRequired).
+static bool is_filament_renumber_request(const SlicingProcessCompletedEvent &evt)
+{
+    if (!evt.error())
+        return false;
+    try {
+        evt.rethrow_exception();
+    } catch (const FilamentRenumberRequired &) {
+        return true;
+    } catch (...) {
+    }
+    return false;
+}
+
 void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
 {
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": enter, m_ignore_event %1%, status %2%")%m_ignore_event %evt.status();
@@ -13376,6 +13502,18 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": ignore this event %1%") % evt.status();
         return;
     }
+
+    // Orca: reslice once with the learned numbering; a repeat request or a failed restart is
+    // reported like any other slicing error.
+    if (is_filament_renumber_request(evt) && m_filament_renumber_reslices == 0) {
+        ++m_filament_renumber_reslices;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": filament numbering learned, reslicing plate " << partplate_list.get_curr_plate_index();
+        this->background_process.stop();
+        if (q->start_next_slice() == 0)
+            return;
+    }
+    m_filament_renumber_reslices = 0;
+
     //BBS: add project slice logic
     bool is_finished = !m_slice_all || (m_cur_slice_plate == (partplate_list.get_plate_count() - 1));
 
@@ -14007,6 +14145,14 @@ void Plater::priv::on_action_send_gcode(SimpleEvent&)
     if (q != nullptr) {
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export gcode event\n" ;
         q->send_gcode_legacy();
+    }
+}
+
+void Plater::priv::on_action_upload_gcode(SimpleEvent&)
+{
+    if (q != nullptr) {
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received upload gcode event\n";
+        q->send_gcode_legacy(-1, nullptr, /*upload_only=*/true);
     }
 }
 
@@ -20652,13 +20798,16 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
         PlateData *plate_data = plate_data_list[i];
         plate_data->printer_model_id = printer_model_id;
         plate_data->nozzle_diameters = nozzle_diameter_str;
+        // ids are g-code tool numbers; look up project data via the compaction slot but keep the id.
+        PartPlate* plate = p->partplate_list.get_plate(i);
         for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
+            const int slot = plate != nullptr ? plate->project_slot_of_tool(it->id) : it->id;
             std::string display_filament_type;
-            it->type  = cfg.get_filament_type(display_filament_type, it->id);
-            it->filament_id = filament_id_opt ? filament_id_opt->get_at(it->id) : "";
+            it->type  = cfg.get_filament_type(display_filament_type, slot);
+            it->filament_id = filament_id_opt ? filament_id_opt->get_at(slot) : "";
             if (id_agent)
                 it->filament_id = id_agent->from_orca_filament_id(it->filament_id);
-            it->color = filament_color ? filament_color->get_at(it->id) : "#FFFFFF";
+            it->color = filament_color ? filament_color->get_at(slot) : "#FFFFFF";
             // save filament info used in curr plate
             int index = p->partplate_list.get_curr_plate_index();
             if (store_params.id_bboxes.size() > index) {
@@ -21003,7 +21152,100 @@ void Plater::reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &
     // and let the background processing start.
     this->p->restart_background_process(state | priv::UPDATE_BACKGROUND_PROCESS_FORCE_RESTART);
 }
-void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
+// Orca: re-keys per-project-slot picks onto the g-code's emitted tool numbers, using the
+// compaction the plate was sliced with. Only tools up to the highest one the plate prints are keyed.
+static std::vector<int> device_wire_filament_map(const FilamentCompaction& compaction, const std::vector<int>& filaments_1based,
+                                                 const std::vector<int>& map_1based)
+{
+    if (compaction.slot_of_tool.empty())
+        return map_1based;
+    int tool_count = 0;
+    for (int filament : filaments_1based)
+        tool_count = std::max(tool_count, compaction.tool_of_slot(filament - 1) + 1);
+    std::vector<int> out(size_t(tool_count), 0);
+    for (size_t tool = 0; tool < out.size(); ++tool)
+        if (size_t(compaction.slot_of_tool[tool]) < map_1based.size())
+            out[tool] = map_1based[compaction.slot_of_tool[tool]];
+    return out;
+}
+
+// Orca: per-filament arrays are per project filament; nozzle_diameter and used_physical_tools
+// are per physical tool. Unused filaments keep preset values with zero weight.
+static DevicePrintJobInfo build_device_print_job_info(PartPlate*                                plate,
+                                                      const std::vector<int>&                   filament_map_1based,
+                                                      const std::map<std::string, std::string>& options)
+{
+    DevicePrintJobInfo job;
+    job.filament_map_1based = filament_map_1based;
+    job.options             = options;
+
+    const DynamicPrintConfig config = wxGetApp().preset_bundle->full_config();
+
+    const auto* types = config.option<ConfigOptionStrings>("filament_type");
+    const size_t filament_count = types != nullptr ? types->size() : 0;
+    if (types != nullptr)
+        job.filament_type = types->values;
+    auto per_filament = [filament_count](const auto* opt, std::vector<double>& out) {
+        if (opt != nullptr)
+            for (size_t i = 0; i < filament_count; ++i)
+                out.push_back(opt->get_at(i));
+    };
+    per_filament(config.option<ConfigOptionInts>("nozzle_temperature"), job.nozzle_temp);
+    per_filament(config.option<ConfigOptionFloats>("filament_flow_ratio"), job.flow_ratio);
+    per_filament(config.option<ConfigOptionFloats>("filament_diameter"), job.filament_diameter);
+
+    if (const auto* nozzles = config.option<ConfigOptionFloats>("nozzle_diameter"))
+        job.nozzle_diameter = nozzles->values;
+
+    // PartPlate::slice_filaments_info is filled only on 3mf load, so derive usage from the g-code result.
+    job.used_g.assign(filament_count, 0.);
+    job.used_mm.assign(filament_count, 0.);
+    if (plate != nullptr) {
+        PlateData stats;
+        stats.parse_filament_info(plate->get_slice_result());
+        // parse_filament_info keys by g-code tool number; these arrays are project-indexed.
+        for (const FilamentInfo& info : stats.slice_filaments_info) {
+            const int slot = plate->project_slot_of_tool(info.id);
+            if (slot < 0 || (size_t) slot >= filament_count)
+                continue;
+            job.used_g[slot]  = info.used_g;
+            job.used_mm[slot] = info.used_m * 1000.; // parse_filament_info reports metres
+        }
+    }
+
+    // Deduped in first-use order; the firmware skips flow calibration for tools not listed.
+    if (plate != nullptr) {
+        for (int filament : plate->get_device_filaments()) {
+            if (filament < 1 || filament > (int) filament_map_1based.size())
+                continue;
+            const int tool = filament_map_1based[filament - 1] - 1; // 0-based, as the wire wants
+            if (tool < 0)
+                continue;
+            if (std::find(job.used_physical_tools.begin(), job.used_physical_tools.end(), tool) == job.used_physical_tools.end())
+                job.used_physical_tools.push_back(tool);
+        }
+    }
+
+    // AFC renders its map by lane name; other dialects ignore these.
+    {
+        FilamentInventories store;
+        for (const auto& slot : load_active_printer_inventory(store).slots)
+            job.slot_names.push_back(slot.name);
+    }
+
+    // line_width is a percentage of the nozzle diameter; the screen sends the resolved value.
+    const double first_nozzle = job.nozzle_diameter.empty() ? 0.4 : job.nozzle_diameter.front();
+    if (const auto* line_width = config.option<ConfigOptionFloatOrPercent>("line_width"))
+        job.line_width = line_width->get_abs_value(first_nozzle);
+    if (const auto* layer_height = config.option<ConfigOptionFloat>("layer_height"))
+        job.layer_height = layer_height->value;
+    if (const auto* wall_speed = config.option<ConfigOptionFloats>("outer_wall_speed"); wall_speed != nullptr && !wall_speed->empty())
+        job.outer_wall_speed = wall_speed->get_at(0);
+
+    return job;
+}
+
+void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool upload_only)
 {
     // if physical_printer is selected, send gcode for this printer
     // DynamicPrintConfig* physical_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
@@ -21078,8 +21320,38 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
         const bool flashforge_local_api = host_type == htFlashforge && ff_serial_opt != nullptr && !ff_serial_opt->value.empty() &&
                                           ff_code_opt != nullptr && !ff_code_opt->value.empty();
 
+        // Orca: protocol and changer as the slice saw them; the send below compares against these
+        // after the dialog re-reads the printer.
+        const FilamentMappingProtocol vendor_protocol = physical_printer_config != nullptr
+                                                            ? filament_mapping_protocol_of(*physical_printer_config)
+                                                            : FilamentMappingProtocol::fmpNone;
+        const std::string sliced_changer = physical_printer_config != nullptr ? reported_changer_of(*physical_printer_config) : std::string();
+        const MapDelivery map_delivery   = effective_map_delivery(vendor_protocol, sliced_changer);
+        const DevicePrintSpec device_spec = (physical_printer_config != nullptr && !upload_only)
+                                                ? device_print_spec(vendor_protocol, map_delivery)
+                                                : DevicePrintSpec();
+        const int  device_plate_idx  = plate_idx == PLATE_ALL_IDX ? get_partplate_list().get_curr_plate_index() : resolved_plate_idx;
+        PartPlate* device_plate      = get_partplate_list().get_plate(device_plate_idx);
+        const std::vector<int> device_plate_filaments = device_plate ? device_plate->get_device_filaments() : std::vector<int>();
+
         std::unique_ptr<PrintHostSendDialog> pDlg;
-        if (host_type == htElegooLink) {
+        DevicePrintOptionsDialog*            device_dlg = nullptr;
+        if (!device_spec.empty()) {
+            // Only Moonraker delivers extended_info["start_script"]; other hosts would start unmapped.
+            const wxString undeliverable = host_type == htMoonraker
+                ? wxString()
+                : _L("This printer's filament mapping can only be sent when its host type is Moonraker. "
+                     "Upload the file and start it from the printer's screen to choose the mapping there, "
+                     "or set Host Type to Moonraker in Printer Settings.");
+            auto owned = std::make_unique<DevicePrintOptionsDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(),
+                                                                    groups, storage_paths, storage_names,
+                                                                    config->get_bool("open_device_tab_post_upload"),
+                                                                    device_spec,
+                                                                    preset_bundle->printers.get_edited_preset().name,
+                                                                    device_plate_filaments, undeliverable);
+            device_dlg = owned.get();
+            pDlg       = std::move(owned);
+        } else if (host_type == htElegooLink) {
             pDlg = std::make_unique<ElegooPrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
                                                                storage_paths, storage_names,
                                                                config->get_bool("open_device_tab_post_upload"));
@@ -21111,14 +21383,18 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
             DynamicPrintConfig          cfg                 = wxGetApp().preset_bundle->full_config();
             const auto*                 filament_color      = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_colour"));
             const auto*                 filament_id_opt     = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_ids"));
+            // Orca: FilamentInfo::id is the g-code tool number and must stay so for extendedInfo();
+            // project-indexed lookups go through the compaction slot.
+            PartPlate* sliced_plate = get_partplate_list().get_plate(resolved_plate_idx);
             auto enrich_project_filaments = [&](std::vector<FilamentInfo>& filaments) {
                 for (auto& filament : filaments) {
                     if (filament.id < 0)
                         continue;
+                    const int slot = sliced_plate != nullptr ? sliced_plate->project_slot_of_tool(filament.id) : filament.id;
 
                     std::string display_filament_type;
                     try {
-                        filament.type = cfg.get_filament_type(display_filament_type, filament.id);
+                        filament.type = cfg.get_filament_type(display_filament_type, slot);
                     } catch (...) {
                     }
 
@@ -21127,8 +21403,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
                     if (filament.type.empty())
                         filament.type = "Unknown";
 
-                    filament.filament_id = filament_id_opt ? filament_id_opt->get_at(static_cast<size_t>(filament.id)) : "";
-                    filament.color       = filament_color ? filament_color->get_at(static_cast<size_t>(filament.id)) : "#FFFFFF";
+                    filament.filament_id = filament_id_opt ? filament_id_opt->get_at(static_cast<size_t>(slot)) : "";
+                    filament.color       = filament_color ? filament_color->get_at(static_cast<size_t>(slot)) : "#FFFFFF";
                     if (filament.color.empty())
                         filament.color = "#FFFFFF";
                 }
@@ -21142,10 +21418,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
             if (selected_plate_data != nullptr)
                 project_filaments = selected_plate_data->slice_filaments_info;
 
-            if (project_filaments.empty()) {
-                if (PartPlate* plate = get_partplate_list().get_plate(resolved_plate_idx); plate != nullptr)
-                    project_filaments = plate->get_slice_filaments_info();
-            }
+            if (project_filaments.empty() && sliced_plate != nullptr)
+                project_filaments = sliced_plate->get_slice_filaments_info();
 
             if (!project_filaments.empty())
                 enrich_project_filaments(project_filaments);
@@ -21160,7 +21434,10 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
                                                                    project_filaments,
                                                                    cfg.opt_bool("manual_filament_change"));
         } else {
-            pDlg = std::make_unique<PrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
+            PrintHostPostUploadActions actions = upload_job.printhost->get_post_upload_actions();
+            if (upload_only)
+                actions = PrintHostPostUploadActions();
+            pDlg = std::make_unique<PrintHostSendDialog>(default_output_file, actions, groups,
                                                          storage_paths, storage_names, config->get_bool("open_device_tab_post_upload"));
         }
 
@@ -21176,7 +21453,52 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
         upload_job.upload_data.post_action = pDlg->post_action();
         upload_job.upload_data.group       = pDlg->group();
         upload_job.upload_data.storage     = pDlg->storage();
+        // Orca: assignment; device-mapping keys must be added after this line.
         upload_job.upload_data.extended_info = pDlg->extendedInfo();
+        if (physical_printer_config != nullptr) {
+            // The script uses a filename placeholder: the stored name is known only after upload
+            // (it can differ on a collision), and Moonraker substitutes it then.
+            if (device_dlg != nullptr) {
+                if (upload_job.upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
+                    // The dialog re-read the printer; re-validate in case its tool count dropped below what
+                    // the plate addresses.
+                    if (this->p->update_restart_background_process(false, false) & priv::UPDATE_BACKGROUND_PROCESS_INVALID)
+                        return;
+                    // A changer that appeared or vanished since the slice changes tool numbering.
+                    {
+                        FilamentInventories store;
+                        const std::string   live_changer = load_active_printer_inventory(store).dialect;
+                        if (live_changer != sliced_changer) {
+                            BOOST_LOG_TRIVIAL(warning) << "send_gcode_legacy: sliced with changer '" << sliced_changer
+                                                       << "' but the printer reports '" << live_changer << "'; send aborted";
+                            MessageDialog(this, _L("The printer's filament changer differs from the one this plate was sliced for. "
+                                                   "Sync the printer materials and slice again."),
+                                          _L("Send print"), wxOK | wxICON_WARNING).ShowModal();
+                            return;
+                        }
+                    }
+                    DevicePrintJobInfo job = build_device_print_job_info(device_plate, device_dlg->filament_map(),
+                                                                         device_dlg->options());
+                    // used_physical_tools needs the project-slot map; the wire needs emitted tool numbers.
+                    const Print* sliced_print = device_plate != nullptr ? device_plate->fff_print() : nullptr;
+                    job.filament_map_1based = sliced_print != nullptr
+                                                  ? device_wire_filament_map(sliced_print->filament_compaction(), device_plate_filaments,
+                                                                             device_dlg->filament_map())
+                                                  : device_dlg->filament_map();
+                    const auto* moonraker = dynamic_cast<const Moonraker*>(upload_job.printhost.get());
+                    const MapDelivery delivery = print_time_map_delivery(
+                        map_delivery, map_delivery == MapDelivery::afc && moonraker != nullptr && moonraker->has_klipper_object("openace"));
+                    std::string start_script = build_device_start_script(vendor_protocol, delivery,
+                                                                          PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER, job);
+                    if (!start_script.empty())
+                        upload_job.upload_data.extended_info["start_script"] = start_script;
+                }
+            }
+            // Never auto-start a print whose filament map did not reach the printer. Only Moonraker
+            // gets a script: the dialog disables Print for other hosts.
+            if (map_delivery != MapDelivery::none && upload_job.upload_data.extended("start_script").empty())
+                upload_job.upload_data.post_action = PrintHostPostUploadAction::None;
+        }
         // Orca: gcode inside a .gcode.3mf is index-coded (Metadata/plate_<N>.gcode) and a bundle may
         // carry several of them, so the upload must name which plate to print via a 1-based plateindex.
         // Even a single-plate bundle needs it, since its gcode entry is still indexed. The host upload
@@ -21999,9 +22321,9 @@ const std::vector<std::vector<wxColour>>& Plater::get_filament_gradient_ramps() 
 /* Get vector of colors used for rendering of a Preview scene in "Color print" mode
  * It consists of extruder colors and colors, saved in model.custom_gcode_per_print_z
  */
-std::vector<std::string> Plater::get_colors_for_color_print(const GCodeProcessorResult* const result) const
+std::vector<std::string> Plater::get_colors_for_color_print(const GCodeProcessorResult* const result, std::vector<std::string> filament_colors) const
 {
-    std::vector<std::string> colors = get_extruder_colors_from_plater_config(result);
+    std::vector<std::string> colors = std::move(filament_colors);
 
     if (wxGetApp().is_gcode_viewer() && result != nullptr) {
         for (const CustomGCode::Item& code : result->custom_gcode_per_print_z) {

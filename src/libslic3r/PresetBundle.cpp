@@ -133,6 +133,7 @@ static std::vector<std::string> s_project_options {
     "wipe_tower_y",
     "curr_bed_type",
     "flush_multiplier",
+    "flush_volumes_synced",
     // Fast-purge mode: project-level purge control, inert at Default.
     "flush_multiplier_fast",
     "prime_volume_mode",
@@ -3911,9 +3912,27 @@ static void load_mixed_filament_settings(DynamicPrintConfig &project_config, App
     }
 }
 
+// Per-filament project state that travels with the project's filament list when it is kept.
+static const char* s_per_filament_project_keys[] = {
+    "filament_colour", "filament_multi_colour", "filament_colour_type",
+    "filament_map", "filament_nozzle_map", "filament_volume_map",
+    "flush_volumes_matrix", "flush_volumes_vector",
+    "filament_is_mixed", "filament_mixed_components", "filament_mixed_sublayer_ratios",
+    "filament_mixed_gradient", "filament_mixed_gradient_range", "filament_mixed_gradient_curve",
+    "filament_mixed_gradient_per_part",
+};
+
 void PresetBundle::update_selections(AppConfig &config)
 {
     std::string initial_printer_profile_name    = printers.get_selected_preset_name();
+
+    // Orca: the project's filament list, restored below when the new printer's filament count
+    // isn't bound to its nozzles.
+    const std::vector<std::string> project_filament_presets = this->filament_presets;
+    DynamicPrintConfig             project_filament_state;
+    for (const char* key : s_per_filament_project_keys)
+        if (const ConfigOption* opt = project_config.option(key))
+            project_filament_state.set_key_value(key, opt->clone());
     // Orca: load from orca_presets
     std::string initial_print_profile_name        = config.get_printer_setting(initial_printer_profile_name, PRESET_PRINT_NAME);
     std::string initial_filament_profile_name     = config.get_printer_setting(initial_printer_profile_name, PRESET_FILAMENT_NAME);
@@ -3950,8 +3969,12 @@ void PresetBundle::update_selections(AppConfig &config)
     if (config.has_printer_setting(initial_printer_profile_name, "filament_multi_colors")) {
         boost::algorithm::split(multi_filament_colors, config.get_printer_setting(initial_printer_profile_name, "filament_multi_colors"), boost::algorithm::is_any_of(","));
     }
-    if (multi_filament_colors.size() == 0) project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = filament_colors;
-    else project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
+    // Several UI surfaces size themselves off filament_multi_colour, so match filament_colour.
+    size_t old_multi_colors_size = multi_filament_colors.size();
+    multi_filament_colors.resize(filament_colors.size());
+    for (size_t i = old_multi_colors_size; i < multi_filament_colors.size(); ++i)
+        multi_filament_colors[i] = filament_colors[i];
+    project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
 
     std::vector<std::string> filament_color_types;
     if (config.has_printer_setting(initial_printer_profile_name, "filament_color_types")) {
@@ -3994,6 +4017,19 @@ void PresetBundle::update_selections(AppConfig &config)
     // No global fallback here: on a printer change the legacy shared keys describe another
     // printer's filament list, so absent per-printer keys must clear the mixes, not revive them.
     load_mixed_filament_settings(project_config, config, initial_printer_profile_name, filament_presets.size(), false);
+
+    // Orca: keep the project's filament list across the switch. Must precede the compatibility
+    // pass and update_multi_material_filament_presets(), which resizes the flush matrix.
+    if (const DynamicPrintConfig& printer_config = printers.get_edited_preset().config;
+        printer_config.opt_bool("single_extruder_multi_material") || device_resolves_filament_mapping(printer_config)) {
+        this->filament_presets = project_filament_presets;
+        for (const char* key : s_per_filament_project_keys)
+            if (const ConfigOption* opt = project_filament_state.option(key))
+                project_config.set_key_value(key, opt->clone());
+        // Orca: projects without mixed filaments may carry a one-element filament_is_mixed, and
+        // num_physical_filaments() counts its entries. Pad the mixed metadata to the restored count.
+        resize_mixed_filament_metadata(project_config, filament_presets.size(), filament_presets.size());
+    }
 
     // Update visibility of presets based on their compatibility with the active printer.
     // Always try to select a compatible print and filament preset to the current printer preset,
@@ -4113,8 +4149,12 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     if (config.has_printer_setting(initial_printer_profile_name, "filament_multi_colors")) {
         boost::algorithm::split(multi_filament_colors, config.get_printer_setting(initial_printer_profile_name, "filament_multi_colors"), boost::algorithm::is_any_of(","));
     }
-    if (multi_filament_colors.size() == 0) project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = filament_colors;
-    else project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
+    // Several UI surfaces size themselves off filament_multi_colour, so match filament_colour.
+    size_t old_multi_colors_size = multi_filament_colors.size();
+    multi_filament_colors.resize(filament_colors.size());
+    for (size_t i = old_multi_colors_size; i < multi_filament_colors.size(); ++i)
+        multi_filament_colors[i] = filament_colors[i];
+    project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
 
     std::vector<std::string> filament_color_types;
     if (config.has_printer_setting(initial_printer_profile_name, "filament_color_types")) {
@@ -4256,8 +4296,10 @@ void PresetBundle::export_selections(AppConfig &config)
     for (unsigned i = 1; i < filament_presets.size(); ++i) {
         char name[64];
         assert(!filament_presets[i].empty());
+        // The readers stop at the first empty name, which would drop every later slot.
+        const std::string &value = filament_presets[i].empty() ? filament_presets.front() : filament_presets[i];
         sprintf(name, "filament_%02u", i);
-        config.set_printer_setting(printer_name, name, filament_presets[i]);
+        config.set_printer_setting(printer_name, name, value);
     }
     // Load project config data into app config
     CNumericLocalesSetter locales_setter;
@@ -5512,7 +5554,13 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     std::vector<int> filament_volume_maps(num_filaments, (int)nvtStandard);
 
     ConfigOptionInts* filament_volume_map_opt = out.option<ConfigOptionInts>("filament_volume_map");
-    if (filament_maps_new.has_value())
+    // The printer routes logical tools itself, so force the same identity map normalize_fdm_1 uses.
+    if (device_resolves_filament_mapping(out)) {
+        const std::vector<int> extruder_of_filament = non_bbl_identity_filament_extruder_map(out, num_filaments);
+        filament_maps.resize(num_filaments);
+        for (size_t i = 0; i < num_filaments; ++i)
+            filament_maps[i] = extruder_of_filament[i] + 1;
+    } else if (filament_maps_new.has_value())
         filament_maps = *filament_maps_new;
     if (filament_volume_maps_new.has_value()) {
         filament_volume_maps = *filament_volume_maps_new;
@@ -6394,6 +6442,15 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 }
             }
         } // !is_published
+
+        // filament_settings_id can leave a slot empty; fill it from the first non-empty selection.
+        if (auto first_non_empty = std::find_if(this->filament_presets.begin(), this->filament_presets.end(),
+                                                  [](const std::string &s) { return !s.empty(); });
+            first_non_empty != this->filament_presets.end()) {
+            for (std::string &filament_preset : this->filament_presets)
+                if (filament_preset.empty())
+                    filament_preset = *first_non_empty;
+        }
 
         // Load the project config values. In published mode only the plate/bed geometry keys
         // cross over (the receiver must not inherit the author's filament/purge data).

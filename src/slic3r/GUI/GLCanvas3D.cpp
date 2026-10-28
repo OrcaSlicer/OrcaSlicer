@@ -3857,7 +3857,8 @@ void GLCanvas3D::load_shells(const Print& print, bool force_previewing)
     {
         _set_shown_canvas_current();
         m_gcode_viewer.load_shells(print, m_initialized, force_previewing);
-        m_gcode_viewer.update_shells_color_by_extruder(m_config);
+        // Orca: the shells use the print's (possibly compacted) extruder ids; m_config is project-indexed.
+        m_gcode_viewer.update_shells_color_by_extruder(&print.full_print_config());
     }
 }
 

@@ -27,6 +27,7 @@
 #include <wx/arrstr.h>
 
 #include "libslic3r/PrintConfig.hpp"
+#include "MoonrakerPrinterAgent.hpp"
 #include "libslic3r/Channel.hpp"
 #include "OctoPrint.hpp"
 #include "Duet.hpp"
@@ -46,6 +47,8 @@
 #include "ElegooLink.hpp"
 #include "3DPrinterOS.hpp"
 #include "Moonraker.hpp"
+#include "SnapmakerPrinterAgent.hpp"
+#include "WonderMakerPrinterAgent.hpp"
 
 namespace fs = boost::filesystem;
 using Slic3r::GUI::PrintHostQueueDialog;
@@ -54,6 +57,76 @@ namespace Slic3r {
 
 
 PrintHost::~PrintHost() {}
+
+MapDelivery effective_map_delivery(FilamentMappingProtocol vendor, const std::string& reported_changer)
+{
+    if (reported_changer == "afc")        return MapDelivery::afc;
+    if (reported_changer == "happy_hare") return MapDelivery::happy_hare;
+    switch (vendor) {
+    case FilamentMappingProtocol::fmpSnapmaker:   return MapDelivery::snapmaker;
+    case FilamentMappingProtocol::fmpWonderMaker: return MapDelivery::wondermaker;
+    case FilamentMappingProtocol::fmpNone:        break;
+    }
+    return MapDelivery::none;
+}
+
+MapDelivery print_time_map_delivery(MapDelivery sliced, bool printer_has_openace)
+{
+    return sliced == MapDelivery::afc && printer_has_openace ? MapDelivery::openace : sliced;
+}
+
+DevicePrintSpec device_print_spec(FilamentMappingProtocol vendor, MapDelivery delivery)
+{
+    DevicePrintSpec spec;
+    spec.supports_filament_mapping = delivery != MapDelivery::none;
+    const DevicePrintOption time_lapse{"time_lapse", L("Time-lapse Camera"),
+                                       L("Record a time-lapse video with the printer's camera."), "0"};
+    const DevicePrintOption bed_leveling{"bed_leveling", L("Auto Leveling"),
+                                         L("Probe the bed before printing, as the printer's own screen does."), "1"};
+    switch (vendor) {
+    case FilamentMappingProtocol::fmpSnapmaker:
+        // The printer screen's three options, labelled as in the vendor's slicer. Only leveling defaults on.
+        spec.options = {{"flow_calibrate", L("Extrusion Flow Calibration"),
+                         L("Calibrate flow on each tool this plate actually uses before printing."), "0"},
+                        time_lapse, bed_leveling};
+        break;
+    case FilamentMappingProtocol::fmpWonderMaker:
+        // The ZR probes before every print, so leveling defaults on. No flow-calibration hook.
+        spec.options = {time_lapse, bed_leveling};
+        break;
+    case FilamentMappingProtocol::fmpNone:
+        break;
+    }
+    return spec;
+}
+
+std::string build_device_start_script(FilamentMappingProtocol vendor, MapDelivery delivery, const std::string& filename, const DevicePrintJobInfo& job)
+{
+    switch (delivery) {
+    case MapDelivery::none: return {};
+    case MapDelivery::snapmaker:
+        return SnapmakerProtocol::build_start_script(filename, job);
+    case MapDelivery::wondermaker:
+        return WonderMakerProtocol::build_start_script(filename, job.filament_map_1based, job.option_on("bed_leveling"),
+                                                       job.option_on("time_lapse"));
+    case MapDelivery::afc:
+    case MapDelivery::happy_hare:
+    case MapDelivery::openace: {
+        std::string prelude;
+        if (vendor == FilamentMappingProtocol::fmpWonderMaker)
+            prelude = WonderMakerProtocol::build_prelude(job.option_on("bed_leveling"), job.option_on("time_lapse"));
+        std::string map;
+        if (delivery == MapDelivery::afc)
+            map = MoonrakerFilamentDialect::afc_mapping_start_script(filename, job.filament_map_1based, job.slot_names);
+        else if (delivery == MapDelivery::happy_hare)
+            map = MoonrakerFilamentDialect::happy_hare_mapping_start_script(filename, job.filament_map_1based);
+        else
+            map = MoonrakerFilamentDialect::openace_mapping_start_script(filename, job.filament_map_1based);
+        return map.empty() ? std::string() : prelude + map;
+    }
+    }
+    return {};
+}
 
 PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
 {

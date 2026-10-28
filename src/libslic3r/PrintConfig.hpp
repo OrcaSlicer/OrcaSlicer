@@ -115,6 +115,14 @@ enum class WipeTowerType {
     Type2,
 };
 
+// Orca: how a printer that maps filaments natively receives the map. A changer reported at sync
+// (reported_changer_of) overrides this for delivery.
+enum class FilamentMappingProtocol {
+    fmpNone = 0,
+    fmpSnapmaker,
+    fmpWonderMaker,
+};
+
 enum PrintHostType {
     htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htUltiMaker, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker
 };
@@ -800,6 +808,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TopSurfaceExpansionDirection)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FilamentMappingProtocol)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
@@ -1827,6 +1836,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             imex_mode_names))
     ((ConfigOptionStrings,             imex_mode_active_tools))
     ((ConfigOptionStrings,             imex_mode_gcodes))
+    ((ConfigOptionBool,                enable_filament_mapping))
+    ((ConfigOptionInt,                 device_tool_count))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
     ((ConfigOptionString,              toolchange_cyclic_order))
@@ -2128,6 +2139,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloats,             filament_prime_volume_nc))
     ((ConfigOptionFloatsNullable,     filament_preheat_temperature_delta))
     ((ConfigOptionFloats,             flush_multiplier))
+    ((ConfigOptionBool,               flush_volumes_synced))
     // Fast-purge mode. Kept out of the g-code config block (banned_keys in
     // GCode::append_full_config) so registering them leaves the shipping fleet's g-code byte-identical;
     // consumed only on the prime_volume_mode==pvmFast / pvmSaving branch (default pvmDefault = inert).
@@ -2609,6 +2621,9 @@ public:
     // state is considered changed from perspective of the undo/redo stack.
     void         reset() { m_data.clear(); touch(); }
 
+    // Orca: for a copy derived deterministically from rhs, so it doesn't read as changed.
+    void         mirror_timestamp_of(const ModelConfig &rhs) { m_timestamp = rhs.m_timestamp; }
+
     void         assign_config(const ModelConfig &rhs) {
         if (m_timestamp != rhs.m_timestamp) {
             m_data      = rhs.m_data;
@@ -2758,6 +2773,39 @@ static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_ma
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
 
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
+
+// fmpNone if the option is absent.
+FilamentMappingProtocol filament_mapping_protocol_of(const ConfigBase& printer_config);
+
+// True when the printer's loaded filaments are worth viewing and editing: one filament per nozzle
+// (>= 2 nozzles, not single_extruder_multi_material), or reported_changer names a filament changer.
+bool printer_has_viewable_filaments(const ConfigBase& printer_config, const std::string& reported_changer);
+
+// The Klipper filament changer reported at the last sync ("afc", "happy_hare"), or "".
+std::string reported_changer_of(const ConfigBase& printer_config);
+
+// Orca: cache the reported changer and T<n> count. An empty changer or a tool count of 0 leaves the
+// cached value. Returns true when the config changed.
+bool seed_printer_from_report(DynamicPrintConfig& printer_config, const std::string& reported_dialect, int reported_tool_count);
+
+// True when the printer, not the slicer, assigns filaments to tools: a vendor protocol, a reported
+// changer, or enable_filament_mapping.
+bool device_resolves_filament_mapping(const ConfigBase& printer_config);
+
+// The size of the printer's T<n> namespace: device_tool_count, else the vendor's constant, else the
+// nozzle count. Only meaningful when device_resolves_filament_mapping() is true.
+size_t filament_namespace_size(const ConfigBase& printer_config, size_t nozzle_count);
+
+// Filament i -> extruder i up to extruder_count, the rest -> master_extruder_id_0based (clamped to
+// >= 0). Returns 0-based extruder indices. All callers must agree, or every Print::apply sees a
+// config diff.
+std::vector<int> non_bbl_identity_filament_extruder_map(size_t filament_count, size_t extruder_count, int master_extruder_id_0based);
+// The same, with the extruder count and master_extruder_id read from the config.
+std::vector<int> non_bbl_identity_filament_extruder_map(const ConfigBase& config, size_t filament_count);
+
+// Pad (never truncate) a 3mf plate filament_map with 1 and clamp entries into [1, nozzle_count].
+// An empty map, meaning "use the global filament_map", stays empty.
+void normalize_plate_filament_map(std::vector<int>& values, size_t filament_count, size_t nozzle_count);
 
 } // namespace Slic3r
 

@@ -144,7 +144,7 @@ DevAms::DevAms(const std::string& ams_id, int nozzle_id, int type)
     m_ams_id = ams_id;
     m_ext_id = nozzle_id;
     m_ams_type = (AmsType)type;
-    assert(EXT_SPOOL < type && m_ams_type <= AMS_LITE_MIXED);
+    assert(EXT_SPOOL < type && m_ams_type <= TOOLCHANGER);
 }
 
 DevAms::~DevAms()
@@ -164,7 +164,8 @@ static std::unordered_map<int, wxString> s_ams_display_formats = {
     {DevAms::AMS,      "AMS-%d"},
     {DevAms::AMS_LITE, "AMS Lite-%d"},
     {DevAms::N3F,      "AMS 2 PRO-%d"},
-    {DevAms::N3S,      "AMS HT-%d"}
+    {DevAms::N3S,      "AMS HT-%d"},
+    {DevAms::TOOLCHANGER, "Tool %d"}
 };
 
 wxString DevAms::GetDisplayName() const
@@ -211,7 +212,7 @@ int DevAms::GetSlotCount() const
     {
         return 4;
     }
-    else if (ams_type == N3S)
+    else if (ams_type == N3S || ams_type == TOOLCHANGER)
     {
         return 1;
     }
@@ -340,7 +341,7 @@ std::map<int, DevAmsSlotId> DevFilaSystem::GetTrayIndexMap()
                     int ams_id_int  = stoi(ams_id);
                     int slot_id_int = stoi(slot_id);
                     int tray_index  = -1;
-                    if (ams_item->GetAmsType() == DevAms::N3S) {
+                    if (ams_item->GetAmsType() == DevAms::N3S || ams_item->GetAmsType() == DevAms::TOOLCHANGER) {
                         tray_index = ams_id_int;
                     } else if(ams_item->GetAmsType() == DevAms::AMS_LITE && ams_item->IsAmsLiteMixed()) {
                         tray_index = 24 + slot_id_int;
@@ -369,6 +370,15 @@ bool DevFilaSystem::IsAmsSettingUp() const
     return false;
 }
 
+bool DevFilaSystem::IsAllToolchanger() const
+{
+    if (amsList.empty()) return false;
+    for (const auto& [id, ams] : amsList) {
+        if (!ams || ams->GetAmsType() != DevAms::TOOLCHANGER) return false;
+    }
+    return true;
+}
+
 bool DevFilaSystem::IsBBL_Filament(std::string tag_uid)
 {
     if (tag_uid.empty())
@@ -390,6 +400,10 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
     {
         if (jj["ams"].contains("ams"))
         {
+            if (jj["ams"].contains("changer_dialect") && jj["ams"]["changer_dialect"].is_string())
+                system->m_changer_dialect = jj["ams"]["changer_dialect"].get<std::string>();
+            if (jj["ams"].contains("device_tool_count") && jj["ams"]["device_tool_count"].is_number_integer())
+                system->m_device_tool_count = jj["ams"]["device_tool_count"].get<int>();
             if (jj["ams"].contains("ams_exist_bits"))
             {
                 obj->ams_exist_bits = stol(jj["ams"]["ams_exist_bits"].get<std::string>(), nullptr, 16);
@@ -564,6 +578,12 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                 // Mixed AMS-Lite (A2L / N9) exist flag lives at bit 12.
                                 curr_ams->m_exist = DevUtil::get_flag_bits(obj->ams_exist_bits, 12);
                             }
+                            else if (type_id == DevAms::TOOLCHANGER)
+                            {
+                                // Orca: the agents list only units that exist, one per lane, which can
+                                // outnumber the bits in ams_exist_bits.
+                                curr_ams->m_exist = true;
+                            }
                             else
                             {
                                 curr_ams->m_exist = DevUtil::get_flag_bits(obj->ams_exist_bits, 4 + (ams_id_int - 128));
@@ -682,6 +702,20 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                 curr_tray->tag_uid = (*tray_it)["tag_uid"].get<std::string>();
                             else
                                 curr_tray->tag_uid = "0";
+                            if (tray_it->contains("slot_name") && (*tray_it)["slot_name"].is_string())
+                                curr_tray->slot_name = (*tray_it)["slot_name"].get<std::string>();
+                            if (tray_it->contains("unit") && (*tray_it)["unit"].is_string())
+                                curr_tray->unit = (*tray_it)["unit"].get<std::string>();
+                            if (tray_it->contains("unit_label") && (*tray_it)["unit_label"].is_string())
+                                curr_tray->unit_label = (*tray_it)["unit_label"].get<std::string>();
+                            if (tray_it->contains("head") && (*tray_it)["head"].is_string())
+                                curr_tray->head = (*tray_it)["head"].get<std::string>();
+                            if (tray_it->contains("slot") && (*tray_it)["slot"].is_number_integer())
+                                curr_tray->slot = (*tray_it)["slot"].get<int>();
+                            if (tray_it->contains("extruder") && (*tray_it)["extruder"].is_number_integer())
+                                curr_tray->extruder = (*tray_it)["extruder"].get<int>();
+                            if (tray_it->contains("virtual_tool") && (*tray_it)["virtual_tool"].is_number_integer())
+                                curr_tray->virtual_tool = (*tray_it)["virtual_tool"].get<int>();
                             if (tray_it->contains("tray_info_idx") && tray_it->contains("tray_type"))
                             {
                                 curr_tray->setting_id = (*tray_it)["tray_info_idx"].get<std::string>();
@@ -808,6 +842,12 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                     {
                                         // Mixed AMS-Lite (A2L / N9) trays occupy tray-exist bits 24..27.
                                         curr_tray->is_exists = DevUtil::get_flag_bits(obj->tray_exist_bits, AMS_LITE_MIXED_TRAY_INDEX_OFFSET + tray_id_int);
+                                    }
+                                    else if (type_id == DevAms::TOOLCHANGER)
+                                    {
+                                        // Orca: an empty toolchanger slot is a placeholder; tray_exist_bits can't
+                                        // hold a bit for every lane.
+                                        curr_tray->is_exists = !curr_tray->is_slot_placeholder;
                                     }
                                     else
                                     {

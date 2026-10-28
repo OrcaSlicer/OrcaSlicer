@@ -147,6 +147,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/GCodeStatistics.hpp"
 #include "libslic3r/GCode/ToolOrdering.hpp"
+#include "libslic3r/FilamentCompaction.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ProjectTask.hpp"
@@ -6721,7 +6722,8 @@ int CLI::run(int argc, char **argv)
                                 }
                             }
 
-                            if (new_extruder_count > 1) {
+                            // The printer routes logical tools itself; normalize_fdm_1 pins the maps.
+                            if (new_extruder_count > 1 && !device_resolves_filament_mapping(m_print_config)) {
                                 std::vector<std::vector<int>> unprintable_filament_vec;
                                 for (const std::set<int>& filamnt_ids : unprintable_filament_ids) {
                                     unprintable_filament_vec.emplace_back(std::vector<int>(filamnt_ids.begin(), filamnt_ids.end()));
@@ -7054,6 +7056,15 @@ int CLI::run(int argc, char **argv)
                             if (pre_check && (partplate_list.get_plate_count() > 1)) //continue to next plate directly
                                 continue;
                             try {
+                                // Orca: FilamentRenumberRequired asks for one more apply.
+                                const auto process_plate = [&](auto &&...args) {
+                                    try {
+                                        print->process(args...);
+                                    } catch (const FilamentRenumberRequired &) {
+                                        print->apply(model, new_print_config);
+                                        print->process(args...);
+                                    }
+                                };
                                 std::string outfile_final;
                                 BOOST_LOG_TRIVIAL(info) << "start Print::process for partplate "<<index+1 << std::endl;
 #if defined(__linux__) || defined(__LINUX__)
@@ -7096,7 +7107,7 @@ int CLI::run(int argc, char **argv)
                                     if (ret) {
                                         BOOST_LOG_TRIVIAL(warning) << "plate "<< index+1<< ": load Slicing data error, ret=" << ret;
                                         BOOST_LOG_TRIVIAL(warning) << "plate "<< index+1<< ": switch normal slicing";
-                                        print->process();
+                                        process_plate();
                                     }
                                     else {
                                         BOOST_LOG_TRIVIAL(info) << "plate "<< index+1<< ": load cached data success, go on.";
@@ -7106,12 +7117,12 @@ int CLI::run(int argc, char **argv)
                                             cli_status_callback(slicing_status);
                                         }
 #endif
-                                        print->process(nullptr, true);
+                                        process_plate(nullptr, true);
                                         BOOST_LOG_TRIVIAL(info) << "plate "<< index+1<< ": finished print::process.";
                                     }
                                 }
                                 else {
-                                    print->process(&time_using_cache);
+                                    process_plate(&time_using_cache);
                                     BOOST_LOG_TRIVIAL(info) << "print::process: first time_using_cache is " << time_using_cache << " secs.";
                                 }
                                 if (printer_technology == ptFFF) {
@@ -7414,12 +7425,15 @@ int CLI::run(int argc, char **argv)
             if (!nozzle_diameter_str.empty())
                 plate_data->nozzle_diameters = nozzle_diameter_str;
 
+            // These are keyed by g-code tool number, not project slot.
+            Slic3r::GUI::PartPlate* filament_info_plate = partplate_list.get_plate(i);
             for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
+                const int slot = filament_info_plate != nullptr ? filament_info_plate->project_slot_of_tool(it->id) : it->id;
                 // get_at() on an empty vector option is UB - these can be unpopulated on a from-scratch slice
                 std::string display_filament_type;
-                it->type  = m_print_config.get_filament_type(display_filament_type, it->id);
-                it->color = (filament_color && !filament_color->values.empty()) ? filament_color->get_at(it->id) : "#FFFFFF";
-                it->filament_id = (filament_id && !filament_id->values.empty()) ? filament_id->get_at(it->id) : "";
+                it->type  = m_print_config.get_filament_type(display_filament_type, slot);
+                it->color = (filament_color && !filament_color->values.empty()) ? filament_color->get_at(slot) : "#FFFFFF";
+                it->filament_id = (filament_id && !filament_id->values.empty()) ? filament_id->get_at(slot) : "";
 #ifdef SLIC3R_GUI
                 if (is_bbl_printer)
                     it->filament_id = bbl_agent.from_orca_filament_id(it->filament_id);

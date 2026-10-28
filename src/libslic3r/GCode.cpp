@@ -5570,7 +5570,12 @@ void GCode::_print_first_layer_extruder_temperatures(GCodeOutputStream &file, Pr
                 file.write(m_writer.set_temperature(temp, wait, first_printing_extruder_id));
         } else {
             // Set temperatures of all the printing extruders.
-            for (unsigned int tool_id : print.extruders()) {
+            std::vector<unsigned int> tools = print.extruders();
+            // Orca: a mixed slot is virtual and its number is past the printer's tools; heat its components.
+            const PrintConfig &cfg = print.config();
+            if (device_resolves_filament_mapping(print.full_print_config()) && has_any_mixed_filament(cfg.filament_is_mixed.values))
+                tools = expand_mixed_filaments(tools, cfg.filament_is_mixed.values, cfg.filament_mixed_components.values);
+            for (unsigned int tool_id : tools) {
                 int temp = print.config().nozzle_temperature_initial_layer.get_at(get_filament_config_index((int)tool_id));
                 if (m_ooze_prevention.enable && tool_id != first_printing_extruder_id) {
                     if (print.config().idle_temperature.get_at(tool_id) == 0)

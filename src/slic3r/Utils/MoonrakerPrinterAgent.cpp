@@ -1,4 +1,5 @@
 #include "MoonrakerPrinterAgent.hpp"
+#include "DeviceJson.hpp"
 #include "AsioUtils.hpp"
 #include "Http.hpp"
 #include "IPrinterAgent.hpp"
@@ -7,6 +8,7 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/ActivePrinterSession.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -70,6 +72,8 @@
 #include <vector>
 #include <type_traits>
 #include <utility>
+#include <cstddef>
+#include <cstdio>
 
 namespace {
 
@@ -156,6 +160,187 @@ uint64_t steady_now_ms()
 } // namespace
 
 namespace Slic3r {
+
+namespace MoonrakerFilamentDialect {
+
+bool dialect_supports_push(Dialect dialect)
+{
+    return dialect == Dialect::afc_lane_data || dialect == Dialect::happy_hare;
+}
+
+std::string dialect_name(Dialect dialect)
+{
+    switch (dialect) {
+    case Dialect::afc_lane_data: return "afc";
+    case Dialect::happy_hare: return "happy_hare";
+    case Dialect::none: break;
+    }
+    return {};
+}
+
+// RRGGBB from the dialog's RRGGBBAA (or #RRGGBB); both dialects store colour without alpha.
+static std::string rgb_of(const std::string& color_rgba)
+{
+    std::string hex;
+    for (char c : color_rgba)
+        if (std::isxdigit(static_cast<unsigned char>(c)))
+            hex.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(c))));
+    return hex.size() >= 6 ? hex.substr(0, 6) : "FFFFFF";
+}
+
+std::vector<std::string> afc_push_scripts(const IPrinterAgent::FilamentSlotInfo& info)
+{
+    return {"SET_COLOR LANE=" + info.name + " COLOR=" + rgb_of(info.color_rgba),
+            "SET_MATERIAL LANE=" + info.name + " MATERIAL=" + info.type};
+}
+
+std::string happy_hare_push_script(const IPrinterAgent::FilamentSlotInfo& info)
+{
+    return "MMU_GATE_MAP GATE=" + std::to_string(info.slot) + " MATERIAL=" + info.type + " COLOR=" + rgb_of(info.color_rgba);
+}
+
+static std::string sd_print_start(const std::string& filename)
+{
+    return "SDCARD_PRINT_FILE FILENAME=\"" + filename + "\"";
+}
+
+std::string afc_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based,
+                                     const std::vector<std::string>& slot_names)
+{
+    // SET_MAP swaps the lane that held T<n> with the one taking it, so assigning in ascending
+    // tool order after a reset settles to exactly the requested map.
+    std::string script = "RESET_AFC_MAPPING\n";
+    for (size_t tool = 0; tool < tool_to_slot_1based.size(); ++tool) {
+        const int slot = tool_to_slot_1based[tool];
+        if (slot <= 0)
+            continue;
+        if (size_t(slot) > slot_names.size() || slot_names[slot - 1].empty())
+            return {};
+        script += "SET_MAP LANE=" + slot_names[slot - 1] + " MAP=T" + std::to_string(tool) + "\n";
+    }
+    return script + sd_print_start(filename);
+}
+
+std::string openace_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based)
+{
+    std::string pairs;
+    for (size_t tool = 0; tool < tool_to_slot_1based.size(); ++tool) {
+        const int slot = tool_to_slot_1based[tool];
+        if (slot <= 0)
+            continue;
+        pairs += (pairs.empty() ? "" : ",") + std::string("[") + std::to_string(tool) + "," + std::to_string(slot - 1) + "]";
+    }
+    return sd_print_start(filename) + " OPENACE_MAP=\"[" + pairs + "]\"";
+}
+
+std::string happy_hare_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based)
+{
+    std::string script = "MMU_TTG_MAP RESET=1\n";
+    for (size_t tool = 0; tool < tool_to_slot_1based.size(); ++tool) {
+        const int slot = tool_to_slot_1based[tool];
+        if (slot <= 0)
+            continue;
+        script += "MMU_TTG_MAP TOOL=" + std::to_string(tool) + " GATE=" + std::to_string(slot - 1) + "\n";
+    }
+    return script + sd_print_start(filename);
+}
+
+int tool_count_from_gcode_help(const nlohmann::json& help)
+{
+    int highest = -1;
+    if (help.is_object()) {
+        for (auto it = help.begin(); it != help.end(); ++it) {
+            const std::string& key = it.key();
+            if (key.size() < 2 || key[0] != 'T' ||
+                !std::all_of(key.begin() + 1, key.end(), [](unsigned char c) { return std::isdigit(c) != 0; }))
+                continue;
+            highest = std::max(highest, std::stoi(key.substr(1)));
+        }
+    }
+    return highest + 1;
+}
+int extruder_index_from_name(const std::string& name)
+{
+    static const std::string prefix = "extruder";
+    if (name == prefix)
+        return 0;
+    if (name.rfind(prefix, 0) != 0 || name.size() == prefix.size())
+        return -1;
+    const std::string digits = name.substr(prefix.size());
+    return std::all_of(digits.begin(), digits.end(), [](unsigned char c) { return std::isdigit(c) != 0; }) ? std::stoi(digits) : -1;
+}
+
+void apply_lane_topology(const nlohmann::json& lane, MoonrakerAmsTrayData& tray)
+{
+    auto str = [&lane](const char* key) { return json_string_or(lane, key, std::string()); };
+    auto integer = [&lane](const char* key, int& out) {
+        if (lane.contains(key) && lane[key].is_number_integer())
+            out = lane[key].get<int>();
+    };
+    const bool had_unit = !tray.unit.empty();
+    // Group by the stable id; unit_name is a label only, so renaming a unit doesn't regroup lanes.
+    if (std::string unit = str("unit"); !unit.empty())
+        tray.unit = std::move(unit);
+    if (std::string label = str("unit_name"); !label.empty())
+        tray.unit_label = std::move(label);
+    if (tray.unit_label.empty())
+        tray.unit_label = tray.unit;
+    // The lane index is the virtual tool; a lane outside any unit is numbered by it.
+    int lane_index = -1;
+    integer("lane", lane_index);
+    if (const std::string l = str("lane"); lane_index < 0 && !l.empty() &&
+                                           std::all_of(l.begin(), l.end(), [](unsigned char c) { return std::isdigit(c) != 0; }))
+        lane_index = std::stoi(l);
+    integer("slot", tray.slot);
+    if (!lane.contains("slot") && !had_unit && lane_index >= 0)
+        tray.slot = lane_index;
+    const std::string head     = str("extruder");
+    int               extruder = extruder_index_from_name(head);
+    std::string       resolved = head;
+    if (extruder < 0) {
+        integer("extruder_index", extruder);
+        if (extruder >= 0)
+            resolved = extruder > 0 ? "extruder" + std::to_string(extruder) : "extruder";
+    }
+    if (extruder >= 0)
+        tray.extruder = extruder;
+    if (!resolved.empty())
+        tray.head = resolved;
+    if (lane_index >= 0)
+        tray.virtual_tool = lane_index;
+}
+
+bool lane_data_has_topology(const nlohmann::json& lanes)
+{
+    if (!lanes.is_object() || lanes.empty())
+        return false;
+    return std::all_of(lanes.begin(), lanes.end(), [](const nlohmann::json& lane) {
+        return !lane.is_object() || (!json_string_or(lane, "unit", std::string()).empty() && lane.contains("slot") &&
+                                     lane["slot"].is_number_integer());
+    });
+}
+
+bool read_lane_data_entry(const std::string& key, const nlohmann::json& lane, MoonrakerAmsTrayData& tray)
+{
+    if (!lane.is_object())
+        return false;
+    apply_lane_topology(lane, tray);
+    if (tray.virtual_tool < 0)
+        return false;
+    tray.slot_index   = tray.virtual_tool;
+    tray.slot_name    = key; // AFC addresses lanes by this name (SET_MAP / SET_COLOR / ...)
+    tray.tray_color   = json_string_or(lane, "color", std::string());
+    tray.tray_type    = json_string_or(lane, "material", std::string());
+    tray.bed_temp     = json_number_or(lane, "bed_temp", 0);
+    tray.nozzle_temp  = json_number_or(lane, "nozzle_temp", 0);
+    tray.has_filament = !tray.tray_type.empty();
+    // A lane's filament_id goes to AMS sync as the tray id, which matches it like a Bambu tray's
+    // and falls back to the material type when no compatible preset carries it. Only a string
+    // counts: Happy Hare writes Spoolman's numeric filament record id under the same key.
+    tray.tray_info_idx = json_string_or(lane, "filament_id", std::string());
+    return true;
+}
+} // namespace MoonrakerFilamentDialect
 
 const std::string MoonrakerPrinterAgent_VERSION = "1.0.0";
 
@@ -486,7 +671,8 @@ int MoonrakerPrinterAgent::set_queue_on_main_fn(QueueOnMainFn fn)
     return BAMBU_NETWORK_SUCCESS;
 }
 
-void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays)
+void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays,
+                                               AmsUnitShape shape)
 {
 
     // Look up MachineObject via DeviceManager
@@ -503,24 +689,36 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     nlohmann::json ams_json = nlohmann::json::object();
     nlohmann::json ams_array = nlohmann::json::array();
 
-    // Calculate ams_exist_bits and tray_exist_bits
+    // Calculate ams_exist_bits and tray_exist_bits. MachineObject parses them into a long, 32 bits
+    // on Windows, so bits from 31 up are left out; the parser reads a toolchanger's units and
+    // slots without them.
     unsigned long ams_exist_bits = 0;
     unsigned long tray_exist_bits = 0;
+    const auto exist_bit = [](int index) { return index >= 0 && index < 31 ? 1UL << index : 0UL; };
+
+    // Orca: in Toolchanger shape tool n == unit n slot 0 == global tray index n, matching
+    // DevFilaSystem::GetTrayIndexMap.
+    char toolchanger_info[5];
+    snprintf(toolchanger_info, sizeof(toolchanger_info), "%04X", static_cast<unsigned>(DevAms::TOOLCHANGER));
 
     for (int ams_id = 0; ams_id < ams_count; ++ams_id) {
-        ams_exist_bits |= (1 << ams_id);
+        ams_exist_bits |= exist_bit(ams_id);
 
         nlohmann::json ams_unit = nlohmann::json::object();
         ams_unit["id"] = std::to_string(ams_id);
-        ams_unit["info"] = "0002";  // treat as AMS_LITE 
+        ams_unit["info"] = (shape == AmsUnitShape::Toolchanger) ? std::string(toolchanger_info) : std::string("0002"); // 0002: treat as AMS_LITE
         if (const std::string name = ams_unit_name(ams_id); !name.empty()) {
             ams_unit["display_name"] = name;
         }
 
         nlohmann::json tray_array = nlohmann::json::array();
-        int max_slot_in_this_ams = std::min(3, max_lane_index - ams_id * 4);
-        for (int slot_id = 0; slot_id <= max_slot_in_this_ams; ++slot_id) {
-            int slot_index = ams_id * 4 + slot_id;
+
+        int first_slot = (shape == AmsUnitShape::Toolchanger) ? ams_id : ams_id * 4;
+        int last_slot = (shape == AmsUnitShape::Toolchanger) ? ams_id
+                                                              : ams_id * 4 + std::min(3, max_lane_index - ams_id * 4);
+
+        for (int slot_index = first_slot; slot_index <= last_slot; ++slot_index) {
+            int slot_id = (shape == AmsUnitShape::Toolchanger) ? 0 : (slot_index - ams_id * 4);
 
             // Find tray with matching slot_index
             const AmsTrayData* tray = nullptr;
@@ -533,10 +731,18 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
 
             nlohmann::json tray_json = nlohmann::json::object();
             tray_json["id"] = std::to_string(slot_id);
-            tray_json["tag_uid"] = "0000000000000000";
+            tray_json["tag_uid"] = (tray && !tray->tag_uid.empty()) ? tray->tag_uid : "0000000000000000";
+            // Empty slots keep their position so the grid draws them where the printer has them.
+            tray_json["slot_name"]    = tray ? tray->slot_name : std::string();
+            tray_json["unit"]         = tray ? tray->unit : std::string();
+            tray_json["unit_label"]   = tray ? tray->unit_label : std::string();
+            tray_json["head"]         = tray ? tray->head : std::string();
+            tray_json["slot"]         = tray ? tray->slot : slot_index;
+            tray_json["extruder"]     = tray ? tray->extruder : -1;
+            tray_json["virtual_tool"] = tray ? tray->virtual_tool : -1;
 
             if (tray && tray->has_filament) {
-                tray_exist_bits |= (1 << slot_index);
+                tray_exist_bits |= exist_bit(slot_index);
 
                 tray_json["tray_info_idx"] = tray->tray_info_idx;
                 tray_json["tray_type"] = tray->tray_type;
@@ -581,6 +787,8 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     tray_exist_ss << std::hex << std::uppercase << tray_exist_bits;
 
     ams_json["ams"] = ams_array;
+    ams_json["changer_dialect"] = MoonrakerFilamentDialect::dialect_name(m_filament_dialect);
+    ams_json["device_tool_count"] = m_tool_count;
     ams_json["ams_exist_bits"] = ams_exist_ss.str();
     ams_json["tray_exist_bits"] = tray_exist_ss.str();
 
@@ -618,34 +826,135 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     }
 }
 
+bool MoonrakerPrinterAgent::bind_device_connection(const std::string& dev_id, const std::string& address,
+                                                   const std::string& access_code, bool use_ssl)
+{
+    if (dev_id.empty() || address.empty())
+        return false;
+    // Compare the full URL, not just dev_id: a stale binding may have the wrong scheme
+    // (MachineObject::local_use_ssl defaults to true). The address carries any port itself.
+    const std::string expected_base_url = normalize_base_url(use_ssl, address, std::string());
+    if (device_info.base_url == expected_base_url && device_info.dev_id == dev_id)
+        return true;
+
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::bind_device_connection: device_info for dev_id=" << dev_id
+                            << " bound to address=" << address << " ssl=" << use_ssl;
+    return init_device_info(dev_id, address, std::string(), access_code, use_ssl, std::string());
+}
+
+bool MoonrakerPrinterAgent::ensure_device_info(const std::string& dev_id)
+{
+    if (dev_id.empty())
+        return false;
+    if (!device_info.base_url.empty() && device_info.dev_id == dev_id)
+        return true;
+
+    // Last resort: MachineObject::dev_ip may be stale, restored from a previous session's AppConfig
+    // and never refreshed for an existing dev_id.
+    auto* dev_manager = GUI::wxGetApp().getDeviceManager();
+    if (!dev_manager) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::ensure_device_info: no DeviceManager, dev_id=" << dev_id;
+        return false;
+    }
+    MachineObject* obj = dev_manager->get_my_machine(dev_id);
+    if (!obj || obj->get_dev_ip().empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::ensure_device_info: no known IP for dev_id=" << dev_id;
+        return false;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::ensure_device_info: rebuilding device_info for dev_id=" << dev_id
+                             << " from MachineObject::get_dev_ip()=" << obj->get_dev_ip()
+                             << " (this dev_id was never bound from a printer profile)";
+    return init_device_info(dev_id, obj->get_dev_ip(), std::string(), obj->get_access_code(), obj->local_use_ssl, std::string());
+}
+
 bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
+    if (!ensure_device_info(dev_id))
+        return false;
+
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
+
+    // A failed probe reports 0 ("unknown"), which never overwrites a cached count.
+    std::string probe_error;
+    if (!fetch_tool_count(device_info.base_url, device_info.api_key, m_tool_count, probe_error)) {
+        m_tool_count = 0;
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_filament_info: tool count probe failed: " << probe_error;
+    }
 
     // Try Moonraker filament data (more generic, supports any filament changer
     // software that reports lane data to Moonraker like AFC and recent Happy
     // Hare as of Feb 15, 2026)
-    if (fetch_moonraker_filament_data(trays, max_lane_index)) {
+    bool has_topology = false;
+    if (fetch_moonraker_filament_data(trays, max_lane_index, has_topology)) {
+        m_filament_dialect = MoonrakerFilamentDialect::Dialect::afc_lane_data;
+        // Older AFC lane_data leaves the unit and slot to its AFC_stepper objects.
+        if (!has_topology)
+            fetch_afc_lane_topology(trays);
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
                                 << (max_lane_index + 1) << " lanes";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
+        int ams_count = max_lane_index + 1;
+        build_ams_payload(ams_count, max_lane_index, trays, AmsUnitShape::Toolchanger);
         return true;
     }
 
     // Attempt Happy Hare first (more widely adopted, supports more filament changers)
     if (fetch_hh_filament_info(trays, max_lane_index)) {
+        m_filament_dialect = MoonrakerFilamentDialect::Dialect::happy_hare;
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
                                 << (max_lane_index + 1) << " gates";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
+        int ams_count = max_lane_index + 1;
+        build_ams_payload(ams_count, max_lane_index, trays, AmsUnitShape::Toolchanger);
         return true;
     }
 
     // No MMU detected - this is normal for printers without MMU, not an error
+    m_filament_dialect = MoonrakerFilamentDialect::Dialect::none;
     BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected (neither HH nor Moonraker)";
     return false;
+}
+
+bool MoonrakerPrinterAgent::supports_filament_push() const
+{
+    return MoonrakerFilamentDialect::dialect_supports_push(m_filament_dialect);
+}
+
+bool MoonrakerPrinterAgent::push_filament_info(std::string dev_id, const FilamentSlotInfo& info)
+{
+    using namespace MoonrakerFilamentDialect;
+    if (!ensure_device_info(dev_id))
+        return false;
+
+    // Re-read first: the changer may have been reconfigured or removed since the dialog opened.
+    const Dialect expected = m_filament_dialect;
+    if (!fetch_filament_info(dev_id) || m_filament_dialect != expected) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::push_filament_info: changer no longer reports the "
+                                   << dialect_name(expected) << " dialect; nothing written";
+        return false;
+    }
+
+    std::vector<std::string> scripts;
+    if (m_filament_dialect == Dialect::afc_lane_data) {
+        if (info.name.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::push_filament_info: slot " << info.slot << " has no AFC lane name";
+            return false;
+        }
+        scripts = afc_push_scripts(info);
+    } else if (m_filament_dialect == Dialect::happy_hare) {
+        scripts = {happy_hare_push_script(info)};
+    } else {
+        return false;
+    }
+
+    for (const std::string& script : scripts) {
+        if (!send_gcode_sync(dev_id, script)) {
+            BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::push_filament_info failed: " << script;
+            return false;
+        }
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::push_filament_info ok: " << script;
+    }
+    return true;
 }
 
 std::string MoonrakerPrinterAgent::trim_and_upper(const std::string& input)
@@ -795,7 +1104,7 @@ std::string MoonrakerPrinterAgent::normalize_color_value(const std::string& colo
 }
 
 // Fetch filament info from moonraker database
-bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
+bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index, bool& has_topology)
 {
     // Fetch lane data from Moonraker database
     std::string url = join_url(device_info.base_url, "/server/database/item?namespace=lane_data");
@@ -827,7 +1136,8 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         .perform_sync();
 
     if (!success) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Failed to fetch lane data: " << http_error;
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Failed to fetch lane data: "
+                                   << http_error << " url=" << url << " dev_ip=" << device_info.dev_ip;
         return false;
     }
 
@@ -847,38 +1157,14 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
     const auto& value = json["result"]["value"];
     trays.clear();
     max_lane_index = 0;
+    has_topology   = MoonrakerFilamentDialect::lane_data_has_topology(value);
 
     for (const auto& [lane_key, lane_obj] : value.items()) {
-        if (!lane_obj.is_object()) {
-            continue;
-        }
-
-        // Extract lane index from the "lane" field (tool number, 0-based)
-        std::string lane_str = safe_json_string(lane_obj, "lane");
-        int lane_index = -1;
-        if (!lane_str.empty()) {
-            try {
-                lane_index = std::stoi(lane_str);
-            } catch (...) {
-                lane_index = -1;
-            }
-        }
-
-        if (lane_index < 0) {
-            continue;
-        }
-
         AmsTrayData tray;
-        tray.slot_index = lane_index;
-        tray.tray_color = safe_json_string(lane_obj, "color");
-        tray.tray_type = safe_json_string(lane_obj, "material");
-        tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
-        tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
-        tray.has_filament = !tray.tray_type.empty();
-        // A lane's filament_id goes to AMS sync as the tray id, which matches it like a Bambu tray's
-        // and falls back to the material type when no compatible preset carries it. Only a string
-        // counts: Happy Hare writes Spoolman's numeric filament record id under the same key.
-        tray.tray_info_idx = safe_json_string(lane_obj, "filament_id");
+        if (!MoonrakerFilamentDialect::read_lane_data_entry(lane_key, lane_obj, tray)) {
+            continue;
+        }
+        const int lane_index = tray.slot_index;
         auto* bundle = GUI::wxGetApp().preset_bundle;
         if (tray.tray_info_idx.empty())
             tray.tray_info_idx = bundle
@@ -1002,6 +1288,9 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
 
         AmsTrayData tray;
         tray.slot_index = gate_idx;
+        tray.slot         = gate_idx;
+        tray.extruder     = 0; // one nozzle behind every gate
+        tray.virtual_tool = gate_idx;
         tray.tray_type = material;
         tray.tray_color = color;
         tray.nozzle_temp = nozzle_temp;
@@ -1140,13 +1429,12 @@ bool MoonrakerPrinterAgent::init_device_info(const std::string& dev_id, const st
         return false;
     }
 
-    auto&       preset      = preset_bundle->printers.get_edited_preset();
-    const auto& printer_cfg = preset.config;
+    const GUI::ActivePrinterSession& session = GUI::active_printer_session();
 
     device_info.dev_ip     = dev_ip;
     device_info.api_key    = password;
-    device_info.model_name = printer_cfg.opt_string("printer_model");
-    device_info.model_id   = preset.get_printer_type(preset_bundle);
+    device_info.model_name = session.profile().config.opt_string("printer_model");
+    device_info.model_id   = session.printer_type();
     device_info.base_url   = normalize_base_url(use_ssl, dev_ip, port);
     device_info.dev_id     = dev_id;
     device_info.version    = "";
@@ -1162,34 +1450,7 @@ bool MoonrakerPrinterAgent::get_json(const std::string&           url,
                                      std::string&                 error) const
 {
     std::string response_body;
-    bool        success = false;
-    std::string http_error;
-
-    auto http = Http::get(url);
-    if (!api_key.empty()) {
-        http.header("X-Api-Key", api_key);
-    }
-    http.timeout_connect(5)
-        .timeout_max(10)
-        .on_progress(cancel_when(cancelled))
-        .on_complete([&](std::string body, unsigned status) {
-            if (status == 200) {
-                response_body = body;
-                success       = true;
-            } else {
-                http_error = "HTTP error: " + std::to_string(status);
-            }
-        })
-        .on_error([&](std::string body, std::string err, unsigned status) {
-            http_error = err;
-            if (status > 0) {
-                http_error += " (HTTP " + std::to_string(status) + ")";
-            }
-        })
-        .perform_sync();
-
-    if (!success) {
-        error = http_error.empty() ? "Connection failed" : http_error;
+    if (!fetch_body(url, api_key, response_body, error, cancelled)) {
         return false;
     }
 
@@ -1321,6 +1582,43 @@ bool MoonrakerPrinterAgent::send_gcode_sync(const std::string& dev_id, const std
     return true;
 }
 
+bool MoonrakerPrinterAgent::fetch_body(const std::string&           url,
+                                       const std::string&           api_key,
+                                       std::string&                 response_body,
+                                       std::string&                 error,
+                                       const std::function<bool()>& cancelled) const
+{
+    bool        success = false;
+    std::string http_error;
+
+    auto http = Http::get(url);
+    if (!api_key.empty()) {
+        http.header("X-Api-Key", api_key);
+    }
+    http.timeout_connect(5)
+        .timeout_max(10)
+        .on_progress(cancel_when(cancelled))
+        .on_complete([&](std::string body, unsigned status) {
+            if (status == 200) {
+                response_body = body;
+                success       = true;
+            } else {
+                http_error = "HTTP error: " + std::to_string(status);
+            }
+        })
+        .on_error([&](std::string body, std::string err, unsigned status) {
+            http_error = err;
+            if (status > 0) {
+                http_error += " (HTTP " + std::to_string(status) + ")";
+            }
+        })
+        .perform_sync();
+
+    if (!success)
+        error = http_error.empty() ? "Connection failed" : http_error;
+    return success;
+}
+
 bool MoonrakerPrinterAgent::fetch_object_list(const std::string&     base_url,
                                               const std::string&     api_key,
                                               std::set<std::string>& objects,
@@ -1367,6 +1665,38 @@ bool MoonrakerPrinterAgent::fetch_has_free_storage(const std::string& base_url,
     }
 
     has_free = result["disk_usage"]["free"].get<double>() > 0;
+    return true;
+}
+
+void MoonrakerPrinterAgent::fetch_afc_lane_topology(std::vector<AmsTrayData>& trays) const
+{
+    if (trays.empty())
+        return;
+    std::string query;
+    for (const auto& tray : trays)
+        query += (query.empty() ? "" : "&") + std::string("AFC_stepper ") + tray.slot_name;
+    nlohmann::json json;
+    std::string    error;
+    if (!get_json(join_url(device_info.base_url, "/printer/objects/query?" + query), device_info.api_key, {}, json, error)) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_afc_lane_topology: " << error;
+        return;
+    }
+    const nlohmann::json& result = json.contains("result") ? json["result"] : json;
+    if (!result.contains("status") || !result["status"].is_object())
+        return;
+    for (auto& tray : trays) {
+        const std::string key = "AFC_stepper " + tray.slot_name;
+        if (result["status"].contains(key) && result["status"][key].is_object())
+            MoonrakerFilamentDialect::apply_lane_topology(result["status"][key], tray);
+    }
+}
+
+bool MoonrakerPrinterAgent::fetch_tool_count(const std::string& base_url, const std::string& api_key, int& tool_count, std::string& error) const
+{
+    nlohmann::json json;
+    if (!get_json(join_url(base_url, "/printer/gcode/help"), api_key, {}, json, error))
+        return false;
+    tool_count = MoonrakerFilamentDialect::tool_count_from_gcode_help(json.contains("result") ? json["result"] : json);
     return true;
 }
 

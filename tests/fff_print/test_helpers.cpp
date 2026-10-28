@@ -230,10 +230,16 @@ DynamicPrintConfig multifilament_config(unsigned int filaments, std::initializer
 		static_cast<ConfigOptionVectorBase *>(config.option(key, true))->resize(filaments, defaults.option(key));
 
 	// flush_volumes_matrix must be sized filaments*filaments or export rejects it.
-	config.set_deserialize_strict({ { "filament_colour", colours }, { "flush_volumes_matrix", flush } });
+	// The default prime tower position (y=220) is off the 200x200 test bed and aborts the slice.
+	config.set_deserialize_strict({ { "filament_colour", colours }, { "flush_volumes_matrix", flush },
+	                                { "wipe_tower_x", "50" }, { "wipe_tower_y", "50" } });
 
 	if (extra.size() > 0)
 		config.set_deserialize_strict(extra);
+
+	// When `extra` sets a multi-nozzle printer.
+	if (config.option<ConfigOptionFloats>("nozzle_diameter")->size() > 1)
+		size_flush_to_nozzles(config);
 	return config;
 }
 
@@ -244,8 +250,11 @@ void size_flush_to_nozzles(DynamicPrintConfig &config)
 	const size_t nozzles = config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
 	auto        &flush   = config.option<ConfigOptionFloats>("flush_volumes_matrix", true)->values;
 	const std::vector<double> block = flush;
-	for (size_t i = 1; i < nozzles; ++i)
-		flush.insert(flush.end(), block.begin(), block.end());
+	// Orca: multifilament_config may have sized it already.
+	const auto *colours = config.option<ConfigOptionStrings>("filament_colour");
+	if (colours == nullptr || flush.size() != colours->size() * colours->size() * nozzles)
+		for (size_t i = 1; i < nozzles; ++i)
+			flush.insert(flush.end(), block.begin(), block.end());
 	for (const char *key : { "flush_multiplier", "flush_multiplier_fast" })
 		config.option<ConfigOptionFloats>(key, true)->resize(nozzles);
 }

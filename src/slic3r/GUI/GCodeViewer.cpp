@@ -3457,8 +3457,6 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
     ImGui::Begin(_L("Statistics of All Plates").c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-    std::vector<float> filament_diameters = gcode_result_list.front()->filament_diameters;
-    std::vector<float> filament_densities = gcode_result_list.front()->filament_densities;
     std::vector<ColorRGBA> filament_colors;
     decode_colors(wxGetApp().plater()->get_extruder_colors_from_plater_config(gcode_result_list.back()), filament_colors);
 
@@ -3470,10 +3468,11 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
     float window_padding = 4.0f * m_scale;
     const float icon_size = ImGui::GetTextLineHeight() * 0.7;
     std::map<std::string, float> offsets;
-    std::map<int, double> model_volume_of_extruders_all_plates; // map<extruder_idx, volume>
-    std::map<int, double> flushed_volume_of_extruders_all_plates; // map<extruder_idx, flushed volume>
-    std::map<int, double> wipe_tower_volume_of_extruders_all_plates; // map<extruder_idx, flushed volume>
-    std::map<int, double> support_volume_of_extruders_all_plates; // map<extruder_idx, flushed volume>
+    // Orca: keyed by project slot. Plates compact independently, so each plate's tool-keyed
+    // statistics (and its tool-indexed diameters/densities) are converted per plate.
+    struct UsedFilament { double m{ 0.0 }; double g{ 0.0 }; };
+    struct FilamentTotals { UsedFilament model, flushed, wipe_tower, support; };
+    std::map<int, FilamentTotals> totals_of_filaments_all_plates; // map<project slot, totals>
     std::vector<double> model_used_filaments_m_all_plates;
     std::vector<double> model_used_filaments_g_all_plates;
     std::vector<double> flushed_filaments_m_all_plates;
@@ -3553,10 +3552,10 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         }
         ImGui::Separator();
     };
-    auto get_used_filament_from_volume = [imperial_units, &filament_diameters, &filament_densities](double volume, int extruder_id) {
+    auto get_used_filament_from_volume = [imperial_units](const GCodeProcessorResult& result, double volume, size_t tool) {
         double koef = imperial_units ? 1.0 / GizmoObjectManipulation::in_to_mm : 0.001;
-        std::pair<double, double> ret = { koef * volume / (PI * sqr(0.5 * filament_diameters[extruder_id])),
-                                            volume * filament_densities[extruder_id] * 0.001 };
+        std::pair<double, double> ret = { koef * volume / (PI * sqr(0.5 * result.filament_diameters[tool])),
+                                            volume * result.filament_densities[tool] * 0.001 };
         return ret;
     };
 
@@ -3567,41 +3566,29 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         PartPlateList& plate_list = wxGetApp().plater()->get_partplate_list();
         for (auto plate : plate_list.get_nonempty_plate_list())
         {
-            auto plate_print_statistics = plate->get_slice_result()->print_statistics;
-            auto plate_extruders = plate->get_extruders(true);
-            auto max_extruders_colors = wxGetApp().plater()->get_extruders_colors().size();
-            for (size_t extruder_id : plate_extruders) {
-                extruder_id -= 1;
-                // Skip stale/overflow extruder indices (e.g. from object assignments that outlived a
-                // filament-count change) so downstream per-extruder lookups stay in range. Ported
-                // from BambuStudio (STUDIO-15763).
-                if (extruder_id >= max_extruders_colors)
-                    continue;
-                if (plate_print_statistics.model_volumes_per_extruder.find(extruder_id) == plate_print_statistics.model_volumes_per_extruder.end())
-                    model_volume_of_extruders_all_plates[extruder_id] += 0;
-                else {
-                    double model_volume = plate_print_statistics.model_volumes_per_extruder.at(extruder_id);
-                    model_volume_of_extruders_all_plates[extruder_id] += model_volume;
+            const GCodeProcessorResult& plate_result = *plate->get_slice_result();
+            const PrintEstimatedStatistics& plate_print_statistics = plate_result.print_statistics;
+            const size_t max_extruders_colors = wxGetApp().plater()->get_extruders_colors().size();
+            auto add_up = [&](const std::map<size_t, double>& volume_per_tool, UsedFilament FilamentTotals::* total) {
+                for (const auto& [tool, volume] : volume_per_tool) {
+                    const int slot = plate->project_slot_of_tool(int(tool));
+                    // Skip stale/overflow filament indices (e.g. from object assignments that outlived
+                    // a filament-count change) so the colour and label lookups below stay in range.
+                    // Ported from BambuStudio (STUDIO-15763).
+                    if (slot < 0 || size_t(slot) >= max_extruders_colors ||
+                        tool >= plate_result.filament_diameters.size() || tool >= plate_result.filament_densities.size())
+                        continue;
+                    const auto [used_m, used_g] = get_used_filament_from_volume(plate_result, volume, tool);
+                    UsedFilament& used = totals_of_filaments_all_plates[slot].*total;
+                    used.m += used_m;
+                    used.g += used_g;
                 }
-                if (plate_print_statistics.flush_per_filament.find(extruder_id) == plate_print_statistics.flush_per_filament.end())
-                    flushed_volume_of_extruders_all_plates[extruder_id] += 0;
-                else {
-                    double flushed_volume = plate_print_statistics.flush_per_filament.at(extruder_id);
-                    flushed_volume_of_extruders_all_plates[extruder_id] += flushed_volume;
-                }
-                if (plate_print_statistics.wipe_tower_volumes_per_extruder.find(extruder_id) == plate_print_statistics.wipe_tower_volumes_per_extruder.end())
-                    wipe_tower_volume_of_extruders_all_plates[extruder_id] += 0;
-                else {
-                    double wipe_tower_volume = plate_print_statistics.wipe_tower_volumes_per_extruder.at(extruder_id);
-                    wipe_tower_volume_of_extruders_all_plates[extruder_id] += wipe_tower_volume;
-                }
-                if (plate_print_statistics.support_volumes_per_extruder.find(extruder_id) == plate_print_statistics.support_volumes_per_extruder.end())
-                    support_volume_of_extruders_all_plates[extruder_id] += 0;
-                else {
-                    double support_volume = plate_print_statistics.support_volumes_per_extruder.at(extruder_id);
-                    support_volume_of_extruders_all_plates[extruder_id] += support_volume;
-                }
-            }
+            };
+            add_up(plate_print_statistics.model_volumes_per_extruder, &FilamentTotals::model);
+            add_up(plate_print_statistics.flush_per_filament, &FilamentTotals::flushed);
+            add_up(plate_print_statistics.wipe_tower_volumes_per_extruder, &FilamentTotals::wipe_tower);
+            add_up(plate_print_statistics.support_volumes_per_extruder, &FilamentTotals::support);
+
             const PrintEstimatedStatistics::Mode& plate_time_mode = plate_print_statistics.modes[static_cast<size_t>(m_viewer.get_time_mode())];
             total_time_all_plates += plate_time_mode.time;
 
@@ -3610,33 +3597,23 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
             total_cost_all_plates += print->print_statistics().total_cost;
         }
 
-        for (auto it = model_volume_of_extruders_all_plates.begin(); it != model_volume_of_extruders_all_plates.end(); it++) {
-            auto [model_used_filament_m, model_used_filament_g] = get_used_filament_from_volume(it->second, it->first);
-            if (model_used_filament_m != 0.0 || model_used_filament_g != 0.0)
+        for (const auto& [slot, totals] : totals_of_filaments_all_plates) {
+            if (totals.model.m != 0.0 || totals.model.g != 0.0)
                 displayed_columns |= ColumnData::Model;
-            model_used_filaments_m_all_plates.push_back(model_used_filament_m);
-            model_used_filaments_g_all_plates.push_back(model_used_filament_g);
-        }
-        for (auto it = flushed_volume_of_extruders_all_plates.begin(); it != flushed_volume_of_extruders_all_plates.end(); it++) {
-            auto [flushed_filament_m, flushed_filament_g] = get_used_filament_from_volume(it->second, it->first);
-            if (flushed_filament_m != 0.0 || flushed_filament_g != 0.0)
+            if (totals.flushed.m != 0.0 || totals.flushed.g != 0.0)
                 displayed_columns |= ColumnData::Flushed;
-            flushed_filaments_m_all_plates.push_back(flushed_filament_m);
-            flushed_filaments_g_all_plates.push_back(flushed_filament_g);
-        }
-        for (auto it = wipe_tower_volume_of_extruders_all_plates.begin(); it != wipe_tower_volume_of_extruders_all_plates.end(); it++) {
-            auto [wipe_tower_filament_m, wipe_tower_filament_g] = get_used_filament_from_volume(it->second, it->first);
-            if (wipe_tower_filament_m != 0.0 || wipe_tower_filament_g != 0.0)
+            if (totals.wipe_tower.m != 0.0 || totals.wipe_tower.g != 0.0)
                 displayed_columns |= ColumnData::WipeTower;
-            wipe_tower_used_filaments_m_all_plates.push_back(wipe_tower_filament_m);
-            wipe_tower_used_filaments_g_all_plates.push_back(wipe_tower_filament_g);
-        }
-        for (auto it = support_volume_of_extruders_all_plates.begin(); it != support_volume_of_extruders_all_plates.end(); it++) {
-            auto [support_filament_m, support_filament_g] = get_used_filament_from_volume(it->second, it->first);
-            if (support_filament_m != 0.0 || support_filament_g != 0.0)
+            if (totals.support.m != 0.0 || totals.support.g != 0.0)
                 displayed_columns |= ColumnData::Support;
-            support_used_filaments_m_all_plates.push_back(support_filament_m);
-            support_used_filaments_g_all_plates.push_back(support_filament_g);
+            model_used_filaments_m_all_plates.push_back(totals.model.m);
+            model_used_filaments_g_all_plates.push_back(totals.model.g);
+            flushed_filaments_m_all_plates.push_back(totals.flushed.m);
+            flushed_filaments_g_all_plates.push_back(totals.flushed.g);
+            wipe_tower_used_filaments_m_all_plates.push_back(totals.wipe_tower.m);
+            wipe_tower_used_filaments_g_all_plates.push_back(totals.wipe_tower.g);
+            support_used_filaments_m_all_plates.push_back(totals.support.m);
+            support_used_filaments_g_all_plates.push_back(totals.support.g);
         }
 
         char buff[64];
@@ -3676,9 +3653,10 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
     // item
     {
         size_t i = 0;
-        for (auto it = model_volume_of_extruders_all_plates.begin(); it != model_volume_of_extruders_all_plates.end(); it++) {
+        for (auto it = totals_of_filaments_all_plates.begin(); it != totals_of_filaments_all_plates.end(); it++) {
             if (i < model_used_filaments_m_all_plates.size() && i < model_used_filaments_g_all_plates.size()) {
                 std::vector<std::pair<std::string, float>> columns_offsets;
+                // The key is a project slot, not a tool, so filament_display_number() doesn't apply.
                 columns_offsets.push_back({ std::to_string(it->first + 1), offsets[_u8L("Filament")]});
 
                 char buf[64];
@@ -4973,7 +4951,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         for (auto extruder_idx : used_extruders_ids) {
             if (i < model_used_filaments_m.size() && i < model_used_filaments_g.size()) {
                 std::vector<std::pair<std::string, float>> columns_offsets;
-                columns_offsets.push_back({ std::to_string(extruder_idx + 1), color_print_offsets[_u8L("Filament")]});
+                columns_offsets.push_back({ std::to_string(filament_display_number(extruder_idx)), color_print_offsets[_u8L("Filament")]});
 
                 char buf[64];
                 float column_sum_m = 0.0f;

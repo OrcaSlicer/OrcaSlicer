@@ -557,6 +557,9 @@ public:
     void            load_gcode(wxWindow* parent, wxString& input_file) const;
 
     wxString        transition_tridid(int trid_id) const;
+    // Orca: "T%d" for a toolchanger, else transition_tridid(). Callers handle the virtual
+    // ext-spool tray ids themselves.
+    wxString        tray_display_label(int tray_id, bool is_toolchanger) const;
     void            ShowUserGuide();
     void            ShowDownNetPluginDlg();
     void            ShowUserLogin(bool show = true, const std::string& provider = ORCA_CLOUD_PROVIDER);
@@ -897,10 +900,12 @@ private:
     bool            wait_for_network_idle(int timeout_ms);
     bool            check_older_app_config(Semver current_version, bool backup);
     void            copy_older_config();
+public:
     void            window_pos_save(wxTopLevelWindow* window, const std::string &name);
     bool            window_pos_restore(wxTopLevelWindow* window, const std::string &name, bool default_maximized = false);
     void            window_pos_sanitize(wxTopLevelWindow* window);
     void            window_pos_center(wxTopLevelWindow *window);
+private:
 
     // Dynamic printer agent selection - internal helpers for switch_printer_agent
     // and the plugin load/unload callbacks (init_plugin_gui_wiring).

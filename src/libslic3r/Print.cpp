@@ -12,6 +12,7 @@
 #include "libslic3r.h"
 #include "calib.hpp"
 #include <cassert>
+#include "FilamentCompaction.hpp"
 #include "CustomGCode.hpp"
 #include "ObjectID.hpp"
 #include <cstddef>
@@ -428,7 +429,11 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "filament_notes",
         "process_notes",
         "printer_notes",
-        "use_3mf"
+        "use_3mf",
+        // Bounds the plate in validate() only; the toolpaths are unaffected.
+        "device_tool_count",
+        // Drives the flushing dialog only; the blocks it writes are diffed on their own.
+        "flush_volumes_synced"
     };
 
     static std::unordered_set<std::string> steps_ignore;
@@ -776,32 +781,57 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
     append(extruders, this->support_material_extruders());
 
     if (conside_custom_gcode)
-        this->append_tool_change_extruders(extruders);
-    this->append_wipe_tower_extruder(extruders);
+        append_tool_change_extruders(m_model, m_config.filament_colour.size(), extruders);
+    append_wipe_tower_extruder(m_config, extruders);
     sort_remove_duplicates(extruders);
     return extruders;
 }
 
 // Appends 0-based indices of the filaments the tool changes of the current plate switch to.
-void Print::append_tool_change_extruders(std::vector<unsigned int> &extruders) const
+void Print::append_tool_change_extruders(const Model &model, size_t num_extruders, std::vector<unsigned int> &extruders)
 {
     //BBS
-    int num_extruders = m_config.filament_colour.size();
-    if (m_model.plates_custom_gcodes.find(m_model.curr_plate_index) != m_model.plates_custom_gcodes.end()) {
-        for (auto item : m_model.plates_custom_gcodes.at(m_model.curr_plate_index).gcodes) {
-            if (item.type == CustomGCode::Type::ToolChange && item.extruder <= num_extruders)
+    if (model.plates_custom_gcodes.find(model.curr_plate_index) != model.plates_custom_gcodes.end()) {
+        for (auto item : model.plates_custom_gcodes.at(model.curr_plate_index).gcodes) {
+            if (item.type == CustomGCode::Type::ToolChange && item.extruder <= int(num_extruders))
                 extruders.push_back((unsigned int)(item.extruder - 1));
         }
     }
 }
 
-void Print::append_wipe_tower_extruder(std::vector<unsigned int> &extruders) const
+void Print::append_wipe_tower_extruder(const PrintConfig &config, std::vector<unsigned int> &extruders)
 {
     // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
-    if (has_wipe_tower() && config().wipe_tower_filament != 0 && extruders.size() > 1) {
-        assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament <= int(config().filament_diameter.size()));
-        extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
+    if (has_wipe_tower(config) && config.wipe_tower_filament != 0 && extruders.size() > 1) {
+        assert(config.wipe_tower_filament > 0 && config.wipe_tower_filament <= int(config.filament_diameter.size()));
+        extruders.emplace_back(config.wipe_tower_filament - 1); // config value is 1-based
     }
+}
+
+std::vector<unsigned int> Print::emitted_tools() const
+{
+    std::vector<unsigned int> tools;
+    if (m_config.print_sequence == PrintSequence::ByObject) {
+        for (const PrintObject *object : m_objects) {
+            ToolOrdering ordering(*object, (unsigned int) -1);
+            ordering.sort_and_build_data(*object, (unsigned int) -1);
+            append(tools, ordering.all_extruders());
+        }
+    } else {
+        const ToolOrdering &ordering = m_wipe_tower_data.tool_ordering.empty() ? m_tool_ordering : m_wipe_tower_data.tool_ordering;
+        tools = ordering.all_extruders();
+    }
+    // Export also heats every configured filament by object, and in non-Klipper start sequences
+    // (GCode::_print_first_layer_extruder_temperatures), so those tools are commanded too.
+    if (m_config.print_sequence == PrintSequence::ByObject ||
+        (m_config.gcode_flavor != gcfKlipper && !m_config.single_extruder_multi_material)) {
+        const std::vector<unsigned int> configured = this->extruders();
+        append(tools, has_any_mixed_filament(m_config.filament_is_mixed.values)
+                          ? expand_mixed_filaments(configured, m_config.filament_is_mixed.values, m_config.filament_mixed_components.values)
+                          : configured);
+    }
+    sort_remove_duplicates(tools);
+    return tools;
 }
 
 unsigned int Print::num_object_instances() const
@@ -1997,6 +2027,13 @@ std::string Print::slicing_errors_message(const SlicingErrors &errors) const
     return message;
 }
 
+// Orca: the plate needs more tools than the printer's T<n> namespace has.
+static std::string too_many_filaments_error(size_t used, size_t namespace_size)
+{
+    return (boost::format(L("This plate uses %1% filaments, but this printer can only print %2% filaments on one "
+                            "plate. Reduce the number of filaments used on this plate.")) % used % namespace_size).str();
+}
+
 StringObjectException Print::validate(std::vector<StringObjectException> *warnings, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons) const
 {
     auto add_warning = [warnings](StringObjectException w) {
@@ -2249,6 +2286,15 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 return e < is_mixed.size() && is_mixed[e] && e < gradient.size() && gradient[e]; }))
             warn(L("A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."),
                  "enable_mixed_color_sublayer");
+    }
+
+    // Orca: before slicing only the part filaments are certain to print; the rest are checked in
+    // process(). The full config holds printer options PrintConfig lacks.
+    const DynamicPrintConfig& printer_config = this->full_print_config();
+    if (device_resolves_filament_mapping(printer_config)) {
+        const size_t namespace_size = filament_namespace_size(printer_config, nozzles);
+        if (m_filament_compaction.certain_count > namespace_size)
+            return {too_many_filaments_error(m_filament_compaction.certain_count, namespace_size)};
     }
 
     if (nozzles < 2 && extruders.size() > 1) {
@@ -3653,6 +3699,30 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             if (m_tool_ordering.empty() || m_tool_ordering.last_extruder() == unsigned(-1))
                 throw Slic3r::SlicingError(L("The print is empty. The model is not printable with current print settings."));
 
+        }
+        // Orca: check the tools the G-code will command. Thrown before set_done so the step reruns.
+        if (device_resolves_filament_mapping(full_print_config())) {
+            const size_t namespace_size = filament_namespace_size(full_print_config(), m_config.nozzle_diameter.size());
+            const std::vector<unsigned int> tools = this->emitted_tools();
+            // apply() rebuilds the compaction and reads the hint on the UI thread.
+            this->throw_if_canceled();
+            std::scoped_lock<std::mutex> lock(this->state_mutex());
+            if (tools.size() > namespace_size)
+                throw Slic3r::SlicingError(too_many_filaments_error(tools.size(), namespace_size));
+            if (!tools.empty() && tools.back() >= namespace_size) {
+                // They fit but are numbered past the last tool. Renumbering is a permutation, so a
+                // reslice with the unprinted ones numbered last fits.
+                std::vector<int> unprinted;
+                for (int slot : m_filament_compaction.used_slots)
+                    if (std::none_of(tools.begin(), tools.end(), [&](unsigned int tool) {
+                            return m_filament_compaction.project_slot_of_tool(int(tool)) == slot; }))
+                        unprinted.push_back(slot);
+                if (unprinted == m_filament_renumber_hint)
+                    // Already numbered last and still no fit; don't retry forever.
+                    throw Slic3r::SlicingError(L("Renumbering this plate's filaments did not fit them to the printer's tools."));
+                m_filament_renumber_hint = std::move(unprinted);
+                throw FilamentRenumberRequired(L("This plate's filaments were renumbered to fit the printer's tools. Slice again."));
+            }
         }
         this->set_done(psWipeTower);
         if (m_pipeline_plugin_active) run_pipeline_hook(SlicingPipelineStepPlugin::psWipeTower, nullptr);
@@ -5214,23 +5284,23 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
 }
 
 // Wipe tower support.
-bool Print::has_wipe_tower() const
+bool Print::has_wipe_tower(const PrintConfig &config)
 {
     // Belt printers never get the classic wipe tower: its G-code is generated
     // directly in machine XY coordinates and bypasses the belt rotation
     // transform. Purging is routed into the belt purge prism instead
     // (see has_belt_purge_tower() / _plan_belt_purge()).
-    if (m_config.belt_printer.value)
+    if (config.belt_printer.value)
         return false;
 
-    if (m_config.enable_prime_tower.value == true) {
-        if (m_config.enable_wrapping_detection.value && m_config.wrapping_exclude_area.values.size() > 2)
+    if (config.enable_prime_tower.value == true) {
+        if (config.enable_wrapping_detection.value && config.wrapping_exclude_area.values.size() > 2)
             return true;
 
-        if (enable_timelapse_print())
+        if (enable_timelapse_print(config))
             return true;
 
-        return !m_config.spiral_mode.value && m_config.filament_diameter.values.size() > 1;
+        return !config.spiral_mode.value && config.filament_diameter.values.size() > 1;
     }
     return false;
 }
@@ -5260,9 +5330,9 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
     return m_wipe_tower_data;
 }
 
-bool Print::enable_timelapse_print() const
+bool Print::enable_timelapse_print(const PrintConfig &config)
 {
-    return m_config.timelapse_type.value == TimelapseType::tlSmooth;
+    return config.timelapse_type.value == TimelapseType::tlSmooth;
 }
 
 
