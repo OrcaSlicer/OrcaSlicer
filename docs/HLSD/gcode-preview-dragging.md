@@ -33,8 +33,8 @@ With the mode off the reduced flag is never raised, and a drag changes nothing i
 
 ### Modes
 
-- `EndLayersOnly` (`solid` in the preference) keeps only the two end layers. `GCodeViewer` then
-  draws the sliced objects and the prime tower as opaque solids, see below.
+- `EndLayersOnly` (`solid` in the preference) keeps only the two end layers and the supports.
+  `GCodeViewer` then draws the sliced objects and the prime tower as opaque solids, see below.
 - `ShellOnly` (`shell`) keeps every role but the sparse infill, internal solid infill, internal
   bridge infill and gap fill, which lie under the skins or between the walls. Walls, top and
   bottom surfaces, bridges, supports and the prime tower are drawn whole, so from outside the
@@ -62,8 +62,10 @@ a body with neither wall in the way is not capped. The two toolpath layers of th
 drawn afterwards and cap the cut with what was really printed there. The shells hold only the objects, so while this mode is on the prime tower is added from its sliced
 mesh, positioned as the print placed it. It is added or removed on its own when the mode changes,
 without reloading the objects, keeps its opaque color so that it never appears among the
-translucent shells, and stays out of their bounding box. Supports have no mesh and are not shown,
-and `load_shells()` drops every non-model-part volume, so a negative volume is not cut out.
+translucent shells, and stays out of their bounding box. Supports have no mesh, so the reduced set
+keeps their toolpaths whole on every layer, as the shell mode does, and the objects stand on them
+as they do at rest. `load_shells()` drops every non-model-part volume, so a negative volume is not
+cut out.
 
 A plate whose shells are not loaded keeps drawing toolpaths, since the solid model would leave
 only the end layers. So does a print whose layers do not rise in height from one to the next, as

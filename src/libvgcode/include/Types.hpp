@@ -175,8 +175,8 @@ enum class EReducedDetailMode : uint8_t
 {
     // nothing: no reduced set is built
     Off,
-    // only the bottom and top layers of the visible range, for a caller that draws the print
-    // itself some other way
+    // only the bottom and top layers of the visible range, and the supports, for a caller that
+    // draws the print itself some other way
     EndLayersOnly,
     // every role but the infill under the skins and the gap fill: what can be seen from outside
     ShellOnly,
