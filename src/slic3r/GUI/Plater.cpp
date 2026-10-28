@@ -29,7 +29,6 @@
 #include <functional>
 #include <memory>
 #include <initializer_list>
-#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include "libslic3r/CommonDefs.hpp"
@@ -7274,10 +7273,6 @@ struct Plater::priv
     // Moves on with every new delayed schedule and when Plater::cancel_slicing() drops a pending
     // automatic reslice, so a zero-delay reslice queued before either does nothing.
     uint64_t auto_reslice_generation {0};
-    // When the delayed automatic reslice is due. A timer event from before the timer was restarted
-    // can still be delivered (Windows keeps a posted WM_TIMER after KillTimer); one that arrives
-    // well before this is that stale event, and the restarted timer fires later.
-    std::chrono::steady_clock::time_point auto_reslice_due;
     bool auto_reslice_after_cancel {false};
     int m_is_RightClickInLeftUI{-1};
     int m_cur_slice_plate;
@@ -7987,8 +7982,6 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
             if (!this->suppressed_backround_processing_update)
                 this->update_restart_background_process(false, false);
         } else if (&evt.GetTimer() == &this->auto_reslice_timer) {
-            if (std::chrono::steady_clock::now() + std::chrono::milliseconds(250) < this->auto_reslice_due)
-                return;
             this->auto_reslice_timer.Stop();
             this->trigger_auto_reslice_now();
         } else {
@@ -11220,7 +11213,6 @@ void Plater::priv::schedule_auto_reslice_if_needed()
         auto_reslice_pending = true;
         ++auto_reslice_generation;
         auto_reslice_timer.Stop();
-        auto_reslice_due = std::chrono::steady_clock::now() + std::chrono::seconds(delay_seconds);
         auto_reslice_timer.Start(delay_seconds * 1000, wxTIMER_ONE_SHOT);
         return;
     }

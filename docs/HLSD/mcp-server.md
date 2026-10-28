@@ -222,8 +222,9 @@ sliced, `error` with the latest validation message when the configuration was re
 request so no run started (`Plater::plate_validation_error()`), `cancelled` when the operation was
 cancelled, or `skipped` (Slice All stops at a failing plate). Statistics come with an `ok` plate
 only while the project is as the operation sliced it and nobody has sliced that plate since
-(`plate_result_is_own()`). `cancel` also drops a pending automatic reslice, including one whose
-timer event or call is already queued. An export is numbered in `export_seq` once scheduled, so an
+(`plate_result_is_own()`). `cancel` also drops a pending automatic reslice: it stops the delay timer,
+whose callback wx then never delivers, and moves on a generation that a zero-delay reslice already
+queued with `CallAfter` checks. An export is numbered in `export_seq` once scheduled, so an
 unchanged number means it never started; otherwise its `ExportRecord` ends `ok`, `failed`,
 `cancelled` or `superseded`. A G-code export with a path is refused while slicing runs, and
 `run_action export_gcode` needs a path: without one it would ask in a native file dialog that MCP
