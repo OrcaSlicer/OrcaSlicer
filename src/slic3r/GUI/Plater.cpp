@@ -3750,8 +3750,11 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
         }
         else {
             // SINGLE MATERIAL / MULTI EXTRUDER / TOOLCHANGER / IDEX Opens Dialog directly
-            p->editing_filament = filament_idx;
-            combobox->switch_to_tab();
+            // -1 first, like Sidebar::edit_filament(): switch_to_tab() can run select_preset(),
+            // whose on_presets_changed() cascade would otherwise write into this slot mid-switch.
+            p->editing_filament = -1;
+            if (combobox->switch_to_tab())
+                p->editing_filament = filament_idx;
         }
     });
     combobox->edit_btn = edit_btn;
@@ -9187,6 +9190,19 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 }
                             }
 
+                            auto layout_it = model.model_info->metadata_items.find(ORCA_PUBLISHED_LAYOUT_TAG);
+                            if (layout_it != model.model_info->metadata_items.end()) {
+                                try {
+                                    auto jl = nlohmann::json::parse(layout_it->second);
+                                    PublishedExtruderLayout layout;
+                                    layout.extruder_ids = jl.at("extruder_ids").get<std::vector<int>>();
+                                    layout.variants     = jl.at("variants").get<std::vector<std::string>>();
+                                    published_config.printer_layout = std::move(layout);
+                                } catch (const nlohmann::json::exception&) {
+                                    // Malformed layout: the printer keys fall back to the positional import.
+                                }
+                            }
+
                             // Rebuild the published values from the metadata payload: a published
                             // file carries no project_settings.config, so config_loaded is filled
                             // from here; a missing or malformed payload leaves it empty and the
@@ -9509,6 +9525,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_KEYS_TAG);
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_MATERIAL_TAG);
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_LAYOUT_TAG);
                 }
 
                 if (load_config) {
@@ -13892,7 +13909,12 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
     const bool use_printer_agents = wxGetApp().app_config->get_bool("use_printer_agents");
     const bool use_native_device_tab = wxGetApp().preset_bundle &&
         (wxGetApp().preset_bundle->use_bbl_device_tab() || use_printer_agents);
-    if (use_native_device_tab && new_name == TAB_ID_MONITOR) {
+    // Pointer test, not a name lookup: in printer-agents mode this page is TAB_ID_MONITOR_WEB
+    // while the native Device tab holds TAB_ID_MONITOR, and in legacy-web mode, or for an agent
+    // without the native tab, it holds TAB_ID_MONITOR itself.
+    const bool selecting_web_device_tab = main_frame->m_printer_view_page &&
+        main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view_page;
+    if (use_native_device_tab && new_name == TAB_ID_MONITOR && !selecting_web_device_tab) {
         // BBL network module is only required for BBL-vendor printers.
         // Non-BBL Python plugins (e.g. moonraker) drive the Device tab without it.
         if (!use_printer_agents && wxGetApp().preset_bundle->is_bbl_vendor() && !Slic3r::NetworkAgent::is_network_module_loaded()) {
@@ -13904,11 +13926,6 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
             }
         }
     } else {
-        // Pointer test, not a name lookup: in printer-agents mode this page is TAB_ID_MONITOR_WEB
-        // while the native Device tab holds TAB_ID_MONITOR, and in legacy-web mode it holds
-        // TAB_ID_MONITOR itself.
-        const bool selecting_web_device_tab = main_frame->m_printer_view_page &&
-            main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view_page;
         if (selecting_web_device_tab) {
             // Use the selected discovered machine when the preset has no host.
             main_frame->load_printer_url();
@@ -16310,6 +16327,13 @@ int Plater::save_project(bool saveAs)
     if (filename == "<cancel>")
         return wxID_CANCEL;
 
+    // The project file records "name;uuid;capability" references for its plugin-backed settings. A
+    // value the resolver cannot map loses its reference when written. Ask before writing; Cancel
+    // leaves the project file, its dirty state and its lifecycle events untouched.
+    const DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config_secure();
+    if (!confirm_save_with_unresolved_plugins(this, full_config, SaveSubject::Project))
+        return wxID_CANCEL;
+
     //BBS export 3mf without gcode
     auto save_strategy = SaveStrategy::SplitModel | SaveStrategy::ShareMesh;
     bool full_pathnames = wxGetApp().app_config->get_bool("export_sources_full_pathnames");
@@ -16991,7 +17015,7 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
     auto cur_plate = get_partplate_list().get_plate(0);
 
     // add "handle" cube
-    sidebar().obj_list()->load_generic_subobject("Cube", ModelVolumeType::INVALID);
+    sidebar().obj_list()->load_generic_subobject("Cube", ModelVolumeType::INVALID, false);
     auto *cube = model().objects[0];
 
     CalibPressureAdvancePattern pa_pattern(
@@ -19219,12 +19243,10 @@ int GUI::Plater::close_with_confirm(std::function<bool(bool)> second_check)
             wxGetApp().app_config->set("save_project_choise", result == wxID_YES ? "yes" : "no");
         if (result == wxID_YES) {
             result = save_project();
-            if (result == wxID_CANCEL) {
-                if (choise.empty())
-                    return result;
-                else
-                    result = wxID_NO;
-            }
+            // A Cancel from the save (including the unresolved-plugin warning) must abort the close
+            // even when "Remember my choice" previously selected Save.
+            if (result == wxID_CANCEL)
+                return result;
         }
     }
 
@@ -19471,6 +19493,7 @@ void Plater::convert_unit(ConversionType conv_type)
 void Plater::apply_cut_object_to_model(size_t obj_idx, const ModelObjectPtrs& new_objects)
 {
     model().delete_object(obj_idx);
+    p->partplate_list.notify_instance_removed(obj_idx, -1);
     sidebar().obj_list()->delete_object_from_list(obj_idx);
 
     // suppress to call selection update for Object List to avoid call of early Gizmos on/off update
@@ -19819,6 +19842,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
                 model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = prev_payload;
             else
                 model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
+            model.model_info->metadata_items.erase(ORCA_PUBLISHED_LAYOUT_TAG);
         }
     };
     bool state_restored = false;
@@ -19860,6 +19884,12 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
             payload += key + " = " + value + "\n";
         }
         model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = std::move(payload);
+        // The author's extruder layout, so the receiver can place each printer key on the extruder with the same number.
+        const auto *layout_ids      = full_cfg.option<ConfigOptionInts>("printer_extruder_id");
+        const auto *layout_variants = full_cfg.option<ConfigOptionStrings>("printer_extruder_variant");
+        if (layout_ids != nullptr && layout_variants != nullptr)
+            model.model_info->metadata_items[ORCA_PUBLISHED_LAYOUT_TAG] =
+                nlohmann::json{{"extruder_ids", layout_ids->values}, {"variants", layout_variants->values}}.dump();
 
         // Same file layout as save_project(), plus Silence (so export_3mf does not set the project
         // filename on success, keeping this a pure export like export_core_3mf()) and MinimalPublished.
@@ -21109,7 +21139,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
                                                                    flashforge_host,
                                                                    supports_material_station,
                                                                    std::move(slots),
-                                                                   project_filaments);
+                                                                   project_filaments,
+                                                                   cfg.opt_bool("manual_filament_change"));
         } else {
             pDlg = std::make_unique<PrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
                                                          storage_paths, storage_names, config->get_bool("open_device_tab_post_upload"));
@@ -23202,7 +23233,7 @@ void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
     dlg.set_plate_name(from_u8(curr_plate->get_plate_name()));
 
     dlg.ShowModal();
-    curr_plate->set_plate_name(dlg.get_plate_name().ToUTF8().data());
+    rename_plate(p->partplate_list.get_curr_plate_index(), dlg.get_plate_name().ToUTF8().data());
 }
 
 void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
@@ -23460,7 +23491,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
             int result=dlg.ShowModal();
             if (result == wxID_YES) {
                 wxString dlg_plate_name = dlg.get_plate_name();
-                curr_plate->set_plate_name(dlg_plate_name.ToUTF8().data());
+                rename_plate(p->partplate_list.get_curr_plate_index(), dlg_plate_name.ToUTF8().data());
             }
         } else {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;
@@ -23906,6 +23937,28 @@ bool Plater::can_delete_all() const { return p->can_delete_all(); }
 bool Plater::can_add_model() const { return !is_background_process_slicing(); }
 bool Plater::can_add_plate() const { return !is_background_process_slicing() && p->can_add_plate(); }
 bool Plater::can_delete_plate() const { return p->can_delete_plate(); }
+
+void Plater::rename_plate(int plate_index, const std::string& name)
+{
+    PartPlate* plate = p->partplate_list.get_plate(plate_index);
+    if (plate == nullptr || plate->get_plate_name() == name)
+        return;
+
+    take_snapshot(_u8L("Rename Plate"));
+    const bool was_valid = plate->is_slice_result_valid();
+    plate->set_plate_name(name);
+
+    // The rename invalidated a G-code export that uses {plate_name}: refresh the current plate.
+    if (was_valid && !plate->is_slice_result_valid() && plate_index == p->partplate_list.get_curr_plate_index()) {
+        p->main_frame->update_slice_print_status(MainFrame::eEventPlateUpdate, true);
+        // Start one re-export: auto-reslice would cancel a background run started here.
+        if (p->background_processing_enabled())
+            p->restart_background_process(priv::UPDATE_BACKGROUND_PROCESS_FORCE_RESTART);
+        else
+            p->schedule_auto_reslice_if_needed();
+    }
+}
+
 bool Plater::can_increase_instances() const { return p->can_increase_instances(); }
 bool Plater::can_decrease_instances() const { return p->can_decrease_instances(); }
 bool Plater::can_set_instance_to_object() const { return p->can_set_instance_to_object(); }

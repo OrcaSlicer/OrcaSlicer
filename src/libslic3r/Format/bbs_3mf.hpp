@@ -168,6 +168,7 @@ inline constexpr const char *ORCA_PUBLISHED_TAG          = "orca_published";
 inline constexpr const char *ORCA_PUBLISHED_KEYS_TAG     = "orca_published_keys";
 inline constexpr const char *ORCA_PUBLISHED_MATERIAL_TAG = "orca_published_material_keys";
 inline constexpr const char *ORCA_PUBLISHED_CONFIG_TAG   = "orca_published_config";
+inline constexpr const char *ORCA_PUBLISHED_LAYOUT_TAG   = "orca_published_extruder_layout";
 
 // Published files are produced with "1". The importer and the GUI loader both gate on this
 // exact value, so a "0"/"false"/unknown value is rejected consistently.

@@ -37,6 +37,7 @@
 #include <boost/beast/websocket/stream.hpp>
 #include <nlohmann/json.hpp>
 
+#include "slic3r/GUI/DeviceCore/DevStorage.h"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
 
@@ -138,6 +139,29 @@ protected:
     }
 };
 
+// Fails its first `refusals` device info queries, as when macOS refuses the app's first local network connections.
+class RefusedAgent : public StreamAgent
+{
+public:
+    using StreamAgent::StreamAgent;
+    int refusals = 0;
+    mutable std::atomic<int> fetches{0};
+
+protected:
+    bool fetch_device_info(const std::string&           base_url,
+                           const std::string&           api_key,
+                           MoonrakerDeviceInfo&         info,
+                           std::string&                 error,
+                           const std::function<bool()>& cancelled) const override
+    {
+        if (++fetches <= refusals) {
+            error = "Couldn't connect to server";
+            return false;
+        }
+        return StreamAgent::fetch_device_info(base_url, api_key, info, error, cancelled);
+    }
+};
+
 enum class Behavior {
     SilentBeforeHandshake,     // Accepts the connection and never answers
     Silent,                    // Completes the upgrade, then never reads or sends
@@ -209,6 +233,13 @@ public:
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         return m_changed.wait_for(lock, 10s, [&] { return m_close_frames >= count; });
+    }
+
+    // The answer to the gcodes directory listing, which reports the free space in disk_usage. Null leaves disk_usage out.
+    void set_gcodes_listing(nlohmann::json disk_usage)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_disk_usage = std::move(disk_usage);
     }
 
     // Hangs up every connection that is waiting.
@@ -329,6 +360,16 @@ private:
             return;
         }
         http::response<http::string_body> response{http::status::not_found, request.version()};
+        if (request.target() == "/server/files/directory?path=gcodes") {
+            nlohmann::json result = {{"dirs", nlohmann::json::array()}, {"files", nlohmann::json::array()}};
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                if (!m_disk_usage.is_null())
+                    result["disk_usage"] = m_disk_usage;
+            }
+            response.result(http::status::ok);
+            response.body() = nlohmann::json{{"result", result}}.dump();
+        }
         response.prepare_payload();
         beast::error_code ec;
         http::write(stream, response, ec);
@@ -412,6 +453,7 @@ private:
     int m_http_hung_up  = 0;
     int m_close_frames  = 0;
     bool m_released     = false;
+    nlohmann::json m_disk_usage = {{"total", 8e9}, {"used", 2e9}, {"free", 6e9}};
 };
 
 // Records when the agent dispatches a status report.
@@ -618,6 +660,63 @@ TEST_CASE("A callback on the stream thread can stop the status stream", "[Moonra
     CHECK(f.stops_within(3s));
 }
 
+TEST_CASE("Status reports tell the send dialog whether the gcodes storage has free space", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    auto [disk_usage, has_storage] = GENERATE(table<nlohmann::json, bool>({
+        {{{"total", 8e9}, {"used", 2e9}, {"free", 6e9}}, true},
+        {{{"total", 8e9}, {"used", 8e9}, {"free", 0}}, false},
+        {nullptr, false},
+    }));
+    CAPTURE(disk_usage.dump());
+
+    std::promise<std::string> first_report;
+    std::once_flag reported;
+    StreamFixture f(Behavior::AnswersPings);
+    f.printer.set_gcodes_listing(disk_usage);
+    f.agent.set_on_local_message_fn([&](std::string, std::string payload) {
+        std::call_once(reported, [&] { first_report.set_value(payload); });
+    });
+    f.start();
+
+    auto report = first_report.get_future();
+    REQUIRE(report.wait_for(5s) == std::future_status::ready);
+    const nlohmann::json print = nlohmann::json::parse(report.get()).at("print");
+    // MachineObject reads the storage state from "sdcard" and then again from home_flag bits 8-9.
+    CHECK(print.at("sdcard") == has_storage);
+    CHECK(((print.at("home_flag").get<int>() >> 8) & 0x3) == (has_storage ? DevStorage::HAS_SDCARD_NORMAL : DevStorage::NO_SDCARD));
+    CHECK(f.stops_within(3s));
+}
+
+TEST_CASE("The status stream keeps re-reading the printer's free space", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    std::mutex mutex;
+    std::condition_variable changed;
+    std::vector<bool> storage_reports;
+    // Chatters sends a message every 50 ms, which the stream re-reads the free space after
+    StreamFixture f(Behavior::Chatters);
+    f.agent.ws_timings.storage_check = 100ms;
+    f.printer.set_gcodes_listing({{"total", 8e9}, {"used", 8e9}, {"free", 0}});
+    f.agent.set_on_local_message_fn([&](std::string, std::string payload) {
+        std::lock_guard<std::mutex> lock(mutex);
+        storage_reports.push_back(nlohmann::json::parse(payload).at("print").at("sdcard").get<bool>());
+        changed.notify_all();
+    });
+    const auto wait_for_storage = [&](bool has_storage) {
+        std::unique_lock<std::mutex> lock(mutex);
+        return changed.wait_for(lock, 5s, [&] { return !storage_reports.empty() && storage_reports.back() == has_storage; });
+    };
+    f.start();
+    REQUIRE(wait_for_storage(false));
+
+    f.printer.set_gcodes_listing({{"total", 8e9}, {"used", 2e9}, {"free", 6e9}});
+    REQUIRE(wait_for_storage(true));
+
+    // A listing without disk usage cannot be checked, which counts as no storage
+    f.printer.set_gcodes_listing(nullptr);
+    CHECK(wait_for_storage(false));
+    CHECK(f.stops_within(3s));
+}
+
 TEST_CASE("A quiet printer that is still up keeps reporting its status", "[MoonrakerPrinterAgent][StatusStream]")
 {
     Reports reports;
@@ -708,4 +807,33 @@ TEST_CASE("Destroying the agent stops a stalled status query", "[MoonrakerPrinte
 
     // The stalled query sees the change within 1 s of curl progress.
     CHECK(destroys_within(agent, 2s));
+}
+
+TEST_CASE("A connection the printer refuses at first is retried", "[MoonrakerPrinterAgent][Connect]")
+{
+    FakePrinter printer(Behavior::AnswersPings);
+    RefusedAgent agent("");
+    agent.refusals                   = 2;
+    agent.ws_timings.reconnect_delay = 10ms;
+    agent.connect_printer(connection_to(printer));
+
+    // The status stream starts only once a device info query succeeds.
+    CHECK(printer.wait_for_ready_connections(1));
+    CHECK(agent.fetches == 3);
+    printer.release();
+}
+
+TEST_CASE("Destroying the agent does not wait out a connection retry's delay", "[MoonrakerPrinterAgent][Connect]")
+{
+    FakePrinter printer(Behavior::AnswersPings);
+    auto agent                        = std::make_unique<RefusedAgent>("");
+    agent->refusals                   = 1;
+    agent->ws_timings.reconnect_delay = 10s;
+    agent->connect_printer(connection_to(printer));
+    const auto deadline = std::chrono::steady_clock::now() + 5s;
+    while (agent->fetches == 0 && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(10ms);
+    REQUIRE(agent->fetches == 1);
+
+    CHECK(destroys_within(agent, 1s));
 }

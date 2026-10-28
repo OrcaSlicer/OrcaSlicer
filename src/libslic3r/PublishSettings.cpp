@@ -316,4 +316,26 @@ DynamicPrintConfig filter_published_config(
     return filtered;
 }
 
+int resolve_published_extruder_slot(const PublishedExtruderLayout &author, size_t author_index,
+                                    const DynamicPrintConfig &receiver_printer, const DynamicPrintConfig &receiver_project)
+{
+    if (author_index >= author.extruder_ids.size() || author_index >= author.variants.size())
+        return -1;
+    const int author_extruder = author.extruder_ids[author_index];
+    const auto *nozzles        = receiver_printer.option<ConfigOptionFloats>("nozzle_diameter");
+    const auto *extruder_types = receiver_printer.option<ConfigOptionEnumsGeneric>("extruder_type");
+    const auto *volumes        = receiver_project.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    if (nozzles == nullptr || extruder_types == nullptr || volumes == nullptr || author_extruder < 1 ||
+        size_t(author_extruder) > nozzles->size())
+        return -1;
+    const size_t e = size_t(author_extruder - 1);
+    if (e >= extruder_types->size() || e >= volumes->size())
+        return -1;
+    const ExtruderType     extruder_type = ExtruderType(extruder_types->values[e]);
+    const NozzleVolumeType nozzle_type   = NozzleVolumeType(volumes->values[e]);
+    if (nozzle_type == nvtHybrid || author.variants[author_index] != get_extruder_variant_string(extruder_type, nozzle_type))
+        return -1;
+    return receiver_printer.get_index_for_extruder(author_extruder, "printer_extruder_id", extruder_type, nozzle_type, "printer_extruder_variant");
+}
+
 } // namespace Slic3r

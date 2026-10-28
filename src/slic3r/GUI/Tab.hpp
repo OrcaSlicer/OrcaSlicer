@@ -379,7 +379,11 @@ public:
 	void		compare_preset();
 	void		transfer_options(const std::string&name_from, const std::string&name_to, std::vector<std::string> options);
 	//BBS: add project embedded preset relate logic
-	void        save_preset(std::string name = std::string(), bool detach = false, bool save_to_project = false, bool from_input = false, std::string input_name = "");
+	// Returns false when the save was cancelled (the unresolved-plugin warning, the temperature
+	// safety check or the save-name dialog), so callers that were about to discard the edited
+	// preset can abort instead. `plugin_warning_confirmed` is set only by a caller that already ran
+	// the warning (UnsavedChangesDialog::save) and must not repeat it.
+	bool        save_preset(std::string name = std::string(), bool detach = false, bool save_to_project = false, bool from_input = false, std::string input_name = "", bool plugin_warning_confirmed = false);
 	//void		save_preset(std::string name = std::string(), bool detach = false);
 
 	void		delete_preset();

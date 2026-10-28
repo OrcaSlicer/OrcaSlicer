@@ -31,6 +31,7 @@ struct PrinterAgentInfo
     std::string         display_name; // e.g., "Orca Native", "Bambu Lab"
     std::string         plugin_identifier;     // Empty for built-ins, otherwise <plugin_key>;<uuid>;<capability_name>
     PrinterAgentFactory factory;      // Function to create the agent
+    bool                native_device_tab = true; // See AgentInfo::native_device_tab
 
     bool is_plugin() const { return !plugin_identifier.empty(); }
     PrinterAgentInfo(const std::string& id_, const std::string& display_name_, PrinterAgentFactory factory_)
@@ -84,9 +85,11 @@ public:
      * @param id Unique identifier for the agent (e.g., "orca", "bbl")
      * @param display_name Human-readable name for UI
      * @param factory Factory function to create the agent
+     * @param native_device_tab Whether the native Device and Calibration tabs apply to the agent's printers
      * @return true if registration succeeded, false if already registered
      */
-    static bool register_printer_agent(const std::string& id, const std::string& display_name, PrinterAgentFactory factory);
+    static bool register_printer_agent(const std::string& id, const std::string& display_name, PrinterAgentFactory factory,
+                                       bool native_device_tab = true);
 
     /**
      * Check if an agent registry/config key is registered

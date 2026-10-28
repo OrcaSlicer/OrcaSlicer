@@ -37,7 +37,8 @@ for `python3`.
 
 1. **Bump the `version` of every bundle you change**, `OrcaFilamentLibrary.json` included when affected.
    Increment the last component and carry `.99` into the third (`02.04.00.99` → `02.04.01.00`). The
-   updater installs only a strictly newer version, and CI does not check the bump.
+   updater installs only a strictly newer version; `version-check` (the `version_bump` check in CI
+   and `check_profile`) fails a changed bundle whose version is not newer than the branch's base.
 2. **Register every preset, bases included, parents before children.** `update-index` writes the four
    `*_list` arrays from the files on disk; `check` fails unless the index equals its output. Each index
    entry's `name` must equal the file's `name`.
@@ -89,8 +90,7 @@ for `python3`.
     multi-extruder printer whose extruders need different values
     ([widths](references/extruder-variants.md#widths)).
 12. **Run the full checks before reporting completion.** A `--vendor` run is only a development loop.
-    Review also covers version bumps, assets, non-default processes and hardware tuning, which CI cannot
-    establish.
+    Review also covers assets, non-default processes and hardware tuning, which CI cannot establish.
 
 ## Names
 
@@ -145,8 +145,10 @@ filename rules are in [naming.md](references/naming.md).
    On Windows use `scripts\check_profile.bat -Vendor "<Vendor>"` / `scripts\check_profile.bat`. Logs
    land in a per-user cache dir ([validation.md](references/validation.md)). Id checks stay tree-wide
    under `--vendor`, and filament-only bundles skip the default slice check. Under `--vendor` read only
-   `profile_tool` and `validate_slice`: the other three checks fail on library presets that name other
-   vendors' printers ([why](references/validation.md#the-five-checks)).
+   `profile_tool`, `version_bump`, `legacy_compat` and `validate_slice`: the validator checks fail on
+   library presets that name other vendors' printers ([why](references/validation.md#the-seven-checks)). `version_bump`
+   compares the working tree with the commit the branch left `upstream/main` (else `origin/main`) at;
+   pass `--base <ref>` to compare with another.
 6. **Verify the changed behaviour.** Slice newly added non-default processes and filaments
    [explicitly](references/validation.md#checking-a-copy-of-the-tree), and
    [test in the app](references/validation.md#testing-in-the-app) for selection or UI behaviour. Report
