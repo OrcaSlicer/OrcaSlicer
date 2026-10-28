@@ -406,7 +406,9 @@ gestures and ImGui items get synthesized wx events with a render between steps.
 `ImGuiWrapper::set_item_recording()` supplies the ImGui items with their rectangles and checked
 state; `ui_input` on an ImGui checkbox clicks it only when its state differs. `SyntheticInput` holds
 a gesture's keys, buttons and pointer for code that reads hardware state through `get_key_state()`
-and `get_mouse_state()`: the canvas, gizmos, and the object list's Ctrl/Shift multi-select. Held
+and `get_mouse_state()`: the canvas, gizmos, and the object list's Ctrl/Shift multi-select. Mouse
+modifiers take the names `ui_key` chords use, through `KeyChord::parse_modifier()`, so `ctrl` means
+the shortcut modifier (Command on macOS) in both, and `rawctrl` the macOS Control key. Held
 keys are released however the gesture ends; a `ui_mouse` `down` keeps its button held, and a
 `move` drags with it, until an `up`, another gesture or the service's stop. Keys without a target go to the
 focused window inside the topmost modal, else that modal, else the focused window, else the 3D

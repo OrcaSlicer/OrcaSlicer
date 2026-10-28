@@ -65,6 +65,16 @@ TEST_CASE("KeyChord::parse accepts aliases and rejects malformed text", "[Shortc
     CHECK_FALSE(KeyChord::parse("Shift+/").has_value());   // Shift is part of the punctuation character
 }
 
+TEST_CASE("KeyChord::parse_modifier names one modifier as chords spell it", "[Shortcuts]")
+{
+    CHECK(KeyChord::parse_modifier("ctrl") == wxMOD_CONTROL);
+    CHECK(KeyChord::parse_modifier("cmd") == wxMOD_CONTROL);
+    CHECK(KeyChord::parse_modifier("rawctrl") == wxMOD_RAW_CONTROL);
+    CHECK(KeyChord::parse_modifier("Option") == wxMOD_ALT);
+    CHECK(KeyChord::parse_modifier("Meta") == wxMOD_NONE);
+    CHECK(KeyChord::parse_modifier("") == wxMOD_NONE);
+}
+
 TEST_CASE("Key events normalize to the key-down key codes", "[Shortcuts]")
 {
     CHECK(KeyChord::from_event(key_event(wxEVT_KEY_DOWN, 'A', wxMOD_CONTROL)) == KeyChord{ 'A', wxMOD_CONTROL });

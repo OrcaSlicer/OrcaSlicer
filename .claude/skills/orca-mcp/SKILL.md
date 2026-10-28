@@ -195,6 +195,6 @@ lets a step fail without stopping the run.
   `dialogs`, and until the dialog closes every tool that needs the UI thread fails, naming it. Register `dialog_auto_answer` before
   any step that can open one. A folder picker is matched by its prompt, such as
   "Choose Download Directory".
-- In `ui_key`, `Ctrl` and `Cmd` both mean Command, as in the app's shortcuts, and `RawCtrl` is the
-  Control key. In the `modifiers` of `ui_click` and `ui_mouse`, `ctrl` is the Control key and `cmd`
-  is Command.
+- `Ctrl` and `Cmd` both mean Command, as in the app's shortcuts, and `RawCtrl` is the Control key.
+  This holds for `ui_key` chords and for the `modifiers` of `ui_click` and `ui_mouse` (`ctrl`,
+  `cmd`, `rawctrl`), so a `ctrl` click multi-selects as Command-click does.

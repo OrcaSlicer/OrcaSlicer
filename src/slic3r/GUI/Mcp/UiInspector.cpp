@@ -419,55 +419,44 @@ GLGizmosManager::EType gizmo_from_name(const std::string& name)
     return GLGizmosManager::Undefined;
 }
 
-// wx calls Command "Control" on macOS and the Control key "raw control"; elsewhere cmd/meta is the
-// Windows/Super key.
-void set_modifiers(wxKeyboardState& state, const std::vector<std::string>& mods)
+// The mouse tools' modifiers, named as in ui_key's chords so both mean the same keys: ctrl (or cmd) is
+// the shortcut modifier, Command on macOS, and rawctrl is the macOS Control key.
+int parse_modifiers(const std::vector<std::string>& mods)
 {
+    int modifiers = wxMOD_NONE;
     for (const std::string& m : mods) {
-        const std::string l = lower(m);
-        if (l == "ctrl" || l == "control")
-#ifdef __APPLE__
-            state.SetRawControlDown(true);
-#else
-            state.SetControlDown(true);
-#endif
-        else if (l == "shift")
-            state.SetShiftDown(true);
-        else if (l == "alt" || l == "option")
-            state.SetAltDown(true);
-        else if (l == "cmd" || l == "meta" || l == "super")
-#ifdef __APPLE__
-            state.SetControlDown(true);
-#else
-            state.SetMetaDown(true);
-#endif
-        else
-            throw ToolFailure("Unknown modifier " + m + " (ctrl, shift, alt, cmd)");
+        const int modifier = KeyChord::parse_modifier(m);
+        if (modifier == wxMOD_NONE)
+            throw ToolFailure("Unknown modifier " + m + " (ctrl, cmd, rawctrl, shift, alt)");
+        modifiers |= modifier;
     }
+    return modifiers;
 }
 
-std::vector<int> modifier_keys(const std::vector<std::string>& mods)
+void set_modifiers(wxKeyboardState& state, int modifiers)
+{
+    state.SetControlDown((modifiers & wxMOD_CONTROL) != 0);
+    state.SetShiftDown((modifiers & wxMOD_SHIFT) != 0);
+    state.SetAltDown((modifiers & wxMOD_ALT) != 0);
+#ifdef __APPLE__
+    // Elsewhere raw control is Ctrl itself, so setting it would undo SetControlDown.
+    state.SetRawControlDown((modifiers & wxMOD_RAW_CONTROL) != 0);
+#endif
+}
+
+std::vector<int> modifier_keys(int modifiers)
 {
     std::vector<int> keys;
-    for (const std::string& m : mods) {
-        const std::string l = lower(m);
-        if (l == "ctrl" || l == "control")
+    if (modifiers & wxMOD_CONTROL)
+        keys.push_back(WXK_CONTROL); // Command on macOS
 #ifdef __APPLE__
-            keys.push_back(WXK_RAW_CONTROL);
-#else
-            keys.push_back(WXK_CONTROL);
+    if (modifiers & wxMOD_RAW_CONTROL)
+        keys.push_back(WXK_RAW_CONTROL);
 #endif
-        else if (l == "shift")
-            keys.push_back(WXK_SHIFT);
-        else if (l == "alt" || l == "option")
-            keys.push_back(WXK_ALT);
-        else if (l == "cmd" || l == "meta" || l == "super")
-#ifdef __APPLE__
-            keys.push_back(WXK_CONTROL);
-#else
-            keys.push_back(WXK_WINDOWS_LEFT);
-#endif
-    }
+    if (modifiers & wxMOD_SHIFT)
+        keys.push_back(WXK_SHIFT);
+    if (modifiers & wxMOD_ALT)
+        keys.push_back(WXK_ALT);
     return keys;
 }
 
@@ -485,14 +474,14 @@ void command(wxWindow* w, wxEventType type, int int_value = 0, const wxString& s
     send(w, evt);
 }
 
-wxMouseEvent mouse_event(wxEventType type, const wxPoint& pos, bool left, bool right, bool middle, const std::vector<std::string>& mods)
+wxMouseEvent mouse_event(wxEventType type, const wxPoint& pos, bool left, bool right, bool middle, int modifiers)
 {
     wxMouseEvent evt(type);
     evt.SetPosition(pos);
     evt.SetLeftDown(left);
     evt.SetRightDown(right);
     evt.SetMiddleDown(middle);
-    set_modifiers(evt, mods);
+    set_modifiers(evt, modifiers);
     return evt;
 }
 
@@ -544,20 +533,21 @@ struct HeldKeys
 // event a real click produces.
 void click_window(wxWindow* w, const ClickOptions& o)
 {
-    HeldKeys       held(modifier_keys(o.modifiers));
+    const int      mods = parse_modifiers(o.modifiers);
+    HeldKeys       held(modifier_keys(mods));
     const wxSize   size = w->GetClientSize();
     const wxPoint  pos(size.x / 2, size.y / 2);
     const bool     right = o.button == "right", middle = o.button == "middle", left = !right && !middle;
     const auto     down  = left ? wxEVT_LEFT_DOWN : right ? wxEVT_RIGHT_DOWN : wxEVT_MIDDLE_DOWN;
     const auto     up    = left ? wxEVT_LEFT_UP : right ? wxEVT_RIGHT_UP : wxEVT_MIDDLE_UP;
-    wxMouseEvent   d     = mouse_event(down, pos, left, right, middle, o.modifiers);
+    wxMouseEvent   d     = mouse_event(down, pos, left, right, middle, mods);
     send(w, d);
-    wxMouseEvent u = mouse_event(up, pos, false, false, false, o.modifiers);
+    wxMouseEvent u = mouse_event(up, pos, false, false, false, mods);
     send(w, u);
     if (o.double_click && left) {
-        wxMouseEvent dc = mouse_event(wxEVT_LEFT_DCLICK, pos, true, false, false, o.modifiers);
+        wxMouseEvent dc = mouse_event(wxEVT_LEFT_DCLICK, pos, true, false, false, mods);
         send(w, dc);
-        wxMouseEvent u2 = mouse_event(wxEVT_LEFT_UP, pos, false, false, false, o.modifiers);
+        wxMouseEvent u2 = mouse_event(wxEVT_LEFT_UP, pos, false, false, false, mods);
         send(w, u2);
     }
     if (right) {
@@ -571,7 +561,7 @@ void click_window(wxWindow* w, const ClickOptions& o)
 class CanvasMouse
 {
 public:
-    CanvasMouse(GLCanvas3D& canvas, std::vector<std::string> mods) : m_canvas(canvas), m_mods(std::move(mods))
+    CanvasMouse(GLCanvas3D& canvas, const std::vector<std::string>& mods) : m_canvas(canvas), m_mods(parse_modifiers(mods))
     {
         for (int k : modifier_keys(m_mods))
             SyntheticInput::press_key(k);
@@ -605,9 +595,9 @@ public:
     }
 
 private:
-    GLCanvas3D&              m_canvas;
-    std::vector<std::string> m_mods;
-    bool                     m_keep_held = false;
+    GLCanvas3D& m_canvas;
+    int         m_mods;
+    bool        m_keep_held = false;
 };
 
 void canvas_click(GLCanvas3D& canvas, const wxPoint& pos, const ClickOptions& o)
@@ -1446,30 +1436,11 @@ json UiInspector::key(const UiTarget* t, const std::string& chord_text, const st
             wxKeyEvent evt(type);
             evt.m_keyCode = key_code;
             evt.m_uniChar = uni;
-            evt.SetControlDown((modifiers & wxMOD_CONTROL) != 0);
-            evt.SetShiftDown((modifiers & wxMOD_SHIFT) != 0);
-            evt.SetAltDown((modifiers & wxMOD_ALT) != 0);
-            evt.SetMetaDown((modifiers & wxMOD_META) != 0);
-#ifdef __APPLE__
-            evt.SetRawControlDown((modifiers & wxMOD_RAW_CONTROL) != 0);
-#endif
+            set_modifiers(evt, modifiers);
             evt.SetEventObject(target);
             return evt;
         };
-        std::vector<int> codes;
-        if (modifiers & wxMOD_CONTROL)
-            codes.push_back(WXK_CONTROL); // Command on macOS
-#ifdef __APPLE__
-        if (modifiers & wxMOD_RAW_CONTROL)
-            codes.push_back(WXK_RAW_CONTROL);
-#else
-        if (modifiers & wxMOD_META)
-            codes.push_back(WXK_WINDOWS_LEFT);
-#endif
-        if (modifiers & wxMOD_SHIFT)
-            codes.push_back(WXK_SHIFT);
-        if (modifiers & wxMOD_ALT)
-            codes.push_back(WXK_ALT);
+        std::vector<int> codes = modifier_keys(modifiers);
         codes.push_back(key_code);
         HeldKeys held(codes);
         bool     handled = false;

@@ -51,8 +51,9 @@ const json kTargetSchema = {{"type", json::array({"string", "object"})},
                              "{imgui:\"label\", window?, canvas?}."}};
 
 const json kModifiersSchema = {{"type", "array"},
-                               {"items", {{"type", "string"}, {"enum", {"ctrl", "shift", "alt", "cmd"}}}},
-                               {"description", "Modifier keys held during the click."}};
+                               {"items", {{"type", "string"}, {"enum", {"ctrl", "cmd", "rawctrl", "shift", "alt"}}}},
+                               {"description", "Modifier keys held during the click, as in ui_key: ctrl and cmd are both Command on macOS "
+                                               "and Ctrl elsewhere; rawctrl is the macOS Control key."}};
 
 bool in_top_dialog(McpService& service, wxWindow* window)
 {
