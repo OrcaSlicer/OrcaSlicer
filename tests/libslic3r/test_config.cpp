@@ -881,6 +881,41 @@ TEST_CASE_METHOD(PluginResolverFixture,
     CHECK(manifest == std::vector<std::string>{"x;;slicing-pipeline"});
 }
 
+TEST_CASE("unresolved_plugin_capabilities reports exactly the values the manifest drops", "[Config][plugins]") {
+    // GUI save entry points use this query to warn before a preset loses a plugin reference, so it
+    // must match the serializer's notion of "unresolved" -- same options, same resolver calls.
+    ConfigBase::set_resolve_capability_fn([](const std::string& name, const std::string& type) {
+        return name == "offline" ? std::string() : name + ";;" + type;
+    });
+    std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "printer_agent", "plugins"}));
+    config->option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = {"offline", "here"};
+    config->option<ConfigOptionString>("printer_agent", true)->value              = "agent";
+
+    const std::vector<UnresolvedPluginCapability> unresolved = config->unresolved_plugin_capabilities();
+    config->update_plugin_manifest();
+    const std::vector<std::string> manifest = config->option<ConfigOptionStrings>("plugins")->values;
+    ConfigBase::set_resolve_capability_fn(nullptr);
+
+    // Only the value no plugin can provide is reported; the resolved ones are not.
+    REQUIRE(unresolved.size() == 1);
+    CHECK(unresolved.front().opt_key == "slicing_pipeline_plugin");
+    CHECK(unresolved.front().capability_name == "offline");
+    // ... and the manifest holds the complementary set of references (keys() is in sorted order,
+    // so printer_agent comes first).
+    CHECK(manifest == std::vector<std::string>{"agent;;printer-connection", "here;;slicing-pipeline"});
+}
+
+TEST_CASE("unresolved_plugin_capabilities is empty without a resolver", "[Config][plugins]") {
+    // CLI/headless leaves the loaded manifest untouched when it serializes, so nothing is lost and
+    // there is nothing to prompt about.
+    ConfigBase::set_resolve_capability_fn(nullptr);
+    std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "plugins"}));
+    config->option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = {"offline"};
+    CHECK(config->unresolved_plugin_capabilities().empty());
+}
+
 TEST_CASE("H2C/A2L-era multi-nozzle and pre-heat config keys exist", "[config]") {
     // Foundation keys backing H2C 6-nozzle cluster grouping, the pre-heat/pre-cool time
     // model, and wipe-tower nozzle-change handling. Defaults must keep existing
