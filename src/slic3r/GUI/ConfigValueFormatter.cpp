@@ -53,6 +53,8 @@ wxString get_string_from_enum(const std::string& opt_key, const DynamicPrintConf
             }
         return _L("Undefined");
     }
+    if (val < 0 || val >= int(names.size()))
+        return _L("Undefined");
     return from_u8(_utf8(names[val]));
 }
 
@@ -215,6 +217,8 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
             ;
     }
     case coEnums: {
+        if (!opt_vector || opt_idx >= opt_vector->size())
+            return _L("Undefined");
         return get_string_from_enum(pure_key, config,
             pure_key == "top_surface_pattern" ||
             pure_key == "bottom_surface_pattern" ||
@@ -238,7 +242,7 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
             return get_thumbnails_string(points.values);
         }
         else if (pure_key == "bed_exclude_area") {
-            return get_thumbnails_string(config.option<ConfigOptionPoints>(pure_key)->values);
+            return from_u8(config.option<ConfigOptionPoints>(pure_key)->serialize());
         }
         else if (pure_key == "head_wrap_detect_zone") {
             return get_thumbnails_string(config.option<ConfigOptionPoints>(pure_key)->values);

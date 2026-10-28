@@ -11,6 +11,7 @@
 #include "slic3r/GUI/Jobs/Job.hpp"
 
 #include "BoostThreadWorker.hpp"
+#include "slic3r/GUI/Jobs/ProgressIndicator.hpp"
 
 namespace Slic3r { namespace GUI {
 

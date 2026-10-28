@@ -5,7 +5,6 @@
 
 #include <cstddef>
 #include <iterator>
-#include <libslic3r/ExPolygon.hpp>
 #include <libslic3r/BoundingBox.hpp>
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/libslic3r.h"

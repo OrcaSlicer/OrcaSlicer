@@ -11,6 +11,8 @@
 #include "libslic3r/Utils.hpp"
 #include <exception>
 
+namespace fs = boost::filesystem;
+
 namespace Slic3r {
 namespace GUI {
 

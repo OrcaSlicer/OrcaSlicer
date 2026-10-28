@@ -14,6 +14,7 @@
 #include <string>
 
 #include <boost/filesystem.hpp>
+#include <cstddef>
 
 #if __linux__
 #include <boost/thread.hpp>

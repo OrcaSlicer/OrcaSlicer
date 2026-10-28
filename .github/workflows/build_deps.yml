@@ -45,7 +45,7 @@ jobs:
       - name: load cached deps
         uses: actions/cache@v6
         with:
-          path: ${{ inputs.cache-path }}
+          path: ${{ github.workspace }}/${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
 
       - uses: lukka/get-cmake@latest
@@ -122,7 +122,7 @@ jobs:
               choco install strawberryperl
             }
             # cache-path is the install directory inside the deps build directory.
-            $deps = (Split-Path "${{ inputs.cache-path }}").Replace('\', '/')
+            $deps = (Split-Path "${{ github.workspace }}/${{ inputs.cache-path }}").Replace('\', '/')
             # -l compiles with Visual Studio's clang-cl and -x builds with Ninja; --msvc --msbuild is cl under the Visual Studio generator.
             $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
             .\build_win.bat -d --arch ${{ inputs.arch }} --deps-dir $deps @flags

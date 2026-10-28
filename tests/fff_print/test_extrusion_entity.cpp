@@ -11,8 +11,9 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
 
-#include "test_helpers.hpp"
 
 using namespace Slic3r;
 

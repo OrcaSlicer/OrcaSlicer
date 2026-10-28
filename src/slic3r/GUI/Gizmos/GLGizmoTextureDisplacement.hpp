@@ -4,6 +4,7 @@
 #include "GLGizmoPainterBase.hpp"
 #include "libslic3r/TextureBake/TextureBakeDebug.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
+#include "slic3r/GUI/AnimatedTexture.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/GLTexture.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -14,13 +15,19 @@
 #include <array>
 #include <atomic>
 #include "libslic3r/Color.hpp"
+#include "libslic3r/ObjectID.hpp"
 #include <cstddef>
 #include "libslic3r/TriangleSelector.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "admesh/stl.h"
 #include <cstdint>
+#include <functional>
 #include "libslic3r/Point.hpp"
 #include <imgui.h>
 #include <map>
+#include <future>
 #include <memory>
+#include <optional>
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <string>
 #include <vector>
@@ -57,8 +64,22 @@ public:
     static TextureDisplacementPrepareResult prepare_mesh(const indexed_triangle_set                  &base,
                                                          const TextureDisplacementFacetsData         &masks,
                                                          const std::vector<TextureDisplacementLayer> &layers,
+                                                         // `base`'s own UV channel, when it has one
+                                                         // (ModelVolume::texture_uv). Resampled onto
+                                                         // the result and reported back in it, and fed
+                                                         // to the samplers so a ModelUV layer drives
+                                                         // the refinement through its own layout.
+                                                         const std::vector<Vec2f>                    &model_uv,
+                                                         // `base`'s coordinates -> the frame the bake
+                                                         // samples the texture in, so the refinement
+                                                         // follows the texture the bake will apply.
+                                                         // Only the sampling moves into it: the mesh,
+                                                         // and every length in `params`, stay in
+                                                         // `base`'s own coordinates. Identity samples
+                                                         // there as well.
+                                                         const Transform3d                           &texture_frame,
                                                          const TextureDisplacementPrepareParams      &params,
-                                                         const std::vector<PrintableColor>           &palette,
+                                                         const TextureColorSettings                  &color_settings,
                                                          const DisplacementProgressFn                &progress,
                                                          // Optional step capture: receives the mesh
                                                          // after the remesh and after the refinement,
@@ -70,18 +91,43 @@ public:
 
     using PaletteEntry = PrintableColor;
 
-    // The printable palette: the loaded filaments (clamped to the sixteen mmu_segmentation_facets can
-    // address), plus - when `mixing` - every pair of them at evenly spaced ratios.
+    // One colour mixes are meant to reach: a bin of the textures' colour histogram, in CIELAB, and how
+    // much of the image it covers.
+    struct MixTarget
+    {
+        Vec3f lab    = Vec3f::Zero();
+        float weight = 0.f;
+    };
+
+    // The colours worth mixing for: those of the colouring layers in `layers` whose image is not made of
+    // flat colours (TextureDetail::flat_colors - those print in single filaments only, so no mix could
+    // serve them). The layers weigh the same and, before only the heaviest bins are kept (which is what
+    // bounds rank_mixes()), together 1. Read from the image as imported, as analyze_texture_detail()
+    // does, so the Smoothing slider does not move the palette around.
+    static std::vector<MixTarget> mix_targets(const std::vector<TextureDisplacementLayer> &layers);
+
+    // Mixes of pairs of `filaments`, best first and at most `limit` of them. Each is the one that most
+    // improves the match to `targets` given those ranked before it, counted only where it beats the
+    // nearest single filament by the quantizer's prefer-pure margin - which is where the quantizer will
+    // actually pick it. Stops early once another mix would make no noticeable difference, so a texture
+    // the filaments already cover gets few mixes or none.
     //
-    // Mixes are averaged in **CIELAB**, not RGB and not subtractively: two filaments interleaved too
-    // finely to resolve are averaged by the eye, which is what a perceptual space models. Yellow and
-    // blue banded together read as a desaturated grey-green, and that is what the preview must promise
-    // - blending them subtractively would show a green the printer cannot produce this way.
-    //
-    // How many ratios depends on how many filaments there are, so the palette stays bounded: the
-    // quantizer's lookup cube costs one DeltaE00 per cell per entry to fill, and with sixteen
-    // filaments there are already plenty of colours without mixing any of them.
-    static std::vector<PaletteEntry> make_palette(const std::vector<ColorRGBA> &filaments, bool mixing);
+    // Ratios are the short-cycle ones (k/d for d up to 6): the slicer interleaves a mix layer by layer,
+    // and a long cycle prints as visible bands rather than as a colour. A mix's `rgb` is the colour its
+    // mixed filament slot will show (blend_color_multi(), as the sidebar computes it), so the match, the
+    // preview and the slot all agree on what the mix looks like.
+    static std::vector<PaletteEntry> rank_mixes(const std::vector<ColorRGBA> &filaments,
+                                                const std::vector<MixTarget> &targets, int limit);
+
+    // The first `count` mixes of `ranking` the project can give a filament slot to. A mix `reusable`
+    // reports as already having a fixed slot costs nothing; any other uses up one of `free_slots`, and
+    // is skipped once they run out - so the palette never offers a colour a bake could not print.
+    static std::vector<PaletteEntry> pick_mixes(const std::vector<PaletteEntry> &ranking, int count, int free_slots,
+                                                const std::function<bool(const PaletteEntry &)> &reusable);
+
+    // The printable palette: the loaded filaments, entry i being filament i, followed by `mixes`.
+    static std::vector<PaletteEntry> make_palette(const std::vector<ColorRGBA> &filaments,
+                                                  const std::vector<PaletteEntry> &mixes);
 
     // Maps an image colour to the closest entry of `palette`, perceptually (CIEDE2000 over CIELAB - a
     // plain RGB distance picks visibly wrong filaments, most obviously between a saturated colour and
@@ -93,40 +139,49 @@ public:
     // to a worker thread and outlives the palette it was built from.
     static ColorQuantizeFn make_palette_quantizer(const std::vector<PaletteEntry> &palette);
 
-    // Turns a palette index plus a position into the filament to print there, interleaving the two
-    // filaments of a mixed entry per `mode`. `layer_height` sizes the Z bands; `cell_mm` the dither
-    // cells. See ColorResolveFn for why this is separate from the quantizer.
-    static ColorResolveFn make_mix_resolver(const std::vector<PaletteEntry> &palette, ColorMixMode mode,
-                                            float layer_height, float cell_mm);
+    // The filament (0-based) each entry of `palette` prints in, by palette index: a single filament is
+    // itself, a mix is the slot `slot_for_mix` returns for it. Only the mixes `triangle_color` actually
+    // uses (palette index + 1 per triangle, 0 for none) are asked for, since asking is what creates a
+    // slot. A mix that gets no slot (-1) prints in its dominant component; one nothing uses maps to -1.
+    //
+    // This is what the bake writes into the paint: a palette index is a filament only for the single
+    // filaments, while a mix's slot can sit anywhere among the project's mixed slots.
+    static std::vector<int> palette_filaments(const std::vector<PaletteEntry> &palette,
+                                              const std::vector<uint8_t> &triangle_color,
+                                              const std::function<int(const PaletteEntry &)> &slot_for_mix);
 
-    // Everything the jobs need to colour with, for the current volume: palette, mix mode, layer
-    // height, despeckle. Empty when no layer is actually colouring.
+    // Everything the jobs need to colour with, for the current volume: the palette, its single-filament
+    // part, and the despeckle passes. Empty when no layer is actually colouring. Read-only: no filament
+    // slot is created here, only when a bake commits (see palette_filaments()).
     TextureColorSettings color_settings_for(const ModelVolume &mv);
 
-    // The printable palette for the current filaments and mixing setting, rebuilt only when either
-    // actually changes - see the definition for why that caching is not optional.
+    // The printable palette for the current volume and project, rebuilt only when what it depends on
+    // changes - see the definition for why that caching is not optional.
     const std::vector<PaletteEntry> &cached_palette();
-    std::vector<PaletteEntry>  m_palette_cache;
-    std::vector<ColorRGBA>     m_palette_filaments;
-    bool                       m_palette_mixing = false;
-    ColorQuantizeFn            m_palette_quantizer;
+    // The quantizers for the cached palette and for its single filaments alone (flat-colour images),
+    // filled on first use. Only the subdivide preview matches colours on this thread - the jobs build
+    // their own from the palette they capture - so a palette rebuild, such as every step of a count
+    // drag, costs no lookup cube unless that preview asks for one.
+    std::pair<ColorQuantizeFn, ColorQuantizeFn> palette_quantizers();
+    std::vector<PaletteEntry> m_palette_cache;
+    ColorQuantizeFn           m_palette_quantizer;
+    ColorQuantizeFn           m_palette_pure_quantizer;
+    // Set when a rebuild changed the palette the previews were drawn with; cleared by rebuild_preview().
+    bool                      m_palette_changed = false;
+    // What the cache was built from.
+    std::vector<ColorRGBA>                                   m_palette_filaments;
+    std::vector<std::shared_ptr<std::vector<unsigned char>>> m_palette_images; // the colouring layers' images
+    std::optional<std::vector<PaletteEntry>>                 m_mix_ranking;    // rank_mixes(), computed on demand
+    bool                                                     m_palette_mixing     = false;
+    int                                                      m_palette_mix_count  = 0;
+    int                                                      m_palette_free_slots = 0;
+    std::vector<std::string>                                 m_palette_slots;  // the project's mixed slots
 
-    // The loaded filaments, clamped to the sixteen mmu_segmentation_facets can address.
+    // The loaded physical filaments, clamped to the states mmu_segmentation_facets can address.
     static std::vector<ColorRGBA> filament_palette();
-    // The print's layer height, which sizes ColorMixMode::ZBands. Falls back to 0.2 mm if it cannot be
-    // read - a wrong band size is a cosmetic error, not a reason to refuse to colour anything.
-    static float print_layer_height();
-    // The Z band height, in mm. One print layer is the ideal, but the interleave is realised per
-    // *facet*: a band thinner than the mesh can resolve does not dither, it beats against the triangle
-    // grid and comes out as broad horizontal stripes - and since MMU segmentation reads facet colour,
-    // it does so in the print too, not only on screen. The refinement edge is chosen from the model's
-    // diagonal and knows nothing about the layer height, so the band is rounded up to a whole number of
-    // layers at least two facet rows tall: still exact on the printer, and representable by the mesh
-    // that has to carry it. Used by both the bake settings and the preview shader, so the two agree.
-    float        color_band_mm(const ModelVolume &mv);
 
-    // The Normal preview's triangles, grouped by the filament they will print in. Colour is per facet
-    // and there are at most sixteen filaments, so the mesh is uploaded once with its index buffer
+    // The Normal preview's triangles, grouped by the palette entry they will print in. Colour is per facet
+    // and the palette is small, so the mesh is uploaded once with its index buffer
     // sorted by colour and drawn as one GLModel::render(range) per group - which needs no per-vertex
     // colour attribute, and so no change to GLModel's vertex layouts.
     //
@@ -139,10 +194,75 @@ public:
         ColorRGBA                 color;
     };
     std::vector<PreviewColorRun> m_preview_color_runs;
+
+    // The displaced preview of each painted model part *other* than the one owning the layer stack. That
+    // part keeps m_preview_glmodel and m_preview_its, which the paint overlays, the wireframe and the UV
+    // and seam editors are all keyed to; the remaining parts of a multibody object only need their
+    // geometry drawn, so that is all this holds. Built by the same preview job, one entry per part.
+    //
+    // Held behind unique_ptr because GLModel owns GPU buffers and has no move constructor: a vector of
+    // them by value would copy the handles on reallocation and free them twice.
+    struct PartPreview
+    {
+        ObjectID                     volume_id;
+        GLModel                      glmodel;
+        std::vector<PreviewColorRun> color_runs;
+    };
+    std::vector<std::unique_ptr<PartPreview>> m_part_previews;
+    // The part `preview` was built for, or nullptr if it has gone away or had its mesh replaced since -
+    // in which case that part's own volume is drawn instead of a preview that no longer describes it.
+    const ModelVolume *preview_part(const PartPreview &preview) const;
+    // Whether the true-displacement view has anything to draw. Asking m_preview_glmodel alone would
+    // hide the real volumes behind an empty preview whenever only another part is painted.
+    bool has_true_preview() const { return m_preview_glmodel.is_initialized() || !m_part_previews.empty(); }
+    // The preview mesh as it is uploaded: when the run reported a palette entry per triangle, the index
+    // buffer is reordered so that each palette colour becomes one contiguous draw range (returned in
+    // `runs`); otherwise `its` is handed back unchanged and `runs` stays empty. Only the index buffer is
+    // permuted, never the vertices - see PreviewColorRun.
+    static indexed_triangle_set group_preview_by_color(const indexed_triangle_set   &its,
+                                                       const std::vector<uint8_t>   &triangle_color,
+                                                       const std::vector<ColorRGBA> &entry_colors,
+                                                       std::vector<PreviewColorRun> &runs);
     // True if any of the volume's layers would actually colour something: colour turned on, and a
     // texture that has colour to give. What decides whether a palette is captured into a job at all,
     // and so whether the colour criterion and the mmu write ever run.
     static bool any_layer_colors(const ModelVolume &mv);
+
+    // The model's own colour paint (mmu_segmentation_facets) as the gizmo draws it over its surface: the
+    // sub-triangles painted in a filament, grouped by that filament. NONE - the volume's own filament - is
+    // left out, so those triangles keep the gizmo's neutral, as they do in the preview.
+    struct PaintedColors
+    {
+        indexed_triangle_set facets; // over the paint's whole vertex array
+        std::vector<int>     source; // per triangle of `facets`: the model triangle it lies in
+        std::vector<int>     state;  // per triangle of `facets`: its filament state, 1-based
+
+        // The triangles of `facets` outside the model triangles `excluded` marks, in order. A model
+        // triangle past the end of `excluded` is not excluded.
+        std::vector<size_t> outside(const std::vector<bool> &excluded) const;
+    };
+    static PaintedColors painted_colors(const TriangleMesh &mesh, const TriangleSelector::TriangleSplittingData &paint);
+
+    // The view while the UV editor's selected islands are highlighted on the model. The highlight lies on the
+    // undisplaced surface, so the Normal view's relief hides it wherever it rises: Normal gives way to Fast
+    // while islands are selected and comes back once none are. A view the user clicks in the View row is
+    // theirs - the pane's background buttons are not a pick, Height only meaning "the texture view".
+    struct IslandViewFollow
+    {
+        bool shown       = false; // the highlight, as of the last step()
+        bool switched    = false; // Fast was switched on for the highlight, so Normal comes back once it is gone
+        bool keep_normal = false; // the user picked Normal in the View row while the highlight was shown
+        // The view to apply this frame (0 Normal, 1 Fast), or -1 for none. `view` is the one on screen, numbered as
+        // apply_view_mode() takes it; `debug_open` a debug stage on screen, which holds Normal itself.
+        int  step(bool shown_now, int view, bool debug_open);
+        // A View row button clicked, the active one included. The row is drawn after step() in the same frame,
+        // so `shown` is this frame's.
+        void picked(int view)
+        {
+            switched    = false;
+            keep_normal = shown && view == 0;
+        }
+    };
 
     void render_painter_gizmo() override;
 
@@ -153,6 +273,9 @@ public:
 protected:
     void        on_render_input_window(float x, float y, float bottom_limit) override;
     std::string on_get_name() const override;
+    // Never in the assemble view: its toolbar does not offer this gizmo, and every preview here is drawn
+    // with the main canvas's instance transform. The base alone would let the keyboard shortcut open it there.
+    bool        on_is_activable() const override;
 
     wxString handle_snapshot_action_name(bool shift_down, Button button_down) const override;
 
@@ -173,11 +296,45 @@ private:
     void on_shutdown() override;
     PainterGizmoType get_painter_type() const override;
 
-    // Phase 1 restricts the texture layer list to the first model-part volume of the current
-    // object (the common single-volume case); multi-part objects only get texture layers on
-    // their first part until a later phase. Returns nullptr if there is no model part.
+    // The model part that owns the object's texture layer stack, its options, and the unwrap the UV and
+    // seam editors work on: the first model part of the current object. Those are object-wide settings
+    // kept on one part rather than copied onto all of them. Returns nullptr if there is no model part.
+    //
+    // This is *not* the set of parts a bake acts on - see painted_parts(). Reading the layer stack and
+    // baking are different questions, and answering the second one with this is what made texture
+    // displacement ignore every part of a multibody object but the first.
     ModelVolume*       texture_volume();
     const ModelVolume* texture_volume() const;
+
+    // Every model part of the current object, in the object's own volume order - which is also the
+    // order update_from_model_object() builds m_triangle_selectors in, so index i here is selector i.
+    std::vector<ModelVolume *> texture_parts();
+    // The parts a bake or a preview acts on: those of texture_parts() carrying paint in at least one
+    // slot. Empty when nothing is painted anywhere on the object, which is what the Bake button and its
+    // "nothing is painted" check test.
+    std::vector<ModelVolume *> painted_parts();
+    bool                       any_part_painted() const;
+
+    // The object's layer stack as it applies to `part`. The stack itself lives on texture_volume(), but
+    // four of each layer's fields index *that* part's mesh and the chart ids of *its* unwrap - the LSCM
+    // seam edges, the island placements, their join groups and the per-vertex uv overrides. Carried onto
+    // another part they would address triangles and charts that have nothing to do with it, so they are
+    // dropped and that part unwraps on its own. Everything else - the image, depth, tiling, projection
+    // method, blend mode, colour - applies unchanged, since every part is baked in the one texture frame
+    // anchored at texture_anchor(); that is what lets one stack texture a whole multibody object.
+    std::vector<TextureDisplacementLayer> layers_for_part(const ModelVolume &part) const;
+    // The world point the object's texture is anchored at: texture_volume()'s origin. Every part is
+    // baked and previewed in the frame anchored there (see texture_displacement_bake_frame()), so a
+    // tiled pattern runs on across the parts and a view projection lands where it was aimed on each.
+    Vec3d texture_anchor() const;
+    // For each of `parts`, at the same index: how far the object's lowest point lies below that part's
+    // own, in mm - what its bake lowers its resting plane by, so every part is clamped against the one
+    // plane the object rests on. 0 for the lowest part, and so for a single-part object.
+    std::vector<float> resting_drops(const std::vector<ModelVolume *> &parts);
+    // Where prepare_mesh() samples `part`'s texture: the frame its bake samples in when the object has
+    // several model parts, so they are all refined for one continuous texture. A single-part object
+    // keeps the identity, the frame it has always been refined in.
+    Transform3d prepare_texture_frame(const ModelVolume &part);
 
     void add_texture_layer();
     void remove_texture_layer(int slot);
@@ -206,6 +363,9 @@ private:
     // Standard is active so what Preview shows is always what Bake will do. Returns true if it actually
     // changed something, so the caller can invalidate the preview.
     bool apply_standard_mode_presets(ModelVolume *mv);
+    // Copies the panel's own state (active layer, Standard/Pro) onto the volume, so the project file
+    // can carry it. Cheap and idempotent - called wherever either of the two changes.
+    void store_panel_state();
     // Standard mode's Bake: remesh to an even density, refine where the texture bends, then displace.
     // The order matters and is the whole reason this is one button - a height map can only move
     // existing vertices, so the mesh has to be prepared first, and remeshing after painting would drop
@@ -222,8 +382,14 @@ private:
     //  - `unchanged_msg`, when not empty, is shown if the run had nothing to do. Standard's Bake passes
     //    nothing: a mesh that already meets the criteria is not an error there, it just goes straight
     //    on to the displacement.
+    //  - `scope` is which of the object's model parts to prepare. Anything feeding a displacement
+    //    prepares exactly the parts that displacement will move; a plain Remesh is a mesh operation on
+    //    the object and takes all of them, so painting the rest of a multibody object afterwards has a
+    //    dense enough mesh to show relief on.
+    enum class PrepareScope { PaintedParts, AllParts };
     void queue_prepare(const TextureDisplacementPrepareParams &params, const std::string &snapshot_name,
-                       bool then_bake, const std::string &unchanged_msg);
+                       bool then_bake, const std::string &unchanged_msg,
+                       PrepareScope scope = PrepareScope::PaintedParts);
     // Set from queue_prepare() until its job's result has been committed. Distinct from
     // m_bake_in_progress because Standard's Bake sets both in turn, and because every button that would
     // read or replace the mesh has to stay disabled for the whole of it.
@@ -263,14 +429,14 @@ private:
     // volume's slot among them, or -1 if it has none (no selection, or the lists disagree).
     int texture_volume_raycaster_index() const;
 
-    // Paints exactly the facets currently visible from the camera onto the active layer, replacing
-    // whatever that layer had painted. "Visible" is two tests: the facet faces the camera, and its
-    // centroid is not hidden behind other geometry (a real raycast, so a concave part's far inner
-    // wall is correctly excluded). When `uv_clip` is given (the projection frame's matrix), facets
-    // whose centroid falls outside the frame's uv unit square are skipped first - which both clips
-    // the selection to the frame and spares the raycast for everything outside it. Costs one ray
-    // query per surviving facet, so it is a one-shot action, never a per-frame one. Returns the
-    // number of facets selected.
+    // Paints exactly the facets currently visible from the camera onto the active layer, on every model
+    // part, replacing whatever that layer had painted on each. "Visible" is two tests: the facet faces
+    // the camera, and its centroid is not hidden behind other geometry of any part (a real raycast, so
+    // a concave part's far inner wall is correctly excluded). When `uv_clip` is given (the projection
+    // frame's matrix), facets whose centroid falls outside the frame's uv unit square are skipped first
+    // - which both clips the selection to the frame and spares the raycast for everything outside it.
+    // Costs one ray query per surviving facet and part, so it is a one-shot action, never a per-frame
+    // one. Returns the number of facets selected.
     int select_visible_faces(const std::array<float, 12> *uv_clip = nullptr);
 
     // When set, "Capture current view" also re-selects the visible faces, so the viewpoint the
@@ -340,6 +506,10 @@ private:
     void render_texture_library_popup(const ImVec2 &panel_min, const ImVec2 &panel_max);
     int  m_picker_slot         = -1;
     bool m_picker_open_request = false;
+    // Set when the popup opens, so the next layout scrolls the layer's current texture into view.
+    bool  m_picker_reveal_selected = false;
+    float m_picker_scroll_target   = 0.f;  // see ease_wheel_scroll()
+    float m_picker_scroll_applied  = -1.f;
     void set_layer_texture(TextureDisplacementLayer &layer, const TextureLibraryEntry &entry);
     void import_custom_texture(TextureDisplacementLayer &layer);
 
@@ -348,6 +518,77 @@ private:
     // Per slot: whether the layer's card shows every setting or only Depth, Tile size and Rotation.
     // Panel state only, not saved with the project.
     std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_layer_expanded{};
+    // The slider whose edit icon was just clicked, as its ImGui id, and the frame it was clicked on.
+    // The row acts on it on the next frame - ImGui's keyboard-focus request only takes effect a frame
+    // later - and clears it; the frame number is what retires a request whose row has gone off screen
+    // in the meantime. Panel state only, not saved with the project.
+    std::string m_slider_type_request;
+    int         m_slider_type_request_frame = 0;
+
+    // ---- The image-adjustment panel ----
+    //
+    // Brightness/contrast/sharpness/blur/hue over one layer's image, shown on the image itself and
+    // updating as the sliders move. What it produces is not a set of layer parameters: it replaces the
+    // layer's *image*, so the adjusted pixels feed the colour and the displacement together and a
+    // brightness change moves the relief too (see TextureAdjustments).
+    //
+    // An ordinary floating window rather than a popup, and deliberately so. A popup dims the canvas
+    // behind it and closes on any click outside itself, which between them make it impossible to watch the
+    // relief change on the model - which is the whole point of adjusting the image here rather than in an
+    // image editor. A window leaves the 3D view live, clickable and orbitable while the panel is open.
+    void render_image_adjust_window(const ImVec2 &panel_min, const ImVec2 &panel_max);
+    // Opens the panel for `layer`, decoding its image into m_adjust_source. Sliders never re-decode
+    // the PNG.
+    void open_image_adjust(const TextureDisplacementLayer &layer);
+    // Reads `layer`'s stored image into the panel's source buffers and records which image it came from.
+    // Called when the panel opens and again whenever the layer's image is swapped under it, which is why
+    // it leaves the slider values alone. False when the image cannot be decoded.
+    bool load_image_adjust_source(const TextureDisplacementLayer &layer);
+    // Resolves the panel: writes the adjusted image into the user's texture library as a new file and
+    // points `layer` at it, which is the only way an adjustment becomes permanent. Closes the panel.
+    void commit_image_adjust(TextureDisplacementLayer &layer);
+    // Closes the panel and reverts the layer's live preview_adjust to identity, so every exit that is not
+    // a commit - Cancel, the window's close button, the gizmo closing - leaves the layer as it was found.
+    void close_image_adjust();
+    // Collects a finished preview and starts one for the current slider values. One at a time, so a drag
+    // coalesces into "whatever the sliders last said" instead of a queue of superseded frames.
+    void update_image_adjust_preview();
+
+    int                m_adjust_slot = -1; // the layer the panel is open for; -1 when closed
+    TextureAdjustments m_adjust;           // what the sliders currently say
+    // What the layer's live preview_adjust was last set from, so a slider move can be told from a frame in
+    // which nothing happened and only the former asks the displacement to be recomputed.
+    TextureAdjustments m_adjust_applied;
+
+    // The layer's image as it was when the panel opened, and a small copy of it. The sliders are applied
+    // to the small copy for the live preview and to the full-size one exactly once, on commit. Measured on
+    // a 1024x1024 with every knob engaged, a full-size pass costs 13-19 ms grayscale and 40-60 ms in
+    // colour (130-190 ms at 2048 in colour) - far too much to repeat per slider frame. The same pass on a
+    // 384 px copy is 3-4 ms / 9-12 ms, and that is all the preview box can show anyway.
+    DecodedHeightTexture m_adjust_source;
+    DecodedHeightTexture m_adjust_preview_source;
+    // Which image_data the two buffers above were decoded from, so the panel can notice the layer's image
+    // being swapped from the texture picker while it is open and re-read it. Compared, never dereferenced.
+    const void          *m_adjust_source_image = nullptr;
+    // And which volume the panel was opened on. Slot numbers are per volume, so without this a change of
+    // selection would silently rebind the open panel to whichever layer happens to hold the same slot on
+    // the newly selected object - a different image, under a panel the user opened for this one.
+    size_t               m_adjust_volume_id = 0;
+    // The preview image on screen, re-uploaded whenever a background pass finishes.
+    std::unique_ptr<GLTexture> m_adjust_preview_tex;
+
+    // The live preview runs on its own thread rather than on the UI thread or on the plater's job
+    // worker. Not the UI thread because even the small pass is milliseconds and this runs while a slider
+    // is being dragged; not the job worker because that is a single FIFO shared with Bake and the
+    // displacement preview (see queue_preview_job()), where a per-frame image filter would sit behind -
+    // and delay - multi-second mesh work.
+    std::future<DecodedHeightTexture> m_adjust_preview_job;
+    TextureAdjustments                m_adjust_preview_running; // what the in-flight pass is computing
+    TextureAdjustments                m_adjust_preview_shown;   // what m_adjust_preview_tex holds
+    bool                              m_adjust_preview_valid = false;
+    // Drops the GPU copies of the layer's image so the next frame rebuilds them from the decode, which
+    // is where the live adjustment is applied. Called whenever the panel moves or reverts it.
+    void invalidate_adjust_textures();
 
     // "Adjust Texture" mode: instead of painting, dragging an on-canvas handle changes the active
     // layer's offset. The handle is a flat panel lying in the paint patch's own tangent plane
@@ -367,8 +608,8 @@ private:
     // obvious whether the next stroke adds paint (default) or erases it (Shift). Uses ImGui's
     // foreground draw list, so it must be called from inside the gizmo's ImGui frame.
     void render_paint_cursor_hint();
-    // Mesh-local tangent-plane basis at m_adjust_anchor_normal, matching project_planar()'s
-    // dominant-axis convention so dragging on-canvas maps consistently onto offset.
+    // Mesh-local tangent-plane basis at m_adjust_anchor_normal: box_projection_axes(), so dragging
+    // on-canvas maps consistently onto offset whichever face the anchor is on.
     void adjust_tangent_basis(Vec3f &u_axis, Vec3f &v_axis) const;
 
     // The plane a drag is measured against: the paint patch's anchor, lifted clear of the surface.
@@ -448,6 +689,11 @@ private:
     // The panel's view modes: 0 Normal, 1 Fast, 2 Checker, 3 Distortion. Shared by the View row and the pane's
     // background buttons, so both switch views the same way.
     void apply_view_mode(int mode);
+    // The view on screen, numbered as apply_view_mode() takes it.
+    int  view_mode() const;
+    // Run once a frame, after the pane's commands: switches the view as m_island_view says.
+    void             follow_island_highlight();
+    IslandViewFollow m_island_view;
     // The pane header's thumbnail of the active layer's texture, rebuilt only when its image changes.
     static constexpr int       UV_THUMB_PX       = 64;
     const void                *m_uv_thumb_source = nullptr;
@@ -671,18 +917,16 @@ private:
     bool    m_shaded_preview_dirty = false;
     GLModel m_shaded_preview_glmodel;
 
-    // Translucent tint over the active layer's painted triangles, drawn on top of whichever preview
-    // is showing. The base painter's own opaque paint highlight (render_triangles()) cannot be used
-    // in either preview mode - it is coincident with the surface and simply covers it - so the only
-    // paint feedback the gizmo had was the relief itself, which meant erasing showed nothing at all
-    // until the stroke ended and the whole preview rebuilt. This is that feedback: cheap (the painted
-    // patch only), translucent (the preview stays visible through it) and rebuilt live during a
-    // stroke.
+    // Translucent tint over the active layer's painted triangles: the paint feedback over a preview (see
+    // render_painter_gizmo()). Cheap (the painted patch only), translucent so the preview shows through,
+    // and rebuilt live during a stroke.
     GLModel m_paint_overlay_glmodel;
     // The islands selected in the UV editor, tinted on the model so the pane's selection can be seen
     // in place. Rebuilt whenever the pane's selection differs from the one it was built for.
     GLModel          m_island_overlay_glmodel;
     std::vector<int> m_island_overlay_selection;
+    // The pane's selection while the overlay applies - the pane open over an unwrapped LSCM layer - else null.
+    const std::vector<int> *island_highlight_selection();
     void             rebuild_island_overlay(const std::vector<int> &selection);
     void             render_island_overlay();
     // Set on every paint event, cleared when the overlay is rebuilt in render_painter_gizmo(). Kept
@@ -695,6 +939,23 @@ private:
     GLModel     m_other_paint_glmodel;
     std::string m_other_paint_key;
     void        rebuild_other_paint_overlay();
+    // The model's colour paint, drawn over the surface so the colours a bake wrote stay visible - the
+    // canvas draws no volume while a paint gizmo is open, and the selectors hold only displacement paint.
+    // Left out wherever the preview on screen shows paint of its own (`whole_stack`: every layer's, as the
+    // Normal preview does; otherwise the active layer's), since an opaque overlay there would hide that
+    // preview. Only while a layer colours: it is the colour workflow's result, and every other paint gizmo
+    // shows the model neutral.
+    //
+    // Two levels: the paint's sub-triangles, which take a selector over the whole mesh and change only with
+    // the paint itself, and the part drawn, which follows every flushed stroke.
+    PaintedColors m_painted_colors;
+    std::string   m_painted_colors_key;
+    GLModel       m_painted_colors_glmodel;
+    std::string   m_painted_colors_drawn_key;
+    std::vector<std::pair<int, std::pair<size_t, size_t>>> m_painted_colors_runs; // filament state, index range
+    void          rebuild_painted_colors(bool whole_stack);
+    // False when there was nothing to draw.
+    bool          render_painted_colors(bool whole_stack);
     // Whether render_shaded_preview_mesh() would actually draw something. Checked before the real volume
     // is hidden: with no layer, no texture or no shader the shaded path draws nothing, and hiding the
     // volume for it left the model invisible.
@@ -708,11 +969,9 @@ private:
     int   m_shaded_projection_mode = 0;
     Vec3f m_shaded_patch_center    = Vec3f::Zero();
     Vec3f m_shaded_patch_axis      = Vec3f::UnitZ();
-    // The palette the fast preview's per-triangle filament indices were built against, captured when
-    // the mesh was. Empty when the active layer is not colouring, which is what tells the shader to
-    // fall back to the model's own colour. Held rather than re-read at draw time so the indices baked
-    // into the mesh can never be resolved against a different set of filaments than they were computed
-    // from - loading a filament mid-session would otherwise recolour a stale preview at random.
+    // The palette the fast preview matches each fragment against, captured with its mesh. Empty when the
+    // active layer is not colouring, which is what tells the shader to fall back to the model's own
+    // colour. Every entry carries the colour it prints in, so drawing it needs nothing else.
     std::vector<PaletteEntry> m_shaded_preview_palette;
 
     // GPU island drag: while an island is dragged in the UV editor, the displacement mesh is baked once (with
@@ -751,18 +1010,31 @@ private:
     // Merges chart `b`'s join group into chart `a`'s (materialising `groups` to `chart_count` first).
     static void      join_island_groups(std::vector<int> &groups, int a, int b, int chart_count);
     // Final per-vertex texture uv for the projections the shader can't reconstruct itself - LSCM (an
-    // unwrap) and ViewProjected (a projector plane the shader doesn't know). One entry per patch/base
-    // vertex, already through apply_uv_transform(). Empty for Triplanar/Cylindrical/Spherical, which
-    // the shader projects on its own. Shared by the shaded preview and the UV-check overlay.
+    // unwrap), ModelUV (the model's own channel) and ViewProjected (a projector plane the shader
+    // doesn't know). One entry per patch/base vertex, already through apply_uv_transform(). Empty for
+    // Triplanar/Cylindrical/Spherical, which the shader projects on its own. Shared by the shaded
+    // preview and the UV-check overlay.
+    //
+    // `patch_source` maps each patch triangle back to its base-mesh triangle
+    // (TriangleSelector::get_facets_strict()'s out_source). Only ModelUV needs it - its channel is per
+    // base triangle - and without it a ModelUV layer reports no uvs and the preview falls back.
     std::vector<Vec2f> compute_layer_vertex_uvs(const indexed_triangle_set &patch,
-                                                const TextureDisplacementLayer &layer) const;
+                                                const TextureDisplacementLayer &layer,
+                                                const std::vector<int> *patch_source = nullptr) const;
     // The same, but three UVs per patch triangle (corner 0..2 of triangle i at 3i..3i+2). This is what
     // the flat, unshared-vertex preview meshes actually want: under LSCM a seam vertex has a different
     // UV in each island it borders, so collapsing to one per vertex handed a triangle at an unjoined
     // seam its neighbour's placement - one visibly skewed triangle per face. Every other projection is
     // single-valued per point, so there a corner's UV is just its vertex's.
     std::vector<Vec2f> compute_layer_corner_uvs(const indexed_triangle_set &patch,
-                                                const TextureDisplacementLayer &layer) const;
+                                                const TextureDisplacementLayer &layer,
+                                                const std::vector<int> *patch_source = nullptr) const;
+    // The model's own channel over `local_patch`, already through apply_uv_transform() - three per
+    // patch triangle. Empty when the volume has no channel, or when `patch_source` is missing. Shared
+    // by the two functions above so the per-vertex and per-corner forms can never disagree.
+    std::vector<Vec2f> model_uv_corners(const indexed_triangle_set &local_patch,
+                                        const TextureDisplacementLayer &layer,
+                                        const std::vector<int> *patch_source) const;
     // The in-shader projection for `layer` (0 Triplanar, 1 Cylindrical, 2 Spherical) plus, for the two
     // wrapping ones, the patch centroid and cylinder axis they wrap around - in the texture frame the
     // shaders project in. Taken from the bake's own texture_displacement_patch_frame(), so a preview
@@ -811,6 +1083,7 @@ private:
     enum class UVBackground { None, Height, Checker };
     UVBackground m_uv_editor_bg = UVBackground::None;
     float        m_uv_editor_bg_smoothing = -1.f; // smoothing the height backdrop was uploaded at
+    TextureAdjustments m_uv_editor_bg_adjust;        // and the live image adjustment it was uploaded at
     const void  *m_uv_editor_bg_image     = nullptr; // the layer image it was uploaded from
     // Per-chart distortion heatmap colour for the UV pane (#7/#14), computed once when the unwrap is
     // re-solved (relative stretch doesn't change when islands are merely moved), fed to the canvas only
@@ -848,28 +1121,31 @@ private:
     bool m_preview_job_pending = false;
     void queue_preview_job();
 
-    // Per-slot GPU thumbnail cache for the layer list panel, keyed by the image_data pointer that
-    // was current the last time each thumbnail was built (see get_layer_thumbnail()).
-    std::array<std::unique_ptr<GLTexture>, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_thumbnails;
-    std::array<const void *, TEXTURE_DISPLACEMENT_MAX_LAYERS>               m_thumbnail_source{};
+    // Per-slot GPU thumbnail cache for the layer list panel, each keyed by the image_data it was built from
+    // (see get_layer_thumbnail()). Held weakly rather than by address, as decode_height_texture()'s cache is:
+    // an image freed and replaced by another at the same address must not pass for it.
+    std::array<std::unique_ptr<GLTexture>, TEXTURE_DISPLACEMENT_MAX_LAYERS>                       m_thumbnails;
+    std::array<std::weak_ptr<const std::vector<unsigned char>>, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_thumbnail_source;
     // The smoothing each cached thumbnail was built at, so a smoothing change re-uploads it.
-    std::array<float, TEXTURE_DISPLACEMENT_MAX_LAYERS>                      m_thumbnail_smoothing{};
+    std::array<float, TEXTURE_DISPLACEMENT_MAX_LAYERS>                                            m_thumbnail_smoothing{};
 
     // Full-resolution height texture for the preview shader, keyed the same way (see
     // get_layer_height_texture()). A smoothing change re-uploads it, so the fast preview shows the
     // blur the bake will apply.
-    std::unique_ptr<GLTexture> m_height_tex;
-    const void                *m_height_tex_source    = nullptr;
-    float                      m_height_tex_smoothing = -1.f;
+    std::unique_ptr<GLTexture>                      m_height_tex;
+    std::weak_ptr<const std::vector<unsigned char>> m_height_tex_source;
+    float                                           m_height_tex_smoothing = -1.f;
 
     // The same, for the layer's *colour*, which the fast preview quantizes per fragment so it shows
     // the image at texel resolution rather than at the mesh's. Null for a grayscale texture.
-    std::unique_ptr<GLTexture> m_color_tex;
-    const void                *m_color_tex_source    = nullptr;
-    float                      m_color_tex_smoothing = -1.f;
+    std::unique_ptr<GLTexture>                      m_color_tex;
+    std::weak_ptr<const std::vector<unsigned char>> m_color_tex_source;
+    float                                           m_color_tex_smoothing = -1.f;
 
     // Library textures the picker has shown at least once, keyed by file path (see LibraryTexture).
     std::map<std::string, LibraryTexture> m_library_textures;
+    // Generation of the library the above were cached against; a change clears them.
+    uint64_t                              m_library_generation = 0;
 
     // Everything the *unwrap* depends on. update_uv_editor() runs from rebuild_preview(), i.e. on
     // every stroke end and every slider release - but depth/tiling/rotation/offset/blend change
@@ -904,16 +1180,24 @@ private:
     PatchUnwrap m_uv_editor_unwrap;
 
     // When set, the panel is a free-floating window the user can drag anywhere (with a title bar to
-    // grab), instead of being pinned to the right of the gizmo toolbar. Persisted across gizmo
-    // open/close within a session, so the choice sticks while working.
+    // grab), instead of being pinned to the right of the gizmo toolbar. Kept in the application
+    // config rather than in the project: it describes the user's window, not the model, so opening
+    // someone else's project must not move their panel.
     bool m_undocked = false;
+    // The config key behind m_undocked.
+    static constexpr const char *UNDOCKED_CONFIG_KEY = "texture_displacement_panel_undocked";
 
-    // Smooth scrolling for the panel body (everything between the header and the pinned Bake footer).
-    // ImGui jumps a fixed number of lines per wheel notch, which on tall layer cards reads as a hard
-    // jolt rather than a scroll. The wheel is intercepted (ImGuiWindowFlags_NoScrollWithMouse) and
-    // moves a *target* offset instead; the real scroll is eased toward it over the following frames.
+    bool m_show_resolution = false;
+
+    // Smooth scrolling for a child window, called inside it: the panel body (everything between the header
+    // and the pinned Bake footer) and the texture library's grid. ImGui jumps a fixed number of lines per
+    // wheel notch, which on tall layer cards reads as a hard jolt rather than a scroll. The child sets
+    // ImGuiWindowFlags_NoScrollWithMouse, and the wheel moves `target` instead; the real scroll is eased
+    // toward it over the following frames. `applied` is what the easing wrote last frame, <0 until the
+    // first one.
+    void  ease_wheel_scroll(float &target, float &applied);
     float m_panel_scroll_target  = 0.f;
-    float m_panel_scroll_applied = -1.f; // what the easing wrote last frame; <0 until the first one
+    float m_panel_scroll_applied = -1.f;
     // Last frame's body content height and footer height. The body is a child window that has to be
     // given its height before its content is laid out, so it is sized from the previous frame: as tall
     // as its content, capped so the footer still fits above the bottom of the canvas.
@@ -943,6 +1227,16 @@ private:
 
     std::map<std::string, wxString> m_desc;
 
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_brush;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_bucket_fill;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_gap_fill;
+    // The two ways every slider in the panel takes a typed value. They hold whatever tool is selected,
+    // so they are tacked onto each of the lists above and stand on their own when no tool is active.
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_sliders;
+
     // Icons for the panel's icon buttons (tools, views, mapping, tiling, layer actions). Loaded through IconManager with
     // the same colour/monochrome variants the main toolbar uses, so an inactive button shows the icon in
     // the theme's normal (grey) foreground colour and an active one shows it in its original colours -
@@ -951,6 +1245,50 @@ private:
     std::map<std::string, IconManager::Icons>  m_panel_icon_map; // file name -> [normal, colour, disabled]
     bool                                       m_panel_icons_tried = false;
     void                                       ensure_panel_icons();
+
+    // One illustration under a tooltip's text: a still image or an animation (see AnimatedTexture),
+    // named by file within resources/images/texture_displacement, with a caption under it. Several of
+    // them in one tooltip are laid out side by side, which is how a setting is shown as a comparison -
+    // the same model at two values of it.
+    struct TipMedia
+    {
+        std::string file;
+        wxString    caption;
+    };
+
+    // Every tooltip the panel shows. Placed beside the panel rather than under the mouse: the panel is
+    // pinned to the right edge of the canvas, so a tooltip left to follow the mouse covers the control
+    // it is explaining, and one carrying an illustration covers most of the panel with it.
+    //
+    // `media` is drawn under the text, at the tooltip's full width; files that are missing or will not
+    // decode are skipped, so a tooltip whose illustration has not been drawn yet is exactly the text
+    // tooltip it was before.
+    void panel_tooltip(const std::string &text, const std::vector<TipMedia> &media = {});
+    void panel_tooltip(const wxString &text, const std::vector<TipMedia> &media = {});
+    void render_tip_media(const std::vector<TipMedia> &media, float width);
+
+    // Screen rectangle a tooltip places itself beside: the panel window, or - while the texture picker
+    // is up and tooltips are coming from inside it - the picker popup, which already sits beside the
+    // panel. Both are set from the window's own rectangle as it is drawn.
+    ImVec2 m_tooltip_anchor_min{0.f, 0.f};
+    ImVec2 m_tooltip_anchor_max{0.f, 0.f};
+    // Illustrations any tooltip has shown, decoded and uploaded once (see AnimatedTexture.hpp).
+    AnimatedTextureCache m_tip_media;
+    // Which tooltip's illustrations are on screen, and when they first appeared: an animation plays
+    // from its first frame each time its tooltip opens, rather than from wherever a free-running clock
+    // happened to be.
+    std::string m_tip_media_key;
+    double      m_tip_media_start  = 0.;
+    int         m_tip_media_frame  = -2; // the frame it was last drawn on, to spot the tooltip reopening
+    // How long the pointer has rested on the control a tooltip belongs to, and when one was last on
+    // screen, both on the real clock tip_now() keeps (see the .cpp for why ImGui's own will not do).
+    ImVec2 m_tip_item{-1.f, -1.f};
+    double m_tip_hover_since = 0.;
+    double m_tip_last_shown  = -1e9;
+    // The frame a tooltip was last drawn on, and how many it has been drawn on in a row: ImGui hides
+    // one on its first frame while it measures it, so it has to be kept on screen to be seen at all.
+    int m_tip_shown_frame = -2;
+    int m_tip_settled     = 0;
 };
 
 } // namespace Slic3r::GUI

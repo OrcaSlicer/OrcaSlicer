@@ -31,12 +31,12 @@
 #include <wx/tglbtn.h>
 #include <wx/gbsizer.h>
 #include <wx/splitter.h>
-#include "Widgets/Button.hpp"
-#include "Widgets/SwitchButton.hpp"
-#include "Widgets/AxisCtrlButton.hpp"
-#include "Widgets/TextInput.hpp"
-#include "Widgets/StaticLine.hpp"
-#include "MediaPlayCtrl.h"
+
+class StaticLine;
+class wxFlexGridSizer;
+class wxStaticBitmap;
+class wxStaticText;
+class wxWindow;
 
 ///////////////////////////////////////////////////////////////////////////
 

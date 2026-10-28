@@ -7,6 +7,9 @@
 #include <memory>
 #include <wx/event.h>
 
+class wxEvent;
+class wxWindow;
+
 namespace Slic3r {
 namespace GUI {
 

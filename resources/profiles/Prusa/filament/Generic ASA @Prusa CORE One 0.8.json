@@ -11,6 +11,11 @@
 		"Prusa CORE One 0.8 nozzle"
 	],
 	"fan_max_speed": [
+		"30",
+		"30",
+		"30",
+		"30",
+		"30",
 		"30"
 	],
 	"overhang_fan_speed": [

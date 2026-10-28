@@ -2,9 +2,11 @@
 #include "DevHMS.h"
 #include <string>
 #include <cstdio>
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include <exception>
 #include <cassert>
+
+using json = nlohmann::json;
 
 namespace Slic3r
 {

@@ -14,8 +14,9 @@
 #include <vector>
 
 #include "slic3r/GUI/GLCanvas3D.hpp"
-#include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/CameraUtils.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
 
 using namespace Slic3r::GUI;
 

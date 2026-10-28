@@ -9,6 +9,9 @@
 #include <wx/event.h>
 #include <wx/dc.h>
 
+class wxDC;
+class wxWindow;
+
 class TabButton : public StaticBox
 {
     wxSize   textSize;

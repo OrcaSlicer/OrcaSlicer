@@ -16,6 +16,9 @@
 #include <wx/string.h>
 #include <wx/webview.h>
 
+class wxWebViewEvent;
+class wxWindow;
+
 class Notebook;
 
 namespace Slic3r {
@@ -62,6 +65,8 @@ public:
     void set_visible_page_count(int count);
 
     void relayout();
+
+    void select_page(const PluginCapabilityId& id);
 
 private:
     std::shared_ptr<PagesPluginCapability> get_pages_cap(const PluginCapabilityId& id, bool is_enabled) const;

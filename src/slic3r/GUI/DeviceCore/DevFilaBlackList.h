@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 #include <wx/string.h>
-#include "slic3r/Utils/json_diff.hpp"
+#include <nlohmann/json.hpp>
 
 namespace Slic3r
 {
@@ -67,7 +67,7 @@ public:
     static CheckResult check_filaments_in_blacklist(const CheckFilamentInfo& info);
 
 public:
-    static json filaments_blacklist;
+    static nlohmann::json filaments_blacklist;
 };// class DevFilaBlacklist
 
 }// namespace Slic3r

@@ -12,6 +12,7 @@
 
 // Custom wxWidget events
 #include "Event.hpp"
+#include <atomic>
 
 namespace Slic3r {
 namespace GUI {

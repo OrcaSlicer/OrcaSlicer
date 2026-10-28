@@ -12,6 +12,9 @@
 #include "slic3r/GUI/wxExtensions.hpp"
 #include <wx/dc.h>
 
+class wxDC;
+class wxWindow;
+
 wxDECLARE_EVENT( EVT_STEP_CHANGING, wxCommandEvent );
 wxDECLARE_EVENT( EVT_STEP_CHANGED, wxCommandEvent );
 

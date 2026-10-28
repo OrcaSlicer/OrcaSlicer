@@ -1,5 +1,4 @@
 #include "SideMenuPopup.hpp"
-#include "Label.hpp"
 
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
 #include <algorithm>

@@ -1,5 +1,4 @@
 #include "Tab.hpp"
-#include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
@@ -16,7 +15,7 @@
 #include "slic3r/GUI/StatusPanel.hpp"
 #include "slic3r/GUI/UpgradePanel.hpp"
 #include "slic3r/GUI/Widgets/SideTools.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <wx/app.h>
 #include <wx/bookctrl.h>
 #include <wx/button.h>
@@ -44,16 +43,20 @@
 #include "GUI_ObjectList.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
-#include "Widgets/Label.hpp"
-#include "format.hpp"
 #include "MediaPlayCtrl.h"
 #include "MediaFilePanel.h"
-#include "Plater.hpp"
 #include "BindDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
 
 #include <boost/log/trivial.hpp>
+#include "slic3r/GUI/DeviceCore/DevHMS.h"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/HMS.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

@@ -7,20 +7,16 @@
 #include <map>
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Color.hpp"
-#include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/Format/ProjectStrategy.hpp"
 #include <functional>
 #include <array>
 #include "libslic3r/Point.hpp"
-#include "libslic3r/PublishSettings.hpp"
-#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/libslic3r.h"
 #include <atomic>
 #include <memory>
 #include "slic3r/GUI/Event.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include <string>
-#include "slic3r/GUI/ObjectDataViewModel.hpp"
-#include "slic3r/GUI/SettingsIndex.hpp"
-#include "slic3r/GUI/Widgets/TextInput.hpp"
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
@@ -42,8 +38,6 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "Jobs/Job.hpp"
 #include "Jobs/Worker.hpp"
-#include "Search.hpp"
-#include "PartPlate.hpp"
 #include "GUI_App.hpp"
 #include "Jobs/PrintJob.hpp"
 #include "Jobs/SendJob.hpp"
@@ -62,8 +56,18 @@ class wxScrolledWindow;
 class wxString;
 class ComboBox;
 class Button;
+class TextInput;
 
 namespace Slic3r {
+
+struct PlateData;
+typedef std::vector<PlateData*> PlateDataPtrs;
+struct PublishedMaterialEntry;
+class TriangleMesh;
+namespace Search {
+class OptionsSearcher;
+class SettingsIndex;
+}
 
 class BuildVolume;
 class MachineObject;
@@ -104,10 +108,11 @@ class DailyTipsWindow;
 struct Camera;
 class GLToolbar;
 class PlaterPresetComboBox;
+class PartPlate;
 class PartPlateList;
+class ObjectDataViewModelNode;
 class SyncNozzleAndAmsDialog;
 class FinishSyncAmsDialog;
-using t_optgroups = std::vector <std::shared_ptr<ConfigOptionsGroup>>;
 
 class Plater;
 enum class ActionButtonType : int;
@@ -116,12 +121,8 @@ enum class ActionButtonType : int;
 // (Sidebar::priv::m_menu_filament_id) rather than an explicit index.
 inline constexpr int kSidebarContextMenuFilamentId = -2;
 
-#define EVT_PUBLISHING_START        1
-#define EVT_PUBLISHING_STOP         2
-
 //BBS: add EVT_SLICING_UPDATE declare here
 wxDECLARE_EVENT(EVT_SLICING_UPDATE, Slic3r::SlicingStatusEvent);
-wxDECLARE_EVENT(EVT_PUBLISH,        wxCommandEvent);
 wxDECLARE_EVENT(EVT_OPEN_PLATESETTINGSDIALOG,        wxCommandEvent);
 
 // Explanation of int param
@@ -144,7 +145,7 @@ wxDECLARE_EVENT(EVT_NOTICE_CHILDE_SIZE_CHANGED, SimpleEvent);
 wxDECLARE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
 using ColorEvent = Event<wxColour>;
 wxDECLARE_EVENT(EVT_ADD_CUSTOM_FILAMENT, ColorEvent);
-const wxString DEFAULT_PROJECT_NAME = "Untitled";
+const wxString DEFAULT_PROJECT_NAME = L("Untitled");
 
 class SidebarProps
 {
@@ -295,8 +296,20 @@ public:
 
     // Mixed-color filament sidebar section
     void add_mixed_filament();
+    // The filament slot that blends `components` (1-based physical filament indices) in `ratios`
+    // (percentages) at a fixed ratio, creating it when no existing fixed mixed slot already describes
+    // that blend (see find_fixed_mixed_filament()). Returns the 0-based filament index, or -1 when the
+    // paint-state cap leaves no room for another one.
+    //
+    // Exists so a feature that needs a blend can ask for one without going through the modal dialog:
+    // a texture displacement bake turns each mix it painted with into a slot, which is what moves the
+    // interleaving from its own paint mask to the slicer, where it happens per layer.
+    int ensure_mixed_filament(const std::vector<unsigned int> &components, const std::vector<int> &ratios);
     void edit_mixed_filament(size_t idx);
     void delete_mixed_filament_at(size_t idx);
+    // Drops every mixed filament at once, after confirming. The texture displacement gizmo can create
+    // one slot per colour in its palette, so clearing them one at a time is tedious.
+    void remove_all_mixed_filaments();
     void decompose_filament_color(int filament_idx);
     void recalc_filament_scroll_sizes();
     void update_mixed_filament_list();
@@ -328,7 +341,6 @@ private:
 class Plater: public wxPanel
 {
 public:
-    using fs_path = boost::filesystem::path;
 
     Plater(wxWindow *parent, MainFrame *main_frame);
     Plater(Plater &&) = delete;
@@ -376,8 +388,8 @@ public:
     // BBS: check snapshot
     bool up_to_date(bool saved, bool backup);
 
-    bool open_3mf_file(const fs::path &file_path);
-    int  get_3mf_file_count(std::vector<fs::path> paths);
+    bool open_3mf_file(const boost::filesystem::path &file_path);
+    int  get_3mf_file_count(std::vector<boost::filesystem::path> paths);
     void add_file();
     // Returns false when no object was added (e.g. the user cancelled the load dialog).
     bool add_model(bool imperial_units = false, std::string fname = "");
@@ -388,6 +400,10 @@ public:
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
     void reload_print();
+    // Belt printers: re-run the G-code preview conversion so the "designed view" toggle
+    // (hotkey B / legend checkbox) takes effect; the back-transform is applied to the
+    void refresh_belt_view();
+    // toolpath geometry at load time. Keeps the current layer range and only-gcode mode.
 
     // SoftFever
     void calib_pa(const Calib_Params& params);
@@ -407,6 +423,9 @@ public:
     bool is_gcode_3mf() { return m_exported_file; }
     bool only_gcode_mode() { return m_only_gcode; }
     void set_only_gcode(bool only_gcode) { m_only_gcode = only_gcode; }
+    // The previewed G-code's own settings were loaded into the presets, as a .gcode.3mf's are: the bed already is the
+    // one it was sliced for, and the sidebar shows them.
+    bool gcode_settings_loaded() const { return m_only_gcode && m_gcode_settings_loaded; }
 
     //BBS: add only gcode mode
     bool using_exported_file() { return m_exported_file; }
@@ -420,6 +439,7 @@ public:
     bool is_new_project_and_check_state() { return m_new_project_and_check_state; }
     wxString get_project_name();
     void update_all_plate_thumbnails(bool force_update = false);
+    void update_plate_thumbnails(int plate_idx, bool force_update);
     void update_obj_preview_thumbnail(ModelObject *, int obj_idx, int vol_idx, std::vector<Slic3r::ColorRGBA> colors, int camera_view_angle_type);
     void invalid_all_plate_thumbnails();
     void force_update_all_plate_thumbnails();
@@ -490,6 +510,9 @@ public:
     bool are_view3D_labels_shown() const;
     void show_view3D_labels(bool show);
 
+    bool are_collision_volumes_shown() const;
+    void show_collision_volumes(bool show);
+
     bool is_view3D_overhang_shown() const;
     void show_view3D_overhang(bool show);
 
@@ -555,12 +578,15 @@ public:
     void export_gcode_3mf(bool export_all = false);
     void send_gcode_finish(wxString name);
     void export_core_3mf();
+    // Write the project to output_path as a copy: the project's file name, dirty state and model stay
+    // as they are, and the signed-in account is not added as the designer. False when the write fails.
+    bool export_3mf_copy(const boost::filesystem::path& output_path);
     // Export a "published" 3MF embedding the author-selected settings in the file metadata; a
     // pure export that leaves the in-memory project untouched.
     int  export_published_3mf(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
     // Session-level stash of the last published selection, seeded into the Publish dialog on
     // open and written on publish or on loading a published 3MF
-    bool get_pending_published(std::vector<std::string>& out_keys, std::vector<Slic3r::PublishedMaterialEntry>& out_material) const;
+    bool get_pending_published(std::vector<std::string>& out_keys, std::vector<Slic3r::PublishedMaterialEntry>& out_material, bool& out_legacy_process) const;
     void set_pending_published(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
     void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);
@@ -571,7 +597,6 @@ public:
     int export_3mf(const boost::filesystem::path& output_path = boost::filesystem::path(), SaveStrategy strategy = SaveStrategy::Default, int export_plate_idx = -1, Export3mfProgressFn proFn = nullptr);
 
     //BBS
-    void publish_project();
 
     void reload_from_disk();
     void replace_with_stl();
@@ -580,12 +605,12 @@ public:
     bool has_toolpaths_to_export() const;
     void export_toolpaths_to_obj() const;
     void reslice();
-    void record_slice_preset(std::string action);
     void reslice_SLA_supports(const ModelObject &object, bool postpone_error_messages = false);
     void reslice_SLA_hollowing(const ModelObject &object, bool postpone_error_messages = false);
     void reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &object, bool postpone_error_messages = false);
 
     void clear_before_change_mesh(int obj_idx);
+    void notify_painting_removed();
     void changed_mesh(int obj_idx);
 
     void changed_object(ModelObject &object);
@@ -606,7 +631,6 @@ public:
     void send_calibration_job_finished(wxCommandEvent &evt);
     void print_job_finished(wxCommandEvent &evt);
     void send_job_finished(wxCommandEvent& evt);
-    void publish_job_finished(wxCommandEvent& evt);
     void open_platesettings_dialog(wxCommandEvent& evt);
     void open_filament_map_setting_dialog(wxCommandEvent &evt);
     void on_change_color_mode(SimpleEvent& evt);
@@ -717,11 +741,22 @@ public:
     int get_send_calibration_finished_event();
     int get_print_finished_event();
     int get_send_finished_event();
-    int get_publish_finished_event();
 
     void set_current_canvas_as_dirty();
     void unbind_canvas_event_handlers();
     void reset_canvas_volumes();
+
+    // Dispatch a left-click on an IMEX ghost volume in the 3D canvas to the plater-level
+    // popover. Implemented in Task 7; stub body for Task 6.
+    void on_imex_ghost_click(int physical_head);
+
+    struct ImexGhostTooltip {
+        int         physical_head;
+        int         filament_slot_1based;  // -1 if no routing
+        ColorRGBA   swatch;
+        std::string label;                 // "T2 -> filament 6" or "T2 -> (no filament)"
+    };
+    ImexGhostTooltip format_imex_ghost_tooltip(int physical_head) const;
 
     PrinterTechnology   printer_technology() const;
     const DynamicPrintConfig * config() const;
@@ -743,7 +778,9 @@ public:
     void split_volume();
     void optimize_rotation();
     // find all empty cells on the plate and won't overlap with exclusion areas
-    static std::vector<Vec2f> get_empty_cells(const Vec2f step);
+    static std::vector<Vec2f> get_empty_cells(const Vec2f step,
+                                              const std::vector<BoundingBoxf> &local_exclude_boxes = {},
+                                              bool include_plate_exclude_areas = true);
 
     //BBS:
     void fill_color(int extruder_id);
@@ -754,6 +791,8 @@ public:
     bool can_add_model() const;
     bool can_add_plate() const;
     bool can_delete_plate() const;
+    // Undoable rename; use for user edits instead of PartPlate::set_plate_name().
+    void rename_plate(int plate_index, const std::string& name);
     bool can_increase_instances() const;
     bool can_decrease_instances() const;
     bool can_set_instance_to_object() const;
@@ -808,6 +847,9 @@ public:
     // Re-run plate validation when a plugin finishes loading, but only while a missing-plugin
     // notification is active, so it clears automatically once the required plugin is available.
     void revalidate_current_plate_if_plugins_missing();
+    // Rebuilds the missing-plugin notices for the active presets without validating the plate, e.g.
+    // after a plugin loads or unloads, and refreshes the Slice button when the block toggles.
+    void refresh_missing_plugin_notifications();
     // Install the given missing cloud plugin refs, showing an app-modal pulsing progress dialog
     // (Cancel stops before the next plugin). Runs the blocking install on a worker thread; the
     // dialog is driven from the UI thread. Clears the missing-plugin notification once resolved.
@@ -842,7 +884,6 @@ public:
     //BBS: show object info
     void show_object_info();
     //BBS
-    bool show_publish_dialog(bool show = true);
     //BBS: post process string object exception strings by warning types
     void post_process_string_object_exception(StringObjectException &err);
     void update_objects_position_when_select_preset(const std::function<void()> &select_prest);
@@ -1045,6 +1086,8 @@ public:
     void mark_plate_toolbar_image_dirty();
     bool is_plate_toolbar_image_dirty() const;
     void clear_plate_toolbar_image_dirty();
+    // Bumped each time the plate thumbnails go stale, so each consumer can track it on its own.
+    unsigned plate_toolbar_image_version() const { return m_plate_toolbar_image_version; }
 
 private:
     struct priv;
@@ -1059,6 +1102,8 @@ private:
     wxString m_last_loaded_gcode;
     //BBS: add only gcode mode
     bool m_only_gcode { false };//just for .gcode file not for .gcode.3mf
+    // Set by load_gcode() for the file it previews, so it means nothing once m_only_gcode is cleared.
+    bool m_gcode_settings_loaded { false };
     bool m_exported_file { false };
     bool skip_thumbnail_invalid { false };
     bool m_loading_project { false };
@@ -1067,6 +1112,7 @@ private:
     int m_valid_plates_count { 0 };
     int m_check_status = 0; // 0 not check, 1 check success, 2 check failed
     bool m_b_plate_toolbar_image_dirty{ true };
+    unsigned m_plate_toolbar_image_version{ 0 };
 
     void suppress_snapshots();
     void allow_snapshots();
@@ -1080,6 +1126,8 @@ private:
     void _calib_pa_pattern_gen_gcode();
     void _calib_pa_tower(const Calib_Params& params);
     void _calib_pa_select_added_objects();
+    void _calib_apply_belt_mode();
+    void _calib_temp_belt_sectioned(const Calib_Params& params, double belt_angle_rad);
 
     void cut_horizontal(size_t obj_idx, size_t instance_idx, double z, ModelObjectCutAttributes attributes);
 

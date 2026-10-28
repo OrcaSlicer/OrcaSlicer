@@ -18,6 +18,10 @@
 #include <algorithm>
 #include <unordered_set>
 #include <vector>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 namespace std {
 template<> struct hash<Slic3r::GridPoint3>

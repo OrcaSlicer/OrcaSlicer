@@ -4,7 +4,6 @@
 #include "MainFrame.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <wx/event.h>
-#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <wx/gdicmn.h>
 #include <wx/toplevel.h>
 #include "slic3r/GUI/Widgets/Label.hpp"
@@ -20,6 +19,12 @@
 #include "slic3r/GUI/Selection.hpp"
 #include <wx/utils.h>
 #include "slic3r/GUI/Jobs/Job.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Plater.hpp"
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

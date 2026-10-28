@@ -1,7 +1,13 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
 #include <tbb/global_control.h>
+#include <vector>
+#include <utility>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
 

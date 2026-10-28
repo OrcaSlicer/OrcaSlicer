@@ -365,7 +365,6 @@ void StyleManager::init_trunc_names(float max_width) {
 #include "slic3r/GUI/Plater.hpp" 
 
 // for get DPI
-#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 
@@ -554,14 +553,11 @@ bool StyleManager::set_wx_font(const wxFont &wx_font, std::unique_ptr<FontFile> 
     return true;
 }
 
-#include <libslic3r/AppConfig.hpp>
-#include "WxFontUtils.hpp"
 #include "fast_float/fast_float.h"
 
 // StylesSerializable
 namespace {
 
-using namespace Slic3r;
 using namespace Slic3r::GUI;
 using Section = std::map<std::string,std::string>;
 

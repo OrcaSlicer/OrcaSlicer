@@ -15,12 +15,10 @@
 #include "SupportPointGenerator.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "Concurrency.hpp"
-#include "Model.hpp"
 #include "ExPolygon.hpp"
 #include "libslic3r/SLA/IndexedMesh.hpp"
 #include "libslic3r/SLA/SupportPoint.hpp"
 #include "libslic3r/Polygon.hpp"
-#include "SVG.hpp"
 #include "Point.hpp"
 #include "ClipperUtils.hpp"
 #include "Tesselate.hpp"
@@ -32,6 +30,7 @@
 #include <vector>
 #include <utility>
 #include <unordered_map>
+#include "libslic3r/ExtrusionEntity.hpp"
 
 namespace Slic3r {
 namespace sla {

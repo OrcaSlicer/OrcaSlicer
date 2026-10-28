@@ -9,6 +9,11 @@
 #include <optional>
 #include <string>
 
+class wxCommandEvent;
+class wxWebView;
+class wxWebViewEvent;
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 // Host-supplied HTML in a web view panel, for any window that embeds or derives from it (today plugin

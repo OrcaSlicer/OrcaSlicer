@@ -20,6 +20,7 @@
 #include <vector>
 #include <utility>
 #include <optional>
+#include "libslic3r/ArcFitter.hpp"
 
 using namespace Slic3r;
 using Slic3r::AABBTreeLines::LinesDistancer;

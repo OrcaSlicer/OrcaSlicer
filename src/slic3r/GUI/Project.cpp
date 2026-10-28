@@ -1,8 +1,6 @@
-#include "Tab.hpp"
 #include "Project.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/Format/bbs_3mf.hpp"
 
 #include <boost/filesystem/path.hpp>
 #include <atomic>
@@ -13,14 +11,15 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <utility>
 #include <vector>
 #include <string>
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Auxiliary.hpp"
+#include <nlohmann/json.hpp>
 #include <cstddef>
 #include <memory>
 #include <map>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <exception>
 #include <cmath>
 #include <fstream>
@@ -51,15 +50,45 @@
 #include <wx/arrstr.h>
 #include <wx/tglbtn.h>
 
-#include "wxExtensions.hpp"
 #include "GUI_App.hpp"
-#include "GUI_ObjectList.hpp"
-#include "MainFrame.hpp"
+#include "I18N.hpp"
 #include <slic3r/GUI/Widgets/WebView.hpp>
+#include <slic3r/GUI/Widgets/WebViewHostDialog.hpp>
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Plater.hpp"
+
+using json = nlohmann::json;
+
+class wxWindow;
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 
 wxDEFINE_EVENT(EVT_PROJECT_RELOAD, wxCommandEvent);
+
+// The project page's strings (resources/web/model), keyed by their data-i18n and T() ids.
+static json project_page_strings()
+{
+    return {
+        {"no_model_info", _u8L("No model information")},
+        {"edit_project_info", _u8L("Edit Project Info")},
+        {"model_information", _u8L("Model Information")},
+        {"accessories", _u8L("Accessories")},
+        {"profile_information", _u8L("Profile Information")},
+        {"model_name", _u8L("Model name")},
+        {"created_by", _u8L("Created by")},
+        {"remixed_by", _u8L("Remixed by")},
+        {"shared_by", _u8L("Shared by")},
+        {"model_description", _u8L("Model description")},
+        {"bom", _u8L("BOM")},
+        {"assembly_guide", _u8L("Assembly Guide")},
+        {"other", _u8L("Other")},
+        {"profile_name", _u8L("Profile name")},
+        {"profile_author", _u8L("Profile Author")},
+        {"profile_description", _u8L("Profile description")},
+    };
+}
 
 const std::vector<std::string> license_list = {
     "BSD License",
@@ -113,10 +142,13 @@ void ProjectPanel::shutdown()
 
 void ProjectPanel::create_browser()
 {
-    m_browser = WebView::CreateWebView(this, m_project_home_url);
+    // Created empty and loaded after the strings are added, so the first load already has them.
+    m_browser = WebView::CreateWebView(this, wxEmptyString);
+    m_browser->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(project_page_strings())));
     m_browser->Bind(wxEVT_WEBVIEW_NAVIGATED, &ProjectPanel::on_navigated, this);
     m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &ProjectPanel::OnScriptMessage, this, m_browser->GetId());
     m_browser->Bind(wxEVT_WEBVIEW_NAVIGATING, &ProjectPanel::onWebNavigating, this);
+    WebView::LoadUrl(m_browser, m_project_home_url);
 }
 
 void ProjectPanel::reset_browser()
@@ -235,7 +267,7 @@ void ProjectPanel::on_reload(wxCommandEvent& evt)
         }
 
         bool has_content = false;
-        for (const string& v : {
+        for (const std::string& v : {
                  update_type,
                  license,
                  model_name,

@@ -9,13 +9,9 @@
 #include "test_helpers.hpp" // get access to init_print, etc
 
 #include "libslic3r/Config.hpp"
-#include "libslic3r/Model.hpp"
-#include "libslic3r/Config.hpp"
-#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/libslic3r.h"
 
-using namespace Slic3r::Test;
 using namespace Slic3r;
 
 /// Test the expected behavior for auto-width,

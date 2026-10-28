@@ -14,7 +14,6 @@
 
 #include "../../ClipperUtils.hpp"
 #include "../../Geometry.hpp"
-#include "Utils.hpp"
 #include "libslic3r/libslic3r.h"
 
 #include <cassert>

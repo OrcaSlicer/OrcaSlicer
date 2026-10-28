@@ -3,16 +3,11 @@
 
 #include "bambu_networking.hpp"
 #include "libslic3r/Utils.hpp"
-#include "libslic3r/Thread.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
-#include "Widgets/ProgressDialog.hpp"
-#include "Widgets/RoundedRectangle.hpp"
-#include "Widgets/StaticBox.hpp"
 #include "Widgets/WebView.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
@@ -63,13 +58,26 @@
 #include <wx/webrequest.h>
 #include <wx/timer.h>
 #include "Plater.hpp"
-#include "BitmapCache.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
 #include "../Utils/Http.hpp"
 #include "md4c/src/md4c-html.h"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/HMS.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include <boost/filesystem.hpp>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
+namespace Slic3r::GUI { class Plater; }
 
 namespace Slic3r { namespace GUI {
 
@@ -1804,20 +1812,20 @@ void InputIpAddressDialog::update_title(wxString title)
 void InputIpAddressDialog::set_machine_obj(MachineObject* obj)
 {
     m_obj = obj;
-    m_input_ip->GetTextCtrl()->SetLabelText(m_obj->get_dev_ip());
-    m_input_access_code->GetTextCtrl()->SetLabelText(m_obj->get_access_code());
-    m_input_printer_name->GetTextCtrl()->SetLabelText(m_obj->get_dev_name());
+    m_input_ip->GetTextCtrl()->ChangeValue(m_obj->get_dev_ip());
+    m_input_access_code->GetTextCtrl()->ChangeValue(m_obj->get_access_code());
+    m_input_printer_name->GetTextCtrl()->ChangeValue(m_obj->get_dev_name());
 
     std::string img_str = DevPrinterConfigUtil::get_printer_connect_help_img(m_obj->printer_type);
-    auto diagram_bmp = create_scaled_bitmap(img_str + "_en", this, 198);
+    if (img_str.empty()) { img_str = "input_access_code_x1"; }
+
+    std::string language = wxGetApp().app_config->get("language");
+    auto diagram_bmp = create_scaled_bitmap(img_str + (language == "zh_CN" ? "_cn" : "_en"), this, 198);
     m_img_help->SetBitmap(diagram_bmp);
 
 
-    auto str_ip = m_input_ip->GetTextCtrl()->GetValue();
-    auto str_access_code = m_input_access_code->GetTextCtrl()->GetValue();
-    // ORCA enabling / disabling buttons with conditions enough to change its style
-    m_button_ok->Enable(isValidEndpoint(str_ip.ToStdString()) &&
-                        (str_access_code.IsEmpty() || str_access_code.Length() >= 8));
+    wxCommandEvent dummy;
+    on_text(dummy); // same button state as after user input
 
     Layout();
     Fit();

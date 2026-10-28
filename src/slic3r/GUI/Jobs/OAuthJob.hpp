@@ -12,6 +12,8 @@
 #include <exception>
 #include <wx/event.h>
 
+class wxWindow;
+
 namespace Slic3r {
 namespace GUI {
 

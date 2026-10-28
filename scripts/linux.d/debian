@@ -14,7 +14,7 @@ REQUIRED_DEV_PACKAGES=(
     gstreamer1.0-gtk3
     libcurl4-openssl-dev
     libdbus-1-dev
-    libglew-dev
+    libgl-dev
     libgstreamerd-3-dev
     libgtk-3-dev
     libmspack-dev

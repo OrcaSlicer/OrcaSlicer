@@ -14,6 +14,7 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include <cstddef>
 #include <memory>
 #include <utility>
 #include <Eigen/Geometry>
@@ -37,11 +38,43 @@ struct Octree;
 struct OctreeDeleter { void operator()(Octree *p); };
 using  OctreePtr = std::unique_ptr<Octree, OctreeDeleter>;
 
-// Calculate line spacing for
-// 1) adaptive cubic infill
-// 2) adaptive internal support cubic infill
-// Returns zero for a particular infill type if no such infill is to be generated.
-std::pair<double, double>       adaptive_fill_line_spacing(const PrintObject &print_object);
+// Orca: One octree per body (see Layer::lslices_separated_component_ids), and one of the whole object
+// for objects of a single body or with a body that has none of its own.
+struct Octrees
+{
+    OctreePtr              object;
+    std::vector<OctreePtr> bodies;
+
+    // A body without an octree, or body -1, uses the object's, or any body's when the object has none.
+    Octree *get(int body) const
+    {
+        if (body >= 0 && size_t(body) < bodies.size() && bodies[body])
+            return bodies[body].get();
+        if (object)
+            return object.get();
+        for (const OctreePtr &octree : bodies)
+            if (octree)
+                return octree.get();
+        return nullptr;
+    }
+};
+
+// Orca: The octrees of each line spacing the regions of an object fill with.
+struct RegionOctrees
+{
+    std::vector<Octrees> sets;
+    // Index into sets for each region, -1 for a region without adaptive or support cubic infill.
+    std::vector<int>     region_set;
+
+    const Octrees *region(size_t region_id) const
+    {
+        return region_id < region_set.size() && region_set[region_id] >= 0 ? &sets[region_set[region_id]] : nullptr;
+    }
+};
+
+// Line spacing of the adaptive or support cubic infill of each region of the object,
+// zero for a region that generates no such infill.
+std::vector<double>             adaptive_fill_line_spacing(const PrintObject &print_object);
 
 // Rotation of the octree to stand on one of its corners.
 Eigen::Quaterniond              transform_to_world();

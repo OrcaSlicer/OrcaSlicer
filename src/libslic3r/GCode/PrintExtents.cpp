@@ -20,6 +20,8 @@
 #include <Eigen/Geometry>
 #include <vector>
 #include <cstddef>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 

@@ -25,6 +25,9 @@
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "Gizmos/GizmoObjectManipulation.hpp"
+#include "libslic3r/EmbossShape.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
 
 
 using namespace Slic3r;

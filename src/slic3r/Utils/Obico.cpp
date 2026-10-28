@@ -28,10 +28,8 @@
 #include "slic3r/GUI/format.hpp"
 #include "Http.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "Bonjour.hpp"
 #include "slic3r/GUI/BonjourDialog.hpp"
 
-namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 

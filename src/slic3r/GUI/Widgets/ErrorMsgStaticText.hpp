@@ -9,6 +9,9 @@
 #include <wx/string.h>
 #include "wx/stattext.h"
 
+class wxPaintEvent;
+class wxWindow;
+
 class WXDLLIMPEXP_CORE ErrorMsgStaticText : public wxPanel
 {
 public:

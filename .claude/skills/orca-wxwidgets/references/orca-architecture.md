@@ -405,9 +405,13 @@ page object to insert and remove by pointer). `LazyPage(parent, name, order, fac
 factory is `new Panel(parent)`. Its `Show(true)` builds the panel the first time (only once the
 top-level frame is shown — `MainFrame::Show` completes the start page on the frame's first show) and
 forwards later shows/hides to the panel, so the panel's own `Show()` override stays its activation
-hook. A panel built while its page is hidden stays hidden, and `when_built` gives it the dark-UI pass
-the frame ran before it existed (`apply_dark_ui_to_lazy_panel`). `pending()` is true only while the page
-is in the book.
+hook. The build runs before the placeholder's own `wxPanel::Show(true)`, so an on-demand build creates
+its controls in a hidden window as a prebuild does: on MSW each control created or moved inside a
+shown window re-clips and repaints its shown siblings, which made a large panel's first show take
+seconds. A lazy panel's constructor therefore runs off screen (except the start page's) and must not
+rely on `IsShownOnScreen()`. A panel built while its page is hidden stays hidden, and `when_built`
+gives it the dark-UI pass the frame ran before it existed (`apply_dark_ui_to_lazy_panel`).
+`pending()` is true only while the page is in the book.
 
 ### Staged construction: StagedBuild
 
@@ -641,8 +645,10 @@ Spacing constants come from `SidebarProps` (`Plater.hpp`): `TitlebarMargin()`, `
 
 ### Docking
 
-`Plater::priv` owns `AuiMgr m_aui_mgr` (a `wxAuiManager` subclass whose `CreateFloatingFrame` returns a
-themed `FloatFrame : wxAuiFloatingFrame`), managing the plater. Panes: `"sidebar"` (left, no close
+Docks are `AuiMgr`s (`AuiMgr.hpp`), a `wxAuiManager` subclass carrying Orca's dock art, theme and
+Wayland rule (`references/webview-gl-aui-media.md`). `Plater::priv` owns `m_aui_mgr`, managing the
+plater; the Design tab owns its own for its sidebar (`DesignPanel::m_aui`, layout in
+`design_window_layout`). Plater panes: `"sidebar"` (left, no close
 button, not top/bottom dockable), `"main"` (`CenterPane()`, the `panel_3d`), `"uv_editor"` (right,
 hidden until the texture-displacement gizmo shows it), plus dynamic dock panes. The default perspective
 is saved right after `AddPane`; the app-config `window_layout` is applied with

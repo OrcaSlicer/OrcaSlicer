@@ -12,6 +12,9 @@
 #include <glu-libtess.h>
 #include <vector>
 #include <utility>
+#include "Polygon.hpp"
+
+class GLUtesselator;
 
 namespace Slic3r {
 

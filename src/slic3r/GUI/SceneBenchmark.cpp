@@ -21,12 +21,30 @@
 
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r_version.h"
 
+#include <array>
 #include <glad/gl.h>
+#include <vector>
+#include <string>
+#include "slic3r/GUI/FrameProfiler.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <ratio>
+#include "libslic3r/Preset.hpp"
+#include <ios>
 #include <wx/clipbrd.h>
+#include <wx/gdicmn.h>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/dcclient.h>
+#include <wx/dataobj.h>
 #include <wx/glcanvas.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/timer.h>
+#include <wx/toplevel.h>
 #include <wx/utils.h>
 
 #include <algorithm>
@@ -37,6 +55,12 @@
 #include <memory>
 #include <numeric>
 #include <sstream>
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {

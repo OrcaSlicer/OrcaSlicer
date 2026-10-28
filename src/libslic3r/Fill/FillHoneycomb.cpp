@@ -1,6 +1,4 @@
 #include "../ClipperUtils.hpp"
-#include "../ShortestPath.hpp"
-#include "../Surface.hpp"
 
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -14,6 +12,7 @@
 #include <cstddef>
 #include <algorithm>
 #include "FillHoneycomb.hpp"
+#include "libslic3r/Polygon.hpp"
 
 namespace Slic3r {
 
@@ -80,10 +79,9 @@ void FillHoneycomb::_fill_surface_single(
                 x += m.distance;
             }
             p.rotate(-direction.first, m.hex_center);
-            p.simplify(5 * spacing); // simplify to 5x line width
             // Orca: round the corners of the honeycomb cells. Done before the clipping, so that the
             // curves are cut by the region boundary just like the sharp path would be.
-            smooth_polyline_corners(p, params.smooth_factor, scaled<double>(params.resolution));
+            smooth_polyline_corners(p, params.corner_smoothing());
             all_polylines.push_back(p);
         }
     }

@@ -2,7 +2,6 @@
 #include "ExtrusionEntityCollection.hpp"
 #include "ExPolygon.hpp"
 #include "ClipperUtils.hpp"
-#include "Extruder.hpp"
 #include "Flow.hpp"
 #include <algorithm>
 #include <cassert>
@@ -21,6 +20,7 @@
 #include <string_view>
 #include "Utils.hpp"
 #include "libslic3r.h"
+#include "ArcFitter.hpp"
 
 #define L(s) (s)
 

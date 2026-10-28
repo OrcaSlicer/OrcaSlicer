@@ -4,6 +4,12 @@
 #include <wx/colour.h>
 #include <wx/event.h>
 #include <wx/wxprec.h>
+
+class wxEraseEvent;
+class wxMouseEvent;
+class wxPaintEvent;
+class wxSizeEvent;
+class wxWindow;
 #ifndef WX_PRECOMP
 #include <wx/wx.h>
 #endif

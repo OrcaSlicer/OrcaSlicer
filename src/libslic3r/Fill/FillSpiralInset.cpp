@@ -1,7 +1,5 @@
 #include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
-#include "../Surface.hpp"
-#include "../VariableWidth.hpp"
 #include "Arachne/WallToolPaths.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Point.hpp"
@@ -22,6 +20,9 @@
 #include <math.h>
 #include <utility>
 #include <vector>
+#include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Line.hpp"
 
 namespace Slic3r {
 
@@ -350,6 +351,16 @@ void FillSpiralInset::_fill_surface_single(const FillParams& params,
 {
     assert(params.use_arachne);
     assert(this->print_config != nullptr && this->print_object_config != nullptr);
+
+    // Internal solid infill must not add Arachne's standalone thin walls: one of those walls can
+    // become the extra centre point after the spiral has finished. Top and bottom surfaces keep
+    // Arachne, including the centre plug handled by generate_spiral_insets().
+    if (params.extrusion_role == erSolidInfill) {
+        Polylines polylines;
+        this->_fill_surface_single(params, thickness_layers, direction, expolygon, polylines);
+        append(thick_polylines_out, to_thick_polylines(std::move(polylines), scaled<coord_t>(this->spacing)));
+        return;
+    }
 
     // Only a solid surface is worth the variable width walls; a sparse one falls back to plain loops.
     if (params.density <= 0.9999f || params.dont_adjust) {

@@ -22,7 +22,7 @@
 #include <tbb/task_arena.h>
 
 #include "Thread.hpp"
-#include "Utils.hpp"
+#include <cstring>
 
 namespace Slic3r {
 

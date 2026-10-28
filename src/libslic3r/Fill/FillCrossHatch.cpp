@@ -1,6 +1,4 @@
 #include "../ClipperUtils.hpp"
-#include "../ShortestPath.hpp"
-#include "../Surface.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -13,6 +11,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Polyline.hpp"
 #include "FillCrossHatch.hpp"
+#include "libslic3r/Polygon.hpp"
 
 namespace Slic3r {
 
@@ -215,7 +214,7 @@ void FillCrossHatch ::_fill_surface_single(
     for (Polyline &pl : polylines) { pl.translate(bb.min); }
 
     // Orca: round the corners of the transition layers. The repeat layers are straight lines and stay as they are.
-    smooth_polylines_corners(polylines, params.smooth_factor, scaled<double>(params.resolution));
+    smooth_polylines_corners(polylines, params.corner_smoothing());
 
     // Apply multiline offset if needed
     multiline_fill(polylines, params, spacing);

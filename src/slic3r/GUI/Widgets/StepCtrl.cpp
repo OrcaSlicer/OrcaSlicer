@@ -1,5 +1,6 @@
 #include "StepCtrl.hpp"
 #include "Label.hpp"
+#include "../I18N.hpp"
 
 #include <wx/anybutton.h>
 #include <wx/checklst.h>
@@ -12,6 +13,11 @@
 #include <wx/gdicmn.h>
 #include <wx/pen.h>
 #include <wx/string.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+
+class wxWindow;
 
 wxDEFINE_EVENT( EVT_STEP_CHANGING, wxCommandEvent );
 wxDEFINE_EVENT( EVT_STEP_CHANGED, wxCommandEvent );
@@ -418,8 +424,9 @@ void FilamentStepIndicator::doRender(wxDC& dc)
     dc.SetTextForeground(wxColour(0, 150, 136));
     int circleX = 20;
     int circleY = 20;
-    wxSize sz = dc.GetTextExtent(L"Loading");
-    dc.DrawText(L"Loading", circleX, circleY);
+    const wxString loading = _L("Loading");
+    wxSize sz = dc.GetTextExtent(loading);
+    dc.DrawText(loading, circleX, circleY);
 
     dc.SetFont(::Label::Body_13);
 

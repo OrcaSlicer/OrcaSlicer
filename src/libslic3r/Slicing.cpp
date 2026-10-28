@@ -13,6 +13,7 @@
 #include "SlicingAdaptive.hpp"
 #include "PrintConfig.hpp"
 #include "Model.hpp"
+#include "Config.hpp"
 
 // #define SLIC3R_DEBUG
 

@@ -11,6 +11,12 @@
 #include <wx/sizer.h>
 #include <wx/statbmp.h>
 
+class wxButton;
+class wxStaticText;
+class wxTimer;
+class wxTimerEvent;
+class wxWindow;
+
 
 namespace Slic3r {
 

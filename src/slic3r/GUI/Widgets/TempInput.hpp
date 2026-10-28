@@ -18,6 +18,11 @@
 
 #include <unordered_set>
 
+class wxDC;
+class wxPopupTransientWindow;
+class wxStaticText;
+class wxWindow;
+
 wxDECLARE_EVENT(wxCUSTOMEVT_SET_TEMP_FINISH, wxCommandEvent);
 
 enum TempInputType {

@@ -1,13 +1,12 @@
 #include "ParamsDialog.hpp"
-#include "I18N.hpp"
 #include "ParamsPanel.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "Tab.hpp"
 
-#include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Preset.hpp"
 #include <wx/wx.h>
 #include <wx/gdicmn.h>
 #include <wx/toplevel.h>
@@ -17,6 +16,8 @@
 #include <wx/event.h>
 #include <wx/utils.h>
 #include "slic3r/GUI/Event.hpp"
+
+class wxWindow;
 
 namespace pt = boost::property_tree;
 typedef pt::ptree JSON;
@@ -76,11 +77,8 @@ ParamsDialog::ParamsDialog(wxWindow * parent)
             auto &preset_bundle = *wxGetApp().preset_bundle;
             const bool supports_multiple_bed_types = preset_bundle.is_bbl_vendor() ||
                 preset_bundle.printers.get_edited_preset().config.opt_bool("support_multi_bed_types");
-            if (m_initial_multi_bed_types != supports_multiple_bed_types) {
+            if (m_initial_multi_bed_types != supports_multiple_bed_types)
                 wxGetApp().plater()->normalize_bed_types(true);
-                if (auto *plate_tab = dynamic_cast<TabPrintPlate *>(wxGetApp().get_plate_tab()))
-                    plate_tab->update_model_config();
-            }
         }
 
         if (!m_editing_filament_id.empty()) {
@@ -92,8 +90,6 @@ ParamsDialog::ParamsDialog(wxWindow * parent)
 #endif
         wxGetApp().sidebar().finish_param_edit();
     });
-
-    //wxGetApp().UpdateDlgDarkUI(this);
 }
 
 void ParamsDialog::Popup()

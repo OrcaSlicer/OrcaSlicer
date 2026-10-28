@@ -6,7 +6,6 @@
 #include <wx/gdicmn.h>
 #include <wx/settings.h>
 #include <cstddef>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include "slic3r/GUI/GUI.hpp"
 #include <exception>
 #include <wx/msgdlg.h>
@@ -30,6 +29,9 @@
 
 #include <sstream>
 #include <slic3r/GUI/Widgets/WebView.hpp>
+
+using json = nlohmann::json;
+
 //------------------------------------------
 //          PrinterCloundAuthDialog
 //------------------------------------------

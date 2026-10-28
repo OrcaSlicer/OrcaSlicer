@@ -1,5 +1,4 @@
-#ifndef slic3r_GUI_SingleChoice_hpp_
-#define slic3r_GUI_SingleChoice_hpp_
+#pragma once
 
 #include "GUI_Utils.hpp"
 #include "Plater.hpp"
@@ -33,5 +32,3 @@ private:
 
 };
 }} // namespace Slic3r::GUI
-
-#endif

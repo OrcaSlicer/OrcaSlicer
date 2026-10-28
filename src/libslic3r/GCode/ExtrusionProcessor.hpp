@@ -15,6 +15,7 @@
 #include "../ClipperUtils.hpp"
 #include "../Flow.hpp"
 #include "../Config.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/ExPolygon.hpp"
 
@@ -22,8 +23,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <limits>
+#include <memory>
 #include <numeric>
 #include <unordered_map>
 #include <utility>
@@ -38,7 +41,14 @@ template<int Dim> struct ExtendedPoint
     float curvature;
 };
 
-template<bool SCALED_INPUT, bool ADD_INTERSECTIONS, bool PREV_LAYER_BOUNDARY_OFFSET, bool SIGNED_DISTANCE, typename POINTS, typename L>
+// A KNOWN_DISTANCES functor that knows no distances, so every input point is queried.
+struct NoKnownDistances
+{
+    template<typename P> const double *operator()(const P &) const { return nullptr; }
+};
+
+template<bool SCALED_INPUT, bool ADD_INTERSECTIONS, bool PREV_LAYER_BOUNDARY_OFFSET, bool SIGNED_DISTANCE, bool CURVATURE = true,
+         typename POINTS, typename L, typename KNOWN_DISTANCES = NoKnownDistances>
 std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&                           input_points,
                                                               const AABBTreeLines::LinesDistancer<L>& unscaled_prev_layer,
                                                               float                                   flow_width,
@@ -49,7 +59,9 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                                                               const std::function<float(float)>&      distance_to_speed = {},
                                                               // Overlap (1 - distance / flow_width) at or below which the overhang
                                                               // fan switches on; negative when the fan does not depend on overlap.
-                                                              float                                   fan_overlap_threshold = -1.0f)
+                                                              float                                   fan_overlap_threshold = -1.0f,
+                                                              // Returns an input point's signed distance if already known, else nullptr.
+                                                              const KNOWN_DISTANCES&                  known_distance = KNOWN_DISTANCES{})
 {
     bool   looped     = input_points.front() == input_points.back();
     std::function<size_t(size_t,size_t)> get_prev_index = [](size_t idx, size_t count) {
@@ -94,21 +106,26 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
     float boundary_offset = PREV_LAYER_BOUNDARY_OFFSET ? 0.5 * flow_width : 0.0f;
     auto  maybe_unscale   = [](const P& p) -> Vec { return SCALED_INPUT ? unscaled(p) : p.template cast<double>(); };
 
+    using Distance = typename AABBTreeLines::LinesDistancer<L>::Floating;
+    auto input_distance = [&unscaled_prev_layer, &known_distance](const P &input, const Vec &position) -> Distance {
+        if (const double *known = known_distance(input))
+            return Distance(*known);
+        auto [distance, nearest_line, x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(
+            position.template cast<AABBScalar>());
+        return distance;
+    };
+
     std::vector<ExtendedPoint<L::Dim>> points;
     points.reserve(input_points.size() * (ADD_INTERSECTIONS ? 1.5 : 1));
 
     {
         ExtendedPoint<L::Dim> start_point{maybe_unscale(input_points.front())};
-        auto [distance, nearest_line, x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(
-            start_point.position.template cast<AABBScalar>());
-        start_point.distance = distance + boundary_offset;
+        start_point.distance = input_distance(input_points.front(), start_point.position) + boundary_offset;
         points.push_back(start_point);
     }
     for (size_t i = 1; i < input_points.size(); i++) {
         ExtendedPoint<L::Dim> next_point{maybe_unscale(input_points[i])};
-        auto [distance, nearest_line,
-              x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(next_point.position.template cast<AABBScalar>());
-        next_point.distance = distance + boundary_offset;
+        next_point.distance = input_distance(input_points[i], next_point.position) + boundary_offset;
 
         // Intersection handling
         if (ADD_INTERSECTIONS &&
@@ -349,6 +366,9 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
         points = std::move(new_points);
     }
 
+    if constexpr (!CURVATURE)
+        return points;
+
     // Curvature calculation
     float accumulated_distance = 0;
     std::vector<float> distances_for_curvature(points.size());
@@ -417,6 +437,49 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
     return points;
 }
 
+struct Point3Hash
+{
+    size_t operator()(const Vec3crd &pt) const noexcept { return size_t(((89 * 31 + int64_t(pt.x())) * 31 + pt.y()) * 31 + pt.z()); }
+};
+
+// The trees of the layer below an object layer, and the signed distances from the layer's perimeter and bridge
+// vertices to that layer's outline, computed for ExtrusionQualityEstimator ahead of the G-code generator.
+struct PrecomputedOverhangLayer
+{
+    const PrintObject                                               *object{nullptr};
+    const Layer                                                     *layer{nullptr};
+    std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>>     lower_boundaries;
+    std::shared_ptr<const AABBTreeLines::LinesDistancer<CurledLine>> lower_curled_lines;
+    std::unordered_map<Point3, double, Point3Hash>                   distances;
+};
+
+// `layer` must have a layer below it; leave out `curled_lines` only when no region of `layer` slows down for curled
+// perimeters.
+inline PrecomputedOverhangLayer precompute_overhang_layer(const PrintObject *object, const Layer &layer, bool curled_lines = true)
+{
+    PrecomputedOverhangLayer out{object, &layer,
+                                 std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(to_unscaled_linesf3(layer.lower_layer->lslices)),
+                                 curled_lines ? std::make_shared<const AABBTreeLines::LinesDistancer<CurledLine>>(layer.lower_layer->curled_lines) :
+                                                nullptr,
+                                 {}};
+    const AABBTreeLines::LinesDistancer<Linef3> &lower = *out.lower_boundaries;
+    auto add_path = [&out, &lower](const ExtrusionPath &path) {
+        if (!is_bridge(path.role()) && !is_perimeter(path.role()))
+            return;
+        for (const Point3 &point : path.polyline.points)
+            if (auto [it, inserted] = out.distances.try_emplace(point, 0.); inserted) {
+                const Eigen::Matrix<double, 3, 1, Eigen::DontAlign> position = unscaled(point);
+                auto [distance, nearest_line, x] = lower.distance_from_lines_extra<true>(position.cast<double>());
+                it->second = distance;
+            }
+    };
+    for (const LayerRegion *region : layer.regions()) {
+        for_each_extrusion_path(region->perimeters, add_path);
+        for_each_extrusion_path(region->fills, add_path);
+    }
+    return out;
+}
+
 struct ProcessedPoint
 {
     Point3 p;
@@ -426,23 +489,53 @@ struct ProcessedPoint
 
 class ExtrusionQualityEstimator
 {
-    std::unordered_map<const PrintObject*, AABBTreeLines::LinesDistancer<Linef3>>      prev_layer_boundaries;
-    std::unordered_map<const PrintObject*, AABBTreeLines::LinesDistancer<Linef3>>      next_layer_boundaries;
-    std::unordered_map<const PrintObject *, AABBTreeLines::LinesDistancer<CurledLine>> prev_curled_extrusions;
-    std::unordered_map<const PrintObject *, AABBTreeLines::LinesDistancer<CurledLine>> next_curled_extrusions;
-    const PrintObject                                                            *current_object;
+    using Boundaries   = AABBTreeLines::LinesDistancer<Linef3>;
+    using CurledLines  = AABBTreeLines::LinesDistancer<CurledLine>;
+    std::unordered_map<const PrintObject*, std::shared_ptr<const Boundaries>>  prev_layer_boundaries;
+    std::unordered_map<const PrintObject*, std::shared_ptr<const CurledLines>> prev_curled_extrusions;
+    // The layers the trees above are built from, and the layers prepared last.
+    std::unordered_map<const PrintObject*, const Layer*>                      prev_layer_sources;
+    std::unordered_map<const PrintObject*, const Layer*>                      last_prepared_layers;
+    std::vector<PrecomputedOverhangLayer>                                     precomputed_layers;
+    const PrintObject                                                        *current_object;
+
+    const PrecomputedOverhangLayer *precomputed_for(const PrintObject *object) const
+    {
+        auto it = std::find_if(precomputed_layers.begin(), precomputed_layers.end(),
+                               [object](const PrecomputedOverhangLayer &layer) { return layer.object == object; });
+        return it == precomputed_layers.end() ? nullptr : &*it;
+    }
+
+    template<typename T> static const T &or_empty(const std::shared_ptr<const T> &tree)
+    {
+        static const T empty;
+        return tree ? *tree : empty;
+    }
 
 public:
     void set_current_object(const PrintObject *object) { current_object = object; }
 
+    // Takes the data computed ahead for the layer about to be generated, replacing the previous layer's.
+    void set_precomputed_layers(std::vector<PrecomputedOverhangLayer> &&layers) { precomputed_layers = std::move(layers); }
+
+    // Measures the layer against the layer prepared before it.
     void prepare_for_new_layer(const PrintObject * obj, const Layer *layer)
     {
         if (layer == nullptr) return;
         const PrintObject *object = obj;
-        prev_layer_boundaries[object] = next_layer_boundaries[object];
-        next_layer_boundaries[object]  = AABBTreeLines::LinesDistancer<Linef3>{to_unscaled_linesf3(layer->lslices)};
-        prev_curled_extrusions[object] = next_curled_extrusions[object];
-        next_curled_extrusions[object] = AABBTreeLines::LinesDistancer<CurledLine>{layer->curled_lines};
+        const Layer *prev = std::exchange(last_prepared_layers[object], layer);
+        prev_layer_sources[object] = prev;
+        const PrecomputedOverhangLayer *precomputed = precomputed_for(object);
+        if (prev == nullptr) {
+            prev_layer_boundaries[object]  = nullptr;
+            prev_curled_extrusions[object] = nullptr;
+        } else if (precomputed != nullptr && precomputed->layer == layer && layer->lower_layer == prev) {
+            prev_layer_boundaries[object]  = precomputed->lower_boundaries;
+            prev_curled_extrusions[object] = precomputed->lower_curled_lines;
+        } else {
+            prev_layer_boundaries[object]  = std::make_shared<const Boundaries>(to_unscaled_linesf3(prev->lslices));
+            prev_curled_extrusions[object] = std::make_shared<const CurledLines>(prev->curled_lines);
+        }
     }
 
     std::vector<ProcessedPoint> estimate_extrusion_quality(const ExtrusionPath                &path,
@@ -526,9 +619,24 @@ public:
             return std::min(calculate_speed(distance), original_speed);
         };
 
+        // Precomputed distances hold only if they were measured against the layer prev_layer_boundaries is built from.
+        const std::unordered_map<Point3, double, Point3Hash> *known = nullptr;
+        if (const PrecomputedOverhangLayer *precomputed = precomputed_for(current_object);
+            precomputed != nullptr && precomputed->layer->lower_layer == prev_layer_sources[current_object])
+            known = &precomputed->distances;
+        const Boundaries  &prev_boundaries = or_empty(prev_layer_boundaries[current_object]);
+        const CurledLines &prev_curled     = or_empty(prev_curled_extrusions[current_object]);
+        auto known_distance = [known](const Point3 &point) -> const double * {
+            if (known == nullptr)
+                return nullptr;
+            auto it = known->find(point);
+            return it == known->end() ? nullptr : &it->second;
+        };
+
         std::vector<ExtendedPoint<3>> extended_points =
-            estimate_points_properties<true, true, true, true>(path.polyline.points, prev_layer_boundaries[current_object], path.width, -1,
-                                                               smallest_distance_with_lower_speed, effective_speed, fan_overlap_threshold);
+            estimate_points_properties<true, true, true, true, false>(path.polyline.points, prev_boundaries, path.width, -1,
+                                                               smallest_distance_with_lower_speed, effective_speed, fan_overlap_threshold,
+                                                               known_distance);
         const auto width_inv = 1.0f / path.width;
         std::vector<ProcessedPoint> processed_points;
         processed_points.reserve(extended_points.size());
@@ -542,7 +650,7 @@ public:
             	const double dist_limit = 10.0 * path.width;
 				{
                     Vec3d middle       = 0.5 * (curr.position + next.position);
-                    auto  line_indices = prev_curled_extrusions[current_object].all_lines_in_radius(Point::new_scale(middle),
+                    auto  line_indices = prev_curled.all_lines_in_radius(Point::new_scale(middle),
                                                                                                     scale_(dist_limit));
                     if (!line_indices.empty()) {
                         double len = (next.position - curr.position).norm();
@@ -563,7 +671,7 @@ public:
 
                             double projected_lengths_sum = 0;
                             for (size_t idx : line_indices) {
-                                const CurledLine& line   = prev_curled_extrusions[current_object].get_line(idx);
+                                const CurledLine& line   = prev_curled.get_line(idx);
                                 Lines             inside = intersection_ln({{line.a, line.b}}, {box_of_influence});
                             	if (inside.empty())
                                 	continue;
@@ -576,7 +684,7 @@ public:
                         }
                     
                     	for (size_t idx : line_indices) {
-                        	const CurledLine &line                 = prev_curled_extrusions[current_object].get_line(idx);
+                        	const CurledLine &line                 = prev_curled.get_line(idx);
                         	float             distance_from_curled = unscaled(line_alg::distance_to(line, Point::new_scale(middle)));
                         	float             dist                 = path.width * (1.0 - (distance_from_curled / dist_limit)) *
                                      (1.0 - (distance_from_curled / dist_limit)) *

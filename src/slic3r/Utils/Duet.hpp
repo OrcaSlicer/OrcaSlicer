@@ -5,6 +5,7 @@
 #include <wx/string.h>
 
 #include "PrintHost.hpp"
+#include "libslic3r/enum_bitmask.hpp"
 
 namespace Slic3r {
 

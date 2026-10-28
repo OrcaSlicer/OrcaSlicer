@@ -365,6 +365,8 @@ public:
     void render_notifications(GLCanvas3D &canvas, float overlay_width, float bottom_margin, float right_margin);
 	// finds and closes all notifications of given type
 	void close_notification_of_type(const NotificationType type);
+	// True while a notification of this type is on screen (not closed or finished).
+	bool has_notification_of_type(const NotificationType type) const;
     void remove_notification_of_type(const NotificationType type);
     void clear_all();
 	// Hides warnings in G-code preview. Should be called from plater only when 3d view/ preview is changed
@@ -631,8 +633,8 @@ private:
 		// Aditional text after hypertext - currently not used
 		std::string      m_text2;
 		// mark for render operation
-		size_t           pos_start = string::npos;
-		size_t	         pos_end = string::npos;
+		size_t           pos_start = std::string::npos;
+		size_t	         pos_end = std::string::npos;
 		std::string      error_start = "<Error>";
 		std::string      error_end = "</Error>";
 

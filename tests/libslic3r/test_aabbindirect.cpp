@@ -1,13 +1,13 @@
 #include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
-#include "test_utils.hpp"
 
 #include <igl/Hit.h>
 #include <cstddef>
 #include <libslic3r/TriangleMesh.hpp>
 #include <libslic3r/AABBTreeIndirect.hpp>
 #include <vector>
+#include "libslic3r/Point.hpp"
 
 using namespace Slic3r;
 

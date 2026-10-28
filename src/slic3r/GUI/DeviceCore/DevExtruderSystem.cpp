@@ -15,7 +15,6 @@
 #include "DevFilaSystem.h" // complete type for GetFilaSystem()->GetTrayIndexMap() in GetBackupAmsSlotInGroup
 
 // TODO: remove this include
-#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/I18N.hpp"
 

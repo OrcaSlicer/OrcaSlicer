@@ -7,7 +7,8 @@
 #include <boost/asio/ip/address.hpp>
 
 #include "PrintHost.hpp"
-#include "libslic3r/PrintConfig.hpp"
+
+class wxArrayString;
 
 namespace Slic3r {
 

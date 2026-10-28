@@ -6,6 +6,9 @@
 #include <wx/rtti.h>
 #include <wx/vector.h>
 
+class wxClassInfo;
+namespace wxInspector { class InspectableObject; }
+
 class CustomWidgetsPlugin : public wxInspector::wxInspectorPlugin
 {
 public:

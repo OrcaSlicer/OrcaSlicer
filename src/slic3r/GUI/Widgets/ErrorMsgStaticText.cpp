@@ -4,6 +4,8 @@
 #include <wx/gdicmn.h>
 #include <wx/string.h>
 
+class wxWindow;
+
 ErrorMsgStaticText::ErrorMsgStaticText() {}
 
 ErrorMsgStaticText::ErrorMsgStaticText(wxWindow *      parent,

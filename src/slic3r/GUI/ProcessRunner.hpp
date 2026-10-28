@@ -1,7 +1,7 @@
 #ifndef slic3r_GUI_ProcessRunner_hpp_
 #define slic3r_GUI_ProcessRunner_hpp_
 
-#include <boost/process/pipe.hpp>
+#include <slic3r/Utils/BoostProcessCompat.hpp>
 #include <wx/event.h>
 #include <wx/timer.h>
 
@@ -12,8 +12,6 @@
 #include <thread>
 #include <vector>
 #include <functional>
-
-#include <boost/process.hpp>
 
 namespace Slic3r { namespace GUI {
 

@@ -6,6 +6,8 @@
 #include <optional>
 #include <string>
 
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 // Stable across sessions so the saved layout finds the pane; free of wxAuiManager layout delimiters.

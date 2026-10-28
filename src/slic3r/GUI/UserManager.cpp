@@ -1,10 +1,6 @@
-#include "json_diff.hpp"
-#include "libslic3r/libslic3r.h"
+#include <nlohmann/json.hpp>
 #include "UserManager.hpp"
-#include "DeviceManager.hpp"
 #include "BindDialog.hpp"
-#include "NetworkAgent.hpp"
-#include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "MsgDialog.hpp"
@@ -13,6 +9,8 @@
 #include <string>
 #include <wx/string.h>
 
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 

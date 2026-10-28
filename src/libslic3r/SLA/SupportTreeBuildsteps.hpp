@@ -11,7 +11,6 @@
 #include <cassert>
 #include "libslic3r/SLA/SupportTree.hpp"
 #include "libslic3r/SLA/IndexedMesh.hpp"
-#include "libslic3r/SLA/SupportPoint.hpp"
 #include "libslic3r/SLA/Pad.hpp"
 #include <cstdint>
 #include <cstdlib>
@@ -20,11 +19,13 @@
 #include <optional>
 
 #include <libslic3r/SLA/SupportTreeBuilder.hpp>
-#include <libslic3r/SLA/Clustering.hpp>
 #include <libslic3r/SLA/SpatIndex.hpp>
 #include <utility>
 #include <tuple>
 #include <vector>
+#include "libslic3r/MTUtils.hpp"
+
+namespace Slic3r::sla { struct SupportPoint; }
 
 namespace Slic3r {
 namespace sla {

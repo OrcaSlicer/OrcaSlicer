@@ -5,5 +5,10 @@
   <!-- for dynamic loading of libraries without signature validation. Used for 3dconnection drivers.-->
   <key>com.apple.security.cs.disable-library-validation</key>  
   <true/>
+  <!-- The Bambu network plug-in's code protector rewrites one of its own signed code pages
+       after loading. Under the hardened runtime macOS kills the process when that page is
+       paged back in; this lets it run, as Bambu Studio's signature does. -->
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
 </dict>
 </plist>

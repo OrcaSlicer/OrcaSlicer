@@ -5,8 +5,6 @@
 #include <map>
 #include <nlohmann/json.hpp>
 
-using namespace nlohmann;
-
 namespace Slic3r
 {
 

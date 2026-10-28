@@ -1,13 +1,14 @@
 #pragma once
 
 #include <functional>
-#include "slic3r/GUI/Lazy.hpp"
 #include <string>
 
 #include <wx/event.h>
 #include <wx/timer.h>
 
 #include "PrebuildQueue.hpp"
+
+namespace Slic3r::GUI { class LazyBase; }
 
 namespace Slic3r { namespace GUI {
 

@@ -5,7 +5,6 @@
 #include <wx/string.h>
 
 #include "PrintHost.hpp"
-#include "TCPConsole.hpp"
 
 namespace Slic3r {
 class DynamicPrintConfig;

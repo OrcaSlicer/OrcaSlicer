@@ -10,9 +10,10 @@
 #include <boost/asio/ip/address.hpp>
 
 #include "PrintHost.hpp"
-#include "libslic3r/PrintConfig.hpp"
 #include "OctoPrint.hpp"
-#include "WebSocketClient.hpp"
+
+class WebSocketClient;
+namespace boost { template <class T> class optional; }
 namespace Slic3r {
 
 class DynamicPrintConfig;

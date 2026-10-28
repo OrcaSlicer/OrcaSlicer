@@ -9,7 +9,8 @@
 #include <utility>
 #include <vector>
 
-#include "StagedBuild.hpp"
+namespace Slic3r::GUI { class StagedBuild; }
+
 
 class wxBusyCursor;
 

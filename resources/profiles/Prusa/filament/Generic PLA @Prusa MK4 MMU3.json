@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @Prusa MK4 MMU3",
+	"inherits": "Generic PLA @Prusa MK4",
+	"from": "system",
+	"setting_id": "kZvIh84niJ487FsY",
+	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pla"
+	],
+	"compatible_printers": [
+		"Prusa MK4 MMU3 0.4 nozzle",
+		"Prusa MK4 MMU3 0.6 nozzle",
+		"Prusa MK4 MMU3 HF0.4 nozzle"
+	]
+}

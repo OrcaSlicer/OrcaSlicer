@@ -673,14 +673,14 @@ static bool repair_cluster_smooth(
                     [&]() { return cancelled(); }, &repair_error);
                 if (repaired) {
                     if (cancelled()) return false;
-                    BOOST_LOG_TRIVIAL(info) << log_prefix << ": Windows 3D mesh repair finished.";
+                    BOOST_LOG_TRIVIAL(info) << log_prefix << ": mesh repair finished.";
                     if (!resample_face_colors(TriMesh(std::move(repaired_its))))
                         return false;
                 } else {
-                    BOOST_LOG_TRIVIAL(warning) << log_prefix << ": Windows 3D mesh repair failed: " << repair_error;
+                    BOOST_LOG_TRIVIAL(warning) << log_prefix << ": mesh repair failed: " << repair_error;
                 }
             } else {
-                BOOST_LOG_TRIVIAL(info) << log_prefix << ": importing mesh without Windows 3D repair.";
+                BOOST_LOG_TRIVIAL(info) << log_prefix << ": importing mesh without repair.";
             }
         }
     }

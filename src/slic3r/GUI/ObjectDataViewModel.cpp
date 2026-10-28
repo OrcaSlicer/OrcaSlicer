@@ -1,5 +1,4 @@
 #include "ObjectDataViewModel.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "wxExtensions.hpp"
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
@@ -135,13 +134,13 @@ ObjectDataViewModelNode::ObjectDataViewModelNode(ObjectDataViewModelNode* parent
         m_name = "Settings to modified";
     }
     else if (type == itInstanceRoot) {
-        m_name = _(_devL("Instances"));
+        m_name = _L("Instances");
         m_extruder = parent->m_extruder;
     }
     else if (type == itInstance)
     {
         m_idx = parent->GetChildCount();
-        m_name = wxString::Format(_(_devL("Instance %d")), m_idx + 1);
+        m_name = wxString::Format(_L("Instance %d"), m_idx + 1);
         m_extruder = parent->GetParent()->m_extruder;
         set_icons();
     }
@@ -399,10 +398,11 @@ void ObjectDataViewModelNode::SetIdx(const int &idx)
     // update name if this node is instance
     if (m_type == itInstance) {
         if (m_plate_idx > 0) {
-            m_name = wxString::Format(_(_devL("[P%d]Instance %d")), m_plate_idx, m_idx + 1);
+            // TRN Object list item: plate number, then instance number
+            m_name = wxString::Format(_L("[P%d]Instance %d"), m_plate_idx, m_idx + 1);
         }
         else {
-            m_name = wxString::Format(_(_devL("Instance %d")), m_idx + 1);
+            m_name = wxString::Format(_L("Instance %d"), m_idx + 1);
         }
     }
 }
@@ -1073,12 +1073,16 @@ wxDataViewItem ObjectDataViewModel::Delete(const wxDataViewItem &item)
         ObjectDataViewModelNode* last_instance_node = node_parent->GetNthChild(0);
         PrintIndicator last_instance_printable = last_instance_node->IsPrintable();
         node_parent->GetChildren().Remove(last_instance_node);
+        // Wrapped before the delete because GCC's -Wuse-after-free flags reading a freed pointer.
+        const wxDataViewItem last_instance_item(last_instance_node);
         delete last_instance_node;
-        ItemDeleted(parent, wxDataViewItem(last_instance_node));
+        ItemDeleted(parent, last_instance_item);
 
         ObjectDataViewModelNode* obj_node = node_parent->GetParent();
         obj_node->set_printable_icon(last_instance_printable);
         obj_node->GetChildren().Remove(node_parent);
+        // Wrapped before the delete because GCC's -Wuse-after-free flags reading a freed pointer.
+        const wxDataViewItem node_parent_item(node_parent);
         delete node_parent;
         ret_item = wxDataViewItem(obj_node);
 
@@ -1086,7 +1090,7 @@ wxDataViewItem ObjectDataViewModel::Delete(const wxDataViewItem &item)
         if (obj_node->GetChildCount() == 0)
             obj_node->m_container = false;
 #endif //__WXGTK__
-        ItemDeleted(ret_item, wxDataViewItem(node_parent));
+        ItemDeleted(ret_item, node_parent_item);
         return ret_item;
     }
 
@@ -1098,6 +1102,8 @@ wxDataViewItem ObjectDataViewModel::Delete(const wxDataViewItem &item)
     {
         ObjectDataViewModelNode* obj_node = node_parent->GetParent();
         obj_node->GetChildren().Remove(node_parent);
+        // Wrapped before the delete because GCC's -Wuse-after-free flags reading a freed pointer.
+        const wxDataViewItem node_parent_item(node_parent);
         delete node_parent;
         ret_item = wxDataViewItem(obj_node);
 
@@ -1105,7 +1111,7 @@ wxDataViewItem ObjectDataViewModel::Delete(const wxDataViewItem &item)
         if (obj_node->GetChildCount() == 0)
             obj_node->m_container = false;
 #endif //__WXGTK__
-        ItemDeleted(ret_item, wxDataViewItem(node_parent));
+        ItemDeleted(ret_item, node_parent_item);
         return ret_item;
     }
 

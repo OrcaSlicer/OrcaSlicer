@@ -2,9 +2,6 @@
 #include "libslic3r/Platform.hpp"
 #include <boost/filesystem/operations.hpp>
 #include <cstddef>
-#include <boost/process/pipe.hpp>
-#include <boost/process/search_path.hpp>
-#include <boost/process/io.hpp>
 #include <cassert>
 #include <algorithm>
 #include <boost/bind/bind.hpp>
@@ -20,6 +17,7 @@
 #include <system_error>
 #include <wx/event.h>
 #include <utility>
+#include <cwchar>
 
 #if _WIN32
 #include <windows.h>
@@ -38,7 +36,7 @@
 #include <pwd.h>
 #include <boost/filesystem.hpp>
 #include <boost/system/error_code.hpp>
-#include <boost/process.hpp>
+#include <slic3r/Utils/BoostProcessCompat.hpp>
 #endif
 
 namespace Slic3r {

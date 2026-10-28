@@ -471,9 +471,11 @@ bool VendorCacheFile::save(const std::string& path, const std::string& vendor_na
     }
 }
 
-// static
-bool VendorCacheFile::load(const std::string& path, const std::string& expected_vendor_name,
-                           const Semver& expected_vendor_version, VendorCacheData& data)
+// Reads a cache through its vendor profiles under the checks load() documents, then
+// calls read_rest on the archive.
+template<class ReadRest>
+static bool read_cache_up_to_presets(const std::string& path, const std::string& expected_vendor_name,
+                                     const Semver& expected_vendor_version, VendorMap& vendors, ReadRest&& read_rest)
 {
     std::string blob;
     if (! read_cache_blob(path, blob))
@@ -488,18 +490,40 @@ bool VendorCacheFile::load(const std::string& path, const std::string& expected_
             return false;
         CacheDictionary dict;
         dict.load(ar);
-        ar(data.vendors);
-        load_entries(ar, data.process_entries, dict);
-        load_entries(ar, data.filament_entries, dict);
-        load_entries(ar, data.machine_entries, dict);
-        ar(data.parse_errors);
-        if (data.vendors.find(expected_vendor_name) == data.vendors.end())
+        ar(vendors);
+        read_rest(ar, dict);
+        if (vendors.find(expected_vendor_name) == vendors.end())
             throw std::runtime_error("vendor cache does not carry its own vendor profile");
         return true;
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(warning) << "VendorCacheFile: rejecting vendor cache " << path << ": " << e.what();
         return false;
     }
+}
+
+// static
+bool VendorCacheFile::load(const std::string& path, const std::string& expected_vendor_name,
+                           const Semver& expected_vendor_version, VendorCacheData& data)
+{
+    return read_cache_up_to_presets(path, expected_vendor_name, expected_vendor_version, data.vendors,
+        [&data](cereal::BinaryInputArchive& ar, const CacheDictionary& dict) {
+            load_entries(ar, data.process_entries, dict);
+            load_entries(ar, data.filament_entries, dict);
+            load_entries(ar, data.machine_entries, dict);
+            ar(data.parse_errors);
+        });
+}
+
+// static
+bool VendorCacheFile::load_vendor_profile(const std::string& path, const std::string& expected_vendor_name,
+                                          const Semver& expected_vendor_version, VendorProfile& vendor)
+{
+    VendorMap vendors;
+    if (! read_cache_up_to_presets(path, expected_vendor_name, expected_vendor_version, vendors,
+                                   [](cereal::BinaryInputArchive&, const CacheDictionary&) {}))
+        return false;
+    vendor = std::move(vendors.find(expected_vendor_name)->second);
+    return true;
 }
 
 // static

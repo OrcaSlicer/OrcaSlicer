@@ -10,6 +10,8 @@
 
 #include <pybind11/embed.h>
 #include <array>
+#include <pybind11/detail/common.h>
+#include <pybind11/pybind11.h>
 
 namespace py = pybind11;
 using namespace Slic3r;

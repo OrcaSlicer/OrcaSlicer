@@ -17,20 +17,18 @@
 #include <map>
 #include <unordered_map>
 
-using json = nlohmann::json;
-
 // Put serializers in correct ADL namespaces for each type
 
 namespace Slic3r {
 namespace FilamentGroupUtils {
 
-inline void to_json(json& j, const Color& c) {
+inline void to_json(nlohmann::json& j, const Color& c) {
     char buf[10];
     snprintf(buf, sizeof(buf), "#%02X%02X%02X%02X", c.r, c.g, c.b, c.a);
     j = std::string(buf);
 }
 
-inline void from_json(const json& j, Color& c) {
+inline void from_json(const nlohmann::json& j, Color& c) {
     std::string s = j.get<std::string>();
     if (s.size() >= 7 && s[0] == '#') {
         c.r = (unsigned char)std::stoi(s.substr(1, 2), nullptr, 16);
@@ -40,8 +38,8 @@ inline void from_json(const json& j, Color& c) {
     }
 }
 
-inline void to_json(json& j, const FilamentInfo& fi) {
-    j = json{
+inline void to_json(nlohmann::json& j, const FilamentInfo& fi) {
+    j = nlohmann::json{
         {"color", fi.color},
         {"type", fi.type},
         {"is_support", fi.is_support},
@@ -49,15 +47,15 @@ inline void to_json(json& j, const FilamentInfo& fi) {
     };
 }
 
-inline void from_json(const json& j, FilamentInfo& fi) {
+inline void from_json(const nlohmann::json& j, FilamentInfo& fi) {
     fi.color = j.at("color").get<Color>();
     j.at("type").get_to(fi.type);
     j.at("is_support").get_to(fi.is_support);
     fi.usage_type = (FilamentUsageType)j.at("usage_type").get<int>();
 }
 
-inline void to_json(json& j, const MachineFilamentInfo& mfi) {
-    j = json{
+inline void to_json(nlohmann::json& j, const MachineFilamentInfo& mfi) {
+    j = nlohmann::json{
         {"color", mfi.color},
         {"type", mfi.type},
         {"is_support", mfi.is_support},
@@ -67,7 +65,7 @@ inline void to_json(json& j, const MachineFilamentInfo& mfi) {
     };
 }
 
-inline void from_json(const json& j, MachineFilamentInfo& mfi) {
+inline void from_json(const nlohmann::json& j, MachineFilamentInfo& mfi) {
     mfi.color = j.at("color").get<Color>();
     j.at("type").get_to(mfi.type);
     j.at("is_support").get_to(mfi.is_support);
@@ -80,8 +78,8 @@ inline void from_json(const json& j, MachineFilamentInfo& mfi) {
 
 namespace MultiNozzleUtils {
 
-inline void to_json(json& j, const NozzleInfo& ni) {
-    j = json{
+inline void to_json(nlohmann::json& j, const NozzleInfo& ni) {
+    j = nlohmann::json{
         {"diameter", ni.diameter},
         {"volume_type", (int)ni.volume_type},
         {"extruder_id", ni.extruder_id},
@@ -89,15 +87,15 @@ inline void to_json(json& j, const NozzleInfo& ni) {
     };
 }
 
-inline void from_json(const json& j, NozzleInfo& ni) {
+inline void from_json(const nlohmann::json& j, NozzleInfo& ni) {
     j.at("diameter").get_to(ni.diameter);
     ni.volume_type = (NozzleVolumeType)j.at("volume_type").get<int>();
     j.at("extruder_id").get_to(ni.extruder_id);
     j.at("group_id").get_to(ni.group_id);
 }
 
-inline void to_json(json& j, const FilamentChangeTimeParams& p) {
-    j = json{
+inline void to_json(nlohmann::json& j, const FilamentChangeTimeParams& p) {
+    j = nlohmann::json{
         {"selector_load_time", p.selector_load_time},
         {"selector_unload_time", p.selector_unload_time},
         {"standard_load_time", p.standard_load_time},
@@ -105,7 +103,7 @@ inline void to_json(json& j, const FilamentChangeTimeParams& p) {
     };
 }
 
-inline void from_json(const json& j, FilamentChangeTimeParams& p) {
+inline void from_json(const nlohmann::json& j, FilamentChangeTimeParams& p) {
     j.at("selector_load_time").get_to(p.selector_load_time);
     j.at("selector_unload_time").get_to(p.selector_unload_time);
     j.at("standard_load_time").get_to(p.standard_load_time);
@@ -116,22 +114,22 @@ inline void from_json(const json& j, FilamentChangeTimeParams& p) {
 
 // ============ Helper: set<int> as JSON array ============
 namespace FGTestDetail {
-inline json set_to_json(const std::set<int>& s) {
-    return json(std::vector<int>(s.begin(), s.end()));
+inline nlohmann::json set_to_json(const std::set<int>& s) {
+    return nlohmann::json(std::vector<int>(s.begin(), s.end()));
 }
 
-inline std::set<int> json_to_set(const json& j) {
+inline std::set<int> json_to_set(const nlohmann::json& j) {
     auto v = j.get<std::vector<int>>();
     return std::set<int>(v.begin(), v.end());
 }
 
-inline json nvt_set_to_json(const std::set<NozzleVolumeType>& s) {
+inline nlohmann::json nvt_set_to_json(const std::set<NozzleVolumeType>& s) {
     std::vector<int> v;
     for (auto t : s) v.push_back((int)t);
-    return json(v);
+    return nlohmann::json(v);
 }
 
-inline std::set<NozzleVolumeType> json_to_nvt_set(const json& j) {
+inline std::set<NozzleVolumeType> json_to_nvt_set(const nlohmann::json& j) {
     std::set<NozzleVolumeType> s;
     for (auto& item : j) s.insert((NozzleVolumeType)item.get<int>());
     return s;
@@ -139,28 +137,28 @@ inline std::set<NozzleVolumeType> json_to_nvt_set(const json& j) {
 } // namespace FGTestDetail
 
 // ============ FilamentGroupContext::ModelInfo ============
-inline void to_json(json& j, const FilamentGroupContext::ModelInfo& mi) {
+inline void to_json(nlohmann::json& j, const FilamentGroupContext::ModelInfo& mi) {
     using namespace FGTestDetail;
     j["flush_matrix"] = mi.flush_matrix;
     j["layer_filaments"] = mi.layer_filaments;
 
-    j["filament_info"] = json::array();
+    j["filament_info"] = nlohmann::json::array();
     for (auto& fi : mi.filament_info)
         j["filament_info"].push_back(fi);
 
     j["filament_ids"] = mi.filament_ids;
 
-    j["unprintable_filaments"] = json::array();
+    j["unprintable_filaments"] = nlohmann::json::array();
     for (auto& s : mi.unprintable_filaments)
         j["unprintable_filaments"].push_back(set_to_json(s));
 
-    json uv = json::object();
+    nlohmann::json uv = nlohmann::json::object();
     for (auto& [fil, types] : mi.unprintable_volumes)
         uv[std::to_string(fil)] = nvt_set_to_json(types);
     j["unprintable_volumes"] = uv;
 }
 
-inline void from_json(const json& j, FilamentGroupContext::ModelInfo& mi) {
+inline void from_json(const nlohmann::json& j, FilamentGroupContext::ModelInfo& mi) {
     using namespace FGTestDetail;
     j.at("flush_matrix").get_to(mi.flush_matrix);
     j.at("layer_filaments").get_to(mi.layer_filaments);
@@ -183,8 +181,8 @@ inline void from_json(const json& j, FilamentGroupContext::ModelInfo& mi) {
 }
 
 // ============ FilamentGroupContext::GroupInfo ============
-inline void to_json(json& j, const FilamentGroupContext::GroupInfo& gi) {
-    j = json{
+inline void to_json(nlohmann::json& j, const FilamentGroupContext::GroupInfo& gi) {
+    j = nlohmann::json{
         {"total_filament_num", gi.total_filament_num},
         {"max_gap_threshold", gi.max_gap_threshold},
         {"mode", (int)gi.mode},
@@ -195,7 +193,7 @@ inline void to_json(json& j, const FilamentGroupContext::GroupInfo& gi) {
     };
 }
 
-inline void from_json(const json& j, FilamentGroupContext::GroupInfo& gi) {
+inline void from_json(const nlohmann::json& j, FilamentGroupContext::GroupInfo& gi) {
     j.at("total_filament_num").get_to(gi.total_filament_num);
     j.at("max_gap_threshold").get_to(gi.max_gap_threshold);
     gi.mode = (FGMode)j.at("mode").get<int>();
@@ -206,12 +204,12 @@ inline void from_json(const json& j, FilamentGroupContext::GroupInfo& gi) {
 }
 
 // ============ FilamentGroupContext::MachineInfo ============
-inline void to_json(json& j, const FilamentGroupContext::MachineInfo& mi) {
+inline void to_json(nlohmann::json& j, const FilamentGroupContext::MachineInfo& mi) {
     j["max_group_size"] = mi.max_group_size;
 
-    j["machine_filament_info"] = json::array();
+    j["machine_filament_info"] = nlohmann::json::array();
     for (auto& vec : mi.machine_filament_info) {
-        json arr = json::array();
+        nlohmann::json arr = nlohmann::json::array();
         for (auto& mfi : vec) arr.push_back(mfi);
         j["machine_filament_info"].push_back(arr);
     }
@@ -220,7 +218,7 @@ inline void to_json(json& j, const FilamentGroupContext::MachineInfo& mi) {
     j["master_extruder_id"] = mi.master_extruder_id;
 }
 
-inline void from_json(const json& j, FilamentGroupContext::MachineInfo& mi) {
+inline void from_json(const nlohmann::json& j, FilamentGroupContext::MachineInfo& mi) {
     j.at("max_group_size").get_to(mi.max_group_size);
 
     mi.machine_filament_info.clear();
@@ -236,10 +234,10 @@ inline void from_json(const json& j, FilamentGroupContext::MachineInfo& mi) {
 }
 
 // ============ FilamentGroupContext::SpeedInfo ============
-inline void to_json(json& j, const FilamentGroupContext::SpeedInfo& si) {
-    json fpt = json::object();
+inline void to_json(nlohmann::json& j, const FilamentGroupContext::SpeedInfo& si) {
+    nlohmann::json fpt = nlohmann::json::object();
     for (auto& [fil, inner] : si.filament_print_time) {
-        json inner_j = json::object();
+        nlohmann::json inner_j = nlohmann::json::object();
         for (auto& [layer, time] : inner)
             inner_j[std::to_string(layer)] = time;
         fpt[std::to_string(fil)] = inner_j;
@@ -252,7 +250,7 @@ inline void to_json(json& j, const FilamentGroupContext::SpeedInfo& si) {
     j["ams_preload_enabled"] = si.ams_preload_enabled;
 }
 
-inline void from_json(const json& j, FilamentGroupContext::SpeedInfo& si) {
+inline void from_json(const nlohmann::json& j, FilamentGroupContext::SpeedInfo& si) {
     si.filament_print_time.clear();
     if (j.contains("filament_print_time")) {
         for (auto& [k, v] : j.at("filament_print_time").items()) {
@@ -269,23 +267,23 @@ inline void from_json(const json& j, FilamentGroupContext::SpeedInfo& si) {
 }
 
 // ============ FilamentGroupContext::NozzleInfo ============
-inline void to_json(json& j, const FilamentGroupContext::NozzleInfo& ni) {
-    json enl = json::object();
+inline void to_json(nlohmann::json& j, const FilamentGroupContext::NozzleInfo& ni) {
+    nlohmann::json enl = nlohmann::json::object();
     for (auto& [ext, nozzles] : ni.extruder_nozzle_list)
         enl[std::to_string(ext)] = nozzles;
     j["extruder_nozzle_list"] = enl;
 
-    j["nozzle_list"] = json::array();
+    j["nozzle_list"] = nlohmann::json::array();
     for (auto& n : ni.nozzle_list)
         j["nozzle_list"].push_back(n);
 
-    json ns = json::object();
+    nlohmann::json ns = nlohmann::json::object();
     for (auto& [noz, fil] : ni.nozzle_status)
         ns[std::to_string(noz)] = fil;
     j["nozzle_status"] = ns;
 }
 
-inline void from_json(const json& j, FilamentGroupContext::NozzleInfo& ni) {
+inline void from_json(const nlohmann::json& j, FilamentGroupContext::NozzleInfo& ni) {
     ni.extruder_nozzle_list.clear();
     for (auto& [k, v] : j.at("extruder_nozzle_list").items())
         ni.extruder_nozzle_list[std::stoi(k)] = v.get<std::vector<int>>();
@@ -302,8 +300,8 @@ inline void from_json(const json& j, FilamentGroupContext::NozzleInfo& ni) {
 }
 
 // ============ Full FilamentGroupContext ============
-inline void to_json(json& j, const FilamentGroupContext& ctx) {
-    json mi, gi, mai, si, ni;
+inline void to_json(nlohmann::json& j, const FilamentGroupContext& ctx) {
+    nlohmann::json mi, gi, mai, si, ni;
     to_json(mi, ctx.model_info);
     to_json(gi, ctx.group_info);
     to_json(mai, ctx.machine_info);
@@ -316,7 +314,7 @@ inline void to_json(json& j, const FilamentGroupContext& ctx) {
     j["nozzle_info"] = ni;
 }
 
-inline void from_json(const json& j, FilamentGroupContext& ctx) {
+inline void from_json(const nlohmann::json& j, FilamentGroupContext& ctx) {
     from_json(j.at("model_info"), ctx.model_info);
     from_json(j.at("group_info"), ctx.group_info);
     from_json(j.at("machine_info"), ctx.machine_info);
@@ -336,11 +334,11 @@ struct TestMetadata {
     int seed = 0;
 };
 
-inline void to_json(json& j, const TestMetadata& m) {
-    j = json{{"id", m.id}, {"config_type", m.config_type}, {"seed", m.seed}};
+inline void to_json(nlohmann::json& j, const TestMetadata& m) {
+    j = nlohmann::json{{"id", m.id}, {"config_type", m.config_type}, {"seed", m.seed}};
 }
 
-inline void from_json(const json& j, TestMetadata& m) {
+inline void from_json(const nlohmann::json& j, TestMetadata& m) {
     j.at("id").get_to(m.id);
     j.at("config_type").get_to(m.config_type);
     j.at("seed").get_to(m.seed);
@@ -354,8 +352,8 @@ struct TestResult {
     std::vector<std::string> violations;
 };
 
-inline void to_json(json& j, const TestResult& r) {
-    j = json{
+inline void to_json(nlohmann::json& j, const TestResult& r) {
+    j = nlohmann::json{
         {"filament_map", r.filament_map},
         {"flush_cost", r.flush_cost},
         {"elapsed_ms", r.elapsed_ms},
@@ -364,7 +362,7 @@ inline void to_json(json& j, const TestResult& r) {
     };
 }
 
-inline void from_json(const json& j, TestResult& r) {
+inline void from_json(const nlohmann::json& j, TestResult& r) {
     j.at("filament_map").get_to(r.filament_map);
     j.at("flush_cost").get_to(r.flush_cost);
     j.at("elapsed_ms").get_to(r.elapsed_ms);
@@ -380,15 +378,15 @@ struct BaseResult {
     bool constraints_ok = true;
 };
 
-inline void to_json(json& j, const BaseResult& g) {
-    j = json{
+inline void to_json(nlohmann::json& j, const BaseResult& g) {
+    j = nlohmann::json{
         {"full_score", g.full_score},
         {"flush_cost", g.flush_cost},
         {"constraints_ok", g.constraints_ok}
     };
 }
 
-inline void from_json(const json& j, BaseResult& g) {
+inline void from_json(const nlohmann::json& j, BaseResult& g) {
     j.at("full_score").get_to(g.full_score);
     j.at("flush_cost").get_to(g.flush_cost);
     j.at("constraints_ok").get_to(g.constraints_ok);
@@ -403,7 +401,7 @@ struct TestCase {
 
 inline TestCase load_test_case(const std::string& path) {
     std::ifstream f(path);
-    json j = json::parse(f);
+    nlohmann::json j = nlohmann::json::parse(f);
     TestCase tc;
     tc.metadata = j.at("metadata").get<TestMetadata>();
     Slic3r::from_json(j.at("context"), tc.context);
@@ -413,9 +411,9 @@ inline TestCase load_test_case(const std::string& path) {
 }
 
 inline void save_test_case(const std::string& path, const TestCase& tc) {
-    json j;
+    nlohmann::json j;
     j["metadata"] = tc.metadata;
-    json ctx_j;
+    nlohmann::json ctx_j;
     Slic3r::to_json(ctx_j, tc.context);
     j["context"] = ctx_j;
     if (tc.base_result)
@@ -432,14 +430,14 @@ inline void save_result(const std::string& case_path, const TestResult& result) 
     else
         result_path += ".result.json";
 
-    json j = result;
+    nlohmann::json j = result;
     std::ofstream f(result_path);
     f << j.dump(2);
 }
 
 inline TestResult load_result(const std::string& result_path) {
     std::ifstream f(result_path);
-    json j = json::parse(f);
+    nlohmann::json j = nlohmann::json::parse(f);
     return j.get<TestResult>();
 }
 

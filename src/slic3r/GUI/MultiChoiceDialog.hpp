@@ -1,8 +1,6 @@
 #ifndef slic3r_GUI_MultiChoiceDialog_hpp_
 #define slic3r_GUI_MultiChoiceDialog_hpp_
 
-#include "Widgets/CheckList.hpp"
-#include "Widgets/DialogButtons.hpp"
 
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <wx/string.h>
@@ -12,6 +10,9 @@
 #include <wx/wx.h>
 #include <vector>
 #include <map>
+
+class CheckList;
+class wxWindow;
 
 
 namespace Slic3r { namespace GUI {

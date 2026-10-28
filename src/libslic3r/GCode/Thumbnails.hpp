@@ -4,9 +4,7 @@
 #include "../Point.hpp"
 #include "../PrintConfig.hpp"
 #include "../enum_bitmask.hpp"
-#include "libslic3r/Config.hpp"
 #include "ThumbnailData.hpp"
-#include "../enum_bitmask.hpp"
 
 #include <cstddef>
 #include <string>
@@ -16,6 +14,8 @@
 #include <string_view>
 
 #include <boost/beast/core/detail/base64.hpp>
+
+namespace Slic3r { class ConfigBase; }
 
 namespace Slic3r {
     enum class ThumbnailError : int { InvalidVal, OutOfRange, InvalidExt };
@@ -40,8 +40,7 @@ std::string get_error_string(const ThumbnailErrors& errors);
 
 
 typedef std::vector<std::pair<GCodeThumbnailsFormat, Vec2d>> GCodeThumbnailDefinitionsList;
-using namespace std::literals;
-std::pair<GCodeThumbnailDefinitionsList, ThumbnailErrors> make_and_check_thumbnail_list(const std::string& thumbnails_string, const std::string_view def_ext = "PNG"sv);
+std::pair<GCodeThumbnailDefinitionsList, ThumbnailErrors> make_and_check_thumbnail_list(const std::string& thumbnails_string, const std::string_view def_ext = "PNG");
 std::pair<GCodeThumbnailDefinitionsList, ThumbnailErrors> make_and_check_thumbnail_list(const ConfigBase &config);
 
 

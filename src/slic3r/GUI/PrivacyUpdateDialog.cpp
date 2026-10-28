@@ -21,6 +21,9 @@
 #include <wx/log.h>
 #include <wx/webview.h>
 #include <wx/utils.h>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 
 namespace Slic3r { namespace GUI {

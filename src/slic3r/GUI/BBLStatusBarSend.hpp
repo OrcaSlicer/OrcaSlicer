@@ -9,7 +9,6 @@
 #include <memory>
 #include <string>
 #include <functional>
-#include <string>
 #include <wx/hyperlink.h>
 
 #include "Jobs/ProgressIndicator.hpp"
@@ -98,10 +97,6 @@ private:
     CancelFn m_cancel_cb;
     CancelFn m_cancel_cb_fina;
 };
-
-namespace GUI {
-using Slic3r::BBLStatusBarSend;
-}
 
 wxDECLARE_EVENT(EVT_SHOW_ERROR_INFO_SEND, wxCommandEvent);
 wxDECLARE_EVENT(EVT_SHOW_ERROR_FAIL_SEND, wxCommandEvent);

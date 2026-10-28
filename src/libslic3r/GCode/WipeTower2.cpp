@@ -37,10 +37,10 @@
 #include "libslic3r/Polyline.hpp"
 #include "PrintConfig.hpp"
 #include "Surface.hpp"
-#include "Fill/FillRectilinear.hpp"
 #include "libslic3r/libslic3r.h"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include "libslic3r/Config.hpp"
 
 
 namespace Slic3r
@@ -1062,7 +1062,7 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_perimeter_speed(default_region_config.inner_wall_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_current_tool(initial_tool),
     wipe_volumes(wiping_matrix), m_wipe_tower_max_purge_speed(float(config.wipe_tower_max_purge_speed)),
-    m_enable_arc_fitting(config.enable_arc_fitting), 
+    m_enable_arc_fitting(config.enable_arc_fitting.value == ArcFittingMode::Enabled), 
     m_used_fillet(config.wipe_tower_fillet_wall), 
     m_rib_width(config.wipe_tower_rib_width), 
     m_extra_rib_length(config.wipe_tower_extra_rib_length),

@@ -12,6 +12,8 @@
 #include "libslic3r/Polygon.hpp"
 
 #include "RetractWhenCrossingPerimeters.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 namespace Slic3r {
 

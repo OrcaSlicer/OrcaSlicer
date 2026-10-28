@@ -28,10 +28,9 @@
 #include "FuzzySkin.hpp"
 
 #include "libnoise/noise.h"
+#include <functional>
 
 // #define DEBUG_FUZZY
-
-using namespace Slic3r;
 
 namespace Slic3r::Feature::FuzzySkin {
 

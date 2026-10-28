@@ -7,6 +7,8 @@
 #include <mutex>
 #include "bambu_networking.hpp"
 
+namespace Slic3r { class ICloudServiceAgent; }
+
 namespace Slic3r {
 
 const std::string OrcaPrinterAgent_VERSION = "0.0.1";

@@ -14,6 +14,8 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <pybind11/detail/common.h>
+#include <pybind11/detail/descr.h>
 
 namespace py = pybind11;
 

@@ -22,10 +22,9 @@
 #include <wx/panel.h>
 #include <wx/anybutton.h>
 #include <wx/webrequest.h>
-#include "I18N.hpp"
-#include "Widgets/Label.hpp"
 #include "libslic3r/Utils.hpp"
-#include "GUI_App.hpp"//for  ICON_SIZE (wxSize(FromDIP(16), FromDIP(16)))
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {

@@ -10,6 +10,7 @@
 #include <wx/timer.h>
 
 #include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/PrebuildQueue.hpp"
 
 #ifdef _WIN32
 #include <windows.h>

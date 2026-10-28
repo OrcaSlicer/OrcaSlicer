@@ -15,6 +15,8 @@
 #include <wx/window.h>
 #include <cstddef>
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 RadioGroup::RadioGroup(
     wxWindow* parent,

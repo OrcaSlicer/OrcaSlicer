@@ -7,6 +7,8 @@
 
 #include "StateColor.hpp"
 
+class wxWindow;
+
 wxDECLARE_EVENT(EVT_ENABLE_CHANGED, wxCommandEvent);
 
 class StateHandler : public wxEvtHandler

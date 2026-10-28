@@ -79,7 +79,11 @@
 #include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 
-#include <nlohmann/json.hpp>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/defs.h>
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
@@ -691,11 +695,13 @@ FlashforgePrintHostSendDialog::FlashforgePrintHostSendDialog(const fs::path&    
                                                              const Slic3r::Flashforge*   host,
                                                              bool                        supports_material_station,
                                                              std::vector<Slic3r::FlashforgeMaterialSlot> slots,
-                                                             const std::vector<FilamentInfo>& project_filaments)
+                                                             const std::vector<FilamentInfo>& project_filaments,
+                                                             bool                        manual_filament_change)
     : PrintHostSendDialog(path, post_actions, groups, storage_paths, storage_names, switch_to_device_tab)
     , m_host(host)
     , m_slots(std::move(slots))
     , m_project_filaments(project_filaments)
+    , m_manual_filament_change(manual_filament_change)
 {
     m_supports_material_station = supports_material_station;
     m_slots_loaded = !m_slots.empty();
@@ -714,10 +720,10 @@ void FlashforgePrintHostSendDialog::init()
     if (!timelapse.empty())
         m_time_lapse_video = timelapse == "1";
 
-    // Flashforge local printing should default to IFS enabled when supported.
+    // Flashforge local printing should default to IFS enabled when supported and manual filament change is not active.
     // We don't revive an old stale "0" here.
-    m_use_material_station = m_supports_material_station;
-    if (m_supports_material_station && !app_config->has("recent", CONFIG_KEY_IFS))
+    m_use_material_station = m_supports_material_station && !m_manual_filament_change;
+    if (m_use_material_station && !app_config->has("recent", CONFIG_KEY_IFS))
         const_cast<AppConfig*>(app_config)->set("recent", CONFIG_KEY_IFS, "1");
 
     this->SetMinSize(wxSize(560, 420));
@@ -813,7 +819,8 @@ void FlashforgePrintHostSendDialog::init()
     content_sizer->Add(m_flashforge_options_sizer, 0, wxEXPAND);
 
     if (m_supports_material_station)
-        m_status_text->SetLabel(wxString::Format(_L("Detected %d IFS slots on printer."), static_cast<int>(m_slots.size())));
+        m_status_text->SetLabel(wxString::Format(_L_PLURAL("Detected %d IFS slot on printer.", "Detected %d IFS slots on printer.", m_slots.size()),
+                                                 static_cast<int>(m_slots.size())));
     else
         m_status_text->SetLabel(_L("This printer does not report a material station."));
 
@@ -945,7 +952,8 @@ void FlashforgePrintHostSendDialog::load_slots()
     m_use_material_station = m_supports_material_station;
 
     if (m_supports_material_station)
-        m_status_text->SetLabel(wxString::Format(_L("Detected %d IFS slots on printer."), static_cast<int>(m_slots.size())));
+        m_status_text->SetLabel(wxString::Format(_L_PLURAL("Detected %d IFS slot on printer.", "Detected %d IFS slots on printer.", m_slots.size()),
+                                                 static_cast<int>(m_slots.size())));
     else
         m_status_text->SetLabel(_L("This printer does not report a material station."));
 }
@@ -1096,7 +1104,7 @@ bool FlashforgePrintHostSendDialog::slot_matches_filament(const Slic3r::Flashfor
 
 bool FlashforgePrintHostSendDialog::validate_before_close()
 {
-    if (!m_use_material_station && m_project_filaments.size() > 1) {
+    if (!m_use_material_station && m_project_filaments.size() > 1 && !m_manual_filament_change) {
         show_error(this, _L("This plate uses multiple materials. Enable IFS and assign each tool to a printer slot."));
         return false;
     }
@@ -1747,8 +1755,8 @@ void ElegooPrintHostSendDialog::init() {
     }
 
     {
-        auto radioBoxA = new ::RadioBox(this);
-        auto radioBoxB = new ::RadioBox(this);
+        auto radioBoxA = new RadioBox(this);
+        auto radioBoxB = new RadioBox(this);
         if (m_BedType == BedType::btPC)
             radioBoxB->SetValue(true);
         else
@@ -2045,7 +2053,8 @@ void CrealityPrintHostSendDialog::init()
                 wxBitmap* bmp = get_extruder_color_icon(slot.color, "", icon_sz, icon_sz);
                 wxString label_str;
                 if (slot.box_id == 0)
-                    label_str = wxString::Format("Ext - %s", slot.type.c_str());
+                    // TRN External spool slot, followed by its filament type
+                    label_str = wxString::Format(_L("Ext - %s"), slot.type.c_str());
                 else
                     label_str = wxString::Format("%s - %s", slot.tool_id.substr(1).c_str(), slot.type.c_str());
                 combo->Append(label_str, bmp ? *bmp : wxNullBitmap);

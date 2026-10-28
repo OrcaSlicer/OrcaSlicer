@@ -38,10 +38,9 @@
 #include <libslic3r/ClipperUtils.hpp>
 
 #include <libslic3r/TriangleMeshSlicer.hpp>
-#include <libslic3r/TriangulateWall.hpp>
-#include <libslic3r/Tesselate.hpp>
 #include <libslic3r/SlicesToTriangleMesh.hpp>
 #include <libslic3r/StreamUtils.hpp>
+#include <catch2/interfaces/catch_interfaces_capture.hpp>
 
 using namespace Slic3r;
 using namespace Catch::Matchers;
@@ -378,7 +377,6 @@ TEST_CASE("10x10 raster with two rings", "[MarchingSquares]")
 
 TEST_CASE("Square with hole in the middle", "[MarchingSquares]")
 {
-    using namespace Slic3r;
 
     ExPolygons inp = {square_with_hole(50.)};
 
@@ -435,7 +433,6 @@ TEST_CASE("Square with hole in the middle", "[MarchingSquares]")
 
 TEST_CASE("Circle with hole in the middle", "[MarchingSquares]")
 {
-    using namespace Slic3r;
 
     test_expolys(create_raster({1000, 1000}), circle_with_hole(25.), W1x1, "circle_with_hole");
 }

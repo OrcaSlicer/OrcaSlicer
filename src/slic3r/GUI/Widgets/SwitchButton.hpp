@@ -148,6 +148,8 @@ public:
 
     int      GetSelection() const;
     void     SetSelection(int index);
+    // Clears the selection without sending the selection event.
+    void     Unselect();
     wxString GetSelectedText() const;
 
     Button*  GetButton(unsigned int index) const
@@ -170,7 +172,10 @@ public:
         btns[index]->SetTextColor(color);
         btns[index]->Refresh();
     }
+    void SetModified(int index, bool modified);
     void SetButtonCornerRadius(double radius);
+    // Padding around each button's label, in DIP. The switch converts it for the current DPI when it
+    // applies it, and again in Rescale().
     void SetButtonPadding(const wxSize &padding);
 
     // Keep the switch exactly as wide as the buttons need instead of letting the layout stretch it.
@@ -194,6 +199,7 @@ private:
     void on_size(wxSizeEvent &evt);
 
     std::vector<Button *> btns;
+    std::vector<bool> btns_modified;
     // The buttons are laid out inside this scrolled area so that a switch holding more options than
     // the layout has room for scrolls instead of clipping its tail.
     wxScrolledWindow     *m_scroll         = nullptr;
@@ -203,8 +209,10 @@ private:
 
     StateColor m_bg_color;
     StateColor m_text_color;
+    StateColor m_br_color_modified;
+    StateColor m_fg_color_modified;
     double     m_button_radius;
-    wxSize     m_button_padding;
+    wxSize     m_button_padding; // in DIP
 };
 
 #endif // !slic3r_GUI_SwitchButton_hpp_

@@ -7,6 +7,8 @@
 #include <wx/event.h>
 #include <wx/utils.h>
 
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 HyperLink::HyperLink(wxWindow* parent, const wxString& label, const wxString& url, long style)

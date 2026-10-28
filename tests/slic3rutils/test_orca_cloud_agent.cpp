@@ -2,15 +2,42 @@
 #include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/address.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/read_until.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/streambuf.hpp>
+#include <boost/asio/write.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/system/error_code.hpp>
 
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstddef>
+#include <functional>
+#include <istream>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <string_view>
+#include <thread>
+#include <utility>
+#include <vector>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include "slic3r/Utils/CloudDeleteQueue.hpp"
+#include "slic3r/Utils/ICloudServiceAgent.hpp"
 #include "slic3r/Utils/OrcaCloudServiceAgent.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 #include "test_utils.hpp"
+#include <nlohmann/json.hpp>
 
 using namespace Slic3r;
 namespace fs = boost::filesystem;
@@ -60,6 +87,265 @@ std::string resolved_display_name(const nlohmann::json& session)
     REQUIRE(agent->set_user_session(session, false));
     return agent->get_user_nickname();
 }
+
+using namespace std::chrono_literals;
+using boost::asio::ip::tcp;
+
+// A loopback HTTP server for the health check to talk to. It answers every request according to
+// the current mode and records what it was sent.
+class LoopbackServer
+{
+public:
+    // Session answers every request with the body given to set_session_body(), as the token endpoint
+    // does, after 200 ms so the client is still waiting when the test makes its next call. Reply answers
+    // at once with the status, body and ETag given to set_reply().
+    enum class Mode { Ok, Unavailable, Silent, Session, Reply };
+
+    struct Request
+    {
+        std::string request_line;
+        bool        has_authorization{false};
+        std::string if_none_match;
+    };
+
+    LoopbackServer() : m_acceptor(m_io, tcp::endpoint(boost::asio::ip::make_address("127.0.0.1"), 0))
+    {
+        accept_next();
+        m_thread = std::thread([this] { m_io.run(); });
+    }
+
+    ~LoopbackServer()
+    {
+        m_io.stop();
+        m_thread.join();
+    }
+
+    std::string url() const { return "http://127.0.0.1:" + std::to_string(m_acceptor.local_endpoint().port()); }
+    void        set_mode(Mode mode) { m_mode = mode; }
+    void        set_session_body(std::string body)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_session_body = std::move(body);
+    }
+
+    // Switches to Reply mode. `status` is the status line after the HTTP version, e.g. "404 Not Found".
+    // An empty `etag` sends no ETag header.
+    void set_reply(std::string status, std::string body, std::string etag = {})
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_reply_status = std::move(status);
+            m_reply_body   = std::move(body);
+            m_reply_etag   = std::move(etag);
+        }
+        m_mode = Mode::Reply;
+    }
+
+    bool wait_for_accepts(size_t count, std::chrono::milliseconds timeout)
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        return m_cv.wait_for(lock, timeout, [&] { return m_connections.size() >= count; });
+    }
+
+    std::vector<Request> requests() const
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_requests;
+    }
+
+private:
+    struct Connection
+    {
+        explicit Connection(tcp::socket socket) : socket(std::move(socket)) {}
+        tcp::socket            socket;
+        boost::asio::streambuf buffer;
+    };
+
+    void accept_next()
+    {
+        m_acceptor.async_accept([this](boost::system::error_code ec, tcp::socket socket) {
+            if (ec)
+                return;
+            auto connection = std::make_shared<Connection>(std::move(socket));
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                // Held here so a Silent connection stays open until the client gives up.
+                m_connections.push_back(connection);
+            }
+            m_cv.notify_all();
+            read_request(connection);
+            accept_next();
+        });
+    }
+
+    void read_request(const std::shared_ptr<Connection>& connection)
+    {
+        boost::asio::async_read_until(connection->socket, connection->buffer, "\r\n\r\n",
+                                      [this, connection](boost::system::error_code ec, size_t) {
+            if (ec)
+                return;
+            std::istream in(&connection->buffer);
+            Request      request;
+            std::string  line;
+            std::getline(in, line);
+            request.request_line = line.substr(0, line.find('\r'));
+            while (std::getline(in, line) && line != "\r") {
+                request.has_authorization |= boost::istarts_with(line, "authorization:");
+                if (boost::istarts_with(line, "if-none-match:"))
+                    request.if_none_match = boost::trim_copy(line.substr(14));
+            }
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                m_requests.push_back(request);
+            }
+
+            const Mode mode = m_mode;
+            if (mode == Mode::Silent)
+                return;
+            auto response = std::make_shared<std::string>();
+            if (mode == Mode::Session) {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                *response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " +
+                            std::to_string(m_session_body.size()) + "\r\nConnection: close\r\n\r\n" + m_session_body;
+            } else if (mode == Mode::Reply) {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                const std::string etag = m_reply_etag.empty() ? std::string() : "ETag: " + m_reply_etag + "\r\n";
+                *response = "HTTP/1.1 " + m_reply_status + "\r\nContent-Type: application/json\r\n" + etag + "Content-Length: " +
+                            std::to_string(m_reply_body.size()) + "\r\nConnection: close\r\n\r\n" + m_reply_body;
+            } else {
+                *response = mode == Mode::Ok ?
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}" :
+                    "HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+            }
+            auto write = [connection, response] {
+                boost::asio::async_write(connection->socket, boost::asio::buffer(*response),
+                                         [connection, response](boost::system::error_code, size_t) {
+                    boost::system::error_code ignored;
+                    connection->socket.shutdown(tcp::socket::shutdown_both, ignored);
+                });
+            };
+            if (mode != Mode::Session) {
+                write();
+                return;
+            }
+            auto timer = std::make_shared<boost::asio::steady_timer>(m_io, 200ms);
+            timer->async_wait([timer, write](boost::system::error_code ec) {
+                if (!ec)
+                    write();
+            });
+        });
+    }
+
+    // Declared first so it outlives the sockets that use it.
+    boost::asio::io_context                  m_io;
+    tcp::acceptor                            m_acceptor;
+    std::thread                              m_thread;
+    std::atomic<Mode>                        m_mode{Mode::Ok};
+    mutable std::mutex                       m_mutex;
+    std::condition_variable                  m_cv;
+    std::vector<Request>                     m_requests;
+    std::vector<std::shared_ptr<Connection>> m_connections;
+    std::string                              m_session_body;
+    std::string                              m_reply_status;
+    std::string                              m_reply_body;
+    std::string                              m_reply_etag;
+};
+
+// A JWT whose only claim is {"exp":4102444800} (2100-01-01); the agent reads nothing else from it.
+constexpr const char* FAR_FUTURE_JWT = "eyJhbGciOiJub25lIn0.eyJleHAiOjQxMDI0NDQ4MDB9.sig";
+
+// What the agent reported through its callbacks, recorded on whichever thread delivers it so the
+// assertions can run on the test thread.
+struct CallbackLog
+{
+    void add_connected(int return_code, int reason_code)
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            connected.emplace_back(return_code, reason_code);
+        }
+        cv.notify_all();
+    }
+
+    void add_http_error(unsigned http_code)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        http_errors.push_back(http_code);
+    }
+
+    void add_queued(std::function<void()> task)
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            queued.push_back(std::move(task));
+        }
+        cv.notify_all();
+    }
+
+    bool wait_for_connected(size_t count, std::chrono::milliseconds timeout = 10s)
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        return cv.wait_for(lock, timeout, [&] { return connected.size() >= count; });
+    }
+
+    bool wait_for_queued(size_t count, std::chrono::milliseconds timeout = 10s)
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        return cv.wait_for(lock, timeout, [&] { return queued.size() >= count; });
+    }
+
+    std::mutex                         mutex;
+    std::condition_variable            cv;
+    std::vector<std::pair<int, int>>   connected;
+    std::vector<unsigned>              http_errors;
+    std::vector<std::function<void()>> queued;
+};
+
+// An agent whose API and auth endpoints both point at a loopback server, with its callbacks
+// recorded. Members are declared so the agent, and the health check thread it owns, is destroyed
+// before the server, the log and the storage it uses.
+struct HealthCheckFixture
+{
+    HealthCheckFixture() : agent(make_file_backed_agent(dir.path()))
+    {
+        agent->set_api_base_url(server.url());
+        agent->set_auth_base_url(server.url());
+        agent->set_on_server_connected_fn([this](CloudEvent, int return_code, int reason_code) {
+            log.add_connected(return_code, reason_code);
+        });
+        agent->set_on_http_error_fn([this](CloudEvent, unsigned http_code, std::string) { log.add_http_error(http_code); });
+    }
+
+    // Defers callbacks the way the GUI's CallAfter does, instead of running them on the worker.
+    void queue_callbacks() { agent->set_queue_on_main_fn([this](std::function<void()> task) { log.add_queued(std::move(task)); }); }
+
+    // Signs `user_id` in with an access token that doesn't expire, so no refresh is attempted.
+    void sign_in(const std::string& user_id)
+    {
+        REQUIRE(agent->set_user_session(nlohmann::json{{"access_token", FAR_FUTURE_JWT}, {"user_id", user_id}}, false));
+    }
+
+    // Starts the next health check, retrying while a call is still folded into the previous one:
+    // its callback fires before the worker thread finishes.
+    bool start_check(size_t expected_accepts)
+    {
+        const auto deadline = std::chrono::steady_clock::now() + 5s;
+        do {
+            agent->refresh_connection();
+            if (server.wait_for_accepts(expected_accepts, 10ms))
+                return true;
+        } while (std::chrono::steady_clock::now() < deadline);
+        return false;
+    }
+
+    // Loopback traffic must not go through a proxy configured in the environment. curl reads no_proxy
+    // before NO_PROXY.
+    ScopedEnvVar                           no_proxy{"no_proxy", "127.0.0.1"};
+    LoopbackServer                         server;
+    CallbackLog                            log;
+    ScopedTemporaryDir                     dir{"orca-health"};
+    std::unique_ptr<OrcaCloudServiceAgent> agent;
+};
 
 } // namespace
 
@@ -173,4 +459,420 @@ TEST_CASE("Orca cloud nested session resolves display name consistently", "[Orca
     CHECK(resolved_display_name(nested_session_json({
         {"username", "orca_username"}
     })) == "orca_username");
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "Refreshing the server connection returns before the health check finishes", "[OrcaCloudServiceAgent]")
+{
+    server.set_mode(LoopbackServer::Mode::Silent);
+
+    const auto start = std::chrono::steady_clock::now();
+    CHECK(agent->refresh_connection() == BAMBU_NETWORK_SUCCESS);
+    // A synchronous check would wait for the request's 30 s timeout.
+    CHECK(std::chrono::steady_clock::now() - start < 2s);
+
+    std::lock_guard<std::mutex> lock(log.mutex);
+    CHECK(log.connected.empty());
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "Successive health checks follow the server's state", "[OrcaCloudServiceAgent]")
+{
+    server.set_mode(LoopbackServer::Mode::Ok);
+    REQUIRE(start_check(1));
+    REQUIRE(log.wait_for_connected(1));
+    CHECK(agent->is_server_connected());
+
+    server.set_mode(LoopbackServer::Mode::Unavailable);
+    REQUIRE(start_check(2));
+    REQUIRE(log.wait_for_connected(2));
+    CHECK_FALSE(agent->is_server_connected());
+
+    server.set_mode(LoopbackServer::Mode::Ok);
+    REQUIRE(start_check(3));
+    REQUIRE(log.wait_for_connected(3));
+    CHECK(agent->is_server_connected());
+
+    std::lock_guard<std::mutex> lock(log.mutex);
+    CHECK(log.connected == std::vector<std::pair<int, int>>{{0, 200}, {-1, 503}, {0, 200}});
+    CHECK(log.http_errors == std::vector<unsigned>{503});
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "A refresh while a health check is in flight starts no second check", "[OrcaCloudServiceAgent]")
+{
+    server.set_mode(LoopbackServer::Mode::Silent);
+
+    agent->refresh_connection();
+    REQUIRE(server.wait_for_accepts(1, 5s));
+
+    agent->refresh_connection();
+    agent->refresh_connection();
+    CHECK_FALSE(server.wait_for_accepts(2, 200ms));
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "Stopping the health check cancels the request in flight", "[OrcaCloudServiceAgent]")
+{
+    server.set_mode(LoopbackServer::Mode::Silent);
+    queue_callbacks();
+
+    agent->refresh_connection();
+    REQUIRE(server.wait_for_accepts(1, 5s));
+
+    const auto start = std::chrono::steady_clock::now();
+    agent->stop_health_check();
+    // Well under the request's 30 s timeout.
+    CHECK(std::chrono::steady_clock::now() - start < 5s);
+    CHECK(agent->refresh_connection() == BAMBU_NETWORK_ERR_CANCELED);
+
+    std::lock_guard<std::mutex> lock(log.mutex);
+    CHECK(log.connected.empty());
+    CHECK(log.http_errors.empty());
+    CHECK(log.queued.empty());
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "Connecting to the server reports the result synchronously", "[OrcaCloudServiceAgent]")
+{
+    server.set_mode(LoopbackServer::Mode::Ok);
+    CHECK(agent->connect_server() == BAMBU_NETWORK_SUCCESS);
+    CHECK(agent->is_server_connected());
+
+    server.set_mode(LoopbackServer::Mode::Unavailable);
+    CHECK(agent->connect_server() == BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED);
+    CHECK_FALSE(agent->is_server_connected());
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "A health check result queued before stopping is still delivered and nothing is queued after", "[OrcaCloudServiceAgent]")
+{
+    server.set_mode(LoopbackServer::Mode::Ok);
+    queue_callbacks();
+
+    agent->refresh_connection();
+    REQUIRE(log.wait_for_queued(1));
+    agent->stop_health_check();
+
+    std::function<void()> task;
+    {
+        std::lock_guard<std::mutex> lock(log.mutex);
+        REQUIRE(log.queued.size() == 1);
+        task = log.queued.front();
+    }
+    // The GUI may run a task it queued after the agent is gone; the task must not need the agent.
+    agent.reset();
+    task();
+
+    std::lock_guard<std::mutex> lock(log.mutex);
+    CHECK(log.connected == std::vector<std::pair<int, int>>{{0, 200}});
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "The health check does no token work", "[OrcaCloudServiceAgent]")
+{
+    // A non-JWT access token has no expiry, so the session reads as due for a refresh.
+    REQUIRE(agent->set_user_session(flat_session_json({{"refresh_token", "test-refresh-token"}}), false));
+    server.set_mode(LoopbackServer::Mode::Ok);
+
+    REQUIRE(start_check(1));
+    REQUIRE(log.wait_for_connected(1));
+    CHECK(agent->connect_server() == BAMBU_NETWORK_SUCCESS);
+
+    const auto requests = server.requests();
+    REQUIRE(requests.size() == 2);
+    for (const auto& request : requests) {
+        CHECK(boost::starts_with(request.request_line, "GET /api/v1/health "));
+        CHECK_FALSE(request.has_authorization);
+    }
+    CHECK(agent->is_user_login());
+    CHECK(agent->get_access_token() == "test-token");
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "A token request made while start() refreshes waits for it instead of refreshing again", "[OrcaCloudServiceAgent]")
+{
+    // A session saved by a previous run: start() refreshes it on its own thread.
+    agent->persist_user_secret(nlohmann::json{{"refresh_token", "stored-refresh-token"}, {"user_id", "test-user-id"}}.dump());
+    const std::string access_token = FAR_FUTURE_JWT;
+    server.set_session_body(nlohmann::json{{"access_token", access_token},
+                                           {"refresh_token", "rotated-refresh-token"},
+                                           {"user_id", "test-user-id"}}.dump());
+    server.set_mode(LoopbackServer::Mode::Session);
+
+    REQUIRE(agent->start() == BAMBU_NETWORK_SUCCESS);
+    CHECK(agent->ensure_token_fresh("test"));
+    CHECK(agent->get_access_token() == access_token);
+
+    size_t token_posts = 0;
+    for (const auto& request : server.requests())
+        if (boost::starts_with(request.request_line, "POST /auth/v1/token"))
+            ++token_posts;
+    CHECK(token_posts == 1);
+}
+
+namespace {
+
+// An Orca cloud profile id; the cloud names profiles by UUID.
+constexpr const char* PROFILE_ID = "3f9c1d2e-8b7a-4c55-9e10-6a2b4c8d1f07";
+
+// A loopback URL nothing listens on, so a request to it fails before any HTTP exchange.
+std::string closed_port_url()
+{
+    boost::asio::io_context io;
+    tcp::acceptor           acceptor(io, tcp::endpoint(boost::asio::ip::make_address("127.0.0.1"), 0));
+    const unsigned short    port = acceptor.local_endpoint().port();
+    acceptor.close();
+    return "http://127.0.0.1:" + std::to_string(port);
+}
+
+} // namespace
+
+TEST_CASE_METHOD(HealthCheckFixture, "Deleting a profile succeeds once the cloud has no such profile", "[OrcaCloudServiceAgent]")
+{
+    // Deleted now, nothing to delete, or the gateway's own answer that this account owns no such profile.
+    const auto [status, body] = GENERATE(table<std::string, std::string>({
+        {"200 OK", R"({"status":"ok","deleted":["3f9c1d2e-8b7a-4c55-9e10-6a2b4c8d1f07"]})"},
+        {"204 No Content", ""},
+        {"404 Not Found", R"({"status":"failed","failed":["3f9c1d2e-8b7a-4c55-9e10-6a2b4c8d1f07"]})"},
+    }));
+    server.set_reply(status, body);
+
+    CHECK(agent->delete_setting(PROFILE_ID) == BAMBU_NETWORK_SUCCESS);
+    const auto requests = server.requests();
+    REQUIRE(requests.size() == 1);
+    CHECK(boost::starts_with(requests[0].request_line, std::string("DELETE /api/v1/sync/delete?resource=profiles&id=") + PROFILE_ID));
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "Deleting a profile fails on any other answer, so it is tried again", "[OrcaCloudServiceAgent]")
+{
+    // A 404 the gateway didn't write, for example from a proxy, says nothing about the profile.
+    const auto [status, body] = GENERATE(table<std::string, std::string>({
+        {"404 Not Found", "<html>Not Found</html>"},
+        {"400 Bad Request", R"({"error":"invalid_request"})"},
+        {"500 Internal Server Error", ""},
+        {"207 Multi-Status", R"({"status":"partial_failure"})"},
+        // Malformed bodies and a status of the wrong type are retried, not fatal.
+        {"404 Not Found", R"({"status":null})"},
+        {"404 Not Found", R"({"status":404})"},
+        {"404 Not Found", R"({"status":)"},
+    }));
+    server.set_reply(status, body);
+
+    CHECK(agent->delete_setting(PROFILE_ID) != BAMBU_NETWORK_SUCCESS);
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "Deleting an id that can't name a cloud profile succeeds without a request", "[OrcaCloudServiceAgent]")
+{
+    // A system preset's 16-character id, an older short one, and an empty id.
+    const std::string id = GENERATE(as<std::string>{}, "RcBNzytWgwRrwXXz", "OGFSA04", "");
+
+    CHECK(agent->delete_setting(id) == BAMBU_NETWORK_SUCCESS);
+    CHECK(server.requests().empty());
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "A delete that can't reach the server fails and reports status 0, not 404", "[OrcaCloudServiceAgent]")
+{
+    agent->set_api_base_url(closed_port_url());
+
+    CHECK(agent->delete_setting(PROFILE_ID) != BAMBU_NETWORK_SUCCESS);
+    CHECK(log.http_errors == std::vector<unsigned>{0});
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "A delete goes out only while the session belongs to its account", "[OrcaCloudServiceAgent]")
+{
+    sign_in("A");
+    server.set_reply("204 No Content", "");
+
+    CHECK(agent->delete_setting_as("B", PROFILE_ID) != BAMBU_NETWORK_SUCCESS);
+    CHECK(server.requests().empty());
+
+    CHECK(agent->delete_setting_as("A", PROFILE_ID) == BAMBU_NETWORK_SUCCESS);
+    CHECK(server.requests().size() == 1);
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "A delete is not retried after a 401 when the refreshed session is another account's", "[OrcaCloudServiceAgent]")
+{
+    // A's session, whose stored refresh now yields B's session, as after another instance signed in as B.
+    REQUIRE(agent->set_user_session(nlohmann::json{{"access_token", FAR_FUTURE_JWT}, {"refresh_token", "refresh-a"}, {"user_id", "A"}}, false));
+    LoopbackServer auth_server;
+    auth_server.set_session_body(nlohmann::json{{"access_token", FAR_FUTURE_JWT}, {"refresh_token", "refresh-b"}, {"user_id", "B"}}.dump());
+    auth_server.set_mode(LoopbackServer::Mode::Session);
+    agent->set_auth_base_url(auth_server.url());
+    server.set_reply("401 Unauthorized", R"({"error":"unauthorized"})");
+
+    CHECK(agent->delete_setting_as("A", PROFILE_ID) != BAMBU_NETWORK_SUCCESS);
+    CHECK(server.requests().size() == 1);
+    CHECK(agent->get_user_id() == "B");
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "Unsubscribing a bundle succeeds only on a 2xx answer", "[OrcaCloudServiceAgent]")
+{
+    const auto [status, expected] = GENERATE(table<std::string, bool>({
+        {"200 OK", true},
+        {"204 No Content", true},
+        {"404 Not Found", false},
+        {"500 Internal Server Error", false},
+    }));
+    server.set_reply(status, "");
+
+    CHECK(agent->unsubscribe_bundle("bundle-1") == expected);
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "Unsubscribing a bundle fails when the server can't be reached", "[OrcaCloudServiceAgent]")
+{
+    agent->set_api_base_url(closed_port_url());
+
+    CHECK_FALSE(agent->unsubscribe_bundle("bundle-1"));
+}
+
+namespace {
+
+constexpr const char* SUBSCRIPTIONS_V1 = R"({"data":[{"id":"bundle-1","version":"1.0"}],"not_found":["gone"],"unauthorised":["private"]})";
+constexpr const char* SUBSCRIPTIONS_V2 = R"({"data":[{"id":"bundle-1","version":"2.0"}],"not_found":[],"unauthorised":[]})";
+
+struct SubscriptionPoll
+{
+    int                                              result{-1};
+    std::vector<std::pair<std::string, std::string>> bundles;
+    std::vector<std::string>                         not_found;
+    std::vector<std::string>                         unauthorized;
+};
+
+SubscriptionPoll poll_subscriptions(OrcaCloudServiceAgent& agent)
+{
+    SubscriptionPoll poll;
+    poll.result = agent.get_subscribed_bundles(&poll.bundles, poll.not_found, poll.unauthorized);
+    return poll;
+}
+
+} // namespace
+
+TEST_CASE_METHOD(HealthCheckFixture, "A subscription poll answered 304 returns the list received last", "[OrcaCloudServiceAgent]")
+{
+    sign_in("A");
+    server.set_reply("200 OK", SUBSCRIPTIONS_V1, R"(W/"v1")");
+    const SubscriptionPoll first = poll_subscriptions(*agent);
+    REQUIRE(first.result == 0);
+    CHECK(first.bundles == std::vector<std::pair<std::string, std::string>>{{"bundle-1", "1.0"}});
+
+    server.set_reply("304 Not Modified", "", R"(W/"v1")");
+    const SubscriptionPoll second = poll_subscriptions(*agent);
+    CHECK(second.result == 0);
+    CHECK(second.bundles == first.bundles);
+    CHECK(second.not_found == std::vector<std::string>{"gone"});
+    CHECK(second.unauthorized == std::vector<std::string>{"private"});
+    CHECK(log.http_errors.empty());
+
+    const auto requests = server.requests();
+    REQUIRE(requests.size() == 2);
+    CHECK(requests[0].if_none_match.empty());
+    CHECK(requests[1].if_none_match == R"(W/"v1")");
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "A changed subscription list replaces the one received before", "[OrcaCloudServiceAgent]")
+{
+    sign_in("A");
+    server.set_reply("200 OK", SUBSCRIPTIONS_V1, R"(W/"v1")");
+    REQUIRE(poll_subscriptions(*agent).result == 0);
+
+    server.set_reply("200 OK", SUBSCRIPTIONS_V2, R"(W/"v2")");
+    const SubscriptionPoll changed = poll_subscriptions(*agent);
+    CHECK(changed.result == 0);
+    CHECK(changed.bundles == std::vector<std::pair<std::string, std::string>>{{"bundle-1", "2.0"}});
+
+    server.set_reply("304 Not Modified", "", R"(W/"v2")");
+    CHECK(poll_subscriptions(*agent).bundles == changed.bundles);
+    const auto requests = server.requests();
+    REQUIRE(requests.size() == 3);
+    CHECK(requests[2].if_none_match == R"(W/"v2")");
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "A subscription list is revalidated only for the account that received it", "[OrcaCloudServiceAgent]")
+{
+    sign_in("A");
+    server.set_reply("200 OK", SUBSCRIPTIONS_V1, R"(W/"v1")");
+    REQUIRE(poll_subscriptions(*agent).result == 0);
+
+    SECTION("another account signs in")
+    {
+        sign_in("B");
+    }
+    SECTION("the account signs out and back in")
+    {
+        agent->user_logout(false);
+        sign_in("A");
+    }
+
+    server.set_reply("200 OK", SUBSCRIPTIONS_V2, R"(W/"v2")");
+    CHECK(poll_subscriptions(*agent).result == 0);
+    const auto requests = server.requests();
+    REQUIRE(requests.size() == 2);
+    CHECK(requests[1].if_none_match.empty());
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "A 304 for a subscription list never received fails", "[OrcaCloudServiceAgent]")
+{
+    sign_in("A");
+    server.set_reply("304 Not Modified", "", R"(W/"v1")");
+
+    const SubscriptionPoll poll = poll_subscriptions(*agent);
+    CHECK(poll.result != 0);
+    CHECK(poll.bundles.empty());
+}
+
+namespace {
+
+// A signed-in account's preset folder holding one deleted preset's .info file, and the queue it scans into.
+struct DeletedPresetFixture : HealthCheckFixture
+{
+    explicit DeletedPresetFixture(const std::string& setting_id)
+    {
+        fs::create_directories(info_path.parent_path());
+        fs::ofstream(info_path) << "sync_info = delete\nuser_id = A\nsetting_id = " << setting_id << "\n";
+        sign_in("A");
+        queue.start_session("A");
+    }
+
+    // One sync start: the orphaned-.info scan, then a pass through the agent.
+    void sync()
+    {
+        REQUIRE(queue_orphaned_info_files(queue, queue.generation(), user_dir.string()));
+        send_cloud_deletes(queue, *agent);
+    }
+
+    ScopedTemporaryDir presets{"orca-deleted-preset"};
+    fs::path           user_dir  = presets.path() / "user" / "A";
+    fs::path           info_path = user_dir / "filament" / "PETG Fast.info";
+    CloudDeleteQueue   queue;
+};
+
+} // namespace
+
+TEST_CASE("A delete for an id that can't name a cloud profile is dropped with its .info", "[OrcaCloudServiceAgent]")
+{
+    // A system preset's id, queued by a printer delete in an earlier version.
+    DeletedPresetFixture fixture("RcBNzytWgwRrwXXz");
+
+    fixture.sync();
+
+    CHECK(fixture.server.requests().empty());
+    CHECK_FALSE(fs::exists(fixture.info_path));
+    CHECK(fixture.queue.size() == 0);
+}
+
+TEST_CASE("A delete the gateway answers with a verified 404 is not sent again", "[OrcaCloudServiceAgent]")
+{
+    DeletedPresetFixture fixture(PROFILE_ID);
+    fixture.server.set_reply("404 Not Found", R"({"status":"failed","failed":["3f9c1d2e-8b7a-4c55-9e10-6a2b4c8d1f07"]})");
+
+    fixture.sync();
+    fixture.sync();
+
+    CHECK(fixture.server.requests().size() == 1);
+    CHECK_FALSE(fs::exists(fixture.info_path));
+    CHECK(fixture.queue.size() == 0);
+}
+
+TEST_CASE("A delete that fails to reach the gateway keeps its .info for a later attempt", "[OrcaCloudServiceAgent]")
+{
+    DeletedPresetFixture fixture(PROFILE_ID);
+    fixture.agent->set_api_base_url(closed_port_url());
+
+    fixture.sync();
+
+    CHECK(fs::exists(fixture.info_path));
+    CHECK(fixture.queue.size() == 1);
 }

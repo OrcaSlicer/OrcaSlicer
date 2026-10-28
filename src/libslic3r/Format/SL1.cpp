@@ -1,7 +1,6 @@
 #include "SL1.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Config.hpp"
-#include "GCode/ThumbnailData.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Point.hpp"
@@ -35,7 +34,6 @@
 #include "libslic3r/SlicesToTriangleMesh.hpp"
 #include "libslic3r/MarchingSquares.hpp"
 #include "libslic3r/ClipperUtils.hpp"
-#include "libslic3r/MTUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLA/RasterBase.hpp"
 #include "libslic3r/miniz_extension.hpp"
@@ -50,6 +48,7 @@
 #include <string>
 #include <utility>
 #include <string_view>
+#include "libslic3r/SLA/Pad.hpp"
 
 namespace marchsq {
 

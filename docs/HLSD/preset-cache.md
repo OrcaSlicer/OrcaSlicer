@@ -39,7 +39,7 @@ presets are never serialized — they have their own storage and their own lifec
 
 | Location | Contents on a shipped build | Role |
 |---|---|---|
-| `resources/profiles/` | `<vendor>.opc` alone — the profile and its preset JSONs both pruned | What the app ships with; what installing copies from, and the only thing it is read for |
+| `resources/profiles/` | `<vendor>.opc` alone — the profile and its preset JSONs both pruned | What the app ships with and what installing copies from; read directly for vendors not installed |
 | `<data_dir>/system/` | `<vendor>.opc` alone, or `<vendor>.json` + `<vendor>/` after an update | What the user has installed |
 | `<data_dir>/system/` (dev build) | `<vendor>.json` + `<vendor>/` + `<vendor>.opc` written at runtime | A developer tree caches as it parses |
 | `<data_dir>/cache/wizard_profile_data.json` | The wizard's derived vendor catalog plus the stamps it was built from | Written and read by the setup wizard only; never shipped (see "The wizard's profile-data cache") |
@@ -182,10 +182,11 @@ one startup.
 
 **A vendor is loaded from where it is installed and nowhere else.** For startup that
 is `<data_dir>/system/`; resources reaches the app by being *installed* into that
-directory first, never by being loaded from. (The setup wizard is the one caller with
-a different notion of "where": it also shows vendors the user has not installed, and
-loads those from `resources/profiles` — see "The wizard's profile-data cache".) There
-is one lookup tier and one parse source:
+directory first, never by being loaded from. (The setup wizard and the Create Printer
+dialog also offer vendors the user has not installed, and load those from
+`resources/profiles`; see "The wizard's profile-data cache". The dialog's vendor-only and
+filament-only scans read a cache only where it is the whole installation, and never write
+one.) There is one lookup tier and one parse source:
 
 ```
 load vendor V from <data_dir>/system:

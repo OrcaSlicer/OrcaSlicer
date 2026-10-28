@@ -14,7 +14,6 @@
 #include "MsgDialog.hpp"
 #include "bambu_networking.hpp"
 #include "slic3r/Utils/Http.hpp"
-#include "libslic3r/Thread.hpp"
 #include "DeviceErrorDialog.hpp"
 
 #include "RecenterDialog.hpp"
@@ -118,6 +117,9 @@
 #include "SafetyOptionsDialog.hpp"
 
 #include "ThermalPreconditioningDialog.hpp"
+#include "Monitor.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include <wx/dcgraph.h>
 
 
 namespace Slic3r { namespace GUI {
@@ -196,8 +198,8 @@ static void market_model_scoring_page(int design_id)
     std::string url;
     std::string country_code   = GUI::wxGetApp().app_config->get_country_code();
     std::string model_http_url = GUI::wxGetApp().get_model_http_url(country_code);
-    if (GUI::wxGetApp().getAgent()->get_model_mall_detail_url(&url, std::to_string(design_id)) == 0) {
-        std::string user_id = GUI::wxGetApp().getAgent()->get_user_id();
+    if (GUI::wxGetApp().getAgent()->get_model_mall_detail_url(&url, std::to_string(design_id), GUI::wxGetApp().get_printer_cloud_provider()) == 0) {
+        std::string user_id = GUI::wxGetApp().getAgent()->get_user_id(GUI::wxGetApp().get_printer_cloud_provider());
         boost::algorithm::replace_first(url, "models", "u/" + user_id + "/rating");
         // Prevent user_id from containing design_id
         size_t      sign_in = url.find("/rating");
@@ -698,7 +700,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_button_pause_resume = new ScalableButton(progress_lr_panel, wxID_ANY, "print_control_pause", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER,true);
 
     m_button_pause_resume->Bind(wxEVT_ENTER_WINDOW, [this](auto &e) {
-        if (m_button_pause_resume->GetToolTipText() == _L("Pause")) {
+        if (m_button_pause_resume->GetToolTipText() == _L_CONTEXT("Pause", "Verb")) {
             m_button_pause_resume->SetBitmap_("print_control_pause_hover");
         }
 
@@ -709,7 +711,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
 
     m_button_pause_resume->Bind(wxEVT_LEAVE_WINDOW, [this](auto &e) {
         auto        buf = m_button_pause_resume->GetClientData();
-        if (m_button_pause_resume->GetToolTipText() == _L("Pause")) {
+        if (m_button_pause_resume->GetToolTipText() == _L_CONTEXT("Pause", "Verb")) {
             m_button_pause_resume->SetBitmap_("print_control_pause");
         }
 
@@ -1163,7 +1165,7 @@ void PrintingTaskPanel::enable_pause_resume_button(bool enable, std::string type
         }
         else if (type == "pause") {
         m_button_pause_resume->SetBitmap_("print_control_pause");
-        if (m_button_pause_resume->GetToolTipText() != _L("Pause")) { m_button_pause_resume->SetToolTip(_L("Pause")); }
+        if (m_button_pause_resume->GetToolTipText() != _L_CONTEXT("Pause", "Verb")) { m_button_pause_resume->SetToolTip(_L_CONTEXT("Pause", "Verb")); }
         }
     }
 }
@@ -1217,7 +1219,7 @@ void PrintingTaskPanel::on_stage_clicked(wxMouseEvent &event)
 
     if (obj && obj->stage_curr == 58) {
             wxWindow *top    = wxGetTopLevelParent(this);
-            ThermalPreconditioningDialog m_thermal_dialog(top ? top : this, obj->get_dev_id() , "Calculating...");
+            ThermalPreconditioningDialog m_thermal_dialog(top ? top : this, obj->get_dev_id() , _L("Calculating..."));
             m_thermal_dialog.ShowModal();
     }
 
@@ -1518,7 +1520,7 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     wxBoxSizer *bSizer_monitoring_title;
     bSizer_monitoring_title = new wxBoxSizer(wxHORIZONTAL);
 
-    m_staticText_monitoring = new Label(m_panel_monitoring_title, _L("Camera"));
+    m_staticText_monitoring = new Label(m_panel_monitoring_title, _L_CONTEXT("Camera", "Printer camera"));
     m_staticText_monitoring->Wrap(-1);
     //m_staticText_monitoring->SetFont(PAGE_TITLE_FONT);
     m_staticText_monitoring->SetForegroundColour(PAGE_TITLE_FONT_COL);
@@ -1618,19 +1620,11 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
 
     m_custom_camera_view = WebView::CreateWebView(this, wxEmptyString);
     m_custom_camera_view->EnableContextMenu(false);
-    Bind(wxEVT_WEBVIEW_NAVIGATING, &StatusBasePanel::on_webview_navigating, this, m_custom_camera_view->GetId());
     m_web_media_controller = std::make_unique<WebMediaController>(m_custom_camera_view);
 
     m_media_play_ctrl = new MediaPlayCtrl(this, m_media_ctrl, wxDefaultPosition, wxSize(-1, FromDIP(40)));
     m_media_play_ctrl->SetWebMediaController(m_web_media_controller.get());
     m_custom_camera_view->Hide();
-    // m_custom_camera_view->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [this](wxWebViewEvent& evt) {
-    //     if (evt.GetString() == "leavepictureinpicture") {
-    //         // When leaving PiP, video gets paused in some cases and toggling play
-    //         // programmatically does not work.
-    //         m_custom_camera_view->Reload();
-    //     }
-    // });
 
     sizer->Add(m_media_ctrl, 1, wxEXPAND | wxALL, 0);
     sizer->Add(m_custom_camera_view, 1, wxEXPAND | wxALL, 0);
@@ -1641,12 +1635,6 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
 //    sizer->Add(media_ctrl_panel, 1, wxEXPAND | wxALL, 1);
 
     return sizer;
-}
-
-void StatusBasePanel::on_webview_navigating(wxWebViewEvent& evt) {
-    wxGetApp().CallAfter([this] {
-        remove_controls();
-    });
 }
 
 wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
@@ -3402,7 +3390,7 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
     if (obj->is_core_xy()) {
         m_staticText_z_tip->SetLabel(_L("Bed"));
     } else {
-        m_staticText_z_tip->SetLabel("Z");
+        m_staticText_z_tip->SetLabel(_L_CONTEXT("Z", "Axis"));
     }
 
     // update extruder icon
@@ -3797,7 +3785,7 @@ void StatusPanel::update_model_info()
                 curr_model_task->task_id = curr_task->task_id;
                 request_model_info_flag = true;
                 if (!curr_model_task->task_id.empty() && curr_model_task->task_id.compare("0") != 0) {
-                    wxGetApp().getAgent()->get_subtask(curr_model_task,  get_subtask_fn);
+                    wxGetApp().getAgent()->get_subtask(curr_model_task, get_subtask_fn, wxGetApp().get_printer_cloud_provider());
                 }
             }
         }
@@ -3890,7 +3878,9 @@ void StatusPanel::update_subtask(MachineObject *obj)
                 if (obj->queue_number <= 0) {
                     prepare_text = wxString::Format(_L("Cloud Slicing..."));
                 } else {
-                    prepare_text = wxString::Format(_L("In Cloud Slicing Queue, there are %s tasks ahead of you."), std::to_string(obj->queue_number));
+                    prepare_text = wxString::Format(_L_PLURAL("In Cloud Slicing Queue, there is %d task ahead of you.",
+                                                              "In Cloud Slicing Queue, there are %d tasks ahead of you.", obj->queue_number),
+                                                    obj->queue_number);
                     show_percent = false;
                 }
             } else
@@ -4831,7 +4821,7 @@ void StatusPanel::on_ams_refresh_rfid(wxCommandEvent &event)
 
         if (has_filament_at_extruder) {
             MessageDialog msg_dlg(nullptr, _L("Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."), wxEmptyString,
-                                  wxICON_WARNING | wxYES);
+                                  wxICON_WARNING | wxOK);
             msg_dlg.ShowModal();
             return;
         }
@@ -4968,7 +4958,7 @@ void StatusPanel::on_switch_speed(wxCommandEvent &event)
     popUp->SetSize(em * 36, em * 8);
     step->SetHint(_L("This only takes effect during printing"));
     step->AppendItem(_L("Silent"), "");
-    step->AppendItem(_L("Standard"), "");
+    step->AppendItem(_L_CONTEXT("Standard", "Mode"), "");
     step->AppendItem(_L("Sport"), "");
     step->AppendItem(_L("Ludicrous"), "");
 
@@ -5119,23 +5109,6 @@ void StatusPanel::on_camera_enter(wxMouseEvent& event)
         m_camera_popup->update(m_media_play_ctrl->IsStreaming());
         m_camera_popup->Popup();
     }
-}
-
-void StatusBasePanel::remove_controls()
-{
-    const std::string js_cleanup_video_element = R"(
-        document.body.style.overflow='hidden';
-        const video = document.querySelector('video');
-        video.setAttribute('style', 'width: 100% !important;');
-        video.removeAttribute('controls');
-        video.addEventListener('leavepictureinpicture', () => {
-            window.wx.postMessage('leavepictureinpicture');
-        });
-        video.addEventListener('enterpictureinpicture', () => {
-            window.wx.postMessage('enterpictureinpicture');
-        });
-    )";
-    m_custom_camera_view->RunScript(js_cleanup_video_element);
 }
 
 void StatusPanel::on_camera_leave(wxMouseEvent& event)
@@ -6061,7 +6034,7 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
 
         if (!need_upload_images.empty()) {
             std::string config;
-            int         ret = wxGetApp().getAgent()->get_oss_config(config, wxGetApp().app_config->get_country_code(), http_code, http_error);
+            int         ret = wxGetApp().getAgent()->get_oss_config(config, wxGetApp().app_config->get_country_code(), http_code, http_error, wxGetApp().get_printer_cloud_provider());
             if (ret == -1) {
                 error_info += into_u8(_L("Get oss config failed.")) + "\n\thttp code: " + std::to_string(http_code) + "\n\thttp error: " + http_error;
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": get oss config filed and http_error: " << http_error;
@@ -6076,7 +6049,7 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
                     std::pair<wxStaticBitmap *, wxString> need_upload     = *it;
                     std::string need_upload_uf8 = into_u8(need_upload.second);
                     //Local path when incoming, cloud path when outgoing
-                    ret = wxGetApp().getAgent()->put_rating_picture_oss(config, need_upload_uf8, m_model_id, m_profile_id, http_code, http_error);
+                    ret = wxGetApp().getAgent()->put_rating_picture_oss(config, need_upload_uf8, m_model_id, m_profile_id, http_code, http_error, wxGetApp().get_printer_cloud_provider());
                     std::unordered_map<wxStaticBitmap *, ImageMsg>::iterator iter;
                     switch (ret) {
                     case 0:
@@ -6094,22 +6067,26 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
                                                 << "] http_error [" << http_error << "] config [" << config << "]  image_path [" << need_upload.second << "]";
                         break;
                     case -1:
-                        error_info += need_upload.second + _L(" upload failed").ToUTF8().data() + "\n\thttp code:" + std::to_string(http_code) + "\n\thttp_error:" + http_error + "\n";
+                        // TRN %s is the path of an image file.
+                        error_info += wxString::Format(_L("%s upload failed"), need_upload.second) + "\n\thttp code:" + std::to_string(http_code) + "\n\thttp_error:" + http_error + "\n";
                         m_upload_status_code = StatusCode::UPLOAD_IMG_FAILED;
                         ++it;
                         break;
                     case BAMBU_NETWORK_ERR_PARSE_CONFIG_FAILED:
-                        error_info += need_upload.second + _L(" upload config prase failed\n").ToUTF8().data() + "\n";
+                        // TRN %s is the path of an image file.
+                        error_info += wxString::Format(_L("%s upload config parse failed"), need_upload.second) + "\n\n";
                         m_upload_status_code = StatusCode::UPLOAD_IMG_FAILED;
                         ++it;
                         break;
                     case BAMBU_NETWORK_ERR_NO_CORRESPONDING_BUCKET:
-                        error_info += need_upload.second + _L(" No corresponding storage bucket\n").ToUTF8().data() + "\n";
+                        // TRN %s is the path of an image file.
+                        error_info += wxString::Format(_L("%s: No corresponding storage bucket"), need_upload.second) + "\n\n";
                         m_upload_status_code = StatusCode::UPLOAD_IMG_FAILED;
                         ++it;
                         break;
                     case BAMBU_NETWORK_ERR_OPEN_FILE_FAILED:
-                        error_info += need_upload.second + _L(" cannot be opened\n").ToUTF8().data() + "\n";
+                        // TRN %s is the path of an image file.
+                        error_info += wxString::Format(_L("%s cannot be opened"), need_upload.second) + "\n\n";
                         m_upload_status_code = StatusCode::UPLOAD_IMG_FAILED;
                         ++it;
                         break;
@@ -6132,7 +6109,7 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
         }
 
         if (m_upload_status_code == StatusCode::UPLOAD_PROGRESS) {
-            int            ret = wxGetApp().getAgent()->put_model_mall_rating(m_rating_id, m_star_count, comment, m_image_url_paths, http_code, http_error);
+            int            ret = wxGetApp().getAgent()->put_model_mall_rating(m_rating_id, m_star_count, comment, m_image_url_paths, http_code, http_error, wxGetApp().get_printer_cloud_provider());
             MessageDialog *dlg_info;
             switch (ret) {
             case 0: EndModal(wxID_OK); break;
@@ -6149,9 +6126,8 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
                 if (!error_info.empty()) { BOOST_LOG_TRIVIAL(info) << error_info; }
 
                 dlg_info = new MessageDialog(this,
-                                             _L("Your comment result cannot be uploaded due to the following reasons:\n\n  error code: ") +
-                                             std::to_string(http_code) + "\n  " + _L("error message: ") + http_error +
-                                             _L("\n\nWould you like to redirect to the webpage to give a rating?"),
+                                             wxString::Format(_L("Your comment result cannot be uploaded due to the following reasons:\n\n  error code: %d\n  error message: %s\n\nWould you like to redirect to the webpage to give a rating?"),
+                                                              int(http_code), wxString::FromUTF8(http_error)),
                                              wxString(_L("info")), wxOK | wxNO | wxCENTER);
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": upload rating picture failed and http error" << http_error;
                 if (dlg_info->ShowModal() == wxID_OK) {

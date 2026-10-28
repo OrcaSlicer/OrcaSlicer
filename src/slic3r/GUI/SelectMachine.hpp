@@ -25,7 +25,6 @@
 #include <wx/dataview.h>
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
-#include <wx/dataview.h>
 #include <wx/gdicmn.h>
 #include <wx/font.h>
 #include <wx/colour.h>
@@ -38,7 +37,6 @@
 #include <wx/dialog.h>
 #include <wx/popupwin.h>
 #include <wx/spinctrl.h>
-#include <wx/artprov.h>
 #include <wx/wrapsizer.h>
 #include <wx/srchctrl.h>
 
@@ -325,6 +323,7 @@ private:
     bool                                m_is_canceled{ false };
     bool                                m_is_rename_mode{ false };
     bool                                m_check_flag {false};
+    bool                                m_pull_filament_pending{false};
     bool                                m_ext_change_assist{ false };
     PrintPageMode                       m_print_page_mode{PrintPageMode::PrintPageModePrepare};
     std::string                         m_print_error_msg;
@@ -337,7 +336,7 @@ private:
     wxColour                            m_colour_bold_color{wxColour(38, 46, 48)};
     StateColor                          m_btn_bg_enable;
 
-    std::unordered_map<string, PrintOption*> m_checkbox_list;
+    std::unordered_map<std::string, PrintOption*> m_checkbox_list;
     std::list<PrintOption*>                  m_checkbox_list_order;
 
     std::shared_ptr<int>                m_token = std::make_shared<int>(0);

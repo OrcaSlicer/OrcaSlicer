@@ -30,7 +30,6 @@
 #include "libslic3r/libslic3r.h"
 #include <exception>
 
-using namespace Slic3r;
 using namespace Slic3r::GUI;
 
 const std::string CreateFontImageJob::default_text = "AaBbCc 123";

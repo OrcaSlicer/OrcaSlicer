@@ -1,0 +1,27 @@
+{
+	"type": "process",
+	"name": "0.15mm Detail @Prusa CORE One INDX HF 0.4",
+	"inherits": "fdm_process_coreone_indx",
+	"from": "system",
+	"setting_id": "iU2xgmcbWbMgKORV",
+	"instantiation": "true",
+	"bridge_speed": [
+		"45"
+	],
+	"compatible_printers": [
+		"Prusa CORE One INDX 4T HF 0.4 nozzle",
+		"Prusa CORE One INDX 8T HF 0.4 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"support_top_z_distance": "0.17",
+	"support_interface_speed": [
+		"80"
+	],
+	"layer_height": "0.15",
+	"bottom_shell_layers": "5",
+	"top_shell_layers": "6",
+	"internal_solid_infill_acceleration": [
+		"6000"
+	],
+	"toolchange_ordering": "cyclic"
+}

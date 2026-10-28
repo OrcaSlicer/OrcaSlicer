@@ -15,6 +15,11 @@
 #include <string>
 #include <vector>
 
+class wxColour;
+class wxPoint;
+class wxSize;
+class wxWindow;
+
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 

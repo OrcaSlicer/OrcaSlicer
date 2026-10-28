@@ -1,4 +1,7 @@
+#pragma once
+
 #include <wx/textctrl.h>
+#include <wx/colour.h>
 
 #ifdef __WXMSW__
 class TextCtrl : public wxTextCtrl

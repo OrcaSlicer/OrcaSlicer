@@ -1,6 +1,4 @@
 #include "AuxiliaryDataViewModel.hpp"
-#include "libslic3r/libslic3r.h"
-#include "libslic3r/Model.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 
 
@@ -20,6 +18,11 @@
 #include <wx/string.h>
 #include <wx/variant.h>
 #include <wx/types.h>
+#include "libslic3r/Format/STEP.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include <wx/defs.h>
+
+namespace fs = boost::filesystem;
 
 const static std::array<wxString, 4> s_default_folders = {
     _L("Model Pictures"),

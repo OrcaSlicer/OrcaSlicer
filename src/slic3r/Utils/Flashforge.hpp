@@ -7,7 +7,8 @@
 #include "PrintHost.hpp"
 #include "SerialMessage.hpp"
 #include "SerialMessageType.hpp"
-#include "../../libslic3r/PrintConfig.hpp"
+
+namespace Slic3r { enum GCodeFlavor : unsigned char; }
 
 namespace Slic3r {
 class DynamicPrintConfig;

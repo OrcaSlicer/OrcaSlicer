@@ -1,11 +1,9 @@
 #pragma once
 #include "DevFirmware.h"
-#include "slic3r/Utils/json_diff.hpp"
 
 #include <nlohmann/json.hpp>
 #include <string>
 #include <wx/string.h>
-#include "slic3r/Utils/json_diff.hpp"
 
 namespace Slic3r {
 
@@ -51,10 +49,10 @@ public:
     bool isCuttingModule() const { return product_name.Contains("Cutting Module"); }
     bool isRotary() const { return product_name.Contains("Rotary"); }// Rotary Attachment
     bool isExtinguishSystem() const { return product_name.Contains("Extinguishing System"); }// Auto Fire Extinguishing System
-    bool isWTM() const { return name.find("wtm") != string::npos; } // nozzle
+    bool isWTM() const { return name.find("wtm") != std::string::npos; } // nozzle
     bool isExhaustFan() const { return product_name.Contains("Exhaust Fan"); }
-    bool isHmshub() const { return product_name.find("Filament Buffer") != string::npos; }
-    bool isFilaTrackSwitch() const { return product_name.find("Filament Track") != string::npos; }
+    bool isHmshub() const { return product_name.find("Filament Buffer") != std::string::npos; }
+    bool isFilaTrackSwitch() const { return product_name.find("Filament Track") != std::string::npos; }
 
 };
 

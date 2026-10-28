@@ -18,6 +18,7 @@
 #include "libslic3r/LifecycleEvents.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
 #include "slic3r/Utils/Flashforge.hpp"
+#include "slic3r/Utils/Http.hpp"
 
 using namespace Slic3r;
 

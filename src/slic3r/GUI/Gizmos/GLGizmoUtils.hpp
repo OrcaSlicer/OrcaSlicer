@@ -19,6 +19,11 @@ namespace GLGizmoUtils {
 	// Renders a tooltip button using the provided shortcuts
 	void render_tooltip_button(
 		ImGuiWrapper* imgui_wrapper, const GLCanvas3D& canvas, const std::vector<std::pair<wxString, wxString>>& shortcuts, float x, float y);
+
+    void render_wiki_buttons(
+        ImGuiWrapper* imgui_wrapper, const GLCanvas3D& canvas, const char*  wiki_url, const char* video_url = "");
+    bool render_wiki_guide_button(const GLCanvas3D& canvas, float scale, const char* url = "");
+    bool render_video_guide_button(const GLCanvas3D& canvas, float scale, const char* url = "");
 	
 	// Sets up ImGui to render buttons that are right-aligned within the current window, using the provided labels to calculate spacing.
 	void begin_right_aligned_buttons(const std::vector<wxString>& labels);
@@ -26,6 +31,8 @@ namespace GLGizmoUtils {
 	void push_orca_button_style();
 
 	void pop_orca_button_style();
+
+    bool toolbar_circular_button(ImTextureID textureID, const char* id, float scale);
 
 } // namespace GLGizmoUtils
 } // namespace Slic3r::GUI

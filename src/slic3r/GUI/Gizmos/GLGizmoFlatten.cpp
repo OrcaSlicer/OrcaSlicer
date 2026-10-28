@@ -27,6 +27,10 @@
 #include <vector>
 #include <utility>
 #include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r {
 namespace GUI {

@@ -1,10 +1,11 @@
 #ifndef slic3r_PresetHints_hpp_
 #define slic3r_PresetHints_hpp_
 
-#include "libslic3r/Preset.hpp"
 #include <string>
 
-#include "libslic3r/PresetBundle.hpp"
+namespace Slic3r { class Preset; }
+namespace Slic3r { class PresetBundle; }
+
 
 namespace Slic3r {
 
