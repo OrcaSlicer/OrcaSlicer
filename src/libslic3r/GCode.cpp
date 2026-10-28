@@ -3864,27 +3864,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
         BoundingBoxf bbox;
         auto pts = std::make_unique<ConfigOptionPoints>();
-        if (print.calib_mode() == CalibMode::Calib_PA_Pattern) {
-            //PA_Pattern can have any size or arrangement - not dependent on 3mf model size
+        if (print.calib_mode() == CalibMode::Calib_PA_Pattern || print.calib_mode() == CalibMode::Calib_PA_Line) {
+            // PA batch tests can have any size or arrangement and are not dependent on the handle object size.
             bbox = bbox_bed;
-            bbox.offset(-25.0);
+            if (print.calib_mode() == CalibMode::Calib_PA_Pattern)
+                bbox.offset(-25.0);
             // add 4 corner points of bbox into pts
-            pts->values.reserve(4);
-            pts->values.emplace_back(bbox.min.x(), bbox.min.y());
-            pts->values.emplace_back(bbox.max.x(), bbox.min.y());
-            pts->values.emplace_back(bbox.max.x(), bbox.max.y());
-            pts->values.emplace_back(bbox.min.x(), bbox.max.y());
-
-        } else if (print.calib_mode() == CalibMode::Calib_PA_Line) {
-            // Derive X bounds from the actual calibration geometry.
-            CalibPressureAdvanceLine temp_pa_line_forsize(this);
-            BoundingBoxf pattern_extents = temp_pa_line_forsize.print_extents(bbox_bed);
-
-            bbox = bbox_bed;
-            bbox.offset(-25.0);
-            bbox.min.x() = std::max(pattern_extents.min.x(), bbox.min.x());
-            bbox.max.x() = std::min(pattern_extents.max.x(), bbox.max.x());
-            
             pts->values.reserve(4);
             pts->values.emplace_back(bbox.min.x(), bbox.min.y());
             pts->values.emplace_back(bbox.max.x(), bbox.min.y());
@@ -4564,43 +4549,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
     if (this->m_objsWithBrim.empty()) m_brim_done = true;
 
-    // SoftFever: calib
-    if (print.calib_params().mode == CalibMode::Calib_PA_Line) {
-        std::string gcode;
-        gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
-        if ((NOZZLE_CONFIG(outer_wall_acceleration) > 0 && NOZZLE_CONFIG(outer_wall_acceleration) > 0)) {
-            gcode += m_writer.set_print_acceleration((unsigned int)floor(NOZZLE_CONFIG(outer_wall_acceleration) + 0.5));
-        }
-
-        if (NOZZLE_CONFIG(outer_wall_jerk) > 0) {
-            double jerk = NOZZLE_CONFIG(outer_wall_jerk);
-            gcode += m_writer.set_jerk_xy(jerk);
-        }
-
-        auto params = print.calib_params();
-
-        CalibPressureAdvanceLine pa_test(this);
-
-        auto fast_speed = CalibPressureAdvance::find_optimal_PA_speed(print.full_print_config(), pa_test.line_width(), pa_test.height_layer());
-        auto slow_speed = std::max(10.0, fast_speed / 10.0);
-        if (fast_speed < slow_speed + 5)
-            fast_speed = slow_speed + 5;
-
-        pa_test.set_speed(fast_speed, slow_speed);
-        pa_test.draw_numbers() = print.calib_params().print_numbers;
-
-        // ORCA-Belt: the PA line test draws directly on the build surface in
-        // logical bed coordinates — on a belt printer that surface is the
-        // belt plane, not the slicing plane.
-        const bool belt_world_coords = print.config().belt_printer.value;
-        if (belt_world_coords)
-            install_belt_kinematics(m_writer, print.config(), /*world_coordinates=*/true);
-        gcode += pa_test.generate_test(params.start, params.step, std::llround(std::ceil((params.end - params.start) / params.step)) + 1);
-        if (belt_world_coords)
-            install_belt_kinematics(m_writer, print.config(), /*world_coordinates=*/false);
-
-        file.write(gcode);
-    } else {
+    {
         //BBS: open spaghetti detector
         if (is_bbl_printers) {
             // if (print.config().spaghetti_detector.value)
@@ -11378,9 +11327,10 @@ std::string GCode::set_object_info(Print *print) {
         return "";
     std::ostringstream gcode;
     // Orca: check if we are in pa calib mode
-    if (print->calib_mode() == CalibMode::Calib_PA_Pattern) {
+    if (print->calib_mode() == CalibMode::Calib_PA_Pattern || print->calib_mode() == CalibMode::Calib_PA_Line) {
         BoundingBoxf bbox_bed(print->config().printable_area.values);
-        bbox_bed.offset(-25.0);
+        if (print->calib_mode() == CalibMode::Calib_PA_Pattern)
+            bbox_bed.offset(-25.0);
         Polygon polygon_bed;
         polygon_bed.append(Point(bbox_bed.min.x(), bbox_bed.min.y()));
         polygon_bed.append(Point(bbox_bed.max.x(), bbox_bed.min.y()));
@@ -11389,8 +11339,6 @@ std::string GCode::set_object_info(Print *print) {
         gcode << "EXCLUDE_OBJECT_DEFINE NAME="
               << "Orca-PA-Calibration-Test"
               << " CENTER=" << 0 << "," << 0 << " POLYGON=" << polygon_to_string(polygon_bed, print, true) << "\n";
-    } else if (print->calib_mode() == CalibMode::Calib_PA_Line) {
-        // PA_Line has only one object, no EXCLUDE_OBJECT_DEFINE needed
     } else {
         for (PrintObject* object : print->objects()) {
             for (PrintInstance& inst : object->instances()) {

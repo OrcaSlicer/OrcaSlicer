@@ -300,8 +300,8 @@ void PA_Calibration_Dlg::reset_params() {
             m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(0.002));
             m_cbPrintNum->SetValue(true);
             m_cbPrintNum->Enable(true);
-            m_tiBMAccels->Enable(false);
-            m_tiBMSpeeds->Enable(false);
+            m_tiBMAccels->Enable(true);
+            m_tiBMSpeeds->Enable(true);
             break;
         case 2:
             m_params.mode = CalibMode::Calib_PA_Pattern;
