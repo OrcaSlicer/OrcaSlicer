@@ -5290,7 +5290,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 m_mouse.is_start_position_3D_defined()) {
                 Camera& camera = wxGetApp().plater()->get_camera();
                 auto mult_pref = wxGetApp().app_config->get("camera_orbit_mult");
-                const double mult = mult_pref.empty() ? 1.0 : std::stod(mult_pref);
+                const double mult = mult_pref.empty() ? 1.0 : string_to_double_decimal_point(mult_pref);
                 const Vec3d rot = (Vec3d(pos.x(), pos.y(), 0.) - m_mouse.drag.start_position_3D) * (PI * TRACKBALLSIZE / 180.) * mult;
                 if (this->m_canvas_type == ECanvasType::CanvasAssembleView || m_gizmos.get_current_type() == GLGizmosManager::FdmSupports ||
                     m_gizmos.get_current_type() == GLGizmosManager::Seam || m_gizmos.get_current_type() == GLGizmosManager::MmSegmentation ||
