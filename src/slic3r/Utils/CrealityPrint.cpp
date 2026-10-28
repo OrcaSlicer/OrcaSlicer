@@ -299,6 +299,7 @@ static bool is_k1_family(const std::string& model)
 {
     static const std::unordered_set<std::string> k1_models = {
         "K1",
+        "K1 Max",
         "K1 SE",
         "K1C",
         "K1_CFS-C",
