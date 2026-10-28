@@ -1,9 +1,9 @@
 {
 	"type": "filament",
-	"name": "PrintaLot PLA @BBL X1 X1C X1E P1S 0.2 nozzle",
+	"name": "PrintaLot PLA @BBL X1C 0.2 nozzle",
 	"inherits": "PrintaLot PLA @base",
 	"from": "system",
-	"setting_id": "3sJR4uYhlo5terAZ",
+	"setting_id": "ucS0SZiLEASjavtk",
 	"instantiation": "true",
 	"filament_extruder_variant": [
 		"Direct Drive Standard"

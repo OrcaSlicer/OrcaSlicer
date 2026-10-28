@@ -3913,12 +3913,12 @@
 			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL P2S 0.2 nozzle.json"
 		},
 		{
-			"name": "PrintaLot PLA @BBL X1 X1C X1E P1S",
-			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X1 X1C X1E P1S.json"
+			"name": "PrintaLot PLA @BBL X1C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X1C.json"
 		},
 		{
-			"name": "PrintaLot PLA @BBL X1 X1C X1E P1S 0.2 nozzle",
-			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X1 X1C X1E P1S 0.2 nozzle.json"
+			"name": "PrintaLot PLA @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "PrintaLot PLA @BBL X2D",
