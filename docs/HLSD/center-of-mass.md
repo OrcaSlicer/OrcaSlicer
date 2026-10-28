@@ -35,9 +35,9 @@ what will be printed, so its markers come from the toolpaths, whose mass depends
 and flow as well. There the solid markers are for what is printed up to the top layer the layer
 slider shows: for the plate with brim, raft and supports, where the weight rests at that point of
 the print; for an object or a body, its own extrusions. Each has a faded twin for the same at the
-end of the print, so the slider shows the weight moving toward where it ends, and at the top layer
-the two meet. In Prepare the plate has the model alone, as brim, raft and supports exist only once
-sliced.
+end of the print, so the slider shows the weight moving toward where it ends. At the top layer what
+is printed is the finished print, whose markers then show alone and solid. In Prepare the plate has
+the model alone, as brim, raft and supports exist only once sliced.
 
 ## Prepare: from the meshes
 
@@ -94,8 +94,8 @@ extrudes it, so a print of several materials weighs each as it is. Flow ratio, l
 and purging into infill all count
 as printed. Its mass spreads evenly along the segment the bead's center runs, half the layer height
 below the nozzle, in the frame of the stored moves: plate offset added, Z offset removed. Such a
-segment from `a` to `b` adds `m (a + b) / 2` to the moments and `m (a² + a b + b²) / 3` to the second
-moments along each axis, and its box widened by half the bead's height to the bounding box; not by
+segment from `a` to `b` adds `m (a + b) / 2` to the moments and `m (2 a aᵀ + a bᵀ + b aᵀ + 2 b bᵀ) / 6`
+to the second moments, and its box widened by half the bead's height to the bounding box; not by
 half its width, which the processor only estimates, so that a box runs along the walls' center lines. Arcs are already split into segments by the processor. Walls, infill, top and bottom surfaces, ironing
 and gap fill make the parts. The brim and the support roles, the raft among them, count only in what
 the plate prints. The skirt, the prime tower and custom G-code count nowhere.
@@ -127,6 +127,15 @@ of which is the faded marker's, so the solid marker for any slider position is a
 the moves carry, which are also the layers of libvgcode and of the slider; in a print by object they
 follow the order of printing, so the solid markers show the objects printed so far as they are.
 
+The belt printers' upright view draws the toolpaths through the affine map that takes the moves back
+to the model's frame: `BeltTransformPipeline::build_gcode_back_transform()`, then a translation that
+lays them on the model. `GCodeViewer` maps the masses with it as well: their mass and volume stay as
+printed, and their moments and second moments follow the map. The map shears, so mapping the corners
+of a mass's box would give a box far larger than the moves. On a belt print the processor therefore
+keeps a second box for each mass, of the ends of each segment, half the bead's height below and
+above, mapped by the linear part of the map, which depends on the config alone; the translation then
+moves it into place. The raw view draws the moves as they are, and the masses with them.
+
 ## Drawing
 
 `smooth_sphere()` with a resolution divisible by four leaves every triangle within one octant, so it
@@ -145,7 +154,9 @@ The markers are part of the cached scene, so toggling them, or changing a filame
 they are shown, marks the scene dirty, and moving the layer slider redraws the scene with the solid
 markers where they belong. In Prepare they are hidden while any gizmo other than Move, Rotate, Scale
 and Lay on face is open, since the others work on the surface a marker would cover, and a hidden
-object has no markers.
+object has no markers. The section view (see section-view.md) cuts a marker away whole when its
+center lies on the cut side, as it does the toolpaths' option markers, and it cannot be clicked
+then.
 
 ## Details
 
@@ -153,19 +164,23 @@ The markers drawn last are kept, and a left click is tested against them before 
 center and a point a radius to its right are projected to the screen, and the click hits a marker
 within that distance. The solid markers are tested before the faded ones and the smaller kinds
 before the larger, the order in which they cover each other. A hit opens the details of that marker
-and keeps the click from changing the selection; a click anywhere else closes them. The box is an
+and keeps the click from changing the selection; a click anywhere else, or Esc, closes them. The box is an
 ImGui window beside the marker, redrawn with the overlay from the markers of the last scene, so it
 follows a dragged object, and in Preview the layer slider. It closes when its marker is gone, or when
-the number of markers of its kind changes, as then it may stand for something else.
+the number of markers of its kind changes, as then it may stand for something else. As it moves with
+the view, zooming toward the cursor can bring it under the mouse, so the wheel zooms over it rather
+than going to ImGui.
 
 Its title says what the marker stands for: the plate, an object, an assembly or a part, the body of
 an assembly. The G-code export lists the object instances for the processor, marking assemblies, as
 it hands it the locator.
 
 Each marker carries its sums: mass, volume, first moments and the second moments about the origin
-along each axis, `Σ m x²`, `Σ m y²` and `Σ m z²`, which add up from parts to objects to plates. The
-moment of inertia about the axis through the center parallel to x is then
-`m (σy² + σz²)`, with `σ² = Σ m x² / m - c²` along each axis, and likewise for y and z. Masses are
+along each axis, `Σ m x²`, `Σ m y²` and `Σ m z²`, and across them, `Σ m x y`, `Σ m x z` and `Σ m y z`,
+which add up from parts to objects to plates. Together they make the symmetric `Σ m x xᵀ`, which a
+shear such as the belt's maps only whole. The moment of inertia about the axis through the center
+parallel to x is then `m (σy² + σz²)`, with `σ² = Σ m x² / m - c²` along each axis, and likewise for
+y and z. Masses are
 kept in mg, volume times density in g/cm³, and shown in g, volumes in cm³ and moments of inertia in
 g·mm². In Preview the box tells the finished print from what is printed up to the layer shown, the
 two weighing differently, and both are placed in the bounding box of everything the marker holds
