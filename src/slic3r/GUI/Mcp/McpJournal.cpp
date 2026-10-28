@@ -1,9 +1,11 @@
 #include "McpJournal.hpp"
+#include "McpPaths.hpp"
 #include "McpTypes.hpp"
 
 #include <boost/filesystem/path.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <map>
 #include <mutex>
@@ -20,6 +22,10 @@ uint64_t Journal::begin(const std::string& tool, const nlohmann::json& args)
     e.tool = tool;
     e.args = args;
     m_entries.push_back(std::move(e));
+    // A session kept open for days must not grow without bound; a script is exported from the
+    // recent calls anyway (export_script {clear:true} starts afresh).
+    if (m_entries.size() > kMaxEntries)
+        m_entries.erase(m_entries.begin(), m_entries.begin() + std::ptrdiff_t(m_entries.size() - kMaxEntries));
     return m_entries.back().seq;
 }
 
@@ -65,7 +71,7 @@ nlohmann::json Journal::to_script(const std::string& name) const
             step["args"]["job"] = "${jobs." + it->second + "}";
         }
         if (e.tool == "screenshot" && e.args.contains("save_path") && e.args["save_path"].is_string()) {
-            const std::string file = boost::filesystem::path(e.args["save_path"].get<std::string>()).filename().string();
+            const std::string file = path_to_utf8(path_from_utf8(e.args["save_path"].get<std::string>()).filename());
             step["args"]["save_path"] = "${out_dir}/" + file;
         }
         if (!e.job.empty()) {

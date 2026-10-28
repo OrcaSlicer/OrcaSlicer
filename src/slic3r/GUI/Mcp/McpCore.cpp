@@ -26,7 +26,24 @@ public:
         : m_core(core), m_def(def), m_job(std::move(job)), m_parent(std::move(parent)), m_journal(journal), m_seq(journal_seq)
     {}
 
-    nlohmann::json run_ui(const std::function<nlohmann::json()>& fn) override { return m_core.ui().run(m_def.guard, m_def.name, fn); }
+    nlohmann::json run_ui(const std::function<nlohmann::json()>& fn) override
+    {
+        if (m_def.guard != GuardClass::Mutate || m_def.allowed_during_operation)
+            return m_core.ui().run(m_def.guard, m_def.name, fn);
+        // Admission again on the UI thread, where operations start: a call admitted before an
+        // operation began must not change the project under it.
+        return m_core.ui().run(m_def.guard, m_def.name, [&]() -> nlohmann::json {
+            for (const std::string& op : m_core.jobs().running_operations())
+                if (op != m_job)
+                    throw ToolFailure("Busy: job " + op + " (a slice or export) is running; wait for it or cancel it before changing the project",
+                                      {{"job", op}});
+            return fn();
+        });
+    }
+    nlohmann::json observe_ui(const std::function<nlohmann::json()>& fn) override
+    {
+        return m_core.ui().run(GuardClass::Inspect, m_def.name, fn);
+    }
     const std::string& job_id() const override { return m_job; }
     bool cancelled() const override { return m_core.ui().is_shutdown(); }
 
@@ -54,8 +71,10 @@ public:
 
     void begin_operation() override
     {
-        if (!m_job.empty())
-            m_core.jobs().set_operation(m_job);
+        if (m_job.empty())
+            return;
+        if (const std::string other = m_core.jobs().begin_operation(m_job); !other.empty())
+            throw ToolFailure("Busy: job " + other + " (a slice or export) is running; wait for it or cancel it", {{"job", other}});
     }
 
 private:
@@ -86,7 +105,29 @@ McpCore::McpCore(const ToolRegistry& registry, UiInvoker& ui, JobRegistry& jobs,
     : m_registry(registry), m_ui(ui), m_jobs(jobs), m_journal(journal), m_timing(timing)
 {}
 
-McpCore::~McpCore() { shutdown(); }
+McpCore::~McpCore()
+{
+    shutdown();
+    drain(m_timing.join_timeout);
+}
+
+bool McpCore::enter()
+{
+    std::lock_guard<std::mutex> lock(m_threads_mutex);
+    if (m_stopping)
+        return false;
+    ++m_active;
+    return true;
+}
+
+void McpCore::leave()
+{
+    {
+        std::lock_guard<std::mutex> lock(m_threads_mutex);
+        --m_active;
+    }
+    m_threads_cv.notify_all();
+}
 
 ToolResult McpCore::call(const ToolDef& def, const nlohmann::json& args) { return run(def, args, {}); }
 
@@ -97,8 +138,9 @@ ToolResult McpCore::call_child(const ToolDef& def, const nlohmann::json& args, c
 
 ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const std::string& parent)
 {
-    if (m_ui.is_shutdown())
+    if (m_ui.is_shutdown() || !enter())
         return ToolResult::error("OrcaSlicer is shutting down");
+    struct Leave { McpCore* core; ~Leave() { core->leave(); } } leave_on_return{this};
 
     // Only client calls are journaled; a script's own steps replay through the script.
     const bool     journal = m_journal != nullptr && parent.empty() && def.journal;
@@ -134,22 +176,17 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
         return finish(ToolResult::error(f.what()));
     }
 
-    {
-        std::lock_guard<std::mutex> lock(m_threads_mutex);
-        if (m_stopping)
-            return finish(ToolResult::error("OrcaSlicer is shutting down"));
-        ++m_threads;
+    if (!enter()) {
+        m_jobs.finish(job, ToolResult::error("OrcaSlicer is shutting down"));
+        return finish(ToolResult::error("OrcaSlicer is shutting down"));
     }
-    // The job thread owns copies of what it needs; the core itself outlives it (shutdown() waits).
+    // The job thread owns copies of what it needs; the core outlives it, as the owner destroys the
+    // core only once drain() has seen every job thread leave.
     std::thread([this, def, args, job, parent, seq]() {
         CallContext ctx(*this, def, job, parent, m_journal, seq);
         ToolResult  result = invoke(def, args, ctx);
         m_jobs.finish(job, std::move(result));
-        {
-            std::lock_guard<std::mutex> lock(m_threads_mutex);
-            --m_threads;
-        }
-        m_threads_cv.notify_all();
+        leave();
     }).detach();
 
     auto envelope = [&](const char* status, nlohmann::json extra) {
@@ -207,9 +244,17 @@ void McpCore::release_slot()
 
 void McpCore::shutdown()
 {
+    {
+        std::lock_guard<std::mutex> lock(m_threads_mutex);
+        m_stopping = true;
+    }
+    m_threads_cv.notify_all();
+}
+
+bool McpCore::drain(std::chrono::milliseconds timeout)
+{
     std::unique_lock<std::mutex> lock(m_threads_mutex);
-    m_stopping = true;
-    m_threads_cv.wait_for(lock, m_timing.join_timeout, [this] { return m_threads == 0; });
+    return m_threads_cv.wait_for(lock, timeout, [this] { return m_active == 0; });
 }
 
 }}} // namespace Slic3r::GUI::Mcp

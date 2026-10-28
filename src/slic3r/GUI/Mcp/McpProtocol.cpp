@@ -298,7 +298,9 @@ PostReply McpProtocol::handle_post(const PostRequest& request)
         return reply(400, error_body(nullptr, kInvalidRequest, "id must be a string or an integer"));
 
     const std::string method = msg["method"].get<std::string>();
-    const json        params = msg.contains("params") && msg["params"].is_object() ? msg["params"] : json::object();
+    if (msg.contains("params") && !msg["params"].is_object())
+        return reply(200, error_body(id, kInvalidParams, "params must be an object"));
+    const json params = msg.contains("params") ? msg["params"] : json::object();
 
     try {
         if (params.contains("_meta") && params["_meta"].is_object() && params["_meta"].contains(kMetaVersion)) {

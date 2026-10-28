@@ -300,10 +300,17 @@ void register_scene_tools(McpService& service)
         object_schema({{"plates", {{"type", {"string", "integer"}}, {"description", "\"current\" (default), \"all\", or a plate index."}}},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 7200}, {"description", "Give up after this long (default 1800)."}}}}),
         [](const json& args, ToolContext& ctx) {
-            ctx.begin_operation();
             const json plates_arg = args.value("plates", json("current"));
             auto       ticket     = std::make_shared<SliceTicket>();
+            // A change made just before (set_settings, open_files) is validated by an update
+            // scheduled a moment later; a slice requested first would be refused on the old state.
+            poll_ui(
+                ctx, []() -> json { return ui_plater().is_background_process_update_scheduled() ? json() : json(true); },
+                std::chrono::seconds(10), "the pending update of the slicing state");
             ctx.run_ui([&] {
+                // Held from before the slice starts, in the same UI step, so no call admitted
+                // meanwhile can change the project under it.
+                ctx.begin_operation();
                 Plater& plater = ui_plater();
                 if (plater.printer_technology() != ptFFF)
                     throw ToolFailure("Slicing through MCP supports FFF printers only");
@@ -342,33 +349,28 @@ void register_scene_tools(McpService& service)
                     obs.current_revision = plater.project_revision();
                     for (uint64_t seq = ticket->state.run_seq_before + 1; seq <= plater.slice_run_seq(); ++seq)
                         if (auto run = plater.slice_run(seq))
-                            obs.runs_since_start.push_back(
-                                {run->seq, run->finished, run->cancelled, run->error, run->revision_at_finish, run->request_seq_at_finish});
+                            obs.runs_since_start.push_back({run->seq, run->finished, run->cancelled, run->error, run->revision_at_finish,
+                                                            run->request_seq_at_finish, run->request_seq_at_start, run->plate});
                     ticket->state.seen_running = ticket->state.seen_running || obs.slicing_any || !obs.runs_since_start.empty();
                     const TicketStatus status  = slice_status(ticket->state, obs, std::chrono::steady_clock::now());
                     if (status == TicketStatus::Pending)
                         return json();
                     json out{{"status", status == TicketStatus::Done ? "done" : "superseded"}};
-                    std::string error;
-                    for (const SliceRunRecord& run : obs.runs_since_start)
-                        if (!run.error.empty())
-                            error = run.error;
                     PartPlateList&                list = plater.get_partplate_list();
                     std::vector<PlateObservation> observed;
                     for (int index : ticket->plates)
-                        if (PartPlate* plate = list.get_plate(index)) {
-                            const bool valid = plate->is_slice_result_valid();
-                            observed.push_back({index, valid, !valid && !error.empty(), !plate->has_printable_instances()});
-                        }
-                    const auto outcomes = classify_plates(ticket->plates, observed, slice_cancelled(ticket->state, obs));
-                    json       plates   = json::array();
+                        if (PartPlate* plate = list.get_plate(index))
+                            observed.push_back({index, plate->is_slice_result_valid(), !plate->has_printable_instances(),
+                                                plater.plate_validation_error(index)});
+                    const auto results = classify_plates(ticket->plates, observed, own_runs(ticket->state, obs));
+                    json       plates  = json::array();
                     for (size_t i = 0; i < ticket->plates.size(); ++i) {
-                        json p{{"index", ticket->plates[i]}, {"outcome", to_string(outcomes[i])}};
-                        if (outcomes[i] == PlateOutcome::Ok)
+                        json p{{"index", ticket->plates[i]}, {"outcome", to_string(results[i].outcome)}};
+                        if (results[i].outcome == PlateOutcome::Ok)
                             if (PartPlate* plate = list.get_plate(ticket->plates[i]))
                                 p.update(plate_stats(*plate));
-                        if (outcomes[i] == PlateOutcome::Error)
-                            p["error"] = error;
+                        if (!results[i].error.empty())
+                            p["error"] = results[i].error;
                         plates.push_back(std::move(p));
                     }
                     out["plates"] = std::move(plates);
@@ -408,6 +410,8 @@ void register_scene_tools(McpService& service)
             return ToolResult::ok(out);
         });
     cancel.allowed_during_operation = true;
+    // Recovery: it must get through a dialog the operation opened and another call's nested loop.
+    cancel.guard = GuardClass::Recover;
     reg.add(cancel);
 }
 

@@ -13,10 +13,7 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 namespace fs = boost::filesystem;
 
-namespace {
-
-// UTF-8 to a native path (wide on Windows).
-fs::path to_path(const std::string& utf8)
+fs::path path_from_utf8(const std::string& utf8)
 {
 #ifdef _WIN32
     return fs::path(boost::nowide::widen(utf8));
@@ -25,13 +22,24 @@ fs::path to_path(const std::string& utf8)
 #endif
 }
 
+std::string path_to_utf8(const fs::path& path)
+{
+#ifdef _WIN32
+    return boost::nowide::narrow(path.wstring());
+#else
+    return path.string();
+#endif
+}
+
+namespace {
+
 std::optional<fs::path> absolute(const std::string& path, std::string& err)
 {
     if (path.empty()) {
         err = "path is empty";
         return std::nullopt;
     }
-    fs::path p = to_path(path);
+    fs::path p = path_from_utf8(path);
     if (!p.is_absolute()) {
         err = "path must be absolute: " + path;
         return std::nullopt;

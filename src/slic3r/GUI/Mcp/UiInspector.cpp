@@ -34,6 +34,7 @@
 #include <wx/combobox.h>
 #include <wx/ctrlsub.h>
 #include <wx/dataview.h>
+#include <wx/defs.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
@@ -525,10 +526,25 @@ void scroll_into_view(wxWindow* w)
     }
 }
 
+// Keys held in SyntheticInput for one gesture, for code that asks the system which keys are down
+// (the object list's Ctrl/Shift multi-select); released however the gesture ends.
+struct HeldKeys
+{
+    explicit HeldKeys(const std::vector<int>& keys)
+    {
+        for (int k : keys)
+            SyntheticInput::press_key(k);
+    }
+    ~HeldKeys() { SyntheticInput::clear(); }
+    HeldKeys(const HeldKeys&)            = delete;
+    HeldKeys& operator=(const HeldKeys&) = delete;
+};
+
 // A mouse click on a plain window at its centre: down, up, and the double-click or context-menu
 // event a real click produces.
 void click_window(wxWindow* w, const ClickOptions& o)
 {
+    HeldKeys       held(modifier_keys(o.modifiers));
     const wxSize   size = w->GetClientSize();
     const wxPoint  pos(size.x / 2, size.y / 2);
     const bool     right = o.button == "right", middle = o.button == "middle", left = !right && !middle;
@@ -562,9 +578,13 @@ public:
     }
     ~CanvasMouse()
     {
-        SyntheticInput::clear();
+        if (!m_keep_held)
+            SyntheticInput::clear();
         m_canvas.set_as_dirty();
     }
+    // A press that the next call releases: the button stays down for code that asks for the mouse
+    // state, until a later gesture or the service's stop clears it.
+    void keep_held() { m_keep_held = true; }
     void event(wxEventType type, const wxPoint& pos, bool left, bool right, bool middle, int wheel = 0)
     {
         wxGLCanvas*  glc = m_canvas.get_wxglcanvas();
@@ -587,6 +607,7 @@ public:
 private:
     GLCanvas3D&              m_canvas;
     std::vector<std::string> m_mods;
+    bool                     m_keep_held = false;
 };
 
 void canvas_click(GLCanvas3D& canvas, const wxPoint& pos, const ClickOptions& o)
@@ -676,7 +697,15 @@ bool UiInspector::push(UiNode node, UiTarget target, std::vector<UiNode>& nodes,
     switch (target.kind) {
     case UiTarget::Kind::Window: {
         wxWeakRef<wxWindow> weak = target.window;
-        alive                    = [weak] { return weak.get() != nullptr; };
+        const int           page = target.page;
+        const std::string   text = target.name;
+        alive = [weak, page, text] {
+            wxWindow* w = weak.get();
+            if (w == nullptr || page < 0)
+                return w != nullptr;
+            auto* book = dynamic_cast<wxBookCtrlBase*>(w);
+            return book != nullptr && page < int(book->GetPageCount()) && into_u8(book->GetPageText(size_t(page))) == text;
+        };
         break;
     }
     case UiTarget::Kind::MenuItem: {
@@ -886,6 +915,24 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
         for (GLCanvas3D* canvas : live_canvases())
             if (canvas->get_wxglcanvas() == w)
                 add_canvas_items(*canvas, child_depth, nodes, omitted, o);
+    // A notebook's pages, so one can be picked by its tab.
+    if (auto* book = dynamic_cast<wxBookCtrlBase*>(w); book != nullptr && kind == "tabs")
+        for (size_t i = 0; i < book->GetPageCount(); ++i) {
+            UiNode page;
+            page.kind    = "tab";
+            page.label   = into_u8(book->GetPageText(i));
+            page.checked = book->GetSelection() == int(i) ? 1 : 0;
+            page.depth   = child_depth;
+            UiTarget t;
+            t.kind    = UiTarget::Kind::Window;
+            t.window  = book;
+            t.page    = int(i);
+            t.name    = page.label;
+            t.locator = {{"tab", page.label}};
+            if (wxWindow* tlw = wxGetTopLevelParent(book); tlw != nullptr && tlw != wxGetApp().mainframe)
+                t.locator["within"] = label_of(tlw);
+            push(std::move(page), std::move(t), nodes, omitted, o);
+        }
     // Web views and canvases are listed by their own means; Orca's composite inputs are one
     // control to the agent, not their inner text field and buttons.
     if (kind == "webview" || kind == "canvas" || kind == "text" || kind == "spin" || kind == "combo")
@@ -982,33 +1029,64 @@ UiTarget UiInspector::resolve(const json& target)
             return t;
         }
         // ImGui item: search the named canvas, or every canvas when none was named.
-        const std::string label  = target["imgui"].get<std::string>();
-        const std::string window = target.value("window", "");
-        std::vector<GLCanvas3D*> canvases = target.contains("canvas") ? std::vector<GLCanvas3D*>{t.canvas} : live_canvases();
-        for (GLCanvas3D* c : canvases)
-            for (const auto& item : wxGetApp().imgui()->recorded_items(c))
-                if (clean_imgui_label(item.label) == label && (window.empty() || clean_imgui_label(item.window) == window)) {
-                    t.kind         = UiTarget::Kind::ImGuiItem;
-                    t.canvas       = c;
-                    t.window       = c->get_wxglcanvas();
-                    t.imgui_id     = item.id;
-                    t.imgui_label  = label;
-                    t.imgui_window = item.window;
-                    t.x = item.x, t.y = item.y, t.w = item.w, t.h = item.h;
-                    return t;
-                }
-        throw ToolFailure("No ImGui item \"" + label + "\" in the last frame; show its panel first");
+        const auto matches = match_imgui(target);
+        const int  index   = target.value("index", -1);
+        if (matches.empty())
+            throw ToolFailure("No ImGui item \"" + target["imgui"].get<std::string>() + "\" in the last frame; show its panel first");
+        if (matches.size() > 1 && index < 0)
+            throw ToolFailure(std::to_string(matches.size()) + " ImGui items match " + target.dump() + "; add \"index\" (0-based) or use a ref");
+        if (index >= int(matches.size()))
+            throw ToolFailure("index " + std::to_string(index) + " is past the " + std::to_string(matches.size()) + " matches");
+        const auto& [canvas, item] = matches[index < 0 ? 0 : std::size_t(index)];
+        t.kind         = UiTarget::Kind::ImGuiItem;
+        t.canvas       = canvas;
+        t.window       = canvas->get_wxglcanvas();
+        t.imgui_id     = item.id;
+        t.imgui_label  = clean_imgui_label(item.label);
+        t.imgui_window = item.window;
+        t.x = item.x, t.y = item.y, t.w = item.w, t.h = item.h;
+        return t;
+    }
+
+    const int index = target.value("index", -1);
+    if (target.contains("tab")) {
+        const auto matches = match_tabs(target);
+        if (matches.empty())
+            throw ToolFailure("No tab " + target.dump() + "; take a ui_snapshot");
+        if (matches.size() > 1 && index < 0)
+            throw ToolFailure(std::to_string(matches.size()) + " tabs match " + target.dump() + "; add \"index\" (0-based) or use a ref");
+        if (index >= int(matches.size()))
+            throw ToolFailure("index " + std::to_string(index) + " is past the " + std::to_string(matches.size()) + " matches");
+        const auto& [book, page] = matches[index < 0 ? 0 : std::size_t(index)];
+        t.kind   = UiTarget::Kind::Window;
+        t.window = book;
+        t.page   = page;
+        t.name   = into_u8(book->GetPageText(size_t(page)));
+        return t;
     }
 
     // A wx window by option key, class, label or name, optionally within a titled top-level window.
-    const std::string option = target.value("option", "");
-    const std::string cls    = target.value("class", "");
-    const std::string label  = target.value("label", "");
-    const std::string name   = target.value("name", "");
-    const std::string within = target.value("within", "");
-    const int         index  = target.value("index", -1);
-    if (option.empty() && cls.empty() && label.empty() && name.empty())
-        throw ToolFailure("A locator needs option, label, name or class (or menu, gltoolbar, gizmo, imgui)");
+    if (!target.contains("option") && !target.contains("class") && !target.contains("label") && !target.contains("name"))
+        throw ToolFailure("A locator needs option, label, name or class (or menu, tab, gltoolbar, gizmo, imgui)");
+    const std::vector<wxWindow*> matches = match_windows(target);
+    if (matches.empty())
+        throw ToolFailure("Nothing matches " + target.dump() + "; take a ui_snapshot");
+    if (matches.size() > 1 && index < 0)
+        throw ToolFailure(std::to_string(matches.size()) + " elements match " + target.dump() + "; add \"index\" (0-based) or use a ref");
+    if (index >= int(matches.size()))
+        throw ToolFailure("index " + std::to_string(index) + " is past the " + std::to_string(matches.size()) + " matches");
+    t.kind   = UiTarget::Kind::Window;
+    t.window = matches[index < 0 ? 0 : std::size_t(index)];
+    return t;
+}
+
+std::vector<wxWindow*> UiInspector::match_windows(const json& locator)
+{
+    const std::string option = locator.value("option", "");
+    const std::string cls    = locator.value("class", "");
+    const std::string label  = locator.value("label", "");
+    const std::string name   = locator.value("name", "");
+    const std::string within = locator.value("within", "");
     std::vector<wxWindow*> matches;
     std::function<void(wxWindow*)> visit = [&](wxWindow* w) {
         if (!w->IsShownOnScreen())
@@ -1026,9 +1104,7 @@ UiTarget UiInspector::resolve(const json& target)
     for (wxTopLevelWindow* tlw : top_level_windows(m_service))
         if (within.empty() || label_of(tlw) == within)
             visit(tlw);
-    if (matches.empty())
-        throw ToolFailure("Nothing matches " + target.dump() + "; take a ui_snapshot");
-    if (matches.size() > 1 && index < 0) {
+    if (matches.size() > 1 && !locator.contains("class")) {
         // A row's label and the field it names share the text; the field is what an agent acts on.
         std::vector<wxWindow*> controls;
         for (wxWindow* w : matches) {
@@ -1037,16 +1113,77 @@ UiTarget UiInspector::resolve(const json& target)
                 controls.push_back(w);
         }
         if (controls.size() == 1)
-            matches = controls;
+            return controls;
     }
-    if (matches.size() > 1 && index < 0)
-        throw ToolFailure(std::to_string(matches.size()) + " elements match " + target.dump() + "; add \"index\" (0-based) or use a ref");
-    const std::size_t i = index < 0 ? 0 : std::size_t(index);
-    if (i >= matches.size())
-        throw ToolFailure("index " + std::to_string(i) + " is past the " + std::to_string(matches.size()) + " matches");
-    t.kind   = UiTarget::Kind::Window;
-    t.window = matches[i];
-    return t;
+    return matches;
+}
+
+std::vector<std::pair<GLCanvas3D*, ImGuiWrapper::RecordedItem>> UiInspector::match_imgui(const json& locator)
+{
+    const std::string label  = locator["imgui"].get<std::string>();
+    const std::string window = locator.value("window", "");
+    std::vector<GLCanvas3D*> canvases = live_canvases();
+    if (locator.contains("canvas")) {
+        GLCanvas3D* named = canvas_by_name(locator["canvas"].get<std::string>());
+        canvases          = named != nullptr ? std::vector<GLCanvas3D*>{named} : std::vector<GLCanvas3D*>{};
+    }
+    std::vector<std::pair<GLCanvas3D*, ImGuiWrapper::RecordedItem>> out;
+    for (GLCanvas3D* c : canvases)
+        for (const auto& item : wxGetApp().imgui()->recorded_items(c))
+            if (clean_imgui_label(item.label) == label && (window.empty() || clean_imgui_label(item.window) == window))
+                out.emplace_back(c, item);
+    return out;
+}
+
+std::vector<std::pair<wxBookCtrlBase*, int>> UiInspector::match_tabs(const json& locator)
+{
+    const std::string text   = locator["tab"].get<std::string>();
+    const std::string within = locator.value("within", "");
+    std::vector<std::pair<wxBookCtrlBase*, int>> out;
+    std::function<void(wxWindow*)> visit = [&](wxWindow* w) {
+        if (!w->IsShownOnScreen())
+            return;
+        if (auto* book = dynamic_cast<wxBookCtrlBase*>(w))
+            for (size_t i = 0; i < book->GetPageCount(); ++i)
+                if (into_u8(book->GetPageText(i)) == text)
+                    out.emplace_back(book, int(i));
+        for (wxWindow* child : w->GetChildren())
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr)
+                visit(child);
+    };
+    for (wxTopLevelWindow* tlw : top_level_windows(m_service))
+        if (within.empty() || label_of(tlw) == within)
+            visit(tlw);
+    return out;
+}
+
+json UiInspector::locator_for(const UiTarget& t)
+{
+    json loc = t.locator;
+    loc.erase("index");
+    int position = -1, count = 0;
+    if (t.kind == UiTarget::Kind::ImGuiItem && loc.contains("imgui")) {
+        const auto matches = match_imgui(loc);
+        count              = int(matches.size());
+        for (int i = 0; i < count; ++i)
+            if (matches[i].first == t.canvas && matches[i].second.id == t.imgui_id)
+                position = i;
+    } else if (t.kind == UiTarget::Kind::Window && t.page >= 0 && loc.contains("tab")) {
+        const auto matches = match_tabs(loc);
+        count              = int(matches.size());
+        for (int i = 0; i < count; ++i)
+            if (matches[i].first == t.window.get() && matches[i].second == t.page)
+                position = i;
+    } else if (t.kind == UiTarget::Kind::Window && t.page < 0 && !loc.contains("menu")) {
+        const auto matches = match_windows(loc);
+        count              = int(matches.size());
+        for (int i = 0; i < count; ++i)
+            if (matches[i] == t.window.get())
+                position = i;
+    }
+    if (count > 1 && position >= 0)
+        loc["index"] = position;
+    return loc;
 }
 
 void UiInspector::reveal(const UiTarget& target)
@@ -1104,15 +1241,23 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
         for (GLToolbarItem* other : tb.get_items())
             if (other != nullptr && other != item && other->is_pressed() && (other->is_left_toggable() || other->is_right_toggable()))
                 throw ToolFailure("Close " + other->get_name() + " first: the toolbar ignores clicks while it is active");
-        const bool was = item->is_pressed();
-        tb.force_left_action(tb.get_item_id(t.name), *t.canvas);
+        const bool was   = item->is_pressed();
+        const bool right = o.button == "right";
+        if (o.button == "middle")
+            throw ToolFailure("Toolbar items take a left or right click");
+        if (right)
+            tb.force_right_action(tb.get_item_id(t.name), *t.canvas);
+        else
+            tb.force_left_action(tb.get_item_id(t.name), *t.canvas);
         t.canvas->set_as_dirty();
         t.canvas->render();
-        if (item->is_left_toggable() && item->is_pressed() == was)
+        if ((right ? item->is_right_toggable() : item->is_left_toggable()) && item->is_pressed() == was)
             throw ToolFailure("The toolbar did not react to " + t.name);
         return {{"clicked", t.name}, {"pressed", item->is_pressed()}};
     }
     case UiTarget::Kind::Gizmo: {
+        if (o.button != "left" || o.double_click)
+            throw ToolFailure("A gizmo opens with a single left click");
         GLGizmosManager& gizmos = t.canvas->get_gizmos_manager();
         GLGizmoBase*     g      = gizmos.get_gizmo(GLGizmosManager::EType(t.gizmo));
         if (g == nullptr || !g->is_activable())
@@ -1136,6 +1281,13 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
     if (!w->IsEnabled())
         throw ToolFailure("The element is disabled");
     scroll_into_view(w);
+    if (t.page >= 0) {
+        auto* book = dynamic_cast<wxBookCtrlBase*>(w);
+        if (book == nullptr || t.page >= int(book->GetPageCount()))
+            throw ToolFailure("The tab is gone; take a new ui_snapshot");
+        book->SetSelection(size_t(t.page)); // sends the page-changing and page-changed events
+        return {{"clicked", t.name}, {"page", t.page}};
+    }
     if (o.at_point || dynamic_cast<wxGLCanvas*>(w) != nullptr) {
         GLCanvas3D* canvas = canvas_of(&t);
         if (canvas == nullptr)
@@ -1180,6 +1332,14 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
 json UiInspector::input(const UiTarget& t, const json& value, bool submit)
 {
     if (t.kind == UiTarget::Kind::ImGuiItem) {
+        // A checkbox is toggled when its state differs; anything else is a field to type into.
+        for (const auto& item : wxGetApp().imgui()->recorded_items(t.canvas))
+            if (item.id == t.imgui_id && (item.flags & ImGuiItemStatusFlags_Checkable) != 0) {
+                const bool want = value.is_boolean() ? value.get<bool>() : (value == "1" || value == "true");
+                if (((item.flags & ImGuiItemStatusFlags_Checked) != 0) != want)
+                    click(t, ClickOptions{});
+                return {{"checked", want}};
+            }
         // Focus the field, select what is there, type the value.
         click(t, ClickOptions{});
         key(&t, "Ctrl+A", "");
@@ -1296,17 +1456,23 @@ json UiInspector::key(const UiTarget* t, const std::string& chord_text, const st
             evt.SetEventObject(target);
             return evt;
         };
-        std::vector<int> held;
+        std::vector<int> codes;
         if (modifiers & wxMOD_CONTROL)
-            held.push_back(WXK_CONTROL);
+            codes.push_back(WXK_CONTROL); // Command on macOS
+#ifdef __APPLE__
+        if (modifiers & wxMOD_RAW_CONTROL)
+            codes.push_back(WXK_RAW_CONTROL);
+#else
+        if (modifiers & wxMOD_META)
+            codes.push_back(WXK_WINDOWS_LEFT);
+#endif
         if (modifiers & wxMOD_SHIFT)
-            held.push_back(WXK_SHIFT);
+            codes.push_back(WXK_SHIFT);
         if (modifiers & wxMOD_ALT)
-            held.push_back(WXK_ALT);
-        for (int k : held)
-            SyntheticInput::press_key(k);
-        SyntheticInput::press_key(key_code);
-        bool handled = false;
+            codes.push_back(WXK_ALT);
+        codes.push_back(key_code);
+        HeldKeys held(codes);
+        bool     handled = false;
         if (tlw != nullptr && key_code != 0) {
             wxKeyEvent hook = make(wxEVT_CHAR_HOOK);
             handled         = tlw->GetEventHandler()->ProcessEvent(hook);
@@ -1326,7 +1492,6 @@ json UiInspector::key(const UiTarget* t, const std::string& chord_text, const st
             wxKeyEvent up = make(wxEVT_KEY_UP);
             target->GetEventHandler()->ProcessEvent(up);
         }
-        SyntheticInput::clear();
         if (canvas != nullptr)
             canvas->render();
     };
@@ -1362,6 +1527,7 @@ json UiInspector::mouse(GLCanvas3D& canvas, const json& g)
     } else if (action == "down") {
         m.event(wxEVT_MOTION, from, false, false, false);
         m.event(left ? wxEVT_LEFT_DOWN : right ? wxEVT_RIGHT_DOWN : wxEVT_MIDDLE_DOWN, from, left, right, middle);
+        m.keep_held();
     } else if (action == "up") {
         m.event(left ? wxEVT_LEFT_UP : right ? wxEVT_RIGHT_UP : wxEVT_MIDDLE_UP, from, false, false, false);
     } else if (action == "click") {

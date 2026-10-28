@@ -509,7 +509,7 @@ TEST_CASE("idle ignores the caller and its ancestors", "[Mcp]")
     CHECK(jobs.any_running_except(jobs.lineage(step)));
     jobs.finish(other, ToolResult::ok());
     CHECK_FALSE(jobs.any_running_except(jobs.lineage(step)));
-    jobs.set_operation(step);
+    jobs.begin_operation(step);
     CHECK(jobs.running_operations() == std::vector<std::string>{step});
 }
 
@@ -525,6 +525,150 @@ TEST_CASE("the job registry caps running jobs and forgets old finished ones", "[
     for (std::size_t i = 0; i < JobRegistry::kKeepFinished; ++i)
         jobs.finish(jobs.create("t", ""), ToolResult::ok());
     CHECK_THROWS_AS(jobs.wait(ids.front(), 0ms), ToolFailure);
+}
+
+TEST_CASE("a caller waits for its running UI closure even through shutdown", "[Mcp]")
+{
+    ManualDispatcher  ui;
+    UiInvoker         invoker(ui, [] { return GuardState{}; });
+    std::atomic<bool> inside{false}, release{false}, finished{false};
+    auto caller = std::async(std::launch::async, [&]() -> std::string {
+        try {
+            invoker.run(GuardClass::Inspect, "look", [&] {
+                inside = true;
+                ui.pump_until([&] { return release.load(); }); // a nested event loop
+                finished = true;
+                return json();
+            });
+            return "ok";
+        } catch (const ToolFailure& f) {
+            return f.what();
+        }
+    });
+    std::thread ui_thread([&] { ui.pump_until([&] { return finished.load(); }, 5000ms); });
+    while (!inside)
+        std::this_thread::sleep_for(5ms);
+    invoker.shutdown();
+    // The closure still uses the caller's stack, so the caller must not have returned.
+    CHECK(caller.wait_for(200ms) == std::future_status::timeout);
+    release = true;
+    ui_thread.join();
+    CHECK(caller.get() == "ok");
+}
+
+TEST_CASE("a closure queued before a UI rebuild does not run after it", "[Mcp]")
+{
+    ManualDispatcher      ui;
+    std::atomic<uint64_t> generation{1};
+    UiInvoker             invoker(ui, [] { return GuardState{}; }, [&] { return generation.load(); });
+    std::atomic<bool>     ran{false};
+    auto caller = std::async(std::launch::async, [&]() -> std::string {
+        try {
+            invoker.run(GuardClass::Mutate, "click", [&] {
+                ran = true;
+                return json();
+            });
+            return "ok";
+        } catch (const ToolFailure& f) {
+            return f.what();
+        }
+    });
+    std::this_thread::sleep_for(50ms);
+    generation = 2; // a language change rebuilt the UI while the closure waited
+    ui.pump_until([&] { return caller.wait_for(0ms) == std::future_status::ready; });
+    CHECK(caller.get().find("recreated") != std::string::npos);
+    CHECK_FALSE(ran);
+}
+
+TEST_CASE("operation admission is checked again when a mutate call reaches the UI thread", "[Mcp]")
+{
+    Harness h;
+    std::atomic<bool> release{false};
+    h.registry.add(tool("edit", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
+        return ToolResult::ok(ctx.run_ui([] { return json("edited"); }));
+    }));
+    ToolDef slice = tool("slice", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            ctx.begin_operation();
+            return json();
+        });
+        while (!release)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok();
+    });
+    h.registry.add(slice);
+    h.start();
+    // The UI thread is held, so both calls are admitted before either runs; the slice runs first.
+    std::atomic<bool> hold{true};
+    h.ui.post([&] {
+        while (hold)
+            std::this_thread::sleep_for(5ms);
+    });
+    auto s = std::async(std::launch::async, [&] { return h.call("slice"); });
+    std::this_thread::sleep_for(100ms);
+    auto e = std::async(std::launch::async, [&] { return h.call("edit"); });
+    std::this_thread::sleep_for(100ms);
+    hold = false;
+    const ToolResult edited = e.get();
+    CHECK(edited.is_error);
+    CHECK(edited.message.find("Busy: job") != std::string::npos);
+    release = true;
+    s.get();
+}
+
+TEST_CASE("only one operation runs at a time", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string a = jobs.create("slice", "");
+    const std::string b = jobs.create("export", "");
+    CHECK(jobs.begin_operation(a).empty());
+    CHECK(jobs.begin_operation(b) == a);
+    jobs.finish(a, ToolResult::ok());
+    CHECK(jobs.begin_operation(b).empty());
+}
+
+TEST_CASE("ancestry lists the job chain nearest first", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string outer = jobs.create("run_script", "");
+    const std::string inner = jobs.create("run_script", outer);
+    const std::string step  = jobs.create("dialog_auto_answer", inner);
+    CHECK(jobs.ancestry(step) == std::vector<std::string>{step, inner, outer});
+}
+
+TEST_CASE("a finished job stays while its parent script runs", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string script = jobs.create("run_script", "");
+    const std::string saved  = jobs.create("run_action", script);
+    jobs.finish(saved, ToolResult::ok({{"x", 1}}));
+    for (std::size_t i = 0; i < JobRegistry::kKeepFinished + 5; ++i)
+        jobs.finish(jobs.create("t", ""), ToolResult::ok());
+    CHECK(jobs.wait(saved, 0ms).has_value());
+    jobs.finish(script, ToolResult::ok());
+    for (std::size_t i = 0; i < JobRegistry::kKeepFinished + 5; ++i)
+        jobs.finish(jobs.create("t", ""), ToolResult::ok());
+    CHECK_THROWS_AS(jobs.wait(saved, 0ms), ToolFailure);
+}
+
+TEST_CASE("drain reports a job thread that has not returned", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> release{false};
+    h.registry.add(tool("stuck", GuardClass::Mutate, [&](const json&, ToolContext&) {
+        while (!release)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok();
+    }));
+    h.timing.soft_budget = 50ms;
+    h.start();
+    auto call = std::async(std::launch::async, [&] { return h.call("stuck"); });
+    std::this_thread::sleep_for(100ms);
+    h.core->shutdown();
+    CHECK_FALSE(h.core->drain(200ms));
+    release = true;
+    call.get();
+    CHECK(h.core->drain(2000ms));
 }
 
 TEST_CASE("the journal records client calls in order and replays jobs with await false", "[Mcp]")

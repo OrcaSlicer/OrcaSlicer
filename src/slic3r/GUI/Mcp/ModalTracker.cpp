@@ -15,6 +15,7 @@
 #include <wx/stattext.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
+#include <wx/toplevel.h>
 #include <wx/utils.h>
 #include <wx/vector.h>
 #include <wx/window.h>
@@ -102,6 +103,11 @@ std::string class_name(const wxWindow* window)
 #endif
 }
 
+bool is_picker(wxDialog* dialog)
+{
+    return dynamic_cast<wxFileDialogBase*>(dialog) != nullptr || dynamic_cast<wxDirDialogBase*>(dialog) != nullptr;
+}
+
 bool is_native_dialog(wxDialog* dialog)
 {
     return dynamic_cast<wxMessageDialogBase*>(dialog) != nullptr || dynamic_cast<wxFileDialogBase*>(dialog) != nullptr ||
@@ -166,7 +172,16 @@ AutoAnswerRule make_rule(const std::string& pattern, const std::string& button)
     return rule;
 }
 
-ModalTracker::ModalTracker() { Register(); }
+ModalTracker::ModalTracker()
+{
+    Register();
+    // A modal opened before the tracker existed (the server turned on from Preferences, itself
+    // modal) blocks the event loop all the same; the guards and dialog tools must see it.
+    for (wxWindow* w : wxTopLevelWindows)
+        if (auto* dialog = dynamic_cast<wxDialog*>(w); dialog != nullptr && dialog->IsModal())
+            m_stack.push_back(dialog);
+    publish();
+}
 
 ModalTracker::~ModalTracker() { Unregister(); }
 
@@ -227,7 +242,9 @@ int ModalTracker::Enter(wxDialog* dialog)
                 for (AutoAnswerRule& rule : layer->second)
                     if (std::regex_search(text, rule.compiled)) {
                         const int id = resolve_dialog_button(dialog, rule.button);
-                        if (id != wxID_NONE) {
+                        // A file or folder picker answered with anything but cancel would return
+                        // without a path, so only cancel answers one.
+                        if (id != wxID_NONE && (id == wxID_CANCEL || !is_picker(dialog))) {
                             ++rule.uses;
                             BOOST_LOG_TRIVIAL(info) << "MCP: auto-answered dialog \"" << info["title"].get<std::string>() << "\" with "
                                                     << rule.button << " (rule \"" << rule.pattern << "\")";

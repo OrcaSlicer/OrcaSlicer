@@ -73,6 +73,8 @@ nlohmann::json describe_dialog(wxDialog* dialog);
 // True for dialogs implemented by the OS (wxMessageDialog, file and directory pickers): they have
 // no wx children to inspect or click and can only be pre-answered.
 bool is_native_dialog(wxDialog* dialog);
+// True for file and directory pickers, which auto-answer rules can only cancel.
+bool is_picker(wxDialog* dialog);
 
 // The id a button name or label stands for in `dialog`, or wxID_NONE. UI thread only.
 int resolve_dialog_button(wxDialog* dialog, const std::string& button);

@@ -64,6 +64,12 @@ int         arg_int(const nlohmann::json& args, const char* key, int fallback);
 double      arg_double(const nlohmann::json& args, const char* key, double fallback);
 bool        arg_bool(const nlohmann::json& args, const char* key, bool fallback);
 
+// A setting value from JSON in the serialized form set_deserialize accepts: "3", "0.2", "1"/"0"
+// for booleans, "a,b" for arrays. A list of strings (`key` names a coStrings option, such as
+// post_process) is quoted and separated by semicolons, as ConfigOptionStrings writes it, since its
+// entries may contain commas. Throws ToolFailure for values with no such form.
+std::string to_config_string(const nlohmann::json& value, const std::string& key = {});
+
 // Page a JSON array: {total, offset, items:[...]}.
 nlohmann::json page(const nlohmann::json& items, const nlohmann::json& args, std::size_t default_limit = 100);
 

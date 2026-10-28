@@ -14,6 +14,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -125,6 +126,28 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
             c.blank_canvas = c.blank_canvas || is_blank(frame);
             composite(c.image, frame, client_offset_in(*glc, window));
         }
+
+    // Other OpenGL views (the Design tab's) have no frame capture: say so rather than return their
+    // area as the window capture left it.
+    std::vector<wxWindow*> plater_canvases;
+    if (plater != nullptr)
+        for (GLCanvas3D* canvas : {plater->get_view3D_canvas3D(), plater->get_preview_canvas3D(), plater->get_assmeble_canvas3D()})
+            if (canvas != nullptr)
+                plater_canvases.push_back(canvas->get_wxglcanvas());
+    std::function<bool(wxWindow*)> other_gl = [&](wxWindow* w) {
+        if (!w->IsShownOnScreen())
+            return false;
+        if (dynamic_cast<wxGLCanvas*>(w) != nullptr && std::find(plater_canvases.begin(), plater_canvases.end(), w) == plater_canvases.end())
+            return true;
+        for (wxWindow* child : w->GetChildren())
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && other_gl(child))
+                return true;
+        return false;
+    };
+    if (other_gl(&window)) {
+        c.approximate = true;
+        c.note += (c.note.empty() ? "" : "; ") + std::string("a 3D view outside Prepare and Preview (the Design tab) is not captured");
+    }
     return c;
 }
 
@@ -178,16 +201,24 @@ bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approxi
         XTranslateCoordinates(dpy, xid, attr.root, 0, 0, &rx, &ry, &child);
         XWindowAttributes root;
         XGetWindowAttributes(dpy, attr.root, &root);
-        if (rx < 0 || ry < 0 || rx + attr.width > root.width || ry + attr.height > root.height) {
+        // XGetImage fails with BadMatch for any part outside the screen, so only the visible part
+        // is read; the rest stays black.
+        const wxRect visible = wxRect(rx, ry, attr.width, attr.height).Intersect(wxRect(0, 0, root.width, root.height));
+        if (visible.IsEmpty()) {
+            err = "The window is off-screen";
+            return false;
+        }
+        if (visible.GetSize() != wxSize(attr.width, attr.height)) {
             approximate = true;
             note        = "part of the window is off-screen";
         }
-        XImage* img = XGetImage(dpy, xid, 0, 0, unsigned(attr.width), unsigned(attr.height), AllPlanes, ZPixmap);
+        XImage* img = XGetImage(dpy, xid, visible.x - rx, visible.y - ry, unsigned(visible.width), unsigned(visible.height), AllPlanes,
+                                ZPixmap);
         if (img == nullptr) {
             err = "XGetImage failed";
             return false;
         }
-        out.Create(attr.width, attr.height, false);
+        out.Create(attr.width, attr.height, true);
         auto shift = [](unsigned long mask) {
             int s = 0;
             while (mask != 0 && (mask & 1) == 0) {
@@ -211,7 +242,7 @@ bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approxi
                 }
             }
         };
-        blit(img, 0, 0);
+        blit(img, visible.x - rx, visible.y - ry);
         XDestroyImage(img);
 
         // Without backing store, parts covered by another window read back black. Our own popups
@@ -232,7 +263,7 @@ bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approxi
         Window   root_ret = 0, parent = 0, *stack = nullptr;
         unsigned nstack = 0;
         if (XQueryTree(dpy, attr.root, &root_ret, &parent, &stack, &nstack) && stack != nullptr) {
-            const wxRect mine(rx, ry, attr.width, attr.height);
+            const wxRect mine = visible; // only on-screen parts can be read
             bool         above = false;
             for (unsigned i = 0; i < nstack; ++i) { // bottom to top
                 if (stack[i] == top) {

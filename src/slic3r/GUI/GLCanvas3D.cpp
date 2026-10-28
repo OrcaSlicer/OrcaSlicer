@@ -2525,7 +2525,7 @@ bool GLCanvas3D::render_and_capture(wxImage& out, std::string& err)
         return false;
     }
     if (m_canvas == nullptr || !_is_shown_on_screen()) {
-        err = "The 3D view is not shown; switch to the Prepare or Preview tab first";
+        err = "The 3D view is not shown; switch to the Prepare or Preview tab first (the Design tab's view can't be captured; use target window)";
         return false;
     }
     out = wxImage();

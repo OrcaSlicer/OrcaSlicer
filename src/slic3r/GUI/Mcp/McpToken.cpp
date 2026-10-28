@@ -1,4 +1,5 @@
 #include "McpToken.hpp"
+#include "McpPaths.hpp"
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -60,11 +61,12 @@ fs::path mcp_dir(const fs::path& datadir)
 
 bool write_private_file(const fs::path& path, const std::string& content, std::string& err)
 {
-    const fs::path tmp = path.parent_path() / (path.filename().string() + ".tmp-" + random_token().substr(0, 8));
+    fs::path tmp = path;
+    tmp += ".tmp-" + random_token().substr(0, 8);
 #ifndef _WIN32
     const int fd = ::open(tmp.string().c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
     if (fd < 0) {
-        err = "cannot create " + tmp.string();
+        err = "cannot create " + path_to_utf8(tmp);
         return false;
     }
     const char* data = content.data();
@@ -74,7 +76,7 @@ bool write_private_file(const fs::path& path, const std::string& content, std::s
         if (n <= 0) {
             ::close(fd);
             ::unlink(tmp.string().c_str());
-            err = "cannot write " + tmp.string();
+            err = "cannot write " + path_to_utf8(tmp);
             return false;
         }
         data += n;
@@ -84,9 +86,9 @@ bool write_private_file(const fs::path& path, const std::string& content, std::s
 #else
     // %APPDATA% is private to the user through its ACL; the file inherits it.
     {
-        boost::nowide::ofstream out(tmp.string(), std::ios::binary | std::ios::trunc);
+        boost::nowide::ofstream out(path_to_utf8(tmp).c_str(), std::ios::binary | std::ios::trunc);
         if (!out) {
-            err = "cannot create " + tmp.string();
+            err = "cannot create " + path_to_utf8(tmp);
             return false;
         }
         out << content;
@@ -96,7 +98,7 @@ bool write_private_file(const fs::path& path, const std::string& content, std::s
     fs::rename(tmp, path, ec);
     if (ec) {
         fs::remove(tmp, ec);
-        err = "cannot replace " + path.string();
+        err = "cannot replace " + path_to_utf8(path);
         return false;
     }
     return true;
@@ -107,7 +109,7 @@ std::string load_or_create_token(const fs::path& datadir, std::string& err)
     const fs::path file = mcp_dir(datadir) / "token";
     boost::system::error_code ec;
     if (fs::exists(file, ec)) {
-        boost::nowide::ifstream in(file.string());
+        boost::nowide::ifstream in(path_to_utf8(file).c_str());
         std::string             token;
         std::getline(in, token);
         token.erase(std::remove_if(token.begin(), token.end(), [](unsigned char c) { return std::isspace(c) != 0; }), token.end());

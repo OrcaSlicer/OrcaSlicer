@@ -7243,6 +7243,8 @@ struct Plater::priv
     std::deque<Plater::ExportRun> export_runs;
     // A background run started; a run still open from before was restarted, so it ends cancelled.
     void note_run_started();
+    void note_run_rejected(const std::string& error);
+    std::string last_validation_error;
     // The background process reported completion: closes the open run and any export in flight.
     void note_process_completed(bool cancelled, bool success, const std::string& error);
     // Missing-plugin set signatures (sorted full refs joined by '\n'), one per notification. They
@@ -11558,6 +11560,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
             // The print is not valid.
             // Show error as notification.
             notification_manager->push_validate_error_notification(err);
+            last_validation_error = err.string;
             //also update the warnings
             process_validation_warnings(warnings);
             return_state |= UPDATE_BACKGROUND_PROCESS_INVALID;
@@ -11608,6 +11611,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         this->main_frame->update_slice_print_status(MainFrame::eEventSliceUpdate, false);
 
         process_completed_with_error = partplate_list.get_curr_plate_index();
+        note_run_rejected(delayed_error_message.empty() ? last_validation_error : delayed_error_message);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: set to process_completed_with_error, return_state=%2%")%__LINE__%return_state;
     }
     else
@@ -23730,6 +23734,10 @@ void Plater::request_slice(bool all_plates)
 
 void Plater::cancel_slicing()
 {
+    // A pending automatic reslice counts as slicing (is_slicing_any()), so it is dropped too.
+    p->auto_reslice_timer.Stop();
+    p->auto_reslice_pending      = false;
+    p->auto_reslice_after_cancel = false;
     if (!p->background_process.idle())
         p->background_process.stop();
 }
@@ -23759,6 +23767,14 @@ uint64_t Plater::slice_request_seq() const { return p->slice_request_seq; }
 uint64_t Plater::slice_run_seq() const { return p->slice_run_seq; }
 uint64_t Plater::export_seq() const { return p->export_seq; }
 
+std::string Plater::plate_validation_error(int plate) const
+{
+    if (p->process_completed_with_error != plate)
+        return {};
+    const std::string& error = p->delayed_error_message.empty() ? p->last_validation_error : p->delayed_error_message;
+    return error.empty() ? std::string("The plate cannot be sliced as configured") : error;
+}
+
 std::optional<Plater::SliceRun> Plater::slice_run(uint64_t seq) const
 {
     for (const SliceRun& run : p->slice_runs)
@@ -23785,7 +23801,24 @@ void Plater::priv::note_run_started()
             run.request_seq_at_finish = slice_request_seq;
         }
     Plater::SliceRun run;
-    run.seq = ++slice_run_seq;
+    run.seq                  = ++slice_run_seq;
+    run.request_seq_at_start = slice_request_seq;
+    run.plate                = partplate_list.get_curr_plate_index();
+    slice_runs.push_back(run);
+    while (slice_runs.size() > kKeepSliceRuns)
+        slice_runs.pop_front();
+}
+
+void Plater::priv::note_run_rejected(const std::string& error)
+{
+    Plater::SliceRun run;
+    run.seq                   = ++slice_run_seq;
+    run.finished              = true;
+    run.error                 = error.empty() ? std::string("The plate cannot be sliced as configured") : error;
+    run.revision_at_finish    = project_revision;
+    run.request_seq_at_finish = slice_request_seq;
+    run.request_seq_at_start  = slice_request_seq;
+    run.plate                 = partplate_list.get_curr_plate_index();
     slice_runs.push_back(run);
     while (slice_runs.size() > kKeepSliceRuns)
         slice_runs.pop_front();

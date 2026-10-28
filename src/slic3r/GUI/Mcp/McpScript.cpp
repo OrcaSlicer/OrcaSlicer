@@ -1,4 +1,5 @@
 #include "McpScript.hpp"
+#include "McpPaths.hpp"
 #include "McpTypes.hpp"
 
 #include <algorithm>
@@ -28,9 +29,9 @@ bool is_job_envelope(const ToolResult& r)
 std::optional<json> resolve_placeholder(const std::string& key, const Script& script, const ScriptContext& ctx)
 {
     if (key == "script_dir")
-        return json(ctx.script_dir.string());
+        return json(path_to_utf8(ctx.script_dir));
     if (key == "out_dir")
-        return json(ctx.out_dir.string());
+        return json(path_to_utf8(ctx.out_dir));
     if (key.rfind("env:", 0) == 0) {
         const char* v = std::getenv(key.substr(4).c_str());
         return json(v ? std::string(v) : std::string());

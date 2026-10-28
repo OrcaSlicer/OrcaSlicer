@@ -39,6 +39,7 @@
 #include <boost/log/trivial.hpp>
 #include "libslic3r/Preset.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Mcp/McpPaths.hpp"
 #include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/GUI/Mcp/McpToken.hpp"
 #include <wx/clipbrd.h>
@@ -1386,11 +1387,16 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_connect(wxString title, wxString 
                                 "others need it from the token file in the configuration folder's mcp directory."));
     token_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
         std::string err;
-        if (Mcp::regenerate_token(boost::filesystem::path(data_dir()), err).empty()) {
+        if (Mcp::regenerate_token(Mcp::path_from_utf8(data_dir()), err).empty()) {
             update_mcp_status(err);
             return;
         }
         wxGetApp().restart_mcp_endpoint(false, &err);
+        const Mcp::McpService *mcp = wxGetApp().mcp_service();
+        if (err.empty() && mcp != nullptr && mcp->serving() && mcp->token_source() != "file")
+            // TRN %s is ORCA_MCP_TOKEN or --mcp-token
+            err = wxString::Format(_L("The new token takes effect on the next start: %s sets this session's token."),
+                                   from_u8(mcp->token_source())).ToUTF8().data();
         update_mcp_status(err);
     });
 

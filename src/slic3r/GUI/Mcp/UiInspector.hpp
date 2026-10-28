@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UiRefs.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -9,8 +10,10 @@
 
 #include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
+class wxBookCtrlBase;
 class wxMenu;
 class wxTopLevelWindow;
 
@@ -31,7 +34,8 @@ struct UiTarget
     GLCanvas3D*         canvas = nullptr;
     int                 menu_id = -1;  // MenuItem
     std::string         menu_path;     // "File>Export>Export G-code"
-    std::string         name;          // ToolbarItem name, Gizmo name
+    std::string         name;          // ToolbarItem name, Gizmo name, notebook page text
+    int                 page = -1;     // Window: a page of the notebook `window`
     int                 gizmo = -1;
     unsigned            imgui_id = 0;  // ImGuiItem
     std::string         imgui_label, imgui_window;
@@ -72,7 +76,9 @@ public:
     nlohmann::json snapshot(const SnapshotOptions& options);
     // A ref ("w12") or a locator object. Throws ToolFailure.
     UiTarget resolve(const nlohmann::json& target);
-    nlohmann::json locator_for(const UiTarget& target) const { return target.locator; }
+    // The locator that finds `target` again in another session, with "index" when it alone would
+    // match several elements. What the journal records.
+    nlohmann::json locator_for(const UiTarget& target);
 
     nlohmann::json click(const UiTarget& target, const ClickOptions& options);
     nlohmann::json input(const UiTarget& target, const nlohmann::json& value, bool submit);
@@ -93,6 +99,10 @@ private:
                    const SnapshotOptions& options);
     void add_canvas_items(GLCanvas3D& canvas, int depth, std::vector<UiNode>& nodes, std::size_t& omitted, const SnapshotOptions& options);
     bool push(UiNode node, UiTarget target, std::vector<UiNode>& nodes, std::size_t& omitted, const SnapshotOptions& options);
+    // What a locator finds, in snapshot order; resolve() and locator_for() share them.
+    std::vector<wxWindow*>                                          match_windows(const nlohmann::json& locator);
+    std::vector<std::pair<GLCanvas3D*, ImGuiWrapper::RecordedItem>> match_imgui(const nlohmann::json& locator);
+    std::vector<std::pair<wxBookCtrlBase*, int>>                    match_tabs(const nlohmann::json& locator);
 
     McpService&         m_service;
     RefTable<UiTarget>  m_refs;

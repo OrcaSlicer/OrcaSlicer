@@ -7,6 +7,11 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
+// UTF-8 text to a native path and back: wide on Windows, where boost's narrow conversion uses the
+// ANSI code page. Agents, scripts, JSON and Orca's data_dir() all speak UTF-8.
+boost::filesystem::path path_from_utf8(const std::string& utf8);
+std::string             path_to_utf8(const boost::filesystem::path& path);
+
 // A file argument from an agent or a script. Paths are UTF-8 and must be absolute: a relative path
 // would resolve against <datadir>/log, where the GUI keeps its working directory.
 std::optional<boost::filesystem::path> resolve_input_path(const std::string& path, std::string& err);

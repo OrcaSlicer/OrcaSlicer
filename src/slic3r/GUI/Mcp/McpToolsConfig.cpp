@@ -118,33 +118,6 @@ json option_meta(const ConfigOptionDef& def)
     return meta;
 }
 
-// "3" for 3, "0.2" for 0.2, "1"/"0" for booleans, "a,b" for arrays: the serialized forms
-// set_deserialize accepts.
-std::string to_config_string(const json& v)
-{
-    if (v.is_string())
-        return v.get<std::string>();
-    if (v.is_boolean())
-        return v.get<bool>() ? "1" : "0";
-    if (v.is_number_integer() || v.is_number_unsigned())
-        return std::to_string(v.get<long long>());
-    if (v.is_number()) {
-        std::ostringstream out;
-        out.precision(15);
-        out << v.get<double>();
-        return out.str();
-    }
-    if (v.is_array()) {
-        std::string out;
-        for (const json& e : v) {
-            if (!out.empty())
-                out += ",";
-            out += to_config_string(e);
-        }
-        return out;
-    }
-    throw ToolFailure("Unsupported value " + v.dump());
-}
 
 // Option keys whose key or label contains `query`, for "did you mean" and for get_settings' query.
 std::vector<std::string> search_keys(const std::string& query, const std::vector<std::string>& within, std::size_t limit)
@@ -275,6 +248,39 @@ json list_presets(const json& args)
 }
 
 } // namespace
+
+std::string to_config_string(const json& v, const std::string& key)
+{
+    if (v.is_array() && !key.empty())
+        if (const ConfigOptionDef* def = print_config_def.get(key); def != nullptr && def->type == coStrings) {
+            std::vector<std::string> values;
+            for (const json& e : v)
+                values.push_back(to_config_string(e));
+            return ConfigOptionStrings(values).serialize();
+        }
+    if (v.is_string())
+        return v.get<std::string>();
+    if (v.is_boolean())
+        return v.get<bool>() ? "1" : "0";
+    if (v.is_number_integer() || v.is_number_unsigned())
+        return std::to_string(v.get<long long>());
+    if (v.is_number()) {
+        std::ostringstream out;
+        out.precision(15);
+        out << v.get<double>();
+        return out.str();
+    }
+    if (v.is_array()) {
+        std::string out;
+        for (const json& e : v) {
+            if (!out.empty())
+                out += ",";
+            out += to_config_string(e);
+        }
+        return out;
+    }
+    throw ToolFailure("Unsupported value " + v.dump());
+}
 
 void register_config_tools(McpService& service)
 {
@@ -433,7 +439,7 @@ void register_config_tools(McpService& service)
                             throw ToolFailure("null removes an object/part override; preset settings always have a value");
                         removals.push_back(it.key());
                     } else {
-                        values.emplace_back(it.key(), to_config_string(it.value()));
+                        values.emplace_back(it.key(), to_config_string(it.value(), it.key()));
                     }
                 }
                 if (t.object == nullptr) {

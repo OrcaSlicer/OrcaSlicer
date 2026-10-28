@@ -69,7 +69,15 @@ ToolDef mutate_tool(std::string name, std::string title, std::string description
     return d;
 }
 
-void settle(ToolContext& ctx) { ctx.run_ui([] { return json(); }); }
+void settle(ToolContext& ctx)
+{
+    // Only a sync point: the change is made already, so a refusal here (a dialog it opened, a UI
+    // rebuild it caused) neither undoes it nor fails the call.
+    try {
+        ctx.observe_ui([] { return json(); });
+    } catch (const ToolFailure&) {
+    }
+}
 
 Plater& ui_plater()
 {
@@ -123,7 +131,7 @@ json poll_ui(ToolContext& ctx, const std::function<json()>& poll, std::chrono::m
 {
     const auto end = std::chrono::steady_clock::now() + timeout;
     for (;;) {
-        json v = ctx.run_ui(poll);
+        json v = ctx.observe_ui(poll);
         if (!v.is_null())
             return v;
         if (ctx.cancelled())

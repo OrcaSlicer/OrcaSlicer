@@ -20,7 +20,8 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 // Bookkeeping for mutate tool calls that run on their own threads. A call that outlives its reply
 // budget stays here until it finishes, so a later `wait {for:"job"}` can return its result; the
-// most recent finished jobs are kept for that purpose. Thread-safe.
+// most recent finished jobs are kept for that purpose, and so is every finished job whose parent (a
+// running script) may still wait for it. Thread-safe.
 class JobRegistry
 {
 public:
@@ -37,10 +38,13 @@ public:
 
     // `id` followed by its parent chain.
     std::set<std::string> lineage(const std::string& id) const;
+    // The same chain in order: `id`, its parent, its parent's parent, ...
+    std::vector<std::string> ancestry(const std::string& id) const;
     // True when a running job exists that is not in `excluded`.
     bool any_running_except(const std::set<std::string>& excluded) const;
     // Operation admission: a job marked as an operation holds the project until it finishes.
-    void                     set_operation(const std::string& id);
+    // Marks `id` unless another operation is running, whose id it then returns ("" on success).
+    std::string              begin_operation(const std::string& id);
     std::vector<std::string> running_operations() const;
 
     // [{id, tool, parent, state, age_ms}] for get_state.

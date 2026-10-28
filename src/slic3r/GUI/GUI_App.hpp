@@ -666,7 +666,10 @@ public:
     // MCP server for AI agents, from Preferences or --mcp/--mcp-script. `serve` opens the HTTP
     // endpoint; a --mcp-script alone needs only the tool catalog. UI thread.
     bool            start_mcp_service(bool serve, std::string* error = nullptr);
+    // Stops the MCP service but keeps it: a call may still be on the stack (a nested event loop).
     void            stop_mcp_service();
+    // Stops it and frees it once no call runs in it. Outside any event loop only (OnExit, CleanUp).
+    void            destroy_mcp_service();
     // Reopens a serving MCP endpoint so a new port or token takes effect; no-op when not serving.
     // A port changed in Preferences replaces one given on the command line.
     bool            restart_mcp_endpoint(bool port_from_preferences, std::string* error = nullptr);

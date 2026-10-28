@@ -1,6 +1,7 @@
 // get_state, wait and get_log: what an agent reads before and after acting.
 
 #include "JobRegistry.hpp"
+#include "McpPaths.hpp"
 #include "libslic3r/Config.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
@@ -92,6 +93,7 @@ json app_state(McpService& service)
                {"ready", service.ready()},
                {"dialogs", service.modals().snapshot()},
                {"auto_answer_rules", service.modals().rules_json()},
+               {"mcp", service.describe()},
                {"jobs", service.jobs().list()}};
     MainFrame* frame  = wxGetApp().mainframe;
     Plater*    plater = wxGetApp().plater();
@@ -213,7 +215,7 @@ void register_app_tools(McpService& service)
             const auto        min_it    = std::find(levels.begin(), levels.end(), min_level);
             const std::size_t lines     = std::size_t(arg_int(args, "lines", 200));
             flush_logs();
-            boost::nowide::ifstream in(file.string());
+            boost::nowide::ifstream in(path_to_utf8(file).c_str());
             std::deque<std::string> tail;
             std::string             line;
             while (std::getline(in, line)) {
@@ -226,7 +228,7 @@ void register_app_tools(McpService& service)
                 if (tail.size() > lines)
                     tail.pop_front();
             }
-            return ToolResult::ok({{"file", file.string()}, {"lines", json(std::vector<std::string>(tail.begin(), tail.end()))}});
+            return ToolResult::ok({{"file", path_to_utf8(file)}, {"lines", json(std::vector<std::string>(tail.begin(), tail.end()))}});
         }));
 }
 

@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -27,6 +28,7 @@ class McpProtocol;
 class ModalTracker;
 class UiInspector;
 struct AutoAnswerRule;
+struct RequestGate;
 
 // The MCP server inside the running app: owns the tool catalog, the UI invoker, jobs, the session
 // journal, the modal-dialog tracker and the HTTP endpoint, and runs a --mcp-script once the app is
@@ -45,8 +47,14 @@ public:
     // `options` runs after mark_ready(). Returns false with `err` set when the endpoint can't start;
     // the catalog stays usable for the script either way.
     bool start(const McpLaunchOptions& options, bool serve, std::string& err);
-    // Stops everything; idempotent. Wakes every waiting call first, so no thread is left behind.
+    // Stops everything; idempotent. Wakes every waiting call and closes the endpoint, but frees
+    // nothing: a call may still be on the UI thread's stack inside a nested event loop, and job and
+    // request threads may still be returning. Destroy the service only after drain() succeeds.
     void stop();
+    // After stop(): waits until no request, call or job thread is inside the service. False when one
+    // is still running after `timeout`; the service must then be kept alive (leaked) rather than
+    // destroyed under it.
+    bool drain(std::chrono::milliseconds timeout);
     // Closes the HTTP endpoint and removes the discovery file; the catalog, running jobs and a
     // launch script carry on, and start() with `serve` opens the endpoint again. This is what
     // turning the server off in Preferences does: a running call may have opened that very dialog,
@@ -79,10 +87,11 @@ public:
     // Refs from ui_snapshot live here, so they survive between calls. UI thread only.
     UiInspector&  inspector() { return *m_inspector; }
 
-    // Auto-answer rules from dialog_auto_answer. Rules registered from inside a script (a job in
-    // `lineage` is a running script) last until that script ends; a client's rules replace the
-    // ones it registered before. Returns "script" or "session". Any thread.
-    std::string set_auto_answer(std::vector<AutoAnswerRule> rules, const std::set<std::string>& lineage);
+    // Auto-answer rules from dialog_auto_answer. Rules registered from inside a script (the nearest
+    // running script in `ancestry`, the caller's job chain, nearest first) last until that script
+    // ends; a client's rules replace the ones it registered before, and end when the endpoint
+    // closes. Returns "script" or "session". Any thread.
+    std::string set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry);
     // run_script brackets its steps with these.
     void begin_script_scope(const std::string& job);
     void end_script_scope(const std::string& job);
@@ -90,8 +99,11 @@ public:
     // Where screenshots and script outputs go when no path is given.
     boost::filesystem::path output_dir() const;
 
-    // {enabled, port, url, token_file, ...} for Preferences and get_state.
+    // {serving, ready, version, port, url, token_file, token_source, discovery_file,
+    // discovery_error} for Preferences and get_state.
     nlohmann::json describe() const;
+    // Where the token in use comes from: "file", "ORCA_MCP_TOKEN" or "--mcp-token".
+    const std::string& token_source() const { return m_token_source; }
 
     // Exit code of a --mcp-script run (0 passed, 1 failed, 2 invalid), -1 when none ran. Read by
     // GUI_Run after the event loop ends; wx ignores OnExit()'s return value.
@@ -104,6 +116,8 @@ private:
 
     McpLaunchOptions m_options;
     std::string      m_token;
+    std::string      m_token_source;
+    std::string      m_discovery_error;
 
     std::unique_ptr<UiDispatcher>  m_dispatcher;
     ToolRegistry                   m_registry;
@@ -113,6 +127,7 @@ private:
     std::unique_ptr<McpCore>       m_core;
     std::unique_ptr<McpProtocol>   m_protocol;
     std::unique_ptr<McpHttpServer> m_http;
+    std::shared_ptr<RequestGate>   m_gate;
     std::unique_ptr<ModalTracker>  m_modals;
     std::unique_ptr<UiInspector>   m_inspector;
 

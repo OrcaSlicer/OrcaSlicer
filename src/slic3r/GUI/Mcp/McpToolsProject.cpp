@@ -33,7 +33,7 @@ namespace {
 
 bool has_extension(const fs::path& p, std::initializer_list<const char*> exts)
 {
-    const std::string name = p.filename().string();
+    const std::string name = path_to_utf8(p.filename());
     for (const char* e : exts)
         if (boost::algorithm::iends_with(name, e))
             return true;
@@ -91,7 +91,7 @@ void register_project_tools(McpService& service)
                 Plater& plater = ui_plater();
                 if (paths.size() == 1 && has_extension(paths[0], {".gcode", ".bgcode"})) {
                     plater.load_gcode(from_path(paths[0]));
-                    return {{"opened", "gcode"}, {"path", paths[0].string()}};
+                    return {{"opened", "gcode"}, {"path", path_to_utf8(paths[0])}};
                 }
                 if (paths.size() == 1 && as != "geometry" && has_extension(paths[0], {".3mf"})) {
                     require_clean_or_discard(plater, discard);
@@ -170,9 +170,10 @@ void register_project_tools(McpService& service)
             const bool all   = plate.is_string() && plate.get<std::string>() == "all";
             if (all && format != "sliced_3mf")
                 throw ToolFailure("plate \"all\" applies to sliced_3mf only");
-            if (format == "gcode")
-                ctx.begin_operation();
             json started = ctx.run_ui([&]() -> json {
+                // A G-code export finishes in the background: held from before it starts.
+                if (format == "gcode")
+                    ctx.begin_operation();
                 Plater& plater = ui_plater();
                 if (plater.model().objects.empty())
                     throw ToolFailure("The project has no objects");

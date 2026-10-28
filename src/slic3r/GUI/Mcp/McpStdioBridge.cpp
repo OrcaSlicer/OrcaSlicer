@@ -1,4 +1,5 @@
 #include "McpStdioBridge.hpp"
+#include "McpPaths.hpp"
 
 #include "McpOptions.hpp"
 #include "libslic3r/Utils.hpp"
@@ -8,7 +9,9 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/address.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/beast/core/error.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
+#include <boost/beast/core/tcp_stream.hpp>
 #include <boost/beast/http/field.hpp>
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/http/read.hpp>
@@ -110,7 +113,7 @@ fs::path default_datadir()
     if (fs::exists(portable))
         return portable;
     const char* appdata = boost::nowide::getenv("APPDATA");
-    return fs::path(appdata ? appdata : ".") / SLIC3R_APP_KEY;
+    return path_from_utf8(appdata ? appdata : ".") / SLIC3R_APP_KEY;
 #else
     char     exe[4096] = {0};
     uint32_t size      = sizeof(exe);
@@ -126,7 +129,7 @@ fs::path default_datadir()
 
 std::optional<Endpoint> read_discovery(const fs::path& datadir)
 {
-    boost::nowide::ifstream in((datadir / "mcp" / "server.json").string());
+    boost::nowide::ifstream in(path_to_utf8(datadir / "mcp" / "server.json").c_str());
     if (!in)
         return std::nullopt;
     const json info = json::parse(in, nullptr, false);
@@ -146,11 +149,15 @@ std::optional<std::pair<int, std::string>> post(const Endpoint& e, const std::st
 {
     if (sent != nullptr)
         *sent = false;
+    // Deadlines only apply to Beast's asynchronous operations, so each step runs as one on a
+    // private io_context. A tool replies within its budget (45 s) and `wait` within 50 s.
     try {
-        net::io_context ioc;
-        tcp::socket     socket(ioc);
-        socket.connect(tcp::endpoint(net::ip::make_address("127.0.0.1"), uint16_t(e.port)));
-        http::request<http::string_body> req{http::verb::post, "/mcp", 11};
+        net::io_context                   ioc;
+        boost::beast::tcp_stream          stream(ioc);
+        http::request<http::string_body>  req{http::verb::post, "/mcp", 11};
+        boost::beast::flat_buffer         buffer;
+        http::response<http::string_body> res;
+        bool                              ok = false;
         req.set(http::field::host, "127.0.0.1:" + std::to_string(e.port));
         req.set(http::field::content_type, "application/json");
         req.set(http::field::accept, "application/json, text/event-stream");
@@ -159,12 +166,23 @@ std::optional<std::pair<int, std::string>> post(const Endpoint& e, const std::st
             req.set(k, v);
         req.body() = body;
         req.prepare_payload();
-        http::write(socket, req);
-        if (sent != nullptr)
-            *sent = true;
-        boost::beast::flat_buffer          buffer;
-        http::response<http::string_body> res;
-        http::read(socket, buffer, res);
+        stream.expires_after(std::chrono::seconds(5));
+        stream.async_connect(tcp::endpoint(net::ip::make_address("127.0.0.1"), uint16_t(e.port)), [&](boost::beast::error_code ec) {
+            if (ec)
+                return;
+            stream.expires_after(std::chrono::seconds(30));
+            http::async_write(stream, req, [&](boost::beast::error_code ec, std::size_t) {
+                if (ec)
+                    return;
+                if (sent != nullptr)
+                    *sent = true;
+                stream.expires_after(std::chrono::seconds(120));
+                http::async_read(stream, buffer, res, [&](boost::beast::error_code ec, std::size_t) { ok = !ec; });
+            });
+        });
+        ioc.run();
+        if (!ok)
+            return std::nullopt;
         return std::make_pair(int(res.result_int()), res.body());
     } catch (const std::exception&) {
         return std::nullopt;
@@ -186,7 +204,7 @@ std::string self_executable(char** argv)
 #ifdef _WIN32
     wchar_t exe[MAX_PATH] = {0};
     GetModuleFileNameW(nullptr, exe, MAX_PATH);
-    return fs::path(exe).string();
+    return path_to_utf8(fs::path(exe));
 #elif defined(__APPLE__)
     char     exe[4096] = {0};
     uint32_t size      = sizeof(exe);
@@ -203,9 +221,9 @@ std::string self_executable(char** argv)
 bool launch_app(const std::string& exe, const std::string& datadir)
 {
 #ifdef _WIN32
-    std::wstring cmd = L"\"" + fs::path(exe).wstring() + L"\" --mcp";
+    std::wstring cmd = L"\"" + path_from_utf8(exe).wstring() + L"\" --mcp";
     if (!datadir.empty())
-        cmd += L" --datadir \"" + fs::path(datadir).wstring() + L"\"";
+        cmd += L" --datadir \"" + path_from_utf8(datadir).wstring() + L"\"";
     STARTUPINFOW        si{};
     PROCESS_INFORMATION pi{};
     si.cb = sizeof(si);
@@ -262,6 +280,8 @@ json error_reply(const json& id, int code, const std::string& message)
 std::map<std::string, std::string> bridge_headers(const json& message, const std::string& negotiated_version)
 {
     std::map<std::string, std::string> h;
+    if (!message.is_object())
+        return h;
     const std::string                  method = message.value("method", "");
     const json                         params = message.contains("params") && message["params"].is_object() ? message["params"] : json::object();
     std::string                        version = negotiated_version;
@@ -309,7 +329,7 @@ int run_stdio_bridge(int argc, char** argv)
         else if (auto v = value("--mcp-port"))
             port_arg = std::atoi(v->c_str());
     }
-    const fs::path datadir = datadir_arg.empty() ? default_datadir() : fs::path(datadir_arg);
+    const fs::path datadir = datadir_arg.empty() ? default_datadir() : path_from_utf8(datadir_arg);
 
     auto resolve = [&]() -> std::optional<Endpoint> {
         std::optional<Endpoint> e = read_discovery(datadir);
@@ -351,6 +371,10 @@ int run_stdio_bridge(int argc, char** argv)
             write_line(error_reply(nullptr, -32700, "Parse error").dump());
             continue;
         }
+        if (!msg.is_object()) {
+            write_line(error_reply(nullptr, -32600, "Each line must be one JSON-RPC message object (batches are not supported)").dump());
+            continue;
+        }
         const bool is_request = msg.is_object() && msg.contains("id") && msg.contains("method");
         if (!endpoint) {
             if (is_request)
@@ -361,26 +385,24 @@ int run_stdio_bridge(int argc, char** argv)
         auto reply = post(*endpoint, line, bridge_headers(msg, negotiated), &sent);
         if ((!reply && !sent) || (reply && reply->first == 401)) {
             // The app restarted, or its port or token changed in Preferences: the discovery file
-            // has the current ones. Only a request the server cannot have acted on is sent again.
+            // has the current ones. Only a request the server cannot have acted on (never sent, or
+            // refused for its token) is sent again.
             if (auto fresh = resolve()) {
                 endpoint = fresh;
                 reply    = post(*endpoint, line, bridge_headers(msg, negotiated), &sent);
             }
-        } else if (!reply) {
-            // Sent, but the connection closed before the reply (the call restarted the server, or
-            // the app quit). Sending it again could run it twice; later calls go to the new endpoint.
-            if (auto fresh = resolve())
-                endpoint = fresh;
-            if (is_request)
-                write_line(error_reply(msg["id"], -32603,
-                                       "OrcaSlicer closed the connection before replying; the call may have run. Check with "
-                                       "get_state before repeating it.")
-                               .dump());
-            continue;
         }
         if (!reply) {
+            // Sent but no reply (the connection closed, or the reply took too long): the call may
+            // have run, and sending it again could run it twice. Later calls go to the current endpoint.
+            if (sent)
+                if (auto fresh = resolve())
+                    endpoint = fresh;
             if (is_request)
-                write_line(error_reply(msg["id"], -32603, "OrcaSlicer's MCP server is not reachable.").dump());
+                write_line(error_reply(msg["id"], -32603,
+                                       sent ? "OrcaSlicer did not reply; the call may have run. Check with get_state before repeating it."
+                                            : "OrcaSlicer's MCP server is not reachable.")
+                               .dump());
             continue;
         }
         if (reply->first == 202 || reply->second.empty())

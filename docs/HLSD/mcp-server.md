@@ -74,7 +74,9 @@ matches. `validate_arguments()` checks arguments against the tool's schema first
 The bearer token is 32 random bytes as 64 hex characters in `<datadir>/mcp/token`: directory 0700
 and file created 0600 with `O_CREAT|O_EXCL` on POSIX, the per-user ACL of `%APPDATA%` on Windows.
 It stays out of AppConfig, whose writes and backups use default permissions. `ORCA_MCP_TOKEN`
-(preferred, as it stays out of the process list) or `--mcp-token` overrides it for one run. While
+(preferred, as it stays out of the process list) or `--mcp-token` overrides it for one run;
+`get_state.mcp.token_source` says which is in force, and "New token" in Preferences says it takes
+effect on the next start while an override holds. While
 serving, `<datadir>/mcp/server.json` holds `{url, port, pid, version, token}` with the token in
 use, so the stdio bridge and the harness connect without the launch environment. It is written
 owner-only via an exclusive temporary file and a rename (`write_private_file()`), and removed on
@@ -89,32 +91,48 @@ the catalog. `get_state.ready` stays false until `post_init()` calls `mark_ready
 need the main window fail with "still starting". `mark_ready()` also starts a command-line script.
 
 The service stops, idempotently, at the start of `MainFrame::shutdown()` when the app closes
-(before panels are destroyed), after a failed initialization (which never reaches `OnExit()`), on
-`wxEVT_END_SESSION` (after which macOS calls `exit()`) and in `OnExit()`. Stopping first wakes every
-waiting call with "shutting down" (`UiInvoker::shutdown()`, `JobRegistry::wake_all()`), then joins
-job threads and stops the HTTP server with time limits, removes the discovery file and turns ImGui
-recording off. A language change runs `MainFrame::shutdown()` from `recreate_GUI()`, which only
-suspends the service: the transport stays up, the UI generation is bumped so every GUI ref goes
-stale, UI calls fail with a request to retry, and `ready` is false until `recreate_GUI()` resumes
-it.
+(before panels are destroyed) and on `wxEVT_END_SESSION` (after which macOS calls `exit()`).
+`McpService::stop()` wakes every waiting call with "shutting down" (`UiInvoker::shutdown()`,
+`JobRegistry::wake_all()`), refuses new calls, closes the endpoint and removes the discovery file,
+drops every auto-answer rule, clears `SyntheticInput` and turns ImGui recording off. It frees
+nothing: a call may still be on the UI thread's stack inside a nested event loop, using the
+inspector and the modal tracker, and job and request threads may still be returning.
+`GUI_App::destroy_mcp_service()`, called from `OnExit()` and from `CleanUp()` after a failed
+initialization, runs outside any event loop, so no closure can be running. It waits with
+`McpService::drain()` until no request, call or job thread is inside the service, and frees it. A
+call that never returns would make freeing a crash, so the service is then left in place instead.
+HTTP request threads reach the protocol through a shared `RequestGate`, which `drain()` closes, so a
+late request gets 503 rather than a freed object.
+
+A language change runs `MainFrame::shutdown()` from `recreate_GUI()`, which only suspends the
+service: the transport stays up, the UI generation is bumped so every GUI ref goes stale, UI calls
+fail with a request to retry, and `ready` is false until `recreate_GUI()` resumes it. A UI closure
+posted before the rebuild refuses to run after it ("not run, safe to retry").
 
 Preferences turns the server on with `GUI_App::start_mcp_service()` and off with
 `McpService::stop_serving()`, which closes only the endpoint and removes the discovery file. The
 catalog, running jobs and a launch script carry on, because the call that opened Preferences may
 itself be an MCP call still on the stack. A new port or token reopens the endpoint through
 `GUI_App::restart_mcp_endpoint()`, and a port set in Preferences replaces `--mcp-port` for the rest
-of the session. Closing the endpoint from the UI thread doesn't wait for in-flight requests, which
-may be waiting on that thread; their replies are dropped. A bind failure is logged, shown as a
-notification and in Preferences, and a start from Preferences never reruns a command-line script.
+of the session. Closing the endpoint drops the session's auto-answer rules, so a person using the
+app afterwards never has a prompt answered for them, and doesn't wait for in-flight requests, which
+may be waiting on the UI thread that closes it; their replies are dropped. A bind failure is
+logged, shown as a notification and in Preferences, and a start from Preferences never reruns a
+command-line script. The modal tracker is created with the service and picks up modal dialogs that
+are already open, such as Preferences when the server is turned on from there.
 
 ## Threading
 
 Tool handlers never run on the UI thread. Anything that touches wx goes through
 `ToolContext::run_ui()`. It posts a closure through `UiInvoker` to a `UiDispatcher`, then waits.
-The dispatcher is `wxApp::CallAfter` in the app and a queue the test drains in tests. The closure
-holds only shared state, never the caller's stack, so it can run safely after the caller gives up.
-A closure still queued after 10 s is abandoned without running, and the call fails saying it was
-not run and is safe to retry.
+The dispatcher is `wxApp::CallAfter` in the app and a queue the test drains in tests. A closure
+still queued after 10 s is abandoned without running, and the call fails saying it was not run and
+is safe to retry. Once a closure has started it may use the caller's stack (the handler's captures),
+so the caller waits for it to finish, through shutdown too; the closure ends when the UI thread
+unwinds out of it. `ToolContext::observe_ui()` runs a closure under the inspect guard whatever the
+tool's class: operations poll their progress with it, and `settle()`, the round trip a tool makes
+after a change so queued events are handled, uses it and ignores a refusal, since the change is
+made already.
 
 `GuardClass` decides what may run when:
 
@@ -131,13 +149,15 @@ refusal lists the dialogs. It is also refused when it would run inside another U
 event loop: a modal, `ProgressDialog::Update` or `wxYield`. The GUI input tools (`ui_click`,
 `ui_input`, `ui_key`) and `dialog_respond` run as recover calls. Once a target resolves outside the
 topmost modal, they apply the mutate checks themselves (`UiInvoker::require_mutate()`), along with
-operation admission.
+operation admission. `cancel` is a recover call too, so neither a dialog the operation opened nor
+another call's nested loop keeps it out.
 
 `ToolDef::inline_call` decides where a call runs. Pure observation tools run on the request
 thread. Every tool that can activate UI runs as a job on its own thread, recover tools that click
 in dialogs included, since a click can open another modal (Preferences, Keyboard shortcuts, Edit).
 `JobRegistry` names jobs `j1`, `j2`, …, records each job's tool and parent, allows 64 running and
-keeps the last 64 results. The request thread waits up to `ToolDef::budget_ms` (45 s, under
+keeps the last 64 results, plus every finished job whose parent (a running script) may still wait
+for it. The request thread waits up to `ToolDef::budget_ms` (45 s, under
 Codex's 60 s tool timeout); after that the reply is `{status: "running", job, tool, note}` and the
 job keeps going until `wait {for: "job"}` (at most 50 s per call) returns its result. The server
 never retries a mutating call, and every envelope tells the model not to either.
@@ -154,28 +174,39 @@ inline call returns `{status: "pending"}`, so at most 32 request threads ever bl
 
 ### Operations
 
-Slicing and G-code export finish in the background process. Their handlers call
-`ToolContext::begin_operation()` and start the work in one short UI closure. `poll_ui()` then checks
-on it from a UI closure every 200 ms, until the work ends or the deadline passes. The deadline is
+Slicing and G-code export finish in the background process. Their handlers start the work in one
+short UI closure, which first calls `ToolContext::begin_operation()`; that fails if another
+operation runs. `poll_ui()` then checks on it through `observe_ui()` every 200 ms, so a dialog that
+opens meanwhile doesn't stop the watch, until the work ends or the deadline passes. The deadline is
 `slice.timeout_s` (default 30 minutes) for a slice and 10 minutes for an export.
 
 **Admission.** While an operation job runs, every other `Mutate` call is refused ("Busy: job j12 (a
 slice or export) is running"), whichever client or script sends it. So an agent can't change the
-project under its own operation. Inline tools, recover tools and `allowed_during_operation` tools
-(`cancel`) still run.
+project under its own operation. The check runs when the call arrives and again in its UI closure,
+where operations start, so a call admitted just before an operation began still can't change the
+project under it. Inline tools, recover tools and `allowed_during_operation` tools (`cancel`) still
+run.
 
 **Identity.** An operation must never take another's completion for its own. `Plater` numbers
 slice requests (`slice_request_seq`, bumped through `request_slice()` by every user-facing slice
-entry point, not by internal restarts) and background runs (`slice_run_seq`), keeping a
-`SliceRunRecord` per run with the project revision and request sequence at its finish.
+entry point, not by internal restarts) and background runs (`slice_run_seq`). It keeps a
+`SliceRunRecord` per run with the request it ran for, its plate, and the project revision and
+request sequence at its finish. A slice the validation refused before running is recorded too, as
+a finished run carrying the validation error.
 `Plater::project_revision()` rises with every undoable model edit, undo/redo, load, new project and
 config change, but not when a plate is selected (`Plater::take_plate_selection_snapshot()`), since
-Slice All selects each plate in turn. A slice ticket ends once nothing slices and it either saw slicing run or waited
-1.5 s with nothing scheduled. It is `superseded` when another request or a revision change came
-during its own runs (or, with none, by the final poll); otherwise each plate is `ok`, `error`,
-`cancelled`, `empty` or `skipped`. An export is numbered in `export_seq` once scheduled, so an
+Slice All selects each plate in turn. A ticket's own runs are those numbered after it began that
+ran for its request; Slice All's later plates run for the same request. A run for a later request
+means someone sliced again, and the ticket is `superseded` at once, without waiting for that slice.
+Otherwise the ticket ends once nothing slices and it either saw slicing run or waited 1.5 s with
+nothing scheduled, and is `superseded` when the project changed, or another slice was requested,
+during its own runs (or, with none, by the final poll). Each plate is then `ok` (a valid result),
+`error` with its own run's message, `cancelled`, `empty`, or `skipped` when no run reached it
+(Slice All stops at a failing plate). An export is numbered in `export_seq` once scheduled, so an
 unchanged number means it never started; otherwise its `ExportRecord` ends `ok`, `failed`,
-`cancelled` or `superseded`. A G-code export with a path is refused while slicing runs. The
+`cancelled` or `superseded`. A G-code export with a path is refused while slicing runs, and
+`run_action export_gcode` needs a path: without one it would ask in a native file dialog that MCP
+can't fill in. The
 decision logic is in `McpOperations`, which uses neither wx nor `Plater`.
 
 **Idle.** `wait {for: "idle"}` holds when no modal is open, nothing slices (`Plater::is_slicing_any()`:
@@ -206,7 +237,7 @@ the UI thread.
 | | `select` | select objects, instances or parts, all, or none |
 | | `transform` | translate, rotate or scale one instance, relative or absolute |
 | Slice | `slice` | current, one or all plates; outcome and stats for each plate |
-| | `cancel` | stop the running slice or G-code export (optionally only a given job); allowed during an operation |
+| | `cancel` | stop the running slice or G-code export, or a pending automatic reslice (optionally only a given job); allowed during an operation |
 | View | `set_view` | tab, camera, preview layers and color scheme, window size |
 | | `screenshot` | window, 3D canvas, topmost dialog or one widget: a downscaled image and a full-size PNG |
 | GUI | `ui_snapshot` | widgets, menus, GL toolbar items, gizmos and ImGui items, with refs |
@@ -225,7 +256,9 @@ Each tool family registers itself from its own `McpTools*.cpp` through `register
 List tools take `limit` and `offset` and report `total` and `next_offset`. `McpPaths.hpp` requires
 absolute paths, since a relative one would resolve against `<datadir>/log`, the GUI's working
 directory; an output's directory must exist, and an existing file is replaced only with
-`overwrite: true`.
+`overwrite: true`. Paths arrive and leave as UTF-8 text, and so does Orca's `data_dir()`;
+`path_from_utf8()` and `path_to_utf8()` convert, through wide strings on Windows, where boost's
+narrow conversion would use the ANSI code page.
 
 ## Speed Dial catalog
 
@@ -309,22 +342,28 @@ journal stores. A locator is one of:
 
 - `{option: "layer_height"}` for a setting field;
 - `{label, class, name, within, index}` for other widgets;
+- `{tab: "General", within}` for a notebook page;
 - `{menu: "File>Export>Export G-code"}`, `{gltoolbar: "arrange"}` or `{gizmo: "Move"}`;
-- `{imgui: "label", window, canvas}` for an ImGui item.
+- `{imgui: "label", window, canvas, index}` for an ImGui item.
 
 A label that matches both a row's label and the one field it names resolves to the field.
 `within` names a window other than the main one, whose title follows the project name and is left
-out of locators. Before
+out of locators. A locator that matches several elements needs `index`; the journal records one
+(`UiInspector::locator_for()`) whenever the element it acted on was not the only match. Before
 acting, a widget is scrolled into view, as a person would. On GTK this goes through the scrolled
 window's adjustment, as the mouse wheel does, because `wxScrollHelper::Scroll()` leaves native
 labels unpainted.
 
-Activation prefers a widget's own dispatch: `wxEVT_MENU`, `GLToolbar::force_left_action()`,
-`GLGizmosManager::open_gizmo()`, a native control's semantic event, or a custom widget's public API.
-Canvas gestures and ImGui items get synthesized wx events with a render between steps.
+Activation prefers a widget's own dispatch: `wxEVT_MENU`, `GLToolbar::force_left_action()` (or
+`force_right_action()` for a right click), `GLGizmosManager::open_gizmo()`, a notebook's
+`SetSelection()`, a native control's semantic event, or a custom widget's public API. Canvas
+gestures and ImGui items get synthesized wx events with a render between steps.
 `ImGuiWrapper::set_item_recording()` supplies the ImGui items with their rectangles and checked
-state. `SyntheticInput` holds a gesture's keys, buttons and pointer for canvas code that reads
-hardware state through `get_key_state()` and `get_mouse_state()`. Keys without a target go to the
+state; `ui_input` on an ImGui checkbox clicks it only when its state differs. `SyntheticInput` holds
+a gesture's keys, buttons and pointer for code that reads hardware state through `get_key_state()`
+and `get_mouse_state()`: the canvas, gizmos, and the object list's Ctrl/Shift multi-select. Held
+keys are released however the gesture ends; a `ui_mouse` `down` keeps its button held until an
+`up`, another gesture or the service's stop. Keys without a target go to the
 focused window inside the topmost modal, else that modal, else the focused window, else the 3D
 canvas.
 
@@ -333,12 +372,15 @@ publishes the snapshot `[{title, message, class, native, buttons}]`. `dialog_res
 topmost wx dialog's button, so the dialog's own handler runs, or ends the dialog with that id when
 no such button exists. A native dialog can only be answered ahead with a `dialog_auto_answer` rule:
 a regex over title and message, and a button. `Enter()` then returns that button's id without
-showing the dialog, and logs it; file dialogs can only be cancelled. A new rule also answers a
+showing the dialog, and logs it; a file or folder picker can only be cancelled, since any other
+answer would return without a path. A new rule also answers a
 matching wx dialog that is already open. A prompt posted around the same time, such as the restore
 prompt after startup, is handled whether it opens before or after the rule. A script's rules end
 with the script, a client's call replaces its earlier rules, and `get_state` lists the rules in
-force. `webview_eval` runs JavaScript with `RunScriptAsync` and waits for the result event, up to
-`timeout_s` (default 10); a JSON result comes back parsed.
+force. `webview_eval` runs JavaScript with `RunScriptAsync`. The result arrives as an event on the
+UI thread, in a `ScriptSink` that only the UI thread creates and deletes, along with its weak
+reference to the web view. The job thread waits for the result, up to `timeout_s` (default 10),
+without the UI; a JSON result comes back parsed.
 
 ## Screenshots
 
@@ -368,7 +410,10 @@ On every platform, a canvas that can't be captured keeps whatever the window cap
 result is approximate. A canvas frame that reads back black (`is_blank()`, a stray pixel aside) has
 not been drawn yet. This happens on Wayland for a moment after the canvas is first shown, and while
 GNOME's overview hides an XWayland window. Such a capture is taken again every 300 ms for up to 3 s,
-then returned as approximate, saying so. Minimized and hidden windows fail. X11 keeps no backing store, so a part
+then returned as approximate, saying so. A 3D view other than Prepare's and Preview's (the Design
+tab's) has no frame capture: a window capture says it is left out, and `target: "canvas"` refuses.
+Minimized and hidden windows fail. X11 reads only the on-screen part of a window (`XGetImage` fails
+for the rest), which leaves the remainder black. X11 keeps no backing store, so a part
 covered by another window reads back black. OrcaSlicer's own popups and tooltips stacked above the
 window are read and drawn in, as they appear on screen; another application's window leaves the
 hole, and the result is approximate. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/screenshot-<timestamp>.png`. The image
@@ -437,7 +482,9 @@ on in Preferences. A request that could not be sent, or was refused with 401 bec
 changed, is sent once more to the endpoint the discovery file names now: the app restarted, or its
 port or token changed in Preferences. A request that was sent but lost its reply is never sent
 again, since it may have run. The client gets an error saying so, and later requests go to the new
-endpoint.
+endpoint. A request gets 5 s to connect, 30 s to be sent and 120 s for its reply (a tool replies
+within its 45 s budget, `wait` within 50 s), so a server that never replies can't hang the agent.
+A line that is valid JSON but not one message object, such as a batch, gets an error reply.
 
 ## Configuration
 
@@ -462,7 +509,7 @@ Unit tests are Catch2 cases tagged `[Mcp]` in `tests/slic3rutils/test_mcp_*.cpp`
 `UiInvoker`, `McpCore` and `JobRegistry` on a hand-stepped dispatcher (guards, abandoned calls,
 jobs, blocked_by_dialog, admission, slots, idle, journal); `test_mcp_operations` the slice and
 export outcomes; `test_mcp_script` parsing, substitution, matchers and await; `test_mcp_ui` labels,
-snapshot text, ref liveness and synthetic key state. End to end, `tools/mcp/orca_mcp.py` launches
+snapshot text, ref liveness and synthetic key state; `test_mcp_tools` setting serialization. End to end, `tools/mcp/orca_mcp.py` launches
 the app on a private Xvfb display (with `-noreset`, and the pointer parked in a corner so no tooltip
 lands in a screenshot) and runs `tools/mcp/smoke_test.json`. `tools/mcp/tests/script_basic.json`
 checks `--mcp-script` headless, `tools/mcp/test_stdio_bridge.py` the stdio bridge, and

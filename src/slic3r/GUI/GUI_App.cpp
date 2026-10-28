@@ -2932,7 +2932,7 @@ bool GUI_App::OnInit()
 
 int GUI_App::OnExit()
 {
-    stop_mcp_service();
+    destroy_mcp_service();
     stop_http_server();
     stop_sync_user_preset();
     if (m_startup_cloud_plugin_fetch_thread.joinable())
@@ -2997,7 +2997,7 @@ void GUI_App::CleanUp()
         m_startup_cloud_plugin_fetch_thread.join();
     // Same reason: the MCP server started before the first startup dialog, so an initialization that
     // failed after it never reaches OnExit().
-    stop_mcp_service();
+    destroy_mcp_service();
     wxApp::CleanUp();
 }
 
@@ -8498,10 +8498,22 @@ bool GUI_App::restart_mcp_endpoint(bool port_from_preferences, std::string* erro
 
 void GUI_App::stop_mcp_service()
 {
+    if (m_mcp)
+        m_mcp->stop();
+}
+
+void GUI_App::destroy_mcp_service()
+{
     if (!m_mcp)
         return;
     m_mcp->stop();
-    m_mcp.reset();
+    if (m_mcp->drain(std::chrono::seconds(10))) {
+        m_mcp.reset();
+    } else {
+        // A call is still running inside the service; freeing it under that call would crash.
+        BOOST_LOG_TRIVIAL(error) << "MCP server: a call did not return at exit; leaving the service in place";
+        (void) m_mcp.release();
+    }
 }
 
 #ifdef __linux__

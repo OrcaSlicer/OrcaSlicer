@@ -33,53 +33,71 @@ const char* to_string(ExportStatus status)
     return "failed";
 }
 
-std::vector<PlateOutcome> classify_plates(const std::vector<int>& requested, const std::vector<PlateObservation>& plates, bool cancelled)
+std::vector<SliceRunRecord> own_runs(const SliceTicketState& ticket, const SliceObservation& obs)
 {
-    std::vector<PlateOutcome> out;
-    out.reserve(requested.size());
+    std::vector<SliceRunRecord> out;
+    for (const SliceRunRecord& run : obs.runs_since_start)
+        if (run.seq > ticket.run_seq_before && run.request_seq_at_start == ticket.request_seq_mine)
+            out.push_back(run);
+    return out;
+}
+
+std::vector<PlateResult> classify_plates(const std::vector<int>& requested, const std::vector<PlateObservation>& plates,
+                                         const std::vector<SliceRunRecord>& own_runs)
+{
+    const bool cancelled = std::any_of(own_runs.begin(), own_runs.end(), [](const SliceRunRecord& r) { return r.cancelled; });
+    std::vector<PlateResult> out;
     for (int index : requested) {
         auto it = std::find_if(plates.begin(), plates.end(), [index](const PlateObservation& p) { return p.index == index; });
+        const SliceRunRecord* last = nullptr;
+        for (const SliceRunRecord& run : own_runs)
+            if (run.plate == index && run.finished)
+                last = &run;
         if (it == plates.end())
-            out.push_back(PlateOutcome::Skipped); // the plate no longer exists
+            out.push_back({PlateOutcome::Skipped, {}}); // the plate no longer exists
         else if (it->empty)
-            out.push_back(PlateOutcome::Empty);
+            out.push_back({PlateOutcome::Empty, {}});
         else if (it->valid)
-            out.push_back(PlateOutcome::Ok);
-        else if (it->error)
-            out.push_back(PlateOutcome::Error);
+            out.push_back({PlateOutcome::Ok, {}});
+        else if (last != nullptr && !last->error.empty())
+            out.push_back({PlateOutcome::Error, last->error});
+        else if (last != nullptr && last->cancelled)
+            out.push_back({PlateOutcome::Cancelled, {}});
+        else if (last != nullptr)
+            out.push_back({PlateOutcome::Error, "the slice finished without a result"});
+        else if (!it->error.empty())
+            out.push_back({PlateOutcome::Error, it->error});
         else
-            out.push_back(cancelled ? PlateOutcome::Cancelled : PlateOutcome::Skipped);
+            out.push_back({cancelled ? PlateOutcome::Cancelled : PlateOutcome::Skipped, {}});
     }
     return out;
 }
 
 TicketStatus slice_status(const SliceTicketState& ticket, const SliceObservation& obs, std::chrono::steady_clock::time_point now)
 {
+    for (const SliceRunRecord& run : obs.runs_since_start)
+        if (run.seq > ticket.run_seq_before && run.request_seq_at_start > ticket.request_seq_mine)
+            return TicketStatus::Superseded;
     if (obs.slicing_any)
         return TicketStatus::Pending;
-    if (!ticket.seen_running && obs.runs_since_start.empty() && now - ticket.started < kSliceStartGrace)
+    const std::vector<SliceRunRecord> mine = own_runs(ticket, obs);
+    if (!ticket.seen_running && mine.empty() && now - ticket.started < kSliceStartGrace)
         return TicketStatus::Pending;
-    bool any_run = false;
-    for (const SliceRunRecord& run : obs.runs_since_start) {
-        if (run.seq <= ticket.run_seq_before)
-            continue;
+    for (const SliceRunRecord& run : mine) {
         if (!run.finished)
             return TicketStatus::Pending;
-        any_run = true;
         if (run.request_seq_at_finish != ticket.request_seq_mine || run.revision_at_finish != ticket.revision_at_start)
             return TicketStatus::Superseded;
     }
-    if (!any_run && (obs.request_seq != ticket.request_seq_mine || obs.current_revision != ticket.revision_at_start))
+    if (mine.empty() && (obs.request_seq != ticket.request_seq_mine || obs.current_revision != ticket.revision_at_start))
         return TicketStatus::Superseded;
     return TicketStatus::Done;
 }
 
 bool slice_cancelled(const SliceTicketState& ticket, const SliceObservation& obs)
 {
-    for (const SliceRunRecord& run : obs.runs_since_start)
-        if (run.seq > ticket.run_seq_before && run.cancelled)
-            return true;
-    return false;
+    const std::vector<SliceRunRecord> mine = own_runs(ticket, obs);
+    return std::any_of(mine.begin(), mine.end(), [](const SliceRunRecord& r) { return r.cancelled; });
 }
 
 ExportStatus export_status(uint64_t seq_before, uint64_t seq_after, const std::optional<ExportRecord>& record, uint64_t revision_at_start)

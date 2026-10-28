@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -13,7 +14,9 @@ using namespace std::chrono_literals;
 
 namespace {
 
-SliceRunRecord run(uint64_t seq, uint64_t revision, uint64_t request, bool cancelled = false, bool finished = true)
+// A run that started for request `started_for` (5, the test ticket's own, unless given).
+SliceRunRecord run(uint64_t seq, uint64_t revision, uint64_t request, bool cancelled = false, bool finished = true,
+                   uint64_t started_for = 5, int plate = 0)
 {
     SliceRunRecord r;
     r.seq                   = seq;
@@ -21,7 +24,24 @@ SliceRunRecord run(uint64_t seq, uint64_t revision, uint64_t request, bool cance
     r.cancelled             = cancelled;
     r.revision_at_finish    = revision;
     r.request_seq_at_finish = request;
+    r.request_seq_at_start  = started_for;
+    r.plate                 = plate;
     return r;
+}
+
+SliceRunRecord plate_run(uint64_t seq, int plate, std::string error = {}, bool cancelled = false)
+{
+    SliceRunRecord r = run(seq, 1, 5, cancelled, true, 5, plate);
+    r.error          = std::move(error);
+    return r;
+}
+
+std::vector<PlateOutcome> outcomes(const std::vector<PlateResult>& results)
+{
+    std::vector<PlateOutcome> out;
+    for (const PlateResult& r : results)
+        out.push_back(r.outcome);
+    return out;
 }
 
 SliceTicketState ticket(uint64_t request_mine, uint64_t run_before, uint64_t revision)
@@ -49,11 +69,32 @@ SliceObservation observe(uint64_t request, uint64_t revision, std::vector<SliceR
 
 TEST_CASE("classify_plates reports ok, error, empty, skipped and cancelled", "[Mcp]")
 {
-    const std::vector<PlateObservation> plates{{0, true, false, false}, {1, false, true, false}, {2, false, false, true}, {3, false, false, false}};
-    const auto outcomes = classify_plates({0, 1, 2, 3, 7}, plates, false);
-    CHECK(outcomes == std::vector<PlateOutcome>{PlateOutcome::Ok, PlateOutcome::Error, PlateOutcome::Empty, PlateOutcome::Skipped,
-                                                PlateOutcome::Skipped});
-    CHECK(classify_plates({3}, plates, true) == std::vector<PlateOutcome>{PlateOutcome::Cancelled});
+    const std::vector<PlateObservation> plates{{0, true, false}, {1, false, false}, {2, false, true}, {3, false, false}};
+    const auto results = classify_plates({0, 1, 2, 3, 7}, plates, {plate_run(11, 0), plate_run(12, 1, "boom")});
+    CHECK(outcomes(results) == std::vector<PlateOutcome>{PlateOutcome::Ok, PlateOutcome::Error, PlateOutcome::Empty,
+                                                         PlateOutcome::Skipped, PlateOutcome::Skipped});
+    CHECK(results[1].error == "boom");
+    CHECK(outcomes(classify_plates({3}, plates, {plate_run(11, 0, {}, true)})) == std::vector<PlateOutcome>{PlateOutcome::Cancelled});
+}
+
+TEST_CASE("Slice All stopping at a failing plate leaves the later plates skipped", "[Mcp]")
+{
+    const std::vector<PlateObservation> plates{{0, true, false}, {1, false, false}, {2, false, false}};
+    const auto results = classify_plates({0, 1, 2}, plates, {plate_run(11, 0), plate_run(12, 1, "Floating regions")});
+    CHECK(outcomes(results) == std::vector<PlateOutcome>{PlateOutcome::Ok, PlateOutcome::Error, PlateOutcome::Skipped});
+    CHECK(results[2].error.empty());
+}
+
+TEST_CASE("a plate the validation refused reports that error", "[Mcp]")
+{
+    // Refused at the request: Plater records a finished run carrying the validation message.
+    auto results = classify_plates({0}, {{0, false, false}}, {plate_run(11, 0, "Nozzle too small")});
+    CHECK(results[0].outcome == PlateOutcome::Error);
+    CHECK(results[0].error == "Nozzle too small");
+    // Refused before the request (the setting change validated it), so no run at all.
+    results = classify_plates({0}, {{0, false, false, "Layer height cannot exceed nozzle diameter"}}, {});
+    CHECK(results[0].outcome == PlateOutcome::Error);
+    CHECK(results[0].error == "Layer height cannot exceed nozzle diameter");
 }
 
 TEST_CASE("a slice stays pending until it was seen running or the grace period passed", "[Mcp]")
@@ -101,6 +142,18 @@ TEST_CASE("cancellation is taken only from the operation's own runs", "[Mcp]")
     const SliceTicketState t = ticket(5, 10, 1);
     CHECK_FALSE(slice_cancelled(t, observe(5, 1, {run(10, 1, 5, true), run(11, 1, 5)})));
     CHECK(slice_cancelled(t, observe(5, 1, {run(11, 1, 5, true)})));
+    // A person's slice started during the operation (a later request) and cancelled is not ours.
+    CHECK_FALSE(slice_cancelled(t, observe(6, 1, {run(11, 1, 5), run(12, 1, 6, true, true, 6)})));
+}
+
+TEST_CASE("a later request's run supersedes at once, without waiting for it", "[Mcp]")
+{
+    const auto             now = std::chrono::steady_clock::now();
+    const SliceTicketState t   = ticket(5, 10, 1);
+    // Our run finished; a person's slice for request 6 is still running.
+    CHECK(slice_status(t, observe(6, 1, {run(11, 1, 5), run(12, 0, 0, false, false, 6)}, true), now) == TicketStatus::Superseded);
+    // Our own run still running, nobody else's: pending.
+    CHECK(slice_status(t, observe(5, 1, {run(11, 0, 0, false, false)}, true), now) == TicketStatus::Pending);
 }
 
 TEST_CASE("early runs of a long Slice All are still seen", "[Mcp]")

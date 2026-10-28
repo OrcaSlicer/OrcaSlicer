@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -31,14 +32,17 @@ struct GuardState
     nlohmann::json dialogs   = nlohmann::json::array();
 };
 
-// Runs closures on the UI thread for tool handlers, which run on other threads. A closure holds
-// only shared state, never references into the caller's stack, so it is safe to run after the
-// caller gave up waiting; it re-checks the guards on the UI thread before doing anything, because
-// the app can change between posting and running (a modal can open, the app can start closing).
+// Runs closures on the UI thread for tool handlers, which run on other threads. A closure re-checks
+// the guards on the UI thread before doing anything, because the app can change between posting
+// and running (a modal can open, the app can start closing, the UI can be rebuilt). A caller gives
+// up only on a closure that has not started, which then never runs; once started, the closure may
+// use the caller's stack, so the caller waits for it to finish, through shutdown too.
 class UiInvoker
 {
 public:
-    UiInvoker(UiDispatcher& dispatcher, std::function<GuardState()> guards_on_ui);
+    // `generation` (any thread) counts UI rebuilds; a closure posted before a rebuild does not run
+    // after it.
+    UiInvoker(UiDispatcher& dispatcher, std::function<GuardState()> guards_on_ui, std::function<uint64_t()> generation = {});
     ~UiInvoker();
 
     // Runs `fn` on the UI thread under `guard` and returns its value. Throws ToolFailure when a

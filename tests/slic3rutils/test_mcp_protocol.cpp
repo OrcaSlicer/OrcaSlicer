@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "slic3r/GUI/Mcp/McpProtocol.hpp"
+#include "slic3r/GUI/Mcp/McpStdioBridge.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
 
 #include <nlohmann/json.hpp>
@@ -24,6 +25,7 @@ public:
         {
             std::string id;
             json run_ui(const std::function<json()>& fn) override { return fn(); }
+            json observe_ui(const std::function<json()>& fn) override { return fn(); }
             const std::string& job_id() const override { return id; }
             bool cancelled() const override { return false; }
             ToolResult call_child(const std::string&, const json&) override { return ToolResult::error("no children"); }
@@ -166,6 +168,23 @@ TEST_CASE("malformed messages are rejected", "[Mcp]")
 
     r = f.post({{"jsonrpc", "1.0"}, {"id", 1}, {"method", "ping"}});
     CHECK(body(r)["error"]["code"] == -32600);
+}
+
+TEST_CASE("params that are not an object are invalid params", "[Mcp]")
+{
+    Fixture   f;
+    PostReply r = f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/list"}, {"params", json::array()}});
+    CHECK(body(r)["error"]["code"] == -32602);
+    r = f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "ping"}, {"params", 3}});
+    CHECK(body(r)["error"]["code"] == -32602);
+}
+
+TEST_CASE("the stdio bridge derives no headers from a line that is not a message object", "[Mcp]")
+{
+    CHECK(bridge_headers(json::array({{{"method", "ping"}}}), "2025-06-18").empty());
+    CHECK(bridge_headers(json(42), {}).empty());
+    CHECK(bridge_headers({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"}, {"params", {{"name", "get_state"}}}}, "2025-06-18")
+              .count("MCP-Protocol-Version") == 1);
 }
 
 TEST_CASE("ping returns an empty result", "[Mcp]")

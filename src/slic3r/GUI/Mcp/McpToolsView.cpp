@@ -127,7 +127,7 @@ void register_view_tools(McpService& service)
                         Plater&     plater = ui_plater();
                         GLCanvas3D* canvas = plater.get_current_canvas3D();
                         if (canvas == nullptr)
-                            throw ToolFailure("No 3D view is shown; switch to Prepare or Preview (set_view tab)");
+                            throw ToolFailure("No Prepare or Preview 3D view is shown; switch to one with set_view tab (the Design tab's view can't be captured; use target window)");
                         cap = capture_canvas(*canvas, err);
                     } else if (target == "dialog") {
                         wxDialog* top = service.modals().top();
@@ -137,7 +137,7 @@ void register_view_tools(McpService& service)
                     } else if (target != "window") {
                         // A widget: its top-level window, cropped to the widget unless it is that window.
                         const UiTarget t = service.inspector().resolve(target_arg);
-                        locator          = t.locator;
+                        locator          = service.inspector().locator_for(t);
                         wxWindow*      w = t.window.get();
                         if (t.kind != UiTarget::Kind::Window || w == nullptr)
                             throw ToolFailure("target must be window, canvas, dialog or the ref of a widget");
@@ -193,9 +193,9 @@ void register_view_tools(McpService& service)
                 ctx.set_journal_args(std::move(recorded));
             }
             // Encoding and scaling run off the UI thread.
-            if (!full.SaveFile(wxString::FromUTF8(path.string()), wxBITMAP_TYPE_PNG))
-                throw ToolFailure("Could not write " + path.string());
-            info["path"]   = path.string();
+            if (!full.SaveFile(from_path(path), wxBITMAP_TYPE_PNG))
+                throw ToolFailure("Could not write " + path_to_utf8(path));
+            info["path"]   = path_to_utf8(path);
             ToolResult out = ToolResult::ok(info);
             if (arg_bool(args, "include_image", true)) {
                 const wxSize  size  = fit_within(full.GetSize(), max_dim);

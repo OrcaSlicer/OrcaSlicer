@@ -63,6 +63,9 @@ public:
     // ToolFailure when a guard refuses the call, the UI does not pick it up in time, or the app is
     // closing.
     virtual nlohmann::json run_ui(const std::function<nlohmann::json()>& fn) = 0;
+    // Runs `fn` on the UI thread under the inspect guard, whatever the tool's class: for watching
+    // an operation the call has started, which a dialog or another call's nested loop must not stop.
+    virtual nlohmann::json observe_ui(const std::function<nlohmann::json()>& fn) = 0;
     // Id of the job this call runs as; empty for inline (inspect/recover) calls.
     virtual const std::string& job_id() const = 0;
     // True once the service is stopping; long-running handlers poll it between steps.
@@ -75,7 +78,9 @@ public:
     // Replaces the arguments the session journal records for this call (refs become locators).
     virtual void set_journal_args(nlohmann::json args) = 0;
     // Marks this job as a slice/export operation: until it finishes, other mutate calls are refused
-    // so nothing changes the project under it. No-op for inline calls.
+    // so nothing changes the project under it. Call it on the UI thread, in the closure that starts
+    // the work and before starting it; throws ToolFailure when another operation already runs.
+    // No-op for inline calls.
     virtual void begin_operation() = 0;
 };
 

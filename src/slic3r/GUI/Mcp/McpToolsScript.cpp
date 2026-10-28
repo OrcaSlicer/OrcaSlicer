@@ -30,9 +30,9 @@ namespace {
 
 std::string read_file(const fs::path& path)
 {
-    boost::nowide::ifstream in(path.string(), std::ios::binary);
+    boost::nowide::ifstream in(path_to_utf8(path).c_str(), std::ios::binary);
     if (!in)
-        throw ToolFailure("Cannot read " + path.string());
+        throw ToolFailure("Cannot read " + path_to_utf8(path));
     std::ostringstream ss;
     ss << in.rdbuf();
     return ss.str();
@@ -40,10 +40,10 @@ std::string read_file(const fs::path& path)
 
 void write_file(const fs::path& path, const std::string& text)
 {
-    boost::nowide::ofstream out(path.string(), std::ios::binary | std::ios::trunc);
+    boost::nowide::ofstream out(path_to_utf8(path).c_str(), std::ios::binary | std::ios::trunc);
     out << text;
     if (!out)
-        throw ToolFailure("Cannot write " + path.string());
+        throw ToolFailure("Cannot write " + path_to_utf8(path));
 }
 
 std::string timestamp()
@@ -97,7 +97,8 @@ void register_script_tools(McpService& service)
                 }
                 script          = parse_script(text, err);
                 sctx.script_dir = path->parent_path();
-                default_out     = path->parent_path() / (path->stem().string() + ".out");
+                default_out     = path->parent_path() / path->stem();
+                default_out += ".out";
             } else {
                 script      = parse_script(args["script"].dump(), err);
                 default_out = service.output_dir() / ("script-" + timestamp());
@@ -111,13 +112,13 @@ void register_script_tools(McpService& service)
                 for (const auto& [key, value] : args["vars"].items())
                     script->vars[key] = value;
 
-            sctx.out_dir = args.contains("out_dir") ? fs::path(arg_string(args, "out_dir")) : default_out;
+            sctx.out_dir = args.contains("out_dir") ? path_from_utf8(arg_string(args, "out_dir")) : default_out;
             if (!sctx.out_dir.is_absolute())
                 return invalid("out_dir must be an absolute path");
             boost::system::error_code ec;
             fs::create_directories(sctx.out_dir, ec);
             if (ec)
-                throw ToolFailure("Cannot create " + sctx.out_dir.string() + ": " + ec.message());
+                throw ToolFailure("Cannot create " + path_to_utf8(sctx.out_dir) + ": " + ec.message());
             if (!has_path)
                 sctx.script_dir = sctx.out_dir;
 
@@ -146,10 +147,10 @@ void register_script_tools(McpService& service)
             host.cancelled  = [&ctx] { return ctx.cancelled(); };
 
             json result         = run_script(*script, sctx, host);
-            result["out_dir"]   = sctx.out_dir.string();
+            result["out_dir"]   = path_to_utf8(sctx.out_dir);
             const fs::path file = sctx.out_dir / "result.json";
             write_file(file, result.dump(2));
-            result["result_file"] = file.string();
+            result["result_file"] = path_to_utf8(file);
             return ToolResult::ok(std::move(result));
         });
     reg.add(run);

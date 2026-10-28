@@ -150,7 +150,14 @@ void register_action_tools(McpService& service)
                         similar.push_back(scored[i].second);
                     throw ToolFailure("Unknown action id " + id + "; search with list_actions", {{"similar", similar}});
                 }
-                const bool background = action->completes_in_background && !param.empty();
+                // Without a path the command would ask for one in a native file dialog, which MCP
+                // can't fill in, and export behind it untracked.
+                if (action->completes_in_background && param.empty())
+                    throw ToolFailure("This action needs a path param here: " + action->param_help +
+                                      " (or use the export tool)");
+                const bool background = action->completes_in_background;
+                if (background)
+                    ctx.begin_operation(); // held from before the export starts
                 Plater*    plater     = wxGetApp().plater();
                 uint64_t   before = 0, revision = 0;
                 if (background && plater != nullptr) {
@@ -164,7 +171,6 @@ void register_action_tools(McpService& service)
                 return out;
             });
             if (started["background"].get<bool>()) {
-                ctx.begin_operation();
                 if (started["level"] == "error")
                     return ToolResult::error(started["message"].get<std::string>());
                 return await_gcode_export(ctx, started["before"], started["after"], started["revision"], started["message"]);

@@ -15,20 +15,16 @@ enum class PlateOutcome { Ok, Error, Cancelled, Empty, Skipped };
 
 struct PlateObservation
 {
-    int  index = 0;
-    bool valid = false; // a current slice result exists
-    bool error = false; // the last process run on this plate failed
-    bool empty = false; // no printable object on the plate
+    int         index = 0;
+    bool        valid = false; // a current slice result exists
+    bool        empty = false; // no printable object on the plate
+    std::string error;         // the validation error that keeps it from slicing
 };
 
 const char* to_string(PlateOutcome outcome);
 
-// Per-plate outcome once the operation is terminal. `cancelled` is true when the process reported a
-// cancellation during the operation: plates that are neither valid nor failed are then Cancelled
-// instead of Skipped.
-std::vector<PlateOutcome> classify_plates(const std::vector<int>& requested, const std::vector<PlateObservation>& plates,
-                                          bool cancelled);
-
+// One background run, or a slice the validation refused before any run (finished, with the
+// validation error), as Plater numbers them.
 struct SliceRunRecord
 {
     uint64_t    seq       = 0;
@@ -37,7 +33,23 @@ struct SliceRunRecord
     std::string error;
     uint64_t    revision_at_finish    = 0;
     uint64_t    request_seq_at_finish = 0;
+    uint64_t    request_seq_at_start  = 0; // the slice request it runs for
+    int         plate                 = -1;
 };
+
+struct PlateResult
+{
+    PlateOutcome outcome = PlateOutcome::Skipped;
+    std::string  error;
+};
+
+// Per-plate outcome once the operation is terminal, from the plates' state and the operation's own
+// runs (see own_runs()): a valid result is Ok; otherwise the plate's last run decides (Error with
+// its message, or Cancelled); a plate no run reached is Error when its configuration fails
+// validation (validated before the request, so no run was even attempted), Cancelled when the
+// operation was cancelled, and Skipped otherwise (Slice All stops at a failing plate).
+std::vector<PlateResult> classify_plates(const std::vector<int>& requested, const std::vector<PlateObservation>& plates,
+                                         const std::vector<SliceRunRecord>& own_runs);
 
 struct SliceTicketState
 {
@@ -57,21 +69,27 @@ struct SliceObservation
     std::vector<SliceRunRecord> runs_since_start; // runs numbered after run_seq_before
 };
 
+// The runs that belong to the operation: numbered after it began and started for its own request.
+// Runs for a later request are someone else's slice; Slice All's later plates run for the same
+// request, so they count.
+std::vector<SliceRunRecord> own_runs(const SliceTicketState& ticket, const SliceObservation& obs);
+
 enum class TicketStatus { Pending, Done, Superseded };
 
 // How long a slice that never visibly started may stay pending before it counts as finished (all
 // requested plates were already valid or empty, so no run was needed).
 inline constexpr std::chrono::milliseconds kSliceStartGrace{1500};
 
-// Terminal once slicing was seen running (or the grace period passed with nothing running) and
-// nothing is slicing any more. Superseded when another slice was requested, or the project changed,
-// while the operation ran - judged from snapshots only: the request sequence and revision each of
-// its own runs recorded at its finish, or, with no run, the observation at the terminal poll itself.
-// Only the operation's own runs are consulted, never an earlier completion. The caller freezes the
+// Superseded as soon as a run for a later request appears (someone sliced again; there is no point
+// waiting for their slice). Otherwise terminal once slicing was seen running (or the grace period
+// passed with nothing running) and nothing is slicing any more; then superseded when the project
+// changed, or another slice was requested, while the operation ran - judged from snapshots only: the
+// revision and request sequence each of its own runs recorded at its finish, or, with no run, the
+// observation at the terminal poll itself. Never from an earlier completion. The caller freezes the
 // first terminal status it gets.
 TicketStatus slice_status(const SliceTicketState& ticket, const SliceObservation& obs, std::chrono::steady_clock::time_point now);
 
-// True when one of the operation's own runs reported cancellation.
+// True when one of the operation's own runs (own_runs()) reported cancellation.
 bool slice_cancelled(const SliceTicketState& ticket, const SliceObservation& obs);
 
 struct ExportRecord

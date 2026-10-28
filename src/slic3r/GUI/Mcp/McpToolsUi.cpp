@@ -13,6 +13,7 @@
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
+#include <wx/app.h>
 #include <wx/button.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
@@ -26,6 +27,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <condition_variable>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -111,19 +113,29 @@ std::vector<wxWebView*> visible_webviews()
     return out;
 }
 
-// Receives the result of one RunScriptAsync call. Deleting it disconnects it from the web view.
+// Receives the result of one RunScriptAsync call into a State the job thread waits on. Created,
+// used and deleted on the UI thread only, like the weak reference it keeps to its web view.
 class ScriptSink : public wxEvtHandler
 {
 public:
     struct State
     {
-        std::mutex  mutex;
-        bool        done = false;
-        bool        error = false;
-        std::string text;
+        std::mutex              mutex;
+        std::condition_variable cv;
+        bool                    done  = false;
+        bool                    error = false;
+        std::string             text;
     };
 
-    explicit ScriptSink(std::shared_ptr<State> state) : m_state(std::move(state)) {}
+    ScriptSink(wxWebView* web, std::shared_ptr<State> state) : m_web(web), m_state(std::move(state))
+    {
+        web->Bind(wxEVT_WEBVIEW_SCRIPT_RESULT, &ScriptSink::on_result, this);
+    }
+    ~ScriptSink() override
+    {
+        if (wxWebView* web = m_web.get())
+            web->Unbind(wxEVT_WEBVIEW_SCRIPT_RESULT, &ScriptSink::on_result, this);
+    }
 
     void on_result(wxWebViewEvent& evt)
     {
@@ -131,15 +143,26 @@ public:
             evt.Skip();
             return;
         }
-        std::lock_guard<std::mutex> lock(m_state->mutex);
-        m_state->done  = true;
-        m_state->error = evt.IsError();
-        m_state->text  = into_u8(evt.GetString());
+        {
+            std::lock_guard<std::mutex> lock(m_state->mutex);
+            m_state->done  = true;
+            m_state->error = evt.IsError();
+            m_state->text  = into_u8(evt.GetString());
+        }
+        m_state->cv.notify_all();
     }
 
 private:
+    wxWeakRef<wxWebView>   m_web;
     std::shared_ptr<State> m_state;
 };
+
+// Deletes a sink on the UI thread whatever the guards say, so a dialog or a busy UI can't leak it.
+void delete_on_ui(ScriptSink* sink)
+{
+    if (sink != nullptr && wxTheApp != nullptr)
+        wxTheApp->CallAfter([sink] { delete sink; });
+}
 
 // Presses the button with `id` in `dialog` so the dialog's own handler runs, or ends the dialog with
 // that id when no such button exists. Returns whether a button was pressed. UI thread only.
@@ -229,7 +252,7 @@ void register_ui_tools(McpService& service)
             json locator;
             json out = ctx.run_ui([&] {
                 UiTarget t = service.inspector().resolve(args["target"]);
-                locator    = t.locator;
+                locator    = service.inspector().locator_for(t);
                 guard_target(service, target_window(t));
                 return service.inspector().click(t, o);
             });
@@ -252,7 +275,7 @@ void register_ui_tools(McpService& service)
             json locator;
             json out = ctx.run_ui([&] {
                 UiTarget t = service.inspector().resolve(args["target"]);
-                locator    = t.locator;
+                locator    = service.inspector().locator_for(t);
                 guard_target(service, target_window(t));
                 return service.inspector().input(t, args["value"], arg_bool(args, "submit", true));
             });
@@ -278,7 +301,7 @@ void register_ui_tools(McpService& service)
                 std::optional<UiTarget> t;
                 if (args.contains("target")) {
                     t       = service.inspector().resolve(args["target"]);
-                    locator = t->locator;
+                    locator = service.inspector().locator_for(*t);
                 }
                 guard_target(service, service.inspector().key_target(t ? &*t : nullptr));
                 return service.inspector().key(t ? &*t : nullptr, keys, text);
@@ -390,7 +413,7 @@ void register_ui_tools(McpService& service)
                 for (const json& r : args["rules"])
                     rules.push_back(make_rule(r["match"].get<std::string>(), r["button"].get<std::string>()));
                 const std::vector<AutoAnswerRule> registered = rules;
-                const std::string scope = service.set_auto_answer(std::move(rules), ctx.lineage());
+                const std::string scope = service.set_auto_answer(std::move(rules), service.jobs().ancestry(ctx.job_id()));
                 json out{{"scope", scope}, {"rules", service.modals().rules_json()}};
                 json answered = ctx.run_ui([&]() -> json {
                     wxDialog* top = service.modals().top();
@@ -429,8 +452,7 @@ void register_ui_tools(McpService& service)
             const std::string script  = arg_string(args, "script");
             const auto        timeout = std::chrono::seconds(arg_int(args, "timeout_s", 10));
             auto              state   = std::make_shared<ScriptSink::State>();
-            auto              sink    = std::make_shared<ScriptSink*>(nullptr);
-            auto              web_ref = std::make_shared<wxWeakRef<wxWebView>>();
+            ScriptSink*       sink    = nullptr; // the UI thread's to create and delete
             json started = ctx.run_ui([&]() -> json {
                 wxWebView* web = nullptr;
                 if (args.contains("target")) {
@@ -450,44 +472,33 @@ void register_ui_tools(McpService& service)
                     }
                     web = all.front();
                 }
-                *web_ref = web;
-                *sink    = new ScriptSink(state);
-                web->Bind(wxEVT_WEBVIEW_SCRIPT_RESULT, &ScriptSink::on_result, *sink);
-                web->RunScriptAsync(from_u8(script), *sink);
+                sink = new ScriptSink(web, state);
+                try {
+                    web->RunScriptAsync(from_u8(script), sink);
+                } catch (...) {
+                    delete sink;
+                    sink = nullptr;
+                    throw;
+                }
                 return {{"url", into_u8(web->GetCurrentURL())}};
             });
-            auto cleanup = [&] {
-                try {
-                    ctx.run_ui([&] {
-                        if (wxWebView* web = web_ref->get())
-                            web->Unbind(wxEVT_WEBVIEW_SCRIPT_RESULT, &ScriptSink::on_result, *sink);
-                        delete *sink;
-                        *sink = nullptr;
-                        return json();
-                    });
-                } catch (const ToolFailure&) {
-                    // The UI is shutting down; the sink is leaked rather than deleted off the UI thread.
-                }
-            };
-            json result;
-            try {
-                result = poll_ui(
-                    ctx,
-                    [&]() -> json {
-                        std::lock_guard<std::mutex> lock(state->mutex);
-                        if (!state->done)
-                            return json();
-                        return json{{"error", state->error}, {"text", state->text}};
-                    },
-                    timeout, "the script result");
-            } catch (const ToolFailure&) {
-                cleanup();
-                throw;
+            // The result arrives as an event on the UI thread; wait for it here, without the UI.
+            bool        done = false, error = false;
+            std::string text;
+            {
+                std::unique_lock<std::mutex> lock(state->mutex);
+                const auto                   end = std::chrono::steady_clock::now() + timeout;
+                while (!state->done && !ctx.cancelled() && std::chrono::steady_clock::now() < end)
+                    state->cv.wait_until(lock, std::min(end, std::chrono::steady_clock::now() + std::chrono::milliseconds(200)));
+                done  = state->done;
+                error = state->error;
+                text  = state->text;
             }
-            cleanup();
-            if (result["error"].get<bool>())
-                throw ToolFailure("The script failed: " + result["text"].get<std::string>());
-            const std::string text = result["text"].get<std::string>();
+            delete_on_ui(sink);
+            if (!done)
+                throw ToolFailure(ctx.cancelled() ? "OrcaSlicer is shutting down" : "Timed out waiting for the script result");
+            if (error)
+                throw ToolFailure("The script failed: " + text);
             json value = json::parse(text, nullptr, false);
             if (value.is_discarded())
                 value = text;

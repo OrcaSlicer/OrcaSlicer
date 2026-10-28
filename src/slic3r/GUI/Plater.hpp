@@ -904,6 +904,12 @@ public:
     // Bookkeeping that lets an automated caller tell its own slice or export from anyone else's.
     // The project revision moves on every edit (snapshot, undo/redo, preset or setting change,
     // reset, load); slice requests, background runs and exports are numbered.
+    // Why `plate` can't be sliced as configured (its validation error), or "" when nothing holds it
+    // back.
+    std::string plate_validation_error(int plate) const;
+
+    // A background run, or a slice the validation refused before running (recorded finished, with
+    // the validation error).
     struct SliceRun
     {
         uint64_t    seq       = 0;
@@ -912,6 +918,8 @@ public:
         std::string error;
         uint64_t    revision_at_finish    = 0;
         uint64_t    request_seq_at_finish = 0;
+        uint64_t    request_seq_at_start  = 0;
+        int         plate                 = -1;
     };
     struct ExportRun
     {

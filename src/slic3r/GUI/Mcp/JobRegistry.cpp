@@ -38,9 +38,19 @@ void JobRegistry::finish(const std::string& id, ToolResult result)
         it->second.finished = true;
         it->second.result   = std::move(result);
         m_finished_order.push_back(id);
-        while (m_finished_order.size() > kKeepFinished) {
-            m_jobs.erase(m_finished_order.front());
-            m_finished_order.pop_front();
+        // Forget the oldest finished jobs beyond the limit, except those a running parent may
+        // still wait for (a script's await:false steps).
+        auto old = m_finished_order.begin();
+        while (m_finished_order.size() > kKeepFinished && old != m_finished_order.end()) {
+            const auto job    = m_jobs.find(*old);
+            const auto parent = job == m_jobs.end() ? m_jobs.end() : m_jobs.find(job->second.parent);
+            if (parent != m_jobs.end() && !parent->second.finished) {
+                ++old;
+                continue;
+            }
+            if (job != m_jobs.end())
+                m_jobs.erase(job);
+            old = m_finished_order.erase(old);
         }
     }
     m_cv.notify_all();
@@ -73,6 +83,18 @@ std::set<std::string> JobRegistry::lineage(const std::string& id) const
     return out;
 }
 
+std::vector<std::string> JobRegistry::ancestry(const std::string& id) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<std::string> out;
+    for (std::string cur = id; !cur.empty() && std::find(out.begin(), out.end(), cur) == out.end();) {
+        out.push_back(cur);
+        auto it = m_jobs.find(cur);
+        cur     = it == m_jobs.end() ? std::string() : it->second.parent;
+    }
+    return out;
+}
+
 bool JobRegistry::any_running_except(const std::set<std::string>& excluded) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -80,11 +102,15 @@ bool JobRegistry::any_running_except(const std::set<std::string>& excluded) cons
                        [&](const auto& kv) { return !kv.second.finished && excluded.count(kv.first) == 0; });
 }
 
-void JobRegistry::set_operation(const std::string& id)
+std::string JobRegistry::begin_operation(const std::string& id)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
+    for (const auto& [other, job] : m_jobs)
+        if (other != id && !job.finished && job.operation)
+            return other;
     if (auto it = m_jobs.find(id); it != m_jobs.end())
         it->second.operation = true;
+    return {};
 }
 
 std::vector<std::string> JobRegistry::running_operations() const

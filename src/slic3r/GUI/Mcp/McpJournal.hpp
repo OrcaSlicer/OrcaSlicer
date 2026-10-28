@@ -4,6 +4,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <mutex>
 #include <string>
@@ -39,7 +40,8 @@ private:
     };
 
     mutable std::mutex m_mutex;
-    std::vector<Entry> m_entries;
+    static constexpr std::size_t kMaxEntries = 5000;
+    std::vector<Entry>           m_entries;
     uint64_t           m_next = 1;
 };
 

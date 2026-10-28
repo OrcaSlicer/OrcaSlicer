@@ -21,7 +21,7 @@ struct CoreTiming
 {
     std::chrono::milliseconds soft_budget{1500};  // before probing for a blocking dialog
     std::chrono::milliseconds probe_timeout{1000};
-    std::chrono::milliseconds join_timeout{5000}; // for job threads at shutdown
+    std::chrono::milliseconds join_timeout{5000}; // drain() in the destructor
     int                       blocking_slots = 32;
 };
 
@@ -41,9 +41,11 @@ public:
     // `wait {for:"idle"}` from that job does not wait for it, and the journal leaves it out.
     ToolResult call_child(const ToolDef& def, const nlohmann::json& args, const std::string& parent_job);
 
-    // Wakes all waiters (UiInvoker and JobRegistry must be woken by the owner first or after) and
-    // waits, bounded, for job threads to return.
+    // Refuses new calls. The owner wakes UiInvoker and JobRegistry, which makes running calls return.
     void shutdown();
+    // Waits until no call or job thread is inside the core; false when one is still running after
+    // `timeout`. The owner may destroy the core, and what it uses, only after this returns true.
+    bool drain(std::chrono::milliseconds timeout);
 
     const ToolRegistry& registry() const { return m_registry; }
     UiInvoker&          ui() { return m_ui; }
@@ -65,9 +67,12 @@ private:
     std::mutex m_slots_mutex;
     int        m_slots_used = 0;
 
+    // Client and child calls inside run(), plus job threads.
+    bool enter();
+    void leave();
     std::mutex              m_threads_mutex;
     std::condition_variable m_threads_cv;
-    int                     m_threads = 0;
+    int                     m_active   = 0;
     bool                    m_stopping = false;
 };
 

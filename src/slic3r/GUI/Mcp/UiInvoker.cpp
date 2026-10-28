@@ -5,6 +5,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <exception>
 #include <functional>
 #include <memory>
@@ -36,6 +37,7 @@ struct UiCall
 struct UiInvoker::Shared
 {
     std::function<GuardState()> guards_on_ui;
+    std::function<uint64_t()>   generation;
     std::atomic<bool>           stopped{false};
 
     // UI-thread only: the calls currently executing, outermost first. More than one means a call is
@@ -46,10 +48,11 @@ struct UiInvoker::Shared
     std::vector<std::weak_ptr<UiCall>>   waiters;
 };
 
-UiInvoker::UiInvoker(UiDispatcher& dispatcher, std::function<GuardState()> guards_on_ui)
+UiInvoker::UiInvoker(UiDispatcher& dispatcher, std::function<GuardState()> guards_on_ui, std::function<uint64_t()> generation)
     : m_shared(std::make_shared<Shared>()), m_dispatcher(dispatcher)
 {
     m_shared->guards_on_ui = std::move(guards_on_ui);
+    m_shared->generation   = std::move(generation);
 }
 
 UiInvoker::~UiInvoker() { shutdown(); }
@@ -68,7 +71,8 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
         w.push_back(call);
     }
 
-    m_dispatcher.post([shared = m_shared, call, guard, tool, fn]() {
+    const uint64_t generation = m_shared->generation ? m_shared->generation() : 0;
+    m_dispatcher.post([shared = m_shared, call, guard, tool, fn, generation]() {
         {
             std::lock_guard<std::mutex> lock(call->mutex);
             if (call->state != CallState::Queued)
@@ -86,6 +90,8 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
                 error = "OrcaSlicer is shutting down";
             else if (g.suspended)
                 error = "The UI is being recreated (language change); retry in a moment";
+            else if (shared->generation && shared->generation() != generation)
+                error = "The UI was recreated (language change) before the call ran; it was not run, so it is safe to retry";
             else if (guard == GuardClass::Mutate && g.modal) {
                 error   = "A modal dialog is open; answer it first (ui_snapshot, dialog_respond)";
                 details = {{"dialogs", g.dialogs}};
@@ -123,10 +129,9 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
         throw ToolFailure(m_shared->stopped ? "OrcaSlicer is shutting down"
                                             : "The UI thread is busy and did not run the call; it was not run, so it is safe to retry");
     }
-    // Once running, the closure finishes on its own; wait for it (or for shutdown).
-    call->cv.wait(lock, [&] { return call->state == CallState::Done || m_shared->stopped; });
-    if (call->state != CallState::Done)
-        throw ToolFailure("OrcaSlicer is shutting down");
+    // Once running, the closure may use this thread's stack (fn's captures), so it is waited for
+    // even through shutdown; it ends when the UI thread unwinds out of it.
+    call->cv.wait(lock, [&] { return call->state == CallState::Done; });
     if (!call->error.empty())
         throw ToolFailure(call->error, call->error_details);
     return std::move(call->value);
