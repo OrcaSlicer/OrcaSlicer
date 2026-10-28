@@ -39,26 +39,20 @@ TEST_CASE("An enum value outside the label list reads as undefined", "[ConfigVal
     CHECK(get_string_value(key + "#0", config) == "Undefined");
 }
 
-TEST_CASE("A string list read without an index lists every entry", "[ConfigValueFormatter]")
+TEST_CASE("A serialized list read without an index reads as the settings tab shows it", "[ConfigValueFormatter]")
 {
     DynamicPrintConfig config;
     config.set_key_value("post_process", new ConfigOptionStrings({"a.ps1", "b.ps1"}));
+    config.set_key_value("small_area_infill_flow_compensation_model", new ConfigOptionStrings({"0,0", "\n0.2,0.4444"}));
 
-    CHECK(get_string_value("post_process", config).utf8_string() == "a.ps1\nb.ps1");
+    CHECK(get_string_value("post_process", config).utf8_string() == "a.ps1;b.ps1;");
+    CHECK(get_string_value("small_area_infill_flow_compensation_model", config).utf8_string() == "0,0;\n0.2,0.4444;");
 }
 
-TEST_CASE("A compatible printers list reads as its printers, one per line", "[ConfigValueFormatter]")
+TEST_CASE("A string list that is not serialized reads its first entry without an index", "[ConfigValueFormatter]")
 {
     DynamicPrintConfig config;
-    config.set_key_value("compatible_printers", new ConfigOptionStrings({"Printer A", "Printer B"}));
+    config.set_key_value("filament_ids", new ConfigOptionStrings({"GFA00", "GFA01"}));
 
-    CHECK(get_string_value("compatible_printers", config).utf8_string() == "Printer A\nPrinter B");
-}
-
-TEST_CASE("An empty compatible printers list reads as all printers", "[ConfigValueFormatter]")
-{
-    DynamicPrintConfig config;
-    config.set_key_value("compatible_printers", new ConfigOptionStrings());
-
-    CHECK(get_string_value("compatible_printers", config) == "All");
+    CHECK(get_string_value("filament_ids", config).utf8_string() == "GFA00");
 }

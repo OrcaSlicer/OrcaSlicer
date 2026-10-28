@@ -93,3 +93,13 @@ TEST_CASE("deep_diff reports a serialized list as one option that transfers and 
         CHECK(reverted.option<ConfigOptionStrings>(key)->values == saved_values);
     }
 }
+
+TEST_CASE("deep_diff reports a serialized list that only one preset has as one option", "[PresetDiff][Config]")
+{
+    Preset reference(Preset::TYPE_PRINT, "ref");
+    Preset edited(Preset::TYPE_PRINT, "edited");
+    edited.config.set_key_value("post_process", new ConfigOptionStrings({"a", "b"}));
+
+    const auto diff = PresetCollection::dirty_options(&edited, &reference, /*deep_compare=*/true);
+    CHECK(diff == std::vector<std::string>{"post_process"});
+}

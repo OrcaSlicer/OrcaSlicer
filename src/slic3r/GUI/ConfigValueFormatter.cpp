@@ -174,14 +174,18 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
     case coStrings: {
         const ConfigOptionStrings* strings = config.opt<ConfigOptionStrings>(pure_key);
         if (strings) {
-            const bool is_compatible_list = pure_key == "compatible_printers" || pure_key == "compatible_prints";
-            if (is_compatible_list || orig_opt_idx < 0) {
-                if (is_compatible_list && strings->empty())
+            if (pure_key == "compatible_printers" || pure_key == "compatible_prints") {
+                if (strings->empty())
                     return _L("All");
+                for (size_t id = 0; id < strings->size(); id++)
+                    out += from_u8(strings->get_at(id)) + "\n";
+                out.RemoveLast(1);
+                return out;
+            }
+            if (orig_opt_idx < 0 && opt->gui_flags == "serialized") {
+                // Joins the entries as the settings tab shows them.
                 for (const std::string& value : strings->values)
-                    out += from_u8(value) + "\n";
-                if (!out.empty())
-                    out.RemoveLast(1);
+                    out += from_u8(value) + ";";
                 return out;
             }
             if (!strings->empty() && opt_idx < strings->values.size())
