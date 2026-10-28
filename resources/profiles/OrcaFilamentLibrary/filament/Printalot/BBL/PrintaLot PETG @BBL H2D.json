@@ -1,0 +1,103 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PETG @BBL H2D",
+	"inherits": "PrintaLot PETG @base",
+	"from": "system",
+	"setting_id": "34ZyLUxTOUPX3iMa",
+	"instantiation": "true",
+	"filament_change_length": [
+		"10"
+	],
+	"filament_cooling_before_tower": [
+		"10",
+		"10",
+		"10"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive E3D High Flow"
+	],
+	"filament_flush_temp_fast": [
+		"0",
+		"0",
+		"0"
+	],
+	"filament_flush_volumetric_speed": [
+		"0",
+		"0",
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"17",
+		"17",
+		"17"
+	],
+	"filament_pre_cooling_temperature_nc": [
+		"0",
+		"0",
+		"0"
+	],
+	"filament_preheat_temperature_delta": [
+		"10",
+		"10",
+		"10"
+	],
+	"filament_prime_volume": [
+		"45"
+	],
+	"filament_prime_volume_nc": [
+		"60"
+	],
+	"filament_ramming_travel_time_nc": [
+		"0",
+		"0",
+		"0"
+	],
+	"filament_retract_length_nc": [
+		"14",
+		"14",
+		"14"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"filament_tower_interface_print_temp": [
+		"-1"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"long_retractions_when_ec": [
+		"1",
+		"1",
+		"1"
+	],
+	"retraction_distances_when_ec": [
+		"10",
+		"10",
+		"10"
+	],
+	"slow_down_min_speed": [
+		"20",
+		"20",
+		"20"
+	],
+	"textured_plate_temp": [
+		"70"
+	],
+	"textured_plate_temp_initial_layer": [
+		"70"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2D 0.4 nozzle",
+		"Bambu Lab H2D 0.6 nozzle",
+		"Bambu Lab H2D 0.8 nozzle"
+	]
+}

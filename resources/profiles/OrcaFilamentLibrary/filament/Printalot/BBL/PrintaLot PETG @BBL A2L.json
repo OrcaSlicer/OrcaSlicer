@@ -1,0 +1,79 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PETG @BBL A2L",
+	"inherits": "PrintaLot PETG @base",
+	"from": "system",
+	"setting_id": "29nc0NTP57d7gnNu",
+	"instantiation": "true",
+	"filament_change_length": [
+		"10"
+	],
+	"filament_cooling_before_tower": [
+		"0"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_flush_temp_fast": [
+		"255"
+	],
+	"filament_flush_volumetric_speed": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"17"
+	],
+	"filament_pre_cooling_temperature_nc": [
+		"0"
+	],
+	"filament_preheat_temperature_delta": [
+		"0"
+	],
+	"filament_prime_volume": [
+		"45"
+	],
+	"filament_prime_volume_nc": [
+		"60"
+	],
+	"filament_ramming_travel_time_nc": [
+		"0"
+	],
+	"filament_retract_length_nc": [
+		"14"
+	],
+	"filament_start_gcode": [
+		""
+	],
+	"filament_tower_interface_print_temp": [
+		"-1"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"long_retractions_when_ec": [
+		"0"
+	],
+	"retraction_distances_when_ec": [
+		"0"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"textured_plate_temp": [
+		"70"
+	],
+	"textured_plate_temp_initial_layer": [
+		"70"
+	],
+	"compatible_printers": [
+		"Bambu Lab A2L 0.4 nozzle",
+		"Bambu Lab A2L 0.6 nozzle",
+		"Bambu Lab A2L 0.8 nozzle"
+	]
+}

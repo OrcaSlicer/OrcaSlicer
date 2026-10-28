@@ -1,0 +1,79 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PETG @BBL P1P",
+	"inherits": "PrintaLot PETG @base",
+	"from": "system",
+	"setting_id": "0mYuicnArEpff7U9",
+	"instantiation": "true",
+	"filament_change_length": [
+		"10"
+	],
+	"filament_cooling_before_tower": [
+		"0",
+		"0"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_flush_temp_fast": [
+		"0",
+		"0"
+	],
+	"filament_flush_volumetric_speed": [
+		"0",
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"17",
+		"17"
+	],
+	"filament_pre_cooling_temperature_nc": [
+		"0",
+		"0"
+	],
+	"filament_preheat_temperature_delta": [
+		"10",
+		"10"
+	],
+	"filament_prime_volume": [
+		"45"
+	],
+	"filament_prime_volume_nc": [
+		"60"
+	],
+	"filament_ramming_travel_time_nc": [
+		"0",
+		"0"
+	],
+	"filament_retract_length_nc": [
+		"14",
+		"14"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n{if (bed_temperature[current_extruder] >80)||(bed_temperature_initial_layer[current_extruder] >80)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >60)||(bed_temperature_initial_layer[current_extruder] >60)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+	],
+	"filament_tower_interface_print_temp": [
+		"-1"
+	],
+	"long_retractions_when_ec": [
+		"0",
+		"0"
+	],
+	"retraction_distances_when_ec": [
+		"0",
+		"0"
+	],
+	"slow_down_min_speed": [
+		"20",
+		"20"
+	],
+	"compatible_printers": [
+		"Bambu Lab P1P 0.4 nozzle",
+		"Bambu Lab P1P 0.6 nozzle",
+		"Bambu Lab P1P 0.8 nozzle"
+	]
+}
