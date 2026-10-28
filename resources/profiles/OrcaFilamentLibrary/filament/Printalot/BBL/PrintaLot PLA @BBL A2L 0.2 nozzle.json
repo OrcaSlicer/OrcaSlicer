@@ -20,8 +20,11 @@
 	"fan_min_speed": [
 		"60"
 	],
-	"filament_extruder_variant": [
-		"Direct Drive Standard"
+	"filament_cooling_before_tower": [
+		"0"
+	],
+	"filament_flush_temp_fast": [
+		"220"
 	],
 	"filament_max_volumetric_speed": [
 		"1.6"
@@ -29,17 +32,11 @@
 	"overhang_fan_threshold": [
 		"25%"
 	],
-	"slow_down_layer_time": [
-		"8"
-	],
 	"slow_down_min_speed": [
 		"40"
 	],
 	"filament_start_gcode": [
 		""
-	],
-	"filament_end_gcode": [
-		"; filament end gcode \n\n"
 	],
 	"compatible_printers": [
 		"Bambu Lab A2L 0.2 nozzle"
