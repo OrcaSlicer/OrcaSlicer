@@ -27,6 +27,7 @@ add_executable(${_TEST_NAME}_tests
     test_mcp_operations.cpp
     test_mcp_protocol.cpp
     test_mcp_script.cpp
+    test_mcp_setup.cpp
     test_mcp_token.cpp
     test_mcp_tools.cpp
     test_mcp_ui.cpp

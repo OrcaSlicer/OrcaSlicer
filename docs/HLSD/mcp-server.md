@@ -557,7 +557,7 @@ A line that is valid JSON but not one message object, such as a batch, gets an e
 The CLI options are in `CLIMiscConfigDef`, so the GUI still starts: `--mcp`, `--mcp-port N`,
 `--mcp-token T`, `--mcp-script FILE`, `--mcp-script-out DIR` and `--mcp-stdio`. The AppConfig `app`
 section holds `mcp_enabled` (false) and `mcp_port` (13619). Preferences › General › AI features
-opens with a line on what agents can do and who can connect, then has four rows:
+opens with a line on what agents can do and who can connect, then has five rows:
 
 - **"MCP server"**: checked while the server runs. A dot and a line beside it give the state:
   "Running", "Off", "Not running" (enabled, but the start failed), that another window serves
@@ -566,24 +566,34 @@ opens with a line on what agents can do and who can connect, then has four rows:
 - **"Server port"**.
 - **"Server address"**: the URL, dimmed while the server is off, when it shows the port turning
   it on would use.
+- **"Connection type"**: HTTP (the default) or stdio, for the setup the next row copies, with a
+  line under it on what the choice means for the agent. It is not saved: it shapes only the copied
+  text.
 - **"Add to an agent"**: a picker, "Copy", and a line under them saying what to do with the copied
-  text. The agents connect over HTTP, with the URL and the token in force:
-  - Claude Code: `claude mcp add --transport http --scope user orcaslicer <url> --header "Authorization: Bearer <token>"`.
-  - Codex: an `[mcp_servers.orcaslicer]` table with `url` and `http_headers` for
-    `~/.codex/config.toml`, since `codex mcp add` takes a token only from an environment variable.
-  - opencode: an `mcp.orcaslicer` entry of type `remote` with `url` and `headers`.
-  - DeepSeek Harness: an `insert` row with a `@deepseek-ai/dsh-mcp-client` entry (`streamable-http`,
-    `url`, `headers`) for `~/.dsh/cordis.patch.yml`, which every profile applies.
-  - "Other apps": an `mcpServers.orcaslicer` entry that runs `<executable> --mcp-stdio`, for apps
-    that only take a command, such as Claude Desktop. It uses the AppImage's own path inside an
-    AppImage.
+  text. An HTTP setup holds the URL and the token in force; a stdio setup runs
+  `<executable> --mcp-stdio`, using the AppImage's own path inside an AppImage, and holds no token,
+  since the bridge reads it from the discovery file:
+  - Claude Code: `claude mcp add --transport http --scope user orcaslicer <url> --header "Authorization: Bearer <token>"`,
+    or `claude mcp add --scope user orcaslicer -- "<executable>" --mcp-stdio`.
+  - Codex: an `[mcp_servers.orcaslicer]` table for `~/.codex/config.toml`, with `url` and
+    `http_headers`, since `codex mcp add` takes a token only from an environment variable, or with
+    `command` and `args`.
+  - opencode: an `mcp.orcaslicer` entry of type `remote` with `url` and `headers`, or of type
+    `local` with `command`.
+  - DeepSeek Harness: an `insert` row with a `@deepseek-ai/dsh-mcp-client` entry for
+    `~/.dsh/cordis.patch.yml`, which every profile applies: `streamable-http` with `url` and
+    `headers`, or `stdio` with `command` and `args`.
+  - "Other apps": an `mcpServers.orcaslicer` entry, the shape most apps read: of type `http` with
+    `url` and `headers`, or with `command` and `args` for apps that only take a command, such as
+    Claude Desktop.
 
 HTTP is the default because its URL stays the same whichever OrcaSlicer build runs, and starting an
 agent session never starts OrcaSlicer: the stdio bridge launches the app as soon as a client
 starts it, so a user-wide registration would open OrcaSlicer with every agent session. The cost is
 that OrcaSlicer must be running with the server on before the agent connects, and a registration
 holds the token: a new token (delete the token file, then turn the server off and on) or a new port
-means copying the setup again.
+means copying the setup again. Stdio suits an agent that should open OrcaSlicer on demand, and apps
+that can't connect over HTTP; its setup names this executable, so it breaks when the program moves.
 
 ## Testing
 

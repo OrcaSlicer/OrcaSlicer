@@ -24,6 +24,7 @@
 #include "Widgets/TabCtrl.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/Button.hpp"
+#include "Widgets/RadioGroup.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 
 namespace Slic3r { namespace GUI {
@@ -91,6 +92,8 @@ public:
     ::Label *    m_mcp_status_dot            = {nullptr};
     ::Label *    m_mcp_status                = {nullptr};
     ::Label *    m_mcp_address               = {nullptr};
+    RadioGroup * m_mcp_transport             = {nullptr};
+    ::Label *    m_mcp_transport_hint        = {nullptr};
     ::Label *    m_mcp_agent_hint            = {nullptr};
     ::Button *   m_mcp_copy_button           = {nullptr};
     ::CheckBox * m_skip_identical_frames_checkbox = {nullptr};
@@ -127,7 +130,9 @@ public:
     wxBoxSizer *create_item_bambu_cloud(wxString title, wxString tooltip);
     wxBoxSizer *create_item_mcp_server(wxString title, wxString tooltip);
     wxBoxSizer *create_item_mcp_address(wxString title, wxString tooltip);
+    wxBoxSizer *create_item_mcp_transport(wxString title, wxString tooltip);
     wxBoxSizer *create_item_mcp_connect(wxString title, wxString tooltip);
+    wxBoxSizer *with_mcp_hint(wxBoxSizer *row, ::Label *hint);
     void        update_mcp_status(const std::string& note = {});
     wxBoxSizer *create_item_network_plugin_version(wxString title, wxString tooltip);
 #ifdef WIN32

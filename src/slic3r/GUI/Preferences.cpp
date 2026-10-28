@@ -43,8 +43,8 @@
 #include "slic3r/GUI/Mcp/McpOptions.hpp"
 #include "slic3r/GUI/Mcp/McpPaths.hpp"
 #include "slic3r/GUI/Mcp/McpService.hpp"
+#include "slic3r/GUI/Mcp/McpSetup.hpp"
 #include "slic3r/GUI/Mcp/McpToken.hpp"
-#include <nlohmann/json.hpp>
 #include <exception>
 #include <wx/clipbrd.h>
 #include <wx/sizer.h>
@@ -1342,41 +1342,26 @@ static std::string mcp_url(const Mcp::McpService *mcp, AppConfig *config)
     return "http://127.0.0.1:" + std::to_string(port) + "/mcp";
 }
 
-// The agents the setup row covers, in its order. All but the last connect over HTTP: the address
-// stays the same whichever OrcaSlicer build runs, and starting an agent session never starts
-// OrcaSlicer. The last is for apps that only run a server as a command: it runs this program with
-// --mcp-stdio, which starts OrcaSlicer when needed but breaks when the program moves.
-enum class McpAgent { ClaudeCode, Codex, OpenCode, DeepSeekHarness, OtherApps };
-
-static std::string mcp_setup_text(McpAgent agent, const std::string &url, const std::string &token)
+// The program a stdio setup runs. Inside an AppImage the executable path is a temporary mount.
+static std::string mcp_executable()
 {
-    using nlohmann::ordered_json;
-    const std::string bearer = "Bearer " + token;
-    switch (agent) {
-    case McpAgent::ClaudeCode:
-        return "claude mcp add --transport http --scope user orcaslicer " + url + " --header \"Authorization: " + bearer + "\"";
-    case McpAgent::Codex: // a table for ~/.codex/config.toml: Codex's command line takes a token only from an environment variable
-        return "[mcp_servers.orcaslicer]\nurl = \"" + url + "\"\nhttp_headers = { \"Authorization\" = \"" + bearer + "\" }\n";
-    case McpAgent::OpenCode:
-        return ordered_json{{"mcp", {{"orcaslicer", {{"type", "remote"}, {"url", url}, {"headers", {{"Authorization", bearer}}}}}}}}.dump(2);
-    case McpAgent::DeepSeekHarness: // an insert row for ~/.dsh/cordis.patch.yml, which every profile applies
-        return "- insert:\n"
-               "    - id: mcp-orcaslicer\n"
-               "      name: '@deepseek-ai/dsh-mcp-client'\n"
-               "      config:\n"
-               "        serverName: orcaslicer\n"
-               "        transport: streamable-http\n"
-               "        url: '" + url + "'\n"
-               "        headers:\n"
-               "          Authorization: '" + bearer + "'\n";
-    case McpAgent::OtherApps: {
-        wxString exe;
-        if (!wxGetEnv("APPIMAGE", &exe)) // inside an AppImage the executable path is a temporary mount
-            exe = wxStandardPaths::Get().GetExecutablePath();
-        return ordered_json{{"mcpServers", {{"orcaslicer", {{"command", into_u8(exe)}, {"args", ordered_json::array({"--mcp-stdio"})}}}}}}.dump(2);
-    }
-    }
-    return {};
+    wxString exe;
+    if (!wxGetEnv("APPIMAGE", &exe))
+        exe = wxStandardPaths::Get().GetExecutablePath();
+    return into_u8(exe);
+}
+
+// Stacks a grey hint under a row's controls, at the start of the control column.
+wxBoxSizer *PreferencesDialog::with_mcp_hint(wxBoxSizer *row, ::Label *hint)
+{
+    hint->SetForegroundColour(wxColour("#6B6B6B"));
+    auto column = new wxBoxSizer(wxVERTICAL);
+    column->Add(row);
+    auto hint_row = new wxBoxSizer(wxHORIZONTAL);
+    hint_row->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN + 5) + DESIGN_TITLE_SIZE.x); // create_item_label's margin, label and gap
+    hint_row->Add(hint);
+    column->Add(hint_row, 0, wxTOP, FromDIP(2));
+    return column;
 }
 
 // Swaps the button's text for `confirmation` for two seconds, at the button's width so the row
@@ -1503,6 +1488,34 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_address(wxString title, wxString 
     return m_sizer;
 }
 
+wxBoxSizer *PreferencesDialog::create_item_mcp_transport(wxString title, wxString tooltip)
+{
+    wxBoxSizer *m_sizer = create_item_label(title, tooltip);
+
+    // The names agents' own settings use, untranslated. The hint says what each choice means for the
+    // agent, so it stays in view rather than in a tooltip.
+    m_mcp_transport      = new RadioGroup(m_parent, {"HTTP", "stdio"}, wxHORIZONTAL);
+    m_mcp_transport_hint = new ::Label(m_parent, ::Label::Body_13, wxEmptyString);
+    auto show_transport  = [this]() {
+        m_mcp_transport_hint->SetLabel(Mcp::Transport(m_mcp_transport->GetSelection()) == Mcp::Transport::Http ?
+                                           _L("The agent connects to the open OrcaSlicer while the MCP server is on. The setup holds "
+                                              "the access token, so don't share it.") :
+                                           _L("The agent starts this copy of OrcaSlicer when it isn't open, so set the agent up again "
+                                              "after OrcaSlicer moves."));
+        m_mcp_transport_hint->Wrap(FromDIP(MCP_HINT_WIDTH));
+        m_parent->Layout();
+        m_parent->FitInside();
+    };
+    show_transport();
+    m_mcp_transport->Bind(wxEVT_RADIOBOX, [show_transport](wxCommandEvent &e) {
+        show_transport();
+        e.Skip();
+    });
+
+    m_sizer->Add(m_mcp_transport, 0, wxALIGN_CENTER_VERTICAL);
+    return with_mcp_hint(m_sizer, m_mcp_transport_hint);
+}
+
 wxBoxSizer *PreferencesDialog::create_item_mcp_connect(wxString title, wxString tooltip)
 {
     wxBoxSizer *m_sizer = create_item_label(title, tooltip);
@@ -1521,8 +1534,8 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_connect(wxString title, wxString 
                         "restart opencode.")},
         {"DeepSeek Harness", _L("Add the copied entry to cordis.patch.yml in the .dsh folder of your home folder, then "
                                 "restart DeepSeek Harness.")},
-        {_L("Other apps"), _L("Add the copied settings to the app's MCP configuration file. The app runs OrcaSlicer from its "
-                              "current location, so set it up again after OrcaSlicer moves.")},
+        {_L("Other apps"), _L("Add the copied settings to the app's MCP configuration file. For an app that can't connect "
+                              "over HTTP, choose stdio.")},
     };
 
     // Wide enough for "DeepSeek Harness"; the button gives up the room, narrower than other Parameter buttons.
@@ -1536,16 +1549,12 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_connect(wxString title, wxString 
     auto copy_button = new Button(m_parent, _L("Copy"));
     copy_button->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
     copy_button->SetMinSize(FromDIP(MCP_COPY_BUTTON_SIZE));
+    copy_button->SetToolTip(tooltip);
     m_mcp_copy_button = copy_button;
 
     m_mcp_agent_hint = new ::Label(m_parent, ::Label::Body_13, wxEmptyString);
-    m_mcp_agent_hint->SetForegroundColour(wxColour("#6B6B6B"));
 
-    auto show_agent = [this, agents, copy_button](int index) {
-        const bool http = McpAgent(index) != McpAgent::OtherApps;
-        copy_button->SetToolTip(http ? _L("Copy the setup for the chosen agent. It holds the access token, so keep it out of "
-                                          "files you share.")
-                                     : _L("Copy the setup for apps that run OrcaSlicer's MCP server as a command."));
+    auto show_agent = [this, agents](int index) {
         m_mcp_agent_hint->SetLabel(agents[index].hint);
         m_mcp_agent_hint->Wrap(FromDIP(MCP_HINT_WIDTH));
         m_parent->Layout();
@@ -1559,11 +1568,13 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_connect(wxString title, wxString 
     });
 
     copy_button->Bind(wxEVT_BUTTON, [this, picker, confirm = confirm_on_button(copy_button, _L("Copied"))](wxCommandEvent &) {
-        const McpAgent         agent = McpAgent(picker->GetSelection());
-        const Mcp::McpService *mcp   = wxGetApp().mcp_service();
-        // The token the server uses: its own while it runs, otherwise the token file's, which turning it on reads.
+        const Mcp::Agent       agent     = Mcp::Agent(picker->GetSelection());
+        const Mcp::Transport   transport = Mcp::Transport(m_mcp_transport->GetSelection());
+        const Mcp::McpService *mcp       = wxGetApp().mcp_service();
+        // The token the server uses: its own while it runs, otherwise the token file's, which turning it
+        // on reads. A stdio setup holds none: --mcp-stdio reads it from the discovery file.
         std::string token;
-        if (agent != McpAgent::OtherApps) {
+        if (transport == Mcp::Transport::Http) {
             std::string err;
             token = mcp != nullptr && mcp->serving() ? mcp->token() : Mcp::load_or_create_token(Mcp::path_from_utf8(data_dir()), err);
             if (token.empty()) {
@@ -1572,7 +1583,8 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_connect(wxString title, wxString 
             }
         }
         if (wxTheClipboard->Open()) {
-            wxTheClipboard->SetData(new wxTextDataObject(from_u8(mcp_setup_text(agent, mcp_url(mcp, app_config), token))));
+            const std::string setup = Mcp::agent_setup(agent, transport, mcp_url(mcp, app_config), token, mcp_executable());
+            wxTheClipboard->SetData(new wxTextDataObject(from_u8(setup)));
             wxTheClipboard->Close();
             confirm();
         }
@@ -1580,15 +1592,7 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_connect(wxString title, wxString 
 
     m_sizer->Add(picker, 0, wxALIGN_CENTER_VERTICAL);
     m_sizer->Add(copy_button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
-
-    // The hint goes under the picker, at the start of the control column.
-    auto column = new wxBoxSizer(wxVERTICAL);
-    column->Add(m_sizer);
-    auto hint_row = new wxBoxSizer(wxHORIZONTAL);
-    hint_row->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN + 5) + DESIGN_TITLE_SIZE.x); // create_item_label's margin, label and gap
-    hint_row->Add(m_mcp_agent_hint);
-    column->Add(hint_row, 0, wxTOP, FromDIP(2));
-    return column;
+    return with_mcp_hint(m_sizer, m_mcp_agent_hint);
 }
 
 wxBoxSizer *PreferencesDialog::create_item_bambu_cloud(wxString title, wxString tooltip)
@@ -1931,6 +1935,7 @@ void PreferencesDialog::on_dpi_changed(const wxRect &suggested_rect) {
     // Label::Wrap takes pixels, so the AI features texts wrap again at the new scale.
     m_mcp_intro->Wrap(FromDIP(MCP_INTRO_WIDTH));
     m_mcp_status->Wrap(FromDIP(MCP_STATUS_WIDTH));
+    m_mcp_transport_hint->Wrap(FromDIP(MCP_HINT_WIDTH));
     m_mcp_agent_hint->Wrap(FromDIP(MCP_HINT_WIDTH));
     m_mcp_copy_button->SetMinSize(FromDIP(MCP_COPY_BUTTON_SIZE)); // Rescale() restored the Parameter style's width
 
@@ -2179,6 +2184,10 @@ void PreferencesDialog::create_items()
     auto item_mcp_address = create_item_mcp_address(_L("Server address"),
         _L("The address agents connect to over HTTP, with the access token."));
     g_sizer->Add(item_mcp_address);
+
+    auto item_mcp_transport = create_item_mcp_transport(_L("Connection type"),
+        _L("How the agent you set up below connects to OrcaSlicer."));
+    g_sizer->Add(item_mcp_transport);
 
     auto item_mcp_connect = create_item_mcp_connect(_L("Add to an agent"),
         _L("Copy the setup that connects the chosen agent to OrcaSlicer."));
