@@ -357,6 +357,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/TextureDisplacementDebugJob.hpp
     GUI/Jobs/TextureDisplacementPreviewJob.cpp
     GUI/Jobs/TextureDisplacementPreviewJob.hpp
+    GUI/Jobs/ChromaStackJob.cpp
+    GUI/Jobs/ChromaStackJob.hpp
     GUI/Jobs/ThreadSafeQueue.hpp
     GUI/Jobs/UpgradeNetworkJob.cpp
     GUI/Jobs/UpgradeNetworkJob.hpp
@@ -556,6 +558,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/TextLines.hpp
     GUI/TextureLibrary.cpp
     GUI/TextureLibrary.hpp
+    GUI/AssetGallery.cpp
+    GUI/AssetGallery.hpp
+    GUI/ChromaLibraries.cpp
+    GUI/ChromaLibraries.hpp
     GUI/TextureProjectorFrame.cpp
     GUI/TextureProjectorFrame.hpp
     GUI/TickCode.cpp

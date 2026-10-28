@@ -38,6 +38,7 @@
 #include <vector>
 
 #include "AABBTreeIndirect.hpp"
+#include "BoundingBox.hpp"
 #include "MeshBoolean.hpp"
 #include "Model.hpp"
 #include "PNGReadWrite.hpp"
@@ -267,6 +268,62 @@ void smooth_height_pixels(std::vector<uint8_t> &pixels, int width, int height, f
         for (size_t i = 0; i < pixels.size(); ++i)
             pixels[i] = uint8_t(std::lround(float(raw[i]) + (float(pixels[i]) - float(raw[i])) * mix));
 }
+
+// True when the PNG's IHDR says its texels are palette indices (colour type 3): the image is indexed in
+// the file, not merely a picture that looks like it. Everything needed sits at a fixed offset - the
+// 8-byte signature, then the IHDR chunk's length and type, the width, the height and the bit depth - so
+// this is one byte read rather than a decode.
+//
+// libslic3r's readers take 8-bit grey, RGB and RGBA only (png::is_decodable_8bit_png()) and the importer
+// expands anything else through wxImage, keeping its colours exactly as they were, so an indexed image
+// normally reaches the decode already expanded and it is the colour count below that recognises it. The
+// rule lives here anyway, because "indexed" is a fact about the file and not something the count should
+// have to imply.
+bool png_is_indexed(const png::ReadBuf &rbuf)
+{
+    // 8 signature + 4 chunk length + 4 "IHDR" + 4 width + 4 height + 1 bit depth.
+    constexpr size_t  color_type_offset = 25;
+    constexpr uint8_t png_color_type_palette = 3;
+    if (rbuf.buf == nullptr || rbuf.sz <= color_type_offset)
+        return false;
+    return static_cast<const uint8_t *>(rbuf.buf)[color_type_offset] == png_color_type_palette;
+}
+
+// Counts an image's distinct colours, but only as far as PALETTE_EXACT_MAX_COLORS: past that the image
+// is a photograph as far as this question goes, and how many hundreds of colours it has is of no
+// interest. That bail-out is what keeps the detection off the decode's critical path - a photograph
+// spends a few hundred comparisons before giving up, not a pass over itself.
+//
+// A colour is packed into one integer (and a grey level is just its byte), so the same counter serves
+// the grayscale and the colour decode paths and neither can drift from the other's idea of "distinct".
+// The last colour seen is checked first because flat artwork is made of long runs of one fill: that
+// turns the usual texel into a single comparison, where a linear scan of the palette would otherwise
+// cost as much as the palette is long on every one of them.
+class PaletteCounter
+{
+public:
+    void add(uint32_t color)
+    {
+        if (!m_counting || (m_count > 0 && color == m_last))
+            return;
+        m_last = color;
+        for (int i = 0; i < m_count; ++i)
+            if (m_colors[size_t(i)] == color)
+                return;
+        if (m_count == PALETTE_EXACT_MAX_COLORS)
+            m_counting = false;
+        else
+            m_colors[size_t(m_count++)] = color;
+    }
+    // Still within the budget, i.e. the image is drawn from a palette small enough to be artwork.
+    bool palette_exact() const { return m_counting; }
+
+private:
+    std::array<uint32_t, PALETTE_EXACT_MAX_COLORS> m_colors{};
+    uint32_t m_last     = 0;
+    int      m_count    = 0;
+    bool     m_counting = true;
+};
 } // namespace
 
 bool height_texture_has_color(const TextureDisplacementLayer &layer)
@@ -310,12 +367,25 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
             // code needs no dependency on wxWidgets/libjpeg to read arbitrary user images.
             return result;
 
+        // Decided alongside the decode below, from the texels it reads anyway. See
+        // DecodedHeightTexture::palette_exact.
+        const bool     indexed = png_is_indexed(rbuf);
+        PaletteCounter counter;
+
         png::ImageGreyscale img;
         if (png::decode_png(rbuf, img) && img.cols > 0 && img.rows > 0) {
             // The shipped library, and anything imported before colour was kept.
             result.width  = int(img.cols);
             result.height = int(img.rows);
             result.pixels = std::move(img.buf);
+            // The one place this costs a pass of its own: the grayscale decode hands its buffer over
+            // whole instead of walking it. One byte per texel, and it stops the moment the image has
+            // too many grey levels to be a stencil or a line drawing.
+            for (const uint8_t level : result.pixels) {
+                counter.add(level);
+                if (!counter.palette_exact())
+                    break;
+            }
         } else {
             // A colour source: keep the colour, and take the height from its luminance. The
             // coefficients are wxImage::ConvertToGreyscale()'s, which is what the importer used to
@@ -348,8 +418,12 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
                     result.rgb[dst * 3 + 1] = g;
                     result.rgb[dst * 3 + 2] = b;
                     result.pixels[dst] = uint8_t(std::lround(0.299 * r + 0.587 * g + 0.114 * b));
+                    // Alpha is left out of a texel's identity because the decode drops it: two texels
+                    // that differ only in alpha are the same colour in everything downstream of here.
+                    counter.add((uint32_t(r) << 16) | (uint32_t(g) << 8) | uint32_t(b));
                 }
         }
+        result.palette_exact = indexed || counter.palette_exact();
 
         if (keep_decoded) {
             std::lock_guard<std::mutex> lock(g_decoded_texture_cache.mutex);
@@ -405,6 +479,11 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
         }
         const float span   = 0.05f * float(std::min(result.width, result.height));
         const float radius = std::clamp(layer.smoothing, 0.f, 1.f) * std::min(span, 48.f);
+        // A blurred edge really does hold the colours between the two fills it separates, so the image
+        // stops being palette-exact here however it came in. Cleared before the blur rather than after,
+        // so the smoothed cache stores the honest answer.
+        if (radius > 0.f)
+            result.palette_exact = false;
         smooth_height_pixels(result.pixels, result.width, result.height, radius);
         // Colour gets the same blur, per channel. It is the same knob for the same reason: detail in
         // the image finer than the mesh can carry is noise either way, and low-passing it here is the
@@ -517,9 +596,34 @@ DecodedHeightTexture downscale_height_texture(const DecodedHeightTexture &src, i
     DecodedHeightTexture out;
     out.width  = w;
     out.height = h;
+    // A subset of a palette is still that palette, so the result is palette-exact exactly when the
+    // source was - and the nearest-neighbour branch below is what keeps that true.
+    out.palette_exact = src.palette_exact;
     out.pixels.resize(size_t(w) * size_t(h));
     if (color)
         out.rgb.resize(size_t(w) * size_t(h) * 3);
+
+    if (src.palette_exact) {
+        // Nearest-neighbour: one source texel decides the destination one, for the height and the
+        // colour together, so the two cannot end up read from different places in the image. The texel
+        // picked is the one under the centre of the block this destination texel covers, which is the
+        // usual convention and keeps a one-texel line from drifting to the edge of its block.
+        tbb::parallel_for(tbb::blocked_range<int>(0, h), [&](const tbb::blocked_range<int> &r) {
+            for (int y = r.begin(); y < r.end(); ++y) {
+                const int sy = std::min(src.height - 1, int(int64_t(2 * y + 1) * src.height / (2 * h)));
+                for (int x = 0; x < w; ++x) {
+                    const int    sx = std::min(src.width - 1, int(int64_t(2 * x + 1) * src.width / (2 * w)));
+                    const size_t si = size_t(sy) * size_t(src.width) + size_t(sx);
+                    const size_t di = size_t(y) * size_t(w) + size_t(x);
+                    out.pixels[di]  = src.pixels[si];
+                    if (color)
+                        for (int c = 0; c < 3; ++c)
+                            out.rgb[di * 3 + size_t(c)] = src.rgb[si * 3 + size_t(c)];
+                }
+            }
+        });
+        return out;
+    }
 
     tbb::parallel_for(tbb::blocked_range<int>(0, h), [&](const tbb::blocked_range<int> &r) {
         for (int y = r.begin(); y < r.end(); ++y)
@@ -564,6 +668,13 @@ DecodedHeightTexture apply_texture_adjustments(const DecodedHeightTexture &src, 
     const float blur       = std::clamp(adj.blur, 0.f, 1.f);
     const float sharpness  = std::clamp(adj.sharpness, 0.f, 1.f);
 
+    // The two spatial knobs mix neighbouring texels, which is how a colour that is in neither of them
+    // appears; the tonal ones are per-texel curves, so they map each of a flat image's fills to one
+    // colour and can only leave it with fewer distinct colours than it had. Hence palette-exactness
+    // survives a brightness or hue change and not a blur. See DecodedHeightTexture::palette_exact.
+    if (blur > 0.f || sharpness > 0.f)
+        out.palette_exact = false;
+
     // The tonal pass: a 256-entry lookup table, because brightness and contrast are the same scalar
     // curve for every texel and every channel. Building it once beats evaluating two curves a few
     // million times, and it is what keeps this pass off the panel's critical path.
@@ -595,21 +706,42 @@ DecodedHeightTexture apply_texture_adjustments(const DecodedHeightTexture &src, 
     const float  theta = adj.hue_deg * float(M_PI) / 180.f;
     const float  c     = std::cos(theta);
     const float  s     = std::sin(theta);
-    const float  m[9]  = {
+    const float  hue[9]  = {
         0.213f + c * 0.787f - s * 0.213f, 0.715f - c * 0.715f - s * 0.715f, 0.072f - c * 0.072f + s * 0.928f,
         0.213f - c * 0.213f + s * 0.143f, 0.715f + c * 0.285f + s * 0.140f, 0.072f - c * 0.072f - s * 0.283f,
         0.213f - c * 0.213f - s * 0.787f, 0.715f - c * 0.715f + s * 0.715f, 0.072f + c * 0.928f + s * 0.072f,
     };
-    const bool turn_hue = adj.hue_deg != 0.f;
+
+    // Saturation is the same kind of thing and composes with it, so the two become one matrix rather
+    // than two passes: a lerp between the luminance of a texel, repeated into all three channels, and
+    // the texel itself. The luma coefficients are the hue matrix's own, so a turn followed by a
+    // saturation does not shift brightness in a way a turn alone would not.
+    const float sat = std::clamp(adj.saturation, -1.f, 1.f) + 1.f; // 0 grey, 1 unchanged, 2 twice
+    const float lr = 0.213f, lg = 0.715f, lb = 0.072f;
+    const float satm[9] = {
+        lr + sat * (1.f - lr), lg - sat * lg,         lb - sat * lb,
+        lr - sat * lr,         lg + sat * (1.f - lg), lb - sat * lb,
+        lr - sat * lr,         lg - sat * lg,         lb + sat * (1.f - lb),
+    };
+
+    // satm * hue, so a texel is turned first and then saturated, which is the order the two controls
+    // read in on the panel.
+    float m[9]{};
+    for (int row = 0; row < 3; ++row)
+        for (int col = 0; col < 3; ++col)
+            m[row * 3 + col] = satm[row * 3] * hue[col] + satm[row * 3 + 1] * hue[3 + col] +
+                               satm[row * 3 + 2] * hue[6 + col];
+
+    const bool use_matrix = adj.hue_deg != 0.f || adj.saturation != 0.f;
 
     tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t> &r) {
         for (size_t i = r.begin(); i < r.end(); ++i) {
             const float rr = float(tone[out.rgb[i * 3]]);
             const float gg = float(tone[out.rgb[i * 3 + 1]]);
             const float bb = float(tone[out.rgb[i * 3 + 2]]);
-            const float nr = turn_hue ? m[0] * rr + m[1] * gg + m[2] * bb : rr;
-            const float ng = turn_hue ? m[3] * rr + m[4] * gg + m[5] * bb : gg;
-            const float nb = turn_hue ? m[6] * rr + m[7] * gg + m[8] * bb : bb;
+            const float nr = use_matrix ? m[0] * rr + m[1] * gg + m[2] * bb : rr;
+            const float ng = use_matrix ? m[3] * rr + m[4] * gg + m[5] * bb : gg;
+            const float nb = use_matrix ? m[6] * rr + m[7] * gg + m[8] * bb : bb;
             out.rgb[i * 3]     = uint8_t(std::lround(std::clamp(nr, 0.f, 255.f)));
             out.rgb[i * 3 + 1] = uint8_t(std::lround(std::clamp(ng, 0.f, 255.f)));
             out.rgb[i * 3 + 2] = uint8_t(std::lround(std::clamp(nb, 0.f, 255.f)));
@@ -2473,6 +2605,166 @@ indexed_triangle_set extract_painted_patch(const indexed_triangle_set           
     TriangleSelector    selector(selector_mesh);
     selector.deserialize(facet_data, false);
     return selector.get_facets_strict(EnforcerBlockerType::ENFORCER);
+}
+
+ChromaPatchMetrics chroma_measure_patch(const indexed_triangle_set &patch, const Transform3d &trafo,
+                                        const Transform3d &bake, double instance_bottom_z)
+{
+    ChromaPatchMetrics out;
+    if (patch.vertices.empty())
+        return out;
+
+    BoundingBoxf3 box;
+    BoundingBoxf3 planar;
+    for (const Vec3f &v : patch.vertices) {
+        const Vec3d p = v.cast<double>();
+        box.merge(trafo * p);
+        planar.merge(bake * p);
+    }
+
+    // How far from level the patch is, by area. A picture is printed in horizontal slices, so what
+    // matters is the angle between the surface and the build plate - which is a property of the
+    // facets, not of the bounding box: a saddle and a staircase can have the same Z spread.
+    const Matrix3d normal_trafo = trafo.linear().inverse().transpose();
+    std::vector<std::pair<float, double>> tilted; // cos(tilt), area
+    tilted.reserve(patch.indices.size());
+    double area_total = 0.;
+    double cos_total  = 0.;
+    for (const stl_triangle_vertex_indices &f : patch.indices) {
+        const Vec3d a = patch.vertices[size_t(f[0])].cast<double>();
+        const Vec3d cross = (patch.vertices[size_t(f[1])].cast<double>() - a)
+                                .cross(patch.vertices[size_t(f[2])].cast<double>() - a);
+        const Vec3d n = normal_trafo * cross;
+        const double len = n.norm();
+        if (len < 1e-12)
+            continue;
+        // The triangle's area in the printed frame, which is the frame the tilt is measured in.
+        const double area = 0.5 * (trafo.linear() * cross).norm();
+        const float  facing = float(std::abs(n.z()) / len);
+        tilted.emplace_back(facing, area);
+        area_total += area;
+        cos_total  += double(facing) * area;
+    }
+    const auto as_deg = [](float facing) {
+        return float(std::acos(double(std::clamp(facing, 0.f, 1.f))) * 180. / M_PI);
+    };
+    if (area_total > 0.) {
+        out.tilt_mean_deg = as_deg(float(cos_total / area_total));
+        // The steepest tenth by area, so a single facet on a rounded edge does not speak for a patch
+        // that is otherwise level - and so a patch that really is steep over a tenth of itself does.
+        std::sort(tilted.begin(), tilted.end(),
+                  [](const auto &a, const auto &b) { return a.first < b.first; });
+        double walked = 0.;
+        float  worst  = tilted.front().first;
+        for (const auto &[facing, area] : tilted) {
+            worst = facing;
+            walked += area;
+            if (walked >= 0.1 * area_total)
+                break;
+        }
+        out.tilt_deg = as_deg(worst);
+    }
+
+    out.valid      = true;
+    out.top_mm     = float(std::max(0., box.max.z() - instance_bottom_z));
+    out.spread_mm  = float(box.size().z());
+    out.planar_min = Vec2f(float(planar.min.x()), float(planar.min.y()));
+    out.planar_max = Vec2f(float(planar.max.x()), float(planar.max.y()));
+    return out;
+}
+
+void chroma_fit_layer_to_patch(TextureDisplacementLayer &layer, const ChromaPatchMetrics &patch, float aspect)
+{
+    if (!patch.valid)
+        return;
+    // Lay the one copy of the picture over the painted patch. Without this the picture would be a tile
+    // of some size starting at the volume's own origin, which for a part centred on that origin puts
+    // three quarters of the patch outside the picture and leaves it undisplaced.
+    //
+    // uv = (planar / tiling_scale) * (1, aspect) + offset, so fitting means a scale that makes the
+    // longer side of the patch one tile wide and an offset that moves the patch's own corner to uv 0
+    // and centres the shorter side. The aspect is the picture's, so a wide picture is not squeezed
+    // into a square tile.
+    const Vec2f size    = patch.planar_max - patch.planar_min;
+    const float along_u = std::max(size.x(), 1e-3f);
+    const float along_v = std::max(size.y() * aspect, 1e-3f);
+    const float scale   = std::max(along_u, along_v);
+    layer.tiling_scale  = scale;
+    layer.rotation_deg  = 0.f; // the fit is in unrotated planar coordinates
+    // The picture's first pixel row is at v = 0 and v runs down it, while the plane a ChromaStack
+    // layer is sampled from is (x, -y) - so the corner the picture starts at is the patch's largest y,
+    // not its smallest. Fitting against +y instead slid the picture across the patch by however far
+    // the patch sat off the bake frame's own origin.
+    const Vec2f origin(patch.planar_min.x(), -patch.planar_max.y());
+    layer.offset        = Vec2f(-origin.x() / scale + 0.5f * (1.f - along_u / scale),
+                                -origin.y() * aspect / scale + 0.5f * (1.f - along_v / scale));
+}
+
+ChromaSurface chroma_build_surface(const indexed_triangle_set &patch, const Transform3d &trafo,
+                                   const Transform3d &bake, const TextureDisplacementLayer &layer,
+                                   float aspect, int width, int height)
+{
+    ChromaSurface out;
+    if (patch.indices.empty() || width <= 0 || height <= 0)
+        return out;
+
+    const Matrix3d normal_trafo = trafo.linear().inverse().transpose();
+
+    // Where each vertex of the patch lands in the picture, in texels. box_plane_xy() with a +Z facing
+    // is the plane a ChromaStack layer is sampled from (see sample_layer_height()), so this is the
+    // same mapping the bake will use - the surface has to be measured where the picture actually is.
+    std::vector<Vec2f> texel(patch.vertices.size());
+    std::vector<float> z(patch.vertices.size());
+    for (size_t vi = 0; vi < patch.vertices.size(); ++vi) {
+        const Vec3d p      = patch.vertices[vi].cast<double>();
+        const Vec3d baked  = bake * p;
+        const Vec2f uv     = apply_uv_transform(Vec2f(float(baked.x()), float(-baked.y())), layer, aspect);
+        texel[vi] = Vec2f(uv.x() * float(width), uv.y() * float(height));
+        z[vi]     = float((trafo * p).z());
+    }
+
+    out.width  = width;
+    out.height = height;
+    out.facing.assign(size_t(width) * size_t(height), 0.f);
+    // What is already written at a texel, so the surface nearest the viewer wins where the patch
+    // folds back on itself: the picture is seen on the top of the part, not through it.
+    std::vector<float> depth(out.facing.size(), -std::numeric_limits<float>::max());
+
+    for (const stl_triangle_vertex_indices &f : patch.indices) {
+        const Vec2f a = texel[size_t(f[0])], b = texel[size_t(f[1])], c = texel[size_t(f[2])];
+        const float det = (b.x() - a.x()) * (c.y() - a.y()) - (c.x() - a.x()) * (b.y() - a.y());
+        if (std::abs(det) < 1e-9f)
+            continue; // edge-on in the picture: it covers no texel of it
+
+        const Vec3d v0 = patch.vertices[size_t(f[0])].cast<double>();
+        const Vec3d n  = normal_trafo * (patch.vertices[size_t(f[1])].cast<double>() - v0)
+                                            .cross(patch.vertices[size_t(f[2])].cast<double>() - v0);
+        const double len = n.norm();
+        if (len < 1e-12)
+            continue;
+        const float facing = float(std::abs(n.z()) / len);
+
+        const int x0 = std::max(0, int(std::floor(std::min({ a.x(), b.x(), c.x() }))));
+        const int x1 = std::min(width - 1, int(std::ceil(std::max({ a.x(), b.x(), c.x() }))));
+        const int y0 = std::max(0, int(std::floor(std::min({ a.y(), b.y(), c.y() }))));
+        const int y1 = std::min(height - 1, int(std::ceil(std::max({ a.y(), b.y(), c.y() }))));
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x) {
+                const Vec2f p(float(x) + 0.5f, float(y) + 0.5f);
+                const float w0 = ((b.x() - p.x()) * (c.y() - p.y()) - (c.x() - p.x()) * (b.y() - p.y())) / det;
+                const float w1 = ((c.x() - p.x()) * (a.y() - p.y()) - (a.x() - p.x()) * (c.y() - p.y())) / det;
+                const float w2 = 1.f - w0 - w1;
+                if (w0 < 0.f || w1 < 0.f || w2 < 0.f)
+                    continue;
+                const float here = w0 * z[size_t(f[0])] + w1 * z[size_t(f[1])] + w2 * z[size_t(f[2])];
+                const size_t i = size_t(y) * size_t(width) + size_t(x);
+                if (here > depth[i]) {
+                    depth[i]      = here;
+                    out.facing[i] = facing;
+                }
+            }
+    }
+    return out;
 }
 
 bool compute_layer_paint_anchor(const indexed_triangle_set                    &base_mesh,
@@ -5833,21 +6125,13 @@ std::string texture_displacement_layers_to_json(const std::vector<TextureDisplac
         // alone: without the picture and the stack it reopens as a relief layer whose texture happens
         // to be a staircase, and every colour it was printing is gone.
         if (l.chroma_enabled) {
-            nlohmann::json &c      = j["chroma"];
-            c["source_in_3mf"]     = l.chroma_source_in_3mf;
-            c["layer_height_mm"]   = l.chroma.layer_height_mm;
-            c["base_layers"]       = l.chroma.base_layers;
-            c["base_auto"]         = l.chroma.base_auto;
-            c["dither"]            = l.chroma.dither;
-            c["applied_ranges"]    = l.chroma.applied_ranges;
-            nlohmann::json &bands  = c["bands"];
-            bands                  = nlohmann::json::array();
-            for (const ChromaBand &band : l.chroma.bands)
-                bands.push_back(nlohmann::json{ { "filament", band.filament.filament },
-                                                { "name", band.filament.name },
-                                                { "td_mm", band.filament.td_mm },
-                                                { "color", color_to_json(band.filament.color) },
-                                                { "layers", band.layers } });
+            // The stack writes itself, in ChromaStack.cpp: the bands and the keys that were written here
+            // by hand, plus the lighting, the lamp and the retouch edits. One writer beside the reader
+            // beside the model, so a field added to the stack cannot be forgotten here - which is what
+            // happened to the lighting and the edits the first time.
+            nlohmann::json &c  = j["chroma"];
+            c["source_in_3mf"] = l.chroma_source_in_3mf;
+            chroma_stack_to_json(c, l.chroma);
         }
 
         j["lscm_seam_angle_deg"] = l.lscm_seam_angle_deg;
@@ -5943,25 +6227,10 @@ bool texture_displacement_layers_from_json(const std::string                    
                 if (const auto c = j.find("chroma"); c != j.end() && c->is_object()) {
                     l.chroma_enabled = true;
                     read(*c, "source_in_3mf", l.chroma_source_in_3mf);
-                    read(*c, "layer_height_mm", l.chroma.layer_height_mm);
-                    read(*c, "base_layers", l.chroma.base_layers);
-                    read(*c, "base_auto", l.chroma.base_auto);
-                    read(*c, "dither", l.chroma.dither);
-                    read(*c, "applied_ranges", l.chroma.applied_ranges);
-                    if (const auto bands = c->find("bands"); bands != c->end() && bands->is_array())
-                        for (const nlohmann::json &b : *bands) {
-                            if (!b.is_object())
-                                continue;
-                            ChromaBand band;
-                            read(b, "filament", band.filament.filament);
-                            read(b, "name", band.filament.name);
-                            read(b, "td_mm", band.filament.td_mm);
-                            if (const auto col = b.find("color"); col != b.end())
-                                band.filament.color = color_from_json(*col, band.filament.color);
-                            read(b, "layers", band.layers);
-                            band.layers = std::max(1, band.layers);
-                            l.chroma.bands.push_back(band);
-                        }
+                    // Every key the stack knows about, including the ones a project saved before the
+                    // lighting and the retouch existed does not have: absent reads as the default, which
+                    // is what that project printed.
+                    chroma_stack_from_json(*c, l.chroma);
                     // A stack with no filaments in it cannot print or be edited back into shape, and
                     // its height map is just a height map: let it be a relief layer.
                     if (l.chroma.bands.empty())

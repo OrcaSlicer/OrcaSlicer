@@ -392,3 +392,5 @@ src/slic3r/GUI/PostProcessor.cpp
 src/slic3r/GUI/TaskManager.cpp
 src/slic3r/GUI/Widgets/ProgressDialog.hpp
 src/slic3r/GUI/Widgets/StepCtrl.cpp
+src/slic3r/GUI/AssetGallery.cpp
+src/slic3r/GUI/ChromaLibraries.cpp

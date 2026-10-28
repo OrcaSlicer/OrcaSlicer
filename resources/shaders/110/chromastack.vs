@@ -22,12 +22,17 @@ varying vec3  clipping_planes_dots;
 varying vec3  eye_normal;
 varying vec3  eye_position;
 varying vec3  world_normal;
+// The other two world coordinates, for the one thing that is not a function of height: where in the
+// picture a fragment sits. The picture is pinned to the XY plane, so its uv is a closed form in these
+// two and the mesh still carries no texture coordinate of its own.
+varying vec2  world_xy;
 varying float world_z;
 
 void main()
 {
     vec4 model_pos = vec4(v_position, 1.0);
     vec4 world_pos = volume_world_matrix * model_pos;
+    world_xy       = world_pos.xy;
     world_z        = world_pos.z;
     world_normal   = normalize(world_normal_matrix * v_normal);
     eye_normal     = normalize(view_normal_matrix * v_normal);

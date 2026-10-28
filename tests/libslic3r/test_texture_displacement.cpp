@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/system/error_code.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <ios>
 #include <iterator>
@@ -3452,4 +3453,277 @@ TEST_CASE("an unpainted part of the source carries no paint onto the rebuilt mes
         else if (x > 0.6f * size)
             CHECK(state[t] == uint8_t(EnforcerBlockerType::NONE));
     }
+}
+
+// ---- Palette-exact images -----------------------------------------------------------------------
+// Palette-exact images: artwork drawn from a fixed set of flat colours, as opposed to a photograph.
+// decode_height_texture() recognises one and reports it as DecodedHeightTexture::palette_exact, and the
+// resampling then honours it. The property worth asserting is a colour one rather than a numeric one:
+// a palette-exact image must come out of a resize holding only colours it went in with. Averaging two
+// flat fills produces a colour that is in neither of the areas it divides, and a ChromaStack solve then
+// matches that invented colour to an intermediate height, so a hard edge prints as a terraced ramp.
+
+// Every input here is built in code and encoded through Slic3r's own PNG writer, then read back, so the
+// decode is guaranteed a file it accepts - the same round trip the existing texture tests use, and the
+// same bytes the GUI's import path would hand over.
+static std::shared_ptr<std::vector<unsigned char>> png_bytes_of_temp_file(const boost::filesystem::path &path)
+{
+    std::vector<unsigned char> bytes;
+    {
+        std::ifstream ifs(path.string(), std::ios::binary);
+        bytes.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    }
+    boost::system::error_code ec;
+    boost::filesystem::remove(path, ec);
+
+    REQUIRE_FALSE(bytes.empty());
+    return std::make_shared<std::vector<unsigned char>>(std::move(bytes));
+}
+
+static boost::filesystem::path temp_png_path()
+{
+    return boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("palette_exact_%%%%%%%%.png");
+}
+
+static std::shared_ptr<std::vector<unsigned char>> make_gray_png(const std::vector<uint8_t> &pixels, size_t w, size_t h)
+{
+    REQUIRE(pixels.size() == w * h);
+    const boost::filesystem::path path = temp_png_path();
+    REQUIRE(Slic3r::png::write_gray_to_file(path.string(), w, h, pixels));
+    return png_bytes_of_temp_file(path);
+}
+
+static std::shared_ptr<std::vector<unsigned char>> make_rgb_png(const std::vector<uint8_t> &rgb, size_t w, size_t h)
+{
+    REQUIRE(rgb.size() == w * h * 3);
+    const boost::filesystem::path path = temp_png_path();
+    REQUIRE(Slic3r::png::write_rgb_to_file(path.string(), w, h, rgb));
+    return png_bytes_of_temp_file(path);
+}
+
+static DecodedHeightTexture decode_image(const std::shared_ptr<std::vector<unsigned char>> &bytes)
+{
+    TextureDisplacementLayer layer;
+    layer.slot       = 0;
+    layer.image_data = bytes;
+    return decode_height_texture(layer);
+}
+
+// The distinct colours an image holds, as packed 0xRRGGBB values (or as grey levels for a grayscale
+// one). Used both to assert what a resize produced and to check that a test's own input really has the
+// number of colours the test says it has.
+static std::set<uint32_t> distinct_colors(const DecodedHeightTexture &tex)
+{
+    std::set<uint32_t> out;
+    if (tex.has_color())
+        for (size_t i = 0; i < size_t(tex.width) * size_t(tex.height); ++i)
+            out.insert((uint32_t(tex.rgb[i * 3]) << 16) | (uint32_t(tex.rgb[i * 3 + 1]) << 8) |
+                       uint32_t(tex.rgb[i * 3 + 2]));
+    else
+        for (const uint8_t level : tex.pixels)
+            out.insert(level);
+    return out;
+}
+
+// Two flat fills split by an edge at x = 33: deliberately not on a block boundary of the resize below,
+// so a filtered resize has to average across the edge and a nearest-neighbour one cannot.
+static std::shared_ptr<std::vector<unsigned char>> make_two_color_png(size_t w = 64, size_t h = 64)
+{
+    std::vector<uint8_t> rgb;
+    rgb.reserve(w * h * 3);
+    for (size_t y = 0; y < h; ++y)
+        for (size_t x = 0; x < w; ++x)
+            if (x < 33)
+                rgb.insert(rgb.end(), { 220, 40, 40 });
+            else
+                rgb.insert(rgb.end(), { 30, 70, 200 });
+    return make_rgb_png(rgb, w, h);
+}
+
+TEST_CASE("a two-colour image downscales to exactly those two colours", "[PaletteExact]")
+{
+    const DecodedHeightTexture tex = decode_image(make_two_color_png());
+    REQUIRE_FALSE(tex.empty());
+    REQUIRE(tex.has_color());
+    REQUIRE(tex.palette_exact);
+    const std::set<uint32_t> source = distinct_colors(tex);
+    REQUIRE(source.size() == 2);
+
+    const DecodedHeightTexture small = downscale_height_texture(tex, 16);
+    REQUIRE(small.width == 16);
+    REQUIRE(small.height == 16);
+    // Only colours the source held, and both of them - a resize that answered with one flat colour
+    // would satisfy the first half on its own.
+    CHECK(distinct_colors(small) == source);
+    // The height goes with the colour: it is the luminance of one source texel, never of a blend of
+    // two, so the relief steps where the colour does.
+    const std::set<uint32_t> source_levels = { tex.pixels[0], tex.pixels[size_t(tex.width) - 1] };
+    for (const uint8_t level : small.pixels)
+        CHECK(source_levels.count(level) == 1);
+    // A subset of a palette is still that palette, so a caller downstream of the resize can still tell
+    // artwork from a photograph.
+    CHECK(small.palette_exact);
+}
+
+TEST_CASE("the palette-exact flag is what switches the resampling", "[PaletteExact]")
+{
+    // The same image with the flag cleared by hand goes through the box filter exactly as before, which
+    // is what keeps a relief layer's photograph untouched: this is an opt-in by the image's own content,
+    // not a change to the filtering.
+    DecodedHeightTexture tex = decode_image(make_two_color_png());
+    REQUIRE(tex.palette_exact);
+    const std::set<uint32_t> source = distinct_colors(tex);
+
+    tex.palette_exact                 = false;
+    const DecodedHeightTexture small  = downscale_height_texture(tex, 16);
+    const std::set<uint32_t>   result = distinct_colors(small);
+    // The block straddling the edge at x = 33 is averaged, so it holds a colour the artwork never did.
+    CHECK(std::any_of(result.begin(), result.end(), [&source](uint32_t c) { return source.count(c) == 0; }));
+}
+
+TEST_CASE("a photograph-like gradient is still filtered when it is downscaled", "[PaletteExact]")
+{
+    // 64 grey levels across the width, four levels apart: more colours than artwork has, and a ramp
+    // rather than flat fills. Halved, every destination texel is the average of two neighbouring
+    // levels, which lands two levels off either of them - a value the source does not hold. That is the
+    // filtering working, and it is what a photograph's gradients need.
+    const size_t         w = 64, h = 64;
+    std::vector<uint8_t> pixels(w * h);
+    for (size_t y = 0; y < h; ++y)
+        for (size_t x = 0; x < w; ++x)
+            pixels[y * w + x] = uint8_t(x * 4);
+
+    const DecodedHeightTexture tex = decode_image(make_gray_png(pixels, w, h));
+    REQUIRE_FALSE(tex.empty());
+    REQUIRE(distinct_colors(tex).size() == 64);
+    CHECK_FALSE(tex.palette_exact);
+
+    const DecodedHeightTexture small = downscale_height_texture(tex, 32);
+    REQUIRE(small.width == 32);
+    CHECK_FALSE(small.palette_exact);
+    const std::set<uint32_t> source = distinct_colors(tex);
+    CHECK(std::any_of(small.pixels.begin(), small.pixels.end(),
+                      [&source](uint8_t v) { return source.count(uint32_t(v)) == 0; }));
+}
+
+// A grayscale image with `levels` distinct grey levels, spread over enough texels that each level
+// really appears. The step is derived from the level count so the levels cannot collide.
+static std::shared_ptr<std::vector<unsigned char>> make_leveled_gray_png(int levels, size_t w = 16, size_t h = 16)
+{
+    REQUIRE(levels > 1);
+    REQUIRE(size_t(levels) <= w * h);
+    const int            step = 250 / (levels - 1);
+    std::vector<uint8_t> pixels(w * h);
+    for (size_t i = 0; i < pixels.size(); ++i)
+        pixels[i] = uint8_t(int(i % size_t(levels)) * step);
+    return make_gray_png(pixels, w, h);
+}
+
+TEST_CASE("the colour count decides palette-exactness, either side of its threshold", "[PaletteExact]")
+{
+    // At the threshold the image is still artwork; one colour past it, it is a photograph. The
+    // threshold is deliberately low - anti-aliasing is what pushes a nominally two-colour image over
+    // it, and an anti-aliased edge genuinely does carry the colours in between.
+    const DecodedHeightTexture at = decode_image(make_leveled_gray_png(PALETTE_EXACT_MAX_COLORS));
+    REQUIRE_FALSE(at.empty());
+    REQUIRE(distinct_colors(at).size() == size_t(PALETTE_EXACT_MAX_COLORS));
+    CHECK(at.palette_exact);
+
+    const DecodedHeightTexture past = decode_image(make_leveled_gray_png(PALETTE_EXACT_MAX_COLORS + 1));
+    REQUIRE_FALSE(past.empty());
+    REQUIRE(distinct_colors(past).size() == size_t(PALETTE_EXACT_MAX_COLORS) + 1);
+    CHECK_FALSE(past.palette_exact);
+}
+
+TEST_CASE("a grayscale image drawn from a few levels is palette-exact", "[PaletteExact]")
+{
+    // An indexed image arrives at the decode expanded - the importer converts anything that is not an
+    // 8-bit grey, RGB or RGBA PNG through wxImage, which keeps its colours exactly - so a four-level
+    // grey stencil is what one looks like here. Bands five texels wide, against a resize that takes
+    // four, so the blocks straddle the steps.
+    const size_t         w = 32, h = 32;
+    std::vector<uint8_t> pixels(w * h);
+    for (size_t y = 0; y < h; ++y)
+        for (size_t x = 0; x < w; ++x)
+            pixels[y * w + x] = uint8_t(((x / 5 + y / 5) % 4) * 85);
+
+    const DecodedHeightTexture tex = decode_image(make_gray_png(pixels, w, h));
+    REQUIRE_FALSE(tex.empty());
+    REQUIRE_FALSE(tex.has_color()); // a height map has no colour to give, and this must not invent one
+    REQUIRE(tex.palette_exact);
+
+    const DecodedHeightTexture small = downscale_height_texture(tex, 8);
+    REQUIRE(small.width == 8);
+    const std::set<uint32_t> source = distinct_colors(tex);
+    REQUIRE(source.size() == 4);
+    for (const uint8_t level : small.pixels)
+        CHECK(source.count(uint32_t(level)) == 1);
+}
+
+// An 8x8 RGBA PNG: two flat colours, left half against right half, with alpha alternating per row
+// (opaque, then half-transparent). Written out as bytes because libslic3r's PNG writers only produce
+// grey and RGB files, as the colour-decode tests in test_texture_displacement.cpp do for the same
+// reason. The point of the alpha is that it varies where the colour does not.
+static std::shared_ptr<std::vector<unsigned char>> make_two_color_rgba_png()
+{
+    static const unsigned char bytes[] = {
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x08,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0xc4, 0x0f, 0xbe, 0x8b, 0x00, 0x00, 0x00,
+        0x20, 0x49, 0x44, 0x41, 0x54, 0x78, 0xda, 0x63, 0xb8, 0xa3, 0xa1, 0xf1,
+        0x1f, 0x19, 0xcb, 0xb9, 0x9d, 0x40, 0xc1, 0x0c, 0x40, 0xc1, 0x04, 0x64,
+        0x0c, 0x14, 0x44, 0xc1, 0x0c, 0xc3, 0xc2, 0x04, 0x00, 0x7d, 0x0a, 0x76,
+        0xe1, 0x09, 0x9e, 0xb7, 0x7e, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
+        0x44, 0xae, 0x42, 0x60, 0x82,
+    };
+    return std::make_shared<std::vector<unsigned char>>(std::begin(bytes), std::end(bytes));
+}
+
+TEST_CASE("an image with an alpha channel is judged on its colours alone", "[PaletteExact]")
+{
+    // The decode drops alpha, so two texels that differ only in it are the same colour everywhere
+    // downstream - counting them apart would read a two-colour logo as a four-colour one and, on a
+    // bigger image, as a photograph.
+    const DecodedHeightTexture tex = decode_image(make_two_color_rgba_png());
+    REQUIRE_FALSE(tex.empty());
+    REQUIRE(tex.has_color());
+    REQUIRE(tex.width == 8);
+    REQUIRE(tex.height == 8);
+    const std::set<uint32_t> source = distinct_colors(tex);
+    REQUIRE(source.size() == 2);
+    CHECK(tex.palette_exact);
+
+    const DecodedHeightTexture small = downscale_height_texture(tex, 4);
+    REQUIRE(small.width == 4);
+    CHECK(distinct_colors(small) == source);
+}
+
+TEST_CASE("blurring a palette-exact image makes it a photograph", "[PaletteExact]")
+{
+    // A blurred edge really does hold the colours between the two fills it separates, so the flag has
+    // to go off with the blur - whether it comes from the layer's Smoothing or from the adjustment
+    // panel. The tonal adjustments are per-texel curves and keep it: a flat image stays flat.
+    TextureDisplacementLayer layer;
+    layer.slot       = 0;
+    layer.image_data = make_two_color_png();
+    REQUIRE(decode_height_texture(layer).palette_exact);
+
+    layer.smoothing = 0.5f;
+    CHECK_FALSE(decode_height_texture(layer).palette_exact);
+    layer.smoothing = 0.f;
+
+    const DecodedHeightTexture tex = decode_height_texture(layer);
+    REQUIRE(tex.palette_exact);
+
+    TextureAdjustments adjust;
+    adjust.brightness = 0.3f;
+    CHECK(apply_texture_adjustments(tex, adjust).palette_exact);
+
+    adjust = TextureAdjustments{};
+    adjust.blur = 0.5f;
+    CHECK_FALSE(apply_texture_adjustments(tex, adjust).palette_exact);
+
+    adjust = TextureAdjustments{};
+    adjust.sharpness = 0.5f;
+    CHECK_FALSE(apply_texture_adjustments(tex, adjust).palette_exact);
 }

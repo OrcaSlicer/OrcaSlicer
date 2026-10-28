@@ -9,6 +9,7 @@
 #include "slic3r/GUI/GLTexture.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/IconManager.hpp"
+#include "slic3r/GUI/Jobs/ChromaStackJob.hpp"
 #include "slic3r/GUI/TextureLibrary.hpp"
 
 #include <Eigen/Core>
@@ -37,6 +38,10 @@
 namespace Slic3r::GUI {
 
 class TextureProjectorFrame;
+// What the frame gallery comes back with: the frame, the two dimensions it was shown beside, and
+// the outline file if the user asked for one. Declared rather than included, so a panel that only
+// hands the answer on does not drag the whole asset gallery into every file that sees this class.
+struct ChromaFramePick;
 
 // Paint-style gizmo that assigns one or more texture-displacement "layers" (see
 // libslic3r/TextureDisplacement.hpp) to painted areas of a model, and can bake the result into
@@ -505,9 +510,6 @@ public:
     void create_picture_plate();
 
 private:
-    // Rebuilds a generated plate's mesh from its current plate settings, keeping the picture, the
-    // stack and the paint. Does nothing for a picture painted onto a model.
-    bool chroma_rebuild_plate(TextureDisplacementLayer &layer);
     // Marks the first `count` triangles of the volume's mesh as painted for `slot`, which is the
     // picture's own face - chroma_plate_mesh() puts it first for exactly this.
     static void chroma_paint_face(ModelVolume &mv, int slot, size_t count);
@@ -515,7 +517,17 @@ private:
     // Picks a colour picture for the layer, turns ChromaStack on, and seeds a stack from the loaded
     // filaments and the patch if the layer has none yet. Solves straight away, so the relief appears
     // without a second click.
+    // Opens the picture gallery for this layer. The gallery is a modal window, so the open is deferred
+    // out of the ImGui pass and chroma_set_picture() is what runs on the other side of it, finding the
+    // layer again by slot.
     void chroma_pick_picture(TextureDisplacementLayer &layer);
+    void chroma_set_picture(int slot, const std::string &path);
+    // The same two-step for the frame gallery: a frame is chosen by looking at frames, and what the
+    // plate stores is which one plus the cross-section resolved from it for this frame's size.
+    void chroma_set_frame(int slot, const ChromaFramePick &pick);
+    // Re-resolves that cross-section after the frame's width or rise changes. Does nothing for a plate
+    // with no gallery frame, or one whose frame file has gone missing.
+    void chroma_refresh_frame(TextureDisplacementLayer &layer);
     // Lays one copy of the picture over the painted patch, which is what a picture wants and a tiling
     // texture does not.
     void chroma_fit_picture(TextureDisplacementLayer &layer);
@@ -523,9 +535,59 @@ private:
     // picture's stack survives a trip through being a relief layer, and a relief layer's texture
     // becomes the picture it is solved from.
     void chroma_convert_layer(TextureDisplacementLayer &layer, bool to_chroma);
-    // Re-runs the solve and replaces the layer's height map with its result. `silent` for the automatic
-    // path, which must not put a dialog in front of someone who was only dragging a number.
+    // Queues a solve on the UI worker and returns at once; the height map is replaced in the
+    // completion handler. `silent` for the automatic path, which must not put a dialog in front of
+    // someone who was only dragging a number. Returns false only when there is nothing to solve -
+    // whether the solve itself succeeds is not known yet.
+    //
+    // Nothing is cleared on the way in: the card keeps showing the last prediction and the model keeps
+    // its last relief until a better one arrives, which is the whole point of doing this off-thread.
     bool chroma_solve_layer(TextureDisplacementLayer &layer, bool silent = false);
+    // The same solve, run to completion on this thread at the picture's full resolution. The live path
+    // works at CHROMA_SOLVE_PREVIEW_PX so the panel keeps up; a bake has to have the real thing, and is
+    // long enough already that one more pass does not register. Returns false if nothing was solved.
+    bool chroma_solve_layer_blocking(TextureDisplacementLayer &layer);
+    // Fills in everything a solve needs from the live Model, so the job itself touches none of it.
+    // False when the layer, the volume or the selection cannot supply it.
+    bool chroma_solve_input(const TextureDisplacementLayer &layer, ChromaSolveInput &out, int max_solve_px) const;
+    // Takes a finished solve's result into the layer and the panel. Looks the layer up by slot rather
+    // than holding a reference: a result can land after the layer was removed or the gizmo reopened.
+    void chroma_apply_solve(int slot, ChromaSolveResult &&result);
+
+    // What a solve's answer actually depends on: the stack, the picture, and how the patch is tilted.
+    // Plate size, backing thickness and frame shape are *not* in it, and that is not an oversight -
+    // chroma_palette() makes every base layer the bottom band's own colour, so the solver's choice set
+    // is invariant to base_layers, and a generated plate's picture face is flat, so there is no tilt
+    // correction to redo either. Re-fitting the placement and rewriting the swap heights is the whole
+    // of what those controls need, and skipping the solve is what makes dragging the Size field
+    // bearable.
+    uint64_t chroma_solve_key(const TextureDisplacementLayer &layer) const;
+    std::array<uint64_t, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_solve_key{};
+    // Raised on every queue, so a job that has been superseded mid-run aborts instead of finishing a
+    // result nobody will use. Shared with the worker, as the preview's counter is.
+    std::shared_ptr<std::atomic<uint64_t>> m_chroma_generation = std::make_shared<std::atomic<uint64_t>>(0);
+    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_solve_running{};
+    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_solve_pending{};
+    // Set while the live path has written a reduced-resolution height map, so a bake knows to solve
+    // the picture properly first. Cleared by a full-resolution solve.
+    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_solve_coarse{};
+    // Whether the swaps should be written once the solve lands, which is what the synchronous path
+    // did on its way out.
+    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_apply_after_solve{};
+
+    // The chroma layer occupying `slot`, or nullptr. For completion handlers, which must not hold a
+    // layer reference across a job.
+    TextureDisplacementLayer *chroma_layer_in_slot(int slot);
+
+    // Queues the plate's triangulation on the worker and swaps the mesh in when it lands. The old
+    // plate stays on screen meanwhile. Returns false when there is no generated plate to rebuild.
+    bool chroma_queue_plate(TextureDisplacementLayer &layer);
+    void chroma_apply_plate(int slot, ChromaPlateResult &&result);
+    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_plate_running{};
+    // Its own counter rather than the solve's: a solve queued while a plate is being triangulated
+    // would otherwise read as "this plate is superseded" and the job would come back empty, leaving
+    // the plate stale with nothing left to ask for it again.
+    std::shared_ptr<std::atomic<uint64_t>> m_chroma_plate_generation = std::make_shared<std::atomic<uint64_t>>(0);
     // Writes the stack's filament swaps onto the object as height ranges. `silent` for the automatic
     // path: it writes only when the ranges are the ones this stack wrote, or there are none, and
     // otherwise leaves them alone rather than asking.
@@ -553,6 +615,63 @@ private:
     // them. The stack can only be built from filaments that exist; this is the answer to the question
     // that asks instead which ones ought to.
     void chroma_suggest(TextureDisplacementLayer &layer, int count);
+    // Builds the stack from the last suggestion, taking the filament of the user's nearest each
+    // suggested colour. A list of colours to buy is only half an answer, and this is the other half:
+    // the printable version of the same stack, in the same order, with the same layer counts.
+    void chroma_apply_suggestions(TextureDisplacementLayer &layer);
+
+    // ---- Retouch: painting a correction onto the picture ----
+    //
+    // The solve is one global decision made per pixel, and there is always somewhere it decides wrong:
+    // a face that goes a band too dark, a sky that bands, a logo whose red lands on the orange below
+    // it. Everything else the card offers changes the whole picture to fix one part of it. This is the
+    // part that does not: a stroke over the print says "this area goes one band up", or "this area is
+    // that filament", and the solve honours it where it was painted and nowhere else.
+    //
+    // Painted in 3D on the model rather than on a flat copy of the picture, because that is where the
+    // user can see what is wrong - the error overlay is drawn there too, and the two are meant to be
+    // used together. The stroke is projected into the picture's own grid through the same mapping the
+    // bake samples it with, so a mask painted once holds for the coarse preview solve and the full
+    // resolution one alike.
+    bool on_mouse_chroma_retouch(const wxMouseEvent &mouse_event);
+    // Stamps the brush into m_chroma_mask at a point on the mesh, in the volume's own coordinates.
+    // False when that point lies outside the picture.
+    bool chroma_stamp_at(const Vec3f &hit, const TextureDisplacementLayer &layer);
+    // Turns the painted mask into an edit on the layer's stack and asks for a re-solve. A stroke that
+    // covered nothing is dropped rather than stored as an edit that does nothing.
+    void chroma_commit_stroke(TextureDisplacementLayer &layer);
+    // The grid a retouch mask is painted on for this layer: the picture's own, capped as the live solve
+    // is. Zeroes when there is no picture to measure.
+    void chroma_mask_grid(const TextureDisplacementLayer &layer, int &width, int &height) const;
+
+    bool  m_chroma_retouch_mode      = false; // the brush is active, so the mouse paints corrections
+    // 0: move by layers. 1: pin to the top of a band. 2: mark the area as what the picture is about,
+    // which is not an edit at all - it writes the stack's importance region instead, and what it
+    // changes is which colours the filament search and the suggestions serve. This is our answer to
+    // HueForge's seven luminance modes: instead of offering seven ways to map a picture, let the user
+    // say which part of it matters and keep one mapping.
+    int   m_chroma_retouch_kind      = 0;
+    float m_chroma_importance_weight = 4.f;   // how much more that area counts than its area says
+    int   m_chroma_retouch_delta     = -1;    // kind 0: how many layers, signed
+    int   m_chroma_retouch_band      = 0;     // kind 1: which band, -1 meaning the bare base
+    float m_chroma_retouch_radius_mm = 3.f;   // the brush, in millimetres on the print
+    bool  m_chroma_retouch_painting  = false; // a stroke is in progress
+    // The stroke being painted: one byte per texel of the grid below, non-zero inside. Held until the
+    // button is released, then encoded into an edit - so an edit is a stroke, which is what makes one
+    // of them undoable and removable as a unit.
+    std::vector<uint8_t> m_chroma_mask;
+    int                  m_chroma_mask_w = 0;
+    int                  m_chroma_mask_h = 0;
+
+    // The brush's own cursor: a ring lying on the surface under the pointer. The painter base class
+    // draws one for its own brush, but this mode consumes the mouse before the base sees it, so it
+    // draws its own - and without it a stroke is invisible until it is released and solved, which is
+    // no way to aim at the one roof in a picture that is printing the wrong colour.
+    void    render_chroma_brush();
+    GLModel m_chroma_brush_glmodel;
+    Vec3f   m_chroma_brush_point  = Vec3f::Zero();  // volume-local, where the ray last hit
+    Vec3f   m_chroma_brush_normal = Vec3f::UnitZ(); // the surface there, for the ring to lie in
+    bool    m_chroma_brush_valid  = false;
 
     // The transmission distance wedge, reached from the band whose filament it would measure: which
     // filament to print the base in, how many steps, and the step read back off the finished print.
@@ -561,12 +680,46 @@ private:
     int m_chroma_wedge_steps     = 16;
     int m_chroma_wedge_step      = 0;
     std::array<std::vector<ChromaSuggestion>, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_suggestion;
-    // The whole of a ChromaStack card between its header and More settings: the picture and the print
-    // it predicts, the base, the filaments and the colours they reach, and the two actions.
+
+    // Which band has its second form open, per layer, or -1. One at a time: the five controls it holds
+    // are a filament's own settings, and two rows open at once is a list that no longer reads as a
+    // stack.
+    std::array<int, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_band_open{};
+    // Whether each of the card's closable sections is open, per layer. Panel state rather than the
+    // layer's: which section somebody left open is a fact about this sitting at the screen, not about
+    // the print, and a project file is the wrong place to keep it.
+    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_open_plate{};
+    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_open_light{};
+    // The layer whose before and after is enlarged over the canvas, or -1.
+    int m_chroma_zoom_slot = -1;
+    // The whole of a ChromaStack card: four blocks in the order of the work - the picture and what it
+    // is predicted to print, the colours it is printed in, the plate that comes out of the printer,
+    // and the two settings that are chosen once. The blocks below are its sections rather than
+    // separate cards, and are called only from here.
     void render_chroma_card(TextureDisplacementLayer &layer, float card_pad, float label_w, float content_w);
-    // The rest of it, behind More settings: the base it measures for itself, the dither switch and the
-    // placement of the picture on the patch, none of which is touched twice in a session.
-    void render_chroma_details(TextureDisplacementLayer &layer, float card_pad, float label_w);
+    // The plate's own dimensions: every row here is a measurement of the thing that comes off the bed,
+    // which is why the base and which way up it prints are among them.
+    void render_chroma_plate(TextureDisplacementLayer &layer, float card_pad, float label_w);
+    // Where the light is and how the rounding error is spread. Both are chosen once for a picture and
+    // neither is touched on a normal pass, so the section is closed until it is wanted.
+    void render_chroma_light(TextureDisplacementLayer &layer, float label_w);
+    // The before and after at the size of the canvas, for a judgement a 190 px thumbnail cannot carry.
+    // Drawn over the 3D view rather than in the panel, and closed by anything that dismisses a modal.
+    void render_chroma_zoom();
+
+    // What the card says about itself in one sentence, and the colour to say it in: no picture yet, no
+    // filaments yet, still working it out, the first thing that is wrong, or that it is ready.
+    //
+    // One function because Bake's reason for being disabled is the same sentence. Two separate readings
+    // of the same state would eventually disagree, and the one place a user looks for "can I print this
+    // yet" would then contradict the button they are looking at.
+    struct ChromaReadiness
+    {
+        std::string text;
+        ImVec4      color;
+        bool        ready = false; // nothing is stopping a bake
+    };
+    ChromaReadiness chroma_readiness(const TextureDisplacementLayer &layer) const;
 
     // Everything wrong with this layer, as sentences, worst first - empty when nothing is.
     //
@@ -592,6 +745,16 @@ private:
     // to the stack costs a palette upload rather than a mesh rebuild.
     size_t  m_chroma_color_key = 0;
     bool                       m_show_chroma_colors = true;
+    // The other thing the overlay can draw: how far the stack landed from the picture, per pixel.
+    //
+    // The card can only report one number for the whole picture, and "4.8 on average" does not say that
+    // the sky is perfect and the one red roof is unreachable. This does, on the model, in the place the
+    // user is looking - and it is what tells them where a retouch edit is worth making. Off by default:
+    // it replaces the predicted colours, and those are what the overlay is normally for.
+    bool                       m_show_chroma_error  = false;
+    // The last solve's error image per slot, as a texture for the overlay shader and the card. Grey,
+    // one byte per pixel, on the solve's own grid; see CHROMA_ERROR_IMAGE_FULL_SCALE_DE for the scale.
+    std::array<std::unique_ptr<GLTexture>, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_error_tex;
 
     // What the last solve of each slot reported, for the panel. Not saved: it is a property of the
     // solve, and a project is reopened with whatever height map the solve produced.
@@ -644,6 +807,10 @@ private:
     // Resolves the panel: writes the adjusted image into the user's texture library as a new file and
     // points `layer` at it, which is the only way an adjustment becomes permanent. Closes the panel.
     void commit_image_adjust(TextureDisplacementLayer &layer);
+    // The same resolution for a ChromaStack picture: the adjusted image becomes a new picture in the
+    // gallery and the layer is pointed at it, then the stack is re-solved against it. False when
+    // nothing could be written, which leaves the panel open with the edit still live.
+    bool chroma_commit_adjusted_picture(TextureDisplacementLayer &layer, const DecodedHeightTexture &adjusted);
     // Closes the panel and reverts the layer's live preview_adjust to identity, so every exit that is not
     // a commit - Cancel, the window's close button, the gizmo closing - leaves the layer as it was found.
     void close_image_adjust();
@@ -686,6 +853,21 @@ private:
     // Drops the GPU copies of the layer's image so the next frame rebuilds them from the decode, which
     // is where the live adjustment is applied. Called whenever the panel moves or reverts it.
     void invalidate_adjust_textures();
+
+    // Filters: a whole adjustment in one click, shown on the user's own picture.
+    //
+    // Five sliders say what to do to an image; a filter says what you want it to look like, which is the
+    // question somebody who has just dropped a photograph onto a plate is actually asking. The reason it
+    // works is that the choice is made by looking: each thumbnail is this picture under that filter, so
+    // the decision needs no understanding of what contrast does to a palette of thirty colours.
+    //
+    // Only for a colour picture. On a relief layer the image is a height map, where saturation and hue
+    // have nothing to turn and a "warmer" anything is meaningless.
+    void rebuild_filter_thumbnails();
+    std::vector<std::unique_ptr<GLTexture>> m_filter_thumbs;
+    // Which image the thumbnails were built from, so they are rebuilt when the panel is pointed at
+    // another picture and not once a frame. Compared, never dereferenced.
+    const void                            *m_filter_thumb_source = nullptr;
 
     // "Adjust Texture" mode: instead of painting, dragging an on-canvas handle changes the active
     // layer's offset. The handle is a flat panel lying in the paint patch's own tangent plane
