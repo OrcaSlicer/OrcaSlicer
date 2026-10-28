@@ -7315,8 +7315,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             const std::vector<size_t> full_columns = entry.slot >= 0 ?
                                                                          publish_filament_columns(filament_self_indice, size_t(entry.slot)) :
                                                                          std::vector<size_t>();
-                            bool copied_variant_key      = false;
-                            bool reported_missing_column = false;
+                            bool copied_variant_key = false;
                             for (const std::string& key : entry.full_keys) {
                                 const std::string base_key = publish_base_key(key);
                                 if (structural_keys.count(base_key) != 0)
@@ -7327,7 +7326,8 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                     continue;
                                 const ConfigOption* src_opt = config.option(base_key);
                                 if (src_opt == nullptr || !src_opt->is_vector()) {
-                                    skipped_keys.emplace_back("material:" + material_label + " (" + base_key + ")");
+                                    // The file carries no value for this key: nothing to copy, not a
+                                    // value the receiver lost.
                                     continue;
                                 }
                                 ConfigOption* dst_opt = new_cfg.option(base_key);
@@ -7339,18 +7339,15 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                 const auto *src_vec = dynamic_cast<const ConfigOptionVectorBase*>(src_opt);
                                 auto       *dst_vec = dynamic_cast<ConfigOptionVectorBase*>(dst_opt);
                                 if (filament_options_with_variant.count(base_key) != 0) {
+                                    // A file that carries the key short of the layout (a preset
+                                    // holding one default value, or a vector older than variant
+                                    // columns) publishes nothing for the slot's column: leave the
+                                    // copy's value alone instead of reporting the key as skipped.
                                     if (full_columns.empty() ||
                                         std::any_of(full_columns.begin(), full_columns.end(),
                                                     [src_vec](size_t column) { return column >= src_vec->size(); })) {
-                                        // One entry per slot: every variant-bearing key fails for
-                                        // the same reason.
-                                        if (!reported_missing_column) {
-                                            skipped_keys.emplace_back("material:" + material_label +
-                                                                      " (a variant column of the slot is missing)");
-                                            BOOST_LOG_TRIVIAL(warning)
-                                                << "publish: dropping full-publish keys (a variant column of the author's slot is missing)";
-                                            reported_missing_column = true;
-                                        }
+                                        BOOST_LOG_TRIVIAL(info) << "publish: not copying \"" << base_key << "\" for slot "
+                                                                << entry.slot << " (the file has no value for its variant column)";
                                         continue;
                                     }
                                     dst_vec->resize(full_columns.size());
@@ -7359,7 +7356,11 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                     copied_variant_key = true;
                                 } else {
                                     if (entry.slot < 0 || size_t(entry.slot) >= src_vec->size()) {
-                                        skipped_keys.emplace_back("material:" + material_label + " (" + base_key + ", slot out of range)");
+                                        // Nothing in the file for this slot; the copy keeps its own
+                                        // value. Only data that exists but cannot be applied is
+                                        // reported as skipped.
+                                        BOOST_LOG_TRIVIAL(info) << "publish: not copying \"" << base_key << "\" for slot "
+                                                                << entry.slot << " (the file has no value for it)";
                                         continue;
                                     }
                                     dst_vec->set_at(src_opt, 0, entry.slot);

@@ -21,11 +21,6 @@ using namespace Slic3r;
 
 namespace {
 
-bool contains_key(const std::vector<std::string> &keys, const std::string &key)
-{
-    return std::find(keys.begin(), keys.end(), key) != keys.end();
-}
-
 void check_double_vector(const std::vector<double> &actual, std::initializer_list<double> expected)
 {
     REQUIRE(actual.size() == expected.size());
@@ -463,4 +458,40 @@ TEST_CASE("A per-slot filament key after a multi-variant slot keeps its own slot
 
     check_double_vector(bundle.filaments.find_preset("My PLA")->config.opt<ConfigOptionFloats>("filament_cost")->values, { 30.0 });
     CHECK(pub.skipped_keys.empty());
+}
+
+TEST_CASE("Full Publish leaves the receiver's value when the file carries a variant key short of the layout", "[PublishSettings]")
+{
+    // A file that never laid a variant-bearing key out per variant (Preset::normalize leaves such
+    // keys at their single default value) publishes nothing for a slot past the first column: the
+    // copy keeps the receiver's value and the key is not reported as skipped.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.option<ConfigOptionFloats>("filament_diameter", true)->values          = { 1.75, 1.75 };
+    config.option<ConfigOptionStrings>("filament_colour", true)->values           = { "#FF0000", "#00FF00" };
+    config.option<ConfigOptionInts>("filament_self_index", true)->values          = { 1, 2 };
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive Standard",
+                                                                                     "Direct Drive Standard" };
+    Preset::normalize(config);
+    REQUIRE(config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->size() == 1);
+
+    PresetBundle bundle;
+    Preset     &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+    pla.config.option<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.5 };
+    bundle.filament_presets = { "My PLA", "My PLA" };
+
+    PublishedMaterialEntry entry;
+    entry.slot        = 1; // column 1, past the file's single value
+    entry.full        = true;
+    entry.full_keys   = { "filament_retraction_length" };
+    entry.preset_name = "Author PLA";
+
+    PublishedConfig pub;
+    pub.published     = true;
+    pub.material_keys = { entry };
+    bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+    CHECK(pub.skipped_keys.empty());
+    const Preset *copy = bundle.filaments.find_preset(bundle.filament_presets[1], false, true);
+    REQUIRE(copy != nullptr);
+    check_double_vector(copy->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.5 });
 }
