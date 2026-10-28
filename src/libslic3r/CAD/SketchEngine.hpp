@@ -392,6 +392,18 @@ public:
     static bool extend_entity(SketchEntity& e, const std::vector<SketchEntity>& others,
                               const Vec2d& pick);
 
+    // Trim as every CAD does it: `e` is cut at each crossing with `others` and only the piece under `pick` goes, so a line crossed
+    // twice leaves two lines. `out` is the surviving pieces, in order along `e` (empty = the whole entity goes: nothing crosses it).
+    // For each piece: whether it still has `e`'s original start / end, and for a cut end the index into `others` of the entity that
+    // cut it (-1 for an original end), so the caller can keep the cut point on that entity.
+    struct TrimPiece {
+        SketchEntity ent;
+        bool has_p0{false}, has_p1{false};   // the piece starts / ends where `e` did
+        int  cutter_p0{-1}, cutter_p1{-1};   // else: the entity (in `others`) that made this end
+    };
+    static bool trim_split(const SketchEntity& e, const std::vector<SketchEntity>& others, const Vec2d& pick,
+                           std::vector<TrimPiece>& out);
+
     // Build a cubic-Bezier G1 bridge (as a BSpline entity, 4 poles) connecting endpoint
     // `a_end` of `a` to endpoint `b_end` of `b` (0 = start/p0 side, 1 = end/p1 side).
     // Tangent-continuous with both entities where the endpoint tangent is defined.

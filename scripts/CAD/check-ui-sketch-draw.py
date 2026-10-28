@@ -59,18 +59,19 @@ call("run_verb", verb="sketch")
 time.sleep(0.5)
 c = call("ui.inspect")["canvas"]
 cx, cy = c["width"] / 2, c["height"] / 2
+base = len(ents())                                               # a new sketch starts with its origin point
 
 call("ui.key", key="C")                                          # Circle (centre, radius)
 call("ui.drag", **{"from": [cx, cy], "to": [cx + 90, cy], "steps": 6})   # press, drag, release = two points
 e = ents()
-check(len(e) == 1, "one press-drag-release draws a whole circle: %d entit(ies)" % len(e))
+check(len(e) == base + 1, "one press-drag-release draws a whole circle: %d entit(ies)" % len(e))
 call("ui.key", key="Escape")
 call("ui.key", key="C")
 call("ui.click", at=[cx - 150, cy - 100])                         # click, click still works
 time.sleep(0.6)
 call("ui.click", at=[cx - 150, cy - 40])
 e = ents()
-check(len(e) == 2, "click-click still draws a circle: %d entities" % len(e))
+check(len(e) == base + 2, "click-click still draws a circle: %d entities" % len(e))
 call("ui.key", key="Escape")
 
 # Inference: a line drawn 3 degrees off parallel to an existing one snaps exactly parallel; Ctrl bypasses it.

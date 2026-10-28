@@ -721,7 +721,7 @@ public:
     // Ctrl+Y / Ctrl+Shift+Z while sketching: bring back what undo_last_entity removed, as long
     // as nothing was drawn or deleted since (then the old state is no longer "the next step").
     bool redo_last_entity();
-    bool can_undo_entity() const { return m_active && !m_entities.empty(); }
+    bool can_undo_entity() const { return m_active && (!m_undo_hist.empty() || !m_entities.empty()); }
     bool can_redo_entity() const;
     std::function<void(int count)> on_selection_changed;
 
@@ -873,6 +873,7 @@ private:
         Vec2d           label_pos{0, 0};  // cached label centre (plane coords), for picking
         int             orient{0};        // Distance / Length: 0 aligned, 1 horizontal (DistanceX), 2 vertical (DistanceY)
         double          lvl{std::numeric_limits<double>::quiet_NaN()};   // horizontal / vertical: where the quote line sits (y, or x); NaN = clear of the geometry
+        bool            driven{false};    // a REFERENCE quote: the sketch already fixes this value, so it only reports it (no constraint, drawn in brackets)
     };
 
     // --- Onshape-style visual editing: handles + parametric feature grouping -----
@@ -995,6 +996,9 @@ private:
     // `tol` plane units) and cut it back to / out to its nearest intersection with the others.
     // Returns true if an entity was modified.
     bool apply_live_trim(const Vec2d& p, double tol, bool extend);
+    // Trim: swap entity `bi` for the pieces the engine left (0 = delete it, 1 = shortened, 2 = split), carrying its constraints,
+    // dimensions and formulas over to the piece that still has the point or the whole they were on.
+    bool replace_with_trim_pieces(int bi, const std::vector<SketchEngine::TrimPiece>& pieces, const std::vector<int>& other_idx);
     // Pure-computation hover preview for Trim/Extend: mirror apply_live_trim's pick + the
     // engine's cut on a COPY (mutating nothing) and return, via `removed_poly`, the polyline
     // of the sub-portion a click would REMOVE (Trim) or ADD (Extend). `subject_ei` is the
@@ -1248,21 +1252,25 @@ private:
     Vec2d                 m_live_slot_angle_label{0,0}; // straight-slot centreline angle label
     int                   m_live_slot_fi{-1};           // the straight-slot Feature (rebuild edits)
     std::vector<Feature>  m_features;              // parametric groups over m_entities
-    // Sketch-local redo: the state each undo_last_entity() replaced, and the entity/constraint
-    // counts it left behind (a mismatch means the sketch moved on and the redo is stale).
+    // Sketch-local undo/redo: ONE step per command, whatever it was (a shape, a dimension, a constraint, a trim, a move, a drag).
+    // commit_undo_point() compares the sketch with the last committed state and, when it differs, pushes that state onto the undo
+    // stack; it runs after every mouse event and every frame (not while a button is down, so a drag is one step).
     struct SketchSnap {
         std::vector<SketchEntity> entities; std::vector<SketchEntityConstraintDef> constraints;
         std::vector<Feature> features;      std::vector<DimAnnot> dimensions;
-        size_t after_entities{0};           size_t after_constraints{0};
+        std::map<int, std::pair<std::string, double>> dim_exprs;
     };
-    std::vector<SketchSnap> m_sketch_redo;
-    // Drag = ONE undo step. The state before each completed point/handle drag; undo restores it when nothing was
-    // added or removed since (the entity/constraint counts still match), ahead of removing the last entity.
-    std::vector<SketchSnap> m_drag_hist;
-    SketchSnap              m_drag_pre;
-    bool                    m_drag_pre_valid{false};
-    void drag_begin_snapshot();
-    void drag_end_commit();
+    std::vector<SketchSnap> m_undo_hist;      // states to go back to, oldest first
+    std::vector<SketchSnap> m_sketch_redo;    // states undone, newest last; cleared by any new edit
+    SketchSnap              m_undo_cur;       // the last committed state
+    std::string             m_undo_fp;        // its fingerprint
+    bool                    m_undo_cur_valid{false};
+    bool                    m_mouse_down{false};
+    SketchSnap capture_snap() const;
+    void       restore_snap(const SketchSnap& s);
+    std::string snap_fingerprint() const;
+    void commit_undo_point();
+    void reset_undo() { m_undo_hist.clear(); m_sketch_redo.clear(); m_undo_cur_valid = false; m_mouse_down = false; }
     int    m_skipped_last{0};       // constraints the last solve could not apply (reported on change)
     double m_chain_dup_tol{1e-9};   // plane units ~3 px at the last chain click (double-click repeat)
     int                   m_open_feature{-1};      // index of the Feature being built, or -1
@@ -1365,6 +1373,7 @@ private:
     // The expressions bound to the dimensions of the sketch being edited (m_constraints index -> expression, and the value it
     // had when loaded: a dimension whose value has moved on since is no longer that expression's, and shows its number).
     std::map<int, std::pair<std::string, double>> m_dim_exprs;
+    void remap_dim_exprs(const std::vector<int>& remap);   // old constraint index -> new (-1 = erased)
     bool                m_dim_names{false};       // label a bound dimension with its expression instead of its value (per session)
     Mode                m_mode{Mode::Polyline};
     int                 m_sel_a{-1};   // picked segment endpoints (legacy Constrain mode)

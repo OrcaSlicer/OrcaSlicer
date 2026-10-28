@@ -2250,6 +2250,103 @@ bool SketchEngine::trim_entity(SketchEntity& e, const std::vector<SketchEntity>&
     return true;
 }
 
+bool SketchEngine::trim_split(const SketchEntity& e, const std::vector<SketchEntity>& others, const Vec2d& pick,
+                              std::vector<TrimPiece>& out)
+{
+    out.clear();
+    using Ty = SketchEntity::Type;
+    struct Cut { double u; int by; };
+    std::vector<Cut> cuts;
+    constexpr double END = 1e-9;
+
+    if (e.type == Ty::Line) {
+        const Vec2d adir = e.p1 - e.p0;
+        const double La2 = adir.dot(adir);
+        if (La2 < 1e-18) return false;
+        const double tp = std::max(0.0, std::min(1.0, (pick - e.p0).dot(adir) / La2));
+        for (size_t i = 0; i < others.size(); ++i)
+            for (double t : line_entity_hits(e.p0, adir, others[i]))
+                if (t > END && t < 1.0 - END) cuts.push_back({ t, int(i) });
+        if (cuts.empty()) return true;                     // nothing crosses it: the whole line is the piece under the pick
+        double lo = 0.0, hi = 1.0; int blo = -1, bhi = -1;
+        for (const Cut& c : cuts) {
+            if (c.u <= tp + END && c.u > lo) { lo = c.u; blo = c.by; }
+            if (c.u > tp + END && c.u < hi)  { hi = c.u; bhi = c.by; }
+        }
+        if (lo > END) {
+            TrimPiece p; p.ent = e; p.ent.p1 = e.p0 + lo * adir; p.has_p0 = true; p.cutter_p1 = blo;
+            out.push_back(std::move(p));
+        }
+        if (hi < 1.0 - END) {
+            TrimPiece p; p.ent = e; p.ent.p0 = e.p0 + hi * adir; p.has_p1 = true; p.cutter_p0 = bhi;
+            out.push_back(std::move(p));
+        }
+        return true;
+    }
+
+    if (e.type == Ty::Arc) {
+        const double sweep = e.end_angle - e.start_angle;
+        if (std::abs(sweep) < 1e-12) return false;
+        const double phi_pick = std::atan2(pick.y() - e.center.y(), pick.x() - e.center.x());
+        double up = (phi_pick - e.start_angle) / sweep;
+        while (up < -1e-9) up += (2.0 * M_PI) / std::abs(sweep);
+        up = std::max(0.0, std::min(1.0, up));
+        for (size_t i = 0; i < others.size(); ++i)
+            for (double phi : circle_cross_angles(e.center, e.radius, others[i])) {
+                double u = (phi - e.start_angle) / sweep;
+                while (u < -1e-9) u += (2.0 * M_PI) / std::abs(sweep);
+                if (u > END && u < 1.0 - END) cuts.push_back({ u, int(i) });
+            }
+        if (cuts.empty()) return true;
+        double lo = 0.0, hi = 1.0; int blo = -1, bhi = -1;
+        for (const Cut& c : cuts) {
+            if (c.u <= up + END && c.u > lo) { lo = c.u; blo = c.by; }
+            if (c.u > up + END && c.u < hi)  { hi = c.u; bhi = c.by; }
+        }
+        if (lo > END) {
+            TrimPiece p; p.ent = e; p.ent.end_angle = e.start_angle + lo * sweep; sync_arc_ends(p.ent);
+            p.has_p0 = true; p.cutter_p1 = blo;
+            out.push_back(std::move(p));
+        }
+        if (hi < 1.0 - END) {
+            TrimPiece p; p.ent = e; p.ent.start_angle = e.start_angle + hi * sweep; sync_arc_ends(p.ent);
+            p.has_p1 = true; p.cutter_p0 = bhi;
+            out.push_back(std::move(p));
+        }
+        return true;
+    }
+
+    if (e.type == Ty::Circle) {
+        struct A { double phi; int by; };
+        std::vector<A> ang;
+        for (size_t i = 0; i < others.size(); ++i)
+            for (double phi : circle_cross_angles(e.center, e.radius, others[i])) ang.push_back({ wrap_2pi(phi), int(i) });
+        std::sort(ang.begin(), ang.end(), [](const A& a, const A& b) { return a.phi < b.phi; });
+        ang.erase(std::unique(ang.begin(), ang.end(), [](const A& a, const A& b) { return std::abs(a.phi - b.phi) < 1e-7; }), ang.end());
+        if (ang.size() < 2) return true;                   // a circle needs two crossings to leave an arc; fewer and it all goes
+        const double pk = wrap_2pi(std::atan2(pick.y() - e.center.y(), pick.x() - e.center.x()));
+        const int n = int(ang.size());
+        int idx = -1;
+        for (int i = 0; i < n; ++i) {
+            const double lo = ang[i].phi, hi = (i + 1 < n) ? ang[i + 1].phi : ang[0].phi + 2.0 * M_PI;
+            const double p  = (pk < lo - 1e-12) ? pk + 2.0 * M_PI : pk;
+            if (p >= lo - 1e-12 && p < hi + 1e-12) { idx = i; break; }
+        }
+        if (idx < 0) return false;
+        const A lo = ang[idx];
+        const A hi = ang[(idx + 1) % n];
+        TrimPiece p; p.ent = e;
+        p.ent.type = Ty::Arc;                              // the kept arc runs from the gap's far end round to its near end
+        p.ent.start_angle = hi.phi; p.ent.end_angle = lo.phi + 2.0 * M_PI;
+        if (p.ent.end_angle <= p.ent.start_angle) p.ent.end_angle += 2.0 * M_PI;
+        sync_arc_ends(p.ent);
+        p.cutter_p0 = hi.by; p.cutter_p1 = lo.by;
+        out.push_back(std::move(p));
+        return true;
+    }
+    return false;
+}
+
 bool SketchEngine::extend_entity(SketchEntity& e, const std::vector<SketchEntity>& others,
                                  const Vec2d& pick)
 {
