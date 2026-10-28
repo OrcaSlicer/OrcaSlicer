@@ -172,6 +172,49 @@ d = call("sketch_describe")
 check(ncons() == cD and d["solve_ok"], "a length the sketch already fixes adds no constraint and the sketch stays solved (%d -> %d, solve_ok=%s)" % (cD, ncons(), d["solve_ok"]))
 call("ui.key", key="Escape"); call("ui.key", key="Escape")
 
+# --- the origin point and the axes can be picked for relations --------------------------------------------------------------------
+def circle_at(c, r=3.0):
+    call("ui.key", key="C")
+    a, b = scr(c), scr([c[0] + r, c[1]])
+    call("ui.move", at=a); call("ui.click", at=a); time.sleep(0.5)
+    call("ui.move", at=b); call("ui.click", at=b); time.sleep(0.5)
+    call("ui.key", key="Escape"); call("ui.key", key="Escape"); time.sleep(0.3)
+    return [e for e in ents() if e["type"] == "circle"][-1]
+
+
+circ = circle_at([-14.0, -9.0])
+ci = circ["index"]
+o = scr([0.0, 0.0])
+call("ui.move", at=o); call("ui.click", at=o); time.sleep(0.4)
+check(call("sketch_describe")["selection"] == [0], "a click on the origin point selects it as an entity: %s" % call("sketch_describe")["selection"])
+rim = scr([circ["center"][0] - 0.7071 * circ["radius"], circ["center"][1] + 0.7071 * circ["radius"]])   # (not where the radius grip sits)
+call("ui.move", at=rim); call("ui.click", at=rim, mods=["shift"]); time.sleep(0.4)
+cc = ncons()
+call("run_verb", verb="con_coincident"); time.sleep(0.5)
+c2 = [e for e in ents() if e["index"] == ci][0]
+check(ncons() == cc + 1 and abs(c2["center"][0]) < 1e-6 and abs(c2["center"][1]) < 1e-6,
+      "Coincident on the origin point and a circle puts the centre on the origin: centre %s, constraints %d -> %d" % (c2["center"], cc, ncons()))
+call("ui.key", key="Escape"); call("ui.key", key="Escape")
+
+circ = circle_at([14.0, 9.0], 2.5)
+ci = circ["index"]
+n_before = len(ents())
+rim = scr([circ["center"][0] - 0.7071 * circ["radius"], circ["center"][1] + 0.7071 * circ["radius"]])   # (not where the radius grip sits)
+call("ui.move", at=rim); call("ui.click", at=rim); time.sleep(0.4)
+ax = scr([-18.0, 0.0])
+call("ui.move", at=ax); call("ui.click", at=ax, mods=["shift"]); time.sleep(0.5)
+check(len(ents()) == n_before + 1, "Shift-click on the bare X axis picks it as a line (made on the spot): %d -> %d entities" % (n_before, len(ents())))
+check(len(call("sketch_describe")["selection"]) == 2, "the circle and the axis are both selected: %s" % call("sketch_describe")["selection"])
+cc = ncons()
+call("run_verb", verb="con_tangent"); time.sleep(0.5)
+c3 = [e for e in ents() if e["index"] == ci][0]
+check(ncons() == cc + 1 and abs(abs(c3["center"][1]) - c3["radius"]) < 1e-4,
+      "Tangent to the axis: the circle now rests on it (|y| = %.4f, r = %.4f)" % (abs(c3["center"][1]), c3["radius"]))
+call("ui.key", key="Escape"); call("ui.key", key="Escape")
+n_now = len(ents())
+call("ui.move", at=scr([-18.0, 0.0])); call("ui.click", at=scr([-18.0, 0.0])); time.sleep(0.3)
+check(len(ents()) == n_now, "a plain click on the axis makes nothing")
+
 # --- the new keys ------------------------------------------------------------------------------------------------------------------
 for key, want in (("W", "Move"), ("Y", "Rotate"), ("Z", "Scale")):
     call("ui.key", key=key); time.sleep(0.3)

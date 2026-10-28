@@ -12746,7 +12746,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             // hit_test_point can't grab it) arms a handle drag that resizes on motion.
             // Checked before the point/entity hit-tests so the radius grip wins near
             // the circle edge.
-            if (evt.LeftDown()) {
+            if (evt.LeftDown() && !extend) {      // (Shift/Ctrl on the grip adds the circle to the selection instead of grabbing it)
                 Handle hh;
                 if (hit_test_handle(p, tol, hh) &&
                     (hh.role == HandleRole::RadiusHandle || hh.role == HandleRole::MajorAxis ||
@@ -12769,7 +12769,18 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 if (hit_test_point(p, tol, pe, pr)) {
                     const auto key = std::make_pair(pe, pr);
                     auto it = std::find(m_point_sel.begin(), m_point_sel.end(), key);
-                    if (extend) {
+                    if (pe >= 0 && pe < int(m_entities.size()) && m_entities[pe].type == SketchEntity::Type::Point) {
+                        // A Point ENTITY is its own handle, and every relation (Coincident, Fix, Midpoint, the distances) is applied to the
+                        // picked ENTITIES: left in m_point_sel it could be dragged but never constrained. The origin point is one.
+                        auto sit = std::find(m_selection.begin(), m_selection.end(), pe);
+                        if (extend) {
+                            if (sit == m_selection.end()) m_selection.push_back(pe);
+                            else m_selection.erase(sit);
+                        } else {
+                            m_selection.assign(1, pe);
+                            m_point_sel.clear();
+                        }
+                    } else if (extend) {
                         if (it == m_point_sel.end()) m_point_sel.push_back(key);
                         else m_point_sel.erase(it);
                     } else {
@@ -12815,7 +12826,12 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 }
             }
 
-            const int hit = hit_test(p, tol);
+            int hit = hit_test(p, tol);
+            // Shift/Ctrl-click on a bare axis picks it as a line (a construction line held on the axis, made on the spot), so a relation can
+            // name it: tangent to the axis, an angle to it, collinear with it. Shift/Ctrl only: a plain click on empty space near an axis
+            // is a deselect and must not leave a line behind.
+            if (hit < 0 && extend && evt.LeftDown() && (std::abs(p.y()) < tol || std::abs(p.x()) < tol))
+                hit = ensure_axis_line(std::abs(p.y()) >= tol);
 
             if (evt.LeftDClick() && hit >= 0) {
                 if (!extend) m_selection.clear();
