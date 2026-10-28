@@ -2347,6 +2347,36 @@ bool SketchEngine::trim_split(const SketchEntity& e, const std::vector<SketchEnt
     return false;
 }
 
+bool SketchEngine::split_at(const SketchEntity& e, const Vec2d& pick, std::vector<TrimPiece>& out)
+{
+    out.clear();
+    using Ty = SketchEntity::Type;
+    constexpr double END = 1e-6;
+    TrimPiece a, b;
+    a.ent = b.ent = e;
+    a.has_p0 = true; b.has_p1 = true;
+    if (e.type == Ty::Line) {
+        const Vec2d adir = e.p1 - e.p0;
+        const double La2 = adir.dot(adir);
+        if (La2 < 1e-18) return false;
+        const double t = (pick - e.p0).dot(adir) / La2;
+        if (t <= END || t >= 1.0 - END) return false;
+        a.ent.p1 = b.ent.p0 = e.p0 + t * adir;
+    } else if (e.type == Ty::Arc) {
+        const double sweep = e.end_angle - e.start_angle;
+        if (std::abs(sweep) < 1e-12) return false;
+        double u = (std::atan2(pick.y() - e.center.y(), pick.x() - e.center.x()) - e.start_angle) / sweep;
+        while (u < -1e-9) u += (2.0 * M_PI) / std::abs(sweep);
+        if (u <= END || u >= 1.0 - END) return false;
+        a.ent.end_angle = b.ent.start_angle = e.start_angle + u * sweep;
+        sync_arc_ends(a.ent); sync_arc_ends(b.ent);
+    } else
+        return false;
+    out.push_back(std::move(a));
+    out.push_back(std::move(b));
+    return true;
+}
+
 bool SketchEngine::extend_entity(SketchEntity& e, const std::vector<SketchEntity>& others,
                                  const Vec2d& pick)
 {

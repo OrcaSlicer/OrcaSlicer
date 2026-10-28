@@ -136,6 +136,8 @@ void DesignSketchTool::begin(const SketchPlane& plane, Mode mode)
     m_features.clear();
     m_open_feature = -1;
     m_dim_exprs.clear();
+    m_dim_named.clear();
+    m_hover_axis = 0;
     m_active = true;
 }
 
@@ -148,9 +150,20 @@ void DesignSketchTool::begin_edit(const std::vector<SketchEntity>& entities,
 {
     begin(plane, Mode::Select);
     m_entities    = entities;
-    m_constraints = constraints;
-    // A committed sketch keeps its dimensions as constraints only; give each driving one back its label.
+    m_constraints.clear();
     m_dimensions.clear();
+    // Reference quotes were saved as Reference constraints: they come back as driven dimensions, not as constraints.
+    for (const SketchEntityConstraintDef& c : constraints) {
+        if (c.type != SketchConstraintType::Reference) { m_constraints.push_back(c); continue; }
+        const int code = int(c.rc);
+        const auto valid = [&](int ei) { return ei < 0 || ei < int(m_entities.size()); };
+        if (code < 0 || code / 3 > int(DimType::DistanceToLine) || !valid(c.ea) || !valid(c.eb)) continue;
+        DimAnnot a;
+        a.kind = DimType(code / 3); a.orient = code % 3; a.driven = true; a.con = -1;
+        a.ea = c.ea; a.ra = c.ra; a.eb = c.eb; a.rb = c.rb; a.value = c.value;
+        m_dimensions.push_back(a);
+    }
+    // A committed sketch keeps its dimensions as constraints only; give each driving one back its label.
     for (int i = 0; i < int(m_constraints.size()); ++i) {
         const SketchEntityConstraintDef& c = m_constraints[i];
         DimAnnot a;
@@ -501,7 +514,7 @@ bool DesignSketchTool::can_redo_entity() const
 
 DesignSketchTool::SketchSnap DesignSketchTool::capture_snap() const
 {
-    return SketchSnap{ m_entities, m_constraints, m_features, m_dimensions, m_dim_exprs };
+    return SketchSnap{ m_entities, m_constraints, m_features, m_dimensions, m_dim_exprs, m_dim_named };
 }
 
 void DesignSketchTool::restore_snap(const SketchSnap& s)
@@ -511,6 +524,7 @@ void DesignSketchTool::restore_snap(const SketchSnap& s)
     m_features    = s.features;
     m_dimensions  = s.dimensions;
     m_dim_exprs   = s.dim_exprs;
+    m_dim_named   = s.dim_names;
     m_selection.clear();
     m_point_sel.clear();
     // Whatever was half-picked refers to indices of the state just left.
@@ -1023,18 +1037,37 @@ void DesignSketchTool::resolve_live_drag(int dragged_ei, SketchPointRole dragged
         // tint it red (Onshape/SolveSpace over-constrained feedback), and remember which
         // DIMENSIONS those constraints drive: a label showing a value the geometry does not have
         // is the one thing the user must be able to see, and r.bad names it.
-        m_bad_dims.clear();
+        m_bad_dims.clear(); m_redundant_dims.clear();
+        // libslvs calls a redundant constraint (already implied) and a conflicting one (contradicts the rest) by the same name; tell
+        // them apart, once per state (never on a drag frame: it costs a solve per candidate).
+        SketchOverReport rep;
+        std::vector<char> redundant(m_constraints.size(), 0);
+        if (!r.ok && dragged_ei < 0 && !r.bad.empty()) {
+            rep = sketch_classify_bad(m_entities, m_constraints, r.bad);
+            for (int i : rep.redundant) redundant[i] = 1;
+        }
         for (int bi : r.bad) {
             if (bi < 0 || bi >= int(m_constraints.size())) continue;
             const SketchEntityConstraintDef& c = m_constraints[bi];
             for (int e : {c.ea, c.eb, c.ec})
-                if (e >= 0 && e < int(m_entity_conflict.size())) m_entity_conflict[e] = 1;
+                if (e >= 0 && e < int(m_entity_conflict.size())) {
+                    if (!redundant[bi]) m_entity_conflict[e] = 1;
+                    else if (!m_entity_conflict[e]) m_entity_conflict[e] = 2;
+                }
             for (int di = 0; di < int(m_dimensions.size()); ++di)
-                if (m_dimensions[di].con == bi) m_bad_dims.push_back(di);
+                if (m_dimensions[di].con == bi) (redundant[bi] ? m_redundant_dims : m_bad_dims).push_back(di);
+        }
+        size_t key = 0;
+        for (int bi : r.bad) key = key * 131 + size_t(bi + 1);
+        if (r.ok || r.bad.empty()) m_over_key = 0;
+        else if (dragged_ei < 0 && key != m_over_key) {
+            m_over_key = key;
+            notify(format(_u8L("Over-constrained: %1% constraint(s) conflict with the others (red), %2% only repeat what the "
+                               "sketch already fixes (amber)"), int(rep.conflicting.size()), int(rep.redundant.size())), false);
         }
     } else {
         m_dof = -1; m_solve_ok = true;
-        m_bad_dims.clear();
+        m_bad_dims.clear(); m_redundant_dims.clear(); m_over_key = 0;
     }
     // The per-entity "still free" probe (N+1 solves) is only drawn, so it runs in render(), once per change of topology:
     // done here it cost ~30 ms after every constraint a script added.
@@ -1185,7 +1218,9 @@ bool DesignSketchTool::update_hover(GLCanvas3D& canvas, wxMouseEvent& evt)
     const int prev_ent = m_hover_ent, prev_dim = m_hover_dim;
     m_hover_dim = hit_test_dimension(p, tol);
     m_hover_ent = m_has_hover_handle ? h.ei : hit_test(p, tol);
-    return (had != m_has_hover_handle) || prev_ent != m_hover_ent || prev_dim != m_hover_dim ||
+    const int prev_axis = m_hover_axis;
+    m_hover_axis = (m_has_hover_handle || m_hover_ent >= 0) ? 0 : std::abs(p.y()) < tol ? 1 : std::abs(p.x()) < tol ? 2 : 0;
+    return (had != m_has_hover_handle) || prev_axis != m_hover_axis || prev_ent != m_hover_ent || prev_dim != m_hover_dim ||
            (m_has_hover_handle && (prev.ei != h.ei || prev.role != h.role));
 }
 
@@ -1978,6 +2013,10 @@ void DesignSketchTool::remap_dim_exprs(const std::vector<int>& remap)
     for (auto& [k, ex] : m_dim_exprs)
         if (k >= 0 && k < int(remap.size()) && remap[k] >= 0) moved[remap[k]] = std::move(ex);
     m_dim_exprs.swap(moved);
+    std::map<int, std::string> named;
+    for (auto& [k, nm] : m_dim_named)
+        if (k >= 0 && k < int(remap.size()) && remap[k] >= 0) named[remap[k]] = std::move(nm);
+    m_dim_named.swap(named);
 }
 
 // Remove orientation constraints touching [begin,end). A pure rotation makes inferred
@@ -1998,8 +2037,19 @@ int DesignSketchTool::erase_constraints(
     const int dropped = int(m_constraints.size() - kept.size());
     m_constraints.swap(kept);
     remap_dim_exprs(remap);
-    for (DimAnnot& a : m_dimensions)                              // repair the cached indices
-        if (a.con >= 0) a.con = (a.con < int(remap.size())) ? remap[a.con] : -1;
+    // A quote follows its constraint; one whose constraint went has nothing left to show.
+    std::vector<DimAnnot> keep;
+    for (DimAnnot a : m_dimensions) {
+        if (a.con >= 0) {
+            a.con = (a.con < int(remap.size())) ? remap[a.con] : -1;
+            if (a.con < 0) continue;
+        }
+        keep.push_back(a);
+    }
+    if (keep.size() != m_dimensions.size()) {
+        m_dimensions.swap(keep);
+        m_hover_dim = -1; m_pending_dim = -1; m_bad_dims.clear();
+    }
     return dropped;
 }
 
@@ -2026,6 +2076,39 @@ void DesignSketchTool::drop_constraints_referencing(int ei)
 // Onshape scissors on the live sketch: cut the picked entity at its nearest intersection.
 // trim_entity/extend_entity mutate the subject in place (slide one endpoint) given the other
 // entities + the pick point — no entity is added/removed, so indices stay stable.
+// The operands of a constraint that are POINTS of an entity (the rest are whole entities and stay on the entity).
+static bool a_point(SketchConstraintType t)
+{
+    using CT = SketchConstraintType;
+    return t == CT::Fix || t == CT::Coincident || t == CT::Distance || t == CT::DistanceX || t == CT::DistanceY || t == CT::LockX ||
+           t == CT::LockY || t == CT::PointOnLine || t == CT::PointOnObject || t == CT::Midpoint || t == CT::Symmetric ||
+           t == CT::SymmetricAboutX || t == CT::SymmetricAboutY || t == CT::Concentric || t == CT::Horizontal || t == CT::Vertical;
+}
+static bool b_point(SketchConstraintType t)
+{
+    using CT = SketchConstraintType;
+    return t == CT::Coincident || t == CT::Distance || t == CT::DistanceX || t == CT::DistanceY || t == CT::Symmetric ||
+           t == CT::SymmetricAboutX || t == CT::SymmetricAboutY || t == CT::Concentric || t == CT::Horizontal || t == CT::Vertical;
+}
+
+bool DesignSketchTool::split_preview(const Vec2d& p, double tol, int& bi, std::vector<SketchEngine::TrimPiece>& pieces) const
+{
+    double best = 1e30; bi = -1;
+    for (size_t i = 0; i < m_entities.size(); ++i) {
+        const double d = entity_pick_dist(p, m_entities[i]);
+        if (d < best) { best = d; bi = int(i); }
+    }
+    return bi >= 0 && best <= tol && SketchEngine::split_at(m_entities[bi], p, pieces);
+}
+
+bool DesignSketchTool::apply_live_split(const Vec2d& p, double tol)
+{
+    int bi = -1;
+    std::vector<SketchEngine::TrimPiece> pieces;
+    if (!split_preview(p, tol, bi, pieces)) return false;
+    return replace_with_trim_pieces(bi, pieces, {}, /*joined=*/true);
+}
+
 bool DesignSketchTool::apply_live_trim(const Vec2d& p, double tol, bool extend)
 {
     double best = 1e30; int bi = -1;
@@ -2049,12 +2132,47 @@ bool DesignSketchTool::apply_live_trim(const Vec2d& p, double tol, bool extend)
         if (!SketchEngine::trim_split(m_entities[bi], others, p, pieces)) return false;
         return replace_with_trim_pieces(bi, pieces, other_idx);
     }
+    const SketchEntity before = m_entities[bi];
     if (!SketchEngine::extend_entity(m_entities[bi], others, p)) return false;
-    drop_constraints_referencing(bi);   // the slid endpoint invalidates this entity's constraints
+    // Only the end that slid, and what measured the entity's length, stop being true. A direction (Horizontal / Vertical, Parallel,
+    // Perpendicular), a tangency, a radius and the other end's relations all hold on the longer line / arc.
+    using CT = SketchConstraintType;
+    const SketchEntity& now = m_entities[bi];
+    const bool moved0 = (now.p0 - before.p0).norm() > 1e-9, moved1 = (now.p1 - before.p1).norm() > 1e-9;
+    auto moved = [&](SketchPointRole r) { return (r == SketchPointRole::P0 && moved0) || (r == SketchPointRole::P1 && moved1); };
+    erase_constraints([&](int, const SketchEntityConstraintDef& c) {
+        const bool ia = c.ea == bi, ib = c.eb == bi;
+        if (!ia && !ib && c.ec != bi) return false;
+        if (c.type == CT::EqualLength) return true;
+        if (ia && ib && (c.type == CT::Horizontal || c.type == CT::Vertical)) return false;   // the line's own direction: it stays what it was
+        if (c.type == CT::Midpoint && ib) return true;                          // its middle moved
+        if (ia && ib && (c.type == CT::Distance || c.type == CT::DistanceX || c.type == CT::DistanceY)) return true;   // the length
+        if (ia && a_point(c.type) && moved(c.ra)) return true;
+        if (ib && b_point(c.type) && moved(c.rb)) return true;
+        return false;
+    });
+    // The slid end now sits on what stopped it: hold it there.
+    SketchEntityConstraintDef hold; bool have_hold = false;
+    for (int j = 0; j < int(m_entities.size()); ++j) {
+        if (j == bi || (m_entities[j].type != Ty::Line && m_entities[j].type != Ty::Arc && m_entities[j].type != Ty::Circle)) continue;
+        for (SketchPointRole r : { SketchPointRole::P0, SketchPointRole::P1 }) {
+            if (!moved(r)) continue;
+            const Vec2d& e = r == SketchPointRole::P0 ? now.p0 : now.p1;
+            if (entity_pick_dist(e, m_entities[j]) > 1e-6) continue;
+            hold.type = CT::PointOnObject; hold.ea = bi; hold.ra = r; hold.eb = j;
+            have_hold = true;
+            goto held;
+        }
+    }
+held:
+    m_autoedit_seen = int(m_entities.size());
+    resolve_live();
+    if (have_hold) try_add_constraints({ hold });       // (refused if the sketch already fixes it)
+    if (on_constraints_changed) on_constraints_changed();
     return true;
 }
 
-bool DesignSketchTool::replace_with_trim_pieces(int bi, const std::vector<SketchEngine::TrimPiece>& pieces, const std::vector<int>& other_idx)
+bool DesignSketchTool::replace_with_trim_pieces(int bi, const std::vector<SketchEngine::TrimPiece>& pieces, const std::vector<int>& other_idx, bool joined)
 {
     using CT = SketchConstraintType;
     using Ty = SketchEntity::Type;
@@ -2075,16 +2193,6 @@ bool DesignSketchTool::replace_with_trim_pieces(int bi, const std::vector<Sketch
         for (int k = 0; k < np; ++k)
             if (r == SketchPointRole::P0 ? pieces[k].has_p0 : pieces[k].has_p1) return k;
         return -1;
-    };
-    // The operands of a constraint that are POINTS of an entity (the rest are whole entities and stay on `bi`).
-    auto a_point = [](CT t) {
-        return t == CT::Fix || t == CT::Coincident || t == CT::Distance || t == CT::DistanceX || t == CT::DistanceY || t == CT::LockX ||
-               t == CT::LockY || t == CT::PointOnLine || t == CT::PointOnObject || t == CT::Midpoint || t == CT::Symmetric ||
-               t == CT::SymmetricAboutX || t == CT::SymmetricAboutY || t == CT::Concentric || t == CT::Horizontal || t == CT::Vertical;
-    };
-    auto b_point = [](CT t) {
-        return t == CT::Coincident || t == CT::Distance || t == CT::DistanceX || t == CT::DistanceY || t == CT::Symmetric ||
-               t == CT::SymmetricAboutX || t == CT::SymmetricAboutY || t == CT::Concentric || t == CT::Horizontal || t == CT::Vertical;
     };
     std::vector<SketchEntityConstraintDef> out;
     std::vector<int> remap(m_constraints.size(), -1);
@@ -2107,19 +2215,24 @@ bool DesignSketchTool::replace_with_trim_pieces(int bi, const std::vector<Sketch
         out.push_back(c);
     }
     // The cut ends stay on the entity that cut them (a cut point is where the two met), and the halves of a split stay one curve.
+    // These are tried ONE AT A TIME after the carried constraints are in: the pieces may already be Horizontal, or share an end, which
+    // makes one of them redundant, and the old libslvs refuses a redundant set outright. A refused one is simply not needed.
+    std::vector<SketchEntityConstraintDef> extras;
     auto add = [&](CT t, int ea, SketchPointRole ra, int eb, SketchPointRole rb = SketchPointRole::P0) {
-        SketchEntityConstraintDef c; c.type = t; c.ea = ea; c.ra = ra; c.eb = eb; c.rb = rb; out.push_back(c);
+        SketchEntityConstraintDef c; c.type = t; c.ea = ea; c.ra = ra; c.eb = eb; c.rb = rb; extras.push_back(c);
     };
     for (int k = 0; k < np; ++k) {
         if (pieces[k].cutter_p0 >= 0) add(CT::PointOnObject, pm[k], SketchPointRole::P0, other_idx[pieces[k].cutter_p0]);
         if (pieces[k].cutter_p1 >= 0) add(CT::PointOnObject, pm[k], SketchPointRole::P1, other_idx[pieces[k].cutter_p1]);
     }
     if (np == 2) {
-        if (orig_type == Ty::Line) add(CT::Collinear, pm[0], SketchPointRole::P0, pm[1]);
-        else if (orig_type == Ty::Arc) {
-            add(CT::Coincident, pm[0], SketchPointRole::Center, pm[1], SketchPointRole::Center);
-            add(CT::EqualRadius, pm[0], SketchPointRole::P0, pm[1]);
-        }
+        const SketchPointRole P0 = SketchPointRole::P0, P1 = SketchPointRole::P1, C = SketchPointRole::Center;
+        if (joined) {                                   // they share the cut: that, and (for a line) the same direction
+            add(CT::Coincident, pm[0], P1, pm[1], P0);
+            if (orig_type == Ty::Line) add(CT::Parallel, pm[0], P0, pm[1]);
+            else if (orig_type == Ty::Arc) add(CT::Coincident, pm[0], C, pm[1], C);
+        } else if (orig_type == Ty::Line) add(CT::Collinear, pm[0], P0, pm[1]);
+        else if (orig_type == Ty::Arc) { add(CT::Coincident, pm[0], C, pm[1], C); add(CT::EqualRadius, pm[0], P0, pm[1]); }
     }
     m_constraints.swap(out);
     // Quotes and formulas follow their constraint; one whose constraint went goes with it.
@@ -2145,6 +2258,7 @@ bool DesignSketchTool::replace_with_trim_pieces(int bi, const std::vector<Sketch
     m_dim_has0 = false; m_dim_draft_on = false; m_dim_e0 = -1; m_pending_dim = -1;
     m_autoedit_seen = int(m_entities.size());
     resolve_live();
+    for (const SketchEntityConstraintDef& c : extras) try_add_constraints({ c });
     if (on_constraints_changed) on_constraints_changed();
     return true;
 }
@@ -2963,6 +3077,14 @@ void DesignSketchTool::finish()
     auto cb = on_commit_entities;
     std::vector<SketchEntity> ents = m_entities;
     std::vector<SketchEntityConstraintDef> cons = m_constraints;
+    for (const DimAnnot& a : m_dimensions) {
+        if (!a.driven) continue;
+        SketchEntityConstraintDef r;
+        r.type = SketchConstraintType::Reference;
+        r.ea = a.ea; r.ra = a.ra; r.eb = a.eb; r.rb = a.rb; r.value = a.value;
+        r.rc = SketchPointRole(int(a.kind) * 3 + a.orient);
+        cons.push_back(r);
+    }
     SketchPlane pl = m_plane;
     m_active = false;
     m_points.clear();
@@ -9058,7 +9180,8 @@ void DesignSketchTool::render_dimensions(double unit_per_px)
         // thing on screen that points at WHICH number is the lie.
         const bool bad = std::find(m_bad_dims.begin(), m_bad_dims.end(), int(di)) != m_bad_dims.end();
         if (m_dimensions[di].driven) m_dimensions[di].value = measure_dim(m_dimensions[di]);
-        const ColorRGBA col = bad ? ColorRGBA(0.92f, 0.35f, 0.35f, 1.0f) : m_dimensions[di].driven ? ColorRGBA(0.6f, 0.75f, 0.9f, 1.0f) : dimcol;
+        const bool repeats = std::find(m_redundant_dims.begin(), m_redundant_dims.end(), int(di)) != m_redundant_dims.end();
+        const ColorRGBA col = bad ? ColorRGBA(0.92f, 0.35f, 0.35f, 1.0f) : repeats ? ColorRGBA(0.95f, 0.70f, 0.20f, 1.0f) : m_dimensions[di].driven ? ColorRGBA(0.6f, 0.75f, 0.9f, 1.0f) : dimcol;
         if (draw_dim_quote(m_dimensions[di], th, col, label))
             m_dimensions[di].label_pos = label;
     }
@@ -10862,7 +10985,8 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             std::find(m_selection.begin(), m_selection.end(), int(i)) != m_selection.end();
         const bool editing_this =
             edit_hi && std::find(edit_hi->begin(), edit_hi->end(), int(i)) != edit_hi->end();
-        const bool bad = i < m_entity_conflict.size() && m_entity_conflict[i];
+        const bool bad = i < m_entity_conflict.size() && m_entity_conflict[i] == 1;
+        const bool repeats = i < m_entity_conflict.size() && m_entity_conflict[i] == 2;   // only redundant constraints touch it
         // The first pick of an edit-op has a DIFFERENT ROLE from the rest of the selection —
         // Mirror's is the axis, Fillet/Chamfer's is the first of the two lines — and until now
         // every pick painted the same white, so the picture could not answer "what did I select
@@ -10874,6 +10998,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         else if (op_ref)         col = opref;
         else if (selected)       col = sel_col;
         else if (bad)            col = conflict;
+        else if (repeats)        col = ColorRGBA(0.95f, 0.70f, 0.20f, 1.0f);
         else if (e.construction) col = grey;
         else {
             // Blue = still has freedom, black = pinned down (RF47). Red above is a conflict.
@@ -10983,6 +11108,14 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         if (m_has_hover_handle)
             draw_vertices(m_highlight_model, { m_hover_handle.pos }, white,
                           std::max(5.5 * upp, 1e-4));
+    }
+
+    // A bare axis the cursor is on lights up: a click picks it for a relation or a dimension.
+    if (m_hover_axis && (m_mode == Mode::Select || m_mode == Mode::Dimension)) {
+        const double L = 4000.0 / std::max(camera.get_zoom(), 1e-6);
+        draw_quad_strip(m_highlight_model, m_hover_axis == 1 ? std::vector<Vec2d>{ Vec2d(-L, 0), Vec2d(L, 0) }
+                                                              : std::vector<Vec2d>{ Vec2d(0, -L), Vec2d(0, L) },
+                        false, ColorRGBA(1.0f, 0.55f, 0.1f, 1.0f));
     }
 
     // Placed dimension quotes (drawn in every mode so they persist while sketching).
@@ -11250,6 +11383,17 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             const ColorRGBA cut(1.0f, 0.2f, 0.2f, 1.0f);
             if (compute_trim_preview(m_cursor, 24.0 * upp, m_mode == Mode::Extend, subj, removed))
                 draw_quad_strip(m_highlight_model, removed, false, cut);
+        }
+        break;
+    }
+
+    case Mode::Split: {
+        if (m_has_cursor) {                       // mark the cut a click would make
+            int bi = -1;
+            std::vector<SketchEngine::TrimPiece> pcs;
+            const double upp = 1.0 / std::max(camera.get_zoom(), 1e-6);
+            if (split_preview(m_cursor, 24.0 * upp, bi, pcs))
+                draw_vertices(m_highlight_model, { pcs[0].ent.p1 }, ColorRGBA(1.0f, 0.2f, 0.2f, 1.0f));
         }
         break;
     }
@@ -12364,14 +12508,17 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
     // (Extend) its nearest intersection with the other live entities. One cut per click; the
     // tool stays active for more cuts; right-click exits. Drag falls through so the camera can
     // still orbit. Operates directly on the live sketch — no Constrain mode.
-    if (m_mode == Mode::Trim || m_mode == Mode::Extend) {
+    if (m_mode == Mode::Trim || m_mode == Mode::Extend || m_mode == Mode::Split) {
         if (evt.Moving()) { screen_to_plane(canvas, evt, m_cursor); m_has_cursor = true; return true; }
         if (evt.LeftDown()) {
             Vec2d p; screen_to_plane(canvas, evt, p);
             const Linef3 r2 = canvas.mouse_ray(Point(evt.GetX() + 8, evt.GetY()));
             const double tol = std::max(1e-3, (m_plane.project(r2.a, r2.vector()) - p).norm());
-            if (apply_live_trim(p, screen_tol(canvas, evt, p, kToolPickPx), m_mode == Mode::Extend)) {
+            if (m_mode == Mode::Split ? apply_live_split(p, screen_tol(canvas, evt, p, kToolPickPx))
+                                      : apply_live_trim(p, screen_tol(canvas, evt, p, kToolPickPx), m_mode == Mode::Extend)) {
                 resolve_live();
+            } else if (m_mode == Mode::Split) {
+                notify(_u8L("Split: click a line or an arc away from its ends"));
             } else {
                 // nde #15: don't fail silently. The pick found nothing to cut/extend — either
                 // the click missed every live segment, or the picked segment has no crossing /

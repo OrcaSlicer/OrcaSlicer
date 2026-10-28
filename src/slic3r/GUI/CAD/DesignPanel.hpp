@@ -106,6 +106,8 @@ public:
     void         mcp_set_imgui_topbar(bool on) { set_imgui_topbar(on); }
     void         mcp_set_imgui_menu(bool on);
     CadDocument& mcp_doc()        { return m_doc; }            // live document (read + mutate)
+    void         mcp_end_sketch_edit();
+    void         mcp_edit_feature(int i) { edit_feature_at(i); }   // reopen feature i as the tree row's Edit does
     void         mcp_commit_meshes() { on_commit(false); }
     // What the GUI keeps per body for the viewport, reachable from the MCP: show/hide, colour (alpha = opacity), the section
     // plane and an exploded layout. All of it is display only; the solids and what Export writes are untouched.
@@ -357,6 +359,7 @@ private:
     wxString constraint_label(const SketchEntityConstraintDef& d) const; // human-readable row text
     void after_edit_op();                                                // shared edit-op refresh tail
     void on_edit_feature();            // reopen the selected feature's dialog populated
+    void edit_feature_at(int sel);     // ... of feature `sel` (the tree row's Edit, and the MCP sketch_edit)
     void after_tree_edit(bool ok);     // shared post-op refresh of tree/viewport/status
     void drop_selection();             // forget the selection (solid, hit face, sketch loop): the feature list was replaced or renumbered
     void drop_solid_pick();            // the solid and hit-face part of drop_selection

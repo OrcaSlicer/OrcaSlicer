@@ -409,8 +409,8 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
             // explicit side; a positive one (what the UI stores) keeps the side the point is on
             // now. Passing |value| forced every point to the positive side, flipping any that
             // sat on the other one across the line.
-            if (std::abs(c.value) < 1e-9)
-                b.C(SLVS_C_PT_ON_LINE, 0, ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
+            if (std::abs(c.value) < 1e-9)       // PT_LINE_DISTANCE = 0, not PT_ON_LINE: see Collinear (the latter's extra param drifts a satisfied point)
+                b.C(SLVS_C_PT_LINE_DISTANCE, 0, ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
             else
                 b.C(SLVS_C_PT_LINE_DISTANCE,
                     c.value < 0.0 ? c.value : side_of(c.ea, c.ra, c.eb) * c.value,
@@ -424,7 +424,7 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
                                 entities[c.eb].type == SketchEntity::Type::Arc))
                 b.C(SLVS_C_PT_ON_CIRCLE, 0, ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
             else
-                b.C(SLVS_C_PT_ON_LINE, 0, ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
+                b.C(SLVS_C_PT_LINE_DISTANCE, 0, ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);   // (not PT_ON_LINE: it drifts a satisfied point)
             break;
         case CT::EqualRadius:
             b.C(SLVS_C_EQUAL_RADIUS, 0, 0, 0, primOf(c.ea), primOf(c.eb));
@@ -743,6 +743,118 @@ std::vector<char> sketch_entity_free(const std::vector<SketchEntity>& entities,
         out[i] = is_free ? 1 : 0;
     }
     return out;
+}
+
+
+// ---- redundant or conflicting -------------------------------------------------------------------------------------------------
+
+namespace {
+
+// Does `c` hold on `ents` as they stand? 1 yes, 0 no, -1 not readable (the caller treats it as "not proven redundant").
+int constraint_holds(const std::vector<SketchEntity>& ents, const SketchEntityConstraintDef& c)
+{
+    using CT = SketchConstraintType;
+    using Ty = SketchEntity::Type;
+    constexpr double TOL = 1e-4;
+    auto ent = [&](int i) -> const SketchEntity* { return i >= 0 && i < int(ents.size()) ? &ents[i] : nullptr; };
+    auto pt = [&](int i, SketchPointRole r, Vec2d& out) {
+        if (i <= kSketchRefOrigin) { out = Vec2d(0, 0); return true; }   // the origin, and the axes through it
+        const SketchEntity* e = ent(i);
+        if (!e) return false;
+        out = r == SketchPointRole::P0 ? e->p0 : r == SketchPointRole::P1 ? e->p1 : e->center;
+        return true;
+    };
+    // a line as (point, direction); the axes are lines through the origin
+    auto line = [&](int i, Vec2d& o, Vec2d& d) {
+        if (i == kSketchRefAxisX) { o = Vec2d(0, 0); d = Vec2d(1, 0); return true; }
+        if (i == kSketchRefAxisY) { o = Vec2d(0, 0); d = Vec2d(0, 1); return true; }
+        const SketchEntity* e = ent(i);
+        if (!e || e->type != Ty::Line) return false;
+        o = e->p0; d = e->p1 - e->p0;
+        return d.norm() > 1e-12;
+    };
+    auto round_ = [&](int i, Vec2d& ctr, double& r) {
+        const SketchEntity* e = ent(i);
+        if (!e || (e->type != Ty::Circle && e->type != Ty::Arc)) return false;
+        ctr = e->center; r = e->radius; return true;
+    };
+    auto perp_dist = [](const Vec2d& p, const Vec2d& o, const Vec2d& d) {
+        return std::abs((p - o).x() * d.y() - (p - o).y() * d.x()) / d.norm();
+    };
+    auto yes = [](bool b) { return b ? 1 : 0; };
+    Vec2d a, b, o, d, o2, d2, ctr; double r = 0, r2 = 0;
+    switch (c.type) {
+    case CT::Fix: case CT::Reference: return 1;                         // Fix keeps the point where it is
+    case CT::Coincident:  return pt(c.ea, c.ra, a) && pt(c.eb, c.rb, b) ? yes((a - b).norm() < TOL) : -1;
+    case CT::Concentric:  return pt(c.ea, SketchPointRole::Center, a) && pt(c.eb, SketchPointRole::Center, b) ? yes((a - b).norm() < TOL) : -1;
+    case CT::Horizontal:  return pt(c.ea, c.ra, a) && pt(c.eb, c.rb, b) ? yes(std::abs(a.y() - b.y()) < TOL) : -1;
+    case CT::Vertical:    return pt(c.ea, c.ra, a) && pt(c.eb, c.rb, b) ? yes(std::abs(a.x() - b.x()) < TOL) : -1;
+    case CT::Distance:    return pt(c.ea, c.ra, a) && pt(c.eb, c.rb, b) ? yes(std::abs((a - b).norm() - c.value) < TOL) : -1;
+    case CT::DistanceX:   return pt(c.ea, c.ra, a) && pt(c.eb, c.rb, b) ? yes(std::abs((b - a).x() - c.value) < TOL) : -1;
+    case CT::DistanceY:   return pt(c.ea, c.ra, a) && pt(c.eb, c.rb, b) ? yes(std::abs((b - a).y() - c.value) < TOL) : -1;
+    case CT::LockX:       return pt(c.ea, c.ra, a) ? yes(std::abs(a.x() - c.value) < TOL) : -1;
+    case CT::LockY:       return pt(c.ea, c.ra, a) ? yes(std::abs(a.y() - c.value) < TOL) : -1;
+    case CT::EqualLength: return line(c.ea, o, d) && line(c.eb, o2, d2) ? yes(std::abs(d.norm() - d2.norm()) < TOL) : -1;
+    case CT::Parallel:    return line(c.ea, o, d) && line(c.eb, o2, d2) ? yes(std::abs(d.x() * d2.y() - d.y() * d2.x()) < 1e-6 * d.norm() * d2.norm()) : -1;
+    case CT::Perpendicular: return line(c.ea, o, d) && line(c.eb, o2, d2) ? yes(std::abs(d.dot(d2)) < 1e-6 * d.norm() * d2.norm()) : -1;
+    case CT::Angle:
+        if (!line(c.ea, o, d) || !line(c.eb, o2, d2)) return -1;
+        {   // the angle between the lines, either way round
+            const double ang = std::acos(std::max(-1.0, std::min(1.0, d.dot(d2) / (d.norm() * d2.norm()))));
+            return yes(std::abs(ang - c.value) < 1e-5 || std::abs(M_PI - ang - c.value) < 1e-5);
+        }
+    case CT::Radius:      return round_(c.ea, ctr, r) ? yes(std::abs(r - c.value) < TOL) : -1;
+    case CT::Diameter:    return round_(c.ea, ctr, r) ? yes(std::abs(2.0 * r - c.value) < TOL) : -1;
+    case CT::EqualRadius: return round_(c.ea, ctr, r) && round_(c.eb, ctr, r2) ? yes(std::abs(r - r2) < TOL) : -1;
+    case CT::Midpoint:    return pt(c.ea, c.ra, a) && ent(c.eb) && ent(c.eb)->type == Ty::Line
+                                 ? yes((a - 0.5 * (ent(c.eb)->p0 + ent(c.eb)->p1)).norm() < TOL) : -1;
+    case CT::PointOnLine: case CT::PointOnObject:
+        if (!pt(c.ea, c.ra, a)) return -1;
+        if (line(c.eb, o, d)) {
+            const double signed_off = ((a - o).x() * d.y() - (a - o).y() * d.x()) / d.norm();
+            return yes(c.type == CT::PointOnLine ? std::abs(std::abs(signed_off) - std::abs(c.value)) < TOL : std::abs(signed_off) < TOL);
+        }
+        if (round_(c.eb, ctr, r)) return yes(std::abs((a - ctr).norm() - r) < TOL);
+        return -1;
+    case CT::Collinear:
+        return line(c.ea, o, d) && line(c.eb, o2, d2)
+            ? yes(std::abs(d.x() * d2.y() - d.y() * d2.x()) < 1e-6 * d.norm() * d2.norm() && perp_dist(o2, o, d) < TOL) : -1;
+    case CT::Tangent:
+        if (line(c.ea, o, d) && round_(c.eb, ctr, r))  return yes(std::abs(perp_dist(ctr, o, d) - r) < TOL);
+        if (round_(c.ea, ctr, r) && line(c.eb, o, d))  return yes(std::abs(perp_dist(ctr, o, d) - r) < TOL);
+        if (round_(c.ea, ctr, r) && round_(c.eb, o, r2)) {
+            const double dd = (ctr - o).norm();
+            return yes(std::abs(dd - (r + r2)) < TOL || std::abs(dd - std::abs(r - r2)) < TOL);
+        }
+        return -1;
+    case CT::SymmetricAboutY: return pt(c.ea, c.ra, a) && pt(c.eb, c.rb, b) ? yes(std::abs(a.x() + b.x()) < TOL && std::abs(a.y() - b.y()) < TOL) : -1;
+    case CT::SymmetricAboutX: return pt(c.ea, c.ra, a) && pt(c.eb, c.rb, b) ? yes(std::abs(a.y() + b.y()) < TOL && std::abs(a.x() - b.x()) < TOL) : -1;
+    case CT::Symmetric:
+        if (!pt(c.ea, c.ra, a) || !pt(c.eb, c.rb, b) || !line(c.ec, o, d)) return -1;
+        return yes(perp_dist(0.5 * (a + b), o, d) < TOL && std::abs((b - a).dot(d)) < 1e-6 * std::max(1.0, d.norm() * (b - a).norm()));
+    }
+    return -1;
+}
+
+} // namespace
+
+SketchOverReport sketch_classify_bad(const std::vector<SketchEntity>& entities,
+                                     const std::vector<SketchEntityConstraintDef>& constraints,
+                                     const std::vector<int>& bad)
+{
+    SketchOverReport rep;
+    SketchSolveNoBad quiet;                                   // only "did it solve?" is asked of each trial
+    int probed = 0;
+    for (int bi : bad) {
+        if (bi < 0 || bi >= int(constraints.size())) continue;
+        if (++probed > 16) break;
+        std::vector<SketchEntityConstraintDef> rest = constraints;
+        rest.erase(rest.begin() + bi);
+        std::vector<SketchEntity> w = entities;
+        const bool solved = sketch_solve(w, rest).ok;
+        (solved && constraint_holds(w, constraints[bi]) == 1 ? rep.redundant : rep.conflicting).push_back(bi);
+    }
+    return rep;
 }
 
 } // namespace Slic3r

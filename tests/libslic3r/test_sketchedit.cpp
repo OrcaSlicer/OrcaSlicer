@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/CAD/SketchSolver.hpp"
 #include <cmath>
 #include <algorithm>
 #include <TopExp_Explorer.hxx>
@@ -893,4 +894,67 @@ TEST_CASE("Trim of an arc between two crossings leaves two arcs on the same circ
     REQUIRE(out[0].has_p0); REQUIRE(out[1].has_p1);
     REQUIRE_THAT(out[0].ent.p1.x(), WithinAbs(6.0, 1e-6));
     REQUIRE_THAT(out[1].ent.p0.x(), WithinAbs(-6.0, 1e-6));
+}
+
+// ---- split_at: one line / arc becomes two that meet at the pick -----------------------------------------------------------------
+
+TEST_CASE("Split cuts a line in two at the pick", "[SketchEdit][split]")
+{
+    std::vector<SketchEngine::TrimPiece> out;
+    REQUIRE(SketchEngine::split_at(ts_line(-10, 0, 10, 0), Vec2d(3, 4), out));    // off the line: the nearest point of it
+    REQUIRE(out.size() == 2);
+    REQUIRE_THAT(out[0].ent.p1.x(), WithinAbs(3.0, 1e-9));
+    REQUIRE_THAT(out[0].ent.p1.y(), WithinAbs(0.0, 1e-9));
+    REQUIRE(out[0].ent.p1 == out[1].ent.p0);
+    REQUIRE(out[0].has_p0); REQUIRE_FALSE(out[0].has_p1);
+    REQUIRE(out[1].has_p1); REQUIRE_FALSE(out[1].has_p0);
+    REQUIRE_THAT(out[1].ent.p1.x(), WithinAbs(10.0, 1e-9));
+}
+
+TEST_CASE("Split refuses an end and a type it cannot cut", "[SketchEdit][split]")
+{
+    std::vector<SketchEngine::TrimPiece> out;
+    REQUIRE_FALSE(SketchEngine::split_at(ts_line(-10, 0, 10, 0), Vec2d(-10, 3), out));   // on the start: nothing to cut
+    REQUIRE_FALSE(SketchEngine::split_at(ts_line(-10, 0, 10, 0), Vec2d(40, 0), out));    // past the end
+    SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = Vec2d(0, 0); c.radius = 5.0;
+    REQUIRE_FALSE(SketchEngine::split_at(c, Vec2d(5, 0), out));
+}
+
+TEST_CASE("Split cuts an arc in two on the same circle", "[SketchEdit][split]")
+{
+    SketchEntity a; a.type = SketchEntity::Type::Arc; a.center = Vec2d(0, 0); a.radius = 10.0;
+    a.start_angle = 0.0; a.end_angle = M_PI;
+    a.p0 = Vec2d(10, 0); a.p1 = Vec2d(-10, 0);
+    std::vector<SketchEngine::TrimPiece> out;
+    REQUIRE(SketchEngine::split_at(a, Vec2d(0, 12), out));
+    REQUIRE(out.size() == 2);
+    REQUIRE_THAT(out[0].ent.end_angle, WithinAbs(M_PI / 2, 1e-9));
+    REQUIRE_THAT(out[1].ent.start_angle, WithinAbs(M_PI / 2, 1e-9));
+    REQUIRE_THAT(out[0].ent.p1.y(), WithinAbs(10.0, 1e-9));
+    REQUIRE((out[0].ent.p1 - out[1].ent.p0).norm() < 1e-9);
+    REQUIRE_THAT(out[1].ent.radius, WithinAbs(10.0, 1e-9));
+}
+
+// ---- redundant or conflicting ------------------------------------------------------------------------------------------------------
+
+TEST_CASE("An over-constrained pair is told redundant or conflicting", "[SketchEdit][overconstrained]")
+{
+    auto two = [](double second) {
+        std::vector<SketchEntity> ents{ ts_line(0, 0, 10, 0) };
+        std::vector<SketchEntityConstraintDef> cons;
+        SketchEntityConstraintDef fix; fix.type = SketchConstraintType::Fix; fix.ea = 0; fix.ra = SketchPointRole::P0;
+        SketchEntityConstraintDef hz;  hz.type = SketchConstraintType::Horizontal; hz.ea = 0; hz.ra = SketchPointRole::P0; hz.eb = 0; hz.rb = SketchPointRole::P1;
+        SketchEntityConstraintDef d1;  d1.type = SketchConstraintType::Distance; d1.ea = 0; d1.ra = SketchPointRole::P0; d1.eb = 0; d1.rb = SketchPointRole::P1; d1.value = 10.0;
+        SketchEntityConstraintDef d2 = d1; d2.value = second;
+        cons = { fix, hz, d1, d2 };
+        const SketchSolveResult r = sketch_solve(ents, cons);
+        REQUIRE_FALSE(r.ok);
+        REQUIRE_FALSE(r.bad.empty());
+        return sketch_classify_bad(ents, cons, r.bad);
+    };
+    const SketchOverReport same = two(10.0);        // the same length twice: the second repeats the first
+    CHECK_FALSE(same.redundant.empty());
+    CHECK(same.conflicting.empty());
+    const SketchOverReport clash = two(12.0);       // two lengths for one line: they contradict
+    CHECK_FALSE(clash.conflicting.empty());
 }

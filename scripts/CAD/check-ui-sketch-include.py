@@ -224,5 +224,14 @@ for key, want in (("W", "Move"), ("Y", "Rotate"), ("Z", "Scale")):
     check(str(t).lower().startswith(want.lower()), "%s starts %s (tool = %s)" % (key, want, t))
     call("ui.key", key="Escape")
 
-print("\n%d failure(s)" % len(fails))
+# --- the reference quote is saved with the sketch -----------------------------------------------------------------------------------
+refs = call("sketch_describe")["reference_quotes"]
+check(refs >= 1, "the sketch holds a reference quote before it is closed: %d" % refs)
+sk = call("sketch_commit")["sketch_index"]
+call("sketch_edit", sketch=sk); time.sleep(0.6)
+check(call("sketch_describe")["reference_quotes"] == refs, "and it comes back when the sketch is reopened: %d" % call("sketch_describe")["reference_quotes"])
+check(call("sketch_describe")["solve_ok"], "the reopened sketch solves")
+call("sketch_cancel")
+
+print("ui sketch include:", "PASS" if not fails else "%d FAIL" % len(fails))
 sys.exit(1 if fails else 0)

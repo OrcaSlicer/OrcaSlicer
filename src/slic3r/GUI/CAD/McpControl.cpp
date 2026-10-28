@@ -702,6 +702,7 @@ json describe_tools()
             {"construction", "boolean", "add as construction geometry"}, {"infer", "boolean", "default true; false adds geometry only, so your own constraints are not rejected as redundant"}}),
         compact_tool("sketch_commit", "Close the open sketch into a Sketch feature; returns sketch_index, to hand to extrude/revolve/sweep/loft.", {}),
         compact_tool("sketch_cancel", "Discard the open sketch.", {}),
+        compact_tool("sketch_edit", "Reopen a committed entity sketch for editing (what a double-click on its tree row does). Its formulas and names follow the constraints the edit moves.", {{"sketch", "integer", "Sketch feature index"}}),
         compact_tool("sketch_select", "Select sketch entities by index.", {kEnt}),
         compact_tool("sketch_delete", "Delete the selected (or given) sketch entities.", {kEnt}),
         compact_tool("sketch_construction", "Toggle construction on the selected (or given) entities.", {kEnt}),
@@ -2206,6 +2207,19 @@ json action_sketch_commit(DesignPanel* panel, const json& params)
     return json{{"ok", true}, {"features", int(cd.features.size())}, {"sketch_index", is_sk ? last : -1}};
 }
 
+// Reopen a committed entity sketch for editing, as a double-click on its tree row does.
+json action_sketch_edit(DesignPanel* panel, const json& params)
+{
+    DesignCanvas* vp = panel->mcp_viewport();
+    CadDocument& cd = panel->mcp_doc();
+    const int sk = sketch_ref_arg(params, cd);
+    if (vp == nullptr || sk < 0 || cd.features[sk].type != CadFeatureType::Sketch || cd.features[sk].entities.empty())
+        throw std::runtime_error("sketch_edit needs 'sketch': the index of a committed entity sketch");
+    if (vp->is_sketching()) throw std::runtime_error("a sketch is already open");
+    panel->mcp_edit_feature(sk);
+    return json{{"ok", true}, {"sketching", vp->is_sketching()}};
+}
+
 json action_sketch_cancel(DesignPanel* panel, const json& params)
 {
     (void)params;
@@ -2213,6 +2227,7 @@ json action_sketch_cancel(DesignPanel* panel, const json& params)
     if (vp == nullptr || !vp->is_sketching()) throw std::runtime_error("no sketch is open");
     vp->cancel_sketch();
     panel->mcp_set_sketch_mode(false);
+    panel->mcp_end_sketch_edit();
     g_pending_attach = {};
     return json{{"ok", true}};
 }
@@ -2427,17 +2442,22 @@ json action_sketch_describe(DesignPanel* panel, const json& params)
         "trim", "extend",
         "move", "rotate", "scale", "array", "array_polar",
         "transform_art",
-        "constrain" };
+        "constrain", "split" };
     const int mi = int(t.mode());
+    json cons = json::array();                 // {type: SketchConstraintType as its int, ea, eb}: what a script reads to see WHICH constraints stayed
+    for (const auto& c : t.constraints()) cons.push_back(json{{"type", int(c.type)}, {"ea", c.ea}, {"eb", c.eb}});
     json out{{"ok", true},
              {"entities", ents},
              {"constraints", int(t.constraints().size())},
+             {"constraint_list", cons},
              {"dof", t.dof()},
              {"solve_ok", t.solve_ok()},
              {"tool", (mi >= 0 && mi < int(sizeof(kModeNames) / sizeof(kModeNames[0])))
                           ? kModeNames[mi] : "unknown"},
              {"pending", t.pending_points()},
              {"editing", t.value_field_open()},
+             {"reference_quotes", t.reference_count()},
+             {"hover_axis", t.hover_axis()},
              {"selection", t.selection()}};
     out.update(sketch_report(t));
     return out;
@@ -4506,6 +4526,7 @@ json call_method_core(DesignPanel* panel, const std::string& method, const json&
     if (method == "sketch_begin")   return action_sketch_begin(panel, params);
     if (method == "sketch_commit")  return action_sketch_commit(panel, params);
     if (method == "sketch_cancel")  return action_sketch_cancel(panel, params);
+    if (method == "sketch_edit")    return action_sketch_edit(panel, params);
     if (method == "sketch_add")     return action_sketch_add(panel, params);
     if (method == "sketch_select")  return action_sketch_select(panel, params);
     if (method == "sketch_delete")  return action_sketch_delete(panel, params);

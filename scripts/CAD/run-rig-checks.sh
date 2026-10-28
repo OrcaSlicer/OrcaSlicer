@@ -36,6 +36,7 @@ CHECKS=(
     "dim-origin:check-ui-dim-origin.py"
     "sketch-undo:check-ui-sketch-undo.py"
     "sketch-include:check-ui-sketch-include.py"
+    "sketch-split:check-ui-sketch-split.py"
     "guide-tags:check-ui-guide-tags.py"
     "select-panel:check-ui-select-panel.py"
     "scenarios:check-ui-scenarios.py"

@@ -2141,6 +2141,28 @@
       ]
     },
     {
+      "id": "sk_include",
+      "name": "Include",
+      "slot": "reference",
+      "key": "U",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:U",
+      "icon": null,
+      "hint": "Include the model's edges that lie in this plane as fixed reference lines to dimension and constrain to"
+    },
+    {
       "id": "sk_construct",
       "name": "Construction",
       "slot": "reference",
@@ -2180,6 +2202,27 @@
       "action": "key:X",
       "icon": "design_extend",
       "hint": "Extend — click a line/arc to extend it"
+    },
+    {
+      "id": "sk_split",
+      "name": "Split",
+      "slot": "modify",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:sk_split",
+      "icon": "design_split",
+      "hint": "Split — click a line or an arc to cut it in two at that point"
     },
     {
       "id": "sk_delete",

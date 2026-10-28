@@ -198,6 +198,7 @@ static const OfferVerb kOfferVerbs[] = {
     {"sk_include", L_CONTEXT("Include", "Design"), 6, "U", "key:U", nullptr, 0x000f8000u, 0, 0, false, true, nullptr, nullptr, L("Include the model's edges that lie in this plane as fixed reference lines to dimension and constrain to")},
     {"sk_construct", L_CONTEXT("Construction", "Design"), 6, "Q", "key:Q", nullptr, 0x000b8000u, 0, 0, false, true, nullptr, nullptr, L("Toggle construction: geometry that guides but is never built")},
     {"sk_extend", L_CONTEXT("Extend", "Design"), 7, "X", "key:X", nullptr, 0x000b0000u, 0, 0, false, true, nullptr, "design_extend", L("Extend — click a line/arc to extend it")},
+    {"sk_split", L_CONTEXT("Split", "Design"), 7, nullptr, "btn:sk_split", nullptr, 0x000b8000u, 0, 0, false, true, nullptr, "design_split", L("Split — click a line or an arc to cut it in two at that point")},
     {"sk_delete", L_CONTEXT("Delete", "Design"), 7, "Del", "btn:sk_delete", nullptr, 0x000f0000u, 0, 0, false, true, nullptr, "design_delete", L("Delete the selected sketch entities")},
     // Typing the defining number of the element you pointed at. Three rows rather than one so
     // each names the quantity in the drawing-office word for THAT element; all three land on
@@ -237,7 +238,7 @@ static const OfferVerb kOfferVerbs[] = {
     {"sk_dim_names", L_CONTEXT("Dimension names", "Design"), 6, "J", "key:J", nullptr, 0x000f8000u, 0, 0, false, true, L("Constrain"), nullptr, L("Show the variable behind each dimension instead of its value, and back")},
     {"sk_grid_magnet", L_CONTEXT("Snap to grid", "Design"), 6, "I", "key:I", nullptr, 0x000f8000u, 0, 0, false, true, nullptr, nullptr, L("Magnet: pull the points you draw onto the grid, or let them move freely")},
 };
-static const int kOfferVerbCount = 124;
+static const int kOfferVerbCount = 126;
 
 }} // namespace Slic3r::GUI
 

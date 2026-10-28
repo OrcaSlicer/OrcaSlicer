@@ -142,7 +142,11 @@ enum class SketchConstraintType {
     DistanceX,     // signed dx between two points (eb - ea), projected onto the sketch X axis
     DistanceY,     // signed dy between two points (eb - ea), projected onto the sketch Y axis
     SymmetricAboutY, // mirror across the sketch's vertical axis (x = 0); axis is implicit
-    SymmetricAboutX  // mirror across the sketch's horizontal axis (y = 0); axis is implicit
+    SymmetricAboutX, // mirror across the sketch's horizontal axis (y = 0); axis is implicit
+    // A REFERENCE quote: a dimension the sketch already fixes, kept to report its value. The solver ignores it. The measured
+    // kind and orientation travel in `rc` (kind * 3 + orient), `value` is the last measurement. Always stored AFTER the real
+    // constraints, so it never moves the index of one ("dim:<k>" names, formulas).
+    Reference
 };
 
 // Constraint on a SketchProfile, referencing profile point indices (a,b,c,d).
@@ -403,6 +407,9 @@ public:
     };
     static bool trim_split(const SketchEntity& e, const std::vector<SketchEntity>& others, const Vec2d& pick,
                            std::vector<TrimPiece>& out);
+    // Split a line or an arc in two at the point of it nearest `pick` (two pieces, the first keeps the start, the second the end,
+    // out[0].ent.p1 == out[1].ent.p0 is the cut). False for any other type, or when the pick is on an end (nothing to split).
+    static bool split_at(const SketchEntity& e, const Vec2d& pick, std::vector<TrimPiece>& out);
 
     // Build a cubic-Bezier G1 bridge (as a BSpline entity, 4 poles) connecting endpoint
     // `a_end` of `a` to endpoint `b_end` of `b` (0 = start/p0 side, 1 = end/p1 side).

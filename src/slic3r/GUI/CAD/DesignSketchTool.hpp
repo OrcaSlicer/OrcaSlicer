@@ -103,7 +103,9 @@ public:
                       Move, Rotate, Scale, Array, PolarArray,
                       // In-canvas bounding-box transform for imported Text/SVG art:
                       TransformArt,
-                      Constrain };
+                      Constrain,
+                      // Appended last: McpControl names the modes by position.
+                      Split };
     // Which tool is armed, and how many anchors it has down. Read-only, for the offer ladder:
     // "the menu armed the verb I chose" is otherwise unassertable, and a menu walk that lands one
     // row off arms a NEIGHBOURING tool and then grades whatever that drew. ekt9.
@@ -999,9 +1001,14 @@ private:
     // `tol` plane units) and cut it back to / out to its nearest intersection with the others.
     // Returns true if an entity was modified.
     bool apply_live_trim(const Vec2d& p, double tol, bool extend);
+    // Split: cut the line / arc under the pick in two at that point (they stay joined: Coincident + Collinear / same circle).
+    // split_preview finds the pieces without touching the sketch (the hover marker).
+    bool split_preview(const Vec2d& p, double tol, int& bi, std::vector<SketchEngine::TrimPiece>& pieces) const;
+    bool apply_live_split(const Vec2d& p, double tol);
     // Trim: swap entity `bi` for the pieces the engine left (0 = delete it, 1 = shortened, 2 = split), carrying its constraints,
     // dimensions and formulas over to the piece that still has the point or the whole they were on.
-    bool replace_with_trim_pieces(int bi, const std::vector<SketchEngine::TrimPiece>& pieces, const std::vector<int>& other_idx);
+    // `joined`: the pieces meet at a point (a Split) instead of leaving a gap (a Trim).
+    bool replace_with_trim_pieces(int bi, const std::vector<SketchEngine::TrimPiece>& pieces, const std::vector<int>& other_idx, bool joined = false);
     // Pure-computation hover preview for Trim/Extend: mirror apply_live_trim's pick + the
     // engine's cut on a COPY (mutating nothing) and return, via `removed_poly`, the polyline
     // of the sub-portion a click would REMOVE (Trim) or ADD (Extend). `subject_ei` is the
@@ -1026,9 +1033,15 @@ private:
     int  place_dimension(DimAnnot a);                                       // create+drive+notify
 public:
     void set_dim_exprs(std::map<int, std::pair<std::string, double>> e) { m_dim_exprs = std::move(e); }
+    void set_dim_named(std::map<int, std::string> n) { m_dim_named = std::move(n); }
+    // What the edit left of them, keyed by the NEW constraint indices: the document stores both by index and must be given them back.
+    const std::map<int, std::pair<std::string, double>>& dim_exprs() const { return m_dim_exprs; }
+    const std::map<int, std::string>& dim_named() const { return m_dim_named; }
     bool dim_names() const { return m_dim_names; }
     void toggle_dim_names() { m_dim_names = !m_dim_names; }
     bool has_dim_exprs() const { return !m_dim_exprs.empty(); }
+    int  reference_count() const { int n = 0; for (const DimAnnot& a : m_dimensions) n += a.driven ? 1 : 0; return n; }   // quotes the sketch already implies
+    int  hover_axis() const { return m_hover_axis; }   // 0 none, 1 X axis, 2 Y axis: the bare axis under the cursor
     // The members of `known` named by the expressions of the dimensions that touch the hovered entity.
     std::set<std::string> hover_variable_names(const std::set<std::string>& known) const;
 private:
@@ -1229,6 +1242,7 @@ private:
     bool                  m_has_hover_handle{false};// cursor is near a handle (highlight it)
     Handle                m_hover_handle;          // the hovered handle (recomputed on move)
     int                   m_hover_ent{-1};         // entity under the cursor (handle or segment), or -1
+    int                   m_hover_axis{0};         // a bare axis under the cursor, which a click would pick: 1 = X axis, 2 = Y axis
     int                   m_hover_dim{-1};         // dimension label under the cursor, or -1
     std::vector<DimAnnot> m_live_quotes;           // live non-driving characteristic quotes,
                                                    // clickable to promote to driving dims
@@ -1262,6 +1276,7 @@ private:
         std::vector<SketchEntity> entities; std::vector<SketchEntityConstraintDef> constraints;
         std::vector<Feature> features;      std::vector<DimAnnot> dimensions;
         std::map<int, std::pair<std::string, double>> dim_exprs;
+        std::map<int, std::string> dim_names;
     };
     std::vector<SketchSnap> m_undo_hist;      // states to go back to, oldest first
     std::vector<SketchSnap> m_sketch_redo;    // states undone, newest last; cleared by any new edit
@@ -1359,7 +1374,9 @@ private:
     size_t            m_entity_free_key{0};
     void              refresh_entity_free();
     std::vector<DimAnnot> m_dimensions;           // placed dimension quotes (Mode::Dimension)
-    std::vector<int>      m_bad_dims;             // dims whose driving constraint the solver rejected
+    std::vector<int>      m_bad_dims;             // dims whose driving constraint CONFLICTS with the others (red)
+    std::vector<int>      m_redundant_dims;       // dims the sketch already implies (amber): the solver refuses them too
+    size_t                m_over_key{0};          // which over-constrained state was last said in the status line
     int                 m_dim_e0{-1};             // first picked point's entity (Dimension)
     SketchPointRole     m_dim_r0{SketchPointRole::P0};
     bool                m_dim_has0{false};        // a first point is pending
@@ -1376,6 +1393,7 @@ private:
     // The expressions bound to the dimensions of the sketch being edited (m_constraints index -> expression, and the value it
     // had when loaded: a dimension whose value has moved on since is no longer that expression's, and shows its number).
     std::map<int, std::pair<std::string, double>> m_dim_exprs;
+    std::map<int, std::string> m_dim_named;   // the names given to dimensions (constraint index -> name): positions too, so they follow
     void remap_dim_exprs(const std::vector<int>& remap);   // old constraint index -> new (-1 = erased)
     bool                m_dim_names{false};       // label a bound dimension with its expression instead of its value (per session)
     Mode                m_mode{Mode::Polyline};

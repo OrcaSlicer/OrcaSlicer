@@ -201,5 +201,5 @@ check(len(hz4) == 1 and max(hz4[0]["p0"][0], hz4[0]["p1"][0]) < x_right - 1.0 an
       "the right stub is cut off at the second vertical, the rest stays: %s" % [(round(l["p0"][0], 2), round(l["p1"][0], 2)) for l in hz4])
 undo()
 
-print("\n%d failure(s)" % len(fails))
+print("ui sketch undo:", "PASS" if not fails else "%d FAIL" % len(fails))
 sys.exit(1 if fails else 0)

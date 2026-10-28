@@ -59,6 +59,16 @@ SketchSolveResult sketch_solve_drag(std::vector<SketchEntity>& entities,
 std::vector<char> sketch_entity_free(const std::vector<SketchEntity>& entities,
                                      const std::vector<SketchEntityConstraintDef>& constraints);
 
+// An over-constrained sketch the old libslvs can only call INCONSISTENT, redundant or conflicting alike. Each constraint of `bad`
+// is told apart by taking it out: if the rest solve and the solved geometry still satisfies it, it was REDUNDANT (already implied);
+// if it does not, it CONFLICTS with the others (or the rest do not solve either). At most 16 of `bad` are probed.
+struct SketchOverReport {
+    std::vector<int> redundant, conflicting;   // indices into `constraints`
+};
+SketchOverReport sketch_classify_bad(const std::vector<SketchEntity>& entities,
+                                     const std::vector<SketchEntityConstraintDef>& constraints,
+                                     const std::vector<int>& bad);
+
 } // namespace Slic3r
 
 #endif

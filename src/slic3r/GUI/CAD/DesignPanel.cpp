@@ -500,6 +500,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     sk_key('P', DesignSketchTool::Mode::Point,        _L("Point — click to place"));
     sk_key('D', DesignSketchTool::Mode::Dimension,    _L("Dimension — click 2 points or an entity"));
     sk_key('T', DesignSketchTool::Mode::Trim,         _L("Trim — click a segment to trim it"));
+    // Split has no letter left (the alphabet is spent): the toolbar button and the Offer row arm it.
+    m_verb_actions["btn:sk_split"] = [select_tool] {
+        select_tool(DesignSketchTool::Mode::Split, _L("Split — click a line or an arc to cut it in two there"));
+    };
     sk_key('X', DesignSketchTool::Mode::Extend,       _L("Extend — click a line/arc to extend it"));
     sk_key('O', DesignSketchTool::Mode::Offset,       _L("Offset — pick an entity, drag the distance"));
     sk_key('M', DesignSketchTool::Mode::Mirror,       _L("Mirror — pick axis, then entities"));
@@ -1438,6 +1442,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
               _L("Click a segment to trim it back to its nearest intersection; Esc exits"));
         skbtn("design_extend", DesignSketchTool::Mode::Extend, _L("Extend"),
               _L("Click a line or arc to extend it to the nearest entity; Esc exits"));
+        skbtn("design_split",  DesignSketchTool::Mode::Split,  _L("Split"),
+              _L("Click a line or an arc to cut it in two at that point; Esc exits"));
         // Constrain — grouped with the edit tools so it's easy to find (nde #13: it was buried
         // far-right next to Construction and went unnoticed). Commits the live sketch in place
         // and drops into Constrain mode (geometric/dimensional palette).
@@ -3332,6 +3338,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 edited.entities           = ents;
                 edited.entity_constraints = cons;
                 edited.plane              = plane;
+                // Formulas and names are bound to a dimension by its constraint INDEX; the edit may have erased or moved constraints,
+                // so take them back from the tool, which kept them on their constraints.
+                if (m_viewport) {
+                    const DesignSketchTool& t = m_viewport->mcp_sketch_tool();
+                    for (auto it = edited.expr.begin(); it != edited.expr.end();)
+                        it = it->first.rfind("dim:", 0) == 0 ? edited.expr.erase(it) : std::next(it);
+                    for (const auto& [k, ex] : t.dim_exprs())      // a value retyped in the session has left its formula behind
+                        if (k >= 0 && k < int(cons.size()) && std::abs(cons[k].value - ex.second) < 1e-6)
+                            edited.expr["dim:" + std::to_string(k)] = ex.first;
+                    edited.dim_names = t.dim_named();
+                }
                 end_edit_rollback(true);
                 if (m_doc.replace_feature(m_edit_index, edited)) {
                     if (!cons.empty()) m_doc.solve_sketch_feature(m_edit_index);
@@ -4740,7 +4757,9 @@ bool DesignPanel::mcp_busy(bool sketch_method, std::string& why) const
     if (s_doc_worker_busy.load() > 0) { why = "the model is being rebuilt; try again when it finishes"; return true; }
     // A GUI editor holds a candidate built from the document as it was when it opened; a
     // feature added or removed underneath it would be overwritten, or overwrite, on Confirm.
-    if (m_active != Tool::None || m_edit_index >= 0) { why = "a feature card is open in the Design tab"; return true; }
+    // (An ENTITY SKETCH reopened for editing is not a card: it is the live sketch, which the sketch_* methods drive.)
+    const bool sketch_edit_session = sketch_method && m_ui_mode == UiMode::Sketch && m_active == Tool::None;
+    if (m_active != Tool::None || (m_edit_index >= 0 && !sketch_edit_session)) { why = "a feature card is open in the Design tab"; return true; }
     if (m_text_dlg != nullptr) { why = "the Text dialog is open in the Design tab"; return true; }
     if (m_ui_mode == UiMode::Constrain) { why = "the Design tab is constraining a sketch"; return true; }
     // Sketch methods drive the live sketch session, which is the point of them; everything else
@@ -6667,6 +6686,8 @@ static wxString sketch_step_prompt(DesignSketchTool::Mode m, int step, int picks
     case Mode::Extend:
         return _L("Extend — click a line or arc to grow it out to the nearest entity  ·  "
                   "Esc to exit");
+    case Mode::Split:
+        return _L("Split — click a line or an arc to cut it in two at that point  ·  Esc to exit");
     case Mode::Fillet:
         return step == 0 ? _L("Fillet — click the first of two lines that meet")
              : step == 1 ? _L("Fillet — click the second line")
@@ -9944,6 +9965,16 @@ void DesignPanel::reset_edit_state()
     m_edit_index = -1;
 }
 
+// The Cancel of a reopened entity sketch, for a caller that is not the toolbar: give the model back as it was and leave the edit.
+void DesignPanel::mcp_end_sketch_edit()
+{
+    if (m_edit_index < 0) return;
+    end_edit_rollback(false);
+    m_edit_index = -1;
+    refresh_tree();
+    sync_sketch_display();
+}
+
 void DesignPanel::end_edit_rollback(bool commit)
 {
     if (!m_edit_rolled) return;
@@ -10329,11 +10360,17 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
 
 void DesignPanel::on_edit_feature()
 {
-    int sel = tree_selection();
+    const int sel = tree_selection();
     if (sel == wxNOT_FOUND) {
         set_status(StatusKind::Info, _L("Select a feature in the tree first"));
         return;
     }
+    edit_feature_at(sel);
+}
+
+void DesignPanel::edit_feature_at(int sel)
+{
+    if (sel < 0 || sel >= int(m_doc.features.size())) return;
     const CadFeature& f = m_doc.features[sel];
     reset_edit_state();
 
@@ -10377,6 +10414,7 @@ void DesignPanel::on_edit_feature()
                     if (k >= 0 && k < int(f.entity_constraints.size())) bound[k] = {kv.second, f.entity_constraints[k].value};
                 }
                 m_viewport->mcp_sketch_tool().set_dim_exprs(std::move(bound));
+                m_viewport->mcp_sketch_tool().set_dim_named(f.dim_names);
             }
             set_status(StatusKind::Info, _L("Editing sketch — drag a handle or double-click a dimension to edit it"));
         } else {
