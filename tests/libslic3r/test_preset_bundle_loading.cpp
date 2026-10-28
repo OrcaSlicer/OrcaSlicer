@@ -509,6 +509,34 @@ TEST_CASE("A published printer key is skipped when the receiver's extruder does 
     CHECK(resolve_published_extruder_slot(author, 2, printer, project) == -1);
 }
 
+// The process layout is resolved against the receiver's print_extruder_id / print_extruder_variant.
+TEST_CASE("A published process key lands on the receiver's extruder with the same number", "[Preset][Bundle]")
+{
+    DynamicPrintConfig printer, project, process;
+    set_receiver_layout(printer, project, {1, 2}, {"Direct Drive Standard", "Direct Drive Standard"}, {nvtStandard, nvtStandard});
+    process.set_key_value("print_extruder_id", new ConfigOptionInts({1, 1, 2, 2}));
+    process.set_key_value("print_extruder_variant",
+                          new ConfigOptionStrings({"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}));
+    const PublishedExtruderLayout author{{1, 1, 2, 2},
+                                         {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}};
+
+    CHECK(resolve_published_extruder_slot(author, 2, printer, project, process, "print_extruder_id", "print_extruder_variant") == 2);
+    CHECK(resolve_published_extruder_slot(author, 1, printer, project, process, "print_extruder_id", "print_extruder_variant") == -1);
+}
+
+TEST_CASE("A published process key is skipped when the receiver has no extruder with its number", "[Preset][Bundle]")
+{
+    DynamicPrintConfig printer, project, process;
+    set_receiver_layout(printer, project, {1}, {"Direct Drive Standard"}, {nvtStandard});
+    process.set_key_value("print_extruder_id", new ConfigOptionInts({1, 1, 2, 2}));
+    process.set_key_value("print_extruder_variant",
+                          new ConfigOptionStrings({"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}));
+    const PublishedExtruderLayout author{{1, 1, 2, 2},
+                                         {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}};
+
+    CHECK(resolve_published_extruder_slot(author, 2, printer, project, process, "print_extruder_id", "print_extruder_variant") == -1);
+}
+
 TEST_CASE("Reloading one local bundle preserves unrelated and modified presets", "[Preset][Bundle]")
 {
     using Catch::Matchers::WithinAbs;
@@ -5622,6 +5650,45 @@ TEST_CASE("Published 3MF overrides each extruder slot on a similar multi-extrude
         check_double_vector(bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values, { 0.6, 0.9, 0.7 });
         CHECK(pub.skipped_keys.empty());
     }
+}
+
+// Trays from printers that report a single colour per slot (Creality CFS via Moonraker) carry an
+// empty filament_multi_colour. An empty slot between loaded ones used to cut the multi-colour list
+// short, which crashed the filament combo; each loaded slot must instead fall back to its own colour.
+TEST_CASE("An empty AMS slot between loaded single-colour slots keeps every slot's colour", "[Preset][Bundle][AMS]")
+{
+    PresetBundle bundle;
+    bundle.set_num_filaments(4u, std::string("#111111"));
+    auto add_ams_slot = [&](int slot, const std::string& id, const std::string& colour, bool placeholder) {
+        DynamicPrintConfig config;
+        config.set_key_value("filament_id", new ConfigOptionStrings{id});
+        config.set_key_value("filament_colour", new ConfigOptionStrings{colour});
+        config.set_key_value("filament_colour_type", new ConfigOptionStrings{"1"});
+        config.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
+        config.set_key_value("ams_id", new ConfigOptionStrings{"0"});
+        config.set_key_value("slot_id", new ConfigOptionStrings{std::to_string(slot)});
+        config.set_key_value("filament_type", new ConfigOptionStrings{placeholder ? "" : "PETG"});
+        config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{placeholder});
+        bundle.filament_ams_list.emplace(slot, std::move(config));
+    };
+    add_ams_slot(0, "CFS-PETG", "#000000", false);
+    add_ams_slot(1, "CFS-PETG", "#FF1E1E", false);
+    add_ams_slot(2, "", "", true);
+    add_ams_slot(3, "CFS-PETG", "#FFFFFF", false);
+    std::vector<std::pair<DynamicPrintConfig *,std::string>> unknowns;
+    std::map<int, AMSMapInfo> maps;
+    MergeFilamentInfo merge_info;
+    REQUIRE(bundle.sync_ams_list(unknowns, false, maps, true, merge_info, false) == 4);
+
+    const auto& colours = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+    const auto& multi   = bundle.project_config.option<ConfigOptionStrings>("filament_multi_colour")->values;
+    REQUIRE(colours.size() == 4);
+    REQUIRE(multi.size() == colours.size());
+    CHECK(colours[0] == "#000000");
+    CHECK(colours[1] == "#FF1E1E");
+    CHECK(colours[3] == "#FFFFFF");
+    for (size_t i = 0; i < colours.size(); ++i)
+        CHECK(multi[i] == colours[i]);
 }
 
 TEST_CASE("Loading incomplete mixed metadata normalizes slots before adding a filament", "[Preset][Bundle][FilamentMixer]")

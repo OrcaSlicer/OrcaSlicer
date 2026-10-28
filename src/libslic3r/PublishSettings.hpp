@@ -108,6 +108,11 @@ DynamicPrintConfig filter_published_config(
 
 // Receiver index for the author's per-variant index: the receiver's extruder with the author's
 // extruder number, when it currently runs the author's nozzle type. -1 when it does not.
+// The overload without a target resolves printer keys; the other looks the index up in
+// receiver_target with its id/variant keys (process keys: print_extruder_id / print_extruder_variant).
 int resolve_published_extruder_slot(const PublishedExtruderLayout &author, size_t author_index,
                                     const DynamicPrintConfig &receiver_printer, const DynamicPrintConfig &receiver_project);
+int resolve_published_extruder_slot(const PublishedExtruderLayout &author, size_t author_index,
+                                    const DynamicPrintConfig &receiver_printer, const DynamicPrintConfig &receiver_project,
+                                    const DynamicPrintConfig &receiver_target, const std::string &id_key, const std::string &variant_key);
 }

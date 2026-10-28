@@ -851,13 +851,19 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
         return false;
 
     switch (*shortcut) {
+    case Shortcut::GoToHome:    m_tabpanel->SelectPageByName(TAB_ID_HOME); break;
+#ifdef SLIC3R_CAD
+    case Shortcut::GoToDesign:  m_tabpanel->SelectPageByName(TAB_ID_DESIGN); break;
+#endif
     case Shortcut::GoToPrepare: m_tabpanel->SelectPageByName(TAB_ID_PREPARE); break;
     case Shortcut::GoToPreview: m_tabpanel->SelectPageByName(TAB_ID_PREVIEW); break;
     case Shortcut::GoToDevice:
         if (!m_tabpanel->SelectPageByName(TAB_ID_MONITOR))
             m_tabpanel->SelectPageByName(TAB_ID_MONITOR_WEB);
         break;
-    case Shortcut::GoToProject: m_tabpanel->SelectPageByName(TAB_ID_PROJECT); break;
+    case Shortcut::GoToMultiDevice: m_tabpanel->SelectPageByName(TAB_ID_MULTI_DEVICE); break;
+    case Shortcut::GoToProject:     m_tabpanel->SelectPageByName(TAB_ID_PROJECT); break;
+    case Shortcut::GoToCalibration: m_tabpanel->SelectPageByName(TAB_ID_CALIBRATION); break;
     case Shortcut::TabNext:
     case Shortcut::TabPrevious: {
         // Cycle through the tab bar, wrapping around at either end
@@ -2021,8 +2027,10 @@ void MainFrame::publish_project()
     // published 3MF); a null pointer means "fresh", keeping the dirty defaults.
     std::vector<std::string> pending_keys;
     std::vector<Slic3r::PublishedMaterialEntry> pending_material;
-    const bool has_prior = m_plater->get_pending_published(pending_keys, pending_material);
-    PublishSettingsDialog dlg(this, has_prior ? &pending_keys : nullptr, has_prior ? &pending_material : nullptr);
+    bool pending_legacy_process = false;
+    const bool has_prior = m_plater->get_pending_published(pending_keys, pending_material, pending_legacy_process);
+    PublishSettingsDialog dlg(this, has_prior ? &pending_keys : nullptr, has_prior ? &pending_material : nullptr,
+                              pending_legacy_process);
     if (dlg.ShowModal() != wxID_OK)
         return;
     m_plater->set_pending_published(dlg.GetPublishedKeys(), dlg.GetPublishedMaterialKeys());

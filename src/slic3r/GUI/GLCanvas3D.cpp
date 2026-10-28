@@ -1013,9 +1013,13 @@ void GLCanvas3D::Labels::render(const std::vector<const ModelInstance*>& sorted_
 // The sums a solid adds to a marker.
 static GCodeProcessorResult::ObjectMass::Sum mass_sum(const MassProperties& solid)
 {
-    return { solid.mass, solid.volume, solid.mass * solid.center,
-             solid.mass * (solid.spread.diagonal() + solid.center.cwiseProduct(solid.center)) };
+    GCodeProcessorResult::ObjectMass::Sum sum{ solid.mass, solid.volume, solid.mass * solid.center };
+    sum.set_second_moments(solid.mass * (solid.spread + solid.center * solid.center.transpose()));
+    return sum;
 }
+
+// The ImGui id of the window with a marker's details, whatever its title.
+static constexpr const char* details_window = "###center_of_mass";
 
 // On screen, of the plates, the objects, the supports and the bodies, each smaller than the one before, so that markers at
 // one place still show.
@@ -1166,14 +1170,16 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
     if (shader == nullptr)
         return;
 
-    // Preview adds markers for what is printed up to the top layer shown.
+    // Preview adds markers for what is printed up to the top layer shown, unless that is the last, which is the finished print.
+    bool printing = false;
     if (preview) {
         const GCodeViewer& gcode_viewer = canvas.get_gcode_viewer();
         m_top_layer                     = gcode_viewer.get_layers_z_range()[1];
-        const auto add = [this](const GCodeProcessorResult::ObjectMass& mass, MarkerKind kind) {
+        printing                        = m_top_layer + 1 < gcode_viewer.get_layers_count();
+        const auto add = [this, printing](const GCodeProcessorResult::ObjectMass& mass, MarkerKind kind) {
             if (const Sum total = mass.total(); total.mass > 0.)
                 m_drawn[0][kind].push_back({ total, mass.box, mass.assembly });
-            if (!mass.printed_up_to_layer.empty())
+            if (printing && !mass.printed_up_to_layer.empty())
                 if (const Sum& sum = mass.printed_up_to_layer[std::min(m_top_layer, mass.printed_up_to_layer.size() - 1)]; sum.mass > 0.)
                     m_drawn[1][kind].push_back({ sum, mass.box, mass.assembly });
         };
@@ -1186,6 +1192,12 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
             add(support, mkSupport);
     } else
         m_drawn[0] = model_markers(canvas);
+    // The section view cuts them away by their centers, as it does the toolpaths' option markers.
+    if (const ClippingPlane plane = canvas._get_section_view_plane(); plane.is_active())
+        for (Markers& markers : m_drawn)
+            for (std::vector<Marker>& kind : markers)
+                kind.erase(std::remove_if(kind.begin(), kind.end(), [&plane](const Marker& marker) { return plane.is_point_clipped(marker.center()); }),
+                           kind.end());
     if (std::all_of(m_drawn.begin(), m_drawn.end(),
                     [](const Markers& markers) { return std::all_of(markers.begin(), markers.end(), [](const auto& kind) { return kind.empty(); }); }))
         return;
@@ -1238,7 +1250,7 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
             }
     };
     // Preview fades the finished parts' markers under those of what is printed so far.
-    draw(m_drawn[0], preview ? 0.4f : 1.f);
+    draw(m_drawn[0], printing ? 0.4f : 1.f);
     draw(m_drawn[1], 1.f);
     shader->stop_using();
     glsafe(::glEnable(GL_DEPTH_TEST));
@@ -1295,7 +1307,7 @@ void GLCanvas3D::CenterOfMass::render_details(GLCanvas3D& canvas)
                               marker.assembly       ? _u8L("Assembly center of mass") :
                                                       _u8L("Object center of mass");
     bool open = true;
-    imgui.begin(title + "###center_of_mass", &open,
+    imgui.begin(title + details_window, &open,
                 ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
     if (ImGui::IsWindowAppearing())
         imgui.set_requires_extra_frame();
@@ -1323,10 +1335,23 @@ void GLCanvas3D::CenterOfMass::render_details(GLCanvas3D& canvas)
         ImGui::EndTable();
     }
     imgui.end();
-    if (!open) {
-        m_picked.reset();
-        canvas._set_overlay_as_dirty();
-    }
+    if (!open)
+        hide_details(canvas);
+}
+
+bool GLCanvas3D::CenterOfMass::details_hovered() const
+{
+    const ImGuiWindow* hovered = ImGui::GetCurrentContext()->HoveredWindow;
+    return m_picked && hovered != nullptr && hovered == ImGui::FindWindowByName(details_window);
+}
+
+bool GLCanvas3D::CenterOfMass::hide_details(GLCanvas3D& canvas)
+{
+    if (!m_picked)
+        return false;
+    m_picked.reset();
+    canvas._set_overlay_as_dirty();
+    return true;
 }
 
 void GLCanvas3D::Tooltip::set_text(const std::string& text)
@@ -4400,7 +4425,8 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
     if (!imgui_claimed)
     {
         // Before the gizmos and the selection, which Esc also closes.
-        if (evt.GetEventType() == wxEVT_KEY_DOWN && keyCode == WXK_ESCAPE && std::exchange(m_section_view->panel_open, false)) {
+        if (evt.GetEventType() == wxEVT_KEY_DOWN && keyCode == WXK_ESCAPE &&
+            (std::exchange(m_section_view->panel_open, false) || m_center_of_mass.hide_details(*this))) {
             _set_overlay_as_dirty();
             return;
         }
@@ -4501,7 +4527,8 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
     evt.SetY(evt.GetY() * scale);
 #endif
 
-    if (wxGetApp().imgui()->update_mouse_data(evt)) {
+    // A marker's details move with the view, so zooming can bring them under the mouse, where the wheel keeps zooming.
+    if (wxGetApp().imgui()->update_mouse_data(evt) && !m_center_of_mass.details_hovered()) {
         if (m_canvas_type == CanvasPreview) {
             IMSlider* m_layers_slider = get_gcode_viewer().get_layers_slider();
             IMSlider* m_moves_slider = get_gcode_viewer().get_moves_slider();
@@ -4968,6 +4995,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         return;
     }
 
+    if (evt.ButtonDown() && wxWindow::FindFocus() != m_canvas)
+        // Grab keyboard focus on any mouse click event.
+        m_canvas->SetFocus();
+
     // A click on a center of mass marker shows its details instead of selecting.
     if (evt.LeftDown() && !mouse_in_layer_editing && m_center_of_mass.on_left_down(*this, pos.cast<double>())) {
         m_mouse.ignore_left_up = true;
@@ -4985,10 +5016,6 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         m_mouse.drag.move_requires_threshold = false;
         m_mouse.set_move_start_threshold_position_2D_as_invalid();
     }
-
-    if (evt.ButtonDown() && wxWindow::FindFocus() != m_canvas)
-        // Grab keyboard focus on any mouse click event.
-        m_canvas->SetFocus();
 
     if (evt.Entering()) {
         // Set focus in order to remove it from sidebar fields and ensure hotkeys work
