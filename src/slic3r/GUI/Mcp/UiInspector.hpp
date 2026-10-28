@@ -7,6 +7,7 @@
 #include <wx/weakref.h>
 #include <wx/window.h>
 
+#include <cstddef>
 #include <string>
 #include <vector>
 

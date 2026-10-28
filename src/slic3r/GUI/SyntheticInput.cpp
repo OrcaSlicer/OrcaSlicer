@@ -1,5 +1,6 @@
 #include "SyntheticInput.hpp"
 
+#include <wx/mousestate.h>
 #include <wx/utils.h>
 
 #include <algorithm>

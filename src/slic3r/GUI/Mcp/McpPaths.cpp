@@ -1,9 +1,13 @@
 #include "McpPaths.hpp"
 
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/nowide/convert.hpp>
 #include <boost/system/error_code.hpp>
 #include <nlohmann/json.hpp>
+
+#include <optional>
+#include <string>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 

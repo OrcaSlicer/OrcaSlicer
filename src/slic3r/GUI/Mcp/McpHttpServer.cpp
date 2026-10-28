@@ -1,10 +1,12 @@
 #include "McpHttpServer.hpp"
+#include "McpProtocol.hpp"
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/post.hpp>
+#include <boost/asio/socket_base.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core/error.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
@@ -32,10 +34,15 @@
 #include <chrono>
 #include <cctype>
 #include <condition_variable>
+#include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <exception>
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <set>
+#include <string>
 #include <thread>
 #include <utility>
 #include <vector>

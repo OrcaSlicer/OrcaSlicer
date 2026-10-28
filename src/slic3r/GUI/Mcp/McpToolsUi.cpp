@@ -4,6 +4,7 @@
 #include "JobRegistry.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
+#include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "UiInspector.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -14,12 +15,16 @@
 
 #include <wx/button.h>
 #include <wx/dialog.h>
+#include <wx/event.h>
 #include <wx/glcanvas.h>
 #include <wx/toplevel.h>
+#include <wx/vector.h>
 #include <wx/webview.h>
 #include <wx/weakref.h>
+#include <wx/window.h>
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -27,6 +32,7 @@
 #include <regex>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {

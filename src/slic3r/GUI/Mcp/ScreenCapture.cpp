@@ -4,21 +4,25 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
+#include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
 #include <wx/mstream.h>
-#include <wx/gdicmn.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
 #if defined(__WXGTK__)
+#include <cairo.h>
 #include <gtk/gtk.h>
 #ifdef wxHAVE_GDK_X11
+#include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <gdk/gdkx.h>

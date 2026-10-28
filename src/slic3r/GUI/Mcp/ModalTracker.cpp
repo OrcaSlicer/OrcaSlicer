@@ -13,15 +13,22 @@
 #include <wx/html/htmlwin.h>
 #include <wx/msgdlg.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
+#include <wx/utils.h>
+#include <wx/vector.h>
 #include <wx/window.h>
 
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <exception>
+#include <mutex>
+#include <regex>
+#include <string>
 #include <typeinfo>
 #include <utility>
+#include <vector>
 
 #if defined(__GNUC__) || defined(__clang__)
 #include <cxxabi.h>

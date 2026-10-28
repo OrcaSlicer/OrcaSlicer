@@ -36,6 +36,7 @@
 #include "libslic3r/libslic3r.h"
 #include <memory>
 #include "slic3r/GUI/ActionRegistry.hpp"
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>

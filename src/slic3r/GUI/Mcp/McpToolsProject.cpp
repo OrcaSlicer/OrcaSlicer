@@ -1,8 +1,10 @@
 // open_files, new_project, save_project and export: files in and out without file dialogs.
 
+#include "libslic3r/Format/ProjectStrategy.hpp"
 #include "McpPaths.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
+#include "McpTypes.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
@@ -15,8 +17,11 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 
+#include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {

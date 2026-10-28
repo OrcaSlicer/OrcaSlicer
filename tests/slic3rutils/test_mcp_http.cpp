@@ -2,18 +2,26 @@
 #include <catch2/generators/catch_generators.hpp>
 
 #include "slic3r/GUI/Mcp/McpHttpServer.hpp"
+#include "slic3r/GUI/Mcp/McpProtocol.hpp"
 
+#include <boost/asio/buffer.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/address.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
+#include <boost/beast/http/field.hpp>
+#include <boost/beast/http/message.hpp>
 #include <boost/beast/http/read.hpp>
 #include <boost/beast/http/string_body.hpp>
+#include <boost/beast/http/verb.hpp>
 #include <boost/beast/http/write.hpp>
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
+#include <exception>
 #include <future>
 #include <memory>
 #include <string>

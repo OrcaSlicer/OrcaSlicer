@@ -3,7 +3,9 @@
 #include "slic3r/GUI/Mcp/McpOperations.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <optional>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r::GUI::Mcp;

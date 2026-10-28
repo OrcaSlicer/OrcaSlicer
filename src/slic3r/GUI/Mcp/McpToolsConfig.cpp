@@ -4,6 +4,7 @@
 
 #include "McpService.hpp"
 #include "McpTools.hpp"
+#include "McpTypes.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
@@ -23,6 +24,7 @@
 #include <cctype>
 #include <cfloat>
 #include <cmath>
+#include <cstddef>
 #include <exception>
 #include <sstream>
 #include <string>

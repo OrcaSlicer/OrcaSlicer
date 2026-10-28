@@ -6,6 +6,7 @@
 #include "McpScript.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
+#include "McpTypes.hpp"
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -14,8 +15,11 @@
 #include <algorithm>
 #include <chrono>
 #include <ctime>
+#include <ios>
+#include <optional>
 #include <sstream>
 #include <string>
+#include <utility>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 

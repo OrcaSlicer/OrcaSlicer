@@ -1,9 +1,17 @@
 #include "McpCore.hpp"
 
 #include "McpJournal.hpp"
+#include "McpTypes.hpp"
 
+#include <algorithm>
+#include <chrono>
+#include <cstdint>
 #include <exception>
+#include <functional>
 #include <memory>
+#include <mutex>
+#include <set>
+#include <string>
 #include <thread>
 #include <utility>
 

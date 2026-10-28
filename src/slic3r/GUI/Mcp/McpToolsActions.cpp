@@ -4,6 +4,7 @@
 #include "McpOperations.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
+#include "McpTypes.hpp"
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -11,6 +12,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <utility>

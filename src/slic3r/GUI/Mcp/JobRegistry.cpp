@@ -1,7 +1,15 @@
 #include "JobRegistry.hpp"
+#include "McpTypes.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <cstddef>
+#include <mutex>
+#include <optional>
+#include <set>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 

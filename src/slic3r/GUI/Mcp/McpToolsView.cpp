@@ -1,8 +1,10 @@
 // screenshot and set_view: what the agent looks at, and pointing the view before looking.
 
+#include "libvgcode/include/Types.hpp"
 #include "McpPaths.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
+#include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "ScreenCapture.hpp"
 #include "UiInspector.hpp"
@@ -21,14 +23,19 @@
 #include <wx/dialog.h>
 #include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
+#include <wx/image.h>
 #include <wx/toplevel.h>
+#include <wx/window.h>
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <ctime>
+#include <optional>
 #include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 

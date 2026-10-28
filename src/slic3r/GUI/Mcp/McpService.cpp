@@ -1,9 +1,12 @@
+#include "McpCore.hpp"
+#include "McpOptions.hpp"
 #include "McpService.hpp"
 
 #include "McpHttpServer.hpp"
 #include "McpProtocol.hpp"
 #include "McpToken.hpp"
 #include "McpTools.hpp"
+#include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "UiInspector.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -13,8 +16,10 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r_version.h"
+#include "UiInvoker.hpp"
 
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/cstdlib.hpp>
 #include <boost/nowide/fstream.hpp>
@@ -23,10 +28,16 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <exception>
+#include <functional>
+#include <memory>
+#include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 #ifdef _WIN32
 #include <process.h>

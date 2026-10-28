@@ -2,10 +2,12 @@
 
 #include "McpService.hpp"
 #include "McpTools.hpp"
+#include "McpTypes.hpp"
 #include "slic3r/GUI/CAD/McpControl.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include <string>
+#include <utility>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 

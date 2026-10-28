@@ -1,6 +1,8 @@
 #include "UiRefs.hpp"
 
+#include <cstddef>
 #include <string>
+#include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 

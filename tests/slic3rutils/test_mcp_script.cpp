@@ -1,3 +1,4 @@
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
@@ -7,11 +8,16 @@
 #include <nlohmann/json.hpp>
 
 #include <cstdlib>
+#include <functional>
 #include <map>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
+
+#ifndef _WIN32
+#include <stdlib.h> // setenv
+#endif
 
 using namespace Slic3r::GUI::Mcp;
 using nlohmann::json;

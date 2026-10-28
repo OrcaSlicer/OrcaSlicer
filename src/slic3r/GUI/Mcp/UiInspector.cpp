@@ -1,3 +1,4 @@
+#include "libslic3r/Config.hpp"
 #include "UiInspector.hpp"
 
 #include "McpService.hpp"
@@ -22,31 +23,41 @@
 #include "slic3r/GUI/Widgets/SpinInput.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "UiRefs.hpp"
 
 #include <imgui/imgui_internal.h>
 
 #include <wx/button.h>
+#include <wx/chartype.h>
 #include <wx/checkbox.h>
 #include <wx/choice.h>
 #include <wx/combobox.h>
 #include <wx/ctrlsub.h>
 #include <wx/dataview.h>
 #include <wx/dialog.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
+#include <wx/kbdstate.h>
 #include <wx/listbox.h>
 #include <wx/menu.h>
+#include <wx/mousestate.h>
 #include <wx/notebook.h>
 #include <wx/radiobut.h>
 #include <wx/scrolwin.h>
 #include <wx/slider.h>
+#include <wx/spinbutt.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 #include <wx/arrstr.h>
+#include <wx/tracker.h>
 #include <wx/utils.h>
+#include <wx/weakref.h>
 #include <wx/webview.h>
+#include <wx/window.h>
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
@@ -56,6 +67,8 @@
 #include <cctype>
 #include <climits>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <set>

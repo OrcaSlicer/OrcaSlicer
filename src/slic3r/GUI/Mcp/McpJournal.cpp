@@ -1,9 +1,13 @@
 #include "McpJournal.hpp"
+#include "McpTypes.hpp"
 
 #include <boost/filesystem/path.hpp>
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
+#include <mutex>
+#include <string>
 #include <utility>
 
 namespace Slic3r { namespace GUI { namespace Mcp {

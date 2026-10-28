@@ -1,4 +1,5 @@
 #include "McpProtocol.hpp"
+#include "McpTypes.hpp"
 
 #include <algorithm>
 #include <cstddef>

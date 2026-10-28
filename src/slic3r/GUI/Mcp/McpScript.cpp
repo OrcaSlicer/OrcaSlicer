@@ -1,10 +1,13 @@
 #include "McpScript.hpp"
+#include "McpTypes.hpp"
 
 #include <algorithm>
 #include <cstdlib>
+#include <optional>
 #include <stdexcept>
 #include <exception>
 #include <regex>
+#include <string>
 #include <utility>
 
 namespace Slic3r { namespace GUI { namespace Mcp {

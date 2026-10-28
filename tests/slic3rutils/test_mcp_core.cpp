@@ -11,10 +11,13 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <memory>
 #include <set>
+#include <utility>
 #include <vector>
 #include <future>
 #include <mutex>

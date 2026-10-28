@@ -1,6 +1,10 @@
 #include "McpOperations.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <optional>
+#include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 

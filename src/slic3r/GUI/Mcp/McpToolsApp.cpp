@@ -1,8 +1,10 @@
 // get_state, wait and get_log: what an agent reads before and after acting.
 
 #include "JobRegistry.hpp"
+#include "libslic3r/Config.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
+#include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -23,12 +25,18 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/fstream.hpp>
 
+#include <wx/gdicmn.h>
+#include <wx/vector.h>
+
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <deque>
 #include <string>
 #include <set>
 #include <thread>
+#include <utility>
+#include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 

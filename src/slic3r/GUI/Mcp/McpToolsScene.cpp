@@ -2,9 +2,12 @@
 // operation, which reports its own outcome per plate (see McpOperations).
 
 #include "JobRegistry.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Point.hpp"
 #include "McpOperations.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
+#include "McpTypes.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -24,9 +27,12 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
@@ -256,7 +262,7 @@ void register_scene_tools(McpService& service)
                     inst->set_offset(absolute ? t : Vec3d(inst->get_offset() + t));
                 }
                 if (args.contains("rotate")) {
-                    const Vec3d r = to_vec3(args["rotate"], "rotate") * (M_PI / 180.);
+                    const Vec3d r = to_vec3(args["rotate"], "rotate") * Geometry::deg2rad(1.0);
                     if (absolute)
                         inst->set_rotation(r);
                     else {

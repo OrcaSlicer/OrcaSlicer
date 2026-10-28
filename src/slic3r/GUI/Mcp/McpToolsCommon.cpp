@@ -1,11 +1,20 @@
 #include "McpTools.hpp"
 
+#include "McpTypes.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
+#include <wx/app.h>
+
 #include <algorithm>
+#include <chrono>
+#include <cstddef>
+#include <functional>
+#include <initializer_list>
+#include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 

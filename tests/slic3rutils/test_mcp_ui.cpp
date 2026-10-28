@@ -5,6 +5,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <cstddef>
 #include <set>
 #include <string>
 #include <vector>
