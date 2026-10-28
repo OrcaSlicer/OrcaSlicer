@@ -12827,11 +12827,14 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
 
             int hit = hit_test(p, tol);
-            // Shift/Ctrl-click on a bare axis picks it as a line (a construction line held on the axis, made on the spot), so a relation can
-            // name it: tangent to the axis, an angle to it, collinear with it. Shift/Ctrl only: a plain click on empty space near an axis
-            // is a deselect and must not leave a line behind.
-            if (hit < 0 && extend && evt.LeftDown() && (std::abs(p.y()) < tol || std::abs(p.x()) < tol))
+            // A click on a bare axis picks it as a line (a construction line held on the axis, made on the spot, as in the Dimension tool), so
+            // a relation can name it: tangent to the axis, an angle to it, collinear with it. With something already picked it ADDS to the
+            // selection (an axis is never the thing to replace the pick with); Shift/Ctrl does the same, as for any entity.
+            bool axis_add = false;
+            if (hit < 0 && evt.LeftDown() && (std::abs(p.y()) < tol || std::abs(p.x()) < tol)) {
                 hit = ensure_axis_line(std::abs(p.y()) >= tol);
+                axis_add = hit >= 0 && !m_selection.empty();
+            }
 
             if (evt.LeftDClick() && hit >= 0) {
                 if (!extend) m_selection.clear();
@@ -12840,7 +12843,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                         m_selection.push_back(idx);
             } else if (hit >= 0) {
                 auto it = std::find(m_selection.begin(), m_selection.end(), hit);
-                if (extend) {
+                if (extend || axis_add) {
                     if (it == m_selection.end()) m_selection.push_back(hit);
                     else m_selection.erase(it);     // toggle off
                 } else {

@@ -202,8 +202,8 @@ n_before = len(ents())
 rim = scr([circ["center"][0] - 0.7071 * circ["radius"], circ["center"][1] + 0.7071 * circ["radius"]])   # (not where the radius grip sits)
 call("ui.move", at=rim); call("ui.click", at=rim); time.sleep(0.4)
 ax = scr([-18.0, 0.0])
-call("ui.move", at=ax); call("ui.click", at=ax, mods=["shift"]); time.sleep(0.5)
-check(len(ents()) == n_before + 1, "Shift-click on the bare X axis picks it as a line (made on the spot): %d -> %d entities" % (n_before, len(ents())))
+call("ui.move", at=ax); call("ui.click", at=ax); time.sleep(0.5)
+check(len(ents()) == n_before + 1, "a click on the bare X axis picks it as a line (made on the spot): %d -> %d entities" % (n_before, len(ents())))
 check(len(call("sketch_describe")["selection"]) == 2, "the circle and the axis are both selected: %s" % call("sketch_describe")["selection"])
 cc = ncons()
 call("run_verb", verb="con_tangent"); time.sleep(0.5)
@@ -211,9 +211,11 @@ c3 = [e for e in ents() if e["index"] == ci][0]
 check(ncons() == cc + 1 and abs(abs(c3["center"][1]) - c3["radius"]) < 1e-4,
       "Tangent to the axis: the circle now rests on it (|y| = %.4f, r = %.4f)" % (abs(c3["center"][1]), c3["radius"]))
 call("ui.key", key="Escape"); call("ui.key", key="Escape")
+call("ui.key", key="Escape"); call("ui.key", key="Escape")
 n_now = len(ents())
 call("ui.move", at=scr([-18.0, 0.0])); call("ui.click", at=scr([-18.0, 0.0])); time.sleep(0.3)
-check(len(ents()) == n_now, "a plain click on the axis makes nothing")
+check(len(ents()) == n_now and call("sketch_describe")["selection"] == [n_now - 1], "a second click on the axis reuses its line, it does not make another: %s" % call("sketch_describe")["selection"])
+call("ui.key", key="Escape"); call("ui.key", key="Escape")
 
 # --- the new keys ------------------------------------------------------------------------------------------------------------------
 for key, want in (("W", "Move"), ("Y", "Rotate"), ("Z", "Scale")):
