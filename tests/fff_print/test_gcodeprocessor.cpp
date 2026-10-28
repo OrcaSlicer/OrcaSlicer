@@ -24,10 +24,12 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <initializer_list>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
+#include <set>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -801,4 +803,48 @@ TEST_CASE("A filament mapped to no nozzle has no errors listed under a nozzle", 
     check_path_in_nozzle_area(inset_nozzle_area(2), path, Vec2d(0., 0.), result, 0);
 
     CHECK(result.gcode_check_result.print_area_error_infos.count(-1) == 0);
+}
+
+TEST_CASE("Nozzles up to the 64th are marked as unable to print a filament they can't", "[GCodeProcessor][Regression]")
+{
+    // 64 nozzles over a 200 mm square bed. Filament 1 maps to one of them and prints a 20 mm square
+    // at X 160-180, Y 100-120, Z 10, which that nozzle alone can't print.
+    const int nozzle = GENERATE(1, 31, 32, 63); // 0-based
+    CAPTURE(nozzle);
+    const Vec2ds bed { Vec2d(0., 0.), Vec2d(200., 0.), Vec2d(200., 200.), Vec2d(0., 200.) };
+    std::vector<Polygons>      unprintable_areas(MAXIMUM_EXTRUDER_NUMBER);
+    std::vector<double>        printable_heights(MAXIMUM_EXTRUDER_NUMBER, 100.);
+    std::vector<std::set<int>> unprintable_filament_types(MAXIMUM_EXTRUDER_NUMBER);
+    int                        expected_error = 0;
+    SECTION("it can't reach the square")
+    {
+        const Vec2ds nozzle_area { Vec2d(0., 0.), Vec2d(150., 0.), Vec2d(150., 200.), Vec2d(0., 200.) };
+        unprintable_areas[nozzle] = diff(Polygon::new_scale(bed), Polygon::new_scale(nozzle_area));
+        expected_error            = 1;
+    }
+    SECTION("the square is above its printable height")
+    {
+        printable_heights[nozzle] = 5.;
+        expected_error            = 1 << 1;
+    }
+    SECTION("it can't print the filament's type") { unprintable_filament_types[nozzle] = { 0 }; }
+
+    GCodeProcessor processor;
+    for (const Vec2d &point : { Vec2d(160., 100.), Vec2d(180., 100.), Vec2d(180., 120.), Vec2d(160., 120.) }) {
+        GCodeProcessorResult::MoveVertex move;
+        move.type            = EMoveType::Extrude;
+        move.extrusion_role  = erExternalPerimeter;
+        move.extruder_id     = 0; // filament 1
+        move.object_label_id = 1;
+        move.position        = Vec3f(float(point.x()), float(point.y()), 10.f);
+        move.print_z         = 10.f;
+        processor.result().moves.emplace_back(move);
+    }
+    processor.check_multi_extruder_gcode_valid(int(MAXIMUM_EXTRUDER_NUMBER), bed, 100., {}, unprintable_areas, printable_heights,
+                                               { nozzle + 1 }, unprintable_filament_types);
+    const GCodeProcessorResult &result = processor.result();
+
+    CHECK(result.gcode_check_result.error_code == expected_error);
+    REQUIRE(result.limit_filament_maps.size() == 1);
+    CHECK(result.limit_filament_maps[0] == uint64_t(1) << nozzle);
 }
