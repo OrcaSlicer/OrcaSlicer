@@ -1326,6 +1326,14 @@ static bool is_hidden_in_shell(EGCodeExtrusionRole role)
            role == EGCodeExtrusionRole::InternalBridgeInfill ||
            role == EGCodeExtrusionRole::GapFill;
 }
+
+// the roles no solid stands in for while only the end layers are drawn
+static bool is_support(EGCodeExtrusionRole role)
+{
+    return role == EGCodeExtrusionRole::SupportMaterial ||
+           role == EGCodeExtrusionRole::SupportMaterialInterface ||
+           role == EGCodeExtrusionRole::SupportTransition;
+}
 #endif // ENABLE_OPENGL_ES
 
 void ViewerImpl::update_enabled_entities()
@@ -1399,6 +1407,10 @@ void ViewerImpl::update_enabled_entities()
             const bool end_layer = v.layer_id == layers_range[0] || v.layer_id == layers_range[1];
             if (end_layer)
                 (v.is_option() ? enabled_options_reduced : enabled_segments_reduced).push_back(static_cast<uint32_t>(i));
+            else if (reduced_mode == EReducedDetailMode::EndLayersOnly) {
+                if (v.is_extrusion() && is_support(v.role))
+                    enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
+            }
             else if (reduced_mode == EReducedDetailMode::ShellOnly) {
                 if (v.is_option())
                     enabled_options_reduced.push_back(static_cast<uint32_t>(i));
