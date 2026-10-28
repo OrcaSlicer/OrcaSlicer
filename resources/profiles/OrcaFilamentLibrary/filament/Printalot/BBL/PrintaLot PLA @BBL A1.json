@@ -17,9 +17,6 @@
 	"filament_cooling_before_tower": [
 		"0"
 	],
-	"filament_extruder_variant": [
-		"Direct Drive Standard"
-	],
 	"hot_plate_temp": [
 		"65"
 	],
