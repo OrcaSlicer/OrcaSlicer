@@ -147,8 +147,10 @@ def find_binary(explicit):
     candidates = [explicit] if explicit else []
     here = os.path.dirname(os.path.abspath(__file__))
     repo = os.path.dirname(os.path.dirname(here))
-    candidates += [os.path.join(repo, "build", "src", "Release", "orca-slicer"),
-                   os.path.join(repo, "build", "package", "bin", "orca-slicer"),
+    exe = ".exe" if os.name == "nt" else ""
+    # build_win.bat names a clang-cl tree build-clang.
+    candidates += [os.path.join(repo, tree, "src", "Release", "orca-slicer" + exe) for tree in ("build", "build-clang")]
+    candidates += [os.path.join(repo, "build", "package", "bin", "orca-slicer"),
                    shutil.which("orca-slicer") or ""]
     for c in candidates:
         if c and os.path.exists(c):
@@ -168,6 +170,9 @@ def seed_datadir(datadir, printer):
                    "filaments": [filament],
                    "presets": {"machine": f"{model} {nozzle} nozzle"},
                    "app": {"check_for_updates": False, "show_daily_tips": False}}, f, indent=2)
+        # On Windows the loader expects a line after the closing brace, where it keeps a checksum, and
+        # fails to start the app when the file ends at the brace.
+        f.write("\n")
 
 
 def start_xvfb(width, height):
@@ -235,6 +240,9 @@ def launch(args):
             if os.path.exists(bundle):
                 env.setdefault("SSL_CERT_FILE", bundle)
                 break
+    if os.name == "nt":
+        # The WebView2 profile otherwise lives in %LOCALAPPDATA%\OrcaSlicer, shared with the user's own OrcaSlicer.
+        env.setdefault("WEBVIEW2_USER_DATA_FOLDER", os.path.join(datadir, "webview2"))
     cmd = [find_binary(args.bin), "--datadir", datadir, "--mcp", "--mcp-port", str(args.port)] + args.extra
     log = open(os.path.join(datadir, "mcp-launch.log"), "w")
     proc = subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
@@ -267,12 +275,13 @@ def session_client():
 
 def stop(_args):
     _, s = session_client()
+    kill = os.kill if os.name == "nt" else os.killpg  # Windows has no process groups to signal
     for key in ("pid", "xvfb_pid"):
         pid = s.get(key)
         if pid:
             try:
-                os.killpg(pid, signal.SIGTERM)
-            except ProcessLookupError:
+                kill(pid, signal.SIGTERM)
+            except OSError:  # already gone
                 pass
     os.remove(SESSION_FILE)
 

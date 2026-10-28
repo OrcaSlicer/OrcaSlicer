@@ -18,6 +18,9 @@ Build Release (`cmake --build build --config Release --target all --` on Linux),
 tools/mcp/orca_mcp.py launch --xvfb --print-config
 ```
 
+On Windows, build with `build_win.bat` and run `python tools/mcp/orca_mcp.py launch --print-config`
+(there is no `--xvfb`); it finds `build-clang\src\Release\orca-slicer.exe` too.
+
 `launch` starts `build/src/Release/orca-slicer` (or `--bin PATH`) with `--mcp` and a fresh
 temporary datadir. The datadir is seeded with a finished setup wizard and one printer, Bambu Lab X1
 Carbon 0.4 by default. To use another printer, pass
@@ -103,7 +106,8 @@ You can talk to the app in two ways:
 - **`blocked_by_dialog`** lists the dialog's `title`, `message` and `buttons`. Answer it with
   `dialog_respond`, then wait for the job. A dialog marked `native: true` (message boxes, file
   pickers) can't be clicked, so register `dialog_auto_answer` before the step that opens it, or use
-  a typed tool that needs no dialog. In a script, put `dialog_auto_answer` first.
+  a typed tool that needs no dialog. In a script, put `dialog_auto_answer` first. A file picker's
+  text is its prompt, such as "Choose one or more files", not the name of the menu item that opened it.
 - "A modal dialog is open; answer it first" means `get_state.dialogs` lists what is in the way.
 - While a slice or G-code export runs, other changes are refused. `wait` for it, or `cancel` it.
 - Before a screenshot after arrange, orient or anything else that runs in the background, call
@@ -168,3 +172,10 @@ lets a step fail without stopping the run.
 - When launching by hand on a fresh datadir, set `SSL_CERT_FILE` (the harness does), or a CA-bundle
   prompt blocks startup.
 - Testing in the Fedora or Debian VMs follows the machine's own notes and is not covered here.
+
+## Windows notes
+
+- `window` and `dialog` screenshots come from `PrintWindow`, so they are exact even when other
+  windows cover OrcaSlicer, web views and the 3D views included. A minimized window can't be captured.
+- The app takes the foreground for a moment while it starts, so keystrokes typed elsewhere then can
+  reach it. The GUI tools synthesize their input inside the app and never move the real pointer.

@@ -21,8 +21,10 @@ an `OrcaSlicer.conf` that has a finished setup wizard and one printer and filame
 Carbon 0.4 by default), with update checks and daily tips turned off. The token comes from
 `ORCA_MCP_TOKEN` or is generated, and it reaches the app through the environment, not the command
 line. On Linux, `launch` also sets `SSL_CERT_FILE`, so a fresh datadir doesn't prompt for a CA
-bundle. `--xvfb` starts Xvfb on a free display between `:90` and `:119`, with
-`--width`×`--height` (default 1600×1000), and sets `GDK_BACKEND=x11`. Xvfb runs with `-noreset`,
+bundle. On Windows, it gives the instance its own WebView2 profile in the datadir, apart from the one
+your own OrcaSlicer uses, and finds `build-clang\src\Release\orca-slicer.exe` as well; run the
+commands as `python tools/mcp/orca_mcp.py …`. `--xvfb` starts Xvfb on a free display between `:90`
+and `:119`, with `--width`×`--height` (default 1600×1000), and sets `GDK_BACKEND=x11`. Xvfb runs with `-noreset`,
 and its pointer is parked in the bottom-right corner. In the middle of the screen, the pointer would
 raise tooltips over whatever opens there, and they would show in screenshots. The app's output goes to
 `<datadir>/mcp-launch.log`. `--timeout` (default 120 s) limits how long `launch` waits for
