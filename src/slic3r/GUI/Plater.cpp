@@ -7239,6 +7239,7 @@ struct Plater::priv
     uint64_t                      slice_request_seq {0};
     uint64_t                      slice_run_seq {0};
     uint64_t                      export_seq {0};
+    uint64_t                      slice_cancel_seq {0};
     std::deque<Plater::SliceRun>  slice_runs;
     std::deque<Plater::ExportRun> export_runs;
     std::deque<uint64_t>          interrupted_slice_requests;
@@ -23772,6 +23773,7 @@ void Plater::request_slice(bool all_plates)
 
 void Plater::cancel_slicing()
 {
+    ++p->slice_cancel_seq;
     // A pending automatic reslice counts as slicing (is_slicing_any()), so it is dropped too.
     p->auto_reslice_timer.Stop();
     ++p->auto_reslice_generation;
@@ -23812,6 +23814,7 @@ bool Plater::slice_request_interrupted(uint64_t request_seq) const
 
 uint64_t Plater::slice_run_seq() const { return p->slice_run_seq; }
 uint64_t Plater::export_seq() const { return p->export_seq; }
+uint64_t Plater::slice_cancel_seq() const { return p->slice_cancel_seq; }
 
 std::string Plater::plate_validation_error(int plate) const
 {

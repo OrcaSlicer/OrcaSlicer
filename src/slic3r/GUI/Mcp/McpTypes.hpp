@@ -78,8 +78,8 @@ public:
     // Replaces the arguments the session journal records for this call (refs become locators).
     virtual void set_journal_args(nlohmann::json args) = 0;
     // Marks this job as a slice/export operation: until it finishes, other mutate calls are refused
-    // so nothing changes the project under it. Call it on the UI thread, in the closure that starts
-    // the work and before starting it; throws ToolFailure when another operation already runs.
+    // so nothing changes the project under it. Call it on the UI thread before starting the work, at
+    // the latest in the closure that starts it; throws ToolFailure when another operation already runs.
     // No-op for inline calls.
     virtual void begin_operation() = 0;
 };

@@ -82,4 +82,5 @@ change a setting, slice and capture.
 the handshake, notifications, tool calls in both protocol eras, and errors.
 `test_recovery_under_load.py` fills the server's connections with 32 blocked `wait` calls and 32
 idle or half-sent connections while a dialog is open, and checks that `dialog_respond` on a new
-connection still closes it.
+connection still closes it. `test_cancel_pending_slice.py` cancels a slice while it still waits for
+the update a setting change scheduled, and checks that it never starts.

@@ -304,34 +304,44 @@ void register_scene_tools(McpService& service)
         [](const json& args, ToolContext& ctx) {
             const json plates_arg = args.value("plates", json("current"));
             auto       ticket     = std::make_shared<SliceTicket>();
+            // Held from before the wait below, so no call admitted meanwhile can change the project
+            // under the slice, and a cancel meanwhile finds the operation.
+            const uint64_t cancels_before = ctx.run_ui([&] {
+                ctx.begin_operation();
+                if (ui_plater().printer_technology() != ptFFF)
+                    throw ToolFailure("Slicing through MCP supports FFF printers only");
+                return json(ui_plater().slice_cancel_seq());
+            }).get<uint64_t>();
             // A change made just before (set_settings, open_files) is validated by an update
             // scheduled a moment later; a slice requested first would be refused on the old state.
             poll_ui(
-                ctx, []() -> json { return ui_plater().is_background_process_update_scheduled() ? json() : json(true); },
+                ctx,
+                [cancels_before]() -> json {
+                    const Plater& plater = ui_plater();
+                    const bool    pending = plater.is_background_process_update_scheduled();
+                    return pending && plater.slice_cancel_seq() == cancels_before ? json() : json(true);
+                },
                 std::chrono::seconds(10), "the pending update of the slicing state");
-            ctx.run_ui([&] {
-                // Held from before the slice starts, in the same UI step, so no call admitted
-                // meanwhile can change the project under it.
-                ctx.begin_operation();
-                Plater& plater = ui_plater();
-                if (plater.printer_technology() != ptFFF)
-                    throw ToolFailure("Slicing through MCP supports FFF printers only");
-                PartPlateList& list = plater.get_partplate_list();
-                bool           all  = false;
-                if (plates_arg.is_string() && plates_arg.get<std::string>() == "all") {
-                    all = true;
+            const bool cancelled = ctx.run_ui([&] {
+                Plater&        plater = ui_plater();
+                PartPlateList& list   = plater.get_partplate_list();
+                const bool     all    = plates_arg.is_string() && plates_arg.get<std::string>() == "all";
+                if (all) {
                     for (int i = 0; i < list.get_plate_count(); ++i)
                         ticket->plates.push_back(i);
                 } else if (plates_arg.is_number_integer()) {
                     const int index = plates_arg.get<int>();
                     if (index < 0 || index >= list.get_plate_count())
                         throw ToolFailure("plate index out of range");
-                    if (index != list.get_curr_plate_index())
-                        plater.select_plate(index);
                     ticket->plates.push_back(index);
                 } else {
                     ticket->plates.push_back(list.get_curr_plate_index());
                 }
+                // A cancel that came while the update was pending stops the slice before it starts.
+                if (plater.slice_cancel_seq() != cancels_before)
+                    return json(true);
+                if (!all && ticket->plates.front() != list.get_curr_plate_index())
+                    plater.select_plate(ticket->plates.front());
                 ticket->state.run_seq_before    = plater.slice_run_seq();
                 ticket->state.revision_at_start = plater.project_revision();
                 ticket->state.started           = std::chrono::steady_clock::now();
@@ -344,8 +354,14 @@ void register_scene_tools(McpService& service)
                 // The Preview tab shows the result, as after the Slice button.
                 if (MainFrame* frame = wxGetApp().mainframe)
                     frame->select_tab(wxString(TAB_ID_PREVIEW));
-                return json();
-            });
+                return json(false);
+            }).get<bool>();
+            if (cancelled) {
+                json plates = json::array();
+                for (int index : ticket->plates)
+                    plates.push_back({{"index", index}, {"outcome", to_string(PlateOutcome::Cancelled)}});
+                return ToolResult::ok({{"status", "done"}, {"plates", std::move(plates)}});
+            }
             const auto timeout = std::chrono::seconds(arg_int(args, "timeout_s", 1800));
             json result = poll_ui(
                 ctx,
@@ -414,15 +430,16 @@ void register_scene_tools(McpService& service)
         "export holds the project.",
         object_schema({{"job", prop("string", "The slice or export job to cancel, e.g. \"j12\".")}}),
         [&service](const json& args, ToolContext& ctx) {
+            const auto ops = service.jobs().running_operations();
             if (args.contains("job")) {
                 const std::string job = arg_string(args, "job");
-                const auto        ops = service.jobs().running_operations();
                 if (std::find(ops.begin(), ops.end(), job) == ops.end())
                     throw ToolFailure("Job " + job + " is not a running slice or export", {{"running", ops}});
             }
-            json out = ctx.run_ui([] {
-                Plater&    plater  = ui_plater();
-                const bool running = plater.is_slicing_any();
+            json out = ctx.run_ui([&ops] {
+                Plater& plater = ui_plater();
+                // A slice operation still waiting to request its slice counts: the cancel keeps it from starting.
+                const bool running = plater.is_slicing_any() || !ops.empty();
                 plater.cancel_slicing();
                 return json{{"was_running", running}};
             });

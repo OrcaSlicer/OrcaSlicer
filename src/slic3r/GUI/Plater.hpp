@@ -944,6 +944,9 @@ public:
     std::optional<SliceRun>  slice_run(uint64_t seq) const;
     uint64_t                 export_seq() const;
     std::optional<ExportRun> export_run(uint64_t seq) const;
+    // Counts cancel_slicing() calls, so a caller that has yet to request its slice can tell that a
+    // cancel came first.
+    uint64_t                 slice_cancel_seq() const;
     //BBS: update slicing context
     void update_slicing_context_to_current_partplate();
     //BBS: show object info

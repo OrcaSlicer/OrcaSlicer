@@ -179,11 +179,15 @@ inline call returns `{status: "pending"}`, so at most 32 request threads ever bl
 
 ### Operations
 
-Slicing and G-code export finish in the background process. Their handlers start the work in one
-short UI closure, which first calls `ToolContext::begin_operation()`; that fails if another
-operation runs. `poll_ui()` then checks on it through `observe_ui()` every 200 ms, so a dialog that
-opens meanwhile doesn't stop the watch, until the work ends or the deadline passes. The deadline is
-`slice.timeout_s` (default 30 minutes) for a slice and 10 minutes for an export.
+Slicing and G-code export finish in the background process. Their handlers call
+`ToolContext::begin_operation()` in a short UI closure before starting the work; that fails if
+another operation runs. An export starts in that same closure. A slice first waits for the
+background update that a change made just before has scheduled, which validates the new state, and
+then requests the slice. A `cancel` that comes while it waits moves on `Plater::slice_cancel_seq()`,
+so the slice never starts and reports its plates `cancelled`. `poll_ui()` then checks on the work
+through `observe_ui()` every 200 ms, so a dialog that opens meanwhile doesn't stop the watch, until
+the work ends or the deadline passes. The deadline is `slice.timeout_s` (default 30 minutes) for a
+slice and 10 minutes for an export.
 
 **Admission.** While an operation job runs, every other `Mutate` call is refused ("Busy: job j12 (a
 slice or export) is running"), whichever client or script sends it. So an agent can't change the
