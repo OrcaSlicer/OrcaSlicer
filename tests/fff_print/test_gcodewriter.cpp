@@ -2056,6 +2056,35 @@ static int count_descending_travels(const std::string &gcode)
     return descending_travels;
 }
 
+// Counts the travels made after the nozzle came straight down, before it printed or rose again:
+// the nozzle dropped from its lift short of the destination and crosses the print low. Moves before
+// the first extrusion come down from the start G-code and are not counted.
+static int count_travels_after_descent(const std::string &gcode)
+{
+    int         travels   = 0;
+    bool        printed   = false;
+    bool        descended = false;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&travels, &printed, &descended](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (!line.cmd_is("G0") && !line.cmd_is("G1") && !line.cmd_is("G2") && !line.cmd_is("G3"))
+            return;
+        const bool xy = line.dist_X(self) != 0.f || line.dist_Y(self) != 0.f;
+        if (line.has(E) || line.dist_Z(self) > EPSILON) {
+            printed |= xy && line.extruding(self);
+            descended = false;
+        } else if (xy) {
+            if (descended) {
+                UNSCOPED_INFO(line.raw());
+                ++travels;
+            }
+            descended = false;
+        } else if (line.dist_Z(self) < -EPSILON) {
+            descended = printed;
+        }
+    });
+    return travels;
+}
+
 TEST_CASE("A lifted nozzle reaches its target height only after the travel back to the print", "[GCodeWriter]") {
     // Two filaments on one nozzle with a prime tower: after each tool change the nozzle is
     // lifted at the tower and travels back to the object.
@@ -2083,6 +2112,33 @@ TEST_CASE("A lifted nozzle reaches its target height only after the travel back 
     Test::init_print({Test::cube(20), Test::cube(20)}, print, model, config, &overrides);
 
     CHECK(count_descending_travels(Test::gcode(print)) == 0);
+}
+
+TEST_CASE("A lifted nozzle keeps its height over a detour around a concave part", "[GCodeWriter]") {
+    // A Bambu Lab printer lifts at each layer change, and avoiding crossing walls detours the travel
+    // to the next layer's start around the notch of the L.
+    const int lift = GENERATE(int(zhtNormal), int(zhtSlope), int(zhtSpiral));
+    CAPTURE(lift);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"z_hop", "0.4"},
+        {"retract_lift_below", "0"},
+        {"retract_when_changing_layer", "1"},
+        {"reduce_crossing_wall", 1},
+        {"seam_position", "random"},
+        {"enable_arc_fitting", "disabled"},
+        {"skirt_loops", 0},
+        {"brim_type", "no_brim"},
+    });
+    config.option<ConfigOptionEnumsGeneric>("z_hop_types", true)->values = {lift};
+    Print print;
+    Model model;
+    print.is_BBL_printer() = true;
+    Test::init_print({TestMesh::L}, print, model, config);
+
+    const std::string gcode = Test::gcode(print);
+    CHECK(count_descending_travels(gcode) == 0);
+    CHECK(count_travels_after_descent(gcode) == 0);
 }
 
 TEST_CASE("A lifted travel that ends lower descends only at its destination", "[GCodeWriter]") {

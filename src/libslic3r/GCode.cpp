@@ -10494,22 +10494,11 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
                 gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), comment);
             }
         } else {
-            if (travel.size() == 2) {
-                // No extra movements emitted by avoid_crossing_perimeters, simply move to the end point with z change
-                const auto& dest2d = this->point_to_gcode(travel.points.back());
-                Vec3d dest3d(dest2d(0), dest2d(1), z == DBL_MAX ? m_nominal_z : z);
-                gcode += m_writer.travel_to_xyz(dest3d, comment, m_need_change_layer_lift_z);
-                m_need_change_layer_lift_z = false;
-            } else if (const double target_z = z == DBL_MAX ? m_nominal_z : z;
-                       m_writer.get_zhop() > EPSILON && m_writer.get_position().z() > target_z + EPSILON) {
-                // A lifted nozzle keeps its height over the whole detour and descends only at the
-                // last point, so it never sinks over the print.
-                for (size_t i = 1; i + 1 < travel.size(); ++i)
-                    gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), comment);
-                const Vec2d dest2d = this->point_to_gcode(travel.points.back());
-                gcode += m_writer.travel_to_xyz(Vec3d(dest2d.x(), dest2d.y(), target_z), comment, m_need_change_layer_lift_z);
-                m_need_change_layer_lift_z = false;
-            } else if (exclusion_volume_travel_rerouted && z != DBL_MAX) {
+            const double target_z = z == DBL_MAX ? m_nominal_z : z;
+            // A lifted nozzle keeps its height over the whole detour and descends only at the last
+            // point, so it never sinks over the print.
+            const bool stay_lifted = m_writer.get_zhop() > EPSILON && m_writer.get_position().z() > target_z + EPSILON;
+            if (exclusion_volume_travel_rerouted && z != DBL_MAX && !stay_lifted) {
                 // Preserve the original sloped-Z move over the longer detour.
                 // The router activates every volume touched by the complete Z
                 // range, so this interpolation remains conservative.
@@ -10528,23 +10517,19 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
                         m_need_change_layer_lift_z = false;
                 }
             } else {
-                // Extra movements emitted by avoid_crossing_perimeters, lift the z to normal height at the beginning, then apply the z
-                // ratio at the last point
+                // Extra movements emitted by avoid_crossing_perimeters move to the layer height at the first point,
+                // unless the nozzle stays lifted. The target Z is applied at the last point.
+                const bool layer_z_first = travel.size() > 2 && !stay_lifted;
                 for (size_t i = 1; i < travel.size(); ++i) {
-                    if (i == 1) {
-                        // Lift to normal z at beginning
-                        Vec2d dest2d = this->point_to_gcode(travel.points[i]);
-                        Vec3d dest3d(dest2d(0), dest2d(1), m_nominal_z);
-                        gcode += m_writer.travel_to_xyz(dest3d, comment, m_need_change_layer_lift_z);
+                    const Vec2d dest2d = this->point_to_gcode(travel.points[i]);
+                    if (i == 1 && layer_z_first) {
+                        gcode += m_writer.travel_to_xyz(Vec3d(dest2d.x(), dest2d.y(), m_nominal_z), comment, m_need_change_layer_lift_z);
                         m_need_change_layer_lift_z = false;
-                    } else if (z != DBL_MAX && i == travel.size() - 1) {
-                        // Apply z_ratio for the very last point
-                        Vec2d dest2d = this->point_to_gcode(travel.points[i]);
-                        Vec3d dest3d(dest2d(0), dest2d(1), z);
-                        gcode += m_writer.travel_to_xyz(dest3d, comment);
+                    } else if (i == travel.size() - 1 && (z != DBL_MAX || !layer_z_first)) {
+                        gcode += m_writer.travel_to_xyz(Vec3d(dest2d.x(), dest2d.y(), target_z), comment, m_need_change_layer_lift_z);
+                        m_need_change_layer_lift_z = false;
                     } else {
-                        // For all points in between, no z change
-                        gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), comment);
+                        gcode += m_writer.travel_to_xy(dest2d, comment);
                     }
                 }
             }

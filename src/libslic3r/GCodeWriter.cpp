@@ -1108,8 +1108,8 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     // target, so it never sinks while crossing the print.
     const bool descend_after_xy = m_lifted > EPSILON && point(2) < m_pos(2) - EPSILON && this->is_current_position_clear() &&
         (to_2d(point) - to_2d(m_pos)).norm() > EPSILON;
-    /*  In all the other cases, we perform an actual XYZ move and cancel
-        the lift. */
+    /*  In all the other cases, we move to the target Z and cancel the lift: in a single XYZ move,
+        or XY first and then Z after a filament change or when coming down from a lift. */
     m_lifted = 0;
 
     //BBS: take plate offset into consider
