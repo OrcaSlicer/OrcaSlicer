@@ -29,17 +29,8 @@
 	"overhang_fan_threshold": [
 		"25%"
 	],
-	"slow_down_layer_time": [
-		"8"
-	],
-	"slow_down_min_speed": [
-		"20"
-	],
 	"filament_start_gcode": [
 		""
-	],
-	"filament_end_gcode": [
-		"; filament end gcode \n\n"
 	],
 	"compatible_printers": [
 		"Bambu Lab A2L 0.4 nozzle",

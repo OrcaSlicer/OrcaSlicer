@@ -41,17 +41,6 @@
 		"Spiral Lift",
 		"Spiral Lift"
 	],
-	"slow_down_layer_time": [
-		"8"
-	],
-	"slow_down_min_speed": [
-		"20",
-		"20",
-		"20"
-	],
-	"filament_start_gcode": [
-		"; filament start gcode\n"
-	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"
 	],
