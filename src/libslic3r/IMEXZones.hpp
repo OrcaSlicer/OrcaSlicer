@@ -1,8 +1,10 @@
 #pragma once
 
+#include <cmath>
 #include <map>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include "libslic3r/BoundingBox.hpp"
@@ -90,5 +92,49 @@ ImexZoneLayout compute_imex_zone_layout(const DynamicPrintConfig& printer_cfg,
                                         const std::string&        plate_mode,
                                         const std::string&        process_mode,
                                         const BoundingBoxf&       bed_extents);
+
+// Everything compute_imex_zone_layout() reads from the printer preset, the plate's resolved
+// mode, and imex_firmware_managed_zones, which decides whether a plate draws ghosts. The bed is
+// not in it: the plate rebuilds its zones when its shape is set. A plate
+// keeps one to tell when its zones, its ghosts and its resolved mode are stale, so an option
+// that changes any of them must be added here, or they go stale silently when it changes.
+// The G-code preview keys its carriage markers on one too.
+struct ImexLayoutKey
+{
+    // Left at the defaults while IMEX is off, so nothing else counts then.
+    struct Scalars
+    {
+        bool   imex             = false;
+        int    gantry_count     = 0;
+        int    tools_per_gantry = 0;
+        int    tool_layout      = -1;
+        double clearance_x      = 0.0;
+        double clearance_y      = 0.0;
+        double carriage_margin  = 0.0;
+        bool   firmware_managed = false;
+
+        bool operator==(const Scalars& rhs) const
+        {
+            // A NaN, which a clearance field accepts typed as "nan", equals itself here, or the
+            // plate would rebuild its zones every frame.
+            auto same = [](double a, double b) { return a == b || (std::isnan(a) && std::isnan(b)); };
+            return std::tie(imex, gantry_count, tools_per_gantry, tool_layout, firmware_managed) ==
+                       std::tie(rhs.imex, rhs.gantry_count, rhs.tools_per_gantry, rhs.tool_layout, rhs.firmware_managed) &&
+                   same(clearance_x, rhs.clearance_x) && same(clearance_y, rhs.clearance_y) &&
+                   same(carriage_margin, rhs.carriage_margin);
+        }
+    };
+    Scalars s;
+    // The resolved mode and the printer's whole mode table. The name alone is not identity: two
+    // presets can give one name different rosters, and editing a roster leaves the name as is.
+    std::string              mode;
+    std::vector<std::string> mode_names;
+    std::vector<std::string> mode_active_tools;
+};
+
+// Brings `key` up to date with `printer_cfg` and the plate's resolved `mode`, and returns
+// whether it changed. A null `printer_cfg` reads as IMEX off. Plates call this every frame, so
+// it compares against the live config and copies only when something changed.
+bool update_imex_layout_key(std::optional<ImexLayoutKey>& key, const DynamicPrintConfig* printer_cfg, const std::string& mode);
 
 } // namespace Slic3r

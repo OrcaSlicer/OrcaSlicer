@@ -32,6 +32,7 @@
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/IMEXZones.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/GCode/WipeTowerEstimate.hpp"
 #include "libslic3r/Arrange.hpp"
@@ -181,10 +182,27 @@ private:
     std::vector<GLModel>       m_imex_margin_overlay;       // amber advisory bands just inside collision strips
     std::optional<BoundingBoxf> m_imex_primary_zone_box;   // primary zone extents in mm; empty when IDEX/IQEX is off/primary-only
     std::map<int, Vec2d> m_imex_head_zone_centers;         // physical-head → zone-center (mm); populated by calc_imex_zones
-    int m_imex_primary_head{ -1 };                         // physical-head index of the primary tool in the active mode; -1 when no mode
-    std::string m_imex_zones_mode_cache{ "\x01" }; // cached mode+topology key; sentinel = unbuilt
+    // What the zones, the ghosts and m_imex_active_mode were last built from; nullopt rebuilds all three.
+    std::optional<ImexLayoutKey> m_imex_layout_key;
+    unsigned m_imex_layout_key_version{ 0 };  // bumped whenever m_imex_layout_key changes
+    bool m_imex_zones_stale{ true };          // set when the key changes, cleared by the zone rebuild
+    // The currently-active IMEX mode's tool roster and its Primary physical head: plate override
+    // wins, else the process preset's `imex_parallel_mode`. Not resolved() if IMEX is off, the mode
+    // is empty/"primary", the mode isn't listed, or it has no Primary. Resolved when
+    // m_imex_layout_key changes rather than per frame: find_imex_mode() copies the whole mode,
+    // G-code included. render() checks the key once a frame, and ensure_imex_zones() for callers
+    // outside it.
+    struct ImexActiveMode
+    {
+        std::string tools;        // its imex_mode_active_tools entry; empty when IMEX is off or in Primary
+        int         primary = -1; // imex_primary_tool_for_mode(tools)
+        bool        resolved() const { return primary >= 0; }
+    };
+    ImexActiveMode m_imex_active_mode;
     std::vector<std::unique_ptr<GLVolume>> m_imex_ghost_volumes;
-    std::string m_imex_ghost_cache_key{ "\x01" };  // sentinel = unbuilt
+    // The layout key version and the objects the ghosts were built from; nullopt = unbuilt.
+    std::optional<unsigned> m_imex_ghost_layout_version;
+    std::set<std::pair<int, int>> m_imex_ghost_objects;
     GLModel m_height_limit_common;
     GLModel m_height_limit_bottom;
     GLModel m_height_limit_top;
@@ -233,16 +251,13 @@ private:
     void calc_gridlines(const ExPolygon& poly, const BoundingBox& pp_bbox);
     void calc_height_limit();
     void calc_imex_zones();
-    void ensure_imex_zones();
-    std::string build_imex_cache_key() const;
+    void ensure_imex_zones();           // checks the layout key, then rebuild_stale_imex_zones()
+    void rebuild_stale_imex_zones();    // rebuilds the zones if the key changed, without checking it
+    // Brings m_imex_layout_key up to date; when it changes, re-resolves m_imex_active_mode and
+    // marks the zones stale. Reads per-plate mode first, falling back to the process preset.
+    void refresh_imex_layout_key();
     void calc_imex_ghosts();            // full rebuild
-    void ensure_imex_ghosts();          // cached rebuild on key change
-    std::string build_imex_ghost_cache_key() const;
-    // Resolves the currently-active IMEX mode's tools string + primary physical head.
-    // Plate override wins; else falls back to process preset `imex_parallel_mode`.
-    // Returns false (and leaves outputs untouched) if IMEX is off, mode is empty/"primary",
-    // mode config is missing, the mode isn't listed, or no primary is found.
-    bool resolve_active_mode_tools(std::string& out_tools_str, int& out_primary_phys) const;
+    void ensure_imex_ghosts();          // cached rebuild on key change; render() checks the key
     void render_imex_zones(bool force_default_color);
     void refresh_imex_icon();
     float icon_scale_factor() const;
@@ -419,7 +434,7 @@ public:
     void update_imex_ghost_colors();
 
     // Invalidate the ghost cache so the next render_imex_zones() call rebuilds fully.
-    void invalidate_imex_ghosts() { m_imex_ghost_cache_key = "\x01"; }
+    void invalidate_imex_ghosts() { m_imex_ghost_layout_version.reset(); }
 
     std::vector<Vec2d> get_plate_wrapping_detection_area() const;
 
@@ -637,6 +652,7 @@ public:
     Polygon imex_wipe_tower_hull() const;
     // Returns true when IMEX parallel mode is active (non-primary) AND the plate
     // has objects assigned to more than one filament — a combination that warrants caution.
+    // Reads the active mode render() resolves, so it is only current inside render().
     bool has_imex_multimaterial_conflict() const;
     // Returns the primary-zone bounding box in mm when an IDEX/IQEX parallel mode is active.
     // Empty (nullopt) when IDEX/IQEX is off or the mode is "primary" (full-bed).
