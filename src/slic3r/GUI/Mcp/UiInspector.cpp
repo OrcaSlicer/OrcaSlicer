@@ -1036,6 +1036,12 @@ UiTarget UiInspector::resolve(const json& target)
     return t;
 }
 
+void UiInspector::reveal(const UiTarget& target)
+{
+    if (wxWindow* w = target.kind == UiTarget::Kind::Window ? target.window.get() : nullptr)
+        scroll_into_view(w);
+}
+
 GLCanvas3D* UiInspector::canvas_of(const UiTarget* target) const
 {
     if (target != nullptr && target->canvas != nullptr && is_live_canvas(target->canvas))

@@ -103,6 +103,12 @@ void register_view_tools(McpService& service)
             const int max_dim = std::clamp(arg_int(args, "max_dim", 1280), 256, 2000);
             json      info;
             wxImage   full;
+            if (target != "window" && target != "canvas" && target != "dialog")
+                // Scrolled into view first, and painted before the capture below runs.
+                ctx.run_ui([&] {
+                    service.inspector().reveal(service.inspector().resolve(target_arg));
+                    return json();
+                });
             ctx.run_ui([&] {
                 std::string             err;
                 std::optional<Capture>  cap;
@@ -130,6 +136,7 @@ void register_view_tools(McpService& service)
                         auto* tlw = dynamic_cast<wxTopLevelWindow*>(wxGetTopLevelParent(w));
                         if (tlw == nullptr)
                             throw ToolFailure("The widget has no window");
+                        tlw->Update();
                         cap = capture_window(*tlw, err);
                         if (cap && w != tlw) {
                             // The capture is in physical pixels, like client_offset_in().

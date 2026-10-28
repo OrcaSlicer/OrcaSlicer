@@ -81,6 +81,8 @@ public:
     wxWindow* key_target(const UiTarget* target) const;
     // Mouse gestures on a 3D canvas: move, down, up, click, drag, wheel.
     nlohmann::json mouse(GLCanvas3D& canvas, const nlohmann::json& gesture);
+    // Scrolls a widget into view, as clicks and typing do before they act.
+    void reveal(const UiTarget& target);
     // The 3D canvas a target is in (or the current one when `target` is null).
     GLCanvas3D* canvas_of(const UiTarget* target) const;
 
