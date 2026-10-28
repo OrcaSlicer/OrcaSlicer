@@ -31,6 +31,7 @@
 		"30",
 		"30"
 	],
+	"extruder_clearance_height_to_lid": "210",
 	"extruder_colour": [
 		"#FCE94F",
 		"#FCE94F",
