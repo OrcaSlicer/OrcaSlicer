@@ -22,6 +22,18 @@ static bool is_colorprint_option(const PathVertex& v)
     return v.type == EMoveType::PausePrint || v.type == EMoveType::CustomGCode;
 }
 
+static bool is_infill(const PathVertex& v)
+{
+    return v.type == EMoveType::Extrude &&
+           (v.role == EGCodeExtrusionRole::InternalInfill ||
+            v.role == EGCodeExtrusionRole::SolidInfill ||
+            v.role == EGCodeExtrusionRole::TopSolidInfill ||
+            v.role == EGCodeExtrusionRole::Ironing ||
+            v.role == EGCodeExtrusionRole::BridgeInfill ||
+            v.role == EGCodeExtrusionRole::BottomSurface ||
+            v.role == EGCodeExtrusionRole::InternalBridgeInfill);
+}
+
 void Layers::update(const PathVertex& vertex, uint32_t vertex_id)
 {
     if (m_items.empty() || vertex.layer_id == m_items.size()) {
@@ -33,6 +45,8 @@ void Layers::update(const PathVertex& vertex, uint32_t vertex_id)
         item.range.set(vertex_id, vertex_id);
         item.times = vertex.times;
         item.contains_colorprint_options |= is_colorprint_option(vertex);
+        item.has_infill = is_infill(vertex);
+        item.has_sparse_infill = vertex.type == EMoveType::Extrude && vertex.role == EGCodeExtrusionRole::InternalInfill;
     }
     else {
         Item& item = m_items.back();
@@ -43,7 +57,36 @@ void Layers::update(const PathVertex& vertex, uint32_t vertex_id)
             item.times[i] += vertex.times[i];
         }
         item.contains_colorprint_options |= is_colorprint_option(vertex);
+        item.has_infill |= is_infill(vertex);
+        item.has_sparse_infill |= vertex.type == EMoveType::Extrude && vertex.role == EGCodeExtrusionRole::InternalInfill;
     }
+}
+
+Interval Layers::get_whole_end_layers(std::size_t max_depth) const
+{
+    const Interval& range = m_view_range.get();
+    // the nearest layer that passes the test, from the end layer towards the other end, or the
+    // end layer itself when none is within reach
+    auto nearest = [&](Interval::value_type end, Interval::value_type limit, bool (Layers::*test)(std::size_t) const) {
+        const int step = (end <= limit) ? 1 : -1;
+        Interval::value_type layer = end;
+        for (std::size_t depth = 1; depth < max_depth && layer != limit; ++depth) {
+            if ((this->*test)(layer))
+                return layer;
+            layer = (step > 0) ? layer + 1 : layer - 1;
+        }
+        return (this->*test)(layer) ? layer : end;
+    };
+    auto band_edge = [&](Interval::value_type end, Interval::value_type limit) {
+        if (layer_has_sparse_infill(end))
+            return end;
+        const Interval::value_type sparse = nearest(end, limit, &Layers::layer_has_sparse_infill);
+        return (sparse != end) ? sparse : nearest(end, limit, &Layers::layer_has_infill);
+    };
+    Interval ret = range;
+    ret[1] = band_edge(range[1], range[0]);
+    ret[0] = band_edge(range[0], ret[1]);
+    return ret;
 }
 
 void Layers::reset()
