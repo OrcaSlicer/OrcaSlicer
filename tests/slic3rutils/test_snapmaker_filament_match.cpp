@@ -94,6 +94,28 @@ TEST_CASE("An unusable spool colour returns no match instead of throwing", "[Sna
     CHECK(match(pla_variants, "Snapmaker", "PLA", "Matte", "#").empty());
 }
 
+// Orca: a tag's vendor field and a profile's filament_vendor rarely agree exactly. The match is
+// case-insensitive and accepts a whole-word containment either way, so a tag that carries the
+// whole product name still reaches the vendor's presets.
+TEST_CASE("Vendor matching ignores case and accepts a product name in the vendor field", "[Snapmaker]")
+{
+    const std::vector<FilamentSpec> sunlu{
+        {"SUNLU PLA", "SUNLU-PLA", "PLA", "SUNLU", "#102030"},
+    };
+    CHECK(match(sunlu, "Sunlu", "PLA", "", "102030FF") == "SUNLU-PLA");
+
+    const std::vector<FilamentSpec> anycubic{
+        {"Anycubic PLA Basic", "ANY-BASIC", "PLA", "Anycubic", "#102030"},
+        {"Anycubic PLA Matte", "ANY-MATTE", "PLA", "Anycubic", "#F0A0B0"},
+    };
+    // A legacy tag names the whole product in the vendor field and leaves the sub type empty;
+    // "Anycubic PLA Basic" still matches the profiles whose vendor is just "Anycubic".
+    CHECK(match(anycubic, "Anycubic PLA Basic", "PLA", "", "102030FF") == "ANY-BASIC");
+    // With no sub type to go on, the variant named in the vendor field decides, so Basic wins
+    // even when Matte is the exact colour match.
+    CHECK(match(anycubic, "Anycubic PLA Basic", "PLA", "", "F0A0B0FF") == "ANY-BASIC");
+}
+
 // Orca: a finish lives in the preset name only and changes how the filament prints, so Silk PLA
 // is not plain PLA - a Silk spool must reach the Silk preset however far its colour is, and must
 // report no match rather than settle for a plain PLA preset when the vendor ships none.
@@ -168,6 +190,25 @@ TEST_CASE("A CF sub type stays a preference once the type carries the fibre", "[
         {"Snapmaker PA12 Structural", "PA12-STRUCT", "PA12-CF", "Snapmaker", "#102030"},
     };
     CHECK(match(unnamed_fibre, "Snapmaker", "PA12-CF", "CF", "102030FF") == "PA12-STRUCT");
+}
+
+// Orca: a profile with no declared colour used to score as black, which let it win every dark
+// spool and beat profiles that do declare a colour. It is now unranked - a last resort only.
+TEST_CASE("A preset with no colour is unranked, not black", "[Snapmaker]")
+{
+    const std::vector<FilamentSpec> mixed{
+        {"Snapmaker PETG Clear", "PETG-CLEAR", "PETG", "Snapmaker", "#FFFFFF"},
+        {"Snapmaker PETG",       "PETG-PLAIN", "PETG", "Snapmaker", ""},
+    };
+    // A dark spool: black would be the closer match, but the colourless preset cannot be ranked.
+    CHECK(match(mixed, "Snapmaker", "PETG", "", "292929FF") == "PETG-CLEAR");
+    CHECK(match(mixed, "Snapmaker", "PETG", "", "FEFEFEFF") == "PETG-CLEAR");
+
+    // With nothing else to go on it is still returned, rather than reporting no match at all.
+    const std::vector<FilamentSpec> colourless{
+        {"Snapmaker PETG", "PETG-PLAIN", "PETG", "Snapmaker", ""},
+    };
+    CHECK(match(colourless, "Snapmaker", "PETG", "", "292929FF") == "PETG-PLAIN");
 }
 
 // Orca: sync_ams_list() resolves a filament_id to the first base preset carrying it, so a derived

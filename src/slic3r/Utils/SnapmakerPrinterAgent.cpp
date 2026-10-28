@@ -21,6 +21,10 @@ namespace {
 
 constexpr const char* SNAPMAKER_AGENT_VERSION = "0.0.1";
 
+// Ranks a candidate that declares no usable colour behind every candidate that does, while
+// still leaving it ahead of no match at all. The largest real distance is 3 * 255^2 = 195075.
+constexpr unsigned int UNRANKED_COLOR_DISTANCE = 0xfffffffeu;
+
 // Safely access a parallel array by index, returning a fallback if out of bounds.
 template<typename T>
 T safe_at(const std::vector<T>& vec, int index, const T& fallback)
@@ -71,10 +75,6 @@ bool contains_word_ci(const std::string& haystack, const std::string& needle)
     return false;
 }
 
-// Tags written by older tools (or as a workaround) carry the full product name in the vendor
-// field, e.g. vendor "Anycubic PLA Basic" with an empty sub type, while profiles may use either
-// "Anycubic" or "Anycubic PLA Basic". Treat the vendors as matching when they are equal or when
-// either contains the other as whole words, ignoring case.
 // A tag reports the fibre loading in its sub type ("CF10", "GF30"), while the material types in
 // MaterialType::all() and the profile names only ever say CF or GF. Expects upper case input.
 std::string normalize_fibre_sub_type(const std::string& sub)
@@ -123,6 +123,10 @@ bool contains_sub_type_ci(const std::string& haystack, const std::string& needle
 // names the same material, so it stays a preference and may fall back to colour alone.
 bool is_type_defining_finish(const std::string& sub) { return contains_word_ci(sub, "SILK"); }
 
+// Tags written by older tools (or as a workaround) carry the full product name in the vendor
+// field, e.g. vendor "Anycubic PLA Basic" with an empty sub type, while profiles may use either
+// "Anycubic" or "Anycubic PLA Basic". Treat the vendors as matching when they are equal or when
+// either contains the other as whole words, ignoring case.
 bool vendor_matches(const std::string& tag_vendor, const std::string& profile_vendor)
 {
     if (tag_vendor.empty() || profile_vendor.empty())
@@ -161,20 +165,19 @@ std::string SnapmakerPrinterAgent::find_closest_color_preset_by_vendor_and_type(
         if (p.is_visible && p.is_compatible && filaments.get_preset_base(p) == &p && !p.filament_id.empty() &&
             vendor_matches(vendor_name, p.config.opt_string("filament_vendor", 0u)) &&
             p.config.opt_string("filament_type", 0u) == filament_type) {
-            // Default to black when the profile specifies no color, or one that cannot be
-            // parsed. Assume other profiles might be a closer color match. Could be a problem
-            // if the target color is also black and there exist a specific profile for that
-            // type, vendor and color combination.
+            // A profile that specifies no colour, or one that cannot be parsed, is unranked: it
+            // is kept as a last resort rather than scored as black, which would otherwise let a
+            // colourless profile win every dark spool and beat profiles that do declare a colour.
             std::string  p_color       = p.config.opt_string("default_filament_colour", 0u);
             unsigned int p_color_value = 0;
-            if (!parse_rgb(p_color, p_color_value))
-                p_color_value = 0;
-
-            // Calculate Euclidean color distance in RGB space
-            int dr = ((target_color_value & 0xff) - (p_color_value & 0xff));
-            int dg = (((target_color_value >> 8) & 0xff) - ((p_color_value >> 8) & 0xff));
-            int db = (((target_color_value >> 16) & 0xff) - ((p_color_value >> 16) & 0xff));
-            unsigned int distance = static_cast<unsigned int>(dr * dr + dg * dg + db * db);
+            unsigned int distance      = UNRANKED_COLOR_DISTANCE;
+            if (parse_rgb(p_color, p_color_value)) {
+                // Euclidean colour distance in RGB space
+                const int dr = ((target_color_value & 0xff) - (p_color_value & 0xff));
+                const int dg = (((target_color_value >> 8) & 0xff) - ((p_color_value >> 8) & 0xff));
+                const int db = (((target_color_value >> 16) & 0xff) - ((p_color_value >> 16) & 0xff));
+                distance      = static_cast<unsigned int>(dr * dr + dg * dg + db * db);
+            }
 
             // Variants (Matte, Silk, Basic, Eco, ...) are not filament_type values -- the
             // profiles carry them in the preset name, so "Snapmaker PLA Matte" and
@@ -327,7 +330,8 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
 
             auto* bundle = GUI::wxGetApp().preset_bundle;
             // Try to find a matching preset for this filament based on vendor, type and color.
-            // If not found, default to traditional search by type only or generic type mapping.
+            // If not found, default to traditional search by type only or generic type mapping,
+            // except for a sub type that has to be matched -- see below.
             if (bundle) {
                 std::string vendor   = safe_at(filament_vendor, i, empty_str);
                 std::string sub_type = raw_sub_type;
@@ -340,6 +344,12 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
                     tray.tray_info_idx = filament_id;
                     BOOST_LOG_TRIVIAL(warning) << "Filament sync: Found manufacturer-specific profile for slot " << i << ": "
                                                << filament_id;
+                } else if (is_type_defining_finish(sub_type)) {
+                    // filament_id_by_type() takes the first visible system preset of the type, whatever
+                    // its vendor and finish, so it cannot serve a sub type that must be matched: a silk
+                    // spool would be handed somebody's plain PLA. Leave the slot without a profile.
+                    BOOST_LOG_TRIVIAL(warning) << "Filament sync: no " << sub_type << " profile for slot " << i
+                                               << ", leaving it unmapped";
                 } else {
                     tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
                 }
