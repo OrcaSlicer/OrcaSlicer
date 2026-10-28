@@ -906,10 +906,10 @@ std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
     double target_lift = 0;
     {
         //BBS
-        int extruder_id = filament()->extruder_id();
+        // Per filament like z_hop: a filament can override the printer's lift height limits.
         int filament_id = filament()->id();
-        double above = this->config.retract_lift_above.get_at(extruder_id);
-        double below = this->config.retract_lift_below.get_at(extruder_id);
+        double above = this->config.retract_lift_above.get_at(filament_id);
+        double below = this->config.retract_lift_below.get_at(filament_id);
         if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
@@ -939,10 +939,10 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
     double target_lift = 0;
     {
         //BBS
-        int extruder_id = filament()->extruder_id();
+        // Per filament like z_hop: a filament can override the printer's lift height limits.
         int filament_id = filament()->id();
-        double above = this->config.retract_lift_above.get_at(extruder_id);
-        double below = this->config.retract_lift_below.get_at(extruder_id);
+        double above = this->config.retract_lift_above.get_at(filament_id);
+        double below = this->config.retract_lift_below.get_at(filament_id);
         if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
