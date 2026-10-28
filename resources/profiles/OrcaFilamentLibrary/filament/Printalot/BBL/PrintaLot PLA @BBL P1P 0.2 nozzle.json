@@ -12,6 +12,10 @@
 		"50",
 		"50"
 	],
+	"filament_cooling_before_tower": [
+		"0",
+		"0"
+	],
 	"filament_deretraction_speed": [
 		"nil",
 		"nil"

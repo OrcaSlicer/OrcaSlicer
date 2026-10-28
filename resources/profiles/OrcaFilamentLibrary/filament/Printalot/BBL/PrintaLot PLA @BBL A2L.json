@@ -20,6 +20,9 @@
 	"fan_min_speed": [
 		"60"
 	],
+	"filament_cooling_before_tower": [
+		"0"
+	],
 	"filament_extruder_variant": [
 		"Direct Drive Standard"
 	],

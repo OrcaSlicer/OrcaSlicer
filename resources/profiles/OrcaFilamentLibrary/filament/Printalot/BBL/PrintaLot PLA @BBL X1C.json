@@ -5,6 +5,9 @@
 	"from": "system",
 	"setting_id": "M8P7SjmgVSzXr3dt",
 	"instantiation": "true",
+	"filament_cooling_before_tower": [
+		"0"
+	],
 	"filament_extruder_variant": [
 		"Direct Drive Standard"
 	],

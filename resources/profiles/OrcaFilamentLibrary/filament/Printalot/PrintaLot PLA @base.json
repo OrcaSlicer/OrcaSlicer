@@ -25,5 +25,8 @@
 	],
 	"filament_notes": [
 		"PrintaLot PLA, 1.75 mm. Select the profile for your printer and nozzle diameter. Use the recommended temperature for the selected build plate. Keep the build plate clean and store filament protected from moisture."
+	],
+	"filament_adhesiveness_category": [
+		"100"
 	]
 }
