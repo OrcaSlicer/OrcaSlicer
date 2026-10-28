@@ -69,7 +69,9 @@ tools/mcp/orca_mcp.py stop
 ```
 
 Without the harness, `orca-slicer --datadir DIR --mcp-script tools/mcp/smoke_test.json
---mcp-script-out /tmp/orca-smoke` runs the script and exits. The exit code is 0 when it passes, 1
+--mcp-script-out /tmp/orca-smoke` runs the script and exits. On Linux, set `SSL_CERT_FILE` (for
+example to `/etc/ssl/certs/ca-certificates.crt`) as the harness does; otherwise a prompt for the CA
+bundle blocks startup before the script can run. The exit code is 0 when it passes, 1
 when a step fails and 2 when the script is invalid. The run leaves `result.json` and the
 screenshots in the output directory. `tests/script_basic.json` is the smallest such check: load,
 change a setting, slice and capture.
