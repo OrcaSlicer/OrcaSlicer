@@ -28,6 +28,7 @@
 #include <numeric>
 #include <string>
 #include <tuple>
+#include <utility>
 
 #include "FilamentBitmapUtils.hpp"
 #include "GUI_App.hpp"
@@ -573,11 +574,6 @@ wxRect mixed_gradient_plot_rect(const wxSize& sz)
     return wxRect(x, y, side, side);
 }
 
-int mixed_gradient_plot_height(int canvas_width)
-{
-    return static_cast<int>(std::lround(canvas_width * (kPlotRightRatio - kPlotLeftRatio) / (kPlotBottomRatio - kPlotTopRatio)));
-}
-
 void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
                               const std::vector<MixedGradientCurve>& curves,
                               const std::vector<wxPoint2DDouble>& anchors,
@@ -612,8 +608,6 @@ void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
     // Set the label font first so text width measurements drive arrow / label placement.
     wxFont label_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
     label_font.SetPointSize(std::max(7, label_font.GetPointSize() - 1));
-    // GDI+ on a window-less memory DC draws text at 96 DPI on MSW; scale the font like the dip_px geometry.
-    label_font = label_font.Scaled(dip_px(100) / 100.f);
     dc.SetFont(label_font);
 
     const wxString axis_y_title = _L("Material Ratio");
@@ -785,11 +779,10 @@ struct TriCacheKey
     int w, h;
     int c0r, c0g, c0b, c1r, c1g, c1b, c2r, c2g, c2b;
     int bg_r, bg_g, bg_b, ol_r, ol_g, ol_b;
-    double min_weight;
     bool operator<(const TriCacheKey& o) const
     {
-        return std::tie(w, h, c0r, c0g, c0b, c1r, c1g, c1b, c2r, c2g, c2b, bg_r, bg_g, bg_b, ol_r, ol_g, ol_b, min_weight) <
-               std::tie(o.w, o.h, o.c0r, o.c0g, o.c0b, o.c1r, o.c1g, o.c1b, o.c2r, o.c2g, o.c2b, o.bg_r, o.bg_g, o.bg_b, o.ol_r, o.ol_g, o.ol_b, o.min_weight);
+        return std::tie(w, h, c0r, c0g, c0b, c1r, c1g, c1b, c2r, c2g, c2b, bg_r, bg_g, bg_b, ol_r, ol_g, ol_b) <
+               std::tie(o.w, o.h, o.c0r, o.c0g, o.c0b, o.c1r, o.c1g, o.c1b, o.c2r, o.c2g, o.c2b, o.bg_r, o.bg_g, o.bg_b, o.ol_r, o.ol_g, o.ol_b);
     }
 };
 
@@ -797,6 +790,17 @@ std::map<TriCacheKey, wxBitmap>& tri_cache()
 {
     static std::map<TriCacheKey, wxBitmap> cache;
     return cache;
+}
+
+// The blended colour of the picker fill at barycentric weights (w0, w1, w2).
+wxColour tri_mix_colour(const wxColour& c0, const wxColour& c1, const wxColour& c2, double w0, double w1, double w2)
+{
+    unsigned char mr = c2.Red(), mg = c2.Green(), mb = c2.Blue();
+    if (w0 + w1 > 1e-6) {
+        Slic3r::filament_mixer_lerp(c0.Red(), c0.Green(), c0.Blue(), c1.Red(), c1.Green(), c1.Blue(), float(w1 / (w0 + w1)), &mr, &mg, &mb);
+        Slic3r::filament_mixer_lerp(mr, mg, mb, c2.Red(), c2.Green(), c2.Blue(), float(w2), &mr, &mg, &mb);
+    }
+    return wxColour(mr, mg, mb);
 }
 
 } // namespace
@@ -833,8 +837,7 @@ void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<w
                           c1.Red(), c1.Green(), c1.Blue(),
                           c2.Red(), c2.Green(), c2.Blue(),
                           theme.background.Red(), theme.background.Green(), theme.background.Blue(),
-                          theme.outline.Red(), theme.outline.Green(), theme.outline.Blue(),
-                          min_weight};
+                          theme.outline.Red(), theme.outline.Green(), theme.outline.Blue()};
 
     wxBitmap& bmp = tri_cache()[key];
     if (!bmp.IsOk()) {
@@ -855,20 +858,7 @@ void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<w
                     continue;
                 double w0, w1, w2;
                 tri_barycentric(p, v[0], v[1], v[2], w0, w1, w2);
-                unsigned char mr, mg, mb;
-                if (w0 + w1 > 1e-6) {
-                    float t01 = float(w1 / (w0 + w1));
-                    Slic3r::filament_mixer_lerp(c0.Red(), c0.Green(), c0.Blue(), c1.Red(), c1.Green(), c1.Blue(), t01, &mr, &mg, &mb);
-                    Slic3r::filament_mixer_lerp(mr, mg, mb, c2.Red(), c2.Green(), c2.Blue(), float(w2), &mr, &mg, &mb);
-                } else {
-                    mr = c2.Red(); mg = c2.Green(); mb = c2.Blue();
-                }
-                if (std::min({w0, w1, w2}) < min_weight) {
-                    mr = (mr + theme.background.Red()) / 2;
-                    mg = (mg + theme.background.Green()) / 2;
-                    mb = (mb + theme.background.Blue()) / 2;
-                }
-                mdc.SetPen(wxPen(wxColour(mr, mg, mb)));
+                mdc.SetPen(wxPen(tri_mix_colour(c0, c1, c2, w0, w1, w2)));
                 mdc.DrawPoint(px, py);
             }
         }
@@ -886,6 +876,41 @@ void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<w
         }
     }
     dc.DrawBitmap(bmp, 0, 0);
+
+    // Dashed outline of the area where every weight is at least `min_weight`. It is dark or light
+    // depending on how light the fill under the line is on average, so it stays visible over most blends.
+    if (min_weight > 0.0) {
+        const double            k = 1.0 - 2.0 * min_weight;
+        std::array<TriPoint, 3> inner;
+        for (size_t i = 0; i < 3; ++i) {
+            const TriPoint& a = v[i];
+            const TriPoint& b = v[(i + 1) % 3];
+            const TriPoint& c = v[(i + 2) % 3];
+            inner[i] = {k * a.x + min_weight * (b.x + c.x), k * a.y + min_weight * (b.y + c.y)};
+        }
+        // Each edge gets a whole number of dash + gap periods, so the dashes meet the corners evenly.
+        const double                               period = dip_px(10);
+        std::vector<std::pair<TriPoint, TriPoint>> dashes;
+        double                                     luminance = 0.0;
+        for (size_t i = 0; i < 3; ++i) {
+            const TriPoint& a     = inner[i];
+            const TriPoint& b     = inner[(i + 1) % 3];
+            const int       count = std::max(1, int(std::lround(std::hypot(b.x - a.x, b.y - a.y) / period)));
+            auto            at    = [&a, &b](double t) { return TriPoint{a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)}; };
+            for (int j = 0; j < count; ++j) {
+                const double t0 = double(j) / count, t1 = (j + 0.7) / count;
+                double       w0, w1, w2;
+                tri_barycentric(at((t0 + t1) / 2), v[0], v[1], v[2], w0, w1, w2);
+                luminance += tri_mix_colour(c0, c1, c2, w0, w1, w2).GetLuminance();
+                dashes.emplace_back(at(t0), at(t1));
+            }
+        }
+        wxPen pen(luminance / dashes.size() > 0.5 ? wxColour(38, 46, 48) : *wxWHITE, dip_px(2));
+        pen.SetCap(wxCAP_BUTT);
+        dc.SetPen(pen);
+        for (const auto& [p0, p1] : dashes)
+            dc.DrawLine(int(std::lround(p0.x)), int(std::lround(p0.y)), int(std::lround(p1.x)), int(std::lround(p1.y)));
+    }
 
     // Published-ratio marker (read-only twin of the editor's drag handle).
     const double w0 = weights[0], w1 = weights[1], w2 = weights[2];

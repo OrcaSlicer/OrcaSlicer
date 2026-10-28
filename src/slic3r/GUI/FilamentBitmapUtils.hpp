@@ -119,8 +119,6 @@ struct MixedGradientTheme
 
 // Square 1:1 plot rect inside `canvas`, using the editor's plot ratios.
 wxRect mixed_gradient_plot_rect(const wxSize& canvas);
-// Canvas height at which that plot rect fills a canvas of the given width.
-int mixed_gradient_plot_height(int canvas_width);
 
 // Draw the whole plot (grid, axes + arrowheads, axis labels, each curve with an optional
 // near-background outline, and anchor circles). `anchors` are empty when the caller has
@@ -159,8 +157,8 @@ std::array<TriPoint, 3> mixed_triangle_vertices(const wxSize& size, double margi
 // Draw background, the cached barycentric fill, the outline and the drag-handle marker.
 // `weights` are the three barycentric shares (sum 1). The "Ratio" title and per-vertex
 // percentage labels are drawn by the caller so the interactive editor can keep its own
-// live child labels while the read-only preview draws them as text. The band where any weight
-// is below `min_weight` is dimmed, to show the editor's handle cannot go there.
+// live child labels while the read-only preview draws them as text. A positive `min_weight`
+// draws a dashed outline around the area where every weight is at least `min_weight`.
 void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<wxColour, 3>& colours,
                                 const std::array<double, 3>& weights, const MixedTriangleTheme& theme,
                                 double min_weight = 0.0);

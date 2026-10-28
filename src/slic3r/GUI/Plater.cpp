@@ -3441,7 +3441,6 @@ Sidebar::Sidebar(Plater *parent)
         auto* add_label = new wxStaticText(p->m_btn_add_mixed_filament, wxID_ANY, _L("Add Mixed Filament"),
                                            wxDefaultPosition, wxDefaultSize, 0);
         add_label->SetFont(::Label::Body_13);
-        add_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
         btn_sizer->AddStretchSpacer();
         btn_sizer->Add(icon_add, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
         btn_sizer->Add(add_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -5178,7 +5177,7 @@ void Sidebar::add_mixed_filament()
     std::vector<std::string> color_strs, names, types;
     collect_physical_filament_info(color_strs, names, types);
 
-    MixedFilamentDialog dlg(wxGetApp().mainframe, color_strs, names, types);
+    MixedFilamentDialog dlg(this, color_strs, names, types);
     if (dlg.ShowModal() == wxID_OK) {
         auto result = dlg.get_result();
         create_mixed_filament_from_result(this, result, color_strs);
@@ -5258,7 +5257,7 @@ void Sidebar::edit_mixed_filament(size_t panel_idx)
     if (existing.gradient_enabled && per_part_opt && cfg_idx < per_part_opt->values.size())
         existing.per_part_gradient = per_part_opt->values[cfg_idx];
 
-    MixedFilamentDialog dlg(wxGetApp().mainframe, existing, color_strs, names, types);
+    MixedFilamentDialog dlg(this, existing, color_strs, names, types);
     if (dlg.ShowModal() == wxID_OK) {
         auto result = dlg.get_result();
         if (result.components.size() < 2 || result.ratios.size() < 2) return;

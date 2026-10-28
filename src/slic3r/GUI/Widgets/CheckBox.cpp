@@ -9,9 +9,6 @@
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"
 #endif
-#ifdef __WXMSW__
-#include <wx/msw/wrapwin.h>
-#endif
 
 CheckBox::CheckBox(wxWindow *parent, int id)
     : wxBitmapToggleButton(parent, id, wxNullBitmap, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
@@ -90,15 +87,6 @@ void CheckBox::update()
 #ifdef __WXMSW__
 
 CheckBox::State CheckBox::GetNormalState() const { return State_Normal; }
-
-bool CheckBox::MSWCommand(WXUINT param, WXWORD id)
-{
-    // The background colour makes the button owner-drawn, so a double click sends BN_DBLCLK on
-    // top of a BN_CLICKED per click. wxToggleButton toggles on both, undoing the second click.
-    if (param == BN_DBLCLK)
-        return true;
-    return wxBitmapToggleButton::MSWCommand(param, id);
-}
 
 #endif
 
