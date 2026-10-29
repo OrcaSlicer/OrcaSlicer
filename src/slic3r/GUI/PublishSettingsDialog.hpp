@@ -42,9 +42,7 @@ class CheckBox;
 
 namespace Slic3r { namespace GUI {
 
-class ConfigOptionsGroup;
 class Line;
-class Page;
 class PublishParamsPanel;
 class Tab;
 
@@ -99,9 +97,8 @@ private:
     // Recommended nozzle temperature) stays one publish unit with one toggle.
     struct RowOption
     {
-        std::string     key;        // base config key
-        int             index{-1};  // vector index the value field loads: slot, file column, or -1
-        ConfigOptionDef def;        // the source line's definition, including its per-line label
+        std::string key;       // base config key
+        int         index{-1}; // vector index the row's value addresses: slot, file column, or -1
     };
 
     // One selectable setting. This list is the dialog's durable state: it drives the filter, All
@@ -109,42 +106,20 @@ private:
     struct Row
     {
         Slic3r::PublishRowId  id;                  // publish-ready keys, owner, column, section, kind
-        std::vector<RowOption> options;            // widget mapping, one per published key
-        // A hosted-tab row is drawn by the tab's own Line instead of a cloned one; the checkbox is
-        // attached to that line. Null on a cloned (requirement) row.
+        std::vector<RowOption> options;            // one per published key: base key and its index
+        // The hosted tab's own Line this row is drawn by; the publish checkbox is attached to it.
         Line*                 tab_line{nullptr};
         wxString              label;               // the label text the filter matches
-        wxString              label_en;            // label copied into a cloned requirement Line's label_en
         wxString              category;
-        wxString              subcategory;
+        wxString              subcategory;         // optgroup heading, filter text only
         wxString              value;               // first option's value as shown, for the filter
         wxString              unit;
         wxString              section_title;       // outer tab title, for filter matching
         size_t                outer_index{0};
         size_t                inner_index{0};
-        size_t                sub_index{0}; // the Subcategory that draws this row; unused on a tab row
         bool                  publishable{true};      // false for a row whose control is an action
         bool                  dirty{false};          // matches a dirty base key: pre-checked
         bool                  matches_filter{false}; // survives the active filter
-    };
-
-    // An optgroup heading and the group that draws its rows. Rows store indices into m_rows. Only
-    // the Color/Type requirement rows are still cloned; every other row is drawn by its hosted
-    // tab's own Line.
-    struct Subcategory
-    {
-        wxString            title;
-        wxString            icon;           // the source optgroup's icon id
-        ConfigOptionsGroup* group{nullptr}; // built when the page's rows are created
-        wxSizerItem*        item{nullptr};
-        std::vector<size_t> rows;
-        bool                built{false}; // its group exists
-        // The source optgroup's / page's layout inputs, copied so the group renders like the Tab.
-        int      label_width{20};
-        bool     split_multi_line{false};
-        bool     option_label_at_right{false};
-        wxString page_title;
-        int      preset_type{-1};
     };
 
     // An inner TabCtrl page with its material controls and content.
@@ -157,11 +132,14 @@ private:
         wxPanel* page{nullptr};
         wxScrolledWindow* scroll{nullptr};
         wxBoxSizer* list_sizer{nullptr};
-        // A physical material slot's settings are the sidebar's own Filament tab, hosted above the
-        // requirement rows; the Printer and Process sections' are the sidebar's own tabs. Null on a
-        // mixed slot.
+        // A physical material slot's settings are the sidebar's own Filament tab; the Printer and
+        // Process sections' are the sidebar's own tabs. Null on a mixed slot.
         PublishParamsPanel* publish_host{nullptr};
         Tab*                publish_tab{nullptr};
+        // The lines of the hosted tab's Material page (Color and Type), which the dialog's two
+        // requirement rows are drawn by. Null when the slot has no hosted tab.
+        Line* requirement_colour_line{nullptr};
+        Line* requirement_type_line{nullptr};
         wxStaticText* info{nullptr};
         wxPoint scroll_pos{0, 0};
         wxStaticBitmap* filament_color_chip{nullptr};
@@ -195,7 +173,6 @@ private:
         std::string filament_id;
         // The author's 0-based filament slot this material section represents.
         size_t filament_slot{0};
-        std::vector<Subcategory> subs;
         std::vector<size_t> rows; // flattened rows of this category
     };
 
@@ -287,15 +264,11 @@ private:
                               size_t source_index,
                               const PublishMaterialIdentity& identity = PublishMaterialIdentity(),
                               bool is_mixed                          = false);
-    size_t subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon,
-                                 const ConfigOptionsGroup* source, const Page* page, int preset_type);
-    // Appends one row to the model. Returns the row index. `id.keys` must already be
-    // publish-ready and `options` must line up with it.
-    size_t add_row(Row row, size_t category_index, size_t subcategory_index);
-    // Appends one row drawn by the hosted tab's own Line. Such a row belongs to no Subcategory.
+    // Builds the hosted Filament tab's first page, which carries the slot's Color and Type lines;
+    // the dialog's two requirement rows point at them. Call before the host activates the tab.
+    void add_material_requirement_page(Category& category);
+    // Appends one row drawn by the hosted tab's own Line.
     size_t add_tab_row(Row row, size_t category_index);
-    // Creates the ConfigOptionsGroup rows of one category, once. Safe to call repeatedly.
-    void build_row_groups(size_t category_index);
     // Builds a physical slot's rows from its hosted Filament tab's lines, and attaches the publish
     // checkbox to each line they came from.
     void add_material_tab_rows(size_t category_index);
@@ -321,7 +294,7 @@ private:
     // Colours the row's label the way the Tab marks a modified setting.
     void apply_row_label_colour(size_t row_index);
     void apply_row_label_colours();
-    // The line a row is drawn by, or null before its group exists.
+    // The line a row is drawn by.
     Line* row_line(size_t row_index) const;
     // Model-backed row state: the payload and the widgets both read this, never each other.
     void set_row_checked(size_t row_index, bool checked);

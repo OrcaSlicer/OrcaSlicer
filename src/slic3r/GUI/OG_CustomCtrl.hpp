@@ -67,6 +67,13 @@ class OG_CustomCtrl :public wxPanel
     ScalableBitmap m_bmp_check_on_disabled;
     ScalableBitmap m_bmp_check_off_disabled;
 
+    // Whether the row draws the per-extruder icon: it is keyed by a variant column and the group
+    // shows more than one. Same rule render() and get_pos() must agree on.
+    bool line_has_multi_extruder_icon(const Line& line) const;
+    // The icon's logical width, resolved on first use (0 when the asset is missing).
+    wxCoord multi_extruder_width();
+    void    init_multi_extruder_bitmap();
+
     int     m_max_win_width{0};
 
     struct CtrlLine {

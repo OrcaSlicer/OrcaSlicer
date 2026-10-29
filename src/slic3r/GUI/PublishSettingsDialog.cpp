@@ -940,8 +940,10 @@ void PublishSettingsDialog::build_option_model()
     m_snapshot = uncompacted;
 
     // The dialog's own requirement rows: Color and Type on a material slot. They publish
-    // publish_color / publish_type, not a key.
-    auto make_requirement_row = [](std::string key, int slot, Slic3r::PublishRowKind kind, const wxString& label, const wxString& value) {
+    // publish_color / publish_type, not a key, and are drawn by the Material page that tops the
+    // slot's hosted Filament tab.
+    auto make_requirement_row = [](std::string key, int slot, Slic3r::PublishRowKind kind, const wxString& label,
+                                   const wxString& value, Line* line) {
         Row row;
         row.id.keys.emplace_back(key);
         row.id.owner   = slot;
@@ -951,13 +953,25 @@ void PublishSettingsDialog::build_option_model()
         RowOption option;
         option.key   = std::move(key);
         option.index = slot;
-        if (const ConfigOptionDef* def = print_config_def.get(option.key))
-            option.def = *def;
         row.options.push_back(std::move(option));
-        row.label    = label;
-        row.label_en = label;
-        row.value    = value;
+        row.tab_line    = line;
+        row.label       = label;
+        row.subcategory = _L("Material"); // filter text only: the Material page's heading
+        row.value       = value;
         return row;
+    };
+
+    // A requirement row's checkbox is its line's row toggle on the hosted tab, bound the way
+    // add_material_tab_rows binds a setting row's.
+    auto bind_requirement_row = [this](size_t r) {
+        Line* line = row_line(r);
+        if (line == nullptr)
+            return;
+        if (!line->row_toggle)
+            line->row_toggle = RowToggle();
+        line->row_toggle->on_change = [this, r](bool checked) { set_row_checked(r, checked); };
+        sync_row_widgets(r);
+        apply_row_label_colour(r);
     };
 
     // --- Phase 1: the printer settings, drawn by one dialog-hosted Printer tab over a preset
@@ -1052,22 +1066,22 @@ void PublishSettingsDialog::build_option_model()
                 }
             }
 
-            // Material requirement rows: an optional filament colour and/or a
-            // vendor-agnostic material type for this slot, in their own optgroup so they
-            // stay visually separated from the setting rows.
+            // Material requirement rows: the slot's optional colour and vendor-agnostic material
+            // type, drawn by the Material page that tops the slot's hosted tab.
             {
-                const size_t req_sub = subcategory_index_for(category_index, _L("Material"), "custom-gcode_filament",
-                                                             nullptr, nullptr, Preset::TYPE_FILAMENT);
-                add_row(make_requirement_row("filament_colour", int(slot), Slic3r::PublishRowKind::Color, _L("Color"),
-                                             from_u8(filament_color_hex(full, slot))),
-                        category_index, req_sub);
+                Category& category = m_categories[category_index];
                 std::string type;
                 if (const auto* types = full.opt<ConfigOptionStrings>("filament_type"))
                     if (slot < types->size())
                         type = types->get_at(slot);
-                add_row(make_requirement_row("filament_type", int(slot), Slic3r::PublishRowKind::Type, _L("Type"),
-                                             from_u8(normalize_filament_type(type))),
-                        category_index, req_sub);
+                bind_requirement_row(add_tab_row(
+                    make_requirement_row("filament_colour", int(slot), Slic3r::PublishRowKind::Color, _L("Color"),
+                                         from_u8(filament_color_hex(full, slot)), category.requirement_colour_line),
+                    category_index));
+                bind_requirement_row(add_tab_row(
+                    make_requirement_row("filament_type", int(slot), Slic3r::PublishRowKind::Type, _L("Type"),
+                                         from_u8(normalize_filament_type(type)), category.requirement_type_line),
+                    category_index));
             }
 
             // The slot's settings, straight off its hosted tab's lines.
@@ -1360,8 +1374,6 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         }
     }
 
-    // The rows are painted at their own em-derived width (a 32 em floor), so the page scrolls
-    // sideways rather than clipping a value column at a large DPI.
     if (section == Section::Material && !is_mixed) {
         // The Q1 notice, filled once the slot's resolved column is known.
         category.variant_notice = new wxStaticText(category.page, wxID_ANY, wxEmptyString);
@@ -1381,10 +1393,25 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
                 seed = slot_preset->config;
         if (seed.empty())
             seed = bundle->filaments.get_edited_preset().config;
+        // A filament preset carries no filament_colour (it is not in Preset::filament_options), and
+        // a slot's colour and type live in the project config. Seed them, so the Material page's
+        // Color and Type rows show the values the payload will carry.
+        const DynamicPrintConfig full = bundle->full_config();
+        auto slot_value = [&full, source_index](const char* key) {
+            if (const auto* values = full.opt<ConfigOptionStrings>(key))
+                if (source_index < values->size())
+                    return values->get_at(source_index);
+            return std::string();
+        };
+        seed.set_key_value("filament_colour", new ConfigOptionStrings{slot_value("filament_colour")});
+        seed.set_key_value("filament_type", new ConfigOptionStrings{slot_value("filament_type")});
         tab->create_publish_tab(seed);
+        // The Material page is the tab's own first page; it is built here, before the host
+        // activates the tab, so an opened slot shows the requirement rows first.
+        category.publish_tab = tab;
+        add_material_requirement_page(category);
         host->set_publish_tab(tab);
         category.publish_host = host;
-        category.publish_tab  = tab;
         // The private preset as the tab first shows it (the seed plus the Tab's own initial
         // normalization). commit_publish_edits() diffs the author's edits against this.
         if (tab->m_config != nullptr)
@@ -1431,15 +1458,11 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     category.list_sizer->Add(category.info, 1, wxALIGN_CENTER_HORIZONTAL | wxALL, FromDIP(10));
     category.info->Hide();
     // A hosted page's scroll holds no setting rows: it only reports an empty filter, so it takes
-    // no height; a hosted material slot's scroll keeps room for its Color/Type rows.
-    const bool hosted = category.publish_host != nullptr;
-    if (hosted) {
-        if (section == Section::Material)
-            category.scroll->SetMinSize(wxSize(-1, FromDIP(96)));
+    // no height. A mixed slot's scroll keeps the room for its hint.
+    if (category.publish_host != nullptr)
         page_sizer->Add(category.scroll, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(4));
-    } else {
+    else
         page_sizer->Add(category.scroll, 1, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(4));
-    }
     // A material slot starts disabled: its rows (and its Full Publish line) stay hidden until
     // "Enable" is checked.
     if (section == Section::Material)
@@ -1485,49 +1508,37 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     return category_index;
 }
 
-size_t PublishSettingsDialog::subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon,
-                                                    const ConfigOptionsGroup* source, const Page* page, int preset_type)
+void PublishSettingsDialog::add_material_requirement_page(Category& category)
 {
-    Category& category = m_categories[category_index];
-    for (size_t i = 0; i < category.subs.size(); ++i)
-        if (category.subs[i].title == title)
-            return i;
+    Tab* tab = category.publish_tab;
+    if (tab == nullptr)
+        return;
 
-    Subcategory sub;
-    sub.title       = title;
-    sub.icon        = icon;
-    sub.preset_type = preset_type;
-    // The same layout inputs the sidebar's group is built with; nothing here is a choice of the
-    // dialog's (spec 7.4.0). label_width already carries new_optgroup's override when the Tab set
-    // one.
-    if (source != nullptr)
-        sub.label_width = source->label_width;
-    if (page != nullptr) {
-        sub.split_multi_line      = page->m_split_multi_line;
-        sub.option_label_at_right = page->m_option_label_at_right;
-        sub.page_title            = page->title();
-    }
-    category.subs.push_back(std::move(sub));
-    return category.subs.size() - 1;
-}
+    // The slot's Color and Type, the two values the dialog publishes as its own requirement rows
+    // (publish_color / publish_type). They sit on a page of their own, ahead of the tab's "Filament"
+    // page, because they are requirements of the published material rather than one of its
+    // settings.
+    const int             slot  = int(category.filament_slot);
+    PageShp               page  = tab->add_options_page(_L("Material"), "custom-gcode_filament");
+    ConfigOptionsGroupShp group = page->new_optgroup(_L("Material"), "custom-gcode_filament");
 
-size_t PublishSettingsDialog::add_row(Row row, size_t category_index, size_t subcategory_index)
-{
-    Category& category = m_categories[category_index];
-    row.category        = category.title;
-    row.subcategory     = category.subs[subcategory_index].title;
-    row.section_title   = m_sections[category.group].title;
-    row.outer_index     = category.group;
-    row.inner_index     = category_index;
-    row.sub_index       = subcategory_index;
-    const size_t row_index = m_rows.size();
-    m_rows.push_back(std::move(row));
-    m_row_ids.push_back(m_rows.back().id);
-    if (!m_rows.back().publishable)
-        m_selection.set_enabled(m_rows.back().id, false);
-    category.rows.push_back(row_index);
-    category.subs[subcategory_index].rows.push_back(row_index);
-    return row_index;
+    Option colour_option = group->get_option("filament_colour", slot);
+    Option type_option   = group->get_option("filament_type", slot);
+    Line   colour        = group->create_single_option_line(colour_option);
+    Line   type          = group->create_single_option_line(type_option);
+    // One checkbox per line, drawn by the tab the way every other publish row's is.
+    colour.row_toggle = RowToggle();
+    type.row_toggle   = RowToggle();
+    group->append_line(colour);
+    group->append_line(type);
+    category.requirement_colour_line = group->get_line(colour_option.opt_id);
+    category.requirement_type_line   = group->get_line(type_option.opt_id);
+
+    // First page: the page strip follows m_pages.
+    const auto position = std::find(tab->m_pages.begin(), tab->m_pages.end(), page);
+    if (position != tab->m_pages.end() && position != tab->m_pages.begin())
+        std::rotate(tab->m_pages.begin(), position, position + 1);
+    tab->rebuild_page_tree();
 }
 
 size_t PublishSettingsDialog::add_tab_row(Row row, size_t category_index)
@@ -1537,7 +1548,6 @@ size_t PublishSettingsDialog::add_tab_row(Row row, size_t category_index)
     row.section_title   = m_sections[category.group].title;
     row.outer_index     = category.group;
     row.inner_index     = category_index;
-    row.sub_index       = size_t(-1); // tab rows belong to no Subcategory
     const size_t row_index = m_rows.size();
     m_rows.push_back(std::move(row));
     m_row_ids.push_back(m_rows.back().id);
@@ -1582,13 +1592,8 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
 
                 // Every option of one Line is one selection unit, drawn by the Line itself. A
                 // variant-bearing option exists once per file column; the others once per slot.
-                struct VariantOption
-                {
-                    std::string     base;
-                    ConfigOptionDef def;
-                };
-                std::vector<VariantOption> variant_options;
-                std::vector<RowOption>     slot_options;
+                std::vector<std::string> variant_options;
+                std::vector<RowOption>   slot_options;
                 for (const Option& option : src.get_options()) {
                     const std::string base = publish_base_key(option.opt_id);
                     if (denylist.count(base) != 0 || identity.count(base) != 0 || is_publish_action(option.opt))
@@ -1596,23 +1601,22 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
                     // Without a variant layout the key stays slot-indexed, as the legacy export
                     // path masks it.
                     if (publish_is_variant_bearing(base) && !category.columns.empty()) {
-                        if (std::none_of(variant_options.begin(), variant_options.end(),
-                                         [&base](const VariantOption& v) { return v.base == base; }))
-                            variant_options.push_back({base, option.opt});
+                        if (std::find(variant_options.begin(), variant_options.end(), base) == variant_options.end())
+                            variant_options.push_back(base);
                         continue;
                     }
                     if (!index_in_range(base, slot))
                         continue;
                     if (std::none_of(slot_options.begin(), slot_options.end(),
                                      [&base](const RowOption& o) { return o.key == base; }))
-                        slot_options.push_back({base, slot, option.opt});
+                        slot_options.push_back({base, slot});
                 }
                 if (variant_options.empty() && slot_options.empty())
                     continue;
 
                 auto fill_row = [&src, &group, slot](Row& row) {
                     row.label       = src.label;
-                    row.subcategory = _(group->title); // filter text only; tab rows have no Subcategory
+                    row.subcategory = _(group->title); // filter text only
                     row.id.owner    = slot;
                     row.id.section  = Slic3r::PublishSection::Material;
                     row.id.kind     = Slic3r::PublishRowKind::Key;
@@ -1643,16 +1647,16 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
                         fill_row(row);
                         row.id.column = int(column);
                         bool ok = true;
-                        for (const VariantOption& source : variant_options) {
-                            const std::string key = source.base + "#" + std::to_string(column);
+                        for (const std::string& base : variant_options) {
+                            const std::string key = base + "#" + std::to_string(column);
                             if (variant_added.count(key) != 0)
                                 continue;
-                            if (!index_in_range(source.base, int(column))) {
+                            if (!index_in_range(base, int(column))) {
                                 ok = false;
                                 break;
                             }
                             keys.push_back(key);
-                            row.options.push_back({source.base, int(column), source.def});
+                            row.options.push_back({base, int(column)});
                         }
                         if (!ok || row.options.empty())
                             continue;
@@ -1778,7 +1782,7 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
                     if (allow.count(base) == 0 || denylist.count(base) != 0 || is_publish_action(option.opt))
                         continue;
                     if (std::none_of(options.begin(), options.end(), [&base](const RowOption& o) { return o.key == base; }))
-                        options.push_back({base, -1, option.opt});
+                        options.push_back({base, -1});
                 }
                 if (options.empty())
                     continue;
@@ -1788,7 +1792,7 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
                 for (const size_t column : columns) {
                     Row row;
                     row.label       = src.label;
-                    row.subcategory = _(group->title); // filter text only; tab rows have no Subcategory
+                    row.subcategory = _(group->title); // filter text only
                     row.id.owner    = -1;
                     row.id.column   = int(column);
                     row.id.section  = Slic3r::PublishSection::Printer;
@@ -1803,7 +1807,7 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
                             break;
                         }
                         keys.push_back(key);
-                        row.options.push_back({option.key, int(column), option.def});
+                        row.options.push_back({option.key, int(column)});
                     }
                     if (!row_ok || row.options.empty())
                         continue;
@@ -1890,7 +1894,7 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
 
                 // A line made only of per-variant settings is shown once per extruder column, as
                 // the sidebar's extruder switch shows it; every other line publishes its keys whole.
-                std::vector<RowOption> options; // key, its own line index (-1 without a '#N'), definition
+                std::vector<RowOption> options; // key, its own line index (-1 without a '#N')
                 bool                   per_variant = !columns.empty();
                 for (const Option& option : src.get_options()) {
                     const std::string     base = publish_base_key(option.opt_id);
@@ -1902,7 +1906,7 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
                     if (_(def->full_label.empty() ? def->label : def->full_label).IsEmpty())
                         continue;
                     if (std::none_of(options.begin(), options.end(), [&base](const RowOption& o) { return o.key == base; }))
-                        options.push_back({base, publish_key_index(option.opt_id), option.opt});
+                        options.push_back({base, publish_key_index(option.opt_id)});
                     per_variant = per_variant && print_options_with_variant.count(base) != 0;
                 }
                 if (options.empty())
@@ -1923,7 +1927,7 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
                                 break;
                             }
                             keys.push_back(key);
-                            row.options.push_back({option.key, int(column), option.def});
+                            row.options.push_back({option.key, int(column)});
                         }
                         if (!row_ok || row.options.empty())
                             continue;
@@ -1968,7 +1972,7 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
 
                 for (Row& row : rows) {
                     row.label       = src.label;
-                    row.subcategory = _(group->title); // filter text only; tab rows have no Subcategory
+                    row.subcategory = _(group->title); // filter text only
                     row.id.owner    = -1;
                     row.id.section  = Slic3r::PublishSection::Process;
                     row.id.kind     = Slic3r::PublishRowKind::Key;
@@ -2012,93 +2016,7 @@ size_t PublishSettingsDialog::tab_row_for_line(size_t category_index, const Line
 
 Line* PublishSettingsDialog::row_line(size_t row_index) const
 {
-    const Row& row = m_rows[row_index];
-    if (row.tab_line != nullptr)
-        return row.tab_line;
-    if (row.options.empty())
-        return nullptr;
-    const Subcategory& sub = m_categories[row.inner_index].subs[row.sub_index];
-    if (sub.group == nullptr)
-        return nullptr;
-    const RowOption& first = row.options.front();
-    return sub.group->get_line(first.key + (first.index >= 0 ? "#" + std::to_string(first.index) : ""));
-}
-
-void PublishSettingsDialog::build_row_groups(size_t category_index)
-{
-    Category& category = m_categories[category_index];
-
-    bool built_any = false;
-    for (Subcategory& sub : category.subs) {
-        if (sub.built || sub.rows.empty())
-            continue;
-
-        // The same group the sidebar's Page::new_optgroup creates: same class, same is_tab_opt
-        // flag, same per-page layout flags and label width, no Tab callbacks (spec 7.4.0).
-        auto* group           = new ConfigOptionsGroup(category.scroll, sub.title, sub.icon, &m_snapshot, /*is_tab_opt=*/true);
-        group->index_in_search      = false;
-        group->split_multi_line     = sub.split_multi_line;
-        group->option_label_at_right = sub.option_label_at_right;
-        group->label_width          = sub.label_width;
-        group->set_config_category_and_type(sub.page_title, sub.preset_type);
-        // Values are a read-only view of the snapshot: a field event must not write to it.
-        group->set_readonly(true);
-
-        sub.group = group;
-
-        for (size_t r : sub.rows) {
-            const Row& row = m_rows[r];
-            if (row.options.empty())
-                continue;
-
-            auto make_option = [group](const RowOption& src) {
-                Option option = group->get_option(src.key, src.index);
-                // The source line may override the definition (sub-labels such as "Minimal").
-                option.opt = src.def;
-                return option;
-            };
-
-            Line line = group->create_single_option_line(make_option(row.options.front()));
-            // The row's own label (set when a requirement row is created), not one derived from
-            // the option definition.
-            line.label    = row.label;
-            line.label_en = row.label_en;
-
-            for (size_t o = 1; o < row.options.size(); ++o)
-                line.append_option(make_option(row.options[o]));
-            if (row.publishable)
-                line.row_toggle = RowToggle();
-            group->append_line(line);
-        }
-
-        group->activate();
-        group->update_visibility(comDevelop);
-        group->reload_config();
-        group->disable(); // every value is read-only
-
-        // Bind the row toggles to the model and paint the dirty marker the way the Tab does.
-        for (size_t r : sub.rows) {
-            Line* line = row_line(r);
-            if (line == nullptr || !line->row_toggle)
-                continue;
-            line->row_toggle->on_change = [this, r](bool checked) { set_row_checked(r, checked); };
-            sync_row_widgets(r);
-            apply_row_label_colour(r);
-        }
-
-        sub.item = category.list_sizer->Add(group->sizer, 0, wxEXPAND | wxALL, FromDIP(5));
-        sub.built = true;
-        built_any  = true;
-    }
-    if (!built_any)
-        return;
-
-    category.list_sizer->Layout();
-    if (category.scroll != nullptr)
-        category.scroll->FitInside();
-    // Rows carry their filter state from the model, so a page built after a filter was applied
-    // hides the same rows a page built before it does.
-    apply_visibility();
+    return m_rows[row_index].tab_line;
 }
 
 int PublishSettingsDialog::tab_active_column(Tab* tab) const
@@ -2173,38 +2091,26 @@ bool PublishSettingsDialog::row_on_selected_variant(size_t row_index) const
 void PublishSettingsDialog::apply_row_label_colour(size_t row_index)
 {
     const Row& row = m_rows[row_index];
-    if (row.options.empty())
+    if (row.tab_line == nullptr || row.options.empty())
         return;
-    // A hosted-tab row is drawn by the Tab, which owns the colours. Only the row the tab's switch
-    // shows paints the Line they all share.
-    if (row.tab_line != nullptr) {
-        if (row.inner_index >= m_categories.size() || !row_on_selected_variant(row_index))
-            return;
-        const Tab* tab = m_categories[row.inner_index].publish_tab;
-        if (tab == nullptr)
-            return;
-        // A dirty pre-checked Printer/Process (or material) row marks its line and fields with the
-        // Tab's modified colour; the line returns to the Tab's default colour when not dirty.
-        const wxColour* colour = row.dirty ? &tab->modified_label_colour() : &tab->default_text_colour();
-        row.tab_line->set_label_colour(colour);
-        // The label is drawn from the first option's field colour when the line has a field. Paint
-        // the fields the Line actually owns: a row's column index is a file column, not the "#N"
-        // id the tab gave the field (the switch re-targets one built field).
-        if (row.dirty)
-            for (const Option& option : row.tab_line->get_options())
-                if (Field* field = tab->get_field(option.opt_id))
-                    field->set_label_colour(colour);
+    // The Tab draws and colours the row. Only the row the tab's switch shows paints the Line they
+    // all share.
+    if (row.inner_index >= m_categories.size() || !row_on_selected_variant(row_index))
         return;
-    }
-    if (!row.dirty)
+    const Tab* tab = m_categories[row.inner_index].publish_tab;
+    if (tab == nullptr)
         return;
-    Subcategory& sub = m_categories[row.inner_index].subs[row.sub_index];
-    if (sub.group == nullptr)
-        return;
-    const RowOption& first  = row.options.front();
-    const std::string opt_id = first.key + (first.index >= 0 ? "#" + std::to_string(first.index) : "");
-    if (Field* field = sub.group->get_field(opt_id))
-        field->set_label_colour(&wxGetApp().get_label_clr_modified());
+    // A dirty pre-checked Printer/Process (or material) row marks its line and fields with the
+    // Tab's modified colour; the line returns to the Tab's default colour when not dirty.
+    const wxColour* colour = row.dirty ? &tab->modified_label_colour() : &tab->default_text_colour();
+    row.tab_line->set_label_colour(colour);
+    // The label is drawn from the first option's field colour when the line has a field. Paint the
+    // fields the Line actually owns: a row's column index is a file column, not the "#N" id the tab
+    // gave the field (the switch re-targets one built field).
+    if (row.dirty)
+        for (const Option& option : row.tab_line->get_options())
+            if (Field* field = tab->get_field(option.opt_id))
+                field->set_label_colour(colour);
 }
 
 void PublishSettingsDialog::apply_row_label_colours()
@@ -2231,10 +2137,6 @@ void PublishSettingsDialog::sync_all_row_widgets()
 {
     for (size_t r = 0; r < m_rows.size(); ++r)
         sync_row_widgets(r);
-    for (Category& category : m_categories)
-        for (Subcategory& sub : category.subs)
-            if (sub.group != nullptr)
-                sub.group->refresh();
 }
 
 void PublishSettingsDialog::set_row_checked(size_t row_index, bool checked)
@@ -2571,7 +2473,6 @@ void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_inde
     }
     section.selected_inner = inner_index;
     Category& category     = m_categories[section.categories[inner_index]];
-    build_row_groups(section.categories[inner_index]);
     category.page->Show();
     category.scroll->FitInside();
     category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
@@ -2598,7 +2499,6 @@ void PublishSettingsDialog::show_mixed_page(size_t section_index, int mixed_inde
     }
     section.selected_mixed = mixed_index;
     Category& category     = m_categories[section.mixed_categories[mixed_index]];
-    build_row_groups(section.mixed_categories[mixed_index]);
     category.page->Show();
     category.scroll->FitInside();
     category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
@@ -2733,8 +2633,8 @@ void PublishSettingsDialog::apply_visibility()
 {
     Freeze();
     for (Category& category : m_categories) {
-        // A disabled material slot hides everything below its header (the tab, the requirement
-        // rows, the info hint and the Full Publish line); enable it first.
+        // A disabled material slot hides everything below its header (the tab, the info hint and
+        // the Full Publish line); enable it first.
         const bool enabled = category.section != Section::Material ||
                              (category.enable_check != nullptr && category.enable_check->GetValue());
         if (category.publish_host != nullptr)
@@ -2747,22 +2647,6 @@ void PublishSettingsDialog::apply_visibility()
         for (size_t r : category.rows)
             category_any = category_any || m_rows[r].matches_filter;
         category.info->Show(enabled && !category_any);
-        for (Subcategory& sub : category.subs) {
-            bool sub_any = false;
-            for (size_t r : sub.rows) {
-                const bool show = m_rows[r].matches_filter && row_on_selected_variant(r);
-                // Full Publish disables a row but keeps it visible, so the filter is the only
-                // thing that hides it.
-                if (Line* line = row_line(r))
-                    line->toggle_visible = show;
-                sub_any = sub_any || show;
-            }
-            if (sub.group != nullptr) {
-                sub.group->update_visibility(comDevelop);
-                if (sub.item != nullptr)
-                    sub.item->Show(enabled && sub_any);
-            }
-        }
         // A hosted slot's rows hide and show through the tab's own lines: the row of the column
         // the switch shows owns its line's visibility, on top of the Tab's own hide rule.
         bool tab_rows = false;
@@ -3281,14 +3165,10 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
             section.mixed_tabs->Rescale();
     }
 
-    // Rescale the row groups with the same entry point the sidebar's Page uses.
-    for (Category& category : m_categories) {
-        for (Subcategory& sub : category.subs)
-            if (sub.group != nullptr)
-                sub.group->msw_rescale();
+    // Rescale the hosted tabs with the same entry point the sidebar's Page uses.
+    for (Category& category : m_categories)
         if (category.publish_tab != nullptr)
             category.publish_tab->msw_rescale();
-    }
 
     for (size_t category_index = 0; category_index < m_categories.size(); ++category_index) {
         const Category& category = m_categories[category_index];
@@ -3331,15 +3211,11 @@ void PublishSettingsDialog::on_sys_color_changed()
     // The mixed-tab compositions bake the tab strip's background colour: rebuild them when the
     // theme changes (on_dpi_changed covers rescales).
     refresh_mixed_tab_bitmaps();
-    // Re-apply the theme to every built group. The colour pass resets the label colours, so the
+    // Re-apply the theme to every hosted tab. The colour pass resets the label colours, so the
     // modified marker goes back on afterwards, as the Tab does.
-    for (Category& category : m_categories) {
-        for (Subcategory& sub : category.subs)
-            if (sub.group != nullptr)
-                sub.group->sys_color_changed();
+    for (Category& category : m_categories)
         if (category.publish_tab != nullptr)
             category.publish_tab->sys_color_changed();
-    }
     for (size_t r = 0; r < m_rows.size(); ++r)
         apply_row_label_colour(r);
     Refresh();

@@ -198,6 +198,17 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
         {
             // BBS: new layout
             // h_pos = m_bmp_mode_sz.GetWidth() + m_h_gap;
+            const int blinking_button_width = m_bmp_blinking_sz.GetWidth() + m_h_gap;
+            // A row toggle is drawn at the start of the row, so it takes its width from the row's
+            // left edge and the act slot is not used; a Tab row keeps the act slot's exact width.
+            const int act_slot_width = line.row_toggle ? 0 : blinking_button_width;
+            if (line.row_toggle)
+                h_pos += blinking_button_width + toggle_gap();
+            // A per-extruder icon on a row that also carries a toggle sits after the toggle, not
+            // in the left margin the sidebar uses.
+            if (line.row_toggle && line_has_multi_extruder_icon(line))
+                h_pos += multi_extruder_width() + m_h_gap;
+
             if (line.near_label_widget_win) {
                 wxSize near_label_widget_sz = line.near_label_widget_win->GetSize();
                 if (field_in)
@@ -207,12 +218,6 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
                     break;
                 }
             }
-            const int blinking_button_width = m_bmp_blinking_sz.GetWidth() + m_h_gap;
-            // A row toggle is drawn at the start of the row, so it takes its width from the row's
-            // left edge and the act slot is not used; a Tab row keeps the act slot's exact width.
-            const int act_slot_width = line.row_toggle ? 0 : blinking_button_width;
-            if (line.row_toggle)
-                h_pos += blinking_button_width + toggle_gap();
 
             wxString label = line.label;
             if (opt_group->label_width != 0)
@@ -878,10 +883,7 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
     // ORCA draw multi_extruder icon to spacing before field lines so labels keep aligned. The Tab
     // marks the rows by a '#' in the option id; a caller that keys every row by a column sets
     // Line::multi_extruder instead.
-    bool is_multi_extruder = og_line.multi_extruder;
-    if (!is_multi_extruder && ctrl->opt_group->draw_multi_extruder)
-        for (const Option& opt : option_set)
-            is_multi_extruder |= opt.opt_id.find_last_of('#') != std::string::npos;
+    const bool is_multi_extruder = ctrl->line_has_multi_extruder_icon(og_line);
 
     // A row toggle opens the row: [checkbox] label ... value, in every section.
     const wxCoord row_start = h_pos;
@@ -889,14 +891,20 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         h_pos = draw_row_toggle(dc, wxPoint(h_pos, v_pos), /*at_row_start=*/true).x;
 
     // The per-extruder icon keeps the sidebar's position: in the row's left margin, left of the
-    // label, so the label column does not shift.
+    // label, so the label column does not shift. A row with a publish checkbox draws it after the
+    // checkbox instead, and the label moves right past it.
     if (is_multi_extruder) {
-        if (!ctrl->m_bmp_multi_extruder.bmp().IsOk())
-            ctrl->m_bmp_multi_extruder = ScalableBitmap(ctrl, "multi_extruder");
+        ctrl->init_multi_extruder_bitmap();
         const wxBitmap& bmp    = ctrl->m_bmp_multi_extruder.bmp();
         const wxSize    bmp_sz = get_bitmap_size(bmp); // Logical size. GetWidth() returns physical pixels on macOS retina which pushes icon outside of control
-        const wxCoord   icon_x = std::max(0, row_start - bmp_sz.GetWidth() - ctrl->m_h_gap);
         const wxCoord   icon_y = v_pos + lround((height - bmp_sz.GetHeight()) / 2);
+        wxCoord         icon_x;
+        if (og_line.row_toggle) {
+            icon_x = h_pos;
+            h_pos += bmp_sz.GetWidth() + ctrl->m_h_gap;
+        } else {
+            icon_x = std::max(0, row_start - bmp_sz.GetWidth() - ctrl->m_h_gap);
+        }
         dc.DrawBitmap(bmp, icon_x, icon_y, true);
     }
 
@@ -1176,6 +1184,31 @@ void OG_CustomCtrl::init_row_toggle_bitmaps()
     m_bmp_check_off_focused  = ScalableBitmap(this, "check_off_focused", 18);
     m_bmp_check_on_disabled  = ScalableBitmap(this, "check_on_disabled", 18);
     m_bmp_check_off_disabled = ScalableBitmap(this, "check_off_disabled", 18);
+}
+
+void OG_CustomCtrl::init_multi_extruder_bitmap()
+{
+    if (!m_bmp_multi_extruder.bmp().IsOk())
+        m_bmp_multi_extruder = ScalableBitmap(this, "multi_extruder");
+}
+
+bool OG_CustomCtrl::line_has_multi_extruder_icon(const Line& line) const
+{
+    // The Tab marks a per-extruder row by a '#' in the option id; a caller that keys every row by a
+    // column sets Line::multi_extruder instead.
+    if (line.multi_extruder)
+        return true;
+    if (!opt_group->draw_multi_extruder)
+        return false;
+    return std::any_of(line.get_options().begin(), line.get_options().end(), [](const Option& opt) {
+        return opt.opt_id.find_last_of('#') != std::string::npos;
+    });
+}
+
+wxCoord OG_CustomCtrl::multi_extruder_width()
+{
+    init_multi_extruder_bitmap();
+    return get_bitmap_size(m_bmp_multi_extruder.bmp()).GetWidth();
 }
 
 wxCoord OG_CustomCtrl::CtrlLine::draw_edit_bmp(wxDC &dc, wxPoint pos, const wxBitmap& bmp_edit)
