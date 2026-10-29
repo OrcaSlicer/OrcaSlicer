@@ -10,7 +10,9 @@
 #include "TpmsField.hpp"
 #include <cmath>
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
+#include <iterator>
 #include <math.h>
 #include <vector>
 #include <unordered_map>
@@ -34,6 +36,57 @@ static float fischer_koch(float x, float y, float z)
 static constexpr float SchwarzPStretch = 1.5f;
 static constexpr float SchwarzPLevel   = 0.3f;
 static float schwarz_p(float x, float y, float z) { return cosf(x) + cosf(y) + cosf(z * (1.f / SchwarzPStretch)) + SchwarzPLevel; }
+
+// Schoen I-WP: 2(cos(x)cos(y) + cos(y)cos(z) + cos(z)cos(x)) - (cos(2x) + cos(2y) + cos(2z)) = 0
+static float schoen_iwp(float x, float y, float z)
+{
+    return 2 * (cosf(x) * cosf(y) + cosf(y) * cosf(z) + cosf(z) * cosf(x)) - (cosf(2 * x) + cosf(2 * y) + cosf(2 * z));
+}
+
+// Neovius: 3(cos(x) + cos(y) + cos(z)) + 4cos(x)cos(y)cos(z) = 0
+static float neovius(float x, float y, float z) { return 3 * (cosf(x) + cosf(y) + cosf(z)) + 4 * cosf(x) * cosf(y) * cosf(z); }
+
+// Schoen F-RD: 4cos(x)cos(y)cos(z) - (cos(2x)cos(2y) + cos(2y)cos(2z) + cos(2z)cos(2x)) = 0
+static float schoen_frd(float x, float y, float z)
+{
+    return 4 * cosf(x) * cosf(y) * cosf(z) - (cosf(2 * x) * cosf(2 * y) + cosf(2 * y) * cosf(2 * z) + cosf(2 * z) * cosf(2 * x));
+}
+
+// Lidinoid: (sin(2x)cos(y)sin(z) + sin(2y)cos(z)sin(x) + sin(2z)cos(x)sin(y)) / 2
+//           - (cos(2x)cos(2y) + cos(2y)cos(2z) + cos(2z)cos(2x)) / 2 + 0.15 = 0
+static float lidinoid(float x, float y, float z)
+{
+    return 0.5f * (sinf(2 * x) * cosf(y) * sinf(z) + sinf(2 * y) * cosf(z) * sinf(x) + sinf(2 * z) * cosf(x) * sinf(y)) -
+           0.5f * (cosf(2 * x) * cosf(2 * y) + cosf(2 * y) * cosf(2 * z) + cosf(2 * z) * cosf(2 * x)) + 0.15f;
+}
+
+// Split P: 1.1(sin(2x)sin(z)cos(y) + sin(2y)sin(x)cos(z) + sin(2z)sin(y)cos(x))
+//          - 0.2(cos(2x)cos(2y) + cos(2y)cos(2z) + cos(2z)cos(2x)) - 0.4(cos(2x) + cos(2y) + cos(2z)) = 0
+static float split_p(float x, float y, float z)
+{
+    return 1.1f * (sinf(2 * x) * sinf(z) * cosf(y) + sinf(2 * y) * sinf(x) * cosf(z) + sinf(2 * z) * sinf(y) * cosf(x)) -
+           0.2f * (cosf(2 * x) * cosf(2 * y) + cosf(2 * y) * cosf(2 * z) + cosf(2 * z) * cosf(2 * x)) -
+           0.4f * (cosf(2 * x) + cosf(2 * y) + cosf(2 * z));
+}
+
+// The surfaces traced on a grid that scales with their period. A period factor is TPMS-FK's times the contour length
+// per area of the layers of the surface over that of TPMS-FK, so the same density prints the same filament.
+static const struct
+{
+    InfillPattern type;
+    float (*equation)(float x, float y, float z);
+    float period_factor;
+} traced_surfaces[] = {
+    {ipTpmsP, schwarz_p, 1.805f},
+    {ipTpmsIWP, schoen_iwp, 2.683f},
+    {ipTpmsNeovius, neovius, 2.607f},
+    {ipTpmsFRD, schoen_frd, 3.597f},
+    {ipTpmsLidinoid, lidinoid, 4.765f},
+    {ipTpmsSplitP, split_p, 3.921f},
+};
+
+// Grid cell of a traced surface in mm, at most a 32nd of its period.
+static double traced_cell(double frequency) { return std::min(TpmsGridCell, 2. * PI / frequency / 32.); }
 
 // The ring cos(u) + cos(v) = c of a layer of Schwarz P around the origin for 0 <= c < 2, closed and counterclockwise
 // from the X axis, within tolerance of the curve. The ring is symmetric about both axes and both diagonals.
@@ -71,27 +124,32 @@ static std::vector<Vec2d> schwarz_p_ring(double c, double tolerance)
     return ring;
 }
 
-// Schoen I-WP equation: 2 (cos(x)cos(y) + cos(y)cos(z) + cos(z)cos(x)) - (cos(2x) + cos(2y) + cos(2z)) = 0
-static float schoen_iwp(float x, float y, float z)
-{
-    return 2 * (cosf(x) * cosf(y) + cosf(y) * cosf(z) + cosf(z) * cosf(x)) - (cosf(2 * x) + cosf(2 * y) + cosf(2 * z));
-}
-
 FillTpmsFK::Equation FillTpmsFK::equation() const { return fischer_koch; }
-FillTpmsFK::Equation FillTpmsP::equation() const { return schwarz_p; }
-FillTpmsFK::Equation FillTpmsIWP::equation() const { return schoen_iwp; }
 
 Polylines FillTpmsFK::make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const
 {
     return make_tpms_polylines(tpms, Vec3d::Constant(frequency), bbox, this->z);
 }
 
+FillTpmsTraced::FillTpmsTraced(InfillPattern type)
+{
+    const auto surface = std::find_if(std::begin(traced_surfaces), std::end(traced_surfaces), [type](const auto &s) { return s.type == type; });
+    assert(surface != std::end(traced_surfaces));
+    m_equation      = surface->equation;
+    m_period_factor = surface->period_factor;
+}
+
+Polylines FillTpmsTraced::make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const
+{
+    const double cell = traced_cell(frequency);
+    return make_tpms_polylines(tpms, Vec3d::Constant(frequency), tpms_sampling_bbox(bbox, cell), this->z, cell);
+}
+
 Polylines FillTpmsP::make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const
 {
-    // Its cells are 2-3 times smaller than Fischer-Koch's, so lines are traced on a grid that scales with the period.
-    const double cell = std::min(TpmsGridCell, 2. * PI / frequency / 32.);
     if (!tpms.regular_layers())
-        return make_tpms_polylines(tpms, Vec3d::Constant(frequency), tpms_sampling_bbox(bbox, cell), this->z, cell);
+        return FillTpmsTraced::make_layer(tpms, frequency, bbox);
+    const double cell = traced_cell(frequency);
 
     // Every layer of the regular cells is a grid of equal rings cos(x) + cos(y) = level, made at once: around (0, 0)
     // for a positive level, around (PI, PI) for a negative one.
@@ -115,13 +173,6 @@ Polylines FillTpmsP::make_layer(const TpmsEquation &tpms, double frequency, cons
                 polyline.points.emplace_back(Vec2d((center + p) * to_coord));
         }
     return polylines;
-}
-
-Polylines FillTpmsIWP::make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const
-{
-    // Like TPMS-P, its cells are smaller than Fischer-Koch's.
-    const double cell = std::min(TpmsGridCell, 2. * PI / frequency / 32.);
-    return make_tpms_polylines(tpms, Vec3d::Constant(frequency), tpms_sampling_bbox(bbox, cell), this->z, cell);
 }
 
 void FillTpmsFK::_fill_surface_single(const FillParams&              params,

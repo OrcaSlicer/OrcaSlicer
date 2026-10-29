@@ -131,7 +131,7 @@ enum InfillPattern : int {
     ipTriangles, ipStars,
     ipCubic, ipAdaptiveCubic, ipQuarterCubic, ipSupportCubic, ipLightning,
     ipHoneycomb, ip3DHoneycomb, ipLateralHoneycomb, ipLateralLattice,
-    ipCrossHatch, ipTpmsD, ipTpmsFK, ipTpmsP, ipTpmsIWP, ipGyroid,
+    ipCrossHatch, ipTpmsD, ipTpmsFK, ipTpmsP, ipTpmsIWP, ipTpmsNeovius, ipTpmsFRD, ipTpmsLidinoid, ipTpmsSplitP, ipGyroid,
     ipConcentric, ipSpiralInset, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
     ipSupportBase, ipConcentricInternal,
     ipCount,
@@ -163,6 +163,10 @@ inline bool is_separable_infill_pattern(InfillPattern pattern)
     case ipTpmsFK:
     case ipTpmsP:
     case ipTpmsIWP:
+    case ipTpmsNeovius:
+    case ipTpmsFRD:
+    case ipTpmsLidinoid:
+    case ipTpmsSplitP:
     case ipGyroid:
     case ipHilbertCurve:
     case ipArchimedeanChords:
@@ -176,7 +180,11 @@ inline bool is_separable_infill_pattern(InfillPattern pattern)
 // Orca: Infill patterns laid out by an octree, which each connected body always gets of its own.
 inline bool is_octree_infill_pattern(InfillPattern pattern) { return pattern == ipAdaptiveCubic || pattern == ipSupportCubic; }
 // Orca: Infill patterns graded by the "adaptive_infill_mode" option.
-inline bool is_adaptive_infill_pattern(InfillPattern pattern) { return pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipTpmsP || pattern == ipTpmsIWP; }
+inline bool is_adaptive_infill_pattern(InfillPattern pattern)
+{
+    return pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipTpmsP || pattern == ipTpmsIWP ||
+           pattern == ipTpmsNeovius || pattern == ipTpmsFRD || pattern == ipTpmsLidinoid || pattern == ipTpmsSplitP;
+}
 
 // Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
 // Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more

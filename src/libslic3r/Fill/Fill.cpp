@@ -1613,6 +1613,10 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         case ipTpmsFK:
         case ipTpmsP:
         case ipTpmsIWP:
+        case ipTpmsNeovius:
+        case ipTpmsFRD:
+        case ipTpmsLidinoid:
+        case ipTpmsSplitP:
         case ipHilbertCurve:
         case ipArchimedeanChords:
         case ipOctagramSpiral:
