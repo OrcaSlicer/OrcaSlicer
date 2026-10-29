@@ -19794,8 +19794,26 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     nlohmann::json j = nlohmann::json::array();
     for (const std::string& key : published_keys)
         j.push_back(key);
+    // A variant-bearing material key names a file column ("key#col"). Normalize the dialog's
+    // selection to the column each slot prints with before the metadata and the payload are built,
+    // so the receiver can put the value back on the same variant.
+    std::vector<Slic3r::PublishedMaterialEntry> material_entries = material_keys;
+    std::vector<std::string>                   publish_notices;
+    DynamicPrintConfig                         full_cfg;
+    try {
+        full_cfg = wxGetApp().preset_bundle->full_config_secure();
+        Slic3r::publish_normalize_material_entries(material_entries, full_cfg, &publish_notices);
+    } catch (...) {
+        MessageDialog(this, _L("Failed to export the published 3MF file.\nPlease check whether the folder exists online or if other programs "
+                               "have the file open."),
+                      _L("Publish"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        return wxID_CANCEL;
+    }
+    for (const std::string& notice : publish_notices)
+        BOOST_LOG_TRIVIAL(warning) << "publish: " << notice;
     nlohmann::json jm = nlohmann::json::array();
-    for (const Slic3r::PublishedMaterialEntry& e : material_keys)
+    for (const Slic3r::PublishedMaterialEntry& e : material_entries)
         jm.push_back({{"material",
                        {{"filament_type", e.filament_type},
                         {"filament_vendor", e.filament_vendor},
@@ -19880,8 +19898,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
         // filtered values are serialized into the published_config metadata payload instead, so
         // OrcaSlicer versions without the publish feature fall back to importing the geometry only
         // (keeping the receiver's presets) while new versions rebuild the config from the payload.
-        DynamicPrintConfig full_cfg     = wxGetApp().preset_bundle->full_config_secure();
-        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
+        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_entries);
         std::string payload;
         for (const std::string& key : filtered_cfg.keys()) {
             // A value containing a newline would break the INI written below (read_ini throws),

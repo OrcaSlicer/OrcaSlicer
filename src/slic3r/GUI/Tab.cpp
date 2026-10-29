@@ -4830,7 +4830,7 @@ void TabFilament::build()
 
             update_dirty();
             if (opt_key.substr(0, opt_key.find('#')) == "adaptive_pressure_advance_model")
-                m_config_manipulation.check_adaptive_pressure_advance_model(&filament_config);
+                m_config_manipulation.check_adaptive_pressure_advance_model(&filament_config, selected_variant_index());
 
             on_value_change(opt_key, value);
         };
