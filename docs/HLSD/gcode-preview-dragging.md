@@ -66,12 +66,15 @@ The preview already loads the sliced objects as shells for its translucent ghost
 band to the bottom of the top band, since those layers are drawn as toolpaths and a face of the
 model in either plane would flicker against them. The translucent ghost is
 drawn first, as in every other mode, so the part above the cut stays visible while dragging. The
-cut itself is capped, one body at a time: a pass counts, per pixel and with the depth test off,
-the body's back faces less its front faces into the stencil buffer, which is zero for a closed
-body and one where the cut has opened it, and a quad in each cut plane, in the cap's colour
-darkened, is drawn where it is not zero. Between the lines of a sparse layer on the cut, that quad is what shows, rather than
-the first layer or the bed far below moving with the camera. A view through both cut planes of
-a body with neither wall in the way is not capped. The toolpath layers of the reduced set are
+cut itself is capped, one cap of one body at a time: a pass counts, per pixel and with the depth
+test off, the body's back faces less its front faces into the stencil buffer, with the body cut
+at that cap alone and whole at its other end, which is zero where the ray misses the body or
+crosses it whole and one where it leaves through the opening, that is, where the cap plane lies
+inside the body; a quad in that cut plane, in the cap's colour darkened, is drawn where it is not
+zero. Counting both cuts in one pass would see an open tube: a ray through both openings as closed
+and one in through a wall and out through the other opening as open, with the cap drawn in the
+air. Between the lines of a sparse layer on the cut, that quad is what shows, rather than the
+first layer or the bed far below moving with the camera. The toolpath layers of the reduced set are
 drawn afterwards and cap the cut with what was really printed there; the band's reach to a layer
 with infill is what puts real infill lines, not a bare cap, inside the walls. The shells hold only the objects, so while this mode is on the prime tower is added from its sliced
 mesh, positioned as the print placed it. It is added or removed on its own when the mode changes,

@@ -3612,15 +3612,24 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     m_shells.volumes.render(GLVolumeCollection::ERenderType::Opaque, false, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height});
     shader->stop_using();
 
-    // The cut faces, one body at a time. A pixel looks into a body where, with the depth test off,
-    // its back faces outnumber its front faces: zero for a closed body, one where the cut has
-    // opened it. There a quad in the cut plane, in the colour of the infill it is cut under
-    // darkened, or the body's own, stands in for the material, so that a sparse layer on the cut
-    // shows a solid inside between its lines rather than whatever lies further down.
+    // The cut faces, one cap of one body at a time. A pixel looks into a body through a cut where,
+    // with the depth test off and the body cut at that cap alone, its back faces outnumber its
+    // front faces: zero where the ray misses the body or crosses it whole, one where it leaves
+    // through the opening, which is where the cap plane lies inside the body. Counted with both
+    // cuts at once the body is an open tube, and a ray through both openings would count as
+    // closed, one in through a wall and out through the other opening as open. There a quad in
+    // the cut plane, in the colour of the infill it is cut under darkened, or the body's own,
+    // stands in for the material, so that a sparse layer on the cut shows a solid inside between
+    // its lines rather than whatever lies further down.
     GLShaderProgram* cap_shader = wxGetApp().get_shader("flat");
     if (cap_shader != nullptr) {
-        const bool bottom_cut = layers[0] > 0;
-        auto init_cap = [this](GLModel& cap, float z) {
+        struct Cap
+        {
+            GLModel quad;
+            // the body as the count sees it: cut at this cap, whole at the other end
+            std::array<float, 2> count_z_range{ -FLT_MAX, FLT_MAX };
+        };
+        auto init_cap = [this](Cap& cap, float z, const std::array<float, 2>& count_z_range) {
             const float margin = 1.0f;
             const Vec3f min(static_cast<float>(m_paths_bounding_box.min.x()) - margin, static_cast<float>(m_paths_bounding_box.min.y()) - margin, z);
             const Vec3f max(static_cast<float>(m_paths_bounding_box.max.x()) + margin, static_cast<float>(m_paths_bounding_box.max.y()) + margin, z);
@@ -3634,54 +3643,49 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
             data.add_vertex(Vec3f(min.x(), max.y(), min.z()));
             data.add_triangle(0, 1, 2);
             data.add_triangle(0, 2, 3);
-            cap.init_from(std::move(data));
+            cap.quad.init_from(std::move(data));
+            cap.count_z_range = count_z_range;
         };
-        GLModel top_cap;
-        GLModel bottom_cap;
+        // the bottom cap, then the top one, as the colours are indexed
+        std::array<Cap, 2> caps;
+        if (layers[0] > 0)
+            init_cap(caps[0], z_bottom, { z_bottom, FLT_MAX });
         if (z_top > -FLT_MAX)
-            init_cap(top_cap, z_top);
-        if (bottom_cut)
-            init_cap(bottom_cap, z_bottom);
+            init_cap(caps[1], z_top, { -FLT_MAX, z_top });
 
-        // the count needs every face of a body the range does not cut, its bottom included
-        const std::array<float, 2> count_z_range = { bottom_cut ? z_bottom : -FLT_MAX, z_top };
         glsafe(::glEnable(GL_STENCIL_TEST));
         for (GLVolume* volume : m_shells.volumes.volumes) {
-            glsafe(::glStencilMask(0xFF));
-            glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
-            glsafe(::glStencilFunc(GL_ALWAYS, 0, 0xFF));
-            glsafe(::glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_DECR_WRAP));
-            glsafe(::glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_INCR_WRAP));
-            glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
-            glsafe(::glDepthMask(GL_FALSE));
-            glsafe(::glDisable(GL_DEPTH_TEST));
-            // The body is drawn directly, on the uniforms the pass above left on the program: the
-            // collection's render would build the full preset config and sort every volume, per body.
-            shader->start_using();
-            shader->set_uniform("z_range", count_z_range);
-            const Transform3d world_matrix = volume->world_matrix();
-            shader->set_uniform("volume_world_matrix", world_matrix);
-            shader->set_uniform("view_model_matrix", camera.get_view_matrix() * world_matrix);
-            glsafe(::glDisable(GL_CULL_FACE));
-            volume->render();
-            glsafe(::glEnable(GL_CULL_FACE));
-            shader->stop_using();
-            glsafe(::glEnable(GL_DEPTH_TEST));
-            glsafe(::glDepthMask(GL_TRUE));
-            glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
-            glsafe(::glStencilFunc(GL_NOTEQUAL, 0, 0xFF));
-            glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
-            glsafe(::glStencilMask(0x00));
-
             const auto* tower = dynamic_cast<const GLWipeTowerVolume*>(volume);
-            cap_shader->start_using();
-            cap_shader->set_uniform("view_model_matrix", camera.get_view_matrix());
-            cap_shader->set_uniform("projection_matrix", camera.get_projection_matrix());
-            glsafe(::glDisable(GL_CULL_FACE));
+            const Transform3d world_matrix = volume->world_matrix();
             for (size_t k = 0; k < 2; ++k) {
-                GLModel& cap = (k == 0) ? bottom_cap : top_cap;
-                if (!cap.is_initialized())
+                Cap& cap = caps[k];
+                if (!cap.quad.is_initialized())
                     continue;
+                glsafe(::glStencilMask(0xFF));
+                glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
+                glsafe(::glStencilFunc(GL_ALWAYS, 0, 0xFF));
+                glsafe(::glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_DECR_WRAP));
+                glsafe(::glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_INCR_WRAP));
+                glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
+                glsafe(::glDepthMask(GL_FALSE));
+                glsafe(::glDisable(GL_DEPTH_TEST));
+                // The body is drawn directly, on the uniforms the pass above left on the program: the
+                // collection's render would build the full preset config and sort every volume, per body.
+                shader->start_using();
+                shader->set_uniform("z_range", cap.count_z_range);
+                shader->set_uniform("volume_world_matrix", world_matrix);
+                shader->set_uniform("view_model_matrix", camera.get_view_matrix() * world_matrix);
+                glsafe(::glDisable(GL_CULL_FACE));
+                volume->render();
+                glsafe(::glEnable(GL_CULL_FACE));
+                shader->stop_using();
+                glsafe(::glEnable(GL_DEPTH_TEST));
+                glsafe(::glDepthMask(GL_TRUE));
+                glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+                glsafe(::glStencilFunc(GL_NOTEQUAL, 0, 0xFF));
+                glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
+                glsafe(::glStencilMask(0x00));
+
                 ColorRGBA inside = volume->color;
                 if (tower != nullptr) {
                     if (!tower->colors().empty())
@@ -3690,11 +3694,15 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
                 else if (colors.caps[k].has_value())
                     inside = *colors.caps[k];
                 inside = ColorRGBA(0.55f * inside.r(), 0.55f * inside.g(), 0.55f * inside.b(), 1.0f);
-                cap.set_color(inside);
-                cap.render();
+                cap_shader->start_using();
+                cap_shader->set_uniform("view_model_matrix", camera.get_view_matrix());
+                cap_shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+                glsafe(::glDisable(GL_CULL_FACE));
+                cap.quad.set_color(inside);
+                cap.quad.render();
+                glsafe(::glEnable(GL_CULL_FACE));
+                cap_shader->stop_using();
             }
-            glsafe(::glEnable(GL_CULL_FACE));
-            cap_shader->stop_using();
         }
         glsafe(::glStencilMask(0xFF));
         glsafe(::glDisable(GL_STENCIL_TEST));
