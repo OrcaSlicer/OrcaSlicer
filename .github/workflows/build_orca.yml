@@ -650,6 +650,9 @@ jobs:
           chmod +x "$appimage"
           "$appimage" --appimage-extract
           ./scripts/build_preset_cache.sh -b build build/package/resources/profiles squashfs-root/resources/profiles
+          # The runtime extracts every directory as 0700, and appimagetool (continuous
+          # build 333 onwards) refuses to pack a tree other users cannot read.
+          chmod -R a+rX squashfs-root
           appimagetool=$(find build -name "appimagetool.AppImage" | head -1)
           ARCH=$(uname -m) "$appimagetool" --appimage-extract-and-run squashfs-root "$appimage"
           rm -rf squashfs-root
