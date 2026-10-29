@@ -1260,11 +1260,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         end_filament_gcode_str = toolchange_retract_str + object_end_label_temp + end_filament_gcode_str;
 
-        // Lift to the layer Z so change_filament_gcode can't hit taller printed parts.
-        // The compacted_below_object descent below brings Z back down once over the tower.
+        // Lift to the layer Z so the toolchange can't hit taller printed parts. Only a custom macro or
+        // a switch to another physical extruder (whose firmware Tn may dock) can travel. The
+        // compacted_below_object descent below brings Z back down once over the tower.
+        const bool tool_may_travel = !change_filament_gcode.empty()
+            || (gcodegen.writer().filament() != nullptr && gcodegen.writer().filament()->extruder_id() != unsigned(new_extruder_id));
         std::string restore_layer_z_str;
-        if (will_go_down && compacted_below_object) {
-            restore_layer_z_str += gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange", true);
+        if (compacted_below_object && tool_may_travel && gcodegen.writer().get_position().z() < current_z - EPSILON) {
+            restore_layer_z_str += gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange");
             check_add_eol(restore_layer_z_str);
         }
 
@@ -1768,11 +1771,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     interface_temp = gcodegen.config().nozzle_temperature_range_high.get_at(gcodegen.get_filament_config_index(new_extruder_id));
                 toolchange_temp_override = interface_temp;
             }
-            // Lift to the layer Z so change_filament_gcode can't hit taller printed parts.
-            if (will_go_down && gcodegen.config().enable_prime_tower) {
-                restore_layer_z_str += gcodegen.writer().retract();
+            // Lift to the layer Z so the toolchange can't hit taller printed parts. Only a custom macro
+            // or a switch to another physical extruder (whose firmware Tn may dock) can travel.
+            const bool tool_may_travel = !gcodegen.config().change_filament_gcode.value.empty()
+                || (gcodegen.writer().filament() != nullptr
+                    && gcodegen.writer().filament()->extruder_id() != get_extruder_index(*m_print_config, new_extruder_id));
+            if (will_go_down && tool_may_travel && gcodegen.config().enable_prime_tower) {
                 restore_layer_z_str += gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange");
-                restore_layer_z_str += gcodegen.writer().unretract();
                 check_add_eol(restore_layer_z_str);
             }
             toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override,
