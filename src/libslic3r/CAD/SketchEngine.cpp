@@ -439,6 +439,20 @@ static TopoDS_Wire normal_section(const TopoDS_Wire& w, const TopoDS_Wire& towar
     return TopoDS::Wire(xf.Shape());
 }
 
+// ThruSections raises an OCCT exception (not a std::exception) when it cannot skin the sections, and the caller then only knows
+// "a geometry operation failed". Say what a loft can be wrong about instead.
+static void build_loft_checked(BRepOffsetAPI_ThruSections& loft)
+{
+    const std::string why = _u8L("loft failed: the profiles cannot be skinned together. A profile may cross itself, "
+                                 "or two of them differ too much - try Ruled sections, or reorder the profiles");
+    try {
+        loft.Build();
+    } catch (const Standard_Failure&) {
+        throw std::runtime_error(why);
+    }
+    if (!loft.IsDone()) throw std::runtime_error(why);
+}
+
 TopoDS_Shape SketchEngine::make_loft(const std::vector<TopoDS_Wire>& profiles, bool ruled,
                                      int start_cond, int end_cond, double strength)
 {
@@ -460,8 +474,7 @@ TopoDS_Shape SketchEngine::make_loft(const std::vector<TopoDS_Wire>& profiles, b
             if (!aux.IsNull()) loft.AddWire(aux);
         }
     }
-    loft.Build();
-    if (!loft.IsDone()) throw std::runtime_error(_u8L("loft failed"));
+    build_loft_checked(loft);
     TopoDS_Shape s = loft.Shape();
     if (s.IsNull()) throw std::runtime_error(_u8L("loft produced no solid"));
     return s;
@@ -479,8 +492,8 @@ TopoDS_Shape SketchEngine::make_loft_to_point(const std::vector<TopoDS_Wire>& pr
         loft.AddWire(w);
     }
     if (apex_last) loft.AddVertex(BRepBuilderAPI_MakeVertex(*apex_last));
-    loft.Build();
-    if (!loft.IsDone() || loft.Shape().IsNull()) throw std::runtime_error(_u8L("loft to a point failed"));
+    build_loft_checked(loft);
+    if (loft.Shape().IsNull()) throw std::runtime_error(_u8L("loft to a point failed"));
     return loft.Shape();
 }
 
@@ -494,8 +507,7 @@ TopoDS_Shape SketchEngine::make_loft_surface(const std::vector<TopoDS_Wire>& pro
         if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
         loft.AddWire(w);
     }
-    loft.Build();
-    if (!loft.IsDone()) throw std::runtime_error(_u8L("loft failed"));
+    build_loft_checked(loft);
     TopoDS_Shape s = loft.Shape();
     if (s.IsNull()) throw std::runtime_error(_u8L("loft produced no shape"));
     return s;
