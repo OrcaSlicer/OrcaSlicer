@@ -39,6 +39,8 @@ protected:
     struct SweepParams {
         float angle_base;
         float pattern_shift;
+        // Orca: rise of pattern_shift per unit of height, for the families of planes of a pattern turned in 3D.
+        float shift_per_z = 0.f;
     };
     bool fill_surface_by_multilines(const Surface *surface, FillParams params, const std::initializer_list<SweepParams> &sweep_params, Polylines &polylines_out);
     bool fill_surface_trapezoidal(const Surface *surface, FillParams params, Polylines &polylines_out, int Pattern_type);

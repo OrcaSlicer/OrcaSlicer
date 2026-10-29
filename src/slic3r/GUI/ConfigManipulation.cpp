@@ -845,11 +845,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // The sparse infill density is the surface density of the adaptive infill; at 100% the infill is solid.
     bool have_adaptive_infill_pattern = have_infill && config->option<ConfigOptionPercent>("sparse_infill_density")->value < 100 &&
                             is_adaptive_infill_pattern(pattern);
-    const wxString tpms_reason = _L("Select Gyroid or a TPMS sparse infill pattern with nonzero sparse infill density to use this setting.");
-    for (auto el : {"sparse_infill_scale_x", "sparse_infill_scale_y", "sparse_infill_rotation_x"})
-        toggle_line(el, have_infill && is_adaptive_infill_pattern(pattern), -1, tpms_reason);
-    toggle_line("sparse_infill_scale_z", have_infill && is_z_scaled_infill_pattern(pattern), -1,
-                _L("Select Gyroid, a TPMS, Cubic, Quarter Cubic, Cross Hatch or 3D Honeycomb sparse infill pattern with nonzero sparse infill density to use this setting."));
+    const wxString scale_reason = _L("Select a sparse infill pattern that supports this setting, with nonzero sparse infill density.");
+    for (auto el : {"sparse_infill_scale_x", "sparse_infill_scale_y"})
+        toggle_line(el, have_infill && is_xy_scaled_infill_pattern(pattern), -1, scale_reason);
+    toggle_line("sparse_infill_scale_z", have_infill && is_z_scaled_infill_pattern(pattern), -1, scale_reason);
+    toggle_line("sparse_infill_rotation_x", have_infill && is_x_rotated_infill_pattern(pattern), -1, scale_reason);
 
     toggle_line("adaptive_infill_mode", have_adaptive_infill_pattern, -1, _L("Select Gyroid or a TPMS sparse infill pattern with sparse infill density greater than zero and less than 100%."));
     bool have_adaptive_infill = have_adaptive_infill_pattern && config->opt_enum<AdaptiveInfillMode>("adaptive_infill_mode") != AdaptiveInfillMode::Disabled;

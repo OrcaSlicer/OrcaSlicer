@@ -22,6 +22,7 @@ public:
     bool use_bridge_flow() const override { return false; }
     bool is_self_crossing() override { return false; }
     bool aligned_to_origin() const override { return true; }
+    bool scales_its_cells() const override { return true; }
 
     // Correction applied to regular infill angle to maximize printing
     // speed in default configuration (degrees)
