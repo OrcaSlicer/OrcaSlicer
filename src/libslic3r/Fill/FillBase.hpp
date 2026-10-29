@@ -1,6 +1,7 @@
 #ifndef slic3r_FillBase_hpp_
 #define slic3r_FillBase_hpp_
 
+#include <array>
 #include <assert.h>
 #include <map>
 #include <cstddef>
@@ -92,6 +93,11 @@ struct FillParams
 
     // For Gyroid: when true, use the parameterized "optimized" variant.
     bool        gyroid_optimized { false };
+
+    // For TPMS: stretch of the cells along the axes of the pattern.
+    std::array<double, 3> tpms_scale { 1., 1., 1. };
+    // Turn of the cells around the X axis of the pattern, in radians.
+    double      tpms_rotation_x { 0. };
 
     // For TPMS: grade the density from the surface to the interior of the object. Density fraction.
     AdaptiveInfillMode     adaptive_infill_mode { AdaptiveInfillMode::Disabled };

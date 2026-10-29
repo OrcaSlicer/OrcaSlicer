@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <assert.h>
 #include <regex>
 #include <cstdlib>
@@ -313,6 +314,10 @@ struct SurfaceFillParams
     // For Gyroid: when true, use the parameterized "optimized" wave.
     bool gyroid_optimized = false;
 
+    // For TPMS: stretch of the cells along the axes of the pattern.
+    std::array<double, 3> tpms_scale { 1., 1., 1. };
+    double                tpms_rotation_x = 0.;
+
     // For TPMS: grade the density from the surface to the interior of the object.
     AdaptiveInfillMode     adaptive_infill_mode          = AdaptiveInfillMode::Disabled;
     float                adaptive_infill_interior_density  = 0.f;
@@ -360,6 +365,8 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);
         RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
 		RETURN_COMPARE_NON_EQUAL(gyroid_optimized);
+		RETURN_COMPARE_NON_EQUAL(tpms_scale);
+		RETURN_COMPARE_NON_EQUAL(tpms_rotation_x);
 		RETURN_COMPARE_NON_EQUAL(adaptive_infill_mode);
 		RETURN_COMPARE_NON_EQUAL(adaptive_infill_interior_density);
 		RETURN_COMPARE_NON_EQUAL(adaptive_infill_gradient);
@@ -396,6 +403,8 @@ struct SurfaceFillParams
                 this->center_of_surface_pattern == rhs.center_of_surface_pattern &&
                 this->separated_infills       == rhs.separated_infills &&
                 this->gyroid_optimized        == rhs.gyroid_optimized        &&
+                this->tpms_scale              == rhs.tpms_scale              &&
+                this->tpms_rotation_x         == rhs.tpms_rotation_x         &&
                 this->adaptive_infill_mode           == rhs.adaptive_infill_mode           &&
                 this->adaptive_infill_interior_density   == rhs.adaptive_infill_interior_density   &&
                 this->adaptive_infill_gradient  == rhs.adaptive_infill_gradient  &&
@@ -1020,9 +1029,12 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 params.separated_infills = region_config.separated_infills && is_separable_infill_pattern(params.pattern) &&
                                            params.extrusion_role != erTopSolidInfill && params.extrusion_role != erBottomSurface;
 
-                // Orca: only the TPMS sparse infill is graded; reset otherwise, as params is reused.
-                params.adaptive_infill_mode = is_adaptive_infill_pattern(params.pattern) && params.extrusion_role == erInternalInfill ?
-                                           region_config.adaptive_infill_mode.value : AdaptiveInfillMode::Disabled;
+                // Orca: only the TPMS sparse infill is graded and scaled; reset otherwise, as params is reused.
+                const bool tpms_infill = is_adaptive_infill_pattern(params.pattern) && params.extrusion_role == erInternalInfill;
+                params.adaptive_infill_mode = tpms_infill ? region_config.adaptive_infill_mode.value : AdaptiveInfillMode::Disabled;
+                params.tpms_scale = tpms_infill ? std::array<double, 3>{ region_config.tpms_scale_x, region_config.tpms_scale_y, region_config.tpms_scale_z } :
+                                                  std::array<double, 3>{ 1., 1., 1. };
+                params.tpms_rotation_x = tpms_infill ? Geometry::deg2rad(region_config.tpms_rotation_x.value) : 0.;
                 const bool adaptive_infill_mode      = params.adaptive_infill_mode != AdaptiveInfillMode::Disabled;
                 params.adaptive_infill_interior_density  = adaptive_infill_mode ? std::max(1.f, float(region_config.adaptive_infill_interior_density)) : 0.f;
                 params.adaptive_infill_gradient = adaptive_infill_mode ? region_config.adaptive_infill_gradient.value : AdaptiveInfillGradient::Linear;
@@ -1434,6 +1446,8 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
         params.lateral_lattice_angle_2   = surface_fill.params.lateral_lattice_angle_2;
         params.infill_overhang_angle   = surface_fill.params.infill_overhang_angle;
         params.gyroid_optimized          = surface_fill.params.gyroid_optimized;
+        params.tpms_scale                = surface_fill.params.tpms_scale;
+        params.tpms_rotation_x           = surface_fill.params.tpms_rotation_x;
         params.adaptive_infill_mode             = surface_fill.params.adaptive_infill_mode;
         params.adaptive_infill_interior_density     = float(0.01 * surface_fill.params.adaptive_infill_interior_density);
         params.adaptive_infill_gradient    = surface_fill.params.adaptive_infill_gradient;
@@ -1659,6 +1673,8 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         params.infill_overhang_angle   = surface_fill.params.infill_overhang_angle;
         params.multiline         = surface_fill.params.multiline;
         params.gyroid_optimized          = surface_fill.params.gyroid_optimized;
+        params.tpms_scale                = surface_fill.params.tpms_scale;
+        params.tpms_rotation_x           = surface_fill.params.tpms_rotation_x;
         params.adaptive_infill_mode             = surface_fill.params.adaptive_infill_mode;
         params.adaptive_infill_interior_density     = float(0.01 * surface_fill.params.adaptive_infill_interior_density);
         params.adaptive_infill_gradient    = surface_fill.params.adaptive_infill_gradient;

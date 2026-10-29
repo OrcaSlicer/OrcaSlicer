@@ -1,14 +1,13 @@
 #include "../ClipperUtils.hpp"
-#include "../MarchingSquares.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Polyline.hpp"
-#include "libslic3r/Execution/ExecutionTBB.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "FillTpms.hpp"
 #include "AdaptiveInfillField.hpp"
+#include "TpmsField.hpp"
 #include <cmath>
 #include <algorithm>
 #include <cstddef>
@@ -40,107 +39,28 @@ static float schoen_iwp(float x, float y, float z)
     return 2 * (cosf(x) * cosf(y) + cosf(y) * cosf(z) + cosf(z) * cosf(x)) - (cosf(2 * x) + cosf(2 * y) + cosf(2 * z));
 }
 
-} // namespace Slic3r
-
-namespace marchsq {
-using namespace Slic3r;
-
-using coordr_t = long; // length type for (r, c) raster coordinates.
-// Note that coordf_t, Pointfs, Point3f, etc all use double not float.
-using Pointf = Vec2d; // (x, y) field point in coordf_t.
-
-struct ScalarField
-{
-    const float            gsizef;                               // grid cell size in mm (roughly line segment length).
-    static constexpr float rsizef = 0.004;                       // raster pixel size in mm (roughly point accuracy).
-    const coord_t          rsize  = scaled(rsizef);              // raster pixel size in coord_t.
-    const coordr_t         gsize  = std::round(gsizef / rsizef); // grid cell size in coordr_t.
-    Point                  size;                                 // field size in coord_t.
-    Point                  offs;                                 // field offset in coord_t.
-    coordf_t               z;                                    // z offset as a float.
-    float                  freq;                                 // field frequency in cycles per mm.
-    float                  isoval = 0.0;                         // iso value threshold to use.
-    float (*equation)(float, float, float);                      // implicit surface equation with a period of 2 PI.
-
-    explicit ScalarField(const BoundingBox bb, const coordf_t z, const float period, float (*equation)(float, float, float), float gsizef)
-        : gsizef{gsizef}, size{bb.size()}, offs{bb.min}, z{z}, freq{float(2 * PI) / period}, equation{equation}
-    {}
-
-    // Get the scalar field value at x,y,z in coordf_t coordinates.
-    float get_scalar(coordf_t x, coordf_t y, coordf_t z) const { return equation(freq * x, freq * y, freq * z); }
-
-    // Get the scalar field value at a Coord for the current z value.
-    float get_scalar(Coord p) const
-    {
-        Pointf pf = to_Pointf(p);
-        return get_scalar(pf.x(), pf.y(), z);
-    }
-
-    // Convert between dimension scales.
-    inline coord_t  to_coord(const coordr_t& x) const { return x * rsize; }
-    inline coordr_t to_coordr(const coord_t& x) const { return x / rsize; }
-
-    // Convert between point/coordinate systems, including translation.
-    inline Point  to_Point(const Coord& p) const { return Point(to_coord(p.c) + offs.x(), to_coord(p.r) + offs.y()); }
-    inline Coord  to_Coord(const Point& p) const { return Coord(to_coordr(p.y() - offs.y()), to_coordr(p.x() - offs.x())); }
-    inline Pointf to_Pointf(const Point& p) const { return Pointf(unscaled(p.x()), unscaled(p.y())); }
-    inline Pointf to_Pointf(const Coord& p) const { return to_Pointf(to_Point(p)); }
-};
-
-// Register ScalarField as a RasterType for MarchingSquares.
-template<> struct _RasterTraits<ScalarField>
-{
-    // The type of pixel cell in the raster
-    using ValueType = float;
-
-    // Value at a given position
-    static float get(const ScalarField& sf, size_t row, size_t col) { return sf.get_scalar(Coord(row, col)); }
-
-    // Number of rows and cols of the raster
-    static size_t rows(const ScalarField& sf) { return sf.to_coordr(sf.size.y()); }
-    static size_t cols(const ScalarField& sf) { return sf.to_coordr(sf.size.x()); }
-};
-
-// Get the polylines for the scalar field. The tolerance is used for
-// simplifying the polylines to remove redundant points. The default will
-// only remove points on (almost) perfectly straight lines. Set to -1 to turn
-// off simplifying entirely. Note tolerance is the max line deviation from
-// simplifying and should be scaled.
-Polylines get_polylines(const ScalarField& sf, const double tolerance = SCALED_EPSILON)
-{
-    std::vector<Ring> rings = execute_with_policy(ex_tbb, sf, sf.isoval, {sf.gsize, sf.gsize});
-
-    Polylines polys;
-    polys.reserve(rings.size());
-    // size_t old_pts = 0, new_pts = 0;
-
-    for (const Ring& ring : rings) {
-        Polyline poly;
-        Points&  pts = poly.points;
-        pts.reserve(ring.size() + 1);
-        for (const Coord& crd : ring)
-            pts.emplace_back(sf.to_Point(crd));
-        // MarchingSquare's rings are polygons, so add the first point to the end to make it a PolyLine.
-        pts.push_back(pts.front());
-        // old_pts += poly.points.size();
-        //  Simplify within specified tolerance to reduce points.
-        if (tolerance >= 0.0)
-            poly.simplify(tolerance);
-        // new_pts += poly.points.size();
-        polys.emplace_back(poly);
-    }
-    // std::cerr << "MarchingSquares: poly.simplify(" << tolerance << ") reduced points from" <<
-    //     old_pts << " to " << new_pts << " (" << 100*new_pts/old_pts << "%)\n";
-    return polys;
-}
-
-} // namespace marchsq
-
-namespace Slic3r {
-
 FillTpmsFK::Equation FillTpmsFK::equation() const { return fischer_koch; }
 FillTpmsFK::Equation FillTpmsP::equation() const { return schwarz_p; }
 FillTpmsFK::Equation FillTpmsIWP::equation() const { return schoen_iwp; }
+
+Polylines FillTpmsFK::make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const
+{
+    return make_tpms_polylines(tpms, Vec3d::Constant(frequency), bbox, this->z);
+}
+
+Polylines FillTpmsP::make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const
+{
+    // Its cells are 2-3 times smaller than Fischer-Koch's, so lines are traced on a grid that scales with the period.
+    const double cell = std::min(TpmsGridCell, 2. * PI / frequency / 32.);
+    return make_tpms_polylines(tpms, Vec3d::Constant(frequency), tpms_sampling_bbox(bbox, cell), this->z, cell);
+}
+
+Polylines FillTpmsIWP::make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const
+{
+    // Like TPMS-P, its cells are smaller than Fischer-Koch's.
+    const double cell = std::min(TpmsGridCell, 2. * PI / frequency / 32.);
+    return make_tpms_polylines(tpms, Vec3d::Constant(frequency), tpms_sampling_bbox(bbox, cell), this->z, cell);
+}
 
 void FillTpmsFK::_fill_surface_single(const FillParams&              params,
                                       unsigned int                   thickness_layers,
@@ -156,6 +76,7 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
         return;
     }
 
+    const TpmsEquation tpms(equation(), Vec3d(params.tpms_scale.data()), params.tpms_rotation_x);
     auto infill_angle = float(this->angle + (CorrectionAngle * 2 * M_PI) / 360.);
     if (std::abs(infill_angle) >= EPSILON)
         expolygon.rotate(-infill_angle);
@@ -168,15 +89,11 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
     bbox.offset(scale_((params.multiline + 1) * spacing));
     Polylines polylines;
     if (params.adaptive_infill_mode != AdaptiveInfillMode::Disabled && this->adaptive_infill_field != nullptr) {
-        polylines = make_adaptive_tpms({equation(), 2. * PI / period(params.density), 2. * PI / period(params.adaptive_infill_interior_density),
+        polylines = make_adaptive_tpms({tpms, 2. * PI / period(params.density), 2. * PI / period(params.adaptive_infill_interior_density),
                                         params.adaptive_infill_gradient},
                                        *this->adaptive_infill_field, bbox, this->z, params.layer_height, spacing, infill_angle);
     } else {
-        const float field_period = period(params.density);
-        const float cell         = trace_cell(field_period);
-        marchsq::ScalarField sf  = marchsq::ScalarField(bbox, this->z, field_period, equation(), cell);
-        // Simplify within an eighth of the grid cell, at most the sparse infill resolution.
-        polylines = marchsq::get_polylines(sf, scaled(std::min(SPARSE_INFILL_RESOLUTION, cell / 8.)));
+        polylines = make_layer(tpms, float(2 * PI) / float(period(params.density)), bbox);
     }
 
     // Apply multiline offset if needed

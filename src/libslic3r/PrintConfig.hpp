@@ -1527,6 +1527,10 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Orca:
     ((ConfigOptionFloatOrPercent,                infill_combination_max_layer_height))
     ((ConfigOptionInt,                  fill_multiline))
+    ((ConfigOptionFloat,                tpms_scale_x))
+    ((ConfigOptionFloat,                tpms_scale_y))
+    ((ConfigOptionFloat,                tpms_scale_z))
+    ((ConfigOptionFloat,                tpms_rotation_x))
     ((ConfigOptionEnum<AdaptiveInfillMode>, adaptive_infill_mode))
     ((ConfigOptionPercent,              adaptive_infill_interior_density))
     ((ConfigOptionEnum<AdaptiveInfillGradient>, adaptive_infill_gradient))

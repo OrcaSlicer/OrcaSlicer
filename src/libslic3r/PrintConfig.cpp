@@ -3870,6 +3870,47 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Octagram Spiral"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
 
+    def = this->add("tpms_scale_x", coFloat);
+    def->label = L("TPMS X scale");
+    def->category = L("Strength");
+    def->tooltip = L("Stretches the TPMS cells along the X axis of the pattern, which is the X axis of the bed at an infill "
+                     "direction of 45 degrees. Values above 1 make the cells longer and the infill sparser.");
+    def->min = 0.1;
+    def->max = 10;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(1.));
+
+    def = this->add("tpms_scale_y", coFloat);
+    def->label = L("TPMS Y scale");
+    def->category = L("Strength");
+    def->tooltip = L("Stretches the TPMS cells along the Y axis of the pattern, which is the Y axis of the bed at an infill "
+                     "direction of 45 degrees. Values above 1 make the cells longer and the infill sparser.");
+    def->min = 0.1;
+    def->max = 10;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(1.));
+
+    def = this->add("tpms_scale_z", coFloat);
+    def->label = L("TPMS Z scale");
+    def->category = L("Strength");
+    def->tooltip = L("Stretches the TPMS cells along the Z axis. Values above 1 make the cells taller, values below 1 make "
+                     "them flatter.");
+    def->min = 0.1;
+    def->max = 10;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(1.));
+
+    def = this->add("tpms_rotation_x", coFloat);
+    def->label = L("TPMS X rotation");
+    def->category = L("Strength");
+    def->tooltip = L("Turns the TPMS cells around the X axis of the pattern after the TPMS scale stretches them, tilting them "
+                     "away from the vertical.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min = -90;
+    def->max = 90;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
     def = this->add("sparse_infill_smooth_factor", coPercent);
     def->label = L("Sparse infill smooth factor");
     def->category = L("Strength");
