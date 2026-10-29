@@ -3010,13 +3010,15 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     m_config.enable_pressure_advance.get_at(column)) {
 
                     const std::string pa_model = m_config.adaptive_pressure_advance_model.get_at(column);
-                    if (!pa_model.empty()) {
-                        std::string validation_error = AdaptivePAProcessor::validate_adaptive_pa_model(pa_model);
-                        if (!validation_error.empty()) {
-                            warn(L("The Adaptive Pressure Advance model for one or more extruders may contain invalid values."),
-                                 "adaptive_pressure_advance_model");
-                            break;
-                        }
+                    if (!AdaptivePAProcessor::adaptive_pa_model_has_measurements(pa_model)) {
+                        warn(L("Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."),
+                             "adaptive_pressure_advance_model");
+                        break;
+                    }
+                    if (!AdaptivePAProcessor::validate_adaptive_pa_model(pa_model).empty()) {
+                        warn(L("The Adaptive Pressure Advance model for one or more extruders may contain invalid values."),
+                             "adaptive_pressure_advance_model");
+                        break;
                     }
                 }
             }

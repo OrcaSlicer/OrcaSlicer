@@ -5,9 +5,12 @@
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
 #include "bambu_networking.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/miniz_extension.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -49,7 +52,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
+#include <miniz.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <openssl/tls1.h>
@@ -57,15 +62,18 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <cctype>
 #include <ios>
 #include <functional>
 #include <exception>
 #include <map>
 #include <string>
+#include <string_view>
 #include <mutex>
 #include <memory>
 #include <sstream>
+#include <regex>
 #include <set>
 #include <thread>
 #include <vector>
@@ -153,6 +161,117 @@ uint64_t steady_now_ms()
     return static_cast<uint64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
 }
+
+bool extract_plate_gcode(const std::string& archive_path, int plate_index, const boost::filesystem::path& gcode_path)
+{
+    static const std::regex plate_gcode(R"(Metadata/plate_\d+\.gcode)");
+
+    mz_zip_archive archive;
+    mz_zip_zero_struct(&archive);
+    if (!Slic3r::open_zip_reader(&archive, archive_path))
+        return false;
+
+    int index = mz_zip_reader_locate_file(&archive, (boost::format(GCODE_FILE_FORMAT) % plate_index).str().c_str(), nullptr, 0);
+    if (index < 0) {
+        int plates = 0;
+        for (mz_uint i = 0, n = mz_zip_reader_get_num_files(&archive); i < n; ++i) {
+            mz_zip_archive_file_stat stat;
+            if (mz_zip_reader_file_stat(&archive, i, &stat) && std::regex_match(stat.m_filename, plate_gcode)) {
+                index = int(i);
+                ++plates;
+            }
+        }
+        // Another plate's G-code would print the wrong part
+        if (plates != 1)
+            index = -1;
+    }
+    const bool extracted = index >= 0 && Slic3r::extract_zip_entry_to_file(&archive, mz_uint(index), gcode_path);
+    Slic3r::close_zip_reader(&archive);
+    return extracted;
+}
+
+// Klipper reads any uploaded file as G-code, so unless the printer prints 3MF, a .gcode.3mf bundle is uploaded as the
+// plate's G-code inside it.
+class UploadFile
+{
+public:
+    UploadFile(const std::string& path, const Slic3r::PrintParams& params, bool printer_accepts_3mf) : m_source(path), m_path(path)
+    {
+        if (!boost::iends_with(path, ".3mf"))
+            return;
+        if (printer_accepts_3mf) {
+            m_sends_bundle = true;
+            return;
+        }
+        m_path.clear();
+        m_failed = true;
+        boost::system::error_code ec;
+        const boost::filesystem::path temp_dir = boost::filesystem::temp_directory_path(ec);
+        const boost::filesystem::path name     = ec ? boost::filesystem::path() :
+                                                      boost::filesystem::unique_path("orca-upload-%%%%-%%%%-%%%%.gcode", ec);
+        if (ec) {
+            BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: no temp file to extract the plate G-code to: " << ec.message();
+            return;
+        }
+        m_extracted = temp_dir / name;
+        // plate_index is read only for a bundle, because the verify uploads leave it unset
+        if (!extract_plate_gcode(path, params.plate_index, m_extracted)) {
+            BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: no G-code for plate " << params.plate_index << " in " << path;
+            return;
+        }
+        m_path   = m_extracted.string();
+        m_failed = false;
+    }
+    ~UploadFile()
+    {
+        if (!m_extracted.empty()) {
+            boost::system::error_code ec;
+            boost::filesystem::remove(m_extracted, ec);
+        }
+    }
+    UploadFile(const UploadFile&)            = delete;
+    UploadFile& operator=(const UploadFile&) = delete;
+
+    // ok() is false when a bundle's plate G-code could not be extracted.
+    bool               ok() const { return !m_failed; }
+    const std::string& path() const { return m_path; }
+
+    std::string upload_name(std::string name) const
+    {
+        if (name.empty())
+            name = boost::filesystem::path(m_source).filename().string();
+        for (const char* extension : {".3mf", ".gcode"})
+            if (boost::iends_with(name, extension))
+                name.erase(name.size() - std::strlen(extension));
+        // Klipper's print start can't take # ; * or control characters, newer curl uploads " as %22, and / \ would make
+        // the name a path
+        std::replace_if(name.begin(), name.end(), [](char c) {
+            const auto byte = static_cast<unsigned char>(c);
+            return byte < 0x20 || byte == 0x7F || std::string_view("\"#;*/\\").find(c) != std::string_view::npos;
+        }, '_');
+        // A leading dot hides the file in Fluidd and Mainsail, and a leading space may be trimmed from the stored name
+        name.erase(0, name.find_first_not_of(". "));
+        // Printer file systems allow 255 bytes per name
+        const std::size_t max_stem = 255 - std::strlen(".gcode.3mf");
+        if (name.size() > max_stem) {
+            std::size_t cut = max_stem;
+            while (cut > 0 && (static_cast<unsigned char>(name[cut]) & 0xC0) == 0x80)
+                --cut;
+            name.resize(cut);
+        }
+        if (name.empty())
+            name = "print";
+        // A bundle is named .gcode.3mf, as the print host upload names it
+        return name + (m_sends_bundle ? ".gcode.3mf" : ".gcode");
+    }
+
+private:
+    std::string             m_source;
+    std::string             m_path;
+    boost::filesystem::path m_extracted;
+    bool                    m_sends_bundle = false;
+    bool                    m_failed       = false;
+};
 
 } // namespace
 
@@ -339,19 +458,13 @@ int MoonrakerPrinterAgent::start_send_gcode_to_sdcard(PrintParams      params,
     if (update_fn)
         update_fn(PrintingStageCreate, 0, _u8L("Preparing..."));
 
-    std::string filename = params.filename;
-    if (filename.empty()) {
-        filename = params.task_name;
+    UploadFile file(params.filename, params, accepts_3mf());
+    if (!file.ok()) {
+        return BAMBU_NETWORK_ERR_FILE_NOT_EXIST;
     }
-    if (!boost::iends_with(filename, ".gcode")) {
-        filename += ".gcode";
-    }
-
-    // Sanitize filename to prevent path traversal attacks
-    std::string safe_filename = sanitize_filename(filename);
 
     // Upload only, don't start print
-    if (!upload_gcode(params.filename, safe_filename, device_info.base_url, device_info.api_key, update_fn, cancel_fn)) {
+    if (!upload_gcode(file.path(), file.upload_name(params.project_name), device_info.base_url, device_info.api_key, update_fn, cancel_fn)) {
         return BAMBU_NETWORK_ERR_PRINT_SG_UPLOAD_FTP_FAILED;
     }
 
@@ -376,7 +489,6 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
         gcode_path = params.dst_file;
     }
 
-    // Check if file exists and has .gcode extension
     namespace fs = boost::filesystem;
     fs::path source_path(gcode_path);
     if (!fs::exists(source_path)) {
@@ -384,18 +496,17 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
         return BAMBU_NETWORK_ERR_FILE_NOT_EXIST;
     }
 
-    // Extract filename for upload (relative to gcodes root)
-    std::string upload_filename = source_path.filename().string();
-    if (!boost::iends_with(upload_filename, ".gcode")) {
-        upload_filename += ".gcode";
+    UploadFile file(gcode_path, params, accepts_3mf());
+    if (!file.ok()) {
+        return BAMBU_NETWORK_ERR_FILE_NOT_EXIST;
     }
-    // Sanitize filename to prevent path traversal attacks (extra safety)
-    upload_filename = sanitize_filename(upload_filename);
+
+    const std::string upload_filename = file.upload_name(params.project_name);
 
     // Upload file
     if (update_fn)
         update_fn(PrintingStageUpload, 0, _u8L("Uploading G-code..."));
-    if (!upload_gcode(gcode_path, upload_filename, device_info.base_url, device_info.api_key, update_fn, cancel_fn)) {
+    if (!upload_gcode(file.path(), upload_filename, device_info.base_url, device_info.api_key, update_fn, cancel_fn)) {
         return BAMBU_NETWORK_ERR_PRINT_LP_UPLOAD_FTP_FAILED;
     }
 
@@ -417,8 +528,15 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
 
 bool MoonrakerPrinterAgent::print_uploaded_file(const PrintParams& /*params*/, const std::string& filename)
 {
-    // Start print via gcode script (simpler than JSON-RPC)
-    return send_gcode_sync(device_info.dev_id, "SDCARD_PRINT_FILE FILENAME=" + filename);
+    // Start print via gcode script (simpler than JSON-RPC); quoted so spaces and apostrophes stay part of the name
+    return send_gcode_sync(device_info.dev_id, "SDCARD_PRINT_FILE FILENAME=\"" + filename + "\"");
+}
+
+bool MoonrakerPrinterAgent::accepts_3mf() const
+{
+    const PresetBundle*     bundle  = GUI::wxGetApp().preset_bundle;
+    const ConfigOptionBool* use_3mf = bundle ? bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("use_3mf") : nullptr;
+    return use_3mf != nullptr && use_3mf->value;
 }
 
 int MoonrakerPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
@@ -2460,9 +2578,8 @@ std::string MoonrakerPrinterAgent::sanitize_filename(const std::string& filename
     if (filename.empty()) {
         return "print.gcode";
     }
-    namespace fs = boost::filesystem;
-    fs::path    p(filename);
-    std::string basename = p.filename().string();
+    // boost's Windows path parsing would also split at ':', which printer file names may contain
+    const std::string basename = filename.substr(filename.find_last_of("/\\") + 1);
     if (basename.empty() || basename == "." || basename == "..") {
         return "print.gcode";
     }

@@ -1886,3 +1886,30 @@ TEST_CASE("Every listed filament override is nullable", "[Config]")
             CHECK(def.nullable);
     }
 }
+
+TEST_CASE("Entries of a list applied by index onto an empty list are copied", "[Config][Regression]")
+{
+    const std::vector<std::string> ids = GENERATE(std::vector<std::string>{"GFA00"}, std::vector<std::string>{"GFA00", "GFA01"});
+    DynamicPrintConfig edited;
+    edited.set_key_value("filament_ids", new ConfigOptionStrings(ids));
+    std::vector<std::string> keys;
+    for (size_t i = 0; i < ids.size(); ++i)
+        keys.push_back("filament_ids#" + std::to_string(i));
+
+    DynamicPrintConfig saved;
+    saved.set_key_value("filament_ids", new ConfigOptionStrings());
+    saved.apply_only(edited, keys);
+    CHECK(saved.option<ConfigOptionStrings>("filament_ids")->values == ids);
+}
+
+TEST_CASE("An empty list applied by index replaces the target list", "[Config][Regression]")
+{
+    DynamicPrintConfig saved;
+    saved.set_key_value("filament_ids", new ConfigOptionStrings());
+    DynamicPrintConfig edited;
+    SECTION("target has entries") { edited.set_key_value("filament_ids", new ConfigOptionStrings({"GFA00"})); }
+    SECTION("target lacks the option") {}
+
+    edited.apply_only(saved, {"filament_ids#0"});
+    CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());
+}
