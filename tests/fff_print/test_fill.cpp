@@ -2499,17 +2499,21 @@ TEST_CASE("TPMS X rotation turns the stretched cells around X by the right-hand 
     }
 }
 
-TEST_CASE("TPMS-D traced on the sampling grid follows its parametric waves", "[Fill]")
+TEST_CASE("TPMS-D and TPMS-P traced on the sampling grid follow their parametric lines", "[Fill]")
 {
-    // A turn too small to move the lines makes the filler trace the implicit equation instead of the waves.
+    // The parametric waves of TPMS-D are within 0.1 mm of the surface, the rings of TPMS-P within its trace tolerance.
+    const auto [pattern, tolerance] = GENERATE(table<InfillPattern, double>({{ipTpmsD, 0.15}, {ipTpmsP, 0.05}}));
+    CAPTURE(pattern);
+    // A turn too small to move the lines makes the filler trace the implicit equation instead.
     const Polygons inner = shrink(to_polygons(tpms_square()), scale_(3.));
-    for (const double z : {3.7, 5.1, 12.3}) {
+    // Layers of TPMS-P with its rings around (0, 0), around (PI, PI), and nearly touching at the saddles.
+    for (const double z : {3.7, 5.1, 12.3, 4.2}) {
         CAPTURE(z);
-        const Polylines waves  = tpms_fill(ipTpmsD, z, Vec3d::Ones());
-        const Polylines traced = tpms_fill(ipTpmsD, z, Vec3d::Ones(), 1e-9);
-        REQUIRE_FALSE(waves.empty());
-        CHECK(farthest_inside(waves, traced, inner) < 0.15);
-        CHECK(farthest_inside(traced, waves, inner) < 0.15);
+        const Polylines parametric = tpms_fill(pattern, z, Vec3d::Ones());
+        const Polylines traced     = tpms_fill(pattern, z, Vec3d::Ones(), 1e-9);
+        REQUIRE_FALSE(parametric.empty());
+        CHECK(farthest_inside(parametric, traced, inner) < tolerance);
+        CHECK(farthest_inside(traced, parametric, inner) < tolerance);
     }
 }
 
