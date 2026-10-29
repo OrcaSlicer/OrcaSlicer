@@ -6,6 +6,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/FilamentMixer.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -29,6 +30,7 @@
 #include <map>
 #include <set>
 #include <initializer_list>
+#include <string_view>
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/Preset.hpp"
@@ -3011,7 +3013,8 @@ void Tab::update_frequently_changed_parameters()
 
 //BBS: BBS new parameter list
 namespace {
-// Orca: groups of the sparse infill patterns, which filter its list. The first one shows them all.
+// Orca: groups of the sparse infill patterns, which filter its list. The first one shows them all, the second the
+// favorites picked in the preferences.
 struct SparseInfillPatternGroup
 {
     const char*                key;
@@ -3035,6 +3038,7 @@ const std::vector<SparseInfillPatternGroup>& sparse_infill_pattern_groups()
                                ipTpmsNeovius, ipTpmsFRD, ipTpmsLidinoid, ipTpmsSplitP};
     static const std::vector<SparseInfillPatternGroup> groups{
         {"group_all", L("All"), {}},
+        {"group_favorites", L("Favorites"), {}},
         {"group_basic_rectilinear", L("Basic Rectilinear"), basic_rectilinear},
         {"group_advanced_rectilinear", L("Advanced Rectilinear"), advanced_rectilinear},
         {"group_rectilinear", L("Rectilinear"), join({basic_rectilinear, advanced_rectilinear})},
@@ -3057,7 +3061,7 @@ Option sparse_infill_pattern_group_option()
     def.type    = coEnum;
     def.label   = L("Pattern group");
     def.tooltip = L("Shows only the patterns of a group in the sparse infill pattern list. The selected pattern stays in "
-                    "the list.");
+                    "the list. The patterns of Favorites are picked in the preferences.");
     for (const SparseInfillPatternGroup& group : sparse_infill_pattern_groups()) {
         def.enum_values.push_back(group.key);
         def.enum_labels.push_back(group.label);
@@ -3816,14 +3820,20 @@ void TabPrint::filter_sparse_infill_patterns()
     const ConfigOption* current_opt = m_config->option("sparse_infill_pattern");
     if (current_opt == nullptr)
         return;
-    const ConfigOptionDef*   def      = print_config_def.get("sparse_infill_pattern");
-    const auto&              patterns = sparse_infill_pattern_groups()[m_sparse_infill_pattern_group].patterns;
-    const int                current  = current_opt->getInt();
+    const ConfigOptionDef*          def   = print_config_def.get("sparse_infill_pattern");
+    const SparseInfillPatternGroup& group = sparse_infill_pattern_groups()[m_sparse_infill_pattern_group];
+    const bool                      all   = std::string_view(group.key) == "group_all";
+    std::vector<int>                patterns(group.patterns.begin(), group.patterns.end());
+    if (std::string_view(group.key) == "group_favorites")
+        for (const std::string& key : wxGetApp().app_config->get_favorite_sparse_infill_patterns())
+            if (const auto it = def->enum_keys_map->find(key); it != def->enum_keys_map->end())
+                patterns.push_back(it->second);
+    const int current = current_opt->getInt();
     std::vector<std::string> values;
     std::vector<std::string> labels;
     for (size_t i = 0; i < def->enum_values.size(); ++i) {
         const int pattern = def->enum_keys_map->at(def->enum_values[i]);
-        if (patterns.empty() || pattern == current || std::find(patterns.begin(), patterns.end(), pattern) != patterns.end()) {
+        if (all || pattern == current || std::find(patterns.begin(), patterns.end(), pattern) != patterns.end()) {
             values.push_back(def->enum_values[i]);
             labels.push_back(def->enum_labels[i]);
         }
