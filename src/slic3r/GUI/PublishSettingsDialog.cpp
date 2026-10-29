@@ -946,6 +946,17 @@ void PublishSettingsDialog::build_option_model()
             row.id.keys.push_back(m.publish_key);
             row.options.push_back(m.option);
         }
+        // A row whose control is an action (a colour picker, a plugin dialog, a device picker) is
+        // not a value the author publishes per key, so it carries no publish checkbox.
+        row.publishable = std::none_of(row.options.begin(), row.options.end(), [](const RowOption& option) {
+            switch (option.def.gui_type) {
+            case ConfigOptionDef::GUIType::color:
+            case ConfigOptionDef::GUIType::plugin_picker:
+            case ConfigOptionDef::GUIType::plugin_config:
+            case ConfigOptionDef::GUIType::printer_agent_select: return true;
+            default: return false;
+            }
+        });
         // The first option's value and unit name the row in the filter.
         wxString       label;
         const RowOption& first = row.options.front();
@@ -1328,8 +1339,9 @@ void PublishSettingsDialog::build_option_model()
     };
     for (size_t r = 0; r < m_rows.size(); ++r) {
         Row& row = m_rows[r];
-        // The Color/Type requirement rows are not "dirty overrides": never auto-checked.
-        if (row.id.kind != Slic3r::PublishRowKind::Key)
+        // The Color/Type requirement rows are not "dirty overrides": never auto-checked. Neither
+        // is a row whose control is an action, which has no publish checkbox to check.
+        if (row.id.kind != Slic3r::PublishRowKind::Key || !row.publishable)
             continue;
         const std::string& row_key = row.id.keys.front();
         // A row is one publish unit, so any of its keys being modified marks the whole row.
@@ -1705,6 +1717,8 @@ size_t PublishSettingsDialog::add_row(Row row, size_t category_index, size_t sub
     const size_t row_index = m_rows.size();
     m_rows.push_back(std::move(row));
     m_row_ids.push_back(m_rows.back().id);
+    if (!m_rows.back().publishable)
+        m_selection.set_enabled(m_rows.back().id, false);
     category.rows.push_back(row_index);
     category.subs[subcategory_index].rows.push_back(row_index);
     return row_index;
@@ -1772,7 +1786,8 @@ void PublishSettingsDialog::build_row_groups(size_t category_index)
 
             for (size_t o = 1; o < row.options.size(); ++o)
                 line.append_option(make_option(row.options[o]));
-            line.row_toggle = RowToggle();
+            if (row.publishable)
+                line.row_toggle = RowToggle();
             group->append_line(line);
         }
 
@@ -1938,7 +1953,7 @@ void PublishSettingsDialog::set_row_checked(size_t row_index, bool checked)
 void PublishSettingsDialog::set_row_enabled(size_t row_index, bool enabled)
 {
     Row& row = m_rows[row_index];
-    m_selection.set_enabled(row.id, enabled);
+    m_selection.set_enabled(row.id, enabled && row.publishable);
     sync_row_widgets(row_index);
 }
 

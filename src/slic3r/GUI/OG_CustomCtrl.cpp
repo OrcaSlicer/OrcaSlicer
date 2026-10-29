@@ -857,8 +857,12 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
 
     bool suppress_hyperlinks = false;
     if (draw_just_act_buttons) {
+        // A full-width row (a G-code block) has no label column, so its toggle opens the row and
+        // the editor keeps its own band below.
+        if (og_line.row_toggle)
+            draw_row_toggle(dc, wxPoint(h_pos, v_pos), /*at_row_start=*/true);
         //BBS: GUI refactor
-        if (field && field->undo_bitmap()) {
+        else if (field && field->undo_bitmap()) {
             // if (field)
             //  BBS: new layout
             const wxPoint pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), field->undo_to_sys_bitmap()->bmp(),

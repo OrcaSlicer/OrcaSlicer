@@ -119,6 +119,7 @@ private:
         size_t                outer_index{0};
         size_t                inner_index{0};
         size_t                sub_index{0}; // the Subcategory that draws this row
+        bool                  publishable{true};      // false for a row whose control is an action
         bool                  dirty{false};          // matches a dirty base key: pre-checked
         bool                  matches_filter{false}; // survives the active filter
     };
