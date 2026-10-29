@@ -13,6 +13,12 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Utils.hpp"
+#include <boost/filesystem/path.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
+#include <tuple>
 
 using namespace Slic3r;
 
@@ -113,3 +119,39 @@ TEST_CASE("PA pattern resets the extruder after the final layer in absolute E mo
     REQUIRE(state.max_e > 1.);
     REQUIRE_THAT(state.final_e, Catch::Matchers::WithinAbs(0., 1e-9));
 }
+
+TEST_CASE("Ironing flow marks use the smallest step that keeps them 10 mm apart", "[Calib]")
+{
+    // min flow, max flow, band length, expected step (0 when even 20% marks are closer than 10 mm)
+    const auto [min_flow, max_flow, length, step] = GENERATE(table<double, double, double, double>({
+        {10., 60., 100., 5.},
+        {0., 10., 100., 1.},
+        {0., 100., 100., 10.},
+        {0., 100., 50., 20.},
+        {0., 100., 40., 0.},
+    }));
+    CAPTURE(min_flow, max_flow, length);
+    CHECK_THAT(ironing_flow_calib_mark_step(min_flow, max_flow, length), Catch::Matchers::WithinAbs(step, 1e-9));
+}
+
+TEST_CASE("Ironing flow test mesh is a closed plate with the band and its side strips", "[Calib]")
+{
+    // The text needs the font in resources/fonts.
+    const std::string previous = resources_dir();
+    set_resources_dir(boost::filesystem::path(PROFILES_DIR).parent_path().string());
+
+    const double length = 100.;
+    const double top_z  = 0.68;
+    const indexed_triangle_set its = ironing_flow_calib_mesh(10., 60., length, "Generic PLA", 0.4, 0.32, 0.56, top_z);
+    set_resources_dir(previous);
+
+    const BoundingBoxf3 bb = bounding_box(its);
+    // The band plus 5 mm at each end.
+    CHECK_THAT(bb.size().x(), Catch::Matchers::WithinAbs(length + 10., 1e-3));
+    CHECK_THAT(bb.min.z(), Catch::Matchers::WithinAbs(0., 1e-6));
+    CHECK_THAT(bb.max.z(), Catch::Matchers::WithinAbs(top_z, 1e-6));
+    // The marks and the name lie in front of the band.
+    CHECK(bb.min.y() < -10.);
+    CHECK(its_num_open_edges(its) == 0);
+}
+
