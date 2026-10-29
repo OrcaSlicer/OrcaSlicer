@@ -18,6 +18,8 @@ add_executable(${_TEST_NAME}_tests
     test_gcode_preview_colors.cpp
     # The reduced toolpath set's end bands, from libvgcode's layer table.
     test_libvgcode_layers.cpp
+    # The vertex that stands for a role when the solid model takes the toolpaths' colours.
+    test_libvgcode_sampling.cpp
     test_device_progress.cpp
     test_device_manager_integration.cpp
     test_web_media_controller.cpp

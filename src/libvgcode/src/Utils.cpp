@@ -9,6 +9,10 @@
 #include "../include/Types.hpp"
 #include <vector>
 #include <cstdint>
+#include <algorithm>
+#include <cstddef>
+#include <numeric>
+#include <utility>
 
 namespace libvgcode {
 
@@ -67,5 +71,23 @@ Vec3 operator * (float f, const Vec3& v) {
     return { f * v[0], f * v[1], f * v[2] };
 }
 
-} // namespace libvgcode
+std::size_t weighted_median_index(const std::vector<std::pair<float, float>>& samples)
+{
+    std::vector<std::size_t> order(samples.size());
+    std::iota(order.begin(), order.end(), std::size_t(0));
+    std::stable_sort(order.begin(), order.end(), [&samples](std::size_t a, std::size_t b) { return samples[a].first < samples[b].first; });
+    double total = 0.0;
+    for (const std::pair<float, float>& sample : samples)
+        total += std::max(sample.second, 0.0f);
+    if (total <= 0.0)
+        return order.empty() ? samples.size() : order[order.size() / 2];
+    double sum = 0.0;
+    for (std::size_t id : order) {
+        sum += std::max(samples[id].second, 0.0f);
+        if (sum >= 0.5 * total)
+            return id;
+    }
+    return order.back();
+}
 
+} // namespace libvgcode

@@ -84,11 +84,14 @@ cut out.
 The solid stands in for the toolpaths, so it wears their colours. In the views that colour by
 filament (Summary, Filament, Tool) each body keeps the filament colour its shell was loaded with.
 In every other view `GCodeViewer::update_solid_model_colors()` samples the toolpaths through
-`Viewer::get_vertex_color()`: the body takes the colour of the first outer wall vertex in the top
-band's lowest layer, each cap that of the first infill vertex in the layer it is cut under, sparse
-infill before solid, and the prime tower that of its own role. One vertex stands for the role, so a
-view that grades the toolpaths shows the solid in the first grade printed there. The colours are
-resolved when a drag starts and when the view type or the bands change, not per frame.
+`Viewer::get_vertex_color()`: the body takes the outer wall's colour over the layers the solid
+stands for, each cap the infill's in the layer it is cut under, sparse infill before solid, and
+the prime tower its own role's. One vertex stands for the role, chosen by
+`Viewer::find_extrusion_vertex()`: in a view that grades the toolpaths by a value, the
+length-weighted median of that value over the role's extrusions in up to eight layers spread over
+the interval, so that neither the acceleration ramp a wall starts on nor one layer with the fan
+turned up sets the colour of the whole body; in any other view the first extrusion found. The
+colours are resolved when a drag starts and when the view type or the bands change, not per frame.
 
 A plate whose shells are not loaded keeps drawing toolpaths, since the solid model would leave
 only the end bands. So does a print whose layers do not rise in height from one to the next, as

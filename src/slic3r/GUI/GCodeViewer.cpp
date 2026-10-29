@@ -3713,9 +3713,10 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
 // The solid stands in for the toolpaths, so it takes their colours in the view that colours them
 // by something other than the filament: the body the outer wall's, each cap the infill's of the
 // layer it is cut under, sparse if the layer has any, else solid, and the tower its own role's.
-// The views that colour by filament leave every body its own colour. Each colour is that of the
-// first vertex of the role in the layer, so a view that grades the toolpaths, by speed or height,
-// shows the solid in the first grade printed there.
+// The views that colour by filament leave every body its own colour. The body and the tower are
+// sampled over the layers the solid stands for and each cap in its own layer, each colour that of
+// the vertex the viewer picks to represent the role there, so a view that grades the toolpaths,
+// by speed or fan, shows the solid in the grade most of that role was printed at.
 void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_layers)
 {
     SolidModelColors& colors = m_solid_model_colors;
@@ -3730,9 +3731,9 @@ void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_lay
         return;
 
     using Role = libvgcode::EGCodeExtrusionRole;
-    auto sample = [this](size_t layer_id, std::initializer_list<Role> roles) -> std::optional<ColorRGBA> {
+    auto sample = [this](const libvgcode::Interval& layers, std::initializer_list<Role> roles) -> std::optional<ColorRGBA> {
         for (Role role : roles) {
-            const size_t id = m_viewer.find_extrusion_vertex(layer_id, role);
+            const size_t id = m_viewer.find_extrusion_vertex(layers, role);
             if (id < m_viewer.get_vertices_count())
                 return libvgcode::convert(m_viewer.get_vertex_color(m_viewer.get_vertex_at(id)));
         }
@@ -3741,12 +3742,10 @@ void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_lay
     const std::initializer_list<Role> walls = { Role::ExternalPerimeter, Role::Perimeter, Role::OverhangPerimeter };
     const std::initializer_list<Role> infill = { Role::InternalInfill, Role::SolidInfill, Role::TopSolidInfill, Role::BottomSurface,
                                                  Role::BridgeInfill, Role::InternalBridgeInfill, Role::Ironing };
-    colors.body = sample(whole_layers[1], walls);
-    if (!colors.body.has_value())
-        colors.body = sample(whole_layers[0], walls);
-    colors.tower = sample(whole_layers[1], { Role::WipeTower });
+    colors.body = sample(whole_layers, walls);
+    colors.tower = sample(whole_layers, { Role::WipeTower });
     for (size_t k = 0; k < 2; ++k) {
-        colors.caps[k] = sample(whole_layers[k], infill);
+        colors.caps[k] = sample({ whole_layers[k], whole_layers[k] }, infill);
         if (!colors.caps[k].has_value())
             colors.caps[k] = colors.body;
     }
