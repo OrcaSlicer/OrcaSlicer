@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <map>
+#include <optional>
+#include <set>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -158,6 +160,84 @@ std::vector<PublishedMaterialEntry> PublishSelection::material_entries(const std
             out.push_back(std::move(entry));
     }
     return out;
+}
+
+// The key whose index names the write address: a variant-bearing key when the row has one, else
+// the first key, which is then addressed whole.
+static const std::string *publish_address_key(const std::vector<std::string> &keys)
+{
+    for (const std::string &key : keys)
+        if (publish_key_index(key) >= 0)
+            return &key;
+    return keys.empty() ? nullptr : &keys.front();
+}
+
+// A scalar option is addressed whole (index 0); a vector option only by an element it holds, so a
+// short config yields no address rather than a clamped index.
+static bool publish_addressable(const DynamicPrintConfig &config, const std::string &key, int index)
+{
+    const ConfigOption *option = config.option(publish_base_key(key));
+    if (option == nullptr)
+        return false;
+    const auto *values = dynamic_cast<const ConfigOptionVectorBase *>(option);
+    return values == nullptr ? index <= 0 : index >= 0 && size_t(index) < values->size();
+}
+
+PublishWriteLocation publish_write_location(const PublishRowId &row,
+                                            const DynamicPrintConfig &uncompacted,
+                                            const DynamicPrintConfig &resolved,
+                                            bool full_owner)
+{
+    PublishWriteLocation location;
+    // A Color/Type requirement row carries no config key: nothing to write.
+    if (row.keys.empty() || row.kind != PublishRowKind::Key)
+        return location;
+
+    // A mixed definition is a project-level per-slot array, not a preset key.
+    const std::set<std::string> &mixed_keys = publish_mixed_keys();
+    for (const std::string &key : row.keys)
+        if (mixed_keys.count(publish_base_key(key)) != 0) {
+            location.target = PublishWriteTarget::Project;
+            return location;
+        }
+
+    if (row.section == PublishSection::Material) {
+        // Full Publish copies the whole preset; its rows are not written one by one.
+        if (row.owner < 0 || full_owner)
+            return location;
+        size_t local = 0;
+        if (row.column >= 0) {
+            // The 7.1.1 fallback column is the value the printer forces, not the author's choice.
+            const PublishResolvedColumn resolved_column = publish_resolved_column(uncompacted, size_t(row.owner));
+            if (!resolved_column.exact && resolved_column.file_column == std::optional<size_t>(size_t(row.column)))
+                return location;
+            // The preset stores one element per variant of its own, so a file column has to be
+            // translated; a column the slot does not define has no local index.
+            const std::vector<size_t> columns = publish_filament_columns(uncompacted, size_t(row.owner));
+            const auto found = std::find(columns.begin(), columns.end(), size_t(row.column));
+            if (found == columns.end())
+                return location;
+            local = size_t(found - columns.begin());
+        }
+        const std::string *key = publish_address_key(row.keys);
+        if (key == nullptr || !publish_addressable(resolved, *key, int(local)))
+            return location;
+        location.target       = PublishWriteTarget::FilamentPreset;
+        location.owner        = row.owner;
+        location.option_index = local;
+        return location;
+    }
+
+    const std::string *key = publish_address_key(row.keys);
+    if (key == nullptr)
+        return location;
+    const int index = publish_key_index(*key);
+    if (!publish_addressable(uncompacted, *key, index))
+        return location;
+    location.target = row.section == PublishSection::Printer ? PublishWriteTarget::PrinterPreset :
+                                                              PublishWriteTarget::ProcessPreset;
+    location.option_index = index < 0 ? 0 : size_t(index);
+    return location;
 }
 
 std::vector<unsigned int> publish_mixed_components(const DynamicPrintConfig &project, size_t slot)

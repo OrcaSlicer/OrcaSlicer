@@ -82,6 +82,31 @@ DynamicPrintConfig make_extruder_target(const std::string &id_key, const std::st
     return target;
 }
 
+// Two slots on the same two-variant filament preset: file columns 0 and 1 belong to slot 0, 2 and
+// 3 to slot 1, so a slot's local variant index is not its file column.
+DynamicPrintConfig make_shared_variant_config()
+{
+    DynamicPrintConfig config = make_variant_config();
+    config.option<ConfigOptionInts>("filament_self_index", true)->values          = { 1, 1, 2, 2 };
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive Standard",
+                                                                                     "Direct Drive High Flow",
+                                                                                     "Direct Drive Standard",
+                                                                                     "Direct Drive High Flow" };
+    config.option<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.9, 1.0, 1.1, 1.2 };
+    return config;
+}
+
+// One filament preset config: a variant-bearing key carries one element per variant of that preset,
+// every other filament key one element.
+DynamicPrintConfig make_filament_preset_config(size_t variants)
+{
+    DynamicPrintConfig config;
+    config.set_key_value("filament_retraction_length", new ConfigOptionFloatsNullable(std::vector<double>(variants, 0.9)));
+    config.set_key_value("fan_min_speed", new ConfigOptionFloats(std::vector<double>(variants, 50.0)));
+    config.set_key_value("filament_cost", new ConfigOptionFloats({ 20.0 }));
+    return config;
+}
+
 } // namespace
 
 TEST_CASE("Slot columns follow filament_self_index for uneven variant counts", "[PublishSettings]")
@@ -1130,4 +1155,180 @@ TEST_CASE("A loaded bundle's variant keys keep their per-column values in the un
     REQUIRE(preset_length != nullptr);
     check_double_vector(overridden_length->values, { 1.1, 1.2 });
     check_double_vector(preset_length->values, { 0.8, 0.9 });
+}
+
+TEST_CASE("A material variant row resolves to its slot's preset and local variant index", "[PublishSettings]")
+{
+    const DynamicPrintConfig uncompacted = make_shared_variant_config();
+    const DynamicPrintConfig preset      = make_filament_preset_config(2);
+
+    // Slot 0 owns file columns 0 and 1, which are also its local indices.
+    const PublishWriteLocation slot0_high = publish_write_location(
+        make_publish_row({ "filament_retraction_length#1" }, PublishSection::Material, 0, 1), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(slot0_high.target == PublishWriteTarget::FilamentPreset);
+    CHECK(slot0_high.owner == 0);
+    CHECK(slot0_high.option_index == 1);
+
+    // Slot 1 shares the preset but owns file columns 2 and 3: its rows address its own variants,
+    // never the file column.
+    const PublishWriteLocation slot1_low = publish_write_location(
+        make_publish_row({ "filament_retraction_length#2" }, PublishSection::Material, 1, 2), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(slot1_low.target == PublishWriteTarget::FilamentPreset);
+    CHECK(slot1_low.owner == 1);
+    CHECK(slot1_low.option_index == 0);
+
+    const PublishWriteLocation slot1_high = publish_write_location(
+        make_publish_row({ "filament_retraction_length#3" }, PublishSection::Material, 1, 3), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(slot1_high.target == PublishWriteTarget::FilamentPreset);
+    CHECK(slot1_high.owner == 1);
+    CHECK(slot1_high.option_index == 1);
+
+    // A column no slot defines is no address, not a clamped one.
+    const PublishWriteLocation beyond = publish_write_location(
+        make_publish_row({ "filament_retraction_length#4" }, PublishSection::Material, 1, 4), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(beyond.target == PublishWriteTarget::None);
+}
+
+TEST_CASE("A slot-level material row resolves to the first option index", "[PublishSettings]")
+{
+    const DynamicPrintConfig uncompacted = make_shared_variant_config();
+    const DynamicPrintConfig preset      = make_filament_preset_config(2);
+
+    const PublishWriteLocation location = publish_write_location(
+        make_publish_row({ "filament_cost" }, PublishSection::Material, 1, -1), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(location.target == PublishWriteTarget::FilamentPreset);
+    CHECK(location.owner == 1);
+    CHECK(location.option_index == 0);
+
+    // A key the target preset does not carry has no address.
+    const PublishWriteLocation missing = publish_write_location(
+        make_publish_row({ "filament_flow_ratio" }, PublishSection::Material, 1, -1), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(missing.target == PublishWriteTarget::None);
+}
+
+TEST_CASE("A merged material row resolves from its variant key", "[PublishSettings]")
+{
+    // A Filament row mixes a variant-bearing key with a per-slot key; the variant key carries the
+    // column, so neither the plain key nor the file column decides the index.
+    const DynamicPrintConfig uncompacted = make_shared_variant_config();
+    const DynamicPrintConfig preset      = make_filament_preset_config(2);
+
+    const PublishWriteLocation location = publish_write_location(
+        make_publish_row({ "fan_min_speed#3", "filament_cost" }, PublishSection::Material, 1, 3), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(location.target == PublishWriteTarget::FilamentPreset);
+    CHECK(location.owner == 1);
+    CHECK(location.option_index == 1);
+}
+
+TEST_CASE("A printer row resolves to the edited printer preset and its column", "[PublishSettings]")
+{
+    DynamicPrintConfig uncompacted = make_variant_config();
+    uncompacted.option<ConfigOptionFloats>("retraction_length", true)->values = { 0.8, 0.9 };
+    const DynamicPrintConfig preset; // printer rows address the printer preset, not the owner's
+
+    const PublishWriteLocation location = publish_write_location(
+        make_publish_row({ "retraction_length#1" }, PublishSection::Printer, -1, 1), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(location.target == PublishWriteTarget::PrinterPreset);
+    CHECK(location.owner == -1);
+    CHECK(location.option_index == 1);
+
+    // A column the config does not hold is no address, not a clamped one.
+    const PublishWriteLocation beyond = publish_write_location(
+        make_publish_row({ "retraction_length#2" }, PublishSection::Printer, -1, 2), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(beyond.target == PublishWriteTarget::None);
+}
+
+TEST_CASE("A process row resolves to the edited print preset and its column", "[PublishSettings]")
+{
+    DynamicPrintConfig uncompacted = make_variant_config();
+    uncompacted.option<ConfigOptionFloats>("outer_wall_speed", true)->values = { 200.0, 150.0 };
+    const DynamicPrintConfig preset; // process rows address the print preset
+
+    const PublishWriteLocation location = publish_write_location(
+        make_publish_row({ "outer_wall_speed#1" }, PublishSection::Process, -1, 1), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(location.target == PublishWriteTarget::ProcessPreset);
+    CHECK(location.owner == -1);
+    CHECK(location.option_index == 1);
+
+    // A value with no per-column dimension is addressed whole.
+    const PublishWriteLocation scalar = publish_write_location(
+        make_publish_row({ "layer_height" }, PublishSection::Process, -1, -1), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(scalar.target == PublishWriteTarget::ProcessPreset);
+    CHECK(scalar.option_index == 0);
+}
+
+TEST_CASE("A Full Publish row has no write target", "[PublishSettings]")
+{
+    const DynamicPrintConfig uncompacted = make_shared_variant_config();
+    const DynamicPrintConfig preset      = make_filament_preset_config(2);
+
+    // The owner's whole preset publishes; its per-key rows are not written one by one.
+    const PublishWriteLocation location = publish_write_location(
+        make_publish_row({ "filament_retraction_length#3" }, PublishSection::Material, 1, 3), uncompacted, preset,
+        /*full_owner=*/true);
+    CHECK(location.target == PublishWriteTarget::None);
+    CHECK(location.owner == -1);
+}
+
+TEST_CASE("A requirement row has no write target", "[PublishSettings]")
+{
+    const DynamicPrintConfig uncompacted = make_shared_variant_config();
+    const DynamicPrintConfig preset      = make_filament_preset_config(2);
+
+    // Color and Type rows carry no config key of their own.
+    CHECK(publish_write_location(make_publish_row({}, PublishSection::Material, 0, -1, PublishRowKind::Type),
+                                 uncompacted, preset, /*full_owner=*/false)
+              .target == PublishWriteTarget::None);
+    CHECK(publish_write_location(make_publish_row({}, PublishSection::Material, 0, -1, PublishRowKind::Color),
+                                 uncompacted, preset, /*full_owner=*/false)
+              .target == PublishWriteTarget::None);
+}
+
+TEST_CASE("A row whose column falls back to the first variant has no write target", "[PublishSettings]")
+{
+    DynamicPrintConfig uncompacted = make_variant_config();
+    uncompacted.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = { int(nvtHighFlow) };
+
+    // Slot 1 defines Standard only, so the file carries its first column as a fallback.
+    const PublishResolvedColumn resolved = publish_resolved_column(uncompacted, 1);
+    REQUIRE_FALSE(resolved.exact);
+    REQUIRE(resolved.file_column == std::optional<size_t>(2));
+
+    const DynamicPrintConfig slot1_preset = make_filament_preset_config(1);
+    const PublishWriteLocation fallback   = publish_write_location(
+        make_publish_row({ "filament_retraction_length#2" }, PublishSection::Material, 1, 2), uncompacted, slot1_preset,
+        /*full_owner=*/false);
+    CHECK(fallback.target == PublishWriteTarget::None);
+
+    // Slot 0 defines the variant the printer needs, so its own row stays writable.
+    const DynamicPrintConfig slot0_preset = make_filament_preset_config(2);
+    const PublishWriteLocation exact      = publish_write_location(
+        make_publish_row({ "filament_retraction_length#1" }, PublishSection::Material, 0, 1), uncompacted, slot0_preset,
+        /*full_owner=*/false);
+    CHECK(exact.target == PublishWriteTarget::FilamentPreset);
+    CHECK(exact.owner == 0);
+    CHECK(exact.option_index == 1);
+}
+
+TEST_CASE("A mixed definition key resolves to the project config", "[PublishSettings]")
+{
+    const DynamicPrintConfig uncompacted = make_shared_variant_config();
+    const DynamicPrintConfig preset; // mixed keys are project arrays, not preset keys
+
+    const PublishWriteLocation location = publish_write_location(
+        make_publish_row({ "filament_mixed_components", "filament_mixed_gradient" }, PublishSection::Material, 0, -1),
+        uncompacted, preset, /*full_owner=*/false);
+    CHECK(location.target == PublishWriteTarget::Project);
+    CHECK(location.owner == -1);
 }

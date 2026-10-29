@@ -74,6 +74,35 @@ private:
     std::map<int, bool> m_full;
 };
 
+// Where an edit to a publish row has to be written so the project's real presets carry it (spec
+// 7.10). `owner` is the filament slot for FilamentPreset, -1 otherwise. `option_index` is the index
+// in the target preset's vector for the row's key: a material row's local variant index, the
+// column of a "base#N" printer or process row, and 0 for a value that has no per-column dimension.
+enum class PublishWriteTarget { None, FilamentPreset, PrinterPreset, ProcessPreset, Project };
+
+struct PublishWriteLocation
+{
+    PublishWriteTarget target { PublishWriteTarget::None };
+    int                owner { -1 };
+    size_t             option_index { 0 };
+};
+
+// Where an edit to `row` must be written. `uncompacted` is the full config the dialog was built
+// from (full_config(false)): it holds the file column layout, the per-key vector widths and the
+// 7.1.1 fallback resolution. `resolved` is the owner's own resolved config (Preset::config), the
+// preset the edit lands in, so it bounds the local variant index; pass the same inputs the dialog
+// has. `full_owner` is true when the row's owner has Full Publish.
+//
+// None for a row with no writable owner: no keys, a Color/Type requirement row, a Full Publish
+// material owner, a material row whose column is the 7.1.1 fallback, and any key the target preset
+// cannot address at that index. A mixed definition key resolves to Project. A material
+// "base#column" row resolves to its slot's filament preset at the local variant index of that file
+// column (not the file column itself); a material row without a column resolves to index 0.
+PublishWriteLocation publish_write_location(const PublishRowId &row,
+                                            const DynamicPrintConfig &uncompacted,
+                                            const DynamicPrintConfig &resolved,
+                                            bool full_owner);
+
 // Component slots (1-based, as the config stores them) of a mixed filament; empty when the
 // project config names none for that slot.
 std::vector<unsigned int> publish_mixed_components(const DynamicPrintConfig &project, size_t slot);
