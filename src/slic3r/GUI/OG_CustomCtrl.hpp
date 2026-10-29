@@ -56,6 +56,9 @@ class OG_CustomCtrl :public wxPanel
     wxSize  m_bmp_blinking_sz;
 
     ScalableBitmap m_bmp_multi_extruder; // ORCA multi extruder icon drawn on left margin for variant options
+    // Breathing room between the row toggle and the neighbour it shares a row with, derived from
+    // the same em unit as every other gap here.
+    int     toggle_gap() const { return m_em_unit * 3 / 5; }
     // Row toggle bitmaps, the same ones ::CheckBox paints; built on first use.
     ScalableBitmap m_bmp_check_on;
     ScalableBitmap m_bmp_check_off;

@@ -211,7 +211,10 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             if (opt_group->label_width != 0)
                 add_label_width(ctrl_line, label, opt_group->label_width * m_em_unit);
 
-            int blinking_button_width = m_bmp_blinking_sz.GetWidth() + m_h_gap;
+            const int blinking_button_width = m_bmp_blinking_sz.GetWidth() + m_h_gap;
+            // A row toggle keeps its own space from the value or unit beside it; a Tab row has no
+            // toggle and keeps the act slot's exact width.
+            const int act_slot_width = blinking_button_width + (line.row_toggle ? toggle_gap() : 0);
 
             if (line.widget) {
 #ifndef DISABLE_BLINKING
@@ -230,7 +233,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             }
 
             if (opt_group->option_label_at_right) // BBS: position buttons at right
-                add_buttons_width(blinking_button_width);
+                add_buttons_width(act_slot_width);
 
             // If we have a single option with no sidetext
             const std::vector<Option>& option_set = line.get_options();
@@ -274,7 +277,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
                 } else {
                     // BBS: new layout
                     h_pos += field->getWindow()->GetSize().x;
-                    add_buttons_width(blinking_button_width);
+                    add_buttons_width(act_slot_width);
                     if (option_set.size() == 1 && option_set.front().opt.full_width)
                         break;
 
@@ -933,7 +936,7 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
     auto draw_buttons = [&h_pos, &dc, &v_pos, &toggle_drawn, this](Field* field, size_t bmp_rect_id = 0) {
         if (og_line.row_toggle) {
             if (toggle_drawn)
-                h_pos += ctrl->m_bmp_blinking_sz.GetWidth() + ctrl->m_h_gap;
+                h_pos += ctrl->m_bmp_blinking_sz.GetWidth() + ctrl->m_h_gap + ctrl->toggle_gap();
             else {
                 h_pos        = draw_row_toggle(dc, wxPoint(h_pos, v_pos)).x;
                 toggle_drawn = true;
@@ -1138,17 +1141,20 @@ wxPoint OG_CustomCtrl::CtrlLine::draw_row_toggle(wxDC& dc, wxPoint pos)
     else
         bmp = toggle->checked ? &ctrl->m_bmp_check_on : &ctrl->m_bmp_check_off;
 
-    // Same x and vertical centring draw_act_bmps uses for the undo icon.
-    const wxCoord h_pos  = pos.x - ctrl->m_h_gap;
+    // Same vertical centring draw_act_bmps uses for the undo icon. The toggle's own gap sits
+    // between the box and whatever it shares the row with: before the box when the value comes
+    // first (Printer, Filament), after it when the box comes first (Process).
+    const int     gap    = ctrl->toggle_gap();
+    const wxCoord h_pos  = pos.x - ctrl->m_h_gap + (ctrl->opt_group->option_label_at_right ? 0 : gap);
     const wxSize  bmp_sz = get_bitmap_size(bmp->bmp());
     const wxCoord v_pos  = pos.y + lround((height - bmp_sz.GetHeight()) / 2);
     rect_row_toggle      = wxRect(h_pos, v_pos, bmp_sz.GetWidth(), bmp_sz.GetHeight());
 
     dc.DrawBitmap(bmp->bmp(), h_pos, v_pos);
 
-    // Keep the value and unit columns where the act slot already puts them: get_pos() reserves a
-    // blank_16 plus one h_gap, so the toggle advances by that, not by its own bitmap width.
-    return wxPoint(pos.x + ctrl->m_bmp_blinking_sz.GetWidth() + ctrl->m_h_gap, pos.y);
+    // Keep the value and unit columns where get_pos() reserves them: the act slot plus the gap
+    // the toggle asked for, not its own bitmap width.
+    return wxPoint(pos.x + ctrl->m_bmp_blinking_sz.GetWidth() + ctrl->m_h_gap + gap, pos.y);
 }
 
 void OG_CustomCtrl::init_row_toggle_bitmaps()
