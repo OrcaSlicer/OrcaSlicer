@@ -927,9 +927,17 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         }
     };
 
-    auto draw_buttons = [&h_pos, &dc, &v_pos, this](Field* field, size_t bmp_rect_id = 0) {
+    // One toggle per row: the first option carries it (the first sub-row on a split page), and the
+    // options after it advance by the same slot width without painting another box.
+    bool toggle_drawn = false;
+    auto draw_buttons = [&h_pos, &dc, &v_pos, &toggle_drawn, this](Field* field, size_t bmp_rect_id = 0) {
         if (og_line.row_toggle) {
-            h_pos = draw_row_toggle(dc, wxPoint(h_pos, v_pos)).x;
+            if (toggle_drawn)
+                h_pos += ctrl->m_bmp_blinking_sz.GetWidth() + ctrl->m_h_gap;
+            else {
+                h_pos        = draw_row_toggle(dc, wxPoint(h_pos, v_pos)).x;
+                toggle_drawn = true;
+            }
             return;
         }
         if (field && field->undo_to_sys_bitmap()) {

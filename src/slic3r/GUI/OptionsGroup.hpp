@@ -249,6 +249,9 @@ public:
 
 	inline void		enable() { for (auto& field : m_fields) field.second->enable(); }
     inline void		disable() { for (auto& field : m_fields) field.second->disable(); }
+	// Stops the group's field edits from reaching its config (the committed-change path) without
+	// changing how the rows paint. For read-only views of a config the caller owns.
+	void			set_readonly(bool readonly) { m_disabled = readonly; }
 	void			set_grid_vgap(int gap) { m_grid_sizer->SetVGap(gap); }
 
     void            clear_fields_except_of(const std::vector<std::string> left_fields);
