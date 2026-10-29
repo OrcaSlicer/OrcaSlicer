@@ -9,8 +9,10 @@ Neovius, Lidinoid and Split P print triply periodic minimal surfaces.
 `sparse_infill_scale_x`, `sparse_infill_scale_y` and `sparse_infill_scale_z`
 stretch their cells along the axes of the pattern, and `sparse_infill_rotation_x`
 then turns them around its X axis. `is_adaptive_infill_pattern()` lists these
-patterns, the only ones the scale and rotation apply to; they only reach their
-sparse infill, so they split no other fills.
+patterns, the only ones the scale and rotation apply to besides the Z scale of
+Cubic, Quarter Cubic, Cross Hatch and 3D Honeycomb, which divides the height
+they draw a layer at. They only reach the sparse infill, so they split no other
+fills.
 
 `FillTpms` fills them all. A table in `FillTpms.cpp` holds what sets each
 pattern apart: its equation, its density calibration and cap, whether its cells

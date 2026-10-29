@@ -3381,7 +3381,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
         // Same z shifted lines as the single-line cubic; the slanted ones cross tau above the horizontal ones.
         auto pos_mod = [](double a, double m) { const double r = std::fmod(a, m); return r < 0. ? r + m : r; };
         const double h     = 0.5 * std::sqrt(3.0) * period;
-        const double shift = scale_(std::sqrt(0.5) * this->z);
+        const double shift = scale_(std::sqrt(0.5) * this->z / params.sparse_infill_scale[2]);
         const double tau   = pos_mod(-3. * shift, h);
         const double y0    = pos_mod(-2. * shift, 2. * h);
 
@@ -3608,7 +3608,7 @@ Polylines FillCubic::fill_surface(const Surface *surface, const FillParams &para
             BOOST_LOG_TRIVIAL(error) << "FillCubic::fill_surface_trapezoidal() failed.";
         return polylines_out;
     }
-    coordf_t dx = sqrt(0.5) * z;
+    coordf_t dx = sqrt(0.5) * z / params.sparse_infill_scale[2];
     if (! this->fill_surface_by_multilines(
             surface, params, 
             { { 0.f, float(dx) }, { float(M_PI / 3.), - float(dx) }, { float(M_PI * 2. / 3.), float(dx) } },
@@ -3627,7 +3627,7 @@ Polylines FillQuarterCubic::fill_surface(const Surface* surface, const FillParam
 
     // First half tetrahedral fill
     double  pattern_z_shift = 0.0;
-    coord_t shift = coord_t(one_div_root_two * (scale_(z) + pattern_z_shift * period * 2)) % period;
+    coord_t shift = coord_t(one_div_root_two * (scale_(z / params.sparse_infill_scale[2]) + pattern_z_shift * period * 2)) % period;
     shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
     shift = std::min(shift, period / 2 - line_width / 2); // don't put lines too close to each other
     shift = std::max(shift, line_width / 2);              // don't put lines too close to each other
@@ -3635,7 +3635,7 @@ Polylines FillQuarterCubic::fill_surface(const Surface* surface, const FillParam
 
     // Second half tetrahedral fill
     pattern_z_shift = 0.5;
-    shift = coord_t(one_div_root_two * (scale_(z) + pattern_z_shift * period * 2)) % period;
+    shift = coord_t(one_div_root_two * (scale_(z / params.sparse_infill_scale[2]) + pattern_z_shift * period * 2)) % period;
     shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
     shift = std::min(shift, period / 2 - line_width / 2); // don't put lines too close to each other
     shift = std::max(shift, line_width / 2);              // don't put lines too close to each other

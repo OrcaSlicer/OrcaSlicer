@@ -2464,6 +2464,37 @@ TEST_CASE("The sparse infill Z scale stretches the TPMS cells along Z", "[Fill]"
     }
 }
 
+TEST_CASE("The sparse infill Z scale stretches the patterns that change with the height", "[Fill]")
+{
+    const InfillPattern pattern = GENERATE(ipCubic, ipQuarterCubic, ipCrossHatch, ip3DHoneycomb);
+    CAPTURE(pattern);
+    // Cells twice as tall repeat the layers of the regular cells at twice the height, in layers twice as thick.
+    auto fill = [pattern](double z, double layer_height, double scale_z) {
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        filler->spacing = 0.45;
+        filler->angle   = float(M_PI / 4.);
+        filler->z       = z;
+        filler->set_bounding_box(get_extents(tpms_square()));
+        FillParams params;
+        params.density             = 0.2f;
+        params.layer_height        = layer_height;
+        params.dont_adjust         = true;
+        params.sparse_infill_scale = {1., 1., scale_z};
+        Surface surface(stInternal, tpms_square());
+        return filler->fill_surface(&surface, params);
+    };
+    // Cross Hatch repeats one layer over a range of heights, so only some layers change.
+    bool changed = false;
+    for (const double z : {3.7, 5.1, 12.3}) {
+        CAPTURE(z);
+        const Polylines regular = fill(z, 0.2, 1.);
+        REQUIRE_FALSE(regular.empty());
+        CHECK(fill(2. * z, 0.4, 2.) == regular);
+        changed |= fill(z, 0.2, 2.) != regular;
+    }
+    CHECK(changed);
+}
+
 TEST_CASE("The sparse infill X and Y scales stretch the TPMS cells across the layers", "[Fill]")
 {
     const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP, ipTpmsIWP, ipTpmsNeovius, ipTpmsFRD, ipTpmsLidinoid, ipTpmsSplitP);

@@ -846,8 +846,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_adaptive_infill_pattern = have_infill && config->option<ConfigOptionPercent>("sparse_infill_density")->value < 100 &&
                             is_adaptive_infill_pattern(pattern);
     const wxString tpms_reason = _L("Select Gyroid or a TPMS sparse infill pattern with nonzero sparse infill density to use this setting.");
-    for (auto el : {"sparse_infill_scale_x", "sparse_infill_scale_y", "sparse_infill_scale_z", "sparse_infill_rotation_x"})
+    for (auto el : {"sparse_infill_scale_x", "sparse_infill_scale_y", "sparse_infill_rotation_x"})
         toggle_line(el, have_infill && is_adaptive_infill_pattern(pattern), -1, tpms_reason);
+    toggle_line("sparse_infill_scale_z", have_infill && is_z_scaled_infill_pattern(pattern), -1,
+                _L("Select Gyroid, a TPMS, Cubic, Quarter Cubic, Cross Hatch or 3D Honeycomb sparse infill pattern with nonzero sparse infill density to use this setting."));
 
     toggle_line("adaptive_infill_mode", have_adaptive_infill_pattern, -1, _L("Select Gyroid or a TPMS sparse infill pattern with sparse infill density greater than zero and less than 100%."));
     bool have_adaptive_infill = have_adaptive_infill_pattern && config->opt_enum<AdaptiveInfillMode>("adaptive_infill_mode") != AdaptiveInfillMode::Disabled;
