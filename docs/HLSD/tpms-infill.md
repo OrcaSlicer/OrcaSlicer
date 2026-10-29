@@ -62,9 +62,9 @@ A layer comes from one of three generators:
   solved from their equations; the scale and the turn only send a layer to
   marching squares.
 - The density calibration of each pattern makes its sparse infill print the
-  volume of its density: measured on the layers from 10 to 90 mm of a 100 mm
-  cube with the anchors off, at densities from 15% to 90%, the volume of the
-  sparse infill over the volume of its regions is the density within 2%. For
+  weight of its density: a 100 mm cube of infill alone, with no walls, shells,
+  anchors or infill/wall overlap, weighs its density times the weight of the
+  solid cube, within 0.4% on average and 1.5% at any density from 15% to 90%. For
   the patterns other than Gyroid and TPMS-D the calibration is 2 PI over a period
   factor. Stretching the cells along X or Y changes the line length per area
   (twice along both prints half of it); along Z it barely does.

@@ -501,14 +501,14 @@ struct FillTpms::Surface
 // layers of the surface over that of TPMS-FK.
 static const FillTpms::Surface surfaces[] = {
     {ipGyroid, gyroid, FillTpms::GyroidDensityAdjust, 1.f, false, true, gyroid_waves},
-    {ipTpmsD, schwarz_d, 2.073, 1.f, false, true, tpms_d_waves},
-    {ipTpmsFK, fischer_koch, 2. * PI / 4.233, 0.9f, true, false, nullptr},
+    {ipTpmsD, schwarz_d, 2.081, 1.f, false, true, tpms_d_waves},
+    {ipTpmsFK, fischer_koch, 2. * PI / 4.225, 0.9f, true, false, nullptr},
     {ipTpmsP, schwarz_p, 2. * PI / 1.840, 0.9f, true, false, tpms_p_rings},
-    {ipTpmsIWP, schoen_iwp, 2. * PI / 2.735, 0.9f, true, false, nullptr},
-    {ipTpmsNeovius, neovius, 2. * PI / 2.662, 0.9f, true, false, nullptr},
+    {ipTpmsIWP, schoen_iwp, 2. * PI / 2.731, 0.9f, true, false, nullptr},
+    {ipTpmsNeovius, neovius, 2. * PI / 2.660, 0.9f, true, false, nullptr},
     {ipTpmsFRD, schoen_frd, 2. * PI / 3.680, 0.9f, true, false, nullptr},
-    {ipTpmsLidinoid, lidinoid, 2. * PI / 4.840, 0.9f, true, false, nullptr},
-    {ipTpmsSplitP, split_p, 2. * PI / 3.972, 0.9f, true, false, nullptr},
+    {ipTpmsLidinoid, lidinoid, 2. * PI / 4.828, 0.9f, true, false, nullptr},
+    {ipTpmsSplitP, split_p, 2. * PI / 3.965, 0.9f, true, false, nullptr},
 };
 
 FillTpms::FillTpms(InfillPattern pattern)
