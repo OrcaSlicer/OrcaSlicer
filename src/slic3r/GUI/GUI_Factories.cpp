@@ -1189,7 +1189,8 @@ void MenuFactory::append_menu_item_change_extruder(wxMenu* menu)
 void MenuFactory::append_menu_item_scale_selection_to_fit_print_volume(wxMenu* menu)
 {
     append_menu_item(menu, wxID_ANY, _L("Scale to build volume"), _L("Scale an object to fit the build volume"),
-        [](wxCommandEvent&) { plater()->scale_selection_to_fit_print_volume(); }, "", menu);
+        [](wxCommandEvent&) { plater()->scale_selection_to_fit_print_volume(); }, "", menu,
+        []() { return plater()->can_scale_to_print_volume(); }, m_parent);
 }
 
 void MenuFactory::append_menu_items_flush_options(wxMenu* menu, size_t pos)
@@ -2394,7 +2395,7 @@ void MenuFactory::append_menu_item_simplify(wxMenu* menu)
 void MenuFactory::append_menu_item_smooth_mesh(wxMenu *menu)
 {
     wxMenuItem *menu_item = append_menu_item(
-        menu, wxID_ANY, _L("Subdivision mesh (Lost color)"), "", [](wxCommandEvent &) { obj_list()->smooth_mesh(); }, "", menu, []() { return plater()->can_smooth_mesh(); },
+        menu, wxID_ANY, _L("Subdivision mesh"), "", [](wxCommandEvent &) { obj_list()->smooth_mesh(); }, "", menu, []() { return plater()->can_smooth_mesh(); },
         m_parent);
 }
 

@@ -124,19 +124,24 @@ jobs:
               return;
             }
 
-            try {
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pr.number,
-                labels: ['Localization']
-              });
-              core.info('Applied Localization label.');
-            } catch (error) {
-              if (isPermissionDenied(error)) {
-                core.warning('Cannot add Localization label because token cannot write.');
-              } else {
-                throw error;
+            // The label marks translation-only PRs: every changed file is a .po or .pot catalog
+            if (!files.every((file) => /\.pot?$/.test(file.filename))) {
+              core.info('Files other than .po/.pot catalogs changed; skipping Localization label.');
+            } else {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  labels: ['Localization']
+                });
+                core.info('Applied Localization label.');
+              } catch (error) {
+                if (isPermissionDenied(error)) {
+                  core.warning('Cannot add Localization label because token cannot write.');
+                } else {
+                  throw error;
+                }
               }
             }
 

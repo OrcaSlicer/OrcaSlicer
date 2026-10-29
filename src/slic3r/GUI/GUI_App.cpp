@@ -2420,6 +2420,10 @@ void GUI_App::init_networking_callbacks()
                     if (is_closing()) {
                         return;
                     }
+                    // Orca: ends the connect a selection started; with the selection logs this shows
+                    // whether a later selection landed while that connect was in flight.
+                    BOOST_LOG_TRIVIAL(info) << "local connect result: dev_id=" << dev_id << ", state=" << state
+                                            << ", msg=" << msg;
                     /* request_pushing */
                     MachineObject* obj = m_device_manager->get_my_machine(dev_id);
                     wxCommandEvent event(EVT_CONNECT_LAN_MODE_PRINT);
@@ -4308,7 +4312,11 @@ void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
     // a standalone helper. Pass nullptr to clear the selection.
     if (DeviceManager* dev = getDeviceManager())
     {
+        // why: the swap tears the connection down, it is not the user leaving that printer, so it
+        // stays remembered under the outgoing agent and reconnects when that agent is live again
+        const std::string last_machine = dev->get_user_last_machine();
         dev->set_selected_machine(""); // why: empty id disconnects and deselects the current machine
+        dev->record_user_last_machine(last_machine);
         m_agent->set_user_selected_machine("");
         // note: belt-and-suspenders (precedent: DeviceManagerRefresher::on_timer)
         dev->OnSelectedMachineLost(); // why: clear stale sidebar sync-status / AMS
@@ -4430,14 +4438,17 @@ void GUI_App::switch_printer_agent_if_pending()
 
 void GUI_App::select_machine(const std::string& agent_id)
 {
-    // Skip for BBL agent for now - uses its own device discovery/selection
-    // Orca todo: revisit in future if we want to support auto-switching for BBL printers
-    if (agent_id == BBL_PRINTER_AGENT_ID) {
+    if (!m_device_manager || !preset_bundle) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no device manager or preset bundle";
         return;
     }
 
-    if (!m_device_manager || !preset_bundle) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no device manager or preset bundle";
+    // Orca: Bambu printers are not tied to the preset's print_host. Reconnect the one the user last
+    // selected, as BambuStudio does at startup: a saved LAN printer now, a cloud printer once the
+    // account's machine list arrives. Directly, not through the Device tab's selection flow, which
+    // would also queue a nozzle sync for the next visit to Prepare.
+    if (agent_id == BBL_PRINTER_AGENT_ID) {
+        m_device_manager->restore_last_machine();
         return;
     }
 

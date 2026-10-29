@@ -9,6 +9,7 @@
 #include "AdaptivePAProcessor.hpp"
 #include <memory>
 #include <cstddef>
+#include <cstdlib>
 #include <regex>
 #include <iosfwd>
 #include <algorithm>
@@ -329,6 +330,25 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
     return output.str();
 }
 
+// The model line with the whitespace around each comma-separated value removed.
+static std::string trim_adaptive_pa_model_fields(const std::string& line)
+{
+    std::string trimmed;
+    std::istringstream line_stream(line);
+    std::string field;
+    bool first = true;
+    while (std::getline(line_stream, field, ',')) {
+        const auto begin = field.find_first_not_of(" \t\r");
+        const auto end   = field.find_last_not_of(" \t\r");
+        if (!first)
+            trimmed += ',';
+        if (begin != std::string::npos)
+            trimmed += field.substr(begin, end - begin + 1);
+        first = false;
+    }
+    return trimmed;
+}
+
 std::string AdaptivePAProcessor::validate_adaptive_pa_model(const std::string& model_str)
 {
     if (model_str.empty())
@@ -341,14 +361,11 @@ std::string AdaptivePAProcessor::validate_adaptive_pa_model(const std::string& m
     while (std::getline(model_stream, line)) {
         ++line_number;
         
-        // Trim whitespace
-        const auto first = line.find_first_not_of(" \t\r\n");
-        if (first == std::string::npos)
+        // Whitespace around each value is ignored, as std::stod ignores it when the model is parsed
+        line = trim_adaptive_pa_model_fields(line);
+        if (line.empty())
             continue; // Skip empty lines
-        
-        const auto last = line.find_last_not_of(" \t\r\n");
-        line = line.substr(first, last - first + 1);
-        
+
         // Only numbers, commas and dots are allowed (no letters or other characters)
         for (char c : line) {
             if (!std::isdigit(static_cast<unsigned char>(c)) && c != ',' && c != '.') {
@@ -402,6 +419,24 @@ std::string AdaptivePAProcessor::validate_adaptive_pa_model(const std::string& m
     }
     
     return {}; // All validations passed
+}
+
+bool AdaptivePAProcessor::adaptive_pa_model_has_measurements(const std::string& model_str)
+{
+    std::istringstream model_stream(model_str);
+    std::string line;
+    while (std::getline(model_stream, line)) {
+        std::istringstream line_stream(line);
+        std::string value;
+        while (std::getline(line_stream, value, ',')) {
+            // a field that is not a number is left to validate_adaptive_pa_model
+            char* end = nullptr;
+            const double number = std::strtod(value.c_str(), &end);
+            if (end != value.c_str() && number != 0.0)
+                return true;
+        }
+    }
+    return false;
 }
 
 } // namespace Slic3r
