@@ -1304,14 +1304,19 @@ void PublishSettingsDialog::build_option_model()
         }
     }
 
-    // Pre-check the dirty (modified) settings (per-slot match, across all sections;
-    // collect_dirty_settings_keys unions the prints, printers and filaments).
-    // Dirty keys carry a "#N" per-extruder/per-slot suffix (deep_diff), so the base key alone
-    // cannot distinguish which extruder/filament slot changed: match the row's exact key, and
-    // for material rows the base key plus the slot the row belongs to.
+    // Pre-check the dirty (modified) settings. Printer and process dirty keys already carry the
+    // column of their own preset, which is the file column, so an exact match is right for them.
+    // A filament preset's dirty keys carry its *local* variant index, and several slots routinely
+    // share one preset, so a material row resolves its own local index and only the slots that
+    // use the edited preset are pre-checked (spec 7.5).
     std::set<std::string> dirty_keys;
     for (const std::string& key : collect_dirty_settings_keys(*wxGetApp().preset_bundle))
         dirty_keys.insert(key);
+    const std::string edited_filament = bundle->filaments.get_selected_preset_name();
+    const auto*       mixed_flags     = full.opt<ConfigOptionBools>("filament_is_mixed");
+    auto slot_is_mixed = [mixed_flags](size_t slot) {
+        return mixed_flags != nullptr && slot < mixed_flags->size() && mixed_flags->values[slot];
+    };
     for (size_t r = 0; r < m_rows.size(); ++r) {
         Row& row = m_rows[r];
         // The Color/Type requirement rows are not "dirty overrides": never auto-checked.
@@ -1332,10 +1337,32 @@ void PublishSettingsDialog::build_option_model()
                 return key.compare(0, prefix.size(), prefix) == 0;
             });
         }
-        if (!dirty && row.id.section == Slic3r::PublishSection::Material && row.id.owner >= 0)
-            dirty = std::any_of(row.id.keys.begin(), row.id.keys.end(), [&](const std::string& key) {
-                return dirty_keys.count(publish_base_key(key) + "#" + std::to_string(row.id.owner)) != 0;
-            });
+        if (!dirty && row.id.section == Slic3r::PublishSection::Material && row.id.owner >= 0) {
+            const size_t slot = size_t(row.id.owner);
+            // A mixed slot's preset name is a copy of a component's, and it publishes no per-key
+            // rows, so it is never pre-checked from a filament's dirty keys.
+            const bool same_preset = slot < bundle->filament_presets.size() &&
+                                     bundle->filament_presets[slot] == edited_filament && !slot_is_mixed(slot);
+            if (same_preset) {
+                for (const std::string& key : row.id.keys) {
+                    const std::string base = publish_base_key(key);
+                    if (row.id.column >= 0) {
+                        const std::vector<size_t> columns = publish_filament_columns(uncompacted, slot);
+                        const auto it = std::find(columns.begin(), columns.end(), size_t(row.id.column));
+                        if (it == columns.end())
+                            continue;
+                        if (dirty_keys.count(base + "#" + std::to_string(it - columns.begin())) != 0) {
+                            dirty = true;
+                            break;
+                        }
+                    } else if (dirty_keys.count(base + "#0") != 0 || dirty_keys.count(base) != 0) {
+                        // A per-slot key holds one value in the preset, so its dirty index is 0.
+                        dirty = true;
+                        break;
+                    }
+                }
+            }
+        }
         row.dirty = dirty;
         if (row.dirty)
             set_row_checked(r, true);
