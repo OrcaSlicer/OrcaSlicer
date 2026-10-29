@@ -361,7 +361,21 @@ private:
     bool solid_model_enabled() const { return m_reduced_detail_mode == libvgcode::EReducedDetailMode::EndLayersOnly; }
     // whether no layer is lower than the one before, as the solid model's cut needs
     bool m_layers_z_rising{ true };
+    // the heights the solid model is cut at, unset where the toolpaths cover the whole range
+    std::optional<std::array<float, 2>> solid_model_z_range() const;
     void render_solid_model(int canvas_width, int canvas_height);
+    void render_solid_model_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix);
+    // ORCA: realistic view. The shadow map and light the canvas last passed on, which the solid
+    // model samples through its own shader as the toolpaths do through theirs.
+    struct ShadowMap
+    {
+        int         texture_unit{ 0 };
+        Transform3d light_view_projection{ Transform3d::Identity() };
+        float       intensity{ 0.0f };
+        float       texel_size{ 0.0f };
+    };
+    ShadowMap m_shadow_map;
+    Vec3d     m_light_top_dir{ Vec3d::Zero() };
     // The solid model's colours in the current view, sampled from the toolpaths when the view
     // colours them by something other than the filament; see update_solid_model_colors()
     struct SolidModelColors

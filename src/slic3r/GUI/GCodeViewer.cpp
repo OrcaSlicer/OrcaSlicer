@@ -2466,8 +2466,9 @@ size_t GCodeViewer::shadow_casters_signature() const
                           m_paths_bounding_box.max.x(), m_paths_bounding_box.max.y(), m_paths_bounding_box.max.z() })
         boost::hash_combine(hash, value);
     boost::hash_combine(hash, m_viewer.is_top_layer_only_view_range());
-    // the casters are drawn from the reduced set while dragging
+    // the casters are drawn from the reduced set while dragging, with the solid model in its mode
     boost::hash_combine(hash, m_viewer.is_reduced_detail());
+    boost::hash_combine(hash, static_cast<int>(m_reduced_detail_mode));
     for (size_t i = 0; i < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++i)
         boost::hash_combine(hash, m_viewer.is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole(i)));
     boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Travels));
@@ -2486,10 +2487,35 @@ void GCodeViewer::render_shadow_casters(const Transform3d& light_view_matrix, co
         libvgcode::convert(static_cast<Matrix4f>(light_view_matrix.matrix().cast<float>())),
         libvgcode::convert(static_cast<Matrix4f>(light_projection_matrix.matrix().cast<float>())),
         libvgcode::convert(static_cast<Vec3f>(light_position.cast<float>())));
+    if (m_viewer.is_reduced_detail() && solid_model_enabled())
+        render_solid_model_casters(light_view_matrix, light_projection_matrix);
+}
+
+// The solid casts as the toolpaths it stands in for would: the shells, cut at the same heights,
+// drawn depth-only into the shadow map the canvas has bound. The caps cast nothing of their own,
+// since from the light an open body's far wall closes its outline.
+void GCodeViewer::render_solid_model_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix)
+{
+    const std::optional<std::array<float, 2>> z_range = solid_model_z_range();
+    GLShaderProgram* shader = wxGetApp().get_shader("flat_clip");
+    if (m_shells.volumes.empty() || !z_range.has_value() || shader == nullptr)
+        return;
+    shader->start_using();
+    shader->set_uniform("projection_matrix", light_projection_matrix);
+    shader->set_uniform("clipping_plane", ClippingPlane::ClipsNothing().get_data());
+    shader->set_uniform("z_range", *z_range);
+    for (GLVolume* volume : m_shells.volumes.volumes) {
+        const Transform3d world_matrix = volume->world_matrix();
+        shader->set_uniform("volume_world_matrix", world_matrix);
+        shader->set_uniform("view_model_matrix", light_view_matrix * world_matrix);
+        volume->render();
+    }
+    shader->stop_using();
 }
 
 void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view_projection, float intensity, float texel_size)
 {
+    m_shadow_map = { texture_unit, light_view_projection, intensity, texel_size };
     m_viewer.set_shadow_map(texture_unit,
         libvgcode::convert(static_cast<Matrix4f>(light_view_projection.matrix().cast<float>())),
         intensity, texel_size);
@@ -2497,6 +2523,7 @@ void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view
 
 void GCodeViewer::set_light_top_dir(const Vec3d& direction)
 {
+    m_light_top_dir = direction;
     m_viewer.set_light_top_dir(libvgcode::convert(static_cast<Vec3f>(direction.cast<float>())));
 }
 
@@ -3549,6 +3576,29 @@ void GCodeViewer::render_shells(int canvas_width, int canvas_height)
 // The sliced objects and the prime tower drawn opaque, in their filament colours, cut to the
 // visible layer range by the shader's z range. The toolpaths of the range's bottom and top layers
 // are drawn afterwards and cap the cut.
+// The layers at the range's ends are drawn as toolpaths, so the solid runs from the top of the
+// bottom ones to the bottom of the top ones. A face of the model in either plane would otherwise
+// fight the toolpaths for the same pixels and flicker while dragging.
+// The layer heights are the toolpaths', which the printer's z offset is already taken out of, so
+// they are in the shells' frame as they are.
+// A layer with no extrusion has no height of its own; the nearest one below stands in for it.
+std::optional<std::array<float, 2>> GCodeViewer::solid_model_z_range() const
+{
+    auto layer_top = [this](size_t id) {
+        float z = m_viewer.get_layer_z(id);
+        while (z == 0.0f && id > 0)
+            z = m_viewer.get_layer_z(--id);
+        return z;
+    };
+    const libvgcode::Interval whole = m_viewer.get_reduced_detail_whole_layers();
+    const float z_top = (whole[1] > 0) ? layer_top(whole[1] - 1) - 0.001f : -FLT_MAX;
+    const float z_bottom = layer_top(whole[0]) + 0.001f;
+    // the toolpaths cover the whole range
+    if (z_top <= z_bottom)
+        return std::nullopt;
+    return std::array<float, 2>{ z_bottom, z_top };
+}
+
 void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
 {
     if (m_shells.volumes.empty())
@@ -3557,26 +3607,12 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     GLShaderProgram* shader = wxGetApp().get_shader("gouraud");
     if (shader == nullptr)
         return;
-
-    // The layers at the range's ends are drawn as toolpaths, so the solid runs from the top of the
-    // bottom ones to the bottom of the top ones. A face of the model in either plane would otherwise
-    // fight the toolpaths for the same pixels and flicker while dragging.
-    // The layer heights are the toolpaths', which the printer's z offset is already taken out of, so
-    // they are in the shells' frame as they are.
-    // A layer with no extrusion has no height of its own; the nearest one below stands in for it.
-    auto layer_top = [this](size_t id) {
-        float z = m_viewer.get_layer_z(id);
-        while (z == 0.0f && id > 0)
-            z = m_viewer.get_layer_z(--id);
-        return z;
-    };
+    const std::optional<std::array<float, 2>> z_range = solid_model_z_range();
+    if (!z_range.has_value())
+        return;
+    const auto [z_bottom, z_top] = *z_range;
     const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
     const libvgcode::Interval whole = m_viewer.get_reduced_detail_whole_layers();
-    const float z_top = (whole[1] > 0) ? layer_top(whole[1] - 1) - 0.001f : -FLT_MAX;
-    const float z_bottom = layer_top(whole[0]) + 0.001f;
-    // the toolpaths cover the whole range
-    if (z_top <= z_bottom)
-        return;
 
     // the volumes wear the solid's colours for the frame, over their own filament colours
     update_solid_model_colors(whole);
@@ -3604,8 +3640,15 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     m_shells.volumes.set_clipping_plane(ClippingPlane::ClipsNothing().get_data());
 
     shader->start_using();
-    // the 3D view leaves its shadow settings on the shared program
-    shader->set_uniform("shadow_intensity", 0.0f);
+    // The realistic view's shadow map, bound by the canvas for the toolpaths, shades the solid
+    // too, under the same light; both are off when the map is not there. The 3D view leaves its
+    // own settings on the shared program, so each is set here.
+    shader->set_uniform("shadow_map", m_shadow_map.texture_unit);
+    shader->set_uniform("shadow_light_vp", m_shadow_map.light_view_projection);
+    shader->set_uniform("shadow_map_texel", m_shadow_map.texel_size);
+    shader->set_uniform("shadow_intensity", m_shadow_map.intensity);
+    shader->set_uniform("use_static_light", true);
+    shader->set_uniform("static_light_dir", m_light_top_dir);
     const Camera& camera = wxGetApp().plater()->get_camera();
     shader->set_uniform("z_far", camera.get_far_z());
     shader->set_uniform("z_near", camera.get_near_z());
