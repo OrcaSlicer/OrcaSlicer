@@ -46,6 +46,8 @@ namespace Slic3r { namespace GUI {
 class ConfigOptionsGroup;
 class Line;
 class Page;
+class PublishParamsPanel;
+class Tab;
 
 struct PublishMaterialIdentity
 {
@@ -107,6 +109,9 @@ private:
     {
         Slic3r::PublishRowId  id;                  // publish-ready keys, owner, column, section, kind
         std::vector<RowOption> options;            // widget mapping, one per published key
+        // A hosted-tab row is drawn by the tab's own Line instead of a cloned one; the checkbox is
+        // attached to that line. Null on a cloned (printer, process, requirement) row.
+        Line*                 tab_line{nullptr};
         wxString              label;               // the source Line's label, for the filter
         wxString              label_en;            // untranslated label, for the cloned Line
         wxString              label_tooltip;       // the source Line's tooltip, copied verbatim
@@ -118,7 +123,7 @@ private:
         wxString              section_title;       // outer tab title, for filter matching
         size_t                outer_index{0};
         size_t                inner_index{0};
-        size_t                sub_index{0}; // the Subcategory that draws this row
+        size_t                sub_index{0}; // the Subcategory that draws this row; unused on a tab row
         bool                  publishable{true};      // false for a row whose control is an action
         bool                  dirty{false};          // matches a dirty base key: pre-checked
         bool                  matches_filter{false}; // survives the active filter
@@ -151,11 +156,10 @@ private:
         wxPanel* page{nullptr};
         wxScrolledWindow* scroll{nullptr};
         wxBoxSizer* list_sizer{nullptr};
-        // One sub-tab per Filament tab page, on material pages only. Their title is the source
-        // page's, so a page reads the same in the dialog as in the sidebar.
-        TabCtrl*             page_tabs{nullptr};
-        wxString             selected_page;
-        std::vector<wxString> page_order;
+        // A physical material slot's settings are the sidebar's own Filament tab, hosted above the
+        // requirement rows. Null on a mixed slot and on the printer/process pages.
+        PublishParamsPanel* publish_host{nullptr};
+        Tab*                publish_tab{nullptr};
         wxStaticText* info{nullptr};
         wxPoint scroll_pos{0, 0};
         wxStaticBitmap* filament_color_chip{nullptr};
@@ -174,13 +178,11 @@ private:
         // True for a mixed-color filament slot: no Material/Retraction rows; Enable publishes
         // the slot's gradient/ratio definition as a whole.
         bool is_mixed{false};
-        // The file column whose variant rows are shown; -1 when the owner has no variant layout.
-        // The variant switch sets it.
+        // The file column this slot prints with; -1 when the owner has no variant layout. The
+        // hosted tab's switch picks the shown column, with this as the fallback.
         int column{-1};
         // File columns the owner's preset defines, in preset order (empty without a layout).
         std::vector<size_t> columns;
-        // The owner's variant switch, when it has more than one variant.
-        MultiSwitchButton* variant_switch{nullptr};
         // The Q1 notice: this printer needs a variant the filament does not define.
         wxStaticText* variant_notice{nullptr};
 
@@ -294,12 +296,17 @@ private:
     // Appends one row to the model. Returns the row index. `id.keys` must already be
     // publish-ready and `options` must line up with it.
     size_t add_row(Row row, size_t category_index, size_t subcategory_index);
+    // Appends one row drawn by the hosted tab's own Line. Such a row belongs to no Subcategory.
+    size_t add_tab_row(Row row, size_t category_index);
     // Creates the ConfigOptionsGroup rows of one category, once. Safe to call repeatedly.
     void build_row_groups(size_t category_index);
-    // Fills a material page's sub-tab strip from its source pages, once the rows exist.
-    void build_page_tabs(size_t category_index);
-    // Adds the owner's variant switch when its preset defines more than one variant.
-    void setup_material_variant_switch(size_t category_index);
+    // Builds a physical slot's rows from its hosted Filament tab's lines, and attaches the publish
+    // checkbox to each line they came from.
+    void add_material_tab_rows(size_t category_index);
+    // The row of `line` shown for the variant the tab's switch currently selects, or -1.
+    size_t tab_row_for_line(size_t category_index, const Line* line) const;
+    // Whether the tab's own rules keep the row's line shown (its hide rules run natively).
+    bool tab_line_visible(const Tab& tab, const Row& row) const;
     // Whether a row belongs to the variant currently shown (slot-level rows always do).
     bool row_on_selected_variant(size_t row_index) const;
     // Pushes one row's model state into its line's row toggle, if the widgets exist.
