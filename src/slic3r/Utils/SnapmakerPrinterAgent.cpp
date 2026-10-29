@@ -205,9 +205,13 @@ std::string SnapmakerPrinterAgent::find_closest_color_preset_by_vendor_and_type(
 
     const std::string sub_wanted = normalize_fibre_sub_type(trim_and_upper(sub_type));
 
-    // The spool's own vendor first, with the sub type as a preference.
-    const std::string vendor_match = closest_preset_by_colour(filaments, vendor_name, filament_type, sub_wanted,
-                                                              /*require_sub=*/false, target_color_value);
+    // The spool's own vendor first, with the sub type as a preference. A tag that reports no vendor
+    // has none to match, and an empty vendor_name means "any vendor" to the helper, so skip this
+    // pass entirely rather than letting such a spool take the closest-coloured preset of any brand.
+    const std::string vendor_match = vendor_name.empty() ?
+                                         std::string() :
+                                         closest_preset_by_colour(filaments, vendor_name, filament_type, sub_wanted,
+                                                                  /*require_sub=*/false, target_color_value);
     if (!vendor_match.empty() || sub_wanted.empty())
         return vendor_match;
 

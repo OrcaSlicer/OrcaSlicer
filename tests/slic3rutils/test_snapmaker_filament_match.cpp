@@ -235,6 +235,21 @@ TEST_CASE("A spool from an unknown vendor still reaches its sub type", "[Snapmak
     CHECK(match(two_silks, "Polar Filament", "PLA", "Silk", "102030FF") == "SM-SILK");
 }
 
+// Orca: a tag that reports no vendor has none to match, so the vendor pass is skipped rather than
+// matching every vendor - a vendorless spool must not take the closest-coloured preset of any
+// brand. With no sub type either, it falls through to the caller's type-only lookup.
+TEST_CASE("A tag with no vendor does not match every vendor", "[Snapmaker]")
+{
+    const std::vector<FilamentSpec> library{
+        {"Generic PLA",      "PLA-GENERIC", "PLA", "Generic",   "#102030"},
+        {"Snapmaker PLA",    "SM-PLA",      "PLA", "Snapmaker", "#102030"},
+        {"Generic PLA Silk", "PLA-SILK",    "PLA", "Generic",   "#F0A0B0"},
+    };
+    CHECK(match(library, "", "PLA", "", "102030FF").empty());
+    // A vendorless tag that does name a sub type still reaches it through the second pass.
+    CHECK(match(library, "", "PLA", "Silk", "102030FF") == "PLA-SILK");
+}
+
 // Orca: the second pass only helps a sub type some profile actually carries. A brand word that
 // names no preset must not drag in an unrelated vendor's filament - the slot falls through to the
 // caller's type-only lookup, as it did before.
