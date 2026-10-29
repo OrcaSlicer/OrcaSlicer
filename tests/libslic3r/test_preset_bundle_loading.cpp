@@ -392,6 +392,151 @@ TEST_CASE("Printer extruder count tolerates missing nozzle diameter", "[Preset][
     CHECK(bundle.get_printer_extruder_count() == 2);
 }
 
+// A per-variant key that no profile in the chain sets keeps the length of the one-nozzle root. The
+// inherited printer must still have a value for every variant in its own variant list.
+TEST_CASE("An inherited printer's per-variant values cover every variant it lists", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path     root    = dir.path() / "profiles";
+    const fs::path     machine = root / "Acme" / "machine";
+    fs::create_directories(machine);
+    std::ofstream((root / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme",)"
+        << R"("machine_model_list":[{"name":"Acme One","sub_path":"machine/model.json"}],"machine_list":[)"
+        << R"({"name":"fdm_acme_root","sub_path":"machine/root.json"},)"
+        << R"({"name":"fdm_acme_common","sub_path":"machine/common.json"},)"
+        << R"({"name":"Acme Printer","sub_path":"machine/printer.json"}]})";
+    std::ofstream((machine / "model.json").string())
+        << R"({"type":"machine_model","name":"Acme One","nozzle_diameter":"0.4"})";
+    std::ofstream((machine / "root.json").string())
+        << R"({"type":"machine","name":"fdm_acme_root","from":"system","instantiation":"false","nozzle_diameter":["0.4"]})";
+    std::ofstream((machine / "common.json").string())
+        << R"({"type":"machine","name":"fdm_acme_common","from":"system","instantiation":"false","inherits":"fdm_acme_root",)"
+        << R"("nozzle_diameter":["0.4","0.4"],"extruder_type":["Direct Drive","Direct Drive"],)"
+        << R"("extruder_variant_list":["Direct Drive Standard,Direct Drive High Flow","Direct Drive Standard,Direct Drive High Flow"],)"
+        << R"("printer_extruder_id":["1","1","2","2"],)"
+        << R"("printer_extruder_variant":["Direct Drive Standard","Direct Drive High Flow","Direct Drive Standard","Direct Drive High Flow"]})";
+    std::ofstream((machine / "printer.json").string())
+        << R"({"type":"machine","name":"Acme Printer","from":"system","instantiation":"true","inherits":"fdm_acme_common",)"
+        << R"("printer_model":"Acme One","printer_variant":"0.4"})";
+
+    PresetBundle bundle;
+    REQUIRE_NOTHROW(bundle.load_vendor_configs_from_json(root.string(), "Acme", PresetBundle::LoadSystem,
+                                                         ForwardCompatibilitySubstitutionRule::EnableSilent));
+
+    const Preset *printer = bundle.printers.find_preset("Acme Printer");
+    REQUIRE(printer != nullptr);
+    const size_t variant_count = printer->config.option<ConfigOptionStrings>("printer_extruder_variant")->values.size();
+    REQUIRE(variant_count > 1);
+    CHECK(printer->config.option<ConfigOptionFloats>("travel_slope")->values.size() == variant_count);
+}
+
+namespace {
+// A receiver with the given extruder numbers and variant list. nozzles holds the NozzleVolumeType in use on each extruder.
+void set_receiver_layout(DynamicPrintConfig &printer, DynamicPrintConfig &project, const std::vector<int> &ids,
+                         const std::vector<std::string> &variants, const std::vector<int> &nozzles)
+{
+    printer.set_key_value("nozzle_diameter", new ConfigOptionFloats(std::vector<double>(nozzles.size(), 0.4)));
+    printer.set_key_value("extruder_type", new ConfigOptionEnumsGeneric(std::vector<int>(nozzles.size(), etDirectDrive)));
+    printer.set_key_value("printer_extruder_id", new ConfigOptionInts(ids));
+    printer.set_key_value("printer_extruder_variant", new ConfigOptionStrings(variants));
+    project.set_key_value("nozzle_volume_type", new ConfigOptionEnumsGeneric(nozzles));
+}
+
+const std::vector<std::string> h2c_variants = {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive E3D High Flow",
+                                               "Direct Drive Standard", "Direct Drive High Flow"};
+const std::vector<int> h2c_ids = {1, 1, 1, 2, 2};
+} // namespace
+
+// The author's right Standard nozzle (index 3) lands on the receiver's extruder 2, whichever index that
+// extruder has in the receiver's own layout.
+TEST_CASE("A published printer key lands on the receiver's extruder with the same number", "[Preset][Bundle]")
+{
+    DynamicPrintConfig printer, project;
+    set_receiver_layout(printer, project, {1, 1, 2, 2, 3, 3, 4, 4},
+                        {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow",
+                         "Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"},
+                        {nvtStandard, nvtStandard, nvtStandard, nvtStandard});
+    const PublishedExtruderLayout author{h2c_ids, h2c_variants};
+
+    CHECK(resolve_published_extruder_slot(author, 0, printer, project) == 0);
+    CHECK(resolve_published_extruder_slot(author, 3, printer, project) == 2);
+}
+
+TEST_CASE("A published printer key skips when the receiver's extruder runs the other nozzle type", "[Preset][Bundle]")
+{
+    DynamicPrintConfig printer, project;
+    set_receiver_layout(printer, project, {1, 1, 2, 2, 3, 3, 4, 4},
+                        {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow",
+                         "Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"},
+                        {nvtStandard, nvtHighFlow, nvtStandard, nvtStandard});
+    const PublishedExtruderLayout author{h2c_ids, h2c_variants};
+
+    CHECK(resolve_published_extruder_slot(author, 3, printer, project) == -1);
+    CHECK(resolve_published_extruder_slot(author, 4, printer, project) == 3);
+}
+
+TEST_CASE("A published printer key lands on the extruder with its own number on a one-variant-per-extruder receiver", "[Preset][Bundle]")
+{
+    DynamicPrintConfig printer, project;
+    set_receiver_layout(printer, project, {1, 2, 3, 4},
+                        {"Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard"},
+                        {nvtStandard, nvtStandard, nvtStandard, nvtStandard});
+    const PublishedExtruderLayout author{h2c_ids, h2c_variants};
+
+    CHECK(resolve_published_extruder_slot(author, 0, printer, project) == 0);
+    CHECK(resolve_published_extruder_slot(author, 3, printer, project) == 1);
+}
+
+TEST_CASE("A published printer key is skipped when the receiver has no extruder with its number", "[Preset][Bundle]")
+{
+    DynamicPrintConfig printer, project;
+    set_receiver_layout(printer, project, {1}, {"Direct Drive Standard"}, {nvtStandard});
+    const PublishedExtruderLayout author{h2c_ids, h2c_variants};
+
+    CHECK(resolve_published_extruder_slot(author, 0, printer, project) == 0);
+    CHECK(resolve_published_extruder_slot(author, 3, printer, project) == -1);
+}
+
+TEST_CASE("A published printer key is skipped when the receiver's extruder does not offer its nozzle type", "[Preset][Bundle]")
+{
+    DynamicPrintConfig printer, project;
+    set_receiver_layout(printer, project, {1, 1, 2, 2},
+                        {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"},
+                        {nvtStandard, nvtStandard});
+    const PublishedExtruderLayout author{h2c_ids, h2c_variants};
+
+    CHECK(resolve_published_extruder_slot(author, 2, printer, project) == -1);
+}
+
+// The process layout is resolved against the receiver's print_extruder_id / print_extruder_variant.
+TEST_CASE("A published process key lands on the receiver's extruder with the same number", "[Preset][Bundle]")
+{
+    DynamicPrintConfig printer, project, process;
+    set_receiver_layout(printer, project, {1, 2}, {"Direct Drive Standard", "Direct Drive Standard"}, {nvtStandard, nvtStandard});
+    process.set_key_value("print_extruder_id", new ConfigOptionInts({1, 1, 2, 2}));
+    process.set_key_value("print_extruder_variant",
+                          new ConfigOptionStrings({"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}));
+    const PublishedExtruderLayout author{{1, 1, 2, 2},
+                                         {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}};
+
+    CHECK(resolve_published_extruder_slot(author, 2, printer, project, process, "print_extruder_id", "print_extruder_variant") == 2);
+    CHECK(resolve_published_extruder_slot(author, 1, printer, project, process, "print_extruder_id", "print_extruder_variant") == -1);
+}
+
+TEST_CASE("A published process key is skipped when the receiver has no extruder with its number", "[Preset][Bundle]")
+{
+    DynamicPrintConfig printer, project, process;
+    set_receiver_layout(printer, project, {1}, {"Direct Drive Standard"}, {nvtStandard});
+    process.set_key_value("print_extruder_id", new ConfigOptionInts({1, 1, 2, 2}));
+    process.set_key_value("print_extruder_variant",
+                          new ConfigOptionStrings({"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}));
+    const PublishedExtruderLayout author{{1, 1, 2, 2},
+                                         {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}};
+
+    CHECK(resolve_published_extruder_slot(author, 2, printer, project, process, "print_extruder_id", "print_extruder_variant") == -1);
+}
+
 TEST_CASE("Reloading one local bundle preserves unrelated and modified presets", "[Preset][Bundle]")
 {
     using Catch::Matchers::WithinAbs;
@@ -5505,6 +5650,45 @@ TEST_CASE("Published 3MF overrides each extruder slot on a similar multi-extrude
         check_double_vector(bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values, { 0.6, 0.9, 0.7 });
         CHECK(pub.skipped_keys.empty());
     }
+}
+
+// Trays from printers that report a single colour per slot (Creality CFS via Moonraker) carry an
+// empty filament_multi_colour. An empty slot between loaded ones used to cut the multi-colour list
+// short, which crashed the filament combo; each loaded slot must instead fall back to its own colour.
+TEST_CASE("An empty AMS slot between loaded single-colour slots keeps every slot's colour", "[Preset][Bundle][AMS]")
+{
+    PresetBundle bundle;
+    bundle.set_num_filaments(4u, std::string("#111111"));
+    auto add_ams_slot = [&](int slot, const std::string& id, const std::string& colour, bool placeholder) {
+        DynamicPrintConfig config;
+        config.set_key_value("filament_id", new ConfigOptionStrings{id});
+        config.set_key_value("filament_colour", new ConfigOptionStrings{colour});
+        config.set_key_value("filament_colour_type", new ConfigOptionStrings{"1"});
+        config.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
+        config.set_key_value("ams_id", new ConfigOptionStrings{"0"});
+        config.set_key_value("slot_id", new ConfigOptionStrings{std::to_string(slot)});
+        config.set_key_value("filament_type", new ConfigOptionStrings{placeholder ? "" : "PETG"});
+        config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{placeholder});
+        bundle.filament_ams_list.emplace(slot, std::move(config));
+    };
+    add_ams_slot(0, "CFS-PETG", "#000000", false);
+    add_ams_slot(1, "CFS-PETG", "#FF1E1E", false);
+    add_ams_slot(2, "", "", true);
+    add_ams_slot(3, "CFS-PETG", "#FFFFFF", false);
+    std::vector<std::pair<DynamicPrintConfig *,std::string>> unknowns;
+    std::map<int, AMSMapInfo> maps;
+    MergeFilamentInfo merge_info;
+    REQUIRE(bundle.sync_ams_list(unknowns, false, maps, true, merge_info, false) == 4);
+
+    const auto& colours = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+    const auto& multi   = bundle.project_config.option<ConfigOptionStrings>("filament_multi_colour")->values;
+    REQUIRE(colours.size() == 4);
+    REQUIRE(multi.size() == colours.size());
+    CHECK(colours[0] == "#000000");
+    CHECK(colours[1] == "#FF1E1E");
+    CHECK(colours[3] == "#FFFFFF");
+    for (size_t i = 0; i < colours.size(); ++i)
+        CHECK(multi[i] == colours[i]);
 }
 
 TEST_CASE("Loading incomplete mixed metadata normalizes slots before adding a filament", "[Preset][Bundle][FilamentMixer]")

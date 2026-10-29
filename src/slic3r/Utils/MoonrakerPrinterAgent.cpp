@@ -1,5 +1,6 @@
 #include "MoonrakerPrinterAgent.hpp"
 #include "AsioUtils.hpp"
+#include "CrealityCfs.hpp"
 #include "Http.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
@@ -403,17 +404,21 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
         return BAMBU_NETWORK_ERR_CANCELED;
     }
 
-    // Start print via gcode script (simpler than JSON-RPC)
     if (update_fn)
         update_fn(PrintingStageSending, 0, _u8L("Starting print..."));
-    std::string gcode = "SDCARD_PRINT_FILE FILENAME=" + upload_filename;
-    if (!send_gcode_sync(device_info.dev_id, gcode)) {
+    if (!print_uploaded_file(params, upload_filename)) {
         return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
     }
 
     if (update_fn)
         update_fn(PrintingStageFinished, 100, _u8L("Print started"));
     return BAMBU_NETWORK_SUCCESS;
+}
+
+bool MoonrakerPrinterAgent::print_uploaded_file(const PrintParams& /*params*/, const std::string& filename)
+{
+    // Start print via gcode script (simpler than JSON-RPC)
+    return send_gcode_sync(device_info.dev_id, "SDCARD_PRINT_FILE FILENAME=" + filename);
 }
 
 int MoonrakerPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
@@ -509,6 +514,9 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
         nlohmann::json ams_unit = nlohmann::json::object();
         ams_unit["id"] = std::to_string(ams_id);
         ams_unit["info"] = "0002";  // treat as AMS_LITE 
+        if (const std::string name = ams_unit_name(ams_id); !name.empty()) {
+            ams_unit["display_name"] = name;
+        }
 
         nlohmann::json tray_array = nlohmann::json::array();
         int max_slot_in_this_ams = std::min(3, max_lane_index - ams_id * 4);
@@ -534,7 +542,6 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 tray_json["tray_info_idx"] = tray->tray_info_idx;
                 tray_json["tray_type"] = tray->tray_type;
                 tray_json["tray_color"] = normalize_color_value(tray->tray_color);
-                // Sent for every tray, since update_filament_multi_color() stops at the first tray without "cols".
                 // "ctype" uses the filament_colour_type values (0 = gradient, 1 = solid or segments).
                 const bool     multi = tray->tray_colors.size() > 1;
                 nlohmann::json cols  = nlohmann::json::array();
@@ -636,8 +643,16 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
         return true;
     }
 
-    // No MMU detected - this is normal for printers without MMU, not an error
-    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected (neither HH nor Moonraker)";
+    // Creality Hi exposes CFS slots as a Moonraker box printer object.
+    if (fetch_creality_cfs_data(trays, max_lane_index)) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Creality CFS with "
+                                << (max_lane_index + 1) << " slots";
+        build_ams_payload((max_lane_index + 4) / 4, max_lane_index, trays);
+        return true;
+    }
+
+    // No MMU detected - this is normal for printers without MMU, not an error.
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected";
     return false;
 }
 
@@ -719,6 +734,42 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
 
     // Unknown material, or no loaded preset data to resolve against
     return UNKNOWN_FILAMENT_ID;
+}
+
+bool MoonrakerPrinterAgent::fetch_creality_cfs_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
+{
+    const std::string url = join_url(device_info.base_url, "/printer/objects/query?box");
+    std::string response_body;
+    auto http = Http::get(url);
+    if (!device_info.api_key.empty())
+        http.header("X-Api-Key", device_info.api_key);
+    http.timeout_connect(5).timeout_max(10)
+        .on_complete([&](std::string body, unsigned status) {
+            if (status == 200)
+                response_body = std::move(body);
+        })
+        .perform_sync();
+
+    std::vector<CrealityCfsSlot> slots;
+    if (response_body.empty() || !parse_creality_cfs_response(response_body, slots) || slots.empty())
+        return false;
+
+    trays.clear();
+    max_lane_index = 0;
+    auto* bundle = GUI::wxGetApp().preset_bundle;
+    for (const auto& slot : slots) {
+        AmsTrayData data;
+        data.slot_index = slot.slot_index;
+        data.tray_type = slot.material_type;
+        data.tray_color = slot.color;
+        data.has_filament = true;
+        data.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(data.tray_type)
+                                    : map_filament_type_to_generic_id(data.tray_type);
+        max_lane_index = std::max(max_lane_index, data.slot_index);
+        trays.push_back(std::move(data));
+    }
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_creality_cfs_data: Detected " << trays.size() << " CFS slots";
+    return true;
 }
 
 // JSON helper methods - null-safe accessors
@@ -2257,7 +2308,8 @@ bool MoonrakerPrinterAgent::send_jsonrpc_command(const std::string&    base_url,
     http.header("Content-Type", "application/json")
         .set_post_body(request_str)
         .timeout_connect(5)
-        .timeout_max(10)
+        // Some firmware, like Qidi's, copies the file before starting the print and only answers afterwards
+        .timeout_max(60)
         .on_complete([&](std::string body, unsigned status) {
             if (status == 200) {
                 response = body;
@@ -2289,14 +2341,25 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
     }
 
     try {
+        // Nothing else retries the connection, so retry with the status stream's backoff until superseded: the printer
+        // may still be starting, and on macOS the first attempt has been seen refused while the app's Local Network
+        // access is checked
         MoonrakerDeviceInfo fetched_info;
-        if (!fetch_device_info(base_url, api_key, fetched_info, error_msg, is_stale)) {
-            if (!is_stale()) {
-                BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: Failed to fetch server info: " << error_msg;
+        for (int attempt = 0; !fetch_device_info(base_url, api_key, fetched_info, error_msg, is_stale); ++attempt) {
+            if (is_stale()) {
+                return;
             }
-            // Orca todo: revist here, for now don't send error, this is set current MachineObject to null
-            // dispatch_local_connect(ConnectStatusFailed, dev_id, "server_info_failed");
-            return;
+            const auto delay = ws_timings.reconnect_delay * (1 << std::min(attempt, 5));
+            BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: Failed to fetch server info: " << error_msg << ", retrying in "
+                                       << delay.count() << "ms";
+            // Short steps, so a disconnect or the destructor does not wait out the delay
+            const auto step = std::chrono::milliseconds(50);
+            for (auto waited = std::chrono::milliseconds(0); waited < delay && !is_stale(); waited += step) {
+                std::this_thread::sleep_for(step);
+            }
+            if (is_stale()) {
+                return;
+            }
         }
 
         // Commit fetched info back to device_info under lock, only if still current

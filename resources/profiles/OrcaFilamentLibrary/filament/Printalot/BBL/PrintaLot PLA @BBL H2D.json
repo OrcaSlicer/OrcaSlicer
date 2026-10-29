@@ -1,0 +1,32 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PLA @BBL H2D",
+	"inherits": "PrintaLot PLA @base",
+	"from": "system",
+	"setting_id": "1c4F0YW977MyXVXt",
+	"instantiation": "true",
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive E3D High Flow"
+	],
+	"long_retractions_when_ec": [
+		"1",
+		"1",
+		"1"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2D 0.4 nozzle",
+		"Bambu Lab H2D 0.6 nozzle",
+		"Bambu Lab H2D 0.8 nozzle"
+	]
+}

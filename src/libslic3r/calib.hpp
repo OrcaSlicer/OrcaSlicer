@@ -197,6 +197,7 @@ struct DrawBoxOptArgs
     double height;
     double line_width;
     double speed;
+    double e_per_mm{0.}; // 0: extrude with the first filament's settings
 };
 class CalibPressureAdvance
 {
@@ -213,7 +214,7 @@ protected:
 
     void delta_scale_bed_ext(BoundingBoxf &bed_ext) const { bed_ext.scale(1.0f / 1.41421f); }
 
-    void refresh_writer(std::shared_ptr<GCodeWriter> &writer, bool is_bbl_machine, const ModelObject &object, const Vec3d &origin);
+    void refresh_writer(std::shared_ptr<GCodeWriter> &writer, bool is_bbl_machine, unsigned int filament_id, const Vec3d &origin);
     std::string move_to(Vec2d pt, GCodeWriter &writer, std::string comment = std::string(), double z = 0, double layer_height = -1);
     double e_per_mm(double line_width, double layer_height, float nozzle_diameter, float filament_diameter, float print_flow_ratio) const;
     double speed_adjust(int speed) const { return speed * 60; };
@@ -236,8 +237,13 @@ protected:
                             double                              speed,
                             GCodeWriter                        &writer);
 
-    std::string draw_line(
-        GCodeWriter &writer, Vec2d to_pt, double line_width, double layer_height, double speed, const std::string &comment = std::string());
+    std::string draw_line(GCodeWriter       &writer,
+                          Vec2d              to_pt,
+                          double             line_width,
+                          double             layer_height,
+                          double             speed,
+                          const std::string &comment  = std::string(),
+                          double             e_per_mm = 0.);
     std::string draw_box(GCodeWriter &writer, double min_x, double min_y, double size_x, double size_y, DrawBoxOptArgs opt_args);
 
     double to_radians(double degrees) const { return degrees * M_PI / 180; };

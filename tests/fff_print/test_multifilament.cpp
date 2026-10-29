@@ -2137,6 +2137,33 @@ TEST_CASE("Unused extruder turns off on non-IMEX three-tool print", "[MultiFilam
     CHECK_FALSE(premature_s0_t2);
 }
 
+// The GUI re-applies the unchanged config after every slice; that must not invalidate it.
+TEST_CASE("Reapplying an unchanged config after slicing reports no change", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "wall_filament",                    "1" },
+        { "sparse_infill_filament",           "2" },
+        { "solid_infill_filament",            "2" },
+        { "enable_prime_tower",               "1" },
+        { "independent_support_layer_height", "1" },
+        { "wipe_tower_x",                     "50" },
+        { "wipe_tower_y",                     "50" },
+        // init_print sets it, so the reapply differs only in what apply() itself normalizes.
+        { "gcode_comments",                   "1" },
+    });
+    Model model;
+    Print print;
+    Slic3r::Test::init_print({ TestMesh::cube_with_hole }, print, model, config);
+    print.process();
+    const bool ept_before  = print.config().enable_prime_tower.value;
+    const bool islh_before = print.config().independent_support_layer_height.value;
+
+    const auto status = print.apply(model, config);
+
+    CHECK(print.config().enable_prime_tower.value == ept_before);
+    CHECK(print.config().independent_support_layer_height.value == islh_before);
+    CHECK(status == PrintBase::APPLY_STATUS_UNCHANGED);
+}
+
 static DynamicPrintConfig short_change_length_config() {
     DynamicPrintConfig config = multifilament_config(2, {
         // One value for two filaments: the tower must not read past it.
