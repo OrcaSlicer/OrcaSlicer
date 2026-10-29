@@ -52,6 +52,21 @@ const std::set<std::string>& publishable_printer_keys();
 // printer and filament presets (feeds the Publish dialog's pre-check).
 std::vector<std::string> collect_dirty_settings_keys(const PresetBundle& bundle);
 
+// Publish keys of the material rows a dirty filament edit should pre-check. `slot_presets` is one
+// preset name per filament slot (bundle->filament_presets), `slot_is_mixed` one flag per slot
+// (project filament_is_mixed). Only slots whose preset equals `edited_preset_name` and are not mixed
+// contribute. A variant-bearing key maps to `base#file_column` for every sharing slot at its own
+// base offset; any other filament key maps to its plain base key. A variant-bearing key with no
+// local index, or whose index is out of that slot's range, contributes nothing, and a key that is
+// neither variant-bearing nor present in `uncompacted` is skipped. Returns the keys sorted and
+// without duplicates.
+std::vector<std::string> publish_dirty_material_keys(
+    const DynamicPrintConfig &uncompacted,
+    const std::vector<std::string> &slot_presets,
+    const std::vector<bool> &slot_is_mixed,
+    const std::string &edited_preset_name,
+    const std::vector<std::string> &dirty_keys);
+
 // Per-slot published material keys, applied positionally (author slot N -> receiver slot N).
 // The identity fields drive the created copy's naming and grouping on Full entries, the
 // notification labels, and the partial type gate (publish_type) is the author's explicit

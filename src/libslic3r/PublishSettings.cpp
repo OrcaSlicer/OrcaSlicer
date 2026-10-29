@@ -444,6 +444,39 @@ std::vector<std::string> collect_dirty_settings_keys(const PresetBundle& bundle)
     return std::vector<std::string>(keys.begin(), keys.end());
 }
 
+std::vector<std::string> publish_dirty_material_keys(
+    const DynamicPrintConfig &uncompacted,
+    const std::vector<std::string> &slot_presets,
+    const std::vector<bool> &slot_is_mixed,
+    const std::string &edited_preset_name,
+    const std::vector<std::string> &dirty_keys)
+{
+    std::set<std::string> keys;
+    for (size_t slot = 0; slot < slot_presets.size(); ++slot) {
+        if (slot_presets[slot] != edited_preset_name)
+            continue;
+        if (slot < slot_is_mixed.size() && slot_is_mixed[slot])
+            continue;
+        for (const std::string &key : dirty_keys) {
+            const std::string base = publish_base_key(key);
+            if (base.empty())
+                continue;
+            if (publish_is_variant_bearing(key)) {
+                const int local = publish_key_index(key);
+                if (local < 0)
+                    continue;
+                const std::optional<size_t> column = publish_filament_local_to_file(uncompacted, slot, size_t(local));
+                if (!column.has_value())
+                    continue;
+                keys.insert(base + "#" + std::to_string(*column));
+            } else if (uncompacted.has(base)) {
+                keys.insert(base);
+            }
+        }
+    }
+    return std::vector<std::string>(keys.begin(), keys.end());
+}
+
 DynamicPrintConfig filter_published_config(
     const DynamicPrintConfig &full_config,
     const std::vector<std::string> &published_keys,

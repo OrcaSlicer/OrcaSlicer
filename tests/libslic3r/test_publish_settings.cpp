@@ -696,6 +696,85 @@ TEST_CASE("A filament key is variant-bearing exactly when the variant option lis
     CHECK_FALSE(publish_is_variant_bearing("filament_cost#2"));
 }
 
+TEST_CASE("A dirty variant index maps to the file column of every slot whose preset is the edited one",
+          "[PublishSettings]")
+{
+    DynamicPrintConfig config = make_variant_config();
+    // Slot 0 and slot 1 share the edited preset with two variants each; slot 2 uses another preset.
+    config.option<ConfigOptionInts>("filament_self_index", true)->values = { 1, 1, 2, 2, 3 };
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {
+        "Direct Drive Standard", "Direct Drive High Flow",
+        "Direct Drive Standard", "Direct Drive High Flow",
+        "Direct Drive Standard"
+    };
+    config.option<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.9, 1.0, 1.1, 1.2, 1.3 };
+
+    const std::vector<std::string> slot_presets{ "My PLA", "My PLA", "Other PLA" };
+    const std::vector<bool>        slot_is_mixed{ false, false, false };
+
+    // Local index 1 of the edited preset is High Flow: column 1 on slot 0, column 3 on slot 1.
+    CHECK(publish_dirty_material_keys(config, slot_presets, slot_is_mixed, "My PLA",
+                                      { "filament_retraction_length#1" }) ==
+          std::vector<std::string>{ "filament_retraction_length#1", "filament_retraction_length#3" });
+}
+
+TEST_CASE("A dirty variant index skips mixed slots", "[PublishSettings]")
+{
+    DynamicPrintConfig config = make_variant_config();
+    config.option<ConfigOptionInts>("filament_self_index", true)->values = { 1, 1, 2, 2, 3 };
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {
+        "Direct Drive Standard", "Direct Drive High Flow",
+        "Direct Drive Standard", "Direct Drive High Flow",
+        "Direct Drive Standard"
+    };
+    config.option<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.9, 1.0, 1.1, 1.2, 1.3 };
+
+    // A mixed slot's preset name is a copy of its component's, so it carries the edited name too.
+    const std::vector<std::string> slot_presets{ "My PLA", "My PLA", "My PLA" };
+    const std::vector<bool>        slot_is_mixed{ false, false, true };
+
+    CHECK(publish_dirty_material_keys(config, slot_presets, slot_is_mixed, "My PLA",
+                                      { "filament_retraction_length#0" }) ==
+          std::vector<std::string>{ "filament_retraction_length#0", "filament_retraction_length#2" });
+}
+
+TEST_CASE("A dirty per-slot key maps to every slot of the edited preset", "[PublishSettings]")
+{
+    DynamicPrintConfig config = make_variant_config();
+
+    const std::vector<std::string> slot_presets{ "My PLA", "My PLA" };
+    const std::vector<bool>        slot_is_mixed{ false, false };
+
+    // A per-slot key has one value in the preset, so the dirty key carries "#0" and the mapped
+    // publish key is the plain base key, once for both slots.
+    CHECK(publish_dirty_material_keys(config, slot_presets, slot_is_mixed, "My PLA",
+                                      { "filament_cost#0", "filament_diameter#0" }) ==
+          std::vector<std::string>{ "filament_cost", "filament_diameter" });
+}
+
+TEST_CASE("A dirty variant index outside a slot's variants contributes nothing", "[PublishSettings]")
+{
+    DynamicPrintConfig config = make_variant_config();
+
+    // Slot 0 defines two variants (columns 0 and 1); local index 2 names a variant it does not have.
+    const std::vector<std::string> slot_presets{ "My PLA", "Other PLA" };
+    const std::vector<bool>        slot_is_mixed{ false, false };
+
+    CHECK(publish_dirty_material_keys(config, slot_presets, slot_is_mixed, "My PLA",
+                                      { "filament_retraction_length#2" }).empty());
+}
+
+TEST_CASE("A dirty key of another preset contributes nothing", "[PublishSettings]")
+{
+    DynamicPrintConfig config = make_variant_config();
+
+    const std::vector<std::string> slot_presets{ "Other PLA", "Other PLA" };
+    const std::vector<bool>        slot_is_mixed{ false, false };
+
+    CHECK(publish_dirty_material_keys(config, slot_presets, slot_is_mixed, "My PLA",
+                                      { "filament_retraction_length#0", "filament_cost#0" }).empty());
+}
+
 TEST_CASE("Checked state round-trips through published keys and material entries", "[PublishSettings]")
 {
     const PublishRowId printer_row = make_publish_row({ "retraction_length#1" }, PublishSection::Printer, -1, 1);
