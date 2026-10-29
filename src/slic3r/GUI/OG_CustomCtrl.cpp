@@ -875,24 +875,30 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
 
     const std::vector<Option>& option_set = og_line.get_options();
 
-    // ORCA draw multi_extruder icon to spacing before field lines so labels keep aligned
-    bool is_multi_extruder = false;
-    if (ctrl->opt_group->draw_multi_extruder)
+    // ORCA draw multi_extruder icon to spacing before field lines so labels keep aligned. The Tab
+    // marks the rows by a '#' in the option id; a caller that keys every row by a column sets
+    // Line::multi_extruder instead.
+    bool is_multi_extruder = og_line.multi_extruder;
+    if (!is_multi_extruder && ctrl->opt_group->draw_multi_extruder)
         for (const Option& opt : option_set)
             is_multi_extruder |= opt.opt_id.find_last_of('#') != std::string::npos;
+
+    // A row toggle opens the row: [checkbox] label ... value, in every section.
+    const wxCoord row_start = h_pos;
+    if (og_line.row_toggle)
+        h_pos = draw_row_toggle(dc, wxPoint(h_pos, v_pos), /*at_row_start=*/true).x;
+
+    // The per-extruder icon keeps the sidebar's position: in the row's left margin, left of the
+    // label, so the label column does not shift.
     if (is_multi_extruder) {
         if (!ctrl->m_bmp_multi_extruder.bmp().IsOk())
             ctrl->m_bmp_multi_extruder = ScalableBitmap(ctrl, "multi_extruder");
         const wxBitmap& bmp    = ctrl->m_bmp_multi_extruder.bmp();
         const wxSize    bmp_sz = get_bitmap_size(bmp); // Logical size. GetWidth() returns physical pixels on macOS retina which pushes icon outside of control
-        const wxCoord   icon_x = std::max(0, h_pos - bmp_sz.GetWidth() - ctrl->m_h_gap);
+        const wxCoord   icon_x = std::max(0, row_start - bmp_sz.GetWidth() - ctrl->m_h_gap);
         const wxCoord   icon_y = v_pos + lround((height - bmp_sz.GetHeight()) / 2);
         dc.DrawBitmap(bmp, icon_x, icon_y, true);
     }
-
-    // A row toggle opens the row: [checkbox] label ... value, in every section.
-    if (og_line.row_toggle)
-        h_pos = draw_row_toggle(dc, wxPoint(h_pos, v_pos), /*at_row_start=*/true).x;
 
     if (og_line.near_label_widget_win)
         h_pos += og_line.near_label_widget_win->GetSize().x + ctrl->m_h_gap;

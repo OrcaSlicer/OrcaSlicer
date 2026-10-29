@@ -898,6 +898,18 @@ void PublishSettingsDialog::build_option_model()
 
     m_snapshot = uncompacted;
 
+    // The per-extruder icon marks a setting only when its section shows more than one column; a
+    // Printer or Process section shows one column per page, so the rule is applied section-wide.
+    auto unify_section_columns = [this](size_t group) {
+        std::vector<size_t> all;
+        for (size_t c : m_sections[group].categories)
+            for (size_t column : m_categories[c].columns)
+                if (std::find(all.begin(), all.end(), column) == all.end())
+                    all.push_back(column);
+        for (size_t c : m_sections[group].categories)
+            m_categories[c].columns = all;
+    };
+
     // The dialog's own requirement rows: Color and Type on a material slot. They publish
     // publish_color / publish_type, not a key.
     auto make_requirement_row = [](std::string key, int slot, Slic3r::PublishRowKind kind, const wxString& label, const wxString& value) {
@@ -1018,6 +1030,9 @@ void PublishSettingsDialog::build_option_model()
                                 continue;
                             size_t cat_index = category_index_for(page_title, Section::Printer, g, extruder_idx, PublishMaterialIdentity(), false, true);
                             m_categories[cat_index].column = variant_index;
+                            std::vector<size_t>& columns = m_categories[cat_index].columns;
+                            if (std::find(columns.begin(), columns.end(), size_t(variant_index)) == columns.end())
+                                columns.push_back(size_t(variant_index));
                             size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon, optgroup.get(), page, tab->type());
                             if (auto row = make_line_row(src, mapped, -1, variant_index,
                                                          Slic3r::PublishSection::Printer, uncompacted))
@@ -1027,6 +1042,7 @@ void PublishSettingsDialog::build_option_model()
                 }
             }
         }
+        unify_section_columns(g);
     }
 
     // --- Phase 2: per-material sections built from the filament tab's pages, under the Filament
@@ -1248,6 +1264,13 @@ void PublishSettingsDialog::build_option_model()
                 }
             }
         }
+
+        for (const ExtruderEntry& entry : extruder_entries) {
+            std::vector<size_t>& columns = m_categories[entry.category].columns;
+            if (std::find(columns.begin(), columns.end(), size_t(entry.variant)) == columns.end())
+                columns.push_back(size_t(entry.variant));
+        }
+        unify_section_columns(g);
 
         std::set<std::string> extruder_added; // "key#N" rows already added
         for (Tab* tab : wxGetApp().tabs_list) {
@@ -1788,6 +1811,8 @@ void PublishSettingsDialog::build_row_groups(size_t category_index)
                 line.append_option(make_option(row.options[o]));
             if (row.publishable)
                 line.row_toggle = RowToggle();
+            // The same icon the sidebar shows on a setting that is keyed per extruder or variant.
+            line.multi_extruder = row.id.column >= 0 && category.columns.size() > 1;
             group->append_line(line);
         }
 

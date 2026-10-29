@@ -77,6 +77,9 @@ public:
     bool        undo_to_sys{false}; // BBS: object config
     bool        toggle_visible{true}; // BBS: hide some line
     std::optional<RowToggle> row_toggle;
+    // Draws the per-extruder icon left of the label, for a caller that keys every row by a column
+    // and so cannot be detected from the option ids the way the Tab does it.
+    bool        multi_extruder{false};
 
     size_t		full_width {0};
     widget_t	widget {nullptr};
