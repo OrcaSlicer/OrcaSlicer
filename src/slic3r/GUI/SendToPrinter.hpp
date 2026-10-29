@@ -218,7 +218,6 @@ public:
     std::string get_storage_selected();
 
     wxString format_text(wxString& m_msg);
-    std::vector<std::string> sort_string(std::vector<std::string> strArray);
     void GetConnection();
 
 private:
