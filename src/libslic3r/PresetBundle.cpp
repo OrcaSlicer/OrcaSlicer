@@ -7079,13 +7079,24 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 
                 auto apply_slot_keys = [&](DynamicPrintConfig& preset_config, const std::vector<std::string>& slot_keys, int author_slot,
                                            const std::string& material_label) {
+                    // A variant-bearing key (filament_options_with_variant) addresses a file column
+                    // ("key#col"): the column names its owner slot (filament_self_index) and its
+                    // variant (filament_extruder_variant), and lands on the receiver variant with
+                    // that name. Every other filament key is a per-slot value, applied positionally
+                    // as before. A plain variant-bearing key from an older publish keeps the
+                    // positional meaning.
+                    // filament_self_index was moved out of `config` above; the local copy holds it.
+                    const auto *variant_list = config.option<ConfigOptionStrings>("filament_extruder_variant");
                     for (const std::string& key : slot_keys) {
                         const std::string base_key = publish_base_key(key);
                         if (structural_keys.count(base_key) != 0)
                             continue;
+                        // Layout keys describe the file's variant columns; they are never a value
+                        // to overlay (and overwriting one would corrupt every later lookup).
+                        if (base_key == "filament_extruder_variant" || base_key == "filament_self_index")
+                            continue;
                         const ConfigOption* src_opt = config.option(base_key);
-                        if (src_opt == nullptr || !src_opt->is_vector() || author_slot < 0 ||
-                            author_slot >= static_cast<int>(static_cast<const ConfigOptionVectorBase*>(src_opt)->size())) {
+                        if (src_opt == nullptr || !src_opt->is_vector()) {
                             skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
                             continue;
                         }
@@ -7095,9 +7106,40 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
                             continue;
                         }
-                        // Per-slot scalar copy: the receiver preset holds one value per key
-                        // (vector of size 1), the file holds the per-slot vector.
-                        static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, author_slot);
+                        const auto *src_vec = dynamic_cast<const ConfigOptionVectorBase*>(src_opt);
+                        auto       *dst_vec = dynamic_cast<ConfigOptionVectorBase*>(dst_opt);
+                        const int   column  = publish_key_index(key);
+                        if (filament_options_with_variant.count(base_key) == 0 || column < 0) {
+                            // Per-slot scalar copy: the receiver preset holds one value per key
+                            // (vector of size 1), the file holds the per-slot vector.
+                            if (author_slot < 0 || size_t(author_slot) >= src_vec->size()) {
+                                skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
+                                continue;
+                            }
+                            dst_vec->set_at(src_opt, 0, author_slot);
+                            material_applied = true;
+                            continue;
+                        }
+                        // The file column must belong to this entry's author slot.
+                        if (size_t(column) >= filament_self_indice.size() || variant_list == nullptr ||
+                            size_t(column) >= variant_list->size() || filament_self_indice[size_t(column)] - 1 != author_slot) {
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key + ", file column " +
+                                                      std::to_string(column) + " does not belong to this slot)");
+                            continue;
+                        }
+                        if (size_t(column) >= src_vec->size()) {
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key + ", file column " +
+                                                      std::to_string(column) + " is out of range)");
+                            continue;
+                        }
+                        const std::string          &variant = variant_list->get_at(column);
+                        const std::optional<size_t> local   = publish_match_variant(preset_config, std::nullopt, variant);
+                        if (!local.has_value()) {
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key + ", variant \"" + variant +
+                                                      "\" not in receiver preset)");
+                            continue;
+                        }
+                        dst_vec->set_at(src_opt, *local, column);
                         material_applied = true;
                     }
                 };
@@ -7273,19 +7315,79 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             // Baseline: clone the receiver slot's stored preset config (schema-
                             // complete across versions), then overlay the published full_keys.
                             DynamicPrintConfig new_cfg = recv != nullptr ? recv->config : this->filaments.default_preset().config;
+                            // A variant-bearing key stores one value per (slot, variant) in the
+                            // file, so the copy takes every variant of the author's slot and the
+                            // author's variant list for it. filament_self_index was moved out of
+                            // `config` above; the local copy holds it.
+                            const std::vector<size_t> full_columns = entry.slot >= 0 ?
+                                                                         publish_filament_columns(filament_self_indice, size_t(entry.slot)) :
+                                                                         std::vector<size_t>();
+                            bool copied_variant_key = false;
                             for (const std::string& key : entry.full_keys) {
                                 const std::string base_key = publish_base_key(key);
                                 if (structural_keys.count(base_key) != 0)
                                     continue;
-                                const ConfigOption* src_opt = config.option(base_key);
-                                if (src_opt == nullptr || !src_opt->is_vector() || entry.slot < 0 ||
-                                    entry.slot >= static_cast<int>(static_cast<const ConfigOptionVectorBase*>(src_opt)->size()))
+                                // Layout keys describe the file's variant columns; the block below
+                                // writes the copy's variant list from the file.
+                                if (base_key == "filament_extruder_variant" || base_key == "filament_self_index")
                                     continue;
+                                const ConfigOption* src_opt = config.option(base_key);
+                                if (src_opt == nullptr || !src_opt->is_vector()) {
+                                    // The file carries no value for this key: nothing to copy, not a
+                                    // value the receiver lost.
+                                    continue;
+                                }
                                 ConfigOption* dst_opt = new_cfg.option(base_key);
                                 if (dst_opt == nullptr || !dst_opt->is_vector() ||
-                                    static_cast<const ConfigOptionVectorBase*>(dst_opt)->empty() || dst_opt->type() != src_opt->type())
+                                    static_cast<const ConfigOptionVectorBase*>(dst_opt)->empty() || dst_opt->type() != src_opt->type()) {
+                                    skipped_keys.emplace_back("material:" + material_label + " (" + base_key + ")");
                                     continue;
-                                static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, entry.slot);
+                                }
+                                const auto *src_vec = dynamic_cast<const ConfigOptionVectorBase*>(src_opt);
+                                auto       *dst_vec = dynamic_cast<ConfigOptionVectorBase*>(dst_opt);
+                                if (filament_options_with_variant.count(base_key) != 0) {
+                                    // A file that carries the key short of the layout (a preset
+                                    // holding one default value, or a vector older than variant
+                                    // columns) publishes nothing for the slot's column: leave the
+                                    // copy's value alone instead of reporting the key as skipped.
+                                    if (full_columns.empty() ||
+                                        std::any_of(full_columns.begin(), full_columns.end(),
+                                                    [src_vec](size_t column) { return column >= src_vec->size(); })) {
+                                        BOOST_LOG_TRIVIAL(info) << "publish: not copying \"" << base_key << "\" for slot "
+                                                                << entry.slot << " (the file has no value for its variant column)";
+                                        continue;
+                                    }
+                                    dst_vec->resize(full_columns.size());
+                                    for (size_t i = 0; i < full_columns.size(); ++i)
+                                        dst_vec->set_at(src_opt, i, full_columns[i]);
+                                    copied_variant_key = true;
+                                } else {
+                                    if (entry.slot < 0 || size_t(entry.slot) >= src_vec->size()) {
+                                        // Nothing in the file for this slot; the copy keeps its own
+                                        // value. Only data that exists but cannot be applied is
+                                        // reported as skipped.
+                                        BOOST_LOG_TRIVIAL(info) << "publish: not copying \"" << base_key << "\" for slot "
+                                                                << entry.slot << " (the file has no value for it)";
+                                        continue;
+                                    }
+                                    dst_vec->set_at(src_opt, 0, entry.slot);
+                                }
+                            }
+                            // The copy's variant list must describe the vectors written above, and
+                            // only when at least one variant-bearing key was copied: rewriting it
+                            // alone would make the copy claim variants its vectors do not hold.
+                            if (copied_variant_key && !full_columns.empty()) {
+                                const auto *src_variants = config.option<ConfigOptionStrings>("filament_extruder_variant");
+                                if (auto *dst_variants = new_cfg.option<ConfigOptionStrings>("filament_extruder_variant");
+                                    src_variants != nullptr && dst_variants != nullptr) {
+                                    std::vector<std::string> variants;
+                                    variants.reserve(full_columns.size());
+                                    for (const size_t column : full_columns)
+                                        if (column < src_variants->size())
+                                            variants.push_back(src_variants->get_at(column));
+                                    if (variants.size() == full_columns.size())
+                                        dst_variants->values = std::move(variants);
+                                }
                             }
                             // The published colour is authoritative even for Full (the payload's
                             // filament_colour plus the explicit publish_color field).
