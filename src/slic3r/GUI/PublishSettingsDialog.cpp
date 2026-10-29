@@ -950,6 +950,41 @@ void PublishSettingsDialog::build_option_model()
         return row;
     };
 
+    // One option of a source Line, remapped to the column this dialog shows it at.
+    struct MappedOption
+    {
+        std::string publish_key;
+        RowOption   option;
+    };
+
+    // One row from one source Line: every option of the line is one publish unit with one toggle,
+    // carrying the line's own label, tooltip and wiki path.
+    auto make_line_row = [&option_text](const Line& src, const std::vector<MappedOption>& mapped, int owner, int column,
+                                        Slic3r::PublishSection section,
+                                        const DynamicPrintConfig& cfg) -> std::optional<Row> {
+        if (mapped.empty())
+            return std::nullopt;
+        Row row;
+        row.label         = src.label;
+        row.label_en      = src.label_en;
+        row.label_tooltip = src.label_tooltip;
+        row.label_path    = src.label_path;
+        row.id.owner      = owner;
+        row.id.column     = column;
+        row.id.section    = section;
+        row.id.kind       = Slic3r::PublishRowKind::Key;
+        for (const MappedOption& m : mapped) {
+            row.id.keys.push_back(m.publish_key);
+            row.options.push_back(m.option);
+        }
+        // The first option's value and unit name the row in the filter.
+        wxString       label;
+        const RowOption& first = row.options.front();
+        if (!option_text(cfg, mapped.front().publish_key, first.key, label, row.value, row.unit))
+            return std::nullopt;
+        return row;
+    };
+
     // --- Phase 1: printer per-extruder retraction settings (first, mirroring the sidebar's
     // Printer group), from the printer tab's "Extruder" page. One inner tab per extruder (named
     // as on the printer tab's switch, e.g. "Left Extruder"/"Right Extruder" via
@@ -1165,37 +1200,62 @@ void PublishSettingsDialog::build_option_model()
                 size_t category_index = size_t(-1);
 
                 for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
-                    for (const auto& opt : optgroup->opt_map()) {
-                        // opt_map() key is the opt_id (may carry "#N"); the value is
-                        // (pure_opt_key, opt_index).
-                        const std::string& opt_id   = opt.first;
-                        const std::string& pure_key = opt.second.first;
-                        if (!extruder_entries.empty() && opt.second.second >= 0 && print_options_with_variant.count(pure_key) != 0) {
+                    // A source Line is one row: its options publish together and share one toggle.
+                    for (const Line& src : optgroup->get_lines()) {
+                        if (src.is_separator())
+                            continue;
+                        const std::vector<Option>& src_options = src.get_options();
+                        if (src_options.empty())
+                            continue;
+
+                        // A line made only of per-variant keys is shown once per extruder column.
+                        bool per_variant = !extruder_entries.empty();
+                        for (const Option& option : src_options)
+                            per_variant = per_variant && print_options_with_variant.count(publish_base_key(option.opt_id)) != 0;
+
+                        if (per_variant) {
                             for (const ExtruderEntry& entry : extruder_entries) {
-                                const std::string row_key = pure_key + "#" + std::to_string(entry.variant);
-                                if (!extruder_added.insert(row_key).second)
-                                    continue;
-                                if (!index_in_range(uncompacted, pure_key, entry.variant))
+                                std::vector<MappedOption> mapped;
+                                bool                      row_ok = true;
+                                for (const Option& option : src_options) {
+                                    const std::string base = publish_base_key(option.opt_id);
+                                    const std::string key  = base + "#" + std::to_string(entry.variant);
+                                    if (!extruder_added.insert(key).second || !index_in_range(uncompacted, base, entry.variant)) {
+                                        row_ok = false;
+                                        break;
+                                    }
+                                    mapped.push_back({ key, { base, entry.variant, option.opt } });
+                                }
+                                if (!row_ok)
                                     continue;
                                 size_t sub_index = subcategory_index_for(entry.category, _(optgroup->title), optgroup->icon,
                                                                          optgroup.get(), page.get(), tab->type());
-                                if (auto row = make_row(row_key, pure_key, entry.variant, -1, entry.variant,
-                                                        Slic3r::PublishSection::Process, Slic3r::PublishRowKind::Key, uncompacted))
+                                if (auto row = make_line_row(src, mapped, -1, entry.variant, Slic3r::PublishSection::Process, uncompacted))
                                     add_row(std::move(*row), entry.category, sub_index);
                             }
                             continue;
                         }
+
                         // A key may appear in more than one page/group; keep the first.
-                        if (!added.insert(pure_key).second)
-                            continue;
-                        if (!index_in_range(uncompacted, pure_key, opt.second.second))
+                        std::vector<MappedOption> mapped;
+                        bool                      row_ok = true;
+                        for (const Option& option : src_options) {
+                            const std::string base  = publish_base_key(option.opt_id);
+                            const int         index = publish_key_index(option.opt_id);
+                            if (!added.insert(base).second || !index_in_range(uncompacted, base, index)) {
+                                row_ok = false;
+                                break;
+                            }
+                            mapped.push_back({ option.opt_id, { base, index, option.opt } });
+                        }
+                        if (!row_ok)
                             continue;
                         if (category_index == size_t(-1))
                             category_index = category_index_for(category, Section::Print, g, page_index);
                         size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon,
                                                                  optgroup.get(), page.get(), tab->type());
-                        if (auto row = make_row(opt_id, pure_key, opt.second.second, -1, opt.second.second,
-                                                Slic3r::PublishSection::Process, Slic3r::PublishRowKind::Key, uncompacted))
+                        if (auto row = make_line_row(src, mapped, -1, publish_key_index(mapped.front().publish_key),
+                                                     Slic3r::PublishSection::Process, uncompacted))
                             add_row(std::move(*row), category_index, sub_index);
                     }
                 }
@@ -1218,7 +1278,10 @@ void PublishSettingsDialog::build_option_model()
         if (row.id.kind != Slic3r::PublishRowKind::Key)
             continue;
         const std::string& row_key = row.id.keys.front();
-        bool dirty = dirty_keys.count(row_key) != 0;
+        // A row is one publish unit, so any of its keys being modified marks the whole row.
+        bool dirty = std::any_of(row.id.keys.begin(), row.id.keys.end(), [&dirty_keys](const std::string& key) {
+            return dirty_keys.count(key) != 0;
+        });
         // A print/printer row with no column suffix covers the whole setting, so any index of it
         // counts as a match; a per-slot material row must not fall back that way, because the
         // dirty index there is a slot and would check every slot's row.
@@ -1230,7 +1293,9 @@ void PublishSettingsDialog::build_option_model()
             });
         }
         if (!dirty && row.id.section == Slic3r::PublishSection::Material && row.id.owner >= 0)
-            dirty = dirty_keys.count(publish_base_key(row_key) + "#" + std::to_string(row.id.owner)) != 0;
+            dirty = std::any_of(row.id.keys.begin(), row.id.keys.end(), [&](const std::string& key) {
+                return dirty_keys.count(publish_base_key(key) + "#" + std::to_string(row.id.owner)) != 0;
+            });
         row.dirty = dirty;
         if (row.dirty)
             set_row_checked(r, true);
@@ -2331,10 +2396,13 @@ void PublishSettingsDialog::apply_selection(const std::vector<std::string>& publ
             const Row& row = m_rows[r];
             if (row.id.section == Slic3r::PublishSection::Material || row.id.kind != Slic3r::PublishRowKind::Key)
                 continue;
-            const std::string& row_key = row.id.keys.front();
-            const bool match = legacy_process ? (row.id.section == Slic3r::PublishSection::Process &&
-                                                 publish_base_key(row_key) == base_key)
-                                              : row_key == key;
+            const bool match = legacy_process ?
+                                   (row.id.section == Slic3r::PublishSection::Process &&
+                                    std::any_of(row.id.keys.begin(), row.id.keys.end(), [&base_key](const std::string& k) {
+                                        return publish_base_key(k) == base_key;
+                                    }))
+                                 : std::any_of(row.id.keys.begin(), row.id.keys.end(),
+                                               [&key](const std::string& k) { return k == key; });
             if (match)
                 set_row_checked(r, true);
         }
@@ -2373,12 +2441,16 @@ void PublishSettingsDialog::apply_selection(const std::vector<std::string>& publ
             // keys carried their column.
             for (const std::string& key : entry.keys) {
                 const std::string base = publish_base_key(key);
+                auto has_key = [&](const Row& row, const std::string& needle) {
+                    return std::any_of(row.id.keys.begin(), row.id.keys.end(),
+                                       [&needle](const std::string& k) { return k == needle; });
+                };
                 bool matched = false;
                 for (const size_t r : cat.rows) {
                     const Row& row = m_rows[r];
                     if (row.id.kind != Slic3r::PublishRowKind::Key)
                         continue;
-                    if (row.id.keys.front() == key || (row.id.column < 0 && row.id.keys.front() == base)) {
+                    if (has_key(row, key) || (row.id.column < 0 && has_key(row, base))) {
                         set_row_checked(r, true);
                         matched = true;
                         break;
@@ -2387,7 +2459,9 @@ void PublishSettingsDialog::apply_selection(const std::vector<std::string>& publ
                 if (!matched)
                     for (const size_t r : cat.rows) {
                         const Row& row = m_rows[r];
-                        if (row.id.kind == Slic3r::PublishRowKind::Key && publish_base_key(row.id.keys.front()) == base) {
+                        if (row.id.kind == Slic3r::PublishRowKind::Key &&
+                            std::any_of(row.id.keys.begin(), row.id.keys.end(),
+                                        [&base](const std::string& k) { return publish_base_key(k) == base; })) {
                             set_row_checked(r, true);
                             break;
                         }
