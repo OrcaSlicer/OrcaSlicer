@@ -37,6 +37,7 @@
 #include <boost/filesystem/path.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <cmath>
 #include <exception>
 #include <deque>
@@ -3022,11 +3023,11 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     auto unprintable_extruders = [&unprintable_areas, &unprintable_bboxes, &plate_offset](const BoundingBox &path_bbox) {
         BoundingBox bbox = path_bbox.inflated(SCALED_EPSILON);
         bbox.translate(-plate_offset);
-        int mask = 0;
+        uint64_t mask = 0;
         for (size_t i = 0; i < unprintable_areas.size(); ++i)
             if (!unprintable_areas[i].empty() && unprintable_bboxes[i].overlap(bbox) &&
                 !intersection(unprintable_areas[i], bbox.polygon()).empty())
-                mask |= 1 << i;
+                mask |= uint64_t(1) << i;
         return mask;
     };
 
@@ -3084,9 +3085,9 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                 //BoundingBox bbox_custom = path_poly_custom.bounding_box();
                 //bbox_custom.offset(-scale_(1.0)); // Narrow the range to provide a tolerance for the custom gcode
                 //bbox.merge(bbox_custom);          // merge the custom gcode pos with other pos*/
-                const int unprintable_mask = unprintable_extruders(bbox);
+                const uint64_t unprintable_mask = unprintable_extruders(bbox);
                 // check printable area
-                if ((extruder_id < unprintable_areas.size()) && (unprintable_mask & (1 << extruder_id))) {
+                if ((extruder_id < unprintable_areas.size()) && (unprintable_mask & (uint64_t(1) << extruder_id))) {
                     m_result.gcode_check_result.error_code |= 1;
                     std::pair<int, int>         filament_to_object_id;
                     filament_to_object_id.first = iter->first;
@@ -3102,7 +3103,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                     filament_to_object_id.first  = iter->first;
                     filament_to_object_id.second = object_label_id;
                     m_result.gcode_check_result.print_height_error_infos[extruder_id].push_back(filament_to_object_id);
-                    m_result.limit_filament_maps[iter->first] |= (1 << extruder_id);
+                    m_result.limit_filament_maps[iter->first] |= uint64_t(1) << extruder_id;
                     valid = false;
                 }
 
@@ -3115,7 +3116,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     for (int extruder_id = 0; extruder_id < unprintable_filament_types.size(); ++extruder_id) {
         const std::set<int> &filament_ids = unprintable_filament_types[extruder_id];
         for (int filament_id : filament_ids) {
-            m_result.limit_filament_maps[filament_id] |= (1 << extruder_id);
+            m_result.limit_filament_maps[filament_id] |= uint64_t(1) << extruder_id;
         }
     };
 

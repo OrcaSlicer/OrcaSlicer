@@ -8808,7 +8808,7 @@ bool _BBS_3MF_Exporter::_add_model_config_file_to_archive(mz_zip_archive& archiv
 
                 if (plate_data->limit_filament_maps.size() > 0) {
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LIMIT_FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"";
-                    add_vector<int>(stream, plate_data->limit_filament_maps);
+                    add_vector<uint64_t>(stream, plate_data->limit_filament_maps);
                     stream << "\"/>\n";
                 }
 
