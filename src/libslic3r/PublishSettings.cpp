@@ -222,6 +222,17 @@ std::vector<PublishExtruderEntry> publish_extruder_rule(const DynamicPrintConfig
     return entries;
 }
 
+std::string publish_variant_notice(const DynamicPrintConfig &uncompacted, size_t slot)
+{
+    const PublishResolvedColumn resolved = publish_resolved_column(uncompacted, slot);
+    if (resolved.exact || !resolved.file_column.has_value())
+        return std::string();
+    return (boost::format(L("Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. "
+                            "Publishing the values printed with \"%3%\".")) %
+            (slot + 1) % resolved.required_variant % resolved.used_variant)
+        .str();
+}
+
 void publish_normalize_material_entries(std::vector<PublishedMaterialEntry> &entries,
                                         const DynamicPrintConfig &uncompacted,
                                         std::vector<std::string> *notices)
@@ -251,11 +262,11 @@ void publish_normalize_material_entries(std::vector<PublishedMaterialEntry> &ent
             const bool has_variant_key = std::any_of(entry.keys.begin(), entry.keys.end(), [](const std::string &key) {
                 return filament_options_with_variant.count(publish_base_key(key)) != 0;
             });
-            if (has_variant_key && resolved.file_column.has_value())
-                notices->emplace_back((boost::format(L("Slot %1%: the printer needs the \"%2%\" variant, which the filament does not "
-                                                       "define. Publishing the values printed with \"%3%\".")) %
-                                       (entry.slot + 1) % resolved.required_variant % resolved.used_variant)
-                                          .str());
+            if (has_variant_key) {
+                const std::string notice = publish_variant_notice(uncompacted, size_t(entry.slot));
+                if (!notice.empty())
+                    notices->emplace_back(notice);
+            }
         }
 
         auto in_slot = [&columns](int column) {

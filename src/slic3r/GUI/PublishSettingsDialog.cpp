@@ -1089,6 +1089,15 @@ void PublishSettingsDialog::build_option_model()
                     const std::vector<size_t>           slot_columns = publish_filament_columns(uncompacted, slot);
                     m_categories[category_index].column  = resolved.file_column.has_value() ? int(*resolved.file_column) : -1;
                     m_categories[category_index].columns = slot_columns;
+                    // Q1: a slot whose printer variant its filament does not define publishes the
+                    // values it prints with, and the owner is told before they publish.
+                    if (const std::string notice = publish_variant_notice(uncompacted, slot); !notice.empty()) {
+                        if (wxStaticText* label = m_categories[category_index].variant_notice; label != nullptr) {
+                            label->SetLabel(from_u8(notice));
+                            label->Wrap(FromDIP(460));
+                            label->Show();
+                        }
+                    }
 
                     // Material requirement rows: an optional filament colour and/or a
                     // vendor-agnostic material type for this slot, in their own optgroup so they
@@ -1573,6 +1582,13 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     // The rows are painted at their own em-derived width (a 32 em floor), so the page scrolls
     // sideways rather than clipping a value column at a large DPI.
     if (section == Section::Material && !is_mixed) {
+        // The Q1 notice, filled once the slot's resolved column is known.
+        category.variant_notice = new wxStaticText(category.page, wxID_ANY, wxEmptyString);
+        category.variant_notice->SetFont(Label::Body_13);
+        category.variant_notice->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#C0392B")));
+        category.variant_notice->Hide();
+        page_sizer->Add(category.variant_notice, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
+
         // The variant switch, above the sub-tabs. Filled and shown only when the slot's preset
         // defines more than one variant.
         category.variant_switch = new MultiSwitchButton(category.page);

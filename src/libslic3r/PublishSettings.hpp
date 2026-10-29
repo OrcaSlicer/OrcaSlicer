@@ -164,6 +164,10 @@ std::vector<PublishExtruderEntry> publish_extruder_rule(const DynamicPrintConfig
                                                         std::string_view id_key,
                                                         std::string_view variant_key);
 
+// The owner notice for a slot whose printer variant its filament does not define, naming the
+// variant the printer needs and the one the file will carry. Empty when the column is exact.
+std::string publish_variant_notice(const DynamicPrintConfig &uncompacted, size_t slot);
+
 // Rewrite variant-bearing material keys to "base#file_column" for the column the slot prints with,
 // so a receiver can address the variant. Full entries keep their base keys (they carry every
 // variant). Adds one notice per slot whose printer variant the preset does not define.

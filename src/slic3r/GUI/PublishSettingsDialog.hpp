@@ -180,6 +180,8 @@ private:
         std::vector<size_t> columns;
         // The owner's variant switch, when it has more than one variant.
         MultiSwitchButton* variant_switch{nullptr};
+        // The Q1 notice: this printer needs a variant the filament does not define.
+        wxStaticText* variant_notice{nullptr};
 
         // Material identity, only for Section::Material categories.
         std::string filament_type;
