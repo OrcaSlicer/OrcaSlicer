@@ -1000,32 +1000,40 @@ void PublishSettingsDialog::build_option_model()
             const Page* page        = printer_tab ? printer_tab->extruder_page() : nullptr;
             if (page == nullptr)
                 continue;
-            const size_t extruders_count = printer_tab->m_extruders_count;
+            const size_t            extruders_count = printer_tab->m_extruders_count;
+            const DynamicPrintConfig& printer_config = bundle->printers.get_edited_preset().config;
             for (size_t extruder_idx = 0; extruder_idx < extruders_count; ++extruder_idx) {
                 const wxString page_title = Tab::translate_category(extruders_count > 1 ? wxString::Format("Extruder %d", int(extruder_idx + 1)) : wxString("Extruder"), tab->m_type);
                 // Retraction and Z-Hop values are stored per variant column, not per extruder.
-                const int variant_index = printer_tab->extruder_variant_index(int(extruder_idx));
-                for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
-                    // Allowlist on the untranslated optgroup title; the "Retraction when
-                    // switching material" group is intentionally skipped.
-                    if (optgroup->title != "Retraction" && optgroup->title != "Z-Hop")
-                        continue;
-                    const wxString subcategory = _(optgroup->title);
-                    for (const auto& opt : optgroup->opt_map()) {
-                        const std::string& pure_key = opt.second.first;
-                        // Rows are keyed by the full per-extruder "#N" opt_id so each extruder
-                        // tab publishes its own value.
-                        const std::string opt_id = pure_key + "#" + std::to_string(variant_index);
-                        if (!printer_added.insert(opt_id).second)
+                // The column comes from the shared rule, so an extruder whose column this printer
+                // preset does not define gets no page instead of another extruder's values.
+                const std::vector<Slic3r::PublishExtruderEntry> columns = publish_extruder_rule(
+                    printer_config, printer_config, bundle->project_config, extruder_idx, /*split_hybrid=*/false,
+                    "printer_extruder_id", "printer_extruder_variant");
+                for (const Slic3r::PublishExtruderEntry& column_entry : columns) {
+                    const int variant_index = int(column_entry.column);
+                    for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
+                        // Allowlist on the untranslated optgroup title; the "Retraction when
+                        // switching material" group is intentionally skipped.
+                        if (optgroup->title != "Retraction" && optgroup->title != "Z-Hop")
                             continue;
-                        if (!index_in_range(uncompacted, pure_key, variant_index))
-                            continue;
-                        size_t cat_index = category_index_for(page_title, Section::Printer, g, extruder_idx, PublishMaterialIdentity(), false, true);
-                        m_categories[cat_index].column = variant_index;
-                        size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon, optgroup.get(), page, tab->type());
-                        if (auto row = make_row(opt_id, pure_key, variant_index, -1, variant_index,
-                                                Slic3r::PublishSection::Printer, Slic3r::PublishRowKind::Key, uncompacted))
-                            add_row(std::move(*row), cat_index, sub_index);
+                        const wxString subcategory = _(optgroup->title);
+                        for (const auto& opt : optgroup->opt_map()) {
+                            const std::string& pure_key = opt.second.first;
+                            // Rows are keyed by the full per-extruder "#N" opt_id so each
+                            // extruder tab publishes its own value.
+                            const std::string opt_id = pure_key + "#" + std::to_string(variant_index);
+                            if (!printer_added.insert(opt_id).second)
+                                continue;
+                            if (!index_in_range(uncompacted, pure_key, variant_index))
+                                continue;
+                            size_t cat_index = category_index_for(page_title, Section::Printer, g, extruder_idx, PublishMaterialIdentity(), false, true);
+                            m_categories[cat_index].column = variant_index;
+                            size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon, optgroup.get(), page, tab->type());
+                            if (auto row = make_row(opt_id, pure_key, variant_index, -1, variant_index,
+                                                    Slic3r::PublishSection::Printer, Slic3r::PublishRowKind::Key, uncompacted))
+                                add_row(std::move(*row), cat_index, sub_index);
+                        }
                     }
                 }
             }
@@ -1166,26 +1174,29 @@ void PublishSettingsDialog::build_option_model()
         };
         std::vector<ExtruderEntry> extruder_entries;
         if (auto* print_tab = dynamic_cast<TabPrint*>(wxGetApp().get_tab(Preset::TYPE_PRINT))) {
-            std::vector<std::pair<wxString, int>> entries; // tab title, variant column
             const int extruder_count = bundle->get_printer_extruder_count();
-            const bool variant_tabs  = extruder_count >= 2;
-            if (variant_tabs) {
-                const std::vector<wxString> titles = print_tab->generate_extruder_options();
-                for (size_t i = 0; i < titles.size(); ++i) {
-                    int                  extruder_id = 0;
-                    NozzleVolumeType     nozzle_type = NozzleVolumeType::nvtStandard;
-                    print_tab->parse_extruder_selection(int(i), extruder_id, nozzle_type);
-                    entries.emplace_back(titles[i], print_tab->extruder_variant_index(extruder_id, nozzle_type));
+            // The process pages follow the sidebar's extruder switch: it is populated only when
+            // several extruders run different hardware, and a hybrid extruder then shows one page
+            // per sub-nozzle type. Otherwise there is a single "Extruder" page.
+            const bool                    split_hybrid   = extruder_count >= 2 && bundle->support_different_extruders();
+            const std::vector<wxString>   titles         = split_hybrid ? print_tab->generate_extruder_options() : std::vector<wxString>();
+            const DynamicPrintConfig&     print_config   = bundle->prints.get_edited_preset().config;
+            const DynamicPrintConfig&     printer_config = bundle->printers.get_edited_preset().config;
+            size_t                        title_index    = 0;
+            const int                     extruders      = split_hybrid ? extruder_count : 1;
+            for (int extruder = 0; extruder < extruders; ++extruder) {
+                // Labels pair with the switch's own tags, so the pages read exactly like the Tab.
+                for (const Slic3r::PublishExtruderEntry& column : publish_extruder_rule(
+                         print_config, printer_config, bundle->project_config, size_t(extruder), split_hybrid,
+                         "print_extruder_id", "print_extruder_variant")) {
+                    const wxString title = split_hybrid && title_index < titles.size() ?
+                                               titles[title_index] :
+                                               Tab::translate_category(wxString("Extruder"), Preset::TYPE_PRINT);
+                    ++title_index;
+                    extruder_entries.push_back({category_index_for(title, Section::Print, g, extruder_entries.size(),
+                                                                   PublishMaterialIdentity(), false, split_hybrid),
+                                                int(column.column)});
                 }
-            } else if (extruder_count == 1) {
-                entries.emplace_back(Tab::translate_category(wxString("Extruder"), Preset::TYPE_PRINT),
-                                     print_tab->extruder_variant_index(0, print_tab->get_actual_nozzle_volume_type(0)));
-            }
-            for (const auto& [title, variant] : entries) {
-                if (variant < 0)
-                    continue;
-                extruder_entries.push_back(
-                    {category_index_for(title, Section::Print, g, extruder_entries.size(), PublishMaterialIdentity(), false, variant_tabs), variant});
             }
         }
 
