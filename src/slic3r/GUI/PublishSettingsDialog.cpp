@@ -5,6 +5,8 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "OptionStateRegistry.hpp"
+#include "OptionsGroup.hpp"
+#include "Field.hpp"
 #include "PublishTabs.hpp"
 #include "Tab.hpp"
 #include "ConfigValueFormatter.hpp"
@@ -19,6 +21,7 @@
 
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PublishSelection.hpp"
 #include "libslic3r/PublishSettings.hpp"
 #include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Model.hpp"

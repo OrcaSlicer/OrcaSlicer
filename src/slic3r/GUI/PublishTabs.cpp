@@ -1,12 +1,17 @@
 #include "PublishTabs.hpp"
 
 #include "OptionsGroup.hpp"
+#include "ParamsPanel.hpp"
 #include "Tab.hpp"
 
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PublishSettings.hpp"
 
 #include <algorithm>
 #include <set>
+#include <wx/defs.h>
 #include <wx/sizer.h>
 
 namespace Slic3r {
