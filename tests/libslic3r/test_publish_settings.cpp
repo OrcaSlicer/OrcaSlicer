@@ -830,6 +830,64 @@ TEST_CASE("Mixed dependency issues name the component that is not published", "[
     }
 }
 
+TEST_CASE("A mixed component that is itself a mixed slot is not reported", "[PublishSettings]")
+{
+    DynamicPrintConfig project;
+    // Slot 0 is mixed from slot 2 (1-based), which is itself a mixed slot.
+    project.set_key_value("filament_mixed_components", new ConfigOptionStrings({ "2", "" }));
+
+    PublishSelection selection;
+    PublishOwnerInfo mixed;
+    mixed.mixed = true;
+    selection.set_owner_info(0, mixed);
+    selection.set_owner_info(1, mixed);
+
+    // A mixed slot has no "Type" requirement row of its own.
+    const std::vector<PublishRowId> rows;
+
+    CHECK(unpublished_mixed_components(selection, rows, project).empty());
+}
+
+TEST_CASE("A checked Type requirement row clears the mixed dependency", "[PublishSettings]")
+{
+    DynamicPrintConfig project;
+    project.set_key_value("filament_mixed_components", new ConfigOptionStrings({ "2", "" }));
+
+    PublishSelection selection;
+    PublishOwnerInfo mixed;
+    mixed.mixed = true;
+    selection.set_owner_info(0, mixed);
+    PublishOwnerInfo component;
+    component.filament_type = "PLA";
+    selection.set_owner_info(1, component);
+    selection.set_owner_enabled(1, true);
+
+    const PublishRowId type_row =
+        make_publish_row({ "filament_type" }, PublishSection::Material, 1, -1, PublishRowKind::Type);
+    const std::vector<PublishRowId> rows{ type_row };
+    selection.set_checked(type_row, true);
+    selection.set_enabled(type_row, true);
+
+    CHECK(unpublished_mixed_components(selection, rows, project).empty());
+}
+
+TEST_CASE("A component the dialog does not show is not reported", "[PublishSettings]")
+{
+    DynamicPrintConfig project;
+    // Slot 0 is mixed from slot 2 (1-based); no owner is registered for slot 1, so the dialog
+    // has no row for it and cannot have left it unpublished.
+    project.set_key_value("filament_mixed_components", new ConfigOptionStrings({ "2" }));
+
+    PublishSelection selection;
+    PublishOwnerInfo mixed;
+    mixed.mixed = true;
+    selection.set_owner_info(0, mixed);
+
+    const std::vector<PublishRowId> rows;
+
+    CHECK(unpublished_mixed_components(selection, rows, project).empty());
+}
+
 TEST_CASE("The printer rule uses the project's nozzle type", "[PublishSettings]")
 {
     // One extruder running a Standard nozzle; the preset lists Standard then High Flow.

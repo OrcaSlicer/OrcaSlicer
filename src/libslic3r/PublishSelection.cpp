@@ -185,7 +185,11 @@ std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSele
                 continue;
             const int component_slot = int(component) - 1;
             // Only a component the dialog shows (it registered an owner) can be missing.
-            if (owners.count(component_slot) == 0)
+            const auto component_owner = owners.find(component_slot);
+            if (component_owner == owners.end())
+                continue;
+            // A mixed slot is not a physical filament: the dialog this replaced skipped it too.
+            if (component_owner->second.mixed)
                 continue;
             if (!selection.owner_enabled(component_slot)) {
                 out.push_back({ size_t(mixed_slot), size_t(component_slot), MixedDependencyIssue::Reason::Disabled });
