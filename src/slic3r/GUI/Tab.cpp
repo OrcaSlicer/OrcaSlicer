@@ -1890,6 +1890,10 @@ void Tab::update_visibility()
         page->update_visibility(m_mode, page.get() == m_active_page);
     rebuild_page_tree();
 
+    // The Tab rewrote its lines' visibility; a hosted dialog re-applies its own filter on top.
+    if (m_publish_host && m_on_rules_applied)
+        m_on_rules_applied();
+
     if (m_type == Preset::TYPE_SLA_PRINT)
         update_description_lines();
 
@@ -2131,6 +2135,9 @@ void Tab::load_key_value(const std::string& opt_key, const boost::any& value, bo
         toggle_options();
         if (m_active_page)
             m_active_page->update_visibility(m_mode, true);
+        // toggle_options()/update_visibility() rewritten the lines: re-apply the host's filter.
+        if (m_on_rules_applied)
+            m_on_rules_applied();
         return;
     }
     // Mark the print & filament enabled if they are compatible with the currently selected preset.
@@ -2264,6 +2271,9 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         if (m_active_page)
             m_active_page->update_visibility(m_mode, true);
         m_page_view->GetParent()->Layout();
+        // update()/update_visibility() rewrote the lines: re-apply the host's filter.
+        if (m_on_rules_applied)
+            m_on_rules_applied();
         return;
     }
 
@@ -8128,6 +8138,9 @@ void Tab::activate_selected_page(std::function<void()> throw_if_canceled)
     if (m_active_page && !(m_active_page->title() == "Dependencies"))
         toggle_options();
     m_active_page->update_visibility(m_mode, true); // for taggle line
+    // The Tab rewrote its lines' visibility; a hosted dialog re-applies its own filter on top.
+    if (m_publish_host && m_on_rules_applied)
+        m_on_rules_applied();
 }
 
 //BBS: GUI refactor

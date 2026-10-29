@@ -342,6 +342,9 @@ public:
     std::vector<NozzleVolumeType> m_actual_nozzle_volumes;
     // Called with the switch selection after the extruder/variant switch's own handling; null by default.
     std::function<void(int)> m_on_variant_changed;
+    // Called after the Tab rewrites its lines' visibility, so a hosted dialog can re-apply its own
+    // filter; null by default.
+    std::function<void()> m_on_rules_applied;
 
 public:
 	// BBS
@@ -357,6 +360,9 @@ public:
     bool 		completed() const { return m_completed; }
     // A publish tab is hosted by the publish dialog, not by the sidebar.
     bool        is_publish_host() const { return m_publish_host; }
+    // The colours the Tab paints a setting's label with; a hosted dialog's row shares them.
+    const wxColour& modified_label_colour() const { return m_modified_label_clr; }
+    const wxColour& default_text_colour() const { return m_default_text_clr; }
 	virtual bool supports_printer_technology(const PrinterTechnology tech) const = 0;
 
 	void		create_preset_tab();

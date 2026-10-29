@@ -860,7 +860,16 @@ void PublishSettingsDialog::fit_to_content()
     SetSize(std::min(w, max_w), std::min(h, max_h));
 }
 
-PublishSettingsDialog::~PublishSettingsDialog() {}
+PublishSettingsDialog::~PublishSettingsDialog()
+{
+    // The hosted tabs outlive this dialog's members, so drop the callbacks that capture it.
+    for (Category& category : m_categories) {
+        if (category.publish_tab == nullptr)
+            continue;
+        category.publish_tab->m_on_variant_changed = nullptr;
+        category.publish_tab->m_on_rules_applied   = nullptr;
+    }
+}
 
 void PublishSettingsDialog::build_option_model()
 {
@@ -1152,11 +1161,19 @@ void PublishSettingsDialog::build_option_model()
             add_material_tab_rows(category_index);
             // The switch decides which column's row a checkbox paints; the tab handles its own
             // switch first (values, greying), then this repaints the publish controls.
-            if (Tab* tab = m_categories[category_index].publish_tab)
+            if (Tab* tab = m_categories[category_index].publish_tab) {
                 tab->m_on_variant_changed = [this](int) {
                     sync_all_row_widgets();
                     apply_visibility();
                 };
+                // The tab rewrites its lines' visibility and its label colours on a page switch;
+                // re-apply the filter and the dirty markers on top.
+                tab->m_on_rules_applied = [this] {
+                    apply_visibility();
+                    for (size_t r = 0; r < m_rows.size(); ++r)
+                        apply_row_label_colour(r);
+                };
+            }
         }
     }
 
@@ -1335,8 +1352,7 @@ void PublishSettingsDialog::build_option_model()
     // A page may already have been built while the model was still being assembled, so paint the
     // marker once more now that every row knows whether it is dirty.
     for (size_t r = 0; r < m_rows.size(); ++r)
-        if (m_rows[r].dirty)
-            apply_row_label_colour(r);
+        apply_row_label_colour(r);
 
     // Wire the "Enable" checkboxes: toggling one reveals/hides the slot's settings below the
     // header (and, for a mixed slot, auto-selects its components). Bind by index so the lambda
@@ -1772,8 +1788,14 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
                 };
                 auto add_values = [this](Row& row) {
                     // The first publish key names the row in the filter, as the cloned rows did.
-                    row.value = get_string_value(row.id.keys.front(), m_snapshot);
-                    if (const ConfigOptionDef* def = print_config_def.get(row.options.front().key)) {
+                    // A per-slot key has no "#N" suffix, so read the value at the row's own index
+                    // instead of the vector's first entry.
+                    const RowOption& first = row.options.front();
+                    std::string      key   = row.id.keys.front();
+                    if (key.find('#') == std::string::npos && first.index >= 0)
+                        key += "#" + std::to_string(first.index);
+                    row.value = get_string_value(key, m_snapshot);
+                    if (const ConfigOptionDef* def = print_config_def.get(first.key)) {
                         row.unit = _(def->sidetext);
                         if (row.unit == "%" && row.value.EndsWith("%"))
                             row.unit.clear();
@@ -1812,6 +1834,24 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
                         add_values(row);
                         rows.push_back(std::move(row));
                     }
+                    // Every variant key of this line was already taken by an earlier line: the
+                    // line still owns its per-slot options, which would otherwise vanish. Emit
+                    // them once, at slot level.
+                    if (rows.empty() && !slot_options.empty()) {
+                        Row row;
+                        fill_row(row);
+                        row.id.column = -1;
+                        for (const RowOption& option : slot_options) {
+                            if (!slot_added.insert(option.key).second)
+                                continue;
+                            row.options.push_back(option);
+                            row.id.keys.push_back(option.key);
+                        }
+                        if (!row.options.empty()) {
+                            add_values(row);
+                            rows.push_back(std::move(row));
+                        }
+                    }
                 } else {
                     Row row;
                     fill_row(row);
@@ -1831,10 +1871,10 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
                     continue;
 
                 // The checkbox the Tab's own line carries, once per line: it draws the row of the
-                // column the tab's switch currently selects.
-                Line* line = group->get_line(src.get_options().front().opt_id);
-                if (line == nullptr)
-                    continue;
+                // column the tab's switch currently selects. Use the line being walked, not a
+                // fresh lookup by key: a key can bind another line of this group, or none after a
+                // per-slot key was masked. The vector is not appended during the walk.
+                Line* line = const_cast<Line*>(&src);
                 if (!line->row_toggle)
                     line->row_toggle = RowToggle();
                 line->row_toggle->on_change = [this, category_index, line](bool checked) {
@@ -1945,14 +1985,12 @@ void PublishSettingsDialog::build_row_groups(size_t category_index)
 
         // Bind the row toggles to the model and paint the dirty marker the way the Tab does.
         for (size_t r : sub.rows) {
-            Row& row  = m_rows[r];
             Line* line = row_line(r);
             if (line == nullptr || !line->row_toggle)
                 continue;
             line->row_toggle->on_change = [this, r](bool checked) { set_row_checked(r, checked); };
             sync_row_widgets(r);
-            if (row.dirty)
-                apply_row_label_colour(r);
+            apply_row_label_colour(r);
         }
 
         sub.item = category.list_sizer->Add(group->sizer, 0, wxEXPAND | wxALL, FromDIP(5));
@@ -1991,8 +2029,29 @@ bool PublishSettingsDialog::row_on_selected_variant(size_t row_index) const
 void PublishSettingsDialog::apply_row_label_colour(size_t row_index)
 {
     const Row& row = m_rows[row_index];
-    // A hosted-tab row is painted by the Tab, which marks its own modified settings.
-    if (row.tab_line != nullptr || row.options.empty())
+    if (row.options.empty())
+        return;
+    // A hosted-tab row is drawn by the Tab, which owns the colours. Only the row the tab's switch
+    // shows paints the Line they all share.
+    if (row.tab_line != nullptr) {
+        if (row.inner_index >= m_categories.size() || !row_on_selected_variant(row_index))
+            return;
+        const Tab* tab = m_categories[row.inner_index].publish_tab;
+        if (tab == nullptr)
+            return;
+        const wxColour* colour = row.dirty ? &tab->modified_label_colour() : &tab->default_text_colour();
+        row.tab_line->set_label_colour(colour);
+        // The label is drawn with the first option's field colour when the line has a field. Only
+        // a dirty row is painted, so the Tab's own marks on an undirty row stay.
+        if (row.dirty)
+            for (const RowOption& option : row.options) {
+                const std::string opt_id = option.key + (option.index >= 0 ? "#" + std::to_string(option.index) : "");
+                if (Field* field = tab->get_field(opt_id))
+                    field->set_label_colour(colour);
+            }
+        return;
+    }
+    if (!row.dirty)
         return;
     Subcategory& sub = m_categories[row.inner_index].subs[row.sub_index];
     if (sub.group == nullptr)
@@ -2051,6 +2110,8 @@ void PublishSettingsDialog::on_full_toggle(size_t category_index)
     // The slot's own settings stop being editable: the tab's fields go read-only.
     if (cat.publish_tab != nullptr)
         cat.publish_tab->set_publish_readonly(full);
+    // The row toggles changed state; repaint the hosted rows so the greyed toggles show at once.
+    apply_visibility();
     refresh_tab_indicators();
 }
 
@@ -3013,8 +3074,7 @@ void PublishSettingsDialog::on_sys_color_changed()
             category.publish_tab->sys_color_changed();
     }
     for (size_t r = 0; r < m_rows.size(); ++r)
-        if (m_rows[r].dirty)
-            apply_row_label_colour(r);
+        apply_row_label_colour(r);
     Refresh();
 }
 

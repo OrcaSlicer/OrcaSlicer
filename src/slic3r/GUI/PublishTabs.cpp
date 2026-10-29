@@ -12,7 +12,11 @@ PublishParamsPanel::PublishParamsPanel(wxWindow *parent)
 
 PublishParamsPanel::~PublishParamsPanel()
 {
-    // The tab is a child of this panel and dies with it; drop the pointer ~ParamsPanel() would use.
+    // ~ParamsPanel() clears the current tab's pages, and the page view must still exist while
+    // their Page/OptionsGroup destructors run. Run that teardown here, before dropping the
+    // pointer, so it is not skipped: the tab is a child of this panel and dies with it.
+    if (m_publish_tab != nullptr)
+        m_publish_tab->clear_pages();
     m_current_tab = nullptr;
 }
 
