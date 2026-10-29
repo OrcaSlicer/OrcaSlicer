@@ -29,7 +29,7 @@ public:
     static constexpr float CorrectionAngle = -45.;
 
     // Density adjustment of Gyroid to have a good %of weight.
-    static constexpr double GyroidDensityAdjust = 2.44;
+    static constexpr double GyroidDensityAdjust = 2.574;
 
     struct Surface;
 

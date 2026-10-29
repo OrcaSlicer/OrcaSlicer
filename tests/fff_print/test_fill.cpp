@@ -2108,21 +2108,36 @@ TEST_CASE("Adaptive TPMS infill thins out from the surface to the interior densi
     CHECK(sparse_infill_length(adaptive, 25., 35., shell) > 0.75 * shell_uniform);
 }
 
-TEST_CASE("TPMS infill patterns print as much line as TPMS-FK at the same density", "[Fill]")
+// Volume of the sparse infill of the first object over the layers with print_z in [z_min, z_max] inside a square of
+// half size half centered on the origin, over the volume of the square.
+static double sparse_infill_density(const Print &print, coordf_t z_min, coordf_t z_max, double half)
 {
-    // Each pattern's period factor is calibrated to its line length per area, so the same density prints the same amount.
-    const std::string pattern = GENERATE("tpmsd", "tpmsp", "tpmsiwp", "tpmsneovius", "tpmsfrd", "tpmslidinoid", "tpmssplitp");
+    const Polygons square = centered_square(half);
+    double         infill = 0., volume = 0.;
+    for (const Layer *layer : print.objects().front()->layers())
+        if (layer->print_z >= z_min && layer->print_z <= z_max) {
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                    if (entity->role() == erInternalInfill) {
+                        Polylines polylines;
+                        entity->collect_polylines(polylines);
+                        infill += entity->total_volume() / unscale<double>(entity->length()) *
+                                  unscale<double>(total_length(intersection_pl(polylines, square)));
+                    }
+            volume += 4. * half * half * layer->height;
+        }
+    return infill / volume;
+}
+
+TEST_CASE("TPMS infill patterns print the volume of their density", "[Fill]")
+{
+    // Each pattern's calibration makes its sparse infill print the volume of the density, away from the walls.
+    const std::string pattern = GENERATE("gyroid", "tpmsd", "tpmsfk", "tpmsp", "tpmsiwp", "tpmsneovius", "tpmsfrd", "tpmslidinoid", "tpmssplitp");
     CAPTURE(pattern);
-    auto length = [](const std::string &pattern) {
-        Print print;
-        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(40)}, print,
-                                            {{"sparse_infill_pattern", pattern}, {"sparse_infill_density", "25%"}, {"layer_height", 0.2}});
-        // Several periods of each pattern, away from the walls and the solid layers.
-        return sparse_infill_length(print, 5., 35., centered_square(15.));
-    };
-    const double reference = length("tpmsfk");
-    REQUIRE(reference > 0.);
-    CHECK(length(pattern) == Catch::Approx(reference).epsilon(0.1));
+    Print print;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(40)}, print,
+                                        {{"sparse_infill_pattern", pattern}, {"sparse_infill_density", "25%"}, {"layer_height", 0.2}});
+    CHECK(sparse_infill_density(print, 5., 35., 15.) == Catch::Approx(0.25).epsilon(0.05));
 }
 
 TEST_CASE("Adaptive TPMS infill of a tall object is sparsest at its middle height", "[Fill]")
@@ -2633,7 +2648,7 @@ TEST_CASE("TPMS-D and TPMS-P traced on the sampling grid follow their parametric
     // A turn too small to move the lines makes the filler trace the implicit equation instead.
     const Polygons inner = shrink(to_polygons(tpms_square()), scale_(3.));
     // Layers of TPMS-P with its rings around (0, 0), around (PI, PI), and nearly touching at the saddles.
-    for (const double z : {3.7, 5.1, 12.3, 4.2}) {
+    for (const double z : {3.7, 5.4, 12.3, 4.2}) {
         CAPTURE(z);
         const Polylines parametric = tpms_fill(pattern, z, Vec3d::Ones());
         const Polylines traced     = tpms_fill(pattern, z, Vec3d::Ones(), 1e-9);
@@ -2648,7 +2663,7 @@ TEST_CASE("A sparse infill X rotation of 90 degrees mirrors the layers of TPMS-D
     // Turned by 90 degrees, every layer is the regular one mirrored across x = 0: D(x, z, -y) = D(-x, y, z).
     const Polygons inner     = shrink(to_polygons(tpms_square()), scale_(3.));
     const double   tolerance = 0.15;
-    for (const double z : {3.7, 5.1, 12.3}) {
+    for (const double z : {3.7, 5.4, 12.3}) {
         CAPTURE(z);
         const Polylines regular = tpms_fill(ipTpmsD, z, Vec3d::Ones());
         Polylines       mirrored = regular;

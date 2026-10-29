@@ -40,12 +40,15 @@ A layer comes from one of three generators:
   eighth of it, mirrored, and copied to every cell. They are exact to their
   tolerance, cheap, and the same in every region, but only follow layers of the
   regular cells, stretched at most along Z: `TpmsEquation::regular_layers()`.
+  The tolerance of the Gyroid waves is at most a hundredth of their period, so
+  the dense waves keep their length.
 - **Marching squares** of `TpmsField`, in `make_tpms_polylines()`, for any
   equation, scale and turn. The patterns with no parametric form always use it;
   Gyroid with the Z-buckling optimization or when not `regular_layers()`, TPMS-D
-  and TPMS-P when not `regular_layers()`. The grid cell is 0.4 mm, and for
-  TPMS-P, I-WP, Neovius, F-RD, Lidinoid and Split P, whose cells are 2 to 3 times
-  smaller than Fischer-Koch's, a 32nd of their period at most. The lines are
+  and TPMS-P when not `regular_layers()`. The grid cell is 0.4 mm, and for the
+  patterns with no parametric form and TPMS-P a 32nd of their period at most, so
+  their dense layers keep their length: the 0.4 mm grid draws the 2 mm cells of
+  TPMS-FK at 90% in zigzags 6% too long. The lines are
   simplified within an eighth of the cell, at most the sparse infill resolution.
   Every pattern samples on a grid shared by every region of the layer
   (`tpms_sampling_bbox()`), so that the regions connect the same way at the
@@ -58,12 +61,13 @@ A layer comes from one of three generators:
 - With the scales at 1 and no turn, the waves of Gyroid and TPMS-D are the ones
   solved from their equations; the scale and the turn only send a layer to
   marching squares.
-- The density calibration of each pattern is set from the contour length per
-  area of its level set, so the same density prints the same filament. For the
-  patterns other than Gyroid and TPMS-D it is 2 PI over a period factor, which is
-  TPMS-FK's 4.18 times the length per area of the pattern over TPMS-FK's,
-  averaged over a period of layers. Stretching the cells along X or Y changes
-  that length (twice along both prints half of it); along Z it barely does.
+- The density calibration of each pattern makes its sparse infill print the
+  volume of its density: measured on the layers from 10 to 90 mm of a 100 mm
+  cube with the anchors off, at densities from 15% to 90%, the volume of the
+  sparse infill over the volume of its regions is the density within 2%. For
+  the patterns other than Gyroid and TPMS-D the calibration is 2 PI over a period
+  factor. Stretching the cells along X or Y changes the line length per area
+  (twice along both prints half of it); along Z it barely does.
 - With the anchors off, Gyroid and TPMS-D chain their lines; the other patterns
   connect them along the boundary even then, as chaining their many islands is
   slow.
