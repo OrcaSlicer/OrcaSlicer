@@ -1229,6 +1229,7 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
 
     if (!m_layers.empty())
         m_layers.set_view_range(0, static_cast<uint32_t>(m_layers.count()) - 1);
+    m_layers.set_closed_layers(gcode_data.layers_closed);
 
     std::sort(m_options.begin(), m_options.end());
     m_options.erase(std::unique(m_options.begin(), m_options.end()), m_options.end());

@@ -29,11 +29,16 @@ they are the faces the range cuts open, and the top is what the user is looking 
 with no infill of its own does not close the print there: infill combination prints the sparse
 infill of a few layers in one, leaving the others walls alone, and a support layer with no object
 layer at its height gets a layer of its own. Each end therefore runs from the range's end layer to
-the nearest layer with sparse infill, at most eight layers deep (`Layers::get_whole_end_layers()`),
-and the `Viewer` reports the two bands so that the solid model's cut can sit at their edges. The
-layer table is the whole plate's, so another object's top surface on the layer says nothing about
-this one's combined infill; a layer with only solid infill ends the band when no sparse infill is
-within reach, as on a print with none.
+the nearest layer that closes the print, at most eight layers deep
+(`Layers::get_whole_end_layers()`), and the `Viewer` reports the two bands so that the solid
+model's cut can sit at their edges. A layer closes the print when every object printed on it has
+infill on it: the G-code labels its moves with their object, and `LayersClosedByInfill` in the
+wrapper that feeds libvgcode tallies walls and infill per object and layer while converting the
+moves (`GCodeInputData::layers_closed`). Two objects on one plate rarely combine their infill on
+the same layers, and one object's sparse infill on a layer says nothing about another's, which is
+why the judgement is per object. Without that list, as for a preview built from the `Print`, the
+layer table judges each layer from its roles as a whole: the nearest layer with sparse infill, and
+only when none is within reach, as on a print with none, the nearest layer with any infill.
 
 The realistic view's shadow-caster pass draws whichever set is bound, so the key of the static
 shadow map includes whether the reduced set is: a map built during a drag is rebuilt on release.

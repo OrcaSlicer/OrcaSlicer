@@ -78,6 +78,11 @@ Interval Layers::get_whole_end_layers(std::size_t max_depth) const
         return (this->*test)(layer) ? layer : end;
     };
     auto band_edge = [&](Interval::value_type end, Interval::value_type limit) {
+        if (m_closed_known) {
+            // the top band looks down onto the layers, the bottom band up at them
+            bool (Layers::*closed)(std::size_t) const = (end >= limit) ? &Layers::layer_closed_from_above : &Layers::layer_closed_from_below;
+            return (this->*closed)(end) ? end : nearest(end, limit, closed);
+        }
         if (layer_has_sparse_infill(end))
             return end;
         const Interval::value_type sparse = nearest(end, limit, &Layers::layer_has_sparse_infill);
@@ -85,7 +90,8 @@ Interval Layers::get_whole_end_layers(std::size_t max_depth) const
     };
     Interval ret = range;
     ret[1] = band_edge(range[1], range[0]);
-    ret[0] = band_edge(range[0], ret[1]);
+    // nothing is cut under the print's first layer, so it needs no band
+    ret[0] = (range[0] == 0) ? 0 : band_edge(range[0], ret[1]);
     return ret;
 }
 
@@ -93,6 +99,16 @@ void Layers::reset()
 {
     m_items.clear();
     m_view_range.reset();
+    m_closed_known = false;
+}
+
+void Layers::set_closed_layers(const std::vector<uint8_t>& closed)
+{
+    m_closed_known = closed.size() == m_items.size();
+    for (std::size_t i = 0; i < m_items.size(); ++i) {
+        m_items[i].closed_from_above = m_closed_known && (closed[i] & 1) != 0;
+        m_items[i].closed_from_below = m_closed_known && (closed[i] & 2) != 0;
+    }
 }
 
 std::vector<float> Layers::get_times(ETimeMode mode) const

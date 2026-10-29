@@ -55,14 +55,28 @@ public:
     bool layer_has_sparse_infill(std::size_t layer_id) const {
         return (layer_id < m_items.size()) ? m_items[layer_id].has_sparse_infill : false;
     }
+    // Whether each layer's infill closes every object printed on it, as the caller knows it from
+    // the objects the moves belong to: bit 0 as seen from above, bit 1 as seen from below, see
+    // GCodeInputData::layers_closed. Ignored unless there is one entry per layer.
+    void set_closed_layers(const std::vector<uint8_t>& closed);
+    bool layer_closed_from_above(std::size_t layer_id) const {
+        return (layer_id < m_items.size()) ? m_items[layer_id].closed_from_above : false;
+    }
+    bool layer_closed_from_below(std::size_t layer_id) const {
+        return (layer_id < m_items.size()) ? m_items[layer_id].closed_from_below : false;
+    }
     // The layers at the ends of the view range that are drawn whole while the user drags: every
     // layer of the range up to [0], and from [1] on. A cut right under a layer with no infill of its
     // own, as infill combination leaves every layer but one in a few, or a layer of support alone,
     // would cap the print where at rest its infill shows through, so each end runs to the nearest
-    // layer with sparse infill, at most max_depth layers deep. The layers are the whole plate's,
-    // and another object's solid infill on the layer says nothing about this one's sparse infill,
-    // so a layer with only solid infill ends the band only when no sparse infill is within reach,
-    // as on a print with none. The two ends never cross.
+    // layer that closes the print, at most max_depth layers deep. That is the nearest layer closed
+    // as seen from the range's end when the caller has told which layers close every object on
+    // them, an object's top shells closing it from above and its bottom shells from below. Otherwise it is
+    // judged from the roles of the whole layer: the nearest layer with sparse infill, since
+    // another object's solid infill on the layer says nothing about this one's sparse infill, and
+    // only when no sparse infill is within reach, as on a print with none, the nearest layer with
+    // any infill. The two ends never cross, and a range from the print's first layer has no
+    // bottom band, since nothing is cut under that layer.
     Interval get_whole_end_layers(std::size_t max_depth) const;
 
     std::size_t size_in_bytes_cpu() const;
@@ -76,10 +90,14 @@ private:
         bool contains_colorprint_options{ false };
         bool has_infill{ false };
         bool has_sparse_infill{ false };
+        bool closed_from_above{ false };
+        bool closed_from_below{ false };
     };
     
     std::vector<Item> m_items;
     Range m_view_range;
+    // whether Item::closed was set by the caller, see set_closed_layers()
+    bool m_closed_known{ false };
 };
 
 } // namespace libvgcode
