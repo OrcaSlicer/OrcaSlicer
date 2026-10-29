@@ -205,6 +205,7 @@ void Slic3r::GUI::GLCanvas3D::load_render_colors()
 
 namespace Slic3r {
 namespace GUI {
+extern float g_design_bed_alpha;   // 3DBed.cpp
 
 static void pan_camera(Camera& camera, const Vec2d& screen_delta, const Vec3d& anchor)
 {
@@ -2849,6 +2850,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     if (m_canvas_type == ECanvasType::CanvasView3D) {
         // m_show_bed gates the plate list too: hiding the bed but leaving its grid and outline
         // floating would read as a rendering fault rather than a deliberate view option.
+        const auto render_bed_layers = [&]() {
         if (show_bed) {
             bool show_axes = m_show_world_axes;
 #ifdef SLIC3R_CAD
@@ -2864,6 +2866,13 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         if (m_design_canvas && show_bed)
             // Design tab: replace the plate's corner-origin grid with the origin-centred CAD grid.
             _render_cad_grid(camera.get_view_matrix(), camera.get_projection_matrix());
+        };
+        // Design tab: the bed is a surface of the 3D scene, so it has to layer with the model the way a real one does: a body above
+        // it hides it, a body that goes below it is seen through it, and the two meet in a visible line. Drawn first, as everywhere
+        // else, its layers disagreed about depth (the plate wrote it, the background quad did not) and the model sank into it.
+        // So here it is drawn after the opaque objects, depth-tested against them and not writing depth.
+        if (!m_design_canvas)
+            render_bed_layers();
         m_frame_profiler.mark("plates");
         
         //BBS: add outline logic
@@ -2874,6 +2883,14 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         m_frame_profiler.mark("objects");
         _render_sla_slices();
         _render_selection();
+        if (m_design_canvas) {
+            // translucent: what lies below the bed shows through it, dimmed; what lies above it hides it (depth test)
+            g_design_bed_alpha = 0.35f;
+            glsafe(::glDepthMask(GL_FALSE));
+            render_bed_layers();
+            glsafe(::glDepthMask(GL_TRUE));
+            g_design_bed_alpha = 1.0f;
+        }
         _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
         _render_wireframe_overlay();
         m_frame_profiler.mark("transparent");
