@@ -42,6 +42,10 @@ only when none is within reach, as on a print with none, the nearest layer with 
 
 The realistic view's shadow-caster pass draws whichever set is bound, so the key of the static
 shadow map includes whether the reduced set is: a map built during a drag is rebuilt on release.
+In the solid model mode the shells, cut at the solid's heights, cast into the same map through
+`GCodeViewer::render_solid_model_casters()`, and the solid samples the map back under the light
+the canvas passed on, so a body shades the plate, its neighbours and the end-band toolpaths as the
+toolpaths it stands in for would, and takes their shadows in turn.
 With the mode off the reduced flag is never raised, and a drag changes nothing in the preview.
 
 ### Modes
