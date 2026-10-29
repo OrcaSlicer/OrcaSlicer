@@ -12,10 +12,11 @@ namespace Slic3r {
 enum class PublishSection { Printer, Material, Process };
 enum class PublishRowKind { Key, Color, Type };
 
-// One selectable row of the dialog. `keys` holds the row's base config keys (several for a
-// multi-option row). `owner` is the filament slot for Material rows, -1 otherwise. `column` is
-// the file column for variant-bearing rows, the extruder column for per-extruder rows, and -1
-// for slot-level rows (which publish as a plain base key).
+// One selectable row of the dialog. `keys` holds publish-ready keys: "base" for a slot-level row
+// and "base#col" for a variant-bearing or per-extruder row, several for a multi-option row.
+// `owner` is the filament slot for Material rows, -1 otherwise. `column` is the file column the
+// row was built for; it is used for identity, seeding and the owner notice, never spliced into a
+// key.
 struct PublishRowId
 {
     std::vector<std::string> keys;

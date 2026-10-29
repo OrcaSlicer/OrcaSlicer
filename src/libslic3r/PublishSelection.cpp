@@ -89,8 +89,7 @@ std::vector<std::string> PublishSelection::published_keys(const std::vector<Publ
     for (const PublishRowId &row : rows) {
         if (row.section == PublishSection::Material || !checked(row) || !enabled(row))
             continue;
-        for (const std::string &key : row.keys)
-            out.push_back(row.column >= 0 ? key + "#" + std::to_string(row.column) : key);
+        out.insert(out.end(), row.keys.begin(), row.keys.end());
     }
     return out;
 }
@@ -149,10 +148,9 @@ std::vector<PublishedMaterialEntry> PublishSelection::material_entries(const std
                 entry.publish_type       = true;
                 entry.publish_type_value = normalize_filament_type(info.filament_type);
             } else {
-                // Variant-bearing rows carry their file column; a slot-level row stays plain and
-                // publish_normalize_material_entries fills in the resolved column for the rest.
-                for (const std::string &key : row.keys)
-                    entry.keys.emplace_back(row.column >= 0 ? key + "#" + std::to_string(row.column) : key);
+                // Keys are publish-ready: a bare base key is resolved to its column by
+                // publish_normalize_material_entries.
+                entry.keys.insert(entry.keys.end(), row.keys.begin(), row.keys.end());
             }
         }
         // Nothing checked at all -> nothing to write.

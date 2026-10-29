@@ -687,10 +687,10 @@ TEST_CASE("A filament key is variant-bearing exactly when the variant option lis
 
 TEST_CASE("Checked state round-trips through published keys and material entries", "[PublishSettings]")
 {
-    const PublishRowId printer_row = make_publish_row({ "retraction_length" }, PublishSection::Printer, -1, 1);
+    const PublishRowId printer_row = make_publish_row({ "retraction_length#1" }, PublishSection::Printer, -1, 1);
     const PublishRowId slot_row    = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
     const PublishRowId multi_row =
-        make_publish_row({ "overhang_speed_0", "overhang_speed_1" }, PublishSection::Material, 0, 2);
+        make_publish_row({ "overhang_speed_0#2", "overhang_speed_1#2" }, PublishSection::Material, 0, 2);
     const std::vector<PublishRowId> rows{ printer_row, slot_row, multi_row };
 
     PublishSelection selection;
@@ -700,11 +700,10 @@ TEST_CASE("Checked state round-trips through published keys and material entries
     selection.set_checked(slot_row, true);
     selection.set_checked(multi_row, true);
 
-    // The variant-bearing printer row publishes its column; the material rows do not.
+    // The rows carry publish-ready keys, and the selection emits them unchanged.
     CHECK(selection.published_keys(rows) == std::vector<std::string>{ "retraction_length#1" });
 
-    // Both material rows land in one entry per owner, in row order and key order; the
-    // variant-bearing row keeps its column, the slot-level row stays a plain key.
+    // Both material rows land in one entry per owner, in row order and key order.
     const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
     REQUIRE(entries.size() == 1);
     CHECK(entries[0].slot == 0);
@@ -712,9 +711,30 @@ TEST_CASE("Checked state round-trips through published keys and material entries
           std::vector<std::string>{ "filament_cost", "overhang_speed_0#2", "overhang_speed_1#2" });
 }
 
+TEST_CASE("The selection model publishes row keys verbatim", "[PublishSettings]")
+{
+    // A Filament Cooling row mixes a variant-bearing key with a per-slot key, so the row's column
+    // must not be appended to the per-slot key.
+    const PublishRowId cooling_row =
+        make_publish_row({ "fan_min_speed#3", "fan_cooling_layer_time" }, PublishSection::Material, 0, 3);
+    const PublishRowId printer_row = make_publish_row({ "nozzle_temperature#3" }, PublishSection::Printer, -1, 3);
+    const std::vector<PublishRowId> rows{ cooling_row, printer_row };
+
+    PublishSelection selection;
+    selection.set_owner_info(0, PublishOwnerInfo());
+    selection.set_checked(cooling_row, true);
+    selection.set_checked(printer_row, true);
+
+    const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+    REQUIRE(entries.size() == 1);
+    CHECK(entries[0].keys == std::vector<std::string>{ "fan_min_speed#3", "fan_cooling_layer_time" });
+
+    CHECK(selection.published_keys(rows) == std::vector<std::string>{ "nozzle_temperature#3" });
+}
+
 TEST_CASE("A disabled row is never exported, even when checked", "[PublishSettings]")
 {
-    const PublishRowId printer_row  = make_publish_row({ "retraction_length" }, PublishSection::Printer, -1, 1);
+    const PublishRowId printer_row  = make_publish_row({ "retraction_length#1" }, PublishSection::Printer, -1, 1);
     const PublishRowId material_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
     const std::vector<PublishRowId> rows{ printer_row, material_row };
 
