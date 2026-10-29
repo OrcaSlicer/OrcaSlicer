@@ -894,13 +894,16 @@ void PublishSettingsDialog::build_option_model()
         return id;
     };
     // A scalar always resolves; a vector only when the index addresses one of its elements, so a
-    // short vector hides its row instead of clamping to the first value.
+    // short vector hides its row instead of clamping to the first value. An index of -1 means
+    // "the option's single entry", which the group resolves the same way the Tab does.
     auto index_in_range = [](const DynamicPrintConfig& cfg, const std::string& key, int index) {
         const ConfigOption* opt = cfg.option(key);
         if (opt == nullptr)
             return false;
+        if (index < 0)
+            return true;
         const auto* values = dynamic_cast<const ConfigOptionVectorBase*>(opt);
-        return values == nullptr || (index >= 0 && size_t(index) < values->size());
+        return values == nullptr || size_t(index) < values->size();
     };
 
     m_snapshot = uncompacted;
@@ -1176,6 +1179,16 @@ void PublishSettingsDialog::build_option_model()
             continue;
         const std::string& row_key = row.id.keys.front();
         bool dirty = dirty_keys.count(row_key) != 0;
+        // A print/printer row with no column suffix covers the whole setting, so any index of it
+        // counts as a match; a per-slot material row must not fall back that way, because the
+        // dirty index there is a slot and would check every slot's row.
+        if (!dirty && row.id.section != Slic3r::PublishSection::Material && row.id.column < 0 &&
+            row_key.find('#') == std::string::npos) {
+            const std::string prefix = row_key + "#";
+            dirty = std::any_of(dirty_keys.begin(), dirty_keys.end(), [&prefix](const std::string& key) {
+                return key.compare(0, prefix.size(), prefix) == 0;
+            });
+        }
         if (!dirty && row.id.section == Slic3r::PublishSection::Material && row.id.owner >= 0)
             dirty = dirty_keys.count(publish_base_key(row_key) + "#" + std::to_string(row.id.owner)) != 0;
         row.dirty = dirty;
