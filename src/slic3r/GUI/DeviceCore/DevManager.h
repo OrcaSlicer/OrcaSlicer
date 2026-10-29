@@ -1,9 +1,11 @@
 #pragma once
 #include <map>
 #include <mutex>
+#include <functional>
 #include "libslic3r/CommonDefs.hpp"
 
 #include <string>
+#include <utility>
 #include <vector>
 #include <wx/object.h>
 #include <wx/string.h>
@@ -16,6 +18,17 @@ struct BBLocalMachine;
 class MachineObject;
 class NetworkAgent;
 class AppConfig;
+
+/// Result of an asynchronous printer connection attempt.
+enum class ConnectResult {
+    ok,         ///< The connection was established and is usable
+    failed,     ///< The connection could not be established and is not usable
+    lost,       ///< An established connection was dropped
+    discarded   ///< The attempt to connect was discarded by a new incoming attempt
+};
+
+/// Connection completion result callback
+using ConnectResultHandler = std::function<void(ConnectResult, const std::string& message)>;
 
 namespace GUI {
 class GUI_App;
@@ -36,6 +49,7 @@ private:
     std::mutex listMutex;
     std::string selected_machine;                               /* dev_id */
     std::string local_selected_machine;                         /* dev_id */
+    std::pair<std::string, ConnectResultHandler> pending_connection; /* dev_id, connection result callback */
     std::map<std::string, MachineObject*> localMachineList;     /* dev_id -> MachineObject*, localMachine SSDP   */
     std::map<std::string, MachineObject*> userMachineList;      /* dev_id -> MachineObject*  cloudMachine of User */
 
@@ -53,7 +67,19 @@ public:
     void stop_refresher();
 
     MachineObject* get_selected_machine();
-    bool set_selected_machine(std::string dev_id);
+    /**
+     * Select the specified machine.
+     * @param dev_id            Id of the device to select. If empty, tears down any prior connection.
+     * @param record_as_last    True (default) if @ref load_last_machine should remember this selection, false to
+     *                          leave the last selection in place.
+     * @param on_result         Optional callback to be invoked when a connection result is available. If absent,
+     *                          inherits app-level default behavior. Not invoked if dev_id is empty.
+     *                          Invoked synchronously, not reentrant-safe.
+     * @return                  True if the selection attempt succeeded, else false
+     */
+    bool set_selected_machine(const std::string& dev_id,
+                              bool record_as_last = true,
+                              ConnectResultHandler on_result = {});
 
     // why: clears stale sidebar sync-status / AMS visuals. Public so the printer-agent
     // swap path can reuse it instead of duplicating the two sidebar calls.
@@ -85,7 +111,12 @@ public:
     // entries from other agents hidden while allowing them to reappear when switched back.
     void clear_other_devices();
 
-    void load_last_machine();
+    /**
+     * Restore and attempt to reconnect the last selected printer.
+     * @param on_result Optional callback to be invoked when a connection result is available. If absent, inherits app-
+     *                  level default behavior.
+     */
+    void load_last_machine(ConnectResultHandler on_result = {});
     void update_user_machine_list_info(const std::string& provider);
     void parse_user_print_info(std::string body);
     void reload_printer_settings();
@@ -125,6 +156,18 @@ private:
     // once a real agent finally arrives - so paired printers survive a plugin install/hot
     // reload without an app restart.
     void load_local_machines_from_config();
+
+    /**
+     * Handle a connection attempt result (delivered globally to the app)
+     * @param dev_id           Device whose connection attempt completed
+     * @param result           @ref ConnectResult of the attempt to connect
+     * @param message          Message provided by the connection backend with the result
+     * @return                 True if the result was consumed by a callback supplied to @ref set_selected_machine,
+     *                         else false
+     */
+    bool notify_connect_result(const std::string& dev_id,
+                               ConnectResult result,
+                               const std::string& message);
 
     void keep_alive();
     void check_pushing();

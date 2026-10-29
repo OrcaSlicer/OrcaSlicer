@@ -2425,9 +2425,9 @@ void GUI_App::init_networking_callbacks()
                     wxCommandEvent event(EVT_CONNECT_LAN_MODE_PRINT);
 
                     if (obj) {
-
                         if (obj->is_lan_mode_printer()) {
                             if (state == ConnectStatus::ConnectStatusOk) {
+                                m_device_manager->notify_connect_result(dev_id, ConnectResult::ok, msg);
                                 obj->command_request_push_all(true);
                                 obj->command_get_version();
                                 event.SetInt(0);
@@ -2438,32 +2438,44 @@ void GUI_App::init_networking_callbacks()
                                 // Orca: only update status if same device id
                                 if (m_device_manager->selected_machine != dev_id) return;
 
-                                m_device_manager->set_selected_machine("");
+                                const bool handled =
+                                    m_device_manager->notify_connect_result(dev_id, ConnectResult::failed, msg);
+                                // Mark the active selection as empty without clearing the last-selected
+                                m_device_manager->set_selected_machine("", false);
                                 wxString text;
                                 if (msg == "5") {
                                     obj->set_access_code("");
                                     text = wxString::Format(_L("Incorrect password"));
-                                    wxGetApp().show_dialog(text);
+                                    if (!handled) {
+                                        wxGetApp().show_dialog(text);
+                                    }
                                 } else if (msg == "-1") {
                                     text = wxString::Format(_L("Connect %s failed! [SN:%s, code=%s]"), from_u8(obj->get_dev_name()), obj->get_dev_id(), msg);
                                     text += L"\n\u2022 " + _L("Check that the printer is on the same network as this computer and that its IP address is correct.");
                                     text += L"\n\u2022 " + _L("If the connection still fails, try a different network plug-in version in Preferences.");
                                     text += L"\n\u2022 " + _L("A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error.");
-                                    wxGetApp().show_dialog(text);
+                                    if (!handled) {
+                                        wxGetApp().show_dialog(text);
+                                    }
                                 } else {
                                     text = wxString::Format(_L("Connect %s failed! [SN:%s, code=%s]"), from_u8(obj->get_dev_name()), obj->get_dev_id(), msg);
-                                    wxGetApp().show_dialog(text);
+                                    if (!handled) {
+                                        // Only show a dialog if the caller didn't specify their own handling
+                                        wxGetApp().show_dialog(text);
+                                    }
                                 }
                                 event.SetInt(-1);
 
                                 obj->set_online_state(false);
                             } else if (state == ConnectStatus::ConnectStatusLost) {
-                                m_device_manager->set_selected_machine("");
+                                m_device_manager->notify_connect_result(dev_id, ConnectResult::lost, msg);
+                                m_device_manager->set_selected_machine("", false);
                                 event.SetInt(-1);
                                 BOOST_LOG_TRIVIAL(info) << "set_on_local_connect_fn: state = lost";
 
                                 obj->set_online_state(false);
                             } else {
+                                m_device_manager->notify_connect_result(dev_id, ConnectResult::failed, msg);
                                 event.SetInt(-1);
                                 BOOST_LOG_TRIVIAL(info) << "set_on_local_connect_fn: state = " << state;
                             }
@@ -2471,6 +2483,11 @@ void GUI_App::init_networking_callbacks()
                             obj->set_lan_mode_connection_state(false);
                         }
                         else {
+                            m_device_manager->notify_connect_result(dev_id,
+                                                                    state == ConnectStatus::ConnectStatusOk
+                                                                            ? ConnectResult::ok
+                                                                            : ConnectResult::failed,
+                                                                    msg);
                             if (state == ConnectStatus::ConnectStatusOk) {
                                 event.SetInt(1);
                                 event.SetString(obj->get_dev_id());
@@ -4308,7 +4325,11 @@ void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
     // a standalone helper. Pass nullptr to clear the selection.
     if (DeviceManager* dev = getDeviceManager())
     {
-        dev->set_selected_machine(""); // why: empty id disconnects and deselects the current machine
+        // empty id disconnects and deselects the current machine
+        // if switching to a known agent, leave the last-selected machine in place so it can be
+        // restored later if its agent is the one becoming active
+        // if CLEARING the current agent, also clear the last-selected machine
+        dev->set_selected_machine("", agent == nullptr);
         m_agent->set_user_selected_machine("");
         // note: belt-and-suspenders (precedent: DeviceManagerRefresher::on_timer)
         dev->OnSelectedMachineLost(); // why: clear stale sidebar sync-status / AMS

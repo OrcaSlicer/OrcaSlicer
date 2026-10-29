@@ -2350,6 +2350,9 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
     } else if (status == PrintDialogStatus::PrintStatusReadingTimeout) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
+    } else if (status == PrintDialogStatus::PrintStatusConnectFailed) {
+        Enable_Refresh_Button(true);
+        Enable_Send_Button(false);
     } else if (status == PrintDialogStatus::PrintStatusModeNotFDM) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
@@ -3867,11 +3870,44 @@ void SelectMachineDialog::update_user_machine_list()
     }
 }
 
+ConnectResultHandler SelectMachineDialog::create_connect_result_handler()
+{
+    auto token = std::weak_ptr<int>(m_token);
+    return [this, token](ConnectResult result, const std::string& message) {
+        if (token.expired())
+            return;
+
+        if (result == ConnectResult::ok) {
+            m_connect_failed = false;
+            return;
+        }
+
+        // failed or lost
+        m_connect_failed = true;
+        if (result == ConnectResult::failed && message == "5") {
+            show_status(PrintDialogStatus::PrintStatusConnectFailed, {_L("Incorrect password")});
+        } else {
+            show_status(PrintDialogStatus::PrintStatusConnectFailed);
+        }
+    };
+}
+
 void SelectMachineDialog::on_refresh(wxCommandEvent &event)
 {
     BOOST_LOG_TRIVIAL(info) << "m_printer_last_select: on_refresh";
     show_status(PrintDialogStatus::PrintStatusRefreshingMachineList);
     m_pull_filament_pending = true;
+    m_connect_failed = false;
+
+    // If a printer is selected but not accessible, attempt to reconnect
+    if (DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager()) {
+        if (MachineObject* obj = dev->get_selected_machine()) {
+            if (!obj->is_info_ready()) {
+                dev->set_selected_machine(obj->get_dev_id(), true, create_connect_result_handler());
+            }
+        }
+    }
+
     update_user_machine_list();
 }
 
@@ -4255,6 +4291,7 @@ void SelectMachineDialog::on_selection_changed(wxCommandEvent &event)
     m_ams_mapping_result.clear();
     clear_nozzle_mapping();
     m_pre_print_checker.clear();
+    m_connect_failed = false;
 
     m_link_edit_nozzle->Show(false);
     m_mapping_sugs_sizer->Show(false);
@@ -4294,9 +4331,9 @@ void SelectMachineDialog::on_selection_changed(wxCommandEvent &event)
         obj->command_get_version();
         obj->command_request_push_all();
         if (!dev->get_selected_machine()) {
-            dev->set_selected_machine(m_printer_last_select);
-        }else if (dev->get_selected_machine()->get_dev_id() != m_printer_last_select) {
-            dev->set_selected_machine(m_printer_last_select);
+            dev->set_selected_machine(m_printer_last_select, true, create_connect_result_handler());
+        } else if (dev->get_selected_machine()->get_dev_id() != m_printer_last_select) {
+            dev->set_selected_machine(m_printer_last_select, true, create_connect_result_handler());
         }
 
         // Has changed machine unrecoverably
@@ -4811,7 +4848,9 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
     }
 
     if (!obj_->is_info_ready()) {
-        if (is_timeout()) {
+        if (m_connect_failed) {
+            show_status(PrintDialogStatus::PrintStatusConnectFailed);
+        } else if (is_timeout()) {
             m_ams_mapping_result.clear();
             sync_ams_mapping_result(m_ams_mapping_result);
             show_status(PrintDialogStatus::PrintStatusReadingTimeout);
@@ -4822,6 +4861,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         return;
     }
 
+    m_connect_failed = false;
     reset_timeout();
 
     // Orca: pull-mode agents only refresh their filament data when asked, so ask before the mapping uses it
@@ -6427,9 +6467,10 @@ bool SelectMachineDialog::Show(bool show)
         m_refresh_timer->Start(LIST_REFRESH_INTERVAL);
 
         //set a default machine when obj is null
+        m_connect_failed = false;
         if (DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager()) {
             if (!dev->get_selected_machine()) {
-                dev->load_last_machine();
+                dev->load_last_machine(create_connect_result_handler());
             }
         };
     } else {
