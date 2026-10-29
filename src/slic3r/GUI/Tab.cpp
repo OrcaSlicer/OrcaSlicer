@@ -3013,11 +3013,12 @@ void Tab::update_frequently_changed_parameters()
 
 //BBS: BBS new parameter list
 namespace {
-// Orca: groups of the sparse infill patterns, which filter its list. The first one shows them all, the second the
-// favorites picked in the preferences.
+// Orca: groups of the sparse infill patterns, which filter its list, each listed in its order. The first one shows them
+// all, the second the favorites picked in the preferences. The icon is resources/images/param_<icon>.svg.
 struct SparseInfillPatternGroup
 {
     const char*                key;
+    const char*                icon;
     const char*                label;
     std::vector<InfillPattern> patterns;
 };
@@ -3037,19 +3038,19 @@ const std::vector<SparseInfillPatternGroup>& sparse_infill_pattern_groups()
     static const Patterns tpms{ipGyroid,      ipTpmsD,   ipTpmsFK,       ipTpmsP,     ipTpmsIWP,
                                ipTpmsNeovius, ipTpmsFRD, ipTpmsLidinoid, ipTpmsSplitP};
     static const std::vector<SparseInfillPatternGroup> groups{
-        {"group_all", L("All"), {}},
-        {"group_favorites", L("Favorites"), {}},
-        {"group_basic_rectilinear", L("Basic Rectilinear"), basic_rectilinear},
-        {"group_advanced_rectilinear", L("Advanced Rectilinear"), advanced_rectilinear},
-        {"group_rectilinear", L("Rectilinear"), join({basic_rectilinear, advanced_rectilinear})},
-        {"group_cubic", L("Cubic"), {ipCubic, ipAdaptiveCubic, ipQuarterCubic, ipSupportCubic}},
-        {"group_support", L("Support"), support},
-        {"group_honeycomb", L("Honeycomb"), {ipHoneycomb, ip3DHoneycomb, ipLateralHoneycomb}},
-        {"group_2d", L("2D"), {ipLateralHoneycomb, ipLateralLattice}},
-        {"group_tpms", L("TPMS"), join({tpms, {ipCrossHatch}})},
-        {"group_aesthetic", L("Aesthetic"), {ipConcentric, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral}},
+        {"group_all", "group_all", L("All"), {}},
+        {"group_favorites", "group_favorites", L("Favorites"), {}},
+        {"group_basic_rectilinear", "rectilinear", L("Basic Rectilinear"), basic_rectilinear},
+        {"group_advanced_rectilinear", "crosszag", L("Advanced Rectilinear"), advanced_rectilinear},
+        {"group_rectilinear", "grid", L("Rectilinear"), join({basic_rectilinear, advanced_rectilinear})},
+        {"group_cubic", "cubic", L("Cubic"), {ipCubic, ipAdaptiveCubic, ipQuarterCubic, ipSupportCubic}},
+        {"group_support", "lightning", L("Support"), support},
+        {"group_honeycomb", "honeycomb", L("Honeycomb"), {ipHoneycomb, ip3DHoneycomb, ipLateralHoneycomb}},
+        {"group_2d", "lateral-lattice", L("2D"), {ipLateralHoneycomb, ipLateralLattice}},
+        {"group_tpms", "gyroid", L("TPMS"), join({tpms, {ipCrossHatch}})},
+        {"group_aesthetic", "hilbertcurve", L("Aesthetic"), {ipConcentric, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral}},
         // The patterns that grade their density inside the object.
-        {"group_adaptive", L("Adaptive"), join({{ipLockedZag, ipAdaptiveCubic}, support, tpms})},
+        {"group_adaptive", "adaptivecubic", L("Adaptive"), join({{ipLockedZag, ipAdaptiveCubic}, support, tpms})},
     };
     return groups;
 }
@@ -3062,8 +3063,9 @@ Option sparse_infill_pattern_group_option()
     def.label   = L("Pattern group");
     def.tooltip = L("Shows only the patterns of a group in the sparse infill pattern list. The selected pattern stays in "
                     "the list. The patterns of Favorites are picked on the Favorites page of the preferences.");
+    // Choice shows the icon of each value.
     for (const SparseInfillPatternGroup& group : sparse_infill_pattern_groups()) {
-        def.enum_values.push_back(group.key);
+        def.enum_values.push_back(group.icon);
         def.enum_labels.push_back(group.label);
     }
     def.set_default_value(new ConfigOptionInt(0));
@@ -3829,15 +3831,30 @@ void TabPrint::filter_sparse_infill_patterns()
             if (const auto it = def->enum_keys_map->find(key); it != def->enum_keys_map->end())
                 patterns.push_back(it->second);
     const int current = current_opt->getInt();
+    // All lists every pattern in the order of the definition, a group its patterns in its order, then the selected one.
+    auto index_of = [def](int pattern) {
+        size_t i = 0;
+        while (i < def->enum_values.size() && def->enum_keys_map->at(def->enum_values[i]) != pattern)
+            ++i;
+        return i;
+    };
+    std::vector<size_t> shown;
+    if (all) {
+        for (size_t i = 0; i < def->enum_values.size(); ++i)
+            shown.push_back(i);
+    } else {
+        for (const int pattern : patterns)
+            shown.push_back(index_of(pattern));
+        if (std::find(patterns.begin(), patterns.end(), current) == patterns.end())
+            shown.push_back(index_of(current));
+    }
     std::vector<std::string> values;
     std::vector<std::string> labels;
-    for (size_t i = 0; i < def->enum_values.size(); ++i) {
-        const int pattern = def->enum_keys_map->at(def->enum_values[i]);
-        if (all || pattern == current || std::find(patterns.begin(), patterns.end(), pattern) != patterns.end()) {
+    for (const size_t i : shown)
+        if (i < def->enum_values.size()) {
             values.push_back(def->enum_values[i]);
             labels.push_back(def->enum_labels[i]);
         }
-    }
     auto& opt = const_cast<ConfigOptionDef&>(choice->m_opt);
     if (opt.enum_values == values)
         return;
