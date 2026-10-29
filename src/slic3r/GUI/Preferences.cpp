@@ -1862,10 +1862,6 @@ void PreferencesDialog::create_items()
     auto item_shared_profiles  = create_item_checkbox(_L("Show shared profiles notification"), _L("Show a notification with a link to browse shared profiles when the selected printer is changed."), "show_shared_profiles_notification");
     g_sizer->Add(item_shared_profiles);
 
-    //// GENERAL > Favorite Infill Patterns
-    g_sizer->Add(create_item_title(_L("Favorite Infill Patterns")), 1, wxEXPAND);
-    g_sizer->Add(create_item_favorite_patterns());
-
     //// GENERAL > Features
     g_sizer->Add(create_item_title(_L("Features")), 1, wxEXPAND);
 
@@ -2250,6 +2246,21 @@ void PreferencesDialog::create_items()
         "preview_translucent_filaments"
     );
     g_sizer->Add(item_translucent_filaments);
+
+    g_sizer->AddSpacer(FromDIP(10));
+    sizer_page->Add(g_sizer, 0, wxEXPAND);
+
+    //////////////////////////
+    //// FAVORITES TAB
+    /////////////////////////////////////
+    m_tab_index[PreferencesTab::Favorites] = m_pref_tabs->AppendItem(_L("Favorites"));
+    f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
+    g_sizer = f_sizers.back();
+    g_sizer->AddGrowableCol(0, 1);
+
+    //// FAVORITES > Sparse Infill Patterns
+    g_sizer->Add(create_item_title(_L("Sparse Infill Patterns")), 1, wxEXPAND);
+    g_sizer->Add(create_item_favorite_patterns());
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);

@@ -3061,7 +3061,7 @@ Option sparse_infill_pattern_group_option()
     def.type    = coEnum;
     def.label   = L("Pattern group");
     def.tooltip = L("Shows only the patterns of a group in the sparse infill pattern list. The selected pattern stays in "
-                    "the list. The patterns of Favorites are picked in the preferences.");
+                    "the list. The patterns of Favorites are picked on the Favorites page of the preferences.");
     for (const SparseInfillPatternGroup& group : sparse_infill_pattern_groups()) {
         def.enum_values.push_back(group.key);
         def.enum_labels.push_back(group.label);
