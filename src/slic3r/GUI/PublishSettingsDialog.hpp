@@ -55,9 +55,10 @@ struct PublishMaterialIdentity
     std::string id;
 };
 
-// Dialog letting a model author select which settings get embedded in a 3MF. Nested tab layout
-// mirroring the Process settings (Printer / Filament / Process outer tabs, category or material
-// tabs inside each). Dirty settings are pre-checked and shown bold; on OK the print rows become
+// Dialog letting a model author select which settings get embedded in a 3MF. Three outer tabs
+// (Printer / Filament / Process): the Printer and Process tabs host the sidebar's own settings tab,
+// the Filament tab has one inner tab per used material slot and one per mixed slot. Dirty settings
+// are pre-checked and drawn in the Tab's modified colour; on OK the print and printer rows become
 // "orca_published_keys" and the material rows become "orca_published_material_keys".
 class PublishSettingsDialog : public DPIDialog
 {
@@ -75,11 +76,12 @@ public:
                           bool legacy_process_selection = false);
     ~PublishSettingsDialog();
 
-    // The selected print/printer setting keys (in display order); printer keys carry a '#N'
-    // per-extruder suffix.
+    // The selected process and printer setting keys (in display order); a key of a variant-bearing
+    // setting carries its variant column as a '#N' suffix.
     std::vector<std::string> GetPublishedKeys() const;
 
-    // The selected keys grouped per material section (base keys, no '#N' suffix).
+    // The selected keys grouped per material section. A variant-bearing key carries its file column
+    // as a '#N' suffix; a per-slot key is the plain base key.
     std::vector<Slic3r::PublishedMaterialEntry> GetPublishedMaterialKeys() const;
 
 protected:
@@ -111,10 +113,8 @@ private:
         // A hosted-tab row is drawn by the tab's own Line instead of a cloned one; the checkbox is
         // attached to that line. Null on a cloned (requirement) row.
         Line*                 tab_line{nullptr};
-        wxString              label;               // the source Line's label, for the filter
-        wxString              label_en;            // untranslated label, for the cloned Line
-        wxString              label_tooltip;       // the source Line's tooltip, copied verbatim
-        wxString              label_path;          // the source Line's wiki path
+        wxString              label;               // the label text the filter matches
+        wxString              label_en;            // label copied into a cloned requirement Line's label_en
         wxString              category;
         wxString              subcategory;
         wxString              value;               // first option's value as shown, for the filter
@@ -128,7 +128,9 @@ private:
         bool                  matches_filter{false}; // survives the active filter
     };
 
-    // An optgroup heading and the group that draws its rows. Rows store indices into m_rows.
+    // An optgroup heading and the group that draws its rows. Rows store indices into m_rows. Only
+    // the Color/Type requirement rows are still cloned; every other row is drawn by its hosted
+    // tab's own Line.
     struct Subcategory
     {
         wxString            title;
@@ -163,25 +165,23 @@ private:
         wxStaticText* info{nullptr};
         wxPoint scroll_pos{0, 0};
         wxStaticBitmap* filament_color_chip{nullptr};
-        wxStaticText* title_label{nullptr}; // material title (static text; Full Publish carries the label elsewhere)
+        wxStaticText* title_label{nullptr}; // material title, refreshed on a DPI change
         // "Enable": while unchecked nothing of this slot is exported and everything below the
         // header row is hidden. For physical slots the Full Publish toggle sits on a second
         // line (full_line_item) visible only when enabled; for mixed slots Enable alone implies
         // publishing the mix definition, so no Full Publish widget exists at all.
         ::CheckBox* enable_check{nullptr};
-        wxStaticText* enable_label{nullptr};
         wxSizerItem* full_line_item{nullptr}; // sizer item of the Full Publish line (physical slots only)
         // "Full Publish": while checked, the whole slot preset is serialized and its rows
         // (incl. Color/Type) are disabled.
         ::CheckBox* full_check{nullptr};
-        wxStaticText* full_label{nullptr};
         // True for a mixed-color filament slot: no Material/Retraction rows; Enable publishes
         // the slot's gradient/ratio definition as a whole.
         bool is_mixed{false};
-        // The file column this slot prints with; -1 when the owner has no variant layout. The
+        // The file column this category starts on; -1 when the owner has no variant layout. The
         // hosted tab's switch picks the shown column, with this as the fallback.
         int column{-1};
-        // File columns the owner's preset defines, in preset order (empty without a layout).
+        // A filament slot's file columns, in preset order (empty without a variant layout).
         std::vector<size_t> columns;
         // The Q1 notice: this printer needs a variant the filament does not define.
         wxStaticText* variant_notice{nullptr};

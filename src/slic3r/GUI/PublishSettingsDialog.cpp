@@ -961,9 +961,9 @@ void PublishSettingsDialog::build_option_model()
     };
 
     // --- Phase 1: the printer settings, drawn by one dialog-hosted Printer tab over a preset
-    // seeded from the edited printer preset (spec 7.4). The tab's own extruder switch replaces
-    // the dialog's per-extruder inner tabs, and its pages are pruned to the published-3MF
-    // allowlist, so the rows below are the sidebar's Retraction and Z-Hop groups.
+    // seeded from the edited printer preset (spec 7.4). Its own extruder switch selects the
+    // variant, and its pages are pruned to the published-3MF allowlist, so the rows below are the
+    // sidebar's Retraction and Z-Hop groups.
     if (bundle->printers.get_edited_preset().printer_technology() == ptFFF) {
         size_t g = section_group_for(Section::Printer);
         const size_t category_index = category_index_for(_L("Printer"), Section::Printer, g, 0);
@@ -1094,7 +1094,7 @@ void PublishSettingsDialog::build_option_model()
 
     // --- Phase 3: the process settings, drawn by one dialog-hosted Process tab over a preset
     // seeded from the edited print preset (spec 7.4). The tab's own extruder switch and page strip
-    // replace the dialog's per-extruder categories and page tabs, and its page set is kept whole.
+    // are the navigation, and its page set is kept whole.
     {
         size_t       g              = section_group_for(Section::Print);
         const size_t category_index = category_index_for(_L("Process"), Section::Print, g, 0);
@@ -1329,8 +1329,8 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
             // No chip/title: the lone "Enable" checkbox tops the page.
             auto* enable_sizer    = new wxBoxSizer(wxHORIZONTAL);
             category.enable_check = new ::CheckBox(category.page, wxID_ANY);
-            category.enable_label = add_checkbox_label(category.page, enable_sizer, category.enable_check, _L("Enable"),
-                                                       _L("Publish this mixed filament and enable + Full Publish its component filaments"));
+            add_checkbox_label(category.page, enable_sizer, category.enable_check, _L("Enable"),
+                               _L("Publish this mixed filament and enable + Full Publish its component filaments"));
             page_sizer->Add(enable_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
         } else {
             // Line 1: [chip] [title] [Enable]. The Enable checkbox gates the whole slot: while
@@ -1345,8 +1345,8 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
             header_sizer->Add(category.title_label, 0, wxALIGN_CENTER_VERTICAL);
             auto* enable_sizer    = new wxBoxSizer(wxHORIZONTAL);
             category.enable_check = new ::CheckBox(category.page, wxID_ANY);
-            category.enable_label = add_checkbox_label(category.page, enable_sizer, category.enable_check, _L("Enable"),
-                                                       _L("Publish this filament slot in the 3MF file"));
+            add_checkbox_label(category.page, enable_sizer, category.enable_check, _L("Enable"),
+                               _L("Publish this filament slot in the 3MF file"));
             header_sizer->Add(enable_sizer, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
             page_sizer->Add(header_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
 
@@ -1354,8 +1354,8 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
             // the slot is enabled), aligned with the colour chip above it.
             auto* full_sizer    = new wxBoxSizer(wxHORIZONTAL);
             category.full_check = new ::CheckBox(category.page, wxID_ANY);
-            category.full_label = add_checkbox_label(category.page, full_sizer, category.full_check, _L("Full Publish"),
-                                                     _L("Embed the entire filament of this slot in the 3MF file"));
+            add_checkbox_label(category.page, full_sizer, category.full_check, _L("Full Publish"),
+                               _L("Embed the entire filament of this slot in the 3MF file"));
             category.full_line_item = page_sizer->Add(full_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
         }
     }
@@ -1371,8 +1371,7 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         page_sizer->Add(category.variant_notice, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
 
         // The slot's settings are the sidebar's own Filament tab, over a private preset seeded
-        // from this slot (spec 7.4). Its own pages and variant switch replace the dialog's
-        // sub-tabs and cloned rows.
+        // from this slot (spec 7.4). Its own pages and variant switch are the navigation.
         auto* host = new PublishParamsPanel(category.page);
         auto* tab  = new PublishTabFilament(host);
         PresetBundle* bundle = wxGetApp().preset_bundle;
@@ -1393,8 +1392,8 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
     } else if (section == Section::Printer) {
         // The printer settings are the sidebar's own Printer tab, over a private preset seeded
-        // from the edited printer preset (spec 7.4). Its own extruder switch replaces the
-        // dialog's inner tabs, and its pages are pruned to the publish allowlist.
+        // from the edited printer preset (spec 7.4). Its own extruder switch selects the variant,
+        // and its pages are pruned to the publish allowlist.
         auto* host = new PublishParamsPanel(category.page);
         auto* tab  = new PublishTabPrinter(host);
         const DynamicPrintConfig seed = wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -1407,8 +1406,8 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
     } else if (section == Section::Print) {
         // The process settings are the sidebar's own Process tab, over a private preset seeded
-        // from the edited print preset (spec 7.4). Its own extruder switch and page strip replace
-        // the dialog's per-extruder categories and page tabs; its page set is kept whole.
+        // from the edited print preset (spec 7.4). Its own extruder switch and page strip are the
+        // navigation; its page set is kept whole.
         auto* host = new PublishParamsPanel(category.page);
         auto* tab  = new PublishTabPrint(host);
         const DynamicPrintConfig seed = wxGetApp().preset_bundle->prints.get_edited_preset().config;
@@ -1538,7 +1537,7 @@ size_t PublishSettingsDialog::add_tab_row(Row row, size_t category_index)
     row.section_title   = m_sections[category.group].title;
     row.outer_index     = category.group;
     row.inner_index     = category_index;
-    row.sub_index       = size_t(-1); // tab rows belong to no cloned Subcategory
+    row.sub_index       = size_t(-1); // tab rows belong to no Subcategory
     const size_t row_index = m_rows.size();
     m_rows.push_back(std::move(row));
     m_row_ids.push_back(m_rows.back().id);
@@ -1612,19 +1611,16 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
                     continue;
 
                 auto fill_row = [&src, &group, slot](Row& row) {
-                    row.label         = src.label;
-                    row.label_en      = src.label_en;
-                    row.label_tooltip = src.label_tooltip;
-                    row.label_path    = src.label_path;
-                    row.subcategory   = _(group->title); // filter text only; tab rows have no Subcategory
-                    row.id.owner      = slot;
-                    row.id.section    = Slic3r::PublishSection::Material;
-                    row.id.kind       = Slic3r::PublishRowKind::Key;
+                    row.label       = src.label;
+                    row.subcategory = _(group->title); // filter text only; tab rows have no Subcategory
+                    row.id.owner    = slot;
+                    row.id.section  = Slic3r::PublishSection::Material;
+                    row.id.kind     = Slic3r::PublishRowKind::Key;
                 };
                 auto add_values = [this](Row& row) {
-                    // The first publish key names the row in the filter, as the cloned rows did.
-                    // A per-slot key has no "#N" suffix, so read the value at the row's own index
-                    // instead of the vector's first entry.
+                    // The first publish key names the row in the filter. A per-slot key has no
+                    // "#N" suffix, so read the value at the row's own index instead of the
+                    // vector's first entry.
                     const RowOption& first = row.options.front();
                     std::string      key   = row.id.keys.front();
                     if (key.find('#') == std::string::npos && first.index >= 0)
@@ -1750,7 +1746,6 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
                                    /*split_hybrid=*/false, "printer_extruder_id", "printer_extruder_variant"))
             if (std::find(columns.begin(), columns.end(), entry.column) == columns.end())
                 columns.push_back(entry.column);
-    category.columns = columns;
     if (columns.empty())
         return; // no column this preset defines: nothing to key a row by
     category.column = int(columns.front());
@@ -1792,15 +1787,12 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
                 const size_t first_row = m_rows.size();
                 for (const size_t column : columns) {
                     Row row;
-                    row.label         = src.label;
-                    row.label_en      = src.label_en;
-                    row.label_tooltip = src.label_tooltip;
-                    row.label_path    = src.label_path;
-                    row.subcategory   = _(group->title); // filter text only; tab rows have no Subcategory
-                    row.id.owner      = -1;
-                    row.id.column     = int(column);
-                    row.id.section    = Slic3r::PublishSection::Printer;
-                    row.id.kind       = Slic3r::PublishRowKind::Key;
+                    row.label       = src.label;
+                    row.subcategory = _(group->title); // filter text only; tab rows have no Subcategory
+                    row.id.owner    = -1;
+                    row.id.column   = int(column);
+                    row.id.section  = Slic3r::PublishSection::Printer;
+                    row.id.kind     = Slic3r::PublishRowKind::Key;
 
                     bool                     row_ok = true;
                     std::vector<std::string> keys;
@@ -1870,7 +1862,6 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
                                    "print_extruder_id", "print_extruder_variant"))
             if (std::find(columns.begin(), columns.end(), entry.column) == columns.end())
                 columns.push_back(entry.column);
-    category.columns = columns;
     if (!columns.empty())
         category.column = int(columns.front());
 
@@ -1889,7 +1880,7 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
     };
 
     for (const PageShp& page : tab->m_pages) {
-        // The page title stays the row's filter category, as it was when one page was one category.
+        // The page title is the row's filter category.
         const wxString page_title = Tab::translate_category(page->title(), tab->type());
         for (const ConfigOptionsGroupShp& group : page->m_optgroups) {
             bool touched = false;
@@ -1905,7 +1896,7 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
                     const std::string     base = publish_base_key(option.opt_id);
                     const ConfigOptionDef* def  = print_config_def.get(base);
                     // Unknown, structural or action options carry no publish checkbox, and a row
-                    // needs a label to filter on (the same gate the cloned rows used).
+                    // needs a label to filter on.
                     if (def == nullptr || denylist.count(base) != 0 || is_publish_action(option.opt))
                         continue;
                     if (_(def->full_label.empty() ? def->label : def->full_label).IsEmpty())
@@ -1976,14 +1967,11 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
                 touched = true;
 
                 for (Row& row : rows) {
-                    row.label         = src.label;
-                    row.label_en      = src.label_en;
-                    row.label_tooltip = src.label_tooltip;
-                    row.label_path    = src.label_path;
-                    row.subcategory   = _(group->title); // filter text only; tab rows have no Subcategory
-                    row.id.owner      = -1;
-                    row.id.section    = Slic3r::PublishSection::Process;
-                    row.id.kind       = Slic3r::PublishRowKind::Key;
+                    row.label       = src.label;
+                    row.subcategory = _(group->title); // filter text only; tab rows have no Subcategory
+                    row.id.owner    = -1;
+                    row.id.section  = Slic3r::PublishSection::Process;
+                    row.id.kind     = Slic3r::PublishRowKind::Key;
 
                     // The first option's value and unit name the row in the filter.
                     const RowOption& first = row.options.front();
@@ -2070,21 +2058,16 @@ void PublishSettingsDialog::build_row_groups(size_t category_index)
                 return option;
             };
 
-            Line line = group->create_single_option_line(make_option(row.options.front()), row.label_path.ToStdString());
-            // The source line's own label and, where it has one, its tooltip and wiki path: the
-            // generated tooltip names the option id, which is not what the sidebar shows.
-            line.label      = row.label;
-            line.label_en   = row.label_en;
-            line.label_path = row.label_path.ToStdString();
-            if (!row.label_tooltip.IsEmpty())
-                line.label_tooltip = row.label_tooltip;
+            Line line = group->create_single_option_line(make_option(row.options.front()));
+            // The row's own label (set when a requirement row is created), not one derived from
+            // the option definition.
+            line.label    = row.label;
+            line.label_en = row.label_en;
 
             for (size_t o = 1; o < row.options.size(); ++o)
                 line.append_option(make_option(row.options[o]));
             if (row.publishable)
                 line.row_toggle = RowToggle();
-            // The same icon the sidebar shows on a setting that is keyed per extruder or variant.
-            line.multi_extruder = row.id.column >= 0 && category.columns.size() > 1;
             group->append_line(line);
         }
 
