@@ -2397,17 +2397,17 @@ TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBrid
     CHECK(unscale<double>(max_distance) <= 0.012);
 }
 
-TEST_CASE("TPMS settings leave the infill of other patterns unchanged", "[Fill]")
+TEST_CASE("The sparse infill scale and rotation leave the infill of other patterns unchanged", "[Fill]")
 {
     Print reference, tuned;
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, reference,
                                         {{"sparse_infill_pattern", "grid"}, {"sparse_infill_density", "20%"}, {"layer_height", 0.2}});
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, tuned,
                                         {{"sparse_infill_pattern", "grid"},
-                                         {"tpms_scale_x", 2.},
-                                         {"tpms_scale_y", 0.5},
-                                         {"tpms_scale_z", 3.},
-                                         {"tpms_rotation_x", 30.},
+                                         {"sparse_infill_scale_x", 2.},
+                                         {"sparse_infill_scale_y", 0.5},
+                                         {"sparse_infill_scale_z", 3.},
+                                         {"sparse_infill_rotation_x", 30.},
                                          {"sparse_infill_density", "20%"},
                                          {"layer_height", 0.2}});
     const SparseInfillShape expected = sparse_infill_shape(reference);
@@ -2434,8 +2434,8 @@ static Polylines tpms_fill(InfillPattern pattern, double z, const Vec3d &scale, 
     params.density         = 0.2f;
     params.layer_height    = 0.2;
     params.dont_adjust     = true;
-    params.tpms_scale      = {scale.x(), scale.y(), scale.z()};
-    params.tpms_rotation_x = rotation_x;
+    params.sparse_infill_scale      = {scale.x(), scale.y(), scale.z()};
+    params.sparse_infill_rotation_x = rotation_x;
     Surface surface(stInternal, tpms_square(size));
     return filler->fill_surface(&surface, params);
 }
@@ -2451,7 +2451,7 @@ static double farthest_inside(const Polylines &from, const Polylines &to, const 
     return unscale<double>(distance);
 }
 
-TEST_CASE("TPMS Z scale stretches the cells along Z", "[Fill]")
+TEST_CASE("The sparse infill Z scale stretches the TPMS cells along Z", "[Fill]")
 {
     const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP, ipTpmsIWP, ipTpmsNeovius, ipTpmsFRD, ipTpmsLidinoid, ipTpmsSplitP);
     CAPTURE(pattern);
@@ -2464,7 +2464,7 @@ TEST_CASE("TPMS Z scale stretches the cells along Z", "[Fill]")
     }
 }
 
-TEST_CASE("TPMS X and Y scales stretch the cells across the layers", "[Fill]")
+TEST_CASE("The sparse infill X and Y scales stretch the TPMS cells across the layers", "[Fill]")
 {
     const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP, ipTpmsIWP, ipTpmsNeovius, ipTpmsFRD, ipTpmsLidinoid, ipTpmsSplitP);
     CAPTURE(pattern);
@@ -2480,7 +2480,7 @@ TEST_CASE("TPMS X and Y scales stretch the cells across the layers", "[Fill]")
     CHECK_THAT(stretched / regular, Catch::Matchers::WithinAbs(0.5, 0.05));
 }
 
-TEST_CASE("TPMS X rotation turns the stretched cells around X by the right-hand rule", "[Fill]")
+TEST_CASE("The sparse infill X rotation turns the stretched TPMS cells around X by the right-hand rule", "[Fill]")
 {
     float (*gyroid)(float, float, float) = [](float x, float y, float z) {
         return std::sin(x) * std::cos(y) + std::sin(y) * std::cos(z) + std::sin(z) * std::cos(x);
@@ -2517,7 +2517,7 @@ TEST_CASE("TPMS-D and TPMS-P traced on the sampling grid follow their parametric
     }
 }
 
-TEST_CASE("A TPMS X rotation of 90 degrees mirrors the layers of TPMS-D", "[Fill]")
+TEST_CASE("A sparse infill X rotation of 90 degrees mirrors the layers of TPMS-D", "[Fill]")
 {
     // Turned by 90 degrees, every layer is the regular one mirrored across x = 0: D(x, z, -y) = D(-x, y, z).
     const Polygons inner     = shrink(to_polygons(tpms_square()), scale_(3.));

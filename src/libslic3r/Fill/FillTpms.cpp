@@ -531,7 +531,7 @@ void FillTpms::_fill_surface_single(const FillParams&              params,
     }
 
     const Surface     &surface = *m_surface;
-    const TpmsEquation tpms(surface.equation, Vec3d(params.tpms_scale.data()), params.tpms_rotation_x);
+    const TpmsEquation tpms(surface.equation, Vec3d(params.sparse_infill_scale.data()), params.sparse_infill_rotation_x);
     auto infill_angle = float(this->angle + (CorrectionAngle * 2 * M_PI) / 360.);
     if (std::abs(infill_angle) >= EPSILON)
         expolygon.rotate(-infill_angle);

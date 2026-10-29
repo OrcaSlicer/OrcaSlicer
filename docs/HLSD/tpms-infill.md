@@ -6,10 +6,11 @@ The sparse infill patterns Gyroid, TPMS-D (Schwarz Diamond), TPMS-FK
 (Fischer-Koch S), TPMS-P (Schwarz Primitive with cells 1.5 times taller and its
 level set at -0.3), and the nodal approximations of Schoen's I-WP and F-RD,
 Neovius, Lidinoid and Split P print triply periodic minimal surfaces.
-`tpms_scale_x`, `tpms_scale_y` and `tpms_scale_z` stretch their cells along the
-axes of the pattern, and `tpms_rotation_x` then turns them around its X axis.
-`is_adaptive_infill_pattern()` lists these patterns; the scale and rotation only
-reach their sparse infill, so they split no other fills.
+`sparse_infill_scale_x`, `sparse_infill_scale_y` and `sparse_infill_scale_z`
+stretch their cells along the axes of the pattern, and `sparse_infill_rotation_x`
+then turns them around its X axis. `is_adaptive_infill_pattern()` lists these
+patterns, the only ones the scale and rotation apply to; they only reach their
+sparse infill, so they split no other fills.
 
 `FillTpms` fills them all. A table in `FillTpms.cpp` holds what sets each
 pattern apart: its equation, its density calibration and cap, whether its cells

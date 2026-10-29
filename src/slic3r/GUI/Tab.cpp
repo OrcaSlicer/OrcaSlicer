@@ -3250,10 +3250,10 @@ void TabPrint::build()
         optgroup->append_single_option_line("fill_multiline", "strength_settings_infill#fill-multiline");
         optgroup->append_single_option_line(sparse_infill_pattern_group_option(), "strength_settings_infill#pattern-group");
         optgroup->append_single_option_line("sparse_infill_pattern", "strength_settings_infill#sparse-infill-pattern");
-        optgroup->append_single_option_line("tpms_scale_x", "strength_settings_patterns#tpms-scale");
-        optgroup->append_single_option_line("tpms_scale_y", "strength_settings_patterns#tpms-scale");
-        optgroup->append_single_option_line("tpms_scale_z", "strength_settings_patterns#tpms-scale");
-        optgroup->append_single_option_line("tpms_rotation_x", "strength_settings_patterns#tpms-x-rotation");
+        optgroup->append_single_option_line("sparse_infill_scale_x", "strength_settings_patterns#sparse-infill-scale");
+        optgroup->append_single_option_line("sparse_infill_scale_y", "strength_settings_patterns#sparse-infill-scale");
+        optgroup->append_single_option_line("sparse_infill_scale_z", "strength_settings_patterns#sparse-infill-scale");
+        optgroup->append_single_option_line("sparse_infill_rotation_x", "strength_settings_patterns#sparse-infill-x-rotation");
         optgroup->append_single_option_line("adaptive_infill_mode", "strength_settings_patterns#adaptive-density");
         optgroup->append_single_option_line("adaptive_infill_interior_density", "strength_settings_patterns#interior-density");
         optgroup->append_single_option_line("adaptive_infill_gradient", "strength_settings_patterns#adaptive-gradient");
