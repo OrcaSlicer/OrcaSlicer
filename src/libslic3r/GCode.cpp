@@ -1168,8 +1168,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         // re-descents below, which run after the travel to the tower.
         const bool defer_compacted_descend = m_sparse_layers_skipped
             && !tcr.priming && !tcr.is_finish_first && (current_z - z) > EPSILON;
-        const bool will_go_down = !is_approx(z, current_z) && !defer_compacted_descend;
-        if (will_go_down) {
+        if (!is_approx(z, current_z) && !defer_compacted_descend) {
             gcode += gcodegen.writer().retract();
             gcode += gcodegen.writer().travel_to_z(z, "Travel down to the last wipe tower layer.");
             gcode += gcodegen.writer().unretract();
