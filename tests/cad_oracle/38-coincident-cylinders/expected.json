@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "union of r10 z0..30 and r10 z20..50 = cylinder r10 h50: V = pi r^2 h, A = 2 pi r h + 2 pi r^2",
+  "body_count": 1,
+  "volume_mm3": 15707.963267948966,
+  "area_mm2": 3769.9111843077517,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    25.0
+  ],
+  "bbox": {
+    "min": [
+      -10.0,
+      -10.0,
+      0.0
+    ],
+    "max": [
+      10.0,
+      10.0,
+      50.0
+    ]
+  },
+  "faces": 3
+}

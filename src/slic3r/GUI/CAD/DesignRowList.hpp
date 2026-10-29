@@ -1,39 +1,30 @@
 #ifndef slic3r_DesignRowList_hpp_
 #define slic3r_DesignRowList_hpp_
 
-#include <wx/vlbox.h>
 #include <wx/colour.h>
-#include <wx/dc.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/string.h>
-#include <wx/types.h>
 
 #include <cstddef>
 #include <functional>
-#include <map>
 #include <string>
+#include <utility>
 #include <vector>
-
-#include "slic3r/GUI/wxExtensions.hpp"   // ScalableBitmap
-
-class wxTextCtrl;
 
 namespace Slic3r { namespace GUI {
 
-// The Design tab's Feature tree and Bodies lists: a single-selection list whose rows carry their
-// own action icons. A wxTreeCtrl cannot host a clickable icon per row (it is native on MSW), so
-// this list draws its own: each row draws its actions at its right end, highlights the one under
-// the pointer, and takes its icons from the owner, so the eye can show whether the row is hidden.
+// The Design tab's Feature tree and Bodies lists as DATA: rows that carry their own action icons, a single selection and the
+// owner's callbacks. The ImGui sidebar draws them (DesignSidebarMirror.cpp) and calls back into the owner; nothing here is a
+// window.
 //
-// Selection follows wxTreeCtrl's contract, which DesignPanel's mutual exclusion between the two
-// lists relies on: on_select runs on every change, whether the user or select() made it, and
-// selecting the row that is already selected changes nothing and notifies nobody.
+// Selection follows wxTreeCtrl's contract, which DesignPanel's mutual exclusion between the two lists relies on: on_select
+// runs on every change, whether the user or select() made it, and selecting the row that is already selected changes nothing
+// and notifies nobody.
 //
-// A list built non-selectable is a row of switches, not of objects: a click never selects a row,
-// the pointer highlights only the action icon under it, and the list never takes the focus. Its
-// action icons and its context menu are the only things that answer.
-class DesignRowList : public wxVListBox
+// A list built non-selectable is a row of switches, not of objects: a click never selects a row. Its action icons and its
+// context menu are the only things that answer.
+class DesignRowList : public wxEvtHandler
 {
 public:
     struct Action {
@@ -49,76 +40,53 @@ public:
         std::vector<Action> actions;     // icon cells at the right end, in display order
     };
 
-    // The hover chip behind an action icon, a light colour dark-mapped at paint. The sidebar's
-    // icon buttons hover in it too.
+    // The hover chip behind an icon button, a light colour dark-mapped at paint (the sidebar's icon buttons hover in it too).
     static constexpr const char* hover_chip = "#D4D4D4";
 
     // The list is as tall as its rows, at least one and at most `max_visible`; past that it scrolls.
-    // `style` is its frame: wxBORDER_NONE for a list that sits unframed on its card.
-    DesignRowList(wxWindow* parent, int max_visible, bool selectable = true, long style = wxBORDER_SIMPLE);
+    explicit DesignRowList(int max_visible, bool selectable = true) : m_max_visible(max_visible), m_selectable(selectable) {}
 
-    // Replace every row. Clears the selection without notifying and cancels a rename in progress;
-    // the owner re-selects the row it keeps, which notifies.
-    void set_rows(std::vector<Row> rows);
-    int  selection() const { return GetSelection(); }
-    // Select `row` (wxNOT_FOUND clears) and call on_select if that changed the selection.
-    void select(int row);
-    void unselect() { select(wxNOT_FOUND); }
-    // Open the in-place editor on a row, once the current event has finished: opened from inside
-    // a popup menu's nested loop it would never appear. Enter or clicking away commits, Esc cancels.
-    void begin_rename(int row);
-    // Re-rasterise the icons and re-measure the rows after a DPI or theme change.
-    void Rescale();
+    // Replace every row. Clears the selection without notifying; the owner re-selects the row it keeps, which notifies.
+    void set_rows(std::vector<Row> rows) { m_rows = std::move(rows); m_sel = -1; }
+    int  selection() const { return m_sel; }
+    const std::vector<Row>& rows() const { return m_rows; }
+    unsigned GetItemCount() const { return unsigned(m_rows.size()); }
+    int  max_visible() const { return m_max_visible; }
+    bool selectable() const { return m_selectable; }
+    // Select `row` (-1 clears) and call on_select if that changed the selection.
+    void select(int row)
+    {
+        if (row < 0 || row >= int(m_rows.size())) row = -1;
+        if (row == m_sel) return;
+        m_sel = row;
+        if (on_select) on_select();
+    }
+    void unselect() { select(-1); }
+    // Open the in-place editor on a row (the sidebar takes it over through on_begin_rename).
+    void begin_rename(int row)
+    {
+        if (on_begin_rename && row >= 0 && row < int(m_rows.size())) {
+            const Row& r = m_rows[size_t(row)];
+            on_begin_rename(row, r.edit_text.IsEmpty() ? r.label : r.edit_text);
+        }
+    }
 
     std::function<void()>                              on_select;    // the selection changed
     std::function<void()>                              on_activate;  // the selected row was double-clicked
-    // A row's action icon was clicked. Runs after the click has finished dispatching, while the
-    // row still exists and — in a selectable list, where the click itself selected it — is still
-    // the selected one.
-    std::function<void(int row, int id)>              on_action;
-    // Context menu on a row, at a screen position; the row under the pointer is selected first,
-    // unless the list is non-selectable. Pop the menu from inside the call: wxGTK sends it on the
-    // right press, and a menu deferred past that event closes on the button's release.
+    // A row's action icon was clicked, after the click has finished dispatching.
+    std::function<void(int row, int id)>               on_action;
+    // Context menu on a row, at a screen position; the row under the pointer is selected first, unless the list is non-selectable.
     std::function<void(int row, const wxPoint& screen)> on_menu;
     // The editor committed `name` for `row`, trimmed and never empty (an empty commit cancels).
-    // Runs after the editor's own events have finished, so the owner may rebuild the rows here.
     std::function<void(int row, const wxString& name)> on_rename;
-
-    bool AcceptsFocus() const override { return m_selectable && wxVListBox::AcceptsFocus(); }
-
-protected:
-    void    OnDrawItem(wxDC& dc, const wxRect& rect, size_t n) const override;
-    void    OnDrawBackground(wxDC& dc, const wxRect& rect, size_t n) const override;
-    wxCoord OnMeasureItem(size_t n) const override;
+    // The sidebar takes a rename over: it gets the row and the text the editor opens with.
+    std::function<bool(int row, const wxString& text)> on_begin_rename;
 
 private:
-    struct Hit {
-        int row{wxNOT_FOUND};
-        int cell{-1};   // index into the row's actions, -1 for the rest of the row
-        bool operator==(const Hit& o) const { return row == o.row && cell == o.cell; }
-        bool operator!=(const Hit& o) const { return !(*this == o); }
-    };
-
-    Hit    hit_test(const wxPoint& pt) const;
-    wxRect cell_rect(const wxRect& row, size_t count, size_t i) const;
-    wxRect label_rect(const wxRect& row, const Row& r) const;
-    const ScalableBitmap* icon(const std::string& name) const;
-    void   load_icons();
-    void   set_hover(const Hit& h);
-    void   open_editor(int row);
-    void   end_rename(bool commit);
-    void   measure_row();
-    void   fit_rows();
-
-    std::vector<Row>                      m_rows;
-    std::map<std::string, ScalableBitmap> m_icons;
-    int                                   m_max_visible;
-    bool                                  m_selectable;
-    int                                   m_row_h{0};          // every row's height, from measure_row()
-    Hit                                   m_hover;
-    Hit                                   m_pressed;           // action cell under the last left press
-    wxTextCtrl*                           m_editor{nullptr};   // created on the first rename, then reused
-    int                                   m_edit_row{wxNOT_FOUND};
+    std::vector<Row> m_rows;
+    int              m_max_visible;
+    bool             m_selectable;
+    int              m_sel{-1};
 };
 
 }} // namespace Slic3r::GUI

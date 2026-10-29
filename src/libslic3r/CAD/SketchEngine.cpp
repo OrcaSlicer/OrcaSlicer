@@ -22,6 +22,7 @@
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepAdaptor_Curve.hxx>
+#include <GeomAbs_CurveType.hxx>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 #include <BRepClass_FaceClassifier.hxx>
@@ -42,6 +43,10 @@
 #include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRepOffsetAPI_MakePipe.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
+#include <BRepAlgoAPI_Splitter.hxx>
+#include <BRepBuilderAPI_MakePolygon.hxx>
+#include <BRepTools.hxx>
+#include <NCollection_List.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
@@ -225,10 +230,15 @@ TopoDS_Shape SketchEngine::make_extrude_taper(const TopoDS_Wire& wire, const Ske
     if (std::abs(off) < 1e-7) return straight();
     try {
         // 1) offset the planar base wire in its own plane by `off`
-        BRepOffsetAPI_MakeOffset mko(wire, GeomAbs_Arc);
-        mko.Perform(off);
-        if (!mko.IsDone()) return straight();
-        TopoDS_Shape offShape = mko.Shape();
+        // Sharp (intersection) joins: arc joins round the convex corners of an outward offset, so the top of a tapered
+        // polygon came out short of the exact frustum. Arc joins remain the fallback.
+        TopoDS_Shape offShape;
+        for (GeomAbs_JoinType join : {GeomAbs_Intersection, GeomAbs_Arc}) {
+            BRepOffsetAPI_MakeOffset mko(wire, join);
+            mko.Perform(off);
+            if (mko.IsDone() && !mko.Shape().IsNull()) { offShape = mko.Shape(); break; }
+        }
+        if (offShape.IsNull()) return straight();
         TopoDS_Wire topFlat;
         if (offShape.ShapeType() == TopAbs_WIRE) topFlat = TopoDS::Wire(offShape);
         else { for (TopExp_Explorer ex(offShape, TopAbs_WIRE); ex.More(); ex.Next()) { topFlat = TopoDS::Wire(ex.Current()); break; } }
@@ -408,20 +418,84 @@ TopoDS_Shape SketchEngine::make_sweep(const TopoDS_Wire& profile, const TopoDS_W
     return pipe.Shape();
 }
 
-TopoDS_Shape SketchEngine::make_loft(const std::vector<TopoDS_Wire>& profiles, bool ruled)
+// A copy of `w` moved along its own plane normal by `strength` * (distance to `toward`'s centre),
+// on the side that faces `toward`. Null if the wire has no plane.
+static TopoDS_Wire normal_section(const TopoDS_Wire& w, const TopoDS_Wire& toward, double strength)
+{
+    auto face_of = [](const TopoDS_Wire& x) { return BRepBuilderAPI_MakeFace(x).Face(); };
+    const TopoDS_Face fa = face_of(w), fb = face_of(toward);
+    BRepAdaptor_Surface sa(fa);
+    if (sa.GetType() != GeomAbs_Plane) return TopoDS_Wire();
+    GProp_GProps pa, pb;
+    BRepGProp::SurfaceProperties(fa, pa);
+    BRepGProp::SurfaceProperties(fb, pb);
+    const gp_Pnt ca = pa.CentreOfMass(), cb = pb.CentreOfMass();
+    gp_Vec n(sa.Plane().Axis().Direction());
+    const gp_Vec gap(ca, cb);
+    if (gap.Magnitude() < 1e-9) return TopoDS_Wire();
+    if (n.Dot(gap) < 0) n.Reverse();
+    gp_Trsf tr;
+    tr.SetTranslation(n * (strength * std::abs(n.Dot(gap))));
+    BRepBuilderAPI_Transform xf(w, tr, true);
+    return TopoDS::Wire(xf.Shape());
+}
+
+// ThruSections raises an OCCT exception (not a std::exception) when it cannot skin the sections, and the caller then only knows
+// "a geometry operation failed". Say what a loft can be wrong about instead.
+static void build_loft_checked(BRepOffsetAPI_ThruSections& loft)
+{
+    const std::string why = _u8L("loft failed: the profiles cannot be skinned together. A profile may cross itself, "
+                                 "or two of them differ too much - try Ruled sections, or reorder the profiles");
+    try {
+        loft.Build();
+    } catch (const Standard_Failure&) {
+        throw std::runtime_error(why);
+    }
+    if (!loft.IsDone()) throw std::runtime_error(why);
+}
+
+TopoDS_Shape SketchEngine::make_loft(const std::vector<TopoDS_Wire>& profiles, bool ruled,
+                                     int start_cond, int end_cond, double strength)
 {
     if (profiles.size() < 2)
         throw std::runtime_error(_u8L("loft needs at least 2 profiles"));
     BRepOffsetAPI_ThruSections loft(true /*solid*/, ruled);
+    for (size_t i = 0; i < profiles.size(); ++i) {
+        const TopoDS_Wire& w = profiles[i];
+        if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
+        loft.AddWire(w);
+        // Normal-to-profile end condition: one auxiliary section right after the first profile / right
+        // before the last, so the smooth skin leaves (arrives) perpendicular to that profile.
+        if (!ruled && i == 0 && start_cond == 1) {
+            const TopoDS_Wire aux = normal_section(w, profiles[1], strength);
+            if (!aux.IsNull()) loft.AddWire(aux);
+        }
+        if (!ruled && i + 2 == profiles.size() && end_cond == 1) {
+            const TopoDS_Wire aux = normal_section(profiles.back(), w, strength);
+            if (!aux.IsNull()) loft.AddWire(aux);
+        }
+    }
+    build_loft_checked(loft);
+    TopoDS_Shape s = loft.Shape();
+    if (s.IsNull()) throw std::runtime_error(_u8L("loft produced no solid"));
+    return s;
+}
+
+TopoDS_Shape SketchEngine::make_loft_to_point(const std::vector<TopoDS_Wire>& profiles, bool ruled,
+                                              const gp_Pnt* apex_first, const gp_Pnt* apex_last)
+{
+    if (profiles.empty() || (profiles.size() < 2 && !(apex_first && apex_last) && !(profiles.size() == 1 && (apex_first || apex_last))))
+        throw std::runtime_error(_u8L("loft needs a section besides the point"));
+    BRepOffsetAPI_ThruSections loft(true /*solid*/, ruled);
+    if (apex_first) loft.AddVertex(BRepBuilderAPI_MakeVertex(*apex_first));
     for (const TopoDS_Wire& w : profiles) {
         if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
         loft.AddWire(w);
     }
-    loft.Build();
-    if (!loft.IsDone()) throw std::runtime_error(_u8L("loft failed"));
-    TopoDS_Shape s = loft.Shape();
-    if (s.IsNull()) throw std::runtime_error(_u8L("loft produced no solid"));
-    return s;
+    if (apex_last) loft.AddVertex(BRepBuilderAPI_MakeVertex(*apex_last));
+    build_loft_checked(loft);
+    if (loft.Shape().IsNull()) throw std::runtime_error(_u8L("loft to a point failed"));
+    return loft.Shape();
 }
 
 // ponytail: sibling of make_loft that builds an open shell (sheet) instead of a solid.
@@ -434,8 +508,7 @@ TopoDS_Shape SketchEngine::make_loft_surface(const std::vector<TopoDS_Wire>& pro
         if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
         loft.AddWire(w);
     }
-    loft.Build();
-    if (!loft.IsDone()) throw std::runtime_error(_u8L("loft failed"));
+    build_loft_checked(loft);
     TopoDS_Shape s = loft.Shape();
     if (s.IsNull()) throw std::runtime_error(_u8L("loft produced no shape"));
     return s;
@@ -561,8 +634,10 @@ TriangleMesh SketchEngine::tessellate(const TopoDS_Shape& shape,
 
 std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<SketchEntity>& entities,
                                                          const SketchPlane& plane,
-                                                         bool closed_only)
+                                                         bool closed_only,
+                                                         std::vector<std::vector<int>>* loop_entities)
 {
+    if (loop_entities != nullptr) loop_entities->clear();
     // Effective weld tolerance: kSketchJoinTol when auto-close is on, 0.0 when off.
     // Read ONCE so the union-find, the node weld and the vertex tolerance below all
     // agree. With 0.0 the comparisons use <= so exactly coincident endpoints still join.
@@ -855,6 +930,13 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
         for (TopExp_Explorer ex(wire, TopAbs_EDGE); ex.More(); ex.Next()) ++edge_count;
         if (edge_count != (loop.closed_single ? 1 : loop.members.size())) return {};
         out.push_back(wire);
+        if (loop_entities != nullptr) {
+            std::vector<int> ids;
+            if (loop.closed_single) ids.push_back(int(valid[loop.member].idx));
+            else for (size_t m : loop.members) ids.push_back(int(valid[m].idx));
+            std::sort(ids.begin(), ids.end());
+            loop_entities->push_back(std::move(ids));
+        }
     }
     return out;
 }
@@ -1003,6 +1085,347 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
     ShapeFix_Face sff(fm.Face());
     sff.FixOrientation();
     return checked_profile_face(sff.Face());
+}
+
+std::vector<TopoDS_Face> SketchEngine::wires_to_faces(const std::vector<TopoDS_Wire>& wires, const SketchPlane& plane)
+{
+    if (wires.empty()) throw std::runtime_error(_u8L("sketch has no closed loop"));
+    const gp_Pln pln(gp_Pnt(plane.origin.x(), plane.origin.y(), plane.origin.z()), gp_Dir(plane.normal.x(), plane.normal.y(), plane.normal.z()));
+    const size_t n = wires.size();
+    std::vector<TopoDS_Face> plain(n);
+    std::vector<gp_Pnt> probe(n);
+    for (size_t i = 0; i < n; ++i) {
+        BRepBuilderAPI_MakeFace fm(pln, wires[i]);
+        if (!fm.IsDone()) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
+        plain[i] = fm.Face();
+        TopExp_Explorer ex(wires[i], TopAbs_VERTEX);
+        if (!ex.More()) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
+        probe[i] = BRep_Tool::Pnt(TopoDS::Vertex(ex.Current()));
+    }
+    // parent[i] = the smallest loop that contains loop i (-1 = none); depth follows from the chain
+    std::vector<double> area(n);
+    for (size_t i = 0; i < n; ++i) { GProp_GProps pr; BRepGProp::SurfaceProperties(plain[i], pr); area[i] = std::abs(pr.Mass()); }
+    std::vector<int> parent(n, -1);
+    for (size_t i = 0; i < n; ++i)
+        for (size_t j = 0; j < n; ++j) {
+            if (i == j || area[j] <= area[i]) continue;
+            BRepClass_FaceClassifier fc(plain[j], probe[i], 1e-7);
+            if (fc.State() == TopAbs_IN && (parent[i] < 0 || area[j] < area[size_t(parent[i])])) parent[i] = int(j);
+        }
+    auto depth = [&](size_t i) { int d = 0; for (int p = parent[i]; p >= 0; p = parent[size_t(p)]) ++d; return d; };
+    std::vector<TopoDS_Face> out;
+    for (size_t i = 0; i < n; ++i) {
+        if (depth(i) % 2 != 0) continue;   // a hole: it rides along with the region around it
+        BRepBuilderAPI_MakeFace fm(pln, wires[i]);
+        for (size_t k = 0; k < n; ++k)
+            if (parent[k] == int(i)) fm.Add(wires[k]);
+        if (!fm.IsDone()) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
+        ShapeFix_Face sff(fm.Face());
+        sff.FixOrientation();
+        out.push_back(checked_profile_face(sff.Face()));
+    }
+    return out;
+}
+
+// ---- planar subdivision of a sketch ----------------------------------------------------------------------------------------
+namespace {
+bool arr_kind_ok(const SketchEntity& e)
+{
+    return e.type == SketchEntity::Type::Line || e.type == SketchEntity::Type::Arc || e.type == SketchEntity::Type::Circle
+        || e.type == SketchEntity::Type::Ellipse;
+}
+// a polyline close enough to the curve to find where two curves cross
+std::vector<Vec2d> arr_poly(const SketchEntity& e)
+{
+    std::vector<Vec2d> p;
+    if (e.type == SketchEntity::Type::Line) return { e.p0, e.p1 };
+    if (e.type == SketchEntity::Type::Arc) {
+        double sweep = e.end_angle - e.start_angle;
+        while (sweep < 0) sweep += 2 * M_PI;
+        const int n = std::max(8, int(std::ceil(sweep / (2 * M_PI) * 96)));
+        for (int i = 0; i <= n; ++i) {
+            const double a = e.start_angle + sweep * i / n;
+            p.push_back(e.center + Vec2d(std::cos(a), std::sin(a)) * e.radius);
+        }
+        return p;
+    }
+    const int n = 96;   // Circle / Ellipse, closed (the last point repeats the first)
+    const double a = e.radius, b = e.type == SketchEntity::Type::Ellipse ? e.rminor : e.radius;
+    const double cp = e.type == SketchEntity::Type::Ellipse ? std::cos(e.rotation) : 1.0, sp = e.type == SketchEntity::Type::Ellipse ? std::sin(e.rotation) : 0.0;
+    for (int i = 0; i <= n; ++i) {
+        const double t = 2 * M_PI * i / n;
+        const Vec2d q(a * std::cos(t), b * std::sin(t));
+        p.push_back(e.center + Vec2d(cp * q.x() - sp * q.y(), sp * q.x() + cp * q.y()));
+    }
+    return p;
+}
+// do the curves of a and b cross, at a point that is not an end of either (an end-to-end joint is an ordinary chain)?
+bool arr_cross(const SketchEntity& a, const SketchEntity& b, double tol)
+{
+    const std::vector<Vec2d> pa = arr_poly(a), pb = arr_poly(b);
+    Vec2d alo = pa[0], ahi = pa[0], blo = pb[0], bhi = pb[0];
+    for (const Vec2d& q : pa) { alo = alo.cwiseMin(q); ahi = ahi.cwiseMax(q); }
+    for (const Vec2d& q : pb) { blo = blo.cwiseMin(q); bhi = bhi.cwiseMax(q); }
+    if ((alo.array() > bhi.array() + tol).any() || (blo.array() > ahi.array() + tol).any()) return false;
+    const auto is_end = [&](const SketchEntity& e, const Vec2d& x) {
+        return e.type != SketchEntity::Type::Circle && e.type != SketchEntity::Type::Ellipse
+            && ((x - e.p0).norm() <= tol || (x - e.p1).norm() <= tol);
+    };
+    for (size_t i = 0; i + 1 < pa.size(); ++i)
+        for (size_t j = 0; j + 1 < pb.size(); ++j) {
+            const Vec2d r = pa[i + 1] - pa[i], s = pb[j + 1] - pb[j];
+            const double den = r.x() * s.y() - r.y() * s.x();
+            if (std::abs(den) < 1e-12) continue;
+            const Vec2d qp = pb[j] - pa[i];
+            const double t = (qp.x() * s.y() - qp.y() * s.x()) / den, u = (qp.x() * r.y() - qp.y() * r.x()) / den;
+            if (t < -1e-9 || t > 1 + 1e-9 || u < -1e-9 || u > 1 + 1e-9) continue;
+            const Vec2d x = pa[i] + r * t;
+            if (!is_end(a, x) && !is_end(b, x)) return true;
+        }
+    return false;
+}
+// distance from p to the curve of `e`, +inf when p is beyond an arc's sweep
+double arr_dist(const SketchEntity& e, const Vec2d& p)
+{
+    if (e.type == SketchEntity::Type::Line) {
+        const Vec2d d = e.p1 - e.p0;
+        const double L2 = d.squaredNorm();
+        const double t = L2 > 1e-18 ? std::clamp((p - e.p0).dot(d) / L2, 0.0, 1.0) : 0.0;
+        return (e.p0 + d * t - p).norm();
+    }
+    if (e.type == SketchEntity::Type::Ellipse) return std::numeric_limits<double>::infinity();   // crossings are found by arr_cross
+    const double r = (p - e.center).norm();
+    if (e.type == SketchEntity::Type::Arc) {
+        double a = std::atan2(p.y() - e.center.y(), p.x() - e.center.x());
+        double a0 = e.start_angle, sweep = e.end_angle - e.start_angle;
+        while (sweep < 0) sweep += 2 * M_PI;
+        double rel = a - a0;
+        while (rel < 0) rel += 2 * M_PI;
+        while (rel >= 2 * M_PI) rel -= 2 * M_PI;
+        if (rel > sweep + 1e-9) return std::numeric_limits<double>::infinity();
+    }
+    return std::abs(r - e.radius);
+}
+}
+
+bool SketchEngine::arrangement_needed(const std::vector<SketchEntity>& entities)
+{
+    std::vector<const SketchEntity*> v;
+    for (const SketchEntity& e : entities) {
+        if (e.construction || e.type == SketchEntity::Type::Point) continue;
+        if (!arr_kind_ok(e)) return false;
+        v.push_back(&e);
+    }
+    const double tol = std::max(sketch_join_tol(), 1e-6);   // as loose as the sketch welds its own joints
+    // Curves of DIFFERENT shapes that cross make cells. A shape (a chain joined end to end, or one circle / ellipse) that crosses ITSELF is
+    // a folded outline, not two regions: it stays a defect for the caller to refuse.
+    std::vector<size_t> grp(v.size());
+    for (size_t i = 0; i < v.size(); ++i) grp[i] = i;
+    const auto root = [&](size_t x) { while (grp[x] != x) x = grp[x]; return x; };
+    const auto is_closed_kind = [](const SketchEntity& e) { return e.type == SketchEntity::Type::Circle || e.type == SketchEntity::Type::Ellipse; };
+    for (size_t i = 0; i < v.size(); ++i)
+        for (size_t j = i + 1; j < v.size(); ++j) {
+            if (is_closed_kind(*v[i]) || is_closed_kind(*v[j])) continue;
+            for (const Vec2d& a : { v[i]->p0, v[i]->p1 })
+                for (const Vec2d& b : { v[j]->p0, v[j]->p1 })
+                    if ((a - b).norm() <= tol) grp[root(i)] = root(j);
+        }
+    for (size_t i = 0; i < v.size(); ++i)
+        for (size_t j = i + 1; j < v.size(); ++j)
+            if (root(i) != root(j) && arr_cross(*v[i], *v[j], tol)) return true;
+    for (const SketchEntity* a : v) {
+        if (a->type == SketchEntity::Type::Circle || a->type == SketchEntity::Type::Ellipse) continue;
+        for (const Vec2d& p : { a->p0, a->p1 })
+            for (const SketchEntity* b : v) {
+                if (b == a) continue;
+                // p must touch b away from b's own ends (an end-to-end joint is an ordinary chain)
+                if (arr_dist(*b, p) > tol) continue;
+                if (b->type != SketchEntity::Type::Circle && ((p - b->p0).norm() <= tol || (p - b->p1).norm() <= tol)) continue;
+                return true;
+            }
+    }
+    return false;
+}
+
+std::vector<TopoDS_Face> SketchEngine::arrangement_faces(const std::vector<SketchEntity>& entities, const SketchPlane& plane)
+{
+    const gp_Pln pln(gp_Pnt(plane.origin.x(), plane.origin.y(), plane.origin.z()), gp_Dir(plane.normal.x(), plane.normal.y(), plane.normal.z()));
+    auto P3 = [&](const Vec2d& p) { const Vec3d w = plane.to_world(p); return gp_Pnt(w.x(), w.y(), w.z()); };
+    NCollection_List<TopoDS_Shape> tools;
+    Vec2d lo(1e300, 1e300), hi(-1e300, -1e300);
+    auto grow = [&](const Vec2d& p) { lo = lo.cwiseMin(p); hi = hi.cwiseMax(p); };
+    for (const SketchEntity& e : entities) {
+        if (e.construction || e.type == SketchEntity::Type::Point) continue;
+        if (e.type == SketchEntity::Type::Line) {
+            if ((e.p1 - e.p0).norm() < 1e-9) continue;
+            tools.Append(BRepBuilderAPI_MakeEdge(P3(e.p0), P3(e.p1)).Edge());
+            grow(e.p0); grow(e.p1);
+        } else if (e.type == SketchEntity::Type::Circle) {
+            if (e.radius <= 1e-9) continue;
+            const Vec3d n = plane.x_axis.cross(plane.y_axis);
+            tools.Append(BRepBuilderAPI_MakeEdge(gp_Circ(gp_Ax2(P3(e.center), gp_Dir(n.x(), n.y(), n.z())), e.radius)).Edge());
+            grow(e.center - Vec2d(e.radius, e.radius)); grow(e.center + Vec2d(e.radius, e.radius));
+        } else if (e.type == SketchEntity::Type::Ellipse) {
+            if (e.radius <= 1e-9 || e.rminor <= 1e-9) continue;
+            const Vec3d nz = plane.x_axis.cross(plane.y_axis);
+            const Vec3d x3 = plane.to_world(e.center + Vec2d(std::cos(e.rotation), std::sin(e.rotation))) - plane.to_world(e.center);
+            double a = e.radius, b = e.rminor;
+            if (a < b) std::swap(a, b);
+            tools.Append(BRepBuilderAPI_MakeEdge(gp_Elips(gp_Ax2(P3(e.center), gp_Dir(nz.x(), nz.y(), nz.z()), gp_Dir(x3.x(), x3.y(), x3.z())), a, b)).Edge());
+            const double m = std::max(a, b);
+            grow(e.center - Vec2d(m, m)); grow(e.center + Vec2d(m, m));
+        } else if (e.type == SketchEntity::Type::Arc) {
+            const double mid = 0.5 * (e.start_angle + e.end_angle);
+            GC_MakeArcOfCircle mk(P3(e.p0), P3(e.center + Vec2d(std::cos(mid), std::sin(mid)) * e.radius), P3(e.p1));
+            if (!mk.IsDone()) throw std::runtime_error(_u8L("sketch arc could not be built"));
+            tools.Append(BRepBuilderAPI_MakeEdge(mk.Value()).Edge());
+            grow(e.center - Vec2d(e.radius, e.radius)); grow(e.center + Vec2d(e.radius, e.radius));
+        }
+    }
+    if (tools.IsEmpty()) throw std::runtime_error(_u8L("sketch has no closed loop"));
+    const double pad = std::max(10.0, 0.25 * (hi - lo).maxCoeff());
+    const Vec2d c[4] = { lo - Vec2d(pad, pad), Vec2d(hi.x() + pad, lo.y() - pad), hi + Vec2d(pad, pad), Vec2d(lo.x() - pad, hi.y() + pad) };
+    BRepBuilderAPI_MakePolygon poly;
+    for (const Vec2d& p : c) poly.Add(P3(p));
+    poly.Close();
+    BRepBuilderAPI_MakeFace bigf(pln, poly.Wire());
+    if (!bigf.IsDone()) throw std::runtime_error(_u8L("sketch regions could not be found"));
+
+    BRepAlgoAPI_Splitter sp;
+    NCollection_List<TopoDS_Shape> args;
+    args.Append(bigf.Face());
+    sp.SetArguments(args);
+    sp.SetTools(tools);
+    sp.SetFuzzyValue(std::max(sketch_join_tol(), 1e-6));
+    sp.Build();
+    if (!sp.IsDone()) throw std::runtime_error(_u8L("sketch regions could not be found"));
+
+    // keep the bounded pieces: the unbounded one still has a corner of the big rectangle
+    std::vector<TopoDS_Face> faces;
+    for (TopExp_Explorer ex(sp.Shape(), TopAbs_FACE); ex.More(); ex.Next()) {
+        const TopoDS_Face f = TopoDS::Face(ex.Current());
+        bool outer = false;
+        for (TopExp_Explorer vx(f, TopAbs_VERTEX); vx.More() && !outer; vx.Next())
+            for (const Vec2d& p : c)
+                if (BRep_Tool::Pnt(TopoDS::Vertex(vx.Current())).Distance(P3(p)) < 1e-5) { outer = true; break; }
+        if (!outer) faces.push_back(f);
+    }
+    // a region that fills a hole of another region is that hole (even depth = region, odd = hole)
+    const size_t n = faces.size();
+    std::vector<std::vector<TopoDS_Shape>> outer_edges(n), inner_edges(n);
+    std::vector<double> area(n);
+    for (size_t i = 0; i < n; ++i) {
+        const TopoDS_Wire ow = BRepTools::OuterWire(faces[i]);
+        for (TopExp_Explorer ex(ow, TopAbs_EDGE); ex.More(); ex.Next()) outer_edges[i].push_back(ex.Current());
+        for (TopExp_Explorer wx(faces[i], TopAbs_WIRE); wx.More(); wx.Next())
+            if (!wx.Current().IsSame(ow))
+                for (TopExp_Explorer ex(wx.Current(), TopAbs_EDGE); ex.More(); ex.Next()) inner_edges[i].push_back(ex.Current());
+        GProp_GProps pr;
+        BRepGProp::SurfaceProperties(faces[i], pr);
+        area[i] = std::abs(pr.Mass());
+    }
+    std::vector<int> parent(n, -1);
+    for (size_t i = 0; i < n; ++i)
+        for (size_t j = 0; j < n; ++j) {
+            if (i == j || outer_edges[i].empty()) continue;
+            bool all = true;
+            for (const TopoDS_Shape& e : outer_edges[i]) {
+                bool found = false;
+                for (const TopoDS_Shape& g : inner_edges[j]) if (g.IsSame(e)) { found = true; break; }
+                if (!found) { all = false; break; }
+            }
+            if (all && (parent[i] < 0 || area[j] < area[size_t(parent[i])])) parent[i] = int(j);
+        }
+    auto depth = [&](size_t i) { int d = 0; for (int p = parent[i]; p >= 0; p = parent[size_t(p)]) ++d; return d; };
+    std::vector<TopoDS_Face> out;
+    for (size_t i = 0; i < n; ++i) {
+        if (depth(i) % 2 != 0) continue;
+        ShapeFix_Face sff(faces[i]);
+        sff.Perform();   // the pieces carry the weld tolerance of the joints they were cut at: let OCCT tidy their wires
+        sff.FixOrientation();
+        out.push_back(sff.Face());
+    }
+    if (out.empty()) throw std::runtime_error(_u8L("sketch has no closed loop"));
+    return out;
+}
+
+namespace {
+// The edges of a wire as exact sketch entities (a closed circle / ellipse edge stays a Circle / Ellipse).
+void arr_wire_entities(const TopoDS_Shape& wire, const SketchPlane& plane, std::vector<SketchEntity>& out)
+{
+    const auto loc = [&](const gp_Pnt& p) {
+        const Vec3d d = Vec3d(p.X(), p.Y(), p.Z()) - plane.origin;
+        return Vec2d(d.dot(plane.x_axis), d.dot(plane.y_axis));
+    };
+    const auto norm_angle = [](double a) { while (a < 0) a += 2 * M_PI; while (a >= 2 * M_PI) a -= 2 * M_PI; return a; };
+    for (TopExp_Explorer ex(wire, TopAbs_EDGE); ex.More(); ex.Next()) {
+        BRepAdaptor_Curve c(TopoDS::Edge(ex.Current()));
+        const double f = c.FirstParameter(), l = c.LastParameter();
+        const Vec2d a = loc(c.Value(f)), b = loc(c.Value(l)), m = loc(c.Value(0.5 * (f + l)));
+        const bool closed = (a - b).norm() < 1e-7;
+        SketchEntity s;
+        // counter-clockwise sweep from the first to the last end, or from the last to the first when the edge runs the other way
+        const auto sweep_of = [&](double a0, double a1, double am, bool& swap) {
+            const double sw = norm_angle(a1 - a0), dm = norm_angle(am - a0);
+            swap = !(dm < sw);
+            return swap ? norm_angle(a0 - a1) : sw;
+        };
+        switch (c.GetType()) {
+        case GeomAbs_Line:
+            s.type = SketchEntity::Type::Line; s.p0 = a; s.p1 = b;
+            break;
+        case GeomAbs_Circle: {
+            const gp_Circ ci = c.Circle();
+            s.center = loc(ci.Location()); s.radius = ci.Radius();
+            if (closed) { s.type = SketchEntity::Type::Circle; s.p0 = s.center; break; }
+            const auto ang = [&](const Vec2d& q) { return std::atan2(q.y() - s.center.y(), q.x() - s.center.x()); };
+            bool swap = false;
+            const double sw = sweep_of(ang(a), ang(b), ang(m), swap);
+            s.type = SketchEntity::Type::Arc;
+            s.p0 = swap ? b : a; s.p1 = swap ? a : b;
+            s.start_angle = ang(s.p0); s.end_angle = s.start_angle + sw;
+            break;
+        }
+        case GeomAbs_Ellipse: {
+            const gp_Elips el = c.Ellipse();
+            s.center = loc(el.Location()); s.radius = el.MajorRadius(); s.rminor = el.MinorRadius();
+            const gp_Dir xd = el.XAxis().Direction();
+            const Vec3d x3(xd.X(), xd.Y(), xd.Z());
+            s.rotation = std::atan2(x3.dot(plane.y_axis), x3.dot(plane.x_axis));
+            if (closed) { s.type = SketchEntity::Type::Ellipse; s.p0 = s.center; break; }
+            const Vec2d mj(std::cos(s.rotation), std::sin(s.rotation)), mn(-mj.y(), mj.x());
+            const auto par = [&](const Vec2d& q) { const Vec2d r = q - s.center; return std::atan2(r.dot(mn) / s.rminor, r.dot(mj) / s.radius); };
+            bool swap = false;
+            const double sw = sweep_of(par(a), par(b), par(m), swap);
+            s.type = SketchEntity::Type::EllipseArc;
+            s.p0 = swap ? b : a; s.p1 = swap ? a : b;
+            s.start_angle = par(s.p0); s.end_angle = s.start_angle + sw;
+            break;
+        }
+        default:
+            throw std::runtime_error(_u8L("sketch regions could not be found"));
+        }
+        out.push_back(s);
+    }
+}
+} // namespace
+
+std::vector<SketchEngine::SketchCell> SketchEngine::arrangement_cells(const std::vector<SketchEntity>& entities, const SketchPlane& plane)
+{
+    std::vector<SketchCell> out;
+    for (const TopoDS_Face& f : arrangement_faces(entities, plane)) {
+        SketchCell c;
+        const TopoDS_Wire ow = BRepTools::OuterWire(f);
+        arr_wire_entities(ow, plane, c.outer);
+        for (TopExp_Explorer wx(f, TopAbs_WIRE); wx.More(); wx.Next())
+            if (!wx.Current().IsSame(ow)) {
+                std::vector<SketchEntity> h;
+                arr_wire_entities(wx.Current(), plane, h);
+                c.holes.push_back(std::move(h));
+            }
+        out.push_back(std::move(c));
+    }
+    return out;
 }
 
 std::vector<SketchEntity> SketchEngine::mirror_entities(
@@ -2002,6 +2425,133 @@ bool SketchEngine::trim_entity(SketchEntity& e, const std::vector<SketchEntity>&
         e.p1 = e.p0 + tc * adir;
     }
 
+    return true;
+}
+
+bool SketchEngine::trim_split(const SketchEntity& e, const std::vector<SketchEntity>& others, const Vec2d& pick,
+                              std::vector<TrimPiece>& out)
+{
+    out.clear();
+    using Ty = SketchEntity::Type;
+    struct Cut { double u; int by; };
+    std::vector<Cut> cuts;
+    constexpr double END = 1e-9;
+
+    if (e.type == Ty::Line) {
+        const Vec2d adir = e.p1 - e.p0;
+        const double La2 = adir.dot(adir);
+        if (La2 < 1e-18) return false;
+        const double tp = std::max(0.0, std::min(1.0, (pick - e.p0).dot(adir) / La2));
+        for (size_t i = 0; i < others.size(); ++i)
+            for (double t : line_entity_hits(e.p0, adir, others[i]))
+                if (t > END && t < 1.0 - END) cuts.push_back({ t, int(i) });
+        if (cuts.empty()) return true;                     // nothing crosses it: the whole line is the piece under the pick
+        double lo = 0.0, hi = 1.0; int blo = -1, bhi = -1;
+        for (const Cut& c : cuts) {
+            if (c.u <= tp + END && c.u > lo) { lo = c.u; blo = c.by; }
+            if (c.u > tp + END && c.u < hi)  { hi = c.u; bhi = c.by; }
+        }
+        if (lo > END) {
+            TrimPiece p; p.ent = e; p.ent.p1 = e.p0 + lo * adir; p.has_p0 = true; p.cutter_p1 = blo;
+            out.push_back(std::move(p));
+        }
+        if (hi < 1.0 - END) {
+            TrimPiece p; p.ent = e; p.ent.p0 = e.p0 + hi * adir; p.has_p1 = true; p.cutter_p0 = bhi;
+            out.push_back(std::move(p));
+        }
+        return true;
+    }
+
+    if (e.type == Ty::Arc) {
+        const double sweep = e.end_angle - e.start_angle;
+        if (std::abs(sweep) < 1e-12) return false;
+        const double phi_pick = std::atan2(pick.y() - e.center.y(), pick.x() - e.center.x());
+        double up = (phi_pick - e.start_angle) / sweep;
+        while (up < -1e-9) up += (2.0 * M_PI) / std::abs(sweep);
+        up = std::max(0.0, std::min(1.0, up));
+        for (size_t i = 0; i < others.size(); ++i)
+            for (double phi : circle_cross_angles(e.center, e.radius, others[i])) {
+                double u = (phi - e.start_angle) / sweep;
+                while (u < -1e-9) u += (2.0 * M_PI) / std::abs(sweep);
+                if (u > END && u < 1.0 - END) cuts.push_back({ u, int(i) });
+            }
+        if (cuts.empty()) return true;
+        double lo = 0.0, hi = 1.0; int blo = -1, bhi = -1;
+        for (const Cut& c : cuts) {
+            if (c.u <= up + END && c.u > lo) { lo = c.u; blo = c.by; }
+            if (c.u > up + END && c.u < hi)  { hi = c.u; bhi = c.by; }
+        }
+        if (lo > END) {
+            TrimPiece p; p.ent = e; p.ent.end_angle = e.start_angle + lo * sweep; sync_arc_ends(p.ent);
+            p.has_p0 = true; p.cutter_p1 = blo;
+            out.push_back(std::move(p));
+        }
+        if (hi < 1.0 - END) {
+            TrimPiece p; p.ent = e; p.ent.start_angle = e.start_angle + hi * sweep; sync_arc_ends(p.ent);
+            p.has_p1 = true; p.cutter_p0 = bhi;
+            out.push_back(std::move(p));
+        }
+        return true;
+    }
+
+    if (e.type == Ty::Circle) {
+        struct A { double phi; int by; };
+        std::vector<A> ang;
+        for (size_t i = 0; i < others.size(); ++i)
+            for (double phi : circle_cross_angles(e.center, e.radius, others[i])) ang.push_back({ wrap_2pi(phi), int(i) });
+        std::sort(ang.begin(), ang.end(), [](const A& a, const A& b) { return a.phi < b.phi; });
+        ang.erase(std::unique(ang.begin(), ang.end(), [](const A& a, const A& b) { return std::abs(a.phi - b.phi) < 1e-7; }), ang.end());
+        if (ang.size() < 2) return true;                   // a circle needs two crossings to leave an arc; fewer and it all goes
+        const double pk = wrap_2pi(std::atan2(pick.y() - e.center.y(), pick.x() - e.center.x()));
+        const int n = int(ang.size());
+        int idx = -1;
+        for (int i = 0; i < n; ++i) {
+            const double lo = ang[i].phi, hi = (i + 1 < n) ? ang[i + 1].phi : ang[0].phi + 2.0 * M_PI;
+            const double p  = (pk < lo - 1e-12) ? pk + 2.0 * M_PI : pk;
+            if (p >= lo - 1e-12 && p < hi + 1e-12) { idx = i; break; }
+        }
+        if (idx < 0) return false;
+        const A lo = ang[idx];
+        const A hi = ang[(idx + 1) % n];
+        TrimPiece p; p.ent = e;
+        p.ent.type = Ty::Arc;                              // the kept arc runs from the gap's far end round to its near end
+        p.ent.start_angle = hi.phi; p.ent.end_angle = lo.phi + 2.0 * M_PI;
+        if (p.ent.end_angle <= p.ent.start_angle) p.ent.end_angle += 2.0 * M_PI;
+        sync_arc_ends(p.ent);
+        p.cutter_p0 = hi.by; p.cutter_p1 = lo.by;
+        out.push_back(std::move(p));
+        return true;
+    }
+    return false;
+}
+
+bool SketchEngine::split_at(const SketchEntity& e, const Vec2d& pick, std::vector<TrimPiece>& out)
+{
+    out.clear();
+    using Ty = SketchEntity::Type;
+    constexpr double END = 1e-6;
+    TrimPiece a, b;
+    a.ent = b.ent = e;
+    a.has_p0 = true; b.has_p1 = true;
+    if (e.type == Ty::Line) {
+        const Vec2d adir = e.p1 - e.p0;
+        const double La2 = adir.dot(adir);
+        if (La2 < 1e-18) return false;
+        const double t = (pick - e.p0).dot(adir) / La2;
+        if (t <= END || t >= 1.0 - END) return false;
+        a.ent.p1 = b.ent.p0 = e.p0 + t * adir;
+    } else if (e.type == Ty::Arc) {
+        const double sweep = e.end_angle - e.start_angle;
+        if (std::abs(sweep) < 1e-12) return false;
+        double u = (std::atan2(pick.y() - e.center.y(), pick.x() - e.center.x()) - e.start_angle) / sweep;
+        while (u < -1e-9) u += (2.0 * M_PI) / std::abs(sweep);
+        if (u <= END || u >= 1.0 - END) return false;
+        a.ent.end_angle = b.ent.start_angle = e.start_angle + u * sweep;
+        sync_arc_ends(a.ent); sync_arc_ends(b.ent);
+    } else
+        return false;
+    out.push_back(std::move(a));
+    out.push_back(std::move(b));
     return true;
 }
 

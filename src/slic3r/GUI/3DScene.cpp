@@ -1236,7 +1236,8 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     if (disable_cullface)
         glsafe(::glDisable(GL_CULL_FACE));
 
-    const float support_normal_z = get_selection_support_normal_z();
+    // Built from the full print config, which is expensive to merge, and every shader reads it only while the overhang view is on.
+    const float support_normal_z = m_slope.isGlobalActive ? get_selection_support_normal_z() : 0.0f;
 
     // The outline passes below are driven by is_outline, which only the object shaders have; with an
     // overlay one (wireframe, x-ray) bound they would just draw the volume again.

@@ -151,6 +151,7 @@ std::array<unsigned char, 4>  PlateTextureForeground = {0x0, 0xae, 0x42, 0xff};
 
 namespace Slic3r {
 namespace GUI {
+extern float g_design_bed_alpha;   // 3DBed.cpp
 
 class Bed3D;
 
@@ -1806,6 +1807,7 @@ void PartPlate::render_background(bool force_default_color)
 	else {
         color = PartPlate::DEFAULT_COLOR;
 	}
+    color = ColorRGBA(color[0], color[1], color[2], color[3] * g_design_bed_alpha);
     m_triangles.model.set_color(color);
     m_triangles.model.render();
 	glsafe(::glDepthMask(GL_TRUE));

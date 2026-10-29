@@ -1,0 +1,308 @@
+{
+ "id": "62-heat-sink",
+ "name": "Heat sink with 15 fins",
+ "description": "60x50x5 base; one 1.5x50 fin 25 tall at x=2; rectangular pattern x15 @4 mm.",
+ "exercises": [
+  "extrude_join",
+  "rectangular_pattern",
+  "many_faces",
+  "realistic"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Base_sketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "end": {
+      "at": [
+       60,
+       0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       60.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       60,
+       50
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       60.0,
+       50.0
+      ]
+     },
+     "end": {
+      "at": [
+       0,
+       50
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       0.0,
+       50.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Base",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Base_sketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 5,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "HeatSink"
+   ]
+  },
+  {
+   "op": "construction_plane",
+   "name": "BaseTop",
+   "method": "offset",
+   "base": "XY",
+   "offset": 5
+  },
+  {
+   "op": "sketch",
+   "name": "Fin",
+   "plane": {
+    "ref": "construction plane BaseTop (z=5)",
+    "origin": [
+     0.0,
+     0.0,
+     5.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       2,
+       0
+      ]
+     },
+     "end": {
+      "at": [
+       3.5,
+       0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       3.5,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       3.5,
+       50
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       3.5,
+       50.0
+      ]
+     },
+     "end": {
+      "at": [
+       2,
+       50
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       2.0,
+       50.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       2.0,
+       0.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Fin",
+   "operation": "join",
+   "profiles": [
+    {
+     "sketch": "Fin",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 25,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "HeatSink"
+   ]
+  },
+  {
+   "op": "rectangular_pattern",
+   "name": "FinPattern",
+   "pattern_of": "features",
+   "features": [
+    "Fin (1)"
+   ],
+   "direction1": {
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "count": 15,
+    "spacing": 4
+   },
+   "distance_type": "spacing (distance between instances)"
+  }
+ ]
+}

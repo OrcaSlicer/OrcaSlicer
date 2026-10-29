@@ -1,0 +1,169 @@
+{
+ "id": "56-holes-on-curved-face",
+ "name": "Holes on a cylindrical face",
+ "description": "Cylinder r25 h40 (axis Z); two d6 radial blind holes 10 deep placed on the curved face at (25,0,20) and (0,25,20).",
+ "exercises": [
+  "hole_on_curved_face",
+  "hole_blind"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "S1",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "radius": 25,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Cyl",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "S1",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 40,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Cyl"
+   ]
+  },
+  {
+   "op": "hole",
+   "name": "Hole1",
+   "hole_type": "simple",
+   "face": {
+    "type": "cylinder",
+    "normal_at_point_on_face": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "axis_origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "point": [
+     0.0,
+     25.0,
+     20.0
+    ]
+   },
+   "position": [
+    25,
+    0,
+    20
+   ],
+   "direction": "along the inward surface normal (radial, toward the axis)",
+   "diameter": 6,
+   "depth": 10,
+   "tip_angle": 118,
+   "extent": "distance"
+  },
+  {
+   "op": "hole",
+   "name": "Hole2",
+   "hole_type": "simple",
+   "face": {
+    "type": "cylinder",
+    "normal_at_point_on_face": [
+     0.992773892,
+     0.12,
+     0.0
+    ],
+    "axis_origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "point": [
+     24.819347292,
+     3.0,
+     20.0
+    ]
+   },
+   "position": [
+    0,
+    25,
+    20
+   ],
+   "direction": "along the inward surface normal (radial, toward the axis)",
+   "diameter": 6,
+   "depth": 10,
+   "tip_angle": 118,
+   "extent": "distance"
+  }
+ ]
+}

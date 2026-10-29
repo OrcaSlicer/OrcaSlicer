@@ -11,6 +11,11 @@
 #include <TopoDS_Wire.hxx>
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Face.hxx>
+#include <cmath>
+#include <ios>
+#include <locale>
+#include <sstream>
+#include <string>
 #include <vector>
 #include <utility>
 
@@ -88,6 +93,31 @@ struct SketchProfile {
 // Nothing legitimate in a mm-scale sketch is 1 um apart.
 inline constexpr double kSketchJoinTol = 1e-3;   // mm
 
+// Nearest multiple of `step` (half-way rounds away from zero, so the grid is symmetric about 0).
+// step <= 0 means "no grid" and returns v untouched.
+inline double snap_to_step(double v, double step)
+{
+    return step > 0. ? std::round(v / step) * step : v;
+}
+// A length for a label: at most `decimals` places, trailing zeros dropped, never "-0", always a '.'
+// (a stream imbued with the classic locale ignores LC_NUMERIC, unlike snprintf, which wx points at the user's locale;
+// std::to_chars is not used: its floating-point overloads need macOS 13.3).
+inline std::string format_dim_number(double v, int decimals = 2)
+{
+    std::ostringstream os;
+    os.imbue(std::locale::classic());
+    os.setf(std::ios::fixed, std::ios::floatfield);
+    os.precision(decimals);
+    os << v;
+    std::string s = os.str();
+    if (s.find('.') != std::string::npos) {
+        while (s.back() == '0') s.pop_back();
+        if (s.back() == '.') s.pop_back();
+    }
+    return (s == "-0") ? std::string("0") : s;
+}
+inline Vec2d snap_to_grid(const Vec2d& p, double step) { return {snap_to_step(p.x(), step), snap_to_step(p.y(), step)}; }
+
 // Effective sketch joint tolerance. ONE value for the viewport (region_loops /
 // loop_report / connected_loop) and the kernel (entities_to_wires): if these ever
 // disagree again, the viewport shades a region closed that the kernel refuses to
@@ -112,7 +142,11 @@ enum class SketchConstraintType {
     DistanceX,     // signed dx between two points (eb - ea), projected onto the sketch X axis
     DistanceY,     // signed dy between two points (eb - ea), projected onto the sketch Y axis
     SymmetricAboutY, // mirror across the sketch's vertical axis (x = 0); axis is implicit
-    SymmetricAboutX  // mirror across the sketch's horizontal axis (y = 0); axis is implicit
+    SymmetricAboutX, // mirror across the sketch's horizontal axis (y = 0); axis is implicit
+    // A REFERENCE quote: a dimension the sketch already fixes, kept to report its value. The solver ignores it. The measured
+    // kind and orientation travel in `rc` (kind * 3 + orient), `value` is the last measurement. Always stored AFTER the real
+    // constraints, so it never moves the index of one ("dim:<k>" names, formulas).
+    Reference
 };
 
 // Constraint on a SketchProfile, referencing profile point indices (a,b,c,d).
@@ -254,7 +288,16 @@ public:
 
     // Loft a solid through 2+ closed profile wires (each on its own plane), in the
     // given order. ruled=true => straight (ruled) sections; false => smooth (C2).
-    static TopoDS_Shape make_loft(const std::vector<TopoDS_Wire>& profiles, bool ruled);
+    // start_cond / end_cond: 0 = Contact, 1 = Normal to profile (smooth lofts only). Normal adds an
+    // auxiliary section a fraction `strength` of the gap to the neighbouring profile, along the
+    // profile's own plane normal, so the interpolated surface leaves perpendicular to the profile.
+    static TopoDS_Shape make_loft(const std::vector<TopoDS_Wire>& profiles, bool ruled,
+                                  int start_cond = 0, int end_cond = 0, double strength = 0.25);
+
+    // Loft that ends (or starts) in a single point: `profiles` are the wire sections, `apex_first` / `apex_last` a vertex placed
+    // before the first / after the last of them (a pyramid or a cone tip).
+    static TopoDS_Shape make_loft_to_point(const std::vector<TopoDS_Wire>& profiles, bool ruled,
+                                           const gp_Pnt* apex_first, const gp_Pnt* apex_last);
 
     // Skin `profiles` WITHOUT end caps -> an open shell (sheet). Same as make_loft but the
     // ThruSections solid flag is false. // ponytail: a sibling instead of a bool param, so no
@@ -283,13 +326,36 @@ public:
     // a sweep path is legitimately open, so open-ness is not an error here — unless
     // `closed_only` is true, in which case an open chain is DISCARDED (skipped, not an
     // error). Empty vector = nothing usable; the caller decides whether that is an error.
+    // `loop_entities`, when given, receives for each returned wire the indices (into `entities`) of the
+    // entities that make it: what lets a caller pick ONE closed loop of a sketch rather than the sketch.
     static std::vector<TopoDS_Wire> entities_to_wires(const std::vector<SketchEntity>& entities,
                                                       const SketchPlane& plane,
-                                                      bool closed_only = false);
+                                                      bool closed_only = false,
+                                                      std::vector<std::vector<int>>* loop_entities = nullptr);
 
     // A planar face from a set of coplanar loops: the largest-area loop is the outer boundary
     // and every other loop is a hole in it. Throws std::runtime_error with a message naming the
     // problem when the loops do not describe one such region.
+    // Every closed region of a set of loops, as faces: a loop inside another one is a hole of the region around it, a loop inside
+    // a hole is a region of its own again (even depth = region, odd depth = hole). Unlike wires_to_face, disjoint regions are fine.
+    static std::vector<TopoDS_Face> wires_to_faces(const std::vector<TopoDS_Wire>& wires, const SketchPlane& plane);
+    // Sketches whose curves meet in T-junctions (a line ending on a circle or on the middle of another line / arc, as in a belt
+    // around two pulleys) do not break into closed chains: the circle belongs to several regions at once. For those the regions
+    // are the faces of the planar subdivision. Only lines, arcs and circles take part; any other entity answers false.
+    // Also true when two curves CROSS (a triangle over an ellipse): the sketch is then a set of overlapping loops, not disjoint ones, and
+    // the regions a user can point at are the cells of the subdivision (5 of them for a triangle crossing an ellipse), not the loops.
+    static bool arrangement_needed(const std::vector<SketchEntity>& entities);
+    // One cell of the subdivision as exact sketch entities (lines, arcs, ellipse arcs; a whole circle / ellipse when a cell is bounded by
+    // one): `outer` is its boundary, `holes` the boundaries of the regions inside it. Pieces of a cell meet end to end, so a cell is an
+    // ordinary closed loop to everything downstream (Extrude of the entity subset, preview, centroid).
+    struct SketchCell {
+        std::vector<SketchEntity>              outer;
+        std::vector<std::vector<SketchEntity>> holes;
+    };
+    static std::vector<SketchCell> arrangement_cells(const std::vector<SketchEntity>& entities, const SketchPlane& plane);
+    // The bounded regions of the subdivision as faces, holes by the same even / odd rule as wires_to_faces (a region wholly
+    // inside another region's boundary is its hole).
+    static std::vector<TopoDS_Face> arrangement_faces(const std::vector<SketchEntity>& entities, const SketchPlane& plane);
     static TopoDS_Face wires_to_face(const std::vector<TopoDS_Wire>& wires,
                                      const SketchPlane& plane);
 
@@ -342,6 +408,21 @@ public:
 
     static bool extend_entity(SketchEntity& e, const std::vector<SketchEntity>& others,
                               const Vec2d& pick);
+
+    // Trim as every CAD does it: `e` is cut at each crossing with `others` and only the piece under `pick` goes, so a line crossed
+    // twice leaves two lines. `out` is the surviving pieces, in order along `e` (empty = the whole entity goes: nothing crosses it).
+    // For each piece: whether it still has `e`'s original start / end, and for a cut end the index into `others` of the entity that
+    // cut it (-1 for an original end), so the caller can keep the cut point on that entity.
+    struct TrimPiece {
+        SketchEntity ent;
+        bool has_p0{false}, has_p1{false};   // the piece starts / ends where `e` did
+        int  cutter_p0{-1}, cutter_p1{-1};   // else: the entity (in `others`) that made this end
+    };
+    static bool trim_split(const SketchEntity& e, const std::vector<SketchEntity>& others, const Vec2d& pick,
+                           std::vector<TrimPiece>& out);
+    // Split a line or an arc in two at the point of it nearest `pick` (two pieces, the first keeps the start, the second the end,
+    // out[0].ent.p1 == out[1].ent.p0 is the cut). False for any other type, or when the pick is on an end (nothing to split).
+    static bool split_at(const SketchEntity& e, const Vec2d& pick, std::vector<TrimPiece>& out);
 
     // Build a cubic-Bezier G1 bridge (as a BSpline entity, 4 poles) connecting endpoint
     // `a_end` of `a` to endpoint `b_end` of `b` (0 = start/p0 side, 1 = end/p1 side).

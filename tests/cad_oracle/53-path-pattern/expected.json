@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "plate 120x60x5 minus 7 through holes d6 at arc lengths k*17.875031 along the arc through (100,15),(60,45),(20,15) (centre (60,10/3), R 125/3), translated copies",
+  "body_count": 1,
+  "volume_mm3": 35010.3983141192,
+  "area_mm2": 16463.89378290154,
+  "center_of_mass": [
+    60.00000001136545,
+    29.96522867057171,
+    2.5
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      120.0,
+      60.0,
+      5.0
+    ]
+  },
+  "faces": 13
+}

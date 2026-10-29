@@ -1588,7 +1588,7 @@ void MainFrame::init_tabpanel() {
         // Experimental and heavy enough that building it unasked would cost more than it saves.
         m_design_page = new LazyPage<DesignPanel>(this, TAB_ID_DESIGN, -1);
         m_lazy_pages.push_back(m_design_page);
-        start_mcp_control_if_enabled();   // opens the MCP socket iff ORCA_CAD_MCP is set
+        start_mcp_control_if_enabled();   // opens the MCP socket unless ORCA_CAD_MCP=0|off
     }
 #endif
 

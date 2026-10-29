@@ -204,6 +204,8 @@ const float Bed3D::Axes::DefaultTipLength = 5.0f;
 ColorRGBA Bed3D::DEFAULT_MODEL_COLOR             = { 0.3255f, 0.337f, 0.337f, 1.0f };
 ColorRGBA Bed3D::DEFAULT_MODEL_COLOR_DARK        = { 0.255f, 0.255f, 0.283f, 1.0f };
 ColorRGBA Bed3D::DEFAULT_SOLID_GRID_COLOR        = { 0.9f, 0.9f, 0.9f, 1.0f };
+// Opacity of the bed's floor while the Design tab draws it as a surface of the scene (GLCanvas3D); 1 everywhere else.
+float g_design_bed_alpha = 1.0f;
 ColorRGBA Bed3D::DEFAULT_TRANSPARENT_GRID_COLOR  = { 0.9f, 0.9f, 0.9f, 0.6f };
 
 ColorRGBA Bed3D::AXIS_X_COLOR = ColorRGBA::X();
@@ -832,7 +834,7 @@ void Bed3D::render_default(bool bottom, const Transform3d& view_matrix, const Tr
             // draw background
             glsafe(::glDepthMask(GL_FALSE));
             ColorRGBA color = m_is_dark ? DEFAULT_MODEL_COLOR_DARK : DEFAULT_MODEL_COLOR;   // ORCA add dark mode support
-            color = ColorRGBA(color[0] * 0.8f, color[1] * 0.8f,color[2] * 0.8f, color[3]);  // ORCA shift color a darker tone to fix difference between flat / gouraud_light shader
+            color = ColorRGBA(color[0] * 0.8f, color[1] * 0.8f,color[2] * 0.8f, color[3] * g_design_bed_alpha);  // ORCA shift color a darker tone to fix difference between flat / gouraud_light shader
             m_triangles.set_color(color);
             m_triangles.render();
             glsafe(::glDepthMask(GL_TRUE));

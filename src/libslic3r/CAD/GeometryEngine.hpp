@@ -83,9 +83,29 @@ public:
                                        FaceGroup faces = FaceGroup::All);
     static TopoDS_Shape apply_chamfer(const TopoDS_Shape& solid, double distance,
                                        int edge_id);
+    // How a fillet's size is read. Default: `radius` is constant along the edge.
+    //  r2 >= 0     the radius runs linearly from `radius` to `r2` along each edge (end 1 = the end nearest `start` when given)
+    //  chord       `radius` is the width of the round measured across it, not a radius: r = chord / (2 sin(phi/2)), phi = the
+    //              angle between the two faces' outward normals, taken at each edge's midpoint
+    struct FilletLaw {
+        double r2{-1.0};
+        bool   chord{false};
+        bool   has_start{false};
+        Vec3d  start{0, 0, 0};
+        // A radius that follows a B-spline along the edge (u = 0 at the first end .. 1 at the last): the control radii (the
+        // fillet's own radius is the first) and the full knot vector, clamped, degree = knots - radii - 1. Overrides r2.
+        std::vector<double> radii;
+        std::vector<double> knots;
+        // Fit "taper": where `radius` does not fit, the radius follows the room there. A clamped cubic B-spline of 8 equal
+        // spans along each edge, its control radii min(radius, 0.9 * room) at the Greville abscissae, room being the
+        // narrower of the two faces measured square to the edge, times tan(half the angle between the faces). Overrides the rest.
+        bool fit_taper{false};
+    };
     // Several edges in one operation, all ids resolved against `solid`.
     static TopoDS_Shape apply_fillet(const TopoDS_Shape& solid, double radius,
                                      const std::vector<int>& edge_ids);
+    static TopoDS_Shape apply_fillet(const TopoDS_Shape& solid, double radius,
+                                     const std::vector<int>& edge_ids, const FilletLaw& law);
     static TopoDS_Shape apply_chamfer(const TopoDS_Shape& solid, double distance,
                                        const std::vector<int>& edge_ids);
 
@@ -119,6 +139,10 @@ public:
     static int          edge_count(const TopoDS_Shape& shape);
     static TopoDS_Edge  edge_by_index(const TopoDS_Shape& shape, int index);
     static int          edge_index_of(const TopoDS_Shape& shape, const TopoDS_Edge& edge);
+    // Every edge reachable from `index` through vertices where the two edges meet tangent (within
+    // `deg`, direction-insensitive) — the "tangent loop" a double-click on an edge selects. Includes
+    // `index`; ids are the same edge_by_index ids.
+    static std::vector<int> tangent_edge_chain(const TopoDS_Shape& shape, int index, double deg = 2.0);
 
     // Analysis of a cylindrical face for the Thread tool (a hole bore or a cylinder's lateral
     // surface): axis (base at the lower axial end + unit direction), radius, axial extent, and

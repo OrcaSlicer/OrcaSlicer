@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "contour flange, width 50 along +Y, XZ section: plate x 0..35 z 0..2.5; bend R 2.5..5 about (35, 5) (sketch corner = outer virtual sharp, setback R+t); wall x 37.5..40 z 5..27.5; bend R 2.5..5 about (42.5, 27.5) (sketch corner = inner virtual sharp, setback R); plate x 42.5..70 z 30..32.5",
+  "body_count": 1,
+  "volume_mm3": 12097.621556370217,
+  "area_mm2": 10412.00210735098,
+  "center_of_mass": [
+    36.037689993681276,
+    25.0,
+    15.087581425863405
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      70.0,
+      50.0,
+      32.5
+    ]
+  },
+  "note": "SolidCraft convention: the sketch lines are the sheet face away from the material (material right of travel); thickness grows to the material side"
+}

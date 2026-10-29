@@ -1,0 +1,204 @@
+{
+ "id": "11-circular-pattern-flange",
+ "name": "Flange with circular hole pattern",
+ "description": "Annulus OD100 / ID30 extruded 10; d=10 hole at (40,0) cut through; circular pattern x6 over 360 about Z.",
+ "exercises": [
+  "extrude",
+  "annulus_profile",
+  "extrude_cut",
+  "circular_pattern"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "FlangeSketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "radius": 50,
+     "id": "c_out"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "ref": "c_out.center",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "radius": 15,
+     "id": "c_in"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Flange",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "FlangeSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c_out"
+       ]
+      },
+      {
+       "outer": false,
+       "curves": [
+        "c_in"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 10,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Flange"
+   ]
+  },
+  {
+   "op": "sketch",
+   "name": "HoleSketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       40,
+       0
+      ]
+     },
+     "radius": 5,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Hole1",
+   "operation": "cut",
+   "profiles": [
+    {
+     "sketch": "HoleSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "through_all",
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Flange"
+   ]
+  },
+  {
+   "op": "circular_pattern",
+   "name": "CircPattern1",
+   "pattern_of": "features",
+   "features": [
+    "Hole1"
+   ],
+   "axis": {
+    "ref": "world Z axis",
+    "origin": [
+     0,
+     0,
+     0
+    ],
+    "dir": [
+     0,
+     0,
+     1
+    ]
+   },
+   "count": 6,
+   "total_angle": 360,
+   "symmetric": false
+  }
+ ]
+}

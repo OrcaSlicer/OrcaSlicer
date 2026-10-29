@@ -3,6 +3,7 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/Color.hpp"
+#include "libslic3r/LocalesUtils.hpp"
 
 #include <functional>
 #include <imgui/imgui.h>
@@ -49,14 +50,13 @@ bool parse_value(const char* text, double& out)
     std::string t(text);
     for (char& c : t)
         if (c == ',') c = '.';
-    // strtod, not std::stod: no exceptions, and `end` tells us whether the WHOLE field was a
-    // number. "12mm" must be refused, not silently read as 12.
-    const char* b = t.c_str();
-    char* end = nullptr;
-    const double v = std::strtod(b, &end);
-    if (end == b) return false;
-    while (*end == ' ' || *end == '\t') ++end;
-    if (*end != '\0') return false;
+    // No exceptions, and `used` tells us whether the WHOLE field was a number: "12mm" must be refused, not silently read as 12. Not strtod,
+    // which reads the locale's decimal separator and stops at the '.' this field has just been normalised to under a decimal-comma language.
+    size_t used = 0;
+    const double v = string_to_double_decimal_point(t, &used);
+    if (used == 0) return false;
+    while (used < t.size() && (t[used] == ' ' || t[used] == '\t')) ++used;
+    if (used != t.size()) return false;
     out = v;
     return true;
 }
@@ -209,6 +209,11 @@ bool SketchInlineEditor::render(ImGuiWrapper& imgui, float scale)
     // No CharsDecimal: it lets only the LOCALE's decimal separator through, so in a C locale a
     // comma could not be typed at all, and it admits '*' and '/' that the parser then refuses.
     // parse_value() is the one judge of what is a number.
+    // Type-first characters go in BEFORE the widget runs: ImGui empties its character queue at the end of the frame.
+    if (m_active && !m_seed.empty()) {
+        for (char c : m_seed) ImGui::GetIO().AddInputCharacter((unsigned int) (unsigned char) c);
+        m_seed.clear();
+    }
     const bool entered = ImGui::InputText("##sketchvalue_in", m_buf, sizeof(m_buf),
                                           ImGuiInputTextFlags_EnterReturnsTrue
                                               | ImGuiInputTextFlags_AutoSelectAll);
@@ -238,8 +243,10 @@ bool SketchInlineEditor::render(ImGuiWrapper& imgui, float scale)
 
     // Act AFTER end(): do_commit can reopen the field for the next queued dimension, and that
     // must not happen inside this frame's window.
-    if (entered || tabbed)
+    if (entered || tabbed) {
+        m_last_dir = tabbed && !entered ? (ImGui::GetIO().KeyShift ? -1 : 1) : 0;
         do_commit();
+    }
     else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)))
         do_cancel();
     return true;

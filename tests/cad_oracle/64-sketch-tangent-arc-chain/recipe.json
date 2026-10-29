@@ -1,0 +1,357 @@
+{
+ "id": "64-sketch-tangent-arc-chain",
+ "name": "Sketch solver: tangent arc chain",
+ "description": "Four alternating 3-point arcs (wave) closed by three lines; equal/tangent/horizontal-points constraints, R12, chord 20, line 20; solved then extruded 3.",
+ "exercises": [
+  "sketch_only",
+  "sketch_constraints",
+  "tangent",
+  "equal",
+  "arc_chain"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Wave",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "arc_three_point",
+     "start": {
+      "at": [
+       20,
+       0.5
+      ]
+     },
+     "mid": [
+      10,
+      5.5
+     ],
+     "end": {
+      "at": [
+       0.5,
+       -0.5
+      ]
+     },
+     "id": "a1"
+    },
+    {
+     "type": "arc_three_point",
+     "start": {
+      "ref": "a1.start",
+      "at": [
+       20.0,
+       0.5
+      ]
+     },
+     "mid": [
+      30,
+      -4.5
+     ],
+     "end": {
+      "at": [
+       40,
+       0.5
+      ]
+     },
+     "id": "a2"
+    },
+    {
+     "type": "arc_three_point",
+     "start": {
+      "at": [
+       60,
+       -0.5
+      ]
+     },
+     "mid": [
+      50,
+      5
+     ],
+     "end": {
+      "at": [
+       40.5,
+       0.5
+      ]
+     },
+     "id": "a3"
+    },
+    {
+     "type": "arc_three_point",
+     "start": {
+      "ref": "a3.start",
+      "at": [
+       60.0,
+       -0.5
+      ]
+     },
+     "mid": [
+      70,
+      -5
+     ],
+     "end": {
+      "at": [
+       79,
+       0.5
+      ]
+     },
+     "id": "a4"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a4.end",
+      "at": [
+       79.0,
+       0.5
+      ]
+     },
+     "end": {
+      "at": [
+       80,
+       -19
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       80.0,
+       -19.0
+      ]
+     },
+     "end": {
+      "at": [
+       1,
+       -21
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       1.0,
+       -21.0
+      ]
+     },
+     "end": {
+      "ref": "a1.end",
+      "at": [
+       0.5,
+       -0.5
+      ]
+     },
+     "id": "l3"
+    }
+   ],
+   "constraints": [
+    {
+     "type": "coincident",
+     "refs": [
+      "a1.end",
+      "origin"
+     ]
+    },
+    {
+     "type": "horizontal_points",
+     "refs": [
+      "a1.start",
+      "a1.end"
+     ]
+    },
+    {
+     "type": "coincident",
+     "refs": [
+      "a3.end",
+      "a2.end"
+     ]
+    },
+    {
+     "type": "equal",
+     "refs": [
+      "a1",
+      "a2"
+     ]
+    },
+    {
+     "type": "tangent",
+     "refs": [
+      "a1",
+      "a2"
+     ]
+    },
+    {
+     "type": "equal",
+     "refs": [
+      "a2",
+      "a3"
+     ]
+    },
+    {
+     "type": "tangent",
+     "refs": [
+      "a2",
+      "a3"
+     ]
+    },
+    {
+     "type": "equal",
+     "refs": [
+      "a3",
+      "a4"
+     ]
+    },
+    {
+     "type": "tangent",
+     "refs": [
+      "a3",
+      "a4"
+     ]
+    },
+    {
+     "type": "horizontal_points",
+     "refs": [
+      "a2.start",
+      "a2.end"
+     ]
+    },
+    {
+     "type": "horizontal_points",
+     "refs": [
+      "a3.start",
+      "a3.end"
+     ]
+    },
+    {
+     "type": "horizontal_points",
+     "refs": [
+      "a4.start",
+      "a4.end"
+     ]
+    },
+    {
+     "type": "vertical",
+     "refs": [
+      "l1"
+     ]
+    },
+    {
+     "type": "horizontal",
+     "refs": [
+      "l2"
+     ]
+    },
+    {
+     "type": "vertical",
+     "refs": [
+      "l3"
+     ]
+    }
+   ],
+   "dimensions": [
+    {
+     "type": "radius",
+     "refs": [
+      "a1"
+     ],
+     "value": 12,
+     "unit": "mm"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "a1.end",
+      "a1.start"
+     ],
+     "value": 20,
+     "unit": "mm",
+     "orientation": "horizontal"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "l1.start",
+      "l1.end"
+     ],
+     "value": 20,
+     "unit": "mm",
+     "orientation": "vertical"
+    }
+   ]
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Wave",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "l1",
+        "l2",
+        "l3"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 3,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Wave"
+   ]
+  }
+ ]
+}

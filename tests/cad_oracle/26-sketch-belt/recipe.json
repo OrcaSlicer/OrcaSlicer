@@ -1,0 +1,296 @@
+{
+ "id": "26-sketch-belt",
+ "name": "Sketch solver: tangent lines between circles",
+ "description": "Circles d40 at origin and d20 at 50 mm (horizontal), concentric d8 hole, two lines tangent to both. All profiles extruded 5 mm.",
+ "exercises": [
+  "sketch_only",
+  "sketch_constraints",
+  "tangent",
+  "concentric",
+  "point_on_curve"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Belt",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       2,
+       -1
+      ]
+     },
+     "radius": 18,
+     "id": "c1"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       45,
+       3
+      ]
+     },
+     "radius": 12,
+     "id": "c2"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       46,
+       2
+      ]
+     },
+     "radius": 5,
+     "id": "c3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       3,
+       19
+      ]
+     },
+     "end": {
+      "at": [
+       47,
+       13
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       1,
+       -22
+      ]
+     },
+     "end": {
+      "at": [
+       44,
+       -8
+      ]
+     },
+     "id": "l2"
+    }
+   ],
+   "constraints": [
+    {
+     "type": "coincident",
+     "refs": [
+      "c1.center",
+      "origin"
+     ]
+    },
+    {
+     "type": "horizontal_points",
+     "refs": [
+      "c1.center",
+      "c2.center"
+     ]
+    },
+    {
+     "type": "concentric",
+     "refs": [
+      "c3",
+      "c2"
+     ]
+    },
+    {
+     "type": "coincident",
+     "refs": [
+      "l1.start",
+      "c1"
+     ]
+    },
+    {
+     "type": "coincident",
+     "refs": [
+      "l1.end",
+      "c2"
+     ]
+    },
+    {
+     "type": "tangent",
+     "refs": [
+      "l1",
+      "c1"
+     ]
+    },
+    {
+     "type": "tangent",
+     "refs": [
+      "l1",
+      "c2"
+     ]
+    },
+    {
+     "type": "coincident",
+     "refs": [
+      "l2.start",
+      "c1"
+     ]
+    },
+    {
+     "type": "coincident",
+     "refs": [
+      "l2.end",
+      "c2"
+     ]
+    },
+    {
+     "type": "tangent",
+     "refs": [
+      "l2",
+      "c1"
+     ]
+    },
+    {
+     "type": "tangent",
+     "refs": [
+      "l2",
+      "c2"
+     ]
+    }
+   ],
+   "dimensions": [
+    {
+     "type": "diameter",
+     "refs": [
+      "c1"
+     ],
+     "value": 40,
+     "unit": "mm"
+    },
+    {
+     "type": "diameter",
+     "refs": [
+      "c2"
+     ],
+     "value": 20,
+     "unit": "mm"
+    },
+    {
+     "type": "diameter",
+     "refs": [
+      "c3"
+     ],
+     "value": 8,
+     "unit": "mm"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "c1.center",
+      "c2.center"
+     ],
+     "value": 50,
+     "unit": "mm",
+     "orientation": "horizontal"
+    }
+   ]
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Belt",
+     "loops": [
+      {
+       "outer": false,
+       "curves": [
+        "c3"
+       ]
+      },
+      {
+       "outer": true,
+       "curves": [
+        "c2",
+        "c2"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "Belt",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1",
+        "c1"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "Belt",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1",
+        "c2",
+        "l1",
+        "l2"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 5,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Belt"
+   ]
+  }
+ ]
+}

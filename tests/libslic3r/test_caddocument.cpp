@@ -1,3 +1,4 @@
+#include <BRepCheck_Analyzer.hxx>
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
@@ -12,6 +13,9 @@
 #include <cereal/details/helpers.hpp>
 #include <cereal/cereal.hpp>
 #include <map>
+#include <set>
+#include <cereal/archives/binary.hpp>
+#include <random>
 #include <vector>
 #include <math.h>
 #include <utility>
@@ -21,6 +25,8 @@
 #include <iterator>
 #include "libslic3r/TriangleMesh.hpp"
 #include <exception>
+#include <chrono>
+#include <cstdio>
 #include <string>
 
 // Substring assertions, spelled so this file compiles UNCHANGED on both forks.
@@ -36,6 +42,8 @@
          CHECK(_actual.find(sub) != std::string::npos); } while (0)
 
 #include "libslic3r/CAD/CadDocument.hpp"
+#include "libslic3r/CAD/CadFeatureFields.hpp"
+#include "libslic3r/CAD/PaletteScore.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "libslic3r/CAD/SketchImport.hpp"
@@ -56,6 +64,7 @@
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
+#include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
@@ -64,6 +73,9 @@
 #include <cereal/archives/binary.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
+#include <cstdlib>
+#include <ratio>
+#include <functional>
 
 using namespace Slic3r;
 using Catch::Approx;   // Catch2 v3 scopes Approx under Catch:: (v2 had it unqualified)
@@ -738,6 +750,25 @@ TEST_CASE("entity constraints: tangent/midpoint/symmetric/angle", "[CadDocument]
         REQUIRE(std::abs(doc.features[sk].entities[1].p0.y() + 5.0) < 1e-3);
     }
 
+    SECTION("a tangent line whose end is held on the circle converges to the tangent point") {
+        // the belt of two pulleys: with the line's end on the circle, "centre one radius from the line" is a double root
+        std::vector<SketchEntity> ents = {
+            {SketchEntity::Type::Circle, Vec2d(0,0), Vec2d(0,0), Vec2d(0,0), 20.0},
+            {SketchEntity::Type::Line,   Vec2d(3,19), Vec2d(60,12)},
+        };
+        std::vector<SketchEntityConstraintDef> cons;
+        cons.push_back({T::Fix,        0,-1, R::Center,R::Center, 0.0,-1,R::P0});
+        cons.push_back({T::LockX,      1,-1, R::P1,    R::P0,    60.0,-1,R::P0});
+        cons.push_back({T::LockY,      1,-1, R::P1,    R::P0,    12.0,-1,R::P0});
+        cons.push_back({T::PointOnObject, 1, 0, R::P0, R::P0,     0.0,-1,R::P0});
+        cons.push_back({T::Tangent,    1, 0, R::P0,    R::P0,     0.0,-1,R::P0});
+        REQUIRE(solve_sketch_entities(ents, cons));
+        const SketchEntity& L = ents[1];
+        CHECK(std::abs(L.p0.norm() - ents[0].radius) < 1e-6);                     // the start is on the circle
+        const Vec2d d = (L.p1 - L.p0).normalized();
+        CHECK(std::abs(L.p0.normalized().dot(d)) < 1e-6);                        // and the line is square to its radius
+    }
+
     SECTION("tangent circle to circle does not abort and keeps them touching") {
         std::vector<SketchEntity> ents = {
             {SketchEntity::Type::Circle, Vec2d(0,0),  Vec2d(0,0),  Vec2d(0,0),  5.0},
@@ -1209,6 +1240,16 @@ TEST_CASE("pattern replicates a body linearly and circularly", "[CadDocument]")
         CadDocument bad;
         bad.add_pattern(false, 3, 20, 0, 0, -1, "NoBody");
         REQUIRE_FALSE(bad.recompute());
+    }
+
+    // An absurd count is refused up front instead of fusing copies until the window freezes.
+    {
+        CadDocument huge;
+        int sk = huge.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 5, "Box");
+        huge.add_extrude(sk, 10.0, false, BooleanMode::New, "E");
+        huge.add_pattern(false, 100000, 20, 0, 0, -1, "TooMany");
+        REQUIRE_FALSE(huge.recompute());
+        REQUIRE(huge.error.find("500") != std::string::npos);
     }
 }
 
@@ -2265,6 +2306,25 @@ TEST_CASE("a v5 project still opens", "[CadDocument][recipe]")
     REQUIRE_FALSE(doc.features.empty());
 }
 
+// Do NOT regenerate cad_recipe_v6.bin: it is the last format before v7 (appended fields) and the evidence that a v7
+// build still reads what v6 builds wrote. Written by the "regenerate golden recipe fixture" case while the stamp was 6.
+TEST_CASE("a v6 project still opens", "[CadDocument][recipe]")
+{
+    std::ifstream ifs(std::string(TEST_DATA_DIR) + "/cad_recipe_v6.bin", std::ios::binary);
+    REQUIRE(ifs.is_open());
+    std::string blob((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    uint32_t stamped = 0;
+    REQUIRE(blob.size() >= sizeof(stamped));
+    std::memcpy(&stamped, blob.data(), sizeof(stamped));
+    REQUIRE(stamped == 6);
+
+    CadDocument doc;
+    doc.deserialize_recipe(blob);
+    REQUIRE(doc.error.find("older version") == std::string::npos);
+    REQUIRE(doc.error.find("newer version") == std::string::npos);
+    REQUIRE_FALSE(doc.features.empty());
+}
+
 // OCCT 7.6 wrote cad_brep_occt76.brep, so do NOT regenerate it. It holds a 30 x 30 x 5 plate
 // with a 3 x 3 grid of r3 holes, their rims filleted r0.5.
 TEST_CASE("an Import solid written by OCCT 7.6 still loads", "[CadDocument][recipe]")
@@ -2338,6 +2398,31 @@ TEST_CASE("a v5 round trip is exact", "[CadDocument][recipe]")
     }
 }
 
+// The recipe as v6 wrote it: the same outer framing, one positional field list per feature (CadFeature::save). The
+// last feature's stream loses `cut_tail` bytes, as an older build's shorter list would.
+static std::string v6_recipe_of(const std::vector<CadFeature>& features, size_t cut_tail = 0)
+{
+    std::ostringstream oss;
+    {
+        cereal::BinaryOutputArchive ar(oss);
+        ar(uint32_t(6), uint32_t(features.size()));
+        for (size_t i = 0; i < features.size(); ++i) {
+            std::ostringstream fos;
+            { cereal::BinaryOutputArchive fa(fos); fa(features[i]); }
+            std::string fb = fos.str();
+            if (i + 1 == features.size()) fb.resize(fb.size() - cut_tail);
+            ar(uint32_t(fb.size()));
+            ar(cereal::binary_data(fb.data(), fb.size()));
+        }
+        std::ostringstream vos;
+        { cereal::BinaryOutputArchive va(vos); va(std::map<std::string, std::string>{}); }
+        const std::string vb = vos.str();
+        ar(uint32_t(vb.size()));
+        ar(cereal::binary_data(vb.data(), vb.size()));
+    }
+    return oss.str();
+}
+
 TEST_CASE("a truncated feature keeps what it could read", "[CadDocument][recipe]")
 {
     // The forward-compat proof: a framed reader that meets a feature blob shorter than its own
@@ -2360,7 +2445,7 @@ TEST_CASE("a truncated feature keeps what it could read", "[CadDocument][recipe]
     doc.features[1].coordsys_face_kind  = 777;
     doc.features[1].coordsys_face_edges = 888;
 
-    auto blob = doc.serialize_recipe();
+    auto blob = v6_recipe_of(doc.features);
     REQUIRE(blob.size() > 8);
 
     auto rd32 = [](const std::string& s, size_t off) -> uint32_t {
@@ -2372,9 +2457,7 @@ TEST_CASE("a truncated feature keeps what it could read", "[CadDocument][recipe]
         std::memcpy(&s[off], &u, sizeof(u));
     };
 
-    // Against the constant, not a literal: what this asserts is that the outer frame opens with
-    // the version stamp, which stays true across every bump.
-    REQUIRE(rd32(blob, 0) == CadDocument::ORCA_CAD_RECIPE_VERSION);
+    REQUIRE(rd32(blob, 0) == 6);   // the v6 layout this test cuts; v7 has its own tests below
     uint32_t count = rd32(blob, 4);
     REQUIRE(count == doc.features.size());
 
@@ -2394,8 +2477,18 @@ TEST_CASE("a truncated feature keeps what it could read", "[CadDocument][recipe]
     // The reader then runs out inside fa(f), throws, and keeps everything it had already
     // assigned — that is the whole point of the try/catch. (Cut on a field boundary: a field
     // cut in half is read as whatever half arrived.)
-    const size_t drop = sizeof(uint32_t) + 2 * sizeof(bool) + 3 * sizeof(cereal::size_type) + sizeof(double)
-                        + sizeof(int);
+    // + the Use link appended after revolve_axis_entity: project_from_sketch (bool),
+    // project_source_sketch (int) and the empty project_sketch_entities list (a size tag).
+    // + the loft end conditions (two ints), then the 3D sketch tail: sk3_points (an empty list: a size
+    // tag), sk3_closed, sk3_smooth. Every field appended after revolve_axis_entity is counted here.
+    // + the fillet size laws: dressup_size2 (double), dressup_chord and dressup_has_start (bools), dressup_start (3 doubles),
+    // dressup_radii and dressup_knots (two empty lists: a size tag each).
+    // + the feature pattern: pattern_features (a list: size tag), pattern_axis / origin / axis2 (9 doubles), pattern_count2 (int),
+    // pattern_spacing2 (double).
+    // + shell_faces and draft_faces (two lists), draft_has_neutral (bool), draft_pull / draft_neutral (6 doubles), thin_in / thin_out.
+    // + pattern_mirror (bool), extrude_entities (a list)
+    const size_t drop = sizeof(uint32_t) + 10 * sizeof(bool) + 12 * sizeof(cereal::size_type) + 29 * sizeof(double)
+                        + 9 * sizeof(int);   // 4 + the face attachment (attach_body, attach_face) + attach_datum
     REQUIRE(f_len[1] > drop);
     std::string shortened = blob;
     shortened.erase(f_off[1] + 4 + f_len[1] - drop, drop);
@@ -2417,6 +2510,153 @@ TEST_CASE("a truncated feature keeps what it could read", "[CadDocument][recipe]
     REQUIRE_FALSE(loaded.features[1].is_text());
     REQUIRE(loaded.features[0].name == doc.features[0].name);
     REQUIRE(loaded.features[2].name == doc.features[2].name);
+}
+
+TEST_CASE("an Import keeps its solid when a v6 recipe ends before the later fields", "[CadDocument][recipe]")
+{
+    // A project saved by a build that wrote fewer fields still has the body: it is assigned as soon as `brep` is read.
+    CadFeature f;
+    f.type          = CadFeatureType::Import;
+    f.name          = "Imported";
+    f.imported_solid = BRepPrimAPI_MakeBox(10., 20., 30.).Shape();
+
+    CadDocument loaded;
+    REQUIRE(loaded.deserialize_recipe(v6_recipe_of({f}, 200)));   // far more than one field, far less than everything after `brep`
+    REQUIRE(loaded.features.size() == 1);
+    REQUIRE_FALSE(loaded.features[0].imported_solid.IsNull());
+}
+
+namespace {
+// Records the address of every member the legacy positional list (CadFeature::save) writes.
+struct AddrRecorder {
+    std::set<const void*> addrs;
+    template<class... T> void operator()(const T&... x) { (addrs.insert(&x), ...); }
+};
+// The same for the v7 groups.
+struct GroupAddrVisitor {
+    std::set<const void*> addrs;
+    size_t                n = 0;
+    template<class T> void operator()(const T& x) { addrs.insert(&x); ++n; }
+    template<class T> void ref(const T& x)        { addrs.insert(&x); ++n; }
+    void brep(const TopoDS_Shape& s)              { addrs.insert(&s); ++n; }
+};
+}
+
+TEST_CASE("the recipe groups cover every serialised CadFeature field", "[CadDocument][recipe]")
+{
+    // The v7 groups are the single field list; the legacy positional list is the reference for what a feature has.
+    // A field in the legacy list but in no group would be lost on save, and one in two groups would be written twice.
+    const CadFeature f;
+    AddrRecorder legacy;
+    f.save(legacy);
+    std::set<const void*> members;
+    const char* base = reinterpret_cast<const char*>(&f);
+    for (const void* a : legacy.addrs)
+        if (static_cast<const char*>(a) >= base && static_cast<const char*>(a) < base + sizeof(CadFeature))
+            members.insert(a);   // not `brep`, a local of save()
+    members.insert(&f.imported_solid);   // what `brep` stands for
+
+    GroupAddrVisitor v;
+    cad_fields_of_all_groups(v, f);
+    CHECK(v.n == v.addrs.size());   // none twice
+    // type, name and enabled are the stream's header, not in a group
+    v.addrs.insert(&f.type); v.addrs.insert(&f.name); v.addrs.insert(&f.enabled);
+    // Every field the legacy list writes is in a group. Not equality: a field added the way CadFeatureFields.hpp says goes into the groups
+    // only, and must not fail this.
+    for (const void* m : members) CHECK(v.addrs.count(m) == 1);
+}
+
+TEST_CASE("a feature written as v7 reads back with every group intact", "[CadDocument][recipe]")
+{
+    CadFeature f;
+    f.type = CadFeatureType::Extrude; f.name = "e"; f.enabled = false;
+    f.width = 7; f.profile.points.push_back(Vec2d(1, 2));                 // sketch
+    f.imported_solid = BRepPrimAPI_MakeBox(1., 2., 3.).Shape();           // import
+    f.sketch_ref = 4; f.distance = 12.5; f.thin_out = 0.5;                // extrude
+    f.dressup_edges = {3, 5}; f.dressup_radii = {1., 2.};                 // dressup
+    f.hole_style = 2; f.thread_pitch = 1.25;                              // hole + thread
+    f.shell_faces = {1, 2}; f.draft_pull = Vec3d(0, 1, 0);                // shell + draft
+    f.loft_profile_refs = {0, 2}; f.sweep_path_ref = 1;                   // revolve / sweep / loft
+    f.pattern_features = {2}; f.pattern_count2 = 3;                       // pattern
+    f.plane_offset = 9; f.coordsys_face_kind = 3;                         // datum
+    f.cut_offset = 2; f.bool_tolerance = 0.1;                             // boolean / cut
+    f.xf_angle_deg = 30; f.helix_pitch = 3;                               // helix / transform
+    f.mate_cs_a = 1; f.rib_depth = 4; f.project_edges = {7};              // project / rib / mate
+    f.sm_ref = 2; f.sm_k = 0.5;                                           // sheet metal
+    f.expr["distance"] = "w + 1";                                         // expr
+
+    std::ostringstream o;
+    { cereal::BinaryOutputArchive a(o); cad_save_feature(a, f); }
+    CadFeature g;
+    {
+        std::istringstream is(o.str());
+        cereal::BinaryInputArchive a(is);
+        cad_load_feature(a, g);
+    }
+    // the legacy list is the reference for "every field": equal bytes means nothing was dropped
+    std::ostringstream ref_f, ref_g;
+    { cereal::BinaryOutputArchive a(ref_f); a(f); }
+    { cereal::BinaryOutputArchive a(ref_g); a(g); }
+    CHECK(ref_f.str() == ref_g.str());
+    CHECK_FALSE(g.imported_solid.IsNull());
+}
+
+TEST_CASE("a v7 feature stores only the groups that differ from default", "[CadDocument][recipe]")
+{
+    CadFeature plain;
+    plain.type = CadFeatureType::Hole;
+    CadFeature rich = plain;
+    rich.hole_diameter = 8;
+    std::ostringstream a, b;
+    { cereal::BinaryOutputArchive x(a); cad_save_feature(x, plain); }
+    { cereal::BinaryOutputArchive x(b); cad_save_feature(x, rich); }
+    CHECK(a.str().size() < b.str().size());
+    CHECK(a.str().size() < 64);   // a default feature is its header only
+}
+
+TEST_CASE("an unknown or short v7 group does not cost the groups after it", "[CadDocument][recipe]")
+{
+    std::ostringstream o;
+    {
+        cereal::BinaryOutputArchive ar(o);
+        ar(CadFeatureType::SmRefold, std::string("r"), true);
+        ar(uint16_t(3));
+        const std::string junk(5, 'x');
+        ar(uint16_t(9999), uint32_t(junk.size()));                       // a group from a newer build
+        ar(cereal::binary_data(junk.data(), junk.size()));
+        std::ostringstream ex;                                            // Extrude, ending after its first field
+        { cereal::BinaryOutputArchive e(ex); e(int(5)); }
+        const std::string eb = ex.str();
+        ar(uint16_t(GroupExtrude), uint32_t(eb.size()));
+        ar(cereal::binary_data(eb.data(), eb.size()));
+        CadFeature sm;
+        sm.sm_ref = 2; sm.sm_k = 0.3;
+        const std::string sb = cad_group_bytes(GroupSheetMetal, sm);
+        ar(uint16_t(GroupSheetMetal), uint32_t(sb.size()));
+        ar(cereal::binary_data(sb.data(), sb.size()));
+    }
+    CadFeature g;
+    std::istringstream is(o.str());
+    cereal::BinaryInputArchive a(is);
+    cad_load_feature(a, g);
+    CHECK(g.type == CadFeatureType::SmRefold);
+    CHECK(g.sketch_ref == 5);               // the short group kept what it had
+    CHECK(g.distance == Catch::Approx(10)); // and defaulted the rest
+    CHECK(g.sm_ref == 2);                   // the group after it survived
+    CHECK(g.sm_k == Catch::Approx(0.3));
+}
+
+TEST_CASE("the index remap covers every feature reference, sm_ref included", "[CadDocument][recipe]")
+{
+    CadFeature f;
+    f.sketch_ref = 1; f.sweep_path_ref = 2; f.pattern_curve_sketch = 3; f.rib_sketch_ref = 4; f.project_source_sketch = 5;
+    f.mate_cs_a = 6; f.mate_cs_b = 7; f.sm_ref = 8; f.loft_profile_refs = {9, 10}; f.pattern_features = {11};
+    std::vector<int> seen;
+    auto note = [&](int& r) { seen.push_back(r); };
+    CadRefVisitor<decltype(note)> rv{note};
+    cad_fields_of_all_groups(rv, f);
+    for (int i = 1; i <= 11; ++i)
+        CHECK(std::count(seen.begin(), seen.end(), i) == 1);
 }
 
 TEST_CASE("a v3 recipe is refused with a message naming the version", "[CadDocument][recipe]")
@@ -7612,14 +7852,86 @@ TEST_CASE("An entity sketch that forms no wire fails instead of extruding a defa
                    Catch::Matchers::WithinRel(M_PI * 100.0 * 5.0, 0.01));
     }
 
-    SECTION("two disjoint circles are rejected too") {
+    SECTION("two disjoint circles are two islands of one extrude") {
         CadDocument doc;
         int sk = doc.add_sketch_entities({ circle({-20, 0}, 8.0), circle({20, 0}, 8.0) },
                                         SketchPlane::XY(), "Sketch");
         doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
-        CHECK_FALSE(doc.recompute());
-        CHECK(doc.error.find("disjoint") != std::string::npos);
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.bodies.size() == 1);
+        CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(2 * M_PI * 64.0 * 5.0, 0.01));
     }
+
+    SECTION("a loft profile holding two closed shapes names the sketch and says so") {
+        CadDocument doc;
+        int a = doc.add_sketch_entities({ circle({-20, 0}, 8.0), circle({20, 0}, 8.0) }, SketchPlane::XY(), "Schizzo 1");
+        SketchPlane up = SketchPlane::XY(); up.origin = Vec3d(0, 0, 30);
+        int b = doc.add_sketch_entities({ circle({0, 0}, 8.0) }, up, "Schizzo 3");
+        doc.add_loft({a, b}, false, BooleanMode::New, "Loft");
+        CHECK_FALSE(doc.recompute());
+        CHECK(doc.error.find("Schizzo 1") != std::string::npos);
+        CHECK(doc.error.find("2 separate closed shapes") != std::string::npos);
+    }
+
+    SECTION("a loft takes ONE chosen closed loop of a multi-loop sketch") {
+        CadDocument doc;
+        int a = doc.add_sketch_entities({ circle({-20, 0}, 8.0), circle({20, 0}, 8.0) }, SketchPlane::XY(), "Schizzo 1");
+        SketchPlane up = SketchPlane::XY(); up.origin = Vec3d(0, 0, 30);
+        int b = doc.add_sketch_entities({ circle({20, 0}, 8.0) }, up, "Schizzo 3");
+        REQUIRE(CadDocument::sketch_closed_loops(doc.features[a]).size() == 2);
+        int l = doc.add_loft({a, b}, false, BooleanMode::New, "Loft");
+        doc.features[l].loft_profile_loops = { { 1 }, {} };
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.bodies.size() == 1);
+        CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(M_PI * 64.0 * 30.0, 0.02));
+    }
+}
+
+// A triangle across an ellipse is five regions, not two loops: the kernel has to cut overlapping loops against each other.
+TEST_CASE("crossing loops are cut into the cells of their subdivision", "[CadDocument]")
+{
+    SketchEntity el; el.type = SketchEntity::Type::Ellipse; el.center = {0, 0}; el.p0 = el.center; el.radius = 30.0; el.rminor = 8.0; el.rotation = 0.0;
+    auto line = [](Vec2d a, Vec2d b) { SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = a; e.p1 = b; return e; };
+    const std::vector<SketchEntity> ents = { el, line({0, -20}, {0, 20}), line({0, 20}, {15, 0}), line({15, 0}, {0, -20}) };
+
+    REQUIRE(SketchEngine::arrangement_needed(ents));
+    const auto cells = SketchEngine::arrangement_cells(ents, SketchPlane::XY());
+    REQUIRE(cells.size() == 5);
+
+    double sum = 0.0;
+    for (const SketchEngine::SketchCell& c : cells) {
+        CadDocument d;
+        d.add_extrude_entities(c.outer, SketchPlane::XY(), 5.0, false, BooleanMode::New, "Cell");
+        REQUIRE(d.recompute());
+        REQUIRE(d.bodies.size() == 1);
+        sum += d.body_mass_properties(0).volume;
+    }
+    CadDocument whole;
+    int sk = whole.add_sketch_entities(ents, SketchPlane::XY(), "Sketch");
+    whole.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(whole.recompute());
+    CHECK_THAT(sum, Catch::Matchers::WithinRel(whole.body_mass_properties(0).volume, 0.01));
+    // disjoint loops are not cut
+    CHECK_FALSE(SketchEngine::arrangement_needed({ el, line({40, -20}, {40, 20}), line({40, 20}, {55, 0}), line({55, 0}, {40, -20}) }));
+}
+
+TEST_CASE("triangle, circle and rounded rectangle overlapping give selectable cells", "[CadDocument]")
+{
+    auto line = [](Vec2d a, Vec2d b) { SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = a; e.p1 = b; return e; };
+    auto arc = [](Vec2d c, double r, double a0, double a1) {
+        SketchEntity e; e.type = SketchEntity::Type::Arc; e.center = c; e.radius = r; e.start_angle = a0; e.end_angle = a1;
+        e.p0 = c + r * Vec2d(std::cos(a0), std::sin(a0)); e.p1 = c + r * Vec2d(std::cos(a1), std::sin(a1)); return e; };
+    SketchEntity circ; circ.type = SketchEntity::Type::Circle; circ.center = {0, 0}; circ.p0 = circ.center; circ.radius = 30;
+    // rounded rectangle x -60..-10, y -20..5, corner radius 8
+    const double x0 = -60, x1 = -10, y0 = -20, y1 = 5, r = 8, h = M_PI / 2;
+    std::vector<SketchEntity> ents = { circ,
+        line({x0 + r, y0}, {x1 - r, y0}), arc({x1 - r, y0 + r}, r, -h, 0), line({x1, y0 + r}, {x1, y1 - r}), arc({x1 - r, y1 - r}, r, 0, h),
+        line({x1 - r, y1}, {x0 + r, y1}), arc({x0 + r, y1 - r}, r, h, 2 * h), line({x0, y1 - r}, {x0, y0 + r}), arc({x0 + r, y0 + r}, r, 2 * h, 3 * h),
+        line({-80, 10}, {10, 60}), line({10, 60}, {15, -5}), line({15, -5}, {-80, 10}) };
+    REQUIRE(SketchEngine::arrangement_needed(ents));
+    const auto cells = SketchEngine::arrangement_cells(ents, SketchPlane::XY());
+    INFO("cells " << cells.size());
+    CHECK(cells.size() >= 6);
 }
 
 namespace {
@@ -7715,14 +8027,14 @@ TEST_CASE("a closed polygon still extrudes exactly as before", "[CadDocument][sk
     REQUIRE_THAT(double(doc.display_mesh.volume()), Catch::Matchers::WithinRel(expected, 0.01));
 }
 
-TEST_CASE("two disjoint regions are refused, not guessed", "[CadDocument][sketchwire]")
+TEST_CASE("two disjoint regions extrude as two islands, neither dropped nor merged into a hole", "[CadDocument][sketchwire]")
 {
     std::vector<SketchEntity> ents = { circle_entity({-10, 0}, 5.0), circle_entity({10, 0}, 5.0) };
     CadDocument doc = plate_doc(ents, 10.0);
 
-    CHECK_FALSE(doc.recompute());
-    CHECK(doc.error.find("disjoint") != std::string::npos);
-    CHECK(doc.bodies.empty());
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(2 * M_PI * 25.0 * 10.0, 0.01));
 }
 
 TEST_CASE("entities_to_wires returns one wire per loop", "[CadDocument][sketchwire]")
@@ -8477,7 +8789,7 @@ TEST_CASE("add_extrude_entities builds a plate with a bore", "[CadDocument][hole
     REQUIRE(face_count == 7);
 }
 
-TEST_CASE("two disjoint circles are refused by name", "[CadDocument][holes]")
+TEST_CASE("two disjoint circles extrude as two islands", "[CadDocument][holes]")
 {
     CadDocument doc;
 
@@ -8488,8 +8800,9 @@ TEST_CASE("two disjoint circles are refused by name", "[CadDocument][holes]")
 
     doc.add_extrude_entities({a, b}, SketchPlane::XY(), 10.0, false, BooleanMode::New, "Extrude1");
 
-    REQUIRE_FALSE(doc.recompute());
-    REQUIRE_CONTAINS(doc.error, "disjoint");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(2 * M_PI * 400.0 * 10.0, 0.01));
 }
 
 // Same plate-with-a-bore, but the bore circle is wound CLOCKWISE (geometric winding opposite
@@ -8826,7 +9139,9 @@ TEST_CASE("Deleting the feature that made an EARLIER body keeps later features o
     REQUIRE(doc.bodies.size() == 2);
     // Body A goes away, so B becomes body 0. "Lift B" said body 1: by index it would now name
     // nothing (and used to fall back to the last body in silence); by identity it is still B.
-    REQUIRE(doc.remove_feature(ea));
+    const bool removed = doc.remove_feature(ea);
+    INFO(doc.error);
+    REQUIRE(removed);
     REQUIRE(doc.bodies.size() == 1);
     CHECK(doc.features[lift - 1].target_body == 0);
     const auto bb = doc.display_mesh.bounding_box();
@@ -8850,7 +9165,9 @@ TEST_CASE("Hiding a body-making feature keeps later features on their body", "[C
 {
     int ea, eb, lift;
     CadDocument doc = two_boxes_and_a_lift(ea, eb, lift);
-    REQUIRE(doc.set_feature_enabled(ea, false));
+    const bool hid = doc.set_feature_enabled(ea, false);
+    INFO(doc.error);
+    REQUIRE(hid);
     REQUIRE(doc.bodies.size() == 1);
     CHECK(doc.display_mesh.bounding_box().min.z() > 49.0);
     // ...and showing it again puts the reference back where it was.
@@ -9302,4 +9619,1727 @@ TEST_CASE("A hole owns its bore", "[CadDocument][highlight]")
     for (const auto& bf : bore)
         CHECK(made_face_type(doc, bf) == GeomAbs_Cylinder);
     CHECK(doc.faces_made_by(ex).size() == 6);
+}
+
+// Item 4 (sketch on a datum plane): the plane's own frame drives picking, so a point put on ANY
+// frame by to_world must come back unchanged from a ray through it.
+TEST_CASE("A sketch plane's uv survives a ray round trip on arbitrary frames", "[CadDocument][datum]")
+{
+    srand(12345);
+    auto rnd = [] { return (rand() / double(RAND_MAX)) * 2. - 1.; };
+    for (int i = 0; i < 50; ++i) {
+        Slic3r::Vec3d n = Slic3r::Vec3d(rnd(), rnd(), rnd());
+        if (n.norm() < 1e-3) n = Slic3r::Vec3d::UnitZ();
+        n.normalize();
+        const Slic3r::Vec3d seed = std::abs(n.z()) < 0.9 ? Slic3r::Vec3d::UnitZ() : Slic3r::Vec3d::UnitX();
+        Slic3r::SketchPlane p;
+        p.normal = n;
+        p.x_axis = seed.cross(n).normalized();
+        p.y_axis = n.cross(p.x_axis);
+        p.origin = Slic3r::Vec3d(rnd() * 100, rnd() * 100, rnd() * 100);
+        const Slic3r::Vec2d uv(rnd() * 80, rnd() * 80);
+        const Slic3r::Vec3d hit = p.to_world(uv);
+        const Slic3r::Vec3d eye = hit + n * (50. + 10. * std::abs(rnd()));   // in front of the plane
+        const Slic3r::Vec2d back = p.project(eye, (hit - eye).normalized());
+        CHECK(back.x() == Catch::Approx(uv.x()).margin(1e-9));
+        CHECK(back.y() == Catch::Approx(uv.y()).margin(1e-9));
+    }
+}
+
+TEST_CASE("An offset datum plane resolves at its offset, one row per datum", "[CadDocument][datum]")
+{
+    Slic3r::CadDocument doc;
+    const int a = doc.add_plane(0, 20., 0., 0, "P1");
+    const int b = doc.add_plane(3, 5., 0., 0, "P2");   // base 3 = the first datum
+    REQUIRE(a >= 0);
+    REQUIRE(b >= 0);
+    doc.recompute();
+    const auto datums = doc.resolve_datum_planes();
+    REQUIRE(datums.size() == 2);
+    CHECK(datums[0].second.origin.z() == Catch::Approx(doc.modeling_origin.z() + 20.).margin(1e-9));
+    CHECK(datums[1].second.origin.z() == Catch::Approx(doc.modeling_origin.z() + 25.).margin(1e-9));
+}
+
+// Item 7 (Use / Project a sketch onto another plane).
+namespace {
+SketchEntity use_line(Vec2d a, Vec2d b)
+{
+    SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = a; e.p1 = b; return e;
+}
+}
+
+TEST_CASE("Use projects a sketch onto a parallel datum plane with identical (u,v), follows edits, refuses orphaning",
+          "[CadDocument][use]")
+{
+    CadDocument doc;
+    const SketchPlane xy = SketchPlane::XY();
+    const int a = doc.add_sketch_entities({use_line({0, 0}, {20, 0}), use_line({20, 0}, {20, 10}),
+                                           use_line({20, 10}, {0, 10}), use_line({0, 10}, {0, 0})},
+                                          xy, "A");
+    doc.add_plane(0, 20., 0., 0, "P");
+    REQUIRE(doc.recompute());
+    const auto datums = doc.resolve_datum_planes();
+    REQUIRE(datums.size() == 1);
+    const SketchPlane z20 = datums[0].second;
+
+    const int u = doc.add_use_sketch(a, {}, z20, "Use A");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.features[u].entities.size() == 4);
+    // The model origin offsets the XY plane, so compare in each plane's own (u,v): identical.
+    for (int i = 0; i < 4; ++i) {
+        // a.plane origin may be the modeling origin; both frames share axes, so uv of the world point
+        // in the destination equals the source uv shifted by the origin difference.
+        const Vec3d shift = doc.features[a].plane.origin - z20.origin;
+        const Vec2d d(shift.dot(z20.x_axis), shift.dot(z20.y_axis));
+        CHECK((doc.features[u].entities[i].p0 - (doc.features[a].entities[i].p0 + d)).norm() < 1e-9);
+        CHECK((doc.features[u].entities[i].p1 - (doc.features[a].entities[i].p1 + d)).norm() < 1e-9);
+    }
+
+    // Edit the parent: the child follows on the next recompute.
+    const Vec2d before = doc.features[u].entities[0].p1;
+    doc.features[a].entities[0].p1 = {35, 0};
+    REQUIRE(doc.recompute());
+    CHECK((doc.features[u].entities[0].p1 - before).norm() > 14.9);
+
+    // Deleting the parent is refused with a reason; nothing is silently emptied or kept stale.
+    const size_t n = doc.features.size();
+    CHECK_FALSE(doc.remove_feature(a));
+    CHECK_FALSE(doc.error.empty());
+    CHECK(doc.features.size() == n);
+    CHECK(doc.features[u].entities.size() == 4);
+
+    // A recipe that already lost its parent (hand-edited / old undo state) is an Error, not geometry.
+    doc.features[u].project_source_sketch = -1;
+    CHECK_FALSE(doc.recompute());
+    CHECK_FALSE(doc.error.empty());
+}
+
+TEST_CASE("Use link survives the recipe round trip", "[CadDocument][use]")
+{
+    CadDocument doc;
+    const int a = doc.add_sketch_entities({use_line({0, 0}, {5, 0}), use_line({5, 0}, {5, 5})},
+                                          SketchPlane::XY(), "A");
+    const int u = doc.add_use_sketch(a, {0}, SketchPlane::XZ(), "Use A");   // entity 1 would collapse onto XZ
+    REQUIRE(doc.recompute());
+    CadDocument back;
+    REQUIRE(back.deserialize_recipe(doc.serialize_recipe()));
+    REQUIRE(back.features.size() == 2);
+    CHECK(back.features[u].project_from_sketch);
+    CHECK(back.features[u].project_source_sketch == a);
+    REQUIRE(back.features[u].project_sketch_entities.size() == 1);
+    CHECK(back.features[u].project_sketch_entities[0] == 0);
+}
+
+// Item 9 (combine modes on Extrude / Revolve / Sweep / Loft).
+namespace {
+int combine_rect(CadDocument& doc, double x0, double y0, double x1, double y1, double z, const char* name)
+{
+    SketchPlane p = SketchPlane::XY();
+    p.origin = {0, 0, z};
+    return doc.add_sketch_entities({use_line({x0, y0}, {x1, y0}), use_line({x1, y0}, {x1, y1}),
+                                    use_line({x1, y1}, {x0, y1}), use_line({x0, y1}, {x0, y0})},
+                                   p, name);
+}
+double vol(const CadDocument& doc, int body) { return doc.body_mass_properties(body).volume; }
+
+enum class Tool { Extrude, Revolve, Loft, Sweep };
+// Adds the tool feature in `mode` over a 20x20x10 base box; returns false if recompute failed.
+bool add_combine_tool(CadDocument& doc, Tool t, BooleanMode mode)
+{
+    switch (t) {
+    case Tool::Extrude: {
+        const int s = combine_rect(doc, -5, -5, 5, 5, 0, "T");
+        doc.add_extrude(s, 10.0, false, mode, "ExT");
+        break;
+    }
+    case Tool::Revolve: {
+        const int s = combine_rect(doc, -2, 0, 2, 5, 0, "T");   // x -2..2, y 0..5, about the X axis
+        doc.add_revolve(s, 360.0, 0, false, mode, "RvT");
+        break;
+    }
+    case Tool::Loft: {
+        const int a = combine_rect(doc, -5, -5, 5, 5, 0, "L0");
+        const int b = combine_rect(doc, -5, -5, 5, 5, 10, "L1");
+        doc.add_loft({a, b}, true, mode, "LfT");
+        break;
+    }
+    case Tool::Sweep: {
+        const int prof = combine_rect(doc, -5, -5, 5, 5, 0, "P");
+        const int path = doc.add_sketch_entities({use_line({0, 0}, {0, 10})}, SketchPlane::XZ(), "Path");
+        doc.add_sweep(prof, path, mode, "SwT");
+        break;
+    }
+    }
+    return doc.recompute();
+}
+}
+
+TEST_CASE("Every combine mode gives the Onshape volume on Extrude, Revolve, Sweep and Loft", "[CadDocument][combine]")
+{
+    struct Case { Tool t; const char* name; double tool_vol; double overlap; };
+    const double half_cyl = 3.14159265358979 * 25.0 * 4.0 / 2.0;
+    const Case cases[] = {
+        {Tool::Extrude, "extrude", 1000.0, 1000.0},
+        {Tool::Revolve, "revolve", 2.0 * half_cyl, half_cyl},     // axis on the base's bottom face: half sticks out
+        {Tool::Loft,    "loft",    1000.0, 1000.0},
+        {Tool::Sweep,   "sweep",   1000.0, 1000.0},
+    };
+    for (const Case& c : cases) {
+        INFO(c.name);
+        auto fresh = [&](BooleanMode m) {
+            CadDocument doc;
+            const int base = combine_rect(doc, -10, -10, 10, 10, 0, "Base");
+            doc.add_extrude(base, 10.0, false, BooleanMode::New, "Box");
+            REQUIRE(doc.recompute());
+            REQUIRE(add_combine_tool(doc, c.t, m));
+            return doc;
+        };
+        {   // New body: two coexisting solids
+            CadDocument doc = fresh(BooleanMode::New);
+            REQUIRE(doc.bodies.size() == 2);
+            CHECK(vol(doc, 0) == Catch::Approx(4000.0).epsilon(1e-6));
+            CHECK(vol(doc, 1) == Catch::Approx(c.tool_vol).epsilon(1e-4));
+        }
+        {   // Join
+            CadDocument doc = fresh(BooleanMode::Add);
+            REQUIRE(doc.bodies.size() == 1);
+            CHECK(vol(doc, 0) == Catch::Approx(4000.0 + (c.tool_vol - c.overlap)).epsilon(1e-4));
+            CHECK(doc.feature_warnings.empty());
+        }
+        {   // Cut
+            CadDocument doc = fresh(BooleanMode::Cut);
+            REQUIRE(doc.bodies.size() == 1);
+            CHECK(vol(doc, 0) == Catch::Approx(4000.0 - c.overlap).epsilon(1e-4));
+        }
+        {   // Intersect
+            CadDocument doc = fresh(BooleanMode::Intersect);
+            REQUIRE(doc.bodies.size() == 1);
+            CHECK(vol(doc, 0) == Catch::Approx(c.overlap).epsilon(1e-4));
+        }
+    }
+}
+
+TEST_CASE("A combine that cannot be honoured keeps the shape as a new body and says so", "[CadDocument][combine]")
+{
+    auto base_doc = [] {
+        CadDocument doc;
+        const int base = combine_rect(doc, -10, -10, 10, 10, 0, "Base");
+        doc.add_extrude(base, 10.0, false, BooleanMode::New, "Box");
+        REQUIRE(doc.recompute());
+        return doc;
+    };
+    SECTION("Join that does not touch") {
+        CadDocument doc = base_doc();
+        const int s = combine_rect(doc, 30, 30, 40, 40, 0, "Far");
+        doc.add_extrude(s, 10.0, false, BooleanMode::Add, "Join");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.bodies.size() == 2);                 // the shape survives as its own body
+        CHECK(vol(doc, 0) == Catch::Approx(4000.0).epsilon(1e-6));
+        CHECK(vol(doc, 1) == Catch::Approx(1000.0).epsilon(1e-6));
+        REQUIRE(doc.feature_warnings.size() == 1);
+        CHECK(doc.feature_warnings[0].first == int(doc.features.size()) - 1);
+        CHECK_FALSE(doc.feature_warnings[0].second.empty());
+    }
+    SECTION("Intersect with no overlap") {
+        CadDocument doc = base_doc();
+        const int s = combine_rect(doc, 30, 30, 40, 40, 0, "Far");
+        doc.add_extrude(s, 10.0, false, BooleanMode::Intersect, "Int");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.bodies.size() == 2);
+        CHECK(doc.feature_warnings.size() == 1);
+    }
+    SECTION("Cut that would remove the whole body") {
+        CadDocument doc = base_doc();
+        const int s = combine_rect(doc, -20, -20, 20, 20, 0, "Big");
+        doc.add_extrude(s, 10.0, false, BooleanMode::Cut, "Cut");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.bodies.size() == 2);
+        CHECK(doc.feature_warnings.size() == 1);
+    }
+    SECTION("A cut that misses stays an Error (unchanged rule)") {
+        CadDocument doc = base_doc();
+        const int s = combine_rect(doc, 30, 30, 40, 40, 0, "Far");
+        doc.add_extrude(s, 10.0, false, BooleanMode::Cut, "Miss");
+        CHECK_FALSE(doc.recompute());
+        CHECK_FALSE(doc.error.empty());
+    }
+}
+
+TEST_CASE("Ctrl multi-profile: one extrude per picked loop, same mode, all of them built", "[CadDocument][combine]")
+{
+    // The kernel refuses disjoint regions in ONE extrude (tests above); the panel therefore makes one
+    // feature per picked region. Two squares, two features: two solids, the total volume of both.
+    CadDocument doc;
+    for (double x0 : {0.0, 30.0}) {
+        const double x1 = x0 + 10.0;
+        doc.add_extrude_entities({use_line({x0, 0}, {x1, 0}), use_line({x1, 0}, {x1, 10}),
+                                  use_line({x1, 10}, {x0, 10}), use_line({x0, 10}, {x0, 0})},
+                                 SketchPlane::XY(), 5.0, false, BooleanMode::New, "Loop");
+    }
+    const bool ok = doc.recompute();
+    INFO(doc.error);
+    REQUIRE(ok);
+    REQUIRE(doc.bodies.size() == 2);
+    CHECK(vol(doc, 0) + vol(doc, 1) == Catch::Approx(2.0 * 10.0 * 10.0 * 5.0).epsilon(1e-6));
+}
+
+// Item 10 (push/pull of a planar face): the sign of the distance picks Join/Cut and the seams merge.
+TEST_CASE("Push/pull of a planar face: out joins (V + A*d), in cuts (V - A*d), faces merge, fillet resolves",
+          "[CadDocument][pushpull]")
+{
+    auto box_with_top = [](CadDocument& doc) {
+        const int base = combine_rect(doc, -10, -10, 10, 10, 0, "Base");
+        doc.add_extrude(base, 10.0, false, BooleanMode::New, "Box");
+        REQUIRE(doc.recompute());
+        const TopoDS_Shape& s = doc.bodies[0].shape;
+        for (int i = 0; i < GeometryEngine::face_count(s); ++i) {
+            const TopoDS_Face f = GeometryEngine::face_by_index(s, i);
+            if (std::abs(GeometryEngine::face_normal_world(f).z()) > 0.9
+                && GeometryEngine::face_centroid_world(f).z() > 5.0)
+                return i;
+        }
+        return -1;
+    };
+    SECTION("pull out") {
+        CadDocument doc;
+        const int top = box_with_top(doc);
+        REQUIRE(top >= 0);
+        doc.add_extrude_face(top, 5.0, false, BooleanMode::Add, "Pull");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.bodies.size() == 1);
+        CHECK(vol(doc, 0) == Catch::Approx(4000.0 + 400.0 * 5.0).epsilon(1e-6));
+        CHECK(GeometryEngine::face_count(doc.bodies[0].shape) == 6);   // not 10: side faces merged
+    }
+    SECTION("push in") {
+        CadDocument doc;
+        const int top = box_with_top(doc);
+        REQUIRE(top >= 0);
+        doc.add_extrude_face(top, -3.0, false, BooleanMode::Add, "Push");   // negative = into the body
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.bodies.size() == 1);
+        CHECK(vol(doc, 0) == Catch::Approx(4000.0 - 400.0 * 3.0).epsilon(1e-6));
+        CHECK(GeometryEngine::face_count(doc.bodies[0].shape) == 6);
+    }
+    SECTION("a later fillet still resolves on the merged shape") {
+        CadDocument doc;
+        const int top = box_with_top(doc);
+        REQUIRE(top >= 0);
+        doc.add_extrude_face(top, 5.0, false, BooleanMode::Add, "Pull");
+        REQUIRE(doc.recompute());
+        const double before = vol(doc, 0);
+        doc.add_fillet(1.0, 0, "Fillet");
+        const bool ok = doc.recompute();
+        INFO(doc.error);
+        REQUIRE(ok);
+        CHECK(vol(doc, 0) < before);
+    }
+}
+
+// Item 11 (loft with N profiles): measure before claiming a limit.
+TEST_CASE("A 3-profile loft across z=0/10/20 matches the analytic volume and does not twist", "[CadDocument][loft]")
+{
+    CadDocument doc;
+    const int a = combine_rect(doc, -5, -5, 5, 5, 0, "P0");        // 10x10
+    const int b = combine_rect(doc, -10, -10, 10, 10, 10, "P1");   // 20x20
+    const int c = combine_rect(doc, -5, -5, 5, 5, 20, "P2");       // 10x10
+    SECTION("ruled: two frusta") {
+        doc.add_loft({a, b, c}, true, BooleanMode::New, "Loft");
+        const bool ok = doc.recompute();
+        INFO(doc.error);
+        REQUIRE(ok);
+        REQUIRE(doc.bodies.size() == 1);
+        const double frustum = (10.0 / 3.0) * (100.0 + 400.0 + std::sqrt(100.0 * 400.0));
+        CHECK(vol(doc, 0) == Catch::Approx(2.0 * frustum).epsilon(1e-3));
+        // No twist: the side walls stay inside the 20x20 envelope and span z 0..20.
+        const auto bb = doc.display_mesh.bounding_box();
+        CHECK(bb.min.z() == Catch::Approx(0.0).margin(1e-6));
+        CHECK(bb.max.z() == Catch::Approx(20.0).margin(1e-6));
+        CHECK(bb.max.x() - bb.min.x() == Catch::Approx(20.0).margin(1e-3));
+    }
+    SECTION("smooth (not ruled) builds a valid solid through all three") {
+        doc.add_loft({a, b, c}, false, BooleanMode::New, "Loft");
+        const bool ok = doc.recompute();
+        INFO(doc.error);
+        REQUIRE(ok);
+        REQUIRE(doc.bodies.size() == 1);
+        CHECK(vol(doc, 0) > 2.0 * 10.0 * 100.0);   // more than the thin prism, less than the 20x20 box
+        CHECK(vol(doc, 0) < 20.0 * 400.0);
+    }
+}
+
+TEST_CASE("Loft end condition Normal-to-profile makes the skin leave and arrive perpendicular", "[CadDocument][loft]")
+{
+    auto make = [](int start, int end) {
+        CadDocument doc;
+        const int a = combine_rect(doc, -5, -5, 5, 5, 0, "P0");        // 10x10
+        const int b = combine_rect(doc, -10, -10, 10, 10, 10, "P1");   // 20x20
+        const int l = doc.add_loft({a, b}, false, BooleanMode::New, "Loft");
+        doc.features[l].loft_start_cond = start;
+        doc.features[l].loft_end_cond   = end;
+        const bool ok = doc.recompute();
+        INFO(doc.error);
+        REQUIRE(ok);
+        REQUIRE(doc.bodies.size() == 1);
+        return doc.body_mass_properties(0).volume;
+    };
+    const double frustum = (10.0 / 3.0) * (100.0 + 400.0 + std::sqrt(100.0 * 400.0));
+    CHECK(make(0, 0) == Catch::Approx(frustum).epsilon(1e-3));            // Contact: straight walls
+    const double both = make(1, 1);
+    CHECK(both > frustum * 1.005);   // an S-shaped wall, hugging the verticals at both ends, holds more
+    CHECK(both < frustum * 1.05);
+    // Start only: the skin leaves the 10x10 profile straight and stays narrow longer before it
+    // flares to 20x20, so it holds LESS than the straight frustum.
+    const double one = make(1, 0);
+    CHECK(one < frustum * 0.999);
+    CHECK(one > 0.5 * frustum);
+}
+
+// Item 13 (interactive LOD): measurement, not an assertion on speed. Hidden by default; run with
+// "[.perf]" to print the numbers that go into the commit message / bd.
+TEST_CASE("Preview tessellation cost at the committed vs the interactive deflection", "[.perf]")
+{
+    CadDocument doc;
+    const int base = combine_rect(doc, -50, -50, 50, 50, 0, "Base");
+    doc.add_extrude(base, 20.0, false, BooleanMode::New, "Plate");
+    for (int i = 0; i < 4; ++i)
+        for (int j = 0; j < 4; ++j) {
+            SketchPlane top = SketchPlane::XY();
+            top.origin = {0, 0, 20};
+            doc.add_hole(6.0, 20.0, true, -30.0 + 20.0 * i, -30.0 + 20.0 * j, top, "H");
+        }
+    REQUIRE(doc.recompute());
+    // A second body that the candidate extrude will join to, as in a real edit session.
+    const int s2 = combine_rect(doc, -10, -10, 10, 10, 20, "Boss");
+    CadFeature cand;
+    cand.type = CadFeatureType::Extrude;
+    cand.sketch_ref = s2;
+    cand.distance = 15.0;
+    cand.mode = BooleanMode::Add;
+    using clock = std::chrono::steady_clock;
+    for (double lin : {0.003, 0.01, 0.05, 0.2}) {
+        doc.linear_deflection = lin;
+        TriangleMesh m;
+        std::vector<TriangleMesh> per;
+        std::string err;
+        const auto t0 = clock::now();
+        const bool ok = doc.preview(cand, m, per, err);
+        const double ms = std::chrono::duration<double, std::milli>(clock::now() - t0).count();
+        std::printf("[perf] preview linear_deflection=%.3f ok=%d tris=%zu time=%.1f ms\n",
+                    lin, int(ok), m.its.indices.size(), ms);
+    }
+}
+
+// Closing smoke (golden path): a fillet after a pattern is a normal thing to do.
+TEST_CASE("A vertical-edge fillet still works after the shell and after a linear pattern", "[CadDocument][smoke]")
+{
+    auto vertical_edge = [](const CadDocument& doc, int rank) {
+        const TopoDS_Shape& s = doc.bodies[0].shape;
+        std::vector<std::pair<double, int>> cand;
+        for (int i = 0; i < GeometryEngine::edge_count(s); ++i) {
+            const TopoDS_Edge e = GeometryEngine::edge_by_index(s, i);
+            BRepAdaptor_Curve c(e);
+            const gp_Pnt a = c.Value(c.FirstParameter()), b = c.Value(c.LastParameter());
+            if (std::abs(a.X() - b.X()) < 1e-6 && std::abs(a.Y() - b.Y()) < 1e-6 && std::abs(a.Z() - b.Z()) > 1e-3)
+                cand.emplace_back(-std::abs(a.Z() - b.Z()), i);
+        }
+        std::sort(cand.begin(), cand.end());
+        return cand.empty() ? -1 : cand[std::min<size_t>(size_t(rank), cand.size() - 1)].second;
+    };
+    CadDocument doc;
+    const int base = combine_rect(doc, -30, -20, 30, 20, 0, "Base");
+    doc.add_extrude(base, 20.0, false, BooleanMode::New, "Box");
+    doc.add_shell(2.0, -1, 0, "Shell");
+    REQUIRE(doc.recompute());
+    SECTION("fillet right after the shell") {
+        const int e = vertical_edge(doc, 0);
+        REQUIRE(e >= 0);
+        doc.add_fillet(0.5, e, "Fillet");
+        const bool ok = doc.recompute();
+        INFO(doc.error);
+        CHECK(ok);
+    }
+    SECTION("fillet after a linear pattern") {
+        doc.add_pattern(false, 3, 80.0, 0, 360.0, 0, "Lin");
+        REQUIRE(doc.recompute());
+        const int e = vertical_edge(doc, 0);
+        REQUIRE(e >= 0);
+        doc.add_fillet(0.5, e, "Fillet");
+        const bool ok = doc.recompute();
+        INFO(doc.error);
+        CHECK(ok);
+    }
+}
+
+// Item 8 (3D sketch, slices 8a model + 8d wire): a free 3D curve that makes no solid and sweeps.
+TEST_CASE("A 3D sketch builds a valid wire, sweeps a profile, and survives the recipe", "[CadDocument][sketch3d]")
+{
+    const std::vector<Vec3d> pts = { {0, 0, 0}, {0, 0, 40}, {0, 30, 70}, {30, 30, 100} };
+
+    for (bool smooth : {false, true}) {
+        CadFeature f;
+        f.type = CadFeatureType::Sketch3D; f.sk3_points = pts; f.sk3_smooth = smooth;
+        std::string err;
+        TopoDS_Wire w = CadDocument::build_sketch3d_wire(f, err);
+        REQUIRE(err.empty());
+        REQUIRE_FALSE(w.IsNull());
+        CHECK(BRepCheck_Analyzer(w).IsValid());
+    }
+
+    CadDocument doc;
+    SketchEntity circ; circ.type = SketchEntity::Type::Circle; circ.center = Vec2d(0, 0); circ.radius = 3.0;
+    const int prof = doc.add_sketch_entities({circ}, SketchPlane::XY(), "Profile");
+    const int path = doc.add_sketch3d(pts, /*smooth*/ true, /*closed*/ false, "Path3D");
+    REQUIRE(doc.recompute());
+    CHECK(doc.bodies.empty());                        // a 3D sketch makes no solid by itself
+    doc.add_sweep(prof, path, BooleanMode::New, "Sweep3D");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    const double v = double(doc.display_mesh.volume());
+    double chord = 0; for (size_t i = 1; i < pts.size(); ++i) chord += (pts[i] - pts[i - 1]).norm();
+    CHECK(v > 0.8 * M_PI * 9.0 * 100.0);              // a smooth curve through the points is no longer than the legs
+    CHECK(v < 1.1 * M_PI * 9.0 * chord);
+
+    // Recipe round trip keeps the curve.
+    CadDocument back;
+    REQUIRE(back.deserialize_recipe(doc.serialize_recipe()));
+    REQUIRE(back.features.size() == 3);
+    CHECK(back.features[path].type == CadFeatureType::Sketch3D);
+    CHECK(back.features[path].sk3_smooth);
+    REQUIRE(back.features[path].sk3_points.size() == 4);
+    CHECK((back.features[path].sk3_points[3] - pts[3]).norm() < 1e-12);
+    REQUIRE(back.recompute());
+    CHECK(double(back.display_mesh.volume()) == Catch::Approx(v).epsilon(1e-6));
+
+    // Fewer than two distinct points is an Error, not an empty curve.
+    CadDocument bad;
+    bad.add_sketch3d({{1, 1, 1}, {1, 1, 1}}, false, false, "Degenerate");
+    CHECK_FALSE(bad.recompute());
+    CHECK_FALSE(bad.error.empty());
+}
+
+// Item 1 (feature tree): rollback shows the model as of an earlier feature; a mutation returns to the
+// end; a failing feature is named.
+TEST_CASE("Rolling the history back shows the earlier model and a mutation returns to the end", "[CadDocument][rollback]")
+{
+    CadDocument doc;
+    const int s1 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "Sk1");
+    doc.add_extrude(s1, 5.0, false, BooleanMode::New, "Ex1");              // feature 1: 20*10*5 = 1000
+    const int s2 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "Sk2");
+    doc.add_extrude(s2, 5.0, false, BooleanMode::Add, "Ex2");              // feature 3: fuse an equal box = still 1000
+    const int s3 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XZ(), 20, 10, 0, "Sk3");
+    doc.add_extrude(s3, 40.0, false, BooleanMode::Add, "Ex3");             // feature 5: adds a fin
+    REQUIRE(doc.recompute());
+    const double full = double(doc.display_mesh.volume());
+    REQUIRE(full > 1100.0);
+
+    doc.rollback_index = 1;                                                // as of Ex1
+    REQUIRE(doc.recompute());
+    CHECK(double(doc.display_mesh.volume()) == Catch::Approx(1000.0).epsilon(1e-3));
+    CHECK(doc.features.size() == 6);                                       // nothing was removed
+
+    doc.rollback_index = 0;                                                // rolled back to a lone sketch: no solid, not an error
+    CHECK(doc.recompute());
+    CHECK(doc.error.empty());
+
+    doc.checkpoint();                                                      // any mutation acts on the full history
+    CHECK(doc.rollback_index == -1);
+    REQUIRE(doc.recompute());
+    CHECK(double(doc.display_mesh.volume()) == Catch::Approx(full).epsilon(1e-9));
+
+    doc.rollback_index = 1;
+    REQUIRE(doc.undo());                                                   // undo returns to the end too
+    CHECK(doc.rollback_index == -1);
+}
+
+TEST_CASE("A failing feature is named by index", "[CadDocument][rollback]")
+{
+    CadDocument doc;
+    doc.add_sketch3d({{1, 1, 1}, {1, 1, 1}}, false, false, "Bad");        // feature 0 cannot be built
+    CHECK_FALSE(doc.recompute());
+    CHECK(doc.error_feature == 0);
+}
+
+// Sharp offset joins: a tapered polygon is the exact frustum, not one with rounded top corners.
+TEST_CASE("taper extrude of a square is the exact frustum", "[CadDocument][oracle]")
+{
+    SketchPlane xy = SketchPlane::XY();
+    SketchProfile sp; sp.points = { Vec2d(-5,-5),Vec2d(5,-5),Vec2d(5,5),Vec2d(-5,5) }; sp.closed = true;
+    TopoDS_Shape s = SketchEngine::make_extrude_taper(sp.to_occt_wire(xy), xy, 10.0, 10.0);
+    GProp_GProps props; BRepGProp::VolumeProperties(s, props);
+    const double off = 10.0 * std::tan(10.0 * M_PI / 180.0), a1 = 100.0, a2 = (10.0 + 2 * off) * (10.0 + 2 * off);
+    CHECK(props.Mass() == Approx(10.0 / 3.0 * (a1 + a2 + std::sqrt(a1 * a2))).epsilon(1e-4));
+}
+
+// Sharp shell joins: an L-section shell removes exactly the offset body, not one with rounded inner corners.
+TEST_CASE("shell of an L bracket has sharp inner corners", "[CadDocument][oracle]")
+{
+    CadDocument doc;
+    SketchProfile sp;   // L: 60x40 with a 30x20 notch, 20 high
+    sp.points = { Vec2d(0,0), Vec2d(60,0), Vec2d(60,20), Vec2d(30,20), Vec2d(30,40), Vec2d(0,40) };
+    sp.closed = true;
+    const int sk = doc.add_sketch_profile(sp, SketchPlane::XY(), "L");
+    doc.add_extrude(sk, 20.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    int top = -1;   // the open face: the one facing +Z at z = 20
+    const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+    for (size_t i = 0; i < faces.size(); ++i)
+        if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 20.0) < 1e-6) top = int(i);
+    REQUIRE(top >= 0);
+    doc.add_shell(2.0, top, 0, "Shell");
+    REQUIRE(doc.recompute());
+    // Sharp inward offset of the L by 2 on every side, open at the top: the cavity is x 2..58,y 2..18 (896) + x 2..28,y 18..38 (520)
+    // = 1416 mm2 from z = 2 up to 20 (18 mm), so the solid is 1800 * 20 - 1416 * 18
+    GProp_GProps props; BRepGProp::VolumeProperties(doc.bodies[0].shape, props);
+    CHECK(props.Mass() == Approx(1800.0 * 20.0 - 1416.0 * 18.0).epsilon(1e-4));
+}
+
+// A removal that cuts the body in two leaves two bodies.
+TEST_CASE("a cut through the middle of a bar yields two bodies", "[CadDocument][oracle]")
+{
+    CadDocument doc;
+    SketchProfile bar; bar.points = { Vec2d(0,0), Vec2d(60,0), Vec2d(60,10), Vec2d(0,10) }; bar.closed = true;
+    const int s1 = doc.add_sketch_profile(bar, SketchPlane::XY(), "Bar");
+    doc.add_extrude(s1, 10.0, false, BooleanMode::New, "Bar");
+    SketchProfile gap; gap.points = { Vec2d(25,-1), Vec2d(35,-1), Vec2d(35,11), Vec2d(25,11) }; gap.closed = true;
+    const int s2 = doc.add_sketch_profile(gap, SketchPlane::XY(), "Gap");
+    doc.add_extrude(s2, 10.0, false, BooleanMode::Cut, "Gap");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    GProp_GProps a, b; BRepGProp::VolumeProperties(doc.bodies[0].shape, a); BRepGProp::VolumeProperties(doc.bodies[1].shape, b);
+    CHECK(a.Mass() + b.Mass() == Approx(50.0 * 10.0 * 10.0).epsilon(1e-6));
+}
+
+// Incremental recompute: a tail edit replays only the tail; setting the value back restores without OCCT work.
+TEST_CASE("recompute replays only what changed and restores what came back", "[CadDocument][incremental]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+    const int s = doc.add_sketch_profile(sp, SketchPlane::XY(), "Base");
+    doc.add_extrude(s, 10.0, false, BooleanMode::New, "Base");
+    doc.add_hole(6.0, 5.0, false, 10.0, 10.0, SketchPlane::XY(), "H1");
+    const int h2 = doc.add_hole(6.0, 5.0, false, 30.0, 30.0, SketchPlane::XY(), "H2");
+
+    REQUIRE(doc.recompute());
+    CHECK(doc.replay_stats.replayed == 3);   // extrude + 2 holes (the sketch is not a body feature)
+    CHECK(doc.replay_stats.restored == 0);
+    GProp_GProps p0; BRepGProp::VolumeProperties(doc.bodies[0].shape, p0);
+
+    REQUIRE(doc.recompute());                // nothing changed
+    CHECK(doc.replay_stats.replayed == 0);
+    CHECK(doc.replay_stats.restored == 3);
+
+    doc.features[h2].hole_diameter = 8.0;    // edit the LAST feature
+    REQUIRE(doc.recompute());
+    CHECK(doc.replay_stats.replayed == 1);
+    CHECK(doc.replay_stats.restored == 2);
+    GProp_GProps p1; BRepGProp::VolumeProperties(doc.bodies[0].shape, p1);
+    CHECK(p1.Mass() < p0.Mass());
+
+    doc.features[h2].hole_diameter = 6.0;    // and back: every state is in the cache
+    REQUIRE(doc.recompute());
+    CHECK(doc.replay_stats.replayed == 0);
+    GProp_GProps p2; BRepGProp::VolumeProperties(doc.bodies[0].shape, p2);
+    CHECK(p2.Mass() == Approx(p0.Mass()).epsilon(1e-9));
+
+    CadDocument cold = doc; cold.incremental = false;   // the cache must not change the answer
+    REQUIRE(cold.recompute());
+    GProp_GProps p3; BRepGProp::VolumeProperties(cold.bodies[0].shape, p3);
+    CHECK(p3.Mass() == Approx(p0.Mass()).epsilon(1e-9));
+}
+
+TEST_CASE("Expressions: unit literals and the wider function set", "[CadDocument][expr]")
+{
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "S");
+    const int ex = doc.add_extrude(sk, 5, false, BooleanMode::New, "E");
+    auto eval = [&](const char* e) { doc.features[ex].expr["distance"] = e; REQUIRE(doc.recompute()); return doc.features[ex].distance; };
+    CHECK(eval("10 cm") == Approx(100.0));
+    CHECK(eval("2 in + 1 mm") == Approx(51.8));
+    CHECK(eval("1 m / 4") == Approx(250.0));
+    CHECK(eval("180 deg / 6") == Approx(30.0));
+    CHECK(eval("atan2(1, 1)") == Approx(45.0));          // angles come back in degrees
+    CHECK(eval("floor(2.7) + ceil(2.1) + round(2.5)") == Approx(2 + 3 + 3));
+    CHECK(eval("mod(10, 4) + pow(2, 3) + hypot(3, 4)") == Approx(2 + 8 + 5));
+    CHECK(eval("rad(180)") == Approx(M_PI));              // the function, not the unit
+    doc.variables["n"] = "3 mm";
+    CHECK(eval("n * 2") == Approx(6.0));
+    doc.features[ex].expr["distance"] = "ln(0)";
+    CHECK_FALSE(doc.recompute());
+}
+
+// A fillet written against "edge N" must stay on its edge when an earlier feature renumbers the topology.
+TEST_CASE("a fillet follows its edge when a hole is inserted before it", "[CadDocument][naming]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+    const int s = doc.add_sketch_profile(sp, SketchPlane::XY(), "Base");
+    doc.add_extrude(s, 10.0, false, BooleanMode::New, "Base");
+    REQUIRE(doc.recompute());
+    int corner = -1;   // the vertical edge at (40, 40)
+    const auto edges = GeometryEngine::edges_of(doc.bodies[0].shape);
+    for (size_t i = 0; i < edges.size(); ++i) {
+        const auto pts = GeometryEngine::sample_edge_world(edges[i]);
+        if (pts.size() >= 2 && std::abs(pts.front().x() - 40) < 1e-6 && std::abs(pts.front().y() - 40) < 1e-6 && std::abs(pts.back().x() - 40) < 1e-6 && std::abs(pts.back().y() - 40) < 1e-6) corner = int(i);
+    }
+    REQUIRE(corner >= 0);
+    doc.add_fillet(3.0, corner, "Corner");
+    REQUIRE(doc.recompute());
+    GProp_GProps p0; BRepGProp::VolumeProperties(doc.bodies[0].shape, p0);
+    CHECK(p0.Mass() == Approx(16000.0 - (1.0 - M_PI / 4) * 9.0 * 10.0).epsilon(1e-6));
+
+    doc.add_hole(6.0, 10.0, true, 20.0, 20.0, SketchPlane::XY(), "Hole");   // appended ...
+    std::rotate(doc.features.begin() + 2, doc.features.end() - 1, doc.features.end());   // ... then moved in front of the fillet
+    REQUIRE(doc.recompute());
+    GProp_GProps p1; BRepGProp::VolumeProperties(doc.bodies[0].shape, p1);
+    CHECK(p1.Mass() == Approx(16000.0 - M_PI * 9.0 * 10.0 - (1.0 - M_PI / 4) * 9.0 * 10.0).epsilon(1e-6));
+}
+
+TEST_CASE("a sketch dimension can be bound to a variable and follows it", "[CadDocument][expr]")
+{
+    using R = SketchPointRole; using T = SketchConstraintType;
+    CadDocument doc;
+    std::vector<SketchEntity> ents = { {SketchEntity::Type::Line, Vec2d(0,0), Vec2d(10,0)} };
+    std::vector<SketchEntityConstraintDef> cons;
+    cons.push_back({T::Fix,        0, -1, R::P0, R::P0, 0.0});
+    cons.push_back({T::Horizontal, 0, -1, R::P0, R::P0, 0.0});
+    cons.push_back({T::Distance,   0,  0, R::P0, R::P1, 10.0});
+    const int sk = doc.add_sketch_entities(ents, SketchPlane::XY(), "S", cons);
+    doc.variables["len"] = "2 cm + 5";
+    doc.features[sk].expr["dim:2"] = "len";
+    REQUIRE(doc.recompute());
+    CHECK((doc.features[sk].entities[0].p1 - doc.features[sk].entities[0].p0).norm() == Approx(25.0));
+    doc.variables["len"] = "40";
+    REQUIRE(doc.recompute());
+    CHECK((doc.features[sk].entities[0].p1 - doc.features[sk].entities[0].p0).norm() == Approx(40.0));
+    CHECK(CadDocument::is_bindable_field("dim:3"));
+    doc.features[sk].expr["dim:9"] = "1";
+    CHECK_FALSE(doc.recompute());   // no such dimension
+}
+
+TEST_CASE("renaming a variable rewrites what uses it, token-wise", "[CadDocument][expr]")
+{
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "S");
+    const int ex = doc.add_extrude(sk, 5, false, BooleanMode::New, "E");
+    doc.variables["w"] = "10";
+    doc.variables["width"] = "w * 2";
+    doc.features[ex].expr["distance"] = "w + width";
+    std::string err;
+    REQUIRE(doc.rename_variable("w", "base", err));
+    CHECK(doc.variables.count("base") == 1);
+    CHECK(doc.variables["width"] == "base * 2");          // `width` itself untouched
+    CHECK(doc.features[ex].expr["distance"] == "base + width");
+    CHECK_FALSE(doc.rename_variable("base", "width", err));   // taken
+    CHECK_FALSE(doc.rename_variable("base", "sin", err));     // built in
+    CHECK_FALSE(doc.rename_variable("base", "2x", err));      // malformed
+    REQUIRE(doc.recompute());
+    CHECK(doc.features[ex].distance == Approx(30.0));
+}
+
+TEST_CASE("variables round-trip through CSV", "[CadDocument][expr]")
+{
+    CadDocument doc;
+    doc.variables["a"] = "3";
+    doc.variables["b"] = "max(a, 2) * 2";
+    const std::string csv = doc.variables_csv();
+    CadDocument other;
+    std::string err;
+    CHECK(other.variables_from_csv(csv, err) == 2);
+    CHECK(other.variables == doc.variables);
+    CHECK(other.variables_from_csv("x,1\ny,x +\n", err) == 0);   // a broken row keeps nothing
+    CHECK_FALSE(err.empty());
+    CHECK(other.variables.count("x") == 0);
+    CHECK(other.variables_from_csv("name,expression\nq,\"max(1, 2)\"\n", err) == 1);   // quoted field with a comma
+    CHECK(other.variables["q"] == "max(1, 2)");
+    CHECK(other.variables_from_csv("z,z\n", err) == 0);   // a cycle
+}
+
+TEST_CASE("the history marker survives a save", "[CadDocument][recipe]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(20,0), Vec2d(20,20), Vec2d(0,20) }; sp.closed = true;
+    const int s = doc.add_sketch_profile(sp, SketchPlane::XY(), "S");
+    doc.add_extrude(s, 5.0, false, BooleanMode::New, "Base");
+    doc.add_hole(4.0, 5.0, true, 10.0, 10.0, SketchPlane::XY(), "Hole");
+    doc.rollback_index = 1;   // after the extrude, before the hole
+    REQUIRE(doc.recompute());
+    const std::string blob = doc.serialize_recipe();
+
+    CadDocument back;
+    REQUIRE(back.deserialize_recipe(blob));
+    CHECK(back.rollback_index == 1);
+    CHECK(back.features.size() == 3);
+    GProp_GProps p; BRepGProp::VolumeProperties(back.bodies[0].shape, p);
+    CHECK(p.Mass() == Approx(20.0 * 20.0 * 5.0).epsilon(1e-6));   // the hole is not built yet
+}
+
+// A sketch drawn on a face rides that face when the body under it changes.
+TEST_CASE("a sketch attached to a face follows it", "[CadDocument][naming]")
+{
+    auto build = [](CadDocument& doc, int& base_extrude) {
+        SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+        const int s = doc.add_sketch_profile(sp, SketchPlane::XY(), "Base");
+        base_extrude = doc.add_extrude(s, 10.0, false, BooleanMode::New, "Base");
+        REQUIRE(doc.recompute());
+        int top = -1;
+        const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+        for (size_t i = 0; i < faces.size(); ++i)
+            if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 10.0) < 1e-6) top = int(i);
+        REQUIRE(top >= 0);
+        SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = Vec2d(20, 20); c.p0 = c.center; c.radius = 5.0;
+        SketchPlane on_top = SketchPlane::XY(); on_top.origin = Vec3d(0, 0, 10);
+        const int boss_sk = doc.add_sketch_entities({c}, on_top, "Boss");
+        doc.features[boss_sk].attach_body = 0;
+        doc.features[boss_sk].attach_face = top;
+        doc.add_extrude(boss_sk, 5.0, false, BooleanMode::Add, "Boss");
+        REQUIRE(doc.recompute());
+    };
+    auto vol = [](const CadDocument& d) { GProp_GProps p; BRepGProp::VolumeProperties(d.bodies[0].shape, p); return p.Mass(); };
+    const double boss = M_PI * 25.0 * 5.0;
+
+    SECTION("the base grows taller") {
+        CadDocument doc; int base;
+        build(doc, base);
+        CHECK(vol(doc) == Approx(16000.0 + boss).epsilon(1e-6));
+        doc.features[base].distance = 15.0;
+        REQUIRE(doc.recompute());
+        CHECK(vol(doc) == Approx(40.0 * 40.0 * 15.0 + boss).epsilon(1e-6));   // the boss moved up with the face
+    }
+    SECTION("a hole inserted before renumbers the faces") {
+        CadDocument doc; int base;
+        build(doc, base);
+        const int hole = doc.add_hole(6.0, 10.0, true, 8.0, 8.0, SketchPlane::XY(), "Hole");
+        REQUIRE(doc.move_feature(hole, -1));        // ... up past the boss extrude and its sketch, to right after the base extrude
+        REQUIRE(doc.move_feature(hole - 1, -1));
+        doc.features[base].distance = 12.0;
+        REQUIRE(doc.recompute());
+        std::string w; for (const auto& fw : doc.feature_warnings) w += std::to_string(fw.first) + ": " + fw.second + " | ";
+        INFO("bodies " << doc.bodies.size() << " warnings: " << w << " attach_face " << doc.features[4].attach_face << " plane z " << doc.features[4].plane.origin.z());
+        CHECK(vol(doc) == Approx(40.0 * 40.0 * 12.0 - M_PI * 9.0 * 12.0 + boss).epsilon(1e-6));
+    }
+    SECTION("it survives a save") {
+        CadDocument doc; int base;
+        build(doc, base);
+        CadDocument back;
+        REQUIRE(back.deserialize_recipe(doc.serialize_recipe()));
+        int boss_sk = -1;
+        for (size_t i = 0; i < back.features.size(); ++i) if (back.features[i].attach_face >= 0) boss_sk = int(i);
+        REQUIRE(boss_sk >= 0);
+        CHECK(back.features[boss_sk].attach_body == 0);
+    }
+}
+
+// A hole drilled on a face is a plane plus a position; unless it is told which face, an edit upstream leaves it drilling
+// where the face used to be. Every id-valued field of a feature has to follow its face the same way.
+TEST_CASE("a hole drilled on a face follows the face", "[CadDocument][naming]")
+{
+    auto top_area = [](const CadDocument& d) {   // the highest upward face of body 0
+        double best_z = -1e9, area = 0;
+        for (const TopoDS_Face& f : GeometryEngine::faces_of(d.bodies[0].shape)) {
+            if (GeometryEngine::face_normal_world(f).z() < 0.99) continue;
+            const double z = GeometryEngine::face_centroid_world(f).z();
+            if (z > best_z) { best_z = z; GProp_GProps g; BRepGProp::SurfaceProperties(f, g); area = g.Mass(); }
+        }
+        return area;
+    };
+    auto build = [](CadDocument& doc, int& base, bool attach) {
+        SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+        const int s = doc.add_sketch_profile(sp, SketchPlane::XY(), "Base");
+        base = doc.add_extrude(s, 10.0, false, BooleanMode::New, "Base");
+        REQUIRE(doc.recompute());
+        int top = -1;
+        const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+        for (size_t i = 0; i < faces.size(); ++i)
+            if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 10.0) < 1e-6) top = int(i);
+        REQUIRE(top >= 0);
+        SketchPlane pl; REQUIRE(doc.plane_of_face(0, top, pl));
+        pl.normal = -pl.normal; pl.y_axis = pl.normal.cross(pl.x_axis);   // into the body, as the Hole card does
+        const int h = doc.add_hole(6.0, 4.0, false, 8.0, 8.0, pl, "Hole");
+        if (attach) { doc.features[h].attach_body = 0; doc.features[h].attach_face = top; }
+        REQUIRE(doc.recompute());
+    };
+    const double with_hole = 40.0 * 40.0 - M_PI * 9.0;
+    SECTION("the base grows taller") {
+        CadDocument doc; int base;
+        build(doc, base, true);
+        CHECK(top_area(doc) == Approx(with_hole).epsilon(1e-6));
+        doc.features[base].distance = 15.0;
+        REQUIRE(doc.recompute());
+        CHECK(top_area(doc) == Approx(with_hole).epsilon(1e-6));   // the hole is still open at the new top
+        CHECK(doc.feature_warnings.empty());
+    }
+    SECTION("without the attachment it stays behind (the bug this guards)") {
+        CadDocument doc; int base;
+        build(doc, base, false);
+        doc.features[base].distance = 15.0;
+        REQUIRE(doc.recompute());
+        CHECK(top_area(doc) == Approx(40.0 * 40.0).epsilon(1e-6));
+    }
+    SECTION("it survives a save") {
+        CadDocument doc; int base;
+        build(doc, base, true);
+        CadDocument back;
+        REQUIRE(back.deserialize_recipe(doc.serialize_recipe()));
+        back.features[base].distance = 15.0;
+        REQUIRE(back.recompute());
+        CHECK(top_area(back) == Approx(with_hole).epsilon(1e-6));
+    }
+}
+
+TEST_CASE("a split by a face follows the face when a hole renumbers the faces before it", "[CadDocument][naming]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+    doc.add_extrude(doc.add_sketch_profile(sp, SketchPlane::XY(), "Base"), 10.0, false, BooleanMode::New, "Base");
+    SketchProfile bp; bp.points = { Vec2d(10,10), Vec2d(30,10), Vec2d(30,30), Vec2d(10,30) }; bp.closed = true;
+    SketchPlane on_top = SketchPlane::XY(); on_top.origin = Vec3d(0, 0, 10);
+    doc.add_extrude(doc.add_sketch_profile(bp, on_top, "Boss"), 5.0, false, BooleanMode::Add, "Boss");
+    REQUIRE(doc.recompute());
+    int side = -1;   // the boss's +x wall
+    const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+    for (size_t i = 0; i < faces.size(); ++i)
+        if (GeometryEngine::face_normal_world(faces[i]).x() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).x() - 30.0) < 1e-6) side = int(i);
+    REQUIRE(side >= 0);
+    doc.add_split_by_face(0, 0, side, true, true, "Split");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    const int hole = doc.add_hole(6.0, 10.0, true, 5.0, 5.0, SketchPlane::XY(), "Hole");   // appended, then moved in front of the split
+    std::rotate(doc.features.begin() + hole - 1, doc.features.begin() + hole, doc.features.end());
+    REQUIRE(doc.recompute());
+    CHECK(doc.bodies.size() == 2);
+    CHECK(doc.feature_warnings.empty());
+}
+
+// Editing ANY parameter of ANY feature in the history has to rebuild everything after it: the incrementally rebuilt document
+// must be the document a from-scratch build of the same recipe gives. Every number and switch a feature actually uses is
+// nudged in turn (found through the recipe's field groups, so a field added later is covered the day it is added).
+namespace {
+struct ScalarFields {   // the doubles and bools of a feature, in recipe order
+    struct One { int k; bool is_bool; double value; };
+    std::vector<One> out; int n{0};
+    template<class T> void operator()(T&) {}
+    void operator()(double& x) { out.push_back({n++, false, x}); }
+    void operator()(bool& x)   { out.push_back({n++, true, x ? 1.0 : 0.0}); }
+    void operator()(Vec3d& v)  { for (int i = 0; i < 3; ++i) out.push_back({n++, false, v[i]}); }
+    template<class T> void ref(T&) {}
+    void brep(TopoDS_Shape&) {}
+};
+struct NudgeField {     // the k-th of them, moved
+    int k, n{0}; bool done{false};
+    template<class T> void operator()(T&) {}
+    void operator()(double& x) { if (n++ == k) { x += (std::abs(x) > 1e-9 ? 0.25 * std::abs(x) : 1.0); done = true; } }
+    void operator()(bool& x)   { if (n++ == k) { x = !x; done = true; } }
+    void operator()(Vec3d& v)  { for (int i = 0; i < 3; ++i) if (n++ == k) { v[i] += (std::abs(v[i]) > 1e-9 ? 0.25 * std::abs(v[i]) : 1.0); done = true; } }
+    template<class T> void ref(T&) {}
+    void brep(TopoDS_Shape&) {}
+};
+}
+
+TEST_CASE("editing any parameter of any feature rebuilds the features after it exactly as a fresh build would", "[CadDocument][incremental]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+    const int base_sk = doc.add_sketch_profile(sp, SketchPlane::XY(), "Base");
+    doc.add_extrude(base_sk, 10.0, false, BooleanMode::New, "Base");
+    REQUIRE(doc.recompute());
+    auto top_face = [](const CadDocument& d) {
+        int top = -1;
+        const auto faces = GeometryEngine::faces_of(d.bodies[0].shape);
+        for (size_t i = 0; i < faces.size(); ++i)
+            if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 10.0) < 1e-6) top = int(i);
+        return top;
+    };
+    int top = top_face(doc), corner = -1;
+    const auto edges = GeometryEngine::edges_of(doc.bodies[0].shape);
+    for (size_t i = 0; i < edges.size(); ++i) {
+        const auto pts = GeometryEngine::sample_edge_world(edges[i]);
+        if (pts.size() >= 2 && std::abs(pts.front().x() - 40) < 1e-6 && std::abs(pts.front().y() - 40) < 1e-6 && std::abs(pts.back().x() - 40) < 1e-6 && std::abs(pts.back().y() - 40) < 1e-6) corner = int(i);
+    }
+    REQUIRE(top >= 0); REQUIRE(corner >= 0);
+    doc.add_fillet(3.0, corner, "Corner");
+    REQUIRE(doc.recompute());
+    top = top_face(doc);   // the fillet renumbered the faces
+    SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = Vec2d(20, 20); c.p0 = c.center; c.radius = 5.0;
+    SketchPlane on_top = SketchPlane::XY(); on_top.origin = Vec3d(0, 0, 10);
+    const int boss_sk = doc.add_sketch_entities({c}, on_top, "Boss");
+    doc.features[boss_sk].attach_body = 0; doc.features[boss_sk].attach_face = top;
+    doc.add_extrude(boss_sk, 5.0, false, BooleanMode::Add, "Boss");
+    REQUIRE(doc.recompute());
+    top = top_face(doc);   // and so did the boss
+    SketchPlane into = SketchPlane::XY(); into.origin = Vec3d(0, 0, 10); into.normal = Vec3d(0, 0, -1); into.y_axis = Vec3d(0, -1, 0);
+    const int hole = doc.add_hole(4.0, 3.0, false, 8.0, -8.0, into, "Hole");
+    doc.features[hole].attach_body = 0; doc.features[hole].attach_face = top;
+    doc.add_transform(-1, Vec3d(5, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "Move");
+    const bool built = doc.recompute();
+    INFO("error: " << doc.error << " (feature " << doc.error_feature << ")");
+    REQUIRE(built);
+
+    auto signature = [](const CadDocument& d) {   // body count + total volume
+        double v = 0;
+        for (const CadBody& b : d.bodies) { GProp_GProps g; BRepGProp::VolumeProperties(b.shape, g); v += g.Mass(); }
+        return std::make_pair(d.bodies.size(), v);
+    };
+    int edits = 0;
+    for (size_t fi = 0; fi < doc.features.size(); ++fi) {
+        ScalarFields now, def; { CadFeature f = doc.features[fi]; cad_fields_of_all_groups(now, f); const CadFeature d; CadFeature dd = d; cad_fields_of_all_groups(def, dd); }
+        for (size_t j = 0; j < now.out.size(); ++j) {
+            if (now.out[j].value == def.out[j].value) continue;   // a field this feature does not use
+            const CadFeature before = doc.features[fi];
+            NudgeField nudge{now.out[j].k};
+            cad_fields_of_all_groups(nudge, doc.features[fi]);
+            const bool ok = doc.recompute();
+            CadDocument fresh;
+            const bool fresh_ok = fresh.deserialize_recipe(doc.serialize_recipe());
+            INFO("feature " << fi << " (" << doc.features[fi].name << "), scalar field #" << now.out[j].k);
+            REQUIRE(ok == fresh_ok);
+            if (ok) {
+                const auto a = signature(doc), b = signature(fresh);
+                CHECK(a.first == b.first);
+                CHECK(a.second == Approx(b.second).epsilon(1e-6));
+            }
+            ++edits;
+            doc.features[fi] = before;
+            REQUIRE(doc.recompute());
+        }
+    }
+    CHECK(edits >= 8);   // the numbers and switches in use: distances, radii, sizes, positions, the move
+}
+
+// What is drawn on a face goes with the face when an earlier step MOVES the object, not only when it grows.
+TEST_CASE("a sketch and a hole drawn on a moved object move with it", "[CadDocument][naming]")
+{
+    auto build = [](CadDocument& doc, int& move, int& boss_sk, int& hole) {
+        SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+        doc.add_extrude(doc.add_sketch_profile(sp, SketchPlane::XY(), "Base"), 10.0, false, BooleanMode::New, "Base");
+        move = doc.add_transform(-1, Vec3d(5, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "Move");
+        REQUIRE(doc.recompute());
+        int top = -1;
+        const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+        for (size_t i = 0; i < faces.size(); ++i)
+            if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 10.0) < 1e-6) top = int(i);
+        REQUIRE(top >= 0);
+        SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = Vec2d(25, 20); c.p0 = c.center; c.radius = 4.0;   // on the moved top: x 5..45
+        SketchPlane on_top = SketchPlane::XY(); on_top.origin = Vec3d(0, 0, 10);
+        boss_sk = doc.add_sketch_entities({c}, on_top, "Boss");
+        doc.features[boss_sk].attach_body = 0; doc.features[boss_sk].attach_face = top;
+        SketchPlane into = on_top; into.normal = Vec3d(0, 0, -1); into.y_axis = Vec3d(0, -1, 0);
+        hole = doc.add_hole(3.0, 2.0, false, 10.0, -10.0, into, "Hole");
+        doc.features[hole].attach_body = 0; doc.features[hole].attach_face = top;
+        REQUIRE(doc.recompute());
+    };
+    SECTION("moved further") {
+        CadDocument doc; int move, sk, hole;
+        build(doc, move, sk, hole);
+        const double x0 = doc.features[sk].plane.origin.x(), hx0 = doc.features[hole].plane.origin.x();
+        doc.features[move].xf_translate = Vec3d(12, 0, 0);
+        REQUIRE(doc.recompute());
+        CHECK(doc.features[sk].plane.origin.x() == Approx(x0 + 7.0).margin(1e-6));
+        CHECK(doc.features[hole].plane.origin.x() == Approx(hx0 + 7.0).margin(1e-6));
+        CHECK(doc.feature_warnings.empty());
+    }
+    SECTION("the option off keeps the old rule") {
+        CadDocument doc; int move, sk, hole;
+        build(doc, move, sk, hole);
+        const double x0 = doc.features[sk].plane.origin.x();
+        doc.features[hole].enabled = false;   // left behind, it would miss the moved body altogether
+        doc.attached_follow_moves = false;
+        doc.features[move].xf_translate = Vec3d(12, 0, 0);
+        REQUIRE(doc.recompute());
+        CHECK(doc.features[sk].plane.origin.x() == Approx(x0).margin(1e-6));   // stayed in the face's plane, in place
+    }
+    SECTION("a stretch is not a move") {
+        CadDocument doc; int move, sk, hole;
+        build(doc, move, sk, hole);
+        const double x0 = doc.features[sk].plane.origin.x();
+        doc.features[0].width = doc.features[0].width;   // (the base sketch is a profile: widen it through its points)
+        for (Vec2d& q : doc.features[0].profile.points) if (q.x() > 20) q.x() += 10;   // the base gets 10 wider, the face's centre moves 5
+        REQUIRE(doc.recompute());
+        CHECK(doc.features[sk].plane.origin.x() == Approx(x0).margin(1e-6));
+    }
+}
+
+TEST_CASE("a sketch on an object's face is shown where the object was moved to", "[CadDocument][naming]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+    doc.add_extrude(doc.add_sketch_profile(sp, SketchPlane::XY(), "Base"), 10.0, false, BooleanMode::New, "Base");
+    REQUIRE(doc.recompute());
+    int top = -1;
+    const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+    for (size_t i = 0; i < faces.size(); ++i)
+        if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 10.0) < 1e-6) top = int(i);
+    REQUIRE(top >= 0);
+    SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = Vec2d(20, 20); c.p0 = c.center; c.radius = 4.0;
+    SketchPlane on_top = SketchPlane::XY(); on_top.origin = Vec3d(0, 0, 10);
+    const int ref_sk = doc.add_sketch_entities({c}, on_top, "Reference");   // a reference sketch: nothing extrudes it
+    doc.features[ref_sk].attach_body = 0; doc.features[ref_sk].attach_face = top;
+    const int move = doc.add_transform(-1, Vec3d(5, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "Move");
+    REQUIRE(doc.recompute());
+    CHECK(doc.carried_plane(ref_sk).origin.x() == Approx(5.0).margin(1e-9));      // shown with the body
+    CHECK(doc.features[ref_sk].plane.origin.x() == Approx(0.0).margin(1e-9));     // the history is not rewritten
+    SECTION("a turn") {
+        doc.features[move].xf_translate = Vec3d(0, 0, 0);
+        doc.features[move].xf_angle_deg = 90.0;
+        const SketchPlane p = doc.carried_plane(ref_sk);
+        CHECK(p.origin.y() == Approx(0.0).margin(1e-9));
+        CHECK(p.x_axis.y() == Approx(1.0).margin(1e-9));                           // its x axis turned with the object
+    }
+    SECTION("the option off") {
+        doc.attached_follow_moves = false;
+        CHECK(doc.carried_plane(ref_sk).origin.x() == Approx(0.0).margin(1e-9));
+    }
+    SECTION("a copy moves nothing") {
+        doc.features[move].xf_copy = true;
+        CHECK(doc.carried_plane(ref_sk).origin.x() == Approx(0.0).margin(1e-9));
+    }
+}
+
+TEST_CASE("a sketch on a datum plane built from a face is seated on the rebuilt bodies at once", "[CadDocument][datum]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+    const int base = doc.add_extrude(doc.add_sketch_profile(sp, SketchPlane::XY(), "Base"), 10.0, false, BooleanMode::New, "Base");
+    REQUIRE(doc.recompute());
+    int top = -1;
+    const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+    for (size_t i = 0; i < faces.size(); ++i)
+        if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 10.0) < 1e-6) top = int(i);
+    REQUIRE(top >= 0);
+    const int pl = doc.add_plane(0, 0, 0, 0, "Top plane");
+    doc.features[pl].plane_type = PlaneType::Coincident;
+    doc.features[pl].plane_face_body = 0;
+    doc.features[pl].plane_face = top;
+    REQUIRE(doc.recompute());
+    const auto datums = doc.resolve_datum_planes();
+    REQUIRE(datums.size() == 1);
+    REQUIRE(datums[0].second.origin.z() == Approx(10.0).margin(1e-6));
+    const int sk = doc.add_sketch(SketchShape::Rectangle, datums[0].second, 10, 10, 0, "On the plane");
+    doc.features[sk].attach_datum = pl;
+    doc.add_extrude(sk, 5, false, BooleanMode::New, "Pad");
+    REQUIRE(doc.recompute());
+
+    doc.features[base].distance = 15.0;
+    REQUIRE(doc.recompute());                                     // ONE rebuild, not two
+    CHECK(doc.resolve_datum_planes()[0].second.origin.z() == Approx(15.0).margin(1e-6));
+    CHECK(doc.features[sk].plane.origin.z() == Approx(15.0).margin(1e-6));
+    REQUIRE(doc.bodies.size() == 2);
+    CHECK(doc.body_mass_properties(1).volume == Approx(10.0 * 10.0 * 5.0).epsilon(1e-6));
+    Bnd_Box bb; BRepBndLib::Add(doc.bodies[1].shape, bb);
+    double x0, y0, z0, x1, y1, z1; bb.Get(x0, y0, z0, x1, y1, z1);
+    CHECK(z0 == Approx(15.0).margin(1e-6));                       // the pad stands on the new top
+}
+
+// Acceptance: on a 30-feature model a tail edit replays one feature and costs a fraction of a full rebuild.
+TEST_CASE("a tail edit on a 30-feature model is much cheaper than a full rebuild", "[CadDocument][incremental]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(200,0), Vec2d(200,100), Vec2d(0,100) }; sp.closed = true;
+    const int s = doc.add_sketch_profile(sp, SketchPlane::XY(), "Plate");
+    doc.add_extrude(s, 10.0, false, BooleanMode::New, "Plate");
+    int last = -1;
+    for (int i = 0; i < 29; ++i)
+        last = doc.add_hole(4.0, 10.0, true, 8.0 + 6.0 * (i % 30), 20.0 + 20.0 * (i % 4), SketchPlane::XY(), "H" + std::to_string(i));
+    using clock = std::chrono::steady_clock;
+    auto ms = [](clock::time_point a, clock::time_point b) { return std::chrono::duration<double, std::milli>(b - a).count(); };
+
+    // The feature rebuilds are what the cache removes; tessellating the finished body is paid on every change (mesh_ms).
+    auto replay_ms = [](const CadDocument& d) { double t = 0; for (double v : d.replay_stats.feature_ms) t += v; return t; };
+    REQUIRE(doc.recompute());
+    const double cold = replay_ms(doc);
+    CHECK(doc.replay_stats.replayed == 30);
+
+    doc.features[last].hole_diameter = 5.0;   // the last feature
+    REQUIRE(doc.recompute());
+    const double tail = replay_ms(doc);
+    CHECK(doc.replay_stats.replayed == 1);
+    CHECK(doc.replay_stats.restored == 29);
+    INFO("feature rebuild: cold " << cold << " ms, tail edit " << tail << " ms; tessellation " << doc.replay_stats.mesh_ms << " ms");
+    CHECK(tail * 5.0 < cold);
+}
+
+// The command palette ranks prefix > word start > substring > letters in order; usable beats greyed.
+TEST_CASE("palette_score orders matches", "[CadDocument][palette]")
+{
+    CHECK(palette_score("ext", "Extrude", true) > palette_score("ext", "Surface Extrude", true));   // prefix > word start
+    CHECK(palette_score("ext", "Surface Extrude", true) > palette_score("ext", "Context", true));   // word start > substring
+    CHECK(palette_score("ext", "Context", true) > palette_score("etr", "Extrude", true));           // substring > in order
+    CHECK(palette_score("zzz", "Extrude", true) == -1);
+    CHECK(palette_score("ext", "Extrude", true) > palette_score("ext", "Extrude", false));
+    CHECK(palette_score("", "Anything", true) == 150);
+    CHECK(palette_score("EXT", "extrude", true) == palette_score("ext", "Extrude", true));          // case-blind
+}
+
+TEST_CASE("fillet size laws: linear, chord and B-spline radius on a box edge", "[CadDocument][Fillet]")
+{
+    using Catch::Matchers::WithinRel;
+    // 40 x 30 x 20 box; the fillet goes on its top edge that runs along X at the lowest Y (found by geometry, not by an id that could drift)
+    auto build = [](const std::function<void(CadFeature&)>& law) {
+        CadDocument doc;
+        int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 30, 10, "Rect");
+        doc.add_extrude(sk, 20.0, false, BooleanMode::New, "Extrude");
+        REQUIRE(doc.recompute());
+        const TopoDS_Shape& shape = doc.bodies.front().shape;
+        int    edge = -1;
+        double best_y = 1e30;
+        for (int i = 0; i < 12; ++i) {
+            TopoDS_Edge        e = GeometryEngine::edge_by_index(shape, i);
+            BRepAdaptor_Curve  c(e);
+            const gp_Pnt       a = c.Value(c.FirstParameter()), b = c.Value(c.LastParameter());
+            const bool along_x_on_top = std::abs(a.X() - b.X()) > 39.9 && std::abs(a.Y() - b.Y()) < 1e-6 && std::min(a.Z(), b.Z()) > 19.99;
+            if (along_x_on_top && a.Y() < best_y) { best_y = a.Y(); edge = i; }
+        }
+        REQUIRE(edge >= 0);
+        const int f = doc.add_fillet(2.0, std::vector<int>{edge}, "Fillet");
+        law(doc.features[f]);
+        const bool ok = doc.recompute();
+        return std::make_pair(ok, ok ? double(SketchEngine::tessellate(doc.bodies.front().shape).volume()) : 0.0);
+    };
+    const auto base = build([](CadFeature&) {});
+    REQUIRE(base.first);
+    SECTION("a radius running 2 -> 5 removes more than the constant 2") {
+        const auto r = build([](CadFeature& f) { f.dressup_size = 2; f.dressup_size2 = 5; });
+        REQUIRE(r.first);
+        REQUIRE(r.second < base.second);
+    }
+    SECTION("the chord of a 90 degree edge is r * sqrt(2)") {
+        const auto r = build([](CadFeature& f) { f.dressup_size = 4; f.dressup_chord = true; });
+        const auto c = build([](CadFeature& f) { f.dressup_size = 2.0 * std::sqrt(2.0); });
+        REQUIRE(r.first);
+        REQUIRE_THAT(r.second, WithinRel(c.second, 1e-6));
+    }
+    SECTION("a B-spline radius") {
+        const auto r = build([](CadFeature& f) {
+            f.dressup_size  = 2;
+            f.dressup_radii = {5, 1.5, 4, 1, 3};
+            f.dressup_knots = {0, 0, 0, 0, 0.25, 0.6, 1, 1, 1, 1};
+        });
+        REQUIRE(r.first);
+        REQUIRE(r.second < base.second);
+    }
+}
+
+TEST_CASE("a feature pattern repeats what a feature did to the body", "[CadDocument][Pattern]")
+{
+    using Catch::Matchers::WithinRel;
+    // 60 x 40 x 5 plate, one through hole (r = 2) near its -X end, then patterns of that hole
+    auto plate = [](CadDocument& doc, Vec2d& hole_at) {
+        const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 60, 40, 10, "Plate");
+        doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Plate");
+        REQUIRE(doc.recompute());
+        const BoundingBoxf3 bb = SketchEngine::tessellate(doc.bodies.front().shape).bounding_box();
+        hole_at = Vec2d(bb.min.x() + 20.0, bb.center().y());   // 10 from the centre: a quarter turn stays inside the 40 mm width
+        SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = hole_at; c.p0 = hole_at; c.radius = 2.0;
+        const int hs = doc.add_sketch_entities({c}, SketchPlane::XY(), "HoleSketch");
+        doc.add_extrude(hs, 20.0, false, BooleanMode::Cut, "Hole");
+        REQUIRE(doc.recompute());
+        return doc.features.size() - 1;   // the Hole extrude
+    };
+    const double one_hole = M_PI * 4.0 * 5.0;
+    SECTION("rectangular 3 x 2 makes six holes") {
+        CadDocument doc; Vec2d at;
+        const int hole = int(plate(doc, at));
+        const double v0 = SketchEngine::tessellate(doc.bodies.front().shape).volume();
+        const int p = doc.add_pattern(false, 3, 15.0, 0, 360.0, -1, "Grid");
+        doc.features[p].pattern_features = { hole };
+        doc.features[p].pattern_axis = Vec3d(1, 0, 0); doc.features[p].pattern_axis2 = Vec3d(0, 1, 0);
+        doc.features[p].pattern_count2 = 2; doc.features[p].pattern_spacing2 = 10.0;
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        REQUIRE(doc.bodies.size() == 1);
+        REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(v0 - 5.0 * one_hole, 2e-3));
+    }
+    SECTION("circular x4 about a vertical axis through the plate centre makes four holes") {
+        CadDocument doc; Vec2d at;
+        const int hole = int(plate(doc, at));
+        const double v0 = SketchEngine::tessellate(doc.bodies.front().shape).volume();
+        const BoundingBoxf3 bb = SketchEngine::tessellate(doc.bodies.front().shape).bounding_box();
+        const int p = doc.add_pattern(true, 4, 0.0, 0, 360.0, -1, "Ring");
+        doc.features[p].pattern_features = { hole };
+        doc.features[p].pattern_axis = Vec3d(0, 0, 1);
+        doc.features[p].pattern_origin = Vec3d(bb.center().x(), bb.center().y(), 0);
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(v0 - 3.0 * one_hole, 2e-3));
+    }
+    SECTION("mirroring a hole across the plate's centre plane makes its twin") {
+        CadDocument doc; Vec2d at;
+        const int hole = int(plate(doc, at));
+        const double v0 = SketchEngine::tessellate(doc.bodies.front().shape).volume();
+        const BoundingBoxf3 bb = SketchEngine::tessellate(doc.bodies.front().shape).bounding_box();
+        const int p = doc.add_pattern(false, 1, 0.0, 0, 360.0, -1, "Mirror");
+        doc.features[p].pattern_features = { hole };
+        doc.features[p].pattern_mirror = true;
+        doc.features[p].pattern_axis = Vec3d(1, 0, 0);
+        doc.features[p].pattern_origin = Vec3d(bb.center().x(), 0, 0);
+        REQUIRE(doc.recompute());
+        REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(v0 - one_hole, 2e-3));
+    }
+    SECTION("a pattern cannot repeat a feature that comes after it") {
+        CadDocument doc; Vec2d at;
+        const int hole = int(plate(doc, at));
+        const int p = doc.add_pattern(false, 2, 10.0, 0, 360.0, -1, "Bad");
+        doc.features[p].pattern_features = { p + 3 };
+        CHECK_FALSE(doc.recompute());
+        (void) hole;
+    }
+}
+
+TEST_CASE("multi-face shell, multi-face draft with a pull direction, and thin extrude", "[CadDocument][Shell]")
+{
+    using Catch::Matchers::WithinRel;
+    auto vol = [](const CadDocument& d) { return double(SketchEngine::tessellate(d.bodies.front().shape).volume()); };
+    auto box = [](CadDocument& d) {
+        const int sk = d.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 50, 40, 10, "Rect");
+        d.add_extrude(sk, 30.0, false, BooleanMode::New, "Box");
+        REQUIRE(d.recompute());
+    };
+    // the planar faces whose outward normal is n
+    auto faces_facing = [](const CadDocument& d, const Vec3d& n) {
+        std::vector<int> ids;
+        const auto faces = GeometryEngine::faces_of(d.bodies.front().shape);
+        for (int i = 0; i < int(faces.size()); ++i) {
+            if (BRepAdaptor_Surface(faces[i]).GetType() != GeomAbs_Plane) continue;
+            if (GeometryEngine::face_normal_world(faces[i]).dot(n) > 0.99) ids.push_back(i);   // already the outward normal
+        }
+        return ids;
+    };
+    SECTION("opening two faces of a box leaves less material than opening one") {
+        CadDocument one, two;
+        box(one); box(two);
+        const auto top = faces_facing(one, Vec3d(0, 0, 1)), front = faces_facing(one, Vec3d(0, -1, 0));
+        REQUIRE(top.size() == 1); REQUIRE(front.size() == 1);
+        one.add_shell(3.0, top.front(), -1, "S");
+        REQUIRE(one.recompute());
+        const int s = two.add_shell(3.0, top.front(), -1, "S");
+        two.features[s].shell_faces = { front.front() };
+        REQUIRE(two.recompute());
+        REQUIRE(vol(two) < vol(one));
+    }
+    SECTION("a 5 degree draft hinged on the bottom flares the box like the frustum formula") {
+        CadDocument d;
+        box(d);
+        const int dr = d.add_draft(5.0, -1, -1, "Draft");
+        for (const Vec3d& n : { Vec3d(1, 0, 0), Vec3d(-1, 0, 0), Vec3d(0, 1, 0), Vec3d(0, -1, 0) })
+            for (int id : faces_facing(d, n)) d.features[dr].draft_faces.push_back(id);
+        REQUIRE(d.features[dr].draft_faces.size() == 4);
+        d.features[dr].draft_has_neutral = true;
+        d.features[dr].draft_pull = Vec3d(0, 0, -1);   // the neutral plane's outward normal: the walls grow away from it
+        const BoundingBoxf3 bb = SketchEngine::tessellate(d.bodies.front().shape).bounding_box();
+        d.features[dr].draft_neutral = Vec3d(0, 0, bb.min.z());
+        REQUIRE(d.recompute());
+        const double grow = 30.0 * std::tan(5.0 * M_PI / 180.0);
+        const double a0 = 50.0 * 40.0, a1 = (50.0 + 2 * grow) * (40.0 + 2 * grow);
+        REQUIRE_THAT(vol(d), WithinRel(30.0 / 3.0 * (a0 + a1 + std::sqrt(a0 * a1)), 1e-3));
+    }
+    SECTION("a thin extrude is a wall around the outline") {
+        CadDocument d;
+        const int sk = d.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 40, 10, "Rect");
+        const int e = d.add_extrude(sk, 10.0, false, BooleanMode::New, "Frame");
+        d.features[e].thin_in = 3.0; d.features[e].thin_out = 1.0;
+        REQUIRE(d.recompute());
+        REQUIRE_THAT(vol(d), WithinRel((42.0 * 42.0 - 34.0 * 34.0) * 10.0, 1e-3));
+    }
+}
+
+TEST_CASE("an extrude can take chosen loops of a sketch as separate islands, nested loops as holes", "[CadDocument][Extrude]")
+{
+    using Catch::Matchers::WithinRel;
+    auto circle = [](Vec2d c, double r) { SketchEntity e; e.type = SketchEntity::Type::Circle; e.center = c; e.p0 = c; e.radius = r; return e; };
+    CadDocument doc;
+    // two islands, a ring (outer + inner circle) and a third circle left out
+    const int sk = doc.add_sketch_entities({ circle({0, 0}, 5), circle({30, 0}, 4), circle({0, 40}, 10), circle({0, 40}, 6), circle({60, 60}, 3) },
+                                           SketchPlane::XY(), "Loops");
+    const int e = doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Islands");
+    doc.features[e].extrude_entities = { 0, 1, 2, 3 };
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    const double want = (M_PI * 25 + M_PI * 16 + M_PI * (100 - 36)) * 10.0;
+    REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(want, 2e-3));
+}
+
+TEST_CASE("a feature pattern can follow a path, spaced by arc length", "[CadDocument][Pattern]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 80, 40, 10, "Plate");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Plate");
+    REQUIRE(doc.recompute());
+    const BoundingBoxf3 bb = SketchEngine::tessellate(doc.bodies.front().shape).bounding_box();
+    const Vec2d at(bb.min.x() + 10.0, bb.center().y());
+    SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = at; c.p0 = at; c.radius = 2.0;
+    const int hs = doc.add_sketch_entities({c}, SketchPlane::XY(), "HoleSketch");
+    doc.add_extrude(hs, 20.0, false, BooleanMode::Cut, "Hole");
+    REQUIRE(doc.recompute());
+    const int hole = int(doc.features.size()) - 1;
+    const double v0 = SketchEngine::tessellate(doc.bodies.front().shape).volume();
+    // a quarter arc of radius 15 that starts at the hole (23.6 mm long): 4 holes 7 mm apart along it
+    SketchEntity a; a.type = SketchEntity::Type::Arc; a.center = at + Vec2d(0, 15); a.radius = 15.0; a.start_angle = -M_PI / 2; a.end_angle = 0.0;
+    a.p0 = a.center + Vec2d(0, -15); a.p1 = a.center + Vec2d(15, 0);
+    const int ps = doc.add_sketch_entities({a}, SketchPlane::XY(), "Path");
+    const int p = doc.add_pattern(false, 4, 7.0, 0, 360.0, -1, "PathPattern");
+    doc.features[p].pattern_features = { hole };
+    doc.features[p].pattern_curve_sketch = ps;
+    doc.features[p].pattern_curve_entity = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(v0 - 3.0 * M_PI * 4.0 * 5.0, 2e-3));
+    // a path too short for the instances is refused
+    doc.features[p].pattern_spacing = 12.0;
+    REQUIRE_FALSE(doc.recompute());
+}
+
+TEST_CASE("a loft can end in a single point", "[CadDocument][loft]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+    const int base = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 40, 0, "Base");
+    SketchPlane top; top.origin = Vec3d(0, 0, 30);
+    SketchEntity pt; pt.type = SketchEntity::Type::Point; pt.p0 = Vec2d(0, 0);
+    const int apex = doc.add_sketch_entities({pt}, top, "Apex");
+    doc.add_loft({ base, apex }, false, BooleanMode::New, "Pyramid");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(40.0 * 40.0 * 30.0 / 3.0, 2e-3));
+}
+
+TEST_CASE("a body can be split by a tilted plane", "[CadDocument][cut]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 20, "Cyl");
+    doc.add_extrude(sk, 60.0, false, BooleanMode::New, "Cyl");
+    REQUIRE(doc.recompute());
+    const double v = M_PI * 400.0 * 60.0;
+    SketchPlane pl;   // through (0,0,30), tilted 30 degrees about X: the cylinder's point symmetry makes the halves equal
+    pl.origin = Vec3d(0, 0, 30); pl.normal = Vec3d(0, -0.5, std::sqrt(3.0) / 2); pl.x_axis = Vec3d(1, 0, 0); pl.y_axis = pl.normal.cross(pl.x_axis);
+    doc.add_cut(pl, 0.0, false, true, true, 0, "Split");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+    for (const CadBody& b : doc.bodies)
+        REQUIRE_THAT(double(SketchEngine::tessellate(b.shape).volume()), WithinRel(v / 2, 5e-3));
+}
+
+TEST_CASE("a blind hole can end in a drill point", "[CadDocument][hole]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 30, 0, "Plate");
+    doc.add_extrude(sk, 15.0, false, BooleanMode::New, "Plate");
+    REQUIRE(doc.recompute());
+    SketchPlane down = SketchPlane::XY();   // faces -Z so the bore runs into the plate from its top face
+    down.origin = Vec3d(0, 0, 15); down.normal = Vec3d(0, 0, -1); down.y_axis = Vec3d(0, -1, 0);
+    const int h = doc.add_hole(6.8, 12.0, false, 0.0, 0.0, down, "Drill");
+    doc.features[h].hole_tip_angle = 118.0;
+    REQUIRE(doc.recompute());
+    const double r = 3.4, cone = M_PI * r * r * (r / std::tan(59.0 * M_PI / 180.0)) / 3.0;
+    REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()),
+                 WithinRel(40.0 * 30.0 * 15.0 - M_PI * r * r * 12.0 - cone, 2e-3));
+}
+
+// ---- sheet metal -------------------------------------------------------------------------------------------------
+namespace {
+int sheet_edge_near(const CadDocument& doc, const Vec3d& p)
+{
+    int best = -1;
+    double bd = 1e9;
+    for (int i = 0;; ++i) {
+        const TopoDS_Edge e = GeometryEngine::edge_by_index(doc.bodies[0].shape, i);
+        if (e.IsNull()) break;
+        BRepAdaptor_Curve c(e);
+        const gp_Pnt m = c.Value(0.5 * (c.FirstParameter() + c.LastParameter()));
+        const double d = (Vec3d(m.X(), m.Y(), m.Z()) - p).norm();
+        if (d < bd) { bd = d; best = i; }
+    }
+    return best;
+}
+}
+
+TEST_CASE("sheet metal: base flange, edge flange and the unfolded pattern", "[CadDocument][sheet]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 100, 60, 0, "Base");
+    doc.add_sm_base(sk, false, "BaseFlange");
+    REQUIRE(doc.recompute());
+    const BoundingBoxf3 bb0 = SketchEngine::tessellate(doc.bodies.front().shape).bounding_box();
+    REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(100.0 * 60.0 * 2.5, 1e-6));
+    // 20 mm flange on the y-min top edge: base y 5..60, quarter bend R 2.5..5, leg 15 long
+    const int e = sheet_edge_near(doc, Vec3d(bb0.center().x(), bb0.min.y(), 2.5));
+    doc.add_sm_edge_flange({ e }, 20.0, 90.0, false, "Flange");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    const double section = 55.0 * 2.5 + M_PI / 4.0 * (25.0 - 6.25) + 15.0 * 2.5;
+    REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(100.0 * section, 1e-3));
+    // unfold: the flat pattern is the base plus the bend allowance plus the leg
+    const double BA = M_PI / 2.0 * (2.5 + 0.44 * 2.5);
+    const int un = doc.add_sm_unfold("Unfold");
+    REQUIRE(doc.recompute());
+    const BoundingBoxf3 flat = SketchEngine::tessellate(doc.bodies.front().shape).bounding_box();
+    REQUIRE_THAT(flat.size().y(), WithinRel(55.0 + BA + 15.0, 1e-3));
+    REQUIRE_THAT(flat.size().z(), WithinRel(2.5, 1e-3));
+    // refolding without touching the flat pattern gives the flanged sheet back
+    doc.add_sm_refold(un, "Refold");
+    REQUIRE(doc.recompute());
+    REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(100.0 * section, 1e-3));
+    CadDocument back;
+    REQUIRE(back.deserialize_recipe(doc.serialize_recipe()));
+    REQUIRE(back.features.size() == doc.features.size());
+    REQUIRE_THAT(double(SketchEngine::tessellate(back.bodies.front().shape).volume()), WithinRel(100.0 * section, 1e-3));
+}
+
+TEST_CASE("sheet metal: the rule feature sets the thickness of the sheet features after it", "[CadDocument][sheet]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+    doc.add_sm_rule(1.0, -1.0, 0.44, 0.01, "Rule");
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 100, 60, 0, "Base");
+    doc.add_sm_base(sk, false, "BaseFlange");
+    REQUIRE(doc.recompute());
+    REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(100.0 * 60.0 * 1.0, 1e-6));
+    doc.features[0].sm_thickness = 3.0;   // editing the rule rebuilds the sheet
+    REQUIRE(doc.recompute());
+    REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(100.0 * 60.0 * 3.0, 1e-6));
+}
+
+TEST_CASE("a fillet can taper to the room that is left (fit: taper)", "[CadDocument][fillet]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+    auto line = [](Vec2d a, Vec2d b) { SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = a; e.p1 = b; return e; };
+    // plate whose top narrows from 20 mm (x = 0) to 2 mm (x = 40), 15 high
+    const int sk = doc.add_sketch_entities({ line({0, 0}, {40, 0}), line({40, 0}, {40, 2}), line({40, 2}, {0, 20}), line({0, 20}, {0, 0}) },
+                                           SketchPlane::XY(), "Plate");
+    doc.add_extrude(sk, 15.0, false, BooleanMode::New, "Plate");
+    REQUIRE(doc.recompute());
+    const double v0 = SketchEngine::tessellate(doc.bodies.front().shape).volume();
+    int edge = -1;
+    for (int i = 0;; ++i) {
+        const TopoDS_Edge e = GeometryEngine::edge_by_index(doc.bodies[0].shape, i);
+        if (e.IsNull()) break;
+        BRepAdaptor_Curve c(e);
+        const gp_Pnt a = c.Value(c.FirstParameter()), b = c.Value(c.LastParameter());
+        if (std::abs(a.Z() - 15) < 1e-6 && std::abs(b.Z() - 15) < 1e-6 && std::abs(a.Y()) < 1e-6 && std::abs(b.Y()) < 1e-6) edge = i;
+    }
+    REQUIRE(edge >= 0);
+    // 3 mm fits over most of the edge, so a plain fillet at 3 takes (1 - pi/4) 9 per mm there; the taper must remove less
+    // than that over the whole edge and more than a 1.8 mm fillet would
+    const int f = doc.add_fillet(3.0, edge, "Fillet");
+    doc.features[f].dressup_fit_taper = true;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    const double removed = v0 - SketchEngine::tessellate(doc.bodies.front().shape).volume();
+    REQUIRE(removed < (1.0 - M_PI / 4.0) * 9.0 * 40.0);
+    REQUIRE(removed > (1.0 - M_PI / 4.0) * 1.8 * 1.8 * 40.0);
+}
+
+TEST_CASE("a sketch whose lines end on circles extrudes the regions of the subdivision (a belt)", "[CadDocument][sketch]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+    const double R = 20, r = 10, d = 50, a = std::asin((R - r) / d);
+    auto circle = [](Vec2d c, double rad) { SketchEntity e; e.type = SketchEntity::Type::Circle; e.center = c; e.p0 = c; e.radius = rad; return e; };
+    auto line = [](Vec2d p, Vec2d q) { SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = p; e.p1 = q; return e; };
+    const int sk = doc.add_sketch_entities({ circle({0, 0}, R), circle({d, 0}, r), circle({d, 0}, 4.0),
+                                             line({R * std::sin(a), R * std::cos(a)}, {d + r * std::sin(a), r * std::cos(a)}),
+                                             line({R * std::sin(a), -R * std::cos(a)}, {d + r * std::sin(a), -r * std::cos(a)}) },
+                                           SketchPlane::XY(), "Belt");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Belt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    const double hull = (R + r) * std::sqrt(d * d - (R - r) * (R - r)) + R * R * (M_PI + 2 * a) / 2 + r * r * (M_PI - 2 * a) / 2;
+    REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel((hull - M_PI * 16.0) * 5.0, 2e-3));
+}
+
+TEST_CASE("a feature added while the history is rolled back goes in at the bar", "[CadDocument][history]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+    const int s0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "A");
+    doc.add_extrude(s0, 10.0, false, BooleanMode::New, "BoxA");
+    SketchPlane far = SketchPlane::XY(); far.origin = Vec3d(100, 0, 0);
+    const int s1 = doc.add_sketch(SketchShape::Rectangle, far, 10, 10, 0, "B");
+    doc.add_extrude(s1, 10.0, false, BooleanMode::New, "BoxB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    doc.rollback_index = 1;                      // the bar sits under the first box
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    doc.checkpoint();
+    SketchPlane up = SketchPlane::XY(); up.origin = Vec3d(0, 0, 10);
+    const int s2 = doc.add_sketch(SketchShape::Rectangle, up, 20, 20, 0, "C");
+    doc.add_extrude(s2, 5.0, false, BooleanMode::Add, "Top");
+    REQUIRE(s2 == 2);                            // in at the bar, not at the end
+    REQUIRE(doc.last_added == 3);
+    REQUIRE(doc.features.size() == 6);
+    REQUIRE(doc.features[5].name == "BoxB");
+    REQUIRE(doc.features[5].sketch_ref == 4);    // the later sketch moved down by two: its extrude followed it
+    REQUIRE(doc.rollback_index == 3);            // the bar now sits under the new feature
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    REQUIRE_THAT(double(SketchEngine::tessellate(doc.bodies.front().shape).volume()), WithinRel(20.0 * 20.0 * 15.0, 1e-3));
+    doc.rollback_index = -1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+}
+
+// The boolean identity V(A u B) + V(A n B) = V(A) + V(B), on random pairs of boxes and cylinders that overlap in every way
+// (apart, touching, crossing, nested): a kernel that loses a sliver or doubles one fails it long before a picture shows.
+TEST_CASE("boolean identity: V(A u B) + V(A n B) = V(A) + V(B) on random overlaps", "[CadDocument][property]")
+{
+    std::mt19937 rng(20261019);
+    auto uni = [&](double lo, double hi) { return std::uniform_real_distribution<double>(lo, hi)(rng); };
+    int checked = 0;
+    for (int trial = 0; trial < 40; ++trial) {
+        auto make = [&](CadDocument& doc, int k) {
+            SketchPlane pl = SketchPlane::XY();
+            pl.origin = Vec3d(uni(-15, 15), uni(-15, 15), uni(-5, 5));
+            const bool round = uni(0, 1) < 0.4;
+            const int sk = round ? doc.add_sketch(SketchShape::Circle, pl, 0, 0, uni(6, 18), "S" + std::to_string(k))
+                                 : doc.add_sketch(SketchShape::Rectangle, pl, uni(8, 30), uni(8, 30), 0, "S" + std::to_string(k));
+            doc.add_extrude(sk, uni(5, 25), false, BooleanMode::New, "B" + std::to_string(k));
+        };
+        CadDocument base;
+        make(base, 0); make(base, 1);
+        REQUIRE(base.recompute());
+        REQUIRE(base.bodies.size() == 2);
+        const double va = SketchEngine::tessellate(base.bodies[0].shape).volume(), vb = SketchEngine::tessellate(base.bodies[1].shape).volume();
+        double v_union = 0, v_common = 0;
+        {
+            CadDocument d = base;
+            d.add_boolean(BooleanMode::Add, 0, 1, false, 0.0, -1, -1, "U");
+            if (!d.recompute() || d.bodies.empty()) continue;   // apart: a join that does not touch is refused, which is correct
+            for (const CadBody& b : d.bodies) v_union += SketchEngine::tessellate(b.shape).volume();
+        }
+        {
+            CadDocument d = base;
+            d.add_boolean(BooleanMode::Intersect, 0, 1, false, 0.0, -1, -1, "I");
+            if (d.recompute() && !d.bodies.empty())
+                for (const CadBody& b : d.bodies) v_common += SketchEngine::tessellate(b.shape).volume();
+        }
+        // tessellated volumes: the curved ones carry the mesh's own error, so the tolerance is a fraction of a percent
+        CHECK_THAT(v_union + v_common, Catch::Matchers::WithinRel(va + vb, 5e-3));
+        ++checked;
+    }
+    REQUIRE(checked >= 10);   // enough of the random pairs actually overlapped
+}
+
+// The one allow-list behind set_feature_expr: every name it reports is accepted, the reported set is sorted and free of
+// duplicates, and a name outside it (or an empty dimension index) is refused.
+TEST_CASE("bindable fields: the reported list is the accepted list", "[CadDocument][expr]")
+{
+    const std::vector<std::string> names = CadDocument::bindable_fields();
+    REQUIRE(names.size() > 40);
+    REQUIRE(std::is_sorted(names.begin(), names.end()));
+    REQUIRE(std::adjacent_find(names.begin(), names.end()) == names.end());
+    for (const std::string& n : names) CHECK(CadDocument::is_bindable_field(n));
+    CHECK(CadDocument::is_bindable_field("dim:3"));
+    CHECK_FALSE(CadDocument::is_bindable_field("pattern_spacing3"));
+    CHECK_FALSE(CadDocument::is_bindable_field("dim:"));
+    CHECK_FALSE(CadDocument::is_bindable_field(""));
+}
+
+TEST_CASE("Expression literals parse with a dot whatever the process locale", "[CadDocument][expr]")
+{
+    // it_IT used to turn "3.6" into 3 and "0.2" into 0 (std::stod reads the locale's decimal separator).
+    std::locale prev;
+    try { std::locale::global(std::locale("it_IT.UTF-8")); } catch (const std::exception&) { /* not installed here: the check below still holds */ }
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "S");
+    const int ex = doc.add_extrude(sk, 5, false, BooleanMode::New, "E");
+    doc.features[ex].expr["distance"] = "3.6 + 0.2";
+    const bool ok = doc.recompute();
+    std::locale::global(prev);
+    REQUIRE(ok);
+    CHECK(std::abs(doc.features[ex].distance - 3.8) < 1e-9);
+    doc.features[ex].expr["distance"] = "1.2.3";   // never a silent truncation
+    CHECK_FALSE(doc.recompute());
+}
+
+TEST_CASE("Pattern grid and thin-wall fields can be bound, and the list names them", "[CadDocument][expr]")
+{
+    for (const char* f : { "pattern_spacing2", "pattern_count2", "thin_in", "thin_out" }) {
+        INFO(f);
+        CHECK(CadDocument::is_bindable_field(f));
+    }
+    const auto names = CadDocument::bindable_fields();
+    CHECK(std::find(names.begin(), names.end(), "thread_diameter") != names.end());
+    CHECK(std::find(names.begin(), names.end(), "distance") != names.end());
+    CHECK(std::is_sorted(names.begin(), names.end()));
+}
+
+TEST_CASE("One sketch with two separate outlines extrudes both", "[CadDocument][extrude]")
+{
+    CadDocument doc;
+    auto rect = [](double x0, double y0, double x1, double y1) {
+        std::vector<SketchEntity> v(4);
+        const Vec2d p[4] = {{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}};
+        for (int i = 0; i < 4; ++i) { v[i].type = SketchEntity::Type::Line; v[i].p0 = p[i]; v[i].p1 = p[(i + 1) % 4]; }
+        return v;
+    };
+    std::vector<SketchEntity> ents = rect(0, 0, 10, 10);
+    for (const SketchEntity& e : rect(30, 0, 40, 10)) ents.push_back(e);
+    const int sk = doc.add_sketch_entities(ents, SketchPlane::XY(), "S");
+    doc.add_extrude(sk, 5, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(1000.0, 1e-6));
+}
+
+TEST_CASE("A sketch on a datum plane follows the plane when its offset variable changes", "[CadDocument][datum]")
+{
+    CadDocument doc;
+    doc.variables["off"] = "10";
+    const int pl = doc.add_plane(0, 10, 0, 0, "P");
+    doc.features[pl].expr["plane_offset"] = "off";
+    REQUIRE(doc.recompute());
+    const auto datums = doc.resolve_datum_planes();
+    REQUIRE(datums.size() == 1);
+    const int sk = doc.add_sketch(SketchShape::Rectangle, datums[0].second, 20, 20, 0, "S");
+    doc.features[sk].attach_datum = pl;
+    doc.add_extrude(sk, 5, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    const double z0 = doc.display_mesh.bounding_box().min.z();
+    doc.variables["off"] = "30";
+    REQUIRE(doc.recompute());
+    CHECK_THAT(doc.display_mesh.bounding_box().min.z() - z0, Catch::Matchers::WithinAbs(20.0, 1e-6));
+}
+
+// ---- a dress-up touches only the picked edges, even when the rest of the contour is tangent to them ----------------------
+
+TEST_CASE("Chamfering three tangent top segments leaves the others alone", "[CadDocument][chamfer][punctual]")
+{
+    // A 40 x 30 x 20 block with its vertical edges rounded to R6: the top rim is four lines and four arcs, all tangent.
+    TopoDS_Shape box = BRepPrimAPI_MakeBox(40., 30., 20.).Shape();
+    {
+        BRepFilletAPI_MakeFillet mk(box);
+        for (int i = 0; i < GeometryEngine::edge_count(box); ++i) {
+            const TopoDS_Edge e = GeometryEngine::edge_by_index(box, i);
+            BRepAdaptor_Curve c(e);
+            const gp_Pnt a = c.Value(c.FirstParameter()), b = c.Value(c.LastParameter());
+            if (std::abs(a.X() - b.X()) < 1e-6 && std::abs(a.Y() - b.Y()) < 1e-6) mk.Add(6.0, e);
+        }
+        mk.Build();
+        REQUIRE(mk.IsDone());
+        box = mk.Shape();
+    }
+    const double v0 = solid_volume(box);
+    const double d  = 2.0;
+    const std::vector<int> picked = {
+        edge_near(box, Vec3d(2.18, 2.18, 20.0), 0.6),     // arc
+        edge_near(box, Vec3d(20.0, 0.0, 20.0), 0.5),        // line
+        edge_near(box, Vec3d(37.82, 2.18, 20.0), 0.6) };  // arc
+    for (int id : picked) REQUIRE(id >= 0);
+
+    const double all_len = 2 * 28.0 + 2 * 18.0 + 4 * (M_PI * 6.0 / 2.0);
+    const double picked_len = 28.0 + 2 * (M_PI * 6.0 / 2.0);
+    const TopoDS_Shape out = GeometryEngine::apply_chamfer(box, d, picked);
+    const double removed = v0 - solid_volume(out);
+    // d^2/2 per unit length of a straight edge; a rounded one is a touch less
+    const double expect = 0.5 * d * d * picked_len;
+    INFO("removed " << removed << " expected about " << expect << " (the whole rim would be " << 0.5 * d * d * all_len << ")");
+    REQUIRE(removed > 0.85 * expect);
+    REQUIRE(removed < 1.05 * expect);
 }

@@ -1,0 +1,253 @@
+{
+ "id": "21-draft",
+ "name": "Draft side faces",
+ "description": "40x40x30 box (centred on origin in XY); 5 deg draft on the 4 side faces, neutral plane = bottom face.",
+ "exercises": [
+  "extrude",
+  "draft"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Extrude1_sketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       -20,
+       -20
+      ]
+     },
+     "end": {
+      "at": [
+       20,
+       -20
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       20.0,
+       -20.0
+      ]
+     },
+     "end": {
+      "at": [
+       20,
+       20
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       20.0,
+       20.0
+      ]
+     },
+     "end": {
+      "at": [
+       -20,
+       20
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       -20.0,
+       20.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       -20.0,
+       -20.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Extrude1_sketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 30,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Box"
+   ]
+  },
+  {
+   "op": "draft",
+   "name": "Draft1",
+   "faces": [
+    {
+     "type": "plane",
+     "normal_at_point_on_face": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "plane_normal_outward": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "point": [
+      0.0,
+      20.0,
+      15.0
+     ]
+    },
+    {
+     "type": "plane",
+     "normal_at_point_on_face": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "plane_normal_outward": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "point": [
+      20.0,
+      0.0,
+      15.0
+     ]
+    },
+    {
+     "type": "plane",
+     "normal_at_point_on_face": [
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "plane_normal_outward": [
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "point": [
+      0.0,
+      -20.0,
+      15.0
+     ]
+    },
+    {
+     "type": "plane",
+     "normal_at_point_on_face": [
+      -1.0,
+      0.0,
+      0.0
+     ],
+     "plane_normal_outward": [
+      -1.0,
+      0.0,
+      0.0
+     ],
+     "point": [
+      -20.0,
+      0.0,
+      15.0
+     ]
+    }
+   ],
+   "face_selection": "the 4 vertical side faces",
+   "neutral_plane": {
+    "type": "plane",
+    "normal_at_point_on_face": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "plane_normal_outward": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "point": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "neutral_selection": "bottom face (z=0)",
+   "angle": 5,
+   "flipped": false
+  }
+ ]
+}

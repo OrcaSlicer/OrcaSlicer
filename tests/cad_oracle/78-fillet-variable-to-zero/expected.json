@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "as 77 with the radius running from 4 (x=0) down to 0 (x=40), where the round closes to the corner: V = abc - (1 - pi/4) L a^2 / 3; the round is three-sided and the corner at x=40 stays",
+  "body_count": 1,
+  "volume_mm3": 23954.21827485812,
+  "area_mm2": 5162.286695397177,
+  "center_of_mass": [
+    20.019112176659895,
+    15.027387550737057,
+    9.98216853759289
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      40.0,
+      30.0,
+      20.0
+    ]
+  },
+  "faces": 7
+}

@@ -1,0 +1,25 @@
+{
+  "source": "freecad 1.1.4",
+  "method": "FreeCAD (OpenCASCADE) build of recipe.json by tools/freecad-oracle/build.py: Part extrude, Part extrude cut, pattern (tools transformed and re-applied), Part extrude cut, pattern (tools transformed and re-applied)",
+  "body_count": 1,
+  "volume_mm3": 38487.063633850754,
+  "area_mm2": 21686.603498756176,
+  "center_of_mass": [
+    -4.7262358616155635e-15,
+    2.1740684963431593e-15,
+    2.499999999999997
+  ],
+  "bbox": {
+    "min": [
+      -50.0,
+      -50.0,
+      -1e-07
+    ],
+    "max": [
+      50.0,
+      50.0,
+      5.0000001
+    ]
+  },
+  "faces": 39
+}

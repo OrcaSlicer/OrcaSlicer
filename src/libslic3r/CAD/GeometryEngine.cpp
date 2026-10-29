@@ -17,6 +17,14 @@
 #include <Poly_Triangle.hxx>
 #include <GeomAbs_CurveType.hxx>
 #include <gp_Cylinder.hxx>
+#include <BRepAlgoAPI_Splitter.hxx>
+#include <BRepAlgoAPI_Fuse.hxx>
+#include <BRepBndLib.hxx>
+#include <Bnd_Box.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepCheck_Analyzer.hxx>
+#include <TopTools_ListOfShape.hxx>
+#include <gp_Pln.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <math.h>
@@ -39,6 +47,17 @@
 #include <GProp_GProps.hxx>
 #include <GeomLProp_SLProps.hxx>
 #include <BRepAdaptor_Curve.hxx>
+#include <BRepTopAdaptor_FClass2d.hxx>
+#include <Geom_Surface.hxx>
+#include <GeomAPI_ProjectPointOnSurf.hxx>
+#include <Law_BSpline.hxx>
+#include <gp_Pnt2d.hxx>
+#include <NCollection_Array1.hxx>
+#include <Law_BSpFunc.hxx>
+#include <TColStd_Array1OfReal.hxx>
+#include <TColStd_Array1OfInteger.hxx>
+#include <BRep_Tool.hxx>
+#include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
 #include <gp_Circ.hxx>
 #include <GCPnts_TangentialDeflection.hxx>
 #include <STEPControl_Reader.hxx>
@@ -55,12 +74,16 @@
 #include <TopoDS_Solid.hxx>
 #include <TopoDS_Vertex.hxx>
 #include <ShapeUpgrade_UnifySameDomain.hxx>
+#include <BRepTools_History.hxx>
 #include <array>
 #include <map>
 #include <cmath>
 #include <vector>
 #include <string>
 #include <utility>
+#include <TopTools_ListOfShape.hxx>
+#include <TopAbs_State.hxx>
+#include <exception>
 
 namespace Slic3r {
 
@@ -368,16 +391,155 @@ TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double dis
     return apply_chamfer(solid, distance, std::vector<int>{ edge_id });
 }
 
+// Angle between the outward normals of the two faces that meet at `edge`, at the edge's midpoint (0 = flat, pi/2 = a box corner).
+static double edge_normal_angle(const TopoDS_Shape& solid, const TopoDS_Edge& edge)
+{
+    TopTools_IndexedDataMapOfShapeListOfShape ef;
+    TopExp::MapShapesAndAncestors(solid, TopAbs_EDGE, TopAbs_FACE, ef);
+    if (!ef.Contains(edge)) throw std::runtime_error("fillet: the edge is not part of the body");
+    const TopTools_ListOfShape& faces = ef.FindFromKey(edge);
+    if (faces.Extent() != 2) throw std::runtime_error("fillet: a chord-length fillet needs an edge shared by exactly two faces");
+    BRepAdaptor_Curve cur(edge);
+    const gp_Pnt mid = cur.Value(0.5 * (cur.FirstParameter() + cur.LastParameter()));
+    gp_Vec n[2];
+    int k = 0;
+    for (const TopoDS_Shape& s : faces) {
+        const TopoDS_Face face = TopoDS::Face(s);
+        BRepAdaptor_Surface surf(face);
+        GeomAPI_ProjectPointOnSurf proj(mid, BRep_Tool::Surface(face));
+        if (proj.NbPoints() < 1) throw std::runtime_error("fillet: cannot find the edge on its face");
+        double u, v;
+        proj.LowerDistanceParameters(u, v);
+        BRepLProp_SLProps props(surf, u, v, 1, 1e-6);
+        if (!props.IsNormalDefined()) throw std::runtime_error("fillet: the face normal is undefined at the edge");
+        n[k] = gp_Vec(props.Normal());
+        if (face.Orientation() == TopAbs_REVERSED) n[k].Reverse();
+        ++k;
+    }
+    return n[0].Angle(n[1]);
+}
+
+// How much radius fits at relative position `u` along `edge`: the narrower of the two faces measured square to the edge
+// (to the face's own boundary), times tan(half the angle between the faces).
+static double taper_room(const TopoDS_Shape& solid, const TopoDS_Edge& edge, double u)
+{
+    TopTools_IndexedDataMapOfShapeListOfShape ef;
+    TopExp::MapShapesAndAncestors(solid, TopAbs_EDGE, TopAbs_FACE, ef);
+    if (!ef.Contains(edge)) throw std::runtime_error("fillet: the edge is not part of the body");
+    BRepAdaptor_Curve cur(edge);
+    // the ends of the edge sit on the faces' own boundaries, so measure a hair inside them
+    const double t = cur.FirstParameter() + std::clamp(u, 0.002, 0.998) * (cur.LastParameter() - cur.FirstParameter());
+    const gp_Pnt p = cur.Value(t);
+    gp_Vec tan = cur.DN(t, 1);
+    if (tan.Magnitude() < 1e-12) throw std::runtime_error("fillet: the edge has no direction here");
+    tan.Normalize();
+    const double beta = edge_normal_angle(solid, edge);
+    double room = 1e300;
+    for (const TopoDS_Shape& fs : ef.FindFromKey(edge)) {
+        const TopoDS_Face face = TopoDS::Face(fs);
+        BRepAdaptor_Surface surf(face);
+        if (surf.GetType() != GeomAbs_Plane) throw std::runtime_error("fillet: fit taper needs flat faces beside the edge");
+        gp_Vec n(surf.Plane().Axis().Direction());
+        gp_Vec d = n.Crossed(tan);
+        d.Normalize();
+        BRepTopAdaptor_FClass2d cls(face, 1e-7);
+        Handle(Geom_Surface) gs = BRep_Tool::Surface(face);
+        auto inside = [&](double dist) {   // the point on the plane, found in the face's own (u, v) and classified there
+            GeomAPI_ProjectPointOnSurf pr(gp_Pnt(p.XYZ() + d.XYZ() * dist), gs);
+            if (pr.NbPoints() < 1) return false;
+            double pu, pv;
+            pr.LowerDistanceParameters(pu, pv);
+            return cls.Perform(gp_Pnt2d(pu, pv)) == TopAbs_IN;
+        };
+        if (!inside(1e-4)) d.Reverse();
+        if (!inside(1e-4)) throw std::runtime_error("fillet: cannot measure the room beside the edge");
+        double lo = 0.0, hi = 1e-4;
+        while (inside(hi) && hi < 1e5) { lo = hi; hi *= 2.0; }
+        for (int i = 0; i < 40; ++i) { const double m = 0.5 * (lo + hi); (inside(m) ? lo : hi) = m; }
+        room = std::min(room, lo);
+    }
+    return room * std::tan(0.5 * (M_PI - beta));
+}
+
 TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radius, const std::vector<int>& edge_ids)
 {
+    return apply_fillet(solid, radius, edge_ids, FilletLaw{});
+}
+
+static TopoDS_Shape fillet_edges_raw(const TopoDS_Shape& solid, double radius, const std::vector<TopoDS_Edge>& edges, const GeometryEngine::FilletLaw& law)
+{
     if (radius <= 0.001) throw std::runtime_error(_u8L("the fillet radius must be greater than 0"));
-    if (edge_ids.empty()) throw std::runtime_error("apply_fillet: no edge picked");
+    if (edges.empty()) throw std::runtime_error("apply_fillet: no edge picked");
+    if (law.r2 > 1e6 || radius > 1e6) throw std::runtime_error("the fillet radius is too large");
 
     BRepFilletAPI_MakeFillet mk(solid);
-    for (int id : edge_ids) {
-        TopoDS_Edge edge = edge_by_index(solid, id);
-        if (edge.IsNull()) throw std::runtime_error("apply_fillet: invalid edge id");
-        mk.Add(radius, edge);
+    auto add_spline = [&](std::vector<double> poles, std::vector<double> kn, const TopoDS_Edge& edge) {
+            const int deg = int(kn.size()) - int(poles.size()) - 1;
+            if (deg < 1 || deg > 8 || !std::is_sorted(kn.begin(), kn.end()) || kn.front() != 0.0 || kn.back() != 1.0)
+                throw std::runtime_error("fillet: the radius spline needs sorted knots from 0 to 1 and degree = knots - radii - 1 between 1 and 8");
+            for (double p : poles) if (!(p > 1e-3) || p > 1e6) throw std::runtime_error("fillet: every control radius must be greater than 0");
+            if (law.has_start) {
+                BRepAdaptor_Curve cur(edge);
+                const gp_Pnt a = cur.Value(cur.FirstParameter()), b = cur.Value(cur.LastParameter());
+                const gp_Pnt s(law.start.x(), law.start.y(), law.start.z());
+                if (s.Distance(b) < s.Distance(a)) {   // the law is written from `start`; the edge runs the other way
+                    std::reverse(poles.begin(), poles.end());
+                    std::reverse(kn.begin(), kn.end());
+                    for (double& k : kn) k = 1.0 - k;
+                }
+            }
+            std::vector<double> uk; std::vector<int> mult;   // distinct knots with their multiplicities
+            for (double k : kn) {
+                if (!uk.empty() && std::abs(uk.back() - k) < 1e-12) ++mult.back();
+                else { uk.push_back(k); mult.push_back(1); }
+            }
+            TColStd_Array1OfReal pa(1, int(poles.size())), ka(1, int(uk.size()));
+            TColStd_Array1OfInteger ma(1, int(mult.size()));
+            for (size_t i = 0; i < poles.size(); ++i) pa(int(i) + 1) = poles[i];
+            for (size_t i = 0; i < uk.size(); ++i) { ka(int(i) + 1) = uk[i]; ma(int(i) + 1) = mult[i]; }
+            Handle(Law_BSpline) bs = new Law_BSpline(pa, ka, ma, deg);
+            // OCCT's own law hook (a Law_Function) crashes ChFiDS_FilSpine::Reset on this build, so the spline is handed over as
+            // sampled (relative parameter, radius) pairs, which the builder interpolates smoothly itself.
+            constexpr int N = 32;
+            NCollection_Array1<gp_Pnt2d> samples(1, N + 1);
+            for (int i = 0; i <= N; ++i) {
+                const double u = double(i) / N;
+                double r = 0;
+                bs->D0(u, r);
+                samples(i + 1) = gp_Pnt2d(u, std::max(r, 1e-3));
+            }
+            mk.Add(samples, edge);
+    };
+    for (const TopoDS_Edge& edge : edges) {
+        if (law.chord) {
+            const double s = std::sin(0.5 * edge_normal_angle(solid, edge));
+            if (s < 1e-6) throw std::runtime_error("fillet: the two faces are tangent here, a chord length cannot be turned into a radius");
+            mk.Add(radius / (2.0 * s), edge);
+        } else if (!law.radii.empty()) {
+            std::vector<double> poles(1, radius);
+            poles.insert(poles.end(), law.radii.begin(), law.radii.end());
+            add_spline(poles, law.knots, edge);
+        } else if (law.fit_taper) {
+            std::vector<double> kn(4, 0.0), poles;
+            for (int i = 1; i < 8; ++i) kn.push_back(i / 8.0);
+            kn.insert(kn.end(), 4, 1.0);
+            for (int i = 0; i < 11; ++i) {
+                const double u = (kn[size_t(i) + 1] + kn[size_t(i) + 2] + kn[size_t(i) + 3]) / 3.0;
+                poles.push_back(std::min(radius, 0.9 * taper_room(solid, edge, u)));
+            }
+            add_spline(poles, kn, edge);
+        } else if (law.r2 >= 0.0) {
+            double r1 = radius, r2 = std::max(law.r2, 1e-3);   // a round that closes to a point is asked for as a very small one
+            if (law.has_start) {
+                BRepAdaptor_Curve cur(edge);
+                const gp_Pnt a = cur.Value(cur.FirstParameter()), b = cur.Value(cur.LastParameter());
+                const gp_Pnt s(law.start.x(), law.start.y(), law.start.z());
+                if (s.Distance(b) < s.Distance(a)) std::swap(r1, r2);   // `radius` belongs at the end nearest `start`
+            }
+            mk.Add(r1, r2, edge);
+        } else {
+            mk.Add(radius, edge);
+        }
     }
     mk.Build();
 
@@ -385,21 +547,179 @@ TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radi
     return mk.Shape();
 }
 
+
+// OCCT grows a fillet / chamfer along every edge tangent to a picked one (a whole contour), so three picked segments of a
+// rounded top edge round all of it. The pick must be the only thing that changes: where a contour runs on past the picked
+// edges, split the solid by a plane normal to the edge at each such junction, dress each piece (the plane face is no
+// longer tangent, so the contour stops there) and fuse the pieces back. The dress ends flat on that plane.
+static bool edge_in(const std::vector<TopoDS_Edge>& v, const TopoDS_Shape& e)
+{
+    for (const TopoDS_Edge& x : v) if (x.IsSame(e)) return true;
+    return false;
+}
+
+static std::vector<TopoDS_Edge> contour_extras(const TopoDS_Shape& solid, const std::vector<TopoDS_Edge>& edges, bool fillet)
+{
+    std::vector<TopoDS_Edge> extras;
+    auto scan = [&](auto& mk) {
+        for (const TopoDS_Edge& e : edges) mk.Add(1.0, e);
+        for (int i = 1; i <= mk.NbContours(); ++i)
+            for (int j = 1; j <= mk.NbEdges(i); ++j) {
+                const TopoDS_Edge x = mk.Edge(i, j);
+                if (!edge_in(edges, x) && !edge_in(extras, x)) extras.push_back(x);
+            }
+    };
+    try {
+        if (fillet) { BRepFilletAPI_MakeFillet mk(solid); scan(mk); }
+        else        { BRepFilletAPI_MakeChamfer mk(solid); scan(mk); }
+    } catch (...) { extras.clear(); }
+    return extras;
+}
+
+template<class Op>
+static TopoDS_Shape dress_punctual(const TopoDS_Shape& solid, const std::vector<TopoDS_Edge>& edges, bool fillet, Op op)
+{
+    const std::vector<TopoDS_Edge> extras = contour_extras(solid, edges, fillet);
+    if (extras.empty()) return op(solid, edges);
+
+    // a plane normal to the contour at every vertex where a picked edge meets an unpicked one
+    std::vector<std::pair<gp_Pnt, gp_Dir>> cuts;
+    for (const TopoDS_Edge& x : extras)
+        for (TopExp_Explorer ve(x, TopAbs_VERTEX); ve.More(); ve.Next()) {
+            const TopoDS_Vertex v = TopoDS::Vertex(ve.Current());
+            for (const TopoDS_Edge& s : edges)
+                for (TopExp_Explorer se(s, TopAbs_VERTEX); se.More(); se.Next()) {
+                    if (!se.Current().IsSame(v)) continue;
+                    BRepAdaptor_Curve c(s);
+                    gp_Pnt pt; gp_Vec t;
+                    c.D1(BRep_Tool::Parameter(v, s), pt, t);
+                    if (t.Magnitude() < 1e-9) continue;
+                    bool dup = false;
+                    for (const auto& k : cuts) if (k.first.Distance(pt) < 1e-6) { dup = true; break; }
+                    if (!dup) cuts.emplace_back(pt, gp_Dir(t));
+                }
+        }
+    if (cuts.empty()) return op(solid, edges);
+
+    Bnd_Box bb;
+    BRepBndLib::Add(solid, bb);
+    const double L = 2.0 * std::sqrt(bb.SquareExtent()) + 10.0;
+    TopTools_ListOfShape args, tools;
+    args.Append(solid);
+    for (const auto& k : cuts)
+        tools.Append(BRepBuilderAPI_MakeFace(gp_Pln(k.first, k.second), -L, L, -L, L).Face());
+    BRepAlgoAPI_Splitter sp;
+    sp.SetArguments(args);
+    sp.SetTools(tools);
+    sp.Build();
+    if (!sp.IsDone()) throw std::runtime_error(_u8L("cannot limit the dress-up to the picked edges"));
+
+    std::vector<TopoDS_Shape> done;
+    for (TopExp_Explorer ex(sp.Shape(), TopAbs_SOLID); ex.More(); ex.Next()) {
+        const TopoDS_Shape piece = ex.Current();
+        // the piece's edges that lie on a picked one (the splits cut them into several)
+        std::vector<TopoDS_Edge> mine;
+        NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> all;
+        TopExp::MapShapes(piece, TopAbs_EDGE, all);
+        for (int i = 1; i <= all.Extent(); ++i) {
+            const TopoDS_Edge e = TopoDS::Edge(all(i));
+            if (BRep_Tool::Degenerated(e)) continue;
+            BRepAdaptor_Curve c(e);
+            const TopoDS_Vertex mid = BRepBuilderAPI_MakeVertex(c.Value(0.5 * (c.FirstParameter() + c.LastParameter())));
+            for (const TopoDS_Edge& s : edges) {
+                BRepExtrema_DistShapeShape d(mid, s);
+                if (d.IsDone() && d.Value() < 1e-4) { mine.push_back(e); break; }
+            }
+        }
+        done.push_back(mine.empty() ? piece : op(piece, mine));
+    }
+    if (done.empty()) throw std::runtime_error(_u8L("cannot limit the dress-up to the picked edges"));
+    TopoDS_Shape out = done.front();
+    if (done.size() > 1) {
+        TopTools_ListOfShape a, t;
+        a.Append(done.front());
+        for (size_t i = 1; i < done.size(); ++i) t.Append(done[i]);
+        BRepAlgoAPI_Fuse fu;
+        fu.SetArguments(a);
+        fu.SetTools(t);
+        fu.Build();
+        if (!fu.IsDone()) throw std::runtime_error(_u8L("cannot limit the dress-up to the picked edges"));
+        out = fu.Shape();
+    }
+    ShapeUpgrade_UnifySameDomain u(out, true, true, true);
+    u.Build();
+    out = u.Shape();
+    if (!BRepCheck_Analyzer(out).IsValid()) throw std::runtime_error(_u8L("cannot limit the dress-up to the picked edges"));
+    return out;
+}
+
+static TopoDS_Shape fillet_edges(const TopoDS_Shape& solid, double radius, const std::vector<TopoDS_Edge>& edges, const GeometryEngine::FilletLaw& law)
+{
+    if (radius <= 0.001) throw std::runtime_error("the fillet radius must be greater than 0");
+    if (edges.empty()) throw std::runtime_error("apply_fillet: no edge picked");
+    return dress_punctual(solid, edges, true, [&](const TopoDS_Shape& s, const std::vector<TopoDS_Edge>& es) {
+        return fillet_edges_raw(s, radius, es, law);
+    });
+}
+
+TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radius, const std::vector<int>& edge_ids, const FilletLaw& law)
+{
+    std::vector<TopoDS_Edge> edges;
+    for (int id : edge_ids) {
+        TopoDS_Edge edge = edge_by_index(solid, id);
+        if (edge.IsNull()) throw std::runtime_error("apply_fillet: invalid edge id");
+        edges.push_back(edge);
+    }
+    try {
+        return fillet_edges(solid, radius, edges, law);
+    } catch (const std::exception&) {
+        // An intersection curve that the surfaces' seams cut into several edges (two cylinders that cross) makes the builder
+        // give up; merged back into one edge it often does not. Unify the body, follow the edges through the merge, retry.
+        TopoDS_Shape merged;
+        std::vector<TopoDS_Edge> now;
+        try {
+            ShapeUpgrade_UnifySameDomain u(solid, true, true, true);
+            u.Build();
+            merged = u.Shape();
+            const Handle(BRepTools_History) h = u.History();
+            for (const TopoDS_Edge& e : edges) {
+                bool any = false;
+                if (!h.IsNull())
+                    for (const TopoDS_Shape& m : h->Modified(e)) { now.push_back(TopoDS::Edge(m)); any = true; }
+                if (!any && !(!h.IsNull() && h->IsRemoved(e))) now.push_back(e);
+            }
+        } catch (...) { merged.Nullify(); }
+        if (!merged.IsNull() && !now.empty()) {
+            std::vector<TopoDS_Edge> uniq;   // several seam pieces collapse onto one edge
+            for (const TopoDS_Edge& e : now) {
+                bool dup = false;
+                for (const TopoDS_Edge& q : uniq) if (q.IsSame(e)) { dup = true; break; }
+                if (!dup) uniq.push_back(e);
+            }
+            try { return fillet_edges(merged, radius, uniq, law); } catch (const std::exception&) {}
+        }
+        throw;
+    }
+}
+
 TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double distance, const std::vector<int>& edge_ids)
 {
     if (distance <= 0.001) throw std::runtime_error(_u8L("the chamfer distance must be greater than 0"));
     if (edge_ids.empty()) throw std::runtime_error("apply_chamfer: no edge picked");
 
-    BRepFilletAPI_MakeChamfer mk(solid);
+    std::vector<TopoDS_Edge> edges;
     for (int id : edge_ids) {
         TopoDS_Edge edge = edge_by_index(solid, id);
         if (edge.IsNull()) throw std::runtime_error("apply_chamfer: invalid edge id");
-        mk.Add(distance, edge);
+        edges.push_back(edge);
     }
-    mk.Build();
-
-    if (!mk.IsDone()) throw std::runtime_error(_u8L("apply_chamfer: OCCT chamfer failed"));
-    return mk.Shape();
+    return dress_punctual(solid, edges, false, [&](const TopoDS_Shape& sh, const std::vector<TopoDS_Edge>& es) {
+        BRepFilletAPI_MakeChamfer mk(sh);
+        for (const TopoDS_Edge& e : es) mk.Add(distance, e);
+        mk.Build();
+        if (!mk.IsDone()) throw std::runtime_error(_u8L("apply_chamfer: OCCT chamfer failed"));
+        return mk.Shape();
+    });
 }
 
 // ---- Tessellation ----
@@ -729,6 +1049,54 @@ int GeometryEngine::edge_index_of(const TopoDS_Shape& shape, const TopoDS_Edge& 
     TopExp::MapShapes(shape, TopAbs_EDGE, map);
     int idx = map.FindIndex(edge);
     return (idx > 0) ? (idx - 1) : -1;
+}
+
+// Unit tangent of `e` at its vertex `v` (the end of the curve that vertex sits on).
+static bool edge_tangent_at(const TopoDS_Edge& e, const TopoDS_Vertex& v, gp_Vec& t)
+{
+    BRepAdaptor_Curve c(e);
+    const gp_Pnt p = BRep_Tool::Pnt(v);
+    const double u = c.Value(c.FirstParameter()).SquareDistance(p) <= c.Value(c.LastParameter()).SquareDistance(p)
+                         ? c.FirstParameter() : c.LastParameter();
+    gp_Pnt q; gp_Vec d;
+    c.D1(u, q, d);
+    if (d.Magnitude() < 1e-12) return false;
+    t = d.Normalized();
+    return true;
+}
+
+std::vector<int> GeometryEngine::tangent_edge_chain(const TopoDS_Shape& shape, int index, double deg)
+{
+    std::vector<int> out;
+    ShapeIndexMap emap;
+    TopExp::MapShapes(shape, TopAbs_EDGE, emap);
+    if (index < 0 || index >= emap.Extent()) return out;
+    TopTools_IndexedDataMapOfShapeListOfShape v2e;
+    TopExp::MapShapesAndAncestors(shape, TopAbs_VERTEX, TopAbs_EDGE, v2e);
+    const double cs = std::cos(deg * M_PI / 180.0);
+    std::vector<char> seen(size_t(emap.Extent()), 0);
+    std::vector<int> stack{index};
+    seen[size_t(index)] = 1;
+    while (!stack.empty()) {
+        const int cur = stack.back(); stack.pop_back();
+        out.push_back(cur);
+        const TopoDS_Edge ce = TopoDS::Edge(emap(cur + 1));
+        for (TopExp_Explorer vx(ce, TopAbs_VERTEX); vx.More(); vx.Next()) {
+            const TopoDS_Vertex v = TopoDS::Vertex(vx.Current());
+            gp_Vec t0;
+            if (!edge_tangent_at(ce, v, t0)) continue;
+            const int vi = v2e.FindIndex(v);
+            if (vi <= 0) continue;
+            for (const TopoDS_Shape& s : v2e(vi)) {
+                const int ni = emap.FindIndex(s) - 1;
+                if (ni < 0 || seen[size_t(ni)]) continue;
+                gp_Vec t1;
+                if (!edge_tangent_at(TopoDS::Edge(s), v, t1)) continue;
+                if (std::abs(t0.Dot(t1)) >= cs) { seen[size_t(ni)] = 1; stack.push_back(ni); }
+            }
+        }
+    }
+    return out;
 }
 
 } // namespace Slic3r

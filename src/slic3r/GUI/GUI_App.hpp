@@ -452,6 +452,9 @@ public:
     void toggle_show_gcode_window();
 
     bool show_3d_navigator() const { return app_config->get_bool("show_3d_navigator"); }
+    // The corner of the canvas the 3D navigator and the round canvas buttons sit in, the same in Prepare and Design.
+    bool navigator_right() const  { const std::string c = app_config->get("navigator_corner"); return c == "top_right" || c == "bottom_right"; }
+    bool navigator_bottom() const { const std::string c = app_config->get("navigator_corner"); return c == "bottom_left" || c == "bottom_right"; }
     void toggle_show_3d_navigator() const { app_config->set_bool("show_3d_navigator", !show_3d_navigator()); }
 
     bool show_plate_gridlines() const { return app_config->get_bool("show_plate_gridlines"); }

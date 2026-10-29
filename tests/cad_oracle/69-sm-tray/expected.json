@@ -1,0 +1,26 @@
+{
+  "source": "analytic",
+  "method": "tray: base 90 x 50 x 2.5 (each edge trimmed by the setback 5); four 90 deg bends R 2.5..5 along the trimmed edges (90, 50, 90, 50 long); four walls 2.5 thick, z 5..25, each running on past its bend by ext = (R+t) - (t + gap/sqrt2) = 0.732233047 at both ends; open corners. A = sum of prisms - 2 x joints",
+  "body_count": 1,
+  "volume_mm3": 29666.23357665006,
+  "area_mm2": 24980.085907711007,
+  "center_of_mass": [
+    49.99999999999999,
+    29.999999999999996,
+    8.051722040173603
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      100.0,
+      60.0,
+      25.0
+    ]
+  },
+  "faces": 46,
+  "note": "corner treatment is SolidCraft's convention (sheet.rs close_corners: panels extended until their inner corners are the rule gap = t apart; no corner fill, open corner relief below the walls)"
+}

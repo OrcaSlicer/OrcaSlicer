@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "width 60 x depth 40 x height 15 block from the origin with a centred d10 through hole: V = (wd - pi r^2) h, A = 2(wd - pi r^2) + 2(w+d)h + 2 pi r h",
+  "body_count": 1,
+  "volume_mm3": 34821.90275490383,
+  "area_mm2": 8114.15926535898,
+  "center_of_mass": [
+    30.0,
+    20.0,
+    7.5
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      60.0,
+      40.0,
+      15.0
+    ]
+  },
+  "faces": 7
+}

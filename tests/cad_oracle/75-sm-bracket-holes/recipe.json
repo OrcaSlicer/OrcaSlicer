@@ -1,0 +1,300 @@
+{
+ "id": "75-sm-bracket-holes",
+ "name": "Sheet metal: bracket with holes for DXF",
+ "description": "80x40 base, 30 mm flange on y=0 edge and 15 mm flange on x=80 edge; two d6 holes in the base.",
+ "exercises": [
+  "sheet_metal",
+  "edge_flange",
+  "holes",
+  "dxf",
+  "bend_lines"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Base",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "end": {
+      "at": [
+       80,
+       0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       80.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       80,
+       40
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       80.0,
+       40.0
+      ]
+     },
+     "end": {
+      "at": [
+       0,
+       40
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       0.0,
+       40.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "sm_flange",
+   "type": "base",
+   "name": "BaseFlange",
+   "profile": {
+    "sketch": "Base",
+    "loops": [
+     {
+      "outer": true,
+      "curves": [
+       "l1",
+       "l2",
+       "l3",
+       "l4"
+      ]
+     }
+    ]
+   },
+   "orientation": "Side 1 (default): thickness grows along the sketch normal (+Z)",
+   "operation": "new body",
+   "rule": "Steel (mm)"
+  },
+  {
+   "op": "sm_flange",
+   "type": "edge",
+   "edges": [
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      0.0,
+      2.5
+     ],
+     "end": [
+      80.0,
+      0.0,
+      2.5
+     ],
+     "point": [
+      40.0,
+      0.0,
+      2.5
+     ]
+    }
+   ],
+   "edge_selection": "top edge at y=0",
+   "height": 30,
+   "angle": 90,
+   "height_datum": "Outer Faces (default)",
+   "bend_position": "Inside (default)",
+   "bend_radius": "rule (default)",
+   "flip": false
+  },
+  {
+   "op": "sm_flange",
+   "type": "edge",
+   "edges": [
+    {
+     "type": "line",
+     "start": [
+      80.0,
+      5.0,
+      2.5
+     ],
+     "end": [
+      80.0,
+      40.0,
+      2.5
+     ],
+     "point": [
+      80.0,
+      22.5,
+      2.5
+     ]
+    }
+   ],
+   "edge_selection": "top edge at x=80 of the base",
+   "height": 15,
+   "angle": 90,
+   "height_datum": "Outer Faces (default)",
+   "bend_position": "Inside (default)",
+   "bend_radius": "rule (default)",
+   "flip": false
+  },
+  {
+   "op": "sketch",
+   "name": "Holes",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       25,
+       20
+      ]
+     },
+     "radius": 3,
+     "id": "c1"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       55,
+       20
+      ]
+     },
+     "radius": 3,
+     "id": "c2"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Holes",
+   "operation": "cut",
+   "profiles": [
+    {
+     "sketch": "Holes",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "Holes",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c2"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "through_all",
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Body1"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "box [0,40]^2x[0,20] union cylinder r=12 at (40,20) z 0..40: V = box + half-cylinder (x>40, z<20, centroid 40 + 4r/3pi) + full cylinder z 20..40; A = bottom (1600 + pi r^2/2) + box top (1600 - pi r^2/2) + cyl top + 3 full sides + x=40 side minus 24x20 + cyl side (pi r 40 outside half + pi r 20 upper inside half)",
+  "body_count": 1,
+  "volume_mm3": 45571.68026350791,
+  "area_mm2": 8634.336052701581,
+  "center_of_mass": [
+    26.46176756194705,
+    19.999999999999996,
+    13.970793611305016
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      52.0,
+      40.0,
+      40.0
+    ]
+  },
+  "faces": 9
+}

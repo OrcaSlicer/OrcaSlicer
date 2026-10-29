@@ -20,10 +20,12 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <memory>
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace, Rib, SurfaceExtrude, SurfaceRevolve, ThickenSurface, SurfaceOffset, SurfaceLoft, SurfaceFill, Mate };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace, Rib, SurfaceExtrude, SurfaceRevolve, ThickenSurface, SurfaceOffset, SurfaceLoft, SurfaceFill, Mate, Sketch3D,
+                             SmRule, SmBase, SmEdgeFlange, SmContourFlange, SmHem, SmUnfold, SmRefold };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class AxisType       { TwoPoints, FaceNormal, CylinderCenterline, PlaneIntersection, AlongEdge };
@@ -121,6 +123,14 @@ struct CadFeature {
     // dressup_edge holds the first of them: a build that predates the list still dresses that
     // one edge instead of falling back to the whole face group.
     std::vector<int> dressup_edges;
+    // Fillet size law (see GeometryEngine::FilletLaw): the radius at the far end of a linearly varying fillet (< 0 = constant),
+    // whether dressup_size is a chord width, and which end dressup_size belongs to.
+    double      dressup_size2{-1.0};
+    bool        dressup_chord{false};
+    bool        dressup_has_start{false};
+    Vec3d       dressup_start{0, 0, 0};
+    std::vector<double> dressup_radii;   // spline radius law: control radii after dressup_size, and the knot vector
+    std::vector<double> dressup_knots;
     // The edges this dress-up targets: the list, else the single edge, else none (face group).
     // Text feature: a Sketch whose imported_regions were vectorised from this string in this font
     // (a WxFontUtils descriptor, bold/italic included) at this cap height in mm. The regions are
@@ -150,6 +160,7 @@ struct CadFeature {
     double      hole_cbore_depth{0};       // counterbore depth from the entry face (mm), style==1
     double      hole_csink_diameter{0};    // countersink major diameter at entry face (mm), style==2
     double      hole_csink_angle{90};      // countersink included angle (degrees), style==2
+    double      hole_tip_angle{0};         // blind hole: included angle of the drill point (deg, 0 = flat bottom)
     std::string hole_standard;             // provenance only, e.g. "M6" / "1/4-20"; not used by geometry
 
     // Thread params (helical thread about the plane normal at a positioned point)
@@ -197,6 +208,9 @@ struct CadFeature {
     // order, each on its own plane). loft_ruled=false → smooth sections, true → ruled.
     // Reuses mode (boolean) and target_body.
     std::vector<int> loft_profile_refs;    // ordered indices into features[] of profile Sketches
+    // Parallel to loft_profile_refs: the entities (indices into that sketch) of the ONE closed loop the profile is. Empty, or a
+    // missing entry = the whole sketch (it must then be one closed shape). A sketch is not a profile; a closed loop is.
+    std::vector<std::vector<int>> loft_profile_loops;
     bool        loft_ruled{false};
 
     // Pattern: replicate the target body, copies fused into it. pattern_circular=false
@@ -215,6 +229,34 @@ struct CadFeature {
     // curve. false (older recipes, kept as they were built): always angle / count, so 90° with 3
     // copies stopped at 60°.
     bool        pattern_inclusive{false};
+    // FEATURE pattern: replicate what these earlier features did to the body (the material they took away and the material they
+    // added), instead of copying the whole body. Linear = `pattern_count` x `pattern_spacing` along pattern_axis, optionally a
+    // second grid direction; circular (pattern_circular) = pattern_count about the line through pattern_origin along pattern_axis.
+    std::vector<int> pattern_features;
+    Vec3d       pattern_axis{1, 0, 0};
+    Vec3d       pattern_origin{0, 0, 0};
+    Vec3d       pattern_axis2{0, 1, 0};
+    int         pattern_count2{1};
+    double      pattern_spacing2{0};
+    // Shell: further faces to open besides shell_face. Draft: further faces to taper besides draft_face, the pull direction
+    // and the neutral plane (a point on it; the plane is perpendicular to the pull). Without draft_has_neutral the pull is +Z and
+    // the neutral plane is the body's lowest Z.
+    std::vector<int> shell_faces;
+    std::vector<int> draft_faces;
+    bool        draft_has_neutral{false};
+    Vec3d       draft_pull{0, 0, 1};
+    Vec3d       draft_neutral{0, 0, 0};
+    // Thin extrude: the profile is a wall around the sketch's outline instead of its filled area - thin_in thick inside the
+    // outline, thin_out outside it (0 = none on that side; both 0 = a normal extrude).
+    double      thin_in{0};
+    double      thin_out{0};
+    // Feature "pattern" that mirrors instead: one copy of what the features did, reflected in the plane through pattern_origin
+    // with normal pattern_axis.
+    bool        pattern_mirror{false};
+    // Extrude of SOME of the sketch's loops: indices into the sketch's entities. Empty = all of them, as one region (the GUI's
+    // way: disjoint regions are refused). Set, the chosen loops become separate regions (nested loops are holes) and each is
+    // extruded - one feature, several islands.
+    std::vector<int> extrude_entities;
 
     // Pattern along a curve: when pattern_curve_sketch >= 0 this mode takes precedence over
     // linear/circular. Copies are placed at equal-parameter points along entity
@@ -346,6 +388,35 @@ struct CadFeature {
     int              project_source_body{-1};   // body owning the edges; -1 = last body
     std::vector<int> project_edges;             // global edge ids to project; empty => use project_face
     int              project_face{-1};          // if project_edges empty, project every edge of this face
+    // "Use": the source is another SKETCH (any plane, incl. a parallel one), not a body. The link is
+    // persistent: entities are re-projected on every recompute, so editing the parent moves them,
+    // and a parent that is gone is an Error, never a silent keep-the-old-geometry.
+    // Sketch3D: a free 3D polyline / spline through `sk3_points` (world mm). It makes no solid; it is a
+    // PATH (Sweep) and, later, a loft guide. `smooth` interpolates a C2 spline instead of straight legs.
+    std::vector<Vec3d> sk3_points;
+    bool               sk3_closed{false};
+    bool               sk3_smooth{false};
+
+    // Face attachment of a sketch: the body and the (global) face id the sketch was drawn on. recompute() follows that
+    // face through upstream edits (TopoRemap) and carries the sketch plane with it; -1 = a free plane.
+    int                attach_body{-1};
+    int                attach_face{-1};
+    // A sketch drawn on a datum Plane: the index of that Plane feature. recompute() seats the sketch on the plane as it is
+    // now, so a plane whose offset is bound to a variable takes the sketch (and what was extruded from it) along. -1 = none.
+    int                attach_datum{-1};
+    // Names a caller gave to sketch dimensions: entity_constraints index -> name. set_feature_expr takes "dim:<name>" for
+    // "dim:<index>", so a binding does not depend on remembering a number. Indices are positions: a constraint deleted
+    // from the sketch shifts those after it, and the names stay where they were put.
+    std::map<int, std::string> dim_names;
+
+    bool             project_from_sketch{false};
+    int              project_source_sketch{-1}; // feature index; remapped on delete (orphan -> -1 = Error)
+    std::vector<int> project_sketch_entities;   // entity indices of the source; empty = all
+    // Loft end conditions for the FIRST / LAST profile: 0 = Contact (the surface just starts at the
+    // profile), 1 = Normal to profile (it leaves along the profile's plane normal). Ignored for a ruled
+    // loft, whose straight sections have no end condition to give.
+    int loft_start_cond{0};
+    int loft_end_cond{0};
 
     // Direct edit: faces to remove (global face indices into target_body's shape),
     // healed via BRepAlgoAPI_Defeaturing.
@@ -371,6 +442,20 @@ struct CadFeature {
     double mate_angle{0};       // rotation about A's z, degrees
     bool   mate_flip{false};    // oppose the two z axes (face-to-face)
 
+    // Sheet metal. An SmRule feature sets the rule every later sheet-metal feature uses (bind_sheet_rules copies it into
+    // them on each recompute). `distance` is the flange height / contour width / hem length, `flip` the side, dressup_edges
+    // the edges, sketch_ref the base or contour sketch.
+    double sm_thickness{2.5};
+    double sm_radius{-1};     // inner bend radius; <= 0 = the thickness
+    double sm_k{0.44};        // K-factor (unfold)
+    double sm_gap{0.01};      // hem gap
+    double sm_angle{90};      // edge flange angle (deg)
+    int    sm_ref{-1};        // refold: the unfold feature it folds back
+    bool   dressup_fit_taper{false};   // fillet: where the radius does not fit, follow the room (GeometryEngine::FilletLaw::fit_taper)
+
+    // LEGACY positional list (recipe v5/v6), FROZEN: load() reads old projects, save() stays as the reference the
+    // coverage test compares the v7 groups against,. New fields
+    // go ONLY into CadFeatureFields.hpp (which also lists the index references the remap follows), never here.
     template<class Archive>
     void save(Archive& ar) const {
         std::string brep = (type == CadFeatureType::Import) ? brep_to_string(imported_solid) : std::string();
@@ -412,7 +497,19 @@ struct CadFeature {
                thread_major_nominal, pattern_inclusive,
                dressup_edges,
                text_string, text_font, text_height,
-               revolve_axis_entity);
+               revolve_axis_entity,
+               project_from_sketch, project_source_sketch, project_sketch_entities,
+               loft_start_cond, loft_end_cond,
+               sk3_points, sk3_closed, sk3_smooth,
+               attach_body, attach_face,
+               dressup_size2, dressup_chord, dressup_has_start, dressup_start,
+               dressup_radii, dressup_knots,
+               pattern_features, pattern_axis, pattern_origin, pattern_axis2, pattern_count2, pattern_spacing2,
+               shell_faces, draft_faces, draft_has_neutral, draft_pull, draft_neutral,
+               thin_in, thin_out, pattern_mirror, extrude_entities,
+               hole_tip_angle,
+               sm_thickness, sm_radius, sm_k, sm_gap, sm_angle, sm_ref,
+               dressup_fit_taper, attach_datum, dim_names);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -433,7 +530,10 @@ struct CadFeature {
            plane_base, plane_offset, plane_angle_tilt, plane_axis,
            bool_tool_body, bool_keep_tool, bool_tolerance, bool_target_face, bool_tool_face,
            cut_offset, cut_flip, cut_keep_upper, cut_keep_lower,
-           brep,
+           brep);
+        // A recipe saved before the fields below ends early and `ar` throws there: the body must already be set by then
+        imported_solid = brep_from_string(brep);
+        ar(
            plane_type, plane_face_body, plane_face, plane_face2_body, plane_face2,
            plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size,
            mirror_keep_original,
@@ -455,8 +555,19 @@ struct CadFeature {
                thread_major_nominal, pattern_inclusive,
                dressup_edges,
                text_string, text_font, text_height,
-               revolve_axis_entity);
-        imported_solid = brep_from_string(brep);
+               revolve_axis_entity,
+               project_from_sketch, project_source_sketch, project_sketch_entities,
+               loft_start_cond, loft_end_cond,
+               sk3_points, sk3_closed, sk3_smooth,
+               attach_body, attach_face,
+               dressup_size2, dressup_chord, dressup_has_start, dressup_start,
+               dressup_radii, dressup_knots,
+               pattern_features, pattern_axis, pattern_origin, pattern_axis2, pattern_count2, pattern_spacing2,
+               shell_faces, draft_faces, draft_has_neutral, draft_pull, draft_neutral,
+               thin_in, thin_out, pattern_mirror, extrude_entities,
+               hole_tip_angle,
+               sm_thickness, sm_radius, sm_k, sm_gap, sm_angle, sm_ref,
+               dressup_fit_taper, attach_datum, dim_names);
     }
     // The pre-framing (v4) layout, FROZEN. A v4 recipe is one flat stream with no per-feature
     // length, so it can only be read with exactly the field list it was written with; reading it
@@ -543,6 +654,14 @@ public:
     // Can a feature expression drive this numeric field? The single allow-list the evaluator
     // uses, so a caller can refuse a name before it breaks the next recompute.
     static bool is_bindable_field(const std::string& field);
+    // Every field name set_feature_expr accepts, sorted (plus "dim:<N>" for a sketch dimension).
+    static std::vector<std::string> bindable_fields();
+    // Variable housekeeping. rename_variable rewrites every expression that names `from` (token-wise: `w` does not touch
+    // `width`) and refuses a name that is taken, malformed or built in. The CSV is "name,expression" per line, quotes as
+    // usual; from_csv adds or replaces and returns how many rows it took, naming the first bad row in `err`.
+    bool        rename_variable(const std::string& from, const std::string& to, std::string& err);
+    std::string variables_csv() const;
+    int         variables_from_csv(const std::string& csv, std::string& err);
     // Does a feature of this type leave a body behind? Sketches, datums, the helix curve and
     // Project (which emits sketch entities) do not. The one answer recompute(), the rollback
     // rule and the GUI's preview all use.
@@ -564,6 +683,10 @@ public:
     // behind these; they are graph facts about which mate drives which body.
     std::vector<std::pair<int, std::string>> mate_conflicts;
 
+    // Non-fatal notes from the last recompute(): a combine mode that could not be honoured and fell back
+    // to a new body (Extrude / Revolve / Sweep / Loft). .first = feature index, .second = what happened.
+    std::vector<std::pair<int, std::string>> feature_warnings;
+
     // Modeling origin: the world point the default XY/XZ/YZ planes pass through. The GUI sets this
     // to the bed centre so sketches/datums land in the middle of the bed (not the bed corner =
     // world 0) — for a NEW document. It is saved with the recipe: sketches bake it into their
@@ -584,6 +707,9 @@ public:
     // imported part. Angular already matched. Same BRepMesh_IncrementalMesh call, same GLVolume
     // path, same shaders: the renderer was never the difference, the mesh fed to it was.
     double linear_deflection{0.003};
+    // Preview ghosts (card open, gizmo drag) are tessellated no finer than this: they are redrawn on
+    // every parameter change and replaced by the committed mesh (linear_deflection) on Confirm.
+    double preview_linear_deflection{0.05};
     double angular_deflection{0.5};
 
     int  add_sketch(SketchShape shape, const SketchPlane& plane,
@@ -605,6 +731,18 @@ public:
     // geometry can be constrained to them. Returns the number of entities appended, or -1 if the
     // sketch or body reference is invalid. Unlike add_project_edges this creates no feature: the
     // references become part of the sketch that borrows them.
+    // "Use": project another sketch (all its entities, or the listed ones) onto `plane`, parent-linked.
+    // 3D sketch: points in world coordinates; consumed as a Sweep path.
+    int  add_sketch3d(const std::vector<Vec3d>& points, bool smooth, bool closed, const std::string& name);
+    // The Sketch3D feature as one wire (polyline, or an interpolated spline). Null + `err` when it
+    // cannot be built: fewer than 2 distinct points, or a spline OCCT refuses.
+    static TopoDS_Wire build_sketch3d_wire(const CadFeature& f, std::string& err);
+    int  add_use_sketch(int source_sketch, const std::vector<int>& entities,
+                        const SketchPlane& plane, const std::string& name);
+    // The edges of every body that lie in `plane` (all their points within `tol` of it), as 2D CONSTRUCTION entities in that plane's
+    // coordinates: what a sketch drawn on a face needs to include of the model it sits on. Edges that only cross the plane are not
+    // included (they would be points); use Project for a view along the normal.
+    std::vector<SketchEntity> in_plane_edges(const SketchPlane& plane, double tol = 1e-4) const;
     int  project_edges_into_sketch(int sketch_feature, int source_body,
                                    const std::vector<int>& edge_ids, int face);
     // Append a bridging BSpline entity connecting endpoint `end_a` of entity `ent_a` to
@@ -643,6 +781,14 @@ public:
     int  add_hole_standard(const std::string& designation, int style, bool through,
                            double depth, double x, double y,
                            const SketchPlane& plane, const std::string& name);
+    // Sheet metal (see SheetMetal.hpp). Each add_sm_* copies the rule in force so a lone candidate previews right.
+    int  add_sm_rule(double thickness, double bend_radius, double k_factor, double hem_gap, const std::string& name);
+    int  add_sm_base(int sketch_ref, bool flip, const std::string& name);
+    int  add_sm_edge_flange(const std::vector<int>& edges, double height, double angle_deg, bool flip, const std::string& name);
+    int  add_sm_contour_flange(int sketch_ref, double width, bool flip, const std::string& name);
+    int  add_sm_hem(int edge, double length, const std::string& name);
+    int  add_sm_unfold(const std::string& name);
+    int  add_sm_refold(int unfold_feature, const std::string& name);
     int  add_thread(double radius, double pitch, double height, double depth,
                     bool internal, double x, double y, const SketchPlane& plane,
                     const std::string& name);
@@ -665,6 +811,8 @@ public:
                   const std::string& name);
     // Skin 2+ profile sketches open (no end caps) -> a sheet body.
     int  add_surface_loft(const std::vector<int>& profile_refs, bool ruled, const std::string& name);
+    // The closed loops of a sketch, each as the indices of its entities. The unit a Loft profile is picked in.
+    static std::vector<std::vector<int>> sketch_closed_loops(const CadFeature& sketch);
     // Fill sketch sketch_ref's closed boundary wire with a smooth face -> a one-face sheet body.
     int  add_surface_fill(int sketch_ref, const std::string& name);
     int  add_shell(double thickness, int face, int target_body, const std::string& name);
@@ -740,6 +888,10 @@ public:
     // has no single plane, and guessing one from a mid-parameter normal would silently sketch on a
     // tangent). Same derivation the Coincident datum method uses, shared so the two cannot drift.
     bool plane_of_face(int body_idx, int face_idx, SketchPlane& out) const;
+    // Where feature `fi`, a sketch drawn on a body's face, is SHOWN: its plane carried through the moves (non-copy Transforms of that
+    // body) that come after it in the history. The feature itself is not rewritten: undo the move and it is back. Same plane as
+    // `plane` when the option is off or nothing moved it.
+    SketchPlane carried_plane(int fi) const;
     // Resolved datum axes in feature order. axis_err is non-empty if construction failed.
     struct DatumAxis { std::string name; Vec3d origin{0,0,0}; Vec3d direction{0,0,1};
                        std::string error; };
@@ -764,19 +916,58 @@ public:
     // ids themselves cannot keep.
     uint64_t topo_generation{1};
 
+    // Incremental recompute. Each feature's result is cached under a CHAIN fingerprint (hash of every feature up to
+    // and including it, plus the document settings that change a build), so a tail edit replays only the tail and
+    // setting a parameter back restores the earlier state without any OCCT work. The cache is shared between copies of
+    // the document (a preview candidate reuses the prefix of the document it was copied from) and is thread safe.
+    struct ReplayStats {
+        int replayed{0};                  // features rebuilt by the last recompute()
+        int restored{0};                  // features taken from the cache
+        std::vector<double> feature_ms;   // per feature, 0 for a restored or non-solid one
+        double mesh_ms{0};                // tessellating the finished bodies: paid on every change, whatever was cached
+    } replay_stats;
+    bool incremental{true};
+    // The bodies as each feature last SAW them, keyed by the feature's own bytes: what its face/edge ids were written
+    // against. When an upstream edit rebuilds those bodies the ids are carried to where their entities went (TopoRemap).
+    std::map<uint64_t, std::vector<CadBody>> m_seen_by_feature;
+    bool m_datum_redo{false};   // recompute() is running its second pass, for sketches on a datum plane that moved with the new bodies
+    bool remap_refs{true};
+    // A sketch, hole or thread drawn on a face goes with that face when the face only MOVED (its body was moved or turned),
+    // not just along the face's normal. False keeps the old rule: it stays at its place in the face's plane.
+    bool attached_follow_moves{true};   // (also: carried_plane shows an attached sketch where its body was moved to)
+    struct ReplayCache;
+    std::shared_ptr<ReplayCache> m_replay_cache;
+
     // v5: every feature is length-framed, so a reader can stop early on an older file and skip
     // the tail of a newer one. This is the LAST version that has to break anything — from here a
     // new field only needs appending to save/load, with no bump and no orphaned projects.
     // v6: no wire-format change — the bytes are v5's, and both are read by the same framed path.
     // The stamp advances only to put a project-container change on the record; the 3MF backends
     // own that story. v4 still opens through the pre-framing flat path.
-    static constexpr uint32_t ORCA_CAD_RECIPE_VERSION = 6;
+    // History rollback (the feature tree's draggable bar). Session-only, never serialized:
+    // features AFTER this index are not replayed, so the model shows the state at that point in
+    // the history while every feature stays in the recipe. -1 = no rollback. Any mutation
+    // (checkpoint()) and undo/redo return to the end, so a new feature never lands mid-history.
+    int rollback_index{-1};
+    // New features go in at the rollback bar, not at the end: with the history rolled back to feature k, a feature added now
+    // becomes k + 1 and the bar moves down onto it (what lies below stays unbuilt). `last_added` is where the last one landed.
+    int last_added{-1};
+    int append_feature(const CadFeature& f);
+    // Copies of features, in order, added at the bar. Each item is {index it had, the feature}; a reference to another copied
+    // feature follows to its copy, any other reference stays where it was. Returns the index of the first copy (-1: nothing).
+    int paste_features(const std::vector<std::pair<int, CadFeature>>& items);
+    // The feature whose replay threw in the last recompute(), or -1. Lets the tree mark the row
+    // that failed instead of leaving the user a global message and no suspect.
+    int error_feature{-1};
+    static constexpr uint32_t ORCA_CAD_RECIPE_VERSION = 7;
     std::string serialize_recipe() const;
     bool deserialize_recipe(const std::string& blob);
 
     // Export every body to a STEP file as native B-rep (not mesh). body_xforms is the
     // per-body display transform (Move gizmo); when supplied the bodies are written at
     // those positions so the STEP matches what Commit ships. false + err on failure.
+    // The bodies as one file: "iges" (B-rep), "stl" (binary) or "obj" (tessellated). STEP stays export_step.
+    bool export_other(const std::string& format, const std::string& path, const std::vector<Transform3d>& body_xforms, std::string& err) const;
     bool export_step(const std::string& path,
                      const std::vector<Transform3d>& body_xforms,
                      std::string& err) const;
@@ -808,6 +999,7 @@ public:
     bool can_undo() const { return !m_undo.empty(); }
     bool can_redo() const { return !m_redo.empty(); }
     size_t undo_depth() const { return m_undo.size(); }
+    void   drop_undo_to(size_t depth) { while (m_undo.size() > depth) m_undo.pop_back(); }   // a rolled-back batch leaves no steps behind
     size_t redo_depth() const { return m_redo.size(); }
     bool undo();   // restore the previous feature list + recompute(); false if no history
     bool redo();   // re-apply the most recently undone change; false if none
@@ -860,6 +1052,8 @@ public:
 
 private:
     TopoDS_Wire build_sketch_wire(const CadFeature& sketch, bool closed_only = false) const;
+    // Profile number `ri` of Loft / Surface Loft `f`: the wire of its one chosen loop, or of the whole sketch when none is chosen.
+    TopoDS_Wire loft_profile_wire(const CadFeature& f, size_t ri, bool closed_only) const;
     // The planar region an Extrude sweeps: the sketch's outer loop with its inner loops as
     // holes. Falls back to a face over build_sketch_wire() for the legacy profile/shape paths,
     // which have no concept of a second loop.
@@ -877,6 +1071,8 @@ private:
     // The parametric pass every replay starts with: evaluate the variables and write each
     // feature's expression bindings into its numeric fields.
     void bind_expressions();
+    int  m_bar{-1};   // the rollback bar when the last checkpoint() was taken (checkpoint() itself puts the bar away)
+    void bind_sheet_rules();   // each sheet-metal feature gets the last SmRule before it (or the default rule)
     // One step of the replay: route features[fi] into `built` and stamp the bodies it created
     // with fi. A hidden feature, a sketch, a helix or a datum leaves `built` alone. Throws on
     // failure.
@@ -888,11 +1084,18 @@ private:
     void apply_boolean(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_cut(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f) const;
+    void apply_feature_pattern(std::vector<CadBody>& bodies, const CadFeature& f) const;
+    // The bodies as they stood BEFORE each feature of the recompute in progress (index = feature index): a feature pattern
+    // needs the state around the features it repeats. Filled and cleared by recompute().
+    mutable std::vector<std::vector<CadBody>> m_pre_states;
+    mutable bool m_in_replay{false};   // recompute() is running its feature loop (m_pre_states has an entry for the feature being applied)
     void apply_transform(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_thicken(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_thicken_surface(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_surface_offset(std::vector<CadBody>& bodies, const CadFeature& f) const;
-    void apply_project(const std::vector<CadBody>& bodies, CadFeature& f) const;
+    void apply_project(const std::vector<CadBody>& bodies, CadFeature& f, size_t fi) const;
+    mutable std::vector<std::string> m_pending_warnings;   // filled by route_feature, flushed by replay_feature
+    void apply_project_from_sketch(CadFeature& f, size_t fi) const;
     static DatumCoordSys datum_frame(const std::vector<CadBody>& bodies, const CadFeature& f);
     void apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void detect_mate_conflicts();   // refills mate_conflicts from the feature list alone

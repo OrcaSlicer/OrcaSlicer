@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "box 40x30x20 with the 4 top edges chamfered 2: lower box 40x30x18 + top slab with section (36+2u)x(26+2u) at depth u (V, moment by exact polynomial integration); A = bottom + sides(h=18) + top 36x26 + 4 trapezoid bevels of slant 2 sqrt2",
+  "body_count": 1,
+  "volume_mm3": 23730.666666666668,
+  "area_mm2": 5029.352380466497,
+  "center_of_mass": [
+    19.999999999999996,
+    15.0,
+    9.894145409596582
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      40.0,
+      30.0,
+      20.0
+    ]
+  },
+  "faces": 10
+}

@@ -1,0 +1,304 @@
+{
+ "id": "48-pulley",
+ "name": "Grooved pulley",
+ "description": "Revolved profile with a d10 bore and two trapezoidal V-grooves, about Z.",
+ "exercises": [
+  "revolve",
+  "sketch_xz"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Profile",
+   "plane": {
+    "ref": "XZ",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "normal": [
+     0.0,
+     1.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       5.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       40.0,
+       0.0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       40.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       40.0,
+       -3.0
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       40.0,
+       -3.0
+      ]
+     },
+     "end": {
+      "at": [
+       33.0,
+       -8.0
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       33.0,
+       -8.0
+      ]
+     },
+     "end": {
+      "at": [
+       33.0,
+       -12.0
+      ]
+     },
+     "id": "l4"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l4.end",
+      "at": [
+       33.0,
+       -12.0
+      ]
+     },
+     "end": {
+      "at": [
+       40.0,
+       -17.0
+      ]
+     },
+     "id": "l5"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l5.end",
+      "at": [
+       40.0,
+       -17.0
+      ]
+     },
+     "end": {
+      "at": [
+       40.0,
+       -23.0
+      ]
+     },
+     "id": "l6"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l6.end",
+      "at": [
+       40.0,
+       -23.0
+      ]
+     },
+     "end": {
+      "at": [
+       33.0,
+       -28.0
+      ]
+     },
+     "id": "l7"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l7.end",
+      "at": [
+       33.0,
+       -28.0
+      ]
+     },
+     "end": {
+      "at": [
+       33.0,
+       -32.0
+      ]
+     },
+     "id": "l8"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l8.end",
+      "at": [
+       33.0,
+       -32.0
+      ]
+     },
+     "end": {
+      "at": [
+       40.0,
+       -37.0
+      ]
+     },
+     "id": "l9"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l9.end",
+      "at": [
+       40.0,
+       -37.0
+      ]
+     },
+     "end": {
+      "at": [
+       40.0,
+       -40.0
+      ]
+     },
+     "id": "l10"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l10.end",
+      "at": [
+       40.0,
+       -40.0
+      ]
+     },
+     "end": {
+      "at": [
+       5.0,
+       -40.0
+      ]
+     },
+     "id": "l11"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l11.end",
+      "at": [
+       5.0,
+       -40.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       5.0,
+       0.0
+      ]
+     },
+     "id": "l12"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "revolve",
+   "name": "Revolve1",
+   "operation": "new",
+   "profile": {
+    "sketch": "Profile",
+    "loops": [
+     {
+      "outer": true,
+      "curves": [
+       "l1",
+       "l10",
+       "l11",
+       "l12",
+       "l2",
+       "l3",
+       "l4",
+       "l5",
+       "l6",
+       "l7",
+       "l8",
+       "l9"
+      ]
+     }
+    ]
+   },
+   "axis": {
+    "ref": "world Z axis",
+    "origin": [
+     0,
+     0,
+     0
+    ],
+    "dir": [
+     0,
+     0,
+     1
+    ]
+   },
+   "angle": 360,
+   "result_bodies": [
+    "Pulley"
+   ]
+  }
+ ]
+}

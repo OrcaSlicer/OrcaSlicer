@@ -12,6 +12,8 @@
 #include <wx/panel.h>
 
 #include <functional>
+#include "slic3r/GUI/CAD/DesignImGuiUi.hpp"
+#include "slic3r/GUI/CAD/DesignQuotes.hpp"
 #include <memory>
 #include <string>
 #include <wx/string.h>
@@ -60,6 +62,7 @@ public:
     void clear_preview();
 
     void fit_view();
+    wxWindow* input_window() const;   // the GL widget that real mouse and keyboard events reach (MCP ui.* posts there)
     void set_view(const std::string& view_name);
     // Frame `box` along the current view direction, as the canvas's Fit button frames a selection.
     // False, the camera left alone, when there is nothing to frame: an undefined box.
@@ -79,10 +82,50 @@ public:
                      const SketchPlane& plane);
     void set_sketch_tool(DesignSketchTool::Mode mode);
     void set_sketch_construction(bool c);
+    // The feature tree drawn on the canvas with ImGui (see DesignImGuiUi.hpp). Off = the wx tree.
+    DesignOfferPopup& offer_popup() { return m_offer_popup; }
+    // Open the right-click offer as an ImGui popup at a SCREEN position.
+    void open_offer_popup(std::string header, std::vector<OfferNode> nodes, const wxPoint& screen);
+    DesignSidebarOverlay& sidebar_overlay() { return m_sidebar; }
+    void set_sidebar_overlay(bool on) { m_sidebar_on = on; request_repaint(); }
+    bool sidebar_overlay_on() const { return m_sidebar_on; }
+    DesignTopBar& topbar_overlay() { return m_topbar; }
+    void set_topbar_overlay(bool on) { m_topbar_on = on; request_repaint(); }
+    bool topbar_overlay_on() const { return m_topbar_on; }
+    DesignRibbonOverlay& ribbon_overlay() { return m_ribbon; }
+    // The body's dimensions drawn over the viewport (the Dimensions verb); the panel supplies the quotes and what a click on one does.
+    DesignQuoteOverlay& quote_overlay() { return m_quotes; }
+    bool quotes_on() const { return m_quotes_on; }
+    void set_quotes_on(bool on) { m_quotes_on = on; request_repaint(); }
+    DesignPalette&       palette() { return m_palette; }
+    void                 open_palette();   // at the pointer if it is over the canvas, else the middle
+    void set_ribbon_overlay(bool on) { m_ribbon_on = on; request_repaint(); }
+    bool ribbon_overlay_on() const { return m_ribbon_on; }
+    DesignTreeOverlay& tree_overlay() { return m_tree_overlay; }
+    const std::string& readout() const { return m_hud_last; }   // the HUD chip text (rig)
+    // The SELECT panel (which kinds a click takes, and whether re-clicking cycles): the checkbox centres of the last frame, in canvas pixels (rig)
+    const std::vector<std::pair<float, float>>& select_panel_hits() const { return m_select_hits; }
+    void render_select_panel(float top);
+    void set_tree_overlay(bool on) { m_tree_overlay_on = on; request_repaint(); }
+    bool tree_overlay_on() const { return m_tree_overlay_on; }
+    void begin_sketch3d(const Vec3d& start, std::vector<Vec3d> snap_targets) { m_sketch_tool.begin_sketch3d(start, std::move(snap_targets)); request_repaint(); }
+    void end_sketch3d() { m_sketch_tool.end_sketch3d(); request_repaint(); }
+    bool sketch3d_active() const { return m_sketch_tool.sketch3d_active(); }
+    bool sketch3d_key(int key) { const bool r = m_sketch_tool.sketch3d_key(key); request_repaint(); return r; }
+    void set_on_sketch3d(std::function<void(const std::vector<Vec3d>&, bool)> done, std::function<void()> cancel,
+                         std::function<void(int, int, bool)> state)
+    { m_sketch_tool.on_sketch3d_done = std::move(done); m_sketch_tool.on_sketch3d_cancel = std::move(cancel);
+      m_sketch_tool.on_sketch3d_state = std::move(state); }
+    void set_sketch_grid_snap(bool on, double step);
+    void set_sketch_grid_magnet(bool on);
+    void set_extrude_signed(bool on);
     // Flip the sketch selection between construction and real geometry; returns the
     // number of entities changed (0 = nothing selected, caller falls back to the mode).
     // Open the in-canvas value field on the sketch selection's defining number.
     bool edit_sketch_selection_value();
+    // The open sketch's plane, and a way to take outside geometry into it as fixed reference lines (Include).
+    const SketchPlane& sketch_plane() const { return m_sketch_tool.plane(); }
+    int include_into_sketch(const std::vector<SketchEntity>& ents);
     int  toggle_sketch_construction_selection();
     // Is the sketch tool on Select (as opposed to a draw/edit tool being armed)? The
     // Construction box needs it to tell "convert what I picked" from "arm what I draw next".
@@ -113,6 +156,7 @@ public:
     // N: look straight down the sketch plane's normal, keeping the current zoom. A sketch drawn
     // at an angle is a sketch drawn wrong, and no amount of orbiting by hand lands exactly square.
     bool view_normal_to_sketch();
+    void square_up_on_entry();   // begin_sketch/edit_sketch: look straight at the plane
     void cancel_sketch();
     void set_on_sketch_commit(std::function<void(const SketchProfile&, const SketchPlane&)> cb);
     void set_on_sketch_entities_commit(
@@ -135,6 +179,7 @@ public:
     void set_on_display_sketch_selected(std::function<void(int, int, int)> cb);  // committed loop clicked: (feature, region, entity)
     void set_on_display_sketch_activated(std::function<void(int)> cb);      // committed sketch DOUBLE-clicked: edit it
     std::vector<SketchEntity> selected_loop_entities() const;  // entities of the click-selected loop
+    std::vector<std::vector<SketchEntity>> selected_loop_groups() const;   // every Ctrl-picked loop, with its holes
     std::vector<std::vector<int>> region_entity_indices(const std::vector<SketchEntity>& ents) const;
     // Like region_entity_indices, but each region's entry is its OWN entities followed by the
     // entities of each of its holes — the same order selected_loop_entities() hands the kernel.
@@ -246,6 +291,7 @@ public:
                        std::vector<std::string> labels = {});   // clickable labelled reference planes
     void clear_base_pick();
     void set_on_datum_base_picked(std::function<void(int)> cb);
+    void set_on_datum_base_activated(std::function<void(int)> cb);
     void set_selected_base(std::function<int()> cb);              // the reference plane drawn selected, or -1
     void set_on_sketch_exit(std::function<void()> cb);           // Esc -> exit the tool
     void set_on_sketch_exit_refused(std::function<void()> cb);   // Esc declined: sketch has work
@@ -378,10 +424,15 @@ public:
     // Scripted (MCP) access to the live sketch. One accessor rather than a passthrough per
     // verb: the MCP layer drives the SAME tool the mouse drives, which is the whole point of
     // having it — a socket that talked to a private copy would prove nothing about the app.
+    std::vector<DesignSketchTool::PickCandidate> pick_candidates(int mx, int my) const
+    { return m_canvas ? m_sketch_tool.pick_candidates(*m_canvas, mx, my) : std::vector<DesignSketchTool::PickCandidate>(); }
+    bool begin_typed_length(char c) { return m_sketch_tool.begin_typed_length(c); }
+    DesignCandidateMenu&    other_menu() { return m_other_menu; }
     DesignSketchTool&       mcp_sketch_tool()       { return m_sketch_tool; }
     const DesignSketchTool& mcp_sketch_tool() const { return m_sketch_tool; }
 
     void request_repaint();
+    GLCanvas3D* gl_canvas() { return m_canvas; }
     // Repaint synchronously, once the pending show/resize has settled. Needed when the
     // notebook re-shows the Design page: an invalidation issued while the page is still
     // being shown is dropped on hardware GL and no wxEVT_PAINT ever follows, leaving the
@@ -449,6 +500,21 @@ private:
     // tool's current values (fed by the tool's on_readout), bottom-left the status line written by
     // DesignPanel. Empty text draws nothing. They were top-level popups once; a popup does not
     // follow its frame, so it floated over other applications and outlived the tab.
+    bool                m_ctx_over_ui{false};   // the right press landed on an ImGui window
+    DesignOfferPopup    m_offer_popup;
+    DesignRibbonOverlay m_ribbon;
+    DesignTopBar        m_topbar;
+    DesignQuoteOverlay  m_quotes;
+    bool                m_quotes_on{false};
+    DesignSidebarOverlay m_sidebar;
+    bool                m_sidebar_on{false};
+    bool                m_topbar_on{false};
+    DesignPalette       m_palette;
+    DesignCandidateMenu m_other_menu;   // Select Other, opened by a press-hold on the solid
+    bool                m_ribbon_on{false};
+    DesignTreeOverlay m_tree_overlay;
+    std::vector<std::pair<float, float>> m_select_hits;
+    bool              m_tree_overlay_on{false};
     std::string   m_hud_last;
     wxString      m_status_hud_last;
     wxColour      m_status_hud_colour;   // wxNullColour: the overlay's own text colour

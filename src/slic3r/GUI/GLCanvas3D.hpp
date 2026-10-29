@@ -671,6 +671,9 @@ private:
     mutable GLToolbar m_assemble_view_toolbar;
     mutable IMReturnToolbar m_return_toolbar;
     mutable Vec2i32 m_canvas_toolbar_pos = {140, 5};
+    float m_navigator_left_inset{0.f};
+    std::function<void(std::vector<unsigned char>&&, int, int)> m_frame_capture;
+    float m_navigator_top_inset{0.f};
     mutable float m_sc{1};
     mutable float m_paint_toolbar_width;
     bool m_collapse_toolbar_enabled{true};
@@ -1151,6 +1154,19 @@ public:
     // Right edge, in canvas pixels, of the bottom-left corner the 3D navigator and the round
     // canvas buttons own. An overlay along the bottom edge starts past it.
     float get_canvas_toolbar_right() const;
+    // Where the 3D navigator and the round canvas buttons are, so an overlay can keep clear of them: the corner, the
+    // width of the pair (0 when the corner is the other one), and the height of the navigator itself.
+    bool  navigator_right() const;
+    bool  navigator_bottom() const;
+    float navigator_width() const;
+    float navigator_height() const;
+    // A canvas whose left edge is covered by a panel (Design) tells the navigator how far in its left corners start.
+    void  set_navigator_left_inset(float px) { m_navigator_left_inset = px; }
+    // One-shot: the next frame is read back from GL (RGBA, top row first) just before it is presented. This is the canvas's own
+    // render, not a read of the X screen, so a compositor, an overlapping window or a screen the OS will not share cannot blank it.
+    using FrameCapture = std::function<void(std::vector<unsigned char>&& rgba, int w, int h)>;
+    void  capture_next_frame(FrameCapture cb) { m_frame_capture = std::move(cb); }
+    void  set_navigator_top_inset(float px)  { m_navigator_top_inset = px; }   // ... and how far down its top corners
 
     void update_volumes_colors_by_extruder();
 

@@ -93,6 +93,7 @@ add_executable(${_TEST_NAME}_tests
 if (SLIC3R_CAD)
     target_sources(${_TEST_NAME}_tests PRIVATE
         test_caddocument.cpp
+        test_quotes.cpp
         test_sketchconstraints.cpp
         test_sketchedit.cpp
         test_sketchprofile.cpp
