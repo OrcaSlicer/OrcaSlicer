@@ -3010,13 +3010,15 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     m_config.enable_pressure_advance.get_at(column)) {
 
                     const std::string pa_model = m_config.adaptive_pressure_advance_model.get_at(column);
-                    if (!pa_model.empty()) {
-                        std::string validation_error = AdaptivePAProcessor::validate_adaptive_pa_model(pa_model);
-                        if (!validation_error.empty()) {
-                            warn(L("The Adaptive Pressure Advance model for one or more extruders may contain invalid values."),
-                                 "adaptive_pressure_advance_model");
-                            break;
-                        }
+                    if (!AdaptivePAProcessor::adaptive_pa_model_has_measurements(pa_model)) {
+                        warn(L("Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."),
+                             "adaptive_pressure_advance_model");
+                        break;
+                    }
+                    if (!AdaptivePAProcessor::validate_adaptive_pa_model(pa_model).empty()) {
+                        warn(L("The Adaptive Pressure Advance model for one or more extruders may contain invalid values."),
+                             "adaptive_pressure_advance_model");
+                        break;
                     }
                 }
             }
@@ -4949,7 +4951,8 @@ std::vector<std::set<int>> Print::get_physical_unprintable_filaments(const std::
     auto get_unprintable_extruder_id = [&](unsigned int filament_idx) -> int {
         // filament_printable may be shorter than the filament count; get_at() clamps.
         int status = m_config.filament_printable.get_at(filament_idx);
-        for (int i = 0; i < extruder_num; ++i) {
+        // An int has bits for the first 32 extruders only.
+        for (int i = 0; i < std::min(extruder_num, 32); ++i) {
             if (!(status >> i & 1)) {
                 return i;
             }
@@ -5870,6 +5873,7 @@ DynamicConfig PrintStatistics::config() const
     config.set_key_value("initial_tool",              new ConfigOptionInt(static_cast<int>(this->initial_tool)));
     config.set_key_value("initial_extruder",          new ConfigOptionInt(static_cast<int>(this->initial_tool)));
     config.set_key_value("initial_no_support_extruder", new ConfigOptionInt(static_cast<int>(this->initial_no_support_tool)));
+    config.set_key_value("printing_filament_types",   new ConfigOptionString(this->printing_filament_types));
     return config;
 }
 
@@ -5879,7 +5883,8 @@ DynamicConfig PrintStatistics::placeholders()
     for (const std::string key : {
         "print_time", "normal_print_time", "silent_print_time",
         "used_filament", "extruded_volume", "extruded_volume_total", "total_cost", "total_weight", "extruded_weight_total",
-        "initial_tool", "initial_extruder", "initial_no_support_extruder", "total_toolchanges", "total_wipe_tower_cost", "total_wipe_tower_filament"})
+        "initial_tool", "initial_extruder", "initial_no_support_extruder", "total_toolchanges", "total_wipe_tower_cost", "total_wipe_tower_filament",
+        "printing_filament_types"})
         config.set_key_value(key, new ConfigOptionString(std::string("{") + key + "}"));
     return config;
 }

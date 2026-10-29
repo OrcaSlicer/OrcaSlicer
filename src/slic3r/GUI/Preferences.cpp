@@ -557,7 +557,16 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
                         wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE).ShowModal();
 
                     if (result == wxID_YES) {
-                        wxGetApp().plater()->save_project();
+                        if (wxGetApp().plater()->save_project() != wxID_YES) {
+                            // The save was cancelled (e.g. the unresolved-plugin warning): do not
+                            // switch languages as if the project had been saved.
+                            combobox->SetSelection(m_current_language_selected);
+                            return;
+                        }
+                    } else if (result != wxID_NO) {
+                        // Cancel or ESC on the save prompt: keep the current language.
+                        combobox->SetSelection(m_current_language_selected);
+                        return;
                     }
                 }
 

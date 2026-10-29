@@ -163,9 +163,9 @@ for target in "$@"; do
     for cache in "$profiles_dir"/*.opc; do
         vendor=$(basename "$cache" .opc)
         shipped=$(( shipped + 1 ))
-        # Read the list before the profile goes: with --prune-source it is the
-        # same file as the target's.
-        listed=$(listed_presets "$profiles_dir/$vendor.json")
+        # Read the list from the target's own profile, before it goes: the
+        # source profile may already be gone when an earlier target pruned it.
+        listed=$(listed_presets "$resolved/$vendor.json")
         if [ -f "$resolved/$vendor.json" ]; then
             rm -f "$resolved/$vendor.json"
             pruned=$(( pruned + 1 ))

@@ -1,17 +1,17 @@
 {
 	"type": "filament",
-	"name": "Printalot ABS @base",
+	"name": "PrintaLot ABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "OFgq39c2",
+	"filament_id": "OFzFJPri",
 	"instantiation": "false",
 	"filament_vendor": [
-		"Printalot"
+		"PrintaLot"
 	],
 	"filament_type": [
 		"ABS"
 	],
-	"filament_notes": "Printalot ABS. Product page: https://printalot.com.ar/productos/filamentos/abs/abs-1-kg/ Community-contributed profile; not affiliated with or endorsed by Printalot.",
+	"filament_notes": "PrintaLot ABS. Product page: https://printalot.com.ar/productos/filamentos/abs/abs-1-kg/",
 	"filament_diameter": [
 		"1.75"
 	],

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "PrintaLot ABS @System",
+	"renamed_from": "Printalot ABS @System",
+	"inherits": "PrintaLot ABS @base",
+	"from": "system",
+	"setting_id": "WBIfEA6GObDEd1nB",
+	"instantiation": "true",
+	"compatible_printers": []
+}
