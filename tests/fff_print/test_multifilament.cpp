@@ -2165,25 +2165,28 @@ TEST_CASE("Single-extruder MM emits M104 after T0 toolchange", "[MultiFilament]"
         }));
 
     bool found_t0 = false;
-    bool found_temp_after_t0 = false;
-    int  temp_after_t0 = -1;
+    std::string first_cmd_after_t0;
+    int first_temp_after_t0 = -1;
     GCodeReader reader;
-    reader.parse_buffer(gcode, [&](GCodeReader&, const GCodeReader::GCodeLine& line) {
+    reader.parse_buffer(gcode, [&](GCodeReader& self, const GCodeReader::GCodeLine& line) {
         const std::string cmd(line.cmd());
+        if (cmd.empty())
+            return;
         if (!found_t0) {
             if (cmd == "T0")
                 found_t0 = true;
-        } else if (!found_temp_after_t0 && (cmd == "M104" || cmd == "M109")) {
-            found_temp_after_t0 = true;
+        } else {
+            first_cmd_after_t0 = cmd;
             float s_val = 0;
             if (line.has_value('S', s_val))
-                temp_after_t0 = int(s_val);
+                first_temp_after_t0 = int(s_val);
+            self.quit_parsing();
         }
     });
 
     REQUIRE(found_t0);
-    REQUIRE(found_temp_after_t0);
-    REQUIRE(temp_after_t0 == expected_temp);
+    REQUIRE(first_cmd_after_t0 == "M104");
+    REQUIRE(first_temp_after_t0 == expected_temp);
 }
 
 // Single-filament prints must not get an M104 after start G-code when no T command was written.

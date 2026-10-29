@@ -10899,12 +10899,13 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         // multi-color in configurations where mid-print T<n> wouldn't make sense
         // (see imex_multicolor_block_reason).
         const std::string toolchange_command = m_writer.toolchange(new_filament_id, new_extruder_id);
-        if (!imex_suppresses_bare_toolchange(m_imex_parallel_mode, m_toolchange_count))
+        const bool emit_toolchange = !toolchange_command.empty() && !imex_suppresses_bare_toolchange(m_imex_parallel_mode, m_toolchange_count);
+        if (emit_toolchange)
             gcode += toolchange_command;
         if (Extruder *fil = m_writer.filament())
             fil->set_config_index((int)get_filament_config_index((int)fil->id()));
         // Firmware can change the temperature on a T command, so set it again here, as the multi-extruder path below does.
-        if (!toolchange_command.empty() && m_config.single_extruder_multi_material && !m_config.enable_prime_tower) {
+        if (emit_toolchange && m_config.single_extruder_multi_material && !m_config.enable_prime_tower) {
             size_t new_fi = get_filament_config_index(new_filament_id);
             int temp = (m_layer_index <= 0 ? m_config.nozzle_temperature_initial_layer.get_at(new_fi) :
                                              m_config.nozzle_temperature.get_at(new_fi));
