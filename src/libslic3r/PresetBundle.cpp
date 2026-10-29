@@ -422,58 +422,81 @@ std::string PresetBundle::find_preset_vendor(const std::string &preset_name, Pre
         return "";
     }
 
-    // A vendor is named by its profile or, where the build ships preset caches
-    // instead of the raw profile JSONs, by its cache alone.
-    for (const std::string& vendor_name : vendor_names_in(system_dir)) {
-        const fs::path vendor_json = system_dir / (vendor_name + ".json");
-        if (! fs::exists(vendor_json)) {
-            if (VendorCacheFile::carries_preset((system_dir / (vendor_name + ".opc")).string(), vendor_name, type, preset_name)) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << preset_name
-                                        << " in vendor cache " << vendor_name;
-                return vendor_name;
+    // A preset's old names are kept in its own file, not in the vendor's list, so they are only read
+    // once no vendor lists the name itself.
+    auto renamed_from = [&preset_name](const fs::path &preset_file) {
+        boost::nowide::ifstream ifs(preset_file.string());
+        const std::string       text((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+        if (text.find(ORCA_JSON_KEY_RENAMED_FROM) == std::string::npos)
+            return false;
+        const json preset = json::parse(text, nullptr, false);
+        if (!preset.is_object() || !preset.contains(ORCA_JSON_KEY_RENAMED_FROM) || !preset[ORCA_JSON_KEY_RENAMED_FROM].is_string())
+            return false;
+        std::vector<std::string> names;
+        return unescape_strings_cstyle(preset[ORCA_JSON_KEY_RENAMED_FROM].get<std::string>(), names) &&
+               std::find(names.begin(), names.end(), preset_name) != names.end();
+    };
+
+    for (const bool renamed : {false, true}) {
+        // A vendor is named by its profile or, where the build ships preset caches
+        // instead of the raw profile JSONs, by its cache alone.
+        for (const std::string& vendor_name : vendor_names_in(system_dir)) {
+            const fs::path vendor_json = system_dir / (vendor_name + ".json");
+            if (! fs::exists(vendor_json)) {
+                if (VendorCacheFile::carries_preset((system_dir / (vendor_name + ".opc")).string(), vendor_name, type, preset_name, renamed)) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << preset_name << (renamed ? " as an old name" : "")
+                                            << " in vendor cache " << vendor_name;
+                    return vendor_name;
+                }
+                continue;
             }
-            continue;
-        }
-        const std::string vendor_file = vendor_json.string();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Checking vendor: " << vendor_file;
+            const std::string vendor_file = vendor_json.string();
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Checking vendor: " << vendor_file;
 
-        try {
-            // Load and parse the vendor JSON file
-            boost::nowide::ifstream ifs(vendor_file);
-            json j;
-            ifs >> j;
+            try {
+                // Load and parse the vendor JSON file
+                boost::nowide::ifstream ifs(vendor_file);
+                json j;
+                ifs >> j;
 
-            // Check if the preset list key exists
-            if (!j.contains(preset_list_key))
-                continue;
-
-            auto& preset_list = j[preset_list_key];
-            if (!preset_list.is_array())
-                continue;
-
-            // Search for the preset in the list
-            for (auto& preset_entry : preset_list) {
-                if (!preset_entry.is_object())
+                // Check if the preset list key exists
+                if (!j.contains(preset_list_key))
                     continue;
 
-                // Get the preset name
-                std::string p_name;
-                if (preset_entry.contains(BBL_JSON_KEY_NAME) && preset_entry[BBL_JSON_KEY_NAME].is_string())
-                    p_name = preset_entry[BBL_JSON_KEY_NAME].get<std::string>();
-
-                if (p_name != preset_name)
+                auto& preset_list = j[preset_list_key];
+                if (!preset_list.is_array())
                     continue;
 
-                // Found the preset! Get the vendor name and install the entire bundle
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << p_name
+                // Search for the preset in the list
+                for (auto& preset_entry : preset_list) {
+                    if (!preset_entry.is_object())
+                        continue;
+
+                    if (renamed) {
+                        if (!preset_entry.contains(BBL_JSON_KEY_SUB_PATH) || !preset_entry[BBL_JSON_KEY_SUB_PATH].is_string() ||
+                            !renamed_from(system_dir / vendor_name / preset_entry[BBL_JSON_KEY_SUB_PATH].get<std::string>()))
+                            continue;
+                    } else {
+                        // Get the preset name
+                        std::string p_name;
+                        if (preset_entry.contains(BBL_JSON_KEY_NAME) && preset_entry[BBL_JSON_KEY_NAME].is_string())
+                            p_name = preset_entry[BBL_JSON_KEY_NAME].get<std::string>();
+
+                        if (p_name != preset_name)
+                            continue;
+                    }
+
+                    // Found the preset! Get the vendor name and install the entire bundle
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << preset_name << (renamed ? " as an old name" : "")
                                             << " in vendor bundle " << vendor_name;
-                
-                return vendor_name;
+
+                    return vendor_name;
+                }
             }
-        }
-        catch (const std::exception &e) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to find vendor name for " << preset_name << ": " << e.what();
-            return "";
+            catch (const std::exception &e) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to find vendor name for " << preset_name << ": " << e.what();
+                return "";
+            }
         }
     }
 
@@ -683,6 +706,8 @@ const PresetBundle *PresetBundle::load_source_vendor(const boost::filesystem::pa
         error = "Vendor bundle contains invalid presets";
         return nullptr;
     }
+    // Lets find_preset() resolve a name a preset was renamed from.
+    bundle->update_system_maps();
     return m_source_vendor_bundles.emplace(std::move(key), std::move(bundle)).first->second.get();
 }
 
