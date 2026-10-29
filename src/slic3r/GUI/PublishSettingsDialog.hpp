@@ -3,7 +3,9 @@
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
 
+#include "libslic3r/PublishSelection.hpp"
 #include "libslic3r/PublishSettings.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 #include <cstddef>
 #include <wx/string.h>
@@ -40,6 +42,8 @@ class CheckBox;
 class MultiSwitchButton;
 
 namespace Slic3r { namespace GUI {
+
+class ConfigOptionsGroup;
 
 struct PublishMaterialIdentity
 {
@@ -83,38 +87,31 @@ private:
     void fit_to_content();
     void refresh_mixed_tab_bitmaps();
 
-    // Which part of the settings the row/category came from.
+    // Which part of the settings the row came from.
     enum class Section { Print, Printer, Material };
 
-    // One selectable setting row: a checkbox (setting name) plus a value label and an optional
-    // grey unit label. key is the full config key, possibly with a "#N" variant suffix
-    // (print/printer rows); material rows carry the base key.
-    enum class RowKind {
-        Setting, // a regular setting key
-        Color,   // material colour requirement (filament_colour)
-        Type,    // material type requirement (read-only text)
-    };
+    // One selectable setting. This list is the dialog's durable state: it drives the filter, All
+    // and None, seeding and the payload, whether or not the row's widgets have been built.
     struct Row
     {
-        std::string key;
-        wxString category;
-        wxString subcategory;
-        wxString label;
-        wxString value;
-        wxString unit;
-        wxString section_title; // outer tab title, for filter matching
-        Section section{Section::Print};
-        RowKind kind{RowKind::Setting};
-        size_t outer_index{0};
-        size_t inner_index{0};
-        bool dirty{false};          // matches a dirty base key: pre-checked + bold
-        bool matches_filter{false}; // survives the active filter (computed by apply_filter)
-        ::CheckBox* check{nullptr};
-        wxStaticText* check_label{nullptr};
-        wxStaticText* value_label{nullptr};
-        wxStaticText* unit_label{nullptr};
-        wxStaticBitmap* color_chip{nullptr}; // Color rows only; swatch next to the value
-        wxSizerItem* item{nullptr};          // sizer item of this row's h-sizer in its tab list sizer
+        Slic3r::PublishRowId id;           // publish-ready keys, owner, column, section and kind
+        int                  value_index{-1}; // vector index the value was read from: slot or file column
+        wxString             category;
+        wxString             subcategory;
+        wxString             label;
+        wxString             value; // the value as shown, for filter matching
+        wxString             unit;
+        wxString             section_title; // outer tab title, for filter matching
+        size_t               outer_index{0};
+        size_t               inner_index{0};
+        bool                 dirty{false};          // matches a dirty base key: pre-checked
+        bool                 matches_filter{false}; // survives the active filter (computed by apply_filter)
+        ::CheckBox*          check{nullptr};
+        wxStaticText*        check_label{nullptr};
+        wxStaticText*        value_label{nullptr};
+        wxStaticText*        unit_label{nullptr};
+        wxStaticBitmap*      color_chip{nullptr}; // Color rows only; swatch next to the value
+        wxSizerItem*         item{nullptr};       // sizer item of this row's h-sizer in its tab list sizer
     };
 
     // An optgroup heading. Rows store indices into m_rows.
@@ -154,6 +151,12 @@ private:
         // True for a mixed-color filament slot: no Material/Retraction rows; Enable publishes
         // the slot's gradient/ratio definition as a whole.
         bool is_mixed{false};
+        // The file column this owner's variant-level rows are built for; -1 when the owner has
+        // no variant layout (per-slot keys use their slot index instead).
+        int column{-1};
+        // Whether the rows' widgets have been created. Its group is built the first time the
+        // page is shown.
+        bool built{false};
         // Material identity, only for Section::Material categories.
         std::string filament_type;
         std::string filament_vendor;
@@ -231,7 +234,6 @@ private:
     void select_all(bool value);
     void select_visible(bool value);
     void show_menu(wxMouseEvent& evt);
-    void set_row_bold(Row& row, bool bold);
     // "Full Publish" toggled: disables/enables the material's rows.
     void on_full_toggle(size_t category_index);
     // "Enable" toggled on a material slot: reveals/hides everything below the header and, for a
@@ -261,13 +263,18 @@ private:
                               bool is_mixed                          = false,
                               bool is_variant                        = false);
     size_t subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon);
-    void add_row_ui(const std::string& key,
-                    const wxString& label,
-                    const wxString& value,
-                    const wxString& unit,
-                    size_t category_index,
-                    size_t subcategory_index,
-                    RowKind kind = RowKind::Setting);
+    // Appends one row to the model and to its page. Returns the row index. `id.keys` must
+    // already be publish-ready.
+    size_t add_row(Slic3r::PublishRowId id,
+                   int value_index,
+                   const wxString& label,
+                   const wxString& value,
+                   const wxString& unit,
+                   size_t category_index,
+                   size_t subcategory_index);
+    // Model-backed row state: the payload and the widgets both read this, never each other.
+    void set_row_checked(size_t row_index, bool checked);
+    void set_row_enabled(size_t row_index, bool enabled);
     // The non-structural filament keys of a slot's preset, for a "Full Publish" entry.
     std::vector<std::string> full_keys_for_slot() const;
     void save_scroll_position(Category& category);
@@ -310,6 +317,14 @@ private:
     std::vector<Row> m_rows;
     std::vector<Category> m_categories;
     std::vector<SectionGroup> m_sections;
+    // One entry per row, in display order, handed to the selection model's conversions.
+    std::vector<Slic3r::PublishRowId> m_row_ids;
+    // Every publishable value the dialog shows, read once when it opens. Declared before the
+    // groups so it outlives them.
+    Slic3r::DynamicPrintConfig m_snapshot;
+    // The selection state: checked and enabled per row, enabled and Full Publish per owner, and
+    // the owner identity the payload needs. The widgets are a view over it.
+    Slic3r::PublishSelection m_selection;
 };
 
 }} // namespace Slic3r::GUI
