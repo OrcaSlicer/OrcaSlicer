@@ -184,7 +184,7 @@ std::string get_nozzle_volume_type_cloud_string(NozzleVolumeType nozzle_volume_t
 static int s_nozzle_mapping_last_request_time = 0;
 
 // Printer agents name a printer after its model, so two printers of one model are told apart by their address.
-static wxString get_shown_printer_name(const MachineObject* obj)
+wxString get_shown_printer_name(const MachineObject* obj)
 {
     const wxString name = wxString::FromUTF8(obj->get_dev_name());
     if (!obj->printer_agent_id.empty() && obj->printer_agent_id != BBL_PRINTER_AGENT_ID && !obj->get_dev_ip().empty() &&
