@@ -898,37 +898,6 @@ void PublishSettingsDialog::build_option_model()
 
     m_snapshot = uncompacted;
 
-    // One row per config option: the label, value and unit the dialog has always shown, plus the
-    // definition the group will build its field from.
-    auto make_row = [&](std::string publish_key, const std::string& base, int index, int owner, int column,
-                        Slic3r::PublishSection section, Slic3r::PublishRowKind kind,
-                        const DynamicPrintConfig& cfg) -> std::optional<Row> {
-        wxString label, value, unit;
-        const std::string opt_id = index >= 0 ? base + "#" + std::to_string(index) : base;
-        if (!option_text(cfg, opt_id, base, label, value, unit))
-            return std::nullopt;
-        const ConfigOptionDef* def = print_config_def.get(base);
-        if (def == nullptr)
-            return std::nullopt;
-
-        Row row;
-        row.id.keys.emplace_back(std::move(publish_key));
-        row.id.owner   = owner;
-        row.id.column  = column;
-        row.id.section = section;
-        row.id.kind    = kind;
-        RowOption option;
-        option.key   = base;
-        option.index = index;
-        option.def   = *def;
-        row.options.push_back(std::move(option));
-        row.label    = label;
-        row.label_en = from_u8(def->full_label.empty() ? def->label : def->full_label);
-        row.value    = value;
-        row.unit     = unit;
-        return row;
-    };
-
     // The dialog's own requirement rows: Color and Type on a material slot. They publish
     // publish_color / publish_type, not a key.
     auto make_requirement_row = [](std::string key, int slot, Slic3r::PublishRowKind kind, const wxString& label, const wxString& value) {
@@ -1018,20 +987,29 @@ void PublishSettingsDialog::build_option_model()
                         if (optgroup->title != "Retraction" && optgroup->title != "Z-Hop")
                             continue;
                         const wxString subcategory = _(optgroup->title);
-                        for (const auto& opt : optgroup->opt_map()) {
-                            const std::string& pure_key = opt.second.first;
-                            // Rows are keyed by the full per-extruder "#N" opt_id so each
-                            // extruder tab publishes its own value.
-                            const std::string opt_id = pure_key + "#" + std::to_string(variant_index);
-                            if (!printer_added.insert(opt_id).second)
+                        for (const Line& src : optgroup->get_lines()) {
+                            if (src.is_separator() || src.get_options().empty())
                                 continue;
-                            if (!index_in_range(uncompacted, pure_key, variant_index))
+                            std::vector<MappedOption> mapped;
+                            bool                      row_ok = true;
+                            for (const Option& option : src.get_options()) {
+                                const std::string base = publish_base_key(option.opt_id);
+                                // Rows are keyed by the full per-extruder "#N" key so each
+                                // extruder page publishes its own value.
+                                const std::string key = base + "#" + std::to_string(variant_index);
+                                if (!printer_added.insert(key).second || !index_in_range(uncompacted, base, variant_index)) {
+                                    row_ok = false;
+                                    break;
+                                }
+                                mapped.push_back({ key, { base, variant_index, option.opt } });
+                            }
+                            if (!row_ok)
                                 continue;
                             size_t cat_index = category_index_for(page_title, Section::Printer, g, extruder_idx, PublishMaterialIdentity(), false, true);
                             m_categories[cat_index].column = variant_index;
                             size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon, optgroup.get(), page, tab->type());
-                            if (auto row = make_row(opt_id, pure_key, variant_index, -1, variant_index,
-                                                    Slic3r::PublishSection::Printer, Slic3r::PublishRowKind::Key, uncompacted))
+                            if (auto row = make_line_row(src, mapped, -1, variant_index,
+                                                         Slic3r::PublishSection::Printer, uncompacted))
                                 add_row(std::move(*row), cat_index, sub_index);
                         }
                     }
@@ -1040,8 +1018,9 @@ void PublishSettingsDialog::build_option_model()
         }
     }
 
-    // --- Phase 2: per-material sections synthesized from the filament tab's "Setting
-    // Overrides" page, under the Filament group.
+    // --- Phase 2: per-material sections built from the filament tab's pages, under the Filament
+    // group. Every page the Filament tab shows is a source, so a new Tab setting appears in the
+    // dialog without a dialog change (spec 7.4.4).
     {
         size_t g          = section_group_for(Section::Material);
         Tab* filament_tab = nullptr;
@@ -1051,14 +1030,15 @@ void PublishSettingsDialog::build_option_model()
                 break;
             }
         if (filament_tab != nullptr) {
-            const Page* overrides_page = nullptr;
-            for (const PageShp& page : filament_tab->m_pages)
-                if (page->title() == "Setting Overrides") {
-                    overrides_page = page.get();
-                    break;
-                }
+            // In the Tab's own order; Dependencies and Notes hold no publishable setting.
+            std::vector<const Page*> source_pages;
+            for (const PageShp& page : filament_tab->m_pages) {
+                if (page->title() == "Dependencies" || page->title() == "Notes")
+                    continue;
+                source_pages.push_back(page.get());
+            }
 
-            if (overrides_page != nullptr) {
+            if (!source_pages.empty()) {
                 // Mixed-color slots are virtual: they carry no per-key Material/Retraction
                 // settings; their "Enable" toggle always embeds the mix definition (components,
                 // ratios, gradient). Detect them via the project-level flag.
@@ -1113,7 +1093,7 @@ void PublishSettingsDialog::build_option_model()
                     // stay visually separated from the setting rows.
                     {
                         const size_t req_sub = subcategory_index_for(category_index, _L("Material"), "custom-gcode_filament",
-                                                                     nullptr, overrides_page, filament_tab->type());
+                                                                     nullptr, nullptr, filament_tab->type());
                         add_row(make_requirement_row("filament_colour", int(slot), Slic3r::PublishRowKind::Color, _L("Color"),
                                                      from_u8(filament_color_hex(full, slot))),
                                 category_index, req_sub);
@@ -1129,30 +1109,47 @@ void PublishSettingsDialog::build_option_model()
                     // A material section must not repeat a key; the same key may appear in other
                     // material sections - that is intended.
                     std::set<std::string> material_added;
+                    // Keys the file always carries whole for every slot. Publishing one per key
+                    // would rewrite the receiver's identity instead of gating it, and Color/Type
+                    // are already the dialog's own rows.
+                    static const std::set<std::string> identity_keys = {
+                        "filament_colour", "filament_type", "filament_vendor", "filament_ids",
+                        "filament_self_index", "filament_extruder_variant", "filament_diameter",
+                    };
 
-                    for (const ConfigOptionsGroupShp& optgroup : overrides_page->m_optgroups) {
-                        // Allowlist on the untranslated optgroup title; "Ironing" is skipped.
-                        if (optgroup->title != "Retraction" && optgroup->title != "Retraction when switching material")
-                            continue;
-                        for (const auto& opt : optgroup->opt_map()) {
-                            const std::string& opt_id = opt.first;
-                            std::string base          = publish_base_key(opt_id);
-                            if (!material_added.insert(base).second)
-                                continue;
-                            // A variant-bearing key reads its file column; a per-slot key reads
-                            // its slot. Without a variant layout the key stays slot-indexed, as
-                            // the legacy export path masks it.
-                            const bool variant_bearing = publish_is_variant_bearing(base);
-                            const int  column          = variant_bearing && resolved.file_column.has_value() ? int(*resolved.file_column) : -1;
-                            const int  value_index     = column >= 0 ? column : int(slot);
-                            if (!index_in_range(uncompacted, base, value_index))
-                                continue;
-                            const std::string row_key = column >= 0 ? base + "#" + std::to_string(column) : base;
-                            size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon,
-                                                                     optgroup.get(), overrides_page, filament_tab->type());
-                            if (auto row = make_row(row_key, base, value_index, int(slot), column,
-                                                    Slic3r::PublishSection::Material, Slic3r::PublishRowKind::Key, uncompacted))
-                                add_row(std::move(*row), category_index, sub_index);
+                    for (const Page* source_page : source_pages) {
+                        for (const ConfigOptionsGroupShp& optgroup : source_page->m_optgroups) {
+                            for (const Line& src : optgroup->get_lines()) {
+                                if (src.is_separator())
+                                    continue;
+                                // One row per source Line, as in Process: a multi-option row is
+                                // one publish unit.
+                                std::vector<MappedOption> mapped;
+                                for (const Option& option : src.get_options()) {
+                                    const std::string base = publish_base_key(option.opt_id);
+                                    if (identity_keys.count(base) != 0 || denylist.count(base) != 0)
+                                        continue;
+                                    if (!material_added.insert(base).second)
+                                        continue;
+                                    // A variant-bearing key reads its file column; a per-slot key
+                                    // reads its slot. Without a variant layout the key stays
+                                    // slot-indexed, as the legacy export path masks it.
+                                    const bool variant_bearing = publish_is_variant_bearing(base);
+                                    const int  column = variant_bearing && resolved.file_column.has_value() ? int(*resolved.file_column) : -1;
+                                    const int  value_index = column >= 0 ? column : int(slot);
+                                    if (!index_in_range(uncompacted, base, value_index))
+                                        continue;
+                                    const std::string row_key = column >= 0 ? base + "#" + std::to_string(column) : base;
+                                    mapped.push_back({ row_key, { base, value_index, option.opt } });
+                                }
+                                if (mapped.empty())
+                                    continue;
+                                size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon,
+                                                                         optgroup.get(), source_page, filament_tab->type());
+                                if (auto row = make_line_row(src, mapped, int(slot), publish_key_index(mapped.front().publish_key),
+                                                             Slic3r::PublishSection::Material, uncompacted))
+                                    add_row(std::move(*row), category_index, sub_index);
+                            }
                         }
                     }
                 }
@@ -1311,6 +1308,11 @@ void PublishSettingsDialog::build_option_model()
         if (row.dirty)
             set_row_checked(r, true);
     }
+    // A page may already have been built while the model was still being assembled, so paint the
+    // marker once more now that every row knows whether it is dirty.
+    for (size_t r = 0; r < m_rows.size(); ++r)
+        if (m_rows[r].dirty)
+            apply_row_label_colour(r);
 
     // Wire the "Enable" checkboxes: toggling one reveals/hides the slot's settings below the
     // header (and, for a mixed slot, auto-selects its components). Bind by index so the lambda
@@ -1334,9 +1336,8 @@ void PublishSettingsDialog::build_option_model()
     // No filter is active at startup: every row matches until the user types.
     for (Row& row : m_rows)
         row.matches_filter = true;
-    // Draw every row with the sidebar's own group and line machinery.
-    for (size_t c = 0; c < m_categories.size(); ++c)
-        build_row_groups(c);
+    // Rows are drawn when their page is first shown, so opening stays close to today's cost
+    // even with several variants per slot.
     apply_visibility();
 
     for (Category& category : m_categories) {
@@ -1705,6 +1706,9 @@ void PublishSettingsDialog::build_row_groups(size_t category_index)
     category.list_sizer->Layout();
     if (category.scroll != nullptr)
         category.scroll->FitInside();
+    // Rows carry their filter state from the model, so a page built after a filter was applied
+    // hides the same rows a page built before it does.
+    apply_visibility();
 }
 
 void PublishSettingsDialog::apply_row_label_colour(size_t row_index)
@@ -2026,6 +2030,7 @@ void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_inde
             section.page_tabs->Unselect();
     }
     Category& category     = m_categories[section.categories[inner_index]];
+    build_row_groups(section.categories[inner_index]);
     category.page->Show();
     category.scroll->FitInside();
     category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
@@ -2083,6 +2088,7 @@ void PublishSettingsDialog::show_mixed_page(size_t section_index, int mixed_inde
     }
     section.selected_mixed = mixed_index;
     Category& category     = m_categories[section.mixed_categories[mixed_index]];
+    build_row_groups(section.mixed_categories[mixed_index]);
     category.page->Show();
     category.scroll->FitInside();
     category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
