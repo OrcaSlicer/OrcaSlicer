@@ -244,7 +244,8 @@ static Polylines make_gyroid_waves(double gridZ, double density_adjusted, double
 
     // tolerance in scaled units. clamp the maximum tolerance as there's
     // no processing-speed benefit to do so beyond a certain point
-    const double tolerance = std::min(line_spacing / 2, GyroidPatternTolerance) / unscale<double>(scaleFactor);
+    // Orca: at most a hundredth of the period, so the waves of the dense patterns keep their length.
+    const double tolerance = std::min(std::min(line_spacing / 2, GyroidPatternTolerance) / unscale<double>(scaleFactor), 2. * PI / 100.);
 
     //scale factor for 5% : 8 712 388
     // 1z = 10^-6 mm ?
@@ -500,14 +501,14 @@ struct FillTpms::Surface
 // layers of the surface over that of TPMS-FK.
 static const FillTpms::Surface surfaces[] = {
     {ipGyroid, gyroid, FillTpms::GyroidDensityAdjust, 1.f, false, true, gyroid_waves},
-    {ipTpmsD, schwarz_d, 2.1, 1.f, false, true, tpms_d_waves},
-    {ipTpmsFK, fischer_koch, 2. * PI / 4.18, 0.9f, false, false, nullptr},
-    {ipTpmsP, schwarz_p, 2. * PI / 1.805, 0.9f, true, false, tpms_p_rings},
-    {ipTpmsIWP, schoen_iwp, 2. * PI / 2.683, 0.9f, true, false, nullptr},
-    {ipTpmsNeovius, neovius, 2. * PI / 2.607, 0.9f, true, false, nullptr},
-    {ipTpmsFRD, schoen_frd, 2. * PI / 3.597, 0.9f, true, false, nullptr},
-    {ipTpmsLidinoid, lidinoid, 2. * PI / 4.765, 0.9f, true, false, nullptr},
-    {ipTpmsSplitP, split_p, 2. * PI / 3.921, 0.9f, true, false, nullptr},
+    {ipTpmsD, schwarz_d, 2.073, 1.f, false, true, tpms_d_waves},
+    {ipTpmsFK, fischer_koch, 2. * PI / 4.233, 0.9f, true, false, nullptr},
+    {ipTpmsP, schwarz_p, 2. * PI / 1.840, 0.9f, true, false, tpms_p_rings},
+    {ipTpmsIWP, schoen_iwp, 2. * PI / 2.735, 0.9f, true, false, nullptr},
+    {ipTpmsNeovius, neovius, 2. * PI / 2.662, 0.9f, true, false, nullptr},
+    {ipTpmsFRD, schoen_frd, 2. * PI / 3.680, 0.9f, true, false, nullptr},
+    {ipTpmsLidinoid, lidinoid, 2. * PI / 4.840, 0.9f, true, false, nullptr},
+    {ipTpmsSplitP, split_p, 2. * PI / 3.972, 0.9f, true, false, nullptr},
 };
 
 FillTpms::FillTpms(InfillPattern pattern)
