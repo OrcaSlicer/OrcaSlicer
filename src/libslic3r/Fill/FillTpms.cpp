@@ -31,7 +31,45 @@ static float fischer_koch(float x, float y, float z)
 // Schwarz P equation with its cells elongated 1.5 times along z and the level set offset by -0.3:
 // cos(x) + cos(y) + cos(z / 1.5) = -0.3. The taller cells and thicker vertical tubes raise the
 // compressive and shear strength of the printed lattice at the same filament use.
-static float schwarz_p(float x, float y, float z) { return cosf(x) + cosf(y) + cosf(z * (1.f / 1.5f)) + 0.3f; }
+static constexpr float SchwarzPStretch = 1.5f;
+static constexpr float SchwarzPLevel   = 0.3f;
+static float schwarz_p(float x, float y, float z) { return cosf(x) + cosf(y) + cosf(z * (1.f / SchwarzPStretch)) + SchwarzPLevel; }
+
+// The ring cos(u) + cos(v) = c of a layer of Schwarz P around the origin for 0 <= c < 2, closed and counterclockwise
+// from the X axis, within tolerance of the curve. The ring is symmetric about both axes and both diagonals.
+static std::vector<Vec2d> schwarz_p_ring(double c, double tolerance)
+{
+    auto u = [c](double v) { return std::acos(std::clamp(c - std::cos(v), -1., 1.)); };
+    // An eighth from the X axis to the diagonal, where u = v = acos(c / 2).
+    const double       diagonal = std::acos(0.5 * c);
+    std::vector<Vec2d> eighth{Vec2d(u(0.), 0.), Vec2d(diagonal, diagonal)};
+    // Split a chord while the curve halfway along it is farther from it than tolerance.
+    for (size_t i = 0; i + 1 < eighth.size();) {
+        const double v     = 0.5 * (eighth[i].y() + eighth[i + 1].y());
+        const Vec2d  mid(u(v), v);
+        const Vec2d  chord = eighth[i + 1] - eighth[i];
+        if (std::abs(cross2(chord, Vec2d(mid - eighth[i]))) > tolerance * chord.norm())
+            eighth.insert(eighth.begin() + i + 1, mid);
+        else
+            ++i;
+    }
+    // A quarter up to the Y axis, mirrored across the diagonal, then the other three mirrored across the axes.
+    std::vector<Vec2d> quarter = eighth;
+    for (auto it = eighth.rbegin() + 1; it != eighth.rend(); ++it)
+        quarter.emplace_back(it->y(), it->x());
+    std::vector<Vec2d> ring = quarter;
+    ring.reserve(4 * quarter.size());
+    auto append = [&ring, &quarter](double sx, double sy, bool reversed) {
+        for (size_t i = 1; i < quarter.size(); ++i) {
+            const Vec2d &p = quarter[reversed ? quarter.size() - 1 - i : i];
+            ring.emplace_back(sx * p.x(), sy * p.y());
+        }
+    };
+    append(-1., 1., true);
+    append(-1., -1., false);
+    append(1., -1., true);
+    return ring;
+}
 
 // Schoen I-WP equation: 2 (cos(x)cos(y) + cos(y)cos(z) + cos(z)cos(x)) - (cos(2x) + cos(2y) + cos(2z)) = 0
 static float schoen_iwp(float x, float y, float z)
@@ -52,7 +90,31 @@ Polylines FillTpmsP::make_layer(const TpmsEquation &tpms, double frequency, cons
 {
     // Its cells are 2-3 times smaller than Fischer-Koch's, so lines are traced on a grid that scales with the period.
     const double cell = std::min(TpmsGridCell, 2. * PI / frequency / 32.);
-    return make_tpms_polylines(tpms, Vec3d::Constant(frequency), tpms_sampling_bbox(bbox, cell), this->z, cell);
+    if (!tpms.regular_layers())
+        return make_tpms_polylines(tpms, Vec3d::Constant(frequency), tpms_sampling_bbox(bbox, cell), this->z, cell);
+
+    // Every layer of the regular cells is a grid of equal rings cos(x) + cos(y) = level, made at once: around (0, 0)
+    // for a positive level, around (PI, PI) for a negative one.
+    const double level = -(std::cos(frequency * this->z / tpms.scale.z() / SchwarzPStretch) + SchwarzPLevel);
+    if (std::abs(level) >= 2.)
+        return {};
+    const std::vector<Vec2d> ring   = schwarz_p_ring(std::abs(level), std::min(SPARSE_INFILL_RESOLUTION, cell / 8.) * frequency);
+    const double             offset = level < 0. ? PI : 0.;
+    // The rings reach this far from their centers along the axes.
+    const double reach    = std::acos(std::abs(level) - 1.);
+    auto         first    = [&](coord_t min) { return int(std::ceil((unscaled(min) * frequency - offset - reach) / (2. * PI))); };
+    auto         last     = [&](coord_t max) { return int(std::floor((unscaled(max) * frequency - offset + reach) / (2. * PI))); };
+    const double to_coord = 1. / (frequency * SCALING_FACTOR);
+    Polylines    polylines;
+    for (int i = first(bbox.min.x()); i <= last(bbox.max.x()); ++i)
+        for (int j = first(bbox.min.y()); j <= last(bbox.max.y()); ++j) {
+            const Vec2d center(2. * PI * i + offset, 2. * PI * j + offset);
+            Polyline   &polyline = polylines.emplace_back();
+            polyline.points.reserve(ring.size());
+            for (const Vec2d &p : ring)
+                polyline.points.emplace_back(Vec2d((center + p) * to_coord));
+        }
+    return polylines;
 }
 
 Polylines FillTpmsIWP::make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const

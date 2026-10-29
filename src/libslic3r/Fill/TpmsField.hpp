@@ -22,7 +22,7 @@ struct TpmsEquation
         return equation(float(x / scale.x()), float((cos_x * y + sin_x * z) / scale.y()), float((cos_x * z - sin_x * y) / scale.z()));
     }
 
-    // Every layer is a layer of the regular cells, which the parametric waves of Gyroid and TPMS-D follow.
+    // Every layer is a layer of the regular cells, which the parametric lines of Gyroid, TPMS-D and TPMS-P follow.
     bool regular_layers() const { return scale.x() == 1. && scale.y() == 1. && sin_x == 0.; }
 
     float (*equation)(float x, float y, float z);

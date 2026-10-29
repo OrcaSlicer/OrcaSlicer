@@ -140,7 +140,7 @@ frequency, both from each pattern's own density calibration:
 With a denser surface, quadratic keeps the surface density deepest and
 exponential drops fastest. A denser interior works the same way.
 
-The zero level is extracted with marching squares like the regular TPMS-FK, TPMS-P and TPMS-IWP, on
+The zero level is extracted with marching squares like the regular TPMS-FK and TPMS-IWP, on
 a sampling grid fixed in the fill frame like the optimized Gyroid, so that every
 region of a layer connects its lines the same way at the saddles of the pattern.
 Loops narrower than two lines (shorter than `2 * PI * spacing`) are dropped, as
