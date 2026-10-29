@@ -162,6 +162,66 @@ PublishResolvedColumn publish_resolved_column(const DynamicPrintConfig &uncompac
     return out;
 }
 
+std::vector<PublishExtruderEntry> publish_extruder_rule(const DynamicPrintConfig &target,
+                                                        const DynamicPrintConfig &printer,
+                                                        const DynamicPrintConfig &project,
+                                                        size_t extruder, bool split_hybrid,
+                                                        std::string_view id_key,
+                                                        std::string_view variant_key)
+{
+    std::vector<PublishExtruderEntry> entries;
+
+    const ConfigOptionEnumsGeneric *extruder_types = printer.option<ConfigOptionEnumsGeneric>("extruder_type");
+    if (extruder_types == nullptr || extruder >= extruder_types->size())
+        return entries;
+
+    // A project without a nozzle type reads as Standard, as full_fff_config pads it. A populated
+    // array bounds the extruder: a short one is stale state, as in publish_resolved_column, not a
+    // padded map, so it resolves no column rather than another extruder's.
+    NozzleVolumeType nozzle = nvtStandard;
+    const ConfigOptionEnumsGeneric *nozzle_volumes = project.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    if (nozzle_volumes != nullptr && !nozzle_volumes->empty()) {
+        if (extruder >= nozzle_volumes->size())
+            return entries;
+        nozzle = NozzleVolumeType(nozzle_volumes->get_at(extruder));
+    }
+
+    const std::string id_name(id_key);
+    const std::string variant_name(variant_key);
+    if (!target.has(id_name) || !target.has(variant_name))
+        return entries;
+
+    const int extruder_type = extruder_types->get_at(extruder);
+    // A type outside ExtruderType yields no variant string, which a preset would match anywhere.
+    if (extruder_type < 0 || extruder_type > etMaxExtruderType)
+        return entries;
+
+    std::vector<NozzleVolumeType> nozzles;
+    if (!split_hybrid)
+        // A hybrid extruder has no preset column of its own: it reads the Standard one, as
+        // get_index_for_extruder matches Hybrid as Standard.
+        nozzles.emplace_back(nozzle == nvtHybrid ? nvtStandard : nozzle);
+    else if (nozzle == nvtHybrid)
+        // The process section shows one page per sub-nozzle type, Standard first.
+        nozzles = { nvtStandard, nvtHighFlow };
+    else
+        nozzles.emplace_back(nozzle);
+
+    const std::set<NozzleVolumeType> valid_nozzles = get_valid_nozzle_volume_type();
+    const ExtruderType               type          = ExtruderType(extruder_type);
+    entries.reserve(nozzles.size());
+    for (const NozzleVolumeType nozzle_type : nozzles) {
+        // An unsupported type yields an empty variant string, which a preset would match anywhere.
+        if (valid_nozzles.count(nozzle_type) == 0)
+            continue;
+        const int column = target.get_index_for_extruder(int(extruder) + 1, id_name, type, nozzle_type, variant_name);
+        if (column < 0)
+            continue;
+        entries.push_back({ int(nozzle_type), size_t(column) });
+    }
+    return entries;
+}
+
 void publish_normalize_material_entries(std::vector<PublishedMaterialEntry> &entries,
                                         const DynamicPrintConfig &uncompacted,
                                         std::vector<std::string> *notices)

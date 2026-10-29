@@ -1,4 +1,7 @@
 #pragma once
+
+#include "PrintConfig.hpp"
+
 #include <cstddef>
 #include <optional>
 #include <set>
@@ -141,6 +144,25 @@ struct PublishResolvedColumn
     std::string           used_variant;     // the variant file_column belongs to
 };
 PublishResolvedColumn publish_resolved_column(const DynamicPrintConfig &uncompacted, size_t slot);
+
+// One column an extruder shows in the Publish dialog: the nozzle type the column belongs to and
+// its index in the target preset's per-variant vectors.
+struct PublishExtruderEntry
+{
+    int    nozzle_type{nvtStandard}; // NozzleVolumeType
+    size_t column{0};
+};
+
+// The columns one extruder shows. `split_hybrid` asks for one entry per sub-nozzle type (the
+// process section, where a hybrid extruder has two); false asks for the single active type (the
+// printer section). Returns no entry for a combination the preset does not define - never a
+// fallback column.
+std::vector<PublishExtruderEntry> publish_extruder_rule(const DynamicPrintConfig &target,
+                                                        const DynamicPrintConfig &printer,
+                                                        const DynamicPrintConfig &project,
+                                                        size_t extruder, bool split_hybrid,
+                                                        std::string_view id_key,
+                                                        std::string_view variant_key);
 
 // Rewrite variant-bearing material keys to "base#file_column" for the column the slot prints with,
 // so a receiver can address the variant. Full entries keep their base keys (they carry every

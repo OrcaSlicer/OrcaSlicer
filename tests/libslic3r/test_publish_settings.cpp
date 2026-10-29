@@ -70,6 +70,17 @@ DynamicPrintConfig make_variant_config()
     return config;
 }
 
+// A target preset carrying the per-variant lists one extruder rule reads: one id and one variant
+// string per column. Both id options are integer vectors.
+DynamicPrintConfig make_extruder_target(const std::string &id_key, const std::string &variant_key,
+                                        const std::vector<int> &ids, const std::vector<std::string> &variants)
+{
+    DynamicPrintConfig target;
+    target.set_key_value(id_key, new ConfigOptionInts(ids));
+    target.set_key_value(variant_key, new ConfigOptionStrings(variants));
+    return target;
+}
+
 } // namespace
 
 TEST_CASE("Slot columns follow filament_self_index for uneven variant counts", "[PublishSettings]")
@@ -817,4 +828,71 @@ TEST_CASE("Mixed dependency issues name the component that is not published", "[
         CHECK(issues[0].component_slot == 1);
         CHECK(issues[0].reason == MixedDependencyIssue::Reason::MaterialNotPublished);
     }
+}
+
+TEST_CASE("The printer rule uses the project's nozzle type", "[PublishSettings]")
+{
+    // One extruder running a Standard nozzle; the preset lists Standard then High Flow.
+    const DynamicPrintConfig target = make_extruder_target("printer_extruder_id", "printer_extruder_variant", { 1, 1 },
+                                                          { "Direct Drive Standard", "Direct Drive High Flow" });
+    DynamicPrintConfig printer;
+    printer.set_key_value("extruder_type", new ConfigOptionEnumsGeneric({ int(etDirectDrive), int(etDirectDrive) }));
+    DynamicPrintConfig project;
+    project.set_key_value("nozzle_volume_type", new ConfigOptionEnumsGeneric({ int(nvtStandard) }));
+
+    const std::vector<PublishExtruderEntry> entries =
+        publish_extruder_rule(target, printer, project, 0, false, "printer_extruder_id", "printer_extruder_variant");
+    REQUIRE(entries.size() == 1);
+    CHECK(entries[0].nozzle_type == int(nvtStandard));
+    CHECK(entries[0].column == 0);
+
+    // The second extruder has no project nozzle type, so it is out of bounds rather than column 0.
+    CHECK(publish_extruder_rule(target, printer, project, 1, false, "printer_extruder_id", "printer_extruder_variant").empty());
+}
+
+TEST_CASE("The printer rule treats a hybrid nozzle as standard", "[PublishSettings]")
+{
+    const DynamicPrintConfig target = make_extruder_target("printer_extruder_id", "printer_extruder_variant", { 1, 1 },
+                                                          { "Direct Drive Standard", "Direct Drive High Flow" });
+    DynamicPrintConfig printer;
+    printer.set_key_value("extruder_type", new ConfigOptionEnumsGeneric({ int(etDirectDrive) }));
+    DynamicPrintConfig project;
+    project.set_key_value("nozzle_volume_type", new ConfigOptionEnumsGeneric({ int(nvtHybrid) }));
+
+    const std::vector<PublishExtruderEntry> entries =
+        publish_extruder_rule(target, printer, project, 0, false, "printer_extruder_id", "printer_extruder_variant");
+    REQUIRE(entries.size() == 1);
+    CHECK(entries[0].nozzle_type == int(nvtStandard));
+    CHECK(entries[0].column == 0);
+}
+
+TEST_CASE("The process rule gives two entries for a hybrid extruder", "[PublishSettings]")
+{
+    const DynamicPrintConfig target = make_extruder_target("print_extruder_id", "print_extruder_variant", { 1, 1 },
+                                                          { "Direct Drive Standard", "Direct Drive High Flow" });
+    DynamicPrintConfig printer;
+    printer.set_key_value("extruder_type", new ConfigOptionEnumsGeneric({ int(etDirectDrive) }));
+    DynamicPrintConfig project;
+    project.set_key_value("nozzle_volume_type", new ConfigOptionEnumsGeneric({ int(nvtHybrid) }));
+
+    const std::vector<PublishExtruderEntry> entries =
+        publish_extruder_rule(target, printer, project, 0, true, "print_extruder_id", "print_extruder_variant");
+    REQUIRE(entries.size() == 2);
+    CHECK(entries[0].nozzle_type == int(nvtStandard));
+    CHECK(entries[0].column == 0);
+    CHECK(entries[1].nozzle_type == int(nvtHighFlow));
+    CHECK(entries[1].column == 1);
+}
+
+TEST_CASE("The extruder rule omits a column the preset does not define", "[PublishSettings]")
+{
+    // The project asks for a High Flow nozzle and the preset only defines Standard.
+    const DynamicPrintConfig target = make_extruder_target("printer_extruder_id", "printer_extruder_variant", { 1 },
+                                                          { "Direct Drive Standard" });
+    DynamicPrintConfig printer;
+    printer.set_key_value("extruder_type", new ConfigOptionEnumsGeneric({ int(etDirectDrive) }));
+    DynamicPrintConfig project;
+    project.set_key_value("nozzle_volume_type", new ConfigOptionEnumsGeneric({ int(nvtHighFlow) }));
+
+    CHECK(publish_extruder_rule(target, printer, project, 0, false, "printer_extruder_id", "printer_extruder_variant").empty());
 }
