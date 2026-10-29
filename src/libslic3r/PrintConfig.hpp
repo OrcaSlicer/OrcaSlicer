@@ -185,6 +185,12 @@ inline bool is_adaptive_infill_pattern(InfillPattern pattern)
     return pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipTpmsP || pattern == ipTpmsIWP ||
            pattern == ipTpmsNeovius || pattern == ipTpmsFRD || pattern == ipTpmsLidinoid || pattern == ipTpmsSplitP;
 }
+// Orca: Infill patterns that change with the height, whose cells "sparse_infill_scale_z" stretches along Z.
+inline bool is_z_scaled_infill_pattern(InfillPattern pattern)
+{
+    return is_adaptive_infill_pattern(pattern) || pattern == ipCubic || pattern == ipQuarterCubic || pattern == ipCrossHatch ||
+           pattern == ip3DHoneycomb;
+}
 
 // Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
 // Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more

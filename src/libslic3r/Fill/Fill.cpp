@@ -1027,11 +1027,14 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 params.separated_infills = region_config.separated_infills && is_separable_infill_pattern(params.pattern) &&
                                            params.extrusion_role != erTopSolidInfill && params.extrusion_role != erBottomSurface;
 
-                // Orca: only the TPMS sparse infill is graded and scaled; reset otherwise, as params is reused.
+                // Orca: only the TPMS sparse infill is graded and scaled, and the sparse infill changing with the height
+                // stretched along Z; reset otherwise, as params is reused.
                 const bool tpms_infill = is_adaptive_infill_pattern(params.pattern) && params.extrusion_role == erInternalInfill;
+                const bool z_scaled    = is_z_scaled_infill_pattern(params.pattern) && params.extrusion_role == erInternalInfill;
                 params.adaptive_infill_mode = tpms_infill ? region_config.adaptive_infill_mode.value : AdaptiveInfillMode::Disabled;
-                params.sparse_infill_scale = tpms_infill ? std::array<double, 3>{ region_config.sparse_infill_scale_x, region_config.sparse_infill_scale_y, region_config.sparse_infill_scale_z } :
-                                                  std::array<double, 3>{ 1., 1., 1. };
+                params.sparse_infill_scale = { tpms_infill ? region_config.sparse_infill_scale_x.value : 1.,
+                                               tpms_infill ? region_config.sparse_infill_scale_y.value : 1.,
+                                               z_scaled ? region_config.sparse_infill_scale_z.value : 1. };
                 params.sparse_infill_rotation_x = tpms_infill ? Geometry::deg2rad(region_config.sparse_infill_rotation_x.value) : 0.;
                 const bool adaptive_infill_mode      = params.adaptive_infill_mode != AdaptiveInfillMode::Disabled;
                 params.adaptive_infill_interior_density  = adaptive_infill_mode ? std::max(1.f, float(region_config.adaptive_infill_interior_density)) : 0.f;

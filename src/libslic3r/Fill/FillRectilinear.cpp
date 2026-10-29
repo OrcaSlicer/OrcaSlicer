@@ -3397,7 +3397,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
         // Same z shifted lines as the single-line cubic; the slanted ones cross tau above the horizontal ones.
         auto pos_mod = [](double a, double m) { const double r = std::fmod(a, m); return r < 0. ? r + m : r; };
         const double h     = 0.5 * std::sqrt(3.0) * period;
-        const double shift = scale_(std::sqrt(0.5) * this->z);
+        const double shift = scale_(std::sqrt(0.5) * this->z / params.sparse_infill_scale[2]);
         const double tau   = pos_mod(-3. * shift, h);
         const double y0    = pos_mod(-2. * shift, 2. * h);
 
@@ -3430,8 +3430,8 @@ bool FillRectilinear::fill_surface_trapezoidal(
     {
         // Staircases on the lines of the single-line pattern. See docs/HLSD/multiline-infill.md.
         const double cos45 = std::sqrt(0.5);
-        const double a     = quarter_cubic_shift(this->z, 0., period, d1 / 2);
-        const double b     = quarter_cubic_shift(this->z, 0.5, period, d1 / 2);
+        const double a     = quarter_cubic_shift(this->z / params.sparse_infill_scale[2], 0., period, d1 / 2);
+        const double b     = quarter_cubic_shift(this->z / params.sparse_infill_scale[2], 0.5, period, d1 / 2);
         const double p     = period;
 
         // How far the crossings on one line of a pair move up and those on the other down, where the lines are too close for two cuts.
@@ -3690,7 +3690,7 @@ Polylines FillCubic::fill_surface(const Surface *surface, const FillParams &para
             BOOST_LOG_TRIVIAL(error) << "FillCubic::fill_surface_trapezoidal() failed.";
         return polylines_out;
     }
-    coordf_t dx = sqrt(0.5) * z;
+    coordf_t dx = sqrt(0.5) * z / params.sparse_infill_scale[2];
     if (! this->fill_surface_by_multilines(
             surface, params, 
             { { 0.f, float(dx) }, { float(M_PI / 3.), - float(dx) }, { float(M_PI * 2. / 3.), float(dx) } },
@@ -3712,10 +3712,10 @@ Polylines FillQuarterCubic::fill_surface(const Surface* surface, const FillParam
     coord_t period = coord_t(scale_(this->spacing) *params.multiline / params.density) * 4;
 
     // First half tetrahedral fill
-    float dx1 = unscale_(quarter_cubic_shift(z, 0.0, period, line_width / 2));
+    float dx1 = unscale_(quarter_cubic_shift(z / params.sparse_infill_scale[2], 0.0, period, line_width / 2));
 
     // Second half tetrahedral fill
-    float dx2 = unscale_(quarter_cubic_shift(z, 0.5, period, line_width / 2));
+    float dx2 = unscale_(quarter_cubic_shift(z / params.sparse_infill_scale[2], 0.5, period, line_width / 2));
     if (!this->fill_surface_by_multilines(
             surface, params, 
             {{0.f, dx1}, {0.f, -dx1}, {float(M_PI / 2.), dx2}, {float(M_PI / 2.), -dx2}},
