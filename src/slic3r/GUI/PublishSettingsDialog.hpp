@@ -186,6 +186,9 @@ private:
         // The Q1 notice: this printer needs a variant the filament does not define.
         wxStaticText* variant_notice{nullptr};
 
+        // The private preset's config as the hosted tab was first created (the seed plus the Tab's
+        // own initial normalization). commit_publish_edits() diffs the tab's edits against it.
+        Slic3r::DynamicPrintConfig seed;
         // Material identity, only for Section::Material categories.
         std::string filament_type;
         std::string filament_vendor;
@@ -323,6 +326,17 @@ private:
     // Model-backed row state: the payload and the widgets both read this, never each other.
     void set_row_checked(size_t row_index, bool checked);
     void set_row_enabled(size_t row_index, bool enabled);
+    // Whether a row's value can be written to the project (spec 7.10): a material slot must be
+    // enabled and not Full Publish, and the row must resolve to a real write target.
+    bool row_writable(size_t row_index) const;
+    // Enables the line's fields while the row it draws is checked and writable, and disables them
+    // otherwise. A row of a column the tab does not show leaves the line alone.
+    void apply_line_field_gating(size_t row_index);
+    // Applies the gating of every row of the category to the tab's fields.
+    void apply_row_field_gating(size_t category_index);
+    // Writes every checked row's edited value into the project's preset (or project config). Runs on
+    // OK only, so Cancel leaves the app's presets untouched.
+    void commit_publish_edits();
     // The non-structural filament keys of a slot's preset, for a "Full Publish" entry.
     std::vector<std::string> full_keys_for_slot() const;
     void save_scroll_position(Category& category);

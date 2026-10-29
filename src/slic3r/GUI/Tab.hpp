@@ -284,6 +284,8 @@ protected:
     bool                m_completed { false };
     // A publish tab renders a private preset outside the sidebar: no Speed Dial, no app state.
     bool                m_publish_host { false };
+    // The field state a page starts from when it is built after the dialog gated its rows.
+    bool                m_publish_fields_enabled { true };
     // The variant column switch_excluder() last resolved; -1 until one resolves.
     int                 m_last_resolved_column { -1 };
     ConfigOptionMode    m_mode = comAdvanced; // to correct first Tab update_visibility() set mode to Advanced
@@ -370,9 +372,13 @@ public:
 	void		create_preset_tab();
     // Builds a dialog-hosted tab over a private preset, without the sidebar chrome.
     void        create_publish_tab(const DynamicPrintConfig &config);
-    // Sets every group's fields read-only. A publish tab has no editable values yet, so its fields
-    // are a view of the seeded preset; row toggles stay clickable.
+    // Sets the groups' change-accepting flag only. A publish tab's fields stay enabled so an edit
+    // reaches the private preset and runs the Tab's own rules; the dialog gates the values.
     void        set_publish_readonly(bool readonly);
+    // Enables or disables every field of every page, including the pages built later.
+    void        set_publish_fields_enabled(bool enabled);
+    // Enables or disables one field (by its "#N"-suffixed opt_id) on every page.
+    void        set_publish_field_enabled(const std::string &opt_id, bool enabled);
     void        add_scaled_button(wxWindow* parent, ScalableButton** btn, const std::string& icon_name,
                                   const wxString& label = wxEmptyString,
                                   long style = wxBU_EXACTFIT | wxNO_BORDER);

@@ -737,8 +737,10 @@ void Tab::create_publish_tab(const DynamicPrintConfig &config)
     init_options_list();
     update_extruder_variants();
     rebuild_page_tree();
-    // No editable values until Task 18: the fields are a read-only view of the seeded preset.
-    set_publish_readonly(true);
+    // Values are visible but not editable: the dialog enables a checked row's fields, whose edits
+    // then land in this tab's private preset and run the Tab's own rules.
+    set_publish_readonly(false);
+    set_publish_fields_enabled(false);
 
     m_completed = true;
 }
@@ -751,14 +753,30 @@ void Tab::detach_from_tabs_list()
 
 void Tab::set_publish_readonly(bool readonly)
 {
+    // Only the group's change-accepting flag: field events must reach the private preset. The
+    // dialog enables and disables individual fields as its rows are checked.
     for (const PageShp &page : m_pages)
-        for (const ConfigOptionsGroupShp &group : page->m_optgroups) {
+        for (const ConfigOptionsGroupShp &group : page->m_optgroups)
             group->set_readonly(readonly);
-            if (readonly)
-                group->disable();
-            else
+}
+
+void Tab::set_publish_fields_enabled(bool enabled)
+{
+    m_publish_fields_enabled = enabled;
+    for (const PageShp &page : m_pages)
+        for (const ConfigOptionsGroupShp &group : page->m_optgroups)
+            if (enabled)
                 group->enable();
-        }
+            else
+                group->disable();
+}
+
+void Tab::set_publish_field_enabled(const std::string &opt_id, bool enabled)
+{
+    for (const PageShp &page : m_pages)
+        for (const ConfigOptionsGroupShp &group : page->m_optgroups)
+            if (Field *field = group->get_field(opt_id))
+                field->toggle(enabled);
 }
 
 int Tab::last_resolved_column() const
@@ -8159,6 +8177,11 @@ void Tab::activate_selected_page(std::function<void()> throw_if_canceled)
     ScopeGuard show_view([this, hide_view] { if (hide_view) m_page_view->Show(); });
 #endif
     m_active_page->activate(m_mode, throw_if_canceled);
+    // A page built after the dialog gated its rows starts with its fields disabled; the dialog
+    // re-enables the checked rows' fields through m_on_rules_applied below.
+    if (m_publish_host && !m_publish_fields_enabled)
+        for (const ConfigOptionsGroupShp &group : m_active_page->m_optgroups)
+            group->disable();
     update_changed_ui();
     update_description_lines();
     if (m_active_page && !(m_active_page->title() == "Dependencies"))

@@ -551,6 +551,49 @@ void add_sentence_with_chips(wxWindow* parent, wxSizer* row, const wxString& sen
         add_chip(i);
 }
 
+// One element of an option as text, for the commit's seed comparison. A scalar option ignores the
+// index; every vector type serializes element by element.
+std::string option_element_text_at(const Slic3r::ConfigOption& option, size_t index)
+{
+    if (const auto* values = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(&option)) {
+        const std::vector<std::string> elements = values->vserialize();
+        return index < elements.size() ? elements[index] : std::string();
+    }
+    return option.serialize();
+}
+
+// Copies `src`'s element `index` into `dst`'s element `index`. A scalar option is copied whole.
+// Returns false when either side cannot address that element.
+bool copy_option_element_at(Slic3r::DynamicPrintConfig& dst, const std::string& key,
+                            const Slic3r::DynamicPrintConfig& src, size_t index)
+{
+    const Slic3r::ConfigOption* from = src.option(key);
+    Slic3r::ConfigOption*       to   = dst.option(key, true);
+    if (from == nullptr || to == nullptr || from->type() != to->type())
+        return false;
+    if (to->is_scalar()) {
+        to->set(from);
+        return true;
+    }
+    auto*       dst_values = dynamic_cast<Slic3r::ConfigOptionVectorBase*>(to);
+    const auto* src_values = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(from);
+    if (dst_values == nullptr || src_values == nullptr || index >= src_values->size())
+        return false;
+    dst_values->set_at(src_values, index, index);
+    return true;
+}
+
+// Whether the Line draws this option through an indexed field ("base#N"), the way per-variant rows
+// are built. Such a field edits the element the tab's switch resolves; an unindexed field always
+// edits index 0.
+bool line_option_indexed(const Slic3r::GUI::Line& line, const std::string& base_key)
+{
+    for (const Slic3r::GUI::Option& option : line.get_options())
+        if (Slic3r::publish_base_key(option.opt_id) == base_key)
+            return Slic3r::publish_key_index(option.opt_id) >= 0;
+    return false;
+}
+
 } // namespace
 
 // Warning shown on OK when an enabled mixed-filament slot relies on a filament that would ship
@@ -780,6 +823,9 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
             if (warn.ShowModal() != wxID_OK)
                 return; // Cancel: dismiss the warning and stay in this dialog
         }
+        // The checked rows' staged edits become the project's values here and only here: Cancel
+        // closes without writing anything.
+        commit_publish_edits();
         EndModal(wxID_OK);
     });
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
@@ -925,14 +971,16 @@ void PublishSettingsDialog::build_option_model()
         if (Tab* tab = m_categories[category_index].publish_tab) {
             // The switch decides which column's row a checkbox paints; the tab handles its own
             // switch first (values, greying), then this repaints the publish controls.
-            tab->m_on_variant_changed = [this](int) {
+            tab->m_on_variant_changed = [this, category_index](int) {
                 sync_all_row_widgets();
+                apply_row_field_gating(category_index);
                 apply_visibility();
                 apply_row_label_colours();
             };
             // The tab rewrites its lines' visibility on a page switch; re-apply the filter and
             // the dirty markers on top.
-            tab->m_on_rules_applied = [this] {
+            tab->m_on_rules_applied = [this, category_index] {
+                apply_row_field_gating(category_index);
                 apply_visibility();
                 apply_row_label_colours();
             };
@@ -1027,14 +1075,16 @@ void PublishSettingsDialog::build_option_model()
             // The switch decides which column's row a checkbox paints; the tab handles its own
             // switch first (values, greying), then this repaints the publish controls.
             if (Tab* tab = m_categories[category_index].publish_tab) {
-                tab->m_on_variant_changed = [this](int) {
+                tab->m_on_variant_changed = [this, category_index](int) {
                     sync_all_row_widgets();
+                    apply_row_field_gating(category_index);
                     apply_visibility();
                     apply_row_label_colours();
                 };
                 // The tab rewrites its lines' visibility and its label colours on a page switch;
                 // re-apply the filter and the dirty markers on top.
-                tab->m_on_rules_applied = [this] {
+                tab->m_on_rules_applied = [this, category_index] {
+                    apply_row_field_gating(category_index);
                     apply_visibility();
                     apply_row_label_colours();
                 };
@@ -1052,14 +1102,16 @@ void PublishSettingsDialog::build_option_model()
         if (Tab* tab = m_categories[category_index].publish_tab) {
             // The switch decides which column's row a checkbox paints; the tab handles its own
             // switch first (values, greying), then this repaints the publish controls.
-            tab->m_on_variant_changed = [this](int) {
+            tab->m_on_variant_changed = [this, category_index](int) {
                 sync_all_row_widgets();
+                apply_row_field_gating(category_index);
                 apply_visibility();
                 apply_row_label_colours();
             };
             // The tab rewrites its lines' visibility and its label colours on a page switch;
             // re-apply the filter and the dirty markers on top.
-            tab->m_on_rules_applied = [this] {
+            tab->m_on_rules_applied = [this, category_index] {
+                apply_row_field_gating(category_index);
                 apply_visibility();
                 apply_row_label_colours();
             };
@@ -1334,6 +1386,10 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         host->set_publish_tab(tab);
         category.publish_host = host;
         category.publish_tab  = tab;
+        // The private preset as the tab first shows it (the seed plus the Tab's own initial
+        // normalization). commit_publish_edits() diffs the author's edits against this.
+        if (tab->m_config != nullptr)
+            category.seed = *tab->m_config;
         page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
     } else if (section == Section::Printer) {
         // The printer settings are the sidebar's own Printer tab, over a private preset seeded
@@ -1341,10 +1397,13 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         // dialog's inner tabs, and its pages are pruned to the publish allowlist.
         auto* host = new PublishParamsPanel(category.page);
         auto* tab  = new PublishTabPrinter(host);
-        tab->create_publish_tab(wxGetApp().preset_bundle->printers.get_edited_preset().config);
+        const DynamicPrintConfig seed = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        tab->create_publish_tab(seed);
         host->set_publish_tab(tab);
         category.publish_host = host;
         category.publish_tab  = tab;
+        if (tab->m_config != nullptr)
+            category.seed = *tab->m_config;
         page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
     } else if (section == Section::Print) {
         // The process settings are the sidebar's own Process tab, over a private preset seeded
@@ -1352,10 +1411,13 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         // the dialog's per-extruder categories and page tabs; its page set is kept whole.
         auto* host = new PublishParamsPanel(category.page);
         auto* tab  = new PublishTabPrint(host);
-        tab->create_publish_tab(wxGetApp().preset_bundle->prints.get_edited_preset().config);
+        const DynamicPrintConfig seed = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        tab->create_publish_tab(seed);
         host->set_publish_tab(tab);
         category.publish_host = host;
         category.publish_tab  = tab;
+        if (tab->m_config != nullptr)
+            category.seed = *tab->m_config;
         page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
     }
     category.scroll = new wxScrolledWindow(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxHSCROLL);
@@ -2197,6 +2259,9 @@ void PublishSettingsDialog::set_row_checked(size_t row_index, bool checked)
     Row& row = m_rows[row_index];
     m_selection.set_checked(row.id, checked);
     sync_row_widgets(row_index);
+    // The row's value is editable exactly while it is checked and writable. A row of another
+    // column than the one the tab shows does not draw its line, so it leaves it alone.
+    apply_line_field_gating(row_index);
 }
 
 void PublishSettingsDialog::set_row_enabled(size_t row_index, bool enabled)
@@ -2206,6 +2271,62 @@ void PublishSettingsDialog::set_row_enabled(size_t row_index, bool enabled)
     sync_row_widgets(row_index);
 }
 
+bool PublishSettingsDialog::row_writable(size_t row_index) const
+{
+    const Row& row = m_rows[row_index];
+    if (row.tab_line == nullptr || row.inner_index >= m_categories.size())
+        return false;
+    const Category& category = m_categories[row.inner_index];
+    if (category.publish_tab == nullptr || category.publish_tab->m_config == nullptr)
+        return false;
+    // An unchecked "Enable" publishes nothing of the slot, so none of its values is written.
+    if (row.id.section == Slic3r::PublishSection::Material &&
+        (category.enable_check == nullptr || !category.enable_check->GetValue()))
+        return false;
+    const bool full = row.id.section == Slic3r::PublishSection::Material &&
+                      m_selection.full_publish(int(category.filament_slot));
+    return Slic3r::publish_write_location(row.id, m_snapshot, *category.publish_tab->m_config, full).target !=
+           Slic3r::PublishWriteTarget::None;
+}
+
+void PublishSettingsDialog::apply_line_field_gating(size_t row_index)
+{
+    const Row& row = m_rows[row_index];
+    if (row.tab_line == nullptr || row.inner_index >= m_categories.size())
+        return;
+    if (!row_on_selected_variant(row_index))
+        return; // the line draws another column's row just now
+    Tab* tab = m_categories[row.inner_index].publish_tab;
+    if (tab == nullptr)
+        return;
+    const bool editable = m_selection.checked(row.id) && row_writable(row_index);
+    // Only the options this row publishes: a line may also carry a value the dialog does not publish,
+    // and that one must stay inert.
+    for (const RowOption& published : row.options)
+        for (const Option& option : row.tab_line->get_options())
+            if (Slic3r::publish_base_key(option.opt_id) == published.key)
+                tab->set_publish_field_enabled(option.opt_id, editable);
+}
+
+void PublishSettingsDialog::apply_row_field_gating(size_t category_index)
+{
+    if (category_index >= m_categories.size())
+        return;
+    const Category& category = m_categories[category_index];
+    Tab*           tab       = category.publish_tab;
+    if (tab == nullptr)
+        return;
+    // A disabled slot or a Full Publish slot copies its preset whole: no field of it is edited.
+    if (category.section == Section::Material &&
+        ((category.enable_check != nullptr && !category.enable_check->GetValue()) ||
+         m_selection.full_publish(int(category.filament_slot)))) {
+        tab->set_publish_fields_enabled(false);
+        return;
+    }
+    for (const size_t r : category.rows)
+        apply_line_field_gating(r);
+}
+
 void PublishSettingsDialog::on_full_toggle(size_t category_index)
 {
     Category& cat   = m_categories[category_index];
@@ -2213,8 +2334,14 @@ void PublishSettingsDialog::on_full_toggle(size_t category_index)
     m_selection.set_full_publish(int(cat.filament_slot), full);
     for (size_t r : cat.rows)
         set_row_enabled(r, !full);
-    // The hosted tab's fields stay read-only until Task 18 gives a checked row an editable value;
-    // Full Publish only freezes the row toggles, it does not re-enable the fields.
+    // Full Publish serializes the preset whole, so no row value is editable; unchecking it restores
+    // the per-row gating.
+    if (cat.publish_tab != nullptr) {
+        if (full)
+            cat.publish_tab->set_publish_fields_enabled(false);
+        else
+            apply_row_field_gating(category_index);
+    }
     // The row toggles changed state; repaint the hosted rows so the greyed toggles show at once.
     apply_visibility();
     refresh_tab_indicators();
@@ -2255,6 +2382,8 @@ void PublishSettingsDialog::on_enable_toggle(size_t category_index)
     // Reveal/hide everything below the slot's header (rows, info, Full Publish line) and refresh
     // the visibility of the auto-selected component slots.
     apply_visibility();
+    // A hidden slot has no editable value; an enabled one offers its checked rows' fields again.
+    apply_row_field_gating(category_index);
     if (cat.page != nullptr)
         cat.page->GetSizer()->Layout();
     refresh_tab_indicators();
@@ -2925,6 +3054,142 @@ void PublishSettingsDialog::apply_selection(const std::vector<std::string>& publ
 
     apply_visibility();
     refresh_tab_indicators();
+}
+
+void PublishSettingsDialog::commit_publish_edits()
+{
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+
+    bool any_written       = false;
+    bool filament_selected = false; // the write landed in the preset the sidebar's Filament tab shows
+    bool printer_written   = false;
+    bool process_written   = false;
+    bool project_written   = false;
+
+    // The element of a preset a row's option is written to, i.e. the element the tab's own field
+    // edits. A material preset stores a variant-bearing key per local variant (the resolver
+    // translates the row's file column) when the tab draws it through an indexed field; a field
+    // without an index always edits element 0 (the sidebar behaves the same way). A printer or
+    // process row addresses the column its key carries, or the resolved index of a key without one.
+    auto value_index = [](const Row& row, const RowOption& option, const Slic3r::PublishWriteLocation& location) {
+        const bool indexed = row.tab_line != nullptr && line_option_indexed(*row.tab_line, option.key);
+        if (location.target == Slic3r::PublishWriteTarget::FilamentPreset)
+            return indexed ? location.option_index : size_t(0);
+        return option.index >= 0 ? size_t(option.index) : (indexed ? location.option_index : size_t(0));
+    };
+
+    for (Category& category : m_categories) {
+        Tab* tab = category.publish_tab;
+        // A baseline is what the hosted tab showed when it was created; without one the tab holds
+        // no edit of this dialog's making (a mixed slot has no hosted tab at all).
+        if (tab == nullptr || tab->m_config == nullptr || category.seed.empty())
+            continue;
+        const DynamicPrintConfig& edited = *tab->m_config;
+        const bool                full   = category.section == Section::Material &&
+                                           m_selection.full_publish(int(category.filament_slot));
+        // "Enable" off publishes nothing of the slot; Full Publish copies the preset whole, so no
+        // per-row value is written.
+        if (category.section == Section::Material &&
+            (full || category.enable_check == nullptr || !category.enable_check->GetValue()))
+            continue;
+
+        for (const size_t r : category.rows) {
+            const Row& row = m_rows[r];
+            // Only a hosted setting row carries a value; a Color/Type requirement row has none.
+            if (row.tab_line == nullptr || row.id.kind != Slic3r::PublishRowKind::Key)
+                continue;
+            // Checked rows only, ever: an unchecked row's value must never reach the project even
+            // if the tab's preset somehow holds a difference.
+            if (!m_selection.checked(row.id) || !m_selection.enabled(row.id))
+                continue;
+            const Slic3r::PublishWriteLocation location =
+                Slic3r::publish_write_location(row.id, m_snapshot, edited, full);
+            if (location.target == Slic3r::PublishWriteTarget::None)
+                continue;
+
+            for (const RowOption& option : row.options) {
+                const ConfigOption* now  = edited.option(option.key);
+                const ConfigOption* seed = category.seed.option(option.key);
+                // A value the baseline does not carry is not an author edit.
+                if (now == nullptr || seed == nullptr)
+                    continue;
+                const size_t index = value_index(row, option, location);
+                if (option_element_text_at(*now, index) == option_element_text_at(*seed, index))
+                    continue;
+
+                switch (location.target) {
+                case Slic3r::PublishWriteTarget::FilamentPreset: {
+                    if (location.owner < 0 || size_t(location.owner) >= bundle->filament_presets.size())
+                        break;
+                    // The selected preset resolves to the collection's edited copy, which is the
+                    // sidebar's own preset; another slot's preset is its stored copy, which
+                    // full_config() reads for that slot.
+                    Preset* target = bundle->filaments.find_preset(bundle->filament_presets[size_t(location.owner)], false);
+                    if (target == nullptr || !copy_option_element_at(target->config, option.key, edited, index))
+                        break;
+                    target->is_dirty = true;
+                    if (target == &bundle->filaments.get_edited_preset()) {
+                        bundle->filaments.update_dirty();
+                        filament_selected = true;
+                    }
+                    any_written = true;
+                    break;
+                }
+                case Slic3r::PublishWriteTarget::PrinterPreset:
+                    if (copy_option_element_at(bundle->printers.get_edited_preset().config, option.key, edited, index)) {
+                        bundle->printers.update_dirty();
+                        printer_written = true;
+                        any_written     = true;
+                    }
+                    break;
+                case Slic3r::PublishWriteTarget::ProcessPreset:
+                    if (copy_option_element_at(bundle->prints.get_edited_preset().config, option.key, edited, index)) {
+                        bundle->prints.update_dirty();
+                        process_written = true;
+                        any_written     = true;
+                    }
+                    break;
+                case Slic3r::PublishWriteTarget::Project:
+                    if (copy_option_element_at(bundle->project_config, option.key, edited, index)) {
+                        project_written = true;
+                        any_written     = true;
+                    }
+                    break;
+                case Slic3r::PublishWriteTarget::None:
+                    break;
+                }
+            }
+        }
+    }
+
+    // Refresh the real tabs the same way a hand edit does, so their fields and the sidebar combos
+    // show the committed values. A write to another slot's filament preset leaves the sidebar
+    // selection alone (selecting a preset would discard the currently edited one); full_config()
+    // reads that preset directly.
+    auto refresh_tab = [](Preset::Type type) {
+        Tab* tab = wxGetApp().get_tab(type);
+        if (tab == nullptr)
+            return;
+        tab->update_dirty();
+        tab->reload_config();
+        tab->update();
+    };
+    if (process_written)
+        refresh_tab(Preset::TYPE_PRINT);
+    if (printer_written)
+        refresh_tab(Preset::TYPE_PRINTER);
+    if (filament_selected)
+        refresh_tab(Preset::TYPE_FILAMENT);
+
+    if (Plater* plater = wxGetApp().plater()) {
+        if (any_written)
+            plater->update_project_dirty_from_presets();
+        // A project-level key (a mixed definition) is not part of any preset's config.
+        if (project_written)
+            plater->on_config_change(bundle->project_config);
+    }
 }
 
 std::vector<std::string> PublishSettingsDialog::GetPublishedKeys() const
