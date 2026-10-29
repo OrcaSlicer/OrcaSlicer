@@ -262,7 +262,7 @@ void OptionsGroup::append_line(const Line& line)
 
     // Feed the searcher the row's wiki path (Line::label_path, for the Speed Dial's "open wiki"
     // affordance) and the label the row actually draws, so a setting action is named like the page.
-    if (m_use_custom_ctrl) {
+    if (m_use_custom_ctrl && index_in_search) {
         Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
         const Preset::Type      type  = static_cast<Preset::Type>(config_type());
         const bool              multi = line.get_options().size() > 1;
@@ -685,7 +685,7 @@ Option ConfigOptionsGroup::get_option(const std::string& opt_key, int opt_index 
     std::pair<std::string, int> pair(opt_key, opt_index);
     m_opt_map.emplace(opt_id, pair);
 
-    if (m_use_custom_ctrl) // fill group and category values just for options from Settings Tab
+    if (m_use_custom_ctrl && index_in_search) // fill group and category values just for options from Settings Tab
         wxGetApp().sidebar().settings_index().add_key(opt_id, static_cast<Preset::Type>(this->config_type()), title, this->config_category(), this->icon);
 
     return Option(*m_config->def()->get(opt_key), opt_id);

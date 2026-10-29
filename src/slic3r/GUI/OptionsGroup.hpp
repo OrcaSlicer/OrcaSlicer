@@ -155,6 +155,9 @@ public:
     const bool staticbox{true};
     bool split_multi_line{false};
     bool option_label_at_right{false};
+    // Options registered through get_option / append_line are indexed in the Speed Dial search.
+    // Set to false to keep the group's options out of that index.
+    bool index_in_search{true};
     // BBS: new layout
     wxWindow *     stb{ nullptr };
     const wxString  icon;
