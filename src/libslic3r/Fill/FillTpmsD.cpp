@@ -18,6 +18,7 @@
 #include "libslic3r/libslic3r.h"
 #include "FillTpmsD.hpp"
 #include "AdaptiveInfillField.hpp"
+#include "TpmsField.hpp"
 
 namespace Slic3r {
 
@@ -125,18 +126,24 @@ void FillTpmsD::_fill_surface_single(
         return;
     }
 
+    const TpmsEquation tpms(schwarz_d, Vec3d(params.tpms_scale.data()), params.tpms_rotation_x);
     auto infill_angle = float(this->angle + (CorrectionAngle * 2*M_PI) / 360.);
     if(std::abs(infill_angle) >= EPSILON)
         expolygon.rotate(-infill_angle);
 
+    // Radians per mm of the regular pattern at a density.
+    auto frequency = [&params, this](double density) { return density * DensityAdjust / (params.multiline * this->spacing); };
     Polylines polylines;
     if (params.adaptive_infill_mode != AdaptiveInfillMode::Disabled && this->adaptive_infill_field != nullptr) {
-        // Radians per mm of the regular pattern at a density.
-        auto frequency = [&params, this](double density) { return density * DensityAdjust / (params.multiline * this->spacing); };
         BoundingBox bbox = expolygon.contour.bounding_box();
         bbox.offset(scale_((params.multiline + 1) * this->spacing));
-        polylines = make_adaptive_tpms({schwarz_d, frequency(params.density), frequency(params.adaptive_infill_interior_density), params.adaptive_infill_gradient},
+        polylines = make_adaptive_tpms({tpms, frequency(params.density), frequency(params.adaptive_infill_interior_density), params.adaptive_infill_gradient},
                                        *this->adaptive_infill_field, bbox, this->z, params.layer_height, this->spacing, infill_angle);
+    } else if (!tpms.regular_layers()) {
+        // Marching squares on the implicit field, for the cells stretched in XY or turned, which the waves cannot follow.
+        BoundingBox bbox = expolygon.contour.bounding_box();
+        bbox.offset(scale_(params.multiline * this->spacing));
+        polylines = make_tpms_polylines(tpms, Vec3d::Constant(frequency(params.density)), tpms_sampling_bbox(bbox), this->z);
     } else {
         BoundingBox bb = expolygon.contour.bounding_box();
         // Density adjusted to have a good %of weight.
@@ -149,7 +156,7 @@ void FillTpmsD::_fill_surface_single(
 
         // generate pattern
         polylines = make_waves(
-            scale_(this->z),
+            scale_(this->z) / tpms.scale.z(),
             density_adjusted,
             this->spacing,
             ceil(bb.size()(0) / distance) + 1.,

@@ -1,5 +1,4 @@
 #include "../ClipperUtils.hpp"
-#include "../MarchingSquares.hpp"
 #include <cmath>
 #include <algorithm>
 #include <cstddef>
@@ -7,7 +6,6 @@
 #include <limits>
 #include "libslic3r/BoundingBox.hpp"
 #include <vector>
-#include "libslic3r/Execution/ExecutionTBB.hpp"
 #include <math.h>
 #include <utility>
 #include "libslic3r/ExPolygon.hpp"
@@ -19,6 +17,7 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "AdaptiveInfillField.hpp"
+#include "TpmsField.hpp"
 
 namespace Slic3r {
 
@@ -26,100 +25,6 @@ static float gyroid(float x, float y, float z)
 {
     return std::sin(x) * std::cos(y) + std::sin(y) * std::cos(z) + std::sin(z) * std::cos(x);
 }
-
-} // namespace Slic3r
-
-// ---------------------------------------------------------------------------
-// Marching-squares scalar field for the optimized gyroid branch.
-// Modeled after FillTpms.cpp's ScalarField.
-//
-// The gyroid scalar field is the standard implicit equation
-//     F(x,y,z) = sin(fx*x)cos(fy*y) + sin(fy*y)cos(fz*z) + sin(fz*z)cos(fx*x)
-// Marching squares extracts the iso-zero contour, which gives smoother
-// transitions between vertical and horizontal regimes than the analytical
-// asin-based wave generator. Setting fz = omega * baseline anisotropically
-// tightens the wave along the layer-stacking axis, shortening the effective
-// vertical strand length and improving column-buckling resistance under
-// Z-axis compression.
-// ---------------------------------------------------------------------------
-namespace marchsq {
-using namespace Slic3r;
-
-using coordr_t = long;
-using Pointf   = Vec2d;
-
-struct GyroidField
-{
-    static constexpr float gsizef = 0.40f;
-    static constexpr float rsizef = 0.004f;
-    const coord_t          rsize  = scaled(rsizef);
-    const coordr_t         gsize  = std::round(gsizef / rsizef);
-    Point                  size;
-    Point                  offs;
-    coordf_t               z;
-    float                  fx;
-    float                  fy;
-    float                  fz;
-    float                  isoval = 0.0f;
-
-    explicit GyroidField(const BoundingBox bb, const coordf_t z, const float period, const float omega = 1.0f)
-        : size{bb.size()}, offs{bb.min}, z{z}
-    {
-        const float baseline = float(2.0 * PI) / std::max(period, 1e-3f);
-        fx = baseline;
-        fy = baseline;
-        fz = omega * baseline;
-    }
-
-    float get_scalar(coordf_t x, coordf_t y, coordf_t z_arg) const
-    {
-        return gyroid(fx * float(x), fy * float(y), fz * float(z_arg));
-    }
-
-    float get_scalar(Coord p) const
-    {
-        Pointf pf = to_Pointf(p);
-        return get_scalar(pf.x(), pf.y(), z);
-    }
-
-    inline coord_t  to_coord (const coordr_t& x) const { return x * rsize; }
-    inline coordr_t to_coordr(const coord_t& x)  const { return x / rsize; }
-    inline Point  to_Point (const Coord& p) const { return Point(to_coord(p.c) + offs.x(), to_coord(p.r) + offs.y()); }
-    inline Coord  to_Coord (const Point& p) const { return Coord(to_coordr(p.y() - offs.y()), to_coordr(p.x() - offs.x())); }
-    inline Pointf to_Pointf(const Point& p) const { return Pointf(unscaled(p.x()), unscaled(p.y())); }
-    inline Pointf to_Pointf(const Coord& p) const { return to_Pointf(to_Point(p)); }
-};
-
-template<> struct _RasterTraits<GyroidField>
-{
-    using ValueType = float;
-    static float  get (const GyroidField& sf, size_t row, size_t col) { return sf.get_scalar(Coord(row, col)); }
-    static size_t rows(const GyroidField& sf) { return sf.to_coordr(sf.size.y()); }
-    static size_t cols(const GyroidField& sf) { return sf.to_coordr(sf.size.x()); }
-};
-
-inline Polylines get_gyroid_polylines(const GyroidField& sf, const double tolerance = SCALED_EPSILON)
-{
-    std::vector<Ring> rings = execute_with_policy(ex_tbb, sf, sf.isoval, {sf.gsize, sf.gsize});
-    Polylines polys;
-    polys.reserve(rings.size());
-    for (const Ring& ring : rings) {
-        Polyline poly;
-        Points&  pts = poly.points;
-        pts.reserve(ring.size() + 1);
-        for (const Coord& crd : ring)
-            pts.emplace_back(sf.to_Point(crd));
-        pts.push_back(pts.front());
-        if (tolerance >= 0.0)
-            poly.simplify(tolerance);
-        polys.emplace_back(poly);
-    }
-    return polys;
-}
-
-} // namespace marchsq
-
-namespace Slic3r {
 
 static inline double f(double x, double z_sin, double z_cos, bool vertical, bool flip)
 {
@@ -214,7 +119,7 @@ static std::vector<Vec2d> make_one_period(double scaleFactor, double z_cos, doub
 // ---------------------------------------------------------------------------
 // "Optimized" gyroid wave: marching-squares variant gated on
 // params.gyroid_optimized. The wave shape is extracted from the gyroid
-// implicit scalar field (see marchsq::GyroidField above) at iso=0, with
+// implicit scalar field (see TpmsField) at iso=0, with
 // the Z dimension's spatial frequency multiplied by an Euler-Bernoulli
 // buckling-derived factor so the vertical strands become shorter columns,
 // raising the critical buckling load against Z-axis compression.
@@ -242,8 +147,8 @@ static std::vector<Vec2d> make_one_period(double scaleFactor, double z_cos, doub
 //     30%      1.00     1.00        1.00             1.00
 //     50%+     1.00     1.00        1.00             1.00
 //
-// When gyroid_optimized is false, behavior is byte-identical to the
-// standard parametric gyroid path below.
+// When gyroid_optimized is false and every layer is a layer of the regular
+// pattern, behavior is byte-identical to the standard parametric gyroid path below.
 // ---------------------------------------------------------------------------
 
 static inline double compute_omega_factor(double density_adjusted, double line_spacing, double layer_height)
@@ -323,6 +228,7 @@ void FillGyroid::_fill_surface_single(
         return;
     }
 
+    const TpmsEquation tpms(gyroid, Vec3d(params.tpms_scale.data()), params.tpms_rotation_x);
     auto infill_angle = float(this->angle + (CorrectionAngle * 2*M_PI) / 360.);
     if(std::abs(infill_angle) >= EPSILON)
         expolygon.rotate(-infill_angle);
@@ -345,10 +251,11 @@ void FillGyroid::_fill_surface_single(
     if (params.adaptive_infill_mode != AdaptiveInfillMode::Disabled && this->adaptive_infill_field != nullptr) {
         // Radians per mm of the regular pattern at a density.
         auto frequency = [&params, this](double density) { return density * DensityAdjust / (params.multiline * this->spacing); };
-        polylines = make_adaptive_tpms({gyroid, frequency(params.density), frequency(params.adaptive_infill_interior_density), params.adaptive_infill_gradient},
+        polylines = make_adaptive_tpms({tpms, frequency(params.density), frequency(params.adaptive_infill_interior_density), params.adaptive_infill_gradient},
                                        *this->adaptive_infill_field, bb, this->z, params.layer_height, this->spacing, infill_angle);
-    } else if (params.gyroid_optimized) {
-        // Marching-squares path on the gyroid implicit field. Base period matches
+    } else if (params.gyroid_optimized || !tpms.regular_layers()) {
+        // Marching-squares path on the gyroid implicit field, also for the cells stretched in XY or
+        // turned, which the parametric waves cannot follow. Base period matches
         // the standard parametric path's wavelength: 2*pi * spacing / density_adj.
         // omega >= 1 always, so fz >= baseline -> shorter vertical wavelength ->
         // shorter effective column length -> higher buckling resistance.
@@ -358,19 +265,15 @@ void FillGyroid::_fill_surface_single(
         // Empirically (sim_gyroid_compare.py) the optimized line/std ratio is
         // ~1.000 across densities, so no period compensation is needed.
         const double lh = (params.layer_height > 0.) ? double(params.layer_height) : double(this->spacing);
-        const double omega = compute_omega_factor(density_adjusted, this->spacing * params.multiline, lh);
+        const double omega = params.gyroid_optimized ? compute_omega_factor(density_adjusted, this->spacing * params.multiline, lh) : 1.;
 
         const float density_factor = std::max(0.001f, float(params.density * DensityAdjust / params.multiline));
         const float period         = float(2.0 * M_PI) * float(this->spacing) / density_factor;
 
-        // A cell of margin for the rings closed along the raster border, and a fixed sampling grid for every region.
-        const coord_t cell = scaled(marchsq::GyroidField::gsizef);
-        bb.offset(cell);
-        bb.merge(align_to_grid(bb.min, Point(cell, cell)));
-        marchsq::GyroidField sf(bb, this->z, period, float(omega));
-        polylines = marchsq::get_gyroid_polylines(sf, SCALED_SPARSE_INFILL_RESOLUTION);
+        const float frequency      = float(2.0 * M_PI) / std::max(period, 1e-3f);
+        polylines = make_tpms_polylines(tpms, Vec3d(frequency, frequency, omega * frequency), tpms_sampling_bbox(bb), this->z);
     } else {
-        polylines = make_gyroid_waves(scale_(this->z), density_adjusted, this->spacing, bb, origin);
+        polylines = make_gyroid_waves(scale_(this->z) / tpms.scale.z(), density_adjusted, this->spacing, bb, origin);
     }
 
     // Apply multiline offset if needed
