@@ -64,6 +64,7 @@
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
+#include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
@@ -11233,4 +11234,41 @@ TEST_CASE("A sketch on a datum plane follows the plane when its offset variable 
     doc.variables["off"] = "30";
     REQUIRE(doc.recompute());
     CHECK_THAT(doc.display_mesh.bounding_box().min.z() - z0, Catch::Matchers::WithinAbs(20.0, 1e-6));
+}
+
+// ---- a dress-up touches only the picked edges, even when the rest of the contour is tangent to them ----------------------
+
+TEST_CASE("Chamfering three tangent top segments leaves the others alone", "[CadDocument][chamfer][punctual]")
+{
+    // A 40 x 30 x 20 block with its vertical edges rounded to R6: the top rim is four lines and four arcs, all tangent.
+    TopoDS_Shape box = BRepPrimAPI_MakeBox(40., 30., 20.).Shape();
+    {
+        BRepFilletAPI_MakeFillet mk(box);
+        for (int i = 0; i < GeometryEngine::edge_count(box); ++i) {
+            const TopoDS_Edge e = GeometryEngine::edge_by_index(box, i);
+            BRepAdaptor_Curve c(e);
+            const gp_Pnt a = c.Value(c.FirstParameter()), b = c.Value(c.LastParameter());
+            if (std::abs(a.X() - b.X()) < 1e-6 && std::abs(a.Y() - b.Y()) < 1e-6) mk.Add(6.0, e);
+        }
+        mk.Build();
+        REQUIRE(mk.IsDone());
+        box = mk.Shape();
+    }
+    const double v0 = solid_volume(box);
+    const double d  = 2.0;
+    const std::vector<int> picked = {
+        edge_near(box, Vec3d(2.18, 2.18, 20.0), 0.6),     // arc
+        edge_near(box, Vec3d(20.0, 0.0, 20.0), 0.5),        // line
+        edge_near(box, Vec3d(37.82, 2.18, 20.0), 0.6) };  // arc
+    for (int id : picked) REQUIRE(id >= 0);
+
+    const double all_len = 2 * 28.0 + 2 * 18.0 + 4 * (M_PI * 6.0 / 2.0);
+    const double picked_len = 28.0 + 2 * (M_PI * 6.0 / 2.0);
+    const TopoDS_Shape out = GeometryEngine::apply_chamfer(box, d, picked);
+    const double removed = v0 - solid_volume(out);
+    // d^2/2 per unit length of a straight edge; a rounded one is a touch less
+    const double expect = 0.5 * d * d * picked_len;
+    INFO("removed " << removed << " expected about " << expect << " (the whole rim would be " << 0.5 * d * d * all_len << ")");
+    REQUIRE(removed > 0.85 * expect);
+    REQUIRE(removed < 1.05 * expect);
 }

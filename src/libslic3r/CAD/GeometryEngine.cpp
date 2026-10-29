@@ -17,6 +17,14 @@
 #include <Poly_Triangle.hxx>
 #include <GeomAbs_CurveType.hxx>
 #include <gp_Cylinder.hxx>
+#include <BRepAlgoAPI_Splitter.hxx>
+#include <BRepAlgoAPI_Fuse.hxx>
+#include <BRepBndLib.hxx>
+#include <Bnd_Box.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepCheck_Analyzer.hxx>
+#include <TopTools_ListOfShape.hxx>
+#include <gp_Pln.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <math.h>
@@ -458,7 +466,7 @@ TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radi
     return apply_fillet(solid, radius, edge_ids, FilletLaw{});
 }
 
-static TopoDS_Shape fillet_edges(const TopoDS_Shape& solid, double radius, const std::vector<TopoDS_Edge>& edges, const GeometryEngine::FilletLaw& law)
+static TopoDS_Shape fillet_edges_raw(const TopoDS_Shape& solid, double radius, const std::vector<TopoDS_Edge>& edges, const GeometryEngine::FilletLaw& law)
 {
     if (radius <= 0.001) throw std::runtime_error(_u8L("the fillet radius must be greater than 0"));
     if (edges.empty()) throw std::runtime_error("apply_fillet: no edge picked");
@@ -539,6 +547,121 @@ static TopoDS_Shape fillet_edges(const TopoDS_Shape& solid, double radius, const
     return mk.Shape();
 }
 
+
+// OCCT grows a fillet / chamfer along every edge tangent to a picked one (a whole contour), so three picked segments of a
+// rounded top edge round all of it. The pick must be the only thing that changes: where a contour runs on past the picked
+// edges, split the solid by a plane normal to the edge at each such junction, dress each piece (the plane face is no
+// longer tangent, so the contour stops there) and fuse the pieces back. The dress ends flat on that plane.
+static bool edge_in(const std::vector<TopoDS_Edge>& v, const TopoDS_Shape& e)
+{
+    for (const TopoDS_Edge& x : v) if (x.IsSame(e)) return true;
+    return false;
+}
+
+static std::vector<TopoDS_Edge> contour_extras(const TopoDS_Shape& solid, const std::vector<TopoDS_Edge>& edges, bool fillet)
+{
+    std::vector<TopoDS_Edge> extras;
+    auto scan = [&](auto& mk) {
+        for (const TopoDS_Edge& e : edges) mk.Add(1.0, e);
+        for (int i = 1; i <= mk.NbContours(); ++i)
+            for (int j = 1; j <= mk.NbEdges(i); ++j) {
+                const TopoDS_Edge x = mk.Edge(i, j);
+                if (!edge_in(edges, x) && !edge_in(extras, x)) extras.push_back(x);
+            }
+    };
+    try {
+        if (fillet) { BRepFilletAPI_MakeFillet mk(solid); scan(mk); }
+        else        { BRepFilletAPI_MakeChamfer mk(solid); scan(mk); }
+    } catch (...) { extras.clear(); }
+    return extras;
+}
+
+template<class Op>
+static TopoDS_Shape dress_punctual(const TopoDS_Shape& solid, const std::vector<TopoDS_Edge>& edges, bool fillet, Op op)
+{
+    const std::vector<TopoDS_Edge> extras = contour_extras(solid, edges, fillet);
+    if (extras.empty()) return op(solid, edges);
+
+    // a plane normal to the contour at every vertex where a picked edge meets an unpicked one
+    std::vector<std::pair<gp_Pnt, gp_Dir>> cuts;
+    for (const TopoDS_Edge& x : extras)
+        for (TopExp_Explorer ve(x, TopAbs_VERTEX); ve.More(); ve.Next()) {
+            const TopoDS_Vertex v = TopoDS::Vertex(ve.Current());
+            for (const TopoDS_Edge& s : edges)
+                for (TopExp_Explorer se(s, TopAbs_VERTEX); se.More(); se.Next()) {
+                    if (!se.Current().IsSame(v)) continue;
+                    BRepAdaptor_Curve c(s);
+                    gp_Pnt pt; gp_Vec t;
+                    c.D1(BRep_Tool::Parameter(v, s), pt, t);
+                    if (t.Magnitude() < 1e-9) continue;
+                    bool dup = false;
+                    for (const auto& k : cuts) if (k.first.Distance(pt) < 1e-6) { dup = true; break; }
+                    if (!dup) cuts.emplace_back(pt, gp_Dir(t));
+                }
+        }
+    if (cuts.empty()) return op(solid, edges);
+
+    Bnd_Box bb;
+    BRepBndLib::Add(solid, bb);
+    const double L = 2.0 * std::sqrt(bb.SquareExtent()) + 10.0;
+    TopTools_ListOfShape args, tools;
+    args.Append(solid);
+    for (const auto& k : cuts)
+        tools.Append(BRepBuilderAPI_MakeFace(gp_Pln(k.first, k.second), -L, L, -L, L).Face());
+    BRepAlgoAPI_Splitter sp;
+    sp.SetArguments(args);
+    sp.SetTools(tools);
+    sp.Build();
+    if (!sp.IsDone()) throw std::runtime_error(_u8L("cannot limit the dress-up to the picked edges"));
+
+    std::vector<TopoDS_Shape> done;
+    for (TopExp_Explorer ex(sp.Shape(), TopAbs_SOLID); ex.More(); ex.Next()) {
+        const TopoDS_Shape piece = ex.Current();
+        // the piece's edges that lie on a picked one (the splits cut them into several)
+        std::vector<TopoDS_Edge> mine;
+        NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> all;
+        TopExp::MapShapes(piece, TopAbs_EDGE, all);
+        for (int i = 1; i <= all.Extent(); ++i) {
+            const TopoDS_Edge e = TopoDS::Edge(all(i));
+            if (BRep_Tool::Degenerated(e)) continue;
+            BRepAdaptor_Curve c(e);
+            const TopoDS_Vertex mid = BRepBuilderAPI_MakeVertex(c.Value(0.5 * (c.FirstParameter() + c.LastParameter())));
+            for (const TopoDS_Edge& s : edges) {
+                BRepExtrema_DistShapeShape d(mid, s);
+                if (d.IsDone() && d.Value() < 1e-4) { mine.push_back(e); break; }
+            }
+        }
+        done.push_back(mine.empty() ? piece : op(piece, mine));
+    }
+    if (done.empty()) throw std::runtime_error(_u8L("cannot limit the dress-up to the picked edges"));
+    TopoDS_Shape out = done.front();
+    if (done.size() > 1) {
+        TopTools_ListOfShape a, t;
+        a.Append(done.front());
+        for (size_t i = 1; i < done.size(); ++i) t.Append(done[i]);
+        BRepAlgoAPI_Fuse fu;
+        fu.SetArguments(a);
+        fu.SetTools(t);
+        fu.Build();
+        if (!fu.IsDone()) throw std::runtime_error(_u8L("cannot limit the dress-up to the picked edges"));
+        out = fu.Shape();
+    }
+    ShapeUpgrade_UnifySameDomain u(out, true, true, true);
+    u.Build();
+    out = u.Shape();
+    if (!BRepCheck_Analyzer(out).IsValid()) throw std::runtime_error(_u8L("cannot limit the dress-up to the picked edges"));
+    return out;
+}
+
+static TopoDS_Shape fillet_edges(const TopoDS_Shape& solid, double radius, const std::vector<TopoDS_Edge>& edges, const GeometryEngine::FilletLaw& law)
+{
+    if (radius <= 0.001) throw std::runtime_error("the fillet radius must be greater than 0");
+    if (edges.empty()) throw std::runtime_error("apply_fillet: no edge picked");
+    return dress_punctual(solid, edges, true, [&](const TopoDS_Shape& s, const std::vector<TopoDS_Edge>& es) {
+        return fillet_edges_raw(s, radius, es, law);
+    });
+}
+
 TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radius, const std::vector<int>& edge_ids, const FilletLaw& law)
 {
     std::vector<TopoDS_Edge> edges;
@@ -584,16 +707,19 @@ TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double dis
     if (distance <= 0.001) throw std::runtime_error(_u8L("the chamfer distance must be greater than 0"));
     if (edge_ids.empty()) throw std::runtime_error("apply_chamfer: no edge picked");
 
-    BRepFilletAPI_MakeChamfer mk(solid);
+    std::vector<TopoDS_Edge> edges;
     for (int id : edge_ids) {
         TopoDS_Edge edge = edge_by_index(solid, id);
         if (edge.IsNull()) throw std::runtime_error("apply_chamfer: invalid edge id");
-        mk.Add(distance, edge);
+        edges.push_back(edge);
     }
-    mk.Build();
-
-    if (!mk.IsDone()) throw std::runtime_error(_u8L("apply_chamfer: OCCT chamfer failed"));
-    return mk.Shape();
+    return dress_punctual(solid, edges, false, [&](const TopoDS_Shape& sh, const std::vector<TopoDS_Edge>& es) {
+        BRepFilletAPI_MakeChamfer mk(sh);
+        for (const TopoDS_Edge& e : es) mk.Add(distance, e);
+        mk.Build();
+        if (!mk.IsDone()) throw std::runtime_error(_u8L("apply_chamfer: OCCT chamfer failed"));
+        return mk.Shape();
+    });
 }
 
 // ---- Tessellation ----
