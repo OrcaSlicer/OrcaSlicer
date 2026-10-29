@@ -1839,10 +1839,6 @@ void PreferencesDialog::create_items()
     //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");
     //g_sizer->Add(item_hints);
 
-    //// GENERAL > Favorite Infill Patterns
-    g_sizer->Add(create_item_title(_L("Favorite Infill Patterns")), 1, wxEXPAND);
-    g_sizer->Add(create_item_favorite_patterns());
-
     //// GENERAL > Features
     g_sizer->Add(create_item_title(_L("Features")), 1, wxEXPAND);
 
@@ -2447,6 +2443,21 @@ void PreferencesDialog::create_items()
             });
         g_sizer->Add(item_benchmark);
     }
+
+    g_sizer->AddSpacer(FromDIP(10));
+    sizer_page->Add(g_sizer, 0, wxEXPAND);
+
+    //////////////////////////
+    //// FAVORITES TAB
+    /////////////////////////////////////
+    m_tab_index[PreferencesTab::Favorites] = m_pref_tabs->AppendItem(_L("Favorites"));
+    f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
+    g_sizer = f_sizers.back();
+    g_sizer->AddGrowableCol(0, 1);
+
+    //// FAVORITES > Sparse Infill Patterns
+    g_sizer->Add(create_item_title(_L("Sparse Infill Patterns")), 1, wxEXPAND);
+    g_sizer->Add(create_item_favorite_patterns());
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
