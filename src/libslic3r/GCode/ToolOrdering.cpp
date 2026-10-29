@@ -151,6 +151,8 @@ static unsigned int region_filament(const ExtrusionEntityCollection &extrusions,
         for (const ExtrusionEntity *ee : extrusions.entities)
             if (const ExtrusionRole er = ee->role(); er != erGapFill)
                 role = (role == erNone || role == er) ? er : erMixed;
+        if (role == erIroning && config.ironing_filament.value > 0)
+            return config.ironing_filament.value;
         if (role == erTopSolidInfill || role == erIroning)
             return config.top_surface_filament_id.value;
         if (role == erBottomSurface)
@@ -172,8 +174,7 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
 	assert(region.config().top_surface_filament_id.value > 0);
 	assert(region.config().bottom_surface_filament_id.value > 0);
 	// 1 based extruder ID.
-    const unsigned int extruder = this->extruder_override == 0 ? region_filament(extrusions, region.config()) : this->extruder_override;
-    unsigned int result = (extruder == 0) ? 0 : extruder - 1;
+    const unsigned int extruder = this->extruder_override == 0 ? region_filament(extrusions, region.config()) : this->extruder_override;    unsigned int result = (extruder == 0) ? 0 : extruder - 1;
     return resolve_mixed(result);
 }
 
@@ -440,6 +441,56 @@ bool ToolOrdering::insert_wipe_tower_extruder()
     return changed;
 }
 
+// Full-height independent towers: every tower gets a layer on every object layer, which needs a
+// change onto one of its filaments wherever none of them prints. The extruder appended here only
+// purges on the tower; the toolchange it causes is the price of a tower that follows the object.
+bool ToolOrdering::insert_independent_tower_group_extruders()
+{
+    const PrintConfig *config = m_print_config_ptr;
+    if (!config || !config->enable_prime_tower || !config->prime_tower_independent || config->prime_tower_multimaterial ||
+        !config->prime_tower_independent_full_height)
+        return false;
+
+    // Filaments used anywhere on the plate; the groups are formed over these.
+    std::vector<unsigned int> used;
+    for (const LayerTools &lt : m_layer_tools)
+        for (unsigned int extruder : lt.extruders)
+            if (std::find(used.begin(), used.end(), extruder) == used.end())
+                used.push_back(extruder);
+    if (used.size() < 2)
+        return false;
+    std::sort(used.begin(), used.end());
+    const std::vector<int> group_of  = prime_tower_groups(*config, used);
+    const std::vector<int> group_ids = prime_tower_group_ids(group_of, used);
+    if (group_ids.size() < 2)
+        return false;
+
+    // Which member to force: the one the tower last printed with, so the colour sequence on the
+    // tower changes as little as possible; the representative until the group was first used.
+    std::vector<unsigned int> last_member;
+    for (int g : group_ids)
+        last_member.push_back((unsigned int) g);
+
+    bool changed = false;
+    for (LayerTools &lt : m_layer_tools) {
+        if (lt.extruders.empty() || !(lt.has_object || lt.has_support))
+            continue;
+        for (size_t gi = 0; gi < group_ids.size(); ++gi) {
+            bool present = false;
+            for (unsigned int extruder : lt.extruders)
+                if (size_t(extruder) < group_of.size() && group_of[size_t(extruder)] == group_ids[gi]) {
+                    present         = true;
+                    last_member[gi] = extruder;
+                }
+            if (!present) {
+                lt.extruders.emplace_back(last_member[gi]);
+                changed = true;
+            }
+        }
+    }
+    return changed;
+}
+
 void ToolOrdering::sort_and_build_data(const Print& print, unsigned int first_extruder, bool prime_multi_material)
 {
     // if first extruder is -1, we can decide the first layer tool order before doing reorder function
@@ -465,7 +516,10 @@ void ToolOrdering::sort_and_build_data(const Print& print, unsigned int first_ex
     max_layer_height = calc_max_layer_height(print.config(), max_layer_height);
 
     this->fill_wipe_tower_partitions(print.config(), object_bottom_z, max_layer_height);
-    if (this->insert_wipe_tower_extruder()) {
+    // Both insertions run (no short-circuit): each may add extruders on its own.
+    const bool inserted_wipe_tower_extruder = this->insert_wipe_tower_extruder();
+    const bool inserted_group_extruders     = this->insert_independent_tower_group_extruders();
+    if (inserted_wipe_tower_extruder || inserted_group_extruders) {
         reorder_extruders_for_minimum_flush_volume(reorder_first_layer);
         // Orca reorders a second time here (BBS has no such path); re-enforce so the
         // mixed sub-layer component order survives the extra pass.
@@ -489,7 +543,10 @@ void ToolOrdering::sort_and_build_data(const PrintObject& object , unsigned int 
     double max_layer_height = calc_max_layer_height(object.print()->config(), object.config().layer_height);
 
     this->fill_wipe_tower_partitions(object.print()->config(), object.layers().front()->print_z - object.layers().front()->height, max_layer_height);
-    if (this->insert_wipe_tower_extruder()) {
+    // Both insertions run (no short-circuit): each may add extruders on its own.
+    const bool inserted_wipe_tower_extruder = this->insert_wipe_tower_extruder();
+    const bool inserted_group_extruders     = this->insert_independent_tower_group_extruders();
+    if (inserted_wipe_tower_extruder || inserted_group_extruders) {
         reorder_extruders_for_minimum_flush_volume(reorder_first_layer);
         // Orca reorders a second time here (BBS has no such path); re-enforce so the
         // mixed sub-layer component order survives the extra pass.
@@ -870,14 +927,12 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                 layer_tools.has_object = true;
             }
 
-            std::vector<unsigned int> fill_filaments;
-            bool something_nonoverriddable = false;
+            std::vector<unsigned int> fill_filaments;            bool something_nonoverriddable = false;
             for (const ExtrusionEntity *ee : layerm->fills.entities) {
                 // fill represents infill extrusions of a single island.
                 const auto *fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
                 if (! fill->entities.empty())
                     fill_filaments.emplace_back(region_filament(*fill, region.config()));
-
                 if (m_print_config_ptr) {
                     if (! layer_tools.wiping_extrusions().is_overriddable_and_mark(*fill, *m_print_config_ptr, object, region))
                         something_nonoverriddable = true;
@@ -890,8 +945,7 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                 else if (! fill_filaments.empty())
             		layer_tools.extruders.emplace_back(extruder_override);
             }
-            if (! fill_filaments.empty())
-                layer_tools.has_object = true;
+            if (! fill_filaments.empty())                layer_tools.has_object = true;
         }
 
         // Record mixed slot usage for this object at this layer.
@@ -953,14 +1007,18 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         ExtrusionRole role          = support_layer->support_fills.role();
         bool          has_support   = false;
         bool          has_interface = false;
+        bool          has_ironing   = false;
         for (const ExtrusionEntity *ee : support_layer->support_fills.entities) {
             ExtrusionRole er = ee->role();
             if (er == erSupportMaterial || er == erSupportTransition) has_support = true;
             if (er == erSupportMaterialInterface) has_interface = true;
-            if (has_support && has_interface) break;
+            if (er == erIroning) has_ironing = true;
+            if (has_support && has_interface && has_ironing) break;
         }
         unsigned int extruder_support   = object.config().support_filament.value;
         unsigned int extruder_interface = object.config().support_interface_filament.value;
+        // Support ironing extruder; "Default" (0) follows the interface filament.
+        unsigned int extruder_ironing   = object.config().support_ironing_filament.value;
         if (has_support) {
             if (extruder_support > 0 || !has_interface || extruder_interface == 0 || layer_tools.has_object)
                 layer_tools.extruders.push_back(extruder_support);
@@ -990,6 +1048,7 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             }
         }
         if (has_interface) layer_tools.extruders.push_back(extruder_interface);
+        if (has_ironing) layer_tools.extruders.push_back(extruder_ironing > 0 ? extruder_ironing : extruder_interface);
         if (has_support || has_interface) {
             layer_tools.has_support = true;
             layer_tools.wiping_extrusions().is_support_overriddable_and_mark(role, object);

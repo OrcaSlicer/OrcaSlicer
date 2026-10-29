@@ -951,6 +951,8 @@ public:
 	            std::istringstream iss(item_str);
 	            double value;
 	            iss >> value;
+	            if (!NULLABLE && !std::isfinite(value))
+	                value = 0.;
 	            this->values.push_back(value);
 	        }
         }
@@ -977,10 +979,14 @@ protected:
 	        else if (std::isnan(v)) {
         		if (NULLABLE)
         			ss << "nil";
-        		else
-                    throw ConfigurationError("Serializing NaN");
-        	} else
-                throw ConfigurationError("Serializing invalid number");
+        		else {
+                    BOOST_LOG_TRIVIAL(error) << "Replacing NaN with 0 while serializing a non-nullable ConfigOptionFloats";
+                    ss << 0;
+                }
+        	} else {
+                BOOST_LOG_TRIVIAL(error) << "Replacing non-finite with 0 while serializing a non-nullable ConfigOptionFloats";
+                ss << 0;
+            }
 	}
     static bool vectors_equal(const std::vector<double> &v1, const std::vector<double> &v2) {
     	if (NULLABLE) {
@@ -1142,7 +1148,8 @@ private:
         		if (NULLABLE)
         			ss << "nil";
         		else
-                    throw ConfigurationError("Serializing NaN");
+        			// INT_MAX is a real value here (e.g. "End" of a custom layer range).
+        			ss << v;
         	} else
         		ss << v;
 	}
@@ -1493,10 +1500,14 @@ protected:
             } else if (std::isnan(v.value)) {
                 if (NULLABLE)
                     ss << "nil";
-                else
-                    throw ConfigurationError("Serializing NaN");
-            } else
-                throw ConfigurationError("Serializing invalid number");
+                else {
+                    BOOST_LOG_TRIVIAL(error) << "Replacing NaN with 0 while serializing a non-nullable ConfigOptionFloatsOrPercents";
+                    ss << 0;
+                }
+            } else {
+                BOOST_LOG_TRIVIAL(error) << "Replacing non-finite with 0 while serializing a non-nullable ConfigOptionFloatsOrPercents";
+                ss << 0;
+            }
     }
     static bool vectors_equal(const std::vector<FloatOrPercent> &v1, const std::vector<FloatOrPercent> &v2) {
         if (NULLABLE) {
@@ -2053,7 +2064,7 @@ protected:
         		if (NULLABLE)
         			ss << "nil";
         		else
-                    throw ConfigurationError("Serializing NaN");
+        			ss << "0";
         	} else
         		ss << (v ? "1" : "0");
 	}
@@ -2295,7 +2306,7 @@ private:
             if (NULLABLE)
                 ss << "nil";
             else
-                throw ConfigurationError("Serializing NaN");
+                ss << v;
         }
         else if (this->keys_map != nullptr) {
             for (const auto& kvp : *this->keys_map)
