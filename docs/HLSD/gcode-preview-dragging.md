@@ -111,7 +111,9 @@ the section cuts the toolpaths open to show their inside, which a solid would co
 `GLCanvas3D::_update_preview_interaction()` runs at the top of every preview frame, before the
 canvas decides whether to reuse its cached scene, so that the switch lands in that frame. Dragging
 is `GLCanvas3D::is_user_interacting()`, the same answer the scene cache reads: the camera, the
-navigator, a gizmo, the rectangle selection or either slider being held. A slider reports this from
+navigator, a gizmo, the rectangle selection or either slider being held, or the camera still
+turning after a click on a navigator face, which the navigator animates over the frames that
+follow with no button held. A slider reports this from
 ImGui's active id rather than its dirty flag, which is raised and consumed inside one frame. A
 wheel step has no duration, so it holds the reduced set for a 150 ms settle time instead, and the
 frame that restores the toolpaths is scheduled for when that time runs out, since the render timer
