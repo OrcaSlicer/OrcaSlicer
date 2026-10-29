@@ -585,7 +585,69 @@ TEST_CASE("A parentless project-embedded preset keeps its own variants on reload
 
     const Preset *loaded = bundle.filaments.find_preset("Author PLA", false, true);
     REQUIRE(loaded != nullptr);
+    CHECK(loaded->inherits().empty());
     CHECK(loaded->config.opt<ConfigOptionStrings>("filament_extruder_variant")->values ==
           std::vector<std::string>{ "Direct Drive Standard", "Direct Drive High Flow" });
     check_double_vector(loaded->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.9, 1.2 });
+    for (const std::string &key : filament_options_with_variant)
+        if (const ConfigOptionVectorBase *vec = dynamic_cast<const ConfigOptionVectorBase *>(loaded->config.option(key)))
+            CHECK(vec->size() == loaded->config.opt<ConfigOptionStrings>("filament_extruder_variant")->size());
+}
+
+TEST_CASE("A Full copy drops an unreceived variant key when the receiver lists the variants in another order", "[PublishSettings]")
+{
+    // The file carries no value for the key, and the receiver's two variants are in the other
+    // order. Keeping the receiver's values and relabelling them with the author's names would put
+    // the High Flow value under the Standard variant, so the key is dropped and reported.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.option<ConfigOptionFloats>("filament_diameter", true)->values          = { 1.75 };
+    config.option<ConfigOptionStrings>("filament_colour", true)->values           = { "#FF0000" };
+    config.option<ConfigOptionInts>("filament_self_index", true)->values          = { 1, 1 };
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive Standard",
+                                                                                     "Direct Drive High Flow" };
+    config.option<ConfigOptionStrings>("filament_type", true)->values             = { "PLA" };
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    Preset     &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+    pla.config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive High Flow",
+                                                                                          "Direct Drive Standard" };
+    pla.config.option<ConfigOptionFloats>("filament_flow_ratio", true)->values = { 1.05, 0.95 };
+    bundle.filament_presets = { "My PLA" };
+
+    PublishedMaterialEntry entry;
+    entry.slot        = 0;
+    entry.full        = true;
+    entry.preset_name = "Author PLA";
+
+    PublishedConfig pub;
+    pub.published     = true;
+    pub.material_keys = { entry };
+    bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+    const Preset *copy = bundle.filaments.find_preset(bundle.filament_presets.front(), false, true);
+    REQUIRE(copy != nullptr);
+    CHECK(copy->config.opt<ConfigOptionStrings>("filament_extruder_variant")->values ==
+          std::vector<std::string>{ "Direct Drive Standard", "Direct Drive High Flow" });
+    CHECK_FALSE(copy->config.has("filament_flow_ratio"));
+    CHECK_FALSE(pub.skipped_keys.empty());
+}
+
+TEST_CASE("Resizing the filament count keeps variant-bearing vectors at their variant length", "[PublishSettings]")
+{
+    // set_num_filaments resizes the per-slot filament keys to the filament count. Two keys in that
+    // list are variant-bearing, so resizing them truncated every variant but the first; readers
+    // clamp, so the extra variants silently reused the first value.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive Standard", "Direct Drive High Flow" };
+    config.option<ConfigOptionFloats>("filament_retract_length_nc", true)->values = { 1.5, 2.5 };
+    config.option<ConfigOptionStrings>("volumetric_speed_coefficients", true)->values = { "a", "b" };
+    config.option<ConfigOptionStrings>("filament_colour", true)->values = { "#FF0000" };
+
+    config.set_num_filaments(1);
+
+    CHECK(config.opt<ConfigOptionFloats>("filament_retract_length_nc")->size() == 2);
+    CHECK(config.opt<ConfigOptionStrings>("volumetric_speed_coefficients")->size() == 2);
+    // A per-slot key is still sized to the filament count.
+    CHECK(config.opt<ConfigOptionStrings>("filament_colour")->size() == 1);
 }

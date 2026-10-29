@@ -7109,7 +7109,16 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         const auto *src_vec = dynamic_cast<const ConfigOptionVectorBase*>(src_opt);
                         auto       *dst_vec = dynamic_cast<ConfigOptionVectorBase*>(dst_opt);
                         const int   column  = publish_key_index(key);
-                        if (filament_options_with_variant.count(base_key) == 0 || column < 0) {
+                        if (column >= 0 && filament_options_with_variant.count(base_key) == 0) {
+                            // The key names a file column, so the author wrote it as a
+                            // variant-bearing value, but this build holds it per slot: the column
+                            // does not address a variant here, and reading the author's slot index
+                            // would return another slot's column. Skip and report.
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key +
+                                                      ", not a per-variant key on this build)");
+                            continue;
+                        }
+                        if (column < 0) {
                             // Per-slot scalar copy: the receiver preset holds one value per key
                             // (vector of size 1), the file holds the per-slot vector.
                             if (author_slot < 0 || size_t(author_slot) >= src_vec->size()) {
@@ -7335,6 +7344,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             // Baseline: clone the receiver slot's stored preset config (schema-
                             // complete across versions), then overlay the published full_keys.
                             DynamicPrintConfig new_cfg = recv != nullptr ? recv->config : this->filaments.default_preset().config;
+                            std::set<std::string> copied_variant_keys;
                             for (const std::string& key : entry.full_keys) {
                                 const std::string base_key = publish_base_key(key);
                                 if (structural_keys.count(base_key) != 0)
@@ -7372,6 +7382,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                     dst_vec->resize(full_columns.size());
                                     for (size_t i = 0; i < full_columns.size(); ++i)
                                         dst_vec->set_at(src_opt, i, full_columns[i]);
+                                    copied_variant_keys.insert(base_key);
                                 } else {
                                     if (entry.slot < 0 || size_t(entry.slot) >= src_vec->size()) {
                                         // Nothing in the file for this slot; the copy keeps its own
@@ -7384,12 +7395,18 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                     dst_vec->set_at(src_opt, 0, entry.slot);
                                 }
                             }
-                            // The copy's variant list is the author's, and every variant-bearing
-                            // key it holds is exactly that long. A key the file did not carry
-                            // cannot be filled from the author, so it is dropped rather than left
-                            // at the receiver's width beside an author-length list — readers size
-                            // the layout from the list and would read the wrong column.
+                            // The copy's layout is the author's list. A key the file carried is
+                            // aligned by construction. A key it did not carry is kept only when
+                            // the receiver's own list already describes the same variants, or the
+                            // receiver has a single value whose position is the same either way;
+                            // otherwise its values would be relabelled with the author's variant
+                            // names, so it is dropped and reported.
                             if (author_layout) {
+                                std::vector<std::string> receiver_variants;
+                                if (const auto *recv_list = new_cfg.option<ConfigOptionStrings>("filament_extruder_variant"))
+                                    receiver_variants = recv_list->values;
+                                const bool same_layout = receiver_variants == author_variants ||
+                                                         receiver_variants.size() <= 1;
                                 for (const std::string &key : new_cfg.keys()) {
                                     // The layout key is the reference every other key is checked
                                     // against; it is set below, never dropped.
@@ -7397,10 +7414,14 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                         continue;
                                     if (filament_options_with_variant.count(key) == 0)
                                         continue;
+                                    if (copied_variant_keys.count(key) != 0)
+                                        continue;
                                     const auto *vec = dynamic_cast<const ConfigOptionVectorBase *>(new_cfg.option(key));
-                                    if (vec != nullptr && vec->size() != full_columns.size()) {
+                                    if (vec != nullptr && (!same_layout || vec->size() != full_columns.size())) {
                                         BOOST_LOG_TRIVIAL(info) << "publish: dropping \"" << key << "\" from the Full copy of slot "
                                                                 << entry.slot << " (the file carries no value for its variant)";
+                                        skipped_keys.emplace_back("material:" + material_label + " (" + key +
+                                                                  ", the file carries no value for its variant)");
                                         new_cfg.erase(key);
                                     }
                                 }

@@ -2323,13 +2323,20 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
                 extend_default_config_length(config, false, {});
                 preset->config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
             }
-            else if (inherits_value.empty()) {
-                // A parentless project-embedded preset carries its whole config, including its own
-                // variant list: the Publish 3MF dialog's Full Publish copy is created this way
-                // (add_detached_preset clears inherits). Resolve it like a custom root preset;
-                // dropping it made the receiver lose the material when the project was reopened.
-                preset->config = default_preset.config;
-                preset->config.apply(std::move(config));
+            else if (inherits_value.empty() && m_type == Preset::TYPE_FILAMENT &&
+                     config.has("filament_extruder_variant")) {
+                // The only parentless preset expected here is a published Full Publish copy: a
+                // filament preset that carries its own variant layout and its whole config.
+                // Everything else keeps the old behaviour of being dropped, so a foreign project
+                // cannot substitute a preset for the default one without naming a parent.
+                DynamicPrintConfig merged = default_preset.config;
+                try {
+                    merged.apply(config);
+                } catch (const std::exception &err) {
+                    BOOST_LOG_TRIVIAL(error) << "can not load parentless preset " << preset->name << ": " << err.what();
+                    continue;
+                }
+                preset->config = std::move(merged);
                 extend_default_config_length(preset->config, true, default_preset.config);
             }
             else {
