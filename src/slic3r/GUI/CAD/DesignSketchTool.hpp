@@ -498,6 +498,10 @@ public:
     // Datum/reference planes (Plane feature) carry no solid; the panel feeds their resolved
     // SketchPlanes so they render as translucent rectangles in feature mode (otherwise a
     // Plane feature is invisible in the canvas).
+    // The part of space the sketch tool draws in outside the bodies and the bed: the live sketch plane and the datum planes. The
+    // camera's clip range is cut tight around the scene, so a sketch on a plane above the bed was clipped away when looking along
+    // its normal (the N view). Undefined when there is nothing.
+    BoundingBoxf3 scene_bounds() const;
     void set_datum_planes(std::vector<SketchPlane> planes, std::vector<Vec2d> sizes = {}) {
         m_datum_planes = std::move(planes); m_datum_sizes = std::move(sizes);
     }
@@ -1526,6 +1530,8 @@ private:
     FaceHighlight              m_sel_hl;     // the committed Face/Whole pick
     FaceHighlight              m_pre_hl;     // the face under the pointer
     void render_datum_planes();           // translucent rectangles for datum/reference planes
+    void render_sketch_plane_frame();     // the plane the live sketch is on: tint + frame, in every view (top included)
+    void sketch_plane_extent(double& hu, double& hv) const;   // half sizes of that frame: the datum's own, grown to hold the sketch
     void render_view_helpers();           // world origin planes + axis triad (P / A toggles)
     bool m_show_planes{false};
     bool m_show_axes{false};

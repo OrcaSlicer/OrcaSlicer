@@ -5287,6 +5287,98 @@ void DesignSketchTool::render_view_helpers()
     glsafe(::glDisable(GL_BLEND));
 }
 
+// Half sizes of the sketch plane's frame: the datum's own size when it is one, else the default; never smaller than the sketch with a margin.
+void DesignSketchTool::sketch_plane_extent(double& hu, double& hv) const
+{
+    hu = hv = 40.0;
+    for (size_t i = 0; i < m_datum_planes.size(); ++i) {
+        const SketchPlane& d = m_datum_planes[i];
+        if ((d.origin - m_plane.origin).norm() < 1e-6 && std::abs(d.normal.normalized().dot(m_plane.normal.normalized())) > 0.9999
+            && i < m_datum_sizes.size() && m_datum_sizes[i].x() > 1e-6 && m_datum_sizes[i].y() > 1e-6) {
+            hu = m_datum_sizes[i].x() * 0.5;
+            hv = m_datum_sizes[i].y() * 0.5;
+            break;
+        }
+    }
+    double ru = 0.0, rv = 0.0;
+    for (const SketchEntity& e : m_entities) {
+        bool closed = false;
+        for (const Vec2d& q : entity_polyline(e, closed)) { ru = std::max(ru, std::abs(q.x())); rv = std::max(rv, std::abs(q.y())); }
+    }
+    hu = std::max(hu, ru * 1.25);
+    hv = std::max(hv, rv * 1.25);
+
+}
+
+BoundingBoxf3 DesignSketchTool::scene_bounds() const
+{
+    BoundingBoxf3 bb;
+    const auto add = [&bb](const SketchPlane& p, double hu, double hv) {
+        for (const Vec2d q : { Vec2d(-hu, -hv), Vec2d(hu, -hv), Vec2d(hu, hv), Vec2d(-hu, hv) }) bb.merge(p.to_world(q));
+    };
+    if (m_active) { double hu = 40.0, hv = 40.0; sketch_plane_extent(hu, hv); add(m_plane, hu, hv); }
+    for (size_t i = 0; i < m_datum_planes.size(); ++i) {
+        const double hu = i < m_datum_sizes.size() && m_datum_sizes[i].x() > 1e-6 ? m_datum_sizes[i].x() * 0.5 : 40.0;
+        const double hv = i < m_datum_sizes.size() && m_datum_sizes[i].y() > 1e-6 ? m_datum_sizes[i].y() * 0.5 : 40.0;
+        add(m_datum_planes[i], hu, hv);
+    }
+    return bb;
+}
+
+// The plane a live sketch is drawn on. The datum / reference planes are only drawn while no session is open, so a plane that was
+// picked for a sketch vanished the moment the sketch began and, seen from the top, nothing said which plane the 2D view was.
+// A tint over the plane and a frame around it, in the same colour in every view, answer that; the frame grows to hold the sketch.
+void DesignSketchTool::render_sketch_plane_frame()
+{
+    using EPT = GLModel::Geometry::EPrimitiveType;
+    using EVL = GLModel::Geometry::EVertexLayout;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const Vec3d vd = cam.get_dir_forward();
+    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+
+    double hu = 40.0, hv = 40.0;
+    sketch_plane_extent(hu, hv);
+
+    const Vec3d c[4] = { m_plane.to_world(Vec2d(-hu, -hv)), m_plane.to_world(Vec2d(hu, -hv)),
+                         m_plane.to_world(Vec2d(hu, hv)),   m_plane.to_world(Vec2d(-hu, hv)) };
+    GLModel::Geometry fill;   fill.format   = { EPT::Triangles, EVL::P3 };
+    GLModel::Geometry border; border.format = { EPT::Triangles, EVL::P3 };
+    fill.add_vertex((Vec3f)c[0].cast<float>()); fill.add_vertex((Vec3f)c[1].cast<float>()); fill.add_vertex((Vec3f)c[2].cast<float>());
+    fill.add_triangle(0, 1, 2);
+    fill.add_vertex((Vec3f)c[0].cast<float>()); fill.add_vertex((Vec3f)c[2].cast<float>()); fill.add_vertex((Vec3f)c[3].cast<float>());
+    fill.add_triangle(3, 4, 5);
+    unsigned int bb = 0;
+    const double hw = 2.0 * upp;   // 2 px ribbon
+    for (int s = 0; s < 4; ++s) {
+        const Vec3d a = c[s], b = c[(s + 1) & 3];
+        Vec3d dir = b - a;
+        if (dir.norm() < 1e-9) continue;
+        dir.normalize();
+        Vec3d off = dir.cross(vd);
+        if (off.norm() < 1e-9) off = dir.cross(cam.get_dir_up());
+        if (off.norm() < 1e-9) continue;
+        off.normalize();
+        off *= hw;
+        border.add_vertex((Vec3f)(a + off).cast<float>()); border.add_vertex((Vec3f)(b + off).cast<float>());
+        border.add_vertex((Vec3f)(b - off).cast<float>()); border.add_vertex((Vec3f)(a - off).cast<float>());
+        border.add_triangle(bb, bb + 1, bb + 2);
+        border.add_triangle(bb, bb + 2, bb + 3);
+        bb += 4;
+    }
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    GLModel fm; fm.init_from(std::move(fill));
+    fm.set_color(ColorRGBA(0.12f, 0.78f, 0.70f, 0.10f));
+    fm.render();
+    if (bb > 0) {
+        GLModel bm; bm.init_from(std::move(border));
+        bm.set_color(ColorRGBA(0.12f, 0.85f, 0.75f, 0.95f));
+        bm.render();
+    }
+    glsafe(::glDisable(GL_BLEND));
+}
+
 void DesignSketchTool::render_datum_planes()
 {
     if (m_datum_planes.empty()) return;
@@ -5352,7 +5444,7 @@ void DesignSketchTool::set_extrude_gizmo(const SketchPlane& plane, const Vec2d& 
     m_ex_active    = true;
     m_ex_plane     = plane;
     m_ex_centroid  = centroid;
-    m_ex_depth     = std::max(0.0, depth);
+    m_ex_depth     = depth;                  // signed: a negative extrusion goes the other way, and the arrow shows it
     m_ex_depth2    = std::max(0.0, depth2);
     m_ex_two_sided = two_sided;
     m_ex_flip      = flip;
@@ -5780,7 +5872,7 @@ void DesignSketchTool::render_extrude_gizmo()
     const ColorRGBA arrowc(1.0f, 0.62f, 0.16f, 1.0f);   // CAD amber
 
     auto draw_arrow = [&](double depth, bool flip_side) {
-        if (depth <= 1e-6) return;
+        if (std::abs(depth) <= 1e-6) return;
         const Vec3d dirw = (flip_side ? -1.0 : 1.0) * ndir;      // world arrow direction
         const Vec3d tipw = base + dirw * depth;
         const Vec2d tip2((tipw - base).dot(right), (tipw - base).dot(up));
@@ -5815,7 +5907,7 @@ bool DesignSketchTool::hit_test_extrude_arrow(GLCanvas3D& canvas, const wxMouseE
     const Vec3d ndir = (m_ex_flip ? -1.0 : 1.0) * m_ex_plane.normal.normalized();
     const Vec3d base = m_ex_plane.to_world(m_ex_centroid);
     double dA = 1e30, dB = 1e30;
-    if (m_ex_depth  > 1e-6) dA = ray_segment_dist3(ro, rd, base, base + ndir * m_ex_depth);
+    if (std::abs(m_ex_depth) > 1e-6) dA = ray_segment_dist3(ro, rd, base, base + ndir * m_ex_depth);
     if (m_ex_two_sided && m_ex_depth2 > 1e-6)
         dB = ray_segment_dist3(ro, rd, base, base - ndir * m_ex_depth2);
     if (dA <= tol && dA <= dB) { which = 0; return true; }
@@ -5838,8 +5930,9 @@ void DesignSketchTool::drag_extrude_arrow(GLCanvas3D& canvas, const wxMouseEvent
     if (std::abs(denom) < 1e-7) return;                        // camera ∥ axis: leave depth as-is
     const double raw = (b * ee - c * dd) / denom;
     // Never exactly 0 (a zero-depth extrude is refused), but a face pull keeps its sign.
-    const double depth = m_ex_signed ? (std::abs(raw) < 0.01 ? (raw < 0 ? -0.01 : 0.01) : raw)
-                                     : std::max(0.01, raw);
+    // The primary arrow is signed: pulled back through the profile it makes a negative extrusion (the second side stays positive).
+    const double depth = (m_ex_signed || which == 0) ? (std::abs(raw) < 0.01 ? (raw < 0 ? -0.01 : 0.01) : raw)
+                                                     : std::max(0.01, raw);
     if (which == 1) m_ex_depth2 = depth; else m_ex_depth = depth;
     if (on_extrude_depth_changed) on_extrude_depth_changed(depth, which == 1);
 }
@@ -5851,7 +5944,7 @@ void DesignSketchTool::open_extrude_editor(int which)
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
     on_inline_edit(px, cur, "",
         [this, which](double v) {
-            const double d = m_ex_signed ? (std::abs(v) < 0.01 ? (v < 0 ? -0.01 : 0.01) : v) : std::max(0.01, v);
+            const double d = (m_ex_signed || which == 0) ? (std::abs(v) < 0.01 ? (v < 0 ? -0.01 : 0.01) : v) : std::max(0.01, v);
             if (which == 1) m_ex_depth2 = d; else m_ex_depth = d;
             if (on_extrude_depth_changed) on_extrude_depth_changed(d, which == 1);
         },
@@ -10740,6 +10833,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     shader->set_uniform("view_model_matrix", camera.get_view_matrix());
     shader->set_uniform("projection_matrix", camera.get_projection_matrix());
 
+    if (m_active) render_sketch_plane_frame();   // the plane being sketched on, in every view (needs the shader above)
     render_body_edges();
 
     // Persistent committed sketches (e.g. an un-consumed sketch left visible after its

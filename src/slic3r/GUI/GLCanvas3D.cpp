@@ -7919,6 +7919,12 @@ BoundingBoxf3 GLCanvas3D::_max_bounding_box(bool include_gizmos, bool include_be
     }
 
     bb.merge(include_bed_model ? m_bed.extended_bounding_box() : m_bed.build_volume().bounding_volume());
+#ifdef SLIC3R_CAD
+    if (m_design_canvas && m_design_sketch_tool != nullptr) {   // the sketch plane is part of the scene the camera must not clip
+        const BoundingBoxf3 sb = m_design_sketch_tool->scene_bounds();
+        if (sb.defined) bb.merge(sb);
+    }
+#endif
     if (include_plates) {
         bb.merge(wxGetApp().plater()->get_partplate_list().get_bounding_box());
     }
