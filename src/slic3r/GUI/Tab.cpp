@@ -9055,6 +9055,44 @@ static wxString short_nozzle_volume_name(const std::string &volume_name)
     return from_u8(volume_name);
 }
 
+// The label the Filament tab's variant switch shows for one variant string
+// ("Direct Drive High Flow" -> "Direct Drive HF").
+wxString Tab::filament_variant_label(const std::string& variant)
+{
+    std::string drive, nozzle;
+
+    static std::vector<std::string> known_nozzle_types;
+    if (known_nozzle_types.empty()) {
+        for (auto nvt : get_valid_nozzle_volume_type()) {
+            known_nozzle_types.push_back(get_nozzle_volume_type_string(nvt));
+        }
+        std::sort(known_nozzle_types.begin(), known_nozzle_types.end(),
+            [](const std::string& a, const std::string& b) { return a.size() > b.size(); });
+    }
+    bool found = false;
+    for (const auto& nozzle_type : known_nozzle_types) {
+        if (variant.size() > nozzle_type.size() &&
+            variant.substr(variant.size() - nozzle_type.size()) == nozzle_type &&
+            variant[variant.size() - nozzle_type.size() - 1] == ' ') {
+            drive = variant.substr(0, variant.size() - nozzle_type.size() - 1);
+            nozzle = nozzle_type;
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        size_t pos = variant.rfind(' ');
+        if (pos != std::string::npos) {
+            drive = variant.substr(0, pos);
+            nozzle = variant.substr(pos + 1);
+        } else {
+            drive = variant;
+            nozzle = "";
+        }
+    }
+    return wxString::Format("%s %s", _L(drive), short_nozzle_volume_name(nozzle));
+}
+
 std::vector<wxString> Tab::generate_extruder_options()
 {
     std::vector<wxString> options;
@@ -9063,40 +9101,8 @@ std::vector<wxString> Tab::generate_extruder_options()
         if (!variants)
             return options;
 
-        for (auto &v : variants->values) {
-            std::string drive, nozzle;
-
-            static std::vector<std::string> known_nozzle_types;
-            if (known_nozzle_types.empty()) {
-                for (auto nvt : get_valid_nozzle_volume_type()) {
-                    known_nozzle_types.push_back(get_nozzle_volume_type_string(nvt));
-                }
-                std::sort(known_nozzle_types.begin(), known_nozzle_types.end(),
-                    [](const std::string& a, const std::string& b) { return a.size() > b.size(); });
-            }
-            bool found = false;
-            for (const auto& nozzle_type : known_nozzle_types) {
-                if (v.size() > nozzle_type.size() &&
-                    v.substr(v.size() - nozzle_type.size()) == nozzle_type &&
-                    v[v.size() - nozzle_type.size() - 1] == ' ') {
-                    drive = v.substr(0, v.size() - nozzle_type.size() - 1);
-                    nozzle = nozzle_type;
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                size_t pos = v.rfind(' ');
-                if (pos != std::string::npos) {
-                    drive = v.substr(0, pos);
-                    nozzle = v.substr(pos + 1);
-                } else {
-                    drive = v;
-                    nozzle = "";
-                }
-            }
-            options.push_back(wxString::Format("%s %s", _L(drive), short_nozzle_volume_name(nozzle)));
-        }
+        for (auto &v : variants->values)
+            options.push_back(filament_variant_label(v));
         return options;
     }
 
