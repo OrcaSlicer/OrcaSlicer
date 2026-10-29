@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cfloat>
 #include <math.h>
@@ -132,6 +133,17 @@ bool Fill::use_bridge_flow(const InfillPattern type)
 	return cached[type] != 0;
 }
 
+// Orca: stretches a shape by stretch, the angle of its axes and the scales along them, or back.
+template<class Shape> static void stretch_shape(Shape &shape, const std::array<double, 3> &stretch, bool back)
+{
+    shape.rotate(-stretch[0]);
+    if (back)
+        shape.scale(1. / stretch[1], 1. / stretch[2]);
+    else
+        shape.scale(stretch[1], stretch[2]);
+    shape.rotate(stretch[0]);
+}
+
 Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)
 {
     // Perform offset.
@@ -139,15 +151,25 @@ Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)
     // Orca: Separated infills move the box center onto each body; origin-aligned patterns follow it.
     const Point shift = this->aligned_to_origin() && ! empty(this->bounding_box) ? this->bounding_box.center() : Point::Zero();
     translate(expp, -shift);
+    // Orca: a pattern with no sparse infill scale of its own draws the layer stretched back, then stretches its lines.
+    FillParams layer_params = params;
+    if (! this->scales_its_cells() && (params.sparse_infill_scale[0] != 1. || params.sparse_infill_scale[1] != 1.)) {
+        layer_params.layer_stretch = { this->pattern_axes_angle(), params.sparse_infill_scale[0], params.sparse_infill_scale[1] };
+        for (ExPolygon &expolygon : expp)
+            stretch_shape(expolygon, layer_params.layer_stretch, true);
+    }
     // Create the infills for each of the regions.
     Polylines polylines_out;
     for (size_t i = 0; i < expp.size(); ++ i)
         _fill_surface_single(
-            params,
+            layer_params,
             surface->thickness_layers,
             _infill_direction(surface),
             std::move(expp[i]),
             polylines_out);
+    if (layer_params.layer_stretch[1] != 1. || layer_params.layer_stretch[2] != 1.)
+        for (Polyline &pl : polylines_out)
+            stretch_shape(pl, layer_params.layer_stretch, false);
     for (Polyline &pl : polylines_out)
         pl.translate(shift);
     return polylines_out;
@@ -2952,6 +2974,11 @@ void multiline_fill(Polylines& polylines, const FillParams& params, float spacin
 {
     if (params.multiline <= 1)
         return;
+    // Orca: the lines of a layer drawn stretched back are spaced as they print.
+    const bool stretched = params.layer_stretch[1] != 1. || params.layer_stretch[2] != 1.;
+    if (stretched)
+        for (Polyline &pl : polylines)
+            stretch_shape(pl, params.layer_stretch, false);
 
     const int n_lines     = params.multiline;
     const int n_polylines = static_cast<int>(polylines.size());
@@ -3000,6 +3027,9 @@ void multiline_fill(Polylines& polylines, const FillParams& params, float spacin
     }
 
     polylines = std::move(all_polylines);
+    if (stretched)
+        for (Polyline &pl : polylines)
+            stretch_shape(pl, params.layer_stretch, true);
 }
 
 void join_close_ends(Polylines &polylines, double max_gap, bool can_reverse)

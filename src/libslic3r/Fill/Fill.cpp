@@ -1027,15 +1027,18 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 params.separated_infills = region_config.separated_infills && is_separable_infill_pattern(params.pattern) &&
                                            params.extrusion_role != erTopSolidInfill && params.extrusion_role != erBottomSurface;
 
-                // Orca: only the TPMS sparse infill is graded and scaled, and the sparse infill changing with the height
-                // stretched along Z; reset otherwise, as params is reused.
-                const bool tpms_infill = is_adaptive_infill_pattern(params.pattern) && params.extrusion_role == erInternalInfill;
-                const bool z_scaled    = is_z_scaled_infill_pattern(params.pattern) && params.extrusion_role == erInternalInfill;
+                // Orca: only the TPMS sparse infill is graded, and only the sparse infill of the patterns supporting them
+                // stretched and turned; reset otherwise, as params is reused.
+                const bool sparse      = params.extrusion_role == erInternalInfill;
+                const bool tpms_infill = is_adaptive_infill_pattern(params.pattern) && sparse;
+                const bool xy_scaled   = is_xy_scaled_infill_pattern(params.pattern) && sparse;
+                const bool z_scaled    = is_z_scaled_infill_pattern(params.pattern) && sparse;
                 params.adaptive_infill_mode = tpms_infill ? region_config.adaptive_infill_mode.value : AdaptiveInfillMode::Disabled;
-                params.sparse_infill_scale = { tpms_infill ? region_config.sparse_infill_scale_x.value : 1.,
-                                               tpms_infill ? region_config.sparse_infill_scale_y.value : 1.,
+                params.sparse_infill_scale = { xy_scaled ? region_config.sparse_infill_scale_x.value : 1.,
+                                               xy_scaled ? region_config.sparse_infill_scale_y.value : 1.,
                                                z_scaled ? region_config.sparse_infill_scale_z.value : 1. };
-                params.sparse_infill_rotation_x = tpms_infill ? Geometry::deg2rad(region_config.sparse_infill_rotation_x.value) : 0.;
+                params.sparse_infill_rotation_x = is_x_rotated_infill_pattern(params.pattern) && sparse ?
+                                                      Geometry::deg2rad(region_config.sparse_infill_rotation_x.value) : 0.;
                 const bool adaptive_infill_mode      = params.adaptive_infill_mode != AdaptiveInfillMode::Disabled;
                 params.adaptive_infill_interior_density  = adaptive_infill_mode ? std::max(1.f, float(region_config.adaptive_infill_interior_density)) : 0.f;
                 params.adaptive_infill_gradient = adaptive_infill_mode ? region_config.adaptive_infill_gradient.value : AdaptiveInfillGradient::Linear;

@@ -2401,9 +2401,9 @@ TEST_CASE("The sparse infill scale and rotation leave the infill of other patter
 {
     Print reference, tuned;
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, reference,
-                                        {{"sparse_infill_pattern", "grid"}, {"sparse_infill_density", "20%"}, {"layer_height", 0.2}});
+                                        {{"sparse_infill_pattern", "rectilinear"}, {"sparse_infill_density", "20%"}, {"layer_height", 0.2}});
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, tuned,
-                                        {{"sparse_infill_pattern", "grid"},
+                                        {{"sparse_infill_pattern", "rectilinear"},
                                          {"sparse_infill_scale_x", 2.},
                                          {"sparse_infill_scale_y", 0.5},
                                          {"sparse_infill_scale_z", 3.},
@@ -2483,14 +2483,18 @@ TEST_CASE("The sparse infill Z scale stretches the patterns that change with the
         Surface surface(stInternal, tpms_square());
         return filler->fill_surface(&surface, params);
     };
-    // Cross Hatch repeats one layer over a range of heights, so only some layers change.
-    bool changed = false;
+    // Cubic stretches its planes, within rounding. Cross Hatch repeats one layer over a range of heights, so only some
+    // layers change.
+    const Polygons square  = to_polygons(tpms_square());
+    bool           changed = false;
     for (const double z : {3.7, 5.1, 12.3}) {
         CAPTURE(z);
         const Polylines regular = fill(z, 0.2, 1.);
+        const Polylines taller  = fill(2. * z, 0.4, 2.);
         REQUIRE_FALSE(regular.empty());
-        CHECK(fill(2. * z, 0.4, 2.) == regular);
-        changed |= fill(z, 0.2, 2.) != regular;
+        CHECK(farthest_inside(taller, regular, square) < 0.001);
+        CHECK(farthest_inside(regular, taller, square) < 0.001);
+        changed |= farthest_inside(fill(z, 0.2, 2.), regular, square) > 0.01;
     }
     CHECK(changed);
 }
@@ -2509,6 +2513,97 @@ TEST_CASE("The sparse infill X and Y scales stretch the TPMS cells across the la
     }
     REQUIRE(regular > 0.);
     CHECK_THAT(stretched / regular, Catch::Matchers::WithinAbs(0.5, 0.05));
+}
+
+// Sparse infill of a square of size mm centered on the origin at z by a filler of any pattern, at the default infill
+// direction, which aligns the axes of the pattern with the bed.
+static Polylines scaled_fill(InfillPattern pattern, double z, const std::array<double, 3> &scale, double rotation_x = 0., double size = 60.,
+                             int multiline = 1)
+{
+    std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+    filler->spacing = 0.45;
+    filler->angle   = float(M_PI / 4.);
+    filler->z       = z;
+    filler->set_bounding_box(get_extents(tpms_square(size)));
+    FillParams params;
+    params.pattern                  = pattern;
+    params.density                  = 0.2f;
+    params.layer_height             = 0.2;
+    params.dont_adjust              = true;
+    params.multiline                = multiline;
+    params.sparse_infill_scale      = scale;
+    params.sparse_infill_rotation_x = rotation_x;
+    Surface surface(stInternal, tpms_square(size));
+    return filler->fill_surface(&surface, params);
+}
+
+TEST_CASE("The sparse infill X and Y scales stretch the cells of the line and cell patterns", "[Fill]")
+{
+    const InfillPattern pattern = GENERATE(ipCubic, ipQuarterCubic, ipGrid, ipTriangles, ipStars, ipLateralLattice, ipLateralHoneycomb,
+                                           ipHoneycomb, ip3DHoneycomb, ipCrossHatch, ipHilbertCurve);
+    const int multiline = GENERATE(1, 2);
+    CAPTURE(pattern, multiline);
+    // Cells twice as large across the layers cover the same area with half the lines, away from the boundary.
+    const Polygons inner = shrink(to_polygons(tpms_square(120.)), scale_(3.));
+    double regular = 0., stretched = 0.;
+    for (const double z : {3.7, 5.1, 12.3, 20.9}) {
+        regular += unscale<double>(total_length(intersection_pl(scaled_fill(pattern, z, {1., 1., 1.}, 0., 120., multiline), inner)));
+        stretched += unscale<double>(total_length(intersection_pl(scaled_fill(pattern, z, {2., 2., 1.}, 0., 120., multiline), inner)));
+    }
+    REQUIRE(regular > 0.);
+    // 2D Honeycomb drops the multiline lines that overlap, fewer once its cells are larger.
+    CHECK_THAT(stretched / regular, Catch::Matchers::WithinAbs(0.5, pattern == ipLateralHoneycomb && multiline > 1 ? 0.07 : 0.05));
+}
+
+TEST_CASE("The sparse infill X rotation and scales turn and stretch the planes of Cubic", "[Fill]")
+{
+    const auto [scale_y, rotation_x] = GENERATE(table<double, double>({{1., 0.}, {1.5, 0.5}, {1., 1.2}}));
+    CAPTURE(scale_y, rotation_x);
+    // The three families of planes of the cube, with the normals of their lines 90 degrees after the infill direction
+    // of 45 degrees, rising by sqrt(1/2) per unit of height, and 0.45 / (0.2 / 3) mm apart.
+    const double spacing = 0.45 / (0.2 / 3.);
+    const Vec3d  normals[] = {Vec3d(std::cos(0.75 * M_PI), std::sin(0.75 * M_PI), std::sqrt(0.5)),
+                              Vec3d(std::cos(0.75 * M_PI + M_PI / 3.), std::sin(0.75 * M_PI + M_PI / 3.), -std::sqrt(0.5)),
+                              Vec3d(std::cos(0.75 * M_PI + 2. * M_PI / 3.), std::sin(0.75 * M_PI + 2. * M_PI / 3.), std::sqrt(0.5))};
+    const Polygons inner = shrink(to_polygons(tpms_square()), scale_(3.));
+    for (const double z : {3.7, 5.1}) {
+        CAPTURE(z);
+        const Polylines lines = scaled_fill(ipCubic, z, {1., scale_y, 1.}, rotation_x);
+        REQUIRE_FALSE(lines.empty());
+        // Every point of the lines away from the boundary is on a plane of the cells, turned back and unstretched.
+        double farthest = 0.;
+        for (const Polyline &line : intersection_pl(lines, inner))
+            for (const Point &point : line.equally_spaced_points(scale_(0.5))) {
+                const double x = unscale<double>(point.x()), y = unscale<double>(point.y());
+                const Vec3d  cell(x, (std::cos(rotation_x) * y + std::sin(rotation_x) * z) / scale_y,
+                                 std::cos(rotation_x) * z - std::sin(rotation_x) * y);
+                double nearest = std::numeric_limits<double>::max();
+                for (const Vec3d &normal : normals) {
+                    const double level = normal.dot(cell) / spacing;
+                    nearest = std::min(nearest, std::abs(level - std::round(level)) * spacing);
+                }
+                farthest = std::max(farthest, nearest);
+            }
+        CHECK(farthest < 0.01);
+    }
+}
+
+TEST_CASE("Multiline infill spaces the lines of a layer drawn stretched back as they print", "[Fill]")
+{
+    // A layer drawn at half its height across: the two lines of a line are half a spacing from it once stretched.
+    for (const double stretch : {1., 2.}) {
+        CAPTURE(stretch);
+        Polylines polylines{Polyline(Point::new_scale(0., 0.), Point::new_scale(10., 0.))};
+        FillParams params;
+        params.multiline     = 2;
+        params.layer_stretch = {0., 1., stretch};
+        multiline_fill(polylines, params, 0.4f);
+        REQUIRE_FALSE(polylines.empty());
+        for (const Polyline &polyline : polylines)
+            for (const Point &point : polyline.points)
+                if (point.x() > scale_(1.) && point.x() < scale_(9.))
+                    CHECK_THAT(std::abs(unscale<double>(point.y())) * stretch, Catch::Matchers::WithinAbs(0.2, 0.001));
+    }
 }
 
 TEST_CASE("The sparse infill X rotation turns the stretched TPMS cells around X by the right-hand rule", "[Fill]")

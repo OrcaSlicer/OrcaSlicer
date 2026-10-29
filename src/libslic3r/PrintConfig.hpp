@@ -185,12 +185,21 @@ inline bool is_adaptive_infill_pattern(InfillPattern pattern)
     return pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipTpmsP || pattern == ipTpmsIWP ||
            pattern == ipTpmsNeovius || pattern == ipTpmsFRD || pattern == ipTpmsLidinoid || pattern == ipTpmsSplitP;
 }
+// Orca: Infill patterns whose cells "sparse_infill_scale_x" and "sparse_infill_scale_y" stretch across the layers.
+inline bool is_xy_scaled_infill_pattern(InfillPattern pattern)
+{
+    return is_adaptive_infill_pattern(pattern) || pattern == ipCubic || pattern == ipQuarterCubic || pattern == ipGrid ||
+           pattern == ipTriangles || pattern == ipStars || pattern == ipLateralLattice || pattern == ipLateralHoneycomb ||
+           pattern == ipHoneycomb || pattern == ip3DHoneycomb || pattern == ipCrossHatch || pattern == ipHilbertCurve;
+}
 // Orca: Infill patterns that change with the height, whose cells "sparse_infill_scale_z" stretches along Z.
 inline bool is_z_scaled_infill_pattern(InfillPattern pattern)
 {
     return is_adaptive_infill_pattern(pattern) || pattern == ipCubic || pattern == ipQuarterCubic || pattern == ipCrossHatch ||
            pattern == ip3DHoneycomb;
 }
+// Orca: Infill patterns whose cells "sparse_infill_rotation_x" turns around the X axis of the pattern.
+inline bool is_x_rotated_infill_pattern(InfillPattern pattern) { return is_adaptive_infill_pattern(pattern) || pattern == ipCubic; }
 
 // Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
 // Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
