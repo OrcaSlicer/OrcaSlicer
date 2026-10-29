@@ -7109,7 +7109,16 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         const auto *src_vec = dynamic_cast<const ConfigOptionVectorBase*>(src_opt);
                         auto       *dst_vec = dynamic_cast<ConfigOptionVectorBase*>(dst_opt);
                         const int   column  = publish_key_index(key);
-                        if (filament_options_with_variant.count(base_key) == 0 || column < 0) {
+                        if (column >= 0 && filament_options_with_variant.count(base_key) == 0) {
+                            // The key names a file column, so the author wrote it as a
+                            // variant-bearing value, but this build holds it per slot: the column
+                            // does not address a variant here, and reading the author's slot index
+                            // would return another slot's column. Skip and report.
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key +
+                                                      ", not a per-variant key on this build)");
+                            continue;
+                        }
+                        if (column < 0) {
                             // Per-slot scalar copy: the receiver preset holds one value per key
                             // (vector of size 1), the file holds the per-slot vector.
                             if (author_slot < 0 || size_t(author_slot) >= src_vec->size()) {
@@ -7299,6 +7308,22 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     // stripped ("(Published)" uniquification on collision). No existing
                     // preset is ever mutated.
                     if (entry.full) {
+                        // The author slot's columns and their variant names are the copy's layout.
+                        // Both come from the file's identity keys and both must be complete before
+                        // any variant-bearing key is copied: a copy whose list and vectors disagree
+                        // silently reads one variant's value for another (V5).
+                        const std::vector<size_t> full_columns = entry.slot >= 0 ?
+                                                                     publish_filament_columns(filament_self_indice, size_t(entry.slot)) :
+                                                                     std::vector<size_t>();
+                        std::vector<std::string> author_variants;
+                        if (const auto *src_variants = config.option<ConfigOptionStrings>("filament_extruder_variant")) {
+                            author_variants.reserve(full_columns.size());
+                            for (const size_t column : full_columns)
+                                if (column < src_variants->size())
+                                    author_variants.push_back(src_variants->get_at(column));
+                        }
+                        const bool author_layout = !full_columns.empty() && author_variants.size() == full_columns.size();
+
                         std::string dedup_key = entry.setting_id + std::string("\x1f") + entry.preset_name;
                         // Identity-less hand-crafted files (empty setting_id+name) must not
                         // collide: fall back to slot-scoped key so each slot gets its own copy
@@ -7307,6 +7332,10 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             dedup_key = dedup_key + std::to_string(slot);
                         else if (!entry.filament_id.empty())
                             dedup_key += std::string("\x1f") + entry.filament_id;
+                        // The layout joins the key: two entries naming one preset but carrying
+                        // different variants cannot share a copy.
+                        for (const std::string &variant : author_variants)
+                            dedup_key += std::string("\x1f") + variant;
                         std::string new_name;
                         const auto dedup_it = published_full_dedup.find(dedup_key);
                         if (dedup_it != published_full_dedup.end()) {
@@ -7315,14 +7344,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             // Baseline: clone the receiver slot's stored preset config (schema-
                             // complete across versions), then overlay the published full_keys.
                             DynamicPrintConfig new_cfg = recv != nullptr ? recv->config : this->filaments.default_preset().config;
-                            // A variant-bearing key stores one value per (slot, variant) in the
-                            // file, so the copy takes every variant of the author's slot and the
-                            // author's variant list for it. filament_self_index was moved out of
-                            // `config` above; the local copy holds it.
-                            const std::vector<size_t> full_columns = entry.slot >= 0 ?
-                                                                         publish_filament_columns(filament_self_indice, size_t(entry.slot)) :
-                                                                         std::vector<size_t>();
-                            bool copied_variant_key = false;
+                            std::set<std::string> copied_variant_keys;
                             for (const std::string& key : entry.full_keys) {
                                 const std::string base_key = publish_base_key(key);
                                 if (structural_keys.count(base_key) != 0)
@@ -7346,11 +7368,11 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                 const auto *src_vec = dynamic_cast<const ConfigOptionVectorBase*>(src_opt);
                                 auto       *dst_vec = dynamic_cast<ConfigOptionVectorBase*>(dst_opt);
                                 if (filament_options_with_variant.count(base_key) != 0) {
-                                    // A file that carries the key short of the layout (a preset
-                                    // holding one default value, or a vector older than variant
-                                    // columns) publishes nothing for the slot's column: leave the
-                                    // copy's value alone instead of reporting the key as skipped.
-                                    if (full_columns.empty() ||
+                                    // Copy only when the author's layout is known and the file
+                                    // carries every one of its columns. A key left short would
+                                    // describe columns the copy cannot name; the cleanup after
+                                    // this loop drops it instead.
+                                    if (!author_layout ||
                                         std::any_of(full_columns.begin(), full_columns.end(),
                                                     [src_vec](size_t column) { return column >= src_vec->size(); })) {
                                         BOOST_LOG_TRIVIAL(info) << "publish: not copying \"" << base_key << "\" for slot "
@@ -7360,7 +7382,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                     dst_vec->resize(full_columns.size());
                                     for (size_t i = 0; i < full_columns.size(); ++i)
                                         dst_vec->set_at(src_opt, i, full_columns[i]);
-                                    copied_variant_key = true;
+                                    copied_variant_keys.insert(base_key);
                                 } else {
                                     if (entry.slot < 0 || size_t(entry.slot) >= src_vec->size()) {
                                         // Nothing in the file for this slot; the copy keeps its own
@@ -7373,21 +7395,38 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                     dst_vec->set_at(src_opt, 0, entry.slot);
                                 }
                             }
-                            // The copy's variant list must describe the vectors written above, and
-                            // only when at least one variant-bearing key was copied: rewriting it
-                            // alone would make the copy claim variants its vectors do not hold.
-                            if (copied_variant_key && !full_columns.empty()) {
-                                const auto *src_variants = config.option<ConfigOptionStrings>("filament_extruder_variant");
-                                if (auto *dst_variants = new_cfg.option<ConfigOptionStrings>("filament_extruder_variant");
-                                    src_variants != nullptr && dst_variants != nullptr) {
-                                    std::vector<std::string> variants;
-                                    variants.reserve(full_columns.size());
-                                    for (const size_t column : full_columns)
-                                        if (column < src_variants->size())
-                                            variants.push_back(src_variants->get_at(column));
-                                    if (variants.size() == full_columns.size())
-                                        dst_variants->values = std::move(variants);
+                            // The copy's layout is the author's list. A key the file carried is
+                            // aligned by construction. A key it did not carry is kept only when
+                            // the receiver's own list already describes the same variants, or the
+                            // receiver has a single value whose position is the same either way;
+                            // otherwise its values would be relabelled with the author's variant
+                            // names, so it is dropped and reported.
+                            if (author_layout) {
+                                std::vector<std::string> receiver_variants;
+                                if (const auto *recv_list = new_cfg.option<ConfigOptionStrings>("filament_extruder_variant"))
+                                    receiver_variants = recv_list->values;
+                                const bool same_layout = receiver_variants == author_variants ||
+                                                         receiver_variants.size() <= 1;
+                                for (const std::string &key : new_cfg.keys()) {
+                                    // The layout key is the reference every other key is checked
+                                    // against; it is set below, never dropped.
+                                    if (key == "filament_extruder_variant")
+                                        continue;
+                                    if (filament_options_with_variant.count(key) == 0)
+                                        continue;
+                                    if (copied_variant_keys.count(key) != 0)
+                                        continue;
+                                    const auto *vec = dynamic_cast<const ConfigOptionVectorBase *>(new_cfg.option(key));
+                                    if (vec != nullptr && (!same_layout || vec->size() != full_columns.size())) {
+                                        BOOST_LOG_TRIVIAL(info) << "publish: dropping \"" << key << "\" from the Full copy of slot "
+                                                                << entry.slot << " (the file carries no value for its variant)";
+                                        skipped_keys.emplace_back("material:" + material_label + " (" + key +
+                                                                  ", the file carries no value for its variant)");
+                                        new_cfg.erase(key);
+                                    }
                                 }
+                                if (auto *dst_variants = new_cfg.option<ConfigOptionStrings>("filament_extruder_variant"))
+                                    dst_variants->values = author_variants;
                             }
                             // The published colour is authoritative even for Full (the payload's
                             // filament_colour plus the explicit publish_color field).
