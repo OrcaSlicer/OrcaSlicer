@@ -1086,7 +1086,9 @@ void PublishSettingsDialog::build_option_model()
 
                     // The column this slot prints with, and the file columns its preset defines.
                     const Slic3r::PublishResolvedColumn resolved = publish_resolved_column(uncompacted, slot);
-                    m_categories[category_index].column = resolved.file_column.has_value() ? int(*resolved.file_column) : -1;
+                    const std::vector<size_t>           slot_columns = publish_filament_columns(uncompacted, slot);
+                    m_categories[category_index].column  = resolved.file_column.has_value() ? int(*resolved.file_column) : -1;
+                    m_categories[category_index].columns = slot_columns;
 
                     // Material requirement rows: an optional filament colour and/or a
                     // vendor-agnostic material type for this slot, in their own optgroup so they
@@ -1122,36 +1124,66 @@ void PublishSettingsDialog::build_option_model()
                             for (const Line& src : optgroup->get_lines()) {
                                 if (src.is_separator())
                                     continue;
-                                // One row per source Line, as in Process: a multi-option row is
-                                // one publish unit.
-                                std::vector<MappedOption> mapped;
+                                size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon,
+                                                                         optgroup.get(), source_page, filament_tab->type());
+
+                                // One row per source Line, as in Process. A variant-bearing option
+                                // is shown once per variant, so the line becomes one row per file
+                                // column; a per-slot option is shown once for the owner. A line
+                                // that holds both therefore becomes a variant row plus a slot row,
+                                // where the Tab draws them together.
+                                struct VariantSource
+                                {
+                                    std::string     base;
+                                    ConfigOptionDef def;
+                                };
+                                std::vector<VariantSource> variant_sources;
+                                std::vector<MappedOption>  slot_level;
                                 for (const Option& option : src.get_options()) {
                                     const std::string base = publish_base_key(option.opt_id);
                                     if (identity_keys.count(base) != 0 || denylist.count(base) != 0)
                                         continue;
                                     if (!material_added.insert(base).second)
                                         continue;
-                                    // A variant-bearing key reads its file column; a per-slot key
-                                    // reads its slot. Without a variant layout the key stays
-                                    // slot-indexed, as the legacy export path masks it.
-                                    const bool variant_bearing = publish_is_variant_bearing(base);
-                                    const int  column = variant_bearing && resolved.file_column.has_value() ? int(*resolved.file_column) : -1;
-                                    const int  value_index = column >= 0 ? column : int(slot);
-                                    if (!index_in_range(uncompacted, base, value_index))
+                                    // Without a variant layout the key stays slot-indexed, as the
+                                    // legacy export path masks it.
+                                    if (publish_is_variant_bearing(base) && !slot_columns.empty()) {
+                                        variant_sources.push_back({ base, option.opt });
                                         continue;
-                                    const std::string row_key = column >= 0 ? base + "#" + std::to_string(column) : base;
-                                    mapped.push_back({ row_key, { base, value_index, option.opt } });
+                                    }
+                                    if (!index_in_range(uncompacted, base, int(slot)))
+                                        continue;
+                                    slot_level.push_back({ base, { base, int(slot), option.opt } });
                                 }
-                                if (mapped.empty())
-                                    continue;
-                                size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon,
-                                                                         optgroup.get(), source_page, filament_tab->type());
-                                if (auto row = make_line_row(src, mapped, int(slot), publish_key_index(mapped.front().publish_key),
-                                                             Slic3r::PublishSection::Material, uncompacted))
-                                    add_row(std::move(*row), category_index, sub_index);
+
+                                if (!variant_sources.empty()) {
+                                    for (const size_t column : slot_columns) {
+                                        std::vector<MappedOption> mapped;
+                                        bool                      row_ok = true;
+                                        for (const VariantSource& source : variant_sources) {
+                                            if (!index_in_range(uncompacted, source.base, int(column))) {
+                                                row_ok = false;
+                                                break;
+                                            }
+                                            mapped.push_back({ source.base + "#" + std::to_string(column),
+                                                               { source.base, int(column), source.def } });
+                                        }
+                                        if (!row_ok)
+                                            continue;
+                                        if (auto row = make_line_row(src, mapped, int(slot), int(column),
+                                                                     Slic3r::PublishSection::Material, uncompacted))
+                                            add_row(std::move(*row), category_index, sub_index);
+                                    }
+                                }
+                                if (!slot_level.empty()) {
+                                    if (auto row = make_line_row(src, slot_level, int(slot), -1,
+                                                                 Slic3r::PublishSection::Material, uncompacted))
+                                        add_row(std::move(*row), category_index, sub_index);
+                                }
                             }
                         }
                     }
+                    setup_material_variant_switch(category_index);
                 }
             }
         }
@@ -1514,6 +1546,14 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     // The rows are painted at their own em-derived width (a 32 em floor), so the page scrolls
     // sideways rather than clipping a value column at a large DPI.
     if (section == Section::Material && !is_mixed) {
+        // The variant switch, above the sub-tabs. Filled and shown only when the slot's preset
+        // defines more than one variant.
+        category.variant_switch = new MultiSwitchButton(category.page);
+        category.variant_switch->SetFont(Label::Body_11);
+        category.variant_switch->SetFitToOptions();
+        category.variant_switch->Hide();
+        page_sizer->Add(category.variant_switch, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(4));
+
         // One sub-tab per Filament tab page, above the rows (spec 7.4 item 4).
         category.page_tabs = new TabCtrl(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, s_tab_style);
         category.page_tabs->SetFont(Label::Body_14);
@@ -1642,12 +1682,15 @@ Line* PublishSettingsDialog::row_line(size_t row_index) const
 void PublishSettingsDialog::build_row_groups(size_t category_index)
 {
     Category& category = m_categories[category_index];
-    if (category.built)
-        return;
-    category.built = true;
+    // The strip decides which source page's groups exist, so fill it before building any.
+    build_page_tabs(category_index);
 
+    bool built_any = false;
     for (Subcategory& sub : category.subs) {
-        if (sub.rows.empty())
+        if (sub.built || sub.rows.empty())
+            continue;
+        // A source page's groups are built when its tab is selected.
+        if (category.page_tabs != nullptr && sub.page_title != category.selected_page)
             continue;
 
         // The same group the sidebar's Page::new_optgroup creates: same class, same is_tab_opt
@@ -1708,15 +1751,69 @@ void PublishSettingsDialog::build_row_groups(size_t category_index)
         }
 
         sub.item = category.list_sizer->Add(group->sizer, 0, wxEXPAND | wxALL, FromDIP(5));
+        sub.built = true;
+        built_any  = true;
     }
+    if (!built_any)
+        return;
 
     category.list_sizer->Layout();
     if (category.scroll != nullptr)
         category.scroll->FitInside();
-    build_page_tabs(category_index);
     // Rows carry their filter state from the model, so a page built after a filter was applied
     // hides the same rows a page built before it does.
     apply_visibility();
+}
+
+bool PublishSettingsDialog::row_on_selected_variant(size_t row_index) const
+{
+    const Row& row = m_rows[row_index];
+    // Only material rows are spread over variants; a printer or process page already shows one
+    // column, so its rows are never gated by the owner's switch.
+    if (row.id.section != Slic3r::PublishSection::Material || row.id.column < 0 || row.inner_index >= m_categories.size())
+        return true; // slot-level rows belong to every variant
+    return row.id.column == m_categories[row.inner_index].column;
+}
+
+void PublishSettingsDialog::setup_material_variant_switch(size_t category_index)
+{
+    Category& category = m_categories[category_index];
+    if (category.section != Section::Material || category.is_mixed || category.variant_switch == nullptr ||
+        category.columns.size() < 2)
+        return;
+
+    // The same switch and the same labels the Filament tab uses for its variants.
+    const ConfigOptionStrings* variants = m_snapshot.option<ConfigOptionStrings>("filament_extruder_variant");
+    std::vector<wxString>      labels;
+    int                        selection = 0;
+    for (size_t i = 0; i < category.columns.size(); ++i) {
+        const size_t column = category.columns[i];
+        labels.push_back(variants != nullptr && column < variants->size() ? Tab::filament_variant_label(variants->get_at(column)) :
+                                                                           wxString());
+        if (int(column) == category.column)
+            selection = int(i);
+    }
+    category.variant_switch->SetOptions(labels);
+    category.variant_switch->SetSelection(selection);
+    category.variant_switch->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this, category_index](wxCommandEvent& evt) {
+        evt.Skip();
+        Category& cat   = m_categories[category_index];
+        const int choice = evt.GetInt();
+        if (choice < 0 || choice >= static_cast<int>(cat.columns.size()))
+            return;
+        cat.column = int(cat.columns[choice]);
+        apply_visibility();
+        if (cat.scroll != nullptr) {
+            cat.scroll->Scroll(0, 0);
+            cat.scroll->FitInside();
+        }
+        if (cat.page != nullptr)
+            cat.page->Layout();
+    });
+
+    category.variant_switch->Show(true);
+    if (category.page != nullptr)
+        category.page->Layout();
 }
 
 void PublishSettingsDialog::build_page_tabs(size_t category_index)
@@ -1742,6 +1839,7 @@ void PublishSettingsDialog::build_page_tabs(size_t category_index)
         if (selection < 0 || selection >= static_cast<int>(cat.page_order.size()))
             return;
         cat.selected_page = cat.page_order[selection];
+        build_row_groups(category_index);
         apply_visibility();
         if (cat.scroll != nullptr) {
             cat.scroll->Scroll(0, 0);
@@ -2294,7 +2392,7 @@ void PublishSettingsDialog::apply_visibility()
         for (Subcategory& sub : category.subs) {
             bool sub_any = false;
             for (size_t r : sub.rows) {
-                const bool show = m_rows[r].matches_filter;
+                const bool show = m_rows[r].matches_filter && row_on_selected_variant(r);
                 // Full Publish disables a row but keeps it visible, so the filter is the only
                 // thing that hides it.
                 if (Line* line = row_line(r))
@@ -2318,9 +2416,10 @@ void PublishSettingsDialog::apply_visibility()
 
 void PublishSettingsDialog::select_all(bool value)
 {
-    // "All" skips disabled (gated) rows; "None" leaves a gated row's preserved value.
+    // "All" skips disabled (gated) rows and rows of a variant that is not shown; "None" leaves a
+    // gated row's preserved value.
     for (size_t r = 0; r < m_rows.size(); ++r)
-        if (m_selection.enabled(m_rows[r].id))
+        if (m_selection.enabled(m_rows[r].id) && row_on_selected_variant(r))
             set_row_checked(r, value);
     // "All" also enables every material slot (so its rows/Full Publish become visible and the
     // selection is actually exported); "None" disables them all again.
@@ -2343,7 +2442,7 @@ bool PublishSettingsDialog::row_is_visible(size_t row_index) const
         row.outer_index != static_cast<size_t>(m_selected_outer) || m_sections[m_selected_outer].selected_inner < 0 ||
         m_sections[m_selected_outer].selected_inner >= static_cast<int>(m_sections[m_selected_outer].categories.size()) ||
         row.inner_index != m_sections[m_selected_outer].categories[m_sections[m_selected_outer].selected_inner] || !row.matches_filter ||
-        !m_selection.enabled(row.id))
+        !m_selection.enabled(row.id) || !row_on_selected_variant(row_index))
         return false;
     const Subcategory& sub = m_categories[row.inner_index].subs[row.sub_index];
     if (sub.page_title != m_categories[row.inner_index].selected_page &&

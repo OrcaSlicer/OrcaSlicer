@@ -131,6 +131,7 @@ private:
         ConfigOptionsGroup* group{nullptr}; // built when the page's rows are created
         wxSizerItem*        item{nullptr};
         std::vector<size_t> rows;
+        bool                built{false}; // its group exists
         // The source optgroup's / page's layout inputs, copied so the group renders like the Tab.
         int      label_width{20};
         bool     split_multi_line{false};
@@ -172,12 +173,14 @@ private:
         // True for a mixed-color filament slot: no Material/Retraction rows; Enable publishes
         // the slot's gradient/ratio definition as a whole.
         bool is_mixed{false};
-        // The file column this owner's variant-level rows are built for; -1 when the owner has
-        // no variant layout (per-slot keys use their slot index instead).
+        // The file column whose variant rows are shown; -1 when the owner has no variant layout.
+        // The variant switch sets it.
         int column{-1};
-        // Whether the rows' widgets have been created. Its group is built the first time the
-        // page is shown.
-        bool built{false};
+        // File columns the owner's preset defines, in preset order (empty without a layout).
+        std::vector<size_t> columns;
+        // The owner's variant switch, when it has more than one variant.
+        MultiSwitchButton* variant_switch{nullptr};
+
         // Material identity, only for Section::Material categories.
         std::string filament_type;
         std::string filament_vendor;
@@ -292,6 +295,10 @@ private:
     void build_row_groups(size_t category_index);
     // Fills a material page's sub-tab strip from its source pages, once the rows exist.
     void build_page_tabs(size_t category_index);
+    // Adds the owner's variant switch when its preset defines more than one variant.
+    void setup_material_variant_switch(size_t category_index);
+    // Whether a row belongs to the variant currently shown (slot-level rows always do).
+    bool row_on_selected_variant(size_t row_index) const;
     // Pushes one row's model state into its line's row toggle, if the widgets exist.
     void sync_row_widgets(size_t row_index);
     void sync_all_row_widgets();
