@@ -7,6 +7,8 @@
 #include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Utils.hpp"
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PublishSettings.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -3008,6 +3010,63 @@ void Tab::update_frequently_changed_parameters()
 }
 
 //BBS: BBS new parameter list
+namespace {
+// Orca: groups of the sparse infill patterns, which filter its list. The first one shows them all.
+struct SparseInfillPatternGroup
+{
+    const char*                key;
+    const char*                label;
+    std::vector<InfillPattern> patterns;
+};
+
+const std::vector<SparseInfillPatternGroup>& sparse_infill_pattern_groups()
+{
+    using Patterns = std::vector<InfillPattern>;
+    auto join      = [](std::initializer_list<Patterns> parts) {
+        Patterns out;
+        for (const Patterns& part : parts)
+            out.insert(out.end(), part.begin(), part.end());
+        return out;
+    };
+    static const Patterns basic_rectilinear{ipRectilinear, ipAlignedRectilinear, ipZigZag, ipLine, ipGrid};
+    static const Patterns advanced_rectilinear{ipCrossZag, ipLockedZag, ipTriangles, ipStars, ipCubic, ipQuarterCubic, ipCrossHatch};
+    static const Patterns support{ipSupportCubic, ipLightning};
+    static const Patterns tpms{ipGyroid,      ipTpmsD,   ipTpmsFK,       ipTpmsP,     ipTpmsIWP,
+                               ipTpmsNeovius, ipTpmsFRD, ipTpmsLidinoid, ipTpmsSplitP};
+    static const std::vector<SparseInfillPatternGroup> groups{
+        {"group_all", L("All"), {}},
+        {"group_basic_rectilinear", L("Basic Rectilinear"), basic_rectilinear},
+        {"group_advanced_rectilinear", L("Advanced Rectilinear"), advanced_rectilinear},
+        {"group_rectilinear", L("Rectilinear"), join({basic_rectilinear, advanced_rectilinear})},
+        {"group_cubic", L("Cubic"), {ipCubic, ipAdaptiveCubic, ipQuarterCubic, ipSupportCubic}},
+        {"group_support", L("Support"), support},
+        {"group_honeycomb", L("Honeycomb"), {ipHoneycomb, ip3DHoneycomb, ipLateralHoneycomb}},
+        {"group_2d", L("2D"), {ipLateralHoneycomb, ipLateralLattice}},
+        {"group_tpms", L("TPMS"), join({tpms, {ipCrossHatch}})},
+        {"group_aesthetic", L("Aesthetic"), {ipConcentric, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral}},
+        // The patterns that grade their density inside the object.
+        {"group_adaptive", L("Adaptive"), join({{ipLockedZag, ipAdaptiveCubic}, support, tpms})},
+    };
+    return groups;
+}
+
+// The row picking the group. Like "extruders_count" in the printer settings, it is no setting of the config.
+Option sparse_infill_pattern_group_option()
+{
+    ConfigOptionDef def;
+    def.type    = coEnum;
+    def.label   = L("Pattern group");
+    def.tooltip = L("Shows only the patterns of a group in the sparse infill pattern list. The selected pattern stays in "
+                    "the list.");
+    for (const SparseInfillPatternGroup& group : sparse_infill_pattern_groups()) {
+        def.enum_values.push_back(group.key);
+        def.enum_labels.push_back(group.label);
+    }
+    def.set_default_value(new ConfigOptionInt(0));
+    return Option(def, "sparse_infill_pattern_group");
+}
+} // namespace
+
 void TabPrint::build()
 {
     if (m_presets == nullptr)
@@ -3183,6 +3242,7 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Infill"), L"param_infill");
         optgroup->append_single_option_line("sparse_infill_density", "strength_settings_infill#sparse-infill-density");
         optgroup->append_single_option_line("fill_multiline", "strength_settings_infill#fill-multiline");
+        optgroup->append_single_option_line(sparse_infill_pattern_group_option(), "strength_settings_infill#pattern-group");
         optgroup->append_single_option_line("sparse_infill_pattern", "strength_settings_infill#sparse-infill-pattern");
         optgroup->append_single_option_line("tpms_scale_x", "strength_settings_patterns#tpms-scale");
         optgroup->append_single_option_line("tpms_scale_y", "strength_settings_patterns#tpms-scale");
@@ -3667,6 +3727,8 @@ void TabPrint::toggle_options()
         }
         cb->SetValue(n);
     }
+
+    filter_sparse_infill_patterns();
 }
 
 void TabPrint::update()
@@ -3719,12 +3781,65 @@ int TabPrint::extruder_variant_index(int extruder_id, NozzleVolumeType nozzle_ty
                                             "print_extruder_variant");
 }
 
+void TabPrint::on_value_change(const std::string& opt_key, const boost::any& value)
+{
+    // Orca: the pattern group only filters the list of the sparse infill pattern.
+    if (opt_key == "sparse_infill_pattern_group") {
+        m_sparse_infill_pattern_group = std::min(size_t(boost::any_cast<int>(value)), sparse_infill_pattern_groups().size() - 1);
+        filter_sparse_infill_patterns();
+        return;
+    }
+    Tab::on_value_change(opt_key, value);
+}
+
 void TabPrint::clear_pages()
 {
     Tab::clear_pages();
 
     m_recommended_thin_wall_thickness_description_line = nullptr;
     m_top_bottom_shell_thickness_explanation = nullptr;
+}
+
+// The field owns a copy of the option definition and Choice maps the combo's selection onto that copy's enum_values,
+// so both are rewritten together, as for support_style. The selected pattern stays listed, so filtering never changes it.
+void TabPrint::filter_sparse_infill_patterns()
+{
+    if (!m_active_page)
+        return;
+    // The row of the group is no setting, so it keeps the group here when the page is built again.
+    if (Field* group = m_active_page->get_field("sparse_infill_pattern_group"))
+        group->set_value(boost::any(int(m_sparse_infill_pattern_group)), false);
+    auto* choice = dynamic_cast<Choice*>(m_active_page->get_field("sparse_infill_pattern"));
+    auto* cb     = choice ? dynamic_cast<::ComboBox*>(choice->window) : nullptr;
+    if (cb == nullptr)
+        return;
+    const ConfigOption* current_opt = m_config->option("sparse_infill_pattern");
+    if (current_opt == nullptr)
+        return;
+    const ConfigOptionDef*   def      = print_config_def.get("sparse_infill_pattern");
+    const auto&              patterns = sparse_infill_pattern_groups()[m_sparse_infill_pattern_group].patterns;
+    const int                current  = current_opt->getInt();
+    std::vector<std::string> values;
+    std::vector<std::string> labels;
+    for (size_t i = 0; i < def->enum_values.size(); ++i) {
+        const int pattern = def->enum_keys_map->at(def->enum_values[i]);
+        if (patterns.empty() || pattern == current || std::find(patterns.begin(), patterns.end(), pattern) != patterns.end()) {
+            values.push_back(def->enum_values[i]);
+            labels.push_back(def->enum_labels[i]);
+        }
+    }
+    auto& opt = const_cast<ConfigOptionDef&>(choice->m_opt);
+    if (opt.enum_values == values)
+        return;
+    opt.enum_values = std::move(values);
+    opt.enum_labels = std::move(labels);
+    cb->Clear();
+    const boost::filesystem::path images = boost::filesystem::path(resources_dir()) / "images";
+    for (size_t i = 0; i < opt.enum_values.size(); ++i) {
+        const std::string icon = "param_" + opt.enum_values[i];
+        cb->Append(_(opt.enum_labels[i]), boost::filesystem::exists(images / (icon + ".svg")) ? ScalableBitmap(cb, icon, 24).bmp() : wxNullBitmap);
+    }
+    choice->set_value(boost::any(current), false);
 }
 
 //BBS: GUI refactor
