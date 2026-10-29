@@ -498,3 +498,94 @@ TEST_CASE("Full Publish leaves the receiver's value when the file carries a vari
     REQUIRE(copy != nullptr);
     check_double_vector(copy->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.5 });
 }
+
+TEST_CASE("A Full copy drops a variant key the file cannot fill", "[PublishSettings]")
+{
+    // The author's slot has two variants but the file carries only one value for the key, so the
+    // column of the second variant cannot be filled from the author. The copy must not keep the
+    // receiver's one-element vector beside an author-length variant list: readers size the layout
+    // from the list and would read the wrong column. The key is dropped instead.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.option<ConfigOptionFloats>("filament_diameter", true)->values          = { 1.75 };
+    config.option<ConfigOptionStrings>("filament_colour", true)->values           = { "#FF0000" };
+    config.option<ConfigOptionInts>("filament_self_index", true)->values          = { 1, 1 };
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive Standard",
+                                                                                     "Direct Drive High Flow" };
+    config.option<ConfigOptionStrings>("filament_type", true)->values             = { "PLA" };
+    config.option<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.9 };
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    Preset     &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+    pla.config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive Standard" };
+    pla.config.option<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.5 };
+    bundle.filament_presets = { "My PLA" };
+
+    PublishedMaterialEntry entry;
+    entry.slot        = 0;
+    entry.full        = true;
+    entry.full_keys   = { "filament_retraction_length" };
+    entry.preset_name = "Author PLA";
+
+    PublishedConfig pub;
+    pub.published     = true;
+    pub.material_keys = { entry };
+    bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+    const Preset *copy = bundle.filaments.find_preset(bundle.filament_presets.front(), false, true);
+    REQUIRE(copy != nullptr);
+    const auto *variants = copy->config.opt<ConfigOptionStrings>("filament_extruder_variant");
+    REQUIRE(variants != nullptr);
+    REQUIRE(variants->values == std::vector<std::string>{ "Direct Drive Standard", "Direct Drive High Flow" });
+    CHECK_FALSE(copy->config.has("filament_retraction_length"));
+
+    // The invariant: no variant-bearing key present in the copy is shorter than the list.
+    for (const std::string &key : filament_options_with_variant)
+        if (const ConfigOptionVectorBase *vec = dynamic_cast<const ConfigOptionVectorBase *>(copy->config.option(key)))
+            CHECK(vec->size() == variants->size());
+}
+
+TEST_CASE("A parentless project-embedded preset keeps its own variants on reload", "[PublishSettings]")
+{
+    // A Full Publish copy is stored project-embedded with no parent, so the reload path must
+    // resolve it from its own config instead of dropping it for a missing inherit.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.option<ConfigOptionFloats>("filament_diameter", true)->values          = { 1.75 };
+    config.option<ConfigOptionStrings>("filament_colour", true)->values           = { "#FF0000" };
+    config.option<ConfigOptionInts>("filament_self_index", true)->values          = { 1, 1 };
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive Standard",
+                                                                                     "Direct Drive High Flow" };
+    config.option<ConfigOptionStrings>("filament_type", true)->values             = { "PLA" };
+    config.option<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.9, 1.2 };
+    config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value           = std::string();
+    config.option<ConfigOptionStrings>("filament_settings_id", true)->values       = { "Author PLA" };
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    add_inmemory_preset(bundle.filaments, "My PLA");
+
+    Preset embedded(Preset::TYPE_FILAMENT, "Author PLA");
+    embedded.config                = config;
+    embedded.is_project_embedded   = true;
+    embedded.loaded                = true;
+
+    std::vector<Preset *> project_presets{ &embedded };
+    PresetsConfigSubstitutions substitutions;
+
+    // The save side must embed the copy at all: a parentless preset used to produce no diff and
+    // was therefore never written into the project archive.
+    Preset *differed = bundle.filaments.get_preset_differed_for_save(embedded);
+    REQUIRE(differed != nullptr);
+    CHECK(differed->config.opt<ConfigOptionStrings>("filament_extruder_variant")->values ==
+          std::vector<std::string>{ "Direct Drive Standard", "Direct Drive High Flow" });
+    delete differed;
+
+    bundle.filaments.load_project_embedded_presets(project_presets, "filament", substitutions,
+                                                  ForwardCompatibilitySubstitutionRule::Enable);
+
+    const Preset *loaded = bundle.filaments.find_preset("Author PLA", false, true);
+    REQUIRE(loaded != nullptr);
+    CHECK(loaded->config.opt<ConfigOptionStrings>("filament_extruder_variant")->values ==
+          std::vector<std::string>{ "Direct Drive Standard", "Direct Drive High Flow" });
+    check_double_vector(loaded->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.9, 1.2 });
+}

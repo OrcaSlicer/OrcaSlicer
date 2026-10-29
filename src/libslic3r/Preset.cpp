@@ -2176,6 +2176,13 @@ Preset* PresetCollection::get_preset_differed_for_save(Preset& preset)
 
         new_preset->config = temp_config;
     }
+    else if (inherits.empty()) {
+        // A parentless preset has no diff to store, but a project-embedded copy still has to
+        // travel with the project: without this branch it was not embedded at all, and the
+        // receiver lost the material when the project was reopened.
+        new_preset = new Preset();
+        *new_preset = preset;
+    }
 
     return new_preset;
 }
@@ -2296,10 +2303,11 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
             }
             //BBS: use inherit config as the base
             Preset* inherit_preset = nullptr;
+            std::string inherits_value;
             ConfigOption* inherits_config = config.option(BBL_JSON_KEY_INHERITS);
             if (inherits_config) {
                 ConfigOptionString * option_str = dynamic_cast<ConfigOptionString *> (inherits_config);
-                std::string inherits_value = option_str->value;
+                inherits_value = option_str->value;
                 /*size_t pos = inherits_value.find_first_of('*');
                 if (pos != std::string::npos) {
                     inherits_value.replace(pos, 1, 1, '~');
@@ -2312,16 +2320,24 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
             if (inherit_preset) {
                 preset->config = inherit_preset->config;
                 preset->filament_id = inherit_preset->filament_id;
+                extend_default_config_length(config, false, {});
+                preset->config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
+            }
+            else if (inherits_value.empty()) {
+                // A parentless project-embedded preset carries its whole config, including its own
+                // variant list: the Publish 3MF dialog's Full Publish copy is created this way
+                // (add_detached_preset clears inherits). Resolve it like a custom root preset;
+                // dropping it made the receiver lose the material when the project was reopened.
+                preset->config = default_preset.config;
+                preset->config.apply(std::move(config));
+                extend_default_config_length(preset->config, true, default_preset.config);
             }
             else {
                 // Find a default preset for the config. The PrintPresetCollection provides different default preset based on the "printer_technology" field.
                 //BBS 202407: don't load project embedded preset when can not find inherit
-                //preset->config = default_preset.config;
                 BOOST_LOG_TRIVIAL(error) << boost::format("can not find parent for config %1%!")%preset->file;
                 continue;
             }
-            extend_default_config_length(config, false, {});
-            preset->config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
             //preset->config.apply(std::move(config));
             Preset::normalize(preset->config);
             // Report configuration fields, which are misplaced into a wrong group.
