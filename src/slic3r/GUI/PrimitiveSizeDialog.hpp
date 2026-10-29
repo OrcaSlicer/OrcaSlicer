@@ -7,7 +7,7 @@
 #include <wx/gdicmn.h>
 #include <wx/string.h>
 
-class CheckBox;
+class LabeledCheckBox;
 class TextInput;
 class wxSizer;
 class wxWindow;
@@ -34,16 +34,16 @@ protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
 
 private:
-    ::CheckBox* add_checkbox(wxSizer* sizer, const wxString& label, const wxString& tooltip);
+    LabeledCheckBox* add_checkbox(wxSizer* sizer, const wxString& label, const wxString& tooltip);
     void        on_input_changed(size_t idx);
     bool        read_values();
 
     std::vector<::TextInput*> m_inputs;
     // The last valid value of each input, which uniform scaling multiplies.
     std::vector<double>       m_last_values;
-    ::CheckBox*               m_uniform_scale{nullptr};
-    ::CheckBox*               m_save_default{nullptr};
-    ::CheckBox*               m_dont_show{nullptr};
+    LabeledCheckBox*          m_uniform_scale{nullptr};
+    LabeledCheckBox*          m_save_default{nullptr};
+    LabeledCheckBox*          m_dont_show{nullptr};
     std::vector<double>       m_values;
 };
 

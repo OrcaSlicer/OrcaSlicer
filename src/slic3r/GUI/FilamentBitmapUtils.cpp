@@ -16,6 +16,7 @@
 #include <wx/geometry.h>
 #include <wx/font.h>
 #include <wx/graphics.h>
+#include <wx/math.h>
 #include <wx/peninfobase.h>
 #include <wx/pen.h>
 #include <wx/settings.h>
@@ -28,6 +29,7 @@
 #include <numeric>
 #include <string>
 #include <tuple>
+#include <utility>
 
 #include "FilamentBitmapUtils.hpp"
 #include "GUI_App.hpp"
@@ -73,10 +75,19 @@ void tri_barycentric(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2,
 
 TriPoint tri_clamp(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2)
 {
-    double w0, w1, w2;
-    tri_barycentric(p, v0, v1, v2, w0, w1, w2);
-    return {w0 * v0.x + w1 * v1.x + w2 * v2.x,
-            w0 * v0.y + w1 * v1.y + w2 * v2.y};
+    if (tri_contains(p, v0, v1, v2))
+        return p;
+    // Snap a point outside to the nearest point on the outline.
+    auto closest_on_edge = [p](TriPoint a, TriPoint b) {
+        const double dx = b.x - a.x, dy = b.y - a.y;
+        const double len2 = dx * dx + dy * dy;
+        const double t = len2 > 0 ? std::clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / len2, 0.0, 1.0) : 0.0;
+        return TriPoint{a.x + t * dx, a.y + t * dy};
+    };
+    auto dist2 = [p](TriPoint q) { return (q.x - p.x) * (q.x - p.x) + (q.y - p.y) * (q.y - p.y); };
+    const std::array<TriPoint, 3> candidates{closest_on_edge(v0, v1), closest_on_edge(v1, v2), closest_on_edge(v2, v0)};
+    return *std::min_element(candidates.begin(), candidates.end(),
+                             [&dist2](TriPoint a, TriPoint b) { return dist2(a) < dist2(b); });
 }
 
 static void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const wxColour* colors, size_t count)
@@ -529,7 +540,7 @@ constexpr double kPlotLeftRatio   = 0.0316;
 constexpr double kPlotRightRatio  = 0.6766;
 constexpr double kPlotTopRatio    = 0.1529;
 constexpr double kPlotBottomRatio = 0.8474;
-constexpr int    kGridDivisions   = 9;    // 10 grid lines including the outer borders.
+constexpr int    kGridDivisions   = 10;   // 10% steps, 11 grid lines including the outer borders.
 constexpr int    kStrokeAxis      = 2;    // axis line width (px, no DPI scaling)
 constexpr int    kAxisArrowHalf   = 5;    // half-base of the axis arrow triangle (DIP)
 constexpr int    kAxisArrowLen    = 10;   // length of the axis arrow triangle (DIP)
@@ -552,6 +563,58 @@ wxColour lerp_blend(const wxColour& a, const wxColour& b, double ratio_a)
 // window parameter explicitly; nullptr picks the app's default DPI like the Publish dialog does.
 int dip_px(int v) { return wxWindow::FromDIP(v, nullptr); }
 
+using Dash = std::pair<TriPoint, TriPoint>;
+
+// Splits the line a -> b into 1 DIP dashes separated by 2 DIP gaps. The line gets a whole number
+// of dash + gap periods, so the dashes meet both ends evenly.
+void add_dashes(std::vector<Dash>& dashes, TriPoint a, TriPoint b)
+{
+    const double dash   = dip_px(1);
+    const double period = dash + dip_px(2);
+    const int    count  = std::max(1, int(std::lround(std::hypot(b.x - a.x, b.y - a.y) / period)));
+    auto         at     = [&a, &b](double t) { return TriPoint{a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)}; };
+    for (int j = 0; j < count; ++j)
+        dashes.emplace_back(at(double(j) / count), at((j + dash / period) / count));
+}
+
+// Dark dashes over a light fill, white ones over a dark fill.
+wxColour dash_colour(double luminance) { return luminance > 0.5 ? wxColour(38, 46, 48) : *wxWHITE; }
+
+// The anti-aliased graphics context of `dc`, or one created over it and kept alive by `owned`.
+// Null when wx cannot wrap the dc. Drop `owned` before drawing on the dc again.
+wxGraphicsContext* graphics_context(wxDC& dc, std::unique_ptr<wxGraphicsContext>& owned)
+{
+    wxGraphicsContext* gc = dc.GetGraphicsContext();
+    if (!gc) {
+        owned.reset(wxGraphicsContext::CreateFromUnknownDC(dc));
+        gc = owned.get();
+    }
+    if (gc)
+        gc->SetAntialiasMode(wxANTIALIAS_DEFAULT);
+    return gc;
+}
+
+// Strokes the dashes at sub-pixel positions through `gc`, so all dashes of one line stay
+// collinear. Without a graphics context they are drawn on `dc`, rounded to whole pixels.
+void stroke_dashes(wxDC& dc, wxGraphicsContext* gc, const std::vector<Dash>& dashes, const wxColour& colour)
+{
+    if (gc) {
+        gc->SetPen(gc->CreatePen(wxGraphicsPenInfo(colour, dip_px(1)).Cap(wxCAP_BUTT)));
+        wxGraphicsPath path = gc->CreatePath();
+        for (const auto& [p0, p1] : dashes) {
+            path.MoveToPoint(p0.x, p0.y);
+            path.AddLineToPoint(p1.x, p1.y);
+        }
+        gc->StrokePath(path);
+    } else {
+        wxPen pen(colour, dip_px(1));
+        pen.SetCap(wxCAP_BUTT);
+        dc.SetPen(pen);
+        for (const auto& [p0, p1] : dashes)
+            dc.DrawLine(wxRound(p0.x), wxRound(p0.y), wxRound(p1.x), wxRound(p1.y));
+    }
+}
+
 } // namespace
 
 wxRect mixed_gradient_plot_rect(const wxSize& sz)
@@ -567,7 +630,8 @@ wxRect mixed_gradient_plot_rect(const wxSize& sz)
 void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
                               const std::vector<MixedGradientCurve>& curves,
                               const std::vector<wxPoint2DDouble>& anchors,
-                              const MixedGradientTheme& theme)
+                              const MixedGradientTheme& theme,
+                              double min_ratio)
 {
     // Draw into an internal opaque buffer so wxGCDC text/curves anti-alias against a solid
     // background (never a transparent one), then blit the finished image onto the caller's
@@ -586,7 +650,7 @@ void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
     wxGCDC dc(memdc);
     wxGraphicsContext* gc = dc.GetGraphicsContext();
 
-    // 10x10 light grid (10 lines including outer borders, 9 equal divisions).
+    // 10x10 light grid (11 lines including outer borders, 10 equal divisions).
     dc.SetPen(wxPen(theme.grid, 1));
     for (int i = 0; i <= kGridDivisions; ++i) {
         const int x = rc.x + rc.width  * i / kGridDivisions;
@@ -671,6 +735,17 @@ void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
     if (!gc)
         return;
 
+    if (min_ratio > 0.0) {
+        std::vector<Dash> dashes;
+        for (const double ratio : {min_ratio, 1.0 - min_ratio}) {
+            // Floored like the grid lines so the dashes sit on them; the epsilon keeps a ratio such
+            // as 1 - 0.9 from landing a pixel short.
+            const double y = rc.y + std::floor((1.0 - ratio) * rc.height + 1e-6);
+            add_dashes(dashes, {double(rc.x), y}, {double(rc.x + rc.width), y});
+        }
+        stroke_dashes(dc, gc, dashes, dash_colour(theme.background.GetLuminance()));
+    }
+
     // Outline only when the curve colour is perceptually close to the background; otherwise the
     // plain filament colour reads fine and the extra stroke would look heavy.
     auto needs_outline = [&](const wxColour& c) {
@@ -708,7 +783,7 @@ void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
 }
 
 void draw_mixed_ratio_blend_bar(wxDC& dc, const wxRect& rect, const wxColour& first,
-                                const wxColour& second, double second_fraction)
+                                const wxColour& second, double second_fraction, double min_ratio)
 {
     if (rect.width <= 0 || rect.height <= 0)
         return;
@@ -717,6 +792,18 @@ void draw_mixed_ratio_blend_bar(wxDC& dc, const wxRect& rect, const wxColour& fi
         const wxColour c = lerp_blend(first, second, 1.0 - t);
         dc.SetPen(wxPen(c));
         dc.DrawLine(rect.x + x, rect.y, rect.x + x, rect.y + rect.height);
+    }
+
+    // Each dashed line is dark or light to suit the fill under it.
+    if (min_ratio > 0.0) {
+        std::unique_ptr<wxGraphicsContext> owned_gc;
+        wxGraphicsContext*                 gc = graphics_context(dc, owned_gc);
+        for (const double t : {min_ratio, 1.0 - min_ratio}) {
+            const double      x = rect.x + std::floor(t * rect.width);
+            std::vector<Dash> dashes;
+            add_dashes(dashes, {x, double(rect.y)}, {x, double(rect.y + rect.height)});
+            stroke_dashes(dc, gc, dashes, dash_colour(lerp_blend(first, second, 1.0 - t).GetLuminance()));
+        }
     }
 
     // Fixed in both themes, like the triangle picker's drag handle: the divider is drawn over
@@ -782,6 +869,17 @@ std::map<TriCacheKey, wxBitmap>& tri_cache()
     return cache;
 }
 
+// The blended colour of the picker fill at barycentric weights (w0, w1, w2).
+wxColour tri_mix_colour(const wxColour& c0, const wxColour& c1, const wxColour& c2, double w0, double w1, double w2)
+{
+    unsigned char mr = c2.Red(), mg = c2.Green(), mb = c2.Blue();
+    if (w0 + w1 > 1e-6) {
+        Slic3r::filament_mixer_lerp(c0.Red(), c0.Green(), c0.Blue(), c1.Red(), c1.Green(), c1.Blue(), float(w1 / (w0 + w1)), &mr, &mg, &mb);
+        Slic3r::filament_mixer_lerp(mr, mg, mb, c2.Red(), c2.Green(), c2.Blue(), float(w2), &mr, &mg, &mb);
+    }
+    return wxColour(mr, mg, mb);
+}
+
 } // namespace
 
 std::array<TriPoint, 3> mixed_triangle_vertices(const wxSize& size, double margin_dip)
@@ -797,7 +895,8 @@ std::array<TriPoint, 3> mixed_triangle_vertices(const wxSize& size, double margi
 }
 
 void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<wxColour, 3>& colours,
-                                const std::array<double, 3>& weights, const MixedTriangleTheme& theme)
+                                const std::array<double, 3>& weights, const MixedTriangleTheme& theme,
+                                double min_weight)
 {
     if (size.GetWidth() <= 0 || size.GetHeight() <= 0)
         return;
@@ -836,15 +935,7 @@ void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<w
                     continue;
                 double w0, w1, w2;
                 tri_barycentric(p, v[0], v[1], v[2], w0, w1, w2);
-                unsigned char mr, mg, mb;
-                if (w0 + w1 > 1e-6) {
-                    float t01 = float(w1 / (w0 + w1));
-                    Slic3r::filament_mixer_lerp(c0.Red(), c0.Green(), c0.Blue(), c1.Red(), c1.Green(), c1.Blue(), t01, &mr, &mg, &mb);
-                    Slic3r::filament_mixer_lerp(mr, mg, mb, c2.Red(), c2.Green(), c2.Blue(), float(w2), &mr, &mg, &mb);
-                } else {
-                    mr = c2.Red(); mg = c2.Green(); mb = c2.Blue();
-                }
-                mdc.SetPen(wxPen(wxColour(mr, mg, mb)));
+                mdc.SetPen(wxPen(tri_mix_colour(c0, c1, c2, w0, w1, w2)));
                 mdc.DrawPoint(px, py);
             }
         }
@@ -863,13 +954,46 @@ void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<w
     }
     dc.DrawBitmap(bmp, 0, 0);
 
-    // Published-ratio marker (read-only twin of the editor's drag handle).
+    std::unique_ptr<wxGraphicsContext> owned_gc;
+    wxGraphicsContext*                 gc = graphics_context(dc, owned_gc);
+
+    // Dashed outline of the area where every weight is at least `min_weight`. It is dark or light
+    // depending on how light the fill under the line is on average, so it stays visible over most blends.
+    if (min_weight > 0.0) {
+        const double            k = 1.0 - 2.0 * min_weight;
+        std::array<TriPoint, 3> inner;
+        for (size_t i = 0; i < 3; ++i) {
+            const TriPoint& a = v[i];
+            const TriPoint& b = v[(i + 1) % 3];
+            const TriPoint& c = v[(i + 2) % 3];
+            inner[i] = {k * a.x + min_weight * (b.x + c.x), k * a.y + min_weight * (b.y + c.y)};
+        }
+        std::vector<Dash> dashes;
+        for (size_t i = 0; i < 3; ++i)
+            add_dashes(dashes, inner[i], inner[(i + 1) % 3]);
+        double luminance = 0.0;
+        for (const auto& [p0, p1] : dashes) {
+            double w0, w1, w2;
+            tri_barycentric({(p0.x + p1.x) / 2, (p0.y + p1.y) / 2}, v[0], v[1], v[2], w0, w1, w2);
+            luminance += tri_mix_colour(c0, c1, c2, w0, w1, w2).GetLuminance();
+        }
+        stroke_dashes(dc, gc, dashes, dash_colour(luminance / dashes.size()));
+    }
+
+    // Drag handle, anti-aliased at its sub-pixel position when a graphics context is available.
     const double w0 = weights[0], w1 = weights[1], w2 = weights[2];
-    const int hx = int(w0 * v[0].x + w1 * v[1].x + w2 * v[2].x);
-    const int hy = int(w0 * v[0].y + w1 * v[1].y + w2 * v[2].y);
-    dc.SetBrush(*wxWHITE_BRUSH);
-    dc.SetPen(wxPen(theme.ring, dip_px(2)));
-    dc.DrawCircle(hx, hy, dip_px(5));
+    const double hx = w0 * v[0].x + w1 * v[1].x + w2 * v[2].x;
+    const double hy = w0 * v[0].y + w1 * v[1].y + w2 * v[2].y;
+    const double r  = dip_px(5);
+    if (gc) {
+        gc->SetBrush(*wxWHITE_BRUSH);
+        gc->SetPen(gc->CreatePen(wxGraphicsPenInfo(theme.ring, dip_px(2))));
+        gc->DrawEllipse(hx - r, hy - r, 2 * r, 2 * r);
+    } else {
+        dc.SetBrush(*wxWHITE_BRUSH);
+        dc.SetPen(wxPen(theme.ring, dip_px(2)));
+        dc.DrawCircle(wxRound(hx), wxRound(hy), wxRound(r));
+    }
 }
 
 void draw_mixed_triangle_labels(wxDC& dc, const wxSize& size, const std::array<double, 3>& weights,
