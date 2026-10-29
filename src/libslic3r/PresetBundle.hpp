@@ -203,6 +203,12 @@ struct PublishedConfig
     // zero-based slot. Consumers (e.g. model extruder/color-painting remapping) use this to
     // keep geometry references pointing at the relocated definitions.
     std::map<int, int>          mixed_slot_relocations;
+    // The author's printer extruder layout. When set, published printer keys map to the receiver's
+    // extruder with the author's number (see resolve_published_extruder_slot).
+    PublishedExtruderLayout     printer_layout;
+    // The author's process extruder layout (print_extruder_id / print_extruder_variant). Empty for
+    // files published before per-extruder process keys were exported; those import positionally.
+    PublishedExtruderLayout     print_layout;
 };
 
 // Bundle of Print + Filament + Printer presets.
@@ -564,7 +570,7 @@ public:
     int get_printer_extruder_count() const;
     bool support_different_extruders() const;
 
-    // Orca: Ensure filament_presets has at least one slot per nozzle on FFF printers.
+    // Orca: Ensure filament_presets has at least min_filament_count() slots on FFF printers.
     // Called from (load|update)_selections before the parallel project_config arrays
     // (filament_colour/colour_type/map) are sized off filament_presets.size(), so a
     // short saved filament list doesn't truncate the loaded colors.
@@ -731,6 +737,12 @@ public:
         const std::atomic<bool>* cancel = nullptr, std::vector<std::string>* failed = nullptr);
 
 private:
+    // Orca: The fewest filaments the selected FFF printer runs with. A tool changer carries one
+    // filament per tool, so it needs one per nozzle. A printer feeding filaments through shared
+    // nozzles (single_extruder_multi_material, e.g. a Bambu Lab H2D) maps any number of them onto
+    // its nozzles, so one is enough, and the user may delete down to it.
+    size_t min_filament_count() const;
+
     // Move the presets and vendor profiles of `others` into this bundle, in one pass
     // over each collection. A preset whose name this bundle or an earlier one of
     // `others` already has is left out and listed under the bundle that repeats it.
