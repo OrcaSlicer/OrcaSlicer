@@ -782,6 +782,8 @@ private:
     ECursorType m_cursor_type;
     GLSelectionRectangle m_rectangle_selection;
     bool m_navigator_dragging{ false };
+    // whether a click on the navigator is still turning the camera, over the frames that follow it
+    bool m_navigator_animating{ false };
     // until when a wheel step keeps the preview's reduced set drawn
     std::chrono::time_point<std::chrono::steady_clock> m_preview_interaction_until{};
     // whether the frame that restores the toolpaths once that time is up is still owed

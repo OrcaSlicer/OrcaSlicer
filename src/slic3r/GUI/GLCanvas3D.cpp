@@ -6847,6 +6847,7 @@ void GLCanvas3D::_render_3d_navigator()
     if (!wxGetApp().show_3d_navigator()) {
         m_canvas_toolbar_pos[0] = 0;
         m_navigator_dragging = false;
+        m_navigator_animating = false;
         return;
     }
 
@@ -6945,6 +6946,13 @@ void GLCanvas3D::_render_3d_navigator()
     // every still frame of a drag and leave it up after a release with no motion; it holds for as
     // long as the button does.
     m_navigator_dragging = result.dragging || (m_navigator_dragging && io.MouseDown[0]);
+    // A click on a face or a corner turns the camera over the frames that follow, with no button
+    // held, each reported as a change that is not a drag. The frame after the last of them is asked
+    // for, so that what the turn held back is drawn again.
+    const bool animating = result.changed && !result.dragging;
+    if (m_navigator_animating && !animating)
+        request_extra_frame();
+    m_navigator_animating = animating;
 }
 
 #define ENABLE_THUMBNAIL_GENERATOR_DEBUG_OUTPUT 0
@@ -8686,13 +8694,13 @@ bool GLCanvas3D::_is_scene_cacheable() const
 }
 
 // Whether the user is holding something that moves the scene: the camera, the navigator, a gizmo,
-// the rectangle selection or a preview slider.
+// the rectangle selection or a preview slider, or the navigator is still turning the camera for them.
 bool GLCanvas3D::is_user_interacting() const
 {
     // the navigator's flag is cleared by the overlay, later in the frame than this is asked
     const bool navigator_dragging = m_navigator_dragging && GImGui != nullptr && ImGui::GetIO().MouseDown[0];
-    return m_mouse.dragging || navigator_dragging || m_gizmos.is_dragging() || m_rectangle_selection.is_dragging() ||
-           m_gcode_viewer.is_slider_dragging();
+    return m_mouse.dragging || navigator_dragging || m_navigator_animating || m_gizmos.is_dragging() ||
+           m_rectangle_selection.is_dragging() || m_gcode_viewer.is_slider_dragging();
 }
 
 bool GLCanvas3D::_is_frame_skipping_enabled() const
