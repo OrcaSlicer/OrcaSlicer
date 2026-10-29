@@ -129,19 +129,21 @@ diagonal, a tower off the plate), and moves the prime tower with an undo, before
 one inside the project that a saved and reopened project keeps, a detached one, and the overwrite
 rule), and drops unsaved edits with `set_settings {"reset_all": true}`. It reads presets that are not
 selected and compares presets (`get_settings` `preset` and `compare`), writes one entry of a
-per-variant value, and checks `set_settings`' `changed` after the spiral vase dialog. It reverts single
-keys (`null`, `reset_to`), and answers the unsaved-changes prompts: `select_preset` without `changes`
-still opens the prompt, `changes` transfers or discards without it, and `new_project` keeps modified
-presets unless `changes` is `"discard"`. It ends by deleting the presets it made with `delete_preset`:
-filaments the tab edits and does not, a base process and its child, and a printer once selected, with
-the refusals for system presets, a preset another inherits from, unsaved changes and a printer that is
-not selected. It exports a filament with the Export Preset Bundle dialog to its `out_dir` (`export_config`
-with a directory), imports the archive again with `import_configs` and a path (kept while the preset
-exists, imported once it is deleted) and imports `tests/fixtures/mcp_import_pla.json`. It changes a
-preference in the Preferences dialog opened with `open_preferences` `control:auto_arrange`, by the
-control's name, and reads it back with `get_settings {"scope": "preferences"}`. It starts from the
-harness's default printer with one filament slot in Simple mode, deleting slots and selecting the mode
-first, and reruns on the same datadir.
+per-variant value, and checks `set_settings`' `changed` after the spiral vase dialog. It explains
+settings with `explain_settings`: by key, the map of every setting, a group in full, and by the words
+of a tooltip. It reverts single keys (`null`, `reset_to`), and answers the unsaved-changes prompts:
+`select_preset` without `changes` still opens the prompt, `changes` transfers or discards without it,
+and `new_project` keeps modified presets unless `changes` is `"discard"`. It ends by deleting the
+presets it made with `delete_preset`: filaments the tab edits and does not, a base process and its
+child, and a printer once selected, with the refusals for system presets, a preset another inherits
+from, unsaved changes and a printer that is not selected. It exports a filament with the Export
+Preset Bundle dialog to its `out_dir` (`export_config` with a directory), imports the archive again
+with `import_configs` and a path (kept while the preset exists, imported once it is deleted) and
+imports `tests/fixtures/mcp_import_pla.json`. It changes a preference in the Preferences dialog
+opened with `open_preferences` `control:auto_arrange`, by the control's name, and reads it back with
+`get_settings {"scope": "preferences"}`. It starts from the harness's default printer with one
+filament slot in Simple mode, deleting slots and selecting the mode first, and reruns on the same
+datadir.
 
 `tests/plates.json` sets a plate type and print sequence on one plate only (with undo and redo), the
 first and other layers' filament orders, spiral vase, the lock (twice, which leaves it locked) and a

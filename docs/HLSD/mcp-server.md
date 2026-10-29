@@ -67,7 +67,9 @@ A tool result is one compact JSON text block plus any image blocks; no tool decl
 `isError` results the model can act on; an unknown tool is a JSON-RPC `-32602` error naming close
 matches. `validate_arguments()` checks arguments against the tool's schema first. The server
 `instructions` (under the 4096 characters clients keep) give the workflow `get_state`, act, `wait`,
-`screenshot`, and say to prefer typed tools over clicks and never retry a call that returned a job.
+`screenshot`, say to prefer typed tools over clicks and never retry a call that returned a job, and
+name `explain_settings` for what a setting does. Clients that defer tools load only their names and the
+instructions at first, so the instructions are how an agent without a skill learns the help text exists.
 
 ## Security, token and discovery
 
@@ -167,7 +169,7 @@ made already.
 
 | Class | Tools | Runs behind a modal or inside another call |
 |---|---|---|
-| `Inspect` | get_state, wait, get_log, list tools, get_settings, screenshot, ui_snapshot | yes |
+| `Inspect` | get_state, wait, get_log, list tools, get_settings, explain_settings, screenshot, ui_snapshot | yes |
 | `Recover` | dialog_respond, dialog_auto_answer, GUI input aimed at the topmost modal | yes |
 | `Mutate` | everything else | no |
 
@@ -332,6 +334,7 @@ the UI thread.
 | Presets | `list_presets` | printer, process or filament presets with flags (system, user, inside the project, the preset inherited from), paged |
 | | `select_preset` | select by name through the selector (filament per slot); `changes` transfers or discards unsaved changes without the prompt |
 | | `get_settings` | values and metadata (enum labels, per-variant entries) of the edited or any saved preset, of an object's or part's overrides with the values they print with, of the project's own settings (plate type, slot colours, flushing volumes, purge mode, prime tower positions, mixed slots), of a plate's (plate type, print sequence, spiral vase, filament orders, name, lock), or of named preferences (read only); `compare` lists only what differs from another preset, the saved one or the parent |
+| | `explain_settings` | what process, filament and printer settings do: a map of every setting by page and group; or in full (tooltip, label, unit, range, enum values and labels, settings tab, page and group, wiki page) by key, by page or group, or found by words matched in keys, labels and tooltips, best match first |
 | | `set_settings` | set values the way the settings tab does, all or none; one entry of a per-variant value; object and part overrides and filaments; the project's and a plate's own settings through their controls' and dialogs' code; `null` takes a preset's key back to its saved or parent value, `reset_all` drops a preset's unsaved changes first; replies with every setting that `changed` |
 | | `save_preset` | save the preset being edited under a name, as a user preset or inside the project |
 | | `delete_preset` | delete a user or project preset, selected or not, as the tab's Delete does (destructive) |
@@ -635,6 +638,31 @@ reports `inherits` and `project: true` for presets kept inside the project.
 
 An enum's meta lists `labels`, the untranslated texts its combo shows, in the order of `values`, so
 a person's wording maps to a value.
+
+What a setting does is `explain_settings`' answer, not `get_settings`': its meta leaves the tooltip
+out, since most reads only check values (a readback after `set_settings`, an object's overrides) and
+would carry help text nobody asked for. `explain_settings` returns the option's whole untranslated
+tooltip with the same meta, the scope it belongs to (the first of process, filament and printer whose
+preset options hold it), `where`, the page and group of its row, and `wiki`, the page the row's help
+link opens. Those two come from the sidebar's settings index (`Search::SettingsIndex`), which the
+settings tabs fill as they build their pages and the Speed Dial reads for its own setting actions; a
+setting with no row on a page has `where` "(no page)" and no `wiki`. A tool of its own, named for the
+question, lets an agent see from the tool list alone that the help text exists.
+
+Every setting in full is too much for one reply: about 350,000 characters for the three scopes, about
+200,000 for the process alone, where Claude Code moves any result over 50,000 characters out of the
+conversation into a file. So the whole view is a map instead: called with neither keys, query nor
+`where`, `explain_settings` lists every setting by scope and "Page > Group" with its label, about
+41,000 characters for all three scopes and 21,000 for the process. `where` then returns one group
+(typically a few thousand characters) or a whole page in full; a large page such as Quality runs to
+about 60,000, so the tool steers agents to groups. A tuning task reads the map, the groups it touches,
+then the values with `get_settings`. Its `query` serves an agent that knows what a
+setting should do but not its name (`rank_settings()`). A query word matches a word of a key, label or
+tooltip that starts with it, so "retract" finds "retraction" while "to" does not match inside
+"toolchange"; words under three letters count only when the query has nothing longer, since most help
+texts have them. Settings matching more of the query's words come first, then those matching more of
+them in the key or label. With no weighting by how rare a word is, a generic word such as "reduce"
+counts as much as "stringing", so the tool asks for a few distinctive words.
 
 Many process, filament and printer values hold one entry per extruder variant (an extruder type and
 nozzle flow type, such as the X1C's "Direct Drive Standard" and "Direct Drive High Flow"), the machine
@@ -1875,8 +1903,8 @@ the `send_gcode` command's catalog entry;
 `test_imgui_wrapper` the
 ImGui recorder (named items, kinds, values, text, clipping) on frames drawn without OpenGL;
 `test_mcp_tools` setting serialization; `test_mcp_config` the object and volume scopes' keys and
-effective values, the names and places `save_preset` accepts, enum labels, per-variant entries and
-their writes, preset comparison, `changed`, which unsaved changes a call discarded, which presets
+effective values, the names and places `save_preset` accepts, enum labels, `explain_settings`' search,
+per-variant entries and their writes, preset comparison, `changed`, which unsaved changes a call discarded, which presets
 `delete_preset` refuses or deletes with a custom printer, the project scope's slot colours,
 flushing multipliers and matrix, and the plate scope's filament orders and layer ranges and
 `list_plates`' layer numbers and layer G-codes, the preferences scope's keys, and `calibrate`'s arguments,
@@ -1886,7 +1914,7 @@ tooltip lands in a screenshot), or on the desktop on macOS and Windows, and runs
 `tools/mcp/smoke_test.json`. `tools/mcp/tests/script_basic.json`
 checks `--mcp-script` headless, `tools/mcp/tests/gizmos.json` every gizmo through the GUI tools,
 `tools/mcp/tests/multicolor.json` object and part filaments and the project scope, `tools/mcp/tests/presets.json` saving,
-reading and comparing presets, per-variant entries, `changed`, reverting keys, answering the
+reading and comparing presets, explaining settings, per-variant entries, `changed`, reverting keys, answering the
 unsaved-changes prompts of a preset switch and a new project, deleting presets, exporting and importing
 presets with a path, and reading a preference changed in the Preferences dialog,
 `tools/mcp/tests/plates.json` the plate scope, `list_plates` and the filament slot commands,

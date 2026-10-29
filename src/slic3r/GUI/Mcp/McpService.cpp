@@ -128,6 +128,8 @@ const char* kInstructions =
     "Workflow: get_state (is it ready? which presets, plates, dialogs?) -> act -> wait -> screenshot.\n"
     "- Prefer typed tools (open_files, select_preset, set_settings, slice, export) and run_action (every Speed Dial "
     "command: list_actions to search) over GUI clicks.\n"
+    "- What a setting does, or which one controls an effect: explain_settings; with no arguments it maps every "
+    "setting by page and group.\n"
     "- For anything else use the GUI tools: ui_snapshot lists widgets, menus, 3D toolbar items, gizmos and ImGui "
     "items with refs; ui_click / ui_input / ui_key / ui_mouse act on refs from the latest snapshot.\n"
     "- A call that takes long or opens a dialog returns {status:\"running\"|\"blocked_by_dialog\", job}. It keeps "

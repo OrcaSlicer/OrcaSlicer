@@ -17,10 +17,12 @@
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "slic3r/GUI/OptionsGroup.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/PresetComboBoxes.hpp"
 #include "slic3r/GUI/SavePresetDialog.hpp"
+#include "slic3r/GUI/SettingsIndex.hpp"
 #include "slic3r/GUI/Tab.hpp"
 #include "slic3r/GUI/WipeTowerDialog.hpp"
 
@@ -53,9 +55,11 @@
 #include <initializer_list>
 #include <iterator>
 #include <limits>
+#include <map>
 #include <memory>
 #include <numeric>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -999,8 +1003,6 @@ json option_meta(const ConfigOptionDef& def)
         meta["category"] = def.category;
     if (!def.sidetext.empty())
         meta["unit"] = def.sidetext;
-    if (!def.tooltip.empty())
-        meta["tooltip"] = def.tooltip.size() > 300 ? def.tooltip.substr(0, 300) + "..." : def.tooltip;
     if (def.min > -FLT_MAX && def.min != -FLT_MAX)
         meta["min"] = def.min;
     if (def.max < FLT_MAX && def.max != FLT_MAX)
@@ -1011,6 +1013,53 @@ json option_meta(const ConfigOptionDef& def)
     if (!def.enum_labels.empty() && def.enum_labels.size() == def.enum_values.size())
         meta["labels"] = def.enum_labels;
     return meta;
+}
+
+std::vector<std::string> rank_settings(const std::string& query, const std::vector<std::string>& within, std::size_t limit)
+{
+    const auto words_of = [](const std::string& text) {
+        std::vector<std::string> words;
+        std::string              word;
+        for (const char c : lower(text) + ' ') {
+            if (std::isalnum(static_cast<unsigned char>(c)))
+                word += c;
+            else if (!word.empty())
+                words.push_back(std::exchange(word, {}));
+        }
+        return words;
+    };
+    const auto has = [](const std::vector<std::string>& words, const std::string& w) {
+        return std::any_of(words.begin(), words.end(), [&w](const std::string& word) { return word.compare(0, w.size(), w) == 0; });
+    };
+    // "to" or "of" starts a word of most help texts, so short words count only when the query has no longer one.
+    std::vector<std::string> words = words_of(query);
+    std::vector<std::string> longer;
+    std::copy_if(words.begin(), words.end(), std::back_inserter(longer), [](const std::string& w) { return w.size() >= 3; });
+    if (!longer.empty())
+        words = std::move(longer);
+    // (query words matched, those matched in the key or label) per key.
+    std::vector<std::pair<std::pair<int, int>, std::string>> scored;
+    for (const std::string& key : within) {
+        const ConfigOptionDef* def = print_config_def.get(key);
+        if (def == nullptr)
+            continue;
+        const std::vector<std::string> name    = words_of(key + ' ' + def->label + ' ' + def->full_label);
+        const std::vector<std::string> tooltip = words_of(def->tooltip);
+        std::pair<int, int>            score;
+        for (const std::string& w : words)
+            if (has(name, w)) {
+                ++score.first;
+                ++score.second;
+            } else if (has(tooltip, w))
+                ++score.first;
+        if (score.first > 0)
+            scored.emplace_back(score, key);
+    }
+    std::stable_sort(scored.begin(), scored.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+    std::vector<std::string> out;
+    for (std::size_t i = 0; i < scored.size() && i < limit; ++i)
+        out.push_back(scored[i].second);
+    return out;
 }
 
 json variant_entries(const std::string& key, const DynamicPrintConfig& config, const std::vector<int>& extruder_types,
@@ -1777,7 +1826,8 @@ void register_config_tools(McpService& service)
     reg.add(inspect_tool(
         "get_settings", "Read settings",
         "Read setting values (as OrcaSlicer serializes them) with label, type, unit, range, allowed values and their labels, "
-        "and mode. Name keys, or search with query (matches key or label); without either, every option of the scope is "
+        "and mode; explain_settings tells what a setting does. Name keys, or search with query (matches key or label); "
+        "without either, every option of the scope is "
         "listed, paged. A per-variant value lists in meta its variants (what each entry is for) and active (the entry each "
         "extruder prints with). preset reads a saved preset without selecting it; compare lists only the keys that differ "
         "from another preset, each with value and other. For object/volume scopes only the overrides that object or part "
@@ -1881,6 +1931,103 @@ void register_config_tools(McpService& service)
                     if (part_only)
                         out["note"] = "A part's value (source \"part\", or in parts) applies only inside that part's volume.";
                 }
+                if (!unknown.empty())
+                    out["unknown_keys"] = unknown;
+                return out;
+            }));
+        }));
+
+    reg.add(inspect_tool(
+        "explain_settings", "Explain settings",
+        "Explain what settings do. Without keys, query or where: a map of every setting, {settings: {scope: {\"Page > "
+        "Group\": {key: label}}}}, laid out as the settings tabs are. where (a \"Page > Group\" of the map, or a page) "
+        "returns those settings in full; read a group rather than a whole page, which can be large. keys returns the "
+        "settings named; query finds which setting controls something from a few words matched in keys, labels and help "
+        "texts, settings matching the most words first, so leave out generic ones (reduce, setting). In full, a setting "
+        "has its help text in OrcaSlicer as tooltip (what it does, when to change it, what it affects), its label, unit, "
+        "range, allowed values and their labels, scope, where, and its wiki page (wiki). scope limits any of these to the "
+        "process, filament or printer settings. get_settings reads the values.",
+        object_schema({{"keys", array_prop({{"type", "string"}}, "Option keys, e.g. [\"seam_slope_type\"].")},
+                       {"query", prop("string", "A few distinctive words, e.g. \"stringing\" or \"ooze travel\".")},
+                       {"where", prop("string", "A \"Page > Group\" of the map, e.g. \"Strength > Walls\", or a page.")},
+                       {"scope", enum_prop({"print", "process", "filament", "printer"}, "Only these settings.")},
+                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 50}, {"description", "Query matches, default 10."}}}}),
+        [](const json& args, ToolContext& ctx) {
+            const bool map = !args.contains("keys") && !args.contains("query") && !args.contains("where");
+            if (int(args.contains("keys")) + int(args.contains("query")) + int(args.contains("where")) > 1)
+                throw ToolFailure("Give one of keys, query or where, or none of them for the map");
+            return ToolResult::ok(ctx.run_ui([&] {
+                std::vector<Preset::Type> types{Preset::TYPE_PRINT, Preset::TYPE_FILAMENT, Preset::TYPE_PRINTER};
+                if (args.contains("scope"))
+                    types = {preset_type(arg_string(args, "scope"))};
+                // Each key's settings tab: the first of `types` whose presets hold it.
+                std::map<std::string, Preset::Type> tab_of;
+                std::vector<std::string>            options;
+                for (const Preset::Type type : types)
+                    for (const std::string& key : preset_options(type))
+                        if (print_config_def.get(key) != nullptr && tab_of.emplace(key, type).second)
+                            options.push_back(key);
+                // The page, group and wiki path of each setting's row, as the settings tabs register them when
+                // they build their pages; a setting with no row on a page has none.
+                std::map<std::pair<std::string, Preset::Type>, const Search::Option*> rows;
+                for (const Search::Option& row : wxGetApp().sidebar().settings_index().all_options()) {
+                    const std::string key = row.opt_key();
+                    rows.emplace(std::make_pair(key.substr(0, key.find('#')), row.type), &row);
+                }
+                const auto row_of = [&](const std::string& key) -> const Search::Option* {
+                    const auto it = rows.find({key, tab_of.at(key)});
+                    return it == rows.end() ? nullptr : it->second;
+                };
+                const auto where_of = [&](const std::string& key) -> std::string {
+                    const Search::Option* row = row_of(key);
+                    return row == nullptr ? "(no page)" : into_u8(row->category) + " > " + into_u8(row->group);
+                };
+                const auto scope_of = [&](const std::string& key) {
+                    const Preset::Type type = tab_of.at(key);
+                    return type == Preset::TYPE_PRINT ? "process" : type == Preset::TYPE_FILAMENT ? "filament" : "printer";
+                };
+                if (map) {
+                    json settings = json::object();
+                    for (const std::string& key : options) {
+                        const ConfigOptionDef& def = *print_config_def.get(key);
+                        settings[scope_of(key)][where_of(key)][key] = def.full_label.empty() ? def.label : def.full_label;
+                    }
+                    return json{{"settings", std::move(settings)}};
+                }
+                std::vector<std::string> keys;
+                json                     unknown = json::array();
+                if (args.contains("query")) {
+                    keys = rank_settings(arg_string(args, "query"), options, std::size_t(std::clamp(arg_int(args, "limit", 10), 1, 50)));
+                } else if (args.contains("where")) {
+                    const std::string     where = lower(arg_string(args, "where"));
+                    std::set<std::string> groups;
+                    for (const std::string& key : options) {
+                        const std::string w = where_of(key);
+                        if (lower(w) == where || lower(w).rfind(where + " > ", 0) == 0)
+                            keys.push_back(key);
+                        groups.insert(w);
+                    }
+                    if (keys.empty())
+                        throw ToolFailure("No page or group \"" + arg_string(args, "where") + "\"", {{"groups", groups}});
+                } else {
+                    for (const json& k : args["keys"])
+                        if (tab_of.count(k.get<std::string>()) != 0)
+                            keys.push_back(k.get<std::string>());
+                        else
+                            unknown.push_back(k);
+                }
+                json items = json::array();
+                for (const std::string& key : keys) {
+                    const ConfigOptionDef& def = *print_config_def.get(key);
+                    json                   item{{"key", key}, {"scope", scope_of(key)}, {"where", where_of(key)}};
+                    item.update(option_meta(def));
+                    if (!def.tooltip.empty())
+                        item["tooltip"] = def.tooltip;
+                    if (const Search::Option* row = row_of(key); row != nullptr && !row->wiki_path.empty())
+                        item["wiki"] = into_u8(OptionsGroup::get_url(row->wiki_path));
+                    items.push_back(std::move(item));
+                }
+                json out{{"items", std::move(items)}};
                 if (!unknown.empty())
                     out["unknown_keys"] = unknown;
                 return out;
