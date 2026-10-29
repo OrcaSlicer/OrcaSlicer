@@ -352,7 +352,10 @@ static float ribbon_font_scale()
     return std::min(1.f, std::max(0.5f, sc));
 }
 // The left panel's text, a little larger than the bars'; the drop-down menus use it too so both read the same.
-static float panel_font_scale() { return std::min(1.f, ribbon_font_scale() * 1.2f); }
+static float g_panel_scale = 0.f;   // what the sidebar really drew with last frame
+static float panel_font_scale() { return g_panel_scale > 0.f ? g_panel_scale : std::min(1.f, ribbon_font_scale() * 1.2f); }
+// A popup is a child of the ribbon window and ImGui multiplies a child's font scale by its parent's, so ask for the ratio.
+static float popup_font_scale() { return panel_font_scale() / ribbon_font_scale(); }
 // Label clipped to `maxw` with a trailing ".." so a long verb name cannot widen its button column.
 static std::string fit_label(const std::string& s, float maxw)
 {
@@ -463,7 +466,7 @@ void DesignRibbonOverlay::render(ImGuiWrapper& imgui, float scale, float inset_l
                         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + std::max(0.f, (32.f * em - asz) * 0.5f));
                     if (ImGui::ArrowButtonEx("##dd", ImGuiDir_Down, ImVec2(asz, asz))) ImGui::OpenPopup("##variants");
                     if (ImGui::BeginPopup("##variants")) {   // Esc and a click away close it; nothing is armed
-                        ImGui::SetWindowFontScale(panel_font_scale());
+                        ImGui::SetWindowFontScale(popup_font_scale());
                         for (const OfferVerb* v : g.verbs)
                             if (draw_verb_button(*v, true)) {
                                 if (save_last) save_last(g.name, v->id);
@@ -616,7 +619,7 @@ void DesignTopBar::render(ImGuiWrapper& imgui, float scale, float inset_left)
                 ImGui::SameLine(0.f, 0.f);
                 if (arrow_button()) ImGui::OpenPopup("##variants");
                 if (ImGui::BeginPopup("##variants")) {   // Esc and a click away close it; nothing is armed
-                    ImGui::SetWindowFontScale(panel_font_scale());
+                    ImGui::SetWindowFontScale(popup_font_scale());
                     for (const OfferVerb* v : g.verbs) {
                         const VerbState vs = state ? state(*v) : VerbState{};
                         const bool vok = vs.enabled && v->action != nullptr;
@@ -656,7 +659,7 @@ void DesignTopBar::render(ImGuiWrapper& imgui, float scale, float inset_left)
             ImGui::SameLine(0.f, 0.f);
             if (arrow_button()) ImGui::OpenPopup("##commit_modes");
             if (ImGui::BeginPopup("##commit_modes")) {
-                ImGui::SetWindowFontScale(panel_font_scale());
+                ImGui::SetWindowFontScale(popup_font_scale());
                 for (int i = 0; i < int(commit_modes.size()); ++i) {
                     if (ImGui::MenuItem(commit_modes[size_t(i)].label.c_str(), nullptr, i == cur) && commit_choose) commit_choose(i);
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", commit_modes[size_t(i)].tip.c_str());
@@ -715,7 +718,8 @@ void DesignSidebarOverlay::render(ImGuiWrapper& imgui, float scale, float inset_
     imgui.begin(std::string("##design_sidebar"),
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                 ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse);
-    ImGui::SetWindowFontScale(panel_font_scale());
+    g_panel_scale = std::min(1.f, ribbon_font_scale() * 1.2f);
+    ImGui::SetWindowFontScale(g_panel_scale);
     m_hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
     if (draw) draw();
     imgui.end();
