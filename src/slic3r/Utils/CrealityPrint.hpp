@@ -16,6 +16,7 @@ namespace Slic3r {
 
 class DynamicPrintConfig;
 class Http;
+
 class CrealityPrint : public PrintHost
 {
 public:
@@ -39,6 +40,8 @@ public:
     // value: an F-code on the K2 platform, a literal name on K1-family.
     static bool model_supports_multi_color(const std::string& model);
     static std::string model_display_name(const std::string& model);
+    // Whether the model's web UI defaults to :4408.
+    static bool model_is_k2_platform(const std::string& model);
     std::string query_boxes_info() const;
     std::string model_name() const;
     // The WebSocket commands that start gcode_path, built from the send dialog's
