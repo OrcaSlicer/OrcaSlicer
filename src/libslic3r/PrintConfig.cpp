@@ -333,6 +333,10 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "tpmsfk", ipTpmsFK },
     { "tpmsp", ipTpmsP },
     { "tpmsiwp", ipTpmsIWP },
+    { "tpmsneovius", ipTpmsNeovius },
+    { "tpmsfrd", ipTpmsFRD },
+    { "tpmslidinoid", ipTpmsLidinoid },
+    { "tpmssplitp", ipTpmsSplitP },
     { "gyroid", ipGyroid },
     { "concentric", ipConcentric },
     { "spiralinset", ipSpiralInset },
@@ -3835,6 +3839,10 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("tpmsfk");
     def->enum_values.push_back("tpmsp");
     def->enum_values.push_back("tpmsiwp");
+    def->enum_values.push_back("tpmsneovius");
+    def->enum_values.push_back("tpmsfrd");
+    def->enum_values.push_back("tpmslidinoid");
+    def->enum_values.push_back("tpmssplitp");
     def->enum_values.push_back("gyroid");
     def->enum_values.push_back("concentric");
     def->enum_values.push_back("hilbertcurve");
@@ -3863,6 +3871,10 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("TPMS-FK"));
     def->enum_labels.push_back(L("TPMS-P"));
     def->enum_labels.push_back(L("TPMS-IWP"));
+    def->enum_labels.push_back(L("TPMS-Neovius"));
+    def->enum_labels.push_back(L("TPMS-FRD"));
+    def->enum_labels.push_back(L("TPMS-Lidinoid"));
+    def->enum_labels.push_back(L("TPMS-Split P"));
     def->enum_labels.push_back(L("Gyroid"));
     def->enum_labels.push_back(L("Concentric"));
     def->enum_labels.push_back(L("Hilbert Curve"));

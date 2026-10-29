@@ -2111,7 +2111,7 @@ TEST_CASE("Adaptive TPMS infill thins out from the surface to the interior densi
 TEST_CASE("TPMS infill patterns print as much line as TPMS-FK at the same density", "[Fill]")
 {
     // Each pattern's period factor is calibrated to its line length per area, so the same density prints the same amount.
-    const std::string pattern = GENERATE("tpmsd", "tpmsp", "tpmsiwp");
+    const std::string pattern = GENERATE("tpmsd", "tpmsp", "tpmsiwp", "tpmsneovius", "tpmsfrd", "tpmslidinoid", "tpmssplitp");
     CAPTURE(pattern);
     auto length = [](const std::string &pattern) {
         Print print;
@@ -2453,7 +2453,7 @@ static double farthest_inside(const Polylines &from, const Polylines &to, const 
 
 TEST_CASE("TPMS Z scale stretches the cells along Z", "[Fill]")
 {
-    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP);
+    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP, ipTpmsIWP, ipTpmsNeovius, ipTpmsFRD, ipTpmsLidinoid, ipTpmsSplitP);
     CAPTURE(pattern);
     // Cells twice as tall repeat the layers of the regular cells at twice the height.
     for (const double z : {3.7, 5.1, 12.3}) {
@@ -2466,7 +2466,7 @@ TEST_CASE("TPMS Z scale stretches the cells along Z", "[Fill]")
 
 TEST_CASE("TPMS X and Y scales stretch the cells across the layers", "[Fill]")
 {
-    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP);
+    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP, ipTpmsIWP, ipTpmsNeovius, ipTpmsFRD, ipTpmsLidinoid, ipTpmsSplitP);
     CAPTURE(pattern);
     // Cells twice as wide magnify every layer twice, which covers the same area with half the lines. Away from the
     // connections along the boundary, over a square of many cells, as the layers of some types vary a lot.

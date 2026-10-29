@@ -849,9 +849,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : {"tpms_scale_x", "tpms_scale_y", "tpms_scale_z", "tpms_rotation_x"})
         toggle_line(el, have_infill && is_adaptive_infill_pattern(pattern), -1, tpms_reason);
 
-    toggle_line("adaptive_infill_mode", have_adaptive_infill_pattern, -1, _L("Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."));
+    toggle_line("adaptive_infill_mode", have_adaptive_infill_pattern, -1, _L("Select Gyroid or a TPMS sparse infill pattern with sparse infill density greater than zero and less than 100%."));
     bool have_adaptive_infill = have_adaptive_infill_pattern && config->opt_enum<AdaptiveInfillMode>("adaptive_infill_mode") != AdaptiveInfillMode::Disabled;
-    const wxString adaptive_density_reason = _L("Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%.");
+    const wxString adaptive_density_reason = _L("Enable adaptive density for Gyroid or a TPMS sparse infill pattern with sparse infill density greater than zero and less than 100%.");
     toggle_line("adaptive_infill_interior_density", have_adaptive_infill, -1, adaptive_density_reason);
     toggle_line("adaptive_infill_gradient", have_adaptive_infill, -1, adaptive_density_reason);
 

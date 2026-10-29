@@ -74,7 +74,11 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipTpmsD:               return new FillTpmsD();//from creality print
     case ipTpmsFK:              return new FillTpmsFK();
     case ipTpmsP:               return new FillTpmsP();
-    case ipTpmsIWP:             return new FillTpmsIWP();
+    case ipTpmsIWP:
+    case ipTpmsNeovius:
+    case ipTpmsFRD:
+    case ipTpmsLidinoid:
+    case ipTpmsSplitP:          return new FillTpmsTraced(type);
     case ipRectilinear:         return new FillRectilinear();
     case ipAlignedRectilinear:  return new FillAlignedRectilinear();
     case ipCrossHatch:          return new FillCrossHatch();

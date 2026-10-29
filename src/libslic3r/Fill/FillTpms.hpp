@@ -7,6 +7,7 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Polyline.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 class Point;
@@ -45,27 +46,31 @@ protected:
     virtual Polylines make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const;
 };
 
-// Schwarz Primitive (P) surface, elongated along z: cos(x) + cos(y) + cos(z / 1.5) = -0.3.
-class FillTpmsP : public FillTpmsFK
+// The TPMS surface of a TPMS type with cells smaller than Fischer-Koch's, traced on a grid that scales with its period.
+class FillTpmsTraced : public FillTpmsFK
 {
 public:
+    explicit FillTpmsTraced(InfillPattern type);
+    Fill* clone() const override { return new FillTpmsTraced(*this); }
+
+protected:
+    Equation  equation() const override { return m_equation; }
+    float     period_factor() const override { return m_period_factor; }
+    Polylines make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const override;
+
+private:
+    Equation m_equation;
+    float    m_period_factor;
+};
+
+// Schwarz Primitive (P) surface, elongated along z: cos(x) + cos(y) + cos(z / 1.5) = -0.3.
+class FillTpmsP : public FillTpmsTraced
+{
+public:
+    FillTpmsP() : FillTpmsTraced(ipTpmsP) {}
     Fill* clone() const override { return new FillTpmsP(*this); }
 
 protected:
-    Equation  equation() const override;
-    float     period_factor() const override { return 1.805f; }
-    Polylines make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const override;
-};
-
-// Schoen I-WP surface: 2 (cos x cos y + cos y cos z + cos z cos x) - (cos 2x + cos 2y + cos 2z) = 0.
-class FillTpmsIWP : public FillTpmsFK
-{
-public:
-    Fill* clone() const override { return new FillTpmsIWP(*this); }
-
-protected:
-    Equation  equation() const override;
-    float     period_factor() const override { return 2.683f; }
     Polylines make_layer(const TpmsEquation &tpms, double frequency, const BoundingBox &bbox) const override;
 };
 
