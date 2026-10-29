@@ -1,5 +1,12 @@
 #include "PublishTabs.hpp"
 
+#include "OptionsGroup.hpp"
+#include "Tab.hpp"
+
+#include "libslic3r/PublishSettings.hpp"
+
+#include <algorithm>
+#include <set>
 #include <wx/sizer.h>
 
 namespace Slic3r {
@@ -72,6 +79,30 @@ PublishTabPrinter::PublishTabPrinter(ParamsPanel *host)
                         "Default Printer")
 {
     detach_from_tabs_list();
+}
+
+void PublishTabPrinter::build()
+{
+    TabPrinter::build();
+    init_options_list();
+
+    // Keep only what the dialog publishes, in the pages' original order. The allowlist is the
+    // printer tab's Extruder page groups (Retraction, Z-Hop), so every other group empties out.
+    // The pages themselves stay in m_pages: TabPrinter::update_fff() rebuilds its unregular pages
+    // by index on every update and would insert past the end of a shortened list. A page with no
+    // group left reports itself hidden, so rebuild_page_tree() drops it from the page strip.
+    const std::set<std::string> &allow = publishable_printer_keys();
+    auto is_pruned = [&allow](const std::string &base_key) { return allow.count(base_key) == 0; };
+    for (const PageShp &page : m_pages) {
+        for (const ConfigOptionsGroupShp &group : page->m_optgroups)
+            group->remove_option_if(is_pruned);
+        page->m_optgroups.erase(std::remove_if(page->m_optgroups.begin(), page->m_optgroups.end(),
+                                               [](const ConfigOptionsGroupShp &group) {
+                                                   return group->get_lines().empty();
+                                               }),
+                                page->m_optgroups.end());
+        page->update_visibility(comDevelop, false);
+    }
 }
 
 PublishTabPrint::PublishTabPrint(ParamsPanel *host)

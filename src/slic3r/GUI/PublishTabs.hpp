@@ -46,6 +46,10 @@ class PublishTabPrinter : public TabPrinter
 public:
     explicit PublishTabPrinter(ParamsPanel *host);
 
+    // TabPrinter's pages, pruned to today's published-3MF allowlist: every other option, group
+    // and page is dropped rather than shown unchecked (the TabPrintModel pattern).
+    void build() override;
+
 protected:
     PresetCollection *publish_presets() override { return &m_presets_private; }
 

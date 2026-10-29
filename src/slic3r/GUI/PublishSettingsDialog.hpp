@@ -110,7 +110,7 @@ private:
         Slic3r::PublishRowId  id;                  // publish-ready keys, owner, column, section, kind
         std::vector<RowOption> options;            // widget mapping, one per published key
         // A hosted-tab row is drawn by the tab's own Line instead of a cloned one; the checkbox is
-        // attached to that line. Null on a cloned (printer, process, requirement) row.
+        // attached to that line. Null on a cloned (process, requirement) row.
         Line*                 tab_line{nullptr};
         wxString              label;               // the source Line's label, for the filter
         wxString              label_en;            // untranslated label, for the cloned Line
@@ -157,7 +157,8 @@ private:
         wxScrolledWindow* scroll{nullptr};
         wxBoxSizer* list_sizer{nullptr};
         // A physical material slot's settings are the sidebar's own Filament tab, hosted above the
-        // requirement rows. Null on a mixed slot and on the printer/process pages.
+        // requirement rows; the Printer section's are the sidebar's own Printer tab. Null on a
+        // mixed slot and on the process pages.
         PublishParamsPanel* publish_host{nullptr};
         Tab*                publish_tab{nullptr};
         wxStaticText* info{nullptr};
@@ -303,6 +304,11 @@ private:
     // Builds a physical slot's rows from its hosted Filament tab's lines, and attaches the publish
     // checkbox to each line they came from.
     void add_material_tab_rows(size_t category_index);
+    // Builds the hosted Printer page's rows from its tab's lines: one per variant column, keyed
+    // "base#column", with the checkbox attached to the shared line.
+    void add_printer_tab_rows(size_t category_index);
+    // The variant column the hosted Printer tab's extruder switch shows, or -1 when unknown.
+    int printer_active_column(Tab* tab) const;
     // The row of `line` shown for the variant the tab's switch currently selects, or -1.
     size_t tab_row_for_line(size_t category_index, const Line* line) const;
     // Whether the tab's own rules keep the row's line shown (its hide rules run natively).

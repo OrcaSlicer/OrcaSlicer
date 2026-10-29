@@ -418,6 +418,9 @@ public:
     bool        variant_switch_active() const;
     // The variant the variant switch shows, 0 without one.
     virtual unsigned int active_variant_index() const { return 0; }
+    // The raw index of the extruder/variant switch (m_extruder_switch, or m_variant_combo on a
+    // filament tab), or -1 when the tab has no switch.
+    int switch_selection() const;
     // Orca: whether `page` is the printer tab's single "Extruder" page, which edits the extruder selected on the switch.
     bool        is_printer_extruder_page(const Page* page) const { return m_type == Preset::TYPE_PRINTER && page && page->title() == "Extruder"; }
     // Shows the variant switch row on pages with options that follow it.

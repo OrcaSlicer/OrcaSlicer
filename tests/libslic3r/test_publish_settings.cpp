@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <initializer_list>
 #include <optional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -1032,4 +1033,67 @@ TEST_CASE("The extruder rule omits a column the preset does not define", "[Publi
     project.set_key_value("nozzle_volume_type", new ConfigOptionEnumsGeneric({ int(nvtHighFlow) }));
 
     CHECK(publish_extruder_rule(target, printer, project, 0, false, "printer_extruder_id", "printer_extruder_variant").empty());
+}
+
+TEST_CASE("A loaded bundle's variant keys keep their per-column values in the uncompacted full config",
+          "[PublishSettings]")
+{
+    // The dialog reads "#N" values from the real tabs, so every variant column a tab keys must
+    // survive full_config(false) with the preset's own value at that index.
+    PresetBundle bundle;
+    add_inmemory_preset(bundle.filaments, "My PLA");
+    bundle.filament_presets = { "My PLA" };
+
+    Preset &printer = add_inmemory_preset(bundle.printers, "Variant Printer");
+    printer.config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = { 0.4, 0.4 };
+    printer.config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = { int(etDirectDrive),
+                                                                                       int(etDirectDrive) };
+    printer.config.option<ConfigOptionInts>("printer_extruder_id", true)->values = { 1, 1 };
+    printer.config.option<ConfigOptionStrings>("printer_extruder_variant", true)->values = {
+        "Direct Drive Standard", "Direct Drive High Flow"
+    };
+    printer.config.option<ConfigOptionFloats>("retraction_length", true)->values = { 0.8, 0.9 };
+    printer.config.option<ConfigOptionFloats>("z_hop", true)->values = { 0.2, 0.4 };
+    printer.config.option<ConfigOptionBools>("wipe", true)->values = { true, false };
+    bundle.printers.select_preset_by_name("Variant Printer", true);
+
+    Preset &process = add_inmemory_preset(bundle.prints, "Variant Process");
+    process.config.option<ConfigOptionInts>("print_extruder_id", true)->values = { 1, 1 };
+    process.config.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {
+        "Direct Drive Standard", "Direct Drive High Flow"
+    };
+    process.config.option<ConfigOptionFloats>("outer_wall_speed", true)->values = { 200.0, 150.0 };
+    process.config.option<ConfigOptionFloats>("initial_layer_speed", true)->values = { 45.0, 30.0 };
+    process.config.option<ConfigOptionBools>("enable_overhang_speed", true)->values = { true, false };
+    bundle.prints.select_preset_by_name("Variant Process", true);
+
+    const DynamicPrintConfig &printer_config = bundle.printers.get_edited_preset().config;
+    const DynamicPrintConfig &print_config   = bundle.prints.get_edited_preset().config;
+    const DynamicPrintConfig  uncompacted    = bundle.full_config(false);
+
+    // Per-element serialized values, the text a "#N" key resolves to.
+    auto columns = [](const DynamicPrintConfig &config, const std::string &key) {
+        const auto *values = dynamic_cast<const ConfigOptionVectorBase *>(config.option(key));
+        return values == nullptr ? std::vector<std::string>{} : values->vserialize();
+    };
+
+    // Both presets must actually be the selected ones, with the two-column layout set above.
+    REQUIRE(columns(printer_config, "retraction_length").size() == 2);
+    REQUIRE(columns(print_config, "outer_wall_speed").size() == 2);
+
+    std::set<std::string> keys = print_options_with_variant;
+    keys.insert(printer_options_with_variant_1.begin(), printer_options_with_variant_1.end());
+
+    for (const std::string &key : keys) {
+        const bool printer_key = printer_options_with_variant_1.count(key) != 0;
+        const std::vector<std::string> expected = columns(printer_key ? printer_config : print_config, key);
+        if (expected.empty())
+            continue;
+
+        const std::vector<std::string> actual = columns(uncompacted, key);
+        INFO("key " << key);
+        REQUIRE(actual.size() == expected.size());
+        for (size_t n = 0; n < expected.size(); ++n)
+            CHECK(actual[n] == expected[n]);
+    }
 }

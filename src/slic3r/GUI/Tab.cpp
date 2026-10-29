@@ -754,6 +754,15 @@ void Tab::set_publish_readonly(bool readonly)
             group->set_readonly(readonly);
 }
 
+int Tab::switch_selection() const
+{
+    if (m_extruder_switch != nullptr)
+        return m_extruder_switch->GetSelection();
+    if (m_variant_combo != nullptr)
+        return m_variant_combo->GetSelection();
+    return -1;
+}
+
 void Tab::parse_extruder_selection(int selection, int &extruder_id, NozzleVolumeType &nozzle_type)
 {
     auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
