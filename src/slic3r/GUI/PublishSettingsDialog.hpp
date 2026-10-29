@@ -149,6 +149,11 @@ private:
         wxPanel* page{nullptr};
         wxScrolledWindow* scroll{nullptr};
         wxBoxSizer* list_sizer{nullptr};
+        // One sub-tab per Filament tab page, on material pages only. Their title is the source
+        // page's, so a page reads the same in the dialog as in the sidebar.
+        TabCtrl*             page_tabs{nullptr};
+        wxString             selected_page;
+        std::vector<wxString> page_order;
         wxStaticText* info{nullptr};
         wxPoint scroll_pos{0, 0};
         wxStaticBitmap* filament_color_chip{nullptr};
@@ -285,6 +290,8 @@ private:
     size_t add_row(Row row, size_t category_index, size_t subcategory_index);
     // Creates the ConfigOptionsGroup rows of one category, once. Safe to call repeatedly.
     void build_row_groups(size_t category_index);
+    // Fills a material page's sub-tab strip from its source pages, once the rows exist.
+    void build_page_tabs(size_t category_index);
     // Pushes one row's model state into its line's row toggle, if the widgets exist.
     void sync_row_widgets(size_t row_index);
     void sync_all_row_widgets();

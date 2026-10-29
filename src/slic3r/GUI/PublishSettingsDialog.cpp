@@ -1513,6 +1513,13 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
 
     // The rows are painted at their own em-derived width (a 32 em floor), so the page scrolls
     // sideways rather than clipping a value column at a large DPI.
+    if (section == Section::Material && !is_mixed) {
+        // One sub-tab per Filament tab page, above the rows (spec 7.4 item 4).
+        category.page_tabs = new TabCtrl(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, s_tab_style);
+        category.page_tabs->SetFont(Label::Body_14);
+        category.page_tabs->SetBackgroundColour(GetBackgroundColour());
+        page_sizer->Add(category.page_tabs, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
+    }
     category.scroll = new wxScrolledWindow(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxHSCROLL);
     category.scroll->SetScrollRate(FromDIP(20), FromDIP(20));
     category.scroll->SetBackgroundColour(GetBackgroundColour());
@@ -1706,9 +1713,44 @@ void PublishSettingsDialog::build_row_groups(size_t category_index)
     category.list_sizer->Layout();
     if (category.scroll != nullptr)
         category.scroll->FitInside();
+    build_page_tabs(category_index);
     // Rows carry their filter state from the model, so a page built after a filter was applied
     // hides the same rows a page built before it does.
     apply_visibility();
+}
+
+void PublishSettingsDialog::build_page_tabs(size_t category_index)
+{
+    Category& category = m_categories[category_index];
+    if (category.page_tabs == nullptr || !category.page_order.empty())
+        return;
+
+    for (const Subcategory& sub : category.subs) {
+        if (std::find(category.page_order.begin(), category.page_order.end(), sub.page_title) != category.page_order.end())
+            continue;
+        category.page_order.push_back(sub.page_title);
+    }
+    if (category.page_order.size() < 2)
+        return; // A single source page needs no strip.
+
+    for (const wxString& page : category.page_order)
+        category.page_tabs->AppendItem(_(page));
+    category.selected_page = category.page_order.front();
+    category.page_tabs->Bind(wxEVT_TAB_SEL_CHANGED, [this, category_index](wxCommandEvent& event) {
+        Category& cat       = m_categories[category_index];
+        const int selection = event.GetInt();
+        if (selection < 0 || selection >= static_cast<int>(cat.page_order.size()))
+            return;
+        cat.selected_page = cat.page_order[selection];
+        apply_visibility();
+        if (cat.scroll != nullptr) {
+            cat.scroll->Scroll(0, 0);
+            cat.scroll->FitInside();
+        }
+        if (cat.page != nullptr)
+            cat.page->Layout();
+    });
+    category.page_tabs->SelectItem(0);
 }
 
 void PublishSettingsDialog::apply_row_label_colour(size_t row_index)
@@ -2261,8 +2303,9 @@ void PublishSettingsDialog::apply_visibility()
             }
             if (sub.group != nullptr) {
                 sub.group->update_visibility(comDevelop);
+                const bool on_page = category.page_tabs == nullptr || sub.page_title == category.selected_page;
                 if (sub.item != nullptr)
-                    sub.item->Show(enabled && sub_any);
+                    sub.item->Show(enabled && sub_any && on_page);
             }
         }
         category.list_sizer->Layout();
@@ -2301,6 +2344,10 @@ bool PublishSettingsDialog::row_is_visible(size_t row_index) const
         m_sections[m_selected_outer].selected_inner >= static_cast<int>(m_sections[m_selected_outer].categories.size()) ||
         row.inner_index != m_sections[m_selected_outer].categories[m_sections[m_selected_outer].selected_inner] || !row.matches_filter ||
         !m_selection.enabled(row.id))
+        return false;
+    const Subcategory& sub = m_categories[row.inner_index].subs[row.sub_index];
+    if (sub.page_title != m_categories[row.inner_index].selected_page &&
+        m_categories[row.inner_index].page_tabs != nullptr)
         return false;
     const Line* line = row_line(row_index);
     return line != nullptr && line->toggle_visible;
