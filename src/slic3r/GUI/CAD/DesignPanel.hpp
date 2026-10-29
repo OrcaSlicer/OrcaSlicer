@@ -137,6 +137,9 @@ public:
     // verb instead of spending a letter and every verb is reachable — including the rows with no
     // keyboard shortcut, which are otherwise invisible to anything that parses key tables.
     int  mcp_offer_selection_kind() const { return offer_selection_kind(); }  // OfferSel as int
+    // A ribbon / menu verb that opens a tool card. Always available outside the sketch: the card shows its settings and says what
+    // is still to be selected. The ribbon and the MCP socket both ask this, so they offer the same verbs.
+    static bool offer_verb_opens_card(const struct OfferVerb& v);
     // Rig driver for the wx feature cards: open one, set a field, commit it. Names: dressup extrude shell draft pattern.
     bool mcp_card_open(const std::string& card);
     bool mcp_card_set(const std::string& key, double value);

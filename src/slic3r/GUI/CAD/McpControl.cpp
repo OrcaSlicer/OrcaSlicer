@@ -2621,7 +2621,7 @@ json action_list_commands(DesignPanel* panel, const json& params)
     for (int i = 0; i < kOfferVerbCount; ++i) {
         const OfferVerb& v = kOfferVerbs[i];
         if (!match(v.id) || v.action == nullptr) continue;
-        const bool applies = (v.accepts & bit) != 0;
+        const bool applies = (v.accepts & bit) != 0 || DesignPanel::offer_verb_opens_card(v);
         json e{{"command", std::string("verb:") + v.id}, {"kind", "verb"}, {"summary", v.hint ? v.hint : ""}, {"read_only", false}, {"enabled", applies}};
         if (!applies) e["reason"] = v.refusal ? v.refusal : "does not apply to the current selection";
         out.push_back(std::move(e));
@@ -2682,7 +2682,7 @@ json action_run_verb(DesignPanel* panel, const json& params)
     const uint32_t bit     = offer_bit(OfferSel(kind));
     bool           applies = false;
     for (int i = 0; i < kOfferVerbCount; ++i)
-        if (std::strcmp(kOfferVerbs[i].id, verb.c_str()) == 0) { applies = (kOfferVerbs[i].accepts & bit) != 0; break; }
+        if (std::strcmp(kOfferVerbs[i].id, verb.c_str()) == 0) { applies = (kOfferVerbs[i].accepts & bit) != 0 || DesignPanel::offer_verb_opens_card(kOfferVerbs[i]); break; }
 
     // The rule is not "validate more", it is "the socket should offer exactly what the GUI
     // offers, no more and no less". A "btn:"/"fly:" verb is reachable in the GUI ONLY through

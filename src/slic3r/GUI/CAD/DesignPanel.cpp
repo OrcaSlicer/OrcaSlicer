@@ -755,7 +755,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_extrude_face_src   = -1;   // ordinary sketch/loop extrude
                 m_extrude_sketch_ref = resolve_extrude_sketch();
                 if (m_extrude_sketch_ref < 0) {
-                    set_status(StatusKind::Error, _L("Create a sketch, or pick a solid face, first"));
+                    set_status(StatusKind::Warning, _L("Create a sketch, or pick a solid face, first"));
+                    open_tool(Tool::Extrude);   // the card opens and says what it still needs
                     return;
                 }
                 open_tool(Tool::Extrude);
@@ -764,7 +765,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
              [this] {
                 m_revolve_sketch_ref = resolve_extrude_sketch();
                 if (m_revolve_sketch_ref < 0) {
-                    set_status(StatusKind::Error, _L("Create a sketch profile to revolve first"));
+                    set_status(StatusKind::Warning, _L("Create a sketch profile to revolve first"));
+                    open_tool(Tool::Revolve);   // the card opens and says what it still needs
                     return;
                 }
                 fill_revolve_axes(m_revolve_axis, m_revolve_axis_ents, m_revolve_sketch_ref, 0, -2);
@@ -775,7 +777,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_sweep_profile_ref = resolve_extrude_sketch();
                 m_sweep_path_ref    = -1;   // fresh sweep: default the picker to the first sketch
                 if (m_sweep_profile_ref < 0) {
-                    set_status(StatusKind::Error, _L("Create a profile sketch to sweep first"));
+                    set_status(StatusKind::Warning, _L("Create a profile sketch to sweep first"));
+                    open_tool(Tool::Sweep);   // the card opens and says what it still needs
                     return;
                 }
                 open_tool(Tool::Sweep);
@@ -787,7 +790,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 for (const auto& f : m_doc.features)
                     if (f.type == CadFeatureType::Sketch) ++n;
                 if (n < 2) {
-                    set_status(StatusKind::Error, _L("Create at least two profile sketches to loft"));
+                    set_status(StatusKind::Warning, _L("Create at least two profile sketches to loft"));
+                    open_tool(Tool::Loft);   // the card opens and says what it still needs
                     return;
                 }
                 m_loft_refs.clear();   // fresh loft: nothing pre-checked
@@ -796,7 +800,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
             {"design_thicken", _L("Thicken"), _L("Offset a solid face into a thin plate (new body)"),
              [this] {
                 if (m_doc.bodies.empty()) {
-                    set_status(StatusKind::Error, _L("Thicken needs a solid body — add or import one first"));
+                    set_status(StatusKind::Warning, _L("Thicken needs a solid body — add or import one first"));
+                    open_tool(Tool::Thicken);   // the card opens and says what it still needs
                     return;
                 }
                 {
@@ -824,7 +829,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
             {"design_rib", _L_CONTEXT("Rib", "Design"), _L("Grow a thin wall from an open sketch line, fused to a body"),
              [this] {
                 if (m_doc.bodies.empty()) {
-                    set_status(StatusKind::Error, _L("Rib needs a solid body — add or import one first"));
+                    set_status(StatusKind::Warning, _L("Rib needs a solid body — add or import one first"));
+                    open_tool(Tool::Rib);   // the card opens and says what it still needs
                     return;
                 }
                 {
@@ -850,7 +856,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     }
                     if (m_rib_sketch->GetCount() > 0) m_rib_sketch->SetSelection(0);
                     else {
-                        set_status(StatusKind::Error, _L("Create a sketch with an open line first"));
+                        set_status(StatusKind::Warning, _L("Create a sketch with an open line first"));
+                        open_tool(Tool::Rib);   // the card opens and says what it still needs
                         return;
                     }
                 }
@@ -865,7 +872,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         std::function<void()> act_pattern = [this] {
             // Pattern replicates an existing body — needs at least one solid.
             if (m_doc.bodies.empty()) {
-                set_status(StatusKind::Error, _L("Create a solid body to pattern first"));
+                set_status(StatusKind::Warning, _L("Create a solid body to pattern first"));
+                open_tool(Tool::Pattern);   // the card opens and says what it still needs
                 return;
             }
             open_tool(Tool::Pattern);
@@ -885,7 +893,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
              [this] {
                 m_surf_extrude_sketch_ref = resolve_extrude_sketch();
                 if (m_surf_extrude_sketch_ref < 0) {
-                    set_status(StatusKind::Error, _L("Create a sketch first"));
+                    set_status(StatusKind::Warning, _L("Create a sketch first"));
+                    open_tool(Tool::SurfaceExtrude);   // the card opens and says what it still needs
                     return;
                 }
                 open_tool(Tool::SurfaceExtrude);
@@ -894,7 +903,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
              [this] {
                 m_surf_revolve_sketch_ref = resolve_extrude_sketch();
                 if (m_surf_revolve_sketch_ref < 0) {
-                    set_status(StatusKind::Error, _L("Create a sketch profile to revolve first"));
+                    set_status(StatusKind::Warning, _L("Create a sketch profile to revolve first"));
+                    open_tool(Tool::SurfaceRevolve);   // the card opens and says what it still needs
                     return;
                 }
                 fill_revolve_axes(m_surf_revolve_axis, m_surf_revolve_axis_ents, m_surf_revolve_sketch_ref, 0, -2);
@@ -906,7 +916,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 for (const auto& f : m_doc.features)
                     if (f.type == CadFeatureType::Sketch) ++n;
                 if (n < 2) {
-                    set_status(StatusKind::Error, _L("Create at least two profile sketches to loft"));
+                    set_status(StatusKind::Warning, _L("Create at least two profile sketches to loft"));
+                    open_tool(Tool::SurfaceLoft);   // the card opens and says what it still needs
                     return;
                 }
                 m_surf_loft_refs.clear();
@@ -916,7 +927,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
              [this] {
                 m_surf_fill_sketch_ref = resolve_extrude_sketch();
                 if (m_surf_fill_sketch_ref < 0) {
-                    set_status(StatusKind::Error, _L("Create a sketch profile to fill first"));
+                    set_status(StatusKind::Warning, _L("Create a sketch profile to fill first"));
+                    open_tool(Tool::SurfaceFill);   // the card opens and says what it still needs
                     return;
                 }
                 open_tool(Tool::SurfaceFill);
@@ -925,7 +937,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
              [this] {
                 populate_sheet_body_choices(m_surf_offset_body);
                 if (m_surf_offset_body->GetCount() == 0) {
-                    set_status(StatusKind::Error, _L("No sheet body to offset — create a surface feature first"));
+                    set_status(StatusKind::Warning, _L("No sheet body to offset — create a surface feature first"));
+                    open_tool(Tool::SurfaceOffset);   // the card opens and says what it still needs
                     return;
                 }
                 open_tool(Tool::SurfaceOffset);
@@ -934,7 +947,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
              [this] {
                 populate_sheet_body_choices(m_surf_thicken_body);
                 if (m_surf_thicken_body->GetCount() == 0) {
-                    set_status(StatusKind::Error, _L("No sheet body to thicken — create a surface feature first"));
+                    set_status(StatusKind::Warning, _L("No sheet body to thicken — create a surface feature first"));
+                    open_tool(Tool::ThickenSurface);   // the card opens and says what it still needs
                     return;
                 }
                 open_tool(Tool::ThickenSurface);
@@ -971,7 +985,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
              [this] {
                 fill_project_sources(-1, false, selected_body_default());
                 if (m_proj_src_map.empty()) {
-                    set_status(StatusKind::Error, _L("Project needs a body or a sketch — add or import one first"));
+                    set_status(StatusKind::Warning, _L("Project needs a body or a sketch — add or import one first"));
+                    open_tool(Tool::Project);   // the card opens and says what it still needs
                     return;
                 }
                 populate_plane_choices(m_proj_plane);
@@ -999,7 +1014,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
             {"design_move", _L("Transform"), _L("Move and/or rotate an existing body"),
              [this] {
                 if (m_doc.bodies.empty()) {
-                    set_status(StatusKind::Error, _L("Transform needs a body — add or import one first"));
+                    set_status(StatusKind::Warning, _L("Transform needs a body — add or import one first"));
+                    open_tool(Tool::Transform);   // the card opens and says what it still needs
                     return;
                 }
                 {
@@ -1017,7 +1033,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
             {"design_mirror", _L_CONTEXT("Mirror", "Design"), _L("Reflect a body about a plane"),
              [this] {
                 if (m_doc.bodies.empty()) {
-                    set_status(StatusKind::Error, _L("Mirror needs a body — add or import one first"));
+                    set_status(StatusKind::Warning, _L("Mirror needs a body — add or import one first"));
+                    open_tool(Tool::Mirror);   // the card opens and says what it still needs
                     return;
                 }
                 {
@@ -1051,7 +1068,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         std::function<void()> act_cut = [this] {
             // A plane cut needs at least one solid to slice.
             if (m_doc.bodies.empty()) {
-                set_status(StatusKind::Error, _L("Create a solid body to cut first"));
+                set_status(StatusKind::Warning, _L("Create a solid body to cut first"));
+                open_tool(Tool::Cut);   // the card opens and says what it still needs
                 return;
             }
             populate_plane_choices(m_cut_plane);
@@ -1127,7 +1145,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
             {"design_delete", _L("Delete Face"), _L("Remove faces from a body and heal the solid"),
              [this] {
                 if (m_doc.bodies.empty()) {
-                    set_status(StatusKind::Error, _L("Delete Face needs a body — add or import one first"));
+                    set_status(StatusKind::Warning, _L("Delete Face needs a body — add or import one first"));
+                    open_tool(Tool::DeleteFace);   // the card opens and says what it still needs
                     return;
                 }
                 {
@@ -1181,7 +1200,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 // the same verb with nothing picked; both routes now say the same thing.
                 const int hb = m_sel_solid_body, hf = m_sel_solid_face;
                 if (hf < 0 || hb < 0 || hb >= int(m_doc.bodies.size())) {
-                    set_status(StatusKind::Error, _L("Pick a face or a plane to drill into"));
+                    set_status(StatusKind::Warning, _L("Pick a face or a plane to drill into"));
+                    open_tool(Tool::Hole);   // the card opens and says what it still needs
                     return;
                 }
                 if (hf >= 0 && hb >= 0 && hb < int(m_doc.bodies.size())) {
@@ -1247,7 +1267,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 } else if (m_sel_solid_face >= 0 || m_sel_solid_edge >= 0) {
                     // Refuse and stay closed: opening the card anyway overwrote this reason with
                     // the preview's status one line later, and left a thread card with no target.
-                    set_status(StatusKind::Error, _L("Pick a cylindrical surface (bore / outer) or a circular edge for a thread"));
+                    set_status(StatusKind::Warning, _L("Pick a cylindrical surface (bore / outer) or a circular edge for a thread"));
+                    open_tool(Tool::Thread);   // the card opens and says what it still needs
                     return;
                 }
                 open_tool(Tool::Thread);
@@ -5846,21 +5867,7 @@ void DesignPanel::sheet_sync_mode()
 
 void DesignPanel::open_sheet(int mode)
 {
-    const bool needs_body = mode == 2 || mode >= 4;
-    if (needs_body && m_doc.bodies.empty()) {
-        set_status(StatusKind::Error, _L("Sheet metal needs a sheet body — make a base flange first"));
-        return;
-    }
-    if (mode == 6) {
-        bool any = false;
-        for (const auto& f : m_doc.features) any = any || f.type == CadFeatureType::SmUnfold;
-        if (!any) { set_status(StatusKind::Error, _L("Unfold the sheet first")); return; }
-    }
-    if ((mode == 1 || mode == 3)) {
-        bool any = false;
-        for (const auto& f : m_doc.features) any = any || f.type == CadFeatureType::Sketch;
-        if (!any) { set_status(StatusKind::Error, _L("Create a sketch first")); return; }
-    }
+    // The card opens in every mode: a tool that was chosen shows its settings, and what it still needs is said above them.
     m_sheet_mode->SetSelection(mode);
     sheet_sync_mode();
     open_tool(Tool::Sheet);
@@ -8268,10 +8275,9 @@ void DesignPanel::zoom_to_selection()
 // and the Bodies card cannot drift apart on what "available" means.
 void DesignPanel::on_boolean_tool()
 {
-    if (m_doc.bodies.size() < 2) {
+    // the card opens even with fewer than two bodies; it says what is missing above its settings
+    if (m_doc.bodies.size() < 2)
         set_status(StatusKind::Warning, _L("Boolean needs two bodies — add or import a second one"));
-        return;
-    }
     populate_body_choices();
     open_tool(Tool::Boolean);
 }
@@ -12412,6 +12418,14 @@ void DesignPanel::apply_tree_events(const std::vector<TreeEvent>& evs)
     }
 }
 
+bool DesignPanel::offer_verb_opens_card(const OfferVerb& v)
+{
+    if (v.sketch_mode || v.action == nullptr) return false;
+    const std::string act = v.action;
+    return act.rfind("key:S+", 0) == 0 || act.rfind("btn:dress", 0) == 0 || act.rfind("btn:bool", 0) == 0
+        || act.rfind("btn:pat", 0) == 0 || act.rfind("fly:", 0) == 0;
+}
+
 DesignRibbonOverlay::VerbState DesignPanel::verb_state(const OfferVerb& v) const
 {
     // Same rule the right-click offer uses (show_offer_menu): the selection kind, the document
@@ -12426,8 +12440,10 @@ DesignRibbonOverlay::VerbState DesignPanel::verb_state(const OfferVerb& v) const
     // A verb that works from a sketch profile opens on the last sketch when nothing is selected (its opener does that), so with
     // a sketch in the document it must not be greyed with "create a sketch first".
     const bool last_sketch = bit == offer_bit(OfferSel::None) && v.need_sketches > 0 && (v.accepts & offer_bit(OfferSel::SkLoop));
-    st.enabled = v.sketch_mode == sketching && ((v.accepts & bit) || last_sketch) && v.need_bodies <= int(m_doc.bodies.size())
-                 && v.need_sketches <= sketches && (!v.need_sheet || sheet);
+    // A verb that opens a tool card is always available (outside the sketch): choosing a tool must show its card, and the card
+    // says what is still to be selected. Greying it for the selection it happens to have hid every setting.
+    st.enabled = v.sketch_mode == sketching && (offer_verb_opens_card(v) || (((v.accepts & bit) || last_sketch) && v.need_bodies <= int(m_doc.bodies.size())
+                 && v.need_sketches <= sketches && (!v.need_sheet || sheet)));
     if (!st.enabled && v.sketch_mode != sketching)
         st.why = std::string(sketching ? _u8L("Finish the sketch first") : _u8L("Open a sketch first"));
     return st;
@@ -13506,6 +13522,7 @@ wxString DesignPanel::missing_reference_text(Tool t) const
     case Tool::Sheet: {
         const int mode = m_sheet_mode != nullptr ? m_sheet_mode->GetSelection() : 0;
         if ((mode == 1 || mode == 3) && !chosen(m_sheet_sketch)) return _L("Select the sketch the sheet is made from");
+        if ((mode == 2 || mode >= 4) && no_body) return _L("Sheet metal needs a sheet body — make a base flange first");
         if ((mode == 2 || mode == 4) && dressup_edges().empty()) return _L("Select the sheet's end edge: click it in the viewport");
         if (mode == 6 && !chosen(m_sheet_unfold)) return _L("Select the unfold to fold back");
         break;
