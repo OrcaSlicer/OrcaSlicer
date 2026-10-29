@@ -88,9 +88,10 @@ void PublishTabPrinter::build()
 
     // Keep only what the dialog publishes, in the pages' original order. The allowlist is the
     // printer tab's Extruder page groups (Retraction, Z-Hop), so every other group empties out.
-    // The pages themselves stay in m_pages: TabPrinter::update_fff() rebuilds its unregular pages
-    // by index on every update and would insert past the end of a shortened list. A page with no
-    // group left reports itself hidden, so rebuild_page_tree() drops it from the page strip.
+    // The pages stay in m_pages: the Tab addresses them in place (update_fff() only toggles the
+    // surviving options; it does not rebuild pages), and remove_option_if() prunes lines without
+    // touching the group's m_options. A page with no group left reports itself hidden, so
+    // rebuild_page_tree() drops it from the page strip.
     const std::set<std::string> &allow = publishable_printer_keys();
     auto is_pruned = [&allow](const std::string &base_key) { return allow.count(base_key) == 0; };
     for (const PageShp &page : m_pages) {

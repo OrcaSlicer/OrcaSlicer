@@ -737,6 +737,8 @@ void Tab::create_publish_tab(const DynamicPrintConfig &config)
     init_options_list();
     update_extruder_variants();
     rebuild_page_tree();
+    // No editable values until Task 18: the fields are a read-only view of the seeded preset.
+    set_publish_readonly(true);
 
     m_completed = true;
 }
@@ -750,8 +752,20 @@ void Tab::detach_from_tabs_list()
 void Tab::set_publish_readonly(bool readonly)
 {
     for (const PageShp &page : m_pages)
-        for (const ConfigOptionsGroupShp &group : page->m_optgroups)
+        for (const ConfigOptionsGroupShp &group : page->m_optgroups) {
             group->set_readonly(readonly);
+            if (readonly)
+                group->disable();
+            else
+                group->enable();
+        }
+}
+
+int Tab::last_resolved_column() const
+{
+    // The last variant column switch_excluder() resolved, unchanged by a later unresolved switch.
+    // Kept apart from the switch's client data, which other rules read as the extruder index.
+    return m_last_resolved_column;
 }
 
 int Tab::switch_selection() const
@@ -6549,20 +6563,22 @@ if (is_marlin_flavor)
 
     // The page holds only the "#0" controls, so register every extruder's options with the search
     // index under "Extruder N"; a search hit selects that extruder (TabPrinter::activate_option()).
-    if (Page *page = extruder_page()) {
-        auto &index = wxGetApp().sidebar().settings_index();
-        for (auto &group : page->m_optgroups) {
-            group->set_config_category_and_type(page->title(), m_type);
-            for (auto &opt : group->opt_map()) {
-                if (opt.second.second < 0)
-                    continue;
-                for (size_t i = 0; i < m_extruders_count; ++i) {
-                    const wxString category = m_extruders_count > 1 ? wxString::Format("Extruder %d", int(i + 1)) : wxString("Extruder");
-                    index.add_key(opt.second.first + "#" + std::to_string(i), m_type, group->title, category, group->icon);
+    // A publish tab has no sidebar of its own and must leave the app's search index untouched.
+    if (!m_publish_host)
+        if (Page *page = extruder_page()) {
+            auto &index = wxGetApp().sidebar().settings_index();
+            for (auto &group : page->m_optgroups) {
+                group->set_config_category_and_type(page->title(), m_type);
+                for (auto &opt : group->opt_map()) {
+                    if (opt.second.second < 0)
+                        continue;
+                    for (size_t i = 0; i < m_extruders_count; ++i) {
+                        const wxString category = m_extruders_count > 1 ? wxString::Format("Extruder %d", int(i + 1)) : wxString("Extruder");
+                        index.add_key(opt.second.first + "#" + std::to_string(i), m_type, group->title, category, group->icon);
+                    }
                 }
             }
         }
-    }
 
     Thaw();
 
@@ -6577,7 +6593,8 @@ if (is_marlin_flavor)
     reload_config();
 
     // apply searcher with current configuration
-    apply_searcher();
+    if (!m_publish_host)
+        apply_searcher();
 }
 
 // this gets executed after preset is loaded and before GUI fields are updated
@@ -9496,6 +9513,7 @@ void Tab::switch_excluder(int extruder_id, bool reload)
     auto index = m_variant_combo ? extruder_id : get_index_for_extruder(extruder_id == -1 ? 0 : extruder_id);
     if (index < 0)
         return;
+    m_last_resolved_column = index;
     if (m_extruder_switch) m_extruder_switch->SetClientData(reinterpret_cast<void*>(static_cast<std::uintptr_t>(index)));
     if (m_variant_combo) m_variant_combo->SetClientData(reinterpret_cast<void *>(static_cast<std::uintptr_t>(index)));
     for (auto page : m_pages) {

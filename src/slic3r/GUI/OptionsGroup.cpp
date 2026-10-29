@@ -197,10 +197,19 @@ void OptionsGroup::remove_option_if(std::function<bool(std::string const&)> cons
         opts.erase(std::remove_if(opts.begin(), opts.end(), [&comp](Option& o) { return comp(o.opt.opt_key); }), opts.end());
         l.undo_to_sys = true;
     }
-    for (int i = m_lines.size() - 1; i >= 0; --i) {
-        if (m_lines[i].get_options().empty())
-            m_options_mode.erase(m_options_mode.begin() + i);
+    // m_options_mode has one entry per line that draws a grid row, not per element of m_lines: a
+    // full_width widget line (and a separator) has none. Rebuild it in the same order append_line()
+    // built it, so removing options cannot desynchronise the two vectors.
+    std::vector<ConfigOptionMode> modes;
+    modes.reserve(m_options_mode.size());
+    for (const Line& line : m_lines) {
+        if (line.get_options().empty())
+            continue;
+        if (line.full_width && (line.widget != nullptr || !line.get_extra_widgets().empty()))
+            continue;
+        modes.push_back(line.get_options().front().opt.mode);
     }
+    m_options_mode = std::move(modes);
     m_lines.erase(std::remove_if(m_lines.begin(), m_lines.end(), [](auto& l) { return l.get_options().empty(); }), m_lines.end());
     // TODO: remove items from g->m_options;
 }
@@ -595,6 +604,11 @@ bool OptionsGroup::activate(std::function<void()> throw_if_canceled /* = [](){}*
         delete p;
         throw;
     }
+
+    // A group marked read-only before its fields existed (a publish tab sets it on create, pages
+    // build lazily) has to disable them now that activate() has built them.
+    if (m_disabled)
+        disable();
 
     return true;
 }

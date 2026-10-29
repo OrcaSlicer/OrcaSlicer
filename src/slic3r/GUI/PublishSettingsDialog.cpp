@@ -928,9 +928,14 @@ void PublishSettingsDialog::build_option_model()
             tab->m_on_variant_changed = [this](int) {
                 sync_all_row_widgets();
                 apply_visibility();
+                apply_row_label_colours();
             };
-            // The tab rewrites its lines' visibility on a page switch; re-apply the filter on top.
-            tab->m_on_rules_applied = [this] { apply_visibility(); };
+            // The tab rewrites its lines' visibility on a page switch; re-apply the filter and
+            // the dirty markers on top.
+            tab->m_on_rules_applied = [this] {
+                apply_visibility();
+                apply_row_label_colours();
+            };
         }
     }
 
@@ -1025,13 +1030,13 @@ void PublishSettingsDialog::build_option_model()
                 tab->m_on_variant_changed = [this](int) {
                     sync_all_row_widgets();
                     apply_visibility();
+                    apply_row_label_colours();
                 };
                 // The tab rewrites its lines' visibility and its label colours on a page switch;
                 // re-apply the filter and the dirty markers on top.
                 tab->m_on_rules_applied = [this] {
                     apply_visibility();
-                    for (size_t r = 0; r < m_rows.size(); ++r)
-                        apply_row_label_colour(r);
+                    apply_row_label_colours();
                 };
             }
         }
@@ -1050,13 +1055,13 @@ void PublishSettingsDialog::build_option_model()
             tab->m_on_variant_changed = [this](int) {
                 sync_all_row_widgets();
                 apply_visibility();
+                apply_row_label_colours();
             };
             // The tab rewrites its lines' visibility and its label colours on a page switch;
             // re-apply the filter and the dirty markers on top.
             tab->m_on_rules_applied = [this] {
                 apply_visibility();
-                for (size_t r = 0; r < m_rows.size(); ++r)
-                    apply_row_label_colour(r);
+                apply_row_label_colours();
             };
         }
     }
@@ -1721,17 +1726,8 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
                 if (options.empty())
                     continue;
 
-                // The checkbox the Tab's own line carries, once per line: it draws the row of the
-                // column the tab's switch currently selects.
-                Line* line = const_cast<Line*>(&src);
-                if (!line->row_toggle)
-                    line->row_toggle = RowToggle();
-                line->row_toggle->on_change = [this, category_index, line](bool checked) {
-                    if (const size_t r = tab_row_for_line(category_index, line); r != size_t(-1))
-                        set_row_checked(r, checked);
-                };
-                touched = true;
-
+                Line*        line      = const_cast<Line*>(&src);
+                const size_t first_row = m_rows.size();
                 for (const size_t column : columns) {
                     Row row;
                     row.label         = src.label;
@@ -1770,6 +1766,17 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
                     }
                     row.tab_line = line;
                     add_tab_row(std::move(row), category_index);
+                }
+                // Only a line that produced at least one row gets a checkbox: a line whose every
+                // column failed would otherwise toggle nothing.
+                if (m_rows.size() > first_row) {
+                    if (!line->row_toggle)
+                        line->row_toggle = RowToggle();
+                    line->row_toggle->on_change = [this, category_index, line](bool checked) {
+                        if (const size_t r = tab_row_for_line(category_index, line); r != size_t(-1))
+                            set_row_checked(r, checked);
+                    };
+                    touched = true;
                 }
             }
             // The toggles added a column to the group's rows: re-align the value and unit columns.
@@ -1848,16 +1855,7 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
                 if (options.empty())
                     continue;
 
-                // The checkbox the Tab's own line carries, once per line: it draws the row of the
-                // column the tab's switch currently selects.
                 Line* line = const_cast<Line*>(&src);
-                if (!line->row_toggle)
-                    line->row_toggle = RowToggle();
-                line->row_toggle->on_change = [this, category_index, line](bool checked) {
-                    if (const size_t r = tab_row_for_line(category_index, line); r != size_t(-1))
-                        set_row_checked(r, checked);
-                };
-                touched = true;
 
                 std::vector<Row> rows;
                 if (per_variant) {
@@ -1904,6 +1902,16 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
                 }
                 if (rows.empty())
                     continue;
+
+                // Only a line that produced at least one row gets a checkbox: a line whose every
+                // column failed would otherwise toggle nothing.
+                if (!line->row_toggle)
+                    line->row_toggle = RowToggle();
+                line->row_toggle->on_change = [this, category_index, line](bool checked) {
+                    if (const size_t r = tab_row_for_line(category_index, line); r != size_t(-1))
+                        set_row_checked(r, checked);
+                };
+                touched = true;
 
                 for (Row& row : rows) {
                     row.label         = src.label;
@@ -2054,9 +2062,15 @@ int PublishSettingsDialog::tab_active_column(Tab* tab) const
     if (tab == nullptr || bundle == nullptr)
         return -1;
 
-    // The tab's switch names the extruder (and, for a hybrid, the sub-nozzle type) it shows; the
-    // rule then names that entry's column. Without a switch there is one extruder, and the rule's
-    // single entry is its column.
+    // The tab's switch remembers the column switch_excluder() resolved on its last successful
+    // switch; that is the column whose row its Line draws.
+    if (const int resolved = tab->last_resolved_column(); resolved >= 0)
+        return resolved;
+
+    // The tab has no switch, or never resolved a column: derive it from the rule. The switch
+    // names the extruder (and, for a hybrid, the sub-nozzle type) it shows; the rule then names
+    // that entry's column. Without a switch there is one extruder, and the rule's single entry is
+    // its column.
     int              extruder  = 0;
     NozzleVolumeType nozzle    = NozzleVolumeType::nvtStandard;
     const int        selection = tab->switch_selection();
@@ -2094,8 +2108,8 @@ bool PublishSettingsDialog::row_on_selected_variant(size_t row_index) const
     if (row.id.section == Slic3r::PublishSection::Printer || row.id.section == Slic3r::PublishSection::Process) {
         if (category.publish_tab == nullptr)
             return true;
-        // An extruder the rule defines no column for keeps the page on the last column shown
-        // (switch_excluder returns early there), so fall back to the column the page started on.
+        // The tab's switch remembers the column switch_excluder() last resolved; a tab with no
+        // switch falls back to the column the page started on.
         const int column = tab_active_column(category.publish_tab);
         return row.id.column == (column >= 0 ? column : category.column);
     }
@@ -2116,9 +2130,6 @@ void PublishSettingsDialog::apply_row_label_colour(size_t row_index)
     const Row& row = m_rows[row_index];
     if (row.options.empty())
         return;
-    // Printer rows carry no dialog-side mark: the hosted Printer tab owns their colours.
-    if (row.id.section == Slic3r::PublishSection::Printer)
-        return;
     // A hosted-tab row is drawn by the Tab, which owns the colours. Only the row the tab's switch
     // shows paints the Line they all share.
     if (row.tab_line != nullptr) {
@@ -2127,16 +2138,17 @@ void PublishSettingsDialog::apply_row_label_colour(size_t row_index)
         const Tab* tab = m_categories[row.inner_index].publish_tab;
         if (tab == nullptr)
             return;
+        // A dirty pre-checked Printer/Process (or material) row marks its line and fields with the
+        // Tab's modified colour; the line returns to the Tab's default colour when not dirty.
         const wxColour* colour = row.dirty ? &tab->modified_label_colour() : &tab->default_text_colour();
         row.tab_line->set_label_colour(colour);
-        // The label is drawn with the first option's field colour when the line has a field. Only
-        // a dirty row is painted, so the Tab's own marks on an undirty row stay.
+        // The label is drawn from the first option's field colour when the line has a field. Paint
+        // the fields the Line actually owns: a row's column index is a file column, not the "#N"
+        // id the tab gave the field (the switch re-targets one built field).
         if (row.dirty)
-            for (const RowOption& option : row.options) {
-                const std::string opt_id = option.key + (option.index >= 0 ? "#" + std::to_string(option.index) : "");
-                if (Field* field = tab->get_field(opt_id))
+            for (const Option& option : row.tab_line->get_options())
+                if (Field* field = tab->get_field(option.opt_id))
                     field->set_label_colour(colour);
-            }
         return;
     }
     if (!row.dirty)
@@ -2148,6 +2160,12 @@ void PublishSettingsDialog::apply_row_label_colour(size_t row_index)
     const std::string opt_id = first.key + (first.index >= 0 ? "#" + std::to_string(first.index) : "");
     if (Field* field = sub.group->get_field(opt_id))
         field->set_label_colour(&wxGetApp().get_label_clr_modified());
+}
+
+void PublishSettingsDialog::apply_row_label_colours()
+{
+    for (size_t r = 0; r < m_rows.size(); ++r)
+        apply_row_label_colour(r);
 }
 
 void PublishSettingsDialog::sync_row_widgets(size_t row_index)
@@ -2195,9 +2213,8 @@ void PublishSettingsDialog::on_full_toggle(size_t category_index)
     m_selection.set_full_publish(int(cat.filament_slot), full);
     for (size_t r : cat.rows)
         set_row_enabled(r, !full);
-    // The slot's own settings stop being editable: the tab's fields go read-only.
-    if (cat.publish_tab != nullptr)
-        cat.publish_tab->set_publish_readonly(full);
+    // The hosted tab's fields stay read-only until Task 18 gives a checked row an editable value;
+    // Full Publish only freezes the row toggles, it does not re-enable the fields.
     // The row toggles changed state; repaint the hosted rows so the greyed toggles show at once.
     apply_visibility();
     refresh_tab_indicators();

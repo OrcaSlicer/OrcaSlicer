@@ -1084,6 +1084,11 @@ TEST_CASE("A loaded bundle's variant keys keep their per-column values in the un
     std::set<std::string> keys = print_options_with_variant;
     keys.insert(printer_options_with_variant_1.begin(), printer_options_with_variant_1.end());
 
+    // The Printer section reads every allowlisted key as "key#column", so the allowlist has to be
+    // inside the per-variant set; a key outside it would index a shared array by a column.
+    for (const std::string &key : publishable_printer_keys())
+        CHECK(printer_options_with_variant_1.count(key) == 1);
+
     for (const std::string &key : keys) {
         const bool printer_key = printer_options_with_variant_1.count(key) != 0;
         const std::vector<std::string> expected = columns(printer_key ? printer_config : print_config, key);
@@ -1096,4 +1101,33 @@ TEST_CASE("A loaded bundle's variant keys keep their per-column values in the un
         for (size_t n = 0; n < expected.size(); ++n)
             CHECK(actual[n] == expected[n]);
     }
+
+    // Every column the extruder rule resolves for a printer row must index the uncompacted
+    // vector the dialog reads, for every allowlisted key (widths are per key).
+    const std::vector<PublishExtruderEntry> printer_rule =
+        publish_extruder_rule(printer_config, printer_config, bundle.project_config, 0, false,
+                              "printer_extruder_id", "printer_extruder_variant");
+    REQUIRE(printer_rule.size() == 1);
+    for (const std::string &key : publishable_printer_keys()) {
+        const ConfigOption *option = uncompacted.option(key);
+        REQUIRE(option != nullptr);
+        const auto *values = dynamic_cast<const ConfigOptionVectorBase *>(option);
+        if (values == nullptr)
+            continue; // a scalar option is addressed whole
+        for (const PublishExtruderEntry &entry : printer_rule) {
+            INFO("key " << key);
+            CHECK(entry.column < values->size());
+        }
+    }
+
+    // full_config(false) applies the project config after the presets, so a project override
+    // reaches the dialog's snapshot while the preset keeps its own value.
+    bundle.project_config.set_key_value("retraction_length", new ConfigOptionFloats({ 1.1, 1.2 }));
+    const DynamicPrintConfig overridden = bundle.full_config(false);
+    const auto *overridden_length = dynamic_cast<const ConfigOptionFloats *>(overridden.option("retraction_length"));
+    const auto *preset_length     = dynamic_cast<const ConfigOptionFloats *>(printer_config.option("retraction_length"));
+    REQUIRE(overridden_length != nullptr);
+    REQUIRE(preset_length != nullptr);
+    check_double_vector(overridden_length->values, { 1.1, 1.2 });
+    check_double_vector(preset_length->values, { 0.8, 0.9 });
 }

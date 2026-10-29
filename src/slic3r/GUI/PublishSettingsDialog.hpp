@@ -317,6 +317,7 @@ private:
     void sync_all_row_widgets();
     // Colours the row's label the way the Tab marks a modified setting.
     void apply_row_label_colour(size_t row_index);
+    void apply_row_label_colours();
     // The line a row is drawn by, or null before its group exists.
     Line* row_line(size_t row_index) const;
     // Model-backed row state: the payload and the widgets both read this, never each other.

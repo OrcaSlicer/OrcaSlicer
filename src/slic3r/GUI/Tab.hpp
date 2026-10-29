@@ -284,6 +284,8 @@ protected:
     bool                m_completed { false };
     // A publish tab renders a private preset outside the sidebar: no Speed Dial, no app state.
     bool                m_publish_host { false };
+    // The variant column switch_excluder() last resolved; -1 until one resolves.
+    int                 m_last_resolved_column { -1 };
     ConfigOptionMode    m_mode = comAdvanced; // to correct first Tab update_visibility() set mode to Advanced
 
 	struct Highlighter
@@ -368,7 +370,8 @@ public:
 	void		create_preset_tab();
     // Builds a dialog-hosted tab over a private preset, without the sidebar chrome.
     void        create_publish_tab(const DynamicPrintConfig &config);
-    // Disables every built group's fields (Full Publish).
+    // Sets every group's fields read-only. A publish tab has no editable values yet, so its fields
+    // are a view of the seeded preset; row toggles stay clickable.
     void        set_publish_readonly(bool readonly);
     void        add_scaled_button(wxWindow* parent, ScalableButton** btn, const std::string& icon_name,
                                   const wxString& label = wxEmptyString,
@@ -421,6 +424,9 @@ public:
     // The raw index of the extruder/variant switch (m_extruder_switch, or m_variant_combo on a
     // filament tab), or -1 when the tab has no switch.
     int switch_selection() const;
+    // The variant column switch_excluder() last resolved for the switch, or -1 when the tab has no
+    // switch or never resolved one.
+    int last_resolved_column() const;
     // Orca: whether `page` is the printer tab's single "Extruder" page, which edits the extruder selected on the switch.
     bool        is_printer_extruder_page(const Page* page) const { return m_type == Preset::TYPE_PRINTER && page && page->title() == "Extruder"; }
     // Shows the variant switch row on pages with options that follow it.
