@@ -165,17 +165,17 @@ protected:
 	TabPresetComboBox*	m_presets_choice { nullptr };
 
 	//BBS: GUI refactor
-	wxPanel*			m_top_panel;
-	wxBoxSizer* m_main_sizer;
-	wxBoxSizer* m_top_sizer;
+	wxPanel*			m_top_panel {nullptr};
+	wxBoxSizer* m_main_sizer {nullptr};
+	wxBoxSizer* m_top_sizer {nullptr};
 	wxBoxSizer* m_top_left_sizer;
 	wxGridSizer* m_top_right_sizer;
 	wxBoxSizer* m_select_sizer;
 	wxBoxSizer* m_tree_sizer;
 
 	ScalableButton*		m_btn_compare_preset;
-	ScalableButton*		m_btn_save_preset;
-	ScalableButton*		m_btn_delete_preset;
+	ScalableButton*		m_btn_save_preset {nullptr};
+	ScalableButton*		m_btn_delete_preset {nullptr};
 	//ScalableButton*		m_btn_edit_ph_printer {nullptr};
 	//ScalableButton*		m_btn_hide_incompatible_presets;
 	//wxBoxSizer*			m_hsizer;
@@ -208,12 +208,12 @@ protected:
 	// just be used for edit filament dialog
     bool m_just_edit{false};
 
-	ScalableButton*			m_undo_btn;
-	ScalableButton*			m_undo_to_sys_btn;
+	ScalableButton*			m_undo_btn {nullptr};
+	ScalableButton*			m_undo_to_sys_btn {nullptr};
 	//ScalableButton*			m_question_btn;
-	ScalableButton*			m_btn_search;
-    StaticBox *				m_search_item;
-    TextInput *				m_search_input;
+	ScalableButton*			m_btn_search {nullptr};
+    StaticBox *				m_search_item {nullptr};
+    TextInput *				m_search_input {nullptr};
 
 	// Cached bitmaps.
 	// A "flag" icon to be displayned next to the preset name in the Tab's combo box.
@@ -282,6 +282,8 @@ protected:
     int                 m_em_unit;
     // To avoid actions with no-completed Tab
     bool                m_completed { false };
+    // A publish tab renders a private preset outside the sidebar: no Speed Dial, no app state.
+    bool                m_publish_host { false };
     ConfigOptionMode    m_mode = comAdvanced; // to correct first Tab update_visibility() set mode to Advanced
 
 	struct Highlighter
@@ -338,6 +340,8 @@ public:
     // its Extruder and Motion ability pages edit.
     bool            m_extruder_switch_variants = false;
     std::vector<NozzleVolumeType> m_actual_nozzle_volumes;
+    // Called with the switch selection after the extruder/variant switch's own handling; null by default.
+    std::function<void(int)> m_on_variant_changed;
 
 public:
 	// BBS
@@ -351,9 +355,15 @@ public:
     Preset::Type type()  const { return m_type; }
     // The tab is already constructed.
     bool 		completed() const { return m_completed; }
+    // A publish tab is hosted by the publish dialog, not by the sidebar.
+    bool        is_publish_host() const { return m_publish_host; }
 	virtual bool supports_printer_technology(const PrinterTechnology tech) const = 0;
 
 	void		create_preset_tab();
+    // Builds a dialog-hosted tab over a private preset, without the sidebar chrome.
+    void        create_publish_tab(const DynamicPrintConfig &config);
+    // Disables every built group's fields (Full Publish).
+    void        set_publish_readonly(bool readonly);
     void        add_scaled_button(wxWindow* parent, ScalableButton** btn, const std::string& icon_name,
                                   const wxString& label = wxEmptyString,
                                   long style = wxBU_EXACTFIT | wxNO_BORDER);
@@ -400,6 +410,8 @@ public:
     // Whether the variant switch (m_extruder_switch / m_variant_combo) is enabled: on the printer tab for
     // any multi-extruder printer, on the other tabs when it switches nozzle variants.
     bool        variant_switch_active() const;
+    // The variant the variant switch shows, 0 without one.
+    virtual unsigned int active_variant_index() const { return 0; }
     // Orca: whether `page` is the printer tab's single "Extruder" page, which edits the extruder selected on the switch.
     bool        is_printer_extruder_page(const Page* page) const { return m_type == Preset::TYPE_PRINTER && page && page->title() == "Extruder"; }
     // Shows the variant switch row on pages with options that follow it.
@@ -545,6 +557,13 @@ public:
     NozzleVolumeType       get_actual_nozzle_volume_type(int extruder_id);
 
 protected:
+	// The collection a publish tab renders; nullptr means the app's collection for this type.
+	virtual PresetCollection* publish_presets() { return nullptr; }
+	// Removes this tab from wxGetApp().tabs_list (a publish tab must not be in the app's list).
+	void			detach_from_tabs_list();
+	// The page strip and the extruder/variant switch row, shared by both construction paths.
+	void			create_page_tree();
+	void			create_variant_switch();
 	void			create_line_with_widget(ConfigOptionsGroup* optgroup, const std::string& opt_key, const std::string& path, widget_t widget);
 	wxSizer*		compatible_widget_create(wxWindow* parent, PresetDependencies &deps);
 	void 			compatible_widget_reload(PresetDependencies &deps);
@@ -722,6 +741,9 @@ public:
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
 
 	void		on_value_change(const std::string& opt_key, const boost::any& value) override;
+
+    // The variant the variant switch shows, 0 without one.
+    unsigned int active_variant_index() const override { return selected_variant_index(); }
 
     const std::string&	get_custom_gcode(const t_config_option_key& opt_key) override;
     void				set_custom_gcode(const t_config_option_key& opt_key, const std::string& value) override;

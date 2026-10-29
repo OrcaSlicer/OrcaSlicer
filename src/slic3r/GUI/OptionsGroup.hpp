@@ -56,8 +56,8 @@ struct Option {
 		opt(_opt), opt_id(id) {}
 };
 
-// Opt-in toggle drawn in the row's act-button slot, the slot the settings Tab uses for its
-// revert-to-saved icon. Null on every Tab row, so tab painting and hit testing are unchanged.
+// Opt-in toggle drawn at the start of the row, in the left-hand column the settings Tabs do not use.
+// Null on every sidebar Tab row, so tab painting and hit testing are unchanged.
 struct RowToggle
 {
     bool                      checked{false};
