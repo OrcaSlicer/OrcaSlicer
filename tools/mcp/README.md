@@ -1,8 +1,7 @@
 # MCP harness
 
 `orca_mcp.py` launches OrcaSlicer with its MCP server and talks to it, from a shell or from
-Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the server, and
-`.claude/skills/orca-mcp/SKILL.md` covers the agent workflow.
+Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the server.
 
 ## Commands
 

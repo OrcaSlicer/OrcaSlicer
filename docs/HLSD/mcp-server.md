@@ -1907,7 +1907,7 @@ legend combo's semantics of `set_view {view_type}` and its preview refusals,
 answers 200 or 500,
 `tools/mcp/test_stdio_bridge.py` the stdio bridge, and
 `tools/mcp/test_recovery_under_load.py` answering a dialog while stalled clients hold every
-connection. See `tools/mcp/README.md` and the `orca-mcp` skill.
+connection. See `tools/mcp/README.md`.
 
 `test_mcp_scene` covers the scene and layer tools without the app: `transform`'s `size`, the shape
 commands' size param, notifications updated before the first ImGui frame, `arrange`'s option rules,
