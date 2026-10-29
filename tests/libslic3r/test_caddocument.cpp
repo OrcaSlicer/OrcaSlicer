@@ -7915,6 +7915,25 @@ TEST_CASE("crossing loops are cut into the cells of their subdivision", "[CadDoc
     CHECK_FALSE(SketchEngine::arrangement_needed({ el, line({40, -20}, {40, 20}), line({40, 20}, {55, 0}), line({55, 0}, {40, -20}) }));
 }
 
+TEST_CASE("triangle, circle and rounded rectangle overlapping give selectable cells", "[CadDocument]")
+{
+    auto line = [](Vec2d a, Vec2d b) { SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = a; e.p1 = b; return e; };
+    auto arc = [](Vec2d c, double r, double a0, double a1) {
+        SketchEntity e; e.type = SketchEntity::Type::Arc; e.center = c; e.radius = r; e.start_angle = a0; e.end_angle = a1;
+        e.p0 = c + r * Vec2d(std::cos(a0), std::sin(a0)); e.p1 = c + r * Vec2d(std::cos(a1), std::sin(a1)); return e; };
+    SketchEntity circ; circ.type = SketchEntity::Type::Circle; circ.center = {0, 0}; circ.p0 = circ.center; circ.radius = 30;
+    // rounded rectangle x -60..-10, y -20..5, corner radius 8
+    const double x0 = -60, x1 = -10, y0 = -20, y1 = 5, r = 8, h = M_PI / 2;
+    std::vector<SketchEntity> ents = { circ,
+        line({x0 + r, y0}, {x1 - r, y0}), arc({x1 - r, y0 + r}, r, -h, 0), line({x1, y0 + r}, {x1, y1 - r}), arc({x1 - r, y1 - r}, r, 0, h),
+        line({x1 - r, y1}, {x0 + r, y1}), arc({x0 + r, y1 - r}, r, h, 2 * h), line({x0, y1 - r}, {x0, y0 + r}), arc({x0 + r, y0 + r}, r, 2 * h, 3 * h),
+        line({-80, 10}, {10, 60}), line({10, 60}, {15, -5}), line({15, -5}, {-80, 10}) };
+    REQUIRE(SketchEngine::arrangement_needed(ents));
+    const auto cells = SketchEngine::arrangement_cells(ents, SketchPlane::XY());
+    INFO("cells " << cells.size());
+    CHECK(cells.size() >= 6);
+}
+
 namespace {
 
 std::vector<SketchEntity> rect_entities(double w, double h)
