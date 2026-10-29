@@ -53,6 +53,11 @@ static const ConfigOptionStrings *filament_variant_list(const DynamicPrintConfig
     return config.option<ConfigOptionStrings>("filament_extruder_variant");
 }
 
+bool publish_is_variant_bearing(const std::string &key)
+{
+    return filament_options_with_variant.count(publish_base_key(key)) != 0;
+}
+
 std::vector<size_t> publish_filament_columns(const std::vector<int> &self_index, size_t slot)
 {
     std::vector<size_t> columns;

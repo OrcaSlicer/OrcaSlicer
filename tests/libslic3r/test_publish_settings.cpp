@@ -673,6 +673,18 @@ TEST_CASE("Resizing the filament count keeps variant-bearing vectors at their va
     CHECK(colour->size() == 1);
 }
 
+TEST_CASE("A filament key is variant-bearing exactly when the variant option list names it", "[PublishSettings]")
+{
+    // The dialog classifies every Filament tab key with this rule, so a wrong answer builds one
+    // row per variant for a per-slot key, or the reverse.
+    CHECK(publish_is_variant_bearing("filament_retraction_length"));
+    CHECK(publish_is_variant_bearing("filament_retraction_length#3"));
+    CHECK(publish_is_variant_bearing("filament_flow_ratio"));
+    CHECK_FALSE(publish_is_variant_bearing("filament_cost"));
+    CHECK_FALSE(publish_is_variant_bearing("filament_colour"));
+    CHECK_FALSE(publish_is_variant_bearing("filament_cost#2"));
+}
+
 TEST_CASE("Checked state round-trips through published keys and material entries", "[PublishSettings]")
 {
     const PublishRowId printer_row = make_publish_row({ "retraction_length" }, PublishSection::Printer, -1, 1);

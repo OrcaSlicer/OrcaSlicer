@@ -17,6 +17,10 @@ std::string publish_base_key(const std::string &key);
 // '#' separator or its suffix is malformed.
 int publish_key_index(const std::string &key);
 
+// A filament key whose vector holds one element per (slot, variant) instead of one per slot.
+// The suffix of a "#col" key is ignored, so this answers for a plain base key too.
+bool publish_is_variant_bearing(const std::string &key);
+
 // Structural keys that are never applied onto the receiver's presets when loading a published
 // 3MF (single source of truth for the denylist); applying them would rewrite the user's preset
 // inheritance/structure. filament_ids is still exported via the identity list (3MF validation
