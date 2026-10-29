@@ -55,3 +55,4 @@ __pycache__/
 /.test/
 docs/superpowers/
 ctest_results.xml
+.superpowers/
