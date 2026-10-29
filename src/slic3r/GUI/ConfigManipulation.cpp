@@ -821,7 +821,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament_id uses the same logic as in Print::extruders()
-    for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
+    for (auto el : { "sparse_infill_pattern_group", "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
                      "infill_complete_top",
         "minimum_sparse_infill_area", "sparse_infill_filament_id","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
         toggle_line(el, have_infill, -1, _L("This setting is hidden because sparse infill density is zero."));

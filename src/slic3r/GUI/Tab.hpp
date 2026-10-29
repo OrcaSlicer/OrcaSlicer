@@ -595,9 +595,16 @@ public:
 	// selects it; -1 when the printer has no such extruder variant.
 	int			extruder_variant_index(int extruder_id, NozzleVolumeType nozzle_type);
 
+protected:
+	void		on_value_change(const std::string& opt_key, const boost::any& value) override;
+
 private:
+	// Orca: shows only the patterns of the group picked in the row before the sparse infill pattern.
+	void		filter_sparse_infill_patterns();
+
 	ogStaticText*	m_recommended_thin_wall_thickness_description_line = nullptr;
 	ogStaticText*	m_top_bottom_shell_thickness_explanation = nullptr;
+	size_t			m_sparse_infill_pattern_group = 0;
 };
 
 class TabPrintModel : public TabPrint
