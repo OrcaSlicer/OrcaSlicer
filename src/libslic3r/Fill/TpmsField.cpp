@@ -5,7 +5,11 @@
 #include <cstddef>
 #include <vector>
 
+#include "../libslic3r.h"
+#include "../BoundingBox.hpp"
 #include "../MarchingSquares.hpp"
+#include "../Point.hpp"
+#include "../Polyline.hpp"
 #include "../Execution/ExecutionTBB.hpp"
 
 namespace marchsq {
