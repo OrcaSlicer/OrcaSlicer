@@ -2,6 +2,7 @@
 
 #include "Config.hpp"
 #include "FilamentMixer.hpp"
+#include "PrintConfig.hpp"
 #include "PublishSettings.hpp"
 
 #include <algorithm>
