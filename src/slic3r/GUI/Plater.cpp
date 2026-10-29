@@ -44,6 +44,7 @@
 #include "libslic3r/Preset.hpp"
 #include <fstream>
 #include "libslic3r/calib.hpp"
+#include "libslic3r/ParameterUtils.hpp"
 #include <iterator>
 #include "libslic3r/Format/OBJ.hpp"
 #include "libslic3r/Geometry.hpp"
@@ -211,6 +212,7 @@
 #include "3DScene.hpp"
 #include "GLCanvas3D.hpp"
 #include "Selection.hpp"
+#include "SyntheticInput.hpp"
 #include "GLToolbar.hpp"
 #include "GUI_Preview.hpp"
 #include "UVEditorCanvas.hpp"
@@ -1400,21 +1402,6 @@ struct DynamicFilamentList : DynamicList
         DynamicList::update();
     }
 };
-
-// Check if the machine supports Junction Deviation (Marlin firmware with machine_max_junction_deviation > 0)
-static bool has_junction_deviation(const DynamicPrintConfig* printer_config)
-{
-    if (!printer_config) {
-        return false;
-    }
-    const auto gcode_flavor = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
-    const auto junction_dev = printer_config->option<ConfigOptionFloats>("machine_max_junction_deviation");
-    return gcode_flavor &&
-           gcode_flavor->value == GCodeFlavor::gcfMarlinFirmware &&
-           junction_dev &&
-           !junction_dev->values.empty() &&
-           junction_dev->values.front() > 0.0;
-}
 
 static DynamicFilamentList dynamic_filament_list;                // every slot, mixed included (per-feature *_filament_id keys)
 static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (support_*, wipe_tower_filament)
@@ -4774,7 +4761,7 @@ void Sidebar::update_mixed_filament_list()
                     delete_mixed_filament_at(panel_idx);
                 }, del_item->GetId());
 
-                PopupMenu(&menu);
+                popup_menu(*this, menu);
             });
             combo_and_btn_sizer->Add(menu_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2)); // ElementSpacing - 2 (from combo box))
 
@@ -8233,6 +8220,8 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
                 }
             }
             set_plater_dirty(true);
+            // A layer code changes the G-code as a setting does, so an MCP slice running meanwhile is superseded.
+            ++project_revision;
 
             preview->on_tick_changed(tick_event_type);
 
@@ -16333,8 +16322,10 @@ void Plater::load_project(wxString const& filename2,
     update_project_dirty_from_presets();
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
 
-    // if res is empty no data has been loaded
-    if (!res.empty() && !loaded_published && (load_restore || !(strategy & LoadStrategy::Silence))) {
+    // Nothing was loaded when res is empty, unless the project holds only a Design-tab model, which
+    // loads no objects but a recipe.
+    const bool loaded = !res.empty() || !model().cad_recipe.empty();
+    if (loaded && !loaded_published && (load_restore || !(strategy & LoadStrategy::Silence))) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " call set_project_filename: " << (load_restore ? originfile : filename);
         p->set_project_filename(load_restore ? originfile : filename);
         if (load_restore && originfile.IsEmpty()) {
@@ -16352,11 +16343,11 @@ void Plater::load_project(wxString const& filename2,
         if (using_exported_file()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " using ecported set project filename: " << filename;
             p->set_project_filename(filename);
-        } else if (loaded_published && !res.empty()) {
+        } else if (loaded_published && loaded) {
             // A "published" 3MF loads as a new project: its path must not become the project
             // filename (Save/Ctrl-S prompts for a destination instead of overwriting it);
             // reset() already cleared the project name, so restore the default title and keep
-            // the file in recents. Only on a successful load (res not empty): a failed or
+            // the file in recents. Only on a successful load: a failed or
             // cancelled load must not pollute "Recently opened".
             p->set_project_name(_L("Untitled"));
             if (!filename.IsEmpty())
@@ -16956,7 +16947,7 @@ void Plater::_calib_apply_belt_mode()
     changed_objects(obj_idxs);
 }
 
-void Plater::calib_pa(const Calib_Params& params)
+void Plater::calib_pa(const Calib_Params& params, bool skip_confirm)
 {
     // ORCA-Belt: PA Line / PA Pattern have the belt plumbing in place
     // (belt kinematics in world-coordinates mode draws them on the belt surface)
@@ -16972,7 +16963,7 @@ void Plater::calib_pa(const Calib_Params& params)
         }
     }
     const auto calib_pa_name = _L("Pressure Advance Test");
-    new_project(false, false, calib_pa_name);
+    new_project(skip_confirm, false, calib_pa_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -17032,7 +17023,7 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
     print_config.set_key_value( "print_sequence", new ConfigOptionEnum(PrintSequence::ByLayer));
     
     //Orca: find jerk value to use in the test
-    if(!has_junction_deviation(printer_config) && print_config.get_abs_value_at("default_jerk", params.extruder_id) > 0){ // we have set a jerk value
+    if(!has_junction_deviation(*printer_config) && print_config.get_abs_value_at("default_jerk", params.extruder_id) > 0){ // we have set a jerk value
         auto jerk = print_config.get_abs_value_at("outer_wall_jerk", params.extruder_id); // get outer wall jerk
         if (jerk == 0) // if outer wall jerk is not defined, get inner wall jerk
             jerk = print_config.get_abs_value_at("inner_wall_jerk", params.extruder_id);
@@ -17049,7 +17040,7 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
         set_config_values<double, ConfigOptionFloatsNullable>(&print_config, "travel_jerk", jerk);
     }
 
-    if (has_junction_deviation(printer_config)){
+    if (has_junction_deviation(*printer_config)){
         set_config_values<double, ConfigOptionFloatsNullable>(&print_config, "default_junction_deviation", 0);
     }
     
@@ -17446,7 +17437,7 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
 }
 
 // ORCA: Add pattern parameter
-void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
+void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern, bool skip_confirm) {
     if (pass != 1 && pass != 2)
         return;
     wxString calib_name;
@@ -17455,7 +17446,7 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
     } else
         calib_name = wxString::Format(_L("Flowrate Test - Pass%d"), pass);
 
-    if (new_project(false, false, calib_name) == wxID_CANCEL)
+    if (new_project(skip_confirm, false, calib_name) == wxID_CANCEL)
         return;
 
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
@@ -17490,17 +17481,7 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
 }
 
 
-// The belt provini tower (Calib_Params::test_model 1) is one embossed model per
-// temperature range.
-static std::string belt_temp_tower_asset(const Calib_Params &params)
-{
-    const int t_start = (int) lround(params.start);
-    const int t_end   = (int) lround(params.end);
-    return Slic3r::resources_dir() + "/calib/temperature_tower/belt_temp_tower_" +
-           std::to_string(t_start) + "_" + std::to_string(t_end) + ".stl";
-}
-
-void Plater::calib_temp(const Calib_Params& params) {
+void Plater::calib_temp(const Calib_Params& params, bool skip_confirm) {
     constexpr double base_temp_tower_nozzle_diameter = 0.4;
     constexpr double base_temp_tower_block_height = 10.0;
     constexpr int base_temp_tower_temp_step = 5;
@@ -17523,7 +17504,7 @@ void Plater::calib_temp(const Calib_Params& params) {
     }
 
     const auto calib_temp_name = _L("Nozzle temperature test");
-    new_project(false, false, calib_temp_name);
+    new_project(skip_confirm, false, calib_temp_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Temp_Tower)
         return;
@@ -17793,10 +17774,10 @@ void Plater::_calib_temp_belt_sectioned(const Calib_Params& params, double belt_
     p->background_process.fff_print()->set_calib_params(params);
 }
 
-void Plater::calib_max_vol_speed(const Calib_Params& params)
+void Plater::calib_max_vol_speed(const Calib_Params& params, bool skip_confirm)
 {
     const auto calib_vol_speed_name = _L("Max volumetric speed test");
-    new_project(false, false, calib_vol_speed_name);
+    new_project(skip_confirm, false, calib_vol_speed_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Vol_speed_Tower)
         return;
@@ -17874,10 +17855,10 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     p->background_process.fff_print()->set_calib_params(new_params);
 }
 
-void Plater::calib_retraction(const Calib_Params& params)
+void Plater::calib_retraction(const Calib_Params& params, bool skip_confirm)
 {
     const auto calib_retraction_name = _L("Retraction");
-    new_project(false, false, calib_retraction_name);
+    new_project(skip_confirm, false, calib_retraction_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Retraction_tower)
         return;
@@ -17937,10 +17918,10 @@ void Plater::calib_retraction(const Calib_Params& params)
     p->background_process.fff_print()->set_calib_params(params);
 }
 
-void Plater::calib_VFA(const Calib_Params& params)
+void Plater::calib_VFA(const Calib_Params& params, bool skip_confirm)
 {
     const auto calib_vfa_name = _L("VFA test");
-    new_project(false, false, calib_vfa_name);
+    new_project(skip_confirm, false, calib_vfa_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_VFA_Tower)
         return;
@@ -18021,10 +18002,10 @@ void Plater::calib_VFA(const Calib_Params& params)
     p->background_process.fff_print()->set_calib_params(calib_params);
 }
 
-void Plater::calib_input_shaping_freq(const Calib_Params& params)
+void Plater::calib_input_shaping_freq(const Calib_Params& params, bool skip_confirm)
 {
     const auto calib_input_shaping_name = _L("Input shaping Frequency test");
-    new_project(false, false, calib_input_shaping_name);
+    new_project(skip_confirm, false, calib_input_shaping_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Input_shaping_freq)
         return;
@@ -18038,7 +18019,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     const auto gcode_flavor_option = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
 
-    if (has_junction_deviation(printer_config)) {
+    if (has_junction_deviation(*printer_config)) {
         printer_config->set_key_value("machine_max_junction_deviation", new ConfigOptionFloats {(std::max(printer_config->option<ConfigOptionFloats>("machine_max_junction_deviation")->values.front(), 0.25))});
         set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_junction_deviation", 0);
     } else {
@@ -18089,10 +18070,10 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     p->background_process.fff_print()->set_calib_params(params);
 }
 
-void Plater::calib_input_shaping_damp(const Calib_Params& params)
+void Plater::calib_input_shaping_damp(const Calib_Params& params, bool skip_confirm)
 {
     const auto calib_input_shaping_name = _L("Input shaping Damping test");
-    new_project(false, false, calib_input_shaping_name);
+    new_project(skip_confirm, false, calib_input_shaping_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Input_shaping_damp)
         return;
@@ -18106,7 +18087,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     const auto gcode_flavor_option = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
 
-    if (has_junction_deviation(printer_config)) {
+    if (has_junction_deviation(*printer_config)) {
         printer_config->set_key_value("machine_max_junction_deviation", new ConfigOptionFloats {(std::max(printer_config->option<ConfigOptionFloats>("machine_max_junction_deviation")->values.front(), 0.25))});
         set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_junction_deviation", 0);
     } else {
@@ -18156,10 +18137,10 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     p->background_process.fff_print()->set_calib_params(params);
 }
 
-void Plater::Calib_Cornering(const Calib_Params& params)
+void Plater::Calib_Cornering(const Calib_Params& params, bool skip_confirm)
 {
     const auto Calib_Cornering = _L("Cornering test");
-    new_project(false, false, Calib_Cornering);
+    new_project(skip_confirm, false, Calib_Cornering);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Cornering)
         return;
@@ -18175,7 +18156,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
 
-    if (has_junction_deviation(printer_config)) {
+    if (has_junction_deviation(*printer_config)) {
         printer_config->set_key_value("machine_max_junction_deviation", new ConfigOptionFloats{params.end});
         set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_junction_deviation", 0);
     } else {
@@ -19498,7 +19479,7 @@ static long GetNumberFromUser(  const wxString& msg,
 #endif
 }
 
-void Plater::set_number_of_copies(/*size_t num*/)
+void Plater::set_number_of_copies()
 {
     int obj_idx = p->get_selected_object_idx();
     if (obj_idx == -1)
@@ -19511,9 +19492,18 @@ void Plater::set_number_of_copies(/*size_t num*/)
     if (num < 0)
         return;
 
+    set_number_of_copies(num);
+}
+
+void Plater::set_number_of_copies(int num)
+{
+    int obj_idx = p->get_selected_object_idx();
+    if (obj_idx == -1)
+        return;
+
     Plater::TakeSnapshot snapshot(this, (boost::format("Set numbers of copies to %1%")%num).str());
 
-    int diff = num - (int)model_object->instances.size();
+    int diff = num - (int)p->model.objects[obj_idx]->instances.size();
     if (diff > 0)
         increase_instances(diff);
     else if (diff < 0)
@@ -23292,7 +23282,6 @@ bool Plater::plugins_block_slicing() const
 }
 
 void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
-    int plate_index = evt.GetInt();
     PlateSettingsDialog dlg(this, _L("Plate Settings"), evt.GetString() == "only_layer_sequence");
     PartPlate* curr_plate = p->partplate_list.get_curr_plate();
     dlg.sync_bed_type(curr_plate->get_bed_type());
@@ -23319,56 +23308,51 @@ void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
 
     dlg.sync_spiral_mode(curr_plate->get_spiral_vase_mode(), !curr_plate->has_spiral_mode_config());
 
-    dlg.Bind(EVT_SET_BED_TYPE_CONFIRM, [this, plate_index, &dlg](wxCommandEvent& e) {
-        PartPlate* curr_plate = p->partplate_list.get_curr_plate();
-        BedType old_bed_type = curr_plate->get_bed_type();
-        auto bt_sel = dlg.get_bed_type_choice();
-        if (old_bed_type != bt_sel) {
-            curr_plate->set_bed_type(bt_sel);
-            update_project_dirty_from_presets();
-            set_plater_dirty(true);
-        }
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("select bed type %1% for plate %2% at plate side") % bt_sel % plate_index;
-
-        if (dlg.get_first_layer_print_seq_choice() != 0)
-            curr_plate->set_first_layer_print_sequence(dlg.get_first_layer_print_seq());
-        else
-            curr_plate->set_first_layer_print_sequence({});
-
-        if (dlg.get_other_layers_print_seq_choice() != 0)
-            curr_plate->set_other_layers_print_sequence(dlg.get_other_layers_print_seq_infos());
-        else
-            curr_plate->set_other_layers_print_sequence({});
-
-        int ps_sel = dlg.get_print_seq_choice();
-        if (ps_sel != 0)
-            curr_plate->set_print_seq(PrintSequence(ps_sel - 1));
-        else
-            curr_plate->set_print_seq(PrintSequence::ByDefault);
-
-        int spiral_sel = dlg.get_spiral_mode_choice();
-        if (spiral_sel == 1) {
-            curr_plate->set_spiral_vase_mode(true, false);
-        }
-        else if (spiral_sel == 2) {
-            curr_plate->set_spiral_vase_mode(false, false);
-        }
-        else {
-            curr_plate->set_spiral_vase_mode(false, true);
-        }
-
-        update_project_dirty_from_presets();
-        set_plater_dirty(true);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("select print sequence %1% for plate %2% at plate side") % ps_sel % plate_index;
-        auto plate_config = *(curr_plate->config());
-        wxGetApp().plater()->config_change_notification(plate_config, std::string("print_sequence"));
-        update();
-        wxGetApp().obj_list()->update_selections();
+    dlg.Bind(EVT_SET_BED_TYPE_CONFIRM, [this, &dlg](wxCommandEvent& e) {
+        const int ps_sel = dlg.get_print_seq_choice();
+        apply_plate_settings(p->partplate_list.get_curr_plate_index(), dlg.get_bed_type_choice(),
+                             dlg.get_first_layer_print_seq_choice() != 0 ? dlg.get_first_layer_print_seq() : std::vector<int>(),
+                             dlg.get_other_layers_print_seq_choice() != 0 ? dlg.get_other_layers_print_seq_infos() :
+                                                                            std::vector<LayerPrintSequence>(),
+                             ps_sel != 0 ? PrintSequence(ps_sel - 1) : PrintSequence::ByDefault, dlg.get_spiral_mode_choice());
         });
     dlg.set_plate_name(from_u8(curr_plate->get_plate_name()));
 
     dlg.ShowModal();
     rename_plate(p->partplate_list.get_curr_plate_index(), dlg.get_plate_name().ToUTF8().data());
+}
+
+void Plater::apply_plate_settings(int plate_index, BedType bed_type, const std::vector<int>& first_layer_seq,
+                                  const std::vector<LayerPrintSequence>& other_layers_seq, PrintSequence print_seq, int spiral_choice)
+{
+    PartPlate* plate = p->partplate_list.get_plate(plate_index);
+    if (plate == nullptr)
+        return;
+    if (plate->get_bed_type() != bed_type) {
+        plate->set_bed_type(bed_type);
+        update_project_dirty_from_presets();
+        set_plater_dirty(true);
+    }
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("select bed type %1% for plate %2% at plate side") % bed_type % plate_index;
+
+    plate->set_first_layer_print_sequence(first_layer_seq);
+    plate->set_other_layers_print_sequence(other_layers_seq);
+    plate->set_print_seq(print_seq);
+
+    if (spiral_choice == 1)
+        plate->set_spiral_vase_mode(true, false);
+    else if (spiral_choice == 2)
+        plate->set_spiral_vase_mode(false, false);
+    else
+        plate->set_spiral_vase_mode(false, true);
+
+    update_project_dirty_from_presets();
+    set_plater_dirty(true);
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("select print sequence %1% for plate %2% at plate side") % int(print_seq) % plate_index;
+    auto plate_config = *(plate->config());
+    config_change_notification(plate_config, std::string("print_sequence"));
+    update();
+    wxGetApp().obj_list()->update_selections();
 }
 
 void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
@@ -23676,7 +23660,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
                     set_plater_dirty(true);
                     update();
                 });
-                p->view3D->get_canvas3d()->get_wxglcanvas()->PopupMenu(&menu);
+                popup_menu(*p->view3D->get_canvas3d()->get_wxglcanvas(), menu);
                 ret = 1; // signal to caller: popup was shown, suppress plate context menu
             } else {
                 // Left-click: always cycles mode. The IMEX ghost renderer exposes
@@ -24378,7 +24362,9 @@ bool Plater::PopupMenu(wxMenu *menu, const wxPoint& pos)
     SuppressBackgroundProcessingUpdate sbpu;
     // When tracking a pop-up menu, postpone error messages from the slicing result.
     m_tracking_popup_menu = true;
-    bool out = wxGetApp().mainframe->PopupMenu(menu, pos);
+    // A menu built for this popup alone is freed once it has closed.
+    const std::unique_ptr<wxMenu> transient = p->menus.take_transient(menu);
+    bool out = popup_menu(*wxGetApp().mainframe, *menu, pos);
     m_tracking_popup_menu = false;
     if (! m_tracking_popup_menu_error_message.empty()) {
         // Don't know whether the CallAfter is necessary, but it should not hurt.

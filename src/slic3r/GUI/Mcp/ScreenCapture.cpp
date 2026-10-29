@@ -1,8 +1,7 @@
 #include "ScreenCapture.hpp"
 
+#include "UiInspector.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/Plater.hpp"
 
 #include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
@@ -108,36 +107,31 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
         return std::nullopt;
 
     // Composite every visible 3D canvas inside this window from an exact frame capture.
-    Plater* plater = wxGetApp().plater();
-    if (plater != nullptr)
-        for (GLCanvas3D* canvas : {plater->get_view3D_canvas3D(), plater->get_preview_canvas3D(), plater->get_assmeble_canvas3D()}) {
-            if (canvas == nullptr || canvas->get_wxglcanvas() == nullptr)
-                continue;
-            wxGLCanvas* glc = canvas->get_wxglcanvas();
-            if (!glc->IsShownOnScreen() || wxGetTopLevelParent(glc) != &window)
-                continue;
-            std::string canvas_err;
-            wxImage     frame;
-            if (!canvas->render_and_capture(frame, canvas_err)) {
-                c.approximate = true;
-                c.note += (c.note.empty() ? "" : "; ") + std::string("3D view not composited: ") + canvas_err;
-                continue;
-            }
-            c.blank_canvas = c.blank_canvas || is_blank(frame);
-            composite(c.image, frame, client_offset_in(*glc, window));
+    std::vector<wxWindow*> captured;
+    for (GLCanvas3D* canvas : ui_canvases()) {
+        wxGLCanvas* glc = canvas->get_wxglcanvas();
+        if (glc == nullptr)
+            continue;
+        captured.push_back(glc);
+        if (!glc->IsShownOnScreen() || wxGetTopLevelParent(glc) != &window)
+            continue;
+        std::string canvas_err;
+        wxImage     frame;
+        if (!canvas->render_and_capture(frame, canvas_err)) {
+            c.approximate = true;
+            c.note += (c.note.empty() ? "" : "; ") + std::string("3D view not composited: ") + canvas_err;
+            continue;
         }
+        c.blank_canvas = c.blank_canvas || is_blank(frame);
+        composite(c.image, frame, client_offset_in(*glc, window));
+    }
 
-    // Other OpenGL views (the Design tab's) have no frame capture: say so rather than return their
-    // area as the window capture left it.
-    std::vector<wxWindow*> plater_canvases;
-    if (plater != nullptr)
-        for (GLCanvas3D* canvas : {plater->get_view3D_canvas3D(), plater->get_preview_canvas3D(), plater->get_assmeble_canvas3D()})
-            if (canvas != nullptr)
-                plater_canvases.push_back(canvas->get_wxglcanvas());
+    // An OpenGL view with no frame capture: say so rather than return its area as the window
+    // capture left it.
     std::function<bool(wxWindow*)> other_gl = [&](wxWindow* w) {
         if (!w->IsShownOnScreen())
             return false;
-        if (dynamic_cast<wxGLCanvas*>(w) != nullptr && std::find(plater_canvases.begin(), plater_canvases.end(), w) == plater_canvases.end())
+        if (dynamic_cast<wxGLCanvas*>(w) != nullptr && std::find(captured.begin(), captured.end(), w) == captured.end())
             return true;
         for (wxWindow* child : w->GetChildren())
             if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && other_gl(child))
@@ -146,7 +140,7 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
     };
     if (other_gl(&window)) {
         c.approximate = true;
-        c.note += (c.note.empty() ? "" : "; ") + std::string("a 3D view outside Prepare and Preview (the Design tab) is not captured");
+        c.note += (c.note.empty() ? "" : "; ") + std::string("an OpenGL view other than the 3D views is not captured");
     }
     return c;
 }

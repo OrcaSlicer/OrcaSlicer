@@ -37,6 +37,9 @@ PresetNameStatus check_preset_name(const PresetCollection &presets, const std::s
 
 class SavePresetDialog : public DPIDialog
 {
+public:
+    // What happens to the selected physical printer when a printer preset is saved; the dialog
+    // offers the first three, ChangePreset by default.
     enum ActionType
     {
         ChangePreset,
@@ -45,6 +48,11 @@ class SavePresetDialog : public DPIDialog
         UndefAction
     };
 
+    // Applies `action` to the selected physical printer for the printer preset saved as `preset_name`.
+    // The dialog's OK passes the action chosen; a save made without the dialog passes ChangePreset.
+    static void update_physical_printers(ActionType action, const std::string &preset_name);
+
+private:
     class Item : public wxWindow
     {
     public:
@@ -130,7 +138,6 @@ protected:
 private:
     void build(std::vector<Preset::Type> types, std::string suffix = "");
     void on_select_cancel(wxCommandEvent &event);
-    void update_physical_printers(const std::string &preset_name);
     void accept(wxCommandEvent &event);
 };
 

@@ -159,14 +159,19 @@ void register_script_tools(McpService& service)
         "export_script", "Export this session as a script",
         "Turn the calls this session made into a script run_script can replay: mutating calls, wait and screenshot, in order, "
         "with refs replaced by locators, job replies replayed with await:false, and screenshot paths moved under ${out_dir}. "
+        "Calls that failed, at once or as a job later, are left out; so is a call whose job is still running (unless it "
+        "waits on a dialog), which left_out_running lists as {tool, job}. "
         "Returns the script; with path, also writes it. clear:true starts a new recording afterwards.",
         object_schema({{"name", prop("string", "Script name.")},
                        {"path", prop("string", "Absolute .json path to write.")},
                        {"overwrite", prop("boolean", "Replace an existing file.")},
                        {"clear", prop("boolean", "Forget the calls recorded so far once exported.")}}),
         [&service](const json& args, ToolContext&) {
-            json script = service.journal().to_script(arg_string(args, "name", "session " + timestamp()));
+            json running;
+            json script = service.journal().to_script(arg_string(args, "name", "session " + timestamp()), &running);
             json out{{"steps", script["steps"].size()}};
+            if (!running.empty())
+                out["left_out_running"] = std::move(running);
             if (args.contains("path")) {
                 std::string err;
                 const auto  path = resolve_output_path(arg_string(args, "path"), arg_bool(args, "overwrite", false), err);

@@ -15,6 +15,8 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include <limits>
+#include <optional>
+#include <boost/cstdint.hpp>
 
 #include <wx/colour.h>
 #include <wx/event.h>
@@ -1341,32 +1343,48 @@ PrintHostQueueDialog::PrintHostQueueDialog(wxWindow *parent)
     });
 }
 
-void PrintHostQueueDialog::append_job(const PrintHostJob &job)
+void PrintHostQueueDialog::append_job(const std::string &host, const boost::filesystem::path &upload_path, std::optional<boost::uintmax_t> size)
 {
-    wxCHECK_RET(!job.empty(), "PrintHostQueueDialog: Attempt to append an empty job");
-
     wxVector<wxVariant> fields;
     fields.push_back(wxVariant(wxString::Format("%d", job_list->GetItemCount() + 1)));
     fields.push_back(wxVariant(0));
     fields.push_back(wxVariant(_L("Queued")));
-    fields.push_back(wxVariant(job.printhost->get_host()));
-    boost::system::error_code ec;
-    boost::uintmax_t size_i = boost::filesystem::file_size(job.upload_data.source_path, ec);
+    fields.push_back(wxVariant(host));
+    const float size_mb = size ? (float)*size / 1024 / 1024 : 0.f;
     std::stringstream stream;
-    if (ec) {
+    if (size)
+        stream << std::fixed << std::setprecision(2) << size_mb << "MB";
+    else
         stream << "unknown";
-        size_i = 0;
-        BOOST_LOG_TRIVIAL(error) << ec.message();
-    } else 
-        stream << std::fixed << std::setprecision(2) << ((float)size_i / 1024 / 1024) << "MB";
     fields.push_back(wxVariant(stream.str()));
-    fields.push_back(wxVariant(from_path(job.upload_data.upload_path)));
+    fields.push_back(wxVariant(from_path(upload_path)));
     fields.push_back(wxVariant(""));
     job_list->AppendItem(fields, static_cast<wxUIntPtr>(ST_NEW));
     // Both strings are UTF-8 encoded.
-    upload_names.emplace_back(job.printhost->get_host(), job.upload_data.upload_path.string());
+    upload_names.emplace_back(host, upload_path.string());
 
-    wxGetApp().notification_manager()->push_upload_job_notification(job_list->GetItemCount(), (float)size_i / 1024 / 1024, job.upload_data.upload_path.string(), job.printhost->get_host());
+    wxGetApp().notification_manager()->push_upload_job_notification(job_list->GetItemCount(), size_mb, upload_path.string(), host);
+}
+
+size_t PrintHostQueueDialog::job_count() const
+{
+    return size_t(job_list->GetItemCount());
+}
+
+PrintHostQueueDialog::JobInfo PrintHostQueueDialog::job_info(size_t row) const
+{
+    // In JobState order.
+    static const char *const state_names[] = {"queued", "uploading", "error", "cancelling", "cancelled", "completed"};
+    JobInfo info;
+    const auto state = static_cast<JobState>(job_list->GetItemData(job_list->RowToItem(int(row))));
+    info.state       = state_names[state];
+    wxVariant progress;
+    job_list->GetValue(progress, unsigned(row), COL_PROGRESS);
+    info.progress = int(progress.GetLong());
+    info.host     = into_u8(job_list->GetTextValue(unsigned(row), COL_HOST));
+    info.filename = into_u8(job_list->GetTextValue(unsigned(row), COL_FILENAME));
+    info.error    = into_u8(job_list->GetTextValue(unsigned(row), COL_ERRORMSG));
+    return info;
 }
 
 void PrintHostQueueDialog::on_dpi_changed(const wxRect &suggested_rect)

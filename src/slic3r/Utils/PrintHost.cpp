@@ -13,10 +13,14 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include <vector>
 #include <thread>
+#include <algorithm>
+#include <optional>
 #include <exception>
 #include <sstream>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/cstdint.hpp>
+#include <boost/system/error_code.hpp>
 #include <nlohmann/json.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -25,6 +29,7 @@
 #include <wx/string.h>
 #include <wx/app.h>
 #include <wx/arrstr.h>
+#include <wx/debug.h>
 
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Channel.hpp"
@@ -388,7 +393,7 @@ void PrintHostJobQueue::priv::progress_fn(Http::Progress progress, bool &cancel)
     }
 
     if (! cancel) {
-        int gui_progress = progress.ultotal > 0 ? 100*progress.ulnow / progress.ultotal : 0;
+        int gui_progress = PrintHostJobQueue::sent_percent(progress);
         if (gui_progress != prev_progress) {
             emit_progress(gui_progress);
             prev_progress = gui_progress;
@@ -480,6 +485,11 @@ bool PrintHostJobQueue::upload_job(PrintHostJob &job, PrintHost::ProgressFn prog
     return success;
 }
 
+int PrintHostJobQueue::sent_percent(const Http::Progress &progress)
+{
+    return progress.ultotal > 0 ? int(std::min<size_t>(99, 100 * progress.ulnow / progress.ultotal)) : 0;
+}
+
 void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
 {
     emit_progress(0);   // Indicate the upload is starting
@@ -501,8 +511,23 @@ void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
 
 void PrintHostJobQueue::enqueue(PrintHostJob job)
 {
+    wxCHECK_RET(!job.empty(), "PrintHostJobQueue: Attempt to enqueue an empty job");
     p->start_bg_thread();
-    p->queue_dialog->append_job(job);
+
+    // Jobs come from the background slicing thread, and the queue's rows are UI state, so the row is added on the
+    // UI thread. What it shows is read now, since the upload thread may finish the job and remove its source file
+    // first. It is posted to the dialog itself: the upload thread's progress and error events for the job go to the
+    // same handler after it, and one handled before its row exists would be dropped.
+    boost::system::error_code       ec;
+    const boost::uintmax_t          bytes = fs::file_size(job.upload_data.source_path, ec);
+    std::optional<boost::uintmax_t> size;
+    if (ec)
+        BOOST_LOG_TRIVIAL(error) << ec.message();
+    else
+        size = bytes;
+    p->queue_dialog->CallAfter([dialog = p->queue_dialog, host = job.printhost->get_host(), path = job.upload_data.upload_path, size]() {
+        dialog->append_job(host, path, size);
+    });
     p->channel_jobs.push(std::move(job));
 }
 

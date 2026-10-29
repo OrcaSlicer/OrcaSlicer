@@ -22,15 +22,18 @@ add_executable(${_TEST_NAME}_tests
     test_scene_raycaster.cpp
     test_scene_benchmark.cpp
     test_lazy.cpp
+    test_mcp_config.cpp
     test_mcp_core.cpp
     test_mcp_http.cpp
     test_mcp_operations.cpp
     test_mcp_protocol.cpp
+    test_mcp_scene.cpp
     test_mcp_script.cpp
     test_mcp_setup.cpp
     test_mcp_token.cpp
     test_mcp_tools.cpp
     test_mcp_ui.cpp
+    test_mcp_results.cpp
     test_prebuild_queue.cpp
     test_staged_build.cpp
     test_network_versions.cpp
@@ -71,6 +74,8 @@ add_executable(${_TEST_NAME}_tests
 
 if (SLIC3R_CAD)
     target_sources(${_TEST_NAME}_tests PRIVATE test_design_sketch_tool.cpp)
+    # The Design tab's MCP surface (cad_call).
+    target_sources(${_TEST_NAME}_tests PRIVATE test_mcp_cad.cpp)
 endif ()
 
 if (MSVC)

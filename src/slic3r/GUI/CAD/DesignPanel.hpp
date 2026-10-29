@@ -1,9 +1,11 @@
 #ifndef slic3r_DesignPanel_hpp_
 #define slic3r_DesignPanel_hpp_
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <utility>
+#include "libslic3r/Color.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -82,11 +84,54 @@ public:
     void sync_recipe_to_model();
     bool recompute_guarded(const wxString& message);
 
+    // What Commit to Plate sends: one object with a part per body (an assembly, which keeps the
+    // bodies' relative placement), or, "as bodies", one Prepare object per body. The split
+    // button's dropdown switches it, like Prepare's Slice button, without committing.
+    enum class CommitMode { Assembly, Bodies };
+    CommitMode commit_mode() const { return m_commit_mode; }
+    // Commit to Plate in `mode`, as one Prepare undo step, then show Prepare. Returns the new
+    // object indices (empty when nothing was sent: no body, or every body hidden) and, in
+    // `bodies_sent`, the bodies they carry. The button and MCP's commit both run this.
+    std::vector<size_t> commit_to_plate(CommitMode mode, std::vector<int>* bodies_sent = nullptr);
+    // Export STEP… without its file dialog: every body at its Move-gizmo position, as native
+    // B-rep, to a UTF-8 path; the status line reports the result. False with `err` on failure.
+    bool export_step_to(const std::string& path_utf8, std::string& err);
+
+    // The Feature tree's and Bodies list's edits, by index rather than the selected row: their
+    // handlers resolve the row and call these, and so does MCP. Each refreshes the tree, viewport
+    // and status line. A tree edit is one Design undo step, and one the kernel refuses (a consumer
+    // moved above its input, a feature a later one cannot do without) leaves none, with
+    // m_doc.error saying why. False when refused, or when an open tool or Move holds an index
+    // (delete and move only).
+    bool delete_feature(int f);
+    bool move_feature(int f, int delta);   // -1 up, +1 down; false past either end
+    bool show_feature(int f, bool shown);  // CadFeature::enabled; true when it already was
+    void rename_feature(int f, const std::string& name);   // its own undo step
+    // The body behind body b goes by deleting the feature that made it (CadBody::source_feature),
+    // which can take other features with it; false when no feature claims the body.
+    bool delete_body(int b);
+    // A body's name and colour are saved in the recipe but are not in the undo history; its
+    // visibility is view state, in neither.
+    void rename_body(int b, const std::string& name);
+    void set_body_color(int b, const ColorRGBA& color);
+    void show_body(int b, bool shown);
+
     // MCP control hooks: let the external control server (McpControl.cpp) drive and
     // perceive the SAME kernel the GUI uses. Called only on the wx main thread.
     CadDocument& mcp_doc()        { return m_doc; }            // live document (read + mutate)
-    void         mcp_after_change() { after_tree_edit(true); } // refresh tree + viewport + status
+    // Refresh tree + viewport + status after a change; `ok` false says "Edit rejected: <m_doc.error>".
+    void         mcp_after_change(bool ok = true) { after_tree_edit(ok); }
+    // The name a card gives the feature it adds ("Extrude 3"), numbered on from the GUI's features.
+    std::string  mcp_feature_name(const wxString& kind) { ++m_feature_counter; return feature_name(kind); }
     DesignCanvas* mcp_viewport()  { return m_viewport; }        // live sketch + 3D view
+    // View state of body b that the recipe does not hold: whether its eye in the Bodies list is
+    // on, and whether the Move gizmo placed it away from where the recipe builds it (Commit and
+    // STEP export send it where it is shown).
+    bool mcp_body_shown(int b) const { return b < 0 || b >= int(m_body_visible.size()) || m_body_visible[b]; }
+    bool mcp_body_moved(int b) const
+    {
+        return b >= 0 && b < int(m_body_xform.size()) && !m_body_xform[b].isApprox(Transform3d::Identity());
+    }
     // Put the PANEL into (or out of) sketch mode, not just the canvas tool. Measured on the
     // rig: a sketch started straight through DesignCanvas::begin_sketch leaves m_ui_mode at
     // Feature, and the keyboard map is dispatched on `m_ui_mode == UiMode::Sketch` while the
@@ -98,6 +143,12 @@ public:
         set_ui_mode(on ? UiMode::Sketch : UiMode::Feature);
         update_action_bar();
     }
+    // Open a sketch session on `plane` as picking that plane or face for a sketch does, without the
+    // tool menu the click pops up; `on` names the plane on the status line.
+    void mcp_begin_sketch(const SketchPlane& plane, const wxString& on) { begin_sketch_session(plane, on, false); }
+    // The axis a fresh Revolve card offers for a sketch's entities: its only centerline (construction
+    // line), which is what a profile is drawn around, or -1 for the plane axis.
+    static int default_revolve_axis_entity(const std::vector<SketchEntity>& ents);
     // The offer-table vocabulary without a right-click: the external controller asks which verbs
     // exist (and which apply to the current selection) and fires one by id, so a deck key names a
     // verb instead of spending a letter and every verb is reachable — including the rows with no
@@ -243,10 +294,6 @@ private:
     // a modal dialog editing the feature's placement transform in place.
     void on_transform_imported(int feat_idx);
     void on_commit();
-    // What Commit to Plate sends: one object with a part per body (an assembly, which keeps the
-    // bodies' relative placement), or, "as bodies", one Prepare object per body. The split
-    // button's dropdown switches it, like Prepare's Slice button, without committing.
-    enum class CommitMode { Assembly, Bodies };
     void set_commit_mode(CommitMode mode);
     void on_export_step();   // write all bodies to a .step file (native B-rep)
     // Rehydrate the parametric model from a project's saved recipe (3MF
@@ -394,6 +441,10 @@ private:
     // and wait for one (m_choosing_sketch_plane).
     void       start_sketch();
     void       start_sketch_on_target(bool offer_tools);   // a session on sketch_plane_from_selection()
+    // The session itself: the sketch tool on `plane`, the pick it consumed dropped, Sketch mode, and
+    // `on` naming the plane on the status line and the Sketch card; `offer_tools` then opens the
+    // tool menu, as a click that picked the plane does.
+    void       begin_sketch_session(const SketchPlane& plane, const wxString& on, bool offer_tools);
     void       end_sketch_plane_choice(); // leave the plane choice without a sketch; no-op outside it
     bool       sketch_plane_pick_live() const;   // may a pick made now still open the sketch?
 

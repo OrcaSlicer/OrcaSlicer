@@ -21,6 +21,7 @@
 
 #include "Event.hpp"
 #include "ObjectDataViewModel.hpp"
+#include "SyntheticInput.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
 
@@ -62,6 +63,16 @@ enum class ObjectOrder { Name, Filament, Height, Size };
 
 // Stable sort by natural name order, filament, top Z, or bounding box volume of the first instance.
 void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order, bool descending = false);
+
+// The dimensions the Primitive size dialog asks for a shape ("Cube", "Cylinder", "Sphere", "Cone", "Disc", "Torus"), in its
+// order, as untranslated labels; none for another name.
+std::vector<const char*> primitive_size_names(const std::string& type_name);
+
+// The layer heights the height range editor accepts for a range printed with filament extruder_idx (0 = the
+// object's): the printer's min_layer_height and max_layer_height, the latter 75 % of the nozzle diameter when 0.
+// The printer's per-nozzle values are indexed by filament number, the first serving any filament beyond them.
+double get_min_layer_height(int extruder_idx);
+double get_max_layer_height(int extruder_idx);
 
 class PartPlate;
 
@@ -310,13 +321,24 @@ public:
     void                show_settings(const wxDataViewItem settings_item);
     bool                is_instance_or_object_selected();
 
+    // The Load... item of the Add Part / Add Modifier menus: asks for files, then loads them as below.
     void                load_subobject(ModelVolumeType type, bool from_galery = false);
+    // Adds input_files as parts of the selected object, in one undo step, and selects them. A file that fails to load shows an
+    // error dialog, or, with error, leaves its reason there instead.
+    void                load_subobject(ModelVolumeType type, const wxArrayString& input_files, bool from_galery = false,
+                                       std::string* error = nullptr);
     // ! ysFIXME - delete commented code after testing and rename "load_modifier" to something common
     //void                load_part(ModelObject& model_object, std::vector<ModelVolume*>& added_volumes, ModelVolumeType type, bool from_galery = false);
-    void                load_modifier(const wxArrayString& input_files, ModelObject& model_object, std::vector<ModelVolume*>& added_volumes, ModelVolumeType type, bool from_galery = false);
-    // interactive uses the size the user enters or saved as default; otherwise the shape gets its built-in default size.
-    void                load_generic_subobject(const std::string& type_name, const ModelVolumeType type, bool interactive = true);
-    void                load_shape_object(const std::string &type_name, bool interactive);
+    void                load_modifier(const wxArrayString& input_files, ModelObject& model_object, std::vector<ModelVolume*>& added_volumes, ModelVolumeType type, bool from_galery = false,
+                                      std::string* error = nullptr);
+    // size, in the order the size dialog asks for the dimensions, skips the dialog. Without it, interactive uses the size the
+    // user enters or saved as default; otherwise the shape gets its built-in default size. Only interactive shows the tips
+    // dialog after adding a part.
+    void                load_generic_subobject(const std::string& type_name, const ModelVolumeType type, bool interactive = true,
+                                               const std::vector<double>& size = {});
+    void                load_shape_object(const std::string &type_name, bool interactive, const std::vector<double>& size = {});
+    // Whether load_shape_object() adds an object now: not while an object is selected, whose Add Part menu adds shapes.
+    bool                can_add_shape_object() const;
     void                load_mesh_object(const TriangleMesh &mesh, const wxString &name, bool center = true);
     // One object holding one part per mesh; the parts keep their placement relative to each other.
     void                load_mesh_object(const std::vector<std::pair<const TriangleMesh*, wxString>> &parts, const wxString &name, bool center = true);
@@ -338,6 +360,9 @@ public:
 
     void                boolean();    // BBS: Boolean Operation of parts
     wxDataViewItem      add_layer_root_item(const wxDataViewItem obj_item);
+    // Rebuilds an object's Layers rows from its layer_config_ranges after a caller changed them, and returns the Layers
+    // row, invalid when the object has no ranges.
+    wxDataViewItem      reload_layer_rows(const int obj_idx);
     wxDataViewItem      add_settings_item(wxDataViewItem parent_item, const DynamicPrintConfig* config);
 
     DynamicPrintConfig  get_default_layer_config(const int obj_idx);
@@ -355,7 +380,8 @@ public:
     void                delete_all_connectors_for_selection();
     void                delete_all_connectors_for_object(int obj_idx);
 
-    wxPoint             get_mouse_position_in_control() const { return wxGetMousePosition() - this->GetScreenPosition(); }
+    // Through get_mouse_state(), so a click automation delivers to a row acts on the cell it aims at.
+    wxPoint             get_mouse_position_in_control() const { return get_mouse_state().GetPosition() - this->GetScreenPosition(); }
     int                 get_selected_obj_idx() const;
     ModelConfig&        get_item_config(const wxDataViewItem& item) const;
 
@@ -451,7 +477,9 @@ public:
 	//   generic "Change type → Precise Seam" entry where CENTER is a default fallback.
 	// preserve_ps_subtype = false: no preservation — target type is applied verbatim. Used
 	//   by the "Precise Seam Type" subtype picker where the user explicitly wants CENTER.
-	void set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype = true);
+	// Returns why the selected parts kept their type, empty when they changed or already had it.
+	// show_errors shows that reason as the menu always has; automation passes false and reports it.
+	wxString set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype = true, bool show_errors = true);
     ModelVolumeType get_selected_volume_type();
 
     void last_volume_is_deleted(const int obj_idx);
@@ -464,7 +492,11 @@ public:
     void instances_to_separated_object(const int obj_idx, const std::set<int>& inst_idx);
     void instances_to_separated_objects(const int obj_idx);
     void split_instances();
+    // Asks for the selected object's or part's new name.
     void rename_item();
+    // Names an object or part row; false, changing nothing, when the name has characters a file
+    // name cannot hold.
+    bool rename_item(const wxDataViewItem& item, const wxString& new_name);
     void fix_through_cgal();
     // Fixes every object on the selected plate, or on all plates.
     void fix_all_through_cgal(bool all_plates);
@@ -494,6 +526,8 @@ public:
 
     //BBS: remove const qualifier
     void set_extruder_for_selected_items(const int extruder);
+    // Change Filament on the given object, part and instance rows, in one undo step; the selection is left alone.
+    void set_extruder_for_items(const wxDataViewItemArray& items, const int extruder);
     wxDataViewItemArray reorder_volumes_and_get_selection(int obj_idx, std::function<bool(const ModelVolume*)> add_to_selection = nullptr);
     void apply_volumes_order();
 
@@ -537,6 +571,8 @@ private:
 
     // apply the instance transform to all volumes and reset instance transform except the offset
     void apply_object_instance_transfrom_to_all_volumes(ModelObject *model_object, bool need_update_assemble_matrix = true);
+    // The object the Load... items add parts to: the one whose object or instance row is selected, else -1.
+    int  selected_obj_idx_for_subobject() const;
 
     std::vector<int> m_columns_width;
     wxSize           m_last_size;

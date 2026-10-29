@@ -909,6 +909,25 @@ void DropDown::sendDropDownEvent()
     GetEventHandler()->ProcessEvent(event);
 }
 
+bool DropDown::ClickItem(int n)
+{
+    // A group's sublist picks through its main list, which the pick closes, as a release over the
+    // sublist does.
+    if (mainDropDown)
+        return mainDropDown->ClickItem(n);
+    if (n < 0 || n >= int(items.size()) || (items[n].style & (DD_ITEM_STYLE_DISABLED | DD_ITEM_STYLE_SPLIT_ITEM)))
+        return false;
+    if (subDropDown && subDropDown->IsShown())
+        subDropDown->Dismiss();
+    wxCommandEvent event(wxEVT_COMBOBOX, GetId());
+    event.SetEventObject(this);
+    event.SetInt(n);
+    event.SetString(items[n].text);
+    GetEventHandler()->ProcessEvent(event);
+    DismissAndNotify();
+    return true;
+}
+
 void DropDown::sendDropDownActionEvent(int index)
 {
     if (index < 0 || index >= int(items.size()) || (items[index].style & DD_ITEM_STYLE_DISABLED))

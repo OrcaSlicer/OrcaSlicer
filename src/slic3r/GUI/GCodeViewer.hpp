@@ -426,6 +426,9 @@ public:
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void render_calibration_thumbnail(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     bool has_data() const { return !m_viewer.get_extrusion_roles().empty(); }
+    // The id of the slice result last loaded, which tells whose toolpaths and layers the viewer and its
+    // layer slider hold.
+    unsigned int last_result_id() const { return m_last_result_id; }
 
     bool can_export_toolpaths() const;
     std::vector<int> get_plater_extruder();
@@ -481,6 +484,17 @@ public:
     }
     // ORCA: select a view type in the preview combo box and apply it
     void select_view_type(libvgcode::EViewType type);
+    // What picking a view type in the legend's combo box does: it also shows every feature type again and
+    // is remembered for the "Last used" preview default. Only for the combo's types, and only once
+    // toolpaths were loaded, since it refits the moves slider to them.
+    void pick_view_type(libvgcode::EViewType type);
+    // What clicking a legend row does: show or hide those toolpaths, and fit the moves slider to what shows.
+    void toggle_extrusion_role_visibility(libvgcode::EGCodeExtrusionRole role) { m_viewer.toggle_extrusion_role_visibility(role); update_moves_slider(); }
+    void toggle_option_visibility(libvgcode::EOptionType type) { m_viewer.toggle_option_visibility(type); update_moves_slider(); }
+    // The legend offers the other time estimate only when the two read differently.
+    bool can_switch_time_mode() const;
+    // What the legend's "Show stealth mode" / "Show normal mode" button does.
+    void set_time_mode(libvgcode::ETimeMode mode);
     // ORCA: apply the "preview_default_view_type" preference, see the definition for the supported values
     void apply_default_view_type();
 
@@ -502,6 +516,8 @@ public:
     }
 
     libvgcode::EViewType get_view_type() const { return m_viewer.get_view_type(); }
+    // What the legend draws from (time mode, visible feature types and options, colour ranges), for reads.
+    const libvgcode::Viewer& get_viewer() const { return m_viewer; }
 
     // ORCA: darken the layers not scrubbed to while using the preview layer slider
     void set_dim_previous_layers(bool value) { m_viewer.set_dim_previous_layers(value); }

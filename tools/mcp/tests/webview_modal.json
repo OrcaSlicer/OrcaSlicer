@@ -1,0 +1,32 @@
+// Scripts in the web views of modal dialogs, which webview_eval runs in only for the preset bundle
+// dialogs and the setup wizard: by default and by locator, and the bundle dialog closed from its
+// page's own button, which replies closed. Run it on a fresh datadir set up with the default printer:
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/webview_modal.json --out /tmp/webview_modal
+// The refusals (the Flushing volumes dialog, a web view behind a modal) are in
+// tools/mcp/test_webview_modal.py.
+{
+  "orca_script": 1,
+  "name": "web views in modal dialogs",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+
+    // ---- The preset bundle dialog ----
+    {"tool": "run_action", "args": {"id": "orca_command:preset_bundle:orca"}, "await": false, "save_as": "bundle"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "webview_eval", "args": {"script": "document.title"},
+     "expect": {"/result": {"eq": "Preset Bundle"}, "/url": {"contains": "PresetBundleDialog"}}},
+    {"tool": "webview_eval", "args": {"script": "!!document.getElementById('close_btn')", "target": {"class": "webview", "within": "Preset Bundle"}},
+     "expect": {"/result": {"eq": true}}},
+    {"tool": "webview_eval", "args": {"script": "document.getElementById('close_btn').click()"}, "expect": {"/closed": {"eq": true}}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.bundle}"}},
+    {"tool": "get_state", "expect": {"/dialogs": {"empty": true}}},
+
+    // ---- The setup wizard: its page is read, and the dialog only closed ----
+    {"tool": "run_action", "args": {"id": "orca_command:help_setup_wizard:orca"}, "await": false, "save_as": "wizard"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 30}, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "webview_eval", "args": {"script": "typeof document.title"}, "expect": {"/result": {"eq": "string"}, "/url": {"contains": "/guide/"}}},
+    {"tool": "dialog_respond", "args": {"dialog": {"title": "Setup Wizard"}, "button": "close"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.wizard}"}},
+    {"tool": "get_state", "expect": {"/dialogs": {"empty": true}}}
+  ]
+}

@@ -9,24 +9,30 @@
 #include "slic3r/GUI/BBLTopbar.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/ExtraRenderers.hpp"
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoSVG.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
 #include "slic3r/GUI/Selection.hpp"
 #include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/SideButton.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/DropDown.hpp"
 #include "slic3r/GUI/Widgets/SpinInput.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "libslic3r/AABBMesh.hpp"
@@ -36,27 +42,39 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "UiRefs.hpp"
+#ifdef SLIC3R_CAD
+#include "slic3r/GUI/CAD/DesignCanvas.hpp"
+#include "slic3r/GUI/CAD/DesignPanel.hpp"
+#include "slic3r/GUI/CAD/DesignRowList.hpp"
+#endif
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
+#include <wx/anybutton.h>
+#include <wx/app.h>
 #include <wx/button.h>
 #include <wx/chartype.h>
 #include <wx/checkbox.h>
+#include <wx/checklst.h>
 #include <wx/choice.h>
 #include <wx/combobox.h>
 #include <wx/ctrlsub.h>
 #include <wx/dataview.h>
 #include <wx/defs.h>
 #include <wx/dialog.h>
+#include <wx/dvrenderers.h>
 #include <wx/event.h>
+#include <wx/evtloop.h>
 #include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
+#include <wx/grid.h>
 #include <wx/kbdstate.h>
 #include <wx/listbox.h>
 #include <wx/menu.h>
 #include <wx/mousestate.h>
 #include <wx/notebook.h>
+#include <wx/popupwin.h>
 #include <wx/radiobut.h>
 #include <wx/scrolwin.h>
 #include <wx/slider.h>
@@ -69,6 +87,7 @@
 #include <wx/arrstr.h>
 #include <wx/tracker.h>
 #include <wx/utils.h>
+#include <wx/variant.h>
 #include <wx/weakref.h>
 #include <wx/webview.h>
 #include <wx/window.h>
@@ -80,16 +99,21 @@
 #include <algorithm>
 #include <cctype>
 #include <cfloat>
+#include <chrono>
 #include <climits>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <functional>
+#include <iterator>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -118,6 +142,8 @@ std::string short_class(const wxWindow* w)
 // The role a window plays for an agent; empty for plain containers.
 std::string kind_of(wxWindow* w)
 {
+    if (dynamic_cast<wxPopupWindow*>(w) != nullptr)
+        return "popup";
     if (dynamic_cast<wxDialog*>(w) != nullptr)
         return "dialog";
     if (dynamic_cast<wxTopLevelWindow*>(w) != nullptr)
@@ -144,8 +170,12 @@ std::string kind_of(wxWindow* w)
         return "text";
     if (dynamic_cast<wxSlider*>(w) != nullptr)
         return "slider";
-    if (dynamic_cast<wxListBox*>(w) != nullptr || dynamic_cast<wxDataViewCtrl*>(w) != nullptr)
+    if (dynamic_cast<wxListBox*>(w) != nullptr || dynamic_cast<wxDataViewCtrl*>(w) != nullptr || dynamic_cast<wxGrid*>(w) != nullptr)
         return "list";
+#ifdef SLIC3R_CAD
+    if (dynamic_cast<DesignRowList*>(w) != nullptr)
+        return "list";
+#endif
     if (dynamic_cast<wxBookCtrlBase*>(w) != nullptr)
         return "tabs";
     if (dynamic_cast<wxStaticText*>(w) != nullptr)
@@ -242,6 +272,9 @@ std::string option_label(const std::string& key)
 
 std::string label_of(wxWindow* w)
 {
+    // A popup has no title, and a drop-down list's tooltip is the hovered item's.
+    if (dynamic_cast<wxPopupWindow*>(w) != nullptr)
+        return {};
     if (auto* tlw = dynamic_cast<wxTopLevelWindow*>(w))
         return into_u8(tlw->GetTitle());
     // Input fields are named by the setting they edit or the label on their row; their own label is
@@ -411,6 +444,43 @@ wxMenuItem* find_menu_path(const std::string& wanted, int& id)
     return nullptr;
 }
 
+// What a menu appends to the label of the item in use, which menu paths may leave out.
+std::string current_marker() { return " (" + _u8L("current") + ")"; }
+
+// The items of a popup menu, a submenu before its items, with the paths automation names them by.
+std::vector<MenuEntry> menu_entries(wxMenu& menu)
+{
+    std::vector<MenuEntry>                        entries;
+    std::function<void(wxMenu&, int, bool)> walk = [&](wxMenu& m, int parent, bool enabled) {
+        for (wxMenuItem* item : m.GetMenuItems()) {
+            if (item->IsSeparator())
+                continue;
+            MenuEntry e;
+            e.label     = into_u8(item->GetItemLabelText());
+            e.parent    = parent;
+            e.id        = item->GetId();
+            e.enabled   = enabled && item->IsEnabled();
+            e.checkable = item->IsCheckable();
+            e.checked   = e.checkable && item->IsChecked();
+            e.submenu   = item->IsSubMenu();
+            entries.push_back(e);
+            if (e.submenu)
+                walk(*item->GetSubMenu(), int(entries.size()) - 1, e.enabled);
+        }
+    };
+    walk(menu, -1, true);
+    name_menu_entries(entries, current_marker());
+    return entries;
+}
+
+// Native controls act on what the system tells them, not on wx mouse events sent to them, so a
+// click at a point of one does nothing.
+bool is_native_control(wxWindow* w)
+{
+    return dynamic_cast<wxAnyButton*>(w) != nullptr || dynamic_cast<wxCheckBox*>(w) != nullptr || dynamic_cast<wxChoice*>(w) != nullptr ||
+           dynamic_cast<wxComboBox*>(w) != nullptr || dynamic_cast<wxTextCtrl*>(w) != nullptr;
+}
+
 } // namespace
 
 // Stable English gizmo names for refs and locators: the names Orca uses for the gizmos it names,
@@ -549,14 +619,14 @@ struct HeldKeys
     HeldKeys& operator=(const HeldKeys&) = delete;
 };
 
-// A mouse click on a plain window at its centre: down, up, and the double-click or context-menu
-// event a real click produces.
+// A mouse click on a plain window, at its centre or at the point the options give: down, up, and the
+// double-click or context-menu event a real click produces.
 void click_window(wxWindow* w, const ClickOptions& o)
 {
     const int      mods = parse_modifiers(o.modifiers);
     HeldKeys       held(modifier_keys(mods));
     const wxSize   size = w->GetClientSize();
-    const wxPoint  pos(size.x / 2, size.y / 2);
+    const wxPoint  pos  = o.at_point ? wxPoint(o.x, o.y) : wxPoint(size.x / 2, size.y / 2);
     const bool     right = o.button == "right", middle = o.button == "middle", left = !right && !middle;
     const auto     down  = left ? wxEVT_LEFT_DOWN : right ? wxEVT_RIGHT_DOWN : wxEVT_MIDDLE_DOWN;
     const auto     up    = left ? wxEVT_LEFT_UP : right ? wxEVT_RIGHT_UP : wxEVT_MIDDLE_UP;
@@ -570,10 +640,14 @@ void click_window(wxWindow* w, const ClickOptions& o)
         wxMouseEvent u2 = mouse_event(wxEVT_LEFT_UP, pos, false, false, false, mods);
         send(w, u2);
     }
+#ifndef __WXOSX__
+    // On macOS wx makes the context menu event itself from a right press its handlers pass on, as for a
+    // real click; elsewhere it comes from the system.
     if (right) {
         wxContextMenuEvent menu(wxEVT_CONTEXT_MENU, w->GetId(), w->ClientToScreen(pos));
         send(w, menu);
     }
+#endif
 }
 
 // Delivers synthesized mouse events to a 3D canvas, drawing a frame after each so ImGui sees the
@@ -717,6 +791,30 @@ bool in_popup(const ImGuiWrapper::RecordedItem& item)
     return item.window.rfind("##Combo", 0) == 0 || item.window.rfind("##Popup", 0) == 0;
 }
 
+// What a click at logical pixel `pixel` of `canvas` would reach instead of its target, described for
+// a reason: the ImGui window over the pixel, unless it is `own` (the window of the ImGui item the
+// click is for) or one of `own`'s children; for a click on the scene (no `own`), also an open popup,
+// which takes any click to close itself. Empty when the click reaches its target. Judged on a frame
+// drawn now, whose windows ImGui hands the click's events to.
+std::string covered_by(GLCanvas3D& canvas, const wxPoint& pixel, const std::string& own = {})
+{
+    ImGuiWrapper* imgui = wxGetApp().imgui();
+    if (imgui == nullptr || ImGui::GetCurrentContext() == nullptr)
+        return {};
+    canvas.set_as_dirty();
+    canvas.render();
+    const float  scale = canvas.get_scale();
+    ImGuiWindow* hit   = imgui_window_at(ImVec2(float(pixel.x) * scale, float(pixel.y) * scale));
+    ImGuiWindow* mine  = own.empty() ? nullptr : ImGui::FindWindowByName(own.c_str());
+    if (hit != nullptr && mine != nullptr && hit->RootWindow == mine->RootWindow)
+        return {};
+    const ImGuiContext& g     = *ImGui::GetCurrentContext();
+    ImGuiWindow*        cover = hit != nullptr ? hit : own.empty() && g.OpenPopupStack.Size > 0 ? g.OpenPopupStack.back().Window : nullptr;
+    if (cover == nullptr)
+        return {};
+    return imgui_window_description(cover->RootWindow->Name, imgui->recorded_texts(&canvas));
+}
+
 // The logical pixel of `canvas` showing a point of the model: {object, instance, volume} and either
 // `point` (with `frame` "volume", the part's mesh coordinates, or "world", the scene's) or `spot`.
 // With `check` "surface" a click there must land on that part at that point (see check_surface()).
@@ -779,24 +877,16 @@ wxPoint target_pixel(GLCanvas3D& canvas, const json& target, const std::string& 
     const wxPoint pixel(int(std::lround(projected->x())), int(std::lround(projected->y())));
 
     if (check == "surface") {
-        // What a person sees: active parts, and the parts of the instance the open gizmo works on.
-        // Other inactive parts are hidden, modifiers are see-through, and gizmo geometry takes clicks
-        // as it would from a person.
+        // What a person sees (surface_meshes()): other inactive parts are hidden, other modifiers and
+        // negative parts are see-through, and gizmo geometry takes clicks as it would from a person.
         // The manager hands the plane out flipped, for drawing; the gizmos' own raycasts use it as
         // the object clipper holds it.
         std::optional<ClippingPlane> clip;
         if (gizmo)
             if (const auto drawn = gizmos.get_clipping_plane())
                 clip = drawn->inverted_normal();
-        std::vector<SurfaceMesh> meshes;
-        BoundingBoxf3            target_box;
-        for (const GLVolume* v : canvas.get_volumes().volumes) {
-            if (v->mesh_raycaster == nullptr || !v->visible || v->is_modifier || (!v->is_active && !own(v)))
-                continue;
-            meshes.push_back({&v->mesh_raycaster->get_aabb_mesh(), v->world_matrix(), v == shown, own(v),
-                              "object " + std::to_string(v->object_idx()) + " instance " + std::to_string(v->instance_idx()) +
-                                  " part " + std::to_string(v->volume_idx())});
-        }
+        const std::vector<SurfaceMesh> meshes = surface_meshes(canvas.get_volumes().volumes, shown, own);
+        BoundingBoxf3                  target_box;
         for (const Vec3f& vertex : mesh.vertices())
             target_box.merge(world * vertex.cast<double>());
         std::vector<Polygon> beds;
@@ -831,7 +921,7 @@ bool selection_is_svg_part(GLCanvas3D& canvas)
 const char* canvas_name(GLCanvas3D* canvas)
 {
     Plater* plater = wxGetApp().plater();
-    if (plater == nullptr)
+    if (plater == nullptr || canvas == nullptr)
         return "";
     if (canvas == plater->get_view3D_canvas3D())
         return "3d";
@@ -839,10 +929,10 @@ const char* canvas_name(GLCanvas3D* canvas)
         return "preview";
     if (canvas == plater->get_assmeble_canvas3D())
         return "assemble";
+    if (canvas == design_canvas())
+        return "design";
     return "";
 }
-
-namespace {
 
 GLCanvas3D* canvas_by_name(const std::string& name)
 {
@@ -853,15 +943,49 @@ GLCanvas3D* canvas_by_name(const std::string& name)
         return plater->get_preview_canvas3D();
     if (name == "assemble")
         return plater->get_assmeble_canvas3D();
+    if (name == "design")
+        return design_canvas();
     if (name == "3d" || name.empty())
         return plater->get_view3D_canvas3D();
     return nullptr;
 }
 
+namespace {
+
 bool is_live_canvas(GLCanvas3D* canvas)
 {
-    const auto canvases = live_canvases();
+    const auto canvases = ui_canvases();
     return canvas != nullptr && std::find(canvases.begin(), canvases.end(), canvas) != canvases.end();
+}
+
+static_assert(kPlateIconCount == int(PartPlate::GRABBER_COUNT), "plate icon names follow PartPlate's picking actions");
+
+// The plates and plate icons the Prepare view can pick now, by bed picking id. PartPlate registers
+// the icons it shows (settings where plate settings are offered, filament_map on two-nozzle Bambu
+// printers, imex_mode on IDEX printers), and other plates are inactive while they are hidden, so the
+// registry says what a click can reach.
+std::set<int> plate_picking_ids(GLCanvas3D& canvas)
+{
+    std::set<int> ids;
+    if (const auto* items = canvas.get_raycasters_for_picking(SceneRaycaster::EType::Bed))
+        for (const std::shared_ptr<SceneRaycasterItem>& item : *items)
+            if (item->is_active())
+                ids.insert(SceneRaycaster::decode_id(SceneRaycaster::EType::Bed, item->get_id()));
+    return ids;
+}
+
+// A plate as the object list names it: "Plate 2", with its own name after it.
+std::string plate_label(PartPlate& plate)
+{
+    std::string label = _u8L("Plate") + " " + std::to_string(plate.get_index() + 1);
+    if (!plate.get_plate_name().empty())
+        label += " (" + plate.get_plate_name() + ")";
+    return label;
+}
+
+std::string no_such_plate(int plate, int count)
+{
+    return "Plate " + std::to_string(plate) + " does not exist (plates 0.." + std::to_string(count - 1) + ")";
 }
 
 } // namespace
@@ -874,6 +998,685 @@ std::vector<GLCanvas3D*> live_canvases()
             if (c != nullptr)
                 out.push_back(c);
     return out;
+}
+
+GLCanvas3D* design_canvas()
+{
+#ifdef SLIC3R_CAD
+    if (DesignPanel* design = DesignPanel::if_built())
+        if (DesignCanvas* view = design->mcp_viewport())
+            return view->gl_canvas();
+#endif
+    return nullptr;
+}
+
+std::vector<GLCanvas3D*> ui_canvases()
+{
+    std::vector<GLCanvas3D*> out = live_canvases();
+    if (GLCanvas3D* design = design_canvas())
+        out.push_back(design);
+    return out;
+}
+
+GLCanvas3D* shown_canvas()
+{
+#ifdef SLIC3R_CAD
+    if (MainFrame* frame = wxGetApp().mainframe; frame != nullptr && frame->shown_design_panel() != nullptr)
+        return design_canvas();
+#endif
+    Plater* plater = wxGetApp().plater();
+    return plater != nullptr ? plater->get_current_canvas3D() : nullptr;
+}
+
+// ---- popups and rows of lists -----------------------------------------------------------------
+
+wxWindow* owning_window(wxWindow* w)
+{
+    wxWindow* top = w != nullptr ? wxGetTopLevelParent(w) : nullptr;
+    while (dynamic_cast<wxPopupWindow*>(top) != nullptr && top->GetParent() != nullptr)
+        top = wxGetTopLevelParent(top->GetParent());
+    return top;
+}
+
+std::vector<wxWindow*> popups_of(wxWindow* top)
+{
+    std::vector<wxWindow*> out;
+    std::function<void(wxWindow*)> visit = [&](wxWindow* w) {
+        for (wxWindow* child : w->GetChildren()) {
+            if (dynamic_cast<wxTopLevelWindow*>(child) != nullptr || !child->IsShown())
+                continue;
+            if (dynamic_cast<wxPopupWindow*>(child) != nullptr)
+                out.push_back(child);
+            visit(child);
+        }
+    };
+    if (top != nullptr)
+        visit(top);
+    return out;
+}
+
+namespace {
+
+std::string joined(const std::vector<std::string>& parts, const char* separator)
+{
+    std::string out;
+    for (std::size_t i = 0; i < parts.size(); ++i)
+        out += (i == 0 ? "" : separator) + parts[i];
+    return out;
+}
+
+// The object list's columns by model column (ColumnNumber): it shows no header, so they are named here.
+const char* const kObjectListColumns[] = {"Name", "Height", "Printable", "Filament", "Support", "Color", "Sinking", "Editing"};
+
+std::vector<wxDataViewColumn*> shown_columns(wxDataViewCtrl& ctrl)
+{
+    std::vector<wxDataViewColumn*> out;
+    for (unsigned i = 0; i < ctrl.GetColumnCount(); ++i)
+        if (wxDataViewColumn* c = ctrl.GetColumn(i); c != nullptr && !c->IsHidden())
+            out.push_back(c);
+    return out;
+}
+
+std::string column_name(wxDataViewCtrl& ctrl, const wxDataViewColumn& col, std::size_t pos)
+{
+    if (dynamic_cast<ObjectList*>(&ctrl) != nullptr && col.GetModelColumn() < std::size(kObjectListColumns))
+        return kObjectListColumns[col.GetModelColumn()];
+    wxString title = col.GetTitle();
+    const std::string name = into_u8(title.Trim().Trim(false));
+    return name.empty() ? "#" + std::to_string(pos + 1) : name;
+}
+
+// The column `name` picks (see list_columns()), or the first shown one for none.
+wxDataViewColumn* data_view_column(wxDataViewCtrl& ctrl, const std::string& name)
+{
+    const std::vector<wxDataViewColumn*> cols = shown_columns(ctrl);
+    if (cols.empty())
+        throw ToolFailure("The list shows no columns");
+    if (name.empty())
+        return cols.front();
+    for (std::size_t i = 0; i < cols.size(); ++i)
+        if (lower(column_name(ctrl, *cols[i], i)) == lower(name))
+            return cols[i];
+    throw ToolFailure("The list has no column \"" + name + "\"", {{"columns", list_columns(&ctrl)}});
+}
+
+// A cell's text as it shows: outside macOS the compare presets and unsaved changes trees draw theirs from
+// markup (<b>, <span color="...">), whose tags and entities are not shown. Other text is kept as it is.
+std::string shown_text(const wxString& value)
+{
+    const std::string text = into_u8(value);
+    if (text.empty() || text.front() != '<')
+        return text;
+    static constexpr std::pair<std::string_view, char> entities[] = {{"&lt;", '<'}, {"&gt;", '>'}, {"&amp;", '&'}, {"&quot;", '"'}, {"&apos;", '\''}};
+    std::string out;
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        if (text[i] == '<') {
+            if ((i = text.find('>', i)) == std::string::npos)
+                return text;
+            continue;
+        }
+        char c = text[i];
+        if (c == '&')
+            for (const auto& [entity, plain] : entities)
+                if (text.compare(i, entity.size(), entity) == 0) {
+                    c = plain;
+                    i += entity.size() - 1;
+                    break;
+                }
+        out += c;
+    }
+    return out;
+}
+
+// The text a data view cell shows, or for a checkbox cell nothing, its state going to `checked` (the
+// row's first). Icon cells show nothing.
+std::optional<std::string> cell_text(wxDataViewModel& model, const wxDataViewItem& item, unsigned col, int& checked)
+{
+    wxVariant v;
+    model.GetValue(v, item, col);
+    const wxString type = v.GetType();
+    if (type == "bool") {
+        if (checked < 0)
+            checked = v.GetBool() ? 1 : 0;
+        return std::nullopt;
+    }
+    if (type == "string")
+        return shown_text(v.GetString());
+    if (type == "wxDataViewIconText") {
+        wxDataViewIconText text;
+        text << v;
+        return shown_text(text.GetText());
+    }
+    if (type == "DataViewBitmapText") {
+        DataViewBitmapText text;
+        text << v;
+        return shown_text(text.GetText());
+    }
+    if (type == "long" || type == "double")
+        return into_u8(v.MakeString());
+    return std::nullopt;
+}
+
+// What an object list row stands for, by the indices list_objects uses.
+std::string object_row_note(ObjectDataViewModel& model, const wxDataViewItem& item)
+{
+    int            plate  = -1;
+    const ItemType type   = model.GetItemType(item, plate);
+    const std::string object = "object " + std::to_string(model.GetObjectIdByItem(item));
+    switch (type) {
+    case itPlate: return plate >= 0 ? "plate " + std::to_string(plate) : "outside the plates";
+    case itObject: return object;
+    case itVolume: {
+        const std::string part = object + " part " + std::to_string(model.GetVolumeIdByItem(item));
+        switch (model.GetVolumeType(item)) {
+        case ModelVolumeType::NEGATIVE_VOLUME: return part + ", negative";
+        case ModelVolumeType::PARAMETER_MODIFIER: return part + ", modifier";
+        case ModelVolumeType::SUPPORT_BLOCKER: return part + ", support_blocker";
+        case ModelVolumeType::SUPPORT_ENFORCER: return part + ", support_enforcer";
+        default: return part;
+        }
+    }
+    case itInstanceRoot: return "instances of " + object;
+    case itInstance: return object + " instance " + std::to_string(model.GetInstanceIdByItem(item));
+    case itSettings: return "settings of " + object_row_note(model, model.GetParent(item));
+    case itLayerRoot: return "layer ranges of " + object;
+    case itLayer: {
+        const auto range = model.GetLayerRangeByItem(item);
+        char       text[64];
+        std::snprintf(text, sizeof(text), " layer range %g-%g", range.first, range.second);
+        return object + text;
+    }
+    case itInfo: return "info of " + object;
+    default: return {};
+    }
+}
+
+void data_view_rows(wxDataViewCtrl& ctrl, std::vector<ListRow>& out)
+{
+    wxDataViewModel* model = ctrl.GetModel();
+    if (model == nullptr)
+        return;
+    const std::vector<wxDataViewColumn*> cols    = shown_columns(ctrl);
+    auto*                                objects = dynamic_cast<ObjectDataViewModel*>(model);
+    // Collapsed branches too: acting on a row expands the branches above it.
+    std::function<void(const wxDataViewItem&, const std::vector<std::string>&, int, bool)> add =
+        [&](const wxDataViewItem& parent, const std::vector<std::string>& above, int depth, bool shown) {
+            wxDataViewItemArray children;
+            model->GetChildren(parent, children);
+            for (const wxDataViewItem& item : children) {
+                ListRow row;
+                row.path = above;
+                bool labelled = false;
+                for (wxDataViewColumn* col : cols) {
+                    const std::optional<std::string> text = cell_text(*model, item, col->GetModelColumn(), row.checked);
+                    if (!text)
+                        continue;
+                    if (!labelled)
+                        row.path.push_back(*text);
+                    else if (!text->empty())
+                        row.value += (row.value.empty() ? "" : " | ") + *text;
+                    labelled = true;
+                }
+                if (!labelled)
+                    row.path.emplace_back();
+                if (objects != nullptr)
+                    row.note = object_row_note(*objects, item);
+                row.selected = ctrl.IsSelected(item);
+                row.shown    = shown;
+                row.depth    = depth;
+                row.item     = item;
+                const std::vector<std::string> path = row.path;
+                out.push_back(std::move(row));
+                if (model->IsContainer(item))
+                    add(item, path, depth + 1, shown && ctrl.IsExpanded(item));
+            }
+        };
+    add(wxDataViewItem(nullptr), {}, 0, true);
+}
+
+void list_box_rows(wxListBox& box, std::vector<ListRow>& out)
+{
+    auto* checks = dynamic_cast<wxCheckListBox*>(&box);
+    for (unsigned i = 0; i < box.GetCount(); ++i) {
+        ListRow row;
+        row.path     = {into_u8(box.GetString(i))};
+        row.checked  = checks == nullptr ? -1 : checks->IsChecked(i) ? 1 : 0;
+        row.selected = box.IsSelected(int(i));
+        row.index    = int(i);
+        out.push_back(std::move(row));
+    }
+}
+
+// A drop-down list's items; one of a group, which shows in a sublist, has the group's label above it.
+// The picked item is the checked one.
+void drop_down_rows(DropDown& drop, std::vector<ListRow>& out)
+{
+    if (drop.IsSubList())
+        return; // its main list has the same items
+    const std::vector<DropDown::Item>& items = drop.GetItems();
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        const DropDown::Item& item = items[i];
+        if ((item.style & DD_ITEM_STYLE_SPLIT_ITEM) != 0)
+            continue;
+        ListRow row;
+        if (!item.group_key.IsEmpty()) {
+            row.path.push_back(into_u8(item.group_label.IsEmpty() ? item.group_key : item.group_label));
+            row.note = "in " + row.path.back();
+        }
+        row.path.push_back(into_u8(item.text));
+        row.enabled = (item.style & DD_ITEM_STYLE_DISABLED) == 0;
+        row.checked = drop.GetSelection() == int(i) ? 1 : -1;
+        row.index   = int(i);
+        out.push_back(std::move(row));
+    }
+}
+
+// A table's column titles as its header shows them, without a sort indicator ("Name ↑↓" in the object
+// settings table); empty for a hidden or untitled column. A table that hides its column labels draws
+// its titles as its first row, so they are read from there.
+std::vector<std::string> grid_titles(wxGrid& grid)
+{
+    const bool               header_row = grid.GetColLabelSize() == 0;
+    std::vector<std::string> out(std::size_t(std::max(grid.GetNumberCols(), 0)));
+    for (int c = 0; c < int(out.size()); ++c) {
+        if (!grid.IsColShown(c) || (header_row && grid.GetNumberRows() == 0))
+            continue;
+        wxString title = header_row ? grid.GetCellValue(0, c) : grid.GetColLabelValue(c);
+        title.Trim();
+        while (title.EndsWith(wxString::FromUTF8("\u2191")) || title.EndsWith(wxString::FromUTF8("\u2193")))
+            title.RemoveLast().Trim();
+        out[std::size_t(c)] = into_u8(title);
+    }
+    return out;
+}
+
+// A cell's text without the indent a table may draw parts with; a checkbox cell's state.
+std::string grid_cell(wxGrid& grid, int row, int col)
+{
+    wxGridTableBase* table = grid.GetTable();
+    if (table->GetTypeName(row, col) == wxGRID_VALUE_BOOL && table->CanGetValueAs(row, col, wxGRID_VALUE_BOOL))
+        return table->GetValueAsBool(row, col) ? "yes" : "no";
+    wxString text = grid.GetCellValue(row, col);
+    return into_u8(text.Trim().Trim(false));
+}
+
+// The column a table row is named and clicked by: its "Name" column, else its first titled one.
+int grid_name_column(const std::vector<std::string>& titles)
+{
+    const auto name = std::find(titles.begin(), titles.end(), "Name");
+    if (name != titles.end())
+        return int(name - titles.begin());
+    const auto titled = std::find_if(titles.begin(), titles.end(), [](const std::string& t) { return !t.empty(); });
+    return titled == titles.end() ? -1 : int(titled - titles.begin());
+}
+
+// A table's rows, read-only: named by their "Name" cell, else by their row label where the table
+// shows one, else by their first titled cell, with every titled cell as the value.
+void grid_rows(wxGrid& grid, std::vector<ListRow>& out)
+{
+    if (grid.GetTable() == nullptr)
+        return;
+    const std::vector<std::string> titles = grid_titles(grid);
+    const bool                     named  = std::find(titles.begin(), titles.end(), "Name") != titles.end();
+    const int                      name   = grid_name_column(titles);
+    for (int r = grid.GetColLabelSize() == 0 ? 1 : 0; r < grid.GetNumberRows(); ++r) {
+        if (!grid.IsRowShown(r))
+            continue;
+        ListRow                  row;
+        std::vector<std::string> cells;
+        for (int c = 0; c < int(titles.size()); ++c)
+            if (!titles[c].empty())
+                cells.push_back(grid_cell(grid, r, c));
+        row.path     = {!named && grid.GetRowLabelSize() > 0 ? into_u8(grid.GetRowLabelValue(r)) : name >= 0 ? grid_cell(grid, r, name) : std::string()};
+        row.value    = joined(cells, " | ");
+        row.selected = grid.GetGridCursorRow() == r;
+        row.index    = r;
+        out.push_back(std::move(row));
+    }
+}
+
+#ifdef SLIC3R_CAD
+// The Design tab's feature tree and body lists: each row with the tips of its action icons, which
+// `column` names.
+void design_rows(DesignRowList& list, std::vector<ListRow>& out)
+{
+    const std::vector<DesignRowList::Row>& rows = list.rows();
+    for (std::size_t i = 0; i < rows.size(); ++i) {
+        ListRow                  row;
+        std::vector<std::string> tips;
+        for (const DesignRowList::Action& action : rows[i].actions)
+            if (!action.icon.empty())
+                tips.push_back(into_u8(action.tip));
+        row.path     = {into_u8(rows[i].label)};
+        row.note     = tips.empty() ? std::string() : "actions: " + joined(tips, " | ");
+        row.selected = list.selection() == int(i);
+        row.index    = int(i);
+        out.push_back(std::move(row));
+    }
+}
+#endif
+
+std::optional<ListRow> find_row(wxWindow& list, const std::vector<std::string>& path, int twin)
+{
+    for (ListRow& row : list_rows(&list))
+        if (row.path == path && row.twin == twin)
+            return std::move(row);
+    return std::nullopt;
+}
+
+json selected_rows(wxWindow& list)
+{
+    json out = json::array();
+    for (const ListRow& row : list_rows(&list))
+        if (row.selected)
+            out.push_back(joined(row.path, ">"));
+    return out;
+}
+
+void swallow_selection(wxDataViewEvent&) {}
+
+// Sets a data view's selection as a click does, and tells its owner once, for the clicked row. The
+// controls report a selection they are given differently (macOS each change it makes on the way, GTK
+// and the generic control none), and a click reports it once.
+void select_rows(wxDataViewCtrl& ctrl, const wxDataViewItemArray& selection, const wxDataViewItem& clicked)
+{
+    ctrl.Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &swallow_selection);
+    ctrl.SetSelections(selection);
+    if (ctrl.IsSelected(clicked))
+        ctrl.SetCurrentItem(clicked);
+    ctrl.Unbind(wxEVT_DATAVIEW_SELECTION_CHANGED, &swallow_selection);
+    wxDataViewEvent changed(wxEVT_DATAVIEW_SELECTION_CHANGED, &ctrl, clicked);
+    send(&ctrl, changed);
+}
+
+json click_data_view_row(wxDataViewCtrl& ctrl, const ListRow& row, const std::string& column, const ClickOptions& o)
+{
+    const bool        right = o.button == "right";
+    wxDataViewColumn* col   = data_view_column(ctrl, column);
+    const int         mods  = parse_modifiers(o.modifiers);
+    HeldKeys          held(modifier_keys(mods));
+    ctrl.EnsureVisible(row.item, col); // expands the branches above it and scrolls to it
+    scroll_into_view(&ctrl);
+    const wxRect cell = ctrl.GetItemRect(row.item, col);
+    if (cell.IsEmpty())
+        throw ToolFailure("\"" + row.path.back() + "\" can't be scrolled into the list's view; make the window taller with set_view window_size");
+    // The pointer stays on the cell for the click: the object list acts on the cell under it (Printable
+    // toggles printability, Editing resets the row's settings).
+    wxMouseState pointer;
+    pointer.SetPosition(ctrl.ClientToScreen(wxPoint(cell.x + cell.width / 2, cell.y + cell.height / 2)));
+    SyntheticInput::set_mouse(pointer);
+
+    // A right click selects an unselected row only; Ctrl toggles a row in the selection, Shift selects
+    // the shown rows from the current one.
+    if (!right || !ctrl.IsSelected(row.item)) {
+        wxDataViewItemArray selection;
+        if (right || !ctrl.HasFlag(wxDV_MULTIPLE) || (mods & (wxMOD_CONTROL | wxMOD_SHIFT)) == 0) {
+            selection.Add(row.item);
+        } else if ((mods & wxMOD_CONTROL) != 0) {
+            ctrl.GetSelections(selection);
+            if (const int at = selection.Index(row.item); at != wxNOT_FOUND)
+                selection.RemoveAt(std::size_t(at));
+            else
+                selection.Add(row.item);
+        } else {
+            const std::vector<ListRow> rows   = list_rows(&ctrl);
+            const wxDataViewItem       anchor = ctrl.GetCurrentItem().IsOk() ? ctrl.GetCurrentItem() : row.item;
+            int                        from = -1, to = -1;
+            for (int i = 0; i < int(rows.size()); ++i) {
+                if (rows[i].item == anchor)
+                    from = i;
+                if (rows[i].item == row.item)
+                    to = i;
+            }
+            if (from < 0)
+                from = to;
+            for (int i = std::min(from, to); i <= std::max(from, to); ++i)
+                if (rows[std::size_t(i)].shown)
+                    selection.Add(rows[std::size_t(i)].item);
+        }
+        select_rows(ctrl, selection, row.item);
+    }
+#ifdef __WXOSX__
+    // The native list acts on a click in an editable icon cell by starting to edit it, which the object
+    // list turns into the column's action; elsewhere the owner acts on the cell under the pointer when
+    // the selection changes.
+    if (!right && !o.double_click && !column.empty() && col->GetRenderer() != nullptr &&
+        dynamic_cast<wxDataViewBitmapRenderer*>(col->GetRenderer()) != nullptr && col->GetRenderer()->GetMode() == wxDATAVIEW_CELL_EDITABLE) {
+        wxDataViewEvent edit(wxEVT_DATAVIEW_ITEM_EDITING_STARTED, &ctrl, col, row.item);
+        send(&ctrl, edit);
+    }
+#endif
+    if (o.double_click && !right) {
+        wxDataViewEvent activated(wxEVT_DATAVIEW_ITEM_ACTIVATED, &ctrl, col, row.item);
+        send(&ctrl, activated);
+    }
+    if (right) {
+        wxDataViewEvent menu(wxEVT_DATAVIEW_ITEM_CONTEXT_MENU, &ctrl, col, row.item);
+        send(&ctrl, menu);
+    }
+    return {{"clicked", joined(row.path, ">")}, {"selected", selected_rows(ctrl)}};
+}
+
+json click_list_box_row(wxListBox& box, const ListRow& row, const ClickOptions& o)
+{
+    const bool     right = o.button == "right";
+    const int      n     = row.index;
+    const int      mods  = parse_modifiers(o.modifiers);
+    const wxString text  = box.GetString(unsigned(n));
+    if (!right || !box.IsSelected(n)) {
+        if (box.HasMultipleSelection() && !right && (mods & (wxMOD_CONTROL | wxMOD_SHIFT)) != 0) {
+            if (box.IsSelected(n))
+                box.Deselect(n);
+            else
+                box.SetSelection(n);
+        } else {
+            if (box.HasMultipleSelection())
+                box.DeselectAll();
+            box.SetSelection(n);
+        }
+        command(&box, wxEVT_LISTBOX, n, text);
+    }
+    if (o.double_click && !right)
+        command(&box, wxEVT_LISTBOX_DCLICK, n, text);
+    if (right) {
+        // As from the keyboard: the menu is for the selection.
+        wxContextMenuEvent menu(wxEVT_CONTEXT_MENU, box.GetId(), wxDefaultPosition);
+        send(&box, menu);
+    }
+    return {{"clicked", joined(row.path, ">")}, {"selected", selected_rows(box)}};
+}
+
+json click_grid_row(wxGrid& grid, const ListRow& row, const std::string& column, const ClickOptions& o)
+{
+    if (o.button != "left" || o.double_click)
+        throw ToolFailure("A table row takes a single left click, which makes its cell the current one; the table is read-only here");
+    const std::vector<std::string> titles = grid_titles(grid);
+    int                            col    = grid_name_column(titles);
+    if (!column.empty()) {
+        col = -1;
+        for (int c = 0; c < int(titles.size()); ++c)
+            if (!titles[c].empty() && lower(titles[c]) == lower(column))
+                col = c;
+        if (col < 0)
+            throw ToolFailure("The table has no column \"" + column + "\"", {{"columns", list_columns(&grid)}});
+    }
+    grid.GoToCell(row.index, std::max(col, 0)); // sends wxEVT_GRID_SELECT_CELL, as a click does
+    return {{"clicked", joined(row.path, ">")}, {"column", col >= 0 ? titles[std::size_t(col)] : std::string()}};
+}
+
+#ifdef SLIC3R_CAD
+// A click at the row's centre, or at its action icon whose tip `column` gives, through the list's own
+// mouse handlers.
+json click_design_row(DesignRowList& list, const ListRow& row, const std::string& column, const ClickOptions& o)
+{
+    const int n = row.index;
+    if (!list.IsRowVisible(std::size_t(n)))
+        list.ScrollToRow(std::size_t(n));
+    wxRect cell = list.GetItemRect(std::size_t(n));
+    if (!column.empty()) {
+        const std::vector<DesignRowList::Action>& actions = list.rows()[std::size_t(n)].actions;
+        std::size_t                               i       = 0;
+        while (i < actions.size() && (actions[i].icon.empty() || lower(into_u8(actions[i].tip)) != lower(column)))
+            ++i;
+        if (i == actions.size())
+            throw ToolFailure("\"" + row.path.back() + "\" has no action icon \"" + column + "\"", {{"actions", row.note}});
+        cell = list.action_rect(n, i);
+    }
+    if (cell.IsEmpty())
+        throw ToolFailure("\"" + row.path.back() + "\" can't be scrolled into the list's view");
+    ClickOptions at = o;
+    at.at_point     = true;
+    at.x            = cell.x + cell.width / 2;
+    at.y            = cell.y + cell.height / 2;
+    click_window(&list, at);
+    return {{"clicked", joined(row.path, ">")}};
+}
+#endif
+
+} // namespace
+
+std::vector<ListRow> list_rows(wxWindow* list)
+{
+    std::vector<ListRow> out;
+    if (auto* view = dynamic_cast<wxDataViewCtrl*>(list))
+        data_view_rows(*view, out);
+    else if (auto* box = dynamic_cast<wxListBox*>(list))
+        list_box_rows(*box, out);
+    else if (auto* drop = dynamic_cast<DropDown*>(list))
+        drop_down_rows(*drop, out);
+    else if (auto* grid = dynamic_cast<wxGrid*>(list))
+        grid_rows(*grid, out);
+#ifdef SLIC3R_CAD
+    else if (auto* design = dynamic_cast<DesignRowList*>(list))
+        design_rows(*design, out);
+#endif
+    // Rows with the same labels are told apart by their order.
+    std::map<std::vector<std::string>, int> seen;
+    for (ListRow& row : out)
+        row.twin = seen[row.path]++;
+    return out;
+}
+
+bool is_row_list(wxWindow* w)
+{
+#ifdef SLIC3R_CAD
+    if (dynamic_cast<DesignRowList*>(w) != nullptr)
+        return true;
+#endif
+    return dynamic_cast<wxDataViewCtrl*>(w) != nullptr || dynamic_cast<wxListBox*>(w) != nullptr || dynamic_cast<DropDown*>(w) != nullptr ||
+           dynamic_cast<wxGrid*>(w) != nullptr;
+}
+
+std::vector<std::string> list_columns(wxWindow* list)
+{
+    std::vector<std::string> out;
+    if (auto* view = dynamic_cast<wxDataViewCtrl*>(list)) {
+        const std::vector<wxDataViewColumn*> cols = shown_columns(*view);
+        for (std::size_t i = 0; i < cols.size(); ++i)
+            out.push_back(column_name(*view, *cols[i], i));
+    } else if (auto* grid = dynamic_cast<wxGrid*>(list)) {
+        for (const std::string& title : grid_titles(*grid))
+            if (!title.empty())
+                out.push_back(title);
+    }
+    return out;
+}
+
+std::vector<std::pair<wxWindow*, ListRow>> find_rows(const std::vector<wxWindow*>& roots, const std::vector<std::string>& wanted)
+{
+    std::vector<std::pair<wxWindow*, ListRow>> out;
+    const std::string                          current = current_marker();
+    std::function<void(wxWindow*)>             visit   = [&](wxWindow* w) {
+        if (!w->IsShownOnScreen())
+            return;
+        if (is_row_list(w))
+            for (ListRow& row : list_rows(w))
+                if (wanted.empty() || row_matches(row.path, wanted, current))
+                    out.emplace_back(w, std::move(row));
+        for (wxWindow* child : w->GetChildren())
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && dynamic_cast<wxPopupWindow*>(child) == nullptr)
+                visit(child);
+    };
+    for (wxWindow* root : roots) {
+        visit(root);
+        for (wxWindow* popup : popups_of(root))
+            visit(popup);
+    }
+    return out;
+}
+
+json click_row(wxWindow& list, const ListRow& row, const std::string& column, const ClickOptions& o)
+{
+    if (!list.IsShownOnScreen())
+        throw ToolFailure("The list is no longer shown; take a new ui_snapshot");
+    if (!list.IsEnabled())
+        throw ToolFailure("The list is disabled");
+    if (!row.enabled)
+        throw ToolFailure("\"" + row.path.back() + "\" is disabled");
+    if (o.at_point)
+        throw ToolFailure("x/y don't go with a row; name its cell with column");
+    if (o.button != "left" && o.button != "right")
+        throw ToolFailure("A row takes a left or right click");
+    if (auto* view = dynamic_cast<wxDataViewCtrl*>(&list))
+        return click_data_view_row(*view, row, column, o);
+    if (auto* grid = dynamic_cast<wxGrid*>(&list))
+        return click_grid_row(*grid, row, column, o);
+#ifdef SLIC3R_CAD
+    if (auto* design = dynamic_cast<DesignRowList*>(&list))
+        return click_design_row(*design, row, column, o);
+#endif
+    if (!column.empty())
+        throw ToolFailure("This list has no columns; leave out column");
+    if (auto* box = dynamic_cast<wxListBox*>(&list))
+        return click_list_box_row(*box, row, o);
+    if (auto* drop = dynamic_cast<DropDown*>(&list)) {
+        if (o.button != "left" || o.double_click || !o.modifiers.empty())
+            throw ToolFailure("A drop-down list's row takes a plain left click, which picks it");
+        if (!drop->ClickItem(row.index))
+            throw ToolFailure("\"" + row.path.back() + "\" can't be picked");
+        return {{"clicked", joined(row.path, ">")}};
+    }
+    throw ToolFailure("Not a list");
+}
+
+json input_row(wxWindow& list, const ListRow& row, const std::string& column, const json& value)
+{
+    if (!list.IsShownOnScreen())
+        throw ToolFailure("The list is no longer shown; take a new ui_snapshot");
+    if (!list.IsEnabled())
+        throw ToolFailure("The list is disabled");
+    if (dynamic_cast<wxGrid*>(&list) != nullptr)
+        throw ToolFailure("Table cells are read-only here; edit object settings with set_settings {scope: \"object\"}");
+    const std::string text = value.is_string() ? lower(value.get<std::string>()) : value.dump();
+    if (!value.is_boolean() && text != "true" && text != "false" && text != "1" && text != "0")
+        throw ToolFailure("A row takes true or false, for its checkbox");
+    const bool want = value.is_boolean() ? value.get<bool>() : (text == "true" || text == "1");
+    if (auto* view = dynamic_cast<wxDataViewCtrl*>(&list)) {
+        // The checkbox cell: the column named, else the row's first.
+        wxDataViewModel*               model = view->GetModel();
+        std::vector<wxDataViewColumn*> cols  = column.empty() ? shown_columns(*view) : std::vector<wxDataViewColumn*>{data_view_column(*view, column)};
+        for (wxDataViewColumn* col : cols) {
+            wxVariant now;
+            model->GetValue(now, row.item, col->GetModelColumn());
+            if (now.GetType() != "bool")
+                continue;
+            view->EnsureVisible(row.item, col);
+            // What the toggle renderer does on a click; the model's notifier tells the owner
+            // (wxEVT_DATAVIEW_ITEM_VALUE_CHANGED).
+            if (now.GetBool() != want)
+                model->ChangeValue(wxVariant(want), row.item, col->GetModelColumn());
+            model->GetValue(now, row.item, col->GetModelColumn());
+            return {{"row", joined(row.path, ">")}, {"checked", now.GetBool()}};
+        }
+    } else if (auto* checks = dynamic_cast<wxCheckListBox*>(&list)) {
+        const unsigned n = unsigned(row.index);
+        if (checks->IsChecked(n) != want) {
+            checks->Check(n, want);
+            command(checks, wxEVT_CHECKLISTBOX, int(n), checks->GetString(n));
+        }
+        return {{"row", joined(row.path, ">")}, {"checked", checks->IsChecked(n)}};
+    }
+    throw ToolFailure("This row has no checkbox; use ui_click");
 }
 
 // ---- snapshot ---------------------------------------------------------------------------------
@@ -931,6 +1734,21 @@ bool UiInspector::push(UiNode node, UiTarget target, std::vector<UiNode>& nodes,
         alive = [canvas] { return is_live_canvas(canvas); };
         break;
     }
+    case UiTarget::Kind::Row: {
+        kind  = 'r';
+        alive = [weak = target.window, path = target.row_path, twin = target.row_twin] {
+            wxWindow* w = weak.get();
+            return w != nullptr && find_row(*w, path, twin).has_value();
+        };
+        break;
+    }
+    case UiTarget::Kind::PlateIcon: {
+        kind  = 'p';
+        alive = [canvas = target.canvas, id = target.plate * kPlateIconCount + target.plate_action] {
+            return is_live_canvas(canvas) && plate_picking_ids(*canvas).count(id) > 0;
+        };
+        break;
+    }
     case UiTarget::Kind::ImGuiItem: {
         kind = 'g';
         GLCanvas3D* canvas = target.canvas;
@@ -982,9 +1800,16 @@ void UiInspector::add_menus(wxMenu* menu, const std::string& path, wxWindow* fra
 
 void UiInspector::add_canvas_items(GLCanvas3D& canvas, int depth, std::vector<UiNode>& nodes, std::size_t& omitted, const SnapshotOptions& o)
 {
-    const std::string cname = canvas_name(&canvas);
-    GLToolbar&        toolbar = canvas.get_main_toolbar();
-    for (GLToolbarItem* item : toolbar.get_items()) {
+    // Plate icons and ImGui items are what the last frame drew. A canvas that changed since (a new
+    // project, a tab just shown) waits for its paint, which a Wayland compositor holds back until its
+    // frame callback, so it is drawn now and the items match it.
+    if (canvas.get_wxglcanvas()->IsShownOnScreen()) {
+        canvas.set_as_dirty();
+        canvas.render();
+    }
+    const std::string cname   = canvas_name(&canvas);
+    bool              changed = false;
+    for (GLToolbarItem* item : toolbar_items(canvas.get_main_toolbar(), &changed)) {
         if (item == nullptr || item->is_separator() || !item->is_visible())
             continue;
         UiNode node;
@@ -1002,6 +1827,8 @@ void UiInspector::add_canvas_items(GLCanvas3D& canvas, int depth, std::vector<Ui
         t.locator = {{"gltoolbar", item->get_name()}, {"canvas", cname}};
         push(std::move(node), std::move(t), nodes, omitted, o);
     }
+    if (changed)
+        canvas.set_as_dirty();
     GLGizmosManager& gizmos = canvas.get_gizmos_manager();
     if (gizmos.is_enabled())
         for (int type = 0; type < int(GLGizmosManager::Undefined); ++type) {
@@ -1031,6 +1858,38 @@ void UiInspector::add_canvas_items(GLCanvas3D& canvas, int depth, std::vector<Ui
             t.locator = {{"gizmo", node.label}, {"canvas", cname}};
             push(std::move(node), std::move(t), nodes, omitted, o);
         }
+    // The Prepare view's plates, then the current plate's icons; a plate_icon locator reaches the
+    // icons of any plate.
+    if (cname == std::string("3d")) {
+        PartPlateList&      plates  = wxGetApp().plater()->get_partplate_list();
+        const std::set<int> shown   = plate_picking_ids(canvas);
+        const int           current = plates.get_curr_plate_index();
+        auto add = [&](int plate, int action) {
+            if (shown.count(plate * kPlateIconCount + action) == 0)
+                return;
+            UiNode node;
+            node.kind  = "plate_icon";
+            node.label = action == 0 ? plate_label(*plates.get_plate(plate)) : plate_icon_name(action);
+            node.name  = action == 0 ? "plate" : "";
+            node.note  = "plate " + std::to_string(plate) + (action == 0 && plate == current ? ", current" : "");
+            if (action == plate_icon_action("lock"))
+                node.checked = plates.is_locked(plate) ? 1 : 0;
+            node.depth = depth;
+            UiTarget t;
+            t.kind         = UiTarget::Kind::PlateIcon;
+            t.window       = canvas.get_wxglcanvas();
+            t.canvas       = &canvas;
+            t.name         = plate_icon_name(action);
+            t.plate        = plate;
+            t.plate_action = action;
+            t.locator      = {{"plate_icon", t.name}, {"plate", plate}};
+            push(std::move(node), std::move(t), nodes, omitted, o);
+        };
+        for (int plate = 0; plate < plates.get_plate_count(); ++plate)
+            add(plate, 0);
+        for (int action = 1; action < kPlateIconCount; ++action)
+            add(current, action);
+    }
     if (o.include_imgui && wxGetApp().imgui() != nullptr)
         add_imgui_items(canvas, depth, nodes, omitted, o);
 }
@@ -1181,7 +2040,9 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
     const std::string name = meaningful_name(w);
     std::string       label = label_of(w);
     const bool        top   = dynamic_cast<wxTopLevelWindow*>(w) != nullptr;
+    const bool        popup = kind == "popup";
     const bool interesting  = top || (!kind.empty() && (kind != "label" || !label.empty())) || !name.empty();
+    const bool        list  = is_row_list(w);
     int        child_depth  = depth;
     if (interesting) {
         UiNode node;
@@ -1195,14 +2056,18 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
         node.focused = wxWindow::FindFocus() == w;
         node.checked = checked_of(w);
         node.depth   = depth;
-        const wxPoint pos  = top ? w->GetScreenPosition() : client_pos_in_tlw(w);
+        if (list)
+            if (const std::vector<std::string> columns = list_columns(w); columns.size() > 1)
+                node.note = "columns: " + joined(columns, " | ");
+        const wxPoint pos  = top || popup ? w->GetScreenPosition() : client_pos_in_tlw(w);
         const wxSize  size = w->GetSize();
         node.x = pos.x, node.y = pos.y, node.w = size.x, node.h = size.y;
         UiTarget t;
         t.kind   = UiTarget::Kind::Window;
         t.window = w;
-        wxWindow* tlw = wxGetTopLevelParent(w);
-        t.locator = {{"class", node.cls}};
+        wxWindow* tlw = owning_window(w);
+        // A web view's class differs per platform (WebKit, WebView2), so its locator names the kind.
+        t.locator = {{"class", kind == "webview" ? kind : node.cls}};
         if (!label.empty())
             t.locator["label"] = label;
         if (!name.empty())
@@ -1228,7 +2093,7 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
             add_menus(menu, label_text, w, child_depth + 1, nodes, omitted, o);
         }
     if (kind == "canvas")
-        for (GLCanvas3D* canvas : live_canvases())
+        for (GLCanvas3D* canvas : ui_canvases())
             if (canvas->get_wxglcanvas() == w)
                 add_canvas_items(*canvas, child_depth, nodes, omitted, o);
     // A notebook's pages, so one can be picked by its tab.
@@ -1245,16 +2110,36 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
             t.page    = int(i);
             t.name    = page.label;
             t.locator = {{"tab", page.label}};
-            if (wxWindow* tlw = wxGetTopLevelParent(book); tlw != nullptr && tlw != wxGetApp().mainframe)
+            if (wxWindow* tlw = owning_window(book); tlw != nullptr && tlw != wxGetApp().mainframe)
                 t.locator["within"] = label_of(tlw);
             push(std::move(page), std::move(t), nodes, omitted, o);
         }
+    // A list's rows; row locators find them again by their labels (locator_for()).
+    if (list)
+        for (ListRow& r : list_rows(w)) {
+            UiNode row;
+            row.kind    = "row";
+            row.label   = r.path.back();
+            row.value   = r.value;
+            row.checked = r.checked;
+            row.enabled = r.enabled && w->IsEnabled();
+            row.note    = r.selected ? (r.note.empty() ? "selected" : r.note + ", selected") : r.note;
+            row.depth   = child_depth + r.depth;
+            UiTarget t;
+            t.kind     = UiTarget::Kind::Row;
+            t.window   = w;
+            t.row_path = std::move(r.path);
+            t.row_twin = r.twin;
+            push(std::move(row), std::move(t), nodes, omitted, o);
+        }
     // Web views and canvases are listed by their own means; Orca's composite inputs are one
-    // control to the agent, not their inner text field and buttons.
-    if (kind == "webview" || kind == "canvas" || kind == "text" || kind == "spin" || kind == "combo")
+    // control to the agent, not their inner text field and buttons; a table's inner windows are its
+    // rows.
+    if (kind == "webview" || kind == "canvas" || kind == "text" || kind == "spin" || kind == "combo" || dynamic_cast<wxGrid*>(w) != nullptr)
         return;
+    // Popups are listed after the window they belong to (snapshot()).
     for (wxWindow* child : w->GetChildren())
-        if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr)
+        if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && dynamic_cast<wxPopupWindow*>(child) == nullptr)
             walk(child, child_depth, nodes, omitted, o);
 }
 
@@ -1263,22 +2148,32 @@ json UiInspector::snapshot(const SnapshotOptions& o)
     std::vector<UiNode> nodes;
     std::size_t         omitted = 0;
     std::vector<wxWindow*> roots;
+    // A window, then the popups that opened from it, before any window above it.
+    auto with_popups = [&roots](wxWindow* top) {
+        roots.push_back(top);
+        for (wxWindow* popup : popups_of(top))
+            roots.push_back(popup);
+    };
     if (o.root == "dialog") {
         if (wxDialog* d = m_service.modals().top())
-            roots.push_back(d);
+            with_popups(d);
         else
             throw ToolFailure("No modal dialog is open");
     } else if (o.root == "main") {
         if (wxGetApp().mainframe == nullptr)
             throw ToolFailure("The main window is not up yet");
-        roots.push_back(wxGetApp().mainframe);
+        with_popups(wxGetApp().mainframe);
+    } else if (o.root == "popup") {
+        for (wxTopLevelWindow* tlw : top_level_windows(m_service))
+            for (wxWindow* popup : popups_of(tlw))
+                roots.push_back(popup);
     } else if (o.root == "all" || o.root.empty()) {
         for (wxTopLevelWindow* tlw : top_level_windows(m_service))
-            roots.push_back(tlw);
+            with_popups(tlw);
     } else {
         const UiTarget t = resolve(json(o.root));
         if (t.kind != UiTarget::Kind::Window || t.window.get() == nullptr)
-            throw ToolFailure("root must be all, main, dialog or the ref of a window");
+            throw ToolFailure("root must be all, main, dialog, popup or the ref of a window");
         roots.push_back(t.window.get());
     }
     for (wxWindow* root : roots)
@@ -1331,6 +2226,29 @@ UiTarget UiInspector::resolve(const json& target)
         t.menu_path = path;
         return t;
     }
+    if (target.contains("plate_icon")) {
+        Plater* plater = wxGetApp().plater();
+        t.kind         = UiTarget::Kind::PlateIcon;
+        t.canvas       = plater != nullptr ? plater->get_view3D_canvas3D() : nullptr;
+        if (t.canvas == nullptr)
+            throw ToolFailure("No Prepare view");
+        t.window       = t.canvas->get_wxglcanvas();
+        t.name         = target["plate_icon"].is_string() ? target["plate_icon"].get<std::string>() : std::string();
+        t.plate_action = plate_icon_action(t.name);
+        if (t.plate_action < 0) {
+            json names = json::array();
+            for (int a = 0; a < kPlateIconCount; ++a)
+                names.push_back(plate_icon_name(a));
+            throw ToolFailure("No plate icon \"" + t.name + "\"", {{"plate_icons", names}});
+        }
+        if (!target.contains("plate") || !target["plate"].is_number_integer())
+            throw ToolFailure("A plate_icon locator needs plate, the 0-based plate index");
+        t.plate          = target["plate"].get<int>();
+        const int plates = plater->get_partplate_list().get_plate_count();
+        if (t.plate < 0 || t.plate >= plates)
+            throw ToolFailure(no_such_plate(t.plate, plates));
+        return t;
+    }
     const bool imgui = target.contains("imgui") || target.contains("imgui_name");
     if (target.contains("gltoolbar") || target.contains("gizmo") || imgui) {
         t.canvas = canvas_by_name(target.value("canvas", imgui ? "" : "3d"));
@@ -1375,6 +2293,33 @@ UiTarget UiInspector::resolve(const json& target)
     }
 
     const int index = target.value("index", -1);
+    if (target.contains("row")) {
+        const auto matches = match_rows(target);
+        if (matches.empty()) {
+            // The rows a person would look at instead: those whose label holds the one asked for.
+            const std::string wanted = lower(row_segments(target["row"]).back());
+            json              similar = json::array(), any = json::array();
+            for (const auto& [list, row] : match_rows(json{{"row", json::array()}, {"within", target.value("within", "")}})) {
+                const std::string path = joined(row.path, ">");
+                if (!row.path.back().empty() && similar.size() < 30 && lower(row.path.back()).find(wanted) != std::string::npos)
+                    similar.push_back(path);
+                if (any.size() < 30)
+                    any.push_back(path);
+            }
+            throw ToolFailure("No shown list has a row " + target["row"].dump() + "; take a ui_snapshot", {{"rows", similar.empty() ? any : similar}});
+        }
+        if (matches.size() > 1 && index < 0)
+            throw ToolFailure(std::to_string(matches.size()) + " rows match " + target.dump() + "; add \"index\" (0-based) or use a ref");
+        if (index >= int(matches.size()))
+            throw ToolFailure("index " + std::to_string(index) + " is past the " + std::to_string(matches.size()) + " matches");
+        const auto& [list, row] = matches[index < 0 ? 0 : std::size_t(index)];
+        t.kind     = UiTarget::Kind::Row;
+        t.window   = list;
+        t.row_path = row.path;
+        t.row_twin = row.twin;
+        t.column   = target.value("column", "");
+        return t;
+    }
     if (target.contains("tab")) {
         const auto matches = match_tabs(target);
         if (matches.empty())
@@ -1393,7 +2338,7 @@ UiTarget UiInspector::resolve(const json& target)
 
     // A wx window by option key, class, label or name, optionally within a titled top-level window.
     if (!target.contains("option") && !target.contains("class") && !target.contains("label") && !target.contains("name"))
-        throw ToolFailure("A locator needs option, label, name or class (or menu, tab, gltoolbar, gizmo, imgui, imgui_name)");
+        throw ToolFailure("A locator needs option, label, name or class (or menu, tab, row, gltoolbar, gizmo, imgui, imgui_name)");
     const std::vector<wxWindow*> matches = match_windows(target);
     if (matches.empty())
         throw ToolFailure("Nothing matches " + target.dump() + "; take a ui_snapshot");
@@ -1417,7 +2362,8 @@ std::vector<wxWindow*> UiInspector::match_windows(const json& locator)
     std::function<void(wxWindow*)> visit = [&](wxWindow* w) {
         if (!w->IsShownOnScreen())
             return;
-        if ((option.empty() || option_key_of(w) == option) && (cls.empty() || short_class(w) == cls) &&
+        if ((option.empty() || option_key_of(w) == option) &&
+            (cls.empty() || short_class(w) == cls || (cls == "webview" && dynamic_cast<wxWebView*>(w) != nullptr)) &&
             (label.empty() || label_of(w) == label || value_of(w) == label) && (name.empty() || into_u8(w->GetName()) == name)) {
             matches.push_back(w);
             if (!option.empty())
@@ -1451,7 +2397,7 @@ std::vector<std::pair<GLCanvas3D*, ImGuiWrapper::RecordedItem>> UiInspector::mat
     const bool        by_label = locator.contains("imgui"), by_name = locator.contains("imgui_name");
     const std::string label    = locator.value("imgui", ""), name = locator.value("imgui_name", "");
     const std::string window   = locator.value("window", "");
-    std::vector<GLCanvas3D*> canvases = live_canvases();
+    std::vector<GLCanvas3D*> canvases = ui_canvases();
     if (locator.contains("canvas")) {
         GLCanvas3D* named = canvas_by_name(locator["canvas"].get<std::string>());
         canvases          = named != nullptr ? std::vector<GLCanvas3D*>{named} : std::vector<GLCanvas3D*>{};
@@ -1469,6 +2415,19 @@ std::vector<std::pair<GLCanvas3D*, ImGuiWrapper::RecordedItem>> UiInspector::mat
                 out.emplace_back(c, items[i]);
     }
     return out;
+}
+
+// {row: <labels>} finds rows of the shown lists by the last labels of their paths; an empty array finds
+// every row.
+std::vector<std::pair<wxWindow*, ListRow>> UiInspector::match_rows(const json& locator)
+{
+    const std::string      within = locator.value("within", "");
+    std::vector<wxWindow*> roots;
+    for (wxTopLevelWindow* tlw : top_level_windows(m_service))
+        if (within.empty() || label_of(tlw) == within)
+            roots.push_back(tlw);
+    const json& row = locator["row"];
+    return find_rows(roots, row.is_array() && row.empty() ? std::vector<std::string>() : row_segments(row));
 }
 
 std::vector<std::pair<wxBookCtrlBase*, int>> UiInspector::match_tabs(const json& locator)
@@ -1496,7 +2455,8 @@ std::vector<std::pair<wxBookCtrlBase*, int>> UiInspector::match_tabs(const json&
 json UiInspector::locator_for(const UiTarget& t)
 {
     json loc = t.locator;
-    loc.erase("index");
+    if (loc.is_object()) // a row's is built below
+        loc.erase("index");
     int position = -1, count = 0;
     if (t.kind == UiTarget::Kind::ImGuiItem && (loc.contains("imgui") || loc.contains("imgui_name"))) {
         auto find = [&] {
@@ -1514,6 +2474,18 @@ json UiInspector::locator_for(const UiTarget& t)
             loc["imgui_name"] = t.imgui_name;
             find();
         }
+    } else if (t.kind == UiTarget::Kind::Row) {
+        // The row's whole path, which names it after other rows come and go, with its cell and window.
+        loc = {{"row", row_locator(t.row_path)}};
+        if (!t.column.empty())
+            loc["column"] = t.column;
+        if (wxWindow* top = owning_window(t.window.get()); top != nullptr && top != wxGetApp().mainframe)
+            loc["within"] = label_of(top);
+        const auto matches = match_rows(loc);
+        count              = int(matches.size());
+        for (int i = 0, twin = 0; i < count; ++i)
+            if (matches[i].first == t.window.get() && matches[i].second.path == t.row_path && twin++ == t.row_twin)
+                position = i;
     } else if (t.kind == UiTarget::Kind::Window && t.page >= 0 && loc.contains("tab")) {
         const auto matches = match_tabs(loc);
         count              = int(matches.size());
@@ -1583,16 +2555,25 @@ GLCanvas3D* UiInspector::canvas_of(const UiTarget* target) const
     if (target != nullptr && target->canvas != nullptr && is_live_canvas(target->canvas))
         return target->canvas;
     if (target != nullptr && target->window.get() != nullptr)
-        for (GLCanvas3D* c : live_canvases())
+        for (GLCanvas3D* c : ui_canvases())
             if (c->get_wxglcanvas() == target->window.get())
                 return c;
-    if (target == nullptr)
-        if (Plater* plater = wxGetApp().plater())
-            return plater->get_current_canvas3D();
-    return nullptr;
+    return target == nullptr ? shown_canvas() : nullptr;
 }
 
 // ---- actions ----------------------------------------------------------------------------------
+
+bool UiInspector::place_row(const UiTarget& t)
+{
+    auto* ctrl = t.kind == UiTarget::Kind::Row ? dynamic_cast<wxDataViewCtrl*>(t.window.get()) : nullptr;
+    const std::optional<ListRow> row = ctrl != nullptr ? find_row(*ctrl, t.row_path, t.row_twin) : std::nullopt;
+    if (!row)
+        return true; // nothing to place; the click says why
+    wxDataViewColumn* col = data_view_column(*ctrl, t.column);
+    ctrl->EnsureVisible(row->item, col);
+    scroll_into_view(ctrl);
+    return !ctrl->GetItemRect(row->item, col).IsEmpty();
+}
 
 json UiInspector::click(const UiTarget& t, const ClickOptions& o)
 {
@@ -1617,7 +2598,8 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
         return {{"clicked", t.menu_path}};
     }
     case UiTarget::Kind::ToolbarItem: {
-        GLToolbar&     tb   = t.canvas->get_main_toolbar();
+        GLToolbar& tb = t.canvas->get_main_toolbar();
+        toolbar_items(tb);
         GLToolbarItem* item = tb.get_item(t.name);
         if (item == nullptr)
             throw ToolFailure("The toolbar item is gone");
@@ -1673,8 +2655,70 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
         UiTarget shown = t;
         reveal(shown);
         const wxPoint pos = imgui_to_canvas(*shown.canvas, shown.x + shown.w / 2.f, shown.y + shown.h / 2.f);
+        if (const std::string cover = covered_by(*shown.canvas, pos, shown.imgui_window); !cover.empty())
+            throw ToolFailure("\"" + shown.imgui_label + "\" is under " + cover +
+                              ", which would take the click; close it, or enlarge the window with set_view window_size");
         canvas_click(*shown.canvas, pos, o);
         return {{"clicked", shown.imgui_label}, {"at", {pos.x, pos.y}}};
+    }
+    case UiTarget::Kind::Row: {
+        wxWindow*                    list = t.window.get();
+        const std::optional<ListRow> row  = list != nullptr ? find_row(*list, t.row_path, t.row_twin) : std::nullopt;
+        if (!row)
+            throw ToolFailure("The row is gone; take a new ui_snapshot");
+        return click_row(*list, *row, t.column, o);
+    }
+    case UiTarget::Kind::PlateIcon: {
+        // What the canvas does for a click on the icon's picking id, refused where the canvas takes
+        // no plate clicks.
+        GLCanvas3D& canvas = *t.canvas;
+        if (!is_live_canvas(t.canvas) || !canvas.get_wxglcanvas()->IsShownOnScreen())
+            throw ToolFailure("Plate icons are on the Prepare view; set_view {\"tab\": \"prepare\"} first");
+        if (o.button == "middle" || o.double_click || o.at_point)
+            throw ToolFailure("A plate icon takes a single left or right click");
+        if (canvas.is_layers_editing_enabled())
+            throw ToolFailure("Plate icons take no clicks while variable layer height is being edited; close it with "
+                              "ui_click {\"gltoolbar\": \"layersediting\"} first");
+        if (const auto open = canvas.get_gizmos_manager().get_current_type(); open != GLGizmosManager::Undefined)
+            throw ToolFailure("Close the " + gizmo_name(open) + " gizmo first: plate icons take no clicks while it is open");
+        Plater&        plater = *wxGetApp().plater();
+        PartPlateList& plates = plater.get_partplate_list();
+        if (t.plate >= plates.get_plate_count())
+            throw ToolFailure(no_such_plate(t.plate, plates.get_plate_count()));
+        const int id = t.plate * kPlateIconCount + t.plate_action;
+        if (plate_picking_ids(canvas).count(id) == 0)
+            throw ToolFailure("Plate " + std::to_string(t.plate) + " shows no " + t.name + " icon");
+        const bool right   = o.button == "right";
+        const bool arrange = t.plate_action == plate_icon_action("arrange");
+        const bool job     = arrange || t.plate_action == plate_icon_action("orient");
+        Worker&    worker  = plater.get_ui_job_worker();
+        const bool idle    = worker.is_idle();
+        // The arrange icon does nothing while this flag is set, which an arrange that was cancelled
+        // or failed leaves behind.
+        const bool arrange_stuck = arrange && plater.m_arrange_running.load();
+        // A right click's plate menu is listed or run by the caller; where it would open matters only
+        // to a menu that is shown.
+        const wxSize size = canvas.get_wxglcanvas()->GetClientSize();
+        canvas.click_plate(id, right, Vec2d(size.x / 2., size.y / 2.));
+        canvas.set_as_dirty();
+        json out{{"clicked", t.name}, {"plate", t.plate}};
+        if (right)
+            return out;
+        if (t.plate_action == 0 || t.plate_action == plate_icon_action("move_to_front") || t.plate_action == plate_icon_action("delete"))
+            out["current"] = plates.get_curr_plate_index();
+        if (t.plate_action == plate_icon_action("delete"))
+            out["plates"] = plates.get_plate_count();
+        if (t.plate_action == plate_icon_action("lock"))
+            out["locked"] = plates.is_locked(t.plate);
+        if (t.plate_action == plate_icon_action("imex_mode"))
+            out["imex_mode"] = plates.get_plate(t.plate)->get_imex_mode();
+        if (job) {
+            out["started"] = idle && !worker.is_idle();
+            if (!out["started"].get<bool>() && arrange_stuck)
+                out["note"] = "The arrange icon does nothing after an arrange was cancelled or failed, until another arrange "
+                              "finishes; arrange with the arrange tool or run_action obj_arrange";
+        }
+        return out;
     }
     case UiTarget::Kind::Window: break;
     }
@@ -1692,7 +2736,13 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
         book->SetSelection(size_t(t.page)); // sends the page-changing and page-changed events
         return {{"clicked", t.name}, {"page", t.page}};
     }
-    if (o.at_point || dynamic_cast<wxGLCanvas*>(w) != nullptr) {
+    if (o.at_point && dynamic_cast<wxGLCanvas*>(w) == nullptr) {
+        if (is_native_control(w))
+            throw ToolFailure("x/y clicks a point of a custom-drawn widget; this is a native control, so use ui_click without x/y");
+        click_window(w, o);
+        return {{"clicked", label_of(w)}, {"at", {o.x, o.y}}};
+    }
+    if (dynamic_cast<wxGLCanvas*>(w) != nullptr) {
         GLCanvas3D* canvas = canvas_of(&t);
         if (canvas == nullptr)
             throw ToolFailure("Not a 3D canvas");
@@ -1737,8 +2787,15 @@ json UiInspector::input(const UiTarget& t, const json& value, bool submit)
 {
     if (t.kind == UiTarget::Kind::ImGuiItem)
         return imgui_input(t, value, submit);
+    if (t.kind == UiTarget::Kind::Row) {
+        wxWindow*                    list = t.window.get();
+        const std::optional<ListRow> row  = list != nullptr ? find_row(*list, t.row_path, t.row_twin) : std::nullopt;
+        if (!row)
+            throw ToolFailure("The row is gone; take a new ui_snapshot");
+        return input_row(*list, *row, t.column, value);
+    }
     if (t.kind != UiTarget::Kind::Window || t.window.get() == nullptr)
-        throw ToolFailure("ui_input works on controls and ImGui fields");
+        throw ToolFailure("ui_input works on controls, list rows and ImGui fields");
     wxWindow* w = t.window.get();
     if (!w->IsEnabled())
         throw ToolFailure("The control is disabled");
@@ -1942,7 +2999,7 @@ wxWindow* UiInspector::key_target(const UiTarget* t) const
         return t->window.get();
     wxWindow* focus = wxWindow::FindFocus();
     if (wxDialog* top = m_service.modals().top())
-        return focus != nullptr && wxGetTopLevelParent(focus) == top ? focus : top;
+        return focus != nullptr && owning_window(focus) == top ? focus : top;
     if (focus != nullptr)
         return focus;
     GLCanvas3D* canvas = canvas_of(nullptr);
@@ -1956,11 +3013,12 @@ json UiInspector::key(const UiTarget* t, const std::string& chord_text, const st
         throw ToolFailure("No window to send keys to");
     if (t != nullptr)
         scroll_into_view(target);
+    // A 3D view draws a frame after each key, so ImGui fields take what was typed.
     GLCanvas3D* canvas = nullptr;
-    for (GLCanvas3D* c : live_canvases())
-        if (c->get_wxglcanvas() == target)
-            canvas = c;
-    wxWindow* tlw = wxGetTopLevelParent(target);
+    if (dynamic_cast<wxGLCanvas*>(target) != nullptr)
+        for (GLCanvas3D* c : ui_canvases())
+            if (c->get_wxglcanvas() == target)
+                canvas = c;
 
     auto deliver = [&](int key_code, int modifiers, wxChar uni) {
         auto make = [&](wxEventType type) {
@@ -1975,9 +3033,13 @@ json UiInspector::key(const UiTarget* t, const std::string& chord_text, const st
         codes.push_back(key_code);
         HeldKeys held(codes);
         bool     handled = false;
-        if (tlw != nullptr && key_code != 0) {
+        if (key_code != 0) {
+            // As a real key press: CHAR_HOOK goes to the target first and travels up through its
+            // parents (wxKeyEvent propagates it) to the top-level window, or stops at a dialog, so the
+            // hooks of the panels holding the target see it. A hook that allows the next event lets
+            // KEY_DOWN through, as on every port.
             wxKeyEvent hook = make(wxEVT_CHAR_HOOK);
-            handled         = tlw->GetEventHandler()->ProcessEvent(hook);
+            handled         = target->GetEventHandler()->ProcessEvent(hook) && !hook.IsNextEventAllowed();
         }
         if (!handled && key_code != 0) {
             wxKeyEvent down = make(wxEVT_KEY_DOWN);
@@ -2035,9 +3097,12 @@ json UiInspector::mouse(GLCanvas3D& canvas, const json& g, const std::string& ow
     const std::string check     = g.value("check", "surface");
     const double      tolerance = g.value("tolerance", 0.);
     json              pixels    = json::array();
+    const bool        design    = canvas_name(&canvas) == std::string("design");
     auto pixel_of = [&](const json& p) {
         if (p.is_array() && p.size() != 2)
             throw ToolFailure("A pixel is [x, y]");
+        if (!p.is_array() && design)
+            throw ToolFailure("Points of the model name Prepare objects; on the Design view give x/y (cad_call query_topology gives faces)");
         const wxPoint px = p.is_array() ? wxPoint(p[0].get<int>(), p[1].get<int>()) : target_pixel(canvas, p, check, tolerance);
         pixels.push_back({px.x, px.y});
         return px;
@@ -2056,6 +3121,15 @@ json UiInspector::mouse(GLCanvas3D& canvas, const json& g, const std::string& ow
         if (stops.empty())
             throw ToolFailure("drag needs to or path");
     }
+    // A gesture that starts at a model point under an ImGui window or a notification would go to that
+    // instead, so it is refused. A press held from before goes on to the scene wherever it moves, and
+    // a pixel given as x and y is the client's to aim, ImGui panels included.
+    const bool continues_held = m_held && m_held->canvas == &canvas && (action == "move" || action == "up");
+    if (!by_pixel && !continues_held)
+        if (const std::string cover = covered_by(canvas, from); !cover.empty())
+            throw ToolFailure("The model point at pixel (" + std::to_string(from.x) + ", " + std::to_string(from.y) + ") is under " + cover +
+                              ", which would take the " + (action == "move" ? "pointer" : action == "wheel" ? "wheel" : "click") +
+                              "; turn or zoom the camera with set_view, or close it");
     json out{{"action", action}, {"canvas", canvas_name(&canvas)}, {"pixels", pixels}};
 
     // A press an earlier `down` left held: a `move` drags with it and an `up` releases it; any other
@@ -2128,6 +3202,166 @@ void UiInspector::release_held(const std::string* owner)
     }
     CanvasMouse m(*h.canvas, h.mods, true);
     m.event(h.left ? wxEVT_LEFT_UP : h.right ? wxEVT_RIGHT_UP : wxEVT_MIDDLE_UP, h.pos, false, false, false);
+}
+
+// ---- popup and context menus ------------------------------------------------------------------
+
+void UiInspector::capture_menus(bool on)
+{
+    if (on == m_capturing_menus)
+        return;
+    m_capturing_menus = on;
+    SyntheticInput::set_menu_capture(on ? std::function<bool(wxMenu&, wxWindow&)>([this](wxMenu& menu, wxWindow& owner) { return on_menu(menu, owner); }) :
+                                          nullptr);
+    if (wxTheApp == nullptr)
+        return;
+    if (on)
+        wxTheApp->Bind(wxEVT_IDLE, &UiInspector::on_idle, this);
+    else
+        wxTheApp->Unbind(wxEVT_IDLE, &UiInspector::on_idle, this);
+}
+
+void UiInspector::ui_activity(const std::string& tool, bool running)
+{
+    if (running) {
+        wxEventLoopBase* const loop = wxEventLoopBase::GetActive();
+        // The new window covers what an ended one in this loop still waited for.
+        m_menu_windows.erase(std::remove_if(m_menu_windows.begin(), m_menu_windows.end(),
+                                            [loop](const MenuWindow& w) { return !w.running && w.loop == loop; }),
+                             m_menu_windows.end());
+        m_menu_windows.push_back({loop, tool, true, {}});
+        return;
+    }
+    // Closures end in the reverse order they start, so the newest one running is ending.
+    for (auto it = m_menu_windows.rbegin(); it != m_menu_windows.rend(); ++it)
+        if (it->running) {
+            it->running = false;
+            it->ended   = std::chrono::steady_clock::now();
+            return;
+        }
+}
+
+void UiInspector::on_idle(wxIdleEvent& event)
+{
+    event.Skip();
+    // Idle comes once the queue is drained, so the events and CallAfter()s a call queued, and those
+    // they queued, have run. Past kMenuWindowGrace the window is closed anyway (on_menu() ignores it
+    // even before an idle comes), so that a person's menus show again while something keeps queuing
+    // events.
+    const bool queued = wxTheApp != nullptr && wxTheApp->HasPendingEvents();
+    const auto now    = std::chrono::steady_clock::now();
+    m_menu_windows.erase(std::remove_if(m_menu_windows.begin(), m_menu_windows.end(),
+                                        [&](const MenuWindow& w) { return !w.running && (!queued || now - w.ended > kMenuWindowGrace); }),
+                         m_menu_windows.end());
+}
+
+int UiInspector::arm_menu(const std::string& path)
+{
+    MenuCapture c;
+    c.token = ++m_menu_tokens;
+    c.path  = path;
+    c.loop  = wxEventLoopBase::GetActive();
+    m_menu_captures.push_back(std::move(c));
+    return m_menu_tokens;
+}
+
+UiInspector::MenuCapture* UiInspector::menu_capture(int token)
+{
+    const auto it = std::find_if(m_menu_captures.begin(), m_menu_captures.end(), [token](const MenuCapture& c) { return c.token == token; });
+    return it == m_menu_captures.end() ? nullptr : &*it;
+}
+
+json UiInspector::disarm_menu(int token)
+{
+    MenuCapture* found = menu_capture(token);
+    if (found == nullptr)
+        return json::object();
+    const MenuCapture c = std::move(*found);
+    drop_menu(token);
+    if (!c.error.empty())
+        throw ToolFailure(c.error, c.details);
+    if (!c.fired) {
+        if (!c.path.empty())
+            throw ToolFailure("The input opened no menu, so \"" + c.path +
+                              "\" was not run. A right click shows none on empty space while objects are selected, in the "
+                              "Preview, or while a gizmo is open.");
+        return json::object();
+    }
+    json out = c.result;
+    if (c.closed > 0)
+        out["menus_closed"] = c.closed;
+    return out;
+}
+
+void UiInspector::drop_menu(int token)
+{
+    m_menu_captures.erase(std::remove_if(m_menu_captures.begin(), m_menu_captures.end(), [token](const MenuCapture& c) { return c.token == token; }),
+                          m_menu_captures.end());
+}
+
+json UiInspector::closed_menus() const
+{
+    json       out = json::array();
+    const auto now = std::chrono::steady_clock::now();
+    for (const ClosedMenu& m : m_closed_menus) {
+        json entry{{"tool", m.tool}, {"ago_s", std::chrono::duration_cast<std::chrono::seconds>(now - m.at).count()}};
+        entry.update(m.listing);
+        out.push_back(std::move(entry));
+    }
+    return out;
+}
+
+bool UiInspector::on_menu(wxMenu& menu, wxWindow& owner)
+{
+    wxEventLoopBase* const loop   = wxEventLoopBase::GetActive();
+    const auto             now    = std::chrono::steady_clock::now();
+    const auto             window = std::find_if(m_menu_windows.rbegin(), m_menu_windows.rend(), [&](const MenuWindow& w) {
+        return w.loop == loop && (w.running || now - w.ended <= kMenuWindowGrace);
+    });
+    if (window == m_menu_windows.rend())
+        return false; // no call is acting in this loop: a person's menu
+    const std::string tool    = window->tool;
+    const auto        capture = std::find_if(m_menu_captures.rbegin(), m_menu_captures.rend(), [loop](const MenuCapture& c) { return c.loop == loop; });
+
+    // What wxWindowBase::PopupMenu() does before it shows a menu: the menu's wxEVT_UPDATE_UI handlers,
+    // which find them through the invoking window, set each item's state as a person would see it.
+    wxMenuInvokingWindowSetter invoker(menu, &owner);
+    menu.UpdateUI();
+    const std::vector<MenuEntry> entries = menu_entries(menu);
+    if (capture == m_menu_captures.rend() || capture->fired) {
+        if (capture != m_menu_captures.rend())
+            ++capture->closed;
+        m_closed_menus.push_back({tool, std::chrono::steady_clock::now(), menu_listing(entries)});
+        if (m_closed_menus.size() > 3)
+            m_closed_menus.pop_front();
+        return true;
+    }
+    capture->fired  = true;
+    capture->result = {{"popup_menu", menu_listing(entries)}};
+    if (capture->path.empty())
+        return true;
+    const MenuEntry* entry = find_menu_entry(entries, capture->path, current_marker(), capture->error, capture->details);
+    if (entry == nullptr)
+        return true;
+    capture->result = {{"ran", entry->path}};
+    const int         token = capture->token, id = entry->id;
+    const std::string ran   = entry->path;
+    // As a pick from a shown menu: a check item toggles and a radio item is checked before the event.
+    wxMenu*     holder = nullptr;
+    wxMenuItem* item   = menu.FindItem(id, &holder);
+    int         checked = -1;
+    if (item->IsCheckable()) {
+        item->Check(item->GetKind() == wxITEM_RADIO || !item->IsChecked());
+        checked = item->IsChecked() ? 1 : 0;
+    }
+    // The command may open a dialog whose loop runs this call's later closures, which end the
+    // capture, so it is looked up again afterwards instead of being held.
+    if (!holder->SendEvent(id, checked))
+        if (MenuCapture* c = menu_capture(token)) {
+            c->result = json();
+            c->error  = "Nothing handled \"" + ran + "\"";
+        }
+    return true;
 }
 
 std::vector<std::string> imgui_display_labels(const std::vector<ImGuiWrapper::RecordedItem>& items,
@@ -2211,6 +3445,78 @@ bool imgui_value_matches(const std::string& shown, const json& wanted)
     const char* dot      = std::find(begin, static_cast<const char*>(end), '.');
     const int   decimals = dot == end ? 0 : int(end - dot - 1);
     return std::abs(got - want) <= 0.5 * std::pow(10., -decimals) + 1e-9;
+}
+
+ImGuiWindow* imgui_window_at(const ImVec2& pos)
+{
+    // ImGui's own search (FindHoveredWindow()), run for a position the mouse is not at yet.
+    ImGuiContext* g = ImGui::GetCurrentContext();
+    if (g == nullptr)
+        return nullptr;
+    const ImVec2 padding        = g->Style.TouchExtraPadding;
+    const ImVec2 resize_padding = g->IO.ConfigWindowsResizeFromEdges ? g->WindowsHoverPadding : padding;
+    for (int i = g->Windows.Size - 1; i >= 0; --i) {
+        ImGuiWindow* w = g->Windows[i];
+        if (!w->Active || w->Hidden || (w->Flags & ImGuiWindowFlags_NoMouseInputs) != 0)
+            continue;
+        const bool fixed = (w->Flags & (ImGuiWindowFlags_ChildWindow | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize)) != 0;
+        ImRect     bb(w->OuterRectClipped);
+        bb.Expand(fixed ? padding : resize_padding);
+        if (!bb.Contains(pos))
+            continue;
+        if (w->HitTestHoleSize.x != 0) {
+            const ImVec2 hole(w->Pos.x + float(w->HitTestHoleOffset.x), w->Pos.y + float(w->HitTestHoleOffset.y));
+            if (ImRect(hole, ImVec2(hole.x + float(w->HitTestHoleSize.x), hole.y + float(w->HitTestHoleSize.y))).Contains(pos))
+                continue;
+        }
+        return w;
+    }
+    return nullptr;
+}
+
+std::string imgui_window_description(const std::string& window, const std::vector<ImGuiWrapper::RecordedText>& texts)
+{
+    // NotificationManager names its windows "!!Ntfctn<id>"; their text tells which one it is.
+    if (window.rfind("!!Ntfctn", 0) == 0) {
+        for (const ImGuiWrapper::RecordedText& t : texts) {
+            if (t.text.empty() || (t.window != window && t.window.rfind(window + "/", 0) != 0))
+                continue;
+            std::string text = t.text.substr(0, t.text.find('\n'));
+            if (text.size() > 60) {
+                std::size_t cut = 57; // not inside a UTF-8 sequence
+                while (cut > 0 && (static_cast<unsigned char>(text[cut]) & 0xC0) == 0x80)
+                    --cut;
+                text = text.substr(0, cut) + "...";
+            }
+            return "the notification \"" + text + "\"";
+        }
+        return "a notification";
+    }
+    const std::string label = imgui_window_label(window);
+    return label.empty() ? std::string("an ImGui window") : "the \"" + label + "\" window";
+}
+
+std::vector<SurfaceMesh> surface_meshes(const std::vector<GLVolume*>&             volumes,
+                                        const GLVolume*                           target,
+                                        const std::function<bool(const GLVolume*)>& own)
+{
+    std::vector<SurfaceMesh> meshes;
+    for (const GLVolume* v : volumes) {
+        if (v->mesh_raycaster == nullptr || !v->visible || (v->is_modifier && v != target) || (!v->is_active && !own(v)))
+            continue;
+        meshes.push_back({&v->mesh_raycaster->get_aabb_mesh(), v->world_matrix(), v == target, own(v),
+                          "object " + std::to_string(v->object_idx()) + " instance " + std::to_string(v->instance_idx()) + " part " +
+                              std::to_string(v->volume_idx())});
+    }
+    return meshes;
+}
+
+const std::vector<GLToolbarItem*>& toolbar_items(GLToolbar& toolbar, bool* changed)
+{
+    const bool any = toolbar.update_items_state();
+    if (changed != nullptr)
+        *changed = any;
+    return toolbar.get_items();
 }
 
 }}} // namespace Slic3r::GUI::Mcp

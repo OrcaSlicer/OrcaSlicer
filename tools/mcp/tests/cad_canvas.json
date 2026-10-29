@@ -1,0 +1,67 @@
+// The Design view as a canvas target. set_view shows the Design tab and points its camera, and
+// refuses what belongs to Prepare and Preview; a canvas screenshot captures the Design view, as does
+// one of its widget. A click at the view's centre picks the block, and a right click lists the verbs
+// for what is picked. Keys reach the Design panel's own key hook: Shift+E opens the Extrude card and
+// Escape, sent with no target, closes it, so a change is no longer refused. Then a change made only
+// in the Design tab marks the project modified, and opening a design-only project with
+// discard_changes asks nothing and names the project after its file.
+// Needs the CAD feature on:
+//   tools/mcp/orca_mcp.py launch --cad
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/cad_canvas.json --out /tmp/out
+{
+  "orca_script": 1,
+  "name": "cad canvas",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
+    {"tool": "set_view", "args": {"tab": "design", "camera": "iso", "window_size": [1200, 800]},
+     "expect": {"/tab": {"eq": "design"}, "/camera": {"eq": "iso"}}},
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"width": 20, "height": 20, "distance": 10}},
+     "expect": {"/result/ok": {"eq": true}}},
+    // The Design view has no gizmos, and a change made only in the Design tab marks the project.
+    {"tool": "get_state", "expect": {"/tab": {"eq": "design"}, "/gizmo": {"eq": null}, "/project/dirty": {"eq": true}}},
+    // Refused: Prepare's fit to bed, a fit to the selection with nothing picked, the Preview's layers.
+    {"tool": "set_view", "args": {"camera": "fit_bed"}, "optional": true},
+    {"tool": "set_view", "args": {"camera": "fit_selection"}, "optional": true},
+    {"tool": "set_view", "args": {"tab": "design", "layer": 2}, "optional": true},
+    {"tool": "set_view", "args": {"camera": "default"}, "expect": {"/camera": {"eq": "default"}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "include_image": false, "save_path": "${out_dir}/design_canvas.png", "overwrite": true},
+     "expect": {"/source": {"eq": "canvas"}, "/approximate": {"exists": false}, "/width": {"gt": 0}}},
+    {"tool": "screenshot", "args": {"target": {"class": "wxGLCanvas"}, "include_image": false, "save_path": "${out_dir}/design_view.png", "overwrite": true},
+     "expect": {"/approximate": {"exists": false}, "/width": {"gt": 0}}},
+    {"tool": "screenshot", "args": {"target": "window", "include_image": false, "save_path": "${out_dir}/design_window.png", "overwrite": true},
+     "expect": {"/width": {"gt": 0}}},
+    {"tool": "ui_snapshot", "args": {"query": "OrcaSceneCanvas"}, "expect": {"/nodes": {"eq": 1}}},
+
+    // A click at the view's centre picks the block; a right click away from it lists the verbs for
+    // the pick, without showing the menu.
+    {"tool": "ui_click", "args": {"target": {"class": "wxGLCanvas"}}, "expect": {"/clicked": {"eq": "canvas"}}},
+    {"tool": "ui_mouse", "args": {"canvas": "design", "action": "click", "button": "right", "x": 30, "y": 30},
+     "expect": {"/canvas": {"eq": "design"}, "/popup_menu/items/0": {"regex": "of Extrude"}}},
+    {"tool": "set_view", "args": {"camera": "fit_selection"}, "expect": {"/camera": {"eq": "fit_selection"}}},
+    // Points of the model name Prepare's objects, so the Design view takes pixels only.
+    {"tool": "ui_mouse", "args": {"canvas": "design", "action": "click", "at": {"object": 0, "spot": "top"}}, "optional": true},
+
+    // Shift+E is the Design tab's Extrude; Escape with no target closes the card it opened.
+    {"tool": "ui_key", "args": {"keys": "Shift+E"}},
+    {"tool": "ui_snapshot", "args": {"query": "Extrude dist"}, "expect": {"/nodes": {"eq": 1}}},
+    {"tool": "ui_key", "args": {"keys": "Escape"}},
+    {"tool": "ui_snapshot", "args": {"query": "Extrude dist"}, "expect": {"/nodes": {"eq": 0}}},
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"width": 6, "height": 6, "distance": 20}},
+     "expect": {"/result/ok": {"eq": true}}},
+
+    // A design-only project: saved, changed in the Design tab alone, then opened again.
+    {"tool": "save_project", "args": {"path": "${out_dir}/design_only.3mf", "overwrite": true}},
+    {"tool": "get_state", "expect": {"/project/dirty": {"eq": false}, "/project/name": {"eq": "design_only"}}},
+    {"tool": "cad_call", "args": {"method": "set_variable", "params": {"name": "w", "expr": "5"}}, "expect": {"/result/ok": {"eq": true}}},
+    {"tool": "get_state", "expect": {"/project/dirty": {"eq": true}}},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/design_only.3mf"]}, "optional": true},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/design_only.3mf"], "discard_changes": true},
+     "expect": {"/opened": {"eq": "project"}, "/objects": {"eq": 0}}},
+    {"tool": "get_state", "expect": {"/project/dirty": {"eq": false}, "/project/name": {"eq": "design_only"},
+                                     "/project/path": {"regex": "design_only\\.3mf$"}, "/dialogs": {"empty": true}}},
+    {"tool": "cad_call", "args": {"method": "describe_scene"},
+     "expect": {"/result/variables": {"empty": true}, "/result/bodies/1": {"exists": true}}}
+  ]
+}

@@ -543,6 +543,39 @@ public:
     // Can a feature expression drive this numeric field? The single allow-list the evaluator
     // uses, so a caller can refuse a name before it breaks the next recompute.
     static bool is_bindable_field(const std::string& field);
+    // Write `value` into the numeric field named `field`: the allow-list above, so a literal edit
+    // and an expression binding reach exactly the same fields. Integer fields are rounded, and
+    // thread_diameter writes half of it to thread_radius. Throws std::runtime_error naming an
+    // unknown field.
+    static void set_numeric_field(CadFeature& f, const std::string& field, double value);
+    // The variables' values as recompute() evaluates them. Empty, with `err` set, on a cycle, an
+    // unknown name or an expression that does not evaluate.
+    std::map<std::string, double> variable_values(std::string& err) const;
+    // Visit every field of `f` holding an index into `features`. It visits fields rather than
+    // dispatching on the type, so a feature type that reuses one of them is covered without being
+    // listed; an unset reference is -1. Body indices and face or edge ids are not visited, nor are
+    // datum-plane ordinals (for_each_datum_ref). `Feature` is CadFeature or const CadFeature.
+    template<class Feature, class Visit>
+    static void for_each_feature_ref(Feature& f, Visit&& visit)
+    {
+        visit(f.sketch_ref);
+        visit(f.sweep_path_ref);
+        visit(f.pattern_curve_sketch);
+        visit(f.rib_sketch_ref);
+        visit(f.mate_cs_a);
+        visit(f.mate_cs_b);
+        for (auto& r : f.loft_profile_refs)
+            visit(r);
+    }
+    // Visit every field holding a datum-plane ordinal: 3 + N names the Nth enabled Plane feature
+    // (resolve_datum_planes()), below 3 a base plane.
+    template<class Feature, class Visit>
+    static void for_each_datum_ref(Feature& f, Visit&& visit)
+    {
+        visit(f.plane_base);
+        visit(f.axis_plane_a);
+        visit(f.axis_plane_b);
+    }
     // Does a feature of this type leave a body behind? Sketches, datums, the helix curve and
     // Project (which emits sketch entities) do not. The one answer recompute(), the rollback
     // rule and the GUI's preview all use.
@@ -733,6 +766,13 @@ public:
     // Every datum plane currently in the recipe, in feature order, as (name, plane).
     // Used by the GUI to populate plane pickers (after the 3 base planes).
     std::vector<std::pair<std::string, SketchPlane>> resolve_datum_planes() const;
+    // Why the Plane feature `f` cannot be built as its plane_type asks, or "" when it can. Each
+    // construction needs its references (an angled plane an edge, a midplane two different faces,
+    // a tangent plane a cylindrical face, a two-edge plane two edges), and every reference it uses
+    // must still be on its body. resolve_datum_planes() falls back to an offset plane, silently,
+    // when they are not; this is the check that keeps a new plane off that fallback. The reason is
+    // an untranslated message (marked with L()), translated where it is shown.
+    std::string datum_plane_refusal(const CadFeature& f) const;
 
     // World-space sketch plane lying on a body's PLANAR face, so a face picked in the viewport can
     // be sketched on directly — no datum plane in between and nothing to choose from a list.
@@ -740,6 +780,19 @@ public:
     // has no single plane, and guessing one from a mid-parameter normal would silently sketch on a
     // tangent). Same derivation the Coincident datum method uses, shared so the two cannot drift.
     bool plane_of_face(int body_idx, int face_idx, SketchPlane& out) const;
+    // The plane a hole drills from on a body's face: origin at the face centroid, normal pointing
+    // INTO the solid, so a positioned hole drills inward and its (x,y) read as the offset from the
+    // face centre, and x along the face's longest straight edge, so the hole's distances from the
+    // face sides read along the sides. False when the indices don't resolve. Any face is accepted,
+    // as the Hole card accepts any picked face; a curved one gets its mid-parameter normal.
+    bool inward_plane_of_face(int body_idx, int face_idx, SketchPlane& out) const;
+    // What a Thread is cut on when a body's face or rim is picked: the cylindrical face `face` of
+    // body `body_idx`, else its circular edge `edge` (-1 for none). `cyl` is that cylinder (an edge
+    // gives no length and reads as external); `plane` sits on its axis, origin at the base and
+    // normal along the axis, where a thread starts and the way it rises. False when neither is
+    // round; `from_face` says whether the face was.
+    bool thread_target(int body_idx, int face, int edge, SketchPlane& plane, GeometryEngine::CylinderFace& cyl,
+                       bool* from_face = nullptr) const;
     // Resolved datum axes in feature order. axis_err is non-empty if construction failed.
     struct DatumAxis { std::string name; Vec3d origin{0,0,0}; Vec3d direction{0,0,1};
                        std::string error; };
@@ -800,10 +853,11 @@ public:
     // body) is derived by recompute(), snapshotting `features` alone is a complete,
     // exact history; one checkpoint == one Ctrl+Z step.
     void checkpoint();   // snapshot `features` for undo + invalidate redo
-    // Drop the most recent checkpoint. For a mutation that took a checkpoint, then failed
-    // and restored the pre-mutation state itself (the constraint paths reject an
-    // over-constrained addition this way): the snapshot now describes a state identical to
-    // the current one, and leaving it turns the next Ctrl+Z into a press that does nothing.
+    // Drop the most recent checkpoint and put back the redo branch it cleared. For a mutation
+    // that took a checkpoint, then failed and restored the pre-mutation state itself (the
+    // constraint paths reject an over-constrained addition this way, and the feature-tree edits
+    // below roll themselves back): the snapshot now describes a state identical to the current
+    // one, and leaving it turns the next Ctrl+Z into a press that does nothing.
     void abandon_checkpoint();
     bool can_undo() const { return !m_undo.empty(); }
     bool can_redo() const { return !m_redo.empty(); }
@@ -811,6 +865,12 @@ public:
     size_t redo_depth() const { return m_redo.size(); }
     bool undo();   // restore the previous feature list + recompute(); false if no history
     bool redo();   // re-apply the most recently undone change; false if none
+    // Take back a refused edit as if it had never been made: restore and drop the last checkpoint,
+    // recompute, and put back the redo branch that checkpoint() cleared. For an edit whose rebuild
+    // failed after its checkpoint; undo() there would leave the refused recipe on the redo stack,
+    // where Redo brings it back. Call it straight after the failed edit, in place of undo().
+    // False if there is no checkpoint.
+    bool rollback();
 
     // Feature-tree editing (Onshape-style). All are transactional: they snapshot
     // features, mutate, recompute(), and roll back to the snapshot (re-recomputing)
@@ -912,6 +972,7 @@ private:
     };
     std::vector<Snapshot> m_undo;
     std::vector<Snapshot> m_redo;
+    std::vector<Snapshot> m_redo_at_checkpoint;   // the redo branch the last checkpoint() cleared, for rollback() and abandon_checkpoint()
     static constexpr size_t k_undo_cap = 200;
 };
 

@@ -3,6 +3,7 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
+#include "SyntheticInput.hpp"
 #include "I18N.hpp"
 #include "Tab.hpp"
 #include "ConfigValueFormatter.hpp"
@@ -2079,7 +2080,7 @@ void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
         return;
     wxPoint screen_pos = src->ClientToScreen(evt.GetPosition());
     wxPoint local_pos  = ScreenToClient(screen_pos);
-    PopupMenu(&m, local_pos);
+    popup_menu(*this, m, local_pos);
 }
 
 void PublishSettingsDialog::apply_selection(const std::vector<std::string>& published_keys,

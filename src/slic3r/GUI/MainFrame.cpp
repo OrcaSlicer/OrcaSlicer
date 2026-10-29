@@ -4081,26 +4081,12 @@ void MainFrame::load_config_file()
         cfiles.push_back(into_u8(file));
         m_last_config = file;
     }
-    bool update = false;
-    wxGetApp().preset_bundle->import_presets(cfiles, [this](std::string const & name) {
+    cfiles = import_configs(cfiles, [this](std::string const & name) {
             ConfigsOverwriteConfirmDialog dlg(this, from_u8(name), false);
             int           res = dlg.ShowModal();
             int           ids[]{wxID_NO, wxID_YES, wxID_NOTOALL, wxID_YESTOALL};
             return std::find(ids, ids + 4, res) - ids;
-        },
-        ForwardCompatibilitySubstitutionRule::Enable,
-        *wxGetApp().app_config);
-    if (!cfiles.empty()) {
-        wxGetApp().app_config->update_config_dir(get_dir_name(cfiles.back()));
-        wxGetApp().load_current_presets();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " presets has been import,and size is" << cfiles.size();
-        NetworkAgent* agent = wxGetApp().getAgent();
-        if (agent) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " user is: " << agent->get_user_id();
-        }
-    }
-    wxGetApp().preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
-    update_side_preset_ui();
+        });
     auto msg = wxString::Format(_L_PLURAL("There is %d config imported. (Only non-system and compatible configs)",
         "There are %d configs imported. (Only non-system and compatible configs)", cfiles.size()), cfiles.size());
     if(cfiles.empty())
@@ -4108,6 +4094,23 @@ void MainFrame::load_config_file()
     MessageDialog dlg2(this,msg ,
                         _L("Import result"), wxOK);
     dlg2.ShowModal();
+}
+
+std::vector<std::string> MainFrame::import_configs(std::vector<std::string> files, std::function<int(const std::string &)> confirm)
+{
+    wxGetApp().preset_bundle->import_presets(files, confirm, ForwardCompatibilitySubstitutionRule::Enable, *wxGetApp().app_config);
+    if (!files.empty()) {
+        wxGetApp().app_config->update_config_dir(get_dir_name(files.back()));
+        wxGetApp().load_current_presets();
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " presets has been import,and size is" << files.size();
+        NetworkAgent* agent = wxGetApp().getAgent();
+        if (agent) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " user is: " << agent->get_user_id();
+        }
+    }
+    wxGetApp().preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
+    update_side_preset_ui();
+    return files;
 }
 
 // Load a config file containing a Print, Filament & Printer preset from command line.

@@ -2,6 +2,7 @@
 
 #include "calib_dlg.hpp"
 #include "Camera.hpp"
+#include "CreatePresetsDialog.hpp"
 #include "DailyTips.hpp"
 #include "GCodeViewer.hpp"
 #include "GLCanvas3D.hpp"
@@ -14,36 +15,59 @@
 #include "I18N.hpp"
 #include "Shortcuts.hpp"
 #include "IMSlider.hpp"
+#include "Jobs/Job.hpp"
+#include "Jobs/Worker.hpp"
 #include "MainFrame.hpp"
+#include "ObjectDataViewModel.hpp"
 #include "NetworkTestDialog.hpp"
 #include "Plater.hpp"
 #include "PluginsDialog.hpp"
 #include "PartPlate.hpp"
 #include "PlateSettingsDialog.hpp"
+#include "Preferences.hpp"
 #include "SceneBenchmark.hpp"
+#include "format.hpp"
 #include "DeviceCore/DevManager.h"
 #include "Mcp/McpPaths.hpp"
 
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/LocalesUtils.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Utils.hpp"
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <nlohmann/json.hpp>
 #include <functional>
 #include <initializer_list>
 #include <libslic3r/Model.hpp>
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <exception>
 #include "libslic3r/libslic3r.h"
 #include <memory>
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include <optional>
+#include <set>
 #include <string>
+#include <system_error>
 #include <tuple>
 #include <utility>
 
 #include <vector>
+#include <wx/dataview.h>
 #include <wx/string.h>
 #include <wx/utils.h>
 
@@ -75,12 +99,83 @@ void ensure_3d_view(Plater* plater)
 AppActionRunResult object_op(Plater* plater, bool (*ok)(Plater*), void (*op)(Plater*))
 {
     if (!plater)
-        return {AppActionRunResult::Level::Info, _L("Open the 3D view first.")};
+        return {AppActionRunResult::Level::Info, _L("Open the 3D view first."), false};
     ensure_3d_view(plater);
     if (!ok(plater))
-        return {AppActionRunResult::Level::Info, _L("Select an object first.")};
+        return {AppActionRunResult::Level::Info, _L("Select an object first."), false};
     op(plater);
     return {AppActionRunResult::Level::Success};
+}
+
+// Arrange and orient as the toolbar runs them: on every plate, in the background. Plater::can_arrange()
+// is false with no objects or while another job runs, and each gets its own message.
+AppActionRunResult arrange_op(Plater* plater, void (*op)(Plater*), const wxString& no_objects)
+{
+    if (!plater)
+        return {AppActionRunResult::Level::Info, _L("Open the 3D view first."), false};
+    ensure_3d_view(plater);
+    if (plater->model().objects.empty())
+        return {AppActionRunResult::Level::Info, no_objects, false};
+    if (!plater->get_ui_job_worker().is_idle())
+        return {AppActionRunResult::Level::Info, _L("Wait for the running background job to finish."), false};
+    // A plate's Arrange or Auto Rotate icon leaves the plate-only state behind.
+    plater->set_prepare_state(Job::PREPARE_STATE_DEFAULT);
+    op(plater);
+    return {AppActionRunResult::Level::Success};
+}
+
+// The object list, once the Prepare view is shown; the object structure commands act on its selected
+// rows, as the context menu items they stand for do.
+ObjectList* object_list_in_3d_view()
+{
+    Plater*     plater = wxGetApp().plater();
+    ObjectList* list   = wxGetApp().obj_list();
+    if (plater == nullptr || list == nullptr)
+        return nullptr;
+    ensure_3d_view(plater);
+    return list;
+}
+
+// The object list's selected rows, or none unless every one is of one of `types` (ItemType bits).
+wxDataViewItemArray selected_rows(const ObjectList& list, int types)
+{
+    wxDataViewItemArray rows;
+    list.GetSelections(rows);
+    for (const wxDataViewItem& row : rows)
+        if ((list.GetModel()->GetItemType(row) & types) == 0)
+            return {};
+    return rows;
+}
+
+AppActionRunResult with_reply(const nlohmann::json& reply)
+{
+    AppActionRunResult r{AppActionRunResult::Level::Success};
+    r.reply = reply.dump();
+    return r;
+}
+
+// What an Order By left: the sorted plates' objects in their new order, and whether they run
+// descending (choosing the order the objects already have reverses it).
+AppActionRunResult ordered(Plater& plater, ObjectOrder order, bool all_plates)
+{
+    PartPlateList&         plates  = plater.get_partplate_list();
+    const ModelObjectPtrs& objects = plater.model().objects;
+    nlohmann::json         list    = nlohmann::json::array();
+    bool                   descending = false;
+    for (int plate = 0; plate < plates.get_plate_count(); ++plate) {
+        if (!all_plates && plate != plates.get_curr_plate_index())
+            continue;
+        std::vector<ModelObject*> on_plate;
+        for (size_t i = 0; i < objects.size(); ++i)
+            if (plates.find_instance(int(i), 0) == plate) {
+                on_plate.push_back(objects[i]);
+                list.push_back({{"object", i}, {"name", objects[i]->name}, {"plate", plate}});
+            }
+        std::vector<ModelObject*> ascending = on_plate;
+        sort_objects(ascending, order, false);
+        descending = descending || ascending != on_plate;
+    }
+    return with_reply({{"order", list}, {"descending", descending}});
 }
 
 // Jump the preview to a layer selected by a 0-100 percent of the layer range. The caller has already
@@ -159,6 +254,64 @@ AppActionRunResult calib_command(CalibKind kind)
     return {AppActionRunResult::Level::Success};
 }
 
+// What import_configs does with a preset that exists already: the `on_conflict` of its param
+// {"path": ..., "on_conflict": "skip" | "overwrite"}, skip by default. `overwrite`, which other path
+// params use for an output file, is refused rather than ignored. nullopt with an Error in `fail`.
+std::optional<bool> import_overwrites(const std::string& param, AppActionRunResult& fail)
+{
+    const auto first = param.find_first_not_of(" \t");
+    if (first == std::string::npos || param[first] != '{')
+        return false;
+    const nlohmann::json j        = nlohmann::json::parse(param, nullptr, false);
+    const nlohmann::json conflict = j.is_object() ? j.value("on_conflict", nlohmann::json("skip")) : nlohmann::json();
+    if (!j.is_object() || j.contains("overwrite") || (conflict != "skip" && conflict != "overwrite")) {
+        fail = {AppActionRunResult::Level::Error, "on_conflict is \"skip\" (default) or \"overwrite\": what happens to a preset that exists already"};
+        return std::nullopt;
+    }
+    return conflict == "overwrite";
+}
+
+// Imports preset files from `path` (UTF-8) as the Import Configs dialog does, answering for each preset
+// that exists already as the dialog's Yes or No would, so that every one of them is asked about and can
+// be named: the message lists the presets imported, replaced and kept.
+AppActionRunResult import_preset_file(MainFrame& mf, const std::string& path, bool overwrite)
+{
+    const PresetBundle& bundle = *wxGetApp().preset_bundle;
+    const auto          names  = [&bundle] {
+        std::set<std::pair<int, std::string>> out;
+        for (const PresetCollection* presets : std::initializer_list<const PresetCollection*>{&bundle.prints, &bundle.filaments, &bundle.printers})
+            for (const Preset& preset : presets->get_presets())
+                out.emplace(int(presets->type()), preset.name);
+        return out;
+    };
+    const auto               before = names();
+    std::vector<std::string> replaced, kept;
+    mf.import_configs({path}, [&](const std::string& name) {
+        (overwrite ? replaced : kept).push_back(name);
+        return overwrite ? 1 : 0; // never "to all", which would stop the questions
+    });
+    std::vector<std::string> added;
+    for (const auto& name : names())
+        if (before.count(name) == 0)
+            added.push_back(name.second);
+
+    wxString   message;
+    const auto add = [&message](const wxString& text, const std::vector<std::string>& list) {
+        if (!list.empty())
+            message += (message.empty() ? "" : " ") + format_wxstr(text, boost::algorithm::join(list, ", "));
+    };
+    // TRN %1% is a comma-separated list of preset names.
+    add(_L("Imported presets: %1%."), added);
+    // TRN %1% is a comma-separated list of preset names.
+    add(_L("Replaced presets: %1%."), replaced);
+    // TRN %1% is a comma-separated list of preset names.
+    add(_L("Kept the existing presets: %1%."), kept);
+    if (message.empty())
+        return {AppActionRunResult::Level::Error,
+                _L("No presets were imported.") + _L("\nHint: Make sure you have added the corresponding printer before importing the configs.")};
+    return {AppActionRunResult::Level::Success, message};
+}
+
 constexpr const char* kCommandPrefix = "orca_command";
 
 // Thin AppAction wrapper for one catalog entry: identity and presentation come from the catalog,
@@ -212,7 +365,10 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"new_project", "Start a new, empty project (asks first if the current one has unsaved changes)."},
         {"undo", "Undo the last change to the project."},
         {"redo", "Redo the last undone change."},
-        {"open_preferences", "Open the Preferences dialog."},
+        {"open_preferences", "Open the Preferences dialog on a tab, scrolled to one preference when given (shown on its own tab). Its "
+                             "controls are named after their preference keys: ui_input {\"target\": {\"name\": key, \"within\": "
+                             "\"Preferences\"}} changes one through the dialog; get_settings scope preferences reads them.",
+         CommandParamType::Text, "general, control, graphics, online or developer, optionally :<key>, e.g. control:auto_arrange"},
         {"mode_simple", "Switch the settings view to Simple mode."},
         {"mode_advanced", "Switch the settings view to Advanced mode."},
         {"mode_expert", "Switch the settings view to Expert mode."},
@@ -222,14 +378,22 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"export_3mf", "Export the model as a .3mf without slicing data. With a path, writes there without a dialog.", CommandParamType::Path, "absolute .3mf path, or {\"path\": ..., \"overwrite\": true}"},
         {"export_sliced_file", "Export the current plate's sliced file (.gcode.3mf). With a path, writes there without a dialog.", CommandParamType::Path, "absolute .3mf path, or {\"path\": ..., \"overwrite\": true}"},
         {"export_all_sliced_file", "Export every plate's sliced file into one .gcode.3mf. With a path, writes there without a dialog.", CommandParamType::Path, "absolute .3mf path, or {\"path\": ..., \"overwrite\": true}"},
+        {"send_gcode", "Open the Send G-code to printer host dialog for the current plate, as the Print button does for a printer with a print host (OctoPrint, Moonraker, PrusaLink, Duet...). Set the file name with ui_input and press Upload or Upload and Print with dialog_respond; the plate is sliced if needed, then uploaded in the background: get_state.uploads shows the row's state, and a failed upload also opens an error dialog. A replay uploads again. Fails for a printer without a print host, or one that prints through the Bambu network or printer agents."},
         {"export_stl_multi", "Export each object as its own STL. With a directory, writes there without a dialog.", CommandParamType::Path, "absolute path of an existing directory"},
         {"export_drc_single", "Export all objects as one Draco (.drc) file."},
         {"export_drc_multi", "Export each object as its own Draco (.drc) file."},
         {"export_toolpaths_obj", "Export the sliced toolpaths as an OBJ."},
-        {"export_config", "Export presets as a bundle (opens a dialog to choose them)."},
+        {"export_config", "Export presets as a bundle or ZIP archives. Opens a dialog: click the label of the kind to export, check "
+                          "the presets (their checkboxes are named after them), press OK, then answer the result message. With a "
+                          "directory, OK writes there instead of asking for a folder.",
+         CommandParamType::Path, "absolute path of an existing directory"},
         {"import_file", "Import models (3MF/STL/STEP/SVG/OBJ/AMF). With a path, imports that file without a dialog.", CommandParamType::Path, "absolute path of a model file"},
         {"import_zip_archive", "Import models from a ZIP archive (opens a file dialog)."},
-        {"import_configs", "Import configuration presets. With a path, loads that .ini/.json without a dialog.", CommandParamType::Path, "absolute path of a config file"},
+        {"import_configs", "Import presets. With a path, imports a preset .json, a .zip of them or an .orca_printer, "
+                           ".orca_filament or .orca_bundle without a dialog, and the message names the presets imported, "
+                           "replaced and kept; a .gcode loads the settings it was sliced with.",
+         CommandParamType::Path, "absolute path, or {\"path\": ..., \"on_conflict\": \"overwrite\"} to replace presets that exist "
+                                 "already (default \"skip\")"},
         {"view_default", "Reset the 3D camera to the default view and fit the plate."},
         {"view_fit_bed", "Fit the build plate in the 3D view."},
         {"view_toggle_perspective", "Switch the 3D camera between perspective and orthographic."},
@@ -248,9 +412,33 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"obj_fit_volume", "Scale the selection to fit the print volume."},
         {"obj_instances_up", "Add an instance of the selected object."},
         {"obj_instances_down", "Remove an instance of the selected object."},
-        {"obj_arrange", "Arrange all objects on the plates (runs in the background)."},
-        {"obj_orient", "Auto-orient the selection (runs in the background)."},
+        {"obj_arrange", "Arrange all objects on the unlocked plates with the saved Arrange options, as the toolbar does; the "
+                        "call returns when the arrangement is done. The arrange tool also takes options, one plate or fill bed."},
+        {"obj_orient", "Auto-orient the selection, or every object when nothing is selected; the call returns when it is done."},
+        // Object structure: the object list's Change Type, Rename, instance and Assemble items, and the plate
+        // menu's Order By. A param stands in for the item's dialog.
+        {"obj_type_part", "Make the selected parts (select {volumes} first) solid parts, as Change Type does. Parts are listed by type, so part indices change."},
+        {"obj_type_negative", "Make the selected parts negative parts, as Change Type does; not the object's last solid part. Parts are listed by type, so part indices change."},
+        {"obj_type_modifier", "Make the selected parts modifiers, as Change Type does; not the object's last solid part. Parts are listed by type, so part indices change."},
+        {"obj_type_support_blocker", "Make the selected parts support blockers, as Change Type does; not the object's last solid part, nor a text or SVG part. Parts are listed by type, so part indices change."},
+        {"obj_type_support_enforcer", "Make the selected parts support enforcers, as Change Type does; not the object's last solid part, nor a text or SVG part. Parts are listed by type, so part indices change."},
+        {"obj_type_precise_seam", "Make the selected parts Center precise seams (seams keep their subtype), as Change Type does; not the object's last solid part, nor a text or SVG part. Parts are listed by type, so part indices change."},
+        {"obj_rename", "Rename the selected object or part (select one). With a name, skips the Rename dialog; a name with characters a file name cannot hold is refused.", CommandParamType::Text, "the new name"},
+        {"obj_set_instances", "Give the selected object this many instances, in one undo step. With a number, skips the dialog. New instances overlap; arrange afterwards. The reply has object and instances.", CommandParamType::Index, "total number of instances, 1-1000"},
+        {"obj_assemble", "Assemble two or more selected objects into one object of parts named Assembly. They are removed and it is added last, so object indices change; the reply has its index (object) and name."},
+        {"obj_instances_to_objects", "Make each instance of the selected object a separate object (select {objects: [n]}); with some of its instances selected, only those. New objects are added last; the reply lists the objects the instances are in now (objects)."},
+        {"obj_order_by_name", "Order the current plate's objects by name, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.", CommandParamType::Text, "all, to order every plate"},
+        {"obj_order_by_filament", "Order the current plate's objects by filament, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.", CommandParamType::Text, "all, to order every plate"},
+        {"obj_order_by_height", "Order the current plate's objects by height, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.", CommandParamType::Text, "all, to order every plate"},
+        {"obj_order_by_size", "Order the current plate's objects by size (bounding box volume), which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.", CommandParamType::Text, "all, to order every plate"},
         {"add_primitive_svg", "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the part is created in the background (wait for idle), and the SVG gizmo opens on it.", CommandParamType::Path, "absolute path of an .svg file"},
+        // Shapes: a size skips the Primitive size dialog.
+        {"add_primitive_cube", "Add a cube object to the current plate; fails while an object is selected. With a size, skips the size dialog.", CommandParamType::Text, "X Y Z in mm, separated by spaces"},
+        {"add_primitive_cylinder", "Add a cylinder object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn.", CommandParamType::Text, "diameter and height in mm, separated by a space"},
+        {"add_primitive_sphere", "Add a sphere object to the current plate; fails while an object is selected. With a size, skips the size dialog.", CommandParamType::Text, "diameter in mm"},
+        {"add_primitive_cone", "Add a cone object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn.", CommandParamType::Text, "base diameter and height in mm, separated by a space"},
+        {"add_primitive_disc", "Add a disc object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn.", CommandParamType::Text, "diameter and height in mm, separated by a space"},
+        {"add_primitive_torus", "Add a torus object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn.", CommandParamType::Text, "inner diameter and tube diameter in mm, separated by a space"},
         {"plate_add", "Add a plate."},
         {"plate_duplicate", "Duplicate the current plate."},
         {"plate_delete", "Delete the current plate."},
@@ -276,6 +464,14 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"refresh_plugins", "Reload plugins."},
         {"install_plugin", "Open the plugin hub to install a plugin."},
         {"install_local_plugin", "Install a plugin from a local file (opens a file dialog)."},
+        // Filament slots
+        {"filament_add", "Add a filament slot, as the + button above the filament list does; the message names the new slot. It "
+                         "takes the next colour and the last slot's preset (change them with select_preset filament_slot and "
+                         "set_settings scope project filament_colour). It goes after the physical slots: mixed filaments move "
+                         "up by one, and objects on them follow."},
+        {"filament_delete", "Delete a filament slot, as its Delete menu item does; objects on it move to another slot. A mixed "
+                            "filament (project scope filament_is_mixed) is refused.", CommandParamType::Index,
+         "1-based filament slot; without it, the last physical slot, as the - button"},
     };
     for (NativeCommand& c : commands) {
         auto it = std::find_if(std::begin(details), std::end(details), [&](const Detail& d) { return c.key == d.key; });
@@ -284,7 +480,7 @@ void describe_commands(std::vector<NativeCommand>& commands)
             c.param       = {it->param, it->param_help};
             c.completion  = it->completion;
         } else if (c.key.rfind("calib_", 0) == 0) {
-            c.description = "Open the " + c.title + " wizard.";
+            c.description = "Open the " + c.title + " dialog; the calibrate tool runs the same test with typed parameters and no dialog.";
         } else if (c.key.rfind("view_", 0) == 0) {
             c.description = "Point the 3D camera: " + c.title + ".";
         } else if (c.key.rfind("add_primitive_", 0) == 0 || c.key.rfind("add_handy_", 0) == 0) {
@@ -406,8 +602,24 @@ std::vector<NativeCommand> build_command_catalog()
             plater->redo();
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
-    add_with_icon("open_preferences", L("Preferences"), L("Commands"), "cog", [](const std::string&) {
-        wxGetApp().open_preferences();
+    add_with_icon("open_preferences", L("Preferences"), L("Commands"), "cog", [](const std::string& param) {
+        if (param.empty()) {
+            wxGetApp().open_preferences();
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }
+        // "tab[:key]": the tab to show, and the preference whose control is scrolled into view and focused.
+        static const std::pair<const char*, PreferencesTab> tabs[] = {{"general", PreferencesTab::General},
+                                                                      {"control", PreferencesTab::Control},
+                                                                      {"graphics", PreferencesTab::Graphics},
+                                                                      {"online", PreferencesTab::Online},
+                                                                      {"developer", PreferencesTab::Developer}};
+        const std::size_t colon = param.find(':');
+        const std::string tab   = param.substr(0, colon);
+        const auto        it    = std::find_if(std::begin(tabs), std::end(tabs), [&](const auto& t) { return tab == t.first; });
+        if (it == std::end(tabs))
+            return AppActionRunResult{AppActionRunResult::Level::Error,
+                                      from_u8("Unknown tab \"" + tab + "\": general, control, graphics, online or developer")};
+        wxGetApp().open_preferences(it->second, colon == std::string::npos ? std::string() : param.substr(colon + 1));
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
 
@@ -503,6 +715,26 @@ std::vector<NativeCommand> build_command_catalog()
     };
     add_with_icon("export_sliced_file", L("Export Sliced File"), L("Slice & Export"), "save", export_sliced(false));
     add_with_icon("export_all_sliced_file", L("Export All Sliced Files"), L("Slice & Export"), "save", export_sliced(true));
+
+    // ---- Send to print host ----
+    // The Print button's send for a printer with a print host: the Send G-code dialog, then the upload queue. Where
+    // the button would not send to a print host, the command says why instead of doing nothing.
+    add_with_icon("send_gcode", L("Send G-code to printer host"), L("Slice & Export"), "printer", [](const std::string&) {
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return AppActionRunResult{};
+        PresetBundle& bundle = *wxGetApp().preset_bundle;
+        if (bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents"))
+            // TRN "Print plate" is the print button's action, which sends to such a printer through its own dialog.
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("This printer prints with Print plate, not through a print host.")};
+        // The Print button sends only to a printer with a print host address, as MainFrame::can_send_gcode() checks.
+        const auto* host = bundle.printers.get_edited_preset().config.option<ConfigOptionString>("print_host");
+        if (host == nullptr || host->value.empty())
+            return AppActionRunResult{AppActionRunResult::Level::Error,
+                                      _L("This printer has no print host. Set one in the printer's connection settings.")};
+        plater->send_gcode_legacy();
+        return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
 
     // ---- Calibration ----
     // The tab-strip calib_sf glyph is drawn white for the dark tab bar and vanishes on the palette's
@@ -621,21 +853,151 @@ std::vector<NativeCommand> build_command_catalog()
             wxGetApp().plater(), [](Plater* p) { return p->can_decrease_instances(); }, [](Plater* p) { p->decrease_instances(); });
     });
     add_with_icon("obj_arrange", L("Auto-Arrange"), L("Object"), "toolbar_arrange", [](const std::string&) {
-        return object_op(wxGetApp().plater(), [](Plater* p) { return p->can_arrange(); }, [](Plater* p) { p->arrange(); });
+        return arrange_op(wxGetApp().plater(), [](Plater* p) { p->arrange(); }, _L("There are no objects to arrange."));
     });
     add_with_icon("obj_orient", L("Auto-Orient"), L("Object"), "toolbar_orient", [](const std::string&) {
-        return object_op(wxGetApp().plater(), [](Plater* p) { return p->can_arrange(); }, [](Plater* p) { p->orient(); });
+        return arrange_op(wxGetApp().plater(), [](Plater* p) { p->orient(); }, _L("There are no objects to orient."));
     });
 
+    // ---- Object structure ---- (the object list's context menus and the plate menu's Order By)
+    // Change Type is in the part menus only: without part rows, set_volume_type() would change every
+    // part of a selected object, which no menu offers.
+    auto add_type = [&](std::string key, std::string title, ModelVolumeType type) {
+        add(std::move(key), std::move(title), L("Object"), [type](const std::string&) {
+            ObjectList* list = object_list_in_3d_view();
+            if (list == nullptr)
+                return AppActionRunResult{};
+            if (selected_rows(*list, itVolume).empty())
+                return AppActionRunResult{AppActionRunResult::Level::Info, _L("Select a part first."), false};
+            const wxString why = list->set_volume_type(type, true, /*show_errors=*/false);
+            if (!why.empty())
+                return AppActionRunResult{AppActionRunResult::Level::Error, why};
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        });
+    };
+    add_type("obj_type_part", L("Change Type to Part"), ModelVolumeType::MODEL_PART);
+    add_type("obj_type_negative", L("Change Type to Negative Part"), ModelVolumeType::NEGATIVE_VOLUME);
+    add_type("obj_type_modifier", L("Change Type to Modifier"), ModelVolumeType::PARAMETER_MODIFIER);
+    add_type("obj_type_support_blocker", L("Change Type to Support Blocker"), ModelVolumeType::SUPPORT_BLOCKER);
+    add_type("obj_type_support_enforcer", L("Change Type to Support Enforcer"), ModelVolumeType::SUPPORT_ENFORCER);
+    add_type("obj_type_precise_seam", L("Change Type to Precise Seam"), ModelVolumeType::PRECISE_SEAM_CENTER);
+    add("obj_rename", L("Rename"), L("Object"), [](const std::string& param) {
+        ObjectList* list = object_list_in_3d_view();
+        if (list == nullptr)
+            return AppActionRunResult{};
+        const wxDataViewItemArray rows = selected_rows(*list, itObject | itVolume);
+        if (rows.size() != 1)
+            return AppActionRunResult{AppActionRunResult::Level::Info, _L("Select one object or part first."), false};
+        if (param.empty())
+            list->rename_item();
+        else if (!list->rename_item(rows.front(), from_u8(param)))
+            return AppActionRunResult{AppActionRunResult::Level::Error,
+                                      _L("Invalid name, the following characters are not allowed:") + " <>:/\\|?*\""};
+        return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
+    add_with_icon("obj_set_instances", L("Set Number of Instances"), L("Object"), "instance_add", [](const std::string& param) {
+        Plater*     plater = wxGetApp().plater();
+        ObjectList* list   = object_list_in_3d_view();
+        if (list == nullptr)
+            return AppActionRunResult{};
+        const std::optional<int> count = param.empty() ? std::nullopt : NativeCommands::parse_count(param);
+        if (!param.empty() && (!count || *count > 1000))
+            return AppActionRunResult{AppActionRunResult::Level::Error, from_u8("The number of instances is a whole number from 1 to 1000.")};
+        if (count == 0)
+            return AppActionRunResult{AppActionRunResult::Level::Error, from_u8("0 instances would delete the object; use obj_delete.")};
+        const int obj_idx = plater->get_selected_object_idx();
+        if (obj_idx < 0)
+            return AppActionRunResult{AppActionRunResult::Level::Info, _L("Select an object first."), false};
+        // The menu item is enabled by can_increase_instances(); each of its reasons gets a message.
+        const ModelObject* object = plater->model().objects[obj_idx];
+        if (list->has_selected_cut_object())
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("A cut object keeps its number of instances.")};
+        if (std::any_of(object->instances.begin(), object->instances.end(), [](const ModelInstance* i) { return !i->printable; }))
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("Make every instance of the object printable first.")};
+        if (!plater->can_increase_instances())
+            return AppActionRunResult{AppActionRunResult::Level::Info, _L("Wait for the running background job to finish."), false};
+        if (!count) {
+            plater->set_number_of_copies();
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }
+        plater->set_number_of_copies(*count);
+        return with_reply({{"object", obj_idx}, {"instances", object->instances.size()}});
+    });
+    add("obj_assemble", L("Assemble"), L("Object"), [](const std::string&) {
+        ObjectList* list = object_list_in_3d_view();
+        if (list == nullptr)
+            return AppActionRunResult{};
+        // Assemble is in the menu of two or more selected objects only; can_merge_to_multipart_object()
+        // alone accepts one, which merge() would replace with an "Assembly" of one.
+        if (selected_rows(*list, itObject | itInstance).size() < 2)
+            return AppActionRunResult{AppActionRunResult::Level::Info, _L("Select two or more objects first."), false};
+        if (!list->can_merge_to_multipart_object())
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("Cut objects can't be assembled.")};
+        list->merge(true);
+        const ModelObjectPtrs& objects = wxGetApp().plater()->model().objects;
+        return with_reply({{"object", objects.size() - 1}, {"name", objects.back()->name}});
+    });
+    add("obj_instances_to_objects", L("Set as Individual Objects"), L("Object"), [](const std::string&) {
+        Plater*     plater = wxGetApp().plater();
+        ObjectList* list   = object_list_in_3d_view();
+        if (list == nullptr)
+            return AppActionRunResult{};
+        if (!plater->can_set_instance_to_object())
+            return AppActionRunResult{AppActionRunResult::Level::Info, _L("Select an object with more than one instance first."), false};
+        const int    obj_idx = plater->get_selected_object_idx();
+        const size_t before  = plater->model().objects.size();
+        list->split_instances();
+        nlohmann::json objects = nlohmann::json::array({obj_idx});
+        for (size_t i = before; i < plater->model().objects.size(); ++i)
+            objects.push_back(i);
+        return with_reply({{"objects", objects}});
+    });
+    auto add_order = [&](std::string key, std::string title, ObjectOrder order) {
+        add(std::move(key), std::move(title), L("Object"), [order](const std::string& param) {
+            Plater*     plater = wxGetApp().plater();
+            ObjectList* list   = object_list_in_3d_view();
+            if (list == nullptr)
+                return AppActionRunResult{};
+            if (!param.empty() && param != "all")
+                return AppActionRunResult{AppActionRunResult::Level::Error,
+                                          from_u8("The param is all, to order every plate, or nothing for the current plate.")};
+            const bool all = param == "all";
+            if (all ? plater->model().objects.empty() : plater->get_partplate_list().get_selected_plate()->empty())
+                return AppActionRunResult{AppActionRunResult::Level::Info, _L("There are no objects to order."), false};
+            // order_objects() only shows a notification while a gizmo is open.
+            if (plater->get_view3D_canvas3D()->get_gizmos_manager().get_current_type() != GLGizmosManager::Undefined)
+                return AppActionRunResult{AppActionRunResult::Level::Error, _L("Error: Please close all toolbar menus first")};
+            list->order_objects(order, all);
+            return ordered(*plater, order, all);
+        });
+    };
+    add_order("obj_order_by_name", L("Order by Name"), ObjectOrder::Name);
+    add_order("obj_order_by_filament", L("Order by Filament"), ObjectOrder::Filament);
+    add_order("obj_order_by_height", L("Order by Height"), ObjectOrder::Height);
+    add_order("obj_order_by_size", L("Order by Size"), ObjectOrder::Size);
+
     // ---- Add Primitive ---- (the Add > Add Primitive submenu; creates a new object)
+    // A size param holds the dimensions the size dialog asks for, in its order, and skips the dialog.
     auto add_primitive = [&](std::string key, std::string title, std::string icon, const char* type_name) {
-        add_with_icon(std::move(key), std::move(title), L("Add Primitive"), std::move(icon), [type_name](const std::string&) {
-            Plater* plater = wxGetApp().plater();
-            if (plater) {
-                ensure_3d_view(plater);
-                if (ObjectList* list = wxGetApp().obj_list())
-                    list->load_generic_subobject(type_name, ModelVolumeType::INVALID);
+        add_with_icon(key, std::move(title), L("Add Primitive"), std::move(icon), [key, type_name](const std::string& param) {
+            Plater*     plater = wxGetApp().plater();
+            ObjectList* list   = wxGetApp().obj_list();
+            if (plater == nullptr || list == nullptr)
+                return AppActionRunResult{};
+            ensure_3d_view(plater);
+            if (!list->can_add_shape_object())
+                return AppActionRunResult{AppActionRunResult::Level::Error,
+                                          _L("Deselect all objects to add a primitive object. To add a shape to the selected object, "
+                                             "use its Add Part menu.")};
+            std::vector<double> size;
+            if (!param.empty()) {
+                const std::optional<std::vector<double>> parsed = NativeCommands::parse_sizes(param);
+                if (!parsed || parsed->size() != primitive_size_names(type_name).size())
+                    return AppActionRunResult{AppActionRunResult::Level::Error,
+                                              from_u8(std::string("The size is ") + NativeCommands::find(key)->param.help + ".")};
+                size = *parsed;
             }
+            list->load_generic_subobject(type_name, ModelVolumeType::INVALID, true, size);
             return AppActionRunResult{AppActionRunResult::Level::Success};
         });
     };
@@ -768,6 +1130,59 @@ std::vector<NativeCommand> build_command_catalog()
         return AppActionRunResult{AppActionRunResult::Level::Info, _L("Connect a printer to synchronize the AMS filament list.")};
     });
 
+    // ---- Filament slots ----
+    // The + and - buttons above the filament list and a slot's Delete menu item. They show for printers
+    // that take several filaments through one extruder (Sidebar::show_SEMM_buttons()), and a G-code file
+    // shown in place of a project has its own filament list.
+    const auto filament_slots_unavailable = [](Plater* plater) -> std::optional<AppActionRunResult> {
+        if (!is_fff_plater(plater) || plater->using_exported_file())
+            return AppActionRunResult{AppActionRunResult::Level::Info, _L("Filament slots belong to a filament (FFF) project, not to a G-code file.")};
+        if (!Sidebar::should_show_SEMM_buttons())
+            return AppActionRunResult{AppActionRunResult::Level::Info,
+                                      _L("This printer has one filament per extruder; change the number of extruders in the printer settings.")};
+        return std::nullopt;
+    };
+    add_with_icon("filament_add", L("Add Filament Slot"), L("Filament"), "add_filament", [filament_slots_unavailable](const std::string&) {
+        Plater* plater = wxGetApp().plater();
+        if (const auto refused = filament_slots_unavailable(plater))
+            return *refused;
+        const PresetBundle& bundle = *wxGetApp().preset_bundle;
+        if (bundle.filament_presets.size() >= MAXIMUM_EXTRUDER_NUMBER)
+            return AppActionRunResult{AppActionRunResult::Level::Info, _L("No more filament slots can be added.")};
+        // A new physical slot goes after the physical ones; mixed filaments move up by one.
+        const size_t slot = bundle.num_physical_filaments() + 1;
+        plater->sidebar().add_filament();
+        plater->sidebar().update_filaments_counter();
+        return AppActionRunResult{AppActionRunResult::Level::Success, format_wxstr(_L("Added filament slot %1%."), slot)};
+    });
+    add_with_icon("filament_delete", L("Delete Filament Slot"), L("Filament"), "delete_filament", [filament_slots_unavailable](const std::string& param) {
+        Plater* plater = wxGetApp().plater();
+        if (const auto refused = filament_slots_unavailable(plater))
+            return *refused;
+        const PresetBundle& bundle   = *wxGetApp().preset_bundle;
+        const size_t        physical = bundle.num_physical_filaments();
+        if (physical < 2)
+            return AppActionRunResult{AppActionRunResult::Level::Info, _L("The only filament slot cannot be deleted.")};
+        // Without a slot, the last physical one, as the - button.
+        size_t slot = physical;
+        if (!param.empty()) {
+            try {
+                slot = size_t(std::stoul(param));
+            } catch (const std::exception&) {
+                slot = 0;
+            }
+            if (slot < 1 || slot > bundle.filament_presets.size())
+                return AppActionRunResult{AppActionRunResult::Level::Error,
+                                          format_wxstr(_L("Filament slot must be 1 to %1%."), bundle.filament_presets.size())};
+            if (bundle.is_mixed_filament(slot - 1))
+                return AppActionRunResult{AppActionRunResult::Level::Error,
+                                          format_wxstr(_L("Filament slot %1% is a mixed filament; delete it from the mixed filament list."), slot)};
+        }
+        plater->sidebar().delete_filament(slot - 1);
+        plater->sidebar().update_filaments_counter();
+        return AppActionRunResult{AppActionRunResult::Level::Success, format_wxstr(_L("Deleted filament slot %1%."), slot)};
+    });
+
     // ---- Presets / cloud ----
     add_with_icon("preset_bundle", L("Open Preset Bundle"), L("Presets"), "menu_edit_preset", [](const std::string&) {
         wxGetApp().open_presetbundledialog();
@@ -815,12 +1230,21 @@ std::vector<NativeCommand> build_command_catalog()
             return AppActionRunResult{AppActionRunResult::Level::Success};
         }
         AppActionRunResult fail;
-        const auto         path = path_param(param, false, fail);
-        if (!path)
+        const auto         path      = path_param(param, false, fail);
+        const auto         overwrite = path ? import_overwrites(param, fail) : std::nullopt;
+        if (!overwrite)
             return fail;
-        if (!mf->load_config_file(path->string()))
-            return AppActionRunResult{AppActionRunResult::Level::Error, _L("The configuration was not loaded.")};
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        const std::string file = Mcp::path_to_utf8(*path);
+        if (is_gcode_file(file)) {
+            if (!mf->load_config_file(file))
+                return AppActionRunResult{AppActionRunResult::Level::Error, _L("The configuration was not loaded.")};
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }
+        for (const char* ext : {".json", ".zip", ".orca_printer", ".orca_filament", ".orca_bundle"})
+            if (boost::iends_with(file, ext))
+                return import_preset_file(*mf, file, *overwrite);
+        return AppActionRunResult{AppActionRunResult::Level::Error,
+                                  "Not a preset file: give a .json, .zip, .orca_printer, .orca_filament, .orca_bundle or .gcode"};
     });
 
     // ---- Export extras ----
@@ -855,10 +1279,22 @@ std::vector<NativeCommand> build_command_catalog()
             plater->export_toolpaths_to_obj();
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
-    add_with_icon("export_config", L("Export Preset Bundle"), L("Export"), "save", [](const std::string&) {
-        if (MainFrame* mf = wxGetApp().mainframe)
-            mf->export_config();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+    add_with_icon("export_config", L("Export Preset Bundle"), L("Export"), "save", [](const std::string& param) {
+        if (param.empty()) {
+            if (MainFrame* mf = wxGetApp().mainframe)
+                mf->export_config();
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }
+        std::string err;
+        auto        pp  = Mcp::parse_path_param(param, err);
+        auto        dir = pp ? Mcp::resolve_output_dir(pp->path, err) : std::nullopt;
+        if (!dir)
+            return AppActionRunResult{AppActionRunResult::Level::Error, from_u8(err)};
+        // The dialog MainFrame::export_config() opens, given the folder its OK writes to.
+        ExportConfigsDialog dlg(nullptr, from_path(*dir));
+        if (dlg.ShowModal() != wxID_OK)
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("Nothing was exported.")};
+        return AppActionRunResult{AppActionRunResult::Level::Success, from_path(*dir)};
     });
 
     // ---- Help ---- (mirrors the top-bar Help menu, plus the wiki/YouTube links)
@@ -969,6 +1405,36 @@ const char* NativeCommands::param_type_name(CommandParamType type)
     case CommandParamType::Text: return "text";
     default: return "none";
     }
+}
+
+std::optional<std::vector<double>> NativeCommands::parse_sizes(const std::string& param)
+{
+    std::vector<std::string> tokens;
+    boost::split(tokens, param, boost::is_any_of(" ,\t"), boost::token_compress_on);
+    std::vector<double> sizes;
+    for (const std::string& token : tokens) {
+        if (token.empty())
+            continue;
+        size_t       end   = 0;
+        const double value = string_to_double_decimal_point(token, &end);
+        if (end != token.size() || !std::isfinite(value) || value <= 0.)
+            return std::nullopt;
+        sizes.push_back(value);
+    }
+    if (sizes.empty())
+        return std::nullopt;
+    return sizes;
+}
+
+std::optional<int> NativeCommands::parse_count(const std::string& param)
+{
+    const std::string text  = boost::algorithm::trim_copy(param);
+    int               value = 0;
+    const char*       end   = text.data() + text.size();
+    const auto        res   = std::from_chars(text.data(), end, value);
+    if (text.empty() || res.ec != std::errc() || res.ptr != end || value < 0)
+        return std::nullopt;
+    return value;
 }
 
 AppActionRunResult NativeCommands::run(const std::string& key, const std::string& param)

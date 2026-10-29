@@ -101,6 +101,14 @@ public:
     wxString GetValue() const;
     void     SetValue(const wxString &value);
 
+    // For automation, which reads and picks rows without a pointer. The items, shared with a group's
+    // sublist, which shows those of one group.
+    const std::vector<Item> &GetItems() const { return items; }
+    bool IsSubList() const { return mainDropDown != nullptr; }
+    // What a click on item `n` does: the item is picked (wxEVT_COMBOBOX) and the list closes. False for
+    // no item or one that can't be picked: disabled, or a separator.
+    bool ClickItem(int n);
+
 public:
     void SetCornerRadius(double radius);
 

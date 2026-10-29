@@ -9,6 +9,7 @@
 #include <wx/button.h>
 #include <wx/dialog.h>
 #include <wx/dirdlg.h>
+#include <wx/event.h>
 #include <wx/filedlg.h>
 #include <wx/html/htmlwin.h>
 #include <wx/msgdlg.h>
@@ -24,6 +25,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <exception>
+#include <functional>
 #include <mutex>
 #include <regex>
 #include <string>
@@ -162,6 +164,31 @@ int resolve_dialog_button(wxDialog* dialog, const std::string& button)
     return wxID_NONE;
 }
 
+bool press_dialog_button(wxDialog* dialog, int id)
+{
+    wxWindow* pressed = nullptr;
+    std::function<void(wxWindow*)> find = [&](wxWindow* w) {
+        for (wxWindow* child : w->GetChildren()) {
+            if (pressed != nullptr || dynamic_cast<wxTopLevelWindow*>(child) != nullptr)
+                continue;
+            if (child->GetId() == id && child->IsShown() && child->IsEnabled() &&
+                (dynamic_cast<wxButton*>(child) != nullptr || class_name(child).find("Button") != std::string::npos))
+                pressed = child;
+            else
+                find(child);
+        }
+    };
+    find(dialog);
+    if (pressed == nullptr) {
+        dialog->EndModal(id);
+        return false;
+    }
+    wxCommandEvent evt(wxEVT_BUTTON, id);
+    evt.SetEventObject(pressed);
+    pressed->GetEventHandler()->ProcessEvent(evt);
+    return true;
+}
+
 AutoAnswerRule make_rule(const std::string& pattern, const std::string& button)
 {
     AutoAnswerRule rule;
@@ -237,9 +264,9 @@ int ModalTracker::Enter(wxDialog* dialog)
 {
     // An exception must never escape into ShowModal().
     try {
-        const json        info = describe_dialog(dialog);
-        const std::string text = info["title"].get<std::string>() + "\n" + info["message"].get<std::string>();
-        {
+        const json        info   = describe_dialog(dialog);
+        const std::string text   = info["title"].get<std::string>() + "\n" + info["message"].get<std::string>();
+        const int         answer = [&] {
             std::lock_guard<std::mutex> lock(m_mutex);
             for (auto layer = m_layers.rbegin(); layer != m_layers.rend(); ++layer)
                 for (AutoAnswerRule& rule : layer->second)
@@ -251,12 +278,26 @@ int ModalTracker::Enter(wxDialog* dialog)
                             ++rule.uses;
                             BOOST_LOG_TRIVIAL(info) << "MCP: auto-answered dialog \"" << info["title"].get<std::string>() << "\" with "
                                                     << rule.button << " (rule \"" << rule.pattern << "\")";
-                            return id; // ShowModal() returns it without showing the dialog
+                            return id;
                         }
                     }
-        }
+            return int(wxID_NONE);
+        }();
+        // A native dialog has no handlers to run: ShowModal() returns the id without showing it.
+        if (answer != wxID_NONE && is_native_dialog(dialog))
+            return answer;
         m_stack.push_back(dialog);
         publish();
+        // A wx dialog's buttons do its work in their handlers (Transfer, Discard, Clone's Fill), which
+        // a returned id would skip. So it opens, and the button is pressed once its modal loop runs, as
+        // dialog_respond does. Queued on the dialog, the press goes with it if it is destroyed first;
+        // a modal opened above it before then leaves it to dialog_respond. The tracker lives as long
+        // as the app.
+        if (answer != wxID_NONE)
+            dialog->CallAfter([this, dialog, answer] {
+                if (top() == dialog)
+                    press_dialog_button(dialog, answer);
+            });
     } catch (...) {
     }
     return wxID_NONE;

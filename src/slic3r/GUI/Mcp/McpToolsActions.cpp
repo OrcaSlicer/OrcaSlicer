@@ -125,7 +125,9 @@ void register_action_tools(McpService& service)
         "or an absolute path - commands with a path parameter skip their file dialog; outputs need {\"path\": ..., "
         "\"overwrite\": true} to replace a file). Actions that open a dialog return blocked_by_dialog; answer it with "
         "dialog_respond, or, for a native one, register dialog_auto_answer before the call. An export_gcode with a path "
-        "completes when the file is written.",
+        "completes when the file is written; an action that starts a background job (obj_arrange, obj_orient) when the "
+        "job ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the "
+        "reply (the obj_order_by_* order, the object obj_assemble made).",
         object_schema({{"id", prop("string", "Action id from list_actions.")},
                        {"param", prop("string", "Parameter, when the action takes one.")}},
                       {"id"}),
@@ -166,23 +168,30 @@ void register_action_tools(McpService& service)
                     revision = plater->project_revision();
                 }
                 const AppActionRunResult r = actions.run(id, param, /*record_stats=*/false);
-                json out{{"level", level_name(r.level)}, {"message", into_u8(r.message)}, {"background", background}};
+                json out{{"level", level_name(r.level)}, {"message", into_u8(r.message)}, {"done", r.done}, {"background", background}};
+                if (!r.reply.empty())
+                    out["reply"] = json::parse(r.reply, nullptr, /*allow_exceptions=*/false);
                 if (background && plater != nullptr)
                     out.update({{"before", before}, {"after", plater->export_seq()}, {"revision", revision}});
                 return out;
             });
+            // A command that did nothing (no selection, no objects) fails here, though the palette
+            // shows it as information.
+            const bool done = started["done"].get<bool>();
             if (started["background"].get<bool>()) {
-                if (started["level"] == "error")
+                if (started["level"] == "error" || !done)
                     return ToolResult::error(started["message"].get<std::string>());
                 return await_gcode_export(ctx, started["before"], started["after"], started["revision"], started["message"]);
             }
             settle(ctx);
             const std::string level = started["level"];
-            if (level == "error" || level == "busy")
+            if (level == "error" || level == "busy" || !done)
                 return ToolResult::error(started["message"].get<std::string>().empty() ? "The action failed" : started["message"].get<std::string>());
             json out{{"ran", id}, {"level", level}};
             if (!started["message"].get<std::string>().empty())
                 out["message"] = started["message"];
+            if (started.contains("reply") && started["reply"].is_object())
+                out.update(started["reply"]);
             return ToolResult::ok(out);
         }));
 }

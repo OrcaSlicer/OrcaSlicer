@@ -9419,6 +9419,16 @@ void GUI_App::apply_keeped_preset_modifications()
     load_current_presets(false);
 }
 
+void GUI_App::discard_current_preset_changes()
+{
+    PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
+    for (const Tab* const tab : tabs_list) {
+        if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
+            tab->m_presets->discard_current_changes();
+    }
+    load_current_presets(false);
+}
+
 // This is called when creating new project or load another project
 // OR close ConfigWizard
 // to ask the user what should we do with unsaved changes for presets.
@@ -9436,20 +9446,8 @@ bool GUI_App::check_and_keep_current_preset_changes(const wxString& caption, con
         if (!no_need_change && dlg.ShowModal() == wxID_CANCEL)
             return false;
 
-        auto reset_modifications = [this]() {
-            //if (is_called_from_configwizard)
-            //    return; // no need to discared changes. It will be done fromConfigWizard closing
-
-            PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
-            for (const Tab* const tab : tabs_list) {
-                if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
-                    tab->m_presets->discard_current_changes();
-            }
-            load_current_presets(false);
-        };
-
         if (dlg.discard() || no_need_change)
-            reset_modifications();
+            discard_current_preset_changes();
         else  // save selected changes
         {
             //BBS: add project embedded preset relate logic
@@ -9468,7 +9466,7 @@ bool GUI_App::check_and_keep_current_preset_changes(const wxString& caption, con
                 //    text += "\n\n" + _L("All modifications will be discarded for new project.");
 
                 //MessageDialog(nullptr, text).ShowModal();
-                reset_modifications();
+                discard_current_preset_changes();
             }
             else if (dlg.transfer_changes() && (dlg.has_unselected_options() || is_called_from_configwizard)) {
                 // execute this part of code only if not all modifications are keeping to the new project

@@ -1,0 +1,135 @@
+// Sets plate settings through set_settings' plate scope, as the Plate Settings dialog and the plate's
+// lock and name icons do, and reads them back with list_plates and get_settings: a plate type and
+// print sequence on one plate only, undone and redone, the first and other layers' filament orders,
+// spiral vase after its question, the lock set twice and a name. It starts by bringing the filament
+// list to two slots with the filament_add and filament_delete commands, checks the refusals that leave
+// everything as it was, and ends with a mixed filament: its slot cannot be deleted, a new slot goes
+// ahead of it, and the custom filament orders are refused meanwhile. It starts from the harness's
+// default printer (Bambu Lab X1 Carbon) and reruns on the same datadir. Run it with
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/plates.json --out /tmp/plates
+{
+  "orca_script": 1,
+  "name": "plate settings and filament slots",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "unsaved changes", "button": "no"},
+                                                      {"match": "restore", "button": "no"},
+                                                      {"match": "Uniform scale", "button": "ok"},
+                                                      {"match": "Spiral mode only works", "button": "yes"}]}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+
+    // ---- Filament slots: down to one with the - button's command, then a second ----
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}},
+    {"tool": "get_state", "expect": {"/presets/filaments/0": {"exists": true}, "/presets/filaments/1": {"exists": false}}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "expect": {"/level": {"eq": "info"}}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_add:orca"},
+     "expect": {"/level": {"eq": "success"}, "/message": {"eq": "Added filament slot 2."}}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_add:orca"}, "expect": {"/message": {"eq": "Added filament slot 3."}}},
+    // A slot past the last is refused; slot 2 by number.
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "param": "4"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "param": "2"}, "expect": {"/message": {"eq": "Deleted filament slot 2."}}},
+    {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_is_mixed"]}, "expect": {"/items/0/value": {"eq": "0,0"}}},
+
+    // ---- A cube on each of two plates ----
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_add:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}},
+    {"tool": "select", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_plates", "save_as": "start",
+     "expect": {"/total": {"eq": 2}, "/items/0/objects/0": {"eq": [0, 0]}, "/items/1/objects/0": {"eq": [1, 0]},
+                "/items/0/overrides": {"empty": true}, "/items/1/overrides": {"empty": true}, "/items/1/current": {"eq": true},
+                "/items/0/locked": {"eq": false}, "/items/0/print_sequence": {"eq": "by layer"}, "/items/0/spiral_mode": {"eq": false},
+                "/items/0/first_layer_print_sequence": {"eq": null}, "/items/0/layer_gcode": {"empty": true},
+                "/items/0/wipe_tower": {"exists": true}}},
+
+    // ---- Plate 1's own plate type and print sequence; plate 0 keeps the global ones ----
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 1, "values": {"curr_bed_type": "Textured PEI Plate", "print_sequence": "by object"}},
+     "expect": {"/plate": {"eq": 1}, "/applied/curr_bed_type": {"eq": "Textured PEI Plate"}, "/applied/print_sequence": {"eq": "by object"},
+                "/changed/curr_bed_type": {"eq": "Textured PEI Plate"}}},
+    {"tool": "list_plates",
+     "expect": {"/items/1/curr_bed_type": {"eq": "Textured PEI Plate"}, "/items/1/print_sequence": {"eq": "by object"},
+                "/items/1/overrides": {"eq": ["curr_bed_type", "print_sequence"]}, "/items/1/current": {"eq": true},
+                "/items/0/overrides": {"empty": true}, "/items/0/print_sequence": {"eq": "by layer"}}},
+    {"tool": "get_settings", "args": {"scope": "plate", "plate": 1, "keys": ["curr_bed_type", "spiral_mode"]},
+     "expect": {"/plate": {"eq": 1}, "/items/0/value": {"eq": "Textured PEI Plate"}, "/items/0/meta/offered": {"contains": "Cool Plate"},
+                "/items/1/value": {"eq": null}, "/items/1/effective": {"eq": false}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_plates", "expect": {"/items/1/overrides": {"empty": true}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "list_plates", "expect": {"/items/1/print_sequence": {"eq": "by object"}}},
+    // null is "Same as Global".
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 1, "values": {"print_sequence": null}},
+     "expect": {"/applied/print_sequence": {"eq": null}, "/effective/print_sequence": {"eq": "by layer"}}},
+
+    // ---- Refusals, each leaving the plate as it was ----
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 1, "values": {"curr_bed_type": "Glass Plate", "locked": true}}, "optional": true},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"first_layer_print_sequence": [1, 1]}}, "optional": true},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"other_layers_print_sequence": [{"from": 2, "order": [1, 2]}, {"from": 5, "to": 9, "order": [2, 1]}]}}, "optional": true},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"skirt_start_angle": 90}}, "optional": true},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 2, "values": {"locked": true}}, "optional": true},
+    {"tool": "list_plates",
+     "expect": {"/items/1/locked": {"eq": false}, "/items/1/overrides": {"eq": ["curr_bed_type"]}, "/items/0/overrides": {"empty": true}}},
+
+    // ---- The first and the other layers' filament orders ----
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {
+       "first_layer_print_sequence": [2, 1],
+       "other_layers_print_sequence": [{"from": 10, "order": [1, 2]}, {"from": 2, "to": 9, "order": [2, 1]}]}},
+     "expect": {"/applied/first_layer_print_sequence": {"eq": [2, 1]},
+                "/applied/other_layers_print_sequence": {"eq": [{"from": 2, "to": 9, "order": [2, 1]}, {"from": 10, "order": [1, 2]}]}}},
+    {"tool": "list_plates",
+     "expect": {"/items/0/current": {"eq": true}, "/items/0/first_layer_print_sequence": {"eq": [2, 1]},
+                "/items/0/other_layers_print_sequence/1/to": {"exists": false},
+                "/items/0/overrides": {"eq": ["first_layer_print_sequence", "other_layers_print_sequence"]}}},
+    {"tool": "set_settings", "args": {"scope": "plate", "values": {"first_layer_print_sequence": null, "other_layers_print_sequence": null}},
+     "expect": {"/plate": {"eq": 0}, "/changed/first_layer_print_sequence": {"eq": null}}},
+
+    // ---- Spiral vase on one plate, after its question ----
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"spiral_mode": true}},
+     "expect": {"/applied/spiral_mode": {"eq": true}, "/effective/spiral_mode": {"eq": true}}},
+    {"tool": "list_plates", "expect": {"/items/0/spiral_mode": {"eq": true}, "/items/1/spiral_mode": {"eq": false}}},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"spiral_mode": null}}, "expect": {"/applied/spiral_mode": {"eq": null}}},
+
+    // ---- The lock is set, not toggled: twice leaves it locked ----
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 1, "values": {"locked": true}}, "expect": {"/changed/locked": {"eq": true}}},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 1, "values": {"locked": true}},
+     "expect": {"/applied/locked": {"eq": true}, "/changed": {"empty": true}}},
+    {"tool": "list_plates", "expect": {"/items/1/locked": {"eq": true}, "/items/0/locked": {"eq": false}}},
+    {"tool": "get_settings", "args": {"scope": "plate", "plate": 1, "keys": ["locked", "name"]},
+     "expect": {"/items/0/value": {"eq": true}, "/items/1/value": {"eq": ""}}},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 1, "values": {"locked": false}}, "expect": {"/changed/locked": {"eq": false}}},
+
+    // ---- A name without the rename dialog ----
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 1, "values": {"name": "Batch"}}, "expect": {"/changed/name": {"eq": "Batch"}}},
+    {"tool": "list_plates", "expect": {"/items/1/name": {"eq": "Batch"}, "/items/1/current": {"eq": true}}},
+
+    // ---- Sliced, with no layer G-codes ----
+    {"tool": "slice", "args": {"plates": 1}, "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "list_plates", "expect": {"/items/1/sliced": {"eq": true}, "/items/1/layer_gcode": {"empty": true}}},
+
+    // ---- A mixed filament: its slot is refused, a new slot goes ahead of it, custom orders wait ----
+    {"tool": "ui_click", "args": {"target": {"label": "Add Mixed Filament"}}, "await": false, "save_as": "mix"},
+    {"tool": "wait", "args": {"for": "dialog"}},
+    {"tool": "get_state", "expect": {"/dialogs/0/title": {"eq": "Add Mixed Filament"}}},
+    {"tool": "dialog_respond", "args": {"button": "OK"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.mix}"}},
+    {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_is_mixed"]}, "expect": {"/items/0/value": {"eq": "0,0,1"}}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "param": "3"}, "optional": true},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"first_layer_print_sequence": [2, 1]}}, "optional": true},
+    {"tool": "list_plates", "expect": {"/items/0/first_layer_print_sequence": {"eq": null}}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_add:orca"}, "expect": {"/message": {"eq": "Added filament slot 3."}}},
+    {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_is_mixed"]}, "expect": {"/items/0/value": {"eq": "0,0,0,1"}}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "expect": {"/message": {"eq": "Deleted filament slot 3."}}},
+    {"tool": "ui_click", "args": {"target": {"label": "Remove last mixed filament"}}},
+    {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_is_mixed"]}, "expect": {"/items/0/value": {"eq": "0,0"}}},
+
+    {"tool": "new_project", "args": {"discard_changes": true}}
+  ]
+}

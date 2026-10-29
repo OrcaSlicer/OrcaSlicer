@@ -32,6 +32,13 @@ struct AppActionRunResult
 
     Level level = Level::Info;
     wxString message; // empty = "nothing worth showing"
+    // False when the command did nothing (no selection, no objects): the palette shows the message
+    // at its level all the same, and automation reports the run as failed.
+    bool done = true;
+    // For automation only: a JSON object saying what the command did that its message does not
+    // (the new object order, the object an Assemble made). run_action adds its fields to the reply;
+    // the palette never shows it.
+    std::string reply;
 };
 
 // Tag carrying a precomputed action id, used by the explicit-id ctor below. It exists so the

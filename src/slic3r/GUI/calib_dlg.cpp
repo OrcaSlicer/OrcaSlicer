@@ -82,40 +82,17 @@ CheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
     return cb;
 }
 
-std::vector<std::string> get_shaper_type_values()
+// The printer the tests run on: the edited printer preset, or an empty config before the presets load.
+const DynamicPrintConfig& edited_printer_config()
 {
-    if (auto* preset_bundle = wxGetApp().preset_bundle) {
-        auto printer_config = &preset_bundle->printers.get_edited_preset().config;
-        const auto* gcode_flavor_option = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
-        const ConfigOptionDef* def = printer_config->def()->get("input_shaping_type");
-        if (gcode_flavor_option) {
-            auto types = input_shaper_types_for_flavor(gcode_flavor_option->value);
-            if (!types.empty()) {
-                std::vector<std::string> values;
-                values.reserve(types.size());
-                for (InputShaperType type : types) {
-                    if (type == InputShaperType::Disable)
-                        continue;
-                    const size_t idx = static_cast<size_t>(type);
-                    if (def && idx < def->enum_values.size())
-                        values.push_back(def->enum_values[idx]);
-                    else
-                        values.push_back(std::to_string(static_cast<int>(type)));
-                }
-                if (!values.empty())
-                    return values;
-            }
-        }
-
-        if (def && !def->enum_values.empty())
-            return {def->enum_values.front()};
-    }
-    return {"Default"};
+    static const DynamicPrintConfig none;
+    const auto* preset_bundle = wxGetApp().preset_bundle;
+    return preset_bundle != nullptr ? preset_bundle->printers.get_edited_preset().config : none;
 }
 
 std::vector<wxString> make_shaper_type_labels()
 {
-    auto values = get_shaper_type_values();
+    auto values = shaper_type_values(edited_printer_config());
     if (values.empty())
         values.emplace_back("");
 
@@ -139,6 +116,32 @@ bool is_belt_printer_selected()
     return false;
 }
 
+}
+
+std::vector<std::string> shaper_type_values(const DynamicPrintConfig& printer)
+{
+    const ConfigOptionDef* def = printer.def()->get("input_shaping_type");
+    if (const auto* gcode_flavor_option = printer.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")) {
+        auto types = input_shaper_types_for_flavor(gcode_flavor_option->value);
+        if (!types.empty()) {
+            std::vector<std::string> values;
+            values.reserve(types.size());
+            for (InputShaperType type : types) {
+                if (type == InputShaperType::Disable)
+                    continue;
+                const size_t idx = static_cast<size_t>(type);
+                if (def && idx < def->enum_values.size())
+                    values.push_back(def->enum_values[idx]);
+                else
+                    values.push_back(std::to_string(static_cast<int>(type)));
+            }
+            if (!values.empty())
+                return values;
+        }
+    }
+    if (def && !def->enum_values.empty())
+        return {def->enum_values.front()};
+    return {"Default"};
 }
 
 PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
@@ -291,47 +294,15 @@ void PA_Calibration_Dlg::reset_params() {
     bool isDDE = m_rbExtruderType->GetSelection() == 0 ? true : false;
     int method = m_rbMethod->GetSelection();
 
-    m_tiStartPA->GetTextCtrl()->SetValue(wxString::FromDouble(0.0));
-
-    switch (method) {
-        case 1:
-            m_params.mode = CalibMode::Calib_PA_Line;
-            m_tiEndPA->GetTextCtrl()->SetValue(wxString::FromDouble(0.1));
-            m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(0.002));
-            m_cbPrintNum->SetValue(true);
-            m_cbPrintNum->Enable(true);
-            m_tiBMAccels->Enable(false);
-            m_tiBMSpeeds->Enable(false);
-            break;
-        case 2:
-            m_params.mode = CalibMode::Calib_PA_Pattern;
-            m_tiEndPA->GetTextCtrl()->SetValue(wxString::FromDouble(0.08));
-            m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(0.005));
-            m_cbPrintNum->SetValue(true);
-            m_cbPrintNum->Enable(false);
-            m_tiBMAccels->Enable(true);
-            m_tiBMSpeeds->Enable(true);
-            break;
-        default:
-            m_params.mode = CalibMode::Calib_PA_Tower;
-            m_tiEndPA->GetTextCtrl()->SetValue(wxString::FromDouble(0.1));
-            m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(0.002));
-            m_cbPrintNum->SetValue(false);
-            m_cbPrintNum->Enable(false);
-            m_tiBMAccels->Enable(false);
-            m_tiBMSpeeds->Enable(false);
-            break;
-    }
-
-    if (!isDDE) {
-        m_tiEndPA->GetTextCtrl()->SetValue(wxString::FromDouble(1.0));
-
-        if (m_params.mode == CalibMode::Calib_PA_Pattern) {
-            m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(0.05));
-        } else {
-            m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(0.02));
-        }
-    }
+    m_params.mode = method == 1 ? CalibMode::Calib_PA_Line : method == 2 ? CalibMode::Calib_PA_Pattern : CalibMode::Calib_PA_Tower;
+    const Calib_Params defaults = calib_default_params(m_params.mode, edited_printer_config(), !isDDE);
+    m_tiStartPA->GetTextCtrl()->SetValue(wxString::FromDouble(defaults.start));
+    m_tiEndPA->GetTextCtrl()->SetValue(wxString::FromDouble(defaults.end));
+    m_tiPAStep->GetTextCtrl()->SetValue(wxString::FromDouble(defaults.step));
+    m_cbPrintNum->SetValue(defaults.print_numbers);
+    m_cbPrintNum->Enable(m_params.mode == CalibMode::Calib_PA_Line);
+    m_tiBMAccels->Enable(m_params.mode == CalibMode::Calib_PA_Pattern);
+    m_tiBMSpeeds->Enable(m_params.mode == CalibMode::Calib_PA_Pattern);
 }
 
 void PA_Calibration_Dlg::on_start(wxCommandEvent& event) {
@@ -339,11 +310,6 @@ void PA_Calibration_Dlg::on_start(wxCommandEvent& event) {
     read_double = m_tiStartPA->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
     read_double = read_double && m_tiEndPA->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
     read_double = read_double && m_tiPAStep->GetTextCtrl()->GetValue().ToDouble(&m_params.step);
-    if (!read_double || m_params.start < 0 || m_params.step < 10 * EPSILON || m_params.end < m_params.start + m_params.step) {
-        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart PA: >= 0.0\nEnd PA: > Start PA\nPA step: >= 0.001"), wxEmptyString, wxICON_WARNING | wxOK);
-        msg_dlg.ShowModal();
-        return;
-    }
 
     switch (m_rbMethod->GetSelection()) {
         case 1:
@@ -355,30 +321,32 @@ void PA_Calibration_Dlg::on_start(wxCommandEvent& event) {
         default:
             m_params.mode = CalibMode::Calib_PA_Tower;
     }
+    m_params.print_numbers = m_cbPrintNum->GetValue();
+    ParseStringValues(m_tiBMAccels->GetTextCtrl()->GetValue().ToStdString(), m_params.accelerations);
+    ParseStringValues(m_tiBMSpeeds->GetTextCtrl()->GetValue().ToStdString(), m_params.speeds);
+
+    const CalibParamsError error = read_double ? check_calib_params(m_params, edited_printer_config()) : CalibParamsError::Range;
+    if (error == CalibParamsError::Range) {
+        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart PA: >= 0.0\nEnd PA: > Start PA\nPA step: >= 0.001"), wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
 
     // ORCA-Belt: backstop in case the selection slipped past the UI guards.
-    if (is_belt_printer_selected() && m_params.mode != CalibMode::Calib_PA_Tower) {
+    if (error == CalibParamsError::BeltMethod) {
         MessageDialog msg_dlg(nullptr, _L("PA Line and PA Pattern tests are not enabled yet on belt printers.\nPlease use the PA Tower method instead."),
                               wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    m_params.print_numbers = m_cbPrintNum->GetValue();
-    ParseStringValues(m_tiBMAccels->GetTextCtrl()->GetValue().ToStdString(), m_params.accelerations);
-    ParseStringValues(m_tiBMSpeeds->GetTextCtrl()->GetValue().ToStdString(), m_params.speeds);
-
-    if (!m_params.accelerations.empty() && !m_params.speeds.empty()) {
-        // Guard against swapped inputs by ensuring acceleration magnitudes exceed speeds.
-        const double min_accel = *std::min_element(m_params.accelerations.begin(), m_params.accelerations.end());
-        const double max_speed = *std::max_element(m_params.speeds.begin(), m_params.speeds.end());
-        if (min_accel <= max_speed) {
-            MessageDialog msg_dlg(nullptr,
-                _L("Acceleration values must be greater than speed values.\nPlease verify the inputs."),
-                wxEmptyString, wxICON_WARNING | wxOK);
-            msg_dlg.ShowModal();
-            return;
-        }
+    // Guards against swapped inputs: accelerations must exceed speeds.
+    if (error == CalibParamsError::AccelBelowSpeed) {
+        MessageDialog msg_dlg(nullptr,
+            _L("Acceleration values must be greater than speed values.\nPlease verify the inputs."),
+            wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
     }
 
     m_plater->calib_pa(m_params);
@@ -469,6 +437,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
     auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_Temp_Tower, edited_printer_config());
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
     wxStaticBoxSizer* settings_sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
@@ -478,7 +447,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     // start temp
     auto start_temp_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_temp_text = new wxStaticText(this, wxID_ANY, start_temp_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStart = new TextInput(this, std::to_string(230), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
+    m_tiStart = new TextInput(this, wxString::FromDouble(defaults.start), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
     m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     start_temp_sizer->Add(start_temp_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     start_temp_sizer->Add(m_tiStart      , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -487,7 +456,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     // end temp
     auto end_temp_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_temp_text = new wxStaticText(this, wxID_ANY, end_temp_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiEnd = new TextInput(this, std::to_string(190), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
+    m_tiEnd = new TextInput(this, wxString::FromDouble(defaults.end), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
     m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_temp_sizer->Add(end_temp_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_temp_sizer->Add(m_tiEnd      , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -585,15 +554,15 @@ void Temp_Calibration_Dlg::on_start(wxCommandEvent& event) {
     read_long = m_tiStart->GetTextCtrl()->GetValue().ToULong(&start);
     read_long = read_long && m_tiEnd->GetTextCtrl()->GetValue().ToULong(&end);
 
-    if (!read_long || start > 500 || end < 155  || end > (start - 5)) {
+    m_params.start = start;
+    m_params.end = end;
+    m_params.mode = CalibMode::Calib_Temp_Tower;
+    if (!read_long || check_calib_params(m_params, edited_printer_config()) != CalibParamsError::None) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart temp: <= 500\nEnd temp: >= 155\nStart temp >= End temp + 5"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
-    m_params.start = start;
-    m_params.end = end;
     m_params.nozzle_based_resize = m_cbResize->GetValue();
-    m_params.mode = CalibMode::Calib_Temp_Tower;
     // Picker only exists on belt printers; default non-belt to the Standard model.
     m_params.test_model = m_rbModel ? m_rbModel->GetSelection() : 0;
     m_plater->calib_temp(m_params);
@@ -694,7 +663,8 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     // start vol
     auto start_vol_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_vol_text = new wxStaticText(this, wxID_ANY, start_vol_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStart = new TextInput(this, std::to_string(5), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_Vol_speed_Tower, edited_printer_config());
+    m_tiStart = new TextInput(this, wxString::FromDouble(defaults.start), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
     m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
     start_vol_sizer->Add(start_vol_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -704,7 +674,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     // end vol
     auto end_vol_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_vol_text = new wxStaticText(this, wxID_ANY, end_vol_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiEnd = new TextInput(this, std::to_string(20), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
+    m_tiEnd = new TextInput(this, wxString::FromDouble(defaults.end), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
     m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_vol_sizer->Add(end_vol_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_vol_sizer->Add(m_tiEnd     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -713,7 +683,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     // vol step
     auto vol_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto vol_step_text = new wxStaticText(this, wxID_ANY, vol_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStep = new TextInput(this, wxString::FromDouble(0.5), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
+    m_tiStep = new TextInput(this, wxString::FromDouble(defaults.step), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
     m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     vol_step_sizer->Add(vol_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     vol_step_sizer->Add(m_tiStep     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -757,13 +727,13 @@ void MaxVolumetricSpeed_Test_Dlg::on_start(wxCommandEvent& event) {
     read_double = read_double && m_tiEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
     read_double = read_double && m_tiStep->GetTextCtrl()->GetValue().ToDouble(&m_params.step);
 
-    if (!read_double || m_params.start <= 0 || m_params.step <= 0 || m_params.end < (m_params.start + m_params.step)) {
+    m_params.mode = CalibMode::Calib_Vol_speed_Tower;
+    if (!read_double || check_calib_params(m_params, edited_printer_config()) != CalibParamsError::None) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nstart > 0\nstep >= 0\nend > start + step"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    m_params.mode = CalibMode::Calib_Vol_speed_Tower;
     m_plater->calib_max_vol_speed(m_params);
     EndModal(wxID_OK);
 
@@ -807,7 +777,8 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     // start vol
     auto start_vol_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_vol_text = new wxStaticText(this, wxID_ANY, start_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStart = new TextInput(this, std::to_string(40), _L("mm/s"), "", wxDefaultPosition, ti_size);
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_VFA_Tower, edited_printer_config());
+    m_tiStart = new TextInput(this, wxString::FromDouble(defaults.start), _L("mm/s"), "", wxDefaultPosition, ti_size);
     m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
     start_vol_sizer->Add(start_vol_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -817,7 +788,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     // end vol
     auto end_vol_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_vol_text = new wxStaticText(this, wxID_ANY, end_vol_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiEnd = new TextInput(this, std::to_string(200), _L("mm/s"), "", wxDefaultPosition, ti_size);
+    m_tiEnd = new TextInput(this, wxString::FromDouble(defaults.end), _L("mm/s"), "", wxDefaultPosition, ti_size);
     m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_vol_sizer->Add(end_vol_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_vol_sizer->Add(m_tiEnd     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -826,7 +797,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     // vol step
     auto vol_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto vol_step_text = new wxStaticText(this, wxID_ANY, vol_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStep = new TextInput(this, wxString::FromDouble(10), _L("mm/s"), "", wxDefaultPosition, ti_size);
+    m_tiStep = new TextInput(this, wxString::FromDouble(defaults.step), _L("mm/s"), "", wxDefaultPosition, ti_size);
     m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     vol_step_sizer->Add(vol_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     vol_step_sizer->Add(m_tiStep     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -890,7 +861,8 @@ void VFA_Test_Dlg::on_start(wxCommandEvent& event)
     read_double = read_double && m_tiEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
     read_double = read_double && m_tiStep->GetTextCtrl()->GetValue().ToDouble(&m_params.step);
 
-    if (!read_double || m_params.start <= 10 || m_params.step <= 0 || m_params.end < (m_params.start + m_params.step)) {
+    m_params.mode = CalibMode::Calib_VFA_Tower;
+    if (!read_double || check_calib_params(m_params, edited_printer_config()) != CalibParamsError::None) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nstart > 10\nstep >= 0\nend > start + step"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
@@ -903,38 +875,10 @@ void VFA_Test_Dlg::on_start(wxCommandEvent& event)
     m_params.nozzle_based_resize = m_cbResize->GetValue();
     if (const auto* preset_bundle = wxGetApp().preset_bundle) {
         const auto& printer_config  = preset_bundle->printers.get_edited_preset().config;
-        const auto& print_config    = preset_bundle->prints.get_edited_preset().config;
-        const auto& filament_config = preset_bundle->filaments.get_edited_preset().config;
-
-        const int extruder_id = std::max(m_params.extruder_id, 0);
-        auto get_at = [extruder_id](const ConfigOptionFloats* opt, double fallback) {
-            if (opt == nullptr || opt->values.empty())
-                return fallback;
-            return opt->values[std::min(static_cast<size_t>(extruder_id), opt->values.size() - 1)];
-        };
-
-        const double nozzle_diameter = get_at(printer_config.option<ConfigOptionFloats>("nozzle_diameter"), vfa_base_nozzle_diameter);
-        double preset_lh = nozzle_diameter / 2.0;
-        if (const auto* lh_opt = print_config.option<ConfigOptionFloat>("layer_height"))
-            if (lh_opt->value > 0.0)
-                preset_lh = lh_opt->value;
-        // Layer height the tower will actually print at: nozzle/2 when resizing, else the preset value.
-        const double default_lh      = m_params.nozzle_based_resize ? nozzle_diameter / 2.0 : preset_lh;
-        const double max_vol_speed   = get_at(filament_config.option<ConfigOptionFloats>("filament_max_volumetric_speed"), 0.0);
-        const double machine_min_lh  = get_at(printer_config.option<ConfigOptionFloats>("min_layer_height"), 0.0);
-        const double machine_max_lh  = get_at(printer_config.option<ConfigOptionFloats>("max_layer_height"), 0.0);
-
-        double line_width = print_config.get_abs_value("outer_wall_line_width", nozzle_diameter);
-        if (line_width <= 0.0)
-            line_width = print_config.get_abs_value("line_width", nozzle_diameter);
-        if (line_width <= 0.0)
-            line_width = nozzle_diameter;
-
-        // Max outer-wall speed printable at a given layer height without exceeding the volumetric limit.
-        auto speed_limit_for_lh = [&](double lh) -> double {
-            const double mm3_per_mm = Flow(line_width, lh, nozzle_diameter).mm3_per_mm();
-            return mm3_per_mm > 0.0 ? max_vol_speed / mm3_per_mm : 1e9;
-        };
+        const bool  auto_adjust     = m_cbAutoAdjust->GetValue();
+        const VfaSpeedFit fit = fit_vfa_speed(m_params, printer_config, preset_bundle->prints.get_edited_preset().config,
+                                              preset_bundle->filaments.get_edited_preset().config, auto_adjust,
+                                              vfa_candidate_layer_heights(preset_bundle->prints, printer_config, m_params.extruder_id));
 
         auto confirm_clamp = [&](const wxString& question) -> bool {
             MessageDialog msg_dlg(nullptr,
@@ -942,91 +886,54 @@ void VFA_Test_Dlg::on_start(wxCommandEvent& event)
                                     "(%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and "
                                     "layer height.\n Speeds above this will be clamped, so the upper blocks of the tower "
                                     "will not print at the requested speed.\n\n%s"),
-                                 m_params.end, max_vol_speed, speed_limit_for_lh(default_lh), question),
+                                 m_params.end, fit.max_vol_speed, fit.speed_limit, question),
                 _L("VFA test"), wxICON_WARNING | wxYES_NO | wxNO_DEFAULT);
             return msg_dlg.ShowModal() == wxID_YES;
         };
 
-        if (max_vol_speed > 0.0 && nozzle_diameter > 0.0 && m_params.end > speed_limit_for_lh(default_lh)) {
-            // The layer-height auto-adjust only applies when resizing is enabled (it changes the layer height).
-            if (m_cbAutoAdjust->GetValue() && m_params.nozzle_based_resize) {
-                // Candidate layer heights are the ones actually used by the process profiles compatible with the
-                // current printer (clamped to the machine's layer-height limits, when set). A smaller layer height
-                // means a smaller cross-section, hence a higher printable speed under the volumetric limit; pick the
-                // largest candidate that still reaches the end speed to keep the change from the default minimal.
-                std::vector<double> candidates;
-                for (const auto& preset : preset_bundle->prints.get_presets()) {
-                    if (!preset.is_compatible || preset.is_default)
-                        continue;
-                    const auto* lh_opt = preset.config.option<ConfigOptionFloat>("layer_height");
-                    if (lh_opt == nullptr || lh_opt->value <= 0.0)
-                        continue;
-                    const double lh = lh_opt->value;
-                    if ((machine_min_lh > 0.0 && lh < machine_min_lh - 1e-6) ||
-                        (machine_max_lh > 0.0 && lh > machine_max_lh + 1e-6))
-                        continue;
-                    candidates.push_back(lh);
-                }
-                std::sort(candidates.begin(), candidates.end());
-                candidates.erase(std::unique(candidates.begin(), candidates.end(),
-                                             [](double a, double b) { return std::abs(a - b) < 1e-6; }),
-                                 candidates.end());
-
-                // Largest candidate <= the default layer height that still reaches the end speed (smallest change).
-                double chosen_lh = 0.0;
-                for (auto it = candidates.rbegin(); it != candidates.rend(); ++it) {
-                    if (*it > default_lh + 1e-6)
-                        continue; // never increase the layer height above the default
-                    if (speed_limit_for_lh(*it) >= m_params.end) { chosen_lh = *it; break; }
-                }
-
-                if (chosen_lh > 0.0) {
-                    // Reducing the layer height is enough to reach the requested end speed.
-                    m_params.vfa_layer_height = chosen_lh;
-                    MessageDialog msg_dlg(nullptr,
-                        wxString::Format(_L("The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
-                                            "(%.1f mm³/s) at the default layer height (%.2f mm).\n\n"
-                                            "The layer height has been reduced to %.2f mm (a value used by this printer's "
-                                            "profiles) so the tower can reach the requested speed."),
-                                         m_params.end, max_vol_speed, default_lh, chosen_lh),
-                        _L("VFA test"), wxICON_INFORMATION | wxOK);
-                    msg_dlg.ShowModal();
-                } else if (!candidates.empty()) {
-                    // Even the smallest available layer height cannot reach the end speed; propose a lower end speed
-                    // based on that layer height, the line width and the maximum volumetric speed.
-                    const double min_lh    = candidates.front();
-                    const double reachable = speed_limit_for_lh(min_lh);
-                    double new_end = std::floor(reachable / m_params.step) * m_params.step; // snap down to a step multiple
-                    if (new_end < m_params.start + m_params.step)
-                        new_end = m_params.start + m_params.step;
-                    MessageDialog msg_dlg(nullptr,
-                        wxString::Format(_L("Even at the smallest layer height used by this printer's profiles (%.2f mm) the "
-                                            "end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
-                                            "(%.1f mm³/s).\n\n"
-                                            "The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n\n"
-                                            "Continue?"),
-                                         min_lh, m_params.end, max_vol_speed, min_lh, new_end),
-                        _L("VFA test"), wxICON_WARNING | wxYES_NO | wxNO_DEFAULT);
-                    if (msg_dlg.ShowModal() != wxID_YES)
-                        return;
-                    m_params.end              = new_end;
-                    m_params.vfa_layer_height = min_lh;
-                } else {
-                    // No compatible process profiles to draw layer heights from: warn and let the user decide.
-                    if (!confirm_clamp(_L("Continue anyway?")))
-                        return;
-                }
-            } else {
-                // Auto-adjust off, or resizing disabled (which forbids changing the layer height): just warn.
-                if (!confirm_clamp(m_params.nozzle_based_resize
-                        ? _L("Enable \"Auto-adjust\" to fix this automatically, or continue anyway?")
-                        : _L("Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?")))
-                    return;
-            }
+        switch (fit.kind) {
+        case VfaSpeedFit::ReducedLayerHeight: {
+            // Reducing the layer height is enough to reach the requested end speed.
+            m_params.vfa_layer_height = fit.layer_height;
+            MessageDialog msg_dlg(nullptr,
+                wxString::Format(_L("The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
+                                    "(%.1f mm³/s) at the default layer height (%.2f mm).\n\n"
+                                    "The layer height has been reduced to %.2f mm (a value used by this printer's "
+                                    "profiles) so the tower can reach the requested speed."),
+                                 m_params.end, fit.max_vol_speed, fit.default_lh, fit.layer_height),
+                _L("VFA test"), wxICON_INFORMATION | wxOK);
+            msg_dlg.ShowModal();
+            break;
+        }
+        case VfaSpeedFit::LoweredEnd: {
+            // Even the smallest available layer height cannot reach the end speed: propose a lower end speed.
+            MessageDialog msg_dlg(nullptr,
+                wxString::Format(_L("Even at the smallest layer height used by this printer's profiles (%.2f mm) the "
+                                    "end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
+                                    "(%.1f mm³/s).\n\n"
+                                    "The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n\n"
+                                    "Continue?"),
+                                 fit.layer_height, m_params.end, fit.max_vol_speed, fit.layer_height, fit.end),
+                _L("VFA test"), wxICON_WARNING | wxYES_NO | wxNO_DEFAULT);
+            if (msg_dlg.ShowModal() != wxID_YES)
+                return;
+            m_params.end              = fit.end;
+            m_params.vfa_layer_height = fit.layer_height;
+            break;
+        }
+        case VfaSpeedFit::Clamped:
+            // No compatible process profiles to draw layer heights from, auto-adjust off, or resizing disabled
+            // (which forbids changing the layer height): warn and let the user decide.
+            if (!confirm_clamp(auto_adjust && m_params.nozzle_based_resize ? _L("Continue anyway?")
+                               : m_params.nozzle_based_resize
+                                   ? _L("Enable \"Auto-adjust\" to fix this automatically, or continue anyway?")
+                                   : _L("Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?")))
+                return;
+            break;
+        case VfaSpeedFit::Fits: break;
         }
     }
 
-    m_params.mode = CalibMode::Calib_VFA_Tower;
     m_plater->calib_VFA(m_params);
     EndModal(wxID_OK);
 }
@@ -1069,7 +976,8 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     // start length
     auto start_length_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_length_text = new wxStaticText(this, wxID_ANY, start_length_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStart = new TextInput(this, std::to_string(0), _L("mm"), "", wxDefaultPosition, ti_size);
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_Retraction_tower, edited_printer_config());
+    m_tiStart = new TextInput(this, wxString::FromDouble(defaults.start), _L("mm"), "", wxDefaultPosition, ti_size);
     m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
     start_length_sizer->Add(start_length_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1079,7 +987,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     // end length
     auto end_length_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_length_text = new wxStaticText(this, wxID_ANY, end_length_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiEnd = new TextInput(this, std::to_string(2), _L("mm"), "", wxDefaultPosition, ti_size);
+    m_tiEnd = new TextInput(this, wxString::FromDouble(defaults.end), _L("mm"), "", wxDefaultPosition, ti_size);
     m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_length_sizer->Add(end_length_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_length_sizer->Add(m_tiEnd        , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1088,7 +996,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     // length step
     auto length_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto length_step_text = new wxStaticText(this, wxID_ANY, length_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiStep = new TextInput(this, wxString::FromDouble(0.1), _L("mm"), "", wxDefaultPosition, ti_size);
+    m_tiStep = new TextInput(this, wxString::FromDouble(defaults.step), _L("mm"), "", wxDefaultPosition, ti_size);
     m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     length_step_sizer->Add(length_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     length_step_sizer->Add(m_tiStep        , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1134,13 +1042,13 @@ void Retraction_Test_Dlg::on_start(wxCommandEvent& event) {
     read_double = read_double && m_tiEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
     read_double = read_double && m_tiStep->GetTextCtrl()->GetValue().ToDouble(&m_params.step);
 
-    if (!read_double || m_params.start < 0 || m_params.step <= 0 || m_params.end < (m_params.start + m_params.step)) {
+    m_params.mode = CalibMode::Calib_Retraction_tower;
+    if (!read_double || check_calib_params(m_params, edited_printer_config()) != CalibParamsError::None) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nstart > 0\nstep >= 0\nend > start + step"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    m_params.mode = CalibMode::Calib_Retraction_tower;
     m_plater->calib_retraction(m_params);
     EndModal(wxID_OK);
 
@@ -1225,12 +1133,14 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     settings_sizer->AddSpacer(FromDIP(5));
 
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_Input_shaping_freq, edited_printer_config());
+
     // X axis frequencies
     auto x_freq_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_x_text = new wxStaticText(this, wxID_ANY, x_axis_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiFreqStartX = new TextInput(this, std::to_string(15) , _L("Hz"), "", wxDefaultPosition, ti_size);
+    m_tiFreqStartX = new TextInput(this, wxString::FromDouble(defaults.freqStartX), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqStartX->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    m_tiFreqEndX   = new TextInput(this, std::to_string(110), _L("Hz"), "", wxDefaultPosition, ti_size);
+    m_tiFreqEndX   = new TextInput(this, wxString::FromDouble(defaults.freqEndX), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqEndX->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     
     x_freq_sizer->Add(start_x_text  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1241,9 +1151,9 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     // Y axis frequencies
     auto y_freq_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_y_text = new wxStaticText(this, wxID_ANY, y_axis_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiFreqStartY = new TextInput(this, std::to_string(15) , _L("Hz"), "", wxDefaultPosition, ti_size);
+    m_tiFreqStartY = new TextInput(this, wxString::FromDouble(defaults.freqStartY), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqStartY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    m_tiFreqEndY =   new TextInput(this, std::to_string(110), _L("Hz"), "", wxDefaultPosition, ti_size);
+    m_tiFreqEndY =   new TextInput(this, wxString::FromDouble(defaults.freqEndY), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqEndY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
     y_freq_sizer->Add(start_y_text  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1267,7 +1177,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     wxString damping_factor_str = _L("Damp: ");
     auto damping_factor_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto damping_factor_text = new wxStaticText(this, wxID_ANY, damping_factor_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiDampingFactor = new TextInput(this, wxString::Format("%.3f", 0.15), "", "", wxDefaultPosition, ti_size);
+    m_tiDampingFactor = new TextInput(this, wxString::Format("%.3f", defaults.start), "", "", wxDefaultPosition, ti_size);
     m_tiDampingFactor->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     
     damping_factor_sizer->Add(damping_factor_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1337,23 +1247,21 @@ void Input_Shaping_Freq_Test_Dlg::on_start(wxCommandEvent& event) {
     }
     read_double = read_double && m_tiDampingFactor->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
 
-    if (!read_double ||
-        m_params.freqStartX < 0 || m_params.freqEndX > 500 ||
-        (!reprap_firmware && (m_params.freqStartY < 0 || m_params.freqEndY > 500)) ||
-        m_params.freqStartX >= m_params.freqEndX ||
-        (!reprap_firmware && m_params.freqStartY >= m_params.freqEndY)) {
+    m_params.mode = CalibMode::Calib_Input_shaping_freq;
+    const CalibParamsError error = read_double ? check_calib_params(m_params, edited_printer_config()) : CalibParamsError::Range;
+    if (error == CalibParamsError::Range) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\n(0 < FreqStart < FreqEnd < 500)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    if (m_params.start < 0 || m_params.start >= 1) {
+    if (error == CalibParamsError::Damping) {
         MessageDialog msg_dlg(nullptr, _L("Please input a valid damping factor (0 < Damping/zeta factor <= 1)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    auto shaper_values = get_shaper_type_values();
+    auto shaper_values = shaper_type_values(edited_printer_config());
     int type_selection = m_rbType->GetSelection();
     if (shaper_values.empty()) {
         m_params.shaper_type.clear();
@@ -1363,8 +1271,6 @@ void Input_Shaping_Freq_Test_Dlg::on_start(wxCommandEvent& event) {
         m_params.shaper_type = shaper_values[static_cast<size_t>(type_selection)];
     }
 
-    m_params.mode = CalibMode::Calib_Input_shaping_freq;
-    
     // Set model type based on selection
     m_params.test_model = m_rbModel->GetSelection() == 0 ? 0 : 1; // 0 = Ringing Tower, 1 = Fast Tower
     
@@ -1450,11 +1356,13 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
 
     settings_sizer->AddSpacer(FromDIP(5));
 
+    const Calib_Params defaults = calib_default_params(CalibMode::Calib_Input_shaping_damp, edited_printer_config());
+
     auto freq_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto freq_text = new wxStaticText(this, wxID_ANY, freq_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiFreqX = new TextInput(this, std::to_string(30), _L("Hz"), "", wxDefaultPosition, ti_size);
+    m_tiFreqX = new TextInput(this, wxString::FromDouble(defaults.freqStartX), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqX->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    m_tiFreqY = new TextInput(this, std::to_string(30), _L("Hz"), "", wxDefaultPosition, ti_size);
+    m_tiFreqY = new TextInput(this, wxString::FromDouble(defaults.freqStartY), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     freq_sizer->Add(freq_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     freq_sizer->Add(m_tiFreqX, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1471,9 +1379,9 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     // Damping Factor Start and End
     auto damp_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto damp_text = new wxStaticText(this, wxID_ANY, damp_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiDampingFactorStart = new TextInput(this, wxString::Format("%.3f", 0.00), "", "", wxDefaultPosition, ti_size);
+    m_tiDampingFactorStart = new TextInput(this, wxString::Format("%.3f", defaults.start), "", "", wxDefaultPosition, ti_size);
     m_tiDampingFactorStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    m_tiDampingFactorEnd   = new TextInput(this, wxString::Format("%.3f", 0.40), "", "", wxDefaultPosition, ti_size);
+    m_tiDampingFactorEnd   = new TextInput(this, wxString::Format("%.3f", defaults.end), "", "", wxDefaultPosition, ti_size);
     m_tiDampingFactorEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     damp_sizer->Add(damp_text             , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     damp_sizer->Add(m_tiDampingFactorStart, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1539,22 +1447,21 @@ void Input_Shaping_Damp_Test_Dlg::on_start(wxCommandEvent& event) {
     read_double = read_double && m_tiDampingFactorStart->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
     read_double = read_double && m_tiDampingFactorEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
 
-    if (!read_double ||
-        m_params.freqStartX < 0 || m_params.freqStartX > 500 ||
-        (!reprap_firmware && (m_params.freqStartY < 0 || m_params.freqStartY > 500))) {
+    m_params.mode = CalibMode::Calib_Input_shaping_damp;
+    const CalibParamsError error = read_double ? check_calib_params(m_params, edited_printer_config()) : CalibParamsError::Range;
+    if (error == CalibParamsError::Range) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\n(0 < Freq < 500)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    if (m_params.start < 0 || m_params.end > 1
-        || m_params.start >= m_params.end) {
+    if (error == CalibParamsError::Damping) {
         MessageDialog msg_dlg(nullptr, _L("Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
 
-    auto shaper_values = get_shaper_type_values();
+    auto shaper_values = shaper_type_values(edited_printer_config());
     int type_selection = m_rbType->GetSelection();
     if (shaper_values.empty()) {
         m_params.shaper_type.clear();
@@ -1564,8 +1471,6 @@ void Input_Shaping_Damp_Test_Dlg::on_start(wxCommandEvent& event) {
         m_params.shaper_type = shaper_values[static_cast<size_t>(type_selection)];
     }
 
-    m_params.mode = CalibMode::Calib_Input_shaping_damp;
-    
     // Set model type based on selection
     m_params.test_model = m_rbModel->GetSelection() == 0 ? 0 : 1; // 0 = Ringing Tower, 1 = Fast Tower
     
@@ -1615,25 +1520,12 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
         ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
         : nullptr;
 
-    wxString start_value_str;
-    wxString end_value_str;
-    wxString units_str;
-
-    if (gcode_flavor_option &&
-        gcode_flavor_option->value == GCodeFlavor::gcfMarlinFirmware &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation") &&
-        !preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values.empty() &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values[0] > 0) {
-            // Using Junction Deviation (mm)
-            start_value_str = wxString::Format("%.3f", 0.000);
-            end_value_str   = wxString::Format("%.3f", 0.250);
-            units_str = "mm";
-        } else {
-            // Using Classic Jerk (mm/s)
-                start_value_str = wxString::Format("%.3f", 1.0);
-                end_value_str   = wxString::Format("%.3f", 15.0);
-                units_str = "mm/s";
-        }
+    // Junction Deviation in mm, or Classic Jerk in mm/s.
+    const bool         junction_deviation = has_junction_deviation(edited_printer_config());
+    const Calib_Params defaults           = calib_default_params(CalibMode::Calib_Cornering, edited_printer_config());
+    const wxString     start_value_str    = wxString::Format("%.3f", defaults.start);
+    const wxString     end_value_str      = wxString::Format("%.3f", defaults.end);
+    const wxString     units_str          = junction_deviation ? "mm" : "mm/s";
 
     auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
@@ -1669,9 +1561,7 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
         wxString note_msg_2;
         switch (gcode_flavor_option->value) {
             case GCodeFlavor::gcfMarlinFirmware: {
-                // Check if machine_max_junction_deviation is set and > 0
-                const auto* max_jd_option = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation");
-                if (max_jd_option && !max_jd_option->values.empty() && max_jd_option->values[0] > 0) {
+                if (junction_deviation) {
                     note_msg_2 += _L("Marlin 2 Junction Deviation detected:\nTo test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to 0.");
                 } else {
                     note_msg_2 += _L("Marlin 2 Classic Jerk detected:\nTo test Junction Deviation, set 'Maximum Junction Deviation' in Motion ability to a value > 0.");
@@ -1729,25 +1619,11 @@ void Cornering_Test_Dlg::on_start(wxCommandEvent& event) {
     read_double = m_tiJDStart->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
     read_double = read_double && m_tiJDEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
 
-    // Get max values based on GCode Flavor
-    double max_end_value = 100.0;
-    double warning_threshold = 20.0;
-    const auto* preset_bundle = wxGetApp().preset_bundle;
-    const auto* gcode_flavor_option = (preset_bundle != nullptr)
-        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
-        : nullptr;
+    // Junction Deviation (mm) or Classic Jerk (mm/s) limits.
+    const auto [max_end_value, warning_threshold] = cornering_end_limits(edited_printer_config());
 
-    if (gcode_flavor_option &&
-        gcode_flavor_option->value == GCodeFlavor::gcfMarlinFirmware &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation") &&
-        !preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values.empty() &&
-        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values[0] > 0) {
-            // Using Junction Deviation (mm)
-            max_end_value = 0.3;
-            warning_threshold = 0.25;
-    }
-
-    if (!read_double || m_params.start < 0 || m_params.end > max_end_value || m_params.start >= m_params.end) {
+    m_params.mode = CalibMode::Calib_Cornering;
+    if (!read_double || check_calib_params(m_params, edited_printer_config()) != CalibParamsError::None) {
         wxString error_msg = wxString::Format(_L("Please input valid values:\n(0 <= Cornering <= %s)"), wxString::Format("%.3f", max_end_value));
         MessageDialog msg_dlg(nullptr, error_msg, wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
@@ -1757,8 +1633,6 @@ void Cornering_Test_Dlg::on_start(wxCommandEvent& event) {
         MessageDialog msg_dlg(nullptr, warning_msg, wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
     }
-
-    m_params.mode = CalibMode::Calib_Cornering;
 
     // Set model type based on selection
     m_params.test_model = m_rbModel->GetSelection();

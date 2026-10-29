@@ -19,6 +19,7 @@ namespace Slic3r {
 class GCode;
 class Model;
 class ModelObject;
+class PresetCollection;
 
 enum class CalibMode : int {
     Calib_None = 0,
@@ -64,6 +65,58 @@ struct Calib_Params
 static constexpr int vfa_layers_per_block = 25;
 static constexpr double vfa_base_block_height = 5.0;
 static constexpr double vfa_base_nozzle_diameter = 0.4;
+
+// ---- Rules of the Calibration menu's dialogs, shared with automation ----------------------------
+
+// Whether the printer corners by junction deviation (Marlin 2 with machine_max_junction_deviation set)
+// rather than by classic jerk.
+bool has_junction_deviation(const DynamicPrintConfig& printer);
+
+// The values a calibration dialog opens with for `mode`: start, end and step, and for input shaping the
+// frequencies and damping. The pressure advance ones are the Bowden extruder's when `bowden`; cornering's
+// are junction deviation or jerk values, as the printer corners.
+Calib_Params calib_default_params(CalibMode mode, const DynamicPrintConfig& printer, bool bowden = false);
+
+// The first rule of its dialog that `params` breaks for its mode on `printer`, in the order the dialog
+// checks them. Each dialog shows its own message for the error.
+enum class CalibParamsError { None, Range, Damping, AccelBelowSpeed, BeltMethod };
+CalibParamsError check_calib_params(const Calib_Params& params, const DynamicPrintConfig& printer);
+
+// The cornering test's largest accepted end value, and the one above which its dialog warns of layer
+// shifts: junction deviation in mm, or jerk in mm/s.
+std::pair<double, double> cornering_end_limits(const DynamicPrintConfig& printer);
+
+// The belt printer temperature tower of the "Overhang" model (test_model 1) for the range of `params`:
+// only the ranges it was embossed for have one, so the file may not exist.
+std::string belt_temp_tower_asset(const Calib_Params& params);
+
+// How a VFA tower's end speed fits the filament's maximum volumetric speed. The slicer caps the outer
+// wall speed there, so the blocks above the cap would all print at one speed.
+struct VfaSpeedFit
+{
+    enum Kind {
+        Fits,
+        ReducedLayerHeight, // a smaller layer height reaches the end speed: print at layer_height
+        LoweredEnd,         // even the smallest one does not: print at layer_height up to end
+        Clamped,            // not adjusted: the upper blocks print at speed_limit
+    };
+    Kind   kind          = Fits;
+    double max_vol_speed = 0.; // the filament's limit, mm³/s
+    double default_lh    = 0.; // the layer height the tower prints at unadjusted
+    double speed_limit   = 0.; // the outer wall speed the limit allows at default_lh
+    double layer_height  = 0.;
+    double end           = 0.;
+};
+
+// The layer heights of the process presets compatible with the printer, within its layer height limits,
+// smallest first: what VFA's auto-adjust may lower the layer height to.
+std::vector<double> vfa_candidate_layer_heights(const PresetCollection& prints, const DynamicPrintConfig& printer, int extruder_id);
+
+// The VFA dialog's auto-adjust: with `auto_adjust` and the model scaled to the nozzle, the largest
+// candidate layer height at or below the default that reaches the end speed, else the smallest one with
+// the end speed lowered to a step multiple it reaches; otherwise, or without candidates, Clamped.
+VfaSpeedFit fit_vfa_speed(const Calib_Params& params, const DynamicPrintConfig& printer, const DynamicPrintConfig& print,
+                          const DynamicPrintConfig& filament, bool auto_adjust, const std::vector<double>& candidate_layer_heights);
 
 enum FlowRatioCalibrationType {
     COMPLETE_CALIBRATION = 0,
@@ -374,7 +427,9 @@ private:
 
     double pattern_shift() const;
 
-    const Calib_Params &m_params;
+    // A copy: the pattern outlives the call that made it and is read again whenever the plate is
+    // sliced, while callers pass params that may be temporaries.
+    const Calib_Params m_params;
 
     // Belt printers get belt kinematics installed on it (_refresh_writer);
     // shared_ptr keeps the class copyable — the writer is rebuilt by

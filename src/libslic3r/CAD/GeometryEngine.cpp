@@ -55,6 +55,14 @@
 #include <TopoDS_Solid.hxx>
 #include <TopoDS_Vertex.hxx>
 #include <ShapeUpgrade_UnifySameDomain.hxx>
+#include <ChFi3d.hxx>
+#include <ChFiDS_TypeOfConcavity.hxx>
+#include <NCollection_DataMap.hxx>
+#include <gp_Ax1.hxx>
+#include <gp_Cone.hxx>
+#include <gp_Sphere.hxx>
+#include <gp_Torus.hxx>
+#include <gp_XYZ.hxx>
 #include <array>
 #include <map>
 #include <cmath>
@@ -687,6 +695,110 @@ GeometryEngine::CylinderFace GeometryEngine::circle_of_edge(const TopoDS_Edge& e
     cf.internal = false;     // ambiguous from an edge alone — default external, user can toggle
     cf.ok       = true;
     return cf;
+}
+
+GeometryEngine::SurfaceInfo GeometryEngine::surface_info(const TopoDS_Face& face)
+{
+    SurfaceInfo s;
+    if (face.IsNull()) return s;
+    GProp_GProps props;
+    BRepGProp::SurfaceProperties(face, props);
+    s.area     = props.Mass();
+    s.centroid = Vec3d(props.CentreOfMass().X(), props.CentreOfMass().Y(), props.CentreOfMass().Z());
+
+    BRepAdaptor_Surface surf(face);
+    s.type = surf.GetType();
+    auto vec = [](const gp_XYZ& v) { return Vec3d(v.X(), v.Y(), v.Z()); };
+    // A bore or a countersink faces its axis: the outward normal at the face's middle points from
+    // the surface toward the axis (or the centre).
+    const gp_Pnt mid    = surf.Value(0.5 * (surf.FirstUParameter() + surf.LastUParameter()),
+                                     0.5 * (surf.FirstVParameter() + surf.LastVParameter()));
+    auto         facing = [&](const Vec3d& toward) { return face_normal_world(face).dot(toward) > 0.0; };
+    switch (s.type) {
+    case GeomAbs_Cylinder: {
+        const CylinderFace c = cylinder_of_face(face);
+        s.location = c.base;
+        s.axis     = c.axis;
+        s.radius   = c.radius;
+        s.internal = c.internal;
+        break;
+    }
+    case GeomAbs_Cone: {
+        // The radius at parameter v is RefRadius + v sin(SemiAngle), and v runs along the axis, so
+        // the cone opens along the axis when the semi-angle is positive.
+        const gp_Cone cone = surf.Cone();
+        const double  sa   = cone.SemiAngle();
+        const Vec3d   dir  = vec(cone.Axis().Direction().XYZ());
+        s.location   = vec(cone.Apex().XYZ());
+        s.axis       = sa >= 0.0 ? dir : Vec3d(-dir);
+        s.half_angle = std::abs(sa);
+        const double r0 = std::abs(cone.RefRadius() + surf.FirstVParameter() * std::sin(sa));
+        const double r1 = std::abs(cone.RefRadius() + surf.LastVParameter() * std::sin(sa));
+        s.radius   = std::min(r0, r1);
+        s.radius2  = std::max(r0, r1);
+        const Vec3d m = vec(mid.XYZ());
+        s.internal = facing(s.location + s.axis * (m - s.location).dot(s.axis) - m);
+        break;
+    }
+    case GeomAbs_Sphere: {
+        const gp_Sphere sphere = surf.Sphere();
+        s.location = vec(sphere.Location().XYZ());
+        s.radius   = sphere.Radius();
+        s.internal = facing(s.location - vec(mid.XYZ()));
+        break;
+    }
+    case GeomAbs_Torus: {
+        const gp_Torus torus = surf.Torus();
+        s.location = vec(torus.Location().XYZ());
+        s.axis     = vec(torus.Axis().Direction().XYZ());
+        s.radius   = torus.MajorRadius();
+        s.radius2  = torus.MinorRadius();
+        break;
+    }
+    default: break;
+    }
+    return s;
+}
+
+std::vector<std::vector<int>> GeometryEngine::edge_faces(const TopoDS_Shape& shape)
+{
+    NCollection_DataMap<TopoDS_Shape, int, TopTools_ShapeMapHasher> face_id;
+    int n = 0;
+    for (TopExp_Explorer e(shape, TopAbs_FACE); e.More(); e.Next(), ++n)
+        if (!face_id.IsBound(e.Current())) face_id.Bind(e.Current(), n);   // faces_of's ordinal
+    NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> faces_of_edge;
+    TopExp::MapShapesAndAncestors(shape, TopAbs_EDGE, TopAbs_FACE, faces_of_edge);
+    const std::vector<TopoDS_Edge> edges = edges_of(shape);
+    std::vector<std::vector<int>> out(edges.size());
+    for (size_t i = 0; i < edges.size(); ++i) {
+        const int k = faces_of_edge.FindIndex(edges[i]);
+        if (k == 0 || BRep_Tool::Degenerated(edges[i])) continue;
+        for (NCollection_List<TopoDS_Shape>::Iterator it(faces_of_edge.FindFromIndex(k)); it.More(); it.Next()) {
+            const int* f = face_id.Seek(it.Value());
+            if (f != nullptr && std::find(out[i].begin(), out[i].end(), *f) == out[i].end()) out[i].push_back(*f);
+        }
+    }
+    return out;
+}
+
+int GeometryEngine::edge_convexity(const TopoDS_Edge& edge, const TopoDS_Face& f1, const TopoDS_Face& f2)
+{
+    // Faces closer than a degree to each other along the edge count as tangent.
+    switch (ChFi3d::DefineConnectType(edge, f1, f2, std::sin(M_PI / 180.0), true)) {
+    case ChFiDS_Convex:  return 1;
+    case ChFiDS_Concave: return -1;
+    default:             return 0;
+    }
+}
+
+double GeometryEngine::min_distance(const TopoDS_Shape& a, const TopoDS_Shape& b, Vec3d& pa, Vec3d& pb)
+{
+    BRepExtrema_DistShapeShape dss(a, b);
+    if (!dss.IsDone() || dss.NbSolution() < 1) return -1.0;
+    const gp_Pnt p = dss.PointOnShape1(1), q = dss.PointOnShape2(1);
+    pa = Vec3d(p.X(), p.Y(), p.Z());
+    pb = Vec3d(q.X(), q.Y(), q.Z());
+    return dss.Value();
 }
 
 bool GeometryEngine::face_plane_bounds(const TopoDS_Face& face, const Vec3d& origin,

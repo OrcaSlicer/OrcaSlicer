@@ -1,7 +1,13 @@
 #pragma once
 
 #include <wx/defs.h>
+#include <wx/gdicmn.h>
 #include <wx/mousestate.h>
+
+#include <functional>
+
+class wxMenu;
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
@@ -20,7 +26,16 @@ void release_mouse();
 bool is_mouse_held();
 // Drops everything held, e.g. when a gesture fails half-way.
 void clear();
+// Popup and context menus that open while automation acts on the UI go to `capture` instead of
+// being shown: a native menu loop would hold the UI thread until a person closed the menu, and on
+// macOS it pauses the queued calls automation runs through. `capture` returns false to let a menu
+// show. Empty unless the MCP server runs; clear() leaves it.
+void set_menu_capture(std::function<bool(wxMenu& menu, wxWindow& owner)> capture);
 } // namespace SyntheticInput
+
+// Shows `menu` from `owner` as wxWindow::PopupMenu() does, unless automation takes it (see
+// SyntheticInput::set_menu_capture()). Every popup and context menu goes through here.
+bool popup_menu(wxWindow& owner, wxMenu& menu, const wxPoint& pos = wxDefaultPosition);
 
 // wxGetKeyState() plus the keys automation holds down.
 bool get_key_state(wxKeyCode key);

@@ -55,6 +55,7 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <iterator>
+#include <optional>
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Color.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
@@ -1807,13 +1808,14 @@ void DesignSketchTool::drop_constraints_referencing(int ei)
 // Onshape scissors on the live sketch: cut the picked entity at its nearest intersection.
 // trim_entity/extend_entity mutate the subject in place (slide one endpoint) given the other
 // entities + the pick point — no entity is added/removed, so indices stay stable.
-bool DesignSketchTool::apply_live_trim(const Vec2d& p, double tol, bool extend)
+bool DesignSketchTool::apply_live_trim(const Vec2d& p, double tol, bool extend, int* picked)
 {
     double best = 1e30; int bi = -1;
     for (size_t i = 0; i < m_entities.size(); ++i) {
         const double d = entity_pick_dist(p, m_entities[i]);
         if (d < best) { best = d; bi = int(i); }
     }
+    if (picked != nullptr) *picked = best <= tol ? bi : -1;
     if (bi < 0 || best > tol) return false;
     using Ty = SketchEntity::Type;
     const Ty st = m_entities[bi].type;
@@ -8944,9 +8946,9 @@ static bool entity_moved(const SketchEntity& a, const SketchEntity& b, double to
     }
 }
 
-void DesignSketchTool::confirm_op()
+bool DesignSketchTool::confirm_op()
 {
-    if (!op_ready()) return;
+    if (!op_ready()) return false;
     using R  = SketchPointRole;
     using CT = SketchConstraintType;
 
@@ -8961,7 +8963,7 @@ void DesignSketchTool::confirm_op()
                 ? _u8L("Fillet: the radius overruns a leg, or the two lines do not meet at a corner")
                 : _u8L("Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"));
             reset_op();
-            return;
+            return false;
         }
         const int a = m_op_a, b = m_op_b;
         m_entities[a] = a_out; m_entities[b] = b_out;
@@ -9004,7 +9006,7 @@ void DesignSketchTool::confirm_op()
         if (out.empty()) {
             notify(_u8L("Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"));
             reset_op();
-            return;
+            return false;
         }
         const int ni = int(m_entities.size());
         const bool single = m_op_chain.size() <= 1;
@@ -9099,6 +9101,7 @@ void DesignSketchTool::confirm_op()
     m_selection.clear();
     resolve_live();
     if (on_selection_changed) on_selection_changed(0);
+    return true;
 }
 
 // ---- In-canvas transform gizmo (Move/Rotate/Scale/Array/PolarArray) ----
@@ -10476,6 +10479,115 @@ int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ent
     return base;
 }
 
+int DesignSketchTool::constrain_scripted(const std::vector<SketchEntityConstraintDef>& defs)
+{
+    const int first = int(m_constraints.size());
+    if (defs.empty() || !try_add_constraints(defs)) return -1;
+    resolve_live();   // try_add_constraints solves but leaves the DoF readout as it was
+    return first;
+}
+
+// The scripted ops set the armed tool's mode and picks for the one apply step and put the mode
+// back. The entity-count baseline is resynced as add_entities_scripted does it, so a fillet arc or
+// an array copy is not taken for something the armed tool just drew (j7gc).
+bool DesignSketchTool::fillet_scripted(int a, int b, double value, bool chamfer)
+{
+    const int n = int(m_entities.size());
+    if (gesture_pending() || value_field_open() || a < 0 || b < 0 || a >= n || b >= n || a == b
+        || m_entities[a].type != SketchEntity::Type::Line || m_entities[b].type != SketchEntity::Type::Line || !(value > 0.0))
+        return false;
+    const Mode armed = m_mode;
+    m_mode     = chamfer ? Mode::Chamfer : Mode::Fillet;
+    m_op_a     = a;
+    m_op_b     = b;
+    m_op_value = value;
+    const bool ok = confirm_op();
+    m_mode = armed;
+    m_autoedit_seen = int(m_entities.size());
+    return ok;
+}
+
+bool DesignSketchTool::trim_scripted(const Vec2d& at, double tol, bool extend, int& picked)
+{
+    picked = -1;
+    if (gesture_pending() || value_field_open() || !apply_live_trim(at, tol, extend, &picked)) return false;
+    resolve_live();   // as the scissors' click does
+    return true;
+}
+
+std::optional<Vec2d> DesignSketchTool::transform_scripted(Mode mode, const std::vector<int>& targets, const Vec2d& delta,
+                                                          double angle, double scale, int count,
+                                                          const std::optional<Vec2d>& pivot)
+{
+    const bool transform = mode == Mode::Move || mode == Mode::Rotate || mode == Mode::Scale || mode == Mode::Array
+                           || mode == Mode::PolarArray;
+    if (!transform || targets.empty() || gesture_pending() || value_field_open()) return std::nullopt;
+    for (int ti : targets)
+        if (ti < 0 || ti >= int(m_entities.size())) return std::nullopt;
+    const Mode armed = m_mode;
+    m_mode       = mode;
+    m_tf_targets = targets;
+    compute_tf_pivot();
+    if (pivot) m_tf_pivot = *pivot;
+    m_tf_delta = delta;
+    m_tf_angle = angle;
+    m_tf_scale = scale;
+    m_tf_count = count;
+    const Vec2d used = m_tf_pivot;
+    confirm_transform();
+    m_mode = armed;
+    m_autoedit_seen = int(m_entities.size());
+    return used;
+}
+
+int DesignSketchTool::add_shape_scripted(Mode mode, const std::vector<Vec2d>& clicks, int sides, bool circumscribed,
+                                         bool construction)
+{
+    if (gesture_pending() || value_field_open()) return -1;
+    const bool was_construction = m_construction, was_circumscribed = m_polygon_circumscribed;
+    m_construction          = construction;
+    m_polygon_circumscribed = circumscribed;
+    const int    base = int(m_entities.size());
+    const size_t n    = clicks.size();
+    // The same builders and grouping as the gestures' last click (on_mouse_impl).
+    switch (mode) {
+    case Mode::Polygon:
+        if (n == 2) {
+            begin_feature(FeatureKind::Polygon);
+            append_entities(make_polygon(clicks[0], clicks[1], sides));
+            end_feature(clicks[0], clicks[1], (clicks[1] - clicks[0]).norm(), sides);
+        }
+        break;
+    case Mode::Slot:
+        if (n == 3 && (clicks[1] - clicks[0]).squaredNorm() > 1e-12) {
+            const Vec2d  u = (clicks[1] - clicks[0]).normalized();
+            const double w = std::abs(Vec2d(-u.y(), u.x()).dot(clicks[2] - clicks[0]));
+            begin_feature(FeatureKind::Slot);
+            append_entities(make_slot(clicks[0], clicks[1], w));
+            end_feature(clicks[0], clicks[1], w);
+        }
+        break;
+    case Mode::Ellipse:
+        if (n == 3) append_entities(make_ellipse(clicks[0], clicks[1], clicks[2]));
+        break;
+    case Mode::EllipseArc:
+        if (n == 5) append_entities(make_ellipse_arc(clicks[0], clicks[1], clicks[2], clicks[3], clicks[4]));
+        break;
+    case Mode::BSpline:
+        append_entities(make_bspline(clicks));
+        break;
+    default:
+        break;
+    }
+    m_construction          = was_construction;
+    m_polygon_circumscribed = was_circumscribed;
+    if (int(m_entities.size()) == base) return -1;
+    infer_auto_constraints(base, 0.0, 0.0);   // exact, as add_entities_scripted infers (8xg1)
+    resolve_live();
+    m_autoedit_seen = int(m_entities.size());
+    return base;
+}
+
 bool DesignSketchTool::select_indices(const std::vector<int>& idx)
 {
     m_selection.clear();
@@ -10489,13 +10601,13 @@ bool DesignSketchTool::select_indices(const std::vector<int>& idx)
     return !m_selection.empty();
 }
 
-DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
+DesignSketchTool::LoopReport DesignSketchTool::loop_report(const std::vector<SketchEntity>& ents) const
 {
     LoopReport out;
 
     // Closed regions and their voids come straight from the code the viewport already uses to
     // decide what can be extruded, so the report cannot drift from what the tool will build.
-    const auto regs = region_loops(m_entities);
+    const auto regs = region_loops(ents);
     out.loops.reserve(regs.size());
     for (const auto& r : regs) {
         LoopInfo li;
@@ -10507,10 +10619,10 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
         // Analytic where the loop IS one closed curve; shoelace only where it is a chain.
         // region_loops hands back the render polyline, and a circle's is a 64-gon whose area is
         // 0.3% short — a number reported as "area" must not be the faceting error.
-        if (r.ents.size() == 1 && r.ents[0] >= 0 && r.ents[0] < int(m_entities.size()) &&
-            (m_entities[r.ents[0]].type == SketchEntity::Type::Circle ||
-             m_entities[r.ents[0]].type == SketchEntity::Type::Ellipse)) {
-            const SketchEntity& c = m_entities[r.ents[0]];
+        if (r.ents.size() == 1 && r.ents[0] >= 0 && r.ents[0] < int(ents.size()) &&
+            (ents[r.ents[0]].type == SketchEntity::Type::Circle ||
+             ents[r.ents[0]].type == SketchEntity::Type::Ellipse)) {
+            const SketchEntity& c = ents[r.ents[0]];
             li.area = (c.type == SketchEntity::Type::Circle)
                           ? M_PI * c.radius * c.radius
                           : M_PI * c.radius * c.rminor;
@@ -10528,7 +10640,7 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
             // halved once at the end. (Doubling the arc term instead reads 5913.72 on the stadium
             // — exactly one arc's contribution too much, which is how the slip was caught.)
             auto ent_ends = [&](int ei, Vec2d& a, Vec2d& b) {
-                a = m_entities[ei].p0; b = m_entities[ei].p1;
+                a = ents[ei].p0; b = ents[ei].p1;
             };
             const double eps = 1e-6;
             double area2 = 0.0;
@@ -10536,8 +10648,8 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
             Vec2d  cur(0, 0);
             for (size_t k = 0; k < r.ents.size(); ++k) {
                 const int ei = r.ents[k];
-                if (ei < 0 || ei >= int(m_entities.size())) { exact = false; break; }
-                const SketchEntity& e = m_entities[ei];
+                if (ei < 0 || ei >= int(ents.size())) { exact = false; break; }
+                const SketchEntity& e = ents[ei];
                 if (e.type != SketchEntity::Type::Line && e.type != SketchEntity::Type::Arc) {
                     exact = false; break;      // spline / ellipse arc: fall back below
                 }
@@ -10588,7 +10700,7 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
     // coordinates, instead of only that it does.
     struct End { Vec2d p; };
     std::vector<End> ends;
-    for (const SketchEntity& e : m_entities) {
+    for (const SketchEntity& e : ents) {
         if (e.construction) continue;
         if (e.type == SketchEntity::Type::Line || e.type == SketchEntity::Type::Arc ||
             e.type == SketchEntity::Type::EllipseArc || e.type == SketchEntity::Type::BSpline) {

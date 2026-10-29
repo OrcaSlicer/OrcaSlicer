@@ -2,6 +2,7 @@
 #define slic3r_Plater_hpp_
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/ParameterUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include <cstddef>
 #include <map>
@@ -409,16 +410,18 @@ public:
     // toolpath geometry at load time. Keeps the current layer range and only-gcode mode.
 
     // SoftFever
-    void calib_pa(const Calib_Params& params);
+    // Each test starts a new project; `skip_confirm` skips its prompts (save the project, keep or
+    // discard modified presets), keeping the modified presets, for a caller that has decided both.
+    void calib_pa(const Calib_Params& params, bool skip_confirm = false);
     //ORCA: Add pattern parameter to calib_flowrate
-    void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords);
-    void calib_temp(const Calib_Params& params);
-    void calib_max_vol_speed(const Calib_Params& params);
-    void calib_retraction(const Calib_Params& params);
-    void calib_VFA(const Calib_Params& params);
-    void calib_input_shaping_freq(const Calib_Params& params);
-    void calib_input_shaping_damp(const Calib_Params& params);
-    void Calib_Cornering(const Calib_Params& params);
+    void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords, bool skip_confirm = false);
+    void calib_temp(const Calib_Params& params, bool skip_confirm = false);
+    void calib_max_vol_speed(const Calib_Params& params, bool skip_confirm = false);
+    void calib_retraction(const Calib_Params& params, bool skip_confirm = false);
+    void calib_VFA(const Calib_Params& params, bool skip_confirm = false);
+    void calib_input_shaping_freq(const Calib_Params& params, bool skip_confirm = false);
+    void calib_input_shaping_damp(const Calib_Params& params, bool skip_confirm = false);
+    void Calib_Cornering(const Calib_Params& params, bool skip_confirm = false);
 
     BuildVolume_Type get_build_volume_type() const;
 
@@ -562,7 +565,10 @@ public:
     void remove_selected();
     void increase_instances(size_t num = 1);
     void decrease_instances(size_t num = 1);
-    void set_number_of_copies(/*size_t num*/);
+    // Asks for the selected object's number of instances.
+    void set_number_of_copies();
+    // Gives the selected object `num` instances in one undo step; 0 deletes it, as the dialog's 0 does.
+    void set_number_of_copies(int num);
     void fill_bed_with_copies();
     void fill_bed_with_instances();
     bool is_selection_empty() const;
@@ -638,6 +644,11 @@ public:
     void print_job_finished(wxCommandEvent &evt);
     void send_job_finished(wxCommandEvent& evt);
     void open_platesettings_dialog(wxCommandEvent& evt);
+    // What the Plate Settings dialog's OK sets on a plate: the bed type, the first and the other layers'
+    // filament orders (empty for Auto), the print sequence and spiral vase (0 as the global setting,
+    // 1 on, which asks for confirmation, 2 off), then the dirty state and the update that follow.
+    void apply_plate_settings(int plate_index, BedType bed_type, const std::vector<int>& first_layer_seq,
+                              const std::vector<LayerPrintSequence>& other_layers_seq, PrintSequence print_seq, int spiral_choice);
     void open_filament_map_setting_dialog(wxCommandEvent &evt);
     void on_change_color_mode(SimpleEvent& evt);
 	void eject_drive();

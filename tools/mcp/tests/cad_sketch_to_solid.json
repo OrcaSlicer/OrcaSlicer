@@ -1,0 +1,101 @@
+// Sketch to solid through cad_call: sketches on a base plane through modeling_origin and on a
+// body's face, committed and read back, then extruded whole, by loop and joined onto the body they
+// touch, and revolved about the sketch's centerline. An empty sketch is refused and stays open. The
+// L-bracket's inside corner is rounded in the sketch, as the Fillet tool rounds it.
+// Needs the CAD feature on:
+//   tools/mcp/orca_mcp.py launch --cad
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/cad_sketch_to_solid.json --out /tmp/out
+{
+  "orca_script": 1,
+  "name": "cad sketch to solid",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
+
+    // An L-bracket profile on XZ, which passes through modeling_origin, not the bed corner: 40 x 30, 4 thick.
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": "XZ"}},
+     "expect": {"/result/plane": {"eq": "XZ"}, "/result/frame/normal/1": {"eq": 1.0}, "/result/frame/origin/0": {"gt": 1.0}}},
+    // Committing it empty fails and leaves it open: the next step reads the open sketch.
+    {"tool": "cad_call", "args": {"method": "sketch_commit"}, "optional": true},
+    {"tool": "cad_call", "args": {"method": "sketch_describe"}, "expect": {"/result/entities": {"empty": true}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"entities": [
+      {"type": "line", "p0": [0, 0],  "p1": [40, 0]},
+      {"type": "line", "p0": [40, 0], "p1": [40, 4]},
+      {"type": "line", "p0": [40, 4], "p1": [4, 4]},
+      {"type": "line", "p0": [4, 4],  "p1": [4, 30]},
+      {"type": "line", "p0": [4, 30], "p1": [0, 30]},
+      {"type": "line", "p0": [0, 30], "p1": [0, 0]}]}},
+     "expect": {"/result/entities": {"eq": 6}}},
+    // The inside corner, between lines 2 and 3, rounded to 3 mm: an arc tangent to both legs.
+    {"tool": "cad_call", "args": {"method": "sketch_fillet", "params": {"entities": [2, 3], "radius": 3}},
+     "expect": {"/result/entity": {"eq": 6}, "/result/entities": {"eq": 7}, "/result/released_constraints": {"eq": 1},
+                "/result/solve_ok": {"eq": true}}},
+    {"tool": "cad_call", "args": {"method": "sketch_commit"},
+     "expect": {"/result/sketch_index": {"eq": 0}, "/result/name": {"regex": "^Sketch"}, "/result/features": {"eq": 1},
+                "/result/buildable": {"eq": true}, "/result/closed_loops/0/index": {"eq": 0},
+                "/result/closed_loops/0/area": {"ge": 265.93, "le": 265.94}}},
+    {"tool": "cad_call", "args": {"method": "sketch_describe", "params": {"sketch": 0}},
+     "expect": {"/result/plane/base": {"eq": "XZ"}, "/result/entities/6/type": {"eq": "arc"}, "/result/entities/6/radius": {"ge": 2.9999, "le": 3.0001},
+                "/result/closed_loops/0/entities/6": {"exists": true}, "/result/buildable": {"eq": true}}},
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"sketch": 0, "distance": 20}},
+     "expect": {"/result/extrude_index": {"eq": 1}, "/result/sketch_index": {"eq": 0}, "/result/boolean": {"eq": "new"},
+                "/result/body": {"eq": 0}, "/result/end": {"eq": "blind"}, "/result/frame/normal/1": {"eq": 1.0}}},
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/volume": {"gt": 5316.6, "lt": 5320.6}}},
+    {"tool": "cad_call", "args": {"method": "describe_scene"},
+     "expect": {"/result/bodies/0/bbox/min/0": {"gt": 1.0}, "/result/bodies/0/bbox/min/2": {"ge": -0.001, "le": 0.001},
+                "/result/bodies/0/bbox/max/2": {"ge": 29.999, "le": 30.001}}},
+
+    // A shelf-pin jig: a 160 x 60 plate with five 5.2 mm holes on 32 mm centres, in one sketch.
+    {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": "XY"}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"rect": [-80, -30, 80, 30]}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"entities": [
+      {"type": "circle", "center": [-64, 0], "radius": 2.6},
+      {"type": "circle", "center": [-32, 0], "radius": 2.6},
+      {"type": "circle", "center": [0, 0],   "radius": 2.6},
+      {"type": "circle", "center": [32, 0],  "radius": 2.6},
+      {"type": "circle", "center": [64, 0],  "radius": 2.6}]}}},
+    // Six loops: each disc, and the plate listing the five as its holes.
+    {"tool": "cad_call", "args": {"method": "sketch_commit"},
+     "expect": {"/result/buildable": {"eq": true}, "/result/closed_loops/5/index": {"eq": 5},
+                "/result/closed_loops/5/holes/4": {"exists": true}, "/result/closed_loops/5/area": {"ge": 9599.99, "le": 9600.01}}},
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"sketch": 0, "distance": 8}},
+     "expect": {"/result/boolean": {"eq": "new"}, "/result/body": {"eq": 0}}},
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/volume": {"ge": 75950.50, "le": 75950.53}}},
+    {"tool": "cad_call", "args": {"method": "query_topology", "params": {"body": 0}},
+     "expect": {"/result/face_count": {"eq": 11}, "/result/faces/4/kind": {"eq": "cylindrical"},
+                "/result/faces/8/kind": {"eq": "cylindrical"}, "/result/faces/10/normal/2": {"eq": 1.0}}},
+    // The lip, sketched on the plate's top face: that frame's x is world -Y and its y world X.
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": {"body": 0, "face": 10}}},
+     "expect": {"/result/frame/origin/2": {"ge": 7.999, "le": 8.001}, "/result/frame/x_axis/1": {"eq": -1.0},
+                "/result/frame/y_axis/0": {"eq": 1.0}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"rect": [-30, -80, -20, 80]}}},
+    {"tool": "cad_call", "args": {"method": "sketch_commit"}, "expect": {"/result/sketch_index": {"eq": 2}}},
+    // It touches the plate, so it joins it, as the Extrude card's default does.
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"sketch": 2, "distance": 10}},
+     "expect": {"/result/boolean": {"eq": "union"}, "/result/body": {"eq": 0}, "/result/bodies": {"eq": 1}}},
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/volume": {"ge": 91950.50, "le": 91950.53}}},
+    {"tool": "cad_call", "args": {"method": "describe_scene"},
+     "expect": {"/result/bodies/0/bbox/max/2": {"ge": 17.999, "le": 18.001}}},
+    // One loop of the plate's sketch: a hole's loop is its disc.
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"sketch": 0, "loop": 2, "distance": 8, "boolean": "new"}},
+     "expect": {"/result/loop": {"eq": 2}, "/result/body": {"eq": 1}, "/result/bodies": {"eq": 2}}},
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 1}},
+     "expect": {"/result/volume": {"ge": 169.89, "le": 169.91}}},
+
+    // A ring: a 10 x 10 profile revolved about the sketch's only centerline.
+    {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": "XZ"}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"rect": [10, 0, 20, 10]}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"type": "line", "p0": [0, 0], "p1": [0, 30], "construction": true}}},
+    {"tool": "cad_call", "args": {"method": "sketch_commit"}, "expect": {"/result/sketch_index": {"eq": 0}}},
+    {"tool": "cad_call", "args": {"method": "revolve", "params": {"sketch": 0}},
+     "expect": {"/result/revolve_index": {"eq": 1}, "/result/axis_entity": {"eq": 4}, "/result/boolean": {"eq": "new"}}},
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/volume": {"ge": 9424.70, "le": 9424.86}}}
+  ]
+}

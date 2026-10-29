@@ -70,7 +70,8 @@ def main():
         clicked = client.call("ui_click", target=row[0])
         layers = client.call("list_objects")["items"][0]["volumes"][0]["painted"]["texture"]
         checks.append(("the old ref clicks the renamed row", len(layers) == 2, (clicked, len(layers))))
-    client.call("ui_click", target={"imgui_name": "close"})
+    # Its icon closes it: in a small window the object's info notification covers the panel's Close.
+    client.call("ui_click", target={"gizmo": "Texture Displacement"})
     client.call("wait", **{"for": "idle"})
 
     out_dir = tempfile.mkdtemp(prefix="orca-mcp-")

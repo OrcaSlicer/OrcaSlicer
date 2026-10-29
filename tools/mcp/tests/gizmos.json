@@ -122,6 +122,9 @@
     {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/supports/blockers": {"gt": 0}}},
     {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/supports.png", "overwrite": true, "include_image": false}},
     {"tool": "ui_click", "args": {"target": {"imgui": "Done"}}},
+    // Painted enforcers with support off raise a lasting warning, whose notification can cover a later
+    // panel's items in a small window (a click there is refused); support goes on, as it asks.
+    {"tool": "set_settings", "args": {"scope": "print", "values": {"enable_support": true}}},
     {"tool": "transform", "args": {"object": 1, "translate": [160, 100, 12.8], "mode": "absolute"}},
 
     // ---- Seam ----

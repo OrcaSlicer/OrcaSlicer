@@ -4,6 +4,7 @@
 #include "I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "libslic3r_version.h"
 
 #include <boost/filesystem/path.hpp>
@@ -1133,7 +1134,7 @@ void WebViewPanel::OnToolsClicked(wxCommandEvent& WXUNUSED(evt))
     m_dev_tools->Check(m_browser->IsAccessToDevToolsEnabled());
 
     wxPoint position = ScreenToClient(wxGetMousePosition());
-    PopupMenu(m_tools_menu, position.x, position.y);
+    popup_menu(*this, *m_tools_menu, position);
 }
 
 void WebViewPanel::RunScript(const wxString& javascript)

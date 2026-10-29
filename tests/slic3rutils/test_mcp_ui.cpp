@@ -26,13 +26,23 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/Mcp/CanvasTarget.hpp"
+#include "slic3r/GUI/Mcp/McpService.hpp"
+#include "slic3r/GUI/Mcp/McpServicePtr.hpp"
 #include "slic3r/GUI/Mcp/UiInspector.hpp"
 #include "slic3r/GUI/Mcp/UiRefs.hpp"
 
 #include <nlohmann/json.hpp>
 
+#include <wx/app.h>
+#include <wx/event.h>
+#include <wx/frame.h>
+#include <wx/init.h>
+#include <wx/panel.h>
+#include <wx/window.h>
+
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <optional>
 #include <set>
 #include <string>
@@ -380,8 +390,8 @@ TEST_CASE("the surface check passes a visible point and names what hides another
     CHECK(check_surface(Vec3d(0., 0., -40.), ray_to(Vec3d(0., 0., -40.)), covered, nullptr, {}, 0.1) ==
           "another part or object is in front of the point");
 
-    // The bed: in front of a part looked at from below it, and the floor under a part sunk into it.
-    // Slic3r:: because windows.h declares a global Polygon() as well.
+    // The bed: the floor under a part sunk into it, but see-through from below, as the GUI draws it and
+    // paints through it there. Slic3r:: because windows.h declares a global Polygon() as well.
     const Slic3r::Polygon          bed = Slic3r::Polygon::new_scale({Vec2d(-50., -50.), Vec2d(50., -50.), Vec2d(50., 50.), Vec2d(-50., 50.)});
     const std::vector<SurfaceMesh> raised{{&cube, cube_at(-1.).pretranslate(Vec3d(0., 0., 20.)), true, false}};
     const CanvasView               below = [&] {
@@ -390,7 +400,13 @@ TEST_CASE("the surface check passes a visible point and names what hides another
         return v;
     }();
     const auto from_below = [&](const Vec3d& p) { return pixel_ray(below, *project_point(below, p)); };
-    CHECK(check_surface(Vec3d(0., 0., 9.), from_below(Vec3d(0., 0., 9.)), raised, nullptr, {bed}, 0.1) == "the bed is in front of the point");
+    CHECK(check_surface(Vec3d(0., 0., 9.), from_below(Vec3d(0., 0., 9.)), raised, nullptr, {bed}, 0.1).empty());
+    // A click beside the part, at x = 6 (pixel 112), lands on the bed looking down and on nothing
+    // looking up.
+    CHECK(check_surface(Vec3d(4.9, 0., 19.), pixel_ray(view, Vec2d(112., 100.)), raised, nullptr, {bed}, 0.1) ==
+          "the click at the point's pixel lands on the bed beside the part");
+    CHECK(check_surface(Vec3d(4.9, 0., 9.), pixel_ray(below, Vec2d(112., 100.)), raised, nullptr, {bed}, 0.1) ==
+          "the click at the point's pixel misses the part");
     const std::vector<SurfaceMesh> sunk{{&cube, cube_at(-1.), true, false}}; // its top 1 mm under the bed
     CHECK(check_surface(Vec3d(0., 0., -1.), ray_to(Vec3d(0., 0., -1.)), sunk, nullptr, {bed}, 0.1) == "the point is below the bed");
     // Plates are separate outlines: the gap between two is no bed.
@@ -498,4 +514,57 @@ TEST_CASE("the surface check judges the ray through the whole pixel a click goes
     const std::vector<SurfaceMesh> a_alone{{&a, a_world, true, false, "A"}};
     CHECK(check_surface(Vec3d(-0.3, 0., -40.), pixel_ray(view, Vec2d(100., 100.)), a_alone, nullptr, {}, 0.1) ==
           "the click at the point's pixel misses the part");
+}
+
+TEST_CASE("a key goes to the hooks of the target and its parents before the target, as a real key press does", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        McpServicePtr service(new McpService());
+        UiInspector   inspector(*service);
+
+        // A panel whose hook takes Escape, as the Design tab's does, in a frame with a hook of its own.
+        wxFrame                  frame(nullptr, wxID_ANY, "keys");
+        auto*                    panel = new wxPanel(&frame);
+        auto*                    field = new wxWindow(panel, wxID_ANY);
+        std::vector<std::string> seen;
+        bool                     allow_next = false;
+        panel->Bind(wxEVT_CHAR_HOOK, [&](wxKeyEvent& e) {
+            seen.push_back("panel hook");
+            if (e.GetKeyCode() != WXK_ESCAPE)
+                e.Skip();
+            else if (allow_next)
+                e.DoAllowNextEvent();
+        });
+        frame.Bind(wxEVT_CHAR_HOOK, [&](wxKeyEvent& e) {
+            seen.push_back("frame hook");
+            e.Skip();
+        });
+        field->Bind(wxEVT_KEY_DOWN, [&](wxKeyEvent& e) {
+            seen.push_back("key down");
+            e.Skip();
+        });
+        UiTarget target;
+        target.window = field;
+
+        // The panel's hook takes the key, so neither the frame nor the target sees it.
+        inspector.key(&target, "Escape", "");
+        CHECK(seen == std::vector<std::string>{"panel hook"});
+        // A key no hook takes goes up to the frame's hook, then down to the target.
+        seen.clear();
+        inspector.key(&target, "F5", "");
+        CHECK(seen == std::vector<std::string>{"panel hook", "frame hook", "key down"});
+        // A hook that allows the next event lets the target have the key too.
+        seen.clear();
+        allow_next = true;
+        inspector.key(&target, "Escape", "");
+        CHECK(seen == std::vector<std::string>{"panel hook", "key down"});
+    }
 }

@@ -24,6 +24,7 @@
 #include "wxExtensions.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
+#include "SyntheticInput.hpp"
 #ifdef SLIC3R_CAD
 #include "CAD/DesignPanel.hpp"
 #endif
@@ -652,7 +653,7 @@ void BBLTopbar::OnFileToolItem(wxAuiToolBarEvent& evt)
 
     if (!m_skip_popup_file_menu) {
         auto rec = this->GetToolRect(ID_TOP_FILE_MENU);
-        GetParent()->PopupMenu(m_file_menu, wxPoint(rec.GetLeft(), this->GetSize().GetHeight() - 2));
+        popup_menu(*GetParent(), *m_file_menu, wxPoint(rec.GetLeft(), this->GetSize().GetHeight() - 2));
     }
     else {
         m_skip_popup_file_menu = false;
@@ -670,7 +671,7 @@ void BBLTopbar::OnDropdownToolItem(wxAuiToolBarEvent& evt)
 
     if (!m_skip_popup_dropdown_menu) {
         auto rec = this->GetToolRect(ID_TOP_DROPDOWN_MENU);
-        GetParent()->PopupMenu(&m_top_menu, wxPoint(rec.GetLeft(), this->GetSize().GetHeight() - 2));
+        popup_menu(*GetParent(), m_top_menu, wxPoint(rec.GetLeft(), this->GetSize().GetHeight() - 2));
     }
     else {
         m_skip_popup_dropdown_menu = false;
@@ -688,7 +689,7 @@ void BBLTopbar::OnCalibToolItem(wxAuiToolBarEvent &evt)
 
     if (!m_skip_popup_calib_menu) {
         auto rec = this->GetToolRect(ID_CALIB);
-        GetParent()->PopupMenu(&m_calib_menu, wxPoint(rec.GetLeft(), this->GetSize().GetHeight() - 2));
+        popup_menu(*GetParent(), m_calib_menu, wxPoint(rec.GetLeft(), this->GetSize().GetHeight() - 2));
     } else {
         m_skip_popup_calib_menu = false;
     }

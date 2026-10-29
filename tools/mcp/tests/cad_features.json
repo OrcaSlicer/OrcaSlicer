@@ -1,0 +1,97 @@
+// Threads, sweeps, lofts and plane splits through cad_call. The bench's M5 hex standoff tapped on its
+// bore (the size inferred from the bore, as the Thread card infers it) and again on the XY plane; a
+// spring swept along a helix, round and square wire; a square-to-circle loft between the XY plane and
+// a datum plane, then split by that datum and by XY turned over. Refused calls change nothing. Face
+// ids are this build's; no step reads a world position that depends on the printer's bed.
+// Needs the CAD feature on:
+//   tools/mcp/orca_mcp.py launch --cad
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/cad_features.json --out /tmp/out
+{
+  "orca_script": 1,
+  "name": "cad thread sweep loft split",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
+
+    // M5 hex standoff: 8 mm across flats, 15 long, M5's 4.134 mm tap drill through it.
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"distance": 15,
+      "profile": [[4.618802, 0], [2.309401, 4], [-2.309401, 4], [-4.618802, 0], [-2.309401, -4], [2.309401, -4]]}},
+     "expect": {"/result/ok": {"eq": true}}},
+    {"tool": "cad_call", "args": {"method": "hole", "params": {"diameter": 4.134, "through": true}}, "expect": {"/result/ok": {"eq": true}}},
+    {"tool": "cad_call", "args": {"method": "query_topology", "params": {"kinds": ["cylindrical"]}},
+     "expect": {"/result/faces_total": {"eq": 1}, "/result/faces/0/id": {"eq": 8}, "/result/faces/0/internal": {"eq": true}}},
+    // A planar face cannot be threaded, and a designation not in the tables names the close ones.
+    {"tool": "cad_call", "args": {"method": "thread", "params": {"face": 0}}, "optional": true},
+    {"tool": "cad_call", "args": {"method": "thread", "params": {"face": 8, "designation": "M5x1"}}, "optional": true},
+    // The bore: M5 inferred from its 4.134 mm minor diameter, internal, the bore's whole 15 mm.
+    {"tool": "cad_call", "args": {"method": "thread", "params": {"face": 8}},
+     "expect": {"/result/thread_index": {"eq": 3}, "/result/designation": {"eq": "M5"}, "/result/internal": {"eq": true},
+                "/result/pitch": {"ge": 0.7999, "le": 0.8001}, "/result/length": {"ge": 14.9999, "le": 15.0001},
+                "/result/body": {"eq": 0}, "/result/bodies": {"eq": 1}}},
+    // The bench case's bounds.
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/is_solid": {"eq": true}, "/result/volume": {"gt": 600.0, "lt": 614.0}}},
+    {"tool": "cad_call", "args": {"method": "describe_scene"}, "expect": {"/result/features/3/type": {"eq": "Thread"}, "/result/undo_depth": {"eq": 3}}},
+    // The same thread placed on the XY plane, on the bore's axis.
+    {"tool": "cad_call", "args": {"method": "undo"}, "expect": {"/result/features": {"eq": 3}}},
+    {"tool": "cad_call", "args": {"method": "thread", "params": {"plane": "XY", "designation": "M5", "internal": true, "length": 15}},
+     "expect": {"/result/x": {"eq": 0.0}, "/result/y": {"eq": 0.0}, "/result/body": {"eq": 0}, "/result/designation": {"eq": "M5"}}},
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/volume": {"gt": 600.0, "lt": 614.0}}},
+
+    // A spring: a helix of radius 10, pitch 5, six turns; a 1.5 mm wire drawn across its start on XZ.
+    {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
+    {"tool": "cad_call", "args": {"method": "helix", "params": {"radius": 10, "pitch": 5, "height": 30}},
+     "expect": {"/result/helix_index": {"eq": 0}, "/result/tangent/1": {"ge": 0.9968, "le": 0.9969}, "/result/tangent/2": {"ge": 0.0793, "le": 0.0794}}},
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": "XZ"}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"type": "circle", "center": [10, 0], "radius": 1.5}}},
+    {"tool": "cad_call", "args": {"method": "sketch_commit"}, "expect": {"/result/sketch_index": {"eq": 1}}},
+    {"tool": "cad_call", "args": {"method": "sweep", "params": {"sketch": 1, "path": 0}},
+     "expect": {"/result/sweep_index": {"eq": 2}, "/result/body": {"eq": 0}, "/result/boolean": {"eq": "new"}}},
+    // pi 1.5^2 x the helix's 378.19 mm x 0.99685, the XZ plane's tilt off the helix's normal plane.
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/is_solid": {"eq": true}, "/result/volume": {"gt": 2638.0, "lt": 2691.0}}},
+    // A square wire beside it, 2 x 2.
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": "XZ"}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"rect": [9, -1, 11, 1]}}},
+    {"tool": "cad_call", "args": {"method": "sketch_commit"}, "expect": {"/result/sketch_index": {"eq": 3}}},
+    // A sweep is not a path.
+    {"tool": "cad_call", "args": {"method": "sweep", "params": {"sketch": 3, "path": 2}}, "optional": true},
+    {"tool": "cad_call", "args": {"method": "sweep", "params": {"sketch": 3, "path": 0}},
+     "expect": {"/result/sweep_index": {"eq": 4}, "/result/body": {"eq": 1}, "/result/bodies": {"eq": 2}}},
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 1}},
+     "expect": {"/result/is_solid": {"eq": true}, "/result/volume": {"gt": 1492.0, "lt": 1524.0}}},
+
+    // A loft from a 20 mm square on XY to an 8 mm circle on a datum plane 40 above it.
+    {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
+    {"tool": "cad_call", "args": {"method": "plane", "params": {"type": "offset", "base": "XY", "offset": 40}}, "expect": {"/result/plane_index": {"eq": 0}}},
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": "XY"}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"rect": [-10, -10, 10, 10]}}},
+    {"tool": "cad_call", "args": {"method": "sketch_commit"}, "expect": {"/result/sketch_index": {"eq": 1}}},
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": {"datum": 0}}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"type": "circle", "center": [0, 0], "radius": 8}}},
+    {"tool": "cad_call", "args": {"method": "sketch_commit"}, "expect": {"/result/sketch_index": {"eq": 2}}},
+    {"tool": "cad_call", "args": {"method": "loft", "params": {"profiles": [1]}}, "optional": true},
+    {"tool": "cad_call", "args": {"method": "loft", "params": {"profiles": [1, 0]}}, "optional": true},
+    {"tool": "cad_call", "args": {"method": "loft", "params": {"profiles": [1, 2]}},
+     "expect": {"/result/loft_index": {"eq": 3}, "/result/body": {"eq": 0}, "/result/bodies": {"eq": 1}}},
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/is_solid": {"eq": true}, "/result/volume": {"gt": 11850.0, "lt": 11861.0}}},
+
+    // Split by the datum plane 20 below it: the upper half stays body 0, the lower one is body 1.
+    {"tool": "cad_call", "args": {"method": "split", "params": {"plane": {"datum": 0}, "offset": 60}}, "optional": true},
+    {"tool": "cad_call", "args": {"method": "split", "params": {"plane": {"datum": 0}, "offset": -20}},
+     "expect": {"/result/split_index": {"eq": 4}, "/result/upper_body": {"eq": 0}, "/result/lower_body": {"eq": 1},
+                "/result/bodies": {"eq": 2}, "/result/frame/normal/2": {"eq": 1.0}}},
+    {"tool": "cad_call", "args": {"method": "describe_scene"},
+     "expect": {"/result/features/4/type": {"eq": "Cut"}, "/result/bodies/0/bbox/min/2": {"ge": 19.999, "le": 20.001},
+                "/result/bodies/1/bbox/max/2": {"ge": 19.999, "le": 20.001}}},
+    // The lower half, by XY at 10 turned over, keeping only the side toward the bed.
+    {"tool": "cad_call", "args": {"method": "split", "params": {"body": 1, "plane": "XY", "offset": 10, "flip": true, "keep_lower": false}},
+     "expect": {"/result/upper_body": {"eq": 1}, "/result/bodies": {"eq": 2}, "/result/frame/normal/2": {"eq": -1.0}}},
+    {"tool": "cad_call", "args": {"method": "describe_scene"},
+     "expect": {"/result/bodies/1/bbox/min/2": {"ge": -0.001, "le": 0.001}, "/result/bodies/1/bbox/max/2": {"ge": 9.999, "le": 10.001},
+                "/result/undo_depth": {"eq": 6}}}
+  ]
+}

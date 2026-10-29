@@ -19,8 +19,16 @@
 #include <wx/radiobox.h>
 #include <wx/sizer.h>
 #include "libslic3r/calib.hpp"
+#include "libslic3r/PrintConfig.hpp"
+
+#include <string>
+#include <vector>
 
 namespace Slic3r { namespace GUI {
+
+// The input shaper types the input shaping dialogs offer for the printer's firmware, as
+// input_shaping_type values in the order of their radio buttons; the first is their default.
+std::vector<std::string> shaper_type_values(const DynamicPrintConfig& printer);
 
 class PA_Calibration_Dlg : public DPIDialog
 {

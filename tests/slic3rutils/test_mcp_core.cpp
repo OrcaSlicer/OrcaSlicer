@@ -887,6 +887,7 @@ TEST_CASE("the journal records client calls in order and replays jobs with await
 {
     Journal journal;
     const uint64_t a = journal.begin("run_action", {{"id", "orca_command:open_preferences:orca"}});
+    journal.job_started(a, "j7");
     journal.end(a, ToolResult::ok({{"status", "blocked_by_dialog"}, {"job", "j7"}}));
     const uint64_t b = journal.begin("dialog_respond", {{"button", "close"}});
     journal.end(b, ToolResult::ok());

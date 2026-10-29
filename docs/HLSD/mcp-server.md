@@ -88,14 +88,25 @@ file, and one that stops must not hide another's server from the stdio bridge.
 `GUI_App::on_init_inner()` starts the service once AppConfig is loaded. That is before the first
 startup dialog, such as the TLS prompt or the setup wizard, so an agent can answer those dialogs.
 `--mcp` or the `mcp_enabled` preference opens the endpoint, while `--mcp-script` alone only builds
-the catalog. `get_state.ready` stays false until `post_init()` calls `mark_ready()`, and tools that
-need the main window fail with "still starting". `mark_ready()` also starts a command-line script.
+the catalog. `get_state.ready` stays false until `post_init()` calls `mark_ready()`, the Prepare
+canvas has loaded OpenGL and the main window has built its tab pages, and tools that need the main
+window fail with "still starting". Starting on Home, the canvas loads OpenGL at idle after
+`post_init()` (MainFrame's GL prebuild), and before that a 3MF save would draw its thumbnail with no
+GL functions loaded. The same idle queue builds the tab pages (`MainFrame::prebuild_pending()`); a
+page's web view registers its `wx` script message handler with a script it waits for in a nested
+loop, and on GTK calls that came in meanwhile have left that wait unfinished for good, so that no web
+view made afterwards gets `window.wx` and a dialog page's own buttons do nothing. So `mark_ready()`
+polls every 100 ms until both are done. A hidden canvas that can't get a GL context loads OpenGL on
+its first draw instead, and the pages build only while no input arrives, so after 10 s ready no
+longer waits for either. Becoming ready also starts a command-line script. Notifications don't depend on this: one pushed or updated before the first
+ImGui frame has built the font waits for its first render to measure its text.
 
 The service stops, idempotently, at the start of `MainFrame::shutdown()` when the app closes
 (before panels are destroyed) and on `wxEVT_END_SESSION` (after which macOS calls `exit()`).
 `McpService::stop()` wakes every waiting call with "shutting down" (`UiInvoker::shutdown()`,
 `JobRegistry::wake_all()`), refuses new calls, closes the endpoint and removes the discovery file,
-drops every auto-answer rule, clears `SyntheticInput` and turns ImGui recording off. It frees
+drops every auto-answer rule, clears `SyntheticInput`, removes the menu capture and turns ImGui
+recording off. It frees
 nothing: a call may still be on the UI thread's stack inside a nested event loop, using the
 inspector and the modal tracker, and job and request threads may still be returning.
 A stopped service never starts again. `GUI_App` holds the service in an `McpServicePtr`, whose
@@ -167,8 +178,8 @@ refusal lists the dialogs. It is also refused when it would run inside another U
 event loop: a modal, `ProgressDialog::Update` or `wxYield`. The GUI input tools (`ui_click`,
 `ui_input`, `ui_key`) and `dialog_respond` run as recover calls. Once a target resolves outside the
 topmost modal, they apply the mutate checks themselves (`UiInvoker::require_mutate()`), along with
-operation admission. `cancel` is a recover call too, so neither a dialog the operation opened nor
-another call's nested loop keeps it out.
+operation admission (`McpCore::admit()`). `cancel` is a recover call too, so neither a dialog the
+operation opened nor another call's nested loop keeps it out.
 
 `ToolDef::inline_call` decides where a call runs. Pure observation tools run on the request
 thread. Every tool that can activate UI runs as a job on its own thread, recover tools that click
@@ -215,12 +226,35 @@ through `observe_ui()` every 200 ms, so a dialog that opens meanwhile doesn't st
 the work ends or the deadline passes. The deadline is `slice.timeout_s` (default 30 minutes) for a
 slice and 10 minutes for an export.
 
-**Admission.** While an operation job runs, every other `Mutate` call is refused ("Busy: job j12 (a
-slice or export) is running"), whichever client or script sends it. So an agent can't change the
-project under its own operation. The check runs when the call arrives and again in its UI closure,
-where operations start, so a call admitted just before an operation began still can't change the
-project under it. Inline tools, recover tools and `allowed_during_operation` tools (`cancel`) still
-run.
+**Worker jobs.** Arrange, orient, Fill bed and the jobs of the Text, SVG and texture gizmos run on
+the Plater's UI job worker, whatever started them: the typed `arrange`, `run_action obj_arrange`, a
+GL toolbar item, an ImGui button such as the Arrange options panel's, or a gizmo control. `McpCore`
+watches that worker through `WorkerHooks` (busy and cancel, both on the UI thread). A call that finds
+the worker idle at the start of one of its UI closures and busy at the end of that closure, or of a
+later one (a toolbar event or a render queued by the call starts the job between closures), has
+started a worker job, and `McpCore::claim_worker()` makes that job the call's operation. The call's
+own job then ends only once the worker is idle again, its finalization included, since the job holds
+`ModelInstance` pointers until then. (`Worker::is_idle()` reads true from the moment the worker takes
+the finalize message, so a dialog finalization opens, such as an arrange's geometry error, ends the
+hold early; the modal guard keeps changes out until it closes.) Its reply waits within the reply budget and
+then becomes a running job, as for any call. `cancel` (or the call's own timeout, 30 minutes unless
+the tool sets a shorter one, as `arrange` does) asks the job to stop, but `Worker::cancel()` does not
+wait, so the call keeps the operation until the worker is idle and then fails as cancelled. `cancel`
+stops only a job an MCP call claimed. The worker doesn't record who queued a job, so a job a person
+starts while a call is still between its closures, after one that found the worker idle, is claimed
+by that call too: its reply then waits for that job. The window is the call's own length, a
+second or so for most calls and up to its poll timeout for a call that waits on the UI.
+
+**Admission.** While an operation job runs, every other `Mutate` call is refused ("Busy: job j12 is
+running an operation (slice, export, arrange or another background job)"), whichever client or script
+sends it. So an agent can't change the project under its own operation. While the worker runs a job
+no call holds, a person's (typing in the Text gizmo) or one not yet claimed, changes are refused too
+("Busy: a background job ..."); reads are not. The check, `McpCore::admit()`, runs when the call
+arrives (operations only, since the worker lives on the UI thread) and again in each of its UI
+closures, where operations start, so a call admitted just before an operation began still can't
+change the project under it. Inline tools, recover tools answering the topmost modal and
+`allowed_during_operation` tools (`cancel`) still run; the GUI input tools apply the same check once
+their target is outside the topmost modal.
 
 **Identity.** An operation must never take another's completion for its own. `Plater` numbers
 slice requests (`slice_request_seq`, bumped through `request_slice()` by every user-facing slice
@@ -234,7 +268,8 @@ already refused, a broken mixed filament, missing plugins, a UI job that won't s
 reason, so it is never taken for a cached result. `Plater` also notes each request that a later request reached while it was
 still slicing (`slice_request_interrupted()`).
 `Plater::project_revision()` rises with every undoable model edit, undo/redo, load, new project and
-config change, but not when a plate is selected (`Plater::take_plate_selection_snapshot()`), since
+config change, and with every change of a plate's layer G-codes (the plater's handler of the layer
+slider's ticks), but not when a plate is selected (`Plater::take_plate_selection_snapshot()`), since
 Slice All selects each plate in turn. A ticket's own runs are those numbered after it began that
 its request started (`SliceRun::for_request`); Slice All's later plates run for the same request,
 while a reslice from a Preview switch or automatic slicing, or an export, merely runs under the
@@ -252,7 +287,16 @@ sliced, `error` with the latest validation message when the configuration was re
 request so no run started (`Plater::plate_validation_error()`), `cancelled` when the operation was
 cancelled, or `skipped` (Slice All stops at a failing plate). Statistics come with an `ok` plate
 only while the project is as the operation sliced it and nobody has sliced that plate since
-(`plate_result_is_own()`). `cancel` also drops a pending automatic reslice: it stops the delay timer,
+(`plate_result_is_own()`). They are `plate_summary()` of the plate's `gcode_statistics_json()`, the
+serializer of the exported `statistics.json`, so the reply agrees with that file and with the
+legend: `filament_g` and `filament_m` count the flush, as the legend's Total Filament and the
+G-code's per-filament totals do, and `filaments` lists every filament slot of the project
+(`filaments[i]` is slot i + 1, zeros for slots the plate does not use) with its model, support,
+flush and prime tower grams. The silent-mode time and extruder changes, which that file leaves
+out, come from the result's estimates, and only when the printer has them. The summary is read in
+the poll closure that decides the outcome, since a UI call of its own would wait behind the
+preview's loading of the new result; the serializer's one pass over the moves is short next to
+that. `cancel` also drops a pending automatic reslice: it stops the delay timer,
 whose callback wx then never delivers, and moves on a generation that a zero-delay reslice already
 queued with `CallAfter` checks. An export is numbered in `export_seq` once scheduled, so an
 unchanged number means it never started; otherwise its `ExportRecord` ends `ok`, `failed`,
@@ -275,38 +319,48 @@ the UI thread.
 
 | Group | Tool | Purpose |
 |---|---|---|
-| App | `get_state` | version, platform and display backend, ready, tab, mode, project, presets, plates, objects, slicing, the open gizmo, dialogs, notifications, jobs, window |
+| App | `get_state` | version, platform and display backend, ready, tab, mode, project, presets, plates, the Preview's view type, time mode and layer range, objects, slicing, print host uploads, the open gizmo, dialogs, menus closed unseen, notifications, jobs, window |
 | | `wait` | `ready`, `idle`, `dialog`, `no_dialog` or a `job`; `timeout_s` up to 50 |
 | | `get_log` | end of the current log file, filtered by minimum level |
 | Speed Dial | `list_actions` | search the action catalog, paged |
-| | `run_action` | run an action by id, with its optional `param` |
+| | `run_action` | run an action by id, with its optional `param`; an error when the action did nothing; waits for a background job it starts (arrange, orient) |
 | Project | `open_files` | load models, a project or G-code by absolute path, with no dialog |
-| | `new_project` | start an empty project (`discard_changes` if it has unsaved changes) |
+| | `new_project` | start an empty project (`discard_changes` if it has unsaved changes); `changes` keeps or discards modified presets |
+| | `calibrate` | a Calibration menu test with typed parameters and no dialog: a new project with the test model and the preset changes the test needs, printed with filament slot 1; refused while presets are modified unless `changes` keeps or discards them |
 | | `save_project` | save the project as `.3mf` to a path |
 | | `export` | `gcode`, `sliced_3mf`, `3mf` or `stl` to a path; `gcode` is an export operation |
-| Presets | `list_presets` | printer, process or filament presets with flags, paged |
-| | `select_preset` | select by name through the selector (filament per slot) |
-| | `get_settings` | values and metadata of a preset, or of an object's or part's overrides |
-| | `set_settings` | set values the way the settings tab does, all or none; object and part overrides |
-| Objects | `list_objects` | objects, instances (with their canvas rectangles on request), parts (triangles, mesh volume, painted facets, text and SVG sources), bounding boxes, brim ears, overrides, paged |
+| Presets | `list_presets` | printer, process or filament presets with flags (system, user, inside the project, the preset inherited from), paged |
+| | `select_preset` | select by name through the selector (filament per slot); `changes` transfers or discards unsaved changes without the prompt |
+| | `get_settings` | values and metadata (enum labels, per-variant entries) of the edited or any saved preset, of an object's or part's overrides with the values they print with, of the project's own settings (plate type, slot colours, flushing volumes, purge mode, prime tower positions, mixed slots), of a plate's (plate type, print sequence, spiral vase, filament orders, name, lock), or of named preferences (read only); `compare` lists only what differs from another preset, the saved one or the parent |
+| | `set_settings` | set values the way the settings tab does, all or none; one entry of a per-variant value; object and part overrides and filaments; the project's and a plate's own settings through their controls' and dialogs' code; `null` takes a preset's key back to its saved or parent value, `reset_all` drops a preset's unsaved changes first; replies with every setting that `changed` |
+| | `save_preset` | save the preset being edited under a name, as a user preset or inside the project |
+| | `delete_preset` | delete a user or project preset, selected or not, as the tab's Delete does (destructive) |
+| Objects | `list_objects` | objects (filament, auto drop, overrides, brim ears, height range modifiers, variable layer height profile), instances (placement, mirrored, bounding box, canvas rectangle on request) and parts (type, filament, placement and bounding box on the bed, scaled and mesh volume, painted facets, text and SVG sources), paged |
+| | `list_plates` | plates with the settings they print with and those they set themselves, objects, name, lock, slice state, prime tower position and layer G-codes, paged |
 | | `select` | select objects, instances or parts, all, or none |
-| | `transform` | translate, rotate or scale one instance, relative or absolute |
-| Slice | `slice` | current, one or all plates, then the Preview tab as after the Slice button; outcome and stats for each plate |
-| | `cancel` | stop the running slice or G-code export, or a pending automatic reslice (optionally only a given job); allowed during an operation |
-| View | `set_view` | tab, 3D view (Prepare, preview, assemble), camera, preview layers and color scheme, window size |
-| | `screenshot` | window, 3D canvas, topmost dialog or one widget: a downscaled image and a full-size PNG |
-| GUI | `ui_snapshot` | widgets, menus, GL toolbar items, gizmos and ImGui items, with refs |
-| | `ui_click` | activate a ref or locator |
-| | `ui_input` | set a control's text, value, selection or checked state |
-| | `ui_key` | send a key chord to a target or the focused window |
-| | `ui_mouse` | canvas gestures: move, down, up, click, drag, wheel, at pixels or at points of the model |
+| | `transform` | translate, rotate, scale or size one instance, relative or absolute, or move it to another plate; or the same for one part (`volume`) |
+| | `add_part` | add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object: a shape at a size or a model file, optionally at a position |
+| | `arrange` | arrange every unlocked plate or one plate, or fill an object's plate with instances or copies, with the Arrange options panel's settings; waits for the job |
+| | `set_layer_ranges` | replace an object's height range modifiers: Z ranges with their own layer height, filament and process settings |
+| | `set_layer_height_profile` | the Variable layer height panel's Adaptive (with its quality), Smooth (radius, keep min) or Reset on an object |
+| Slice | `slice` | current, one or all plates, then the Preview tab as after the Slice button; outcome for each plate, and for an `ok` one its time, filament totals with the flush, cost, layers, max Z, filament changes and grams per slot by use |
+| | `cancel` | stop the running slice or G-code export, a pending automatic reslice, or a background job an MCP call started (optionally only a given job); allowed during an operation |
+| | `set_layer_gcode` | add or remove a plate's pauses, custom G-code, custom templates and filament changes on its sliced layers, as the Preview layer slider's menu does |
+| View | `set_view` | tab (Design included), 3D view (Prepare, preview, assemble), camera (the Design view's on the Design tab), preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate, window size |
+| | `screenshot` | window, the 3D view shown (the Design view on the Design tab), topmost dialog or one widget: a downscaled image and a full-size PNG |
+| | `get_preview` | a sliced plate's summary, time and grams per feature type, per-layer Z, height, time and grams (paged), grams per object instance, and the Preview's legend state and colour ranges |
+| GUI | `ui_snapshot` | widgets, rows of lists, trees and tables, popups, menus, GL toolbar items, gizmos, the Prepare view's plates and plate icons, and ImGui items, with refs |
+| | `ui_click` | activate a ref or locator, click a row's cell or a plate icon, or click a point of a 3D canvas or custom-drawn widget; list the menu it opens, or run one of its items |
+| | `ui_input` | set a control's text, value, selection or checked state, or a row's checkbox |
+| | `ui_key` | send a key chord to a target or the focused window, whose panels' key hooks see it first; list or run the menu it opens |
+| | `ui_mouse` | canvas gestures: move, down, up, click, drag, wheel, at pixels or at points of the model (the Design view at pixels); list or run a right click's menu |
 | | `gizmo_file` | what the open gizmo's file pickers do, with a path: SVG change file and save as, texture import |
 | | `dialog_respond` | press a button of the topmost wx dialog |
-| | `dialog_auto_answer` | answer matching modals before they show, and one already open |
-| | `webview_eval` | run JavaScript in a web view and return the result |
+| | `dialog_auto_answer` | answer matching modals as they open (native ones unseen), and one already open |
+| | `webview_eval` | run JavaScript in a web view, the setup wizard's and preset bundle dialogs' included while they are modal, and return the result |
 | Scripts | `run_script` | run a script file or inline script, with results per step |
-| | `export_script` | write the session journal as a script that can be replayed |
-| CAD | `cad_call` | forward to the Design tab's control surface (CAD builds, Design tab enabled) |
+| | `export_script` | write the session journal as a script that can be replayed; calls whose job is still running are left out and listed |
+| CAD | `cad_call` | a method of the Design tab: sketches, features, reads and measurements, feature and body edits, undo, commit to plate; `describe_tools` lists them (CAD builds, Design tab enabled) |
 
 Each tool family registers itself from its own `McpTools*.cpp` through `register_*_tools()`.
 List tools take `limit` and `offset` and report `total` and `next_offset`. `McpPaths.hpp` requires
@@ -316,6 +370,759 @@ directory; an output's directory must exist, and an existing file is replaced on
 `path_from_utf8()` and `path_to_utf8()` convert, through wide strings on Windows, where boost's
 narrow conversion would use the ANSI code page.
 
+### list_objects
+
+`list_objects` describes the model through `object_info()` and `volume_info()` (McpToolsScene.cpp,
+libslic3r only, so unit tests build them from a `Model`); the handler adds what the GUI knows: each
+instance's plate from the plate registry and, on request, its canvas rectangle. Bounding boxes are
+`ModelObject::instance_bounding_box()`, on the bed and of model parts only, which is what prints; the
+Object manipulation panel's Size also counts modifiers and negative parts. A part's `position`,
+`bbox` and `scaled_volume` (the mesh's volume times the determinant of its placement) are measured on
+instance 0, like the object's `bbox`; its `rotation_deg` and `scale` are in the object's frame, the
+panel's Object coordinates. `mirrored` says whether a placement is left-handed
+(`is_left_handed()`), not along which axis, since the split of a mirror from a rotation is not unique
+(mirrored in X and in Y is a half turn about Z). `filament` follows the object list's filament
+column: an object's `extruder`, 1 when unset; a part's own, else its object's; a modifier's only when
+it sets one, since a modifier without one leaves the filament of what it covers alone; none for
+negative parts, support blockers and enforcers, and precise seams. A precise seam has `type:
+"precise_seam"` and its `subtype` (`center`, `left`, `right`, `enforced`, `blocked`, `neutral`, the 3MF
+names without their prefix). The `transform` reply on a part carries the same `volume_info`. An
+object with height range modifiers lists them as `layer_config_ranges` (`layer_config_ranges_json()`),
+each with its whole config serialized as `get_settings` serializes values, so a range always shows
+its `layer_height` and `extruder`, and the list can be handed back to `set_layer_ranges` unchanged. An
+object whose `layer_height_profile` has more than a flat bottom-to-top pair, which the object list marks
+as a variable layer height, reports it as `layer_height_profile: {points, min_height, max_height}`
+(`layer_height_profile_json()`): the number of (z, height) points and the extreme heights, to 0.001 mm.
+The points themselves stay in the 3MF's `layer_heights_profile.txt`.
+
+### transform
+
+On an instance, `transform` writes the `ModelInstance` directly: a relative rotation composes as
+Euler angles, and a rotation or scale applies to that instance only, where the panel applies it to
+every instance of the object. `size` sets mm along
+the object's own axes (its model parts' box, unrotated, times the instance's scale; a single number
+with two nulls keeps the proportions), and `plate` is one more relative move by the difference of the
+two plates' origins, applied last. Then the bounding box is invalidated before
+`ModelObject::ensure_on_bed()`, so a scale that grows an object drops it onto the bed instead of
+leaving it sunk, and the instance is registered with the plate it is on now
+(`PartPlateList::notify_instance_update()`, then `ObjectList::update_plate_values_for_items()`), as
+`GLCanvas3D::do_move()` does for a person's moves. Slicing and `list_objects` read plates from that
+registry.
+
+On a part (`volume`), it takes the Object manipulation panel's path. It refuses the assemble view, an
+open gizmo and an object with one part (which has no row of its own), selects the part's row in the
+object list with nothing else selected, so the 3D view selects it on instance 0, takes one undo
+snapshot, and runs `Selection::translate()` / `rotate()` along the bed's axes and `scale()` along the
+part's own axes, each followed by `do_move("")` / `do_rotate("")` / `do_scale("")`. Those write the
+part, drop the object when Auto Drop is on, register every instance with its plate and update the
+object list. An absolute translate is a delta from the part's position on instance 0; an absolute
+scale or a `size` (mesh box times the part's scale, in the object's frame) becomes factors on the
+current scale, as the panel computes them, since `Selection::scale()` multiplies a part's scale
+whatever the transformation type. A part's rotation is relative only.
+
+### add_part
+
+`add_part` runs what the object's context menu Add items run. It refuses the assemble view, an open
+gizmo and an object with more than one instance, since adding a shape folds instance 0's rotation
+and scale into the parts (`ObjectList::apply_object_instance_transfrom_to_all_volumes()`), which the
+other instances would not follow. It selects the object's row, which the menu's functions act on,
+then calls `ObjectList::load_generic_subobject()` with `interactive` false and the size, so neither
+the Primitive size dialog nor the Add Modifier tips show, or, for a file,
+`ObjectList::load_subobject(type, files, ...)`: the Load... item after its file dialog, which hands
+back the reason a file failed to load instead of showing the error dialog. A STEP file still asks
+for its mesh options when the preference says so, as it does a person (`blocked_by_dialog`). A size
+is checked against `primitive_size_names()`, the fields the size dialog asks for; without one, the
+shape gets the built-in size (10 % of the bed's larger side), never a size the user saved, so a
+replay does not depend on the machine. The menu's function takes the undo snapshot ("Add
+primitive", "Load Part" or "Load Modifier"; a file that fails to load leaves it, as in the GUI).
+`position` then selects the new part and moves it along the Move panel's path
+(`Selection::translate()`, `do_move("")`), all inside one `Plater::SingleSnapshot`, so the call is
+one undo step. The new part is found by pointer, since `ModelObject::sort_volumes()` orders parts
+by type. SVG files are refused: SVG parts come from the SVG gizmo, which places them where the
+camera looks.
+
+### arrange
+
+`arrange` runs what the GUI runs: with `plates: "all"`, `set_prepare_state(PREPARE_STATE_DEFAULT)` and
+`Plater::arrange()`, as the toolbar does; with a plate index or `"current"`, `select_plate()`,
+`PREPARE_STATE_MENU` and `arrange()`, as the plate's Arrange icon does, without its
+`last_arrange_job_is_finished()` flag, which a cancelled job never clears; with `fill`, the object's
+row selected and `fill_bed_with_instances()` or `fill_bed_with_copies()`, which fill the object's own
+plate. Each takes one "Arrange" undo snapshot. It refuses the assemble view, an open gizmo, a locked
+or empty plate, `fill` with `plates`, and an object Fill bed refuses (`can_increase_instances()`).
+`spacing`, `rotate`, `align_y` and `multi_material` go into the current print mode's
+`GLCanvas3D::ArrangeSettings`, which both jobs read, by the panel's rules (`apply_arrange_args()`:
+Align to Y axis stays off while rotation is on), and `GLCanvas3D::store_arrange_settings()` saves
+spacing, rotation and the material rule under the keys the panel writes, so later arranges, the
+panel and a replaying machine's app config all see them. The journal records the settings in force,
+so a replay does not depend on the replaying machine's saved options.
+
+The call waits for the worker (see Worker jobs), then reports the settings in force with `by_object`
+(which mode's set was used), instances on no plate (`off_plate`, measured against the plate boxes,
+since Fill bed leaves its new instances out of the plate registry), the plates an all-plates arrange
+leaves alone (`skipped_plates`: locked, or printing in another sequence than the project, which
+`ArrangeJob::prepare_all()` locks for the run), notifications the job raised, and a `note` when a
+setting asked for did not apply (one plate in another sequence is arranged with automatic spacing).
+An arrange sorts the model's objects by arrange order
+(`PartPlateList::rebuild_plates_after_arrangement()`), so indices may change. After `timeout_s`
+(default 300) the call cancels the job.
+
+### set_layer_ranges
+
+`set_layer_ranges` gives an object's whole set of height ranges (`ModelObject::layer_config_ranges`),
+which a person builds with the object list's Height Range Modifier, its "+" buttons and the range
+editors in the sidebar, one gesture and one undo step at a time. Each range starts from what the object
+list gives a new one, `ObjectList::get_default_layer_config()` (the object's layer height, else the
+process's, and filament 0, the object's), then takes its `values`, parsed strictly. The keys are those a
+range's page and the object list's Add settings menus offer (`layer_range_option_keys()`): `layer_height`,
+the per-region settings with a category, without support settings or, with one filament, per-feature
+filaments and wipe options, and `extruder`, the range row's filament column. A `layer_height` given is
+checked against the bounds the range editor enforces (`get_min_layer_height()` /
+`get_max_layer_height()` for the range's filament: the printer's per-nozzle values indexed by filament
+number, so the first serves a single-nozzle printer). Ranges may touch but not overlap: the slicer would
+trim an overlap silently (`layer_height_profile_from_ranges()`), and from an agent it is a mistake. A
+range above the object is kept, as the GUI keeps it, and slicing cuts it; the reply gives the object's
+height. All of this is checked before anything changes, and a call that gives the ranges the object
+already has changes nothing and takes no undo step.
+
+Like `add_part`, it refuses the assemble view and an open gizmo and switches to Prepare. To change the
+ranges it selects the object's row, so no Layers row and no sidebar range editor stays in use, then
+takes one snapshot ("Edit height ranges"), writes the new ranges, rebuilds the Layers rows from the
+model with `ObjectList::reload_layer_rows()` (shared with pasting ranges) and calls
+`Plater::changed_object()`. A range editor that loses focus later reports an edit of a range that is
+gone; `ObjectList::edit_layer_range()` then edits nothing rather than adding the range back without a
+layer height. The dialog the menu shows when the process uses mixed colour sublayers becomes a
+`warnings` entry, and so does a variable layer height profile on the object, which decides its layer
+heights instead of the ranges' `layer_height` (`PrintObject::update_layer_height_profile()` falls back to
+the ranges only without a valid profile).
+
+### set_layer_height_profile
+
+`set_layer_height_profile` runs what the Variable layer height panel's Adaptive, Smooth and Reset buttons
+post: `GLCanvas3D::adaptive_layer_height_profile(quality)`, `smooth_layer_height_profile({radius,
+keep_min})` and `reset_layer_height_profile()`, each with the GUI's undo snapshot ("Variable layer height -
+Adaptive", "- Smooth all", "- Reset"), followed by a background update and the object list's variable
+mark. The defaults are the panel's (quality 0.5, radius 5, keep min off), fixed rather than read from the
+panel, so a replay does not depend on what a person last set there; an argument of another action is
+refused. Like the panel, it works on the selected object: it refuses the assemble view and an open gizmo,
+switches to Prepare, selects the object's row, and requires `Plater::can_layers_editing()`, the rule that
+enables the toolbar item (FFF, the object above the bed, the layer editing shader loaded), naming the
+condition that fails. It does not open the panel. Reset of an object without a profile changes nothing
+and takes no undo step.
+
+The panel's buttons act on the object its last frame picked (`LayersEditing::select_object()`), with
+the profile that frame loaded, and a closed panel has no such frame. So each canvas function first picks
+the selected object (`GLCanvas3D::_select_layers_editing_object()`), dropping what an earlier call left
+while the panel is closed, and `LayersEditing::smooth_layer_height_profile()` loads the object's profile
+with `PrintObject::update_layer_height_profile()` (the model's profile, or the one its height ranges give)
+as the frame does. With the panel open both are what the frame did already. The Prepare canvas edits layer
+heights only once it has drawn, since `GLCanvas3D::init()` creates the texture `is_layers_editing_allowed()`
+checks; the call waits up to 15 s for it.
+
+Adaptive keeps a height range's own `layer_height` inside the range (`layer_height_profile_adaptive()`),
+so on an object whose ranges cover its height it gives the ranges' heights at any quality. Once an object
+has a profile, the profile decides its layer heights, and the reply warns when it also has ranges; it
+also passes on the warning the panel shows when the process mixes colours in sublayers. A profile is
+stored per object, saved in the 3MF, and discarded by the slicer when it no longer ends at the object's
+top (after a scale, for example).
+
+### set_layer_gcode
+
+`set_layer_gcode` places what the Preview layer slider's right-click menu adds at the start of a layer
+(Add Pause, Add Custom G-code, Add Custom Template, Change Filament > Filament N) and removes them, on one
+plate. The codes are a plate's `Model::plates_custom_gcodes` entry, saved in the 3MF
+(`custom_gcode_per_layer.xml`) and read back by `list_plates` as `layer_gcode`, with the same type names
+(`pause`, `custom`, `template`, `change_filament`, and `color_change` for an old project's colour change,
+which the slider never adds). The slider is the source of truth: the plater's handler of its tick event
+writes the slider's whole set over the plate's entry, and the slider is not refilled while the plate's slice
+is invalid, so a code written to the model alone would vanish at the next tick event. The call therefore
+edits the slider with its own functions (`IMSlider::add_code_as_tick()`, `add_custom_gcode()` and
+`delete_tick()`, given an explicit layer instead of the active thumb) and hands the ticks over with
+`GLCanvas3D::send_layer_ticks_changes()`, what each Preview frame does, then waits for the handler: the
+plate's entry rewritten, its slice invalidated, the project dirty and its revision raised.
+
+Codes sit on the layers of the plate's slice. `layer` is the slider's value plus one, as `set_view` and
+`get_preview` number layers; `z` takes the layer whose top is at or above it
+(`IMSlider::get_tick_from_value(z, true)`, the rule the slider uses for a stored height), so a code is
+always stored at a layer's top, where the slider and the G-code generator agree on its layer. The reply
+gives both for every code. A plate's layers are in the slider only while the Preview shows that plate's
+result (`GCodeViewer::last_result_id()` against the plate's slice result), so when the plate's slice is
+up to date the call shows the Preview and selects the plate as the Preview's plate toolbar does
+(`Plater::select_sliced_plate()`), which loads its result; a plain plate switch leaves the Preview
+showing the old plate. A plate whose slice is not up to date is refused unless the Preview still shows
+its layers (it was edited and not sliced again since), as a person can go on editing there: opening the
+Preview on such a plate would start a slice. The call waits for a pending update of the slicing state,
+which may invalidate the plate, and a slice in progress refuses it; a plate that prints by object takes
+no codes, and an empty plate has no layers.
+
+The arguments apply in order: `clear`, then `remove`, then `add`, all checked on a copy of the slider's
+ticks before it changes (`edit_layer_gcode()`), with the menus' rules: one code per layer, so a code of
+another type on the layer is refused unless the call removes it, and a custom code or filament change on
+a layer with one replaces it (Edit Custom G-code, Change Filament on the tick); a template only when the
+printer's `template_custom_gcode` is set; a filament change only with two or more filaments, when the
+slider offers it (the plate's objects on one filament, no spiral vase) and while the filament count is the
+slice's, since the slider colours the change from the slice's filament list; custom G-code up to the
+dialog's 1023 bytes. The check matters because the slider's own add turns any code on a layer into a
+filament change. A call that changes nothing hands nothing over and leaves the slice valid; a pause on a
+printer with an empty `machine_pause_gcode` is a warning. As in the GUI, the edit takes no undo step (the
+undo archive does not hold the plates' codes), and the slider drops codes it can't keep when it next loads
+the plate: filament changes once the objects use different filaments, every code on a plate printed by
+object or across a spiral vase change. The journal records the plate the call resolved.
+
+### Object and part settings
+
+The object and volume scopes of `get_settings` and `set_settings` take the keys the object list
+offers to add to an object, or to a part or modifier: `SettingsFactory::get_options()` less what
+`SettingsFactory::is_improper_category()` hides with the current filament count, the rule of the
+list's Add Settings menu. Keys a person cannot add there, such as the internal `print_extruder_id`,
+the process-wide `print_sequence` or, with one filament, the per-feature filaments, are refused rather
+than stored and ignored by slicing. Parts and modifiers take region keys only.
+
+`extruder`, the object's or part's filament, is the one key outside that list. `set_settings` writes
+it through `ObjectList::set_extruder_for_items()`, the Change Filament code without the selection,
+so a call leaves the user's selection alone. An object's filament clears its parts' own; 0 or null
+is Default, which is filament 1 on an object, the object's filament on a part and no filament
+override on a modifier. A single-part object has no part row, so its volume 0 sets the object's
+filament, and the reply notes it. Filament numbers (`extruder`, the per-feature and the support
+filaments) past the project's slots are refused before anything changes, and the support filaments
+refuse a mixed slot, as their combos do. A call is one undo step (`Plater::SingleSnapshot`).
+
+In these scopes each `get_settings` item has `effective` and `source`, resolved as the object's
+settings tab shows it: the part's override (`part`), else the object's (`object`), else the process
+being edited (`process`), else the option's default (`default`). An `extruder` of 0 is no override.
+An object's item also lists in `parts` the parts and modifiers that override the key; their values
+apply only inside their own volume, and the reply's `note` says so.
+
+### Saving presets
+
+`save_preset` saves the printer, process or filament preset being edited, unsaved changes included,
+through `Tab::save_preset()` with the name given, the call the Save preset dialog's OK leads to, so
+no dialog opens and the saved preset is selected. A filament is first made the one the filament tab
+edits for `filament_slot`, as `set_settings` does, and saving it moves every slot that used the old
+preset to the new one, as in the GUI. The name is checked by the dialog's own
+`check_preset_name()`, and its status decides: an invalid name is refused with the dialog's text,
+and the name of another existing preset needs `overwrite`, while the selected preset's own name is
+the plain Save. A new preset goes where the edited one is (user or inside the project) unless
+`inside_project` says otherwise; an existing one stays where it is, since the dialog locks that
+choice. `detach` is refused outside Developer mode, where the dialog has no such checkbox. For a
+printer, the selected physical printer, if any, takes the dialog's default action
+(`SavePresetDialog::update_physical_printers()` with `ChangePreset`). Preset files live in the
+datadir, not the project, so a script meant to be rerun passes `overwrite`. A filament temperature
+warning, the unresolved-plugin confirmation or the unsaved-changes prompt of a slot switch makes the
+reply `blocked_by_dialog`.
+
+There is no subset of edits to save. `set_settings {"reset_all": true, "values": {...}}` on a preset
+scope first discards every unsaved change with `Tab::on_roll_back_value()`, the tab's undo button,
+then applies the values in the same call, so `save_preset` keeps exactly those. The reply lists the
+discarded keys in `reverted`. The values are parsed before the reset, so a bad one leaves the edits in
+place. The object and volume scopes refuse `reset_all`; a null value removes an override there.
+
+### Reading, comparing and changing preset values
+
+`get_settings` reads the preset being edited (for a filament, the slot's preset, edited or not), or
+with `preset` any saved preset of the scope, selected or not, without selecting it: the named preset
+is read as saved, without the edits the tab holds. `preset` and `filament_slot` are exclusive, and a
+name that matches no preset is refused with the closest names. `compare` lists only the keys, among
+those named or matched, that differ from another preset: a saved preset by name, `:saved` (the read
+preset as saved, so the list is its unsaved changes, what the Unsaved Changes dialog shows) or
+`:parent` (the preset it inherits from, a system preset itself, what the tab's lock icons compare
+against). `:` cannot be part of a preset name, so the two never clash with one. The key list is
+`PresetCollection::dirty_options()` with the Compare presets dialog's rules: printer and filament
+vectors are compared entry by entry (an item then carries `index`), a printer with fewer extruders is
+compared from the other side, and both presets have one printer technology. Each item has `value`
+(the preset read) and `other`; the bookkeeping `*_settings_id` keys are left out. `list_presets`
+reports `inherits` and `project: true` for presets kept inside the project.
+
+An enum's meta lists `labels`, the untranslated texts its combo shows, in the order of `values`, so
+a person's wording maps to a value.
+
+Many process, filament and printer values hold one entry per extruder variant (an extruder type and
+nozzle flow type, such as the X1C's "Direct Drive Standard" and "Direct Drive High Flow"), the machine
+limits a normal and a silent mode entry per variant, and some printer values one entry per extruder.
+For such a value with more than one entry, the meta lists `variants`, what each entry is for, and
+`active`, the entry each extruder prints with (extruder 1 first), found as the slicer and the tab's
+variant switch find it (`DynamicPrintConfig::get_index_for_extruder()` with the printer's
+`extruder_type` and the project's `nozzle_volume_type`). The tab edits one variant at a time: its
+field shows the variant in use and typing writes that entry. So a single value for such a key goes to
+the entries in use, `set_settings` writes one entry as `{"key": {"index": i, "value": v}}`, and an
+array writes them all. Either way the whole vector, with the entries replaced, goes through the tab's
+transaction (`Tab::apply_preset_config_values()`), whose commit runs the key's handling as a field edit
+does, and the other entries stay as they are. A value with another number of entries is refused, with
+the entries and the one in use in the error and its details: written as given, it would collapse the
+vector and leave the preset inconsistent with its variants. Values of one entry, and vectors that are not
+per variant or per extruder, take a single value. Object and part overrides take whole values.
+
+`set_settings` replies with `changed`: every key of the edited config (preset, object or part) whose
+value differs after the call, including the settings the app adjusted in turn, such as spiral vase
+setting one wall loop and no top shell layers once its dialog is confirmed, and the keys `reset_all`
+reverted. Dependency order within one call is not resolved; a call can be split instead.
+
+### Unsaved preset changes
+
+On a preset scope, a `null` value takes the key back to the saved preset's value, as the key's undo
+arrow does, and with `reset_to: "parent"` to the value of the preset it inherits from (the `:parent`
+of `compare`), as its lock icon does. The value joins the call's other values in the tab's
+transaction, so its handling runs as for a typed value. `reset_to` without a null value, and in the
+object and volume scopes, is refused.
+
+`Tab::select_preset()` asks about unsaved changes through `Tab::may_discard_current_dirty_preset()`:
+for the preset it leaves, and for each modified preset a process or printer switch may replace (the
+filament, or the process and filament). `select_preset`'s `changes` sets `Tab::m_dirty_preset_answer`
+for the one switch, so every prompt is answered with the dialog's Transfer or Discard without
+showing it, and the switch then does what it does after a person's answer. Transfer moves what the
+dialog would list: the changed options a settings page shows in the current mode, so a setting the
+mode hides is dropped, as in the GUI. The dialog offers no Transfer for a printer's own changes or
+between filaments of different types (`Tab::can_transfer_changes_to()`); there `transfer` is refused
+before anything changes. The GUI's outcomes stay as they are: a modified filament that suits the new
+process keeps its changes whatever the answer. Without `changes` the prompt opens, as it does for a
+person, and the reply is `blocked_by_dialog`. The message box that a printer switch shows when it drops
+other extruder variants' values is shown only to a person. With several filament slots the sidebar does
+not move the filament tab when a slot's filament changes (`Plater::priv::on_select_preset()`), so no
+prompt opens there: the edits stay with the preset the tab edits, and the reply's `modified` lists them.
+
+`new_project` without `changes`, or with `"keep"`, keeps modified presets for the new project, as
+New Project's Keep does with every option. `"discard"` is the prompt's Discard,
+`GUI_App::discard_current_preset_changes()`, called only when a preset is modified, since it reloads
+the presets, which can ask about the printer's. Modified presets make the project dirty, so
+`discard_changes` is needed too.
+
+Both replies carry `discarded` and `modified` when presets had or have unsaved changes, each
+`{type: {name, keys}}`: a change is discarded when the preset edited afterwards no longer holds its
+value, and modified lists the unsaved changes left. Only presets that `list_presets` calls modified
+count, with the keys of their preset type; the full comparison also lists bookkeeping keys that only
+one of the two configs has.
+
+### Deleting presets
+
+`delete_preset` deletes a user preset or one kept inside the project, with its file and its cloud copy,
+through the GUI's own delete, so no confirmation opens; it is marked destructive, so clients that gate
+such tools ask first. What may be deleted is checked first, as the GUI offers and checks it: the tab
+shows its Delete button only for user and project presets, refuses a base preset that other presets
+inherit from (they would no longer load), and for a custom printer (a base printer that is not a system
+one) asks before deleting the user presets made for it alone, which `delete_attached` answers. The
+reply lists those in `attached`.
+
+The selected preset (for a filament, the one the filament tab edits) goes through
+`Tab::delete_preset()`, the Delete button, with `ask` false to skip the confirmations MCP has made
+itself. The tab then selects the preset it inherited from, or the next one, through the normal
+selection, so a printer or process switch can still ask about other presets' unsaved changes, and the
+reply is then `blocked_by_dialog`; the deleted preset's own changes go with it. With a physical
+printer selected the tab's Delete only takes the preset off that printer, so that case is refused. A
+filament the tab does not edit is deleted as the Edit filament dialog deletes it
+(`delete_unselected_filament_preset()`): the selection stays and the slots that used it take the
+selected filament; the sidebar and tabs are refreshed as the dialog's opener does. The tab deletes
+only its selected preset, so a process that is not selected is selected, deleted and the previous
+process selected again, as a person would do it. A printer is not: switching printers recomputes the
+process and the filaments, so the call is refused until the printer is selected. Both routes select
+the preset being edited again, which would drop its unsaved changes (filament) or ask about them
+(process), so they are refused while it has any.
+
+The reply carries `selected`, the preset of that type selected afterwards, `filaments`, each slot's
+preset, and `discarded`/`modified` as `select_preset`'s. A replayed script needs the preset to exist,
+so scripts create it first with `save_preset`.
+
+### Project settings
+
+The project scope of `get_settings` and `set_settings` covers the settings of the project itself
+(`PresetBundle::project_config`) that a person sets in the sidebar, on the canvas or in their dialogs:
+`curr_bed_type`, `filament_colour`, `flush_volumes_matrix`, `flush_multiplier`, `prime_volume_mode`
+and `wipe_tower_x`/`wipe_tower_y`, plus the read-only `filament_is_mixed` and, on a printer with
+several extruders, the read-only `filament_map_mode` and `filament_map`. A generic config write would
+skip what each control does after setting its value, so `set_settings` writes every key through that
+control's own code. Everything is checked before anything changes, `null` is refused (project values
+always exist), and `{"index": i, "value": v}` sets one slot's colour, one matrix cell or one plate's
+tower position.
+
+- `curr_bed_type` goes through the plate type selector (`Sidebar::set_bed_type_accord_combox()`, whose
+  handler updates the project, the printer's remembered plate type and the plates on the global type).
+  Only the types the selector lists are taken (`meta.offered`), and none while the selector is hidden
+  for the printer.
+- `filament_colour` is one `#RRGGBB` per slot in config order. Each changed slot goes through its
+  colour button's code: `PlaterPresetComboBox::sync_colour_config()` and the queued
+  `EVT_FILAMENT_COLOR_CHANGED`, which recalculates that slot's flushing volumes when the "Auto flush
+  after changing" preference is on.
+- `flush_volumes_matrix` and `flush_multiplier` go through `apply_flushing_volumes()`, the Flushing
+  volumes dialog's OK split from the dialog, then the button's scene reload and update. The matrix is
+  N x N per nozzle (row = from slot, column = to slot) in config order over every slot, as
+  `project_config` and the G-code header hold it, not over the physical slots the dialog shows. The
+  values are before the multiplier: the header prints the matrix multiplied by it. Volumes are limited
+  to `g_max_flush_volume` / multiplier as the dialog limits them; negative volumes and a non-zero
+  diagonal are refused. A multiplier is one per nozzle (one value sets all) within the dialog's 0..3.
+- `prime_volume_mode` is what the Purge mode dialog's OK writes, followed by the update it does. It is
+  offered only while the Purge mode button shows (printers with several nozzles per extruder or fast
+  purge), with the dialog's choices.
+- `wipe_tower_x`/`wipe_tower_y` are one position per plate, in mm from the plate's origin, as a tower
+  drag stores them: one undo step ("Move object", which takes the old positions along), then an
+  update. A position off the plate is refused; one where the tower does not fit is re-placed by the
+  scene reload, as after a drag, with its notification, and the reply's `note` says so.
+
+Colours are applied in a first UI closure and the rest in a second after a settle, so a matrix given
+in the same call is written after the recalculation the colour change triggered, and a matrix cell
+given by index is set in the matrix that recalculation left. The recalculation also runs when a slot
+is added and, depending on the preference, when a slot's preset changes, so a matrix is best set
+last; a replay matches only on a datadir with the same preference.
+
+A mixed filament is a virtual slot made of physical ones (the sidebar's mixed filament list); its
+colour comes from its components and it is never flushed. `filament_is_mixed` tells which slots they
+are, and their colours and matrix rows and columns are refused unless left as they are, as the
+dialog keeps them. The filament grouping is set per plate in the Filament grouping dialog, and every
+plate carries its own mode from the start, so a project-wide `filament_map_mode` or `filament_map`
+would not change a slice: both are listed for reading only. Nothing here except the tower position
+enters the undo stack, as in the GUI.
+
+### Plate settings
+
+The plate scope of `get_settings` and `set_settings` (`plate`, the current plate by default) holds what
+the Plate Settings dialog sets on a plate: `curr_bed_type`, `print_sequence`, `spiral_mode`,
+`first_layer_print_sequence` and `other_layers_print_sequence`, plus the plate's `name` and `locked`, which
+its icons set. Values take the forms the dialog offers: an enum value, a boolean, a filament order that
+lists every slot once (the dialog's drag canvas), and layer ranges `[{from, to, order}]` starting at layer
+2 (the first layer has its own order), sorted and not overlapping, `to` left out for the dialog's "End".
+`null` is the dialog's "Same as Global" or "Auto". The dialog's Auto/Customize choices are not separate
+keys: an order given is Customize. `get_settings` lists each key with `value`, the plate's own (null where
+it follows the global setting or Auto), and `effective`, what the plate prints with.
+
+`set_settings` checks everything first, then selects the plate as its settings and name icons do and
+passes the plate's values, changed by the call, to `Plater::apply_plate_settings()`, the dialog's OK
+split from the dialog. It is called only when one of them changes, since the OK marks the project dirty.
+The plate types are those the sidebar's selector offers (`meta.offered`), none while it is hidden. The
+custom filament orders are refused while a slot is a mixed filament, where the dialog greys them out.
+Turning spiral vase on asks the dialog's question about the settings it changes, so the reply can be
+`blocked_by_dialog`. `locked` goes through `PartPlateList::lock_plate()` as the lock icon does, and only
+when it differs, so setting it twice leaves the plate locked (the palette's `plate_toggle_lock` stays a
+toggle). `name` goes through `Plater::rename_plate()`. The call is one undo step (`Plater::SingleSnapshot`;
+the dialog itself takes none, the plate tab one per change). The journal records the plate the call
+resolved, so a replay sets the same plate. The reply has `applied` (the plate's own values), `effective`
+and `changed`. The plate tab's `skirt_start_angle` and the per-plate filament grouping are not in the
+scope.
+
+`list_plates` reports every plate with these values as it prints them, `overrides` (the keys it sets
+itself), `current`, `objects` (`[object, instance]`, as `list_objects` places instances), `sliced` (an
+up-to-date slice), `wipe_tower` (the project's tower position for the plate) and `layer_gcode`, the
+plate's entry of `Model::plates_custom_gcodes`: the Preview slider's ticks, pauses, custom G-code,
+templates and filament changes, each `{z, layer, type, filament, color, gcode}` by height. `z` is rounded
+to the G-code's 0.001 mm. `layer` is the number the slider shows for the code, found by the slider's rule
+for a stored height (the first layer at or above it, `IMSlider::get_tick_from_value()`) in the layers of
+the plate's slice result, numbered and placed as the viewer loads them (`gcode_layer_zs()`); it is given
+only while that slice is up to date and no slice is running, and it is left out for a code above the top
+layer.
+
+### Preferences
+
+The preferences scope of `get_settings` reads the app configuration's `app` section, where the
+Preferences dialog keeps its settings: `{"scope": "preferences", "keys": [...]}` returns each key's value as
+stored (`"true"`, `"1"`, an enum's stored text) and `unknown_keys` for keys the section does not hold.
+Keys are required, since the section also holds account and device state and nothing outside the dialog
+lists which keys it shows. `set_settings` refuses the scope: a preference changes in the dialog, whose
+handlers carry its effects (dark mode, the language, which recreates the GUI, the network plug-in, stealth
+mode, render settings redrawn after the dialog closes, and this server's own `mcp_enabled` and `mcp_port`,
+which close the endpoint the call came through). Writing the key would skip all of them.
+
+The dialog's controls are named after their AppConfig keys, so `ui_snapshot` shows the key and
+`ui_input {"target": {"name": "export_statistics", "within": "Preferences"}, "value": true}` changes one
+through its own handler. The Speed Dial's `open_preferences` takes `<tab>[:<key>]` (`general`, `control`,
+`graphics`, `online` or `developer`) and opens the dialog there through `GUI_App::open_preferences()`,
+scrolled to the key's control and focused; a key on another tab is shown on its own tab. Checkboxes,
+number and text fields and the language combobox change this way. The other comboboxes (those of
+`create_item_combobox()`, the log level, the login region and the network plug-in version) save from a
+handler on their drop-down list, where a person's pick arrives, while `ui_input` sends the selection to the
+combobox itself: it shows the new choice and saves nothing.
+
+### Calibration tests
+
+`calibrate` runs a Calibration menu test (temperature, max volumetric speed, pressure advance as tower,
+line or pattern, flow ratio in its four passes, retraction, VFA, cornering, input shaping frequency and
+damping) one level below its dialog: it calls the same `Plater::calib_*` the dialog's OK calls, with
+the `Calib_Params` the dialog would build, and never shows the dialog. The dialogs only collect and check
+numbers, so their rules are shared with the tool in `libslic3r/calib.cpp`: `calib_default_params()` (the
+values each dialog opens with), `check_calib_params()` (what each dialog refuses, as an enum, so each
+dialog keeps its own message box and the tool states the rule with the values given),
+`cornering_end_limits()`, `has_junction_deviation()`, `belt_temp_tower_asset()` and the VFA dialog's
+auto-adjust, `fit_vfa_speed()` with `vfa_candidate_layer_heights()`. The input shaper types offered per
+firmware come from `shaper_type_values()` beside the dialogs. A parameter the test does not take is
+refused, so a misplaced argument never passes silently.
+
+Two choices that only refill the dialogs' fields are not parameters: the pressure advance defaults follow
+the printer's `extruder_type` (the dialog's Extruder type radio, which starts at Direct Drive whatever the
+printer), and the temperature dialog's filament type is replaced by the range itself. Temperatures are
+clamped to 155-500 °C and rounded down to multiples of 5, as the dialog's fields do when they lose focus,
+with a warning naming the corrected range (the field's message box says 170). The input shaping Y range,
+and the damping test's Y frequency, default to the X one; RepRapFirmware, whose dialogs show one range,
+refuses them. VFA's Yes/No questions are answered Yes: the reply's `adjusted` gives the lowered layer
+height or end speed, and a warning says when the upper blocks stay above the filament's limit.
+
+Every test starts a new project, whose prompts the tool answers itself (`skip_confirm` on each
+`calib_*`): a project with unsaved changes needs `discard_changes`, and modified presets need `changes`,
+`"keep"` to run the test with them or `"discard"` to drop them first through
+`GUI_App::discard_current_preset_changes()`. Unlike `new_project`, which keeps modified presets silently,
+`calibrate` refuses without `changes` and lists the modified keys: a previous test's settings would
+otherwise spoil this one. With `"discard"` the test's rules and defaults come from the saved printer
+preset, which is what remains. The tests write their filament settings to the preset the filament tab
+edits, while the test objects print with slot 1, so the tool first points the tab at slot 1's preset
+(`edit_filament_slot()`, the switch `set_settings` uses for a slot), as a person must; the reply's
+`presets_changed.filament` says `filament_slot: 1` and `tab_switched_from` when the tab moved. A tab that
+edits another slot's modified preset is refused with `"keep"`. `run_action calib_*` keeps the GUI's
+behaviour.
+
+The reply has `test`, `project`, `params` (the values used, in the tool's units: max volumetric speed in
+mm³/s, a pattern's default acceleration and speed read back from the process), `objects`, `names`,
+`plates`, `presets_changed` (per preset type, the settings the test changed, as `set_settings`'
+`changed`), `result_keys` (the scope and keys where the measured value belongs), `warnings`, `adjusted`,
+and `discarded` and `modified` as `new_project` reports them. The journal records the call with its
+effective parameters, defaults included, so a replay does not depend on the dialogs' defaults; VFA's end
+speed is recorded as asked and a pattern's default acceleration and speed are left out, since both are
+computed from the presets again on replay. To keep a measured value, the agent leaves the test with
+`new_project {"discard_changes": true, "changes": "discard"}`, sets the value with `set_settings` and saves
+it with `save_preset`; staying in the test project, `set_settings {"reset_all": true, "values": ...}` on
+the preset's scope drops the test's settings there and sets the value in one call. The Speed Dial's `calib_*` commands still open
+the dialogs, and their descriptions point at `calibrate`.
+
+### Design tab: `cad_call`
+
+`cad_call {method, params}` reaches the Design tab's control surface (`CAD/McpControl.cpp`), the
+same methods the `ORCA_CAD_MCP` socket serves, as one generic tool rather than a schema per
+method, so agents that never open the Design tab pay nothing for it. It needs the CAD feature on
+(Preferences > Features), which the app reads only at startup. One table, `kCadMethods`, declares
+every method's name, access and handler; the dispatcher, the busy gate and `describe_tools` all
+read it. `describe_tools` is the parameter schema of record: one row per method with typed params,
+units and defaults, and its access. `params.method` (a name or a list) and `params.query` (text in a
+name or summary, any case) narrow the reply; an unknown name fails with the close ones.
+
+Access decides what `DesignPanel::mcp_busy()` lets through. `read` methods run under an open
+feature card or sketch session, `sketch` methods drive the live sketch session, and `change`
+methods are refused under either, as the GUI would not let the edit land there. Neither `change`
+nor `sketch` methods run while a body Move is open, since its session holds a body index that a
+change could point at another body. Nothing runs while a rebuild's worker owns the document.
+
+A method that fails is an error (`CadCallError` → `isError`) and leaves the design as it was, so
+`export_script` drops it and a script never replays a call that did nothing. That holds for
+argument errors and for a rebuild the kernel rejects alike. The exceptions are the older methods
+`describe_tools` lists in `legacy_ok_false` (`fillet`, `chamfer`, `boolean`, `pattern`, `mirror`,
+`shell`, the surface methods, `import_step`, `set_variable` and others): they report a rejected
+rebuild in their reply, `{ok: false, error}`, after the same rollback, so such a call is journaled
+and replays the same rejection. `extrude`, `revolve`, the `hole` methods, `split` and `sketch_add`
+are not on that list, so none of them fails two ways depending on its arguments. The feature
+methods off the list add through `add_feature()`: one checkpoint, a rebuild, and on failure
+`CadDocument::rollback()`, which restores the checkpoint without leaving the refused recipe on the
+redo stack and with the redo branch the checkpoint cleared, then "Edit rejected" on the status line
+as for a refused GUI edit. Features made through `cad_call` are named as the cards name them
+("Extrude 3"), from the panel's own counter.
+
+`generation` guards face and edge ids within a session, but its value depends on the session's
+history, so the journal records `cad_call` without it and a replay rebuilds the same ids.
+
+The plane-taking methods (`sketch_begin`, `extrude`, `revolve`, the `hole` methods, `thread`,
+`split`, `pattern`, `mirror`, `helix`, `project`) share one resolver, `cad_resolve_plane()`: `"XY"`,
+`"XZ"` or `"YZ"` through `modeling_origin`, `{"datum": i}` for a Plane feature, or
+`{"body": b, "face": f}` for a planar face. A face plane for sketching is
+`CadDocument::plane_of_face()` (outward normal); for drilling it is
+`CadDocument::inward_plane_of_face()`, the Hole card's plane (normal into the body, x along the
+longest edge), and the hole or thread goes into that face's body. Their replies carry the `frame`
+used. Because a sketch's base plane passes through `modeling_origin` like every feature's, a sketch
+lands where the features drawn on the same plane land, and the coordinates in a script are relative
+to the modeling origin on any printer.
+
+`describe_scene` reads the document: the features, each with the fields an expression drives
+(`bound`), the variables with their values (all null, with `variables_error`, when one does not
+evaluate), the bodies with the feature that made them, whether their eye is on, the colour the
+canvas draws and whether the Move gizmo placed them, the undo and redo depth, mate conflicts and the
+document's `auto_close_loops`. `describe_feature {feature}` reads one feature as its card shows
+it, from one per-type table, `feature_card()`: `params`, the `editable` ones named as the
+`CadFeature` members (the names `set_feature_expr` binds) with the `ranges` of the card's spin
+controls, `expr`, the structure the card keeps in `refs` (feature and body indices, face and edge
+ids), a sketch's plane, entities and constraints (snake_case types, point references with a role,
+angles in degrees), and `used_by` / `bodies_made`. `used_by` comes from the kernel's own reference
+visitors, `CadDocument::for_each_feature_ref()` and, for a datum plane, `for_each_datum_ref()`,
+the lists that deleting and moving a feature remap.
+
+`set_feature {feature, fields}` is a card's Confirm in edit mode: one checkpoint, then
+`CadDocument::replace_feature()` with a copy whose fields `cad_apply_feature_fields()` checked
+against the same table, so it takes only what the card edits (numbers within the card's range, and
+its choices). A field an expression drives is refused, since the next rebuild would overwrite it,
+and so is an end condition that needs a pick the feature does not hold. A rebuild the kernel
+refuses fails the call after `rollback()`. Numeric fields go through
+`CadDocument::set_numeric_field()`, the allow-list expressions use, so a literal edit and a binding
+reach the same fields. An empty `expr` removes a binding (`set_feature_expr`) or a variable
+(`set_variable`), as the Variables panel's Clear and Remove do; a binding on a field the evaluator
+does not know, or removing one that is not there, is refused.
+
+A sketch goes from a session to a solid in typed calls. `sketch_begin {plane}` opens the session
+through `DesignPanel::begin_sketch_session()`, the code a plane or face pick runs, without the tool
+menu that follows the click. `sketch_commit` is the sketch's ✓, whose commit handler adds the Sketch
+feature and solves its dimensions; the reply reads the committed feature back: `sketch_index`, its
+name and its loops. An empty sketch is refused before anything changes and the session stays open,
+because an exported script leaves the failed call out and its next sketch call needs that session.
+`sketch_describe {sketch}` describes a committed sketch as the open one is described, through
+`DesignSketchTool::loop_report(entities)`. Its loop indices are those `extrude {loop}` takes: a
+region lists the loops inside it under `holes`, and each of those is a loop of its own.
+`extrude {sketch}` and `revolve {sketch}` are the cards' Confirm on a committed sketch. Extrude
+takes the whole sketch (`add_extrude`) or, with `loop`, one region and the loops inside it, the list
+a loop picked in the viewport hands the card (`add_extrude_entities`). Its `boolean: "auto"`, the
+default with a sketch, joins the body the sketch touches (`CadDocument::body_touching_sketch()`),
+else makes a new body, as the card's default does; `body` names the body to work on in every form.
+Revolve's axis is a line of the sketch (`axis_entity`), else the sketch's only centerline, which the
+card also offers first (`DesignPanel::default_revolve_axis_entity()`), else a plane axis.
+`cad_sketch_extrude()` and `cad_sketch_revolve()` check every argument before the checkpoint and
+return the call that adds the feature.
+
+Inside the session, the sketch's own tools are reached without a pointer through
+`cad_sketch_call()`, which needs only the live `DesignSketchTool` and checks every argument before
+it changes anything. `sketch_add` takes, besides lines, arcs, circles and points, the shapes the
+drawing tools build: a polygon (by its circumradius, or across the flats, the tool's inscribed and
+circumscribed fits), a slot, an ellipse, an elliptical arc and a spline. Their fields are those
+`sketch_describe` reads back (`radius`, `rminor`, `rotation`, `ctrl`); each is turned into the clicks
+its tool takes and built by the tool's own builder and shape grouping
+(`DesignSketchTool::add_shape_scripted()`), leaving the tool's sticky polygon and construction
+settings alone. Angles are radians, or degrees under a `_deg` name. `sketch_fillet`,
+`sketch_chamfer`, `sketch_trim` (with `extend`) and `sketch_transform` (move, rotate, scale, array,
+polar array) run the edit tools' own apply steps through scripted entry points, so they keep the
+constraint upkeep a click gets: a fillet arc bound coincident and tangent to its legs, constraints
+an op invalidates released, array copies bound to their source. They leave the armed tool armed,
+and are refused while a gesture or a value field is pending, which the tool's apply step would
+take over. `sketch_trim` picks the entity nearest `at` within a `tolerance` in mm, where the
+scissors' click uses a pixel radius. `sketch_constrain` is a CONSTRAIN bar button: with
+`entities` (else the selection) the bar's planner, `plan_entity_constraint()` with
+`write_plan_value()` in `SketchEngine`, shared with the panel, chooses the points, and the value it
+would ask for defaults to the current one; with `refs` the references are taken as written, in the form
+`sketch_constraints` and `describe_feature` report them (`{entity, role}` for a point, `{entity}` for
+a whole entity, `"origin"`, `"x_axis"` and `"y_axis"` for the sketch's implicit references), which
+also reaches the types the bar has no button for (distance, lock, point on line or object). A
+constraint the sketch cannot solve with is rolled back and the call fails; a refused pick names the
+planner's reason as a code. `sketch_unconstrain` is a constraint row's delete button; the later
+indices move down. `sketch_constraints` reads the open sketch's constraints, or a committed one's
+by `sketch`. Live sketch edits are not on the Design undo stack until the commit, as in the GUI.
+
+`query_topology` reads a body from one enumeration (`faces_of()`, `edges_of()`, whose ordinals are
+the ids every other method takes). A face's kind is its OCCT surface type, from
+`GeometryEngine::surface_info()`, with its area and the numbers that define it: a cylinder's radius
+and axis, a cone's apex, axis into its opening, half angle and the radii the face reaches, a
+sphere's centre and radius, a torus's centre, axis and radii; `internal` marks a bore or a
+countersink. Edges are lines, circles, ellipses, B-splines, Béziers or other. Filters narrow the
+list they apply to: `kinds`, `at_extreme` (the face on one side of the bounding box) and `direction`
+(a planar face's normal) for faces; `edge_kinds`, `direction` (a line) and `convex` for edges. When
+filters are given, a list none of its filters names is empty, or with `adjacency` holds the
+neighbours of the other list's matches, so `{kinds: ["conical"], adjacency: true}` returns the cones
+with their edges. Adjacency comes from `edge_faces()` (one face for a seam), and convexity from
+`edge_convexity()`, OCCT's fillet classification (`ChFi3d::DefineConnectType`). `limit` and `offset`
+page both lists alike; `face_count`/`edge_count` stay the body's totals and
+`faces_total`/`edges_total` count what matched.
+
+`measure` keeps `distance`, between the refs' representative points (a face's centroid, an edge's
+middle sample), and adds `min_distance` with the closest points (`GeometryEngine::min_distance()`,
+OCCT's `BRepExtrema_DistShapeShape`), and `parallel_gap` across two parallel planar faces. Each ref
+may name its own body, and `{"face": f, "axis": true}` stands for a cylinder's axis over the face's
+length, so a hole's height or spacing is one call.
+
+The hole methods drill a face plane's own body, or the body `body` names, else the last body, and
+take `at` instead of `x`/`y`: a world point projected onto the plane along its normal (the reply's
+`off_plane` says how far), or a cylindrical face or circular edge whose axis the hole shares, which
+replays on any printer. `cad_hole_placement()` resolves all of it before the checkpoint. `extrude
+{face}` is the Extrude card's push/pull of a picked planar face (`add_extrude_face`), joined to that
+face's body by default. `plane` is the Plane card's Confirm: every construction (offset, angle,
+midplane, tangent, two edges, coincident) with its references as `{body, face}` or `{body, edge}`,
+checked by `CadDocument::datum_plane_refusal()`, the card's own check, before the checkpoint; a
+parameter the construction would ignore is refused.
+
+`thread`, `sweep`, `loft` and `split` are their cards' Confirm. `thread` takes a cylindrical face or
+a circular edge, as a pick sets the Thread card: `CadDocument::thread_target()`, which the card's
+pick also runs, puts the thread on that cylinder's axis from its base, on that body, internal for a
+bore. Without a `designation` the size is the standard nearest the cylinder,
+`nearest_thread_standard()`, the card's inference: a bore is matched on the minor diameter, a boss
+on the major, over ISO metric and UTS together, so a 5 mm bore infers 1/4-20 UNC. On a plane the
+thread is placed as a hole is (`cad_hole_placement()`), needs `internal`, and either a designation or
+a custom `diameter` and `pitch`; the depth is the 60 degree V's for the pitch and role unless given.
+`sweep` takes a sketch or a Helix feature as its path, as the Sweep card lists both; along a helix
+the kernel keeps the profile at a fixed angle to the helix axis (`SketchEngine::make_sweep` with a
+binormal), as a spring's or a thread's wire is drawn. `helix` replies with its `start` and
+`tangent`, where a profile is drawn across the curve. `loft` takes two or more sketches in order.
+`split {plane}` is the Cut card's feature (`add_cut`) with the card's plane forms plus a face plane,
+`offset`, `flip` and the kernel's `keep_upper`/`keep_lower`, which the card always leaves both on;
+`split {face}` splits along a face's plane. A plane clear of the body is refused, since the kernel
+would leave one piece empty. The reply names the pieces: the upper one keeps the body's index and
+the lower one follows it.
+
+Thread, sweep and loft rebuild as their cards do, through `DesignPanel::recompute_guarded()`: the
+kernel works on a worker thread while the UI thread waits in `wxYield()` behind a progress dialog
+that appears after 300 ms. A long thread or sweep takes seconds, and meanwhile the window paints
+and inspection tools answer from inside that loop: `get_state`, `ui_snapshot` (the dialog is a
+non-modal `wxProgressDialog` titled "Design") and `screenshot`, of the window or of the dialog's own
+ref. On Windows the dialog is the system's task dialog, run on a thread of its own, so it is no wx
+window and `ui_snapshot` does not list it; the other tools answer as elsewhere. Mutating calls are refused by `UiInvoker` as running inside `cad_call`, and the `ORCA_CAD_MCP`
+socket's requests by `mcp_busy()`, since the worker owns the document. A call past the reply budget
+becomes a running job; the socket waits on such a request past its 15 s queue timeout once it has
+started.
+
+`undo` and `redo` are Edit > Undo and Redo with the Design tab shown (`menu_undo_redo()`, behind
+the same `menu_can_undo_redo()` gate): the Design history, or inside a sketch session the sketch's
+own, which takes off or puts back the last drawn shape. `run_action undo` stays Prepare's history.
+They have sketch access, so they run in a sketch session, and like every changing method they are
+refused under an open card, Constrain mode or a pending body Move. The Design history is not saved
+with a project.
+
+The Feature tree's and Bodies list's edits are split from their handlers into index-taking
+`DesignPanel` cores that the handlers call after resolving the selected row, so `feature_delete`,
+`feature_move` (one place up or down), `feature_set_enabled`, `feature_rename`, `body_set` and
+`body_delete` run the GUI's own code without selecting a row, and queue no face highlight of their
+own. Each tree edit is one Design undo step; when the kernel refuses one (a consumer moved above
+its input, a feature shown without the body it works on, a delete a later feature cannot survive),
+the kernel has already put the features back, `CadDocument::abandon_checkpoint()` drops the
+checkpoint and restores the redo branch it cleared, and the call fails with the kernel's reason.
+A feature rename is its own undo step. `body_set {body, name?, color?, visible?}` checks every
+argument before it changes anything; a body's name and colour are saved in the recipe and are not
+in the undo history, and its visibility is view state that decides what `commit` sends.
+`body_delete` deletes the feature that made the body (`CadBody::source_feature`). Deletes, moves and
+hiding renumber features and bodies, so the replies carry the new counts and `generation`.
+
+`commit {mode, replace}` is Commit to Plate: `DesignPanel::commit_to_plate()`, which the button
+also runs, sends the visible bodies (a lone body even when hidden) at their Move-gizmo positions,
+as one Prepare undo step, and shows Prepare. A body named in the Bodies list names its object, or
+its part of an assembly; otherwise the design's labels ("Design Body", "Design Assembly") are used.
+`mode` applies to this call only and leaves the split button and `design_commit_mode`, the user's
+choice, as they are. `replace` lists Prepare objects to delete afterwards through the Object
+List's delete path, under one outer snapshot so the commit and the deletions are a single undo
+step. It refuses before anything changes: an index out of range or repeated, an object that is
+part of a cut (deleting one asks the person first), an open gizmo, a design with no body, or every
+body hidden. The reply gives the new objects' `list_objects` indices after the deletions.
+`commit` is the one method that changes Prepare's model, so the `ORCA_CAD_MCP` socket refuses it:
+the socket has no mutate guard, no modal check, and runs requests inside any nested event loop.
+
+`new_design {discard_changes}` is New Design without its confirmation: `clear_document()`, which
+also clears the Design undo history and leaves committed objects on the plate. A design with
+features, bodies or variables needs `discard_changes: true`. `export_step {path, overwrite}` is
+Export STEP… without its file dialog (`DesignPanel::export_step_to()`, shared with it): every
+body as native B-rep at its Move-gizmo position, under the server's output-path rules. The
+socket takes it with the same checks. `import_step`, `import_mesh` and `validate_against`'s
+`reference.step` take an absolute, existing path, like every file the server reads.
+
+`set_view {tab: "design"}` shows the Design tab, and while it is shown `camera` points the Design
+view as its own controls do: a direction through `DesignCanvas::set_view()`, `default` its Home
+view (iso, fitted), `fit_objects` its `fit_view()`, and `fit_selection` the pick's box, refused when
+nothing is picked. The camera is applied in a second UI closure after `settle()`, because the tab
+takes the shared camera only when its page shows (`DesignPanel::on_tab_shown()`). `fit_bed`, `view`
+and the Preview fields are refused with the Design tab, since they show Prepare or Preview. The
+Design view is a canvas target for the `ui_*` tools and screenshots (see GUI automation and
+Screenshots).
+
+A change made only in the Design tab marks the project modified, as other project data outside
+Prepare's undo stack does: `sync_recipe_to_model()` sets the plater's dirty flag besides the
+backup's change mark. So `get_state.project.dirty`, the window title and `open_files` /
+`new_project {discard_changes}` agree with the unsaved-changes prompt that Open and New Project
+show. A project holding only a design loads no objects, and `Plater::load_project()` still names
+it after its file, since a loaded recipe counts as a loaded project.
+
+`tests/slic3rutils/test_mcp_cad.cpp` (`[Mcp][CAD]`) checks the method table against
+`describe_tools`, the plane resolver, the rollbacks, and the methods through their public seams
+(`cad_sketch_extrude()`, `cad_sketch_call()`, `cad_query_topology()`, `cad_thread()` and the rest),
+which take a `CadDocument` or a bare `DesignSketchTool` and need no Design panel. The replay
+scripts run on an instance that `tools/mcp/orca_mcp.py launch --cad` starts:
+`tools/mcp/tests/cad_sketch_to_solid.json`, `cad_sketch_edit.json`, `cad_topology_targets.json`,
+`cad_features.json`, `cad_doc.json` and `cad_canvas.json` (the Design view as a canvas target, its
+key hook, and the dirty flag). `tools/mcp/test_cad_replay.py` records a session with
+failed calls and `generation`s, exports it and replays it to the same features and mass
+properties; `tools/mcp/test_cad_slow_build.py` checks the window during a guarded rebuild;
+`tools/mcp/test_cad_failed_job.py` exports a session whose call failed after its reply budget
+(a hole that misses a slow-to-rebuild coil), which leaves it out, and replays it.
+
 ## Speed Dial catalog
 
 `list_actions` and `run_action` serve the Speed Dial's `ActionRegistry`: built-in commands, plates,
@@ -324,7 +1131,7 @@ recent projects, plugin scripts and pages, and, on request, settings. Built-in c
 shows: `description` (English, for agents), `param` (a `CommandParam {type, help}`, typed `None`,
 `Percent`, `Tab`, `Path`, `Index` or `Text`) and `completion` (`Export` when the effect finishes in
 the background after `run()` returns). `describe_commands()` fills them from one table, with a
-key-prefix rule for calibration wizards, camera views and primitives, and `CommandAction` copies
+key-prefix rule for calibration dialogs (pointing at `calibrate`), camera views and primitives, and `CommandAction` copies
 them into the `AppAction`. The palette keeps `input` for its picker and never passes a path.
 
 `ActionRegistry::describe(Query)` searches id, title, group, source and description, including the
@@ -345,7 +1152,7 @@ turns a bad path into an Error result.
 |---|---|---|
 | `load_project` | `.3mf` | `Plater::load_project(path)`; still asks about unsaved changes |
 | `import_file` | model file | `Plater::load_files({path})` |
-| `import_configs` | `.ini` or `.json` | `MainFrame::load_config_file(path)` |
+| `import_configs` | `.json`, `.zip`, `.orca_printer`, `.orca_filament`, `.orca_bundle`; `.gcode` | `MainFrame::import_configs(files, confirm)`; for G-code `MainFrame::load_config_file(path)` |
 | `save_project_as` | output `.3mf` | `Plater::save_project(true, path)` |
 | `export_gcode` | output `.gcode` | `Plater::export_gcode_to(path)`; completion `Export` |
 | `export_sliced_file`, `export_all_sliced_file` | output `.gcode.3mf` | `Plater::export_gcode_3mf(all, path)` |
@@ -353,9 +1160,78 @@ turns a bad path into an Error result.
 | `export_3mf` | output `.3mf` | `Plater::export_core_3mf(path)` |
 | `export_stl_multi` | existing directory | `Plater::export_stl(..., multiple, dir)` |
 | `add_primitive_svg` | `.svg` | `GLGizmoSVG::create_volume(path, type)`: a new object, or a part of the selected one; a job |
+| `export_config` | existing directory | `ExportConfigsDialog(parent, dir)`: the dialog still opens, and its OK writes there |
 
-Commands that still open a dialog, such as `export_config` or `plate_rename`, return
-`blocked_by_dialog`, and the agent answers the dialog.
+The six shape commands (`add_primitive_cube`, `_cylinder`, `_sphere`, `_cone`, `_disc`, `_torus`)
+take a `Text` param, the size the Primitive size dialog asks for (`"40 40 10"`, `"90 4"`), and then
+call `ObjectList::load_generic_subobject(type, INVALID, true, size)`, which skips the dialog. A param
+with the wrong count of positive numbers is an Error result. With an object selected they add
+nothing (`ObjectList::can_add_shape_object()`), and say so as an Error, in the palette too.
+
+The object structure commands stand for the object list's context-menu items and the plate menu's
+Order By. Like those items, they act on the object list's selected rows, which `select` sets:
+
+| Command | Param | Entry point | Refused when |
+|---|---|---|---|
+| `obj_type_part`, `_negative`, `_modifier`, `_support_blocker`, `_support_enforcer`, `_precise_seam` | none | `ObjectList::set_volume_type(type, true, false)` | a selected row is not a part; the object's last solid part; a text or SVG part to a support or seam type |
+| `obj_rename` | Text: the name | `ObjectList::rename_item(item, name)` | not one object or part row; characters a file name cannot hold |
+| `obj_set_instances` | Index: 1-1000 | `Plater::set_number_of_copies(num)` | no object selected; 0 (use `obj_delete`); a cut object; an unprintable instance |
+| `obj_assemble` | none | `ObjectList::merge(true)` | fewer than two object rows; a cut object |
+| `obj_instances_to_objects` | none | `ObjectList::split_instances()` | no object with more than one instance selected |
+| `obj_order_by_name`, `_filament`, `_height`, `_size` | Text: `all` for every plate | `ObjectList::order_objects(order, all)` | no objects to order; a gizmo is open |
+
+Change Type checks the rows itself: with no part row selected, `set_volume_type()` falls back to the
+3D selection, which for a selected object holds every part, a change no menu offers. That function
+returns why it changed nothing and shows it only for the menu (`show_errors`), so the rule stays in
+one place. `rename_item(item, name)` and `set_number_of_copies(num)` are the work of the Rename and
+Set number of instances items without their dialogs, which the items keep; without a param, the
+commands open those dialogs. Order By keeps the menu's toggle: choosing the order the objects already
+have reverses it.
+
+A command whose effect its message does not carry sets `AppActionRunResult::reply`, a JSON object
+whose fields `run_action` adds to its reply and the palette never shows. `obj_order_by_*` reply with
+the sorted plates' objects in their new order (`order: [{object, name, plate}]`) and `descending`,
+`obj_assemble` with the new object's `object` and `name`, `obj_instances_to_objects` with the
+`objects` the instances are in, and `obj_set_instances` with `object` and `instances`.
+
+Commands that still open a dialog, such as `export_config`, `plate_rename` or `send_gcode` (see
+Print host uploads), return `blocked_by_dialog`, and the agent answers the dialog; the plate scope sets
+a name without one.
+
+`filament_add` and `filament_delete` are the filament list's + and - buttons and a slot's Delete menu item
+(`Sidebar::add_filament()` and `Sidebar::delete_filament()`, then the slot counter). They run where the
+buttons show, for printers that take several filaments through one extruder, and not on a G-code file;
+elsewhere, and at the slot limit or with one slot left, they return Info. A new slot goes after the
+physical slots, so mixed filaments move up by one with the objects on them; the message names the new
+slot. `filament_delete` takes a 1-based slot, the last physical one without it, and remaps the objects on
+it as the GUI does. A mixed filament is refused (an Error): it is deleted from the mixed filament list.
+
+`import_configs` with a path imports presets as the Import Configs dialog does, through
+`MainFrame::import_configs()`, the dialog's work split from its file picker and result message: the files
+go to `PresetBundle::import_presets()`, and the presets are reloaded and the sidebar refreshed. A preset
+file (`.json`) is imported alone, a `.zip` or bundle (`.orca_printer`, `.orca_filament`, `.orca_bundle`)
+with every preset inside it. The dialog asks about each preset that exists already; the command answers
+that question itself, never with "to all", so it is asked about every such preset and the message can name
+them all: the param `{"path": ..., "on_conflict": "overwrite"}` replaces them, and by default (`"skip"`) they
+are kept. `overwrite`, which other path params use for an output file, is refused here rather than read
+with that other meaning. The message lists the presets imported, replaced and kept, found by comparing the
+preset names before and after; a call that changes nothing is an Error with the dialog's hint about adding
+the printer first. A `.gcode` still loads the settings it was sliced with through
+`MainFrame::load_config_file(path)`.
+
+`export_config` with a directory still opens the Export Preset Bundle dialog, given that directory: its
+OK writes there instead of asking for a folder. The agent picks the kind by clicking its label
+(`ui_click`), checks presets with `ui_input` on their checkboxes, which are named after the preset, printer
+or filament they stand for, presses OK with `dialog_respond`, and answers the result message. The command
+is an Error when the dialog is closed without exporting. Preset files are not exported without the
+dialog: its archive functions read its own checkboxes.
+
+A command that does nothing, such as an object command with nothing selected, returns its message
+with `AppActionRunResult::done` false. The palette shows it at its level, Info for most, as it always
+has; `run_action` replies `isError`. `obj_arrange` and `obj_orient` say why they did nothing (no
+objects, or another background job running) and reset the prepare state a plate's Arrange or Auto
+Rotate icon leaves behind, so they act on every plate as the toolbar does. Their job is the call's
+operation (see Worker jobs), so `run_action` returns once it is done.
 
 ### Making a feature reachable
 
@@ -381,14 +1257,16 @@ and get the plater with `ui_plater()`, which fails until the main window is up. 
 with a message the model can act on. Call `settle()` after a change so queued events are handled
 before the reply, and page lists with `page()`. For work that finishes later, call
 `ctx.begin_operation()`, wait with `poll_ui()`, and give the work an identity, as slicing and
-export do. Describe the tool in English, including what the reply holds and when it is a job.
+export do. Work on the UI job worker needs none of that: the call that starts it holds it as its
+operation (see Worker jobs). Describe the tool in English, including what the reply holds and when it is a job.
 
 ## GUI automation
 
-`ui_snapshot` (`UiInspector`) returns a compact text tree of the shown top-level windows, the
-menus, the GL toolbar items and gizmos, and each canvas's last-frame ImGui items, capped by
-`max_nodes` and filtered by `query`. The tree is a second text block of the result. Refs (`w`, `m`,
-`t`, `z`, `g` plus a number) are never reused and carry the UI generation and a liveness check, so a
+`ui_snapshot` (`UiInspector`) returns a compact text tree of the shown top-level windows, each
+followed by the popups that opened from it, the rows of their lists, the menus, the GL toolbar items
+and gizmos, and each canvas's last-frame ImGui items, capped by `max_nodes` and filtered by `query`.
+The tree is a second text block of the result. Refs (`w`, `m`, `t`, `z`, `g`, `r`, `p` plus a number) are
+never reused and carry the UI generation and a liveness check, so a
 ref to a destroyed or rebuilt widget is reported stale. A field is named by the setting it edits:
 its option key is read from the "parameter name" line of its tooltip, and its label comes from the
 option's definition. Failing that, the label to its left on the same row names it, then its
@@ -401,13 +1279,20 @@ journal stores. A locator is one of:
 - `{label, class, name, within, index}` for other widgets;
 - `{tab: "General", within}` for a notebook page;
 - `{menu: "File>Export>Export G-code"}`, `{gltoolbar: "arrange"}` or `{gizmo: "Move"}`;
-- `{imgui: "label", imgui_name: "name", window, canvas, index}` for an ImGui item, by either or both.
+- `{imgui: "label", imgui_name: "name", window, canvas, index}` for an ImGui item, by either or both;
+- `{row: "Plate 1>Cube>Cylinder", column, within, index}` for a row of a list, tree, table or
+  drop-down list (see Rows and popups below);
+- `{plate_icon: "lock", plate: 0}` for a plate or one of its icons in the Prepare view (see Plate
+  icons below).
 
-The object list's rows are items of a `wxDataViewCtrl`, not windows, so no locator names one.
 `select` selects objects, instances and parts, after which `run_action` runs the object operations
-the catalog has (delete, split, mirror, center, drop, instances, arrange, orient) and `set_settings`
-with the object or volume scope edits their settings. Adding a part or modifier and changing a
-part's type have no tool yet.
+the catalog has (delete, split, mirror, center, drop, instances, arrange, orient, change type, rename,
+assemble, set as individual objects, order by) and `set_settings` with the object or volume scope
+edits their settings and filament. `add_part` adds parts, modifiers and support shapes,
+`set_layer_ranges` sets height range modifiers, and `set_layer_height_profile` runs the Variable layer
+height panel's buttons. `set_layer_gcode` does what the Preview layer slider's right-click menu does.
+The rest of the object menu is reached through a right click on the object in the 3D view, or on
+its row of the object list, with `popup_item` (see Menus below).
 
 A label that matches both a row's label and the one field it names resolves to the field.
 `within` names a window other than the main one, whose title follows the project name and is left
@@ -420,7 +1305,13 @@ labels unpainted.
 Activation prefers a widget's own dispatch: `wxEVT_MENU`, `GLToolbar::force_left_action()` (or
 `force_right_action()` for a right click), `GLGizmosManager::click_toolbar_icon()`, a notebook's
 `SetSelection()`, a native control's semantic event, or a custom widget's public API. Canvas
-gestures and ImGui items get synthesized wx events with a render between steps.
+gestures and ImGui items get synthesized wx events with a render between steps. A right click on a
+plain window gets the context menu event a person's would: on macOS wx makes it from the right press
+the window's handlers pass on, elsewhere the system sends it, so the click sends it there. A GL toolbar item's
+visibility and enabled state are brought up to date (`GLToolbar::update_items_state()`, what the
+canvas's idle handler does) before `ui_snapshot` lists them and before a click checks them, so an
+item a `select` just enabled is not read as disabled. A click on an ImGui item whose centre lies
+under another ImGui window (a notification over a panel's button) is refused, naming that window.
 `ImGuiWrapper::set_item_recording()` supplies the ImGui items (see below). `SyntheticInput` holds
 a gesture's keys, buttons and pointer for code that reads hardware state through `get_key_state()`
 and `get_mouse_state()`: the canvas, gizmos, and the object list's Ctrl/Shift multi-select. Mouse
@@ -431,8 +1322,155 @@ keys are released however the gesture ends; a `ui_mouse` `down` keeps its button
 rejects for its arguments never runs and changes nothing), the end of the script that pressed it,
 the closing of the endpoint for a client's press, or the service's stop. A client's gesture that
 reaches the UI thread after its endpoint closed is refused. Keys without a target go to the
-focused window inside the topmost modal, else that modal, else the focused window, else the 3D
-canvas.
+focused window inside the topmost modal, else that modal, else the focused window, else the 3D view
+shown.
+
+A key is delivered as a real key press is on every port: `wxEVT_CHAR_HOOK` goes to the target first
+and travels up through its parents (`wxKeyEvent` propagates it) to the top-level window, or stops
+at a dialog (`wxWS_EX_BLOCK_EVENTS`); only when no hook takes it, or the one that does allows the
+next event (`DoAllowNextEvent()`), do `KEY_DOWN` and `CHAR` reach the target. So a panel that binds
+its own hook sees the keys sent to its widgets, as the Design tab's does for Escape, Enter and its
+tool shortcuts, and the main frame's hook still sees what none below it takes.
+
+The Design tab's view is a `GLCanvas3D` of its own (`DesignCanvas::gl_canvas()`), outside the
+plater's three. `live_canvases()` lists the plater's, which `get_state.gizmo` and the idle checks
+read, since the Design view has no gizmos; `ui_canvases()` adds the Design view for what the `ui_*`
+tools and screenshots reach: `ui_snapshot` lists its ImGui items, `ui_click` and `ui_key` act on it,
+and `ui_mouse` takes `canvas: "design"` (`"current"` is the view shown, `shown_canvas()`). A click
+there goes to the Design view's own handlers, so a left click picks a face, edge or body and a right
+click opens the offer menu, which is listed or run like any other. Points of the model name
+Prepare's objects, so on the Design view `ui_mouse` takes pixels only; `cad_call query_topology`
+gives its faces.
+
+### Menus
+
+Every popup and context menu goes through `popup_menu()` (`SyntheticInput.hpp`), which is
+`wxWindow::PopupMenu()` unless the MCP server has installed a capture
+(`SyntheticInput::set_menu_capture()`). The capture is there because a native menu loop holds the UI
+thread until a person closes the menu: on macOS it pauses wx's pending events, and with them every
+`run_ui()` closure. So MCP never shows a menu. `UiInspector::on_menu()` takes a menu that opens in a call's window: from the start of each of
+the call's UI closures (`UiInvoker`'s activity hook) until the first `wxEVT_IDLE` with nothing queued
+after the closure ends, so a menu opened by an event the call queued (a 3D view posts its right click
+to itself) or by a `CallAfter` chain is taken too. The window closes a second after its closure in any
+case (`on_menu()` checks the age itself, so no idle is needed), so a stream of queued events can't
+keep a person's menus from showing. Only menus of the event
+loop the closure ran in are taken: a person's right click in a dialog the call opened, whose loop is
+another, shows its menu, and a call working inside that dialog has a window of its own there.
+
+The capture does what `wxWindowBase::PopupMenu()` does before it shows a menu: it sets the invoking
+window and calls `UpdateUI()`, so the `wxEVT_UPDATE_UI` handlers MenuFactory binds on the main frame
+set each item's enabled and checked state as a person would see them. `ui_click`, `ui_mouse` and
+`ui_key` arm a capture in the closure that delivers their input (`arm_menu()`). The first menu that
+opens goes to it: without `popup_item` it is listed in the reply as `popup_menu` (`items`, and the
+`disabled` and `checked` ones) and nothing runs, as if the person pressed Escape; with one, that item
+runs: a check item is toggled or a radio item checked, then `SendEvent()` on the submenu holding it,
+which dispatches through that menu, its parents and the invoking window as a pick from a shown menu
+does, and the reply says `ran`. It runs inside the `popup_menu()` frame, so `Plater::PopupMenu()`'s
+deferral of slicing and error messages, and the popup position Add Text uses, are in effect. A
+command that opens a dialog from the 3D view's queued right click leaves it open when the call
+returns; the reply then lists it under `dialogs`. The call waits for that queued click by queuing a
+`CallAfter` on the canvas behind it (one handler's queue is first in, first out) before it settles
+and reads the capture. A later menu in the same call is closed unseen and counted (`menus_closed`);
+a menu that opens in a window where nothing is armed (a `cad_call run_verb` whose offer opens later)
+is closed unseen too. The last three such menus, with the tool whose window took them, are in
+`get_state.closed_menus`.
+
+A menu path is the item labels joined with `>`, as `GetItemLabelText()` gives them, matched without
+case; a trailing `...` may be left out. A label repeated among its siblings is numbered from its
+second time on (`Change Filament>Generic PLA #2`), so every listed path names one item, and the
+marker the Change Filament list appends to the slot in use (" (current)", translated) is left out of
+the numbering and the matching, so a path recorded with another slot in use still names the same
+item. A path that names a submenu, a disabled item or nothing fails with the items to pick from, and
+so does a `popup_item` when the input opened no menu (a right click on empty space while objects are
+selected, in the Preview, or with a gizmo open). Paths are the UI language's text, as other locators
+are. With `x`/`y`, `ui_click` clicks that point of a custom-drawn widget (such as the Design tab's
+feature tree) as well as of a 3D canvas; a native control, which acts on what the system tells it
+rather than on wx mouse events, is refused.
+
+MenuFactory builds the multi-selection, layer and assemble-view menus afresh for each popup.
+`Plater::PopupMenu()` takes them back (`MenuFactory::take_transient()`) and frees them once the popup
+has closed, for a person's right click as for MCP's. Their items' `wxEVT_UPDATE_UI` handlers stay bound
+on the main frame, but under ids `wxNewId()` never hands out again, so they never run.
+
+### Rows and popups
+
+The rows of `wxDataViewCtrl`s (the object list, Compare presets, the upload queue and other data
+views), of `wxListBox` and `wxCheckListBox` (the Add Settings checklist), of Orca's `DropDown` lists,
+of `wxGrid` tables (the object settings table) and of the Design tab's `DesignRowList`s are listed
+under their list as `row` nodes (`list_rows()`): the first text cell is the label, the other text
+cells the value joined with ` | `, a checkbox cell its checked state. A data view is walked through
+its model from the root, collapsed branches included. An object list row also says what it stands
+for by the indices `list_objects` uses (`plate 1`, `object 0 part 1, modifier`, `object 0 layer
+range 0-2`). A table's rows are named by their `Name` cell (the object settings table's part rows
+by the part), else by their row label; a sort indicator after a column title is left out, and a
+table that hides its column labels and draws its titles as its first row is read with that row as
+the titles. A drop-down row in a group has the group's label above it; the picked row is the checked
+one. A list node lists the names its cells are picked by (`columns:`): header text, `#n` for a
+column without one, and for the object list, which shows no header, `Name`, `Height`, `Printable`,
+`Filament`, `Support`, `Color`, `Sinking` and `Editing`.
+
+A row locator gives the labels from the top joined with `>` (an array when a label holds `>`), of
+which it matches the last ones, so the plate above an object may be left out; the marker " (current)"
+may be left out as in menu paths. Rows are found again by their labels on each use, since models
+delete and rebuild their items; a ref stays alive while its list does and the path still names a
+row, rows with the same labels being told apart by their order. The journal records the row's whole
+path, its `column` and its window's `within`, with `index` when other rows match it.
+
+A click acts as a person's click on the row's cell (`click_row()`): the cell is the `column` named,
+else the row's first. On a data view, the branches above the row are expanded and the row scrolled
+into view; the selection is set as the click would set it (Ctrl toggles the row, Shift selects the
+shown rows from the current one, a right click selects an unselected row only), and the owner gets
+one `wxEVT_DATAVIEW_SELECTION_CHANGED` for the row. The controls report a selection they are given
+differently (macOS each change it makes on the way, GTK and the generic control none), so their own
+reports are held back for the call and the one a click makes is sent. The synthetic pointer sits at the cell's centre
+for the gesture, and the object list reads it through `get_mouse_state()` where it would read the
+real pointer: on Windows and Linux its selection handler then acts on the cell under it (Printable
+toggles printability, Sinking drops the object, Editing resets the row's settings). On macOS the
+native list starts editing an editable icon cell instead, which the object list turns into the same
+actions, so a click that names such a column sends `wxEVT_DATAVIEW_ITEM_EDITING_STARTED` too. A
+double click sends `wxEVT_DATAVIEW_ITEM_ACTIVATED` (the object list frames the object, or opens the
+filament editor on the Filament column), a right click `wxEVT_DATAVIEW_ITEM_CONTEXT_MENU`, whose menu
+is captured like any other. `ui_input` with true or false sets a checkbox cell through
+`ChangeValue()`, as the toggle renderer does, which tells the owner. A list box row is selected with
+`wxEVT_LISTBOX` and a checklist row ticked with `wxEVT_CHECKLISTBOX`; a drop-down row is picked with
+`DropDown::ClickItem()`, which does what a release over it does; a table row's cell is made current
+with `GoToCell()` (`wxEVT_GRID_SELECT_CELL`), and its cells are not edited: `set_settings` with the
+object scope writes the same values. A Design list row is clicked at its centre, or at the action
+icon whose tooltip `column` gives, through the list's own mouse handlers.
+
+Popups (`wxPopupWindow`: the print button's menu, drop-down lists) report themselves top-level but
+are children of the window they opened from. `ui_snapshot` lists each shown one as a `popup` right
+after its window (`popups_of()`), and `root: "popup"` lists only them. A widget in a popup belongs
+to that window (`owning_window()`), so it is inside the topmost modal for the input guards when its
+popup opened from there, and its locator's `within` names that window. A screenshot of a widget in
+a popup is refused, since window captures leave popups out.
+
+### Plate icons
+
+A plate and its icons in the Prepare view (delete, orient, arrange, lock, settings, name, move to
+front, filament grouping, IDEX mode) are GL picking models, which a person reaches only by pointing at
+them. `ui_snapshot` lists under the Prepare canvas a `plate_icon` node for each plate, named as the
+object list names it, then the icons of the current plate; the lock icon carries the plate's lock
+state. A locator `{plate_icon, plate}` names any plate's icon by the picking action `PartPlate` gives
+it: `plate` (the plate itself), `delete`, `orient`, `arrange`, `lock`, `settings`, `name`,
+`move_to_front`, `filament_map`, `imex_mode`. The bed picking registry is the authority on what is
+shown, since `PartPlate` registers only the icons it draws and hidden plates are inactive there: an
+icon it does not offer (plate settings off, filament grouping without two nozzles, IDEX mode off) is
+refused by name.
+
+A click calls `GLCanvas3D::click_plate()` with the icon's picking id, the code the canvas's mouse
+handler runs for the plate under the pointer, so undo snapshots, notifications and dialogs are the
+GUI's. It is refused where the canvas takes no plate clicks: outside the Prepare view, while variable
+layer height is being edited, and while a gizmo is open, where the canvas would not open the plate
+menu. A left click on lock replies the lock state; on the plate itself, move to front and delete the
+current plate. Arrange and orient start a job on the UI job worker, which the reply waits for
+(`done`); `started: false` says the click started nothing, with a note when the arrange icon's own
+flag is stuck (an arrange that was cancelled or failed leaves it set until another arrange finishes).
+Settings and filament grouping open their dialog from an event posted to the plater, so the call
+queues a `CallAfter` on the plater behind it and replies once it ran, with the open dialog under
+`dialogs`; the name icon opens its dialog inside the click, which the call reports as
+`blocked_by_dialog`. A right click opens the plate menu, posted to the canvas, or the IDEX icon's mode
+menu, and either is captured as any other menu (Menus above).
 
 ### ImGui items and gizmos
 
@@ -503,8 +1541,15 @@ the ray through the whole pixel the click goes to must meet nothing before it (a
 parts of the instance the open gizmo works on, which it draws itself while their scene entries are
 inactive, and the plates), and must then meet the part near the point. A part the view does not
 draw (`GLVolume::visible`, false for objects the assemble view left out) is neither a target nor in
-the way. Other inactive parts are hidden by the gizmo and modifiers are see-through, so neither counts.
-`check: "point"` only projects, for points off the surface such as a cut plane. Every point of a
+the way. Other inactive parts are hidden by the gizmo, and modifiers and negative parts other than the
+target are see-through, so neither counts; a modifier or negative part is a target like any part. The
+plates count only for a ray looking down: from below the GUI draws them see-through and picks and
+paints through them (`SceneRaycaster` raycasts the bed only while the camera looks down).
+`check: "point"` only projects, for points off the surface such as a cut plane. Either way, a gesture
+that starts at a model point under an ImGui window (a gizmo panel, a notification, an open popup) is
+refused, naming it, since ImGui would take its events: `imgui_window_at()` repeats ImGui's
+hovered-window search (`FindHoveredWindow()`) on the windows of a frame drawn just before. A pixel
+given as `x`/`y` is the client's to aim and is not checked. Every point of a
 gesture is resolved before its first event, and the journal keeps the model points, so a script
 replays at another window size or camera. A gesture's modifiers are pressed as a keyboard does: a
 key-down event each before it and a key-up after, which is what switches Measure and Assembly to
@@ -522,22 +1567,45 @@ topmost wx dialog's button, so the dialog's own handler runs, or ends the dialog
 no such button exists. A native dialog can only be answered ahead with a `dialog_auto_answer` rule:
 a regex over title and message, and a button. `Enter()` then returns that button's id without
 showing the dialog, and logs it; a file or folder picker can only be cancelled, since any other
-answer would return without a path. A new rule also answers a
+answer would return without a path. A wx dialog that matches a rule opens, and the tracker presses
+the button once the dialog's modal loop runs (`press_dialog_button()`, queued on the dialog), as
+`dialog_respond` does: its buttons do the dialog's work in their handlers (`UnsavedChangesDialog`'s
+Transfer and Discard, `CloneDialog`'s Fill), which a returned id would skip. A modal opened above it
+before then leaves it to `dialog_respond`. A new rule also answers a
 matching wx dialog that is already open. A prompt posted around the same time, such as the restore
 prompt after startup, is handled whether it opens before or after the rule. A script's rules end
 with the script, a client's call replaces its earlier rules, and `get_state` lists the rules in
-force. `webview_eval` runs JavaScript with `RunScriptAsync`. The result arrives as an event on the
-UI thread, in a `ScriptSink` that only the UI thread creates and deletes, along with its weak
-reference to the web view. The job thread waits for the result, up to `timeout_s` (default 10),
-without the UI; a JSON result comes back parsed.
+force.
+
+`webview_eval` runs JavaScript with `RunScriptAsync`, as a recover call. While a modal dialog is open
+it runs only in a web view of the topmost one, and only when that dialog is the setup wizard
+(`GuideFrame`) or a preset bundle dialog (`PresetBundleDialog`, `ExportPresetBundleDialog`), checked
+by class: their pages have no typed route. Sign-in dialogs are never on that list, so no client reads
+or fills a sign-in page, and neither are the flushing volumes and colour picker dialogs, whose values
+`set_settings`'s project scope writes through the same apply code. A web view in a dialog under the
+topmost one is refused, and any other gets a mutate call's checks. Without a target the web view of
+the topmost dialog is used, else the only shown one. These dialogs have no wx buttons, so
+`dialog_respond` only ends them: a page's work is committed through the page's own button. A web
+view's locator names it by kind (`class: "webview"`), since its class differs per platform (WebKit,
+WebView2). The result arrives as an event on the UI thread, in a `ScriptSink` that only the UI thread
+creates and deletes, along with its weak reference to the web view. The job thread waits for the
+result, up to `timeout_s` (default 10), without the UI; a JSON result comes back parsed. A page
+closes its dialog with a message (`window.wx.postMessage`) the dialog answers by ending its modal
+loop, which destroys the web view, while wx's script callback keeps a plain pointer to it. So the
+script runs wrapped: messages the page posts while it runs are held and sent, in order, once it has
+returned, and a script whose held messages closed its dialog replies its value with `closed: true`
+once the dialog has left the modal stack. The sink also watches the web view's destruction, so a
+dialog that goes away before the result by another route replies `closed: true` with a null result
+instead of timing out.
 
 ## Screenshots
 
 `screenshot` captures on the UI thread and encodes off it. It has three targets.
 
-- `canvas`: the visible 3D view, exactly as drawn, toolbars and ImGui panels included, on every
-  platform. `GLCanvas3D::render_and_capture()` forces a frame and reads the back buffer just before
-  the swap; it fails, saying why, when the canvas is hidden or mid-frame.
+- `canvas`: the visible 3D view, the Design view while the Design tab is shown, exactly as drawn,
+  toolbars and ImGui panels included (the Design view's sketch overlay and status line too), on
+  every platform. `GLCanvas3D::render_and_capture()` forces a frame and reads the back buffer just
+  before the swap; it fails, saying why, when the canvas is hidden or mid-frame.
 - `window`: the main window's own pixels, never the screen, from `capture_native_window()`, with
   every visible 3D canvas composited in from its canvas capture, since window capture loses OpenGL
   content on several platforms.
@@ -560,15 +1628,97 @@ On every platform, a canvas that can't be captured keeps whatever the window cap
 result is approximate. A canvas frame that reads back black (`is_blank()`, a stray pixel aside) has
 not been drawn yet. This happens on Wayland for a moment after the canvas is first shown, and while
 GNOME's overview hides an XWayland window. Such a capture is taken again every 300 ms for up to 3 s,
-then returned as approximate, saying so. A 3D view other than Prepare's and Preview's (the Design
-tab's) has no frame capture: a window capture says it is left out, and `target: "canvas"` refuses.
-Minimized and hidden windows fail. X11 reads only the on-screen part of a window (`XGetImage` fails
+then returned as approximate, saying so. The composite takes the canvases of `ui_canvases()`,
+the Design view included; an OpenGL view outside them has no frame capture, and a window capture
+says it is left out. Minimized and hidden windows fail. X11 reads only the on-screen part of a window (`XGetImage` fails
 for the rest), which leaves the remainder black. X11 keeps no backing store, so a part
 covered by another window reads back black. OrcaSlicer's own popups and tooltips stacked above the
 window are read and drawn in, as they appear on screen; another application's window leaves the
 hole, and the result is approximate. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/screenshot-<timestamp>.png`. The image
 block is scaled to `max_dim` on the long edge (default 1280, clamped to 256–2000).
 `include_image: false` returns only the path.
+
+## Preview data
+
+`get_preview` reads what the Preview shows for a plate without selecting the plate. Its tables
+come from the plate's `gcode_statistics_json()`, the serializer behind the slice reply's statistics
+and the exported `statistics.json`, which sums the moves as the legend does: `summary` is the slice
+reply's `plate_summary()` with the prepare and travel times and the travel distance; `features` has
+each feature type's seconds, share of the normal-mode print time and grams, keyed by the English
+`;FEATURE:` names (`ExtrusionEntity::role_to_string()`), and a `Travel` row (the shares leave out
+retractions, wipes, Z moves, tool changes and the prepare time, as the legend's do); `layers`,
+paged, numbers layers as the slider's value (G-code layer index + 1, which `set_view {layer}` and
+`get_state.preview` use) and carries each one's Z, so tools that number layers by the slider's label
+can be joined on Z. `objects` lists the G-code's object instances, which it names by object and
+instance number; an entry gets the `list_objects` index only when one model object has that name.
+The wx-free shaping (`preview_features()`, `preview_layers()`, `preview_objects()`) is unit tested.
+
+`view` is the legend's state, read from the libvgcode viewer it draws from
+(`GCodeViewer::get_viewer()`), so only for the plate the Preview has loaded (its
+`last_result_id()` is the plate's result id; the Preview loads a plate only while shown, so after
+another plate is selected it keeps the last one's): view type, time mode,
+the layer slider's range with its Z, which feature types and options are visible, and each view
+type's colour range. The viewer recomputes ranges at its next frame after a legend change, so the
+closure draws the Preview first; the ranges span the whole print but count travels, wipes and Custom
+extrusions only while those rows are shown. For another plate `view` is null and a `note` says how to
+show it. `get_state.preview` is the same state without the legend, or null when the Preview holds no
+toolpaths of the current plate.
+
+The tool refuses while anything slices or exports (`Plater::is_slicing_any()`), since a worker may be
+rewriting a result whatever its valid flag says, and for a plate without an up-to-date result. A
+G-code file opened for viewing fills the current plate's result without marking the plate sliced;
+that plate is read while the Preview shows it (`Plater::only_gcode_mode()`). Of a project opened from
+a sliced 3MF, a plate the Preview has not shown keeps only the file's totals, without moves, so it is
+refused with "slice again for layer data". The serializer's pass over the moves runs on the UI
+thread, about 15 ms on a plate of 4 million moves.
+
+`set_view` changes the Preview through the functions the legend's own controls call
+(`GCodeViewer::pick_view_type()` for the combo, `toggle_extrusion_role_visibility()` and
+`toggle_option_visibility()` for its rows, `set_time_mode()` for the mode button), so a call leaves
+the Preview as the same clicks would. Picking a view type therefore shows every feature type again
+when it is Line Type, and is written to the app config as `preview_last_view_type`, which the "Last
+used" preview default restores. Before a slice there is no legend to pick from, and `view_type` only
+sets the type the next toolpaths show. `legend` names rows as `get_preview` lists them and clicks a
+row only when its state differs; the viewer keeps one visibility set, so feature types can be set
+whatever the view type, and are applied after it. Every key, and the time mode, is checked before
+the Preview changes. `time_mode: "silent"` needs a separate silent-mode estimate, which the legend
+offers only when the two estimates read differently (`can_switch_time_mode()`). `layer_z` takes the
+layer the slider gives a height, `IMSlider::get_tick_from_value(z, true)`: the first layer whose top
+is at or above it, which is where a custom G-code at that height goes, so a `z` lands on the same
+layer in every tool. Layer replies carry `layers` [first, last, count] and the `z` of first and
+last.
+
+## Print host uploads
+
+Sending G-code to a print host (OctoPrint, Moonraker, PrusaLink, Duet and the others in
+`PrintHost::get_print_host()`) goes through the GUI's own dialog. The Speed Dial command
+`send_gcode` ("Send G-code to printer host", the dialog's title) calls `Plater::send_gcode_legacy()`,
+which the Print button calls for such a printer: it opens the Send dialog, whose file name an agent
+sets with `ui_input` and whose Upload or Upload and Print button it presses with `dialog_respond`.
+The plate is then sliced if needed, its G-code exported in the background process, and the upload
+queued. Host settings are printer settings (`host_type`, `print_host`, `printhost_apikey`, and
+`bbl_use_printhost` on a Bambu printer), written with `set_settings {scope: "printer"}`. Where the
+Print button would not send to a print host, the command fails and says why: the printer prints
+through the Bambu network or printer agents (`PresetBundle::use_bbl_network()`,
+`use_printer_agents`), or has no `print_host`, the condition `MainFrame::can_send_gcode()` gives the
+button. It is journaled like any `run_action`, so a replay uploads again.
+
+`get_state.uploads` lists the session's rows of the upload queue (`PrintHostQueueDialog`), as the
+queue window shows them: `id` (its ID column, from 1), `state` (`queued`, `uploading`, `error`,
+`cancelling`, `cancelled` or `completed`), `progress` (percent), `host`, `filename`, and `error`, the
+queue's message, when there is one. Uploads a person started are listed too, so an agent can wait
+for any of them by polling. A failed upload also opens the queue's error dialog
+(`PrintHostQueueDialog::on_error()`), which blocks changes until it is closed with
+`dialog_respond`.
+
+Two properties of the queue make its rows a reliable answer. A row reads `completed` only once the
+host has accepted the file: while the bytes go out, `PrintHostJobQueue::sent_percent()` stops at 99,
+and only `perform_job()`'s 100 after a successful `upload()` completes the row, so a host that
+refuses the file after the last byte turns the row into an error without it reading completed on
+the way. And rows are added on the UI thread: `PrintHostJobQueue::enqueue()` runs on the background
+slicing thread, reads what the row shows (host, upload path, file size) before the upload thread can
+remove the source file, and posts `append_job()` to the queue dialog itself, the handler the upload
+thread's progress and error events go to, so the row exists before any of them is handled.
 
 ## Scripts and the journal
 
@@ -612,12 +1762,33 @@ GUI changes it. wx ignores `OnExit()`'s return value, so `GUI_Run()` returns
 
 The session journal records client calls to journaled tools in order: every mutate tool, plus
 `wait` and `screenshot`, which a replay needs. It keeps the last 5000 calls, dropping the oldest
-call that has replied; a call still waiting for its reply keeps its place. GUI tools record locators instead of refs through
+call whose outcome is known; a call still waiting for its reply or its job keeps its place. GUI tools record locators instead of refs through
 `ToolContext::set_journal_args()`. `export_script` returns it, and with `path` writes it, through `Journal::to_script()`; `clear`
 starts a new recording. `Journal::to_script()`
-drops failed calls, turns a call that returned a job into a step with `"await": false` and
+drops failed calls and an input call that only listed the menu it opened when the next call repeats
+it with a `popup_item` (otherwise it stays: its right click changed the selection), turns a call that
+returned a job into a step with `"await": false` and
 `"save_as": "jobN"`, points the `wait {for: "job"}` that followed at `${jobs.jobN}` (dropping waits
 on jobs it never saw start) and rewrites screenshot paths to `${out_dir}/<file name>`.
+
+A call that runs as a job is judged by its job's final result, not by its reply. `McpCore` tells the
+journal the job's id when it starts it (`Journal::job_started()`) and its result when the handler
+returns (`Journal::job_ended()`), before `JobRegistry::finish()`, so an export right after the
+`wait` that saw the result already knows it. A job that fails after its reply came back as
+`running` is dropped like a call that failed at once, so a script never replays a call that did
+nothing (a slow CAD rebuild that then fails). A call whose outcome is still open, because its job
+is still running or it has not replied yet, is left out, and `export_script`'s reply lists it in
+`left_out_running: [{tool, job}]` (`job` is absent for a call that is not one); a later export
+includes it once its job has succeeded. A call whose reply was `blocked_by_dialog` stays in the
+script while its job runs and whatever its job's result: the steps after it answer its dialog, and
+a replay without it would fail at the first of them. A call whose job was still running when a later
+call acted with a modal open (`dialog_respond`, or a recover tool's input while
+`UiInvoker::open_dialogs()` lists one) stays the same way, whether it had replied yet or not, since that
+dialog may be one its job opened; the journal can't tell whose dialog it was, so it keeps every such
+job, as a step with `"await": false`. Its replayed reply can come before the dialog opens, so each
+call that acted with a modal open is preceded in the script by `wait {"for": "dialog"}`, expected to
+be satisfied. Only the call's own job counts as its job: a
+`wait` that timed out names the job it waits on in its reply, and stays a plain step.
 
 ## stdio bridge
 
@@ -689,14 +1860,68 @@ who owns the discovery file and when a port counts as held by another window; `t
 `UiInvoker`, `McpCore` and `JobRegistry` on a hand-stepped dispatcher (guards, abandoned calls,
 jobs, blocked_by_dialog, admission, slots, idle, journal); `test_mcp_operations` the slice and
 export outcomes; `test_mcp_script` parsing, substitution, matchers and await; `test_mcp_ui` labels,
-snapshot text, ref liveness, synthetic key state, how ImGui items are labelled and named, value
-matching and the model-target projection and surface check (`CanvasTarget`); `test_imgui_wrapper` the
+snapshot text, ref liveness, synthetic key state, a key's way through the hooks of its target's
+parents (with a display), how ImGui items are labelled and named, value
+matching and the model-target projection and surface check (`CanvasTarget`); `test_mcp_results`
+what covers a canvas click (`imgui_window_at()`), the surface meshes of a modifier target, fresh GL
+toolbar state and the auto-answer press (with a display), the slice reply's plate summary,
+`get_preview`'s feature, layer and object tables, the legend rows' names, the slider's layer for
+a height, menu paths and listings, the UI activity hook, the journal's dropped listing clicks and
+calls whose job failed or still runs (with a replay of the export), the
+menu capture on real wx menus, row paths and their snapshot text, (with a display) the rows of
+real trees, lists, checklists and tables, clicks and checkbox input on them, and popups' owning
+windows, plate icon names and bed picking ids, an upload's percentage while its bytes go out, and
+the `send_gcode` command's catalog entry;
+`test_imgui_wrapper` the
 ImGui recorder (named items, kinds, values, text, clipping) on frames drawn without OpenGL;
-`test_mcp_tools` setting serialization. End to end, `tools/mcp/orca_mcp.py` launches
+`test_mcp_tools` setting serialization; `test_mcp_config` the object and volume scopes' keys and
+effective values, the names and places `save_preset` accepts, enum labels, per-variant entries and
+their writes, preset comparison, `changed`, which unsaved changes a call discarded, which presets
+`delete_preset` refuses or deletes with a custom printer, the project scope's slot colours,
+flushing multipliers and matrix, and the plate scope's filament orders and layer ranges and
+`list_plates`' layer numbers and layer G-codes, the preferences scope's keys, and `calibrate`'s arguments,
+defaults, the dialogs' shared rules, VFA's auto-adjust and the parameters the journal records. End to end, `tools/mcp/orca_mcp.py` launches
 the app on a private Xvfb display on Linux (with `-noreset`, and the pointer parked in a corner so no
 tooltip lands in a screenshot), or on the desktop on macOS and Windows, and runs
 `tools/mcp/smoke_test.json`. `tools/mcp/tests/script_basic.json`
 checks `--mcp-script` headless, `tools/mcp/tests/gizmos.json` every gizmo through the GUI tools,
+`tools/mcp/tests/multicolor.json` object and part filaments and the project scope, `tools/mcp/tests/presets.json` saving,
+reading and comparing presets, per-variant entries, `changed`, reverting keys, answering the
+unsaved-changes prompts of a preset switch and a new project, deleting presets, exporting and importing
+presets with a path, and reading a preference changed in the Preferences dialog,
+`tools/mcp/tests/plates.json` the plate scope, `list_plates` and the filament slot commands,
+`tools/mcp/tests/calibration.json` every calibration test and its preset answers,
+`tools/mcp/tests/dialogs_canvas_input.json` auto-answers that run a button's handler and canvas
+targets on negative parts and from below the bed, `tools/mcp/tests/slice_stats.json` the slice
+reply's statistics on one and two colours, `tools/mcp/tests/preview.json` `get_preview`,
+`get_state.preview` and `set_view`'s preview arguments, `tools/mcp/tests/context_menus.json` context
+and button menus listed and run without one ever showing, `tools/mcp/tests/rows.json` object list
+rows, checklist rows, the object settings table and the print button's popup,
+`tools/mcp/tests/plate_icons.json` plate icons (lock, settings, arrange, the plate menu, move to
+front), `tools/mcp/tests/webview_modal.json` scripts in the preset bundle dialog and the setup
+wizard, `tools/mcp/test_webview_modal.py` the dialogs scripts are refused in and a page that closes
+its dialog, `tools/mcp/test_set_view_preview.py` the
+legend combo's semantics of `set_view {view_type}` and its preview refusals,
+`tools/mcp/test_export_running_job.py` an export during and after a job that outlived its reply,
+`tools/mcp/test_send_gcode.py` `send_gcode` and `get_state.uploads` against a stub print host that
+answers 200 or 500,
 `tools/mcp/test_stdio_bridge.py` the stdio bridge, and
 `tools/mcp/test_recovery_under_load.py` answering a dialog while stalled clients hold every
 connection. See `tools/mcp/README.md` and the `orca-mcp` skill.
+
+`test_mcp_scene` covers the scene and layer tools without the app: `transform`'s `size`, the shape
+commands' size param, notifications updated before the first ImGui frame, `arrange`'s option rules,
+worker-job admission on a stand-in worker (a job past the reply budget, a slow cancel and a timeout,
+three ways to start one, recover input and a person's job), `list_objects`' descriptions of a `Model`
+built in the test (placement and boxes on the bed, mirrors, filament fallback, precise seam subtypes,
+height ranges, the summary of a variable layer height profile), `add_part`'s type names and shape
+sizes, the object structure commands' params, the height ranges `set_layer_ranges` accepts (order,
+overlaps, bounds, keys), and `set_layer_gcode`'s edits of a layer slider built in the test (by layer
+and height, in-place edits, refusals that leave the slider as it was, the type names). On the app,
+`tools/mcp/tests/scene.json` checks object structure and placement (transform on instances, plates and
+parts, what `list_objects` reports of them, shapes at a size, arrange and Fill bed, `add_part`, the
+object structure commands, then all of them on one scene through to a slice);
+`tools/mcp/tests/layers.json` height range modifiers and variable layer height profiles (set, read
+back, undone, sliced, refused, kept by a 3MF) and layer G-codes (placed by layer and height, edited in
+place, refused, sliced, kept by a 3MF); and `tools/mcp/test_worker_admission.py` admission while an
+arrange started three ways runs.

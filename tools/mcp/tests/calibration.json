@@ -1,0 +1,135 @@
+// Makes every calibration test with calibrate, as the Calibration menu's dialogs do after OK, and
+// checks the objects it added, the parameters it used and the presets it changed, slicing several of
+// them (not input shaping, which the X1C's Marlin flavour cannot slice). It checks that temperatures
+// are rounded down to 5 °C, that the refusals leave the project as it was (modified presets without
+// changes, an argument the test does not take, a value the dialog refuses, the filament tab on another
+// slot's modified preset with "keep"), that "discard" points the filament tab at slot 1, that "keep"
+// keeps an edit, and that new_project drops the test's settings. It starts from the harness's default
+// printer (Bambu Lab X1 Carbon) and reruns on the same datadir. Run it with
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/calibration.json --out /tmp/calibration
+{
+  "orca_script": 1,
+  "name": "calibration tests",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "restore", "button": "no"}]}},
+    {"tool": "new_project", "args": {"discard_changes": true, "changes": "discard"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "get_state", "expect": {"/presets/filaments/1": {"exists": false}}},
+
+    // ---- Temperature: rounded down to the tower's 5 °C blocks, written to slot 1's filament ----
+    {"tool": "calibrate", "args": {"test": "temperature", "start": 252, "end": 232},
+     "expect": {"/test": {"eq": "temperature"}, "/params": {"eq": {"start": 250, "end": 230, "auto_scale": true}},
+                "/warnings/0": {"contains": "rounded down to 250"}, "/warnings/1": {"contains": "rounded down to 230"},
+                "/objects": {"eq": 1}, "/names": {"eq": ["temperature_tower.drc"]},
+                "/presets_changed/filament/filament_slot": {"eq": 1},
+                "/presets_changed/filament/changes/nozzle_temperature": {"exists": true},
+                "/result_keys": {"eq": {"scope": "filament", "keys": ["nozzle_temperature", "nozzle_temperature_initial_layer"]}},
+                "/modified/filament/keys": {"contains": "nozzle_temperature"}}},
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+
+    // ---- Refused, changing nothing: modified presets without changes, an argument the test does not
+    // take, a value its dialog refuses ----
+    {"tool": "calibrate", "args": {"test": "max_volumetric", "discard_changes": true}, "optional": true},
+    {"tool": "calibrate", "args": {"test": "temperature", "step": 5, "discard_changes": true, "changes": "discard"}, "optional": true},
+    {"tool": "calibrate", "args": {"test": "pressure_advance", "start": 0.01, "end": 0.05, "step": 0.051,
+                                   "discard_changes": true, "changes": "discard"}, "optional": true},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 1}, "/items/0/name": {"eq": "temperature_tower.drc"}}},
+    {"tool": "list_presets", "args": {"type": "filament"},
+     "expect": {"/items/0/name": {"eq": "Bambu PLA Basic @BBL X1C"}, "/items/0/modified": {"eq": true}}},
+
+    // ---- Max volumetric speed: the temperature test's settings discarded first ----
+    {"tool": "calibrate", "args": {"test": "max_volumetric", "end": 15, "discard_changes": true, "changes": "discard"},
+     "expect": {"/params": {"eq": {"start": 5, "end": 15, "step": 0.5}}, "/names": {"eq": ["SpeedTestStructure.drc"]},
+                "/discarded/filament/keys": {"contains": "nozzle_temperature"},
+                "/presets_changed/process/changes/spiral_mode": {"eq": "1"},
+                "/presets_changed/filament/changes/filament_max_volumetric_speed": {"exists": true}}},
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+
+    // ---- Pressure advance: tower, line and a 2 x 2 pattern batch; the pattern's defaults read back ----
+    {"tool": "calibrate", "args": {"test": "pressure_advance", "end": 0.06, "discard_changes": true, "changes": "discard"},
+     "expect": {"/params": {"eq": {"method": "tower", "start": 0, "end": 0.06, "step": 0.002}}, "/names": {"eq": ["tower_with_seam.drc"]}}},
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "calibrate", "args": {"test": "pressure_advance", "method": "line", "print_numbers": false, "discard_changes": true, "changes": "discard"},
+     "expect": {"/params/print_numbers": {"eq": false}, "/params/end": {"eq": 0.1}, "/names": {"eq": ["pressure_advance_test.drc"]}}},
+    {"tool": "calibrate", "args": {"test": "pressure_advance", "method": "pattern", "accelerations": [1000, 2000], "speeds": [50, 100],
+                                   "discard_changes": true, "changes": "discard"},
+     "expect": {"/objects": {"eq": 4},
+                "/names": {"eq": ["pa_pattern_50_1000", "pa_pattern_100_1000", "pa_pattern_50_2000", "pa_pattern_100_2000"]},
+                "/params/accelerations": {"eq": [1000, 2000]}, "/params/speeds": {"eq": [50, 100]},
+                "/result_keys/keys": {"contains": "adaptive_pressure_advance_model"}}},
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "calibrate", "args": {"test": "pressure_advance", "method": "pattern", "discard_changes": true, "changes": "discard"},
+     "expect": {"/objects": {"eq": 1}, "/params/accelerations/0": {"gt": 0}, "/params/speeds/0": {"gt": 0}}},
+
+    // ---- Flow ratio: the four passes ----
+    {"tool": "calibrate", "args": {"test": "flow_ratio", "discard_changes": true, "changes": "discard"},
+     "expect": {"/params": {"eq": {"method": "yolo", "top_surface_pattern": "archimedeanchords"}}, "/objects": {"eq": 11},
+                "/names/0": {"eq": "flowrate_0"}, "/result_keys/keys": {"eq": ["filament_flow_ratio"]}}},
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "calibrate", "args": {"test": "flow_ratio", "method": "yolo_perfectionist", "discard_changes": true, "changes": "discard"},
+     "expect": {"/objects": {"eq": 16}}},
+    {"tool": "calibrate", "args": {"test": "flow_ratio", "method": "pass1", "discard_changes": true, "changes": "discard"},
+     "expect": {"/objects": {"eq": 9}}},
+    {"tool": "calibrate", "args": {"test": "flow_ratio", "method": "pass2", "top_surface_pattern": "monotonic", "discard_changes": true, "changes": "discard"},
+     "expect": {"/objects": {"eq": 10}, "/names/1": {"eq": "flowrate_m1"}, "/params/top_surface_pattern": {"eq": "monotonic"}}},
+
+    // ---- Retraction, VFA (with its auto-adjust), input shaping and cornering ----
+    {"tool": "calibrate", "args": {"test": "retraction", "end": 1, "discard_changes": true, "changes": "discard"},
+     "expect": {"/params": {"eq": {"start": 0, "end": 1, "step": 0.1}}, "/names": {"eq": ["retraction_tower.drc"]}}},
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "calibrate", "args": {"test": "vfa", "discard_changes": true, "changes": "discard"},
+     "expect": {"/params": {"eq": {"start": 40, "end": 200, "step": 10, "auto_scale": true, "auto_adjust": true}},
+                "/adjusted": {"exists": false}, "/presets_changed/process/changes/spiral_mode": {"eq": "1"},
+                "/result_keys/scope": {"eq": "printer"}}},
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "calibrate", "args": {"test": "vfa", "end": 400, "step": 20, "discard_changes": true, "changes": "discard"},
+     "expect": {"/adjusted/layer_height": {"lt": 0.2}, "/params/end": {"eq": 400}}},
+    {"tool": "get_settings", "args": {"scope": "object", "object": 0, "keys": ["layer_height"]}, "expect": {"/items/0/value": {"ne": "0.2"}}},
+    {"tool": "calibrate", "args": {"test": "vfa", "end": 400, "auto_adjust": false, "discard_changes": true, "changes": "discard"},
+     "expect": {"/adjusted": {"exists": false}, "/warnings/0": {"contains": "maximum volumetric speed"}}},
+    {"tool": "calibrate", "args": {"test": "input_shaping_freq", "start": 20, "end": 80, "discard_changes": true, "changes": "discard"},
+     "expect": {"/params": {"eq": {"start": 20, "end": 80, "start_y": 20, "end_y": 80, "damping": 0.15, "shaper_type": "Default",
+                                   "test_model": "ringing_tower"}},
+                "/names": {"eq": ["ringing_tower.drc"]}, "/result_keys/keys": {"contains": "input_shaping_emit"}}},
+    {"tool": "calibrate", "args": {"test": "input_shaping_damp", "freq_x": 48, "freq_y": 42, "test_model": "fast_tower",
+                                   "discard_changes": true, "changes": "discard"},
+     "expect": {"/params/freq_y": {"eq": 42}, "/params/end": {"eq": 0.4}, "/names": {"eq": ["fast_tower_test.drc"]}}},
+    {"tool": "calibrate", "args": {"test": "cornering", "test_model": "scv_v2", "end": 25, "discard_changes": true, "changes": "discard"},
+     "expect": {"/params": {"eq": {"start": 1, "end": 25, "test_model": "scv_v2"}}, "/names": {"eq": ["SCV-V2.drc"]},
+                "/warnings/0": {"contains": "layer shifts"}, "/result_keys/keys": {"eq": ["machine_max_jerk_x", "machine_max_jerk_y"]}}},
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+
+    // ---- The filament tab on another slot's modified preset: refused with "keep", switched with "discard" ----
+    {"tool": "new_project", "args": {"discard_changes": true, "changes": "discard"}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_add:orca"}, "expect": {"/message": {"eq": "Added filament slot 2."}}},
+    {"tool": "set_settings", "args": {"scope": "filament", "filament_slot": 2, "values": {"filament_cost": 21}}},
+    {"tool": "save_preset", "args": {"type": "filament", "name": "MCP Calib PLA", "filament_slot": 2, "overwrite": true}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic @BBL X1C", "filament_slot": 1}},
+    {"tool": "set_settings", "args": {"scope": "filament", "filament_slot": 2, "values": {"filament_cost": 22}}},
+    {"tool": "calibrate", "args": {"test": "retraction", "discard_changes": true, "changes": "keep"}, "optional": true},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 0}}},
+    {"tool": "calibrate", "args": {"test": "retraction", "discard_changes": true, "changes": "discard"},
+     "expect": {"/presets_changed/filament/name": {"eq": "Bambu PLA Basic @BBL X1C"},
+                "/presets_changed/filament/tab_switched_from": {"eq": "MCP Calib PLA"},
+                "/discarded/filament": {"eq": {"name": "MCP Calib PLA", "keys": ["filament_cost"]}}}},
+
+    // ---- "keep" runs the test with an edit, which new_project with "discard" then drops ----
+    {"tool": "set_settings", "args": {"scope": "filament", "values": {"slow_down_layer_time": 7}}},
+    {"tool": "calibrate", "args": {"test": "retraction", "discard_changes": true, "changes": "keep"},
+     "expect": {"/modified/filament/keys": {"contains": "slow_down_layer_time"}, "/discarded": {"exists": false}}},
+    {"tool": "get_settings", "args": {"scope": "filament", "keys": ["slow_down_layer_time"]}, "expect": {"/items/0/value": {"eq": "7"}}},
+    {"tool": "new_project", "args": {"discard_changes": true, "changes": "discard"},
+     "expect": {"/discarded/filament/keys": {"contains": "slow_down_layer_time"}, "/modified": {"exists": false}}},
+    {"tool": "get_settings", "args": {"scope": "filament", "keys": ["slow_down_layer_time"]}, "expect": {"/items/0/value": {"eq": "4"}}},
+
+    // ---- Back to one slot and no MCP presets ----
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "param": "2"}, "expect": {"/level": {"eq": "success"}}},
+    {"tool": "delete_preset", "args": {"type": "filament", "name": "MCP Calib PLA"}, "expect": {"/deleted": {"eq": "MCP Calib PLA"}}},
+    {"tool": "list_presets", "args": {"type": "filament"}, "expect": {"/total": {"eq": 1}, "/items/0/modified": {"exists": false}}}
+  ]
+}

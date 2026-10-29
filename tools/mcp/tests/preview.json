@@ -1,0 +1,143 @@
+// get_preview and get_state.preview on a sliced 25.6 mm cube: the summary, the feature and layer
+// tables, the object with its list_objects index, the legend's state as set_view changes it (rows,
+// time estimate, layers by height, a view type picked as the legend's combo does), and the same reads
+// on the cube's G-code opened for viewing. Run it on a fresh datadir set up with the
+// default printer (Bambu Lab X1 Carbon 0.4, 0.2 mm layers):
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/preview.json --out /tmp/preview
+// The tables' arithmetic (shares of the print time, heights, paging, the unique-name rule) is unit
+// tested in tests/slic3rutils/test_mcp_results.cpp, since a script step cannot add values up, and a
+// refusal cannot be expected in a script; tools/mcp/test_set_view_preview.py checks set_view's.
+{
+  "orca_script": 1,
+  "name": "preview data",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    // Opening a G-code file asks to save the project it replaces, discard_changes or not.
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "Uniform scale", "button": "ok"},
+                                                      {"match": "unsaved changes. Would you like to save", "button": "No"}]}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}, "/plates/0/layers": {"eq": 128}}},
+    // A new result with as many layers keeps the slider and the view type, so a rerun sets both.
+    {"tool": "set_view", "args": {"view_type": "feature_type", "layer_range": [1, 128]}},
+
+    // ---- The tables, and the legend of the plate the Preview shows ----
+    {"tool": "get_preview", "args": {"include": ["features", "layers", "objects", "view"], "limit": 5}, "expect": {
+      "/plate": {"eq": 0},
+      "/summary/layers": {"eq": 128},
+      "/summary/filament_g": {"gt": 0},
+      "/summary/travel_mm": {"gt": 0},
+      "/features/Outer wall/time_s": {"gt": 0},
+      "/features/Outer wall/percent": {"gt": 0, "lt": 100},
+      "/features/Outer wall/g": {"gt": 0},
+      "/features/Travel/mm": {"gt": 0},
+      "/layers/total": {"eq": 128},
+      "/layers/next_offset": {"eq": 5},
+      "/layers/items/0/layer": {"eq": 1},
+      "/layers/items/0/z": {"eq": 0.2},
+      "/layers/items/4/z": {"eq": 1.0},
+      "/layers/items/4/height": {"eq": 0.2},
+      "/layers/items/4/time_s": {"gt": 0},
+      "/objects/0/object": {"eq": 0},
+      "/objects/0/instance": {"eq": 0},
+      "/objects/0/g": {"gt": 0},
+      "/view/view_type": {"eq": "feature_type"},
+      "/view/layers/0": {"eq": 1},
+      "/view/layers/1": {"eq": 128},
+      "/view/layer_count": {"eq": 128},
+      "/view/time_mode": {"eq": "normal"},
+      "/view/legend/features/Outer wall": {"eq": true},
+      "/view/legend/options/travel": {"exists": true},
+      "/view/ranges/height/1": {"ge": 0.2},
+      "/view/ranges/volumetric_flow_rate/1": {"gt": 0},
+      "/view/ranges/layer_time_linear/1": {"gt": 0}}},
+    // The last page, with each layer's seconds per feature type, and no other part.
+    {"tool": "get_preview", "args": {"include": ["layer_features"], "offset": 127}, "expect": {
+      "/layers/items/0/layer": {"eq": 128},
+      "/layers/items/0/z": {"eq": 25.6},
+      "/layers/items/0/features/Top surface": {"gt": 0},
+      "/layers/next_offset": {"exists": false},
+      "/features": {"exists": false},
+      "/view": {"exists": false}}},
+
+    // ---- set_view's legend rows, time estimate and layers by height ----
+    {"tool": "set_view", "args": {"view_type": "feature_type", "legend": {"Sparse infill": false, "travel": true}, "layer_z": 1.0}, "expect": {
+      "/legend/Sparse infill": {"eq": false},
+      "/legend/travel": {"eq": true},
+      "/layers/1": {"eq": 5},
+      "/z/1": {"eq": 1.0}}},
+    {"tool": "get_preview", "args": {"include": ["view"]}, "expect": {
+      "/view/legend/features/Sparse infill": {"eq": false},
+      "/view/legend/features/Outer wall": {"eq": true},
+      "/view/legend/options/travel": {"eq": true},
+      "/view/layers/1": {"eq": 5}}},
+    // Between two layer tops a height takes the layer that covers it, as the slider places a custom G-code.
+    {"tool": "set_view", "args": {"layer_z": 1.05}, "expect": {"/layers/1": {"eq": 6}, "/z/1": {"eq": 1.2}}},
+    {"tool": "set_view", "args": {"time_mode": "normal"}, "expect": {"/time_mode": {"eq": "normal"}}},
+    // A view type is picked as in the legend's combo: Line Type shows every feature type again.
+    {"tool": "set_view", "args": {"view_type": "speed"}},
+    {"tool": "get_preview", "args": {"include": ["view"]}, "expect": {"/view/legend/features/Sparse infill": {"eq": false}}},
+    {"tool": "set_view", "args": {"view_type": "feature_type", "legend": {"travel": false}}},
+    {"tool": "get_preview", "args": {"include": ["view"]}, "expect": {
+      "/view/legend/features/Sparse infill": {"eq": true},
+      "/view/legend/options/travel": {"eq": false}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/legend.png", "overwrite": true, "include_image": false}},
+
+    // ---- get_state.preview follows set_view ----
+    {"tool": "set_view", "args": {"layer": 5}},
+    {"tool": "get_state", "expect": {
+      "/preview/plate": {"eq": 0},
+      "/preview/layers/0": {"eq": 1},
+      "/preview/layers/1": {"eq": 5},
+      "/preview/z/1": {"eq": 1.0},
+      "/preview/layer_count": {"eq": 128}}},
+    {"tool": "set_view", "args": {"view_type": "fan_speed"}},
+    {"tool": "get_state", "expect": {"/preview/view_type": {"eq": "fan_speed"}}},
+    {"tool": "get_preview", "args": {"include": ["view"]}, "expect": {
+      "/view/view_type": {"eq": "fan_speed"},
+      "/view/layers/1": {"eq": 5},
+      "/features": {"exists": false}}},
+
+    // ---- A plate the Preview has not shown: the Preview loads a plate's toolpaths only while shown,
+    // so after another plate is selected it still holds the last one's, which no read reports as
+    // the selected plate's ----
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_add:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}},
+    {"tool": "select", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_plates", "expect": {"/items/1/objects/0": {"exists": true}}},
+    {"tool": "slice", "args": {"plates": "all"}, "expect": {"/plates/0/outcome": {"eq": "ok"}, "/plates/1/outcome": {"eq": "ok"}}},
+    // Slicing every plate leaves the Preview on its all-plates statistics; plate 0 is shown from Prepare.
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}},
+    {"tool": "set_view", "args": {"tab": "preview"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_state", "expect": {"/plates/current": {"eq": 0}, "/preview/plate": {"eq": 0}}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}},
+    {"tool": "get_state", "expect": {"/plates/current": {"eq": 1}, "/preview": {"eq": null}}},
+    {"tool": "get_preview", "expect": {"/plate": {"eq": 1}, "/summary/layers": {"eq": 128}, "/view": {"eq": null},
+                                       "/note": {"contains": "has not loaded this plate's toolpaths"}}},
+    {"tool": "set_view", "args": {"tab": "preview"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_state", "expect": {"/preview/plate": {"eq": 1}}},
+    {"tool": "get_preview", "args": {"include": ["view"]}, "expect": {"/view/layer_count": {"eq": 128}, "/note": {"exists": false}}},
+
+    // ---- The same cube's G-code opened for viewing: its plate is never marked sliced ----
+    {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/cube.gcode", "overwrite": true}},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/cube.gcode"], "discard_changes": true}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_state", "expect": {"/preview/layer_count": {"eq": 128}}},
+    {"tool": "get_preview", "args": {"include": ["features", "layers", "objects", "view"]}, "expect": {
+      "/summary/layers": {"eq": 128},
+      "/summary/filament_g": {"gt": 0},
+      "/features/Outer wall/time_s": {"gt": 0},
+      "/layers/total": {"eq": 128},
+      "/view/layer_count": {"eq": 128}}},
+    {"tool": "new_project", "args": {"discard_changes": true}}
+  ]
+}

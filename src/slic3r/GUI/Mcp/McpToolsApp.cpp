@@ -8,6 +8,7 @@
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "UiInspector.hpp"
+#include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -18,6 +19,7 @@
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/PrintHostDialogs.hpp"
 #if defined(__WXGTK__)
 #include "slic3r/GUI/LinuxDisplayBackend.hpp"
 #endif
@@ -96,6 +98,7 @@ json app_state(McpService& service)
                {"display_backend", display_backend()},
                {"ready", service.ready()},
                {"dialogs", service.modals().snapshot()},
+               {"closed_menus", service.inspector().closed_menus()},
                {"auto_answer_rules", service.modals().rules_json()},
                {"mcp", service.describe()},
                {"jobs", service.jobs().list()}};
@@ -129,6 +132,14 @@ json app_state(McpService& service)
 
     PartPlateList& plates = plater->get_partplate_list();
     state["plates"]       = {{"count", plates.get_plate_count()}, {"current", plates.get_curr_plate_index()}};
+    // The current plate's toolpaths, as the Preview shows them; null without any, or while the Preview
+    // still holds another plate's.
+    GLCanvas3D* preview = plater->get_preview_canvas3D();
+    state["preview"]    = preview != nullptr && viewer_holds(preview->get_gcode_viewer(), plates.get_curr_plate()->get_slice_result()) ?
+                              preview_state(preview->get_gcode_viewer()) :
+                              json();
+    if (!state["preview"].is_null())
+        state["preview"]["plate"] = plates.get_curr_plate_index();
     // The open gizmo, on the canvas shown first.
     state["gizmo"] = nullptr;
     std::vector<GLCanvas3D*> canvases = live_canvases();
@@ -140,6 +151,17 @@ json app_state(McpService& service)
         }
     state["objects"]      = plater->model().objects.size();
     state["slicing"]      = plater->is_slicing_any();
+    // The session's print host uploads, as the upload queue lists them; `id` is its ID column.
+    json uploads = json::array();
+    if (const PrintHostQueueDialog* queue = frame->printhost_queue_dlg())
+        for (size_t row = 0; row < queue->job_count(); ++row) {
+            const PrintHostQueueDialog::JobInfo job = queue->job_info(row);
+            json upload{{"id", row + 1}, {"state", job.state}, {"progress", job.progress}, {"host", job.host}, {"filename", job.filename}};
+            if (!job.error.empty())
+                upload["error"] = job.error;
+            uploads.push_back(std::move(upload));
+        }
+    state["uploads"] = std::move(uploads);
 
     json notes = json::array();
     for (const NotificationSummary& n : plater->get_notification_manager()->summaries())
@@ -181,8 +203,9 @@ void register_app_tools(McpService& service)
     reg.add(inspect_tool(
         "get_state", "Get app state",
         "Snapshot of OrcaSlicer: version, platform, whether it is ready, current tab and mode, project, selected printer/process/"
-        "filament presets, plates, object count, slicing state, the open gizmo, open modal dialogs, notifications and running "
-        "jobs. Call it "
+        "filament presets, plates, the Preview's view type, time mode and layer range (1-based, with their Z), object count, "
+        "slicing state, print host uploads (state, progress, error), the open gizmo, open modal dialogs, menus closed "
+        "unseen (a menu a call opened that no reply listed), notifications and running jobs. Call it "
         "first and whenever you are unsure what the app is doing.",
         object_schema({}), [&service](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&service] { return app_state(service); })); }));
 

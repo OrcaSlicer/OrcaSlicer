@@ -7,6 +7,7 @@ Standard library only. Two halves:
 * A command line that launches OrcaSlicer for an agent or a test and talks to it::
 
     tools/mcp/orca_mcp.py launch --xvfb             # fresh datadir, wait until ready, print client config
+    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for cad_call
     tools/mcp/orca_mcp.py call get_state
     tools/mcp/orca_mcp.py call open_files '{"paths": ["/abs/model.stl"]}'
     tools/mcp/orca_mcp.py screenshot /tmp/shot.png --target canvas
@@ -166,21 +167,37 @@ def find_binary(explicit):
     sys.exit("orca-slicer not found; pass --bin")
 
 
-def seed_datadir(datadir, printer):
+def write_conf(conf, data):
+    with open(conf, "w") as f:
+        json.dump(data, f, indent=2)
+        # On Windows the loader expects a line after the closing brace, where it keeps a checksum, and
+        # fails to start the app when the file ends at the brace.
+        f.write("\n")
+
+
+def seed_datadir(datadir, printer, cad=False):
+    """Seed a fresh datadir's OrcaSlicer.conf. A datadir that has one keeps it, except that cad turns
+    the Design tab on there too, since the app reads that setting only at startup."""
     vendor, model, nozzle, filament = printer
     os.makedirs(datadir, exist_ok=True)
     conf = os.path.join(datadir, "OrcaSlicer.conf")
     if os.path.exists(conf):
+        if cad:
+            with open(conf, encoding="utf-8") as f:
+                text = f.read()
+            # The app ends the file with a checksum line after the JSON; a mismatch only logs.
+            data = json.loads(text[:text.rfind("}") + 1])
+            data.setdefault("app", {})["enable_cad_feature"] = True
+            write_conf(conf, data)
         return
-    with open(conf, "w") as f:
-        json.dump({"firstguide": {"finish": True},
-                   "models": [{"model": model, "nozzle_diameter": nozzle, "vendor": vendor}],
-                   "filaments": [filament],
-                   "presets": {"machine": f"{model} {nozzle} nozzle"},
-                   "app": {"check_for_updates": False, "show_daily_tips": False}}, f, indent=2)
-        # On Windows the loader expects a line after the closing brace, where it keeps a checksum, and
-        # fails to start the app when the file ends at the brace.
-        f.write("\n")
+    app = {"check_for_updates": False, "show_daily_tips": False}
+    if cad:
+        app["enable_cad_feature"] = True
+    write_conf(conf, {"firstguide": {"finish": True},
+                      "models": [{"model": model, "nozzle_diameter": nozzle, "vendor": vendor}],
+                      "filaments": [filament],
+                      "presets": {"machine": f"{model} {nozzle} nozzle"},
+                      "app": app})
 
 
 def start_xvfb(width, height):
@@ -236,7 +253,7 @@ def launch(args):
     if args.printer:
         model, _, nozzle = args.printer.partition("@")
         printer = (args.vendor, model, nozzle or "0.4", args.filament or DEFAULT_PRINTER[3])
-    seed_datadir(datadir, printer)
+    seed_datadir(datadir, printer, args.cad)
 
     env = dict(os.environ, ORCA_MCP_TOKEN=token)
     xvfb_pid = None
@@ -310,6 +327,7 @@ def main():
     p.add_argument("--printer", help="\"<model>@<nozzle>\" for a fresh datadir, e.g. \"Bambu Lab X1 Carbon@0.4\"")
     p.add_argument("--vendor", default="BBL")
     p.add_argument("--filament")
+    p.add_argument("--cad", action="store_true", help="turn the Design (CAD) tab on, for cad_call")
     p.add_argument("--timeout", type=int, default=120)
     p.add_argument("--print-config", action="store_true", help="print client setup commands")
     p.add_argument("extra", nargs="*", help="extra orca-slicer arguments after --")

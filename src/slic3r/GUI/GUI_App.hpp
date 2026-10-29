@@ -727,6 +727,9 @@ public:
     bool            check_and_save_current_preset_changes(const wxString& caption, const wxString& header, bool remember_choice = true, bool use_dont_save_insted_of_discard = false);
     void            apply_keeped_preset_modifications();
     bool            check_and_keep_current_preset_changes(const wxString& caption, const wxString& header, int action_buttons, bool* postponed_apply_of_keeped_changes = nullptr);
+    // The Discard of check_and_keep_current_preset_changes(): drops every modified preset's unsaved
+    // changes and reloads the presets.
+    void            discard_current_preset_changes();
     bool            can_load_project();
     bool            check_print_host_queue();
     bool            checked_tab(Tab* tab);

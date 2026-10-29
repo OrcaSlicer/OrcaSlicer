@@ -593,6 +593,37 @@ public:
     // Drop constraint `idx` from the live session and re-solve. Same operation the badge click
     // performs, addressed by index instead of by position — the panel list needs the index form.
     bool remove_constraint(int idx);
+    // The CONSTRAIN bar's commit: try_add_constraints, then the live solve that refreshes dof().
+    // Returns the index of the first new constraint, -1 when the batch was rolled back.
+    int  constrain_scripted(const std::vector<SketchEntityConstraintDef>& defs);
+
+    // The edit tools' and drawing tools' own apply steps, for a caller with no mouse. Each keeps
+    // the constraint upkeep a click gets: a fillet arc is bound Coincident and Tangent to its
+    // trimmed legs, constraints an op invalidates are dropped, array copies are bound to their
+    // source. Each refuses, changing nothing, while a gesture or a value field is pending (the
+    // tool's own apply step would take those over), leaves the armed tool as it was, and does not
+    // open a value field on what it added.
+    // Fillet (or chamfer) the corner of lines a and b by `value`, the radius (or setback), as the
+    // Fillet or Chamfer tool's Confirm does. False when the value overruns a leg.
+    bool fillet_scripted(int a, int b, double value, bool chamfer);
+    // Cut back (or extend) the entity nearest `at`, within `tol`, to its nearest crossing with the
+    // others, as a Trim or Extend click does. `picked` receives that entity, -1 when none is that
+    // close; it is also set when the entity could not be cut.
+    bool trim_scripted(const Vec2d& at, double tol, bool extend, int& picked);
+    // Move, Rotate, Scale, Array or PolarArray `targets` as the transform gizmo's Confirm does: by
+    // `delta` (Move; Array's step), `angle` (Rotate; PolarArray's whole sweep, radians) or `scale`,
+    // `count` instances counting the original. About `pivot`, else the targets' centroid, the
+    // gizmo's own pivot. Returns the pivot used, empty when refused.
+    std::optional<Vec2d> transform_scripted(Mode mode, const std::vector<int>& targets, const Vec2d& delta, double angle,
+                                            double scale, int count, const std::optional<Vec2d>& pivot);
+    // A Polygon, Slot, Ellipse, EllipseArc or BSpline drawn from its clicks with the tool's own
+    // builder and shape grouping: polygon {centre, vertex or edge midpoint}, slot {centre, centre,
+    // a point half the width off the centreline}, ellipse {centre, major end, minor point} (+ start
+    // and end points for an arc), spline {poles}. `sides` and `circumscribed` are the polygon's;
+    // the tool's sticky polygon and construction settings are left as they were. Constraints are
+    // inferred exactly, as add_entities_scripted infers them. Returns the first new index, -1 when
+    // the clicks build nothing.
+    int  add_shape_scripted(Mode mode, const std::vector<Vec2d>& clicks, int sides, bool circumscribed, bool construction);
 
     // The loop report: what is CLOSED, what its internal voids are, and where a chain is still
     // open. This is the answer to "is my profile buildable", and it is the one question the
@@ -609,7 +640,10 @@ public:
         std::vector<LoopInfo> loops;
         std::vector<Vec2d>    open_ends;   // free endpoints: where a chain fails to close
     };
-    LoopReport loop_report() const;
+    LoopReport loop_report() const { return loop_report(m_entities); }
+    // The same report for entities outside the session, such as a committed sketch's. Its loops are
+    // numbered as region_entity_indices_with_holes() numbers them.
+    LoopReport loop_report(const std::vector<SketchEntity>& ents) const;
 
     // FreeCAD's ValidateSketch, as one call: weld endpoints that are within `tol` of each other
     // and RECORD the Coincident constraints, so a loop that was closed by floating-point luck
@@ -918,8 +952,8 @@ private:
     void drop_constraints_referencing(int ei);
     // Standalone Trim/Extend scissors on the LIVE sketch: pick the entity nearest `p` (within
     // `tol` plane units) and cut it back to / out to its nearest intersection with the others.
-    // Returns true if an entity was modified.
-    bool apply_live_trim(const Vec2d& p, double tol, bool extend);
+    // Returns true if an entity was modified; `picked`, when given, receives the entity picked.
+    bool apply_live_trim(const Vec2d& p, double tol, bool extend, int* picked = nullptr);
     // Pure-computation hover preview for Trim/Extend: mirror apply_live_trim's pick + the
     // engine's cut on a COPY (mutating nothing) and return, via `removed_poly`, the polyline
     // of the sub-portion a click would REMOVE (Trim) or ADD (Extend). `subject_ei` is the
@@ -1026,7 +1060,7 @@ private:
     bool hit_test_op_arrow(const Vec2d& p, double tol) const;
     void drag_op_arrow(const Vec2d& target);    // project cursor onto m_op_dir -> value
     void open_op_editor();                      // inline-edit the value label
-    void confirm_op();                          // apply + bind, then reset for the next gesture
+    bool confirm_op();                          // apply + bind, then reset; false when refused
     void reset_op();                            // clear gizmo state (keeps the tool active)
     bool op_ready() const;                      // required entities picked -> arrow/ghost live
 

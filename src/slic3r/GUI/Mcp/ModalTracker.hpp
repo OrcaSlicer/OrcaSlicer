@@ -29,8 +29,9 @@ AutoAnswerRule make_rule(const std::string& pattern, const std::string& button);
 
 // Every modal dialog shown through ShowModal - Orca's own, wxMessageDialog and the native file
 // dialogs alike - passes through this hook. It keeps the stack of open modals for the guards and
-// the tools, answers dialogs that match a registered rule without showing them, and publishes a
-// description snapshot that other threads may read.
+// the tools, answers dialogs that match a registered rule, and publishes a description snapshot
+// that other threads may read. A matching native dialog is answered without showing; a matching wx
+// dialog opens and has the rule's button pressed (press_dialog_button()), so its handler runs.
 class ModalTracker final : public wxModalDialogHook
 {
 public:
@@ -78,6 +79,11 @@ bool is_picker(wxDialog* dialog);
 
 // The id a button name or label stands for in `dialog`, or wxID_NONE. UI thread only.
 int resolve_dialog_button(wxDialog* dialog, const std::string& button);
+
+// Presses the button with `id` in `dialog` so the dialog's own handler runs, or ends the dialog with
+// that id when no such button exists. Returns whether a button was pressed. UI thread only, while
+// the dialog is modal.
+bool press_dialog_button(wxDialog* dialog, int id);
 
 // Demangled C++ class name of a window, e.g. "Slic3r::GUI::MessageDialog".
 std::string class_name(const wxWindow* window);

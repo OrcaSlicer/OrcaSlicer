@@ -21,6 +21,12 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 namespace {
 
+// What a mutating call is told while another job's operation holds the project.
+std::string busy_message(const std::string& op)
+{
+    return "Busy: job " + op + " is running an operation (slice, export, arrange or another background job); wait for it or cancel it";
+}
+
 class CallContext final : public ToolContext
 {
 public:
@@ -30,21 +36,36 @@ public:
 
     nlohmann::json run_ui(const std::function<nlohmann::json()>& fn) override
     {
-        if (m_def.guard != GuardClass::Mutate || m_def.allowed_during_operation)
+        if (m_def.guard == GuardClass::Inspect)
             return m_core.ui().run(m_def.guard, m_def.name, fn);
-        // Admission again on the UI thread, where operations start: a call admitted before an
-        // operation began must not change the project under it.
+        const bool admit = m_def.guard == GuardClass::Mutate && !m_def.allowed_during_operation;
         return m_core.ui().run(m_def.guard, m_def.name, [&]() -> nlohmann::json {
-            for (const std::string& op : m_core.jobs().running_operations())
-                if (op != m_job)
-                    throw ToolFailure("Busy: job " + op + " (a slice or export) is running; wait for it or cancel it before changing the project",
-                                      {{"job", op}});
-            return fn();
+            // Admission again on the UI thread, where operations and worker jobs start: a call admitted
+            // before one began must not change the project under it.
+            if (admit)
+                m_core.admit(m_job);
+            if (!m_core.worker_busy())
+                m_saw_idle = true;
+            nlohmann::json out;
+            try {
+                out = fn();
+            } catch (...) {
+                claim_worker();
+                throw;
+            }
+            claim_worker();
+            return out;
         });
     }
     nlohmann::json observe_ui(const std::function<nlohmann::json()>& fn) override
     {
-        return m_core.ui().run(GuardClass::Inspect, m_def.name, fn);
+        // A job the call's change queued for later (a toolbar event, a render) starts between its
+        // closures; the next one the call makes claims it.
+        return m_core.ui().run(GuardClass::Inspect, m_def.name, [&]() -> nlohmann::json {
+            nlohmann::json out = fn();
+            claim_worker();
+            return out;
+        });
     }
     const std::string& job_id() const override { return m_job; }
     bool cancelled() const override { return m_core.ui().is_shutdown(); }
@@ -76,16 +97,25 @@ public:
         if (m_job.empty())
             return;
         if (const std::string other = m_core.jobs().begin_operation(m_job); !other.empty())
-            throw ToolFailure("Busy: job " + other + " (a slice or export) is running; wait for it or cancel it", {{"job", other}});
+            throw ToolFailure(busy_message(other), {{"job", other}});
     }
 
 private:
+    // A worker job is the call's own when the worker was idle as one of its changes began and is busy
+    // now. UI thread.
+    void claim_worker()
+    {
+        if (m_saw_idle)
+            m_core.claim_worker(m_job);
+    }
+
     McpCore&       m_core;
     const ToolDef& m_def;
     std::string    m_job;
     std::string    m_parent;
     Journal*       m_journal;
     uint64_t       m_seq;
+    bool           m_saw_idle = false; // UI thread
 };
 
 ToolResult invoke(const ToolDef& def, const nlohmann::json& args, ToolContext& ctx)
@@ -103,8 +133,8 @@ ToolResult invoke(const ToolDef& def, const nlohmann::json& args, ToolContext& c
 
 } // namespace
 
-McpCore::McpCore(const ToolRegistry& registry, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing)
-    : m_registry(registry), m_ui(ui), m_jobs(jobs), m_journal(journal), m_timing(timing)
+McpCore::McpCore(const ToolRegistry& registry, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing, WorkerHooks worker)
+    : m_registry(registry), m_ui(ui), m_jobs(jobs), m_journal(journal), m_timing(timing), m_worker(std::move(worker))
 {}
 
 McpCore::~McpCore()
@@ -147,7 +177,7 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
 
     // Only client calls are journaled; a script's own steps replay through the script.
     const bool     journal = m_journal != nullptr && parent.empty() && def.journal;
-    const uint64_t seq     = journal ? m_journal->begin(def.name, args) : 0;
+    const uint64_t seq     = journal ? m_journal->begin(def.name, args, def.guard == GuardClass::Recover && !m_ui.open_dialogs().empty()) : 0;
     auto           finish  = [&](ToolResult r) {
         if (journal)
             m_journal->end(seq, r);
@@ -164,13 +194,11 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
         return finish(std::move(r));
     }
 
-    // Operation admission: an MCP slice/export holds the project until it finishes; only recovery
+    // Operation admission: an MCP operation holds the project until it finishes; only recovery
     // input and the tools that may run during an operation (cancel) get through.
     if (def.guard == GuardClass::Mutate && !def.allowed_during_operation)
         if (const auto busy = m_jobs.running_operations(); !busy.empty())
-            return finish(ToolResult::error("Busy: job " + busy.front() +
-                                                " (a slice or export) is running; wait for it or cancel it before changing the project",
-                                            {{"job", busy.front()}}));
+            return finish(ToolResult::error(busy_message(busy.front()) + " before changing the project", {{"job", busy.front()}}));
 
     std::string job;
     try {
@@ -178,6 +206,8 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     } catch (const ToolFailure& f) {
         return finish(ToolResult::error(f.what()));
     }
+    if (journal)
+        m_journal->job_started(seq, job);
 
     if (!enter()) {
         m_jobs.finish(job, ToolResult::error("OrcaSlicer is shutting down"));
@@ -188,7 +218,10 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     try {
         std::thread([this, def, args, job, parent, seq]() {
             CallContext ctx(*this, def, job, parent, m_journal, seq);
-            ToolResult  result = invoke(def, args, ctx);
+            ToolResult  result = await_worker(job, def.name, invoke(def, args, ctx));
+            // Before finish(): an export_script right after the wait that sees the result must know it.
+            if (seq != 0)
+                m_journal->job_ended(seq, result);
             m_jobs.finish(job, std::move(result));
             leave();
         }).detach();
@@ -260,6 +293,103 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
         next_probe = std::chrono::steady_clock::now() + m_timing.soft_budget;
     }
     return finish(envelope("running", {{"note", running_note}}));
+}
+
+void McpCore::admit(const std::string& job) const
+{
+    for (const std::string& op : m_jobs.running_operations())
+        if (op != job)
+            throw ToolFailure(busy_message(op) + " before changing the project", {{"job", op}});
+    if (!worker_busy())
+        return;
+    {
+        std::lock_guard<std::mutex> lock(m_worker_mutex);
+        if (!job.empty() && m_worker_job == job)
+            return;
+    }
+    throw ToolFailure("Busy: a background job (arrange, orient, fill bed, or one a gizmo started, such as Text typing) is "
+                      "running in OrcaSlicer; wait {for:\"idle\"} before changing the project");
+}
+
+bool McpCore::worker_busy() const { return m_worker.busy && m_worker.busy(); }
+
+bool McpCore::claim_worker(const std::string& job)
+{
+    if (job.empty() || !worker_busy())
+        return false;
+    {
+        std::lock_guard<std::mutex> lock(m_worker_mutex);
+        if (!m_worker_job.empty())
+            return m_worker_job == job;
+    }
+    // Under another call's operation (a dialog answer during a slice) the job stays unclaimed; the
+    // busy worker still keeps other changes out.
+    if (!m_jobs.begin_operation(job).empty())
+        return false;
+    std::lock_guard<std::mutex> lock(m_worker_mutex);
+    m_worker_job       = job;
+    m_worker_cancelled = false;
+    return true;
+}
+
+bool McpCore::cancel_worker(const std::string& job)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_worker_mutex);
+        if (job.empty() || m_worker_job != job)
+            return false;
+        m_worker_cancelled = true;
+    }
+    if (m_worker.cancel)
+        m_worker.cancel();
+    return true;
+}
+
+ToolResult McpCore::await_worker(const std::string& job, const std::string& tool, ToolResult result)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_worker_mutex);
+        if (m_worker_job != job)
+            return result;
+    }
+    // Worker::cancel() does not wait, so after a cancel the job keeps admission until the worker is
+    // really idle: until then the job may still touch the model.
+    const auto deadline  = std::chrono::steady_clock::now() + m_timing.worker_timeout;
+    bool       timed_out = false;
+    while (!m_ui.is_shutdown()) {
+        bool busy = true;
+        try {
+            busy = m_ui.run(GuardClass::Inspect, tool, [&] {
+                if (!timed_out && std::chrono::steady_clock::now() >= deadline)
+                    timed_out = cancel_worker(job);
+                return nlohmann::json(worker_busy());
+            }).get<bool>();
+        } catch (const ToolFailure&) {
+            // Not run (a native dialog holds the UI thread, or the UI is being rebuilt); ask again.
+        }
+        if (!busy)
+            break;
+        std::this_thread::sleep_for(m_timing.worker_poll);
+    }
+    bool cancelled = false;
+    {
+        std::lock_guard<std::mutex> lock(m_worker_mutex);
+        cancelled = m_worker_cancelled;
+        m_worker_job.clear();
+        m_worker_cancelled = false;
+    }
+    if (m_ui.is_shutdown())
+        return ToolResult::error("OrcaSlicer is shutting down");
+    if (result.is_error)
+        return result;
+    if (timed_out)
+        return ToolResult::error("The background job this call started did not finish within " +
+                                     std::to_string(std::chrono::duration_cast<std::chrono::seconds>(m_timing.worker_timeout).count()) +
+                                     " s, so it was cancelled",
+                                 {{"job", job}});
+    if (cancelled)
+        return ToolResult::error("The background job this call started was cancelled", {{"job", job}});
+    return result;
 }
 
 bool McpCore::acquire_slot()

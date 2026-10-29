@@ -243,7 +243,8 @@ protected:
 class ExportConfigsDialog : public DPIDialog
 {
 public:
-    ExportConfigsDialog(wxWindow *parent);
+    // With `export_dir`, OK writes there instead of asking for a folder (an automated export).
+    ExportConfigsDialog(wxWindow *parent, const wxString &export_dir = wxEmptyString);
     ~ExportConfigsDialog();//to do: delete preset
 
 protected:
@@ -307,6 +308,7 @@ private:
     wxStaticText *                                         m_serial_text    = nullptr;
     ::CheckBox *                                           m_include_bed_assets       = nullptr;
     wxStaticText *                                         m_include_bed_assets_label = nullptr;
+    wxString                                               m_export_dir;
 };
 
 class CreatePresetForPrinterDialog : public DPIDialog
@@ -401,6 +403,11 @@ private:
     std::unordered_map<std::string, std::vector<std::shared_ptr<Preset>>> m_printer_compatible_presets;
 
 };
+
+// Deletes the filament preset `name`, which the filament tab does not edit, as the Edit filament dialog
+// does: the selected preset is selected again (dropping its unsaved changes) and the filament slots that
+// used `name` take it instead. The caller refreshes the sidebar and the tabs. False when nothing was deleted.
+bool delete_unselected_filament_preset(const std::string &name);
 
 }
 }

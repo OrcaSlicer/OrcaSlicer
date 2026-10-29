@@ -5,6 +5,7 @@
 #include <wx/button.h>
 #include "GUI_AuxiliaryList.hpp"
 #include "I18N.hpp"
+#include "SyntheticInput.hpp"
 #include "wxExtensions.hpp"
 
 #include <boost/filesystem.hpp>
@@ -252,7 +253,7 @@ void AuxiliaryList::on_context_menu(wxDataViewEvent& evt)
 			});
 	}
 
-	PopupMenu(menu);
+	popup_menu(*this, *menu);
 }
 
 void AuxiliaryList::on_begin_drag(wxDataViewEvent& evt)

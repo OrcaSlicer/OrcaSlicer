@@ -1,6 +1,9 @@
-// screenshot and set_view: what the agent looks at, and pointing the view before looking.
+// screenshot, get_preview and set_view: what the agent looks at and reads off the Preview, and
+// pointing the view before looking.
 
+#include "libvgcode/include/ColorRange.hpp"
 #include "libvgcode/include/Types.hpp"
+#include "libvgcode/include/Viewer.hpp"
 #include "McpPaths.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
@@ -13,8 +16,20 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/IMSlider.hpp"
+#include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#ifdef SLIC3R_CAD
+#include "slic3r/GUI/CAD/DesignCanvas.hpp"
+#include "slic3r/GUI/CAD/DesignPanel.hpp"
+#endif
+
+#include "libslic3r/Config.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCode/GCodeStatistics.hpp"
+#include "libslic3r/Model.hpp"
 
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -25,14 +40,19 @@
 #include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
 #include <wx/image.h>
+#include <wx/popupwin.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <ctime>
+#include <functional>
+#include <iterator>
 #include <optional>
+#include <set>
 #include <string>
 #include <thread>
 #include <utility>
@@ -72,10 +92,204 @@ const char* tab_id(const std::string& name)
     if (name == "multi_device") return TAB_ID_MULTI_DEVICE;
     if (name == "project") return TAB_ID_PROJECT;
     if (name == "calibration") return TAB_ID_CALIBRATION;
+#ifdef SLIC3R_CAD
+    if (name == "design") return TAB_ID_DESIGN;
+#endif
     return nullptr;
 }
 
+// Rounded for a reply, which reads like the legend rather than the raw floats.
+double rounded(double value, double scale) { return std::round(value * scale) / scale; }
+
+// The view types the legend shows a colour range for; the logarithmic layer time repeats the linear one.
+constexpr libvgcode::EViewType range_view_types[] = {
+    libvgcode::EViewType::Height,       libvgcode::EViewType::Width,
+    libvgcode::EViewType::Speed,        libvgcode::EViewType::ActualSpeed,
+    libvgcode::EViewType::Acceleration, libvgcode::EViewType::Jerk,
+    libvgcode::EViewType::VolumetricFlowRate, libvgcode::EViewType::ActualVolumetricFlowRate,
+    libvgcode::EViewType::LayerTimeLinear,    libvgcode::EViewType::FanSpeed,
+    libvgcode::EViewType::Temperature,        libvgcode::EViewType::PressureAdvance};
+
+// preview_state() of the Preview's toolpaths, plus which legend rows are visible and the colour range of
+// every view type. Ranges span the whole print, but count travels, wipes and Custom extrusions only
+// while the legend shows them. UI thread.
+json preview_view(GLCanvas3D& canvas)
+{
+    // The viewer recomputes its ranges at its next frame after a legend change; nothing draws while
+    // the Preview is hidden, and nothing changes the legend then either.
+    canvas.set_as_dirty();
+    canvas.render();
+    GCodeViewer&             viewer    = canvas.get_gcode_viewer();
+    const libvgcode::Viewer& toolpaths = viewer.get_viewer();
+    json                     view      = preview_state(viewer);
+    json                     features  = json::object();
+    for (const libvgcode::EGCodeExtrusionRole role : toolpaths.get_extrusion_roles())
+        features[legend_feature_key(role)] = toolpaths.is_extrusion_role_visible(role);
+    json options = json::object();
+    for (const libvgcode::EOptionType type : toolpaths.get_options())
+        if (const char* key = legend_option_key(type))
+            options[key] = toolpaths.is_option_visible(type);
+    view["legend"] = {{"features", std::move(features)}, {"options", std::move(options)}};
+    json ranges    = json::object();
+    for (const libvgcode::EViewType type : range_view_types) {
+        // [FLT_MAX, -FLT_MAX] when the print has no such value.
+        const std::array<float, 2>& range = toolpaths.get_color_range(type).get_range();
+        if (range[0] <= range[1])
+            ranges[GCodeViewer::view_type_to_config_name(type)] = {rounded(range[0], 1e4), rounded(range[1], 1e4)};
+    }
+    view["ranges"] = std::move(ranges);
+    return view;
+}
+
+// set_view's legend argument: each named row shown or hidden as a click on it does, clicked only when its
+// state differs. The rows are the feature types and options the print has, whatever the view type: the
+// viewer keeps one visibility set, though the legend lists feature types only in Line Type. The keys are
+// checked here, before the Preview changes; the returned function applies them and gives each row's
+// state afterwards. UI thread.
+std::function<json()> legend_change(GCodeViewer& viewer, const json& legend)
+{
+    const libvgcode::Viewer&                        toolpaths = viewer.get_viewer();
+    const std::vector<libvgcode::EGCodeExtrusionRole> roles   = toolpaths.get_extrusion_roles();
+    const std::vector<libvgcode::EOptionType>&      options   = toolpaths.get_options();
+    std::vector<std::pair<libvgcode::EGCodeExtrusionRole, bool>> role_rows;
+    std::vector<std::pair<libvgcode::EOptionType, bool>>         option_rows;
+    for (auto item = legend.begin(); item != legend.end(); ++item) {
+        const std::string& key = item.key();
+        if (!item.value().is_boolean())
+            throw ToolFailure("legend \"" + key + "\" must be true (show) or false (hide)");
+        const auto role   = std::find_if(roles.begin(), roles.end(), [&key](libvgcode::EGCodeExtrusionRole r) { return legend_feature_key(r) == key; });
+        const auto option = std::find_if(options.begin(), options.end(), [&key](libvgcode::EOptionType o) {
+            const char* name = legend_option_key(o);
+            return name != nullptr && key == name;
+        });
+        if (role != roles.end())
+            role_rows.emplace_back(*role, item.value().get<bool>());
+        else if (option != options.end())
+            option_rows.emplace_back(*option, item.value().get<bool>());
+        else {
+            std::string features, keys;
+            for (const libvgcode::EGCodeExtrusionRole r : roles)
+                features += (features.empty() ? "" : ", ") + legend_feature_key(r);
+            for (const libvgcode::EOptionType o : options)
+                if (const char* name = legend_option_key(o))
+                    keys += (keys.empty() ? "" : ", ") + std::string(name);
+            throw ToolFailure("Unknown legend item \"" + key + "\"; this print has " + features +
+                              (keys.empty() ? std::string() : " and the options " + keys));
+        }
+    }
+    return [&viewer, role_rows, option_rows]() {
+        const libvgcode::Viewer& toolpaths = viewer.get_viewer();
+        json                     done      = json::object();
+        for (const auto& [role, show] : role_rows) {
+            if (toolpaths.is_extrusion_role_visible(role) != show)
+                viewer.toggle_extrusion_role_visibility(role);
+            done[legend_feature_key(role)] = toolpaths.is_extrusion_role_visible(role);
+        }
+        for (const auto& [option, show] : option_rows) {
+            if (toolpaths.is_option_visible(option) != show)
+                viewer.toggle_option_visibility(option);
+            done[legend_option_key(option)] = toolpaths.is_option_visible(option);
+        }
+        return done;
+    };
+}
+
 } // namespace
+
+std::string legend_feature_key(libvgcode::EGCodeExtrusionRole role) { return ExtrusionEntity::role_to_string(libvgcode::convert(role)); }
+
+const char* legend_option_key(libvgcode::EOptionType type)
+{
+    switch (type) {
+    case libvgcode::EOptionType::Travels: return "travel";
+    case libvgcode::EOptionType::Wipes: return "wipe";
+    case libvgcode::EOptionType::Retractions: return "retract";
+    case libvgcode::EOptionType::Unretractions: return "unretract";
+    case libvgcode::EOptionType::Seams: return "seams";
+    case libvgcode::EOptionType::ToolChanges: return "filament_changes";
+    case libvgcode::EOptionType::ColorChanges: return "color_changes";
+    case libvgcode::EOptionType::PausePrints: return "pauses";
+    case libvgcode::EOptionType::CustomGCodes: return "custom_gcode";
+    default: return nullptr;
+    }
+}
+
+json preview_features(const json& statistics)
+{
+    const json&  summary = statistics.at("summary");
+    const double total   = summary.at("time").get<double>();
+    const auto   row     = [total](double seconds) {
+        return json{{"time_s", rounded(seconds, 100.)}, {"percent", total > 0. ? rounded(100. * seconds / total, 10.) : 0.}};
+    };
+    json out = json::object();
+    for (const auto& feature : summary.at("features").items()) {
+        json r = row(feature.value().at("time").get<double>());
+        r["g"] = rounded(feature.value().at("weight").get<double>(), 100.);
+        out[feature.key()] = std::move(r);
+    }
+    json travel   = row(summary.at("travel_time").get<double>());
+    travel["mm"]  = rounded(summary.at("travel_distance").get<double>(), 10.);
+    out["Travel"] = std::move(travel);
+    return out;
+}
+
+json preview_layers(const json& statistics, bool with_features)
+{
+    json   items = json::array();
+    double below = 0.;
+    for (const json& layer : statistics.at("layers")) {
+        const double z = layer.at("z").get<double>();
+        json         item{{"layer", items.size() + 1},
+                          {"z", z},
+                          {"height", rounded(z > below ? z - below : z, 1000.)},
+                          {"time_s", rounded(layer.at("time").get<double>(), 100.)},
+                          {"g", rounded(layer.at("weight").get<double>(), 1000.)}};
+        if (with_features) {
+            json features = json::object();
+            for (const auto& feature : layer.at("features").items())
+                features[feature.key()] = rounded(feature.value().at("time").get<double>(), 100.);
+            item["features"] = std::move(features);
+        }
+        items.push_back(std::move(item));
+        below = z;
+    }
+    return items;
+}
+
+json preview_objects(const json& statistics, const std::vector<std::string>& object_names)
+{
+    json out = json::array();
+    for (const json& object : statistics.at("objects")) {
+        const std::string name = object.at("name").get<std::string>();
+        json              item{{"name", name},
+                               {"instance", object.at("instance")},
+                               {"g", rounded(object.at("weight").get<double>(), 100.)},
+                               {"support_g", rounded(object.at("support_weight").get<double>(), 100.)}};
+        const auto first = std::find(object_names.begin(), object_names.end(), name);
+        if (first != object_names.end() && std::find(std::next(first), object_names.end(), name) == object_names.end())
+            item["object"] = std::distance(object_names.begin(), first);
+        out.push_back(std::move(item));
+    }
+    return out;
+}
+
+bool viewer_holds(const GCodeViewer& viewer, const GCodeProcessorResult* result)
+{
+    return result != nullptr && viewer.has_data() && viewer.last_result_id() == result->id;
+}
+
+json preview_state(GCodeViewer& viewer)
+{
+    IMSlider* layers = viewer.get_layers_slider();
+    if (!viewer.has_data() || layers == nullptr)
+        return nullptr;
+    const bool silent = viewer.get_viewer().get_time_mode() == libvgcode::ETimeMode::Stealth;
+    return json{{"view_type", GCodeViewer::view_type_to_config_name(viewer.get_view_type())},
+                {"time_mode", silent ? "silent" : "normal"},
+                {"layers", {layers->GetLowerValue() + 1, layers->GetHigherValue() + 1}},
+                {"z", {rounded(layers->GetLowerValueD(), 1000.), rounded(layers->GetHigherValueD(), 1000.)}},
+                {"layer_count", layers->GetMaxValue() + 1}};
+}
 
 void register_view_tools(McpService& service)
 {
@@ -85,7 +299,8 @@ void register_view_tools(McpService& service)
         "screenshot", "Take a screenshot",
         "Capture what OrcaSlicer shows and return it as an image, downscaled to max_dim on the long edge (default 1280), "
         "plus the full-size PNG written to save_path (or the session's output folder). target: \"window\" (the main "
-        "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels), "
+        "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels; on the "
+        "Design tab its view), "
         "\"dialog\" (the topmost modal dialog), or a widget's ref from ui_snapshot (a window that is not modal, or just "
         "that widget). The result says when parts may differ from the screen (approximate). Point the view first with "
         "set_view.",
@@ -126,10 +341,10 @@ void register_view_tools(McpService& service)
                     std::string             err;
                     std::optional<Capture>  cap;
                     if (target == "canvas") {
-                        Plater&     plater = ui_plater();
-                        GLCanvas3D* canvas = plater.get_current_canvas3D();
+                        ui_plater(); // refuses while OrcaSlicer starts or closes
+                        GLCanvas3D* canvas = shown_canvas();
                         if (canvas == nullptr)
-                            throw ToolFailure("No Prepare or Preview 3D view is shown; switch to one with set_view tab (the Design tab's view can't be captured; use target window)");
+                            throw ToolFailure("No 3D view is shown; switch to one with set_view tab");
                         cap = capture_canvas(*canvas, err);
                     } else if (target == "dialog") {
                         wxDialog* top = service.modals().top();
@@ -155,7 +370,11 @@ void register_view_tools(McpService& service)
                         if (GLCanvas3D* canvas = service.inspector().canvas_of(&t); canvas != nullptr && canvas->get_wxglcanvas() == w) {
                             cap = capture_canvas(*canvas, err);
                         } else {
-                            auto* tlw = dynamic_cast<wxTopLevelWindow*>(wxGetTopLevelParent(w));
+                            wxWindow* top = wxGetTopLevelParent(w);
+                            // A popup is a native window of its own, which window captures leave out.
+                            if (dynamic_cast<wxPopupWindow*>(top) != nullptr)
+                                throw ToolFailure("The widget is in a popup, which screenshots don't capture; ui_snapshot {root: \"popup\"} lists it");
+                            auto* tlw = dynamic_cast<wxTopLevelWindow*>(top);
                             if (tlw == nullptr)
                                 throw ToolFailure("The widget has no window");
                             tlw->Update();
@@ -220,25 +439,119 @@ void register_view_tools(McpService& service)
     screenshot.journal = true; // a replay takes the same screenshots
     reg.add(screenshot);
 
+    reg.add(inspect_tool(
+        "get_preview", "Read the Preview",
+        "What the Preview shows for a sliced plate. summary: the slice reply's, plus prepare and travel time and travel "
+        "distance. features: seconds, share of the print time and grams per feature type (the Line Type legend), and "
+        "travel. layers: per layer (1-based, as set_view's layer) Z, height, seconds and grams, paged; layer_features adds "
+        "each feature type's seconds. objects: grams per object instance, with its list_objects index when its name is "
+        "unique. view, for the plate the Preview shows: view type, time mode, layer range, which legend rows are visible, "
+        "and each view type's colour range for what the legend shows. Times are normal-mode estimates. A G-code file "
+        "opened for viewing reads the same.",
+        object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index; default the current plate."}}},
+                       {"include", array_prop({{"type", "string"}, {"enum", json::array({"features", "layers", "layer_features", "objects", "view"})}},
+                                              "Parts besides the summary; default [\"features\", \"view\"].")},
+                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 1000}, {"description", "Layers per page (default 100)."}}},
+                       {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
+        [](const json& args, ToolContext& ctx) {
+            const std::set<std::string> parts = args.contains("include") ? args["include"].get<std::set<std::string>>() :
+                                                                           std::set<std::string>{"features", "view"};
+            return ToolResult::ok(ctx.run_ui([&]() -> json {
+                Plater& plater = ui_plater();
+                if (plater.printer_technology() != ptFFF)
+                    throw ToolFailure("The Preview needs an FFF printer");
+                // The background process may be rewriting a result whatever its valid flag says.
+                if (plater.is_slicing_any())
+                    throw ToolFailure("Slicing is in progress; wait {\"for\": \"idle\"} first");
+                PartPlateList& plates  = plater.get_partplate_list();
+                const int      current = plates.get_curr_plate_index();
+                const int      index   = arg_int(args, "plate", current);
+                if (index >= plates.get_plate_count())
+                    throw ToolFailure("plate index out of range (0.." + std::to_string(plates.get_plate_count() - 1) + ")");
+                GLCanvas3D* canvas = plater.get_preview_canvas3D();
+                if (canvas == nullptr)
+                    throw ToolFailure("The preview is not available");
+                PartPlate*                  plate  = plates.get_plate(index);
+                const GCodeProcessorResult* result = plate->get_slice_result();
+                const bool                  shown  = index == current && viewer_holds(canvas->get_gcode_viewer(), result);
+                // A G-code file opened for viewing fills the current plate's result, which the Preview
+                // shows, without marking the plate sliced.
+                const bool        gcode_file = plater.only_gcode_mode() && shown;
+                const std::string name       = "Plate " + std::to_string(index);
+                const std::string slice_it   = "slice {\"plates\": " + std::to_string(index) + "}";
+                if (result == nullptr || !(plate->is_slice_result_valid() || gcode_file))
+                    throw ToolFailure(name + " has no up-to-date slice; " + slice_it + " first");
+                // Of a project opened from a sliced 3MF, a plate the Preview has not shown keeps only the file's totals.
+                if (result->moves.empty())
+                    throw ToolFailure(name + " has no toolpaths, only the totals of a sliced 3MF; " + slice_it + " again for layer data");
+
+                const json statistics      = json::parse(gcode_statistics_json(*result));
+                const json& totals         = statistics.at("summary");
+                json        summary        = plate_summary(statistics, *result);
+                summary["prepare_time_s"]  = std::lround(totals.at("prepare_time").get<double>());
+                summary["travel_time_s"]   = std::lround(totals.at("travel_time").get<double>());
+                summary["travel_mm"]       = std::lround(totals.at("travel_distance").get<double>());
+                json out{{"plate", index}, {"summary", std::move(summary)}};
+                if (parts.count("features") > 0)
+                    out["features"] = preview_features(statistics);
+                if (parts.count("layers") > 0 || parts.count("layer_features") > 0)
+                    out["layers"] = page(preview_layers(statistics, parts.count("layer_features") > 0), args, 100);
+                if (parts.count("objects") > 0) {
+                    std::vector<std::string> names;
+                    for (const ModelObject* object : plater.model().objects)
+                        names.push_back(object->name);
+                    out["objects"] = preview_objects(statistics, names);
+                }
+                if (parts.count("view") > 0) {
+                    out["view"] = shown ? preview_view(*canvas) : json();
+                    if (index != current)
+                        out["note"] = "The Preview shows plate " + std::to_string(current) + "; show plate " + std::to_string(index) +
+                                      " there (run_action orca_command:plate_goto:orca, param \"" + std::to_string(index) + "\") to read its legend";
+                    else if (!shown)
+                        out["note"] = "The Preview has not loaded this plate's toolpaths; show it with set_view {\"tab\": \"preview\"}";
+                }
+                return out;
+            }));
+        }));
+
+    // The legend combo's view types; the first-layer inspection type has no name and no combo entry.
     std::vector<std::string> view_types;
     for (int i = 0; i < int(libvgcode::EViewType::COUNT); ++i)
-        view_types.push_back(GCodeViewer::view_type_to_config_name(libvgcode::EViewType(i)));
+        if (std::string name = GCodeViewer::view_type_to_config_name(libvgcode::EViewType(i)); !name.empty())
+            view_types.push_back(std::move(name));
+
+    std::vector<std::string> tabs{"home", "prepare", "preview", "device", "multi_device", "project", "calibration"};
+#ifdef SLIC3R_CAD
+    tabs.insert(tabs.begin() + 1, "design");
+#endif
 
     reg.add(mutate_tool(
         "set_view", "Point the view",
         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (Prepare's, the preview or "
         "the assemble view, which has its own gizmos), the 3D camera (a named direction, the default view, or fit to bed / "
-        "objects / selection), the preview's layer or layer range (1-based) and color scheme, and the window size. Only "
-        "the given fields change.",
-        object_schema({{"tab", enum_prop({"home", "prepare", "preview", "device", "multi_device", "project", "calibration"}, "Main window tab.")},
+        "objects / selection), the preview's color scheme (picked as in the legend's combo, which shows every feature type "
+        "again), legend rows, time estimate and layers (1-based, or up to a height), and the window size. Only the given "
+        "fields change. On the Design tab the camera points its view (default is its Home view; no fit_bed). The reply "
+        "echoes them; preview layers as [first, last, count] with z, the heights of first and last.",
+        object_schema({{"tab", enum_prop(tabs, "Main window tab.")},
                        {"view", enum_prop({"3d", "preview", "assemble"}, "3D view: Prepare's, the preview, or the assemble view (needs an object; leave it with 3d, as its Return button does).")},
                        {"camera", enum_prop({"iso", "top", "bottom", "front", "rear", "left", "right", "default", "fit_bed", "fit_objects", "fit_selection"},
                                             "Camera direction or fit.")},
                        {"layer", {{"type", "integer"}, {"minimum", 1}, {"description", "Preview: show layers up to this one (1-based)."}}},
                        {"layer_range", array_prop({{"type", "integer"}}, "Preview: [first, last] layers, 1-based.")},
+                       {"layer_z", {{"type", "number"}, {"minimum", 0}, {"description", "Preview: show layers up to the first whose top is at or above this height (mm), as the slider places a custom G-code."}}},
                        {"view_type", enum_prop(view_types, "Preview color scheme.")},
+                       {"legend", {{"type", "object"}, {"additionalProperties", {{"type", "boolean"}}},
+                                   {"description", "Preview: show (true) or hide (false) legend rows: feature types by name as get_preview lists them "
+                                                   "(\"Sparse infill\"), and travel, wipe, retract, unretract, seams, filament_changes, color_changes, "
+                                                   "pauses, custom_gcode. Applied after view_type."}}},
+                       {"time_mode", enum_prop({"normal", "silent"}, "Preview: the time estimate the legend and layer times show; silent only when the print has its own.")},
                        {"window_size", array_prop({{"type", "integer"}}, "[width, height] of the main window in pixels.")}}),
         [](const json& args, ToolContext& ctx) {
+            const bool preview_args = args.contains("layer") || args.contains("layer_range") || args.contains("layer_z") ||
+                                      args.contains("view_type") || args.contains("legend") || args.contains("time_mode");
+            if (arg_string(args, "tab") == "design" && (args.contains("view") || preview_args))
+                throw ToolFailure("view and the Preview fields show Prepare or Preview; give them without tab design");
             json out = ctx.run_ui([&]() -> json {
                 Plater&    plater = ui_plater();
                 MainFrame* frame  = wxGetApp().mainframe;
@@ -256,6 +569,10 @@ void register_view_tools(McpService& service)
                     const char* id = tab_id(arg_string(args, "tab"));
                     if (id == nullptr)
                         throw ToolFailure("Unknown tab");
+#ifdef SLIC3R_CAD
+                    if (id == std::string(TAB_ID_DESIGN) && frame->m_design_page == nullptr)
+                        throw ToolFailure("The Design tab is off; enable the CAD feature in Preferences and restart");
+#endif
                     frame->select_tab(wxString(id));
                     done["tab"] = arg_string(args, "tab");
                 }
@@ -283,14 +600,105 @@ void register_view_tools(McpService& service)
                         frame->select_tab(wxString(TAB_ID_PREVIEW));
                     done["view"] = view;
                 }
-                const bool preview_args = args.contains("layer") || args.contains("layer_range") || args.contains("view_type");
                 if (preview_args && !args.contains("tab") && !args.contains("view")) {
                     plater.select_view_3D("Preview", false);
                     frame->select_tab(wxString(TAB_ID_PREVIEW));
                 }
-                if (args.contains("camera")) {
+                if (preview_args) {
+                    GLCanvas3D* canvas = plater.get_preview_canvas3D();
+                    if (canvas == nullptr)
+                        throw ToolFailure("The preview is not available");
+                    GCodeViewer& viewer = canvas->get_gcode_viewer();
+                    if (args.contains("layer_z") && (args.contains("layer") || args.contains("layer_range")))
+                        throw ToolFailure("Give layer_z or layer/layer_range, not both");
+                    if ((args.contains("legend") || args.contains("time_mode")) && !viewer.has_data())
+                        throw ToolFailure("legend and time_mode need the Preview's toolpaths; slice first");
+                    const std::function<json()> show_legend = args.contains("legend") ? legend_change(viewer, args["legend"]) : nullptr;
+                    const bool silent = arg_string(args, "time_mode") == "silent";
+                    if (silent && !viewer.can_switch_time_mode())
+                        throw ToolFailure("This print has no separate silent-mode estimate");
+                    // In this order, as a person would: picking Line Type shows every feature type again.
+                    if (args.contains("view_type")) {
+                        libvgcode::EViewType type;
+                        if (!GCodeViewer::view_type_from_config_name(arg_string(args, "view_type"), type))
+                            throw ToolFailure("Unknown view_type");
+                        // Without toolpaths there is no legend to pick from; the type then applies to the next ones.
+                        if (viewer.has_data())
+                            viewer.pick_view_type(type);
+                        else
+                            viewer.select_view_type(type);
+                        done["view_type"] = arg_string(args, "view_type");
+                    }
+                    if (show_legend)
+                        done["legend"] = show_legend();
+                    if (args.contains("time_mode")) {
+                        const libvgcode::ETimeMode mode = silent ? libvgcode::ETimeMode::Stealth : libvgcode::ETimeMode::Normal;
+                        if (viewer.get_viewer().get_time_mode() != mode)
+                            viewer.set_time_mode(mode);
+                        done["time_mode"] = arg_string(args, "time_mode");
+                    }
+                    if (args.contains("layer") || args.contains("layer_range") || args.contains("layer_z")) {
+                        IMSlider* layers = viewer.get_layers_slider();
+                        if (layers == nullptr || layers->GetMaxValue() <= 0)
+                            throw ToolFailure("The preview has no layers; slice first");
+                        const int max = layers->GetMaxValue();
+                        int       lo = 0, hi = max;
+                        if (args.contains("layer"))
+                            hi = std::clamp(args["layer"].get<int>() - 1, 0, max);
+                        if (args.contains("layer_range")) {
+                            const json& r = args["layer_range"];
+                            if (!r.is_array() || r.size() != 2)
+                                throw ToolFailure("layer_range must be [first, last]");
+                            lo = std::clamp(r[0].get<int>() - 1, 0, max);
+                            hi = std::clamp(r[1].get<int>() - 1, lo, max);
+                        }
+                        if (args.contains("layer_z")) {
+                            // The slider's own rule for a height, which set_layer_gcode's z follows too.
+                            const double z = args["layer_z"].get<double>();
+                            hi             = layers->get_tick_from_value(z, true);
+                            if (hi < 0 || hi > max)
+                                throw ToolFailure("layer_z " + json(z).dump() + " is above the top layer (" +
+                                                  json(rounded(layers->GetMaxValueD(), 1000.)).dump() + " mm)");
+                        }
+                        layers->SetHigherValue(hi);
+                        layers->SetLowerValue(lo);
+                        layers->set_as_dirty();
+                        if (IMSlider* moves = viewer.get_moves_slider()) {
+                            moves->SetHigherValue(moves->GetMaxValue());
+                            moves->set_as_dirty();
+                        }
+                        done["layers"] = {lo + 1, hi + 1, max + 1};
+                        done["z"]      = {rounded(layers->GetLowerValueD(), 1000.), rounded(layers->GetHigherValueD(), 1000.)};
+                    }
+                    canvas->set_as_dirty();
+                }
+                if (GLCanvas3D* canvas = plater.get_current_canvas3D())
+                    canvas->set_as_dirty();
+                return done;
+            });
+            if (args.contains("camera")) {
+                // A tab's page shows, and the Design tab takes the shared camera, once the tab change is
+                // handled; the camera then points the view on screen.
+                settle(ctx);
+                out["camera"] = ctx.run_ui([&]() -> json {
+                    Plater&           plater = ui_plater();
                     const std::string cam    = arg_string(args, "camera");
-                    GLCanvas3D*       canvas = plater.get_current_canvas3D();
+#ifdef SLIC3R_CAD
+                    if (DesignPanel* design = wxGetApp().mainframe->shown_design_panel()) {
+                        DesignCanvas* view = design->mcp_viewport();
+                        if (cam == "fit_bed")
+                            throw ToolFailure("fit_bed is not offered in the Design tab");
+                        if (cam == "fit_objects")
+                            view->fit_view();
+                        else if (cam == "fit_selection") {
+                            if (!view->zoom_to_box(view->selection_box()))
+                                throw ToolFailure("Nothing is selected in the Design tab");
+                        } else
+                            view->set_view(cam == "default" ? "iso" : cam); // default: the tab's Home view
+                        return cam;
+                    }
+#endif
+                    GLCanvas3D* canvas = plater.get_current_canvas3D();
                     if (cam == "default") {
                         plater.select_view("plate");
                         if (canvas)
@@ -307,50 +715,11 @@ void register_view_tools(McpService& service)
                     } else {
                         plater.select_view(cam);
                     }
-                    done["camera"] = cam;
-                }
-                if (preview_args) {
-                    GLCanvas3D* canvas = plater.get_preview_canvas3D();
-                    if (canvas == nullptr)
-                        throw ToolFailure("The preview is not available");
-                    GCodeViewer& viewer = canvas->get_gcode_viewer();
-                    if (args.contains("view_type")) {
-                        libvgcode::EViewType type;
-                        if (!GCodeViewer::view_type_from_config_name(arg_string(args, "view_type"), type))
-                            throw ToolFailure("Unknown view_type");
-                        viewer.select_view_type(type);
-                        done["view_type"] = arg_string(args, "view_type");
-                    }
-                    if (args.contains("layer") || args.contains("layer_range")) {
-                        IMSlider* layers = viewer.get_layers_slider();
-                        if (layers == nullptr || layers->GetMaxValue() <= 0)
-                            throw ToolFailure("The preview has no layers; slice first");
-                        const int max = layers->GetMaxValue();
-                        int       lo = 0, hi = max;
-                        if (args.contains("layer"))
-                            hi = std::clamp(args["layer"].get<int>() - 1, 0, max);
-                        if (args.contains("layer_range")) {
-                            const json& r = args["layer_range"];
-                            if (!r.is_array() || r.size() != 2)
-                                throw ToolFailure("layer_range must be [first, last]");
-                            lo = std::clamp(r[0].get<int>() - 1, 0, max);
-                            hi = std::clamp(r[1].get<int>() - 1, lo, max);
-                        }
-                        layers->SetHigherValue(hi);
-                        layers->SetLowerValue(lo);
-                        layers->set_as_dirty();
-                        if (IMSlider* moves = viewer.get_moves_slider()) {
-                            moves->SetHigherValue(moves->GetMaxValue());
-                            moves->set_as_dirty();
-                        }
-                        done["layers"] = {lo + 1, hi + 1, max + 1};
-                    }
-                    canvas->set_as_dirty();
-                }
-                if (GLCanvas3D* canvas = plater.get_current_canvas3D())
-                    canvas->set_as_dirty();
-                return done;
-            });
+                    if (canvas)
+                        canvas->set_as_dirty();
+                    return cam;
+                });
+            }
             if (out.value("view", "") == "assemble")
                 // A canvas shown for the first time loads its scene at its first frame, once its GL
                 // surface exists (a moment later on Wayland), and the next call may act on its objects.

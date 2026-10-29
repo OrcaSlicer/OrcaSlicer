@@ -2,12 +2,14 @@
 // dialogs and run JavaScript in web views.
 
 #include "JobRegistry.hpp"
+#include "McpCore.hpp"
 #include "McpPaths.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "UiInspector.hpp"
+#include "slic3r/GUI/ExportPresetBundleDialog.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -17,9 +19,10 @@
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/PresetBundleDialog.hpp"
+#include "slic3r/GUI/WebGuideDialog.hpp"
 
 #include <wx/app.h>
-#include <wx/button.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/glcanvas.h>
@@ -39,6 +42,7 @@
 #include <regex>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -52,8 +56,11 @@ namespace {
 const json kTargetSchema = {{"type", json::array({"string", "object"})},
                             {"description",
                              "A ref from the latest ui_snapshot (\"w12\") or a locator: {label, class, name, within, index} for "
-                             "widgets, {option:\"layer_height\"} for a setting field, {menu:\"File>Export>Export G-code\"}, {gltoolbar:\"arrange\"}, {gizmo:\"Move\"}, or "
-                             "{imgui:\"label\", imgui_name?:\"name\", window?, canvas?, index?} for an ImGui item, by its label, its name or both."}};
+                             "widgets, {option:\"layer_height\"} for a setting field, {menu:\"File>Export>Export G-code\"}, {gltoolbar:\"arrange\"}, {gizmo:\"Move\"}, "
+                             "{imgui:\"label\", imgui_name?:\"name\", window?, canvas?, index?} for an ImGui item, by its label, its name or both, or "
+                             "{row:\"Plate 1>Cube>Cylinder\", column?, within?, index?} for a row of a list, tree, table or drop-down list, by its "
+                             "last labels and the column of the cell to act on, or {plate_icon:\"lock\", plate:0} for a plate or its icon in the "
+                             "Prepare view: plate, delete, orient, arrange, lock, settings, name, move_to_front, filament_map, imex_mode."}};
 
 const json kModifiersSchema = {{"type", "array"},
                                {"items", {{"type", "string"}, {"enum", {"ctrl", "cmd", "rawctrl", "shift", "alt"}}}},
@@ -63,23 +70,25 @@ const json kModifiersSchema = {{"type", "array"},
 bool in_top_dialog(McpService& service, wxWindow* window)
 {
     wxDialog* top = service.modals().top();
-    return top != nullptr && window != nullptr && wxGetTopLevelParent(window) == top;
+    return top != nullptr && window != nullptr && owning_window(window) == top;
 }
 
 // GUI input tools run under the recover guard so they can work in the topmost modal dialog; a
 // target anywhere else gets the checks a mutate call would: no other call's nested loop, no open
-// modal, and no MCP slice or export holding the project.
+// modal, and operation admission (no MCP operation holding the project, no busy UI job worker).
 void guard_target(McpService& service, wxWindow* window)
 {
     if (in_top_dialog(service, window))
         return;
     service.ui().require_mutate();
-    if (const auto ops = service.jobs().running_operations(); !ops.empty())
-        throw ToolFailure("Busy: job " + ops.front() + " (a slice or export) is running; wait for it or cancel it first",
-                          {{"job", ops.front()}});
+    service.core().admit({});
 }
 
-wxWindow* target_window(const UiTarget& t) { return t.kind == UiTarget::Kind::Window ? t.window.get() : nullptr; }
+// The window a target is in: a widget's own, a row's list.
+wxWindow* target_window(const UiTarget& t)
+{
+    return t.kind == UiTarget::Kind::Window || t.kind == UiTarget::Kind::Row ? t.window.get() : nullptr;
+}
 
 // The journal replays locators, never refs: refs mean nothing in another session.
 void journal_with_locator(ToolContext& ctx, const json& args, const json& locator)
@@ -97,6 +106,70 @@ ToolDef recover_input_tool(std::string name, std::string title, std::string desc
     return d;
 }
 
+const json kPopupItemSchema = prop("string", "Run this item of the menu the input opens (a right click's context menu, a button's menu), "
+                                             "by its label path, \"Add Modifier>Cylinder\"; \"#2\" picks a repeated label's second item. "
+                                             "Without it, such a menu is listed in the reply (popup_menu), not shown.");
+
+// The menu an input call may open, which the inspector takes instead of showing it
+// (UiInspector::arm_menu()): armed in the closure that delivers the input, read once the events the
+// input queued have run. A call that fails before reading it drops it.
+struct PopupCapture
+{
+    McpService&  service;
+    ToolContext& ctx;
+    std::string  item;
+    int          token = 0;
+    // Also reply the dialogs open once the input's events ran: an input whose work opens a dialog
+    // from a posted event (a plate icon) returns before the dialog shows.
+    bool         dialogs = false;
+    // Set by a call queued on the 3D view behind the click, which the view posts to itself and opens
+    // its menu from: once it has run, so has the click (or the click's command is in a dialog's loop,
+    // which runs it too).
+    std::shared_ptr<bool> marked;
+
+    PopupCapture(McpService& service, ToolContext& ctx, std::string item) : service(service), ctx(ctx), item(std::move(item)) {}
+    PopupCapture(const PopupCapture&)            = delete;
+    PopupCapture& operator=(const PopupCapture&) = delete;
+    ~PopupCapture()
+    {
+        if (token == 0)
+            return;
+        try {
+            ctx.observe_ui([this] {
+                service.inspector().drop_menu(token);
+                return json();
+            });
+        } catch (const ToolFailure&) {
+        }
+    }
+
+    // UI thread, in the input's closure, before the input.
+    void arm() { token = service.inspector().arm_menu(item); }
+    // UI thread, after an input to a 3D view, on the handler the input posted its work to.
+    void mark(wxEvtHandler* queue)
+    {
+        if (queue == nullptr)
+            return;
+        marked = std::make_shared<bool>(false);
+        queue->CallAfter([m = marked] { *m = true; });
+    }
+    // Job thread: settles, then {popup_menu} or {ran} (with the dialogs a command it ran left open),
+    // or {} when no menu opened.
+    json read()
+    {
+        for (int i = 0; marked && i < 100 && !ctx.observe_ui([this] { return json(*marked); }).get<bool>(); ++i)
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        settle(ctx);
+        const int t = std::exchange(token, 0);
+        return ctx.observe_ui([&] {
+            json out = service.inspector().disarm_menu(t);
+            if ((dialogs || out.contains("ran")) && service.modals().any_open())
+                out["dialogs"] = service.modals().snapshot();
+            return out;
+        });
+    }
+};
+
 // Every shown web view, main window first.
 std::vector<wxWebView*> visible_webviews()
 {
@@ -108,8 +181,10 @@ std::vector<wxWebView*> visible_webviews()
             out.push_back(web);
             return;
         }
+        // A dialog is its parent's child too; it is visited once, as a top-level window.
         for (wxWindow* child : w->GetChildren())
-            visit(child);
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr)
+                visit(child);
     };
     if (wxGetApp().mainframe != nullptr)
         visit(wxGetApp().mainframe);
@@ -119,8 +194,78 @@ std::vector<wxWebView*> visible_webviews()
     return out;
 }
 
-// Receives the result of one RunScriptAsync call into a State the job thread waits on. Created,
-// used and deleted on the UI thread only, like the weak reference it keeps to its web view.
+// The modal dialogs whose web views take scripts: the setup wizard and the preset bundle dialogs,
+// whose pages have no typed route. Sign-in dialogs are never among them, and the flushing volumes
+// and filament colours are written through set_settings's project scope instead.
+bool takes_scripts(const wxDialog* dialog)
+{
+    return dynamic_cast<const GuideFrame*>(dialog) != nullptr || dynamic_cast<const PresetBundleDialog*>(dialog) != nullptr ||
+           dynamic_cast<const ExportPresetBundleDialog*>(dialog) != nullptr;
+}
+
+// The web view a script without a target runs in: the one in the topmost modal dialog while one is
+// open, else the only one shown.
+wxWebView* default_webview(McpService& service)
+{
+    std::vector<wxWebView*> webs = visible_webviews();
+    std::string             where;
+    if (wxDialog* top = service.modals().top()) {
+        std::vector<wxWebView*> in_top;
+        for (wxWebView* w : webs)
+            if (owning_window(w) == top)
+                in_top.push_back(w);
+        if (!in_top.empty()) {
+            webs  = std::move(in_top);
+            where = " in \"" + into_u8(top->GetTitle()) + "\"";
+        }
+    }
+    if (webs.empty())
+        throw ToolFailure("No web view is shown (the Home tab has one: set_view tab=home)");
+    if (webs.size() > 1) {
+        json urls = json::array();
+        for (wxWebView* w : webs)
+            urls.push_back(into_u8(w->GetCurrentURL()));
+        throw ToolFailure("Several web views are shown" + where + "; pass target (ui_snapshot query=webview)", {{"web_views", urls}});
+    }
+    return webs.front();
+}
+
+// A web view in the topmost modal dialog takes scripts when that dialog is one of takes_scripts(),
+// one in a dialog under it is refused, and any other gets the checks a mutate call would.
+void guard_script(McpService& service, wxWebView* web)
+{
+    const std::vector<wxDialog*>& stack = service.modals().stack();
+    const auto                    in    = std::find(stack.begin(), stack.end(), owning_window(web));
+    if (in != stack.end()) {
+        const std::string title = into_u8((*in)->GetTitle());
+        if (*in != stack.back())
+            throw ToolFailure("\"" + title + "\" is under \"" + into_u8(stack.back()->GetTitle()) + "\"; answer the topmost dialog first");
+        if (!takes_scripts(*in))
+            throw ToolFailure("Scripts run in a dialog only in the setup wizard and the preset bundle dialogs, not in \"" + title + "\"");
+    }
+    guard_target(service, web);
+}
+
+// The script as webview_eval runs it. Messages the page posts to its host (window.wx.postMessage) while
+// the script runs are held until it has returned: a host that ends its dialog on one (a page's Close or
+// OK button) would otherwise destroy the web view before the result comes back, and wx's script
+// callback, which keeps a plain pointer to the web view, would then reach a destroyed one. The result
+// is JSON: the value as wx gives it (an object as JSON, undefined as "undefined") and how many messages
+// were held.
+std::string with_held_messages(const std::string& script)
+{
+    return "(function () { var host = window.wx, held = [], swapped = !!(host && host.postMessage);"
+           " if (swapped) window.wx = {postMessage: function (m) { held.push(m); }};"
+           " try { var res = eval(" + json(script).dump(-1, ' ', true) + ");"
+           " return JSON.stringify({held: held.length, value: typeof res == 'object' ? JSON.stringify(res) :"
+           " typeof res == 'undefined' ? 'undefined' : String(res)}); }"
+           " finally { if (swapped) { window.wx = host; if (held.length) setTimeout(function () {"
+           " held.forEach(function (m) { host.postMessage(m); }); }, 0); } } })()";
+}
+
+// Receives the result of one RunScriptAsync call into a State the job thread waits on, or the web
+// view's destruction when its dialog went away while the script ran. Created, used and deleted on the
+// UI thread only, like the weak reference it keeps to its web view.
 class ScriptSink : public wxEvtHandler
 {
 public:
@@ -128,19 +273,38 @@ public:
     {
         std::mutex              mutex;
         std::condition_variable cv;
-        bool                    done  = false;
-        bool                    error = false;
+        bool                    done   = false;
+        bool                    error  = false;
+        bool                    destroyed = false; // the web view went away first
         std::string             text;
     };
 
     ScriptSink(wxWebView* web, std::shared_ptr<State> state) : m_web(web), m_state(std::move(state))
     {
         web->Bind(wxEVT_WEBVIEW_SCRIPT_RESULT, &ScriptSink::on_result, this);
+        web->Bind(wxEVT_DESTROY, &ScriptSink::on_destroy, this);
     }
     ~ScriptSink() override
     {
-        if (wxWebView* web = m_web.get())
+        if (wxWebView* web = m_web.get()) {
             web->Unbind(wxEVT_WEBVIEW_SCRIPT_RESULT, &ScriptSink::on_result, this);
+            web->Unbind(wxEVT_DESTROY, &ScriptSink::on_destroy, this);
+        }
+    }
+
+    void on_destroy(wxWindowDestroyEvent& evt)
+    {
+        evt.Skip();
+        if (evt.GetEventObject() != m_web.get())
+            return;
+        {
+            std::lock_guard<std::mutex> lock(m_state->mutex);
+            if (m_state->done)
+                return;
+            m_state->done      = true;
+            m_state->destroyed = true;
+        }
+        m_state->cv.notify_all();
     }
 
     void on_result(wxWebViewEvent& evt)
@@ -170,33 +334,6 @@ void delete_on_ui(ScriptSink* sink)
         wxTheApp->CallAfter([sink] { delete sink; });
 }
 
-// Presses the button with `id` in `dialog` so the dialog's own handler runs, or ends the dialog with
-// that id when no such button exists. Returns whether a button was pressed. UI thread only.
-bool press_dialog_button(wxDialog* dialog, int id)
-{
-    wxWindow* pressed = nullptr;
-    std::function<void(wxWindow*)> find = [&](wxWindow* w) {
-        for (wxWindow* child : w->GetChildren()) {
-            if (pressed != nullptr || dynamic_cast<wxTopLevelWindow*>(child) != nullptr)
-                continue;
-            if (child->GetId() == id && child->IsShown() && child->IsEnabled() &&
-                (dynamic_cast<wxButton*>(child) != nullptr || class_name(child).find("Button") != std::string::npos))
-                pressed = child;
-            else
-                find(child);
-        }
-    };
-    find(dialog);
-    if (pressed == nullptr) {
-        dialog->EndModal(id);
-        return false;
-    }
-    wxCommandEvent evt(wxEVT_BUTTON, id);
-    evt.SetEventObject(pressed);
-    pressed->GetEventHandler()->ProcessEvent(evt);
-    return true;
-}
-
 } // namespace
 
 void register_ui_tools(McpService& service)
@@ -207,12 +344,15 @@ void register_ui_tools(McpService& service)
         ToolDef def = inspect_tool(
             "ui_snapshot", "List the GUI",
             "Describe what is on screen as an indented tree, one element per line with a ref: wx widgets of every shown window "
-            "(buttons, fields, checkboxes, combos, tabs, labels), the main menus, the 3D canvas's toolbar items and gizmos, and "
+            "(buttons, fields, checkboxes, combos, tabs, labels), the rows of lists, trees and tables (label, other cells, "
+            "checkbox, what an object list row is), each shown popup after the window it opened from, the main menus, the 3D "
+            "canvas's toolbar items and gizmos, and "
             "each ImGui panel drawn in the last frame with its items (kind, value, name) and text. Pass the refs to ui_click / "
             "ui_input / ui_key. Refs go stale when the "
-            "element goes away; take a new snapshot then. root: \"all\" (default), \"main\", \"dialog\" (topmost modal) or a "
-            "window's ref. query filters by label, value, name or class. Prefer run_action and the typed tools when one fits.",
-            object_schema({{"root", prop("string", "all | main | dialog | <ref of a window>.")},
+            "element goes away; take a new snapshot then. root: \"all\" (default), \"main\", \"dialog\" (topmost modal), "
+            "\"popup\" or a window's ref. query filters by label, value, name or class. Prefer run_action and the typed tools "
+            "when one fits.",
+            object_schema({{"root", prop("string", "all | main | dialog | popup | <ref of a window>.")},
                            {"query", prop("string", "Case-insensitive text to look for.")},
                            {"max_nodes", {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Default 400."}}},
                            {"include_imgui", prop("boolean", "List ImGui items (default true).")},
@@ -240,15 +380,21 @@ void register_ui_tools(McpService& service)
         "Activate a GUI element: menu items, buttons, checkboxes, toggles, radio buttons, toolbar items and gizmos are activated "
         "the way their owners expect (a gizmo as its toolbar icon: it opens, a second click closes it, and Text on an object "
         "with no text creates a text part and replies created); other widgets and ImGui items get a synthesized mouse click, "
-        "after the item is scrolled into view. With x/y on a 3D canvas "
-        "target, clicks that point (logical pixels from the canvas's top left). Modifiers are seen by the 3D canvas, the "
-        "object list and handlers that read the event. A click that opens a dialog returns blocked_by_dialog with the job.",
+        "after the item is scrolled into view. A row is selected as a click on its cell selects it (ctrl adds, shift extends; "
+        "the object list acts on the column named, as Printable toggles), a double click activates it, a right click opens "
+        "its menu; a drop-down row is picked. A plate icon does what clicking it in the Prepare view does: the reply says the "
+        "plate's lock state (locked), arrange and orient wait for their job (done), settings and filament_map list the dialog "
+        "they open (dialogs), and a right click opens the plate menu. With x/y, clicks that point of a 3D canvas or a "
+        "custom-drawn widget (logical pixels from its top left). Modifiers are seen by the 3D canvas, the "
+        "object list and handlers that read the event. A menu the click opens is never shown: it is listed as popup_menu, "
+        "or popup_item runs one of its items (ran). A click that opens a dialog returns blocked_by_dialog with the job.",
         object_schema({{"target", kTargetSchema},
                        {"button", enum_prop({"left", "right", "middle"}, "Default left.")},
                        {"double", prop("boolean", "Double click.")},
                        {"modifiers", kModifiersSchema},
-                       {"x", prop("integer", "Canvas x for a click on a 3D canvas.")},
-                       {"y", prop("integer", "Canvas y for a click on a 3D canvas.")}},
+                       {"x", prop("integer", "x of the point to click, in a 3D canvas or a custom-drawn widget.")},
+                       {"y", prop("integer", "y of the point to click.")},
+                       {"popup_item", kPopupItemSchema}},
                       {"target"}),
         [&service](const json& args, ToolContext& ctx) {
             ClickOptions o;
@@ -258,18 +404,48 @@ void register_ui_tools(McpService& service)
             o.at_point     = args.contains("x") || args.contains("y");
             o.x            = arg_int(args, "x", 0);
             o.y            = arg_int(args, "y", 0);
-            json        locator;
-            GLCanvas3D* canvas = nullptr;
-            int         gizmo  = -1;
+            json         locator;
+            GLCanvas3D*  canvas = nullptr;
+            int          gizmo  = -1;
+            PopupCapture menu(service, ctx, arg_string(args, "popup_item"));
+            // A list's rows get their places a frame after they change (on GTK; a dialog's tree rebuilt
+            // by a preset choice), so a row is scrolled to first and given up to 1 s to take its place.
+            for (int i = 0; i < 20; ++i) {
+                const bool placed = ctx.run_ui([&] {
+                                         UiTarget t = service.inspector().resolve(args["target"]);
+                                         guard_target(service, target_window(t));
+                                         return json(service.inspector().place_row(t));
+                                     }).get<bool>();
+                if (placed)
+                    break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            }
             json out = ctx.run_ui([&] {
                 UiTarget t = service.inspector().resolve(args["target"]);
                 locator    = service.inspector().locator_for(t);
                 guard_target(service, target_window(t));
                 canvas = t.canvas;
                 gizmo  = t.gizmo;
-                return service.inspector().click(t, o);
+                menu.arm();
+                json clicked = service.inspector().click(t, o);
+                // A 3D view posts a click's work to itself; a plate icon posts its dialogs to the plater.
+                const bool  plate_icon = t.kind == UiTarget::Kind::PlateIcon;
+                GLCanvas3D* view       = service.inspector().canvas_of(&t);
+                if (plate_icon && o.button == "left")
+                    menu.mark(&ui_plater());
+                else if (view != nullptr)
+                    menu.mark(view->get_wxglcanvas());
+                menu.dialogs = plate_icon;
+                return clicked;
             });
             journal_with_locator(ctx, args, locator);
+            if (out.value("started", false)) {
+                // A plate's arrange or orient icon started a job on the UI job worker: the reply
+                // follows its end.
+                out.update(poll_ui(
+                    ctx, [] { return ui_plater().get_ui_job_worker().is_idle() ? json{{"done", true}} : json(); },
+                    std::chrono::minutes(30), "the plate's " + out.value("clicked", std::string()) + " job"));
+            }
             if (out.value("creating", false)) {
                 // The Text gizmo's icon with no text selected queued a job that creates a text part
                 // and opens the gizmo when it ends.
@@ -285,7 +461,7 @@ void register_ui_tools(McpService& service)
                     },
                     std::chrono::seconds(30), "the new text part");
             }
-            settle(ctx);
+            out.update(menu.read());
             return ToolResult::ok(out);
         }));
 
@@ -293,7 +469,8 @@ void register_ui_tools(McpService& service)
         "ui_input", "Set a control's value",
         "Set the text, number, selection or checked state of a control and send the event a person's edit would: text fields "
         "(submit:true also presses Enter and leaves the field, which is when Orca's setting fields commit), spin controls, "
-        "sliders, choice / combo / list boxes (by option text or index), checkboxes and toggles (true/false). An ImGui item "
+        "sliders, choice / combo / list boxes (by option text or index), checkboxes and toggles (true/false), a row's "
+        "checkbox (true/false). An ImGui item "
         "is set by its kind and its value read back: a field is typed into (a slider through the number field beside it, "
         "multiline text with \\n), a combo's option is picked by its text or 0-based index, a checkbox, radio or toggle "
         "clicked when it differs. For "
@@ -318,16 +495,20 @@ void register_ui_tools(McpService& service)
     reg.add(recover_input_tool(
         "ui_key", "Press keys",
         "Send a key chord (\"Ctrl+S\", \"Escape\", \"Return\", \"Delete\", \"Shift+Tab\", \"Left\", \"F5\") and/or type text to "
-        "a target or, without one, to the focused window (the topmost dialog while one is open, the 3D canvas when nothing "
-        "has focus). The window's shortcut handling "
-        "sees it first, as with a real key press. Typing reaches ImGui fields and key handlers; to fill a native text field "
-        "use ui_input.",
-        object_schema({{"target", kTargetSchema}, {"keys", prop("string", "Key chord.")}, {"text", prop("string", "Characters to type.")}}),
+        "a target or, without one, to the focused window (the topmost dialog while one is open, the 3D view shown when nothing "
+        "has focus). As with a real key press, the shortcut handling of the target's panels and window sees it first. "
+        "Typing reaches ImGui fields and key handlers; to fill a native text field "
+        "use ui_input. A menu the keys open is listed as popup_menu, or popup_item runs one of its items.",
+        object_schema({{"target", kTargetSchema},
+                       {"keys", prop("string", "Key chord.")},
+                       {"text", prop("string", "Characters to type.")},
+                       {"popup_item", kPopupItemSchema}}),
         [&service](const json& args, ToolContext& ctx) {
             const std::string keys = arg_string(args, "keys"), text = arg_string(args, "text");
             if (keys.empty() && text.empty())
                 throw ToolFailure("Give keys, text or both");
-            json locator;
+            json         locator;
+            PopupCapture menu(service, ctx, arg_string(args, "popup_item"));
             json out = ctx.run_ui([&] {
                 std::optional<UiTarget> t;
                 if (args.contains("target")) {
@@ -335,10 +516,11 @@ void register_ui_tools(McpService& service)
                     locator = service.inspector().locator_for(*t);
                 }
                 guard_target(service, service.inspector().key_target(t ? &*t : nullptr));
+                menu.arm();
                 return service.inspector().key(t ? &*t : nullptr, keys, text);
             });
             journal_with_locator(ctx, args, locator);
-            settle(ctx);
+            out.update(menu.read());
             return ToolResult::ok(out);
         }));
 
@@ -358,6 +540,10 @@ void register_ui_tools(McpService& service)
         {"additionalProperties", false}};
     const json pixel_or_target = {{"type", json::array({"array", "object"})},
                                   {"description", "A canvas pixel [x, y] or a point of the model, as for at."}};
+    std::vector<std::string> mouse_canvases{"3d", "preview", "assemble", "current"};
+#ifdef SLIC3R_CAD
+    mouse_canvases.insert(mouse_canvases.end() - 1, "design");
+#endif
     reg.add(mutate_tool(
         "ui_mouse", "Mouse gesture on the 3D view",
         "Synthesize a mouse gesture on a 3D canvas, as a person's would: move, down, up, click, drag (from the start through "
@@ -367,9 +553,10 @@ void register_ui_tools(McpService& service)
         "that part there (check \"point\" only projects it), or as x/y, logical pixels from the canvas's top left. "
         "Modifiers are pressed as keys for the gesture (shift for Measure's point picking, alt for erasing). A down keeps "
         "its button and modifiers held, so moves drag with it, until an up or another gesture. Grabbers are set through "
-        "the gizmo's panel fields or transform, not dragged.",
+        "the gizmo's panel fields or transform, not dragged. A menu a right click opens is listed as popup_menu, or "
+        "popup_item (with click or up) runs one of its items.",
         object_schema({{"action", enum_prop({"move", "down", "up", "click", "drag", "wheel"}, "Default click.")},
-                       {"canvas", enum_prop({"3d", "preview", "assemble", "current"}, "Default current.")},
+                       {"canvas", enum_prop(mouse_canvases, "Default current, the view shown. design takes x/y only.")},
                        {"at", target_schema},
                        {"x", prop("integer", "Start x, instead of at.")},
                        {"y", prop("integer", "Start y, instead of at.")},
@@ -381,31 +568,40 @@ void register_ui_tools(McpService& service)
                        {"button", enum_prop({"left", "right", "middle"}, "Default left.")},
                        {"double", prop("boolean", "Double click.")},
                        {"delta", prop("integer", "Wheel notches.")},
-                       {"modifiers", kModifiersSchema}}),
+                       {"modifiers", kModifiersSchema},
+                       {"popup_item", kPopupItemSchema}}),
         [&service](const json& args, ToolContext& ctx) {
+            const std::string action = arg_string(args, "action", "click");
+            if (args.contains("popup_item") && action != "click" && action != "up")
+                throw ToolFailure("popup_item goes with action click or up, which open a right click's menu");
             const std::string owner = service.script_owner(service.jobs().ancestry(ctx.job_id()));
+            PopupCapture      menu(service, ctx, arg_string(args, "popup_item"));
             json out = ctx.run_ui([&] {
                 // A client's press that runs after the endpoint closed would stay held, with no one left
                 // to release it.
                 if (owner.empty() && !service.endpoint_open())
                     throw ToolFailure("The MCP server was turned off before this gesture ran; it was not performed");
                 try {
+                    ui_plater(); // refuses while OrcaSlicer starts or closes
                     const std::string name   = arg_string(args, "canvas", "current");
-                    Plater&           plater = ui_plater();
-                    GLCanvas3D*       canvas = name == "3d"       ? plater.get_view3D_canvas3D() :
-                                               name == "preview"  ? plater.get_preview_canvas3D() :
-                                               name == "assemble" ? plater.get_assmeble_canvas3D() :
-                                                                    plater.get_current_canvas3D();
+                    GLCanvas3D*       canvas = name == "current" ? shown_canvas() : canvas_by_name(name);
                     if (canvas == nullptr || !canvas->get_wxglcanvas()->IsShownOnScreen())
-                        throw ToolFailure("That 3D view is not shown; switch to it with set_view first");
-                    return service.inspector().mouse(*canvas, args, owner);
+                        throw ToolFailure(name == "design" ? "The Design view is not shown; set_view {\"tab\": \"design\"} first" :
+                                                             "That 3D view is not shown; switch to it with set_view first");
+                    // The Design view sets up its GL at its first frame, as DesignCanvas guards its own renders.
+                    if (canvas == design_canvas() && !canvas->is_initialized())
+                        throw ToolFailure("The Design view has not drawn yet");
+                    menu.arm();
+                    json done = service.inspector().mouse(*canvas, args, owner);
+                    menu.mark(canvas->get_wxglcanvas());
+                    return done;
                 } catch (...) {
                     // A gesture that fails ends a press held from before it, as any other gesture would.
                     service.inspector().release_held(nullptr);
                     throw;
                 }
             });
-            settle(ctx);
+            out.update(menu.read());
             return ToolResult::ok(out);
         }));
 
@@ -507,8 +703,9 @@ void register_ui_tools(McpService& service)
     {
         ToolDef def = recover_input_tool(
             "dialog_auto_answer", "Pre-answer dialogs",
-            "Answer modal dialogs automatically, native ones included: a dialog whose title or message matches a rule's regex "
-            "(case-insensitive) returns that button at once and never shows. A matching wx dialog that is already open is "
+            "Answer modal dialogs automatically, native ones included, when their title or message matches a rule's regex "
+            "(case-insensitive): a native dialog returns that button at once and never shows; a wx dialog has the button "
+            "pressed as dialog_respond does, so its handler runs. A matching wx dialog that is already open is "
             "answered too, so a prompt that appears around the same time (the restore prompt after startup) is handled "
             "either way. Native file pickers can only be cancelled. Called from a script, the rules last until the script "
             "ends; otherwise they replace the rules this session set before (an empty list clears them).",
@@ -550,11 +747,14 @@ void register_ui_tools(McpService& service)
         reg.add(def);
     }
 
-    reg.add(mutate_tool(
+    reg.add(recover_input_tool(
         "webview_eval", "Run JavaScript in a web view",
-        "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, login and others) and return the value of "
-        "its last expression (JSON values come back parsed). Without a target the only shown web view is used. Waits up to "
-        "timeout_s (default 10).",
+        "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page and others) and return the value of its "
+        "last expression (JSON values come back parsed). While a modal dialog is open, scripts run only in the setup "
+        "wizard's and the preset bundle dialogs' pages, never in a sign-in dialog; without a target, the web view of the "
+        "topmost dialog is used, else the only shown one. Commit such a page through its own button, since dialog_respond "
+        "only closes the dialog; closed: true says the script closed its dialog. Messages the page posts to OrcaSlicer "
+        "reach it once the script has returned. Waits up to timeout_s (default 10).",
         object_schema({{"script", prop("string", "JavaScript to run.")},
                        {"target", kTargetSchema},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 1}, {"maximum", 120}, {"description", "Default 10."}}}},
@@ -564,28 +764,24 @@ void register_ui_tools(McpService& service)
             const auto        timeout = std::chrono::seconds(arg_int(args, "timeout_s", 10));
             auto              state   = std::make_shared<ScriptSink::State>();
             ScriptSink*       sink    = nullptr; // the UI thread's to create and delete
+            json              locator;
+            const wxDialog*   modal   = nullptr; // the dialog the web view is in, only compared
             json started = ctx.run_ui([&]() -> json {
                 wxWebView* web = nullptr;
                 if (args.contains("target")) {
                     UiTarget t = service.inspector().resolve(args["target"]);
+                    locator    = service.inspector().locator_for(t);
                     web        = dynamic_cast<wxWebView*>(target_window(t));
                     if (web == nullptr)
                         throw ToolFailure("The target is not a web view (ui_snapshot lists them as kind webview)");
-                } else {
-                    const auto all = visible_webviews();
-                    if (all.empty())
-                        throw ToolFailure("No web view is shown (the Home tab has one: set_view tab=home)");
-                    if (all.size() > 1) {
-                        json urls = json::array();
-                        for (wxWebView* w : all)
-                            urls.push_back(into_u8(w->GetCurrentURL()));
-                        throw ToolFailure("Several web views are shown; pass target (ui_snapshot query=webview)", {{"web_views", urls}});
-                    }
-                    web = all.front();
-                }
+                } else
+                    web = default_webview(service);
+                guard_script(service, web);
+                if (in_top_dialog(service, web))
+                    modal = service.modals().top();
                 sink = new ScriptSink(web, state);
                 try {
-                    web->RunScriptAsync(from_u8(script), sink);
+                    web->RunScriptAsync(from_u8(with_held_messages(script)), sink);
                 } catch (...) {
                     delete sink;
                     sink = nullptr;
@@ -593,27 +789,52 @@ void register_ui_tools(McpService& service)
                 }
                 return {{"url", into_u8(web->GetCurrentURL())}};
             });
+            journal_with_locator(ctx, args, locator);
             // The result arrives as an event on the UI thread; wait for it here, without the UI.
-            bool        done = false, error = false;
+            bool        done = false, error = false, destroyed = false;
             std::string text;
             {
                 std::unique_lock<std::mutex> lock(state->mutex);
                 const auto                   end = std::chrono::steady_clock::now() + timeout;
                 while (!state->done && !ctx.cancelled() && std::chrono::steady_clock::now() < end)
                     state->cv.wait_until(lock, std::min(end, std::chrono::steady_clock::now() + std::chrono::milliseconds(200)));
-                done  = state->done;
-                error = state->error;
-                text  = state->text;
+                done      = state->done;
+                error     = state->error;
+                destroyed = state->destroyed;
+                text      = state->text;
             }
             delete_on_ui(sink);
             if (!done)
                 throw ToolFailure(ctx.cancelled() ? "OrcaSlicer is shutting down" : "Timed out waiting for the script result");
             if (error)
                 throw ToolFailure("The script failed: " + text);
-            json value = json::parse(text, nullptr, false);
+            int held = 0;
+            if (const json wrapped = json::parse(text, nullptr, false); wrapped.is_object() && wrapped.contains("value") && wrapped["value"].is_string()) {
+                held = wrapped.value("held", 0);
+                text = wrapped["value"].get<std::string>();
+            }
+            // The page's held messages reach its host just after the result; a dialog one of them ends
+            // leaves the modal stack when its loop returns.
+            bool closed = destroyed;
+            for (int i = 0; !closed && modal != nullptr && held > 0 && i < 10; ++i) {
+                try {
+                    closed = ctx.observe_ui([&] {
+                                    const auto& stack = service.modals().stack();
+                                    return json(std::find(stack.begin(), stack.end(), modal) == stack.end());
+                                }).get<bool>();
+                } catch (const ToolFailure&) {
+                    break;
+                }
+                if (!closed)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+            }
+            json value = destroyed ? json() : json::parse(text, nullptr, false);
             if (value.is_discarded())
                 value = text;
-            return ToolResult::ok({{"result", value}, {"url", started["url"]}});
+            json out{{"result", value}, {"url", started["url"]}};
+            if (closed)
+                out["closed"] = true;
+            return ToolResult::ok(out);
         }));
 }
 

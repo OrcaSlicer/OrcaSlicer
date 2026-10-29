@@ -39,6 +39,7 @@ struct UiInvoker::Shared
     std::function<GuardState()>     guards_on_ui;
     std::function<uint64_t()>       generation;
     std::function<nlohmann::json()> open_dialogs;
+    std::function<void(const std::string&, bool)> activity;
     std::atomic<bool>               stopped{false};
 
     // UI-thread only: the calls currently executing, outermost first. More than one means a call is
@@ -50,12 +51,13 @@ struct UiInvoker::Shared
 };
 
 UiInvoker::UiInvoker(UiDispatcher& dispatcher, std::function<GuardState()> guards_on_ui, std::function<uint64_t()> generation,
-                     std::function<nlohmann::json()> open_dialogs)
+                     std::function<nlohmann::json()> open_dialogs, std::function<void(const std::string&, bool)> activity)
     : m_shared(std::make_shared<Shared>()), m_dispatcher(dispatcher)
 {
     m_shared->guards_on_ui = std::move(guards_on_ui);
     m_shared->generation   = std::move(generation);
     m_shared->open_dialogs = std::move(open_dialogs);
+    m_shared->activity     = std::move(activity);
 }
 
 UiInvoker::~UiInvoker() { shutdown(); }
@@ -103,6 +105,8 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
         }
         if (error.empty()) {
             shared->running_tools.push_back(tool);
+            if (shared->activity)
+                shared->activity(tool, true);
             try {
                 value = fn();
             } catch (const ToolFailure& f) {
@@ -113,6 +117,8 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
             } catch (...) {
                 error = "Internal error";
             }
+            if (shared->activity)
+                shared->activity(tool, false);
             shared->running_tools.pop_back();
         }
         {

@@ -1,3 +1,16 @@
+// McpTools.hpp reaches wx's MSW headers through GLCanvas3D.hpp after OCCT has hidden the USER and GDI
+// declarations they need; the Windows headers first keep them, as in test_plugin_host_api.cpp.
+#ifdef WIN32
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <Windows.h>
+    #include <CommCtrl.h>
+#endif
+
 #include <catch2/catch_test_macros.hpp>
 
 #include "slic3r/GUI/Mcp/McpTools.hpp"

@@ -270,21 +270,23 @@ bool is_flush_config_modified()
     return has_modify;
 }
 
+void apply_flushing_volumes(const std::vector<double> &matrix, const std::vector<double> &multipliers)
+{
+    auto &project_config = wxGetApp().preset_bundle->project_config;
+    (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = matrix;
+    (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values     = multipliers;
+    bool flushing_volume_modify = is_flush_config_modified();
+    wxGetApp().sidebar().set_flushing_volume_warning(flushing_volume_modify);
+    wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+    wxGetApp().plater()->update_project_dirty_from_presets();
+}
+
 void open_flushing_dialog(wxEvtHandler *parent, const wxEvent &event)
 {
-    auto                      &project_config = wxGetApp().preset_bundle->project_config;
-
     WipingDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe));
     dlg.ShowModal();
     if (dlg.GetSubmitFlag()) {
-        auto matrix = dlg.GetFlattenMatrix();
-        auto flush_multipliers = dlg.GetMultipliers();
-        (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = std::vector<double>(matrix.begin(), matrix.end());
-        (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
-        bool flushing_volume_modify = is_flush_config_modified();
-        wxGetApp().sidebar().set_flushing_volume_warning(flushing_volume_modify);
-        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
-        wxGetApp().plater()->update_project_dirty_from_presets();
+        apply_flushing_volumes(dlg.GetFlattenMatrix(), dlg.GetMultipliers());
         wxPostEvent(parent, event);
     }
 }

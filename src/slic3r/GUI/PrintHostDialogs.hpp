@@ -3,9 +3,11 @@
 
 #include <map>
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
+#include <boost/cstdint.hpp>
 #include <boost/filesystem/path.hpp>
 
 #include <wx/colour.h>
@@ -88,8 +90,22 @@ public:
 
     PrintHostQueueDialog(wxWindow *parent);
 
-    void append_job(const PrintHostJob &job);
+    // Adds the row and notification of a job sent to `host` as `upload_path`; `size` is the source file's size in
+    // bytes, if it could be read. UI thread.
+    void append_job(const std::string &host, const boost::filesystem::path &upload_path, std::optional<boost::uintmax_t> size);
     void get_active_jobs(std::vector<std::pair<std::string, std::string>>& ret);
+
+    // A row as the list shows it, for readers outside the dialog (MCP's get_state.uploads).
+    struct JobInfo
+    {
+        std::string state; // queued, uploading, error, cancelling, cancelled or completed
+        int         progress = 0;
+        std::string host;
+        std::string filename;
+        std::string error;
+    };
+    size_t  job_count() const;
+    JobInfo job_info(size_t row) const;
 
     virtual bool Show(bool show = true) override
     {

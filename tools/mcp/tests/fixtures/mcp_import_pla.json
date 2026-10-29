@@ -1,0 +1,12 @@
+{
+	"filament_cost": [
+		"24"
+	],
+	"filament_settings_id": [
+		"MCP Import PLA"
+	],
+	"from": "User",
+	"inherits": "Bambu PLA Basic @BBL X1C",
+	"name": "MCP Import PLA",
+	"version": "2.8.0.16"
+}

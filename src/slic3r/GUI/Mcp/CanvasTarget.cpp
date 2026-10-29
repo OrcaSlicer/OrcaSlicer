@@ -125,7 +125,8 @@ std::string check_surface(const Vec3d&                     point,
         return "the point is on the side of the clipping plane that is cut away";
 
     // What the ray meets, nearest first: each mesh's surfaces (a clipped mesh's only where the plane
-    // keeps them) and the bed.
+    // keeps them) and the bed, which only a ray looking down meets: from below it is drawn see-through
+    // and the GUI paints and picks through it.
     struct Hit
     {
         double             t;
@@ -141,7 +142,7 @@ std::string check_surface(const Vec3d&                     point,
             if (!(m.clipped && clip != nullptr && clip->is_point_clipped(h.p)))
                 hits.push_back({h.t, h.p, h.n, &m});
     }
-    if (std::abs(dir.z()) > 1e-9) {
+    if (dir.z() < -1e-9) {
         const double t = -origin.z() / dir.z();
         const Vec3d  p = origin + t * dir;
         if (t > 0. && on_bed(p))

@@ -25,6 +25,7 @@ public:
     void clear() { m_queue.clear(); }
     // The task names in queue order, for a log line.
     std::string names() const { return m_queue.names(); }
+    bool        pending() const { return m_queue.pending(); }
 
     // Arms the timer; it stops itself once no task is pending, so call again when a task
     // appears.

@@ -1,10 +1,14 @@
 #include "SyntheticInput.hpp"
 
+#include <wx/gdicmn.h>
 #include <wx/mousestate.h>
 #include <wx/utils.h>
+#include <wx/window.h>
 
 #include <algorithm>
+#include <functional>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace Slic3r { namespace GUI {
@@ -13,6 +17,7 @@ namespace {
 
 std::vector<int>&           held_keys() { static std::vector<int> keys; return keys; }
 std::optional<wxMouseState>& held_mouse() { static std::optional<wxMouseState> mouse; return mouse; }
+std::function<bool(wxMenu&, wxWindow&)>& menu_capture() { static std::function<bool(wxMenu&, wxWindow&)> capture; return capture; }
 
 // The modifier a key code stands for, so a held Shift also reads as WXK_SHIFT etc.
 bool same_key(int held, int asked)
@@ -61,7 +66,17 @@ void clear()
     held_mouse().reset();
 }
 
+void set_menu_capture(std::function<bool(wxMenu& menu, wxWindow& owner)> capture) { menu_capture() = std::move(capture); }
+
 } // namespace SyntheticInput
+
+bool popup_menu(wxWindow& owner, wxMenu& menu, const wxPoint& pos)
+{
+    // A copy: the capture may run a command whose nested event loop replaces or clears it.
+    if (const auto capture = menu_capture(); capture && capture(menu, owner))
+        return true;
+    return owner.PopupMenu(&menu, pos);
+}
 
 bool get_key_state(wxKeyCode key)
 {

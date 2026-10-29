@@ -1,0 +1,111 @@
+// Assigns filaments to objects and parts through set_settings, as the object list's Change Filament
+// does, and reads them back with get_settings' effective values; then sets the project's slot colours,
+// flushing volumes, plate type and prime tower position through the project scope. Run it with
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/multicolor.json --out /tmp/multicolor
+{
+  "orca_script": 1,
+  "name": "object and part filaments",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "unsaved changes", "button": "no"},
+                                                      {"match": "restore", "button": "no"},
+                                                      {"match": "Uniform scale", "button": "ok"}]}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    // A second filament (or one more, on a datadir an earlier run left with several).
+    {"tool": "ui_click", "args": {"target": {"label": "Add one filament"}}},
+    {"tool": "get_state", "expect": {"/presets/filaments/1": {"exists": true}}},
+
+    // Object 0 a cube, object 1 a cylinder.
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "select", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "transform", "args": {"object": 0, "translate": [100, 100, 12.8], "mode": "absolute"}},
+    {"tool": "transform", "args": {"object": 1, "translate": [160, 100, 12.8], "mode": "absolute"}},
+
+    // ---- An object's filament, read back, undone and redone ----
+    {"tool": "set_settings", "args": {"scope": "object", "object": 1, "values": {"extruder": 2}}, "expect": {"/applied/extruder": {"eq": "2"}}},
+    {"tool": "get_settings", "args": {"scope": "object", "object": 1, "keys": ["extruder"]},
+     "expect": {"/items/0/effective": {"eq": "2"}, "/items/0/source": {"eq": "object"}}},
+    {"tool": "get_settings", "args": {"scope": "object", "object": 0, "keys": ["extruder"]}, "expect": {"/items/0/effective": {"eq": "1"}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "get_settings", "args": {"scope": "object", "object": 1, "keys": ["extruder"]}, "expect": {"/items/0/effective": {"eq": "1"}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "get_settings", "args": {"scope": "object", "object": 1, "keys": ["extruder"]}, "expect": {"/items/0/effective": {"eq": "2"}}},
+
+    // ---- A single-part object's volume 0 is the object: its filament is set there ----
+    {"tool": "set_settings", "args": {"scope": "volume", "object": 1, "volume": 0, "values": {"extruder": 1}},
+     "expect": {"/applied/extruder": {"eq": "1"}, "/note": {"exists": true}}},
+    {"tool": "get_settings", "args": {"scope": "object", "object": 1, "keys": ["extruder"]}, "expect": {"/items/0/effective": {"eq": "1"}}},
+    {"tool": "set_settings", "args": {"scope": "object", "object": 1, "values": {"extruder": 2}}},
+
+    // ---- A text part on the cube takes filament 2; the object's reply lists it apart ----
+    {"tool": "select", "args": {"objects": [0]}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Text"}}, "expect": {"/created": {"eq": true}, "/active": {"eq": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Done"}}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/1/text": {"exists": true}}},
+    {"tool": "set_settings", "args": {"scope": "volume", "object": 0, "volume": 1, "values": {"extruder": 2}}, "expect": {"/applied/extruder": {"eq": "2"}}},
+    {"tool": "get_settings", "args": {"scope": "volume", "object": 0, "volume": 1, "keys": ["extruder"]},
+     "expect": {"/items/0/effective": {"eq": "2"}, "/items/0/source": {"eq": "part"}, "/note": {"exists": true}}},
+    {"tool": "get_settings", "args": {"scope": "object", "object": 0, "keys": ["extruder"]},
+     "expect": {"/items/0/effective": {"eq": "1"}, "/items/0/parts/0/volume": {"eq": 1}, "/items/0/parts/0/value": {"eq": "2"}, "/note": {"exists": true}}},
+    // Default on a part is its object's filament.
+    {"tool": "set_settings", "args": {"scope": "volume", "object": 0, "volume": 1, "values": {"extruder": null}}, "expect": {"/applied/extruder": {"eq": "1"}}},
+    {"tool": "set_settings", "args": {"scope": "volume", "object": 0, "volume": 1, "values": {"extruder": 2}}},
+
+    // ---- A filament and another setting in one call are one undo step; the object's filament clears the part's ----
+    {"tool": "set_settings", "args": {"scope": "object", "object": 0, "values": {"extruder": 2, "wall_loops": 5}},
+     "expect": {"/applied/extruder": {"eq": "2"}, "/applied/wall_loops": {"eq": "5"}}},
+    {"tool": "get_settings", "args": {"scope": "object", "object": 0, "keys": ["extruder", "wall_loops"]},
+     "expect": {"/items/0/effective": {"eq": "2"}, "/items/0/parts": {"exists": false}, "/items/1/source": {"eq": "object"}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "get_settings", "args": {"scope": "object", "object": 0, "keys": ["extruder", "wall_loops"]},
+     "expect": {"/items/0/effective": {"eq": "1"}, "/items/0/parts/0/value": {"eq": "2"}, "/items/1/value": {"eq": null}, "/items/1/source": {"eq": "process"}}},
+
+    // ---- Project settings. Entries by index, since a reused datadir may start with more slots ----
+    {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_is_mixed", "curr_bed_type", "prime_volume_mode"]},
+     "expect": {"/items/0/meta/read_only": {"eq": true}, "/items/0/value": {"regex": "^0,0"},
+                "/items/1/meta/offered": {"contains": "Textured PEI Plate"}, "/items/2/meta/offered": {"empty": true}}},
+    {"tool": "set_settings", "args": {"scope": "project", "values": {"filament_colour": {"index": 0, "value": "#ffffff"}}},
+     "expect": {"/applied/filament_colour": {"regex": "^#FFFFFF;"}}},
+    // A colour, the multiplier, one matrix entry and the plate type in one call: the colour goes first, so its
+    // recalculated flushing volumes do not replace the entry given.
+    {"tool": "set_settings", "args": {"scope": "project", "values": {"filament_colour": {"index": 1, "value": "#000000"},
+                                                                      "flush_multiplier": 0.7,
+                                                                      "flush_volumes_matrix": {"index": 1, "value": 400},
+                                                                      "curr_bed_type": "Textured PEI Plate"}},
+     "expect": {"/applied/filament_colour": {"regex": "^#FFFFFF;#000000"}, "/applied/flush_multiplier": {"eq": "0.7"},
+                "/applied/flush_volumes_matrix": {"regex": "^0,400,"}, "/applied/curr_bed_type": {"eq": "Textured PEI Plate"}}},
+    {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_colour", "flush_volumes_matrix", "flush_multiplier", "curr_bed_type"]},
+     "expect": {"/items/0/value": {"regex": "^#FFFFFF;#000000"}, "/items/1/value": {"regex": "^0,400,"}, "/items/2/value": {"eq": "0.7"},
+                "/items/3/value": {"eq": "Textured PEI Plate"}}},
+    // Refused, and nothing changes: a mixed flag, a bad colour together with a valid multiplier, a purge mode the
+    // X1C has no button for, a non-zero diagonal.
+    {"tool": "set_settings", "args": {"scope": "project", "values": {"filament_is_mixed": "1"}}, "optional": true},
+    {"tool": "set_settings", "args": {"scope": "project", "values": {"filament_colour": {"index": 0, "value": "white"}, "flush_multiplier": 0.5}},
+     "optional": true},
+    {"tool": "set_settings", "args": {"scope": "project", "values": {"prime_volume_mode": "Saving"}}, "optional": true},
+    {"tool": "set_settings", "args": {"scope": "project", "values": {"flush_volumes_matrix": {"index": 0, "value": 10}}}, "optional": true},
+    {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_colour", "flush_multiplier", "flush_volumes_matrix", "filament_is_mixed"]},
+     "expect": {"/items/0/value": {"regex": "^#FFFFFF;"}, "/items/1/value": {"eq": "0.7"}, "/items/2/value": {"regex": "^0,400,"},
+                "/items/3/value": {"regex": "^0,0"}}},
+    // The prime tower of plate 0, moved twice; undo puts it back where the first move left it.
+    {"tool": "set_settings", "args": {"scope": "project", "values": {"wipe_tower_x": {"index": 0, "value": 150}, "wipe_tower_y": {"index": 0, "value": 180}}},
+     "expect": {"/applied/wipe_tower_x": {"regex": "^150(,|$)"}, "/applied/wipe_tower_y": {"regex": "^180(,|$)"}}},
+    {"tool": "set_settings", "args": {"scope": "project", "values": {"wipe_tower_x": {"index": 0, "value": 40}}},
+     "expect": {"/applied/wipe_tower_x": {"regex": "^40(,|$)"}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "get_settings", "args": {"scope": "project", "keys": ["wipe_tower_x", "wipe_tower_y"]},
+     "expect": {"/items/0/value": {"regex": "^150(,|$)"}, "/items/1/value": {"regex": "^180(,|$)"}}},
+    {"tool": "set_settings", "args": {"scope": "project", "values": {"wipe_tower_x": {"index": 0, "value": 300}}}, "optional": true},
+
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "set_view", "args": {"tab": "prepare", "camera": "iso"}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/filaments.png", "overwrite": true, "include_image": false}},
+    // The plate type is remembered per printer; back to the bench datadir's.
+    {"tool": "set_settings", "args": {"scope": "project", "values": {"curr_bed_type": "Cool Plate"}}}
+  ]
+}

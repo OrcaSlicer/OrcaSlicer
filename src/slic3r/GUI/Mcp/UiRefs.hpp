@@ -46,6 +46,53 @@ struct UiNode
 // Compact indented text, one node per line, e.g. `  [w12] button "Slice plate"`.
 std::string format_snapshot(const std::vector<UiNode>& nodes, std::size_t omitted);
 
+// One item of a popup menu, from a walk that lists a submenu before its items.
+struct MenuEntry
+{
+    std::string label;          // as shown, without mnemonic and accelerator
+    int         parent  = -1;   // the entry of the submenu holding it; -1 at the top
+    int         id      = 0;
+    bool        enabled = true; // false under a disabled submenu too
+    bool        checkable = false, checked = false, submenu = false;
+    std::string path;           // set by name_menu_entries()
+};
+
+// Gives each entry its path: the labels from the top, joined with '>'. A label repeated among its
+// siblings is numbered from its second time on ("Change Filament>Generic PLA #2"), so each path
+// names one item. `current` is the marker a menu appends to the item in use (" (current)"); the
+// numbering leaves it out, so the numbers stay when another item is in use.
+void name_menu_entries(std::vector<MenuEntry>& entries, const std::string& current);
+// {items, disabled?, checked?}: the paths of the items that run something (under the submenu entry
+// `under`, or all of them for -1), then those of them that are disabled and those checked.
+nlohmann::json menu_listing(const std::vector<MenuEntry>& entries, int under = -1);
+// The entry `path` names. Labels match case-insensitively, `current` and a trailing "..." may be
+// left out, and "#2" picks a label's second time among its siblings. A submenu or a disabled item
+// can't run: null then, as with no match, with `err` saying why and `details` what there is to pick.
+const MenuEntry* find_menu_entry(const std::vector<MenuEntry>& entries, const std::string& path, const std::string& current,
+                                 std::string& err, nlohmann::json& details);
+
+// The labels a row locator names, from the top: {row: "Cube>Cylinder"}, or an array of labels, which
+// the journal writes when a label holds '>'. Throws ToolFailure for anything else.
+std::vector<std::string> row_segments(const nlohmann::json& row);
+// What a locator records for a row's labels from the top: joined with '>', or the array when one
+// holds '>'.
+nlohmann::json row_locator(const std::vector<std::string>& path);
+// Whether `wanted` names a row whose labels from the top are `path`: it matches the path's last
+// segments, so the plate an object is on may be left out. A label matches as shown or without
+// `current`, the marker a list appends to the item in use.
+bool row_matches(const std::vector<std::string>& path, const std::vector<std::string>& wanted, const std::string& current);
+
+// A plate's icons in the Prepare view, by the picking action PartPlate gives each: "plate" (0, the
+// plate itself), "delete", "orient", "arrange", "lock", "settings", "name", "move_to_front",
+// "filament_map", "imex_mode". The bed picking id of plate p's icon a is p * kPlateIconCount + a.
+constexpr int kPlateIconCount = 10;
+// The action an icon name stands for, or -1.
+int plate_icon_action(const std::string& name);
+// The name of an action, or "" outside 0..kPlateIconCount-1.
+std::string plate_icon_name(int action);
+// {plate, action} of a bed picking id.
+std::pair<int, int> plate_icon_of(int picking_id);
+
 // The refs ui_snapshot hands out. Ids are never reused, so two clients can't confuse each other's
 // refs; each stores what it points at and how to tell whether that still exists, plus the UI
 // generation it was taken in (a rebuilt main window invalidates every ref).

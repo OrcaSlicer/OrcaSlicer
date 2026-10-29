@@ -39,8 +39,8 @@ namespace Slic3r { namespace GUI {
 #define DESIGN_INPUT_SIZE wxSize(FromDIP(120), -1)
 #define DESIGN_LEFT_MARGIN 25
 
-// The tabs other dialogs open Preferences on.
-enum class PreferencesTab { General, Control, Graphics, Online };
+// The tabs other dialogs and the Speed Dial's open_preferences open Preferences on.
+enum class PreferencesTab { General, Control, Graphics, Online, Developer };
 
 class PreferencesDialog : public DPIDialog
 {
@@ -74,7 +74,8 @@ public:
 
     ~PreferencesDialog();
 
-    void select_tab(PreferencesTab tab, const std::string& option = {});   // and scrolls a combobox option's row into view, focused
+    // Shows `tab`, or the tab of `option` (a control named after its AppConfig key), scrolled to that control and focused.
+    void select_tab(PreferencesTab tab, const std::string& option = {});
 
     wxString m_backup_interval_time;
     wxTimer m_filament_height_timer;

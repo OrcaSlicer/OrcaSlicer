@@ -22,6 +22,8 @@
 #include <thread>
 #include <vector>
 
+class wxTimer;
+
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 class McpHttpServer;
@@ -75,7 +77,8 @@ public:
     void resume();
     bool suspended() const { return m_suspended; }
 
-    // The main frame finished starting up (end of GUI_App::post_init).
+    // The main frame finished starting up (end of GUI_App::post_init). Ready follows once the Prepare
+    // canvas has loaded OpenGL, at once when it already has.
     void mark_ready();
     bool ready() const { return m_ready && !m_suspended; }
 
@@ -125,6 +128,7 @@ private:
     ~McpService();
 
     void register_tools();
+    void set_ready();
     void run_launch_script();
     GuardState guards_on_ui() const;
 
@@ -153,6 +157,8 @@ private:
     bool                                    m_endpoint_open      = false;
 
     std::atomic<bool>     m_ready{false};
+    // Polls for the Prepare canvas's OpenGL between mark_ready() and ready. UI thread.
+    std::unique_ptr<wxTimer> m_ready_timer;
     std::atomic<bool>     m_suspended{false};
     std::atomic<bool>     m_stopping{false};
     std::atomic<uint64_t> m_generation{1};

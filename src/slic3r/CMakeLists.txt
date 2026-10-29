@@ -171,6 +171,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpToolsApp.cpp
     GUI/Mcp/McpToolsCommon.cpp
     GUI/Mcp/McpToolsConfig.cpp
+    GUI/Mcp/McpToolsLayers.cpp
     GUI/Mcp/McpToolsProject.cpp
     GUI/Mcp/McpToolsScene.cpp
     GUI/Mcp/McpToolsScript.cpp

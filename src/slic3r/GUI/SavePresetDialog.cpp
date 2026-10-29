@@ -423,7 +423,7 @@ void SavePresetDialog::input_name_from_other(std::string new_preset_name) {
 
 void SavePresetDialog::confirm_from_other() {
     for (Item *item : m_items)
-        if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(item->preset_name());
+        if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(m_action, item->preset_name());
 }
 
 // BBS: add project relate
@@ -528,22 +528,22 @@ void SavePresetDialog::on_dpi_changed(const wxRect &suggested_rect)
     Refresh();
 }
 
-void SavePresetDialog::update_physical_printers(const std::string &preset_name)
+void SavePresetDialog::update_physical_printers(ActionType action, const std::string &preset_name)
 {
-    if (m_action == UndefAction) return;
+    if (action == UndefAction) return;
 
     PhysicalPrinterCollection &physical_printers = wxGetApp().preset_bundle->physical_printers;
     if (!physical_printers.has_selection()) return;
 
     std::string printer_preset_name = physical_printers.get_selected_printer_preset_name();
 
-    if (m_action == Switch)
+    if (action == Switch)
         // unselect physical printer, if it was selected
         physical_printers.unselect_printer();
     else {
         PhysicalPrinter printer = physical_printers.get_selected_printer();
 
-        if (m_action == ChangePreset) printer.delete_preset(printer_preset_name);
+        if (action == ChangePreset) printer.delete_preset(printer_preset_name);
 
         if (printer.add_preset(preset_name)) physical_printers.save_printer(printer);
 
@@ -554,7 +554,7 @@ void SavePresetDialog::update_physical_printers(const std::string &preset_name)
 void SavePresetDialog::accept(wxCommandEvent &event)
 {
     for (Item *item : m_items)
-        if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(item->preset_name());
+        if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(m_action, item->preset_name());
 
     EndModal(wxID_OK);
 }

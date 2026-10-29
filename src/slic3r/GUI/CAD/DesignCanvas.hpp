@@ -380,6 +380,8 @@ public:
     // having it — a socket that talked to a private copy would prove nothing about the app.
     DesignSketchTool&       mcp_sketch_tool()       { return m_sketch_tool; }
     const DesignSketchTool& mcp_sketch_tool() const { return m_sketch_tool; }
+    // The view's GL canvas, which MCP captures and sends input to as it does Prepare's.
+    GLCanvas3D* gl_canvas() const { return m_canvas; }
 
     void request_repaint();
     // Repaint synchronously, once the pending show/resize has settled. Needed when the

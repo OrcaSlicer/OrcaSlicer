@@ -1,0 +1,57 @@
+// Plate icons as targets: {plate_icon, plate} does what a click on the Prepare view's icon does. Lock
+// twice, Plate Settings opened and cancelled, a second plate's two cubes spread by its arrange icon
+// (the reply follows the job), the plate menu from a right click, listed and run, and move to front.
+// Run it on a fresh datadir set up with the default printer (Bambu Lab X1 Carbon 0.4):
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/plate_icons.json --out /tmp/plate_icons
+// The name <-> picking id table is a unit test in tests/slic3rutils/test_mcp_results.cpp; the
+// refusals (an icon the plate does not show, a plate that does not exist, an open gizmo, the Preview)
+// can't be expected in a script.
+{
+  "orca_script": 1,
+  "name": "plate icons",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "Uniform scale", "button": "ok"}]}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "ui_snapshot", "args": {"root": "main", "query": "plate_icon"}, "expect": {"/nodes": {"ge": 7}}},
+
+    // ---- Lock toggles the plate's lock ----
+    {"tool": "ui_click", "args": {"target": {"plate_icon": "lock", "plate": 0}}, "expect": {"/locked": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"plate_icon": "lock", "plate": 0}}, "expect": {"/locked": {"eq": false}}},
+
+    // ---- Settings opens Plate Settings from a posted event; the reply names it ----
+    {"tool": "ui_click", "args": {"target": {"plate_icon": "settings", "plate": 0}},
+     "expect": {"/dialogs/0/title": {"contains": "Plate"}}},
+    {"tool": "dialog_respond", "args": {"dialog": {"title": "Plate Settings"}, "button": "cancel"}},
+
+    // ---- A second plate with two cubes on one spot: its arrange icon spreads them ----
+    {"tool": "ui_click", "args": {"target": {"gltoolbar": "addplate"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "select", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 2},
+      "/items/0/instances/0/plate": {"eq": 1}, "/items/1/instances/0/plate": {"eq": 1},
+      "/items/0/instances/0/offset/1": {"eq": 128.0}, "/items/1/instances/0/offset/1": {"eq": 128.0}}},
+    {"tool": "ui_click", "args": {"target": {"plate_icon": "arrange", "plate": 1}},
+     "expect": {"/started": {"eq": true}, "/done": {"eq": true}}},
+    {"tool": "wait", "args": {"for": "idle", "timeout_s": 2}, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/plate": {"eq": 1}, "/items/1/instances/0/plate": {"eq": 1},
+      "/items/0/instances/0/offset/1": {"ne": 128.0}, "/items/1/instances/0/offset/1": {"ne": 128.0}}},
+
+    // ---- A right click opens the plate menu: listed, or one of its items run ----
+    {"tool": "ui_click", "args": {"target": {"plate_icon": "plate", "plate": 1}, "button": "right"},
+     "expect": {"/popup_menu/items": {"contains": "Edit Plate Name"}}},
+    {"tool": "ui_click", "args": {"target": {"plate_icon": "plate", "plate": 1}, "button": "right", "popup_item": "Lock"},
+     "expect": {"/ran": {"eq": "Lock"}}},
+    {"tool": "ui_click", "args": {"target": {"plate_icon": "lock", "plate": 1}}, "expect": {"/locked": {"eq": false}}},
+
+    // ---- Move to front: the second plate becomes the first, with its cubes ----
+    {"tool": "ui_click", "args": {"target": {"plate_icon": "move_to_front", "plate": 1}}, "expect": {"/current": {"eq": 0}}},
+    {"tool": "get_state", "expect": {"/plates/current": {"eq": 0}, "/plates/count": {"eq": 2}}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/plate": {"eq": 0}, "/items/1/instances/0/plate": {"eq": 0}}},
+    {"tool": "get_state", "expect": {"/dialogs": {"empty": true}, "/closed_menus": {"empty": true}}}
+  ]
+}

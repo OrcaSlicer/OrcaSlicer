@@ -1,0 +1,58 @@
+// Auto-answered dialogs run their buttons' handlers, a toolbar item reads the state a selection just
+// gave it, and model points on a negative part or seen through the bed from below are click targets.
+// Run it on a fresh datadir set up with the default printer (Bambu Lab X1 Carbon 0.4):
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/dialogs_canvas_input.json --out /tmp/dialogs
+// Refusals (a point or an ImGui item under a panel or notification) are unit tests in
+// tests/slic3rutils/test_mcp_results.cpp, since a script step cannot expect an error.
+{
+  "orca_script": 1,
+  "name": "auto-answers and canvas input",
+  "vars": {"standard": "0.20mm Standard @BBL X1C", "fine": "0.16mm High Quality @BBL X1C"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [
+      {"match": "Uniform scale", "button": "ok"},
+      {"match": "unsaved changes", "button": "no"},
+      {"match": "Transfer or discard", "button": "Transfer"}]}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1440, 960]}},
+
+    // ---- An auto-answered Transfer keeps the edit on the newly selected process preset ----
+    {"tool": "select_preset", "args": {"type": "process", "name": "${vars.standard}"}},
+    {"tool": "set_settings", "args": {"scope": "print", "values": {"wall_loops": 5}}},
+    {"tool": "select_preset", "args": {"type": "process", "name": "${vars.fine}"}, "expect": {"/selected": {"eq": "0.16mm High Quality @BBL X1C"}}},
+    {"tool": "get_settings", "args": {"scope": "print", "keys": ["wall_loops"]}, "expect": {"/items/0/value": {"eq": "5"}}},
+    // ---- An auto-answered Discard drops it ----
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "Transfer or discard", "button": "Discard"}]}},
+    {"tool": "select_preset", "args": {"type": "process", "name": "${vars.standard}"}, "expect": {"/selected": {"eq": "0.20mm Standard @BBL X1C"}}},
+    {"tool": "get_settings", "args": {"scope": "print", "keys": ["wall_loops"]}, "expect": {"/items/0/value": {"ne": "5"}}},
+    {"tool": "get_state", "expect": {"/project/dirty": {"eq": false}}},
+
+    // ---- A toolbar item a selection just enabled takes the click at once ----
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "select", "args": {"none": true}},
+    {"tool": "ui_snapshot", "args": {"query": "layersediting"}},
+    {"tool": "select", "args": {"objects": [0]}},
+    {"tool": "ui_click", "args": {"target": {"gltoolbar": "layersediting"}}, "expect": {"/pressed": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"gltoolbar": "layersediting"}}, "expect": {"/pressed": {"eq": false}}},
+
+    // ---- A negative part is a surface target (the text lands on the cube's top) ----
+    {"tool": "set_view", "args": {"camera": "iso"}},
+    {"tool": "set_view", "args": {"camera": "fit_objects"}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Text"}}, "expect": {"/created": {"eq": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Cut"}}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Done"}}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/1/type": {"eq": "negative"}}},
+    // The text's size, and so which of its ends the cube hides, differs between platforms; the step is
+    // about the part resolving as a target, so it skips the visibility check.
+    {"tool": "ui_mouse", "args": {"action": "move", "at": {"object": 0, "volume": 1, "spot": "right"}, "check": "point"}},
+
+    // ---- From below, the bed hides nothing ----
+    {"tool": "set_view", "args": {"camera": "bottom"}},
+    {"tool": "set_view", "args": {"camera": "fit_objects"}},
+    {"tool": "ui_mouse", "args": {"action": "move", "at": {"object": 0, "spot": "bottom"}}},
+    {"tool": "ui_mouse", "args": {"action": "move", "at": {"object": 0, "point": [5, 5, -12.8]}}}
+  ]
+}

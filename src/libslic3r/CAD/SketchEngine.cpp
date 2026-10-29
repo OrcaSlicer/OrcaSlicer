@@ -41,6 +41,7 @@
 #include <BRepBuilderAPI_Transform.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRepOffsetAPI_MakePipe.hxx>
+#include <BRepOffsetAPI_MakePipeShell.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAdaptor_Surface.hxx>
@@ -404,6 +405,19 @@ TopoDS_Shape SketchEngine::make_sweep(const TopoDS_Wire& profile, const TopoDS_W
     BRepOffsetAPI_MakePipe pipe(path, face);
     pipe.Build();
     if (!pipe.IsDone())
+        throw std::runtime_error(_u8L("Failed to sweep profile along path"));
+    return pipe.Shape();
+}
+
+TopoDS_Shape SketchEngine::make_sweep(const TopoDS_Wire& profile, const TopoDS_Wire& path, const gp_Dir& binormal)
+{
+    if (!BRepBuilderAPI_MakeFace(profile).IsDone())   // a closed planar profile, as above
+        throw std::runtime_error(_u8L("Failed to make face from sweep profile"));
+    BRepOffsetAPI_MakePipeShell pipe(path);
+    pipe.SetMode(binormal);
+    pipe.Add(profile);
+    pipe.Build();
+    if (!pipe.IsDone() || !pipe.MakeSolid())
         throw std::runtime_error(_u8L("Failed to sweep profile along path"));
     return pipe.Shape();
 }
@@ -2572,6 +2586,12 @@ ConstraintPlan plan_entity_constraint(const std::vector<SketchEntity>& ents,
     }
     plan.defs.push_back(def);
     return plan;
+}
+
+void write_plan_value(std::vector<SketchEntityConstraintDef>& defs, double v)
+{
+    for (auto& d : defs)
+        d.value = (d.type == SketchConstraintType::Angle) ? v * M_PI / 180.0 : v;
 }
 
 } // namespace Slic3r

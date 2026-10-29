@@ -326,6 +326,22 @@ static bool delete_filament_preset_by_name(std::string delete_preset_name, std::
     return true;
 }
 
+bool delete_unselected_filament_preset(const std::string &name)
+{
+    PresetBundle &bundle                    = *wxGetApp().preset_bundle;
+    std::string   next_selected_preset_name = bundle.filaments.get_selected_preset().name;
+    bool          delete_result             = delete_filament_preset_by_name(name, next_selected_preset_name);
+    BOOST_LOG_TRIVIAL(info) << __LINE__ << " filament preset name: " << name << (delete_result ? " delete successful" : " delete failed");
+
+    // Deleting moved the presets after it, so the selection is made again by name.
+    bundle.filaments.select_preset_by_name(next_selected_preset_name, true);
+    for (size_t i = 0; i < bundle.filament_presets.size(); ++i) {
+        auto preset = bundle.filaments.find_preset(bundle.filament_presets[i]);
+        if (preset == nullptr) bundle.filament_presets[i] = bundle.filaments.get_selected_preset_name();
+    }
+    return delete_result;
+}
+
 static std::string get_curr_time(const char* format = "%Y_%m_%d_%H_%M_%S")
 {
     std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
@@ -363,6 +379,7 @@ static wxBoxSizer* create_checkbox(wxWindow* parent, Preset* preset, wxString& p
 {
     wxBoxSizer *sizer    = new wxBoxSizer(wxHORIZONTAL);
     ::CheckBox *  checkbox = new ::CheckBox(parent);
+    checkbox->SetName(preset_name); // so automation finds the row by the text beside the box
     sizer->Add(checkbox, 0, 0, 0);
     preset_checkbox.push_back(std::make_pair(checkbox, preset));
     wxStaticText *preset_name_str = new wxStaticText(parent, wxID_ANY, preset_name);
@@ -387,6 +404,7 @@ static wxBoxSizer *create_checkbox(wxWindow *parent, wxString &preset_name, std:
 {
     wxBoxSizer *sizer    = new wxBoxSizer(wxHORIZONTAL);
     ::CheckBox *checkbox = new ::CheckBox(parent);
+    checkbox->SetName(preset_name); // so automation finds the row by the text beside the box
     sizer->Add(checkbox, 0, 0, 0);
     preset_checkbox.push_back(std::make_pair(checkbox, into_u8(preset_name)));
     wxStaticText *preset_name_str = new wxStaticText(parent, wxID_ANY, preset_name);
@@ -3602,8 +3620,9 @@ void CreatePresetSuccessfulDialog::on_dpi_changed(const wxRect &suggested_rect) 
     Layout();
 }
 
-ExportConfigsDialog::ExportConfigsDialog(wxWindow *parent)
+ExportConfigsDialog::ExportConfigsDialog(wxWindow *parent, const wxString &export_dir)
     : DPIDialog(parent ? parent : nullptr, wxID_ANY, _L("Export Preset Bundle"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
+    , m_export_dir(export_dir)
 {
     m_exprot_type.preset_bundle   = _L("Printer config bundle(.orca_printer)");
     m_exprot_type.filament_bundle = _L("Filament bundle(.orca_filament)");
@@ -4361,9 +4380,11 @@ wxWindow *ExportConfigsDialog::create_dialog_buttons(wxWindow* parent)
             return;
         }
 
-        wxDirDialog dlg(this, _L("Choose a directory"), "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
-        wxString    path;
-        if (dlg.ShowModal() == wxID_OK) path = dlg.GetPath();
+        wxString path = m_export_dir;
+        if (path.IsEmpty()) {
+            wxDirDialog dlg(this, _L("Choose a directory"), "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+            if (dlg.ShowModal() == wxID_OK) path = dlg.GetPath();
+        }
         ExportCase export_case = ExportCase::EXPORT_CANCEL;
         if (!path.IsEmpty()) {
             wxGetApp().app_config->update_config_dir(into_u8(path));
@@ -4713,16 +4734,7 @@ void EditFilamentPresetDialog::delete_preset()
             return;
         }
 
-        // delete preset
-        std::string next_selected_preset_name = wxGetApp().preset_bundle->filaments.get_selected_preset().name;
-        bool        delete_result             = delete_filament_preset_by_name(need_delete_preset->name, next_selected_preset_name);
-        BOOST_LOG_TRIVIAL(info) << __LINE__ << " filament preset name: " << need_delete_preset->name << (delete_result ? " delete successful" : " delete failed");
-
-        wxGetApp().preset_bundle->filaments.select_preset_by_name(next_selected_preset_name, true);
-        for (size_t i = 0; i < wxGetApp().preset_bundle->filament_presets.size(); ++i) {
-            auto preset = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
-            if (preset == nullptr) wxGetApp().preset_bundle->filament_presets[i] = wxGetApp().preset_bundle->filaments.get_selected_preset_name();
-        }
+        delete_unselected_filament_preset(need_delete_preset->name);
     }
 
     // remove preset shared_ptr from m_printer_compatible_presets

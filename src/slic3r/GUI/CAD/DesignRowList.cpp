@@ -338,6 +338,12 @@ wxRect DesignRowList::cell_rect(const wxRect& row, size_t count, size_t i) const
     return wxRect(x, row.y + (row.height - side) / 2, side, side);
 }
 
+wxRect DesignRowList::action_rect(int row, size_t action) const
+{
+    const wxRect rect = GetItemRect(row);
+    return rect.IsEmpty() ? rect : cell_rect(rect, m_rows[row].actions.size(), action);
+}
+
 wxRect DesignRowList::label_rect(const wxRect& row, const Row& r) const
 {
     int left = row.x + FromDIP(kPadDip);

@@ -1,0 +1,95 @@
+// Rows of lists, trees and tables as targets, and popups as snapshot roots: object list rows (plates,
+// an object, its parts and the Printable column), the object's and a part's menus run from their rows,
+// Compare presets' rows, the object settings table, the print button's popup and a drop-down list. Run
+// it on a fresh datadir set up with the default printer (Bambu Lab X1 Carbon 0.4):
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/rows.json --out /tmp/rows
+// Refusals (a bad column, a row without a checkbox, two rows a locator names) and checklist rows (the
+// Add Settings checklist is on no FFF menu) are unit tests in tests/slic3rutils/test_mcp_results.cpp.
+{
+  "orca_script": 1,
+  "name": "rows and popups",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [
+      {"match": "Uniform scale", "button": "ok"},
+      {"match": "per-object setting mode", "button": "ok"}]}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1440, 960]}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+
+    // ---- The object list shows while the sidebar's switch is on Objects ----
+    {"tool": "ui_input", "args": {"target": {"class": "SwitchButton", "label": "Process"}, "value": true}},
+    {"tool": "ui_snapshot", "args": {"root": "main", "query": "row"}, "expect": {"/nodes": {"ge": 2}}},
+
+    // ---- Plate rows pick the plate ----
+    {"tool": "ui_click", "args": {"target": {"gltoolbar": "addplate"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "ui_click", "args": {"target": {"row": "Plate 2"}}, "expect": {"/selected": {"eq": ["Plate 2"]}}},
+    {"tool": "get_state", "expect": {"/plates/current": {"eq": 1}}},
+    {"tool": "ui_click", "args": {"target": {"row": "Plate 1"}}},
+    {"tool": "get_state", "expect": {"/plates/current": {"eq": 0}}},
+
+    // ---- An object row: selected as a click selects it, its menu listed and run ----
+    {"tool": "select", "args": {"none": true}},
+    {"tool": "ui_click", "args": {"target": {"row": "Cube"}}, "expect": {"/selected": {"eq": ["Plate 1>Cube"]}}},
+    {"tool": "ui_click", "args": {"target": {"row": "Cube"}, "button": "right"},
+     "expect": {"/popup_menu/items": {"contains": "Add Modifier>Cylinder"}}},
+    {"tool": "ui_click", "args": {"target": {"row": "Cube"}, "button": "right", "popup_item": "Add Modifier>Cylinder"},
+     "expect": {"/ran": {"eq": "Add Modifier>Cylinder"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/1/type": {"eq": "modifier"}}},
+
+    // ---- Part rows: a click, Ctrl adds another; a right click keeps a selection it is in, so the part
+    // is clicked alone before its menu changes its type ----
+    {"tool": "ui_click", "args": {"target": {"row": "Cube>Generic-Cylinder"}}, "expect": {"/selected": {"eq": ["Plate 1>Cube>Generic-Cylinder"]}}},
+    {"tool": "ui_click", "args": {"target": {"row": "Cube>Cube"}, "modifiers": ["ctrl"]},
+     "expect": {"/selected": {"eq": ["Plate 1>Cube>Cube", "Plate 1>Cube>Generic-Cylinder"]}}},
+    {"tool": "ui_click", "args": {"target": {"row": "Cube>Generic-Cylinder"}}},
+    {"tool": "ui_click", "args": {"target": {"row": "Cube>Generic-Cylinder"}, "button": "right", "popup_item": "Change Type>Negative Part"},
+     "expect": {"/ran": {"eq": "Change Type>Negative Part"}}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/1/type": {"eq": "negative"}}},
+
+    // ---- The Printable column acts as a click on its icon; a double click frames the object ----
+    {"tool": "ui_click", "args": {"target": {"row": "Plate 1>Cube", "column": "Printable"}}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/printable": {"eq": false}}},
+    {"tool": "ui_click", "args": {"target": {"row": "Plate 1>Cube", "column": "Printable"}}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/printable": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"row": "Plate 1>Cube"}, "double": true}, "expect": {"/selected": {"eq": ["Plate 1>Cube"]}}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 1}, "/items/0/instances/0/printable": {"eq": true}}},
+
+    // ---- Compare presets: a data view's rows, with both presets' values ----
+    {"tool": "ui_click", "args": {"target": {"label": "Compare presets"}}},
+    {"tool": "ui_input", "args": {"target": {"class": "PresetComboBox", "within": "Compare presets", "index": 5}, "value": "0.12mm Fine @BBL X1C"}},
+    {"tool": "ui_click", "args": {"target": {"row": "Quality>Layer height>Layer height", "within": "Compare presets"}},
+     "expect": {"/clicked": {"contains": "Quality>Layer height>Layer height"}}},
+    {"tool": "ui_key", "args": {"target": {"class": "DiffPresetDialog"}, "keys": "Escape"}},
+
+    // ---- The object settings table: rows named by their Name cell, read-only ----
+    {"tool": "ui_click", "args": {"target": {"row": "Plate 1>Cube"}, "button": "right", "popup_item": "Edit in Parameter Table"},
+     "await": false, "save_as": "table"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "ui_snapshot", "args": {"root": "dialog", "query": "Generic-Cylinder"}, "expect": {"/nodes": {"eq": 1}}},
+    {"tool": "ui_click", "args": {"target": {"row": "Generic-Cylinder", "within": "Object/Part Settings", "column": "Wall loops"}},
+     "expect": {"/column": {"eq": "Wall loops"}}},
+    {"tool": "dialog_respond", "args": {"dialog": {"title": "Object/Part Settings"}, "button": "close"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.table}"}},
+
+    // ---- The print button's popup: listed as a root, one of its buttons picked ----
+    {"tool": "ui_click", "args": {"target": {"class": "SideButton", "index": 3}}},
+    {"tool": "ui_snapshot", "args": {"root": "popup", "query": "Export plate sliced file"}, "expect": {"/nodes": {"eq": 1}}},
+    {"tool": "ui_click", "args": {"target": {"class": "SideButton", "label": "Export plate sliced file"}}},
+    {"tool": "ui_snapshot", "args": {"root": "popup"}, "expect": {"/nodes": {"eq": 0}}},
+    {"tool": "ui_snapshot", "args": {"root": "main", "query": "Export plate sliced file", "include_menus": false}, "expect": {"/nodes": {"eq": 1}}},
+
+    // ---- A drop-down list's rows: the plate type, picked, then put back through the combo itself (a
+    // press within 20 ms of its list closing, which a script can make, does not reopen it) ----
+    {"tool": "ui_click", "args": {"target": {"class": "ComboBox", "label": "Smooth Cool Plate"}}},
+    {"tool": "ui_snapshot", "args": {"root": "popup", "query": "row"}, "expect": {"/nodes": {"ge": 2}}},
+    {"tool": "ui_click", "args": {"target": {"row": "Textured PEI Plate"}}, "expect": {"/clicked": {"eq": "Textured PEI Plate"}}},
+    {"tool": "ui_snapshot", "args": {"root": "main", "query": "Textured PEI Plate"}, "expect": {"/nodes": {"eq": 1}}},
+    {"tool": "ui_input", "args": {"target": {"class": "ComboBox", "label": "Textured PEI Plate"}, "value": "Smooth Cool Plate"}},
+    {"tool": "ui_snapshot", "args": {"root": "main", "query": "Smooth Cool Plate"}, "expect": {"/nodes": {"eq": 1}}},
+    {"tool": "get_state", "expect": {"/dialogs": {"empty": true}, "/closed_menus": {"empty": true}}}
+  ]
+}

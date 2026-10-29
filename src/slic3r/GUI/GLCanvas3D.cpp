@@ -806,6 +806,9 @@ void GLCanvas3D::LayersEditing::adaptive_layer_height_profile(GLCanvas3D & canva
 void GLCanvas3D::LayersEditing::smooth_layer_height_profile(GLCanvas3D & canvas, const HeightProfileSmoothingParams & smoothing_params)
 {
     this->update_slicing_parameters();
+    // A frame of the open panel has loaded the profile already; without one, start from the object's
+    // profile, or the one its height ranges give.
+    PrintObject::update_layer_height_profile(*m_model_object, *m_slicing_parameters, m_layer_height_profile);
     m_layer_height_profile = smooth_height_profile(m_layer_height_profile, *m_slicing_parameters, smoothing_params);
     const_cast<ModelObject*>(m_model_object)->layer_height_profile.set(m_layer_height_profile);
     m_layers_texture.valid = false;
@@ -1605,6 +1608,21 @@ GLCanvas3D::ArrangeSettings& GLCanvas3D::get_arrange_settings()
     return *ptr;
 }
 
+void GLCanvas3D::store_arrange_settings()
+{
+    // The panel's keys: spacing and rotation carry the print mode's postfix, the material rule is
+    // one key for every mode. Align to Y axis is not stored.
+    const PrinterTechnology ptech   = current_printer_technology();
+    const std::string       postfix = ptech == ptSLA ? "_sla" :
+                                      wxGetApp().global_print_sequence() == PrintSequence::ByObject ? "_fff_seq_print" : "_fff";
+    const ArrangeSettings&  settings = get_arrange_settings();
+    AppConfig*              appcfg   = wxGetApp().app_config;
+    appcfg->set("arrange", "min_object_distance" + postfix, float_to_string_decimal_point(settings.distance));
+    appcfg->set("arrange", "enable_rotation" + postfix, settings.enable_rotation);
+    if (ptech == ptFFF)
+        appcfg->set("arrange", "allow_multi_materials_on_same_plate", settings.allow_multi_materials_on_same_plate);
+}
+
 int GLCanvas3D::GetHoverId()
 {
     if (m_hover_plate_idxs.size() == 0) {
@@ -2299,8 +2317,22 @@ BoundingBoxf3 GLCanvas3D::plate_scene_bounding_box(int plate_idx) const
     return bb;
 }
 
+// The Variable layer height panel's buttons act on the object its last frame picked, with the profile
+// that frame drew. A caller without the panel open (MCP) has had no such frame, so the selected object
+// is picked here, from its model profile; with the panel open this is the frame's own pick.
+bool GLCanvas3D::_select_layers_editing_object()
+{
+    if (!m_layers_editing.is_enabled())
+        m_layers_editing.select_object(*m_model, -1);
+    const int idx = m_selection.get_object_idx();
+    m_layers_editing.select_object(*m_model, 0 <= idx && idx < int(m_model->objects.size()) ? idx : -1);
+    return m_layers_editing.last_object_id >= 0;
+}
+
 void GLCanvas3D::reset_layer_height_profile()
 {
+    if (!_select_layers_editing_object())
+        return;
     wxGetApp().plater()->take_snapshot("Variable layer height - Reset");
     m_layers_editing.reset_layer_height_profile(*this);
     m_layers_editing.state = LayersEditing::Completed;
@@ -2309,6 +2341,8 @@ void GLCanvas3D::reset_layer_height_profile()
 
 void GLCanvas3D::adaptive_layer_height_profile(float quality_factor)
 {
+    if (!_select_layers_editing_object())
+        return;
     wxGetApp().plater()->take_snapshot("Variable layer height - Adaptive");
     m_layers_editing.adaptive_layer_height_profile(*this, quality_factor);
     m_layers_editing.state = LayersEditing::Completed;
@@ -2317,6 +2351,8 @@ void GLCanvas3D::adaptive_layer_height_profile(float quality_factor)
 
 void GLCanvas3D::smooth_layer_height_profile(const HeightProfileSmoothingParams& smoothing_params)
 {
+    if (!_select_layers_editing_object())
+        return;
     wxGetApp().plater()->take_snapshot("Variable layer height - Smooth all");
     m_layers_editing.smooth_layer_height_profile(*this, smoothing_params);
     m_layers_editing.state = LayersEditing::Completed;
@@ -2525,7 +2561,7 @@ bool GLCanvas3D::render_and_capture(wxImage& out, std::string& err)
         return false;
     }
     if (m_canvas == nullptr || !_is_shown_on_screen()) {
-        err = "The 3D view is not shown; switch to the Prepare or Preview tab first (the Design tab's view can't be captured; use target window)";
+        err = "The 3D view is not shown; switch to its tab first";
         return false;
     }
     out = wxImage();
@@ -5474,12 +5510,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // in which case it must not be treated as a click on the plate, otherwise the gizmo would be closed (see deselect_all below).
         else if (evt.LeftUp() && !m_mouse.ignore_left_up && !m_mouse.dragging && m_picking_enabled && !m_hover_plate_idxs.empty() && (m_canvas_type == CanvasView3D) && !is_layers_editing_enabled())
         {
-                int hover_idx = m_hover_plate_idxs.front();
-                wxGetApp().plater()->select_plate_by_hover_id(hover_idx);
-                //wxGetApp().plater()->get_partplate_list().select_plate_view();
-                //deselect all the objects
-                if (m_gizmos.get_current_type() != GLGizmosManager::MeshBoolean && m_hover_volume_idxs.empty())
-                    deselect_all();
+                click_plate(m_hover_plate_idxs.front(), false, Vec2d::Zero());
         }
         else if (evt.RightUp() && !is_layers_editing_enabled()) {
             // forces a frame render to ensure that m_hover_volume_idxs is updated even when the user right clicks while
@@ -5507,40 +5538,26 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 }
             }
 
-            //BBS change plate selection
-            bool plate_icon_popup_shown = false;
-            if (!m_hover_plate_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.dragging) {
-                int hover_idx = m_hover_plate_idxs.front();
-                plate_icon_popup_shown = (wxGetApp().plater()->select_plate_by_hover_id(hover_idx, true) == 1);
-                if (m_hover_volume_idxs.empty())
-                    deselect_all();
-                render();
-            }
-
-            //ORCA allow right click on empty space while an object selected
-            if (m_hover_plate_idxs.empty() && m_hover_volume_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.dragging) {
-                deselect_all();
-                render();
-            }
-
             Vec2d logical_pos = pos.cast<double>();
 #if ENABLE_RETINA_GL
             const float factor = m_retina_helper->get_scale_factor();
             logical_pos = logical_pos.cwiseQuotient(Vec2d(factor, factor));
 #endif // ENABLE_RETINA_GL
 
-            if (!m_mouse.ignore_right_up && m_gizmos.get_current_type() == GLGizmosManager::EType::Undefined) {
-                //BBS post right click event
-                if (!m_hover_plate_idxs.empty() && !plate_icon_popup_shown) {
-                    post_event(RBtnPlateEvent(EVT_GLCANVAS_PLATE_RIGHT_CLICK, { logical_pos, m_hover_plate_idxs.front() }));
+            //BBS change plate selection
+            if (!m_hover_plate_idxs.empty())
+                click_plate(m_hover_plate_idxs.front(), true, logical_pos);
+            else {
+                //ORCA allow right click on empty space while an object selected
+                if (m_hover_volume_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.dragging) {
+                    deselect_all();
+                    render();
                 }
-                else if (!plate_icon_popup_shown) {
-                    // do not post the event if the user is panning the scene
-                    // or if right click was done over the wipe tower
-                    bool post_right_click_event = m_hover_volume_idxs.empty() || !m_volumes.volumes[get_first_hover_volume_idx()]->is_wipe_tower;
-                    if (post_right_click_event)
-                        post_event(RBtnEvent(EVT_GLCANVAS_RIGHT_CLICK, { logical_pos, m_hover_volume_idxs.empty() }));
-                }
+                // do not post the event if the user is panning the scene
+                // or if right click was done over the wipe tower
+                if (!m_mouse.ignore_right_up && m_gizmos.get_current_type() == GLGizmosManager::EType::Undefined &&
+                    (m_hover_volume_idxs.empty() || !m_volumes.volumes[get_first_hover_volume_idx()]->is_wipe_tower))
+                    post_event(RBtnEvent(EVT_GLCANVAS_RIGHT_CLICK, { logical_pos, m_hover_volume_idxs.empty() }));
             }
         }
 
@@ -5599,6 +5616,27 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 	if (on_enter_workaround)
 		m_mouse.position = Vec2d(-1., -1.);
 #endif /* __WXMSW__ */
+}
+
+void GLCanvas3D::click_plate(int picking_id, bool right_click, const Vec2d& logical_pos)
+{
+    if (!right_click) {
+        wxGetApp().plater()->select_plate_by_hover_id(picking_id);
+        //deselect all the objects
+        if (m_gizmos.get_current_type() != GLGizmosManager::MeshBoolean && m_hover_volume_idxs.empty())
+            deselect_all();
+        return;
+    }
+    bool plate_icon_popup_shown = false;
+    if ((m_canvas_type == CanvasView3D) && !m_mouse.dragging) {
+        plate_icon_popup_shown = (wxGetApp().plater()->select_plate_by_hover_id(picking_id, true) == 1);
+        if (m_hover_volume_idxs.empty())
+            deselect_all();
+        render();
+    }
+    //BBS post right click event
+    if (!m_mouse.ignore_right_up && m_gizmos.get_current_type() == GLGizmosManager::EType::Undefined && !plate_icon_popup_shown)
+        post_event(RBtnPlateEvent(EVT_GLCANVAS_PLATE_RIGHT_CLICK, { logical_pos, picking_id }));
 }
 
 void GLCanvas3D::on_paint(wxPaintEvent& evt)
@@ -7094,9 +7132,10 @@ void GLCanvas3D::render_thumbnail_internal(ThumbnailData& thumbnail_data, const 
         camera.apply_projection(volumes_box);
     }
 
-    //GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
-    if (!for_picking && (shader == nullptr)) {
-        BOOST_LOG_TRIVIAL(info) <<  boost::format("render_thumbnail with no picking: shader is null, return directly");
+    // Both passes draw with a shader, which is null until OpenGL has loaded the shaders or when one
+    // failed to load.
+    if (shader == nullptr) {
+        BOOST_LOG_TRIVIAL(info) << boost::format("render_thumbnail: shader is null (for_picking=%1%), return directly") % for_picking;
         return;
     }
 
@@ -10055,12 +10094,7 @@ void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
     IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
     IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
 
-    if (layers_slider->is_need_post_tick_event()) {
-        auto evt = new wxCommandEvent(EVT_CUSTOMEVT_TICKSCHANGED, m_canvas->GetId());
-        evt->SetInt((int)layers_slider->get_post_tick_event_type());
-        wxPostEvent(m_canvas, *evt);
-        layers_slider->reset_post_tick_event();
-    }
+    send_layer_ticks_changes();
 
     if (layers_slider->is_dirty()) {
         set_volumes_z_range({layers_slider->GetLowerValueD(), layers_slider->GetHigherValueD()});
@@ -10075,6 +10109,17 @@ void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
         moves_slider->set_as_dirty(false);
         m_gcode_viewer.update_sequential_view_current((moves_slider->GetLowerValueD() - 1.0), static_cast<unsigned int>(moves_slider->GetHigherValueD() - 1.0));
         post_event(SimpleEvent(EVT_GLCANVAS_UPDATE));
+    }
+}
+
+void GLCanvas3D::send_layer_ticks_changes()
+{
+    IMSlider* layers_slider = m_gcode_viewer.get_layers_slider();
+    if (layers_slider->is_need_post_tick_event()) {
+        wxCommandEvent evt(EVT_CUSTOMEVT_TICKSCHANGED, m_canvas->GetId());
+        evt.SetInt((int)layers_slider->get_post_tick_event_type());
+        wxPostEvent(m_canvas, evt);
+        layers_slider->reset_post_tick_event();
     }
 }
 

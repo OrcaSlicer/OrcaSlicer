@@ -458,11 +458,8 @@ evaluate_variables(const std::map<std::string, std::string>& variables)
     return done;
 }
 
-// Write `value` into the CadFeature numeric field named `field`. Allow-list of
-// the geometric dimension fields a variable realistically drives. Integer-valued
-// fields are rounded. Throws std::runtime_error("unknown parameter: " + field)
-// for anything not in the list.
-static void assign_field(CadFeature& f, const std::string& field, double value)
+// The allow-list is the geometric dimensions a variable realistically drives.
+void CadDocument::set_numeric_field(CadFeature& f, const std::string& field, double value)
 {
     // double fields (alphabetical)
     if (field == "bool_tolerance")    { f.bool_tolerance = value; return; }
@@ -531,7 +528,7 @@ bool CadDocument::produces_body(CadFeatureType t)
 bool CadDocument::is_bindable_field(const std::string& field)
 {
     CadFeature probe;
-    try { assign_field(probe, field, 0.0); return true; }
+    try { set_numeric_field(probe, field, 0.0); return true; }
     catch (const std::exception&) { return false; }
 }
 
@@ -1650,6 +1647,95 @@ bool CadDocument::plane_of_face(int body_idx, int face_idx, SketchPlane& out) co
     return true;
 }
 
+bool CadDocument::inward_plane_of_face(int body_idx, int face_idx, SketchPlane& out) const
+{
+    if (face_idx < 0 || body_idx < 0 || body_idx >= int(bodies.size())) return false;
+    const TopoDS_Face face = GeometryEngine::face_by_index(bodies[body_idx].shape, face_idx);
+    if (face.IsNull()) return false;
+    SketchPlane p;
+    p.origin = GeometryEngine::face_centroid_world(face);
+    p.normal = (-GeometryEngine::face_normal_world(face)).normalized();   // inward
+    Vec3d x(0, 0, 0); double best = 0;
+    for (const TopoDS_Edge& e : GeometryEngine::edges_of_face(face)) {
+        const std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
+        if (pts.size() < 2) continue;
+        Vec3d d = pts.back() - pts.front();
+        d = d - p.normal * d.dot(p.normal);        // project the edge direction into the plane
+        const double len = d.norm();
+        if (len > best) { best = len; x = d / len; }
+    }
+    if (best < 1e-9) {   // curved/edgeless face: an arbitrary in-plane basis; a hole is round anyway
+        const Vec3d ref = std::abs(p.normal.z()) < 0.9 ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+        x = ref.cross(p.normal).normalized();
+    }
+    p.x_axis = x.normalized();
+    p.y_axis = p.normal.cross(p.x_axis).normalized();
+    out = p;
+    return true;
+}
+
+bool CadDocument::thread_target(int body_idx, int face, int edge, SketchPlane& plane, GeometryEngine::CylinderFace& cyl,
+                                bool* from_face) const
+{
+    cyl = GeometryEngine::CylinderFace();
+    if (body_idx >= 0 && body_idx < int(bodies.size())) {
+        const TopoDS_Shape& shape = bodies[body_idx].shape;
+        if (face >= 0) cyl = GeometryEngine::cylinder_of_face(GeometryEngine::face_by_index(shape, face));
+        if (from_face != nullptr) *from_face = cyl.ok;
+        if (!cyl.ok && edge >= 0) cyl = GeometryEngine::circle_of_edge(GeometryEngine::edge_by_index(shape, edge));
+    } else if (from_face != nullptr) {
+        *from_face = false;
+    }
+    if (!cyl.ok) return false;
+    plane = frame_from(cyl.base, cyl.axis);
+    return true;
+}
+
+std::string CadDocument::datum_plane_refusal(const CadFeature& f) const
+{
+    auto face_of = [&](int body, int face) {
+        return face < 0 || body < 0 || body >= int(bodies.size()) ? TopoDS_Face()
+                                                                   : GeometryEngine::face_by_index(bodies[body].shape, face);
+    };
+    // As resolve_datum_planes() reads an edge: one it can sample end to end.
+    auto edge_on = [&](int body, int edge) {
+        if (edge < 0 || body < 0 || body >= int(bodies.size())) return false;
+        const TopoDS_Edge e = GeometryEngine::edge_by_index(bodies[body].shape, edge);
+        return !e.IsNull() && GeometryEngine::sample_edge_world(e).size() >= 2;
+    };
+    const bool faceA_on = !face_of(f.plane_face_body, f.plane_face).IsNull();
+    const char* gone    = L("A picked face or edge is no longer on the model — pick it again");
+    switch (f.plane_type) {
+    case PlaneType::Offset:
+    case PlaneType::Coincident:
+        // Face A is optional here; without it the plane is built from the base plane.
+        if (f.plane_face >= 0 && !faceA_on) return gone;
+        break;
+    case PlaneType::Angle:
+        if (f.plane_edge < 0) return L("An angled plane needs an edge to tilt about — pick Edge A");
+        if (!edge_on(f.plane_edge_body, f.plane_edge) || (f.plane_face >= 0 && !faceA_on)) return gone;
+        break;
+    case PlaneType::Midplane:
+        if (f.plane_face < 0 || f.plane_face2 < 0) return L("A midplane needs two faces — pick Face A and Face B");
+        // Well-defined but useless: the midplane of a face with itself is that same face.
+        if (f.plane_face == f.plane_face2 && f.plane_face_body == f.plane_face2_body)
+            return L("Face A and Face B are the same face — a midplane needs two different faces");
+        if (!faceA_on || face_of(f.plane_face2_body, f.plane_face2).IsNull()) return gone;
+        break;
+    case PlaneType::Tangent:
+        if (f.plane_face < 0) return L("A tangent plane needs a cylindrical face — pick Face A");
+        if (!faceA_on) return gone;
+        if (!GeometryEngine::cylinder_of_face(face_of(f.plane_face_body, f.plane_face)).ok)
+            return L("A tangent plane needs a cylindrical face — pick Face A");
+        break;
+    case PlaneType::TwoEdges:
+        if (f.plane_edge < 0 || f.plane_edge2 < 0) return L("This plane needs two edges — pick Edge A and Edge B");
+        if (!edge_on(f.plane_edge_body, f.plane_edge) || !edge_on(f.plane_edge2_body, f.plane_edge2)) return gone;
+        break;
+    }
+    return {};
+}
+
 std::vector<std::pair<std::string, SketchPlane>> CadDocument::resolve_datum_planes() const
 {
     std::vector<std::pair<std::string, SketchPlane>> out;
@@ -2043,20 +2129,25 @@ void CadDocument::clear()
     // A cleared document is a fresh start with no history.
     m_undo.clear();
     m_redo.clear();
+    m_redo_at_checkpoint.clear();
 }
 
 void CadDocument::checkpoint()
 {
     m_undo.push_back(Snapshot{features, variables});   // snapshot the pre-mutation recipe
-    m_redo.clear();                                    // any new action invalidates the redo branch
+    m_redo_at_checkpoint = std::move(m_redo);          // any new action invalidates the redo branch
+    m_redo.clear();
     if (m_undo.size() > k_undo_cap)
         m_undo.erase(m_undo.begin());
 }
 
 void CadDocument::abandon_checkpoint()
 {
-    if (!m_undo.empty())
-        m_undo.pop_back();
+    if (m_undo.empty())
+        return;
+    m_undo.pop_back();
+    m_redo = std::move(m_redo_at_checkpoint);   // nothing happened, so what was redoable still is
+    m_redo_at_checkpoint.clear();
 }
 
 bool CadDocument::undo()
@@ -2079,6 +2170,19 @@ bool CadDocument::redo()
     features  = std::move(m_redo.back().features);
     variables = std::move(m_redo.back().variables);
     m_redo.pop_back();
+    recompute();
+    return true;
+}
+
+bool CadDocument::rollback()
+{
+    if (m_undo.empty())
+        return false;
+    features  = std::move(m_undo.back().features);
+    variables = std::move(m_undo.back().variables);
+    m_undo.pop_back();
+    m_redo = std::move(m_redo_at_checkpoint);
+    m_redo_at_checkpoint.clear();
     recompute();
     return true;
 }
@@ -2166,15 +2270,6 @@ static void settle_body_refs(CadFeature& f, const std::vector<CadBody>& v, bool 
     });
 }
 
-// Datum-plane ordinals: plane_base, axis_plane_a, axis_plane_b hold 3 + N.
-template<class Visit>
-static void for_each_datum_ref(CadFeature& f, Visit&& visit)
-{
-    visit(f.plane_base);
-    visit(f.axis_plane_a);
-    visit(f.axis_plane_b);
-}
-
 // Prepare every reference for a change of history in which feature `i` ends up at
 // `map_feature(i)` (-1 = removed) and enabled as `enabled_after(i)`. Runs on the OLD history and
 // writes into `features` in the old order; the caller then performs the change.
@@ -2202,7 +2297,7 @@ static void stage_history_change(std::vector<CadFeature>& features,
     for (int j = 0; j < n; ++j) {
         if (map_feature(j) < 0) continue;
         CadFeature& f = features[j];
-        for_each_datum_ref(f, [&](int& ref) {
+        CadDocument::for_each_datum_ref(f, [&](int& ref) {
             if (ref < 3) return;
             const int N = ref - 3;
             const int oldf = (N < int(planes_before.size())) ? planes_before[N] : -1;
@@ -2258,33 +2353,6 @@ static bool commit_or_rollback(CadDocument& doc, std::vector<CadFeature>& snapsh
     doc.error = fail_err.empty() ? _u8L("feature is used by a later feature")
                                  : fail_err;
     return false;
-}
-
-// Visit every field of `f` that holds an index into features[].
-//
-// Deliberately NOT dispatched on f.type. A type switch is what this replaced, and it was
-// wrong in the way type switches go wrong: it listed Extrude and Mate, and every feature
-// type added afterwards — Revolve, Sweep, Loft, Rib, Pattern-on-curve, the Surface* family —
-// silently inherited a remap that skipped its references. Visiting the FIELDS instead means
-// a new type is covered the moment it reuses one of them, and reaching a field its type
-// never reads costs nothing: unset refs are -1 and every visitor here ignores those.
-//
-// The list is exactly the fields documented as "index into features[]" / "feature index" in
-// CadDocument.hpp. Not included, because they are a different basis and need their own pass:
-// plane_base / axis_plane_a / axis_plane_b encode `3 + N` = the Nth DATUM PLANE, an ordinal
-// into resolve_datum_planes(), not into features[]. Everything named *_body / *_face / *_edge
-// is a body index or a global topology id and must never be remapped here.
-template<class Visit>
-static void for_each_feature_ref(CadFeature& f, Visit&& visit)
-{
-    visit(f.sketch_ref);
-    visit(f.sweep_path_ref);
-    visit(f.pattern_curve_sketch);
-    visit(f.rib_sketch_ref);
-    visit(f.mate_cs_a);
-    visit(f.mate_cs_b);
-    for (int& r : f.loft_profile_refs)
-        visit(r);
 }
 
 bool CadDocument::remove_feature(int index)
@@ -2816,7 +2884,11 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             throw std::runtime_error(_u8L("sweep path must be a sketch or helix"));
         }
         TopoDS_Wire profile = build_sketch_wire(sk, true);
-        TopoDS_Shape tool   = SketchEngine::make_sweep(profile, path);
+        // Along a helix the profile keeps its angle to the helix axis, as a spring's wire does.
+        const Vec3d& axis = path_feat.plane.normal;
+        TopoDS_Shape tool = path_feat.type == CadFeatureType::Helix
+                                ? SketchEngine::make_sweep(profile, path, gp_Dir(axis.x(), axis.y(), axis.z()))
+                                : SketchEngine::make_sweep(profile, path);
         if (!have_body || f.mode == BooleanMode::New) {
             result = tool;
             have_body = true;
@@ -4033,12 +4105,22 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
     }
 }
 
+std::map<std::string, double> CadDocument::variable_values(std::string& err) const
+{
+    try {
+        return evaluate_variables(variables);
+    } catch (const std::exception& e) {
+        err = e.what();
+        return {};
+    }
+}
+
 void CadDocument::bind_expressions()
 {
     std::map<std::string, double> varvals = evaluate_variables(variables);
     for (CadFeature& f : features)
         for (const auto& [field, e] : f.expr)
-            assign_field(f, field, eval_expr(e, varvals));
+            set_numeric_field(f, field, eval_expr(e, varvals));
 }
 
 void CadDocument::replay_feature(size_t fi, std::vector<CadBody>& built)

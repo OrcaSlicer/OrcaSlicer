@@ -43,9 +43,12 @@ public:
     // `generation` (any thread) counts UI rebuilds; a closure posted before a rebuild does not run
     // after it. `open_dialogs` (any thread) describes the open modals outermost first, as
     // ModalTracker::snapshot() does; it names a native dialog that holds the UI thread when the
-    // UI thread itself can't answer.
+    // UI thread itself can't answer. `activity` (UI thread) is told when a closure that passed its
+    // guards starts (`running` true) and when it ends, with the calling tool's name: the GUI
+    // automation keeps native menus from opening while a call acts on the UI.
     UiInvoker(UiDispatcher& dispatcher, std::function<GuardState()> guards_on_ui, std::function<uint64_t()> generation = {},
-              std::function<nlohmann::json()> open_dialogs = {});
+              std::function<nlohmann::json()> open_dialogs = {},
+              std::function<void(const std::string& tool, bool running)> activity = {});
     ~UiInvoker();
 
     // Runs `fn` on the UI thread under `guard` and returns its value. Throws ToolFailure when a

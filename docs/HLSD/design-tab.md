@@ -14,7 +14,8 @@ Its coupling to the rest of the application is deliberately narrow. It adds no s
 slicing pipeline and touches neither the preset system nor `Tab`. It reaches the rest of Orca
 in two places: **Commit to Plate**, which hands finished solids to Prepare as ordinary model
 objects (by default one assembly object with a part per body, which keeps the bodies' relative
-placement, or one object per body), and one optional 3MF archive entry that carries the recipe.
+placement, or one object per body) in one Prepare undo step, named after the bodies the user
+named, and one optional 3MF archive entry that carries the recipe.
 Everything else is contained in `src/libslic3r/CAD/` and `src/slic3r/GUI/CAD/`.
 
 The user-facing manual lives in the wiki
@@ -122,6 +123,13 @@ bundled OCCT can no longer read it.
 A Text feature follows the same rule: it stores the outlines it was vectorised into alongside
 its string, font and height, so the project opens identically on a machine that lacks the font;
 the three parameters are only what an edit reopens the dialog with.
+
+The recipe is copied into `Model::cad_recipe` after every document change
+(`DesignPanel::sync_recipe_to_model()`), so every save path writes it. A change marks the project
+modified the way other project data outside Prepare's undo stack does, with the backup's change
+mark and the plater's dirty flag, so the title, autosave and the unsaved-changes prompt of New
+Project and Open all see it. A project that holds only a design loads no objects; it still opens
+under its file's name, since `Plater::load_project()` counts a loaded recipe as a loaded project.
 
 ## The interaction contract
 
@@ -310,7 +318,10 @@ The tab is a page of Orca's main window and answers to the same settings as Prep
   frame and was left floating over other applications.
 - **Undo.** The tab keeps its own history (the recipe is not part of Prepare's snapshots), but
   it has no Undo/Redo of its own: the top bar, `Ctrl+Z` and Edit drive it while the tab is
-  shown, greyed to what an undo would actually do.
+  shown, greyed to what an undo would actually do. Every change to the recipe is one step, a
+  feature rename included, and an edit the kernel refuses leaves none and keeps what was
+  redoable. A body's name and colour are saved with the recipe but are not in the history, and
+  its visibility is view state.
 - **Docking.** The sidebar docks like Prepare's — either side, floating, resized, or collapsed
   with the canvas's collapse button or `Shift+Tab` — through its own AUI manager under the
   toolbar, because Prepare's manages the Plater and the Plater is not on this page. The button is
@@ -347,9 +358,70 @@ for a checked-in header, not documentation.
 ## Automation surface
 
 `McpControl` exposes the document over JSON-RPC when `ORCA_CAD_MCP` is set in the environment,
-with `tools/orca_cad_mcp_bridge.py` as the client side. It describes the scene, queries
-topology, measures, and runs the same verbs the offer does — it re-implements nothing, so a
-scripted action and a clicked one cannot diverge. It is off unless the variable is set.
+with `tools/orca_cad_mcp_bridge.py` as the client side, and to the app's MCP server through its
+`cad_call` tool on every platform. It describes the scene, queries topology, measures, and runs
+the same verbs the offer does — it re-implements nothing, so a scripted action and a clicked one
+cannot diverge. The socket is off unless the variable is set. Where a GUI action is bound to a
+selection, a card or a dialog, its work is split into a function both callers share, and the
+automation calls that function with explicit arguments instead of driving the widgets.
+
+Its methods add features through the kernel calls the cards use, named as the cards name them,
+one checkpoint per call. A rebuild that fails is taken back with `CadDocument::rollback()`, which
+leaves nothing to redo, and the status line says "Edit rejected" as it does for a refused GUI
+edit; the call reports the kernel's reason. Planes are named as in the cards: a
+base plane through the modeling origin, the frame every feature uses, a datum Plane feature, or a
+planar face, where a hole drills from the Hole card's inward face plane
+(`CadDocument::inward_plane_of_face()`, shared with the card). A feature is read and edited as its
+card shows it: `describe_feature` and `set_feature` share one table of each type's card fields and
+ranges, and an edit goes through `replace_feature()` as the card's Confirm does in edit mode.
+
+Commit to Plate and Export STEP… are split from their button and file dialog
+(`commit_to_plate()`, `export_step_to()`), so `commit` and `export_step` run the GUI's own work,
+and `new_design` is New Design's `clear_document()` without the confirmation. The Feature tree's
+and Bodies list's row actions are split the same way, into cores that take an index
+(`delete_feature()`, `move_feature()`, `show_feature()`, `rename_feature()`, `delete_body()`,
+`rename_body()`, `set_body_color()`, `show_body()`), which the rows call with the selected one and
+the automation calls without selecting anything; `undo` and `redo` are Edit > Undo and Redo.
+
+A sketch session opens through `begin_sketch_session()`, which a plane or face pick also runs, on
+the same plane frames, so a sketch on a base plane passes through the modeling origin. Committing an
+empty sketch is refused and leaves the session open. `extrude` and `revolve` take a committed
+sketch, or one of its loops, as their cards do; a committed sketch's loops come from
+`DesignSketchTool::loop_report(entities)`, numbered as the viewport's loop pick numbers them.
+Inside a session, `DesignSketchTool`'s scripted entry points run the tools' own apply steps without
+a pointer: `fillet_scripted()` is the Fillet and Chamfer tools' Confirm (`confirm_op()`, which
+reports a refused value), `trim_scripted()` a Trim or Extend click (`apply_live_trim()`),
+`transform_scripted()` the transform gizmo's Confirm, `add_shape_scripted()` the Polygon, Slot,
+Ellipse, Elliptical arc and Spline tools' last click, and `constrain_scripted()` a CONSTRAIN bar
+button, whose picks the shared planner (`plan_entity_constraint()`, `write_plan_value()`) turns
+into constraints. Each keeps the armed tool and its sticky settings, and refuses while a gesture or
+a value field is pending.
+
+Topology reads come from the kernel: `GeometryEngine::surface_info()` gives a face's surface type,
+area and analytic numbers, `edge_faces()` the faces along each edge, `edge_convexity()` whether
+two faces meet in an outside or inside corner (OCCT's fillet classification), and
+`min_distance()` the closest points of two shapes. The Plane card's Confirm and the `plane` method
+share `CadDocument::datum_plane_refusal()`, which refuses a construction that is missing a
+reference, names a face or edge no longer on the model, or puts a tangent plane on a face that is
+not a cylinder, so neither reaches the kernel's silent fallback to an offset plane; a refused
+Confirm leaves no undo step.
+
+The Thread card's pick and `thread` share `CadDocument::thread_target()` (the picked cylinder's
+axis frame) and `nearest_thread_standard()` (the size inferred from it). The Sweep card's path list
+holds Helix features as well as sketches, and a sweep along a helix keeps its profile at a fixed
+angle to the helix axis. Thread, sweep and loft automation rebuilds through `recompute_guarded()`,
+as the cards do, so the window stays live during a long build.
+
+The viewport is a canvas target like Prepare's for the app's MCP server (`DesignCanvas::gl_canvas()`):
+`set_view {tab: "design"}` shows the tab and points its camera, `screenshot` captures the view
+(sketch overlay and status line included) and composites it into window captures, `ui_mouse`
+clicks and drags it at pixels, so a left click picks and a right click opens the offer, and
+`ui_snapshot` lists its in-canvas value fields. Keys sent with `ui_key` reach the panel's
+`wxEVT_CHAR_HOOK` as a real key press does, travelling up from the focused widget, so Escape,
+Enter and the tool shortcuts behave as they do for a person.
+
+`docs/HLSD/mcp-server.md` describes the method table, access rules, error convention and replay
+tests.
 
 ## Where the code lives
 
@@ -364,6 +436,7 @@ scripted action and a clicked one cannot diverge. It is off unless the variable 
 | `src/slic3r/GUI/CAD/DesignRowList.*` | the Feature tree and Bodies lists, with per-row actions |
 | `src/slic3r/GUI/CAD/DesignCanvas.*` | viewport integration |
 | `src/slic3r/GUI/CAD/DesignSketchTool.*` | in-canvas sketching |
+| `src/slic3r/GUI/CAD/McpControl.*` | the automation surface: the method table, shared by `cad_call` and the socket |
 | `src/slic3r/GUI/CAD/DesignInteraction.hpp` | the Esc level contract |
 | `src/slic3r/GUI/CAD/DesignOffer.hpp` | generated offer table |
 | `scripts/CAD/tool_atlas.json` | source of truth for the offer |
@@ -379,3 +452,8 @@ The GUI half is not covered by CI, which has no OpenGL canvas or synthetic input
 in `scripts/CAD/` drive a running application in a local rig instead, and
 `scripts/CAD/run-all-checks.sh` is the gate that runs all of them. A green kernel run says
 nothing about the viewport, so the two are reported separately rather than as one number.
+
+The automation surface has its own checks: `tests/slic3rutils/test_mcp_cad.cpp` runs the methods'
+argument checks and kernel calls on a `CadDocument` or a bare `DesignSketchTool`, with no panel, and
+the replay scripts `tools/mcp/tests/cad_*.json` run the methods on a live application through
+`cad_call`, launched with `tools/mcp/orca_mcp.py launch --cad`.

@@ -1,0 +1,227 @@
+// Layer-based edits: height range modifiers set with set_layer_ranges, and variable layer height
+// profiles set with set_layer_height_profile, read back through list_objects, undone in one step,
+// sliced, and kept by a 3MF; and a plate's layer G-codes set with set_layer_gcode, read back from its
+// replies, edited, sliced, and kept by a 3MF. Run on a live app:
+//   python3 tools/mcp/orca_mcp.py run-script tools/mcp/tests/layers.json --out <dir>
+// A refusal can't be asserted directly (a failed step stops the run), so each one is an optional
+// step followed by a check that nothing changed.
+{
+  "orca_script": 1,
+  "name": "layer-based edits",
+  "vars": {"cube": "${script_dir}/../../../resources/handy_models/OrcaCube_v2.drc",
+           "benchy": "${script_dir}/../../../resources/handy_models/3DBenchy.drc"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "transform", "args": {"object": 0, "size": [20, 20, 20]}},
+    {"tool": "set_settings", "args": {"scope": "print", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
+
+    // ---- Two ranges, given in any order: the lower half at 40 % infill, the upper half at 0.1 mm ----
+    {"tool": "set_layer_ranges",
+     "args": {"object": 0, "layer_config_ranges": [{"min_z": 10, "max_z": 20, "values": {"layer_height": 0.1}},
+                                                   {"min_z": 0, "max_z": 10, "values": {"sparse_infill_density": "40%"}}]},
+     "expect": {"/height": {"ge": 19.99, "le": 20.01},
+                "/layer_config_ranges/0/max_z": {"eq": 10},
+                "/layer_config_ranges/0/values/sparse_infill_density": {"eq": "40%"},
+                "/layer_config_ranges/0/values/layer_height": {"eq": "0.2"},
+                "/layer_config_ranges/1/min_z": {"eq": 10},
+                "/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
+                "/layer_config_ranges/1/values/extruder": {"eq": "0"},
+                "/warnings": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges/0/values/sparse_infill_density": {"eq": "40%"},
+                                        "/items/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
+                                        "/items/0/layer_config_ranges/2": {"exists": false}}},
+    // Ranges are not the object's own overrides.
+    {"tool": "get_settings", "args": {"scope": "object", "object": 0, "keys": ["sparse_infill_density"], "include_meta": false},
+     "expect": {"/items/0/value": {"eq": null}}},
+
+    // ---- One undo step; the same ranges again add none ----
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "set_layer_ranges",
+     "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 10, "values": {"sparse_infill_density": "40%"}},
+                                                   {"min_z": 10, "max_z": 20, "values": {"layer_height": 0.1}}]}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"}}},
+
+    // ---- The slicer prints them: 50 layers of 0.2 mm, then 100 of 0.1 mm ----
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "set_view", "args": {"tab": "preview", "layer": 1}, "expect": {"/layers/2": {"ge": 149, "le": 151}}},
+
+    // ---- Refusals change nothing: an overlap, a layer height beyond the printer's, a filament the
+    // project lacks, an object setting, an empty range ----
+    {"tool": "set_layer_ranges", "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 15}, {"min_z": 12, "max_z": 20}]},
+     "optional": true},
+    {"tool": "set_layer_ranges", "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 5, "values": {"layer_height": 0.5}}]},
+     "optional": true},
+    {"tool": "set_layer_ranges", "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 5, "values": {"extruder": 9}}]},
+     "optional": true},
+    {"tool": "set_layer_ranges", "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 5, "values": {"enable_support": true}}]},
+     "optional": true},
+    {"tool": "set_layer_ranges", "args": {"object": 0, "layer_config_ranges": [{"min_z": 5, "max_z": 5}]}, "optional": true},
+    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges/0/max_z": {"eq": 10},
+                                        "/items/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
+                                        "/items/0/layer_config_ranges/2": {"exists": false}}},
+
+    // ---- A range printed with the second filament, above the object's top ----
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "ui_click", "args": {"target": {"label": "Add one filament"}}},
+    {"tool": "set_layer_ranges",
+     "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 10, "values": {"sparse_infill_density": "40%"}},
+                                                   {"min_z": 10, "max_z": 20, "values": {"layer_height": 0.1}},
+                                                   {"min_z": 20, "max_z": 30, "values": {"extruder": 2}}]},
+     "expect": {"/height": {"le": 20.01}, "/layer_config_ranges/2/values/extruder": {"eq": "2"}}},
+
+    // ---- A 3MF keeps them ----
+    {"tool": "save_project", "args": {"path": "${out_dir}/layers.3mf", "overwrite": true}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    // Loading a project asks about preset edits an earlier script left; the project brings its own.
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "unsaved changes", "button": "Discard"}]}},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/layers.3mf"], "discard_changes": true}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges/0/values/sparse_infill_density": {"eq": "40%"},
+                                        "/items/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
+                                        "/items/0/layer_config_ranges/2/values/extruder": {"eq": "2"}}},
+
+    // ---- [] removes them all ----
+    {"tool": "set_layer_ranges", "args": {"object": 0, "layer_config_ranges": []}, "expect": {"/layer_config_ranges": {"eq": []}}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "set_view", "args": {"tab": "preview", "layer": 1}, "expect": {"/layers/2": {"eq": 100}}},
+
+    // ---- Variable layer height on a Benchy (48 mm; 240 layers at 0.2 mm), called from the Preview tab ----
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "open_files", "args": {"paths": ["${vars.benchy}"]}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "set_settings", "args": {"scope": "print", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile": {"exists": false}}},
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "set_layer_height_profile", "args": {"object": 0, "action": "adaptive"},
+     "expect": {"/height": {"ge": 47.99, "le": 48.01},
+                "/layer_height_profile/points": {"gt": 250},
+                "/layer_height_profile/min_height": {"lt": 0.2},
+                "/layer_height_profile/max_height": {"gt": 0.2},
+                "/warnings": {"exists": false}}},
+    {"tool": "get_state", "expect": {"/tab": {"eq": "prepare"}}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile/points": {"gt": 250}}},
+    // Toward quality more layers, toward speed fewer.
+    {"tool": "set_layer_height_profile", "args": {"object": 0, "action": "adaptive", "quality": 0},
+     "expect": {"/layer_height_profile/points": {"gt": 380}}},
+    {"tool": "set_layer_height_profile", "args": {"object": 0, "action": "adaptive", "quality": 1},
+     "expect": {"/layer_height_profile/points": {"lt": 320}}},
+    // The slicer prints the profile, not 240 layers of 0.2 mm.
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "set_view", "args": {"tab": "preview", "layer": 1}, "expect": {"/layers/2": {"gt": 245}}},
+
+    // ---- Smooth is one undo step; Reset removes the profile, and again changes nothing ----
+    {"tool": "set_layer_height_profile", "args": {"object": 0, "action": "smooth", "radius": 10, "keep_min": true},
+     "expect": {"/layer_height_profile/max_height": {"lt": 0.28}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile/max_height": {"eq": 0.28}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile/max_height": {"lt": 0.28}}},
+    {"tool": "set_layer_height_profile", "args": {"object": 0, "action": "reset"}, "expect": {"/layer_height_profile": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile": {"exists": false}}},
+    {"tool": "set_layer_height_profile", "args": {"object": 0, "action": "reset"}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile/max_height": {"lt": 0.28}}},
+    {"tool": "set_layer_height_profile", "args": {"object": 0, "action": "reset"}},
+
+    // ---- Refusals change nothing: an argument of another action, the assemble view ----
+    {"tool": "set_layer_height_profile", "args": {"object": 0, "action": "smooth", "quality": 0.3}, "optional": true},
+    {"tool": "set_view", "args": {"view": "assemble"}},
+    {"tool": "set_layer_height_profile", "args": {"object": 0, "action": "adaptive"}, "optional": true},
+    {"tool": "set_view", "args": {"view": "3d"}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile": {"exists": false}}},
+
+    // ---- With height ranges: Smooth starts from the ranges' heights, Adaptive keeps them inside each
+    // range, and the profile then decides ----
+    {"tool": "set_layer_ranges",
+     "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 20, "values": {"layer_height": 0.12}},
+                                                   {"min_z": 20, "max_z": 48, "values": {"layer_height": 0.28}}]}},
+    {"tool": "set_layer_height_profile", "args": {"object": 0, "action": "smooth"},
+     "expect": {"/layer_height_profile/min_height": {"eq": 0.12},
+                "/layer_height_profile/max_height": {"eq": 0.28},
+                "/warnings/0": {"contains": "decides its layer heights"}}},
+    {"tool": "set_layer_height_profile", "args": {"object": 0, "action": "adaptive", "quality": 0},
+     "expect": {"/layer_height_profile/min_height": {"eq": 0.12}}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges/1/values/layer_height": {"eq": "0.28"},
+                                        "/items/0/layer_height_profile/min_height": {"eq": 0.12}}},
+
+    // ---- A 3MF keeps the profile ----
+    {"tool": "save_project", "args": {"path": "${out_dir}/profile.3mf", "overwrite": true}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/profile.3mf"], "discard_changes": true}},
+    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile/min_height": {"eq": 0.12},
+                                        "/items/0/layer_height_profile/points": {"gt": 100}}},
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+
+    // ---- Layer G-codes on a 20 mm cube of 100 layers of 0.2 mm: none before a slice ----
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "transform", "args": {"object": 0, "size": [20, 20, 20]}},
+    {"tool": "set_settings", "args": {"scope": "print", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},
+    {"tool": "set_layer_gcode", "args": {"add": [{"layer": 26, "type": "pause"}]}, "optional": true},
+    {"tool": "get_state", "expect": {"/tab": {"eq": "prepare"}, "/slicing": {"eq": false}}},
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+
+    // ---- From Prepare: a pause by layer and custom G-code by a height between layers, which goes on
+    // the layer whose top is above it; the call shows the Preview ----
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "set_layer_gcode", "args": {"add": [{"layer": 26, "type": "pause"}, {"z": 10.1, "type": "custom", "gcode": "M104 S215"}]},
+     "expect": {"/plate": {"eq": 0}, "/layers": {"eq": 100}, "/changed": {"eq": true},
+                "/layer_gcode/0/type": {"eq": "pause"}, "/layer_gcode/0/layer": {"eq": 26}, "/layer_gcode/0/z": {"eq": 5.2},
+                "/layer_gcode/1/type": {"eq": "custom"}, "/layer_gcode/1/layer": {"eq": 51}, "/layer_gcode/1/z": {"eq": 10.2},
+                "/layer_gcode/1/gcode": {"eq": "M104 S215"}, "/layer_gcode/2": {"exists": false},
+                "/note": {"contains": "slice it again"}}},
+    {"tool": "get_state", "expect": {"/tab": {"eq": "preview"}, "/project/dirty": {"eq": true}}},
+
+    // ---- The plate stays editable while the Preview shows it: the same codes change nothing, and in one
+    // call the pause goes (by its height) and the custom text is replaced ----
+    {"tool": "set_layer_gcode", "args": {"add": [{"z": 5.2, "type": "pause"}]},
+     "expect": {"/changed": {"eq": false}, "/layer_gcode/0/layer": {"eq": 26}, "/layer_gcode/1/layer": {"eq": 51}}},
+    {"tool": "set_layer_gcode", "args": {"remove": [{"z": 5.2}], "add": [{"layer": 51, "type": "custom", "gcode": "M104 S220"}]},
+     "expect": {"/changed": {"eq": true}, "/layer_gcode/0/layer": {"eq": 51}, "/layer_gcode/0/gcode": {"eq": "M104 S220"},
+                "/layer_gcode/1": {"exists": false}}},
+
+    // ---- Refusals change nothing: a layer above the top, another code where one is, nothing to remove,
+    // a filament the project lacks (it has the two the height ranges above used), a plate it lacks ----
+    {"tool": "set_layer_gcode", "args": {"add": [{"layer": 101, "type": "pause"}]}, "optional": true},
+    {"tool": "set_layer_gcode", "args": {"add": [{"layer": 51, "type": "pause"}]}, "optional": true},
+    {"tool": "set_layer_gcode", "args": {"remove": [{"layer": 30}]}, "optional": true},
+    {"tool": "set_layer_gcode", "args": {"add": [{"layer": 30, "type": "change_filament", "filament": 9}]}, "optional": true},
+    {"tool": "set_layer_gcode", "args": {"plate": 1, "add": [{"layer": 30, "type": "pause"}]}, "optional": true},
+    {"tool": "set_layer_gcode", "args": {"add": [{"layer": 51, "type": "custom", "gcode": "M104 S220"}]},
+     "expect": {"/changed": {"eq": false}, "/layer_gcode/0/gcode": {"eq": "M104 S220"}, "/layer_gcode/1": {"exists": false}}},
+
+    // ---- Changed since its slice and not shown: refused without starting a slice ----
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "set_layer_gcode", "args": {"add": [{"layer": 30, "type": "pause"}]}, "optional": true},
+    {"tool": "get_state", "expect": {"/tab": {"eq": "prepare"}, "/slicing": {"eq": false}}},
+
+    // ---- A filament change to the second filament ----
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "set_layer_gcode", "args": {"add": [{"layer": 76, "type": "change_filament", "filament": 2}]},
+     "expect": {"/layer_gcode/0/layer": {"eq": 51}, "/layer_gcode/1/layer": {"eq": 76}, "/layer_gcode/1/z": {"eq": 15.2},
+                "/layer_gcode/1/type": {"eq": "change_filament"}, "/layer_gcode/1/filament": {"eq": 2},
+                "/layer_gcode/1/color": {"exists": true}}},
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+
+    // ---- A 3MF keeps them ----
+    {"tool": "save_project", "args": {"path": "${out_dir}/layer_gcode.3mf", "overwrite": true}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/layer_gcode.3mf"], "discard_changes": true}},
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "set_layer_gcode", "args": {"add": [{"layer": 76, "type": "change_filament", "filament": 2}]},
+     "expect": {"/changed": {"eq": false}, "/layer_gcode/0/gcode": {"eq": "M104 S220"},
+                "/layer_gcode/1/filament": {"eq": 2}, "/layer_gcode/2": {"exists": false}}},
+
+    // ---- clear removes them all ----
+    {"tool": "set_layer_gcode", "args": {"clear": true}, "expect": {"/changed": {"eq": true}, "/layer_gcode": {"eq": []}}},
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}}
+  ]
+}

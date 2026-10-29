@@ -57,10 +57,11 @@ struct SurfaceMesh
 // mesh at `point`, or empty when it would. `point` must lie on a target mesh, above the bed (the plane
 // z = 0 inside one of the `beds`, each plate's outline, scaled) and on the side of `clip` it keeps
 // when that mesh is clipped. The first thing the ray meets among `meshes` (clipped ones only where
-// `clip` keeps them) and on the beds must be a target mesh near `point`: within `tolerance` plus twice
-// the ray's distance from `point`, which a whole pixel adds, on a triangle whose plane holds `point`
-// within `tolerance`. So on a slope the click may meet the point's surface a little nearer to the
-// camera or beyond, but not another surface.
+// `clip` keeps them) and on the beds (only looking down: from below the GUI draws and picks through
+// them) must be a target mesh near `point`: within `tolerance` plus twice the ray's distance from
+// `point`, which a whole pixel adds, on a triangle whose plane holds `point` within `tolerance`. So on
+// a slope the click may meet the point's surface a little nearer to the camera or beyond, but not
+// another surface.
 std::string check_surface(const Vec3d&                     point,
                           const std::pair<Vec3d, Vec3d>&   ray,
                           const std::vector<SurfaceMesh>&  meshes,

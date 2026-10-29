@@ -1,0 +1,58 @@
+// The slice reply's statistics: layers and max Z, filament changes, the totals with the flush, and
+// every filament slot split into model, support, flush and prime tower. A 25.6 mm cube on filament 1
+// of two, then a second cube on filament 2, so every layer changes filament. Run it on a fresh
+// datadir set up with the default printer (Bambu Lab X1 Carbon 0.4, prime tower on):
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/slice_stats.json --out /tmp/slice_stats
+// The sums (filament_g as the slots' g, a slot's g as its four uses) are unit tests in
+// tests/slic3rutils/test_mcp_results.cpp, since a script step cannot add values up.
+{
+  "orca_script": 1,
+  "name": "slice statistics",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "Uniform scale", "button": "ok"}]}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "ui_click", "args": {"target": {"label": "Add one filament"}}},
+    {"tool": "get_state", "expect": {"/presets/filaments/1": {"exists": true}}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+
+    // ---- One colour: no flush, tower or change; the unused slot 2 is listed with zeros ----
+    {"tool": "slice", "expect": {
+      "/plates/0/outcome": {"eq": "ok"},
+      "/plates/0/layers": {"eq": 128},
+      "/plates/0/max_z": {"gt": 25.5, "lt": 25.7},
+      "/plates/0/filament_changes": {"eq": 0},
+      "/plates/0/filament_g": {"gt": 0},
+      "/plates/0/filaments/2": {"exists": false},
+      "/plates/0/filaments/0/slot": {"eq": 1},
+      "/plates/0/filaments/0/model_g": {"gt": 0},
+      "/plates/0/filaments/0/flush_g": {"eq": 0},
+      "/plates/0/filaments/0/tower_g": {"eq": 0},
+      "/plates/0/filaments/1/slot": {"eq": 2},
+      "/plates/0/filaments/1/g": {"eq": 0}}},
+
+    // ---- Two colours: the second cube on filament 2 ----
+    {"tool": "select", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_arrange:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "select", "args": {"objects": [1]}},
+    // To the canvas by name: without a target the key goes to whatever has focus.
+    {"tool": "ui_key", "args": {"target": {"name": "OrcaSceneCanvas"}, "keys": "2"}, "expect": {"/to": {"eq": "wxGLCanvas"}}},
+    {"tool": "select", "args": {"none": true}},
+    {"tool": "slice", "expect": {
+      "/plates/0/outcome": {"eq": "ok"},
+      "/plates/0/layers": {"eq": 128},
+      "/plates/0/filament_changes": {"gt": 100},
+      "/plates/0/filaments/0/model_g": {"gt": 0},
+      "/plates/0/filaments/1/model_g": {"gt": 0},
+      "/plates/0/filaments/0/flush_g": {"gt": 0},
+      "/plates/0/filaments/1/flush_g": {"gt": 0},
+      "/plates/0/filaments/0/tower_g": {"gt": 0},
+      "/plates/0/filaments/1/tower_g": {"gt": 0},
+      "/plates/0/filaments/1/support_g": {"eq": 0}}}
+  ]
+}

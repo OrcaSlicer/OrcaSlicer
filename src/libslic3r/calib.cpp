@@ -10,7 +10,10 @@
 #include "Model.hpp"
 #include "GCode.hpp"
 #include "PrintConfig.hpp"
+#include "Preset.hpp"
+#include "Utils.hpp"
 #include <algorithm>
+#include <deque>
 #include "Point.hpp"
 #include "libslic3r.h"
 #include <cmath>
@@ -25,6 +28,193 @@
 #include "clonable_ptr.hpp"
 
 namespace Slic3r {
+
+namespace {
+
+// A per-extruder value: the extruder's entry, the last one past the end, or `fallback` without any.
+double extruder_value(const ConfigOptionFloats* opt, int extruder_id, double fallback)
+{
+    if (opt == nullptr || opt->values.empty())
+        return fallback;
+    return opt->values[std::min(static_cast<size_t>(std::max(extruder_id, 0)), opt->values.size() - 1)];
+}
+
+} // namespace
+
+bool has_junction_deviation(const DynamicPrintConfig& printer)
+{
+    const auto* gcode_flavor = printer.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
+    const auto* junction_dev = printer.option<ConfigOptionFloats>("machine_max_junction_deviation");
+    return gcode_flavor != nullptr && gcode_flavor->value == GCodeFlavor::gcfMarlinFirmware && junction_dev != nullptr &&
+           !junction_dev->values.empty() && junction_dev->values.front() > 0.0;
+}
+
+Calib_Params calib_default_params(CalibMode mode, const DynamicPrintConfig& printer, bool bowden)
+{
+    Calib_Params p;
+    p.mode = mode;
+    switch (mode) {
+    case CalibMode::Calib_Temp_Tower: p.start = 230; p.end = 190; break; // in fixed 5 °C blocks
+    case CalibMode::Calib_Vol_speed_Tower: p.start = 5; p.end = 20; p.step = 0.5; break;
+    case CalibMode::Calib_PA_Tower:
+    case CalibMode::Calib_PA_Line:
+    case CalibMode::Calib_PA_Pattern: {
+        const bool pattern = mode == CalibMode::Calib_PA_Pattern;
+        p.start            = 0.;
+        p.end              = bowden ? 1.0 : pattern ? 0.08 : 0.1;
+        p.step             = pattern ? (bowden ? 0.05 : 0.005) : (bowden ? 0.02 : 0.002);
+        p.print_numbers    = mode != CalibMode::Calib_PA_Tower;
+        break;
+    }
+    case CalibMode::Calib_Retraction_tower: p.start = 0; p.end = 2; p.step = 0.1; break;
+    case CalibMode::Calib_VFA_Tower: p.start = 40; p.end = 200; p.step = 10; break;
+    case CalibMode::Calib_Input_shaping_freq:
+        p.freqStartX = p.freqStartY = 15;
+        p.freqEndX = p.freqEndY = 110;
+        p.start                 = 0.15; // the damping ratio the test prints with
+        break;
+    case CalibMode::Calib_Input_shaping_damp:
+        p.freqStartX = p.freqStartY = 30;
+        p.start                     = 0.;
+        p.end                       = 0.4;
+        break;
+    case CalibMode::Calib_Cornering:
+        if (has_junction_deviation(printer)) {
+            p.start = 0.;
+            p.end   = 0.25;
+        } else {
+            p.start = 1.;
+            p.end   = 15.;
+        }
+        break;
+    default: break;
+    }
+    return p;
+}
+
+std::pair<double, double> cornering_end_limits(const DynamicPrintConfig& printer)
+{
+    return has_junction_deviation(printer) ? std::make_pair(0.3, 0.25) : std::make_pair(100., 20.);
+}
+
+CalibParamsError check_calib_params(const Calib_Params& p, const DynamicPrintConfig& printer)
+{
+    using E = CalibParamsError;
+    // RepRapFirmware takes one frequency range for both axes, so its dialogs have no Y fields.
+    const auto* flavor = printer.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
+    const bool  rrf    = flavor != nullptr && flavor->value == GCodeFlavor::gcfRepRapFirmware;
+    switch (p.mode) {
+    case CalibMode::Calib_Temp_Tower: return p.start > 500 || p.end < 155 || p.end > p.start - 5 ? E::Range : E::None;
+    case CalibMode::Calib_Vol_speed_Tower: return p.start <= 0 || p.step <= 0 || p.end < p.start + p.step ? E::Range : E::None;
+    case CalibMode::Calib_PA_Tower:
+    case CalibMode::Calib_PA_Line:
+    case CalibMode::Calib_PA_Pattern: {
+        if (p.start < 0 || p.step < 10 * EPSILON || p.end < p.start + p.step)
+            return E::Range;
+        // PA Line and PA Pattern are drawn on the belt but not validated there yet.
+        const auto* belt = printer.option<ConfigOptionBool>("belt_printer");
+        if (belt != nullptr && belt->value && p.mode != CalibMode::Calib_PA_Tower)
+            return E::BeltMethod;
+        // Accelerations are larger than speeds, so this catches the two lists swapped.
+        if (!p.accelerations.empty() && !p.speeds.empty() &&
+            *std::min_element(p.accelerations.begin(), p.accelerations.end()) <= *std::max_element(p.speeds.begin(), p.speeds.end()))
+            return E::AccelBelowSpeed;
+        return E::None;
+    }
+    case CalibMode::Calib_Retraction_tower: return p.start < 0 || p.step <= 0 || p.end < p.start + p.step ? E::Range : E::None;
+    case CalibMode::Calib_VFA_Tower: return p.start <= 10 || p.step <= 0 || p.end < p.start + p.step ? E::Range : E::None;
+    case CalibMode::Calib_Input_shaping_freq:
+        if (p.freqStartX < 0 || p.freqEndX > 500 || p.freqStartX >= p.freqEndX ||
+            (!rrf && (p.freqStartY < 0 || p.freqEndY > 500 || p.freqStartY >= p.freqEndY)))
+            return E::Range;
+        return p.start < 0 || p.start >= 1 ? E::Damping : E::None;
+    case CalibMode::Calib_Input_shaping_damp:
+        if (p.freqStartX < 0 || p.freqStartX > 500 || (!rrf && (p.freqStartY < 0 || p.freqStartY > 500)))
+            return E::Range;
+        return p.start < 0 || p.end > 1 || p.start >= p.end ? E::Damping : E::None;
+    case CalibMode::Calib_Cornering:
+        return p.start < 0 || p.end > cornering_end_limits(printer).first || p.start >= p.end ? E::Range : E::None;
+    default: return E::None;
+    }
+}
+
+std::string belt_temp_tower_asset(const Calib_Params& params)
+{
+    const int t_start = (int) lround(params.start);
+    const int t_end   = (int) lround(params.end);
+    return Slic3r::resources_dir() + "/calib/temperature_tower/belt_temp_tower_" + std::to_string(t_start) + "_" +
+           std::to_string(t_end) + ".stl";
+}
+
+std::vector<double> vfa_candidate_layer_heights(const PresetCollection& prints, const DynamicPrintConfig& printer, int extruder_id)
+{
+    const double machine_min_lh = extruder_value(printer.option<ConfigOptionFloats>("min_layer_height"), extruder_id, 0.0);
+    const double machine_max_lh = extruder_value(printer.option<ConfigOptionFloats>("max_layer_height"), extruder_id, 0.0);
+    std::vector<double> candidates;
+    for (const Preset& preset : prints.get_presets()) {
+        if (!preset.is_compatible || preset.is_default)
+            continue;
+        const auto* lh_opt = preset.config.option<ConfigOptionFloat>("layer_height");
+        if (lh_opt == nullptr || lh_opt->value <= 0.0)
+            continue;
+        const double lh = lh_opt->value;
+        if ((machine_min_lh > 0.0 && lh < machine_min_lh - 1e-6) || (machine_max_lh > 0.0 && lh > machine_max_lh + 1e-6))
+            continue;
+        candidates.push_back(lh);
+    }
+    std::sort(candidates.begin(), candidates.end());
+    candidates.erase(std::unique(candidates.begin(), candidates.end(), [](double a, double b) { return std::abs(a - b) < 1e-6; }),
+                     candidates.end());
+    return candidates;
+}
+
+VfaSpeedFit fit_vfa_speed(const Calib_Params& params, const DynamicPrintConfig& printer, const DynamicPrintConfig& print,
+                          const DynamicPrintConfig& filament, bool auto_adjust, const std::vector<double>& candidate_layer_heights)
+{
+    const int    extruder_id     = std::max(params.extruder_id, 0);
+    const double nozzle_diameter = extruder_value(printer.option<ConfigOptionFloats>("nozzle_diameter"), extruder_id, vfa_base_nozzle_diameter);
+    double       preset_lh       = nozzle_diameter / 2.0;
+    if (const auto* lh_opt = print.option<ConfigOptionFloat>("layer_height"))
+        if (lh_opt->value > 0.0)
+            preset_lh = lh_opt->value;
+    double line_width = print.get_abs_value("outer_wall_line_width", nozzle_diameter);
+    if (line_width <= 0.0)
+        line_width = print.get_abs_value("line_width", nozzle_diameter);
+    if (line_width <= 0.0)
+        line_width = nozzle_diameter;
+
+    VfaSpeedFit fit;
+    fit.max_vol_speed = extruder_value(filament.option<ConfigOptionFloats>("filament_max_volumetric_speed"), extruder_id, 0.0);
+    // The tower prints at half the nozzle diameter when scaled to the nozzle, else at the process's layer height.
+    fit.default_lh = params.nozzle_based_resize ? nozzle_diameter / 2.0 : preset_lh;
+    // The fastest outer wall the volumetric limit allows at a layer height.
+    auto speed_limit = [&](double lh) -> double {
+        const double mm3_per_mm = Flow(line_width, lh, nozzle_diameter).mm3_per_mm();
+        return mm3_per_mm > 0.0 ? fit.max_vol_speed / mm3_per_mm : 1e9;
+    };
+    if (fit.max_vol_speed <= 0.0 || nozzle_diameter <= 0.0)
+        return fit;
+    fit.speed_limit = speed_limit(fit.default_lh);
+    if (params.end <= fit.speed_limit)
+        return fit;
+    fit.kind = VfaSpeedFit::Clamped;
+    // Only a tower scaled to the nozzle may change its layer height.
+    if (!auto_adjust || !params.nozzle_based_resize || candidate_layer_heights.empty())
+        return fit;
+    // The largest candidate up to the default layer height that reaches the end speed, the smallest change.
+    for (auto it = candidate_layer_heights.rbegin(); it != candidate_layer_heights.rend(); ++it)
+        if (*it <= fit.default_lh + 1e-6 && speed_limit(*it) >= params.end) {
+            fit.kind         = VfaSpeedFit::ReducedLayerHeight;
+            fit.layer_height = *it;
+            return fit;
+        }
+    fit.kind         = VfaSpeedFit::LoweredEnd;
+    fit.layer_height = candidate_layer_heights.front();
+    fit.end          = std::floor(speed_limit(fit.layer_height) / params.step) * params.step; // a step multiple it reaches
+    if (fit.end < params.start + params.step)
+        fit.end = params.start + params.step;
+    return fit;
+}
 
 // Calculate the optimal Pressure Advance speed
 float CalibPressureAdvance::find_optimal_PA_speed(const DynamicPrintConfig &config, double line_width, double layer_height, int extruder_id, int filament_idx)

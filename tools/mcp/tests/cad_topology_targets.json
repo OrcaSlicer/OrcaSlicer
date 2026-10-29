@@ -1,0 +1,93 @@
+// Reading a body's topology and building on what it finds, through cad_call. The bench's J wall
+// hook: its inside corners found by convexity, M4 countersinks seated on the front face on the axes
+// of pilot holes (`at` a cylindrical face), checked through query_topology's cone kinds and adjacency
+// and measure's min_distance; then datum planes, a sketch on one, and a face push/pull. A refused
+// datum plane changes nothing. Face and edge ids are this build's; no step reads a world position
+// that depends on the printer's bed.
+// Needs the CAD feature on:
+//   tools/mcp/orca_mcp.py launch --cad
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/cad_topology_targets.json --out /tmp/out
+{
+  "orca_script": 1,
+  "name": "cad topology and targets",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
+
+    // Back plate 60 x 5, arm 35 out, lip 15 up, 20 wide.
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"plane": "XZ", "distance": 20,
+      "profile": [[5, 0], [5, 60], [0, 60], [0, 5], [-30, 5], [-30, 15], [-35, 15], [-35, 0]]}},
+     "expect": {"/result/ok": {"eq": true}, "/result/body": {"eq": 0}}},
+    // Two inside corners, each with the faces on either side of it.
+    {"tool": "cad_call", "args": {"method": "query_topology", "params": {"convex": false}},
+     "expect": {"/result/edges_total": {"eq": 2}, "/result/edges/0/id": {"eq": 7}, "/result/edges/0/kind": {"eq": "line"},
+                "/result/edges/0/convex": {"eq": false}, "/result/edges/0/faces": {"contains": 2}, "/result/faces_total": {"eq": 3}}},
+    {"tool": "cad_call", "args": {"method": "fillet", "params": {"edge": 7, "radius": 5}}, "expect": {"/result/ok": {"eq": true}}},
+    {"tool": "cad_call", "args": {"method": "query_topology", "params": {"kinds": ["cylindrical"]}},
+     "expect": {"/result/faces_total": {"eq": 1}, "/result/faces/0/radius": {"ge": 4.9999, "le": 5.0001}, "/result/faces/0/internal": {"eq": true},
+                "/result/edges": {"empty": true}}},
+
+    // Pilot holes from the YZ plane, then countersinks seated on the front face on their axes.
+    {"tool": "cad_call", "args": {"method": "hole", "params": {"plane": "YZ", "x": 10, "y": 25, "diameter": 3, "through": true}}},
+    {"tool": "cad_call", "args": {"method": "hole", "params": {"plane": "YZ", "x": 10, "y": 50, "diameter": 3, "through": true}}},
+    {"tool": "cad_call", "args": {"method": "query_topology", "params": {"direction": [-1, 0, 0]}},
+     "expect": {"/result/faces_total": {"eq": 2}, "/result/faces/0/id": {"eq": 0}, "/result/faces/0/area": {"ge": 985.86, "le": 985.87}}},
+    {"tool": "cad_call", "args": {"method": "hole_standard", "params": {"designation": "M4", "style": 2,
+      "plane": {"body": 0, "face": 0}, "at": {"body": 0, "face": 6}}},
+     "expect": {"/result/body": {"eq": 0}, "/result/off_plane": {"ge": 4.9999, "le": 5.0001}, "/result/y": {"ge": -0.0001, "le": 0.0001},
+                "/result/frame/normal/0": {"eq": 1.0}}},
+    {"tool": "cad_call", "args": {"method": "hole_standard", "params": {"designation": "M4", "style": 2,
+      "plane": {"body": 0, "face": 0}, "at": {"body": 0, "face": 5}}},
+     "expect": {"/result/body": {"eq": 0}, "/result/off_plane": {"ge": 4.9999, "le": 5.0001}}},
+    // Two cones, opening out of the front face (-X) from an apex inside the 5 mm plate.
+    {"tool": "cad_call", "args": {"method": "query_topology", "params": {"kinds": ["conical"], "adjacency": true}},
+     "expect": {"/result/faces_total": {"eq": 2}, "/result/faces/0/half_angle_deg": {"ge": 44.999, "le": 45.001},
+                "/result/faces/0/radius_max": {"ge": 4.4999, "le": 4.5001}, "/result/faces/0/radius_min": {"ge": 2.2499, "le": 2.2501},
+                "/result/faces/0/internal": {"eq": true}, "/result/faces/0/axis/0": {"eq": -1.0}, "/result/faces/1/axis/0": {"eq": -1.0},
+                "/result/edges_total": {"eq": 6}, "/result/edges/0/faces": {"contains": 0}, "/result/edges/0/convex": {"eq": true}}},
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/volume": {"ge": 10352.82, "le": 10352.84}}},
+    {"tool": "cad_call", "args": {"method": "query_topology", "params": {"at_extreme": "-z"}},
+     "expect": {"/result/faces_total": {"eq": 1}, "/result/faces/0/id": {"eq": 10}, "/result/edges": {"empty": true}}},
+    // Hole heights from the bottom face and the spacing, by the bores' axes.
+    {"tool": "cad_call", "args": {"method": "measure", "params": {"a": {"face": 14, "axis": true}, "b": {"face": 10}}},
+     "expect": {"/result/min_distance": {"ge": 24.9999, "le": 25.0001}, "/result/angle_deg": {"ge": 89.999, "le": 90.001}}},
+    {"tool": "cad_call", "args": {"method": "measure", "params": {"a": {"face": 13, "axis": true}, "b": {"face": 14, "axis": true}}},
+     "expect": {"/result/min_distance": {"ge": 24.9999, "le": 25.0001}, "/result/distance": {"ge": 24.9999, "le": 25.0001}}},
+    // The cone touches the front face and stops 2.75 mm short of the back one.
+    {"tool": "cad_call", "args": {"method": "measure", "params": {"a": {"face": 6}, "b": {"face": 0}}},
+     "expect": {"/result/min_distance": {"le": 0.0001}}},
+    {"tool": "cad_call", "args": {"method": "measure", "params": {"a": {"face": 6}, "b": {"face": 8}}},
+     "expect": {"/result/min_distance": {"ge": 2.7499, "le": 2.7501}}},
+    {"tool": "cad_call", "args": {"method": "measure", "params": {"a": {"face": 0}, "b": {"face": 8}}},
+     "expect": {"/result/parallel_gap": {"ge": 4.9999, "le": 5.0001}, "/result/min_distance": {"ge": 4.9999, "le": 5.0001}}},
+
+    // Datum planes: midway through the plate, and 70 mm above the bed with a sketch on it.
+    {"tool": "cad_call", "args": {"method": "plane", "params": {"type": "midplane", "face_a": {"body": 0, "face": 0}, "face_b": {"body": 0, "face": 8}}},
+     "expect": {"/result/plane_index": {"eq": 7}, "/result/name": {"regex": "^Plane"}, "/result/frame/normal/0": {"eq": -1.0}}},
+    {"tool": "cad_call", "args": {"method": "plane", "params": {"offset": 70}},
+     "expect": {"/result/plane_index": {"eq": 8}, "/result/frame/origin/2": {"eq": 70.0}, "/result/frame/normal/2": {"eq": 1.0}}},
+    // A tangent plane needs a cylindrical face: refused, and nothing changes.
+    {"tool": "cad_call", "args": {"method": "plane", "params": {"type": "tangent", "face_a": {"body": 0, "face": 0}}}, "optional": true},
+    {"tool": "cad_call", "args": {"method": "describe_scene"},
+     "expect": {"/result/features/8/type": {"eq": "Plane"}, "/result/features/9": {"exists": false}, "/result/undo_depth": {"eq": 8}, "/result/redo_depth": {"eq": 0}}},
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": {"datum": 8}}},
+     "expect": {"/result/frame/origin/2": {"eq": 70.0}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"entities": [{"type": "circle", "center": [10, 10], "radius": 5}]}}},
+    {"tool": "cad_call", "args": {"method": "sketch_commit"}, "expect": {"/result/sketch_index": {"eq": 9}}},
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"sketch": 9, "distance": 4}},
+     "expect": {"/result/boolean": {"eq": "new"}, "/result/body": {"eq": 1}}},
+    {"tool": "cad_call", "args": {"method": "describe_scene"},
+     "expect": {"/result/bodies/1/bbox/min/2": {"ge": 69.999, "le": 70.001}, "/result/bodies/1/bbox/max/2": {"ge": 73.999, "le": 74.001}}},
+
+    // Push the plate's back face out 2 mm: it joins its own body.
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"face": 8, "body": 0, "distance": 2}},
+     "expect": {"/result/boolean": {"eq": "union"}, "/result/body": {"eq": 0}, "/result/sketch_index": {"eq": -1},
+                "/result/face": {"eq": 8}, "/result/frame/normal/0": {"eq": 1.0}}},
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/volume": {"ge": 12689.20, "le": 12689.22}}},
+    {"tool": "cad_call", "args": {"method": "query_topology", "params": {"limit": 5}},
+     "expect": {"/result/faces/4": {"exists": true}, "/result/faces/5": {"exists": false}, "/result/next_offset": {"eq": 5}}}
+  ]
+}

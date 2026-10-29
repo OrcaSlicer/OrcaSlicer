@@ -5,6 +5,7 @@
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
@@ -443,7 +444,7 @@ void PluginPages::show_overflow_menu()
         relayout();
         m_parent->SelectPageByName(page_tab_id(*m_swapped_in_id));
     });
-    m_overflow_button->PopupMenu(&menu);
+    GUI::popup_menu(*m_overflow_button, menu);
 }
 
 } // namespace Slic3r

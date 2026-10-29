@@ -380,7 +380,7 @@ class GLCanvas3D
         Vec2d position{ DBL_MAX, DBL_MAX };
         bool ignore_left_up{ false };
         Drag drag;
-        bool ignore_right_up;
+        bool ignore_right_up{ false };
 
         // Orca: The screen-space start and world-space anchor describe the same pan session.
         // Invalidating one must invalidate the other so a new drag cannot reuse stale depth.
@@ -860,6 +860,9 @@ public:
 
     void load_arrange_settings();
     ArrangeSettings& get_arrange_settings();
+    // Saves the current print mode's spacing, rotation and material rule to the app config under the
+    // keys the Arrange options panel writes, for settings changed outside the panel.
+    void store_arrange_settings();
 
     class SequentialPrintClearance
     {
@@ -1262,6 +1265,9 @@ public:
     void reset_gcode_layers_times_cache() { m_gcode_layers_times_cache.clear(); }
     void set_volumes_z_range(const std::array<double, 2>& range) { m_volumes.set_range(range[0] - 1e-6, range[1] + 1e-6); }
     size_t get_gcode_extruders_count() { return m_gcode_viewer.get_extruders_count(); }
+    // Hands the layer slider's tick edits, if any, to the plater (EVT_CUSTOMEVT_TICKSCHANGED), which writes
+    // them into the plate's custom G-codes. Each Preview frame calls it; so does MCP after editing ticks.
+    void send_layer_ticks_changes();
 
     std::vector<int> load_object(const ModelObject& model_object, int obj_idx, std::vector<int> instance_idxs);
     std::vector<int> load_object(const Model& model, int obj_idx);
@@ -1304,6 +1310,11 @@ public:
     void on_set_color_timer(wxTimerEvent& evt);
     void on_fps_overlay_timer(wxTimerEvent& evt);
     void on_mouse(wxMouseEvent& evt);
+    // A click on a plate or one of its icons, by its bed picking id, as on_mouse() does it for the one
+    // under the pointer (MCP calls it for an icon it names): a left click selects the plate or runs the
+    // icon; a right click selects the plate, then opens the plate menu unless the icon opened its own.
+    // `logical_pos` is where the plate menu opens. The caller checks what on_mouse() checks first.
+    void click_plate(int picking_id, bool right_click, const Vec2d& logical_pos);
     void on_gesture(wxGestureEvent& evt);
     void on_paint(wxPaintEvent& evt);
     void on_set_focus(wxFocusEvent& evt);
@@ -1485,6 +1496,9 @@ private:
     bool _is_shown_on_screen() const;
 
     void _update_slice_error_status();
+
+    // Picks the selected object for the variable layer height actions; false when none is selected.
+    bool _select_layers_editing_object();
 
     void _switch_toolbars_icon_filename();
     bool _init_toolbars();

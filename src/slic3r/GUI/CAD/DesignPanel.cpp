@@ -7,6 +7,7 @@
 #include "slic3r/GUI/CAD/DesignOffer.hpp"                // generated offer table — see scripts/CAD/tool_atlas.json
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"   // face_by_index for face-extrude gizmo anchor
 #include "libslic3r/AppConfig.hpp"        // design_* view preferences
@@ -378,34 +379,6 @@ static bool is_base_plane(const SketchPlane& p, const Vec3d& modeling_origin)
         && (p.x_axis - b.x_axis).norm() < e && (p.y_axis - b.y_axis).norm() < e;
 }
 
-// #2: a sketch plane on `face` with origin at the face centroid and normal pointing INTO the
-// solid, so a positioned hole drills inward and its (x,y) read as the offset from the face
-// centre. A hole is rotationally symmetric, so the arbitrary in-plane basis is harmless.
-static SketchPlane face_plane_inward(const TopoDS_Face& face)
-{
-    SketchPlane p;
-    p.origin = GeometryEngine::face_centroid_world(face);
-    p.normal = (-GeometryEngine::face_normal_world(face)).normalized();   // inward
-    // Align the in-plane x-axis with the face's LONGEST straight edge so the (u,v) frame matches
-    // the face sides — then "distance from a side" (the hole construction dims) reads correctly.
-    Vec3d x(0, 0, 0); double best = 0;
-    for (const TopoDS_Edge& e : GeometryEngine::edges_of_face(face)) {
-        const std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
-        if (pts.size() < 2) continue;
-        Vec3d d = pts.back() - pts.front();
-        d = d - p.normal * d.dot(p.normal);        // project the edge direction into the plane
-        const double len = d.norm();
-        if (len > best) { best = len; x = d / len; }
-    }
-    if (best < 1e-9) {   // curved/edgeless face: fall back to an arbitrary in-plane basis
-        const Vec3d ref = std::abs(p.normal.z()) < 0.9 ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
-        x = ref.cross(p.normal).normalized();
-    }
-    p.x_axis = x.normalized();
-    p.y_axis = p.normal.cross(p.x_axis).normalized();
-    return p;
-}
-
 DesignPanel::DesignPanel(wxWindow* parent)
     : wxPanel(parent, wxID_ANY)
 {
@@ -762,7 +735,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             {"design_sweep", _L("Sweep"), _L("Sweep a profile along a path"),
              [this] {
                 m_sweep_profile_ref = resolve_extrude_sketch();
-                m_sweep_path_ref    = -1;   // fresh sweep: default the picker to the first sketch
+                m_sweep_path_ref    = -1;   // fresh sweep: default the picker to the first path
                 if (m_sweep_profile_ref < 0) {
                     set_status(StatusKind::Error, _L("Create a profile sketch to sweep first"));
                     return;
@@ -1163,8 +1136,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 if (hf >= 0 && hb >= 0 && hb < int(m_doc.bodies.size())) {
                     const TopoDS_Face face = GeometryEngine::face_by_index(
                         m_doc.bodies[hb].shape, hf);
-                    if (!face.IsNull()) {
-                        m_hole_face_plane = face_plane_inward(face);
+                    if (!face.IsNull() && m_doc.inward_plane_of_face(hb, hf, m_hole_face_plane)) {
                         m_hole_on_face    = true;
                         m_hole_face_body  = hb;
                         set_hole_target_label(hf);   // may be the top-face default, not a pick
@@ -1191,22 +1163,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_thread_face_body = -1;
                 set_thread_target_label(-1, -1);
                 GeometryEngine::CylinderFace cf;
+                SketchPlane p;            // plane on the axis (origin at the base)
                 bool from_face = false;   // which of the two the cylinder actually came from
-                if (m_sel_solid_body >= 0 && m_sel_solid_body < int(m_doc.bodies.size())) {
-                    const TopoDS_Shape& shape = m_doc.bodies[m_sel_solid_body].shape;
-                    if (m_sel_solid_face >= 0)
-                        cf = GeometryEngine::cylinder_of_face(GeometryEngine::face_by_index(shape, m_sel_solid_face));
-                    from_face = cf.ok;
-                    if (!cf.ok && m_sel_solid_edge >= 0)
-                        cf = GeometryEngine::circle_of_edge(GeometryEngine::edge_by_index(shape, m_sel_solid_edge));
-                }
-                if (cf.ok) {
-                    SketchPlane p;                       // plane on the axis (origin at the base)
-                    p.origin = cf.base;
-                    p.normal = cf.axis;
-                    const Vec3d ref = std::abs(cf.axis.z()) < 0.9 ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
-                    p.x_axis = ref.cross(cf.axis).normalized();
-                    p.y_axis = cf.axis.cross(p.x_axis).normalized();
+                if (m_doc.thread_target(m_sel_solid_body, m_sel_solid_face, m_sel_solid_edge, p, cf, &from_face)) {
                     m_thread_face_plane = p;
                     m_thread_on_face    = true;
                     m_thread_face_body  = m_sel_solid_body;
@@ -3158,7 +3117,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         const int  id_toggle = wxWindow::NewControlId();
         menu.Append(id_toggle, bed ? bed_toggle_text(m_show_bed) : origin_toggle_text(m_show_origin));
         menu.Bind(wxEVT_MENU, [this, bed](wxCommandEvent&) { bed ? toggle_bed() : toggle_origin(); }, id_toggle);
-        m_pinned->PopupMenu(&menu, m_pinned->ScreenToClient(screen));
+        popup_menu(*m_pinned, menu, m_pinned->ScreenToClient(screen));
     };
 
     // Selecting a feature that leaves a body (Extrude, Fillet, Chamfer, Hole, ...) lights the
@@ -3252,7 +3211,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             menu.Bind(wxEVT_MENU, [this, row](wxCommandEvent&) { on_transform_imported(row); }, id_art);
         if (zoom)
             menu.Bind(wxEVT_MENU, [this, row](wxCommandEvent&) { zoom_to_feature(row); }, id_zoom);
-        m_tree->PopupMenu(&menu, m_tree->ScreenToClient(screen));
+        popup_menu(*m_tree, menu, m_tree->ScreenToClient(screen));
     };
 
     // In-place rename of a feature row (F2, the offer's Rename verb, or the row's menu). The name
@@ -3260,9 +3219,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // renaming belongs on the row, not in a side-panel field. The list hands the name over after
     // its editor's events have finished, so rebuilding the rows here is safe.
     m_tree->on_rename = [this](int row, const wxString& name) {
-        if (row < 0 || row >= int(m_doc.features.size())) return;
-        m_doc.features[row].name = std::string(name.ToUTF8().data());
-        refresh_tree();   // which syncs the recipe, so the save path persists the name
+        rename_feature(row, std::string(name.ToUTF8().data()));
     };
 
     // The header keeps what is not one row's own action: reordering, which moves the selected
@@ -3384,11 +3341,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // consider the extrusion = the body". CadBody::user_name is carried across recompute() by
     // index and written into the recipe, so the name outlives both the rebuild and the save.
     m_parts->on_rename = [this](int b, const wxString& name) {
-        if (b < 0 || b >= int(m_doc.bodies.size())) return;
-        m_doc.bodies[b].has_user_name = true;
-        m_doc.bodies[b].user_name     = std::string(name.ToUTF8().data());
-        sync_recipe_to_model();                        // the name is part of what gets saved
-        refresh_parts();
+        rename_body(b, std::string(name.ToUTF8().data()));
     };
 
     // --- Variables (document-scope named expressions) ---
@@ -3819,8 +3772,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Whole level), so no whole->face cycle is needed.
         if (m_active == Tool::Hole && face >= 0 && body >= 0 && body < int(m_doc.bodies.size())) {
             const TopoDS_Face fc = GeometryEngine::face_by_index(m_doc.bodies[body].shape, face);
-            if (!fc.IsNull()) {
-                m_hole_face_plane = face_plane_inward(fc);
+            if (!fc.IsNull() && m_doc.inward_plane_of_face(body, face, m_hole_face_plane)) {
                 m_hole_on_face    = true;
                 m_hole_face_body  = body;
                 set_hole_target_label(face);
@@ -3834,19 +3786,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
             }
         }
         // Thread card open: clicking a cylindrical face or circular edge re-derives the thread.
-        if (m_active == Tool::Thread && body >= 0 && body < int(m_doc.bodies.size())) {
-            const TopoDS_Shape& shape = m_doc.bodies[body].shape;
+        if (m_active == Tool::Thread) {
             GeometryEngine::CylinderFace cf;
-            if (face >= 0)
-                cf = GeometryEngine::cylinder_of_face(GeometryEngine::face_by_index(shape, face));
-            const bool from_face = cf.ok;   // which of the two the cylinder actually came from
-            if (!cf.ok && edge >= 0)
-                cf = GeometryEngine::circle_of_edge(GeometryEngine::edge_by_index(shape, edge));
-            if (cf.ok) {
-                SketchPlane p; p.origin = cf.base; p.normal = cf.axis;
-                const Vec3d ref = std::abs(cf.axis.z()) < 0.9 ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
-                p.x_axis = ref.cross(cf.axis).normalized();
-                p.y_axis = cf.axis.cross(p.x_axis).normalized();
+            SketchPlane p;
+            bool from_face = false;   // which of the two the cylinder actually came from
+            if (m_doc.thread_target(body, face, edge, p, cf, &from_face)) {
                 m_thread_face_plane = p;
                 m_thread_on_face    = true;
                 m_thread_face_body  = m_sel_solid_body;
@@ -4892,6 +4836,9 @@ bool DesignPanel::mcp_busy(bool read_only, bool sketch_method, std::string& why)
     if (m_active != Tool::None || m_edit_index >= 0) { why = "a feature card is open in the Design tab"; return true; }
     if (m_text_dlg != nullptr) { why = "the Text dialog is open in the Design tab"; return true; }
     if (m_ui_mode == UiMode::Constrain) { why = "the Design tab is constraining a sketch"; return true; }
+    // The Move holds a body index that any change to the document, an undo included, could point
+    // at another body; the tree edits and Undo refuse under it too.
+    if (body_move_pending()) { why = "a body Move is open in the Design tab"; return true; }
     // Sketch methods drive the live sketch session, which is the point of them; everything else
     // changes the feature list, which a live sketch session is about to commit into.
     if (!sketch_method && m_ui_mode == UiMode::Sketch) { why = "a sketch is open in the Design tab"; return true; }
@@ -4924,8 +4871,11 @@ void DesignPanel::sync_recipe_to_model()
     // The plater's dirty flag rides its own undo/redo stack, which Design edits never touch, and
     // a design that has not been committed to the plate has no ModelObjects either — so without
     // this the project reads as clean: no autosave, and no "unsaved changes" prompt on quit.
-    // Same hook the auxiliary-files panel uses for project data that lives outside the model.
+    // Same hooks as other project data outside that stack (the auxiliary files, a plate's bed
+    // type): the backup's change mark, and the dirty flag that New/Open and the title read.
     Slic3r::put_other_changes();
+    plater->set_plater_dirty(true);
+    plater->update_title_dirty_status();
 }
 
 // Runs recompute() off the UI thread, because on a heavy imported solid it takes seconds.
@@ -5442,20 +5392,12 @@ void DesignPanel::apply_thread_standard()
 
 void DesignPanel::infer_thread_spec(double diameter, bool internal)
 {
-    // Snap to the nearest standard thread, so picking a Ø9.9 boss gives M10 and a Ø5 tap-drill
-    // hole gives M6 — the M diameter, pitch AND depth all follow from the cylinder. A boss is
-    // matched on the MAJOR diameter; a hole on the MINOR one, since a hole to be tapped is
-    // drilled at the tap-drill size.
-    const auto& stds = thread_standards();
-    int best = -1; double bestErr = 1e30;
-    for (int i = 0; i < int(stds.size()); ++i) {
-        const double ref = internal ? stds[i].minor_diameter_mm() : stds[i].major_diameter_mm;
-        const double e = std::abs(ref - diameter);
-        if (e < bestErr) { bestErr = e; best = i; }
-    }
-    if (best < 0) { if (m_thread_radius) m_thread_radius->SetValue(diameter); return; }
-    const ThreadSpec& s = stds[best];
-    if (m_thread_std)    m_thread_std->SetSelection(best + 1);    // row 0 is "Custom"
+    // Snap to the nearest standard thread (nearest_thread_standard: a Ø9.9 boss gives M10, a
+    // Ø4.134 tap-drill hole M5), so the M diameter, pitch AND depth all follow from the cylinder.
+    const ThreadSpec* nearest = nearest_thread_standard(diameter, internal);
+    if (nearest == nullptr) { if (m_thread_radius) m_thread_radius->SetValue(diameter); return; }
+    const ThreadSpec& s = *nearest;
+    if (m_thread_std)    m_thread_std->SetSelection(int(nearest - thread_standards().data()) + 1);    // row 0 is "Custom"
     if (m_thread_radius) m_thread_radius->SetValue(s.major_diameter_mm);  // field = NOMINAL diameter
     if (m_thread_pitch)  m_thread_pitch->SetValue(s.pitch_mm);
     if (m_thread_depth)  m_thread_depth->SetValue(internal ? s.internal_depth_mm() : s.thread_depth_mm());
@@ -6989,7 +6931,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         if (i >= 0 && i < int(bound.size()) && bound[i])
             run_offer_action(bound[i]->action);
     }, base, base + 499);   // 499: the mate section starts at base + 500 (see mate_base)
-    PopupMenu(&menu, ScreenToClient(screen_pos));
+    popup_menu(*this, menu, ScreenToClient(screen_pos));
     // PopupMenu is modal, so by here the menu is gone and any command it raised has already run.
     // A hover ghost that outlived the menu it belonged to would leave the committed bodies hidden
     // behind a preview nothing can dismiss — bind nothing to the close event, just clean up here.
@@ -7153,31 +7095,13 @@ bool DesignPanel::on_add_plane()
     // dispatch falls back to offset_angle_plane() when its references are missing, so picking
     // Tangent and confirming with nothing selected used to produce an offset plane reported as
     // a success — the user asks for one construction and silently receives another. The kernel
-    // keeps its fallback (it must return SOMETHING), but no user gesture should reach it.
-    auto refuse = [this](const wxString& why) {
-        set_status(StatusKind::Error, why);
-    };
-    switch ((PlaneType)m_plane_type->GetSelection()) {
-    case PlaneType::Angle:
-        if (m_pl_edgeA < 0) { refuse(_L("An angled plane needs an edge to tilt about — pick Edge A")); return false; }
-        break;
-    case PlaneType::Midplane:
-        if (m_pl_faceA < 0 || m_pl_faceB < 0) { refuse(_L("A midplane needs two faces — pick Face A and Face B")); return false; }
-        if (m_pl_faceA == m_pl_faceB && m_pl_faceA_body == m_pl_faceB_body) {
-            // Well-defined but useless: the midplane of a face with itself is that same face.
-            refuse(_L("Face A and Face B are the same face — a midplane needs two different faces"));
-            return false;
-        }
-        break;
-    case PlaneType::Tangent:
-        // The face must also be cylindrical; that check stays in the kernel, which has the geometry.
-        if (m_pl_faceA < 0) { refuse(_L("A tangent plane needs a cylindrical face — pick Face A")); return false; }
-        break;
-    case PlaneType::TwoEdges:
-        if (m_pl_edgeA < 0 || m_pl_edgeB < 0) { refuse(_L("This plane needs two edges — pick Edge A and Edge B")); return false; }
-        break;
-    default:
-        break;   // Offset and Coincident are meaningful with no reference: they use the base plane
+    // keeps its fallback (it must return SOMETHING), but no user gesture should reach it. The
+    // rules are the kernel's, shared with cad_call's `plane`.
+    CadFeature candidate;
+    apply_plane_refs(candidate);
+    if (const std::string why = m_doc.datum_plane_refusal(candidate); !why.empty()) {
+        set_status(StatusKind::Error, _(why));
+        return false;
     }
 
     m_feature_counter++;
@@ -8046,12 +7970,27 @@ void DesignPanel::on_set_body_color()
     if (dlg.ShowModal() != wxID_OK) return;
 
     const wxColour picked = dlg.GetColourData().GetColour();
-    m_doc.bodies[b].has_color = true;
-    m_doc.bodies[b].color = ColorRGBA((unsigned char)picked.Red(), (unsigned char)picked.Green(),
-                                      (unsigned char)picked.Blue(), (unsigned char)255);
-    feed_bodies();   // same refresh path the visibility toggle uses → viewport updates immediately
+    set_body_color(b, ColorRGBA((unsigned char)picked.Red(), (unsigned char)picked.Green(),
+                                (unsigned char)picked.Blue(), (unsigned char)255));
+}
 
+void DesignPanel::set_body_color(int b, const ColorRGBA& color)
+{
+    if (b < 0 || b >= int(m_doc.bodies.size())) return;
+    m_doc.bodies[b].has_color = true;
+    m_doc.bodies[b].color     = color;
+    feed_bodies();   // same refresh path the visibility toggle uses → viewport updates immediately
+    sync_recipe_to_model();   // the colour is saved with the recipe
     set_status(StatusKind::Info, wxString::Format(_L("Body %d color set"), b + 1));
+}
+
+void DesignPanel::rename_body(int b, const std::string& name)
+{
+    if (b < 0 || b >= int(m_doc.bodies.size())) return;
+    m_doc.bodies[b].has_user_name = true;
+    m_doc.bodies[b].user_name     = name;
+    sync_recipe_to_model();   // the name is part of what gets saved
+    refresh_parts();
 }
 
 // Prepare's "Place on Face" (F), ported to Design. Pick a body face, then this rotates the
@@ -8217,26 +8156,29 @@ void DesignPanel::clear_document()
 // other delete here, and a modal in the modelling loop is the thing charter 4.2 removes.
 void DesignPanel::on_delete_body()
 {
-    const int nb = int(m_doc.bodies.size());
-    if (m_sel_solid_body < 0 || m_sel_solid_body >= nb) {
+    if (m_sel_solid_body < 0 || m_sel_solid_body >= int(m_doc.bodies.size())) {
         set_status(StatusKind::Error, _L("Select a body first"));
         return;
     }
-    const int src = m_doc.bodies[m_sel_solid_body].source_feature;
+    delete_body(m_sel_solid_body);
+}
+
+bool DesignPanel::delete_body(int b)
+{
+    if (b < 0 || b >= int(m_doc.bodies.size())) return false;
+    const int src = m_doc.bodies[b].source_feature;
     if (src < 0 || src >= int(m_doc.features.size())) {
         // Only reachable for a body no feature claims — a stale recipe, or a feature type that
         // broke the "never replace a whole CadBody" invariant recompute() relies on.
         set_status(StatusKind::Error, _L("This body has no feature to delete — use New Design to start over"));
-        return;
+        return false;
     }
     const std::string& raw = m_doc.features[src].name;
     const wxString fname = raw.empty() ? wxString::Format(_L("feature %d"), src + 1)
                                        : wxString::FromUTF8(raw);
-    if (!begin_renumber()) return;
-    const bool ok = m_doc.remove_feature(src);
-    after_tree_edit(ok);
-    if (ok)
-        set_status(StatusKind::Ok, wxString::Format(_L("Deleted %s, the feature this body was made from — Ctrl+Z restores it"), fname));
+    if (!delete_feature(src)) return false;
+    set_status(StatusKind::Ok, wxString::Format(_L("Deleted %s, the feature this body was made from — Ctrl+Z restores it"), fname));
+    return true;
 }
 
 void DesignPanel::on_delete_feature()
@@ -8252,35 +8194,32 @@ void DesignPanel::on_delete_feature()
         set_status(StatusKind::Info, _L("Select a feature in the tree first"));
         return;
     }
-    if (!begin_renumber()) return;
-    after_tree_edit(m_doc.remove_feature(sel));
+    delete_feature(sel);
+}
+
+bool DesignPanel::delete_feature(int f)
+{
+    if (f < 0 || f >= int(m_doc.features.size()) || !begin_renumber()) return false;
+    const bool ok = m_doc.remove_feature(f);
+    if (!ok) m_doc.abandon_checkpoint();   // the kernel put the features back: no undo step
+    after_tree_edit(ok);
+    return ok;
 }
 
 void DesignPanel::on_toggle_visibility()
 {
-    // A selected Body row toggles that body's visibility (per-body show/hide). The solid
-    // stays in the document; only its GLVolume + pickability flip. Falls through to the
-    // feature-level toggle below when a feature row (not a body row) is selected.
+    // A selected Body row toggles that body's visibility (per-body show/hide). Falls through to
+    // the feature-level toggle below when a feature row (not a body row) is selected.
     const int bsel = tree_body_selection();
     if (bsel >= 0) {
         sync_body_visible();
         if (bsel < int(m_body_visible.size())) {
-            const bool now_visible = !m_body_visible[bsel];
-            m_body_visible[bsel] = now_visible;
-            if (m_viewport != nullptr) {
-                feed_bodies();   // flips is_active; m_solid_visible is a stable pointer (live)
-                m_viewport->set_solid_pick(&m_doc.bodies, &m_disp_pick_mesh,
-                                           &m_doc.display_tri_face, &m_doc.display_tri_body,
-                                           &m_body_visible, &m_body_xform);
-            }
-            refresh_tree();
+            show_body(bsel, !m_body_visible[bsel]);
             // Keep the row selected for repeat toggles. m_parts, NOT m_tree: the row is a body,
             // and selecting it in the feature tree left the body row unselected — so the second
             // press of the eye found tree_body_selection() == -1 and fell through to the
             // FEATURE-level branch below instead of un-hiding the body.
             if (m_parts != nullptr) m_parts->select(bsel);
-            set_status(StatusKind::Info, wxString::Format(now_visible ? _L("Body %d shown")
-                                                            : _L("Body %d hidden"), bsel + 1));
         }
         return;
     }
@@ -8295,16 +8234,42 @@ void DesignPanel::on_toggle_visibility()
         set_status(StatusKind::Error, _L("Select a feature in the tree first"));
         return;
     }
-    const bool shown = !m_doc.features[sel].enabled;
+    if (show_feature(sel, !m_doc.features[sel].enabled))
+        set_tree_selection(sel);   // keep the toggled feature selected
+}
+
+// The solid stays in the document; only its GLVolume + pickability flip.
+void DesignPanel::show_body(int b, bool shown)
+{
+    sync_body_visible();
+    if (b < 0 || b >= int(m_body_visible.size())) return;
+    m_body_visible[b] = shown;
+    if (m_viewport != nullptr) {
+        feed_bodies();   // flips is_active; m_solid_visible is a stable pointer (live)
+        m_viewport->set_solid_pick(&m_doc.bodies, &m_disp_pick_mesh,
+                                   &m_doc.display_tri_face, &m_doc.display_tri_body,
+                                   &m_body_visible, &m_body_xform);
+    }
+    refresh_tree();
+    set_status(StatusKind::Info, wxString::Format(shown ? _L("Body %d shown") : _L("Body %d hidden"), b + 1));
+}
+
+bool DesignPanel::show_feature(int f, bool shown)
+{
+    if (f < 0 || f >= int(m_doc.features.size())) return false;
+    if (m_doc.features[f].enabled == shown) return true;
     // Through the document, not a bare flag flip: hiding a feature that makes a body shifts
     // every later body index, and set_feature_enabled keeps those references on their bodies
     // (and datum-plane references on their planes). It accepts an all-hidden / sketch-only
     // result as the valid empty state it is, and rolls back — saying why — when a later
     // feature cannot do without what was hidden.
     m_doc.checkpoint();
-    if (!m_doc.set_feature_enabled(sel, shown)) { after_tree_edit(false); return; }
+    if (!m_doc.set_feature_enabled(f, shown)) {
+        m_doc.abandon_checkpoint();   // rolled back: no undo step
+        after_tree_edit(false);
+        return false;
+    }
     refresh_tree();                       // greys the row
-    set_tree_selection(sel);              // keep the toggled feature selected
     if (m_viewport != nullptr) {
         if (m_doc.display_mesh.its.indices.empty()) {
             m_viewport->clear_mesh();
@@ -8321,6 +8286,7 @@ void DesignPanel::on_toggle_visibility()
     }
     sync_sketch_display();                // skips the hidden sketch + direct-renders
     set_status(StatusKind::Info, shown ? _L("Feature shown") : _L("Feature hidden"));
+    return true;
 }
 
 void DesignPanel::on_move_feature(int delta)
@@ -8330,16 +8296,31 @@ void DesignPanel::on_move_feature(int delta)
         set_status(StatusKind::Info, _L("Select a feature in the tree first"));
         return;
     }
-    int target = sel + delta;
-    if (target < 0 || target >= int(m_doc.features.size()))
-        return; // already at the end
-    if (!begin_renumber()) return;
-    if (m_doc.move_feature(sel, delta)) {
-        after_tree_edit(true);
-        set_tree_selection(target); // keep the moved feature selected
-    } else {
-        after_tree_edit(false);
-    }
+    if (move_feature(sel, delta))
+        set_tree_selection(sel + delta);   // keep the moved feature selected
+}
+
+bool DesignPanel::move_feature(int f, int delta)
+{
+    const int target = f + delta;
+    if (f < 0 || target < 0 || target >= int(m_doc.features.size()))
+        return false; // already at the end
+    if (!begin_renumber()) return false;
+    const bool ok = m_doc.move_feature(f, delta);
+    if (!ok) m_doc.abandon_checkpoint();   // the kernel put the features back: no undo step
+    after_tree_edit(ok);
+    return ok;
+}
+
+// A feature's name is part of the recipe, so a rename is its own undo step: Undo takes back the
+// rename and nothing before it.
+void DesignPanel::rename_feature(int f, const std::string& name)
+{
+    if (f < 0 || f >= int(m_doc.features.size()) || m_doc.features[f].name == name) return;
+    m_doc.checkpoint();
+    m_doc.features[f].name = name;
+    refresh_tree();   // which syncs the recipe, so the save path persists the name
+    update_undo_redo_buttons();
 }
 
 // Commit the live sketch in place, then enter Constrain mode on the just-committed sketch.
@@ -8437,16 +8418,6 @@ static wxString constraint_reject_text(ConstraintReject reason, SketchConstraint
     case ConstraintReject::None:
     default:                                     return wxString();
     }
-}
-
-// Write the typed value into every planned def. The planner returns the prefill in DISPLAY
-// units and leaves def.value = 0; Angle is the one type whose stored value is not the number
-// the user sees (it is radians), so the conversion lives here, exactly as the old
-// apply_entity_constraint did on its Angle branch.
-static void write_plan_value(std::vector<SketchEntityConstraintDef>& defs, double v)
-{
-    for (auto& d : defs)
-        d.value = (d.type == SketchConstraintType::Angle) ? v * M_PI / 180.0 : v;
 }
 
 void DesignPanel::apply_entity_constraint(SketchConstraintType type)
@@ -10197,13 +10168,19 @@ void DesignPanel::on_export_step()
                      wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (dlg.ShowModal() != wxID_OK)
         return;
-    sync_body_xform();   // export bodies at their displayed Move-gizmo positions
     std::string err;
-    const bool ok = m_doc.export_step(dlg.GetPath().ToUTF8().data(), m_body_xform, err);
+    export_step_to(dlg.GetPath().ToUTF8().data(), err);
+}
+
+bool DesignPanel::export_step_to(const std::string& path_utf8, std::string& err)
+{
+    sync_body_xform();   // export bodies at their displayed Move-gizmo positions
+    const bool ok = m_doc.export_step(path_utf8, m_body_xform, err);
     set_status(ok ? StatusKind::Ok : StatusKind::Error,
                ok ? _L("Exported STEP")
                   : wxString::Format(_L("STEP export failed: %s"), wxString::FromUTF8(err)));
     m_status->Refresh();
+    return ok;
 }
 
 void DesignPanel::set_commit_mode(CommitMode mode)
@@ -10221,6 +10198,11 @@ void DesignPanel::set_commit_mode(CommitMode mode)
 
 void DesignPanel::on_commit()
 {
+    commit_to_plate(m_commit_mode);
+}
+
+std::vector<size_t> DesignPanel::commit_to_plate(CommitMode mode, std::vector<int>* bodies_sent)
+{
     // A feature tool open with a live preview ghost (e.g. a fillet being previewed) is
     // NOT yet part of the body. Apply it first so "Commit to Plate" ships exactly what
     // is shown on screen, not the pre-feature solid. (confirm_tool() applies + closes.)
@@ -10230,11 +10212,19 @@ void DesignPanel::on_commit()
 
     if (m_doc.display_mesh.its.indices.empty()) {
         set_status(_L("Nothing to commit — add a feature first"));
-        return;
+        return {};
     }
+    Plater*     plater   = wxGetApp().plater();
     ObjectList* obj_list = wxGetApp().obj_list();
-    if (obj_list == nullptr)
-        return;
+    if (plater == nullptr || obj_list == nullptr)
+        return {};
+
+    // A body the user named in the Bodies list gives its name to what it becomes on the plate;
+    // an unnamed one keeps the design's label.
+    auto body_label = [this](size_t b, const wxString& unnamed) {
+        const bool named = b < m_doc.bodies.size() && m_doc.bodies[b].has_user_name && !m_doc.bodies[b].user_name.empty();
+        return named ? wxString::FromUTF8(m_doc.bodies[b].user_name) : unnamed;
+    };
 
     // Multi-body: ship the (visible) bodies as the parts of one assembly object that keeps
     // their placement (the default), or each as its own plate object so they arrive as
@@ -10242,24 +10232,34 @@ void DesignPanel::on_commit()
     // Hidden bodies are skipped — what you see on the Design plate is what gets committed.
     sync_body_visible();
     rebuild_disp_meshes();   // ship moved bodies at their Move-gizmo positions
+    std::vector<std::pair<const TriangleMesh*, wxString>> parts;
+    std::vector<int>                                      sent;
     if (m_disp_body_meshes.size() > 1) {
-        std::vector<std::pair<const TriangleMesh*, wxString>> parts;
         for (size_t b = 0; b < m_disp_body_meshes.size(); ++b) {
             if (b < m_body_visible.size() && !m_body_visible[b]) continue;   // skip hidden
             if (m_disp_body_meshes[b].its.indices.empty()) continue;
-            parts.emplace_back(&m_disp_body_meshes[b], wxString::Format(_L("Design Body %d"), int(b + 1)));
+            parts.emplace_back(&m_disp_body_meshes[b], body_label(b, wxString::Format(_L("Design Body %d"), int(b + 1))));
+            sent.push_back(int(b));
         }
         if (parts.empty()) {   // every body hidden — nothing to ship
             set_status(_L("All bodies hidden — show one before committing"));
-            return;
+            return {};
         }
-        if (m_commit_mode == CommitMode::Assembly && parts.size() > 1)
+    } else {
+        parts.emplace_back(&m_disp_pick_mesh, body_label(0, _L("Design Body")));
+        sent.push_back(0);
+    }
+
+    const size_t first = plater->model().objects.size();
+    {
+        // One Prepare undo step, as Add Primitive takes around the same load, so Undo there
+        // takes back the commit and nothing before it.
+        Plater::TakeSnapshot snapshot(plater, _u8L("Commit to Plate"));
+        if (mode == CommitMode::Assembly && parts.size() > 1)
             obj_list->load_mesh_object(parts, _L("Design Assembly"));
         else
             for (const auto& [mesh, name] : parts)
                 obj_list->load_mesh_object(*mesh, name);
-    } else {
-        obj_list->load_mesh_object(m_disp_pick_mesh, _L("Design Body"));
     }
 
     // Persist the editable parametric recipe alongside the committed meshes so the
@@ -10269,6 +10269,13 @@ void DesignPanel::on_commit()
 
     if (wxGetApp().mainframe != nullptr)
         wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+
+    std::vector<size_t> made;
+    for (size_t i = first; i < plater->model().objects.size(); ++i)
+        made.push_back(i);
+    if (bodies_sent != nullptr)
+        *bodies_sent = std::move(sent);
+    return made;
 }
 
 CadFeature DesignPanel::build_candidate(Tool t) const
@@ -10722,14 +10729,22 @@ void DesignPanel::update_shell_gizmo()
     m_viewport->begin_shell_gizmo(c, (-n).normalized(), m_shell_thickness->GetValue());
 }
 
+int DesignPanel::default_revolve_axis_entity(const std::vector<SketchEntity>& ents)
+{
+    int centerline = -1, centerlines = 0;
+    for (int i = 0; i < int(ents.size()); ++i)
+        if (ents[i].type == SketchEntity::Type::Line && ents[i].construction) { centerline = i; ++centerlines; }
+    return centerlines == 1 ? centerline : -1;
+}
+
 void DesignPanel::fill_revolve_axes(ComboBox* combo, std::vector<int>& ents, int sketch_ref, int axis, int entity)
 {
     combo->Clear();
     ents.clear();
     combo->Append(_L("Plane X"));
     combo->Append(_L("Plane Y"));
-    int centerline = -1, centerlines = 0;
-    if (sketch_ref >= 0 && sketch_ref < int(m_doc.features.size())) {
+    const bool has_sketch = sketch_ref >= 0 && sketch_ref < int(m_doc.features.size());
+    if (has_sketch) {
         const std::vector<SketchEntity>& es = m_doc.features[sketch_ref].entities;
         for (int i = 0; i < int(es.size()); ++i) {
             if (es[i].type != SketchEntity::Type::Line)
@@ -10738,11 +10753,10 @@ void DesignPanel::fill_revolve_axes(ComboBox* combo, std::vector<int>& ents, int
             combo->Append(es[i].construction ? wxString::Format(_L("Centerline E%d"), i)
                                              : wxString::Format(_L("Line E%d"), i));
             ents.push_back(i);
-            if (es[i].construction) { centerline = i; ++centerlines; }
         }
     }
-    if (entity == -2)   // fresh revolve: a lone centerline is what the profile was drawn around
-        entity = centerlines == 1 ? centerline : -1;
+    if (entity == -2)   // fresh revolve
+        entity = has_sketch ? default_revolve_axis_entity(m_doc.features[sketch_ref].entities) : -1;
     int sel = axis == 1 ? 1 : 0;
     for (int k = 0; k < int(ents.size()); ++k)
         if (ents[k] == entity) sel = 2 + k;
@@ -11309,6 +11323,12 @@ void DesignPanel::start_sketch_on_target(bool offer_tools)
     if (!m_viewport) return;
     wxString on;
     const SketchPlane plane = sketch_plane_from_selection(on);
+    begin_sketch_session(plane, on, offer_tools);
+}
+
+void DesignPanel::begin_sketch_session(const SketchPlane& plane, const wxString& on, bool offer_tools)
+{
+    if (!m_viewport) return;
     m_viewport->begin_sketch(plane, DesignSketchTool::Mode::Select);
     // The face or plane has been CONSUMED as the sketch plane, so drop the pick. A face left live
     // meant the next Extrude saw a selected face and push/pulled it instead of extruding the
@@ -11686,14 +11706,14 @@ void DesignPanel::open_tool(Tool t)
         if (m_sweep_profile_ref >= 0 && m_sweep_profile_ref < int(m_doc.features.size()))
             m_sweep_profile_label->SetLabel(_L("Profile: ") +
                 wxString::FromUTF8(m_doc.features[m_sweep_profile_ref].name));
-        // Populate the path picker with every Sketch feature except the profile itself;
-        // the feature index rides in the entry's client data. Pre-select the stored path
-        // (re-edit), else the first available sketch.
+        // Populate the path picker with every Sketch feature except the profile itself, and every
+        // Helix (a spring or coil sweeps along one); the feature index rides in the entry's client
+        // data. Pre-select the stored path (re-edit), else the first available one.
         m_sweep_path->Clear();
         int sel_idx = wxNOT_FOUND;
         for (int i = 0; i < int(m_doc.features.size()); ++i) {
             const CadFeature& sf = m_doc.features[i];
-            if (sf.type != CadFeatureType::Sketch || i == m_sweep_profile_ref) continue;
+            if ((sf.type != CadFeatureType::Sketch && sf.type != CadFeatureType::Helix) || i == m_sweep_profile_ref) continue;
             const int pos = combo_append_index(m_sweep_path, wxString::FromUTF8(sf.name), i);
             if (i == m_sweep_path_ref) sel_idx = pos;
         }
@@ -11986,7 +12006,12 @@ void DesignPanel::confirm_tool()
     case Tool::Revolve: on_add_revolve(); break;
     case Tool::Sweep:   on_add_sweep();   break;
     case Tool::Pattern: on_add_pattern(); break;
-    case Tool::Plane:   if (!on_add_plane()) return;   break;   // refused: keep the card and its picks
+    case Tool::Plane:
+        if (!on_add_plane()) {   // refused: keep the card and its picks, and leave no empty undo step
+            m_doc.abandon_checkpoint();
+            return;
+        }
+        break;
     case Tool::Loft:    on_add_loft();    break;
     case Tool::Draft:   on_add_draft();   break;
     case Tool::Boolean: on_add_boolean(); break;

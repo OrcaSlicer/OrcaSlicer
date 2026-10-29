@@ -420,6 +420,10 @@ public:
     void        export_config();
     // Query user for the config file and open it.
     void        load_config_file();
+    // Import preset files (.json, .zip, .orca_printer, .orca_filament, .orca_bundle) as the Import Configs
+    // dialog does, then refresh the presets. `confirm` answers for each preset that exists already
+    // (0 no, 1 yes, 2 no to all, 3 yes to all). Returns the files imported.
+    std::vector<std::string> import_configs(std::vector<std::string> files, std::function<int(const std::string &)> confirm);
     // Open a config file. Return true if loaded.
     bool        load_config_file(const std::string &path);
 
@@ -446,6 +450,7 @@ public:
     void        select_prepare_for_gl_init();
     // Builds the lazy tab pages while the user is idle; post_init() calls it once.
     void        prebuild_pages_when_idle();
+    bool        prebuild_pending() const { return m_idle.pending(); }
     bool        Show(bool show = true) override;
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);

@@ -1,0 +1,107 @@
+// The sketch's own tools through cad_call: shapes drawn by their drawing tools (polygon, slot,
+// ellipse, spline), the edit tools (trim, extend, chamfer, fillet, move, rotate, linear and polar
+// arrays) and the CONSTRAIN bar (constraints from picks and from named points, one refused, one
+// deleted), each read back from the sketch and from the solid it is extruded into. Sketch
+// coordinates only, so it replays on any printer. Refused calls change nothing.
+// Needs the CAD feature on:
+//   tools/mcp/orca_mcp.py launch --cad
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/cad_sketch_edit.json --out /tmp/out
+{
+  "orca_script": 1,
+  "name": "cad sketch edit",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
+
+    // The bench's M5 hex standoff from a polygon 8 across the flats and its 4.134 mm tap drill.
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": "XY"}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"entities": [
+      {"type": "polygon", "center": [0, 0], "sides": 6, "across_flats": 8},
+      {"type": "circle", "center": [0, 0], "radius": 2.067}]}},
+     "expect": {"/result/shapes/0/count": {"eq": 6}, "/result/shapes/1/first": {"eq": 6}, "/result/entities": {"eq": 7}}},
+    // The first edge is a flat 4 mm from the centre; the hexagon holds the bore as its hole.
+    {"tool": "cad_call", "args": {"method": "sketch_describe"},
+     "expect": {"/result/entities/0/p0/0": {"ge": 3.9999, "le": 4.0001}, "/result/entities/0/p1/0": {"ge": 3.9999, "le": 4.0001},
+                "/result/closed_loops/1/holes/0": {"eq": 0}, "/result/closed_loops/1/area": {"ge": 55.4256, "le": 55.4257}}},
+    {"tool": "cad_call", "args": {"method": "sketch_commit"}, "expect": {"/result/buildable": {"eq": true}}},
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"sketch": 0, "distance": 15}}, "expect": {"/result/body": {"eq": 0}}},
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/volume": {"ge": 630.0, "le": 630.1}}},
+
+    // Trim and extend on crossing lines.
+    {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": "XY"}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"entities": [
+      {"type": "line", "p0": [-10, 0], "p1": [10, 0]},
+      {"type": "line", "p0": [0, -10], "p1": [0, 10]},
+      {"type": "line", "p0": [0, 20],  "p1": [10, 20]},
+      {"type": "line", "p0": [30, 15], "p1": [30, 25]}]}}},
+    // Line 0 is cut back from its end beyond the crossing.
+    {"tool": "cad_call", "args": {"method": "sketch_trim", "params": {"at": [5, 0]}},
+     "expect": {"/result/entity": {"eq": 0}, "/result/geometry/p1/0": {"ge": -0.0001, "le": 0.0001},
+                "/result/geometry/p0/0": {"eq": -10.0}}},
+    // Nothing there to cut: refused.
+    {"tool": "cad_call", "args": {"method": "sketch_trim", "params": {"at": [100, 100]}}, "optional": true},
+    // Line 2 runs out to line 3.
+    {"tool": "cad_call", "args": {"method": "sketch_trim", "params": {"at": [9, 20], "extend": true}},
+     "expect": {"/result/entity": {"eq": 2}, "/result/geometry/p1/0": {"ge": 29.9999, "le": 30.0001}}},
+    {"tool": "cad_call", "args": {"method": "sketch_cancel"}},
+
+    // A 60 x 40 plate: one corner chamfered, one rounded, two slots, an elliptic hole and four
+    // holes arrayed about a point, then constrained.
+    {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": "XY"}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"rect": [-30, -20, 30, 20]}}, "expect": {"/result/dof": {"eq": 4}}},
+    {"tool": "cad_call", "args": {"method": "sketch_chamfer", "params": {"entities": [0, 1], "distance": 5}},
+     "expect": {"/result/entity": {"eq": 4}, "/result/released_constraints": {"eq": 1}}},
+    // Too big for the 35 mm left of the bottom edge: refused.
+    {"tool": "cad_call", "args": {"method": "sketch_fillet", "params": {"entities": [2, 3], "radius": 100}}, "optional": true},
+    {"tool": "cad_call", "args": {"method": "sketch_fillet", "params": {"entities": [2, 3], "radius": 6}},
+     "expect": {"/result/entity": {"eq": 5}, "/result/entities": {"eq": 6}}},
+    {"tool": "cad_call", "args": {"method": "sketch_add", "params": {"entities": [
+      {"type": "slot", "c0": [-15, 0], "c1": [-5, 0], "width": 4},
+      {"type": "ellipse", "center": [0, -10], "radius": 4, "rminor": 2, "rotation_deg": 0},
+      {"type": "circle", "center": [11, 0], "radius": 1.5},
+      {"type": "spline", "ctrl": [[-25, -15], [-20, -10], [-15, -15]], "construction": true}]}},
+     "expect": {"/result/shapes/0/count": {"eq": 4}, "/result/shapes/1/first": {"eq": 10}, "/result/shapes/2/first": {"eq": 11},
+                "/result/shapes/3/first": {"eq": 12}, "/result/entities": {"eq": 13}}},
+    // A second slot above the first, turned upright about its own centre.
+    {"tool": "cad_call", "args": {"method": "sketch_transform", "params": {"op": "array", "entities": [6, 7, 8, 9], "dy": 10, "count": 2}},
+     "expect": {"/result/first_index": {"eq": 13}, "/result/added": {"eq": 4}}},
+    {"tool": "cad_call", "args": {"method": "sketch_transform", "params": {"op": "rotate", "entities": [13, 14, 15, 16], "angle_deg": 90}},
+     "expect": {"/result/pivot/0": {"ge": -10.0001, "le": -9.9999}, "/result/pivot/1": {"ge": 9.9999, "le": 10.0001}}},
+    // The hole moved 1 mm right (picked by selection), then arrayed four times about (17, 0).
+    {"tool": "cad_call", "args": {"method": "sketch_select", "params": {"entities": [11]}}},
+    {"tool": "cad_call", "args": {"method": "sketch_transform", "params": {"op": "move", "dx": 1}},
+     "expect": {"/result/moved/0": {"eq": 11}}},
+    {"tool": "cad_call", "args": {"method": "sketch_transform", "params": {"op": "polar_array", "entities": [11], "pivot": [17, 0], "count": 4}},
+     "expect": {"/result/first_index": {"eq": 17}, "/result/added": {"eq": 3}, "/result/bound": {"eq": 3}}},
+    {"tool": "cad_call", "args": {"method": "sketch_describe"},
+     "expect": {"/result/entities/18/center/0": {"ge": 21.9999, "le": 22.0001}, "/result/entities/18/center/1": {"ge": -0.0001, "le": 0.0001},
+                "/result/entities/14/p0/0": {"ge": -12.0001, "le": -11.9999}, "/result/buildable": {"eq": true}}},
+
+    // Constraints: the hole held 12 from the origin (its current distance), the first copy kept the
+    // hole's size. A rival radius cannot be met and is rolled back; the distance is deleted again.
+    {"tool": "cad_call", "args": {"method": "sketch_constraints"}, "expect": {"/result/constraints": {"eq": 25}}},
+    {"tool": "cad_call", "args": {"method": "sketch_constrain", "params": {"type": "distance",
+       "refs": [{"entity": 11, "role": "center"}, {"entity": "origin"}], "value": 12}},
+     "expect": {"/result/added/0": {"eq": 25}, "/result/items/0/type": {"eq": "distance"},
+                "/result/items/0/refs/1/entity": {"eq": "origin"}, "/result/solve_ok": {"eq": true}}},
+    {"tool": "cad_call", "args": {"method": "sketch_constrain", "params": {"type": "equal", "entities": [11, 17]}},
+     "expect": {"/result/items/0/type": {"eq": "equal_radius"}}},
+    {"tool": "cad_call", "args": {"method": "sketch_constrain", "params": {"type": "radius", "entities": [11], "value": 2}}, "optional": true},
+    {"tool": "cad_call", "args": {"method": "sketch_constraints"},
+     "expect": {"/result/scope": {"eq": "live"}, "/result/constraints": {"eq": 27}, "/result/items/26/type": {"eq": "equal_radius"}}},
+    {"tool": "cad_call", "args": {"method": "sketch_unconstrain", "params": {"index": 25}},
+     "expect": {"/result/removed/type": {"eq": "distance"}, "/result/constraints": {"eq": 26}}},
+    {"tool": "cad_call", "args": {"method": "sketch_commit"},
+     "expect": {"/result/buildable": {"eq": true}, "/result/sketch_index": {"eq": 0}}},
+    {"tool": "cad_call", "args": {"method": "sketch_constraints", "params": {"sketch": 0}},
+     "expect": {"/result/scope": {"eq": "committed"}, "/result/constraints": {"eq": 26}}},
+    {"tool": "cad_call", "args": {"method": "extrude", "params": {"sketch": 0, "distance": 5}}, "expect": {"/result/body": {"eq": 0}}},
+    // 60 x 40, less the chamfer (12.5), the fillet's corner (36 (1 - pi/4)), two slots (40 + 4 pi each),
+    // the ellipse (8 pi) and four holes (2.25 pi each): 2221.23 mm2, 5 mm thick.
+    {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
+     "expect": {"/result/volume": {"ge": 11106.1, "le": 11106.25}}}
+  ]
+}

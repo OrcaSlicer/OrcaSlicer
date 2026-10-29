@@ -368,6 +368,15 @@ public:
     // Select a new preset, possibly delete the current one.
     bool select_preset(std::string preset_name = "", bool delete_current = false, const std::string &last_selected_ph_printer_name = "", bool force_select = false, bool force_no_transfer = false);
 	bool		may_discard_current_dirty_preset(PresetCollection* presets = nullptr, const std::string& new_printer_name = "", bool no_transfer = false, bool no_transfer_variant = false);
+    // Whether the unsaved-changes prompt of a switch to `preset_name` offers Transfer for this tab's own
+    // changes: never on the printer tab, and not between filaments of different types.
+    bool        can_transfer_changes_to(const std::string& preset_name) const;
+
+    // How this tab's preset switches answer their unsaved-changes prompts: by a person in
+    // UnsavedChangesDialog (Ask), or with the dialog's Transfer or Discard without showing it, for a
+    // caller that already has the answer (MCP's select_preset). A caller sets it around one switch.
+    enum class DirtyPresetAnswer { Ask, Transfer, Discard };
+    DirtyPresetAnswer m_dirty_preset_answer = DirtyPresetAnswer::Ask;
 
     virtual void    clear_pages();
     virtual void    update_description_lines();
@@ -386,7 +395,9 @@ public:
 	bool        save_preset(std::string name = std::string(), bool detach = false, bool save_to_project = false, bool from_input = false, std::string input_name = "", bool plugin_warning_confirmed = false);
 	//void		save_preset(std::string name = std::string(), bool detach = false);
 
-	void		delete_preset();
+	// Deletes the selected preset. `ask` false skips the confirmations, for a caller that has made the
+	// same checks itself; the refusal for a preset other presets inherit from still shows.
+	void		delete_preset(bool ask = true);
 	void		toggle_show_hide_incompatible();
 	void		update_show_hide_incompatible_button();
 	void		update_ui_from_settings();
@@ -553,6 +564,11 @@ protected:
 	// when a built field or a group owns the option, false when the GUI edits it through a custom
 	// widget with no group entry.
 	bool			commit_preset_config_value(const std::string& opt_key);
+	// The unsaved-changes prompt's Transfer: caches `selected_options` of `presets`' unsaved changes for
+	// the preset selected next, less the options of other extruder variants on a switch to a printer
+	// with other variants (`no_transfer_variant`), which a person is told about in a message box.
+	void			transfer_dirty_options(PresetCollection* presets, std::vector<std::string> selected_options, bool no_transfer,
+	                                       bool no_transfer_variant);
 
 	//BBS: GUI refactor
 	// return true if cancelled

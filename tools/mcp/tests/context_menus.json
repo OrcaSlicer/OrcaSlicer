@@ -1,0 +1,63 @@
+// Context and button menus are listed or run by path, never shown, so the run must finish with nobody
+// pressing Escape (on macOS a native menu would hold every later step). Run it on a fresh datadir set
+// up with the default printer (Bambu Lab X1 Carbon 0.4):
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/context_menus.json --out /tmp/menus
+// Refusals (no such item, a submenu, a disabled item, a click that opened no menu) are unit tests in
+// tests/slic3rutils/test_mcp_results.cpp, since a script step cannot expect an error.
+{
+  "orca_script": 1,
+  "name": "context menus",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [
+      {"match": "Uniform scale", "button": "ok"},
+      {"match": "per-object setting mode", "button": "ok"}]}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1440, 960]}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "set_view", "args": {"camera": "iso"}},
+
+    // ---- A right click on the cube lists the object menu; nothing is shown ----
+    {"tool": "ui_mouse", "args": {"action": "click", "button": "right", "at": {"object": 0, "spot": "top"}},
+     "expect": {"/popup_menu/items": {"contains": "Add Modifier>Cylinder"}, "/popup_menu/checked": {"contains": "Printable"}}},
+    {"tool": "get_state", "expect": {"/dialogs": {"empty": true}}},
+
+    // ---- The same click runs an item: a modifier through the GUI's own command, one undo step ----
+    {"tool": "ui_mouse", "args": {"action": "click", "button": "right", "at": {"object": 0, "spot": "top"}, "popup_item": "add modifier>cylinder"},
+     "expect": {"/ran": {"eq": "Add Modifier>Cylinder"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/1/type": {"eq": "modifier"}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/1": {"exists": false}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/1/type": {"eq": "modifier"}}},
+
+    // ---- Empty space with nothing selected: the default menu ----
+    {"tool": "select", "args": {"none": true}},
+    {"tool": "ui_mouse", "args": {"action": "click", "button": "right", "x": 1000, "y": 150},
+     "expect": {"/popup_menu/items": {"contains": "Add Primitive>Cube"}}},
+    {"tool": "ui_mouse", "args": {"action": "click", "button": "right", "x": 1000, "y": 150, "popup_item": "Add Primitive>Cylinder"},
+     "expect": {"/ran": {"eq": "Add Primitive>Cylinder"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_state", "expect": {"/objects": {"eq": 2}}},
+
+    // ---- A button's menu: the first edit button, the printer's (zero-sized on macOS, which froze the
+    // app before), or on Linux, where that one is hidden, filament 1's, which has a menu with two
+    // filaments ----
+    {"tool": "ui_click", "args": {"target": {"label": "Add one filament"}}},
+    {"tool": "ui_click", "args": {"target": {"label": "Click to edit preset", "index": 0}},
+     "expect": {"/popup_menu/items": {"empty": false}}},
+    {"tool": "get_state", "expect": {"/dialogs": {"empty": true}, "/tab": {"eq": "prepare"}}},
+
+    // ---- Two objects selected: the multi-selection menu, built for each click and freed after it ----
+    {"tool": "select", "args": {"all": true}},
+    {"tool": "ui_mouse", "args": {"action": "click", "button": "right", "at": {"object": 0, "spot": "top"}},
+     "expect": {"/popup_menu/items": {"contains": "Align/Distribute>Align left (-X)"}}},
+    {"tool": "ui_mouse", "args": {"action": "click", "button": "right", "at": {"object": 0, "spot": "top"}},
+     "expect": {"/popup_menu/items": {"contains": "Delete"}}},
+    {"tool": "ui_mouse", "args": {"action": "click", "button": "right", "at": {"object": 0, "spot": "top"}, "popup_item": "Delete"},
+     "expect": {"/ran": {"eq": "Delete"}}},
+    {"tool": "get_state", "expect": {"/objects": {"eq": 0}, "/closed_menus": {"empty": true}}}
+  ]
+}

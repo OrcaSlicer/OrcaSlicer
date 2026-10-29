@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -54,6 +55,13 @@ AppActionRunResult run(const std::string& key, const std::string& param = {});
 const NativeCommand* find(const std::string& key);
 
 const char* param_type_name(CommandParamType type);
+
+// The positive numbers of a size param, separated by spaces or commas ("90 4", "90,4"); nullopt when
+// it holds anything else or nothing.
+std::optional<std::vector<double>> parse_sizes(const std::string& param);
+
+// A count param: a whole number of 0 or more, nothing else ("6", " 6 "); nullopt otherwise.
+std::optional<int> parse_count(const std::string& param);
 
 // Materialises one catalog entry as a runnable AppAction, titled in the current UI language with the
 // English title/group kept as search aliases. Keeps the catalog's identity, presentation and

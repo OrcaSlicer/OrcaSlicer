@@ -628,6 +628,15 @@ void NotificationManager::PopNotification::init()
 	if (is_finished())
 		return;
 
+	// Text is measured with the font ImGuiWrapper::new_frame() builds on the first ImGui frame. A
+	// notification pushed or updated before that (the app starts on Home, and slicing or arranging
+	// begins before the 3D view is drawn) is measured in render(), which inits it again because its
+	// line height then differs from the font's.
+	if (ImGui::GetFont() == nullptr) {
+		m_line_height = 0.f;
+		return;
+	}
+
 	count_spaces();
 	count_lines();
 

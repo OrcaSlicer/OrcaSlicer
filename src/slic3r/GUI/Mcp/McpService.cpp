@@ -12,9 +12,12 @@
 #include "UiInspector.hpp"
 #include "McpPaths.hpp"
 #include "slic3r/GUI/SyntheticInput.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Utils.hpp"
@@ -28,6 +31,8 @@
 #include <boost/nowide/fstream.hpp>
 
 #include <wx/app.h>
+#include <wx/event.h>
+#include <wx/timer.h>
 
 #include <algorithm>
 #include <atomic>
@@ -87,6 +92,36 @@ public:
     }
 };
 
+// Whether the Prepare canvas has loaded OpenGL: its functions, shaders and the ImGui font.
+bool canvas_gl_ready()
+{
+    Plater*     plater = wxGetApp().plater();
+    GLCanvas3D* canvas = plater != nullptr ? plater->canvas3D() : nullptr;
+    return canvas == nullptr || canvas->is_initialized();
+}
+
+// Whether the main window has tab pages still to build at idle.
+bool pages_pending()
+{
+    const MainFrame* frame = wxGetApp().mainframe;
+    return frame != nullptr && frame->prebuild_pending();
+}
+
+// The Plater's UI job worker, as McpCore watches it for jobs that calls start.
+WorkerHooks ui_job_worker_hooks()
+{
+    WorkerHooks hooks;
+    hooks.busy = [] {
+        Plater* plater = wxGetApp().plater();
+        return plater != nullptr && !plater->get_ui_job_worker().is_idle();
+    };
+    hooks.cancel = [] {
+        if (Plater* plater = wxGetApp().plater())
+            plater->get_ui_job_worker().cancel();
+    };
+    return hooks;
+}
+
 // Server instructions shown to the model; clients truncate them at 4096 characters.
 const char* kInstructions =
     "OrcaSlicer, a 3D-printing slicer, driven through its GUI.\n"
@@ -99,7 +134,8 @@ const char* kInstructions =
     "running: never retry it. Answer dialogs with dialog_respond (see get_state.dialogs), then wait {for:\"job\"}. "
     "A dialog marked native: true (a file or folder picker, a message box) can't be answered; register "
     "dialog_auto_answer before the step that opens one.\n"
-    "- While a slice or export runs, other changes are refused; use wait or cancel.\n"
+    "- While an operation (slice, export, arrange or another background job) runs, other changes are refused; use wait "
+    "or cancel.\n"
     "- Paths are absolute. Outputs never overwrite an existing file unless overwrite is true.\n"
     "- screenshot returns a downscaled image plus the full-size PNG path; target \"canvas\" is the 3D view.\n"
     "- export_script saves this session's calls as a replayable script; run_script replays one.";
@@ -159,9 +195,11 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
         m_modals     = std::make_unique<ModalTracker>();
         m_inspector  = std::make_unique<UiInspector>(*this);
         m_invoker    = std::make_unique<UiInvoker>(*m_dispatcher, [this] { return guards_on_ui(); }, [this] { return m_generation.load(); },
-                                                [this] { return m_modals->snapshot(); });
-        m_core       = std::make_unique<McpCore>(m_registry, *m_invoker, m_jobs, &m_journal);
+                                                [this] { return m_modals->snapshot(); },
+                                                [this](const std::string& tool, bool running) { m_inspector->ui_activity(tool, running); });
+        m_core       = std::make_unique<McpCore>(m_registry, *m_invoker, m_jobs, &m_journal, CoreTiming{}, ui_job_worker_hooks());
         register_tools();
+        m_inspector->capture_menus(true);
         if (ImGuiWrapper* imgui = wxGetApp().imgui())
             imgui->set_item_recording(true);
     }
@@ -268,6 +306,8 @@ void McpService::stop()
     if (m_core == nullptr || m_stopping.exchange(true))
         return;
     BOOST_LOG_TRIVIAL(info) << "MCP server stopping";
+    if (m_ready_timer)
+        m_ready_timer->Stop();
     // Wake everything that waits, so running calls return.
     m_invoker->shutdown();
     m_jobs.wake_all();
@@ -283,8 +323,10 @@ void McpService::stop()
                 m_modals->pop_rules(layer);
         m_script_rule_layers.clear();
     }
-    if (m_inspector)
+    if (m_inspector) {
         m_inspector->release_held(nullptr);
+        m_inspector->capture_menus(false);
+    }
     SyntheticInput::clear();
     if (wxTheApp != nullptr)
         if (ImGuiWrapper* imgui = wxGetApp().imgui())
@@ -407,8 +449,39 @@ void McpService::resume()
 
 void McpService::mark_ready()
 {
-    if (m_ready.exchange(true))
+    if (m_ready || m_ready_timer)
         return;
+    // Starting on Home, the Prepare canvas loads OpenGL at idle after post_init(), and until then a
+    // 3MF save draws its thumbnail with no GL functions loaded. The main window builds its tab pages
+    // at idle then too, and a page's web view registers its "wx" handler with a script it waits for in
+    // a nested loop; on GTK, calls that came in meanwhile have left that wait unfinished for good,
+    // and with it every later web view's window.wx, a dialog page's own buttons included. So ready
+    // waits for the canvas and the pages. When the hidden canvas can't get a GL context, the first
+    // draw of Prepare loads it instead, and the pages build only while no input comes, so ready stops
+    // waiting after 10 s.
+    const auto settled = [] { return canvas_gl_ready() && !pages_pending(); };
+    if (settled()) {
+        set_ready();
+        return;
+    }
+    const auto since = std::chrono::steady_clock::now();
+    m_ready_timer    = std::make_unique<wxTimer>();
+    m_ready_timer->Bind(wxEVT_TIMER, [this, since, settled](wxTimerEvent&) {
+        if (m_stopping || (!settled() && std::chrono::steady_clock::now() - since < std::chrono::seconds(10)))
+            return;
+        m_ready_timer->Stop();
+        if (!canvas_gl_ready())
+            BOOST_LOG_TRIVIAL(warning) << "MCP ready before the 3D view loaded OpenGL";
+        if (pages_pending())
+            BOOST_LOG_TRIVIAL(warning) << "MCP ready before the main window built its tab pages";
+        set_ready();
+    });
+    m_ready_timer->Start(100);
+}
+
+void McpService::set_ready()
+{
+    m_ready = true;
     if (!m_options.script.empty())
         run_launch_script();
 }
@@ -435,6 +508,7 @@ void McpService::register_tools()
     register_project_tools(*this);
     register_config_tools(*this);
     register_scene_tools(*this);
+    register_layer_tools(*this);
     register_view_tools(*this);
     register_ui_tools(*this);
     register_script_tools(*this);

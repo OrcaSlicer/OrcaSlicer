@@ -4,6 +4,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
+#include <GeomAbs_SurfaceType.hxx>
 #include <TopoDS_Shape.hxx>
 #include <array>
 #include <TopoDS_Face.hxx>
@@ -137,6 +138,37 @@ public:
     // radius = circle radius, height = 0 (unknown from an edge), internal = false. ok=false if
     // the edge is not a circle. Lets the Thread tool be driven by a picked circular rim.
     static CylinderFace circle_of_edge(const TopoDS_Edge& edge);
+
+    // What surface a face lies on, for reading a body's topology: its OCCT type, area and centre
+    // of mass, and the numbers that define an analytic surface. Cylinder: as cylinder_of_face
+    // (`location` its base). Cone: `location` the apex, `axis` from the apex into the opening,
+    // `half_angle` (radians), `radius` and `radius2` the smallest and largest radius the face
+    // reaches. Sphere: `location` the centre, `radius`. Torus: `location` the centre, `axis`,
+    // `radius` the major and `radius2` the minor radius. `internal` (cylinder, cone, sphere): the
+    // outward normal points toward the axis or centre, as in a bore or a countersink.
+    struct SurfaceInfo {
+        GeomAbs_SurfaceType type{GeomAbs_OtherSurface};
+        double area{0};
+        Vec3d  centroid{0, 0, 0};
+        Vec3d  location{0, 0, 0};
+        Vec3d  axis{0, 0, 1};
+        double radius{0};
+        double radius2{0};
+        double half_angle{0};
+        bool   internal{false};
+    };
+    static SurfaceInfo surface_info(const TopoDS_Face& face);
+    // The faces each edge bounds: entry i lists the faces_of() ids along edge i of edges_of(), each
+    // once. A seam (the line down a cylinder's side) lists its one face; a degenerate edge (a
+    // cone's apex) lists none.
+    static std::vector<std::vector<int>> edge_faces(const TopoDS_Shape& shape);
+    // How the two faces along `edge` meet, as OCCT's fillet code judges it: +1 convex (an outside
+    // corner), -1 concave (an inside corner), 0 when they meet tangentially, as along a fillet's
+    // boundary, or the edge cannot be judged.
+    static int edge_convexity(const TopoDS_Edge& edge, const TopoDS_Face& f1, const TopoDS_Face& f2);
+    // The shortest distance between two shapes (faces, edges, vertices), and the nearest point on
+    // each. Negative when OCCT finds none.
+    static double min_distance(const TopoDS_Shape& a, const TopoDS_Shape& b, Vec3d& pa, Vec3d& pb);
 
     // Plane-coordinate (u,v) bounding box of a face's vertices, measured from `origin` along
     // `x_axis`/`y_axis`. Lets the Hole tool dimension the hole from the face SIDES (umin/vmin =
