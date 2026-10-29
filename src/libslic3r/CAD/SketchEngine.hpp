@@ -326,9 +326,12 @@ public:
     // a sweep path is legitimately open, so open-ness is not an error here — unless
     // `closed_only` is true, in which case an open chain is DISCARDED (skipped, not an
     // error). Empty vector = nothing usable; the caller decides whether that is an error.
+    // `loop_entities`, when given, receives for each returned wire the indices (into `entities`) of the
+    // entities that make it: what lets a caller pick ONE closed loop of a sketch rather than the sketch.
     static std::vector<TopoDS_Wire> entities_to_wires(const std::vector<SketchEntity>& entities,
                                                       const SketchPlane& plane,
-                                                      bool closed_only = false);
+                                                      bool closed_only = false,
+                                                      std::vector<std::vector<int>>* loop_entities = nullptr);
 
     // A planar face from a set of coplanar loops: the largest-area loop is the outer boundary
     // and every other loop is a hole in it. Throws std::runtime_error with a message naming the

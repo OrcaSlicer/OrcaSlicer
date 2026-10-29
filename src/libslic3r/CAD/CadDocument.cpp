@@ -2793,6 +2793,28 @@ static gp_Ax1 revolve_axis_of(const CadFeature& f, const CadFeature& sk)
                   gp_Dir(adir.x(), adir.y(), adir.z()));
 }
 
+std::vector<std::vector<int>> CadDocument::sketch_closed_loops(const CadFeature& sketch)
+{
+    std::vector<std::vector<int>> loops;
+    SketchEngine::entities_to_wires(sketch.entities, sketch.plane, true, &loops);
+    return loops;
+}
+
+TopoDS_Wire CadDocument::loft_profile_wire(const CadFeature& f, size_t ri, bool closed_only) const
+{
+    const CadFeature& sk = features[size_t(f.loft_profile_refs[ri])];
+    if (ri >= f.loft_profile_loops.size() || f.loft_profile_loops[ri].empty()) return build_sketch_wire(sk, closed_only);
+    CadFeature sub = sk;
+    sub.entities.clear();
+    sub.entity_constraints.clear();
+    for (int id : f.loft_profile_loops[ri]) {
+        if (id < 0 || id >= int(sk.entities.size()))
+            throw std::runtime_error(format(_u8L("loft: the loop chosen in %1% is no longer in the sketch — pick it again"), sk.name));
+        sub.entities.push_back(sk.entities[size_t(id)]);
+    }
+    return build_sketch_wire(sub, closed_only);
+}
+
 TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch, bool closed_only) const
 {
     if (!sketch.entities.empty()) {
@@ -2806,11 +2828,14 @@ TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch, bool closed
         // costs the caller an error message; falling through cost them wrong geometry that
         // looked deliberate. The legacy profile/shape paths below are still reached by sketches
         // that legitimately carry no entities at all.
+        const size_t loops = SketchEngine::entities_to_wires(sketch.entities, sketch.plane, closed_only).size();
+        if (loops > 1)
+            throw std::runtime_error(format(_u8L("%1% holds %2% separate closed shapes — a profile must be exactly one closed shape "
+                                                 "(delete or make construction the others)"), sketch.name, int(loops)));
         throw std::runtime_error(
             open_loop_message(sketch,
-                _u8L("sketch has entities but they do not form a single closed wire — a closed "
-                     "entity (circle/ellipse) combined with other entities, or several closed "
-                     "entities, is not supported yet")));
+                format(_u8L("%1% does not form one closed shape — a closed entity (circle/ellipse) combined with other "
+                            "entities is not supported yet"), sketch.name)));
     }
     if (!sketch.profile.points.empty()) {
         SketchProfile prof = sketch.profile;
@@ -3269,12 +3294,13 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
     }
     case CadFeatureType::SurfaceLoft: {
         std::vector<TopoDS_Wire> profiles;
-        for (int ref : f.loft_profile_refs) {
+        for (size_t ri = 0; ri < f.loft_profile_refs.size(); ++ri) {
+            const int ref = f.loft_profile_refs[ri];
             if (ref < 0 || ref >= int(features.size())
                 || (features[ref].type != CadFeatureType::Sketch
                     && features[ref].type != CadFeatureType::Project))
                 continue;
-            profiles.push_back(build_sketch_wire(features[ref]));
+            profiles.push_back(loft_profile_wire(f, ri, false));
         }
         if (profiles.size() < 2)
             throw std::runtime_error(_u8L("surface-loft needs 2+ valid profile sketches"));
@@ -3351,7 +3377,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                 (ri == 0 ? apex_first : apex_last) = gp_Pnt(w.x(), w.y(), w.z());
                 continue;
             }
-            profiles.push_back(build_sketch_wire(features[ref], true));
+            profiles.push_back(loft_profile_wire(f, ri, true));
         }
         const bool tip = apex_first || apex_last;
         if (profiles.size() < (tip ? 1u : 2u))

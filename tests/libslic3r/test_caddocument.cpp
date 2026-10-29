@@ -7861,6 +7861,30 @@ TEST_CASE("An entity sketch that forms no wire fails instead of extruding a defa
         REQUIRE(doc.bodies.size() == 1);
         CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(2 * M_PI * 64.0 * 5.0, 0.01));
     }
+
+    SECTION("a loft profile holding two closed shapes names the sketch and says so") {
+        CadDocument doc;
+        int a = doc.add_sketch_entities({ circle({-20, 0}, 8.0), circle({20, 0}, 8.0) }, SketchPlane::XY(), "Schizzo 1");
+        SketchPlane up = SketchPlane::XY(); up.origin = Vec3d(0, 0, 30);
+        int b = doc.add_sketch_entities({ circle({0, 0}, 8.0) }, up, "Schizzo 3");
+        doc.add_loft({a, b}, false, BooleanMode::New, "Loft");
+        CHECK_FALSE(doc.recompute());
+        CHECK(doc.error.find("Schizzo 1") != std::string::npos);
+        CHECK(doc.error.find("2 separate closed shapes") != std::string::npos);
+    }
+
+    SECTION("a loft takes ONE chosen closed loop of a multi-loop sketch") {
+        CadDocument doc;
+        int a = doc.add_sketch_entities({ circle({-20, 0}, 8.0), circle({20, 0}, 8.0) }, SketchPlane::XY(), "Schizzo 1");
+        SketchPlane up = SketchPlane::XY(); up.origin = Vec3d(0, 0, 30);
+        int b = doc.add_sketch_entities({ circle({20, 0}, 8.0) }, up, "Schizzo 3");
+        REQUIRE(CadDocument::sketch_closed_loops(doc.features[a]).size() == 2);
+        int l = doc.add_loft({a, b}, false, BooleanMode::New, "Loft");
+        doc.features[l].loft_profile_loops = { { 1 }, {} };
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.bodies.size() == 1);
+        CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(M_PI * 64.0 * 30.0, 0.02));
+    }
 }
 
 namespace {

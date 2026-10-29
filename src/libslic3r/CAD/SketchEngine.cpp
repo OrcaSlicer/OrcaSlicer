@@ -633,8 +633,10 @@ TriangleMesh SketchEngine::tessellate(const TopoDS_Shape& shape,
 
 std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<SketchEntity>& entities,
                                                          const SketchPlane& plane,
-                                                         bool closed_only)
+                                                         bool closed_only,
+                                                         std::vector<std::vector<int>>* loop_entities)
 {
+    if (loop_entities != nullptr) loop_entities->clear();
     // Effective weld tolerance: kSketchJoinTol when auto-close is on, 0.0 when off.
     // Read ONCE so the union-find, the node weld and the vertex tolerance below all
     // agree. With 0.0 the comparisons use <= so exactly coincident endpoints still join.
@@ -927,6 +929,13 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
         for (TopExp_Explorer ex(wire, TopAbs_EDGE); ex.More(); ex.Next()) ++edge_count;
         if (edge_count != (loop.closed_single ? 1 : loop.members.size())) return {};
         out.push_back(wire);
+        if (loop_entities != nullptr) {
+            std::vector<int> ids;
+            if (loop.closed_single) ids.push_back(int(valid[loop.member].idx));
+            else for (size_t m : loop.members) ids.push_back(int(valid[m].idx));
+            std::sort(ids.begin(), ids.end());
+            loop_entities->push_back(std::move(ids));
+        }
     }
     return out;
 }

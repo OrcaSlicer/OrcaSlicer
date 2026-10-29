@@ -775,6 +775,14 @@ private:
     ChoiceField*         m_loft_mode{nullptr};        // New/Add/Cut/Intersect
     std::vector<int>  m_loft_sketch_idx;           // feature index for each row in m_loft_list
     std::vector<int>  m_loft_refs;                 // chosen profile refs (for re-edit pre-check)
+    // A profile is a closed LOOP, not a sketch: a sketch holding several closed shapes lists one row per loop. Per row (and, for
+    // re-edit, per chosen ref) the entity indices of that loop; empty = the whole sketch.
+    std::vector<std::vector<int>> m_loft_row_loop, m_loft_loops;
+    std::vector<std::vector<int>> m_surf_loft_row_loop, m_surf_loft_loops;
+    void fill_loft_rows(CheckListField* list, std::vector<int>& idx, std::vector<std::vector<int>>& row_loop,
+                        const std::vector<int>& refs, const std::vector<std::vector<int>>& chosen);
+    void read_loft_rows(CheckListField* list, const std::vector<int>& idx, const std::vector<std::vector<int>>& row_loop,
+                        std::vector<int>& refs, std::vector<std::vector<int>>& loops) const;
 
     // Surface Extrude controls (sheet from sketch profile).
     CardText*     m_surf_extrude_sketch_label{nullptr};

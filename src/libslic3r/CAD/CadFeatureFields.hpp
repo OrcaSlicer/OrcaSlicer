@@ -81,6 +81,7 @@ template<class V, class F> void cad_fields_revolve_sweep_loft(V& v, F& f)
     v(f.revolve_angle); v(f.revolve_axis); v(f.revolve_axis_entity);
     v.ref(f.sweep_path_ref);
     v.ref(f.loft_profile_refs); v(f.loft_ruled); v(f.loft_start_cond); v(f.loft_end_cond);
+    v(f.loft_profile_loops);
 }
 template<class V, class F> void cad_fields_pattern(V& v, F& f)
 {

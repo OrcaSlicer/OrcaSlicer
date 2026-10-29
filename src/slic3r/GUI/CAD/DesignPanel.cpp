@@ -3535,11 +3535,29 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // list stays visible as the typed half and still shows the order, which matters here —
         // loft order is not commutative.
         if (m_active == Tool::Loft && m_loft_list != nullptr) {
+            // A sketch with several closed loops has one row per loop: the click names a loop by the stroke it hit, or, inside a
+            // region, by the entities of the region that was picked.
+            const std::vector<SketchEntity> inside = region >= 0 && entity < 0 ? m_viewport->selected_loop_entities() : std::vector<SketchEntity>{};
+            const auto same_ent = [](const SketchEntity& a, const SketchEntity& b) {
+                return a.type == b.type && a.p0 == b.p0 && a.p1 == b.p1 && a.center == b.center && a.radius == b.radius;
+            };
+            int rows_of_feat = 0, hit_row = -1;
             for (size_t i = 0; i < m_loft_sketch_idx.size() && i < m_loft_list->GetCount(); ++i) {
                 if (m_loft_sketch_idx[i] != feat) continue;
-                m_loft_list->Check(unsigned(i), !m_loft_list->IsChecked(unsigned(i)));
+                ++rows_of_feat;
+                const std::vector<int>& loop = m_loft_row_loop[i];
+                if (loop.empty()) { hit_row = int(i); continue; }
+                for (int id : loop) {
+                    if (id == entity || (!inside.empty() && id < int(m_doc.features[feat].entities.size())
+                                         && same_ent(m_doc.features[feat].entities[size_t(id)], inside.front()))) { hit_row = int(i); break; }
+                }
+            }
+            if (hit_row >= 0) {
+                m_loft_list->Check(unsigned(hit_row), !m_loft_list->IsChecked(unsigned(hit_row)));
                 refresh_preview();
-                break;
+            } else if (rows_of_feat > 1) {
+                set_status(StatusKind::Warning, _L("This sketch has several closed shapes: click the outline of the one to use, or tick its row"));
+                return;
             }
         }
         set_tree_selection(feat);
@@ -5494,13 +5512,55 @@ void DesignPanel::on_add_sweep()
     refresh_tree();
 }
 
+void DesignPanel::fill_loft_rows(CheckListField* list, std::vector<int>& idx, std::vector<std::vector<int>>& row_loop,
+                                const std::vector<int>& refs, const std::vector<std::vector<int>>& chosen)
+{
+    list->Clear();
+    idx.clear();
+    row_loop.clear();
+    for (int i = 0; i < int(m_doc.features.size()); ++i) {
+        const CadFeature& sf = m_doc.features[i];
+        if (sf.type != CadFeatureType::Sketch) continue;
+        const auto loops = CadDocument::sketch_closed_loops(sf);
+        const size_t rows = loops.size() < 2 ? 1 : loops.size();
+        for (size_t k = 0; k < rows; ++k) {
+            wxString label = wxString::FromUTF8(sf.name);
+            std::vector<int> loop;
+            if (loops.size() >= 2) {
+                loop = loops[k];
+                const SketchEntity& e0 = sf.entities[size_t(loop.front())];
+                const wxString what = e0.type == SketchEntity::Type::Circle  ? wxString::Format(_L("circle R%s"), wxString::FromUTF8(format_dim_number(e0.radius)))
+                                    : e0.type == SketchEntity::Type::Ellipse ? _L("ellipse")
+                                                                             : wxString::Format(_L("path of %d segments"), int(loop.size()));
+                label += wxString::Format(" — %s %d (%s)", _L("loop"), int(k + 1), what);
+            }
+            const int row = list->Append(label);
+            idx.push_back(i);
+            row_loop.push_back(loop);
+            for (size_t c = 0; c < refs.size(); ++c)
+                if (refs[c] == i && (c < chosen.size() ? chosen[c] : std::vector<int>{}) == loop) { list->Check(row, true); break; }
+        }
+    }
+}
+
+void DesignPanel::read_loft_rows(CheckListField* list, const std::vector<int>& idx, const std::vector<std::vector<int>>& row_loop,
+                                 std::vector<int>& refs, std::vector<std::vector<int>>& loops) const
+{
+    refs.clear();
+    loops.clear();
+    for (unsigned i = 0; i < list->GetCount(); ++i)
+        if (list->IsChecked(i) && i < idx.size()) {
+            refs.push_back(idx[i]);
+            loops.push_back(i < row_loop.size() ? row_loop[i] : std::vector<int>{});
+        }
+}
+
 void DesignPanel::on_add_loft()
 {
     // Collect the checked profile sketches in list (recipe) order.
     std::vector<int> refs;
-    for (unsigned i = 0; i < m_loft_list->GetCount(); ++i)
-        if (m_loft_list->IsChecked(i) && i < m_loft_sketch_idx.size())
-            refs.push_back(m_loft_sketch_idx[i]);
+    std::vector<std::vector<int>> loops;
+    read_loft_rows(m_loft_list, m_loft_sketch_idx, m_loft_row_loop, refs, loops);
     if (refs.size() < 2) {
         set_status(_L("Check at least two profile sketches to loft"));
         return;
@@ -5514,6 +5574,7 @@ void DesignPanel::on_add_loft()
     const int loft_idx = m_doc.add_loft(refs, m_loft_ruled->GetValue(), mode,
                                         feature_name(_L("Loft")));
     if (loft_idx >= 0 && loft_idx < int(m_doc.features.size())) {
+        m_doc.features[loft_idx].loft_profile_loops = loops;
         m_doc.features[loft_idx].loft_start_cond = m_loft_start_cond->GetSelection();
         m_doc.features[loft_idx].loft_end_cond   = m_loft_end_cond->GetSelection();
     }
@@ -5564,16 +5625,16 @@ void DesignPanel::on_add_surface_revolve()
 void DesignPanel::on_add_surface_loft()
 {
     std::vector<int> refs;
-    for (unsigned i = 0; i < m_surf_loft_list->GetCount(); ++i)
-        if (m_surf_loft_list->IsChecked(i) && i < m_surf_loft_sketch_idx.size())
-            refs.push_back(m_surf_loft_sketch_idx[i]);
+    std::vector<std::vector<int>> loops;
+    read_loft_rows(m_surf_loft_list, m_surf_loft_sketch_idx, m_surf_loft_row_loop, refs, loops);
     if (refs.size() < 2) {
         set_status(_L("Check at least two profile sketches to loft"));
         return;
     }
     m_feature_counter++;
-    m_doc.add_surface_loft(refs, m_surf_loft_ruled->GetValue(),
-                           feature_name(_L("Surface Loft")));
+    const int sl_idx = m_doc.add_surface_loft(refs, m_surf_loft_ruled->GetValue(),
+                                              feature_name(_L("Surface Loft")));
+    if (sl_idx >= 0 && sl_idx < int(m_doc.features.size())) m_doc.features[sl_idx].loft_profile_loops = loops;
     if (!recompute_guarded(_L("Rebuilding model…")))
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
     else
@@ -10168,6 +10229,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         break;
     case CadFeatureType::Loft:
         m_loft_refs = f.loft_profile_refs;   // show_tool re-checks these in the list
+        m_loft_loops = f.loft_profile_loops;
         m_loft_ruled->SetValue(f.loft_ruled);
         m_loft_mode->SetSelection(static_cast<int>(f.mode));
         m_loft_start_cond->SetSelection(f.loft_start_cond == 1 ? 1 : 0);
@@ -10255,6 +10317,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         break;
     case CadFeatureType::SurfaceLoft:
         m_surf_loft_refs = f.loft_profile_refs;
+        m_surf_loft_loops = f.loft_profile_loops;
         m_surf_loft_ruled->SetValue(f.loft_ruled);
         break;
     case CadFeatureType::SurfaceFill:
@@ -10901,10 +10964,7 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         f.loft_start_cond = m_loft_start_cond->GetSelection();
         f.loft_end_cond   = m_loft_end_cond->GetSelection();
         f.mode      = static_cast<BooleanMode>(m_loft_mode->GetSelection());
-        f.loft_profile_refs.clear();
-        for (unsigned i = 0; i < m_loft_list->GetCount(); ++i)
-            if (m_loft_list->IsChecked(i) && i < m_loft_sketch_idx.size())
-                f.loft_profile_refs.push_back(m_loft_sketch_idx[i]);
+        read_loft_rows(m_loft_list, m_loft_sketch_idx, m_loft_row_loop, f.loft_profile_refs, f.loft_profile_loops);
         break;
     }
     case Tool::Boolean: {
@@ -10943,10 +11003,7 @@ CadFeature DesignPanel::build_candidate(Tool t) const
     case Tool::SurfaceLoft: {
         f.type      = CadFeatureType::SurfaceLoft;
         f.loft_ruled = m_surf_loft_ruled->GetValue();
-        f.loft_profile_refs.clear();
-        for (unsigned i = 0; i < m_surf_loft_list->GetCount(); ++i)
-            if (m_surf_loft_list->IsChecked(i) && i < m_surf_loft_sketch_idx.size())
-                f.loft_profile_refs.push_back(m_surf_loft_sketch_idx[i]);
+        read_loft_rows(m_surf_loft_list, m_surf_loft_sketch_idx, m_surf_loft_row_loop, f.loft_profile_refs, f.loft_profile_loops);
         break;
     }
     case Tool::SurfaceFill:
@@ -13016,16 +13073,7 @@ void DesignPanel::open_tool(Tool t)
     if (t == Tool::Loft) {
         // List every Sketch feature; the feature index for each row rides in
         // m_loft_sketch_idx. Re-check the stored profile refs (re-edit).
-        m_loft_list->Clear();
-        m_loft_sketch_idx.clear();
-        for (int i = 0; i < int(m_doc.features.size()); ++i) {
-            const CadFeature& sf = m_doc.features[i];
-            if (sf.type != CadFeatureType::Sketch) continue;
-            const int row = m_loft_list->Append(wxString::FromUTF8(sf.name));
-            m_loft_sketch_idx.push_back(i);
-            if (std::find(m_loft_refs.begin(), m_loft_refs.end(), i) != m_loft_refs.end())
-                m_loft_list->Check(row, true);
-        }
+        fill_loft_rows(m_loft_list, m_loft_sketch_idx, m_loft_row_loop, m_loft_refs, m_loft_loops);
     }
 
     if (t == Tool::SurfaceExtrude) {
@@ -13036,16 +13084,7 @@ void DesignPanel::open_tool(Tool t)
 
 
     if (t == Tool::SurfaceLoft) {
-        m_surf_loft_list->Clear();
-        m_surf_loft_sketch_idx.clear();
-        for (int i = 0; i < int(m_doc.features.size()); ++i) {
-            const CadFeature& sf = m_doc.features[i];
-            if (sf.type != CadFeatureType::Sketch) continue;
-            const int row = m_surf_loft_list->Append(wxString::FromUTF8(sf.name));
-            m_surf_loft_sketch_idx.push_back(i);
-            if (std::find(m_surf_loft_refs.begin(), m_surf_loft_refs.end(), i) != m_surf_loft_refs.end())
-                m_surf_loft_list->Check(row, true);
-        }
+        fill_loft_rows(m_surf_loft_list, m_surf_loft_sketch_idx, m_surf_loft_row_loop, m_surf_loft_refs, m_surf_loft_loops);
     }
 
     if (t == Tool::SurfaceFill) {
@@ -13447,10 +13486,10 @@ wxString DesignPanel::missing_reference_text(Tool t) const
         if (!chosen(m_sweep_path)) return _L("Select the path: click a second sketch in the viewport, or choose it in the list");
         break;
     case Tool::Loft:
-        if (checked(m_loft_list) < 2) return _L("Select at least two profile sketches: click them in the viewport, in order");
+        if (checked(m_loft_list) < 2) return _L("Select at least two closed profiles: click each closed shape in the viewport, in order");
         break;
     case Tool::SurfaceLoft:
-        if (checked(m_surf_loft_list) < 2) return _L("Select at least two profile sketches: click them in the viewport, in order");
+        if (checked(m_surf_loft_list) < 2) return _L("Select at least two closed profiles: click each closed shape in the viewport, in order");
         break;
     case Tool::SurfaceOffset:
         if (!chosen(m_surf_offset_body)) return _L("Select the sheet body to offset");
