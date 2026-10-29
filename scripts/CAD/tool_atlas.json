@@ -1962,7 +1962,7 @@
       "mode": "sketch",
       "family": "Array",
       "icon": "design_array",
-      "hint": "Pick entities, drag the spacing handle, click the count; click empty to apply"
+      "hint": "Pick entities, drag the spacing handle, click the count; Enter or the check mark applies, Esc discards"
     },
     {
       "id": "sk_array_polar",
@@ -1983,7 +1983,7 @@
       "mode": "sketch",
       "family": "Array",
       "icon": "design_polararray",
-      "hint": "Pick entities, drag the sweep handle, click the count; click empty to apply"
+      "hint": "Pick entities, drag the sweep handle, click the count; Enter or the check mark applies, Esc discards"
     },
     {
       "id": "sk_mirror",
@@ -2025,7 +2025,7 @@
       "action": "fly:design_move#0",
       "family": "Move",
       "icon": "design_move",
-      "hint": "Pick entities, then drag the handle or click the distance; click empty to apply"
+      "hint": "Pick entities, then drag the handle or click the distance; Enter or the check mark applies, Esc discards"
     },
     {
       "id": "sk_rotate",
@@ -2047,7 +2047,7 @@
       "mode": "sketch",
       "family": "Move",
       "icon": "design_rotate",
-      "hint": "Pick entities, then drag around the pivot or click the angle; click empty to apply"
+      "hint": "Pick entities, then drag around the pivot or click the angle; Enter or the check mark applies, Esc discards"
     },
     {
       "id": "sk_scale",
@@ -2069,7 +2069,7 @@
       "mode": "sketch",
       "family": "Move",
       "icon": "design_scale",
-      "hint": "Pick entities, then drag the handle or click the factor; click empty to apply"
+      "hint": "Pick entities, then drag the handle or click the factor; Enter or the check mark applies, Esc discards"
     },
     {
       "id": "sk_dimension",
@@ -2463,7 +2463,7 @@
       "gui": true,
       "action": "con:Horizontal",
       "icon": "design_c_horizontal",
-      "hint": "Make the selected line (or two points) horizontal"
+      "hint": "Make the selected line horizontal (pick one straight line)"
     },
     {
       "id": "con_vertical",
@@ -2485,7 +2485,7 @@
       "gui": true,
       "action": "con:Vertical",
       "icon": "design_c_vertical",
-      "hint": "Make the selected line (or two points) vertical"
+      "hint": "Make the selected line vertical (pick one straight line)"
     },
     {
       "id": "con_parallel",
@@ -2551,7 +2551,7 @@
       "gui": true,
       "action": "con:Coincident",
       "icon": "design_c_coincident",
-      "hint": "Join two selected points, or a point onto a curve"
+      "hint": "Join the nearest points of two picks (endpoint, centre or point)"
     },
     {
       "id": "con_equallength",
@@ -2705,7 +2705,7 @@
       "gui": true,
       "action": "con:Symmetric",
       "icon": "design_c_symmetric",
-      "hint": "Make two points mirror images about a selected line"
+      "hint": "Make two points (or two lines) mirror images about a line - pick the axis line LAST"
     },
     {
       "id": "con_symmetricabouty",

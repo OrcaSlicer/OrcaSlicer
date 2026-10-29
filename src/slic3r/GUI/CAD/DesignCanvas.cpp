@@ -1513,7 +1513,10 @@ void DesignCanvas::set_body_hidden(bool on)
 
 bool DesignCanvas::delete_selected_sketch_entities()
 {
-    if (m_sketch_tool.selection().empty()) return false;
+    if (m_sketch_tool.selection().empty()) {
+        m_sketch_tool.notify(_u8L("Nothing selected - click or box-select what to delete"));
+        return false;
+    }
     m_sketch_tool.delete_selected();
     request_repaint();
     return true;

@@ -39,7 +39,7 @@ namespace Slic3r { namespace GUI {
 class CardField : public wxEvtHandler
 {
 public:
-    enum class Kind { Num, Choice, Toggle, Text, Button, CheckList, Edit, List, Rows, Table };
+    enum class Kind { Num, Choice, Toggle, Text, Button, CheckList, Edit, List, Rows, Table, Slot };
     virtual Kind kind() const = 0;
 
     bool IsEnabled() const { return m_enabled; }
@@ -165,10 +165,17 @@ public:
     // a status colour (green, red); the default is the panel's text colour
     void     SetForegroundColour(const wxColour& c) { m_fg = c; }
     const wxColour& colour() const { return m_fg; }
+    // A reference the tool needs (a sketch, a face): drawn as a box, lit while it still holds a placeholder such as "(pick a face)" or
+    // "Sketch: —". `required` = an empty one is drawn red as what is still missing; an optional one stays neutral.
+    CardText* SetReference(bool required = true) { m_ref = true; m_ref_required = required; return this; }
+    bool      is_reference() const { return m_ref; }
+    bool      ref_required() const { return m_ref_required; }
+    bool      placeholder() const { return m_text.IsEmpty() || m_text.StartsWith("(") || m_text.EndsWith(wxString::FromUTF8("—")); }
 
 private:
     wxString m_text;
     wxColour m_fg;
+    bool     m_ref{false}, m_ref_required{true};
 };
 
 // A line the user types in; Enter sends wxEVT_TEXT_ENTER, as the wx text control did.
@@ -214,6 +221,37 @@ public:
 
 private:
     wxString m_text;
+};
+
+// A reference a tool needs from the model (a profile, an axis, a face ...): a box that shows what is chosen, or says what to
+// click. While `active` the viewport is waiting for that pick and the box is lit; clicking the box arms it (wxEVT_BUTTON).
+class SlotField : public CardField
+{
+public:
+    Kind kind() const override { return Kind::Slot; }
+    // the chosen thing's name; empty = nothing chosen yet
+    void     SetLabel(const wxString& s) { m_text = s; }
+    wxString GetLabel() const { return m_text; }
+    bool     filled() const { return !m_text.IsEmpty(); }
+    // what to click, shown while the slot is empty
+    void     SetHint(const wxString& s) { m_hint = s; }
+    const wxString& hint() const { return m_hint; }
+    // armed: the next click in the viewport lands here
+    void     SetActive(bool on) { m_active = on; }
+    bool     active() const { return m_active; }
+    // a slot the tool cannot do without (an empty one is drawn as the thing still missing)
+    void     SetRequired(bool on) { m_required = on; }
+    bool     required() const { return m_required; }
+
+    void user_click()
+    {
+        wxCommandEvent e(wxEVT_BUTTON, 0);
+        post(e);
+    }
+
+private:
+    wxString m_text, m_hint;
+    bool     m_active{false}, m_required{true};
 };
 
 // A list of items each with a check box (the features to repeat, the profiles of a loft).
@@ -374,6 +412,8 @@ public:
     ChoiceField* make_combo() { return own(new ChoiceField()); }
     NumField*    make_spin(double v, double lo = 0.1, double hi = 1000.0) { return own(new NumField(v, lo, hi)); }
     ToggleField* make_check() { return own(new ToggleField()); }
+    // a picked reference: label on the left, the slot on the right
+    SlotField*   slot(const wxString& label, const wxString& hint) { SlotField* f = add_field(label, new SlotField()); f->SetHint(hint); return f; }
     CardText*    make_text(const wxString& s = wxString()) { return own(new CardText(s)); }
     CheckListField* make_checklist() { return own(new CheckListField()); }
     // a list of rows across the card (the tree, the bodies)

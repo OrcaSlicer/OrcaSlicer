@@ -201,8 +201,9 @@ void draw_toggle_field(ToggleField* cb)
     bool v = cb->GetValue();
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.f);   // an unchecked box has to be seen on the dark panel
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.55f, 0.56f, 0.60f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyleColorVec4(ImGuiCol_Text));
     if (ImGui::Checkbox("##k", &v)) cb->user_toggle();
-    ImGui::PopStyleColor();
+    ImGui::PopStyleColor(2);
     ImGui::PopStyleVar();
     ImGui::PopID();
     field_tip(cb);
@@ -290,6 +291,27 @@ void draw_button_field(ButtonField* b, float em)
     field_tip(b);
 }
 
+// A picked reference: the name of what is chosen, or what to click while nothing is. Lit while the viewport waits for it.
+void draw_slot_field(SlotField* sl, float w)
+{
+    ImGui::PushID(sl);
+    DisabledScope dis(sl->IsEnabled());
+    const bool   missing = !sl->filled();
+    const ImVec4 lit     = sl->active() ? ImVec4(1.f, 0.62f, 0.10f, 1.f)            // waiting for the click
+                         : (missing && sl->required()) ? ImVec4(0.90f, 0.35f, 0.30f, 1.f) : ImVec4(0.55f, 0.56f, 0.60f, 1.f);
+    const std::string t = missing ? u8(sl->hint().IsEmpty() ? _L("Click to select") : sl->hint()) : u8(sl->GetLabel());
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, sl->active() ? 2.f : 1.f);
+    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.5f));
+    ImGui::PushStyleColor(ImGuiCol_Border, lit);
+    if (missing) ImGui::PushStyleColor(ImGuiCol_Text, lit);
+    if (ImGui::Button((t + "##slot").c_str(), ImVec2(w, 0.f))) sl->user_click();
+    if (missing) ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(2);
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", u8(sl->tip().IsEmpty() ? _L("Click, then pick it in the viewport") : sl->tip()).c_str());
+    ImGui::PopID();
+}
+
 void draw_check_list(CheckListField* l, float em)
 {
     ImGui::PushID(l);
@@ -301,8 +323,9 @@ void draw_check_list(CheckListField* l, float em)
             bool on = l->IsChecked(i);
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.f);   // an unchecked box has to be seen on the dark panel
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.55f, 0.56f, 0.60f, 1.f));
+            ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyleColorVec4(ImGuiCol_Text));   // visible on either theme's frame
             if (ImGui::Checkbox(u8(l->GetString(i)).c_str(), &on)) l->user_check(i);
-            ImGui::PopStyleColor();
+            ImGui::PopStyleColor(2);
             ImGui::PopStyleVar();
             ImGui::PopID();
         }
@@ -314,6 +337,21 @@ void draw_check_list(CheckListField* l, float em)
 // A line of text, in the colour the code gave it when that is a status colour.
 void draw_card_text(CardText* t)
 {
+    if (t->is_reference()) {   // a reference the tool needs: a box, red while it is still missing
+        const bool miss = t->placeholder();
+        const ImVec4 lit = miss && t->ref_required() ? ImVec4(0.90f, 0.35f, 0.30f, 1.f) : ImVec4(0.55f, 0.56f, 0.60f, 1.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.5f));
+        ImGui::PushStyleColor(ImGuiCol_Border, lit);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyle().Colors[ImGuiCol_Button]);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyle().Colors[ImGuiCol_Button]);
+        if (miss && t->ref_required()) ImGui::PushStyleColor(ImGuiCol_Text, lit);
+        ImGui::Button((u8(t->GetLabel()) + "##ref").c_str(), ImVec2(std::max(ImGui::GetContentRegionAvail().x, 40.f), 0.f));
+        if (miss && t->ref_required()) ImGui::PopStyleColor();
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar(2);
+        return;
+    }
     const wxColour c = t->colour();
     const bool accent = c.IsOk() && is_accent(c);
     if (accent) ImGui::PushStyleColor(ImGuiCol_Text, col_of(c));
@@ -471,7 +509,7 @@ void DesignPanel::mirror_card(CardModel& card, SidebarCtx& cx)
         ImGui::Image(tex, ImVec2(18.f * em, 18.f * em));
         ImGui::SameLine();
     }
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_Text));
     ImGui::TextUnformatted(u8(card.title()->GetLabel()).c_str());
     ImGui::PopStyleColor();
     if (!card.header_buttons().empty()) {   // icon buttons at the right end of the header
@@ -516,6 +554,7 @@ void DesignPanel::mirror_card(CardModel& card, SidebarCtx& cx)
         }
         case CardField::Kind::Toggle:   draw_toggle_field(static_cast<ToggleField*>(f));        break;
         case CardField::Kind::Button:   draw_button_field(static_cast<ButtonField*>(f), em);    break;
+        case CardField::Kind::Slot:     draw_slot_field(static_cast<SlotField*>(f), box_w);     break;
         case CardField::Kind::CheckList: draw_check_list(static_cast<CheckListField*>(f), em);  break;
         case CardField::Kind::Text:     ImGui::AlignTextToFramePadding(); draw_card_text(static_cast<CardText*>(f)); break;
         }
@@ -574,10 +613,20 @@ void DesignPanel::draw_sidebar_imgui()
         CallAfter([this] { collapse_sidebar(true); });
     ImGui::PopStyleColor();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", _u8L("Collapse sidebar").c_str());
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_Text));
     ImGui::TextUnformatted(_u8L("Design").c_str());
     ImGui::PopStyleColor();
     ImGui::Spacing();
+    // what the open tool still needs, above its card: the next thing to select
+    if (m_active != Tool::None) {
+        const wxString need = missing_reference_text(m_active);
+        if (!need.IsEmpty()) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.62f, 0.10f, 1.f));
+            ImGui::TextWrapped("%s", u8(need).c_str());
+            ImGui::PopStyleColor();
+            ImGui::Spacing();
+        }
+    }
     // the tool cards (one is open at a time), then the tree, the bodies and the variables
     for (const auto& c : m_card_models)
         if (c->IsShown()) { mirror_card(*c, cx); ImGui::Spacing(); }

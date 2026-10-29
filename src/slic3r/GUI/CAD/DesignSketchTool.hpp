@@ -1241,6 +1241,7 @@ private:
     Handle                m_drag_handle;           // the handle being dragged
     bool                  m_has_hover_handle{false};// cursor is near a handle (highlight it)
     Handle                m_hover_handle;          // the hovered handle (recomputed on move)
+    int                   m_op_hover{-1};          // Fillet/Chamfer/Mirror/Offset: the entity the NEXT click would take, or -1
     int                   m_hover_ent{-1};         // entity under the cursor (handle or segment), or -1
     int                   m_hover_axis{0};         // a bare axis under the cursor, which a click would pick: 1 = X axis, 2 = Y axis
     int                   m_hover_dim{-1};         // dimension label under the cursor, or -1
@@ -1826,6 +1827,33 @@ private:
     void   open_pattern_editor();
     GLModel m_pt_stroke_model;
 };
+
+// What a constraint verb needs picked, in the words a user can act on BEFORE clicking. Mirrors
+// plan_entity_constraint (SketchEngine.cpp) case for case: when that planner changes what it
+// accepts, change this. Returns nullptr for types with no entity-pick route. Untranslated
+// literals - the caller wraps them (_L / _u8L).
+inline const char* constraint_requirement(SketchConstraintType t)
+{
+    using T = SketchConstraintType;
+    switch (t) {
+    case T::Horizontal: case T::Vertical:   return "pick 1 straight line";
+    case T::Parallel: case T::Perpendicular:
+    case T::Collinear:                      return "pick 2 straight lines";
+    case T::EqualLength:                    return "pick 2 straight lines (or 2 circles/arcs for equal radius)";
+    case T::EqualRadius: case T::Concentric:return "pick 2 circles or arcs";
+    case T::Angle:                          return "pick 2 straight lines";
+    case T::Coincident:                     return "pick 2 entities; their nearest points are joined";
+    case T::Tangent:                        return "pick a line and a circle/arc, or 2 circles/arcs";
+    case T::Midpoint:                       return "pick 1 point and 1 straight line";
+    case T::Symmetric:                      return "pick 2 points (or 2 lines), then the mirror axis line LAST";
+    case T::SymmetricAboutX:
+    case T::SymmetricAboutY:                return "pick 2 points or 2 lines";
+    case T::Radius: case T::Diameter:       return "pick 1 circle or arc";
+    case T::Fix:                            return "pick 1 entity (its point or centre is anchored)";
+    case T::DistanceX: case T::DistanceY:   return "pick 2 entities; their nearest points are measured";
+    default:                                return nullptr;
+    }
+}
 
 }} // namespace Slic3r::GUI
 

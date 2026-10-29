@@ -172,6 +172,13 @@ private:
     // method decls + card lambdas below can name it).
     enum class PlanePick { None, FaceA, FaceB, EdgeA, EdgeB };
     enum class AxisPick { None, Face, Edge };
+    // The reference slot of the open card that waits for the next click in the viewport (a card's pick slots, DesignCardModel.hpp).
+    SlotField* m_armed_slot{nullptr};
+    void arm_slot(SlotField* s);   // light `s`, un-light the one armed before, tell the user what to click
+    void sync_slots();             // names, lit state and the hint line of the open card follow the state
+    // Revolve / Surface Revolve: a click on a committed sketch in the viewport lands in the armed slot
+    bool sketch_take_pick(int feat, int entity);
+    void fill_sweep_paths();   // the path list: every sketch but the profile
     enum class CoordSysPick { None, Face, Edge };
 
     // Onshape-style contextual top toolbar: only the active mode's tool group is
@@ -190,6 +197,9 @@ private:
     // presses in a row reached past a tool and discarded the sketch under it.
     CadLevel escape_level() const;
     bool confirm_enabled() const;   // would the ✓ act right now? (its greying follows this)
+    // What the open tool still needs the user to select, as one sentence; empty = every reference is there. The ✓ stays grey
+    // while it is not empty, and the sidebar shows it above the card.
+    wxString missing_reference_text(Tool t) const;
     void     escape();
     void update_action_bar();   // show the ✓/✗ bar iff a tool or mode is active
     void update_confirm_button();   // grey the ✓ to confirm_enabled()
@@ -733,16 +743,22 @@ private:
     int               m_extrude_auto_body{-1};   // body the profile touches: the inferred Join target
 
     // Revolve controls (sweep a sketch profile about an in-plane axis).
-    CardText*     m_revolve_sketch_label{nullptr};
+    SlotField*    m_revolve_profile_slot{nullptr};   // the sketch that is revolved
+    SlotField*    m_revolve_axis_slot{nullptr};      // the line it turns about
+    CardText*     m_revolve_hint{nullptr};           // what to click next
     NumField* m_revolve_angle{nullptr};
     ChoiceField*         m_revolve_axis{nullptr};   // Plane X, Plane Y, then the sketch's lines
     std::vector<int>  m_revolve_axis_ents;       // entity index of each line entry, in order
+    // The axis is never taken for the user: a fresh Revolve / Surface Revolve has none until a line is clicked or the list is
+    // used (the list's selection is only what it shows meanwhile). An edited feature has the axis it was saved with.
+    bool              m_revolve_axis_chosen{false};
+    bool              m_surf_revolve_axis_chosen{false};
     ChoiceField*         m_revolve_mode{nullptr};   // New/Add/Cut/Intersect
     ToggleField*         m_revolve_flip{nullptr};
     int               m_revolve_sketch_ref{-1};
 
     // Sweep controls (sweep a profile sketch along a path sketch).
-    CardText*     m_sweep_profile_label{nullptr};
+    SlotField*    m_sweep_profile_slot{nullptr};   // the sketch that is swept; a click on a sketch fills it while armed
     ChoiceField*         m_sweep_path{nullptr};       // path Sketch picker (feature index in client data)
     ChoiceField*         m_sweep_mode{nullptr};       // New/Add/Cut/Intersect
     int               m_sweep_profile_ref{-1};
@@ -763,7 +779,9 @@ private:
     int               m_surf_extrude_sketch_ref{-1};
 
     // Surface Revolve controls (sheet from sketch about axis).
-    CardText*     m_surf_revolve_sketch_label{nullptr};
+    SlotField*    m_surf_revolve_profile_slot{nullptr};
+    SlotField*    m_surf_revolve_axis_slot{nullptr};
+    CardText*     m_surf_revolve_hint{nullptr};
     NumField* m_surf_revolve_angle{nullptr};
     ChoiceField*         m_surf_revolve_axis{nullptr};   // as m_revolve_axis
     std::vector<int>  m_surf_revolve_axis_ents;

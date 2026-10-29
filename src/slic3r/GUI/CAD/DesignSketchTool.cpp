@@ -3766,20 +3766,15 @@ std::vector<SketchEntity> DesignSketchTool::make_tangent_arc(const Vec2d& start,
         }
     }
     const Vec2d se = end - start;
-    if (!have_t || se.squaredNorm() < 1e-12) {
-        // No tangent reference or zero length: fall back to a straight line.
-        SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = start; e.p1 = end;
-        e.construction = m_construction;
-        return { e };
-    }
+    // No tangent reference or zero length: draw nothing (the click handler says why) rather
+    // than silently substituting a straight line the user did not ask for.
+    if (!have_t || se.squaredNorm() < 1e-12)
+        return {};
     t.normalize();
     const Vec2d n(-t.y(), t.x());            // unit normal to the tangent
     const double denom = 2.0 * n.dot(se);
-    if (std::abs(denom) < 1e-9) {            // end lies along the tangent: line
-        SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = start; e.p1 = end;
-        e.construction = m_construction;
-        return { e };
-    }
+    if (std::abs(denom) < 1e-9)              // end lies along the tangent: no arc exists
+        return {};
     const double R = se.squaredNorm() / denom;   // signed radius along n
     const Vec2d center = start + n * R;
     const double radius = std::abs(R);
@@ -9916,9 +9911,17 @@ void DesignSketchTool::op_pick(int ei)
     switch (m_mode) {
     case Mode::Fillet:
     case Mode::Chamfer:
-        if (t != SketchEntity::Type::Line) return;            // corner ops need two lines
+        if (t != SketchEntity::Type::Line) {                   // corner ops need two lines
+            notify(m_mode == Mode::Fillet ? _u8L("Fillet: click two straight lines that meet at a corner")
+                                          : _u8L("Chamfer: click two straight lines that meet at a corner"));
+            return;
+        }
         if (m_op_a < 0) m_op_a = ei;
-        else if (ei != m_op_a) {
+        else if (ei == m_op_a) {
+            notify(m_mode == Mode::Fillet ? _u8L("Fillet: pick a second, different line")
+                                          : _u8L("Chamfer: pick a second, different line"));
+            return;
+        } else {
             Vec2d cC, cBis; double cTh = 0.0;
             if (!op_corner(m_op_a, ei, cC, cBis, cTh)) {   // parallel or straight: no corner
                 notify(_u8L("Those two lines do not meet at a corner — pick two lines that do"));
@@ -9932,6 +9935,10 @@ void DesignSketchTool::op_pick(int ei)
         }
         break;
     case Mode::Offset: {
+        if (t == SketchEntity::Type::Ellipse || t == SketchEntity::Type::EllipseArc || t == SketchEntity::Type::BSpline) {
+            notify(_u8L("Offset: an ellipse or a spline has no parallel of its own kind - pick lines, arcs or circles"));
+            return;
+        }
         m_op_a = ei;
         // The whole outline the entity belongs to, not the one segment under the pointer: a
         // glyph or an imported outline is hundreds of short lines, and offsetting one of them
@@ -9954,7 +9961,10 @@ void DesignSketchTool::op_pick(int ei)
     }
     case Mode::Mirror:
         if (m_op_a < 0) {
-            if (t != SketchEntity::Type::Line) return;        // axis must be a line
+            if (t != SketchEntity::Type::Line) {              // axis must be a line
+                notify(_u8L("Mirror: the axis must be a straight line"));
+                return;
+            }
             m_op_a = ei;
         } else if (ei != m_op_a) {
             auto it = std::find(m_mirror_targets.begin(), m_mirror_targets.end(), ei);
@@ -10323,6 +10333,8 @@ void DesignSketchTool::tf_pick(int ei)
         }
     }
     recompute_tf_ghost();
+    if (m_tf_targets.size() == 1 && (m_mode == Mode::Rotate || m_mode == Mode::Scale || m_mode == Mode::PolarArray))
+        notify(_u8L("Pivot: the centre of the selection (the dot) - it moves as you add or remove entities"), false);
     m_selection = m_tf_targets;   // reuse the existing selection highlight
     if (on_selection_changed) on_selection_changed(int(m_selection.size()));
 }
@@ -10997,6 +11009,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         if (editing_this)        col = editing;
         else if (op_ref)         col = opref;
         else if (selected)       col = sel_col;
+        else if (is_edit_op_mode() && int(i) == m_op_hover) col = ColorRGBA(0.92f, 0.75f, 1.0f, 1.0f);   // light violet: what the next click takes
         else if (bad)            col = conflict;
         else if (repeats)        col = ColorRGBA(0.95f, 0.70f, 0.20f, 1.0f);
         else if (e.construction) col = grey;
@@ -12537,6 +12550,26 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         if (evt.Moving()) {
             screen_to_plane(canvas, evt, m_cursor);
             m_has_cursor = true;
+            // Light the entity the next click would take (same pick rule as the click below), but
+            // only if op_pick would accept it - a refused pick must not look pickable.
+            double hbest = 1e30; int hi = -1;
+            for (size_t i = 0; i < m_entities.size(); ++i) {
+                const double d = entity_pick_dist(m_cursor, m_entities[i]);
+                if (d < hbest) { hbest = d; hi = int(i); }
+            }
+            if (hi >= 0 && hbest <= screen_tol(canvas, evt, m_cursor, kToolPickPx)) {
+                const SketchEntity::Type ht = m_entities[hi].type;
+                bool ok = true;
+                switch (m_mode) {
+                case Mode::Fillet: case Mode::Chamfer: ok = ht == SketchEntity::Type::Line && hi != m_op_a; break;
+                case Mode::Mirror: ok = (m_op_a < 0) ? ht == SketchEntity::Type::Line : hi != m_op_a; break;
+                case Mode::Offset: ok = ht != SketchEntity::Type::Ellipse && ht != SketchEntity::Type::EllipseArc
+                                        && ht != SketchEntity::Type::BSpline; break;
+                default: break;
+                }
+                if (!ok) hi = -1;
+            } else hi = -1;
+            m_op_hover = hi;
             return true;
         }
         if (m_op_dragging_arrow && evt.Dragging() && evt.LeftIsDown()) {
@@ -13043,6 +13076,27 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             screen_to_plane(canvas, evt, cur);
             if (evt.LeftDown()) {
                 const DimAnnot a = m_dim_draft;
+                // A Length draft whose placing click lands ON a different, non-parallel line is
+                // the second pick of an ANGLE between the two lines: open the angle card on them.
+                if (a.kind == DimType::Length && a.ea >= 0 && a.ea < int(m_entities.size())) {
+                    const Linef3 rr = canvas.mouse_ray(Point(evt.GetX() + 8, evt.GetY()));
+                    const Vec2d  pr = m_plane.project(rr.a, rr.vector());
+                    const double ptol = std::max(1e-3, (pr - cur).norm());
+                    const int ob = hit_test(cur, ptol);
+                    if (ob >= 0 && ob != a.ea && m_entities[ob].type == SketchEntity::Type::Line) {
+                        const Vec2d da = m_entities[a.ea].p1 - m_entities[a.ea].p0;
+                        const Vec2d db = m_entities[ob].p1 - m_entities[ob].p0;
+                        const double na = da.norm(), nb = db.norm();
+                        if (na > 1e-9 && nb > 1e-9 && std::abs(da.x() * db.y() - da.y() * db.x()) / (na * nb) > 1e-6) {
+                            m_dim_draft_on = false;
+                            m_dim_has0 = false;
+                            m_selection = { a.ea, ob };
+                            if (on_selection_changed) on_selection_changed(int(m_selection.size()));
+                            open_selection_dimension_editor();
+                            return true;
+                        }
+                    }
+                }
                 m_dim_draft_on = false;
                 place_dimension(a);
                 return true;
@@ -13110,8 +13164,8 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                     DimAnnot a; a.kind = DimType::DistanceToLine;
                     a.ea = m_dim_e0; a.ra = m_dim_r0; a.eb = he;
                     place_dimension(a);
-                } else if (he >= 0) {
-                    notify(_u8L("Click a second point, or a line to measure the distance to"), false);
+                } else {
+                    notify(_u8L("Dimension: click a second point or a line (first pick cleared)"), false);
                 }
                 m_dim_has0 = false;                    // reset after the second pick
             }
@@ -13429,7 +13483,21 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             m_points.push_back(p);
             if (m_points.size() == 2) {
                 const int base = int(m_entities.size());
-                append_entities(make_tangent_arc(m_points[0], m_points[1]));
+                const std::vector<SketchEntity> arc = make_tangent_arc(m_points[0], m_points[1]);
+                if (arc.empty()) {
+                    const bool have_prev = !m_entities.empty()
+                        && (m_entities.back().type == SketchEntity::Type::Line
+                            || m_entities.back().type == SketchEntity::Type::Arc);
+                    if (!have_prev) {
+                        notify(_u8L("Tangent arc needs a line or arc to continue from - draw one first"));
+                        m_points.clear();
+                    } else {
+                        notify(_u8L("Tangent arc: the end point lies on the tangent line - move it"));
+                        m_points.pop_back();      // keep the start, let the user pick the end again
+                    }
+                    return true;
+                }
+                append_entities(arc);
                 infer_auto_constraints(base);   // tangent-arc ends Coincident onto vertices
                 m_points.clear();
             }
