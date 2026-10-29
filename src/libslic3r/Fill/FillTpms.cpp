@@ -244,8 +244,7 @@ static Polylines make_gyroid_waves(double gridZ, double density_adjusted, double
 
     // tolerance in scaled units. clamp the maximum tolerance as there's
     // no processing-speed benefit to do so beyond a certain point
-    // Orca: at most a hundredth of the period, so the waves of the dense patterns keep their length.
-    const double tolerance = std::min(std::min(line_spacing / 2, GyroidPatternTolerance) / unscale<double>(scaleFactor), 2. * PI / 100.);
+    const double tolerance = std::min(line_spacing / 2, GyroidPatternTolerance) / unscale<double>(scaleFactor);
 
     //scale factor for 5% : 8 712 388
     // 1z = 10^-6 mm ?
@@ -497,8 +496,7 @@ struct FillTpms::Surface
     Polylines (*parametric)(const TpmsLayer &layer);
 };
 
-// A period factor of a surface calibrated against TPMS-FK is TPMS-FK's times the contour length per area of the
-// layers of the surface over that of TPMS-FK.
+// Each calibration but Gyroid's makes a cube of infill alone weigh its density; see docs/HLSD/tpms-infill.md.
 static const FillTpms::Surface surfaces[] = {
     {ipGyroid, gyroid, FillTpms::GyroidDensityAdjust, 1.f, false, true, gyroid_waves},
     {ipTpmsD, schwarz_d, 2.081, 1.f, false, true, tpms_d_waves},

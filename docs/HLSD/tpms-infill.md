@@ -40,8 +40,6 @@ A layer comes from one of three generators:
   eighth of it, mirrored, and copied to every cell. They are exact to their
   tolerance, cheap, and the same in every region, but only follow layers of the
   regular cells, stretched at most along Z: `TpmsEquation::regular_layers()`.
-  The tolerance of the Gyroid waves is at most a hundredth of their period, so
-  the dense waves keep their length.
 - **Marching squares** of `TpmsField`, in `make_tpms_polylines()`, for any
   equation, scale and turn. The patterns with no parametric form always use it;
   Gyroid with the Z-buckling optimization or when not `regular_layers()`, TPMS-D
@@ -61,12 +59,12 @@ A layer comes from one of three generators:
 - With the scales at 1 and no turn, the waves of Gyroid and TPMS-D are the ones
   solved from their equations; the scale and the turn only send a layer to
   marching squares.
-- The density calibration of each pattern makes its sparse infill print the
-  weight of its density: a 100 mm cube of infill alone, with no walls, shells,
-  anchors or infill/wall overlap, weighs its density times the weight of the
-  solid cube, within 0.4% on average and 1.5% at any density from 15% to 90%. For
-  the patterns other than Gyroid and TPMS-D the calibration is 2 PI over a period
-  factor. Stretching the cells along X or Y changes the line length per area
+- The density calibration of each pattern but Gyroid makes its sparse infill
+  print the weight of its density: a 100 mm cube of infill alone, with no walls,
+  shells, anchors or infill/wall overlap, weighs its density times the weight of
+  the solid cube, within 0.4% on average and 1.5% at any density from 15% to 90%.
+  Gyroid's calibration is older and prints 5 to 8% less. For the patterns other
+  than Gyroid and TPMS-D the calibration is 2 PI over a period factor. Stretching the cells along X or Y changes the line length per area
   (twice along both prints half of it); along Z it barely does.
 - With the anchors off, Gyroid and TPMS-D chain their lines; the other patterns
   connect them along the boundary even then, as chaining their many islands is
