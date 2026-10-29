@@ -495,6 +495,7 @@ public:
     void calib_input_shaping_freq(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
     void calib_input_shaping_damp(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
     void Calib_Cornering(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void calib_ironing_flow(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
 
     BuildVolume_Type get_build_volume_type() const;
 
