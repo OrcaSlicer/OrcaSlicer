@@ -1841,17 +1841,54 @@ float ViewerImpl::get_estimated_time_at(size_t id) const
     return time;
 }
 
-// The first extrusion of the role in the layer, or the vertex count. The layer's vertices lie
-// between its first and last ids, with those of other layers among them in a print by object.
-size_t ViewerImpl::find_extrusion_vertex(size_t layer_id, EGCodeExtrusionRole role) const
+std::optional<float> ViewerImpl::get_vertex_value(const PathVertex& v) const
 {
-    const Interval range = m_layers.get_layer_vertex_range(layer_id);
-    for (size_t i = range[0]; i <= range[1] && i < m_vertices.size(); ++i) {
-        const PathVertex& v = m_vertices[i];
-        if (v.layer_id == layer_id && v.is_extrusion() && v.role == role)
-            return i;
+    switch (m_settings.view_type)
+    {
+    case EViewType::Height:                   return v.height;
+    case EViewType::Width:                    return v.width;
+    case EViewType::Speed:                    return v.feedrate;
+    case EViewType::ActualSpeed:              return v.actual_feedrate;
+    case EViewType::FanSpeed:                 return v.fan_speed;
+    case EViewType::Temperature:              return v.temperature;
+    case EViewType::PressureAdvance:          return v.pressure_advance;
+    case EViewType::Acceleration:             return v.acceleration;
+    case EViewType::Jerk:                     return v.jerk;
+    case EViewType::VolumetricFlowRate:       return v.volumetric_rate();
+    case EViewType::ActualVolumetricFlowRate: return v.actual_volumetric_rate();
+    case EViewType::LayerTimeLinear:
+    case EViewType::LayerTimeLogarithmic:     return m_layers.get_layer_time(m_settings.time_mode, static_cast<size_t>(v.layer_id));
+    default:                                  return std::nullopt;
     }
-    return m_vertices.size();
+}
+
+// The extrusion of the role that stands for the layers, or the vertex count. A view that grades
+// by a value takes the length-weighted median of it over the role's extrusions in up to
+// VERTEX_SAMPLE_LAYERS layers spread evenly over the interval, so that neither the ramp a wall
+// starts on nor one odd layer sets the colour; any other view takes the first extrusion found.
+// A layer's vertices lie between its first and last ids, with those of other layers among them
+// in a print by object.
+size_t ViewerImpl::find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role) const
+{
+    std::vector<std::pair<float, float>> samples;
+    std::vector<size_t> ids;
+    const size_t count = (layers[1] >= layers[0]) ? layers[1] - layers[0] + 1 : 0;
+    const size_t steps = std::min(count, VERTEX_SAMPLE_LAYERS);
+    for (size_t step = 0; step < steps; ++step) {
+        const size_t layer_id = layers[0] + ((steps > 1) ? step * (count - 1) / (steps - 1) : 0);
+        const Interval range = m_layers.get_layer_vertex_range(layer_id);
+        for (size_t i = range[0]; i <= range[1] && i < m_vertices.size(); ++i) {
+            const PathVertex& v = m_vertices[i];
+            if (v.layer_id != layer_id || !v.is_extrusion() || v.role != role)
+                continue;
+            const std::optional<float> value = get_vertex_value(v);
+            if (!value.has_value())
+                return i;
+            samples.emplace_back(*value, (i > 0) ? length(v.position - m_vertices[i - 1].position) : 0.0f);
+            ids.push_back(i);
+        }
+    }
+    return samples.empty() ? m_vertices.size() : ids[weighted_median_index(samples)];
 }
 
 Color ViewerImpl::get_vertex_color(const PathVertex& v) const

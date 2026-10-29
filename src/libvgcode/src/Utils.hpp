@@ -8,6 +8,8 @@
 #include "../include/Types.hpp"
 #include <vector>
 #include <cstdint>
+#include <cstddef>
+#include <utility>
 
 #ifdef _WIN32
 #define STDVEC_MEMSIZE(NAME, TYPE) NAME.capacity() * ((sizeof(TYPE) + __alignof(TYPE) - 1) / __alignof(TYPE)) * __alignof(TYPE)
@@ -27,6 +29,10 @@ extern bool operator != (const Vec3& v1, const Vec3& v2);
 extern Vec3 operator + (const Vec3& v1, const Vec3& v2);
 extern Vec3 operator - (const Vec3& v1, const Vec3& v2);
 extern Vec3 operator * (float f, const Vec3& v);
+// The index of the weighted median of the samples (value, weight): in value order, the first
+// sample at which the cumulative weight reaches half of the total. Samples that weigh nothing
+// between them fall back to the middle one by value; no samples gives their count.
+extern std::size_t weighted_median_index(const std::vector<std::pair<float, float>>& samples);
 
 } // namespace libvgcode
 
