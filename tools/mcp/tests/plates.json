@@ -17,7 +17,7 @@
                                                       {"match": "Uniform scale", "button": "ok"},
                                                       {"match": "Spiral mode only works", "button": "yes"}]}},
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1920, 1200]}},
 
     // ---- Filament slots: down to one with the - button's command, then a second ----
     {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}},

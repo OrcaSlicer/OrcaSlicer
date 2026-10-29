@@ -8,6 +8,7 @@
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"window_size": [1920, 1200]}},
     {"tool": "open_files", "args": {"paths": ["${vars.model}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "set_settings", "args": {"scope": "print", "values": {"wall_loops": 3}}},
     {"tool": "get_settings", "args": {"scope": "print", "keys": ["wall_loops"]}, "expect": {"/items/0/value": {"eq": "3"}}},

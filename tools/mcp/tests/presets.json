@@ -20,6 +20,7 @@
     {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "restore", "button": "no"}, {"match": "Uniform scale", "button": "ok"}]}},
     // Unsaved edits a person (or an earlier run) left are dropped first, so nothing below asks about them.
     {"tool": "new_project", "args": {"discard_changes": true, "changes": "discard"}},
+    {"tool": "set_view", "args": {"window_size": [1920, 1200]}},
     // The unsaved-changes prompt lists only the settings the mode shows, and Simple mode also turns
     // Developer mode off, which the detach refusal below needs.
     {"tool": "run_action", "args": {"id": "orca_command:mode_simple:orca"}},

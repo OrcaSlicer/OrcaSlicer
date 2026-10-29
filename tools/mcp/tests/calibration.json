@@ -14,7 +14,7 @@
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "restore", "button": "no"}]}},
     {"tool": "new_project", "args": {"discard_changes": true, "changes": "discard"}},
-    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1920, 1200]}},
     {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
     {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
     {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},

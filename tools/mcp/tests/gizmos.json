@@ -9,7 +9,7 @@
   "orca_script": 1,
   "name": "every gizmo",
   "vars": {
-    "window_size": [1440, 960],
+    "window_size": [1920, 1200],
     "svg": "${script_dir}/fixtures/star.svg",
     "heightmap": "${script_dir}/fixtures/heightmap.png"
   },

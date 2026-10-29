@@ -14,6 +14,7 @@
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"window_size": [1920, 1200]}},
     {"tool": "cad_call", "args": {"method": "new_design"}, "expect": {"/result/ok": {"eq": true}, "/result/cleared/features": {"eq": 0}}},
     {"tool": "cad_call", "args": {"method": "describe_tools", "params": {"method": ["describe_feature", "set_feature"]}},
      "expect": {"/result/tools/0/access": {"eq": "read"}, "/result/tools/1/access": {"eq": "change"}}},

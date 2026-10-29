@@ -11,7 +11,7 @@
                                                       {"match": "restore", "button": "no"},
                                                       {"match": "Uniform scale", "button": "ok"}]}},
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1920, 1200]}},
     // A second filament (or one more, on a datadir an earlier run left with several).
     {"tool": "ui_click", "args": {"target": {"label": "Add one filament"}}},
     {"tool": "get_state", "expect": {"/presets/filaments/1": {"exists": true}}},

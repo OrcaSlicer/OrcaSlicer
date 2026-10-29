@@ -9,6 +9,7 @@
   "name": "web views in modal dialogs",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "set_view", "args": {"window_size": [1920, 1200]}},
 
     // ---- The preset bundle dialog ----
     {"tool": "run_action", "args": {"id": "orca_command:preset_bundle:orca"}, "await": false, "save_as": "bundle"},

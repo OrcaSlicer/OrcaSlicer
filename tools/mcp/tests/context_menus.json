@@ -13,7 +13,7 @@
       {"match": "Uniform scale", "button": "ok"},
       {"match": "per-object setting mode", "button": "ok"}]}},
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1440, 960]}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1920, 1200]}},
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "set_view", "args": {"camera": "iso"}},

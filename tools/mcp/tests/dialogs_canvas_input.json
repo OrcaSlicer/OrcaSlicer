@@ -15,7 +15,7 @@
       {"match": "unsaved changes", "button": "no"},
       {"match": "Transfer or discard", "button": "Transfer"}]}},
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1440, 960]}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1920, 1200]}},
 
     // ---- An auto-answered Transfer keeps the edit on the newly selected process preset ----
     {"tool": "select_preset", "args": {"type": "process", "name": "${vars.standard}"}},

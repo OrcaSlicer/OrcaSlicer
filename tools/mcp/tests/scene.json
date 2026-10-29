@@ -13,7 +13,7 @@
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1920, 1200]}},
 
     // ---- An instance: a scale that grows it drops it onto the bed; size keeps the proportions ----
     {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},

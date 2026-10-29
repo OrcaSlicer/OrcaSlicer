@@ -13,7 +13,7 @@
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1920, 1200]}},
     {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "transform", "args": {"object": 0, "size": [20, 20, 20]}},
     {"tool": "set_settings", "args": {"scope": "print", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},

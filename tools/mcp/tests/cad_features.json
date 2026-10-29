@@ -12,6 +12,7 @@
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"window_size": [1920, 1200]}},
     {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
 
     // M5 hex standoff: 8 mm across flats, 15 long, M5's 4.134 mm tap drill through it.

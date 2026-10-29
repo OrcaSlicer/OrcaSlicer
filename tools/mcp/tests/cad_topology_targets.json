@@ -13,6 +13,7 @@
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"window_size": [1920, 1200]}},
     {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
 
     // Back plate 60 x 5, arm 35 out, lip 15 up, 20 wide.

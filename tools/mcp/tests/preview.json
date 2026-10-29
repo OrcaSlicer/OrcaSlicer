@@ -16,7 +16,7 @@
     {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "Uniform scale", "button": "ok"},
                                                       {"match": "unsaved changes. Would you like to save", "button": "No"}]}},
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1920, 1200]}},
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}, "/plates/0/layers": {"eq": 128}}},

@@ -11,6 +11,7 @@
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"window_size": [1920, 1200]}},
     {"tool": "cad_call", "args": {"method": "new_design", "params": {"discard_changes": true}}},
 
     // An L-bracket profile on XZ, which passes through modeling_origin, not the bed corner: 40 x 30, 4 thick.
