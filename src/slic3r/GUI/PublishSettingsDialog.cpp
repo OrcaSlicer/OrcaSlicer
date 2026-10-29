@@ -883,16 +883,6 @@ void PublishSettingsDialog::build_option_model()
         return true;
     };
 
-    // Builds one row id from its publish-ready key and indices.
-    auto make_row_id = [](std::string key, int owner, int column, Slic3r::PublishSection section, Slic3r::PublishRowKind kind) {
-        Slic3r::PublishRowId id;
-        id.keys.emplace_back(std::move(key));
-        id.owner   = owner;
-        id.column  = column;
-        id.section = section;
-        id.kind    = kind;
-        return id;
-    };
     // A scalar always resolves; a vector only when the index addresses one of its elements, so a
     // short vector hides its row instead of clamping to the first value. An index of -1 means
     // "the option's single entry", which the group resolves the same way the Tab does.
@@ -907,6 +897,58 @@ void PublishSettingsDialog::build_option_model()
     };
 
     m_snapshot = uncompacted;
+
+    // One row per config option: the label, value and unit the dialog has always shown, plus the
+    // definition the group will build its field from.
+    auto make_row = [&](std::string publish_key, const std::string& base, int index, int owner, int column,
+                        Slic3r::PublishSection section, Slic3r::PublishRowKind kind,
+                        const DynamicPrintConfig& cfg) -> std::optional<Row> {
+        wxString label, value, unit;
+        const std::string opt_id = index >= 0 ? base + "#" + std::to_string(index) : base;
+        if (!option_text(cfg, opt_id, base, label, value, unit))
+            return std::nullopt;
+        const ConfigOptionDef* def = print_config_def.get(base);
+        if (def == nullptr)
+            return std::nullopt;
+
+        Row row;
+        row.id.keys.emplace_back(std::move(publish_key));
+        row.id.owner   = owner;
+        row.id.column  = column;
+        row.id.section = section;
+        row.id.kind    = kind;
+        RowOption option;
+        option.key   = base;
+        option.index = index;
+        option.def   = *def;
+        row.options.push_back(std::move(option));
+        row.label    = label;
+        row.label_en = from_u8(def->full_label.empty() ? def->label : def->full_label);
+        row.value    = value;
+        row.unit     = unit;
+        return row;
+    };
+
+    // The dialog's own requirement rows: Color and Type on a material slot. They publish
+    // publish_color / publish_type, not a key.
+    auto make_requirement_row = [](std::string key, int slot, Slic3r::PublishRowKind kind, const wxString& label, const wxString& value) {
+        Row row;
+        row.id.keys.emplace_back(key);
+        row.id.owner   = slot;
+        row.id.column  = -1;
+        row.id.section = Slic3r::PublishSection::Material;
+        row.id.kind    = kind;
+        RowOption option;
+        option.key   = std::move(key);
+        option.index = slot;
+        if (const ConfigOptionDef* def = print_config_def.get(option.key))
+            option.def = *def;
+        row.options.push_back(std::move(option));
+        row.label    = label;
+        row.label_en = label;
+        row.value    = value;
+        return row;
+    };
 
     // --- Phase 1: printer per-extruder retraction settings (first, mirroring the sidebar's
     // Printer group), from the printer tab's "Extruder" page. One inner tab per extruder (named
@@ -943,14 +985,12 @@ void PublishSettingsDialog::build_option_model()
                             continue;
                         if (!index_in_range(uncompacted, pure_key, variant_index))
                             continue;
-                        wxString label, value, unit;
-                        if (!option_text(uncompacted, opt_id, pure_key, label, value, unit))
-                            continue;
                         size_t cat_index = category_index_for(page_title, Section::Printer, g, extruder_idx, PublishMaterialIdentity(), false, true);
                         m_categories[cat_index].column = variant_index;
-                        size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon);
-                        add_row(make_row_id(opt_id, -1, variant_index, Slic3r::PublishSection::Printer, Slic3r::PublishRowKind::Key),
-                                variant_index, label, value, unit, cat_index, sub_index);
+                        size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon, optgroup.get(), page, tab->type());
+                        if (auto row = make_row(opt_id, pure_key, variant_index, -1, variant_index,
+                                                Slic3r::PublishSection::Printer, Slic3r::PublishRowKind::Key, uncompacted))
+                            add_row(std::move(*row), cat_index, sub_index);
                     }
                 }
             }
@@ -1029,15 +1069,18 @@ void PublishSettingsDialog::build_option_model()
                     // vendor-agnostic material type for this slot, in their own optgroup so they
                     // stay visually separated from the setting rows.
                     {
-                        const size_t req_sub = subcategory_index_for(category_index, _L("Material"), "custom-gcode_filament");
-                        add_row(make_row_id("filament_colour", int(slot), -1, Slic3r::PublishSection::Material, Slic3r::PublishRowKind::Color),
-                                int(slot), _L("Color"), from_u8(filament_color_hex(full, slot)), wxString(), category_index, req_sub);
+                        const size_t req_sub = subcategory_index_for(category_index, _L("Material"), "custom-gcode_filament",
+                                                                     nullptr, overrides_page, filament_tab->type());
+                        add_row(make_requirement_row("filament_colour", int(slot), Slic3r::PublishRowKind::Color, _L("Color"),
+                                                     from_u8(filament_color_hex(full, slot))),
+                                category_index, req_sub);
                         std::string type;
                         if (const auto* types = full.opt<ConfigOptionStrings>("filament_type"))
                             if (slot < types->size())
                                 type = types->get_at(slot);
-                        add_row(make_row_id("filament_type", int(slot), -1, Slic3r::PublishSection::Material, Slic3r::PublishRowKind::Type),
-                                int(slot), _L("Type"), from_u8(normalize_filament_type(type)), wxString(), category_index, req_sub);
+                        add_row(make_requirement_row("filament_type", int(slot), Slic3r::PublishRowKind::Type, _L("Type"),
+                                                     from_u8(normalize_filament_type(type))),
+                                category_index, req_sub);
                     }
 
                     // A material section must not repeat a key; the same key may appear in other
@@ -1061,13 +1104,12 @@ void PublishSettingsDialog::build_option_model()
                             const int  value_index     = column >= 0 ? column : int(slot);
                             if (!index_in_range(uncompacted, base, value_index))
                                 continue;
-                            wxString label, value, unit;
-                            if (!option_text(uncompacted, base + "#" + std::to_string(value_index), base, label, value, unit))
-                                continue;
                             const std::string row_key = column >= 0 ? base + "#" + std::to_string(column) : base;
-                            size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon);
-                            add_row(make_row_id(row_key, int(slot), column, Slic3r::PublishSection::Material, Slic3r::PublishRowKind::Key),
-                                    value_index, label, value, unit, category_index, sub_index);
+                            size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon,
+                                                                     optgroup.get(), overrides_page, filament_tab->type());
+                            if (auto row = make_row(row_key, base, value_index, int(slot), column,
+                                                    Slic3r::PublishSection::Material, Slic3r::PublishRowKind::Key, uncompacted))
+                                add_row(std::move(*row), category_index, sub_index);
                         }
                     }
                 }
@@ -1135,12 +1177,11 @@ void PublishSettingsDialog::build_option_model()
                                     continue;
                                 if (!index_in_range(uncompacted, pure_key, entry.variant))
                                     continue;
-                                wxString label, value, unit;
-                                if (!option_text(uncompacted, row_key, pure_key, label, value, unit))
-                                    continue;
-                                size_t sub_index = subcategory_index_for(entry.category, _(optgroup->title), optgroup->icon);
-                                add_row(make_row_id(row_key, -1, entry.variant, Slic3r::PublishSection::Process, Slic3r::PublishRowKind::Key),
-                                        entry.variant, label, value, unit, entry.category, sub_index);
+                                size_t sub_index = subcategory_index_for(entry.category, _(optgroup->title), optgroup->icon,
+                                                                         optgroup.get(), page.get(), tab->type());
+                                if (auto row = make_row(row_key, pure_key, entry.variant, -1, entry.variant,
+                                                        Slic3r::PublishSection::Process, Slic3r::PublishRowKind::Key, uncompacted))
+                                    add_row(std::move(*row), entry.category, sub_index);
                             }
                             continue;
                         }
@@ -1149,14 +1190,13 @@ void PublishSettingsDialog::build_option_model()
                             continue;
                         if (!index_in_range(uncompacted, pure_key, opt.second.second))
                             continue;
-                        wxString label, value, unit;
-                        if (!option_text(uncompacted, opt_id, pure_key, label, value, unit))
-                            continue;
                         if (category_index == size_t(-1))
                             category_index = category_index_for(category, Section::Print, g, page_index);
-                        size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon);
-                        add_row(make_row_id(opt_id, -1, opt.second.second, Slic3r::PublishSection::Process, Slic3r::PublishRowKind::Key),
-                                opt.second.second, label, value, unit, category_index, sub_index);
+                        size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon,
+                                                                 optgroup.get(), page.get(), tab->type());
+                        if (auto row = make_row(opt_id, pure_key, opt.second.second, -1, opt.second.second,
+                                                Slic3r::PublishSection::Process, Slic3r::PublishRowKind::Key, uncompacted))
+                            add_row(std::move(*row), category_index, sub_index);
                     }
                 }
                 ++page_index;
@@ -1218,6 +1258,9 @@ void PublishSettingsDialog::build_option_model()
     // No filter is active at startup: every row matches until the user types.
     for (Row& row : m_rows)
         row.matches_filter = true;
+    // Draw every row with the sidebar's own group and line machinery.
+    for (size_t c = 0; c < m_categories.size(); ++c)
+        build_row_groups(c);
     apply_visibility();
 
     for (Category& category : m_categories) {
@@ -1391,8 +1434,10 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         }
     }
 
-    category.scroll = new wxScrolledWindow(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    category.scroll->SetScrollRate(0, FromDIP(20));
+    // The rows are painted at their own em-derived width (a 32 em floor), so the page scrolls
+    // sideways rather than clipping a value column at a large DPI.
+    category.scroll = new wxScrolledWindow(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxHSCROLL);
+    category.scroll->SetScrollRate(FromDIP(20), FromDIP(20));
     category.scroll->SetBackgroundColour(GetBackgroundColour());
     category.list_sizer = new wxBoxSizer(wxVERTICAL);
     category.scroll->SetSizer(category.list_sizer);
@@ -1455,7 +1500,8 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     return category_index;
 }
 
-size_t PublishSettingsDialog::subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon)
+size_t PublishSettingsDialog::subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon,
+                                                    const ConfigOptionsGroup* source, const Page* page, int preset_type)
 {
     Category& category = m_categories[category_index];
     for (size_t i = 0; i < category.subs.size(); ++i)
@@ -1463,96 +1509,174 @@ size_t PublishSettingsDialog::subcategory_index_for(size_t category_index, const
             return i;
 
     Subcategory sub;
-    sub.title = title;
-    if (!title.IsEmpty()) {
-        sub.header = new ::StaticLine(category.scroll, false, title, icon);
-        sub.header->SetFont(Label::Head_14);
-        sub.header->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
-        auto* wrap = new wxBoxSizer(wxVERTICAL);
-        wrap->Add(sub.header, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(6));
-        sub.item = category.list_sizer->Add(wrap, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+    sub.title       = title;
+    sub.icon        = icon;
+    sub.preset_type = preset_type;
+    // The same layout inputs the sidebar's group is built with; nothing here is a choice of the
+    // dialog's (spec 7.4.0). label_width already carries new_optgroup's override when the Tab set
+    // one.
+    if (source != nullptr)
+        sub.label_width = source->label_width;
+    if (page != nullptr) {
+        sub.split_multi_line      = page->m_split_multi_line;
+        sub.option_label_at_right = page->m_option_label_at_right;
+        sub.page_title            = page->title();
     }
     category.subs.push_back(std::move(sub));
     return category.subs.size() - 1;
 }
 
-size_t PublishSettingsDialog::add_row(Slic3r::PublishRowId id,
-                                      int value_index,
-                                      const wxString& label,
-                                      const wxString& value,
-                                      const wxString& unit,
-                                      size_t category_index,
-                                      size_t subcategory_index)
+size_t PublishSettingsDialog::add_row(Row row, size_t category_index, size_t subcategory_index)
 {
     Category& category = m_categories[category_index];
-    Row       row;
-    row.id             = std::move(id);
-    row.value_index    = value_index;
-    row.label          = label;
-    row.value          = value;
-    row.unit           = unit;
-    row.category       = category.title;
-    row.subcategory    = category.subs[subcategory_index].title;
-    row.section_title  = m_sections[category.group].title;
-    row.outer_index    = category.group;
-    row.inner_index    = category_index;
+    row.category        = category.title;
+    row.subcategory     = category.subs[subcategory_index].title;
+    row.section_title   = m_sections[category.group].title;
+    row.outer_index     = category.group;
+    row.inner_index     = category_index;
+    row.sub_index       = subcategory_index;
     const size_t row_index = m_rows.size();
     m_rows.push_back(std::move(row));
     m_row_ids.push_back(m_rows.back().id);
-    Row& current = m_rows[row_index];
-    current.check = new ::CheckBox(category.scroll, wxID_ANY);
-    current.check->Bind(wxEVT_TOGGLEBUTTON, [this, row_index](wxCommandEvent& event) {
-        m_selection.set_checked(m_rows[row_index].id, m_rows[row_index].check->GetValue());
-        refresh_tab_indicators();
-        event.Skip();
-    });
-    auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
-    current.check_label = add_checkbox_label(category.scroll, row_sizer, current.check, label + ":", wxEmptyString,
-                                             24 * wxGetApp().em_unit());
-    // The value is read-only text (incl. the Type row: the published type is the slot's
-    // normalized type, not author-editable).
-    current.value_label = new wxStaticText(category.scroll, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-    current.value_label->SetFont(Label::Body_14);
-    current.value_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
-    current.value_label->SetToolTip(unit.IsEmpty() ? value : value + " " + unit);
-    if (current.id.kind == Slic3r::PublishRowKind::Color && !value.IsEmpty()) {
-        // The colour swatch carries this slot's 1-based number, like the main GUI swatches.
-        const std::string chip_label = std::to_string(category.filament_slot + 1);
-        if (wxBitmap* chip = get_extruder_color_icon(value.ToStdString(), chip_label, FromDIP(20), FromDIP(20))) {
-            current.color_chip = new wxStaticBitmap(category.scroll, wxID_ANY, *chip);
-            row_sizer->Add(current.color_chip, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
-        }
-    }
-    row_sizer->Add(current.value_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
-    if (!unit.IsEmpty()) {
-        current.unit_label = new wxStaticText(category.scroll, wxID_ANY, unit);
-        current.unit_label->SetFont(Label::Body_14);
-        current.unit_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
-        row_sizer->Add(current.unit_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
-    }
-    current.item = category.list_sizer->Add(row_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
     category.rows.push_back(row_index);
     category.subs[subcategory_index].rows.push_back(row_index);
     return row_index;
+}
+
+Line* PublishSettingsDialog::row_line(size_t row_index) const
+{
+    const Row& row = m_rows[row_index];
+    if (row.options.empty())
+        return nullptr;
+    const Subcategory& sub = m_categories[row.inner_index].subs[row.sub_index];
+    if (sub.group == nullptr)
+        return nullptr;
+    const RowOption& first = row.options.front();
+    return sub.group->get_line(first.key + (first.index >= 0 ? "#" + std::to_string(first.index) : ""));
+}
+
+void PublishSettingsDialog::build_row_groups(size_t category_index)
+{
+    Category& category = m_categories[category_index];
+    if (category.built)
+        return;
+    category.built = true;
+
+    for (Subcategory& sub : category.subs) {
+        if (sub.rows.empty())
+            continue;
+
+        // The same group the sidebar's Page::new_optgroup creates: same class, same is_tab_opt
+        // flag, same per-page layout flags and label width, no Tab callbacks (spec 7.4.0).
+        auto* group           = new ConfigOptionsGroup(category.scroll, sub.title, sub.icon, &m_snapshot, /*is_tab_opt=*/true);
+        group->index_in_search      = false;
+        group->split_multi_line     = sub.split_multi_line;
+        group->option_label_at_right = sub.option_label_at_right;
+        group->label_width          = sub.label_width;
+        group->set_config_category_and_type(sub.page_title, sub.preset_type);
+        // Values are a read-only view of the snapshot: a field event must not write to it.
+        group->set_readonly(true);
+
+        sub.group = group;
+
+        for (size_t r : sub.rows) {
+            const Row& row = m_rows[r];
+            if (row.options.empty())
+                continue;
+
+            auto make_option = [group](const RowOption& src) {
+                Option option = group->get_option(src.key, src.index);
+                // The source line may override the definition (sub-labels such as "Minimal").
+                option.opt = src.def;
+                return option;
+            };
+
+            Line line = group->create_single_option_line(make_option(row.options.front()), row.label_path.ToStdString());
+            // The source line's own label and, where it has one, its tooltip and wiki path: the
+            // generated tooltip names the option id, which is not what the sidebar shows.
+            line.label      = row.label;
+            line.label_en   = row.label_en;
+            line.label_path = row.label_path.ToStdString();
+            if (!row.label_tooltip.IsEmpty())
+                line.label_tooltip = row.label_tooltip;
+
+            for (size_t o = 1; o < row.options.size(); ++o)
+                line.append_option(make_option(row.options[o]));
+            line.row_toggle = RowToggle();
+            group->append_line(line);
+        }
+
+        group->activate();
+        group->update_visibility(comDevelop);
+        group->reload_config();
+        group->disable(); // every value is read-only
+
+        // Bind the row toggles to the model and paint the dirty marker the way the Tab does.
+        for (size_t r : sub.rows) {
+            Row& row  = m_rows[r];
+            Line* line = row_line(r);
+            if (line == nullptr || !line->row_toggle)
+                continue;
+            line->row_toggle->on_change = [this, r](bool checked) { set_row_checked(r, checked); };
+            sync_row_widgets(r);
+            if (row.dirty)
+                apply_row_label_colour(r);
+        }
+
+        sub.item = category.list_sizer->Add(group->sizer, 0, wxEXPAND | wxALL, FromDIP(5));
+    }
+
+    category.list_sizer->Layout();
+    if (category.scroll != nullptr)
+        category.scroll->FitInside();
+}
+
+void PublishSettingsDialog::apply_row_label_colour(size_t row_index)
+{
+    const Row& row = m_rows[row_index];
+    if (row.options.empty())
+        return;
+    Subcategory& sub = m_categories[row.inner_index].subs[row.sub_index];
+    if (sub.group == nullptr)
+        return;
+    const RowOption& first  = row.options.front();
+    const std::string opt_id = first.key + (first.index >= 0 ? "#" + std::to_string(first.index) : "");
+    if (Field* field = sub.group->get_field(opt_id))
+        field->set_label_colour(&wxGetApp().get_label_clr_modified());
+}
+
+void PublishSettingsDialog::sync_row_widgets(size_t row_index)
+{
+    Line* line = row_line(row_index);
+    if (line == nullptr || !line->row_toggle)
+        return;
+    const Row& row            = m_rows[row_index];
+    line->row_toggle->checked = m_selection.checked(row.id);
+    line->row_toggle->enabled = m_selection.enabled(row.id);
+}
+
+void PublishSettingsDialog::sync_all_row_widgets()
+{
+    for (size_t r = 0; r < m_rows.size(); ++r)
+        sync_row_widgets(r);
+    for (Category& category : m_categories)
+        for (Subcategory& sub : category.subs)
+            if (sub.group != nullptr)
+                sub.group->refresh();
 }
 
 void PublishSettingsDialog::set_row_checked(size_t row_index, bool checked)
 {
     Row& row = m_rows[row_index];
     m_selection.set_checked(row.id, checked);
-    if (row.check != nullptr)
-        row.check->SetValue(checked);
+    sync_row_widgets(row_index);
 }
 
 void PublishSettingsDialog::set_row_enabled(size_t row_index, bool enabled)
 {
     Row& row = m_rows[row_index];
     m_selection.set_enabled(row.id, enabled);
-    if (row.check != nullptr) {
-        row.check->Enable(enabled);
-        if (row.check_label != nullptr)
-            row.check_label->Enable(enabled);
-    }
+    sync_row_widgets(row_index);
 }
 
 void PublishSettingsDialog::on_full_toggle(size_t category_index)
@@ -2045,15 +2169,24 @@ void PublishSettingsDialog::apply_visibility()
         category.info->Show(enabled && !category_any);
         for (Subcategory& sub : category.subs) {
             bool sub_any = false;
-            for (size_t r : sub.rows)
-                sub_any = sub_any || m_rows[r].matches_filter;
-            if (sub.header != nullptr)
-                sub.item->Show(enabled && sub_any);
-            for (size_t r : sub.rows)
-                m_rows[r].item->Show(enabled && m_rows[r].matches_filter);
+            for (size_t r : sub.rows) {
+                const bool show = m_rows[r].matches_filter;
+                // Full Publish disables a row but keeps it visible, so the filter is the only
+                // thing that hides it.
+                if (Line* line = row_line(r))
+                    line->toggle_visible = show;
+                sub_any = sub_any || show;
+            }
+            if (sub.group != nullptr) {
+                sub.group->update_visibility(comDevelop);
+                if (sub.item != nullptr)
+                    sub.item->Show(enabled && sub_any);
+            }
         }
         category.list_sizer->Layout();
-        category.scroll->FitInside();
+        if (category.scroll != nullptr)
+            category.scroll->FitInside();
+
     }
     Thaw();
 }
@@ -2078,15 +2211,17 @@ void PublishSettingsDialog::select_all(bool value)
     refresh_tab_indicators();
 }
 
-bool PublishSettingsDialog::row_is_visible(const Row& row) const
+bool PublishSettingsDialog::row_is_visible(size_t row_index) const
 {
+    const Row& row = m_rows[row_index];
     if (m_selected_outer < 0 || m_selected_outer >= static_cast<int>(m_sections.size()) ||
         row.outer_index != static_cast<size_t>(m_selected_outer) || m_sections[m_selected_outer].selected_inner < 0 ||
         m_sections[m_selected_outer].selected_inner >= static_cast<int>(m_sections[m_selected_outer].categories.size()) ||
         row.inner_index != m_sections[m_selected_outer].categories[m_sections[m_selected_outer].selected_inner] || !row.matches_filter ||
         !m_selection.enabled(row.id))
         return false;
-    return row.item != nullptr && row.item->IsShown();
+    const Line* line = row_line(row_index);
+    return line != nullptr && line->toggle_visible;
 }
 
 void PublishSettingsDialog::select_visible(bool value)
@@ -2098,7 +2233,7 @@ void PublishSettingsDialog::select_visible(bool value)
 
     // Toggle the rows visible under the *current* filter.
     for (size_t r = 0; r < m_rows.size(); ++r)
-        if (row_is_visible(m_rows[r]))
+        if (row_is_visible(r))
             set_row_checked(r, value);
 
     if (clear_pseudo) {
@@ -2115,8 +2250,8 @@ void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
     bool filtering  = !m_filter_ctrl->GetValue().IsEmpty() || m_filter_mode != FilterMode::Text;
     bool list_empty = true;
     if (m_selected_outer >= 0) {
-        for (const Row& row : m_rows)
-            if (row_is_visible(row)) {
+        for (size_t r = 0; r < m_rows.size(); ++r)
+            if (row_is_visible(r)) {
                 list_empty = false;
                 break;
             }
@@ -2402,16 +2537,11 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
             section.variant_switch->Rescale();
     }
 
-    // Refresh the per-row Color chips at the new DPI (they carry the slot number too).
-    for (Row& row : m_rows) {
-        if (row.color_chip != nullptr && !row.value.IsEmpty()) {
-            const std::string chip_label = (row.inner_index < m_categories.size()) ?
-                                               std::to_string(m_categories[row.inner_index].filament_slot + 1) :
-                                               "";
-            if (wxBitmap* chip = get_extruder_color_icon(row.value.ToStdString(), chip_label, FromDIP(20), FromDIP(20)))
-                row.color_chip->SetBitmap(*chip);
-        }
-    }
+    // Rescale the row groups with the same entry point the sidebar's Page uses.
+    for (Category& category : m_categories)
+        for (Subcategory& sub : category.subs)
+            if (sub.group != nullptr)
+                sub.group->msw_rescale();
 
     for (size_t category_index = 0; category_index < m_categories.size(); ++category_index) {
         const Category& category = m_categories[category_index];
@@ -2454,6 +2584,15 @@ void PublishSettingsDialog::on_sys_color_changed()
     // The mixed-tab compositions bake the tab strip's background colour: rebuild them when the
     // theme changes (on_dpi_changed covers rescales).
     refresh_mixed_tab_bitmaps();
+    // Re-apply the theme to every built group. The colour pass resets the label colours, so the
+    // modified marker goes back on afterwards, as the Tab does.
+    for (Category& category : m_categories)
+        for (Subcategory& sub : category.subs)
+            if (sub.group != nullptr)
+                sub.group->sys_color_changed();
+    for (size_t r = 0; r < m_rows.size(); ++r)
+        if (m_rows[r].dirty)
+            apply_row_label_colour(r);
     Refresh();
 }
 

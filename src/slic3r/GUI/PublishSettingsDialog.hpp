@@ -44,6 +44,8 @@ class MultiSwitchButton;
 namespace Slic3r { namespace GUI {
 
 class ConfigOptionsGroup;
+class Line;
+class Page;
 
 struct PublishMaterialIdentity
 {
@@ -90,37 +92,51 @@ private:
     // Which part of the settings the row came from.
     enum class Section { Print, Printer, Material };
 
+    // One option inside a row. A row is one source Line, so a multi-option row (Overhang speed,
+    // Recommended nozzle temperature) stays one publish unit with one toggle.
+    struct RowOption
+    {
+        std::string     key;        // base config key
+        int             index{-1};  // vector index the value field loads: slot, file column, or -1
+        ConfigOptionDef def;        // the source line's definition, including its per-line label
+    };
+
     // One selectable setting. This list is the dialog's durable state: it drives the filter, All
     // and None, seeding and the payload, whether or not the row's widgets have been built.
     struct Row
     {
-        Slic3r::PublishRowId id;           // publish-ready keys, owner, column, section and kind
-        int                  value_index{-1}; // vector index the value was read from: slot or file column
-        wxString             category;
-        wxString             subcategory;
-        wxString             label;
-        wxString             value; // the value as shown, for filter matching
-        wxString             unit;
-        wxString             section_title; // outer tab title, for filter matching
-        size_t               outer_index{0};
-        size_t               inner_index{0};
-        bool                 dirty{false};          // matches a dirty base key: pre-checked
-        bool                 matches_filter{false}; // survives the active filter (computed by apply_filter)
-        ::CheckBox*          check{nullptr};
-        wxStaticText*        check_label{nullptr};
-        wxStaticText*        value_label{nullptr};
-        wxStaticText*        unit_label{nullptr};
-        wxStaticBitmap*      color_chip{nullptr}; // Color rows only; swatch next to the value
-        wxSizerItem*         item{nullptr};       // sizer item of this row's h-sizer in its tab list sizer
+        Slic3r::PublishRowId  id;                  // publish-ready keys, owner, column, section, kind
+        std::vector<RowOption> options;            // widget mapping, one per published key
+        wxString              label;               // the source Line's label, for the filter
+        wxString              label_en;            // untranslated label, for the cloned Line
+        wxString              label_tooltip;       // the source Line's tooltip, copied verbatim
+        wxString              label_path;          // the source Line's wiki path
+        wxString              category;
+        wxString              subcategory;
+        wxString              value;               // first option's value as shown, for the filter
+        wxString              unit;
+        wxString              section_title;       // outer tab title, for filter matching
+        size_t                outer_index{0};
+        size_t                inner_index{0};
+        size_t                sub_index{0}; // the Subcategory that draws this row
+        bool                  dirty{false};          // matches a dirty base key: pre-checked
+        bool                  matches_filter{false}; // survives the active filter
     };
 
-    // An optgroup heading. Rows store indices into m_rows.
+    // An optgroup heading and the group that draws its rows. Rows store indices into m_rows.
     struct Subcategory
     {
-        wxString title;
-        ::StaticLine* header{nullptr}; // null when the title is empty
-        wxSizerItem* item{nullptr};
+        wxString            title;
+        wxString            icon;           // the source optgroup's icon id
+        ConfigOptionsGroup* group{nullptr}; // built when the page's rows are created
+        wxSizerItem*        item{nullptr};
         std::vector<size_t> rows;
+        // The source optgroup's / page's layout inputs, copied so the group renders like the Tab.
+        int      label_width{20};
+        bool     split_multi_line{false};
+        bool     option_label_at_right{false};
+        wxString page_title;
+        int      preset_type{-1};
     };
 
     // An inner TabCtrl page with its material controls and content.
@@ -262,16 +278,20 @@ private:
                               const PublishMaterialIdentity& identity = PublishMaterialIdentity(),
                               bool is_mixed                          = false,
                               bool is_variant                        = false);
-    size_t subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon);
-    // Appends one row to the model and to its page. Returns the row index. `id.keys` must
-    // already be publish-ready.
-    size_t add_row(Slic3r::PublishRowId id,
-                   int value_index,
-                   const wxString& label,
-                   const wxString& value,
-                   const wxString& unit,
-                   size_t category_index,
-                   size_t subcategory_index);
+    size_t subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon,
+                                 const ConfigOptionsGroup* source, const Page* page, int preset_type);
+    // Appends one row to the model. Returns the row index. `id.keys` must already be
+    // publish-ready and `options` must line up with it.
+    size_t add_row(Row row, size_t category_index, size_t subcategory_index);
+    // Creates the ConfigOptionsGroup rows of one category, once. Safe to call repeatedly.
+    void build_row_groups(size_t category_index);
+    // Pushes one row's model state into its line's row toggle, if the widgets exist.
+    void sync_row_widgets(size_t row_index);
+    void sync_all_row_widgets();
+    // Colours the row's label the way the Tab marks a modified setting.
+    void apply_row_label_colour(size_t row_index);
+    // The line a row is drawn by, or null before its group exists.
+    Line* row_line(size_t row_index) const;
     // Model-backed row state: the payload and the widgets both read this, never each other.
     void set_row_checked(size_t row_index, bool checked);
     void set_row_enabled(size_t row_index, bool enabled);
@@ -285,7 +305,7 @@ private:
     void on_inner_tab_changed(size_t section_index, wxCommandEvent& event);
     void on_page_tab_changed(size_t section_index, wxCommandEvent& event);
     void on_mixed_tab_changed(size_t section_index, wxCommandEvent& event);
-    bool row_is_visible(const Row& row) const;
+    bool row_is_visible(size_t row_index) const;
     void apply_visibility();
     void bind_tab_events();
     // Replaces a section's inner tab strip with a variant switch (see SectionGroup::variant_switch).
