@@ -1,6 +1,7 @@
 #include "calib_dlg.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
+#include "format.hpp"
 #include "I18N.hpp"
 #include <algorithm>
 #include <sstream>
@@ -19,6 +20,9 @@
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "libslic3r/calib.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -1150,6 +1154,142 @@ void Retraction_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
     this->Refresh();
     Fit();
 
+}
+
+// IroningFlow_Test_Dlg
+//
+
+IroningFlow_Test_Dlg::IroningFlow_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
+    : DPIDialog(parent, id, _L("Ironing flow test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+{
+    SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
+    SetForegroundColour(wxColour("#363636"));
+    SetFont(Label::Body_14);
+
+    wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
+
+    // Settings
+    wxString start_str  = _L("Minimum ironing flow: ");
+    wxString end_str    = _L("Maximum ironing flow: ");
+    wxString length_str = _L("Length: ");
+    int text_max = GetTextMax(this, std::vector<wxString>{start_str, end_str, length_str});
+
+    auto st_size = wxSize(text_max, -1);
+    auto ti_size = FromDIP(wxSize(120, -1));
+
+    LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
+    wxStaticBoxSizer* settings_sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
+
+    settings_sizer->AddSpacer(FromDIP(5));
+
+    // minimum flow
+    auto start_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto start_text = new wxStaticText(this, wxID_ANY, start_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
+    m_tiStart = new TextInput(this, std::to_string(0), _L("%"), "", wxDefaultPosition, ti_size);
+    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    start_sizer->Add(start_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    start_sizer->Add(m_tiStart , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    settings_sizer->Add(start_sizer, 0, wxLEFT, FromDIP(3));
+
+    // maximum flow
+    auto end_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto end_text = new wxStaticText(this, wxID_ANY, end_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
+    m_tiEnd = new TextInput(this, std::to_string(70), _L("%"), "", wxDefaultPosition, ti_size);
+    m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    end_sizer->Add(end_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    end_sizer->Add(m_tiEnd , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    settings_sizer->Add(end_sizer, 0, wxLEFT, FromDIP(3));
+
+    // length of the ironed band
+    auto length_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto length_text = new wxStaticText(this, wxID_ANY, length_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
+    m_tiLength = new TextInput(this, std::to_string(140), _L("mm"), "", wxDefaultPosition, ti_size);
+    m_tiLength->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    length_sizer->Add(length_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    length_sizer->Add(m_tiLength , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    settings_sizer->Add(length_sizer, 0, wxLEFT, FromDIP(3));
+
+    settings_sizer->AddSpacer(FromDIP(5));
+
+    auto note_text = new wxStaticText(this, wxID_ANY,
+        _L("The ironing flow grows from the minimum at the left end of the band to the maximum at its right end. The longer "
+           "the band, the easier it is to read. Check the result by looking at light reflected on the test piece. The "
+           "optimum value is high enough to hide the lines of the surface, but low enough to avoid roughness by "
+           "overextrusion. In between these two values, the lower ones are matte, the higher ones are glossier."),
+        wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    note_text->SetForegroundColour(wxColour(128, 128, 128));
+    note_text->Wrap(FromDIP(300));
+    settings_sizer->Add(note_text, 0, wxALL, FromDIP(5));
+
+    v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+    v_sizer->AddSpacer(FromDIP(5));
+
+    auto dlg_btns = new DialogButtons(this, {"OK"});
+
+    auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/ironing_flow_calib";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+    bottom_sizer->AddStretchSpacer();
+    bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
+    v_sizer->Add(bottom_sizer, 0, wxEXPAND);
+
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &IroningFlow_Test_Dlg::on_start, this);
+
+    SetSizerAndFit(v_sizer);
+    CenterOnParent();
+    wxGetApp().UpdateDlgDarkUI(this);
+}
+
+void IroningFlow_Test_Dlg::on_start(wxCommandEvent& event) {
+    bool read_double = false;
+    read_double = m_tiStart->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
+    read_double = read_double && m_tiEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
+    // step holds the length of the ironed band
+    read_double = read_double && m_tiLength->GetTextCtrl()->GetValue().ToDouble(&m_params.step);
+
+    if (!read_double || m_params.start < 0 || m_params.end <= m_params.start || m_params.end > 100 || m_params.step < 10) {
+        MessageDialog msg_dlg(this, _L("Please input valid values:\n0 <= minimum < maximum <= 100\nlength >= 10 mm"), wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+    if (ironing_flow_calib_mark_step(m_params.start, m_params.end, m_params.step) == 0.) {
+        // TRN: %1% is the minimum length of the ironed band, in mm.
+        MessageDialog msg_dlg(this, format_wxstr(_L("Marks every 20%% would be less than 10 mm apart: use a length of at least %1% mm."),
+                                                 int(std::ceil((m_params.end - m_params.start) / 2.))),
+                              wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+    // The band plus 5 mm at each end.
+    const double       length = m_params.step + 10.;
+    const BoundingBoxf bed    = get_extents(wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionPoints>("printable_area")->values);
+    if (length > bed.size().x() - 10.) {
+        // TRN: The placeholders are the length of the ironed band, the length of the whole test and the longest band that fits, in mm.
+        MessageDialog msg_dlg(this, format_wxstr(_L("A band %1% mm long makes a test %2% mm long, which does not fit on the bed. Use at most %3% mm."),
+                                                 int(m_params.step), int(length), int(bed.size().x() - 20.)),
+                              wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+
+    m_params.mode = CalibMode::Calib_Ironing_Flow;
+    m_plater->calib_ironing_flow(m_params);
+    EndModal(wxID_OK);
+}
+
+void IroningFlow_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
+    m_tiStart->Rescale();
+    m_tiEnd->Rescale();
+    m_tiLength->Rescale();
+    GetSizer()->SetSizeHints(this);
+    Refresh();
 }
 
 // Input_Shaping_Freq_Test_Dlg

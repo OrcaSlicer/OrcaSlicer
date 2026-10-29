@@ -43,6 +43,7 @@
 #include "libslic3r/IntersectionPoints.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/calib.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SVG.hpp"
 #include "libslic3r/libslic3r.h"
@@ -703,6 +704,48 @@ TEST_CASE("Ironing follows the solid infill rotation template", "[Fill]")
         }
     // Most of the object, not one lucky layer.
     REQUIRE(compared > int(ironing.size()) / 2);
+}
+
+TEST_CASE("Ironing flow calibration grows the ironing flow from left to right", "[Fill]")
+{
+    const double min_flow = 10.;
+    const double max_flow = 60.;
+
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({make_cube(60, 15, 2)}, print, model,
+                             {{"ironing_type", "topmost"},
+                              {"ironing_pattern", "rectilinear"},
+                              {"ironing_flow", "10%"},
+                              // Lines along Y, so that each line has its own flow.
+                              {"ironing_angle", 90},
+                              {"ironing_angle_fixed", 1},
+                              {"layer_height", 0.2}});
+    Calib_Params params;
+    params.mode  = CalibMode::Calib_Ironing_Flow;
+    params.start = min_flow;
+    params.end   = max_flow;
+    print.set_calib_params(params);
+    print.process();
+
+    REQUIRE(dominant_fill_angle(*print.objects().front()->layers().back(), ironing_role) == 90);
+
+    // Flow of every ironing segment, from left to right.
+    std::vector<std::pair<coord_t, double>> flows;
+    for (const LayerRegion *region : print.objects().front()->layers().back()->regions())
+        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+            if (auto *path = dynamic_cast<const ExtrusionPath *>(entity); path && path->role() == erIroning)
+                for (size_t i = 1; i < path->polyline.points.size(); ++i)
+                    flows.emplace_back((path->polyline.points[i - 1].x() + path->polyline.points[i].x()) / 2, path->mm3_per_mm);
+    REQUIRE(flows.size() > 10);
+    std::sort(flows.begin(), flows.end());
+
+    for (size_t i = 1; i < flows.size(); ++i) {
+        CAPTURE(i, flows[i - 1].second, flows[i].second);
+        CHECK(flows[i].second >= flows[i - 1].second - 1e-9);
+    }
+    // The 5 mm side strips are ironed at the minimum and maximum flows.
+    CHECK_THAT(flows.back().second / flows.front().second, Catch::Matchers::WithinRel(max_flow / min_flow, 1e-3));
 }
 
 
