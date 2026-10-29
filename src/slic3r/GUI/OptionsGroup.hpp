@@ -14,6 +14,7 @@
 
 #include <map>
 #include <functional>
+#include <optional>
 #include <wx/string.h>
 
 #include "libslic3r/Config.hpp"
@@ -55,6 +56,15 @@ struct Option {
 		opt(_opt), opt_id(id) {}
 };
 
+// Opt-in toggle drawn in the row's act-button slot, the slot the settings Tab uses for its
+// revert-to-saved icon. Null on every Tab row, so tab painting and hit testing are unchanged.
+struct RowToggle
+{
+    bool                      checked{false};
+    bool                      enabled{true};
+    std::function<void(bool)> on_change;
+};
+
 /// Represents option lines
 class Line : public UndoValueUIManager
 {
@@ -66,6 +76,7 @@ public:
 	std::string	label_path;
     bool        undo_to_sys{false}; // BBS: object config
     bool        toggle_visible{true}; // BBS: hide some line
+    std::optional<RowToggle> row_toggle;
 
     size_t		full_width {0};
     widget_t	widget {nullptr};

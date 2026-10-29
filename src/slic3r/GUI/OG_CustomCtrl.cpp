@@ -385,6 +385,11 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
 
     for (CtrlLine& line : ctrl_lines) {
         if (!line.is_visible) continue;
+        line.is_row_toggle_hover = line.row_toggle() != nullptr && is_point_in_rect(pos, line.rect_row_toggle);
+    }
+
+    for (CtrlLine& line : ctrl_lines) {
+        if (!line.is_visible) continue;
         line.is_focused = is_point_in_rect(pos, line.rect_label);
         if (line.is_focused) {
             if (!suppress_hyperlinks && !line.og_line.label_path.empty())
@@ -475,6 +480,17 @@ void OG_CustomCtrl::OnLeftDown(wxMouseEvent& event)
         if (!line.is_visible) continue;
         if (line.launch_browser())
             return;
+        if (RowToggle* toggle = line.row_toggle(); toggle != nullptr && is_point_in_rect(pos, line.rect_row_toggle)) {
+            if (toggle->enabled) {
+                toggle->checked = !toggle->checked;
+                if (toggle->on_change)
+                    toggle->on_change(toggle->checked);
+                Refresh();
+                Update();
+            }
+            event.Skip();
+            return;
+        }
         size_t undo_icons_cnt = line.rects_undo_icon.size();
         assert(line.rects_undo_icon.size() == line.rects_undo_to_sys_icon.size());
 
@@ -646,6 +662,10 @@ void OG_CustomCtrl::msw_rescale()
     m_bmp_blinking_sz = create_scaled_bitmap("blank_16", this).GetSize();
     if (m_bmp_multi_extruder.bmp().IsOk())
         m_bmp_multi_extruder.msw_rescale();
+    for (ScalableBitmap* bmp : { &m_bmp_check_on, &m_bmp_check_off, &m_bmp_check_on_focused, &m_bmp_check_off_focused,
+                                 &m_bmp_check_on_disabled, &m_bmp_check_off_disabled })
+        if (bmp->bmp().IsOk())
+            bmp->msw_rescale();
 
     m_max_win_width = 0;
 
@@ -908,6 +928,10 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
     };
 
     auto draw_buttons = [&h_pos, &dc, &v_pos, this](Field* field, size_t bmp_rect_id = 0) {
+        if (og_line.row_toggle) {
+            h_pos = draw_row_toggle(dc, wxPoint(h_pos, v_pos)).x;
+            return;
+        }
         if (field && field->undo_to_sys_bitmap()) {
             h_pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), field->undo_to_sys_bitmap()->bmp(), field->undo_bitmap()->bmp(), field->blink(), bmp_rect_id).x;
         }
@@ -1087,6 +1111,48 @@ wxPoint OG_CustomCtrl::CtrlLine::draw_act_bmps(wxDC& dc, wxPoint pos, const wxBi
     h_pos += bmp_dim2 + ctrl->m_h_gap;
 
     return wxPoint(h_pos, v_pos);
+}
+
+// Paints the opt-in row toggle in the act slot, the slot draw_act_bmps paints today, using the
+// same bitmaps ::CheckBox uses. Returns the x the following columns continue from.
+wxPoint OG_CustomCtrl::CtrlLine::draw_row_toggle(wxDC& dc, wxPoint pos)
+{
+    const RowToggle* toggle = row_toggle();
+    if (toggle == nullptr)
+        return pos;
+
+    ctrl->init_row_toggle_bitmaps();
+    const ScalableBitmap* bmp = nullptr;
+    if (!toggle->enabled)
+        bmp = toggle->checked ? &ctrl->m_bmp_check_on_disabled : &ctrl->m_bmp_check_off_disabled;
+    else if (is_row_toggle_hover)
+        bmp = toggle->checked ? &ctrl->m_bmp_check_on_focused : &ctrl->m_bmp_check_off_focused;
+    else
+        bmp = toggle->checked ? &ctrl->m_bmp_check_on : &ctrl->m_bmp_check_off;
+
+    // Same x and vertical centring draw_act_bmps uses for the undo icon.
+    const wxCoord h_pos  = pos.x - ctrl->m_h_gap;
+    const wxSize  bmp_sz = get_bitmap_size(bmp->bmp());
+    const wxCoord v_pos  = pos.y + lround((height - bmp_sz.GetHeight()) / 2);
+    rect_row_toggle      = wxRect(h_pos, v_pos, bmp_sz.GetWidth(), bmp_sz.GetHeight());
+
+    dc.DrawBitmap(bmp->bmp(), h_pos, v_pos);
+
+    // Keep the value and unit columns where the act slot already puts them: get_pos() reserves a
+    // blank_16 plus one h_gap, so the toggle advances by that, not by its own bitmap width.
+    return wxPoint(pos.x + ctrl->m_bmp_blinking_sz.GetWidth() + ctrl->m_h_gap, pos.y);
+}
+
+void OG_CustomCtrl::init_row_toggle_bitmaps()
+{
+    if (m_bmp_check_on.bmp().IsOk())
+        return;
+    m_bmp_check_on           = ScalableBitmap(this, "check_on", 18);
+    m_bmp_check_off          = ScalableBitmap(this, "check_off", 18);
+    m_bmp_check_on_focused   = ScalableBitmap(this, "check_on_focused", 18);
+    m_bmp_check_off_focused  = ScalableBitmap(this, "check_off_focused", 18);
+    m_bmp_check_on_disabled  = ScalableBitmap(this, "check_on_disabled", 18);
+    m_bmp_check_off_disabled = ScalableBitmap(this, "check_off_disabled", 18);
 }
 
 wxCoord OG_CustomCtrl::CtrlLine::draw_edit_bmp(wxDC &dc, wxPoint pos, const wxBitmap& bmp_edit)
