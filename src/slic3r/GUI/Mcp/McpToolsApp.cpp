@@ -1,6 +1,7 @@
 // get_state, wait and get_log: what an agent reads before and after acting.
 
 #include "JobRegistry.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "McpPaths.hpp"
 #include "libslic3r/Config.hpp"
 #include "McpService.hpp"
@@ -201,7 +202,7 @@ void register_app_tools(McpService& service)
     ToolRegistry& reg = service.registry();
 
     reg.add(inspect_tool(
-        "get_state", "Get app state",
+        "get_state", L("Get app state"),
         "Snapshot of OrcaSlicer: version, platform, whether it is ready, current tab and mode, project, selected printer/process/"
         "filament presets, plates, the Preview's view type, time mode and layer range (1-based, with their Z), object count, "
         "slicing state, print host uploads (state, progress, error), the open gizmo, open modal dialogs, menus closed "
@@ -210,7 +211,7 @@ void register_app_tools(McpService& service)
         object_schema({}), [&service](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&service] { return app_state(service); })); }));
 
     ToolDef wait = inspect_tool(
-        "wait", "Wait for a condition",
+        "wait", L("Wait for a condition"),
         "Block until a condition holds or timeout_s passes (max 50). for: \"ready\" (startup finished), \"idle\" (no dialog, "
         "no running job, nothing slicing or arranging, no gizmo working in the background), \"dialog\" / \"no_dialog\", or "
         "\"job\" with a job id returned by "
@@ -227,7 +228,7 @@ void register_app_tools(McpService& service)
                 const std::string job = arg_string(args, "job");
                 if (job.empty())
                     throw ToolFailure("job is required for \"job\"");
-                if (auto r = service.jobs().wait(job, timeout))
+                if (auto r = service.jobs().wait(job, timeout, [&ctx] { return ctx.cancelled(); }))
                     return *r;
                 return ToolResult::ok({{"status", "running"}, {"job", job}, {"note", "Still running; wait again."}});
             }
@@ -246,7 +247,7 @@ void register_app_tools(McpService& service)
     reg.add(wait);
 
     reg.add(inspect_tool(
-        "get_log", "Read the log",
+        "get_log", L("Read the log"),
         "The last lines of OrcaSlicer's current log file, optionally only those at or above a level.",
         object_schema({{"lines", {{"type", "integer"}, {"minimum", 1}, {"maximum", 2000}, {"description", "Default 200."}}},
                        {"level", enum_prop({"trace", "debug", "info", "warning", "error", "fatal"}, "Minimum level.")}}),

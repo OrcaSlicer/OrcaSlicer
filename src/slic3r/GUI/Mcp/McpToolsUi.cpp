@@ -2,6 +2,7 @@
 // dialogs and run JavaScript in web views.
 
 #include "JobRegistry.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "McpCore.hpp"
 #include "McpPaths.hpp"
 #include "McpService.hpp"
@@ -189,7 +190,7 @@ std::vector<wxWebView*> visible_webviews()
     if (wxGetApp().mainframe != nullptr)
         visit(wxGetApp().mainframe);
     for (wxWindow* tlw : wxTopLevelWindows)
-        if (tlw != wxGetApp().mainframe)
+        if (tlw != wxGetApp().mainframe && tlw->GetName() != kHiddenFromAutomation)
             visit(tlw);
     return out;
 }
@@ -342,7 +343,7 @@ void register_ui_tools(McpService& service)
 
     {
         ToolDef def = inspect_tool(
-            "ui_snapshot", "List the GUI",
+            "ui_snapshot", L("List the GUI"),
             "Describe what is on screen as an indented tree, one element per line with a ref: wx widgets of every shown window "
             "(buttons, fields, checkboxes, combos, tabs, labels), the rows of lists, trees and tables (label, other cells, "
             "checkbox, what an object list row is), each shown popup after the window it opened from, the main menus, the 3D "
@@ -376,7 +377,7 @@ void register_ui_tools(McpService& service)
     }
 
     reg.add(recover_input_tool(
-        "ui_click", "Click an element",
+        "ui_click", L("Click an element"),
         "Activate a GUI element: menu items, buttons, checkboxes, toggles, radio buttons, toolbar items and gizmos are activated "
         "the way their owners expect (a gizmo as its toolbar icon: it opens, a second click closes it, and Text on an object "
         "with no text creates a text part and replies created); other widgets and ImGui items get a synthesized mouse click, "
@@ -466,7 +467,7 @@ void register_ui_tools(McpService& service)
         }));
 
     reg.add(recover_input_tool(
-        "ui_input", "Set a control's value",
+        "ui_input", L("Set a control's value"),
         "Set the text, number, selection or checked state of a control and send the event a person's edit would: text fields "
         "(submit:true also presses Enter and leaves the field, which is when Orca's setting fields commit), spin controls, "
         "sliders, choice / combo / list boxes (by option text or index), checkboxes and toggles (true/false), a row's "
@@ -493,7 +494,7 @@ void register_ui_tools(McpService& service)
         }));
 
     reg.add(recover_input_tool(
-        "ui_key", "Press keys",
+        "ui_key", L("Press keys"),
         "Send a key chord (\"Ctrl+S\", \"Escape\", \"Return\", \"Delete\", \"Shift+Tab\", \"Left\", \"F5\") and/or type text to "
         "a target or, without one, to the focused window (the topmost dialog while one is open, the 3D view shown when nothing "
         "has focus). As with a real key press, the shortcut handling of the target's panels and window sees it first. "
@@ -545,7 +546,7 @@ void register_ui_tools(McpService& service)
     mouse_canvases.insert(mouse_canvases.end() - 1, "design");
 #endif
     reg.add(mutate_tool(
-        "ui_mouse", "Mouse gesture on the 3D view",
+        "ui_mouse", L("Mouse gesture on the 3D view"),
         "Synthesize a mouse gesture on a 3D canvas, as a person's would: move, down, up, click, drag (from the start through "
         "`path` to `to`, `steps` moves per leg; the left button rotates the camera, right or middle pans, on an object it "
         "moves it, in a painting gizmo it paints) or wheel (delta in notches, positive zooms in or scrolls a panel up). Give "
@@ -606,7 +607,7 @@ void register_ui_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "gizmo_file", "Use a file in the open gizmo",
+        "gizmo_file", L("Use a file in the open gizmo"),
         "Do what a file picker inside the open gizmo does, with a path instead of its dialog: svg_change loads another SVG "
         "file into the SVG part being edited, svg_save_as writes that part's SVG to a new file (an existing one only with "
         "overwrite), texture_import imports a height-map image into the texture library and puts it on Texture "
@@ -652,7 +653,7 @@ void register_ui_tools(McpService& service)
         }));
 
     reg.add(recover_input_tool(
-        "dialog_respond", "Answer a dialog",
+        "dialog_respond", L("Answer a dialog"),
         "Press a button of the topmost modal dialog (or of the one whose title contains dialog.title, which must be the "
         "topmost): yes, no, ok, cancel, close, apply, a button's label, or a numeric id. Native dialogs (system message "
         "boxes, file pickers) can't be answered here; register dialog_auto_answer before opening them.",
@@ -702,7 +703,7 @@ void register_ui_tools(McpService& service)
 
     {
         ToolDef def = recover_input_tool(
-            "dialog_auto_answer", "Pre-answer dialogs",
+            "dialog_auto_answer", L("Pre-answer dialogs"),
             "Answer modal dialogs automatically, native ones included, when their title or message matches a rule's regex "
             "(case-insensitive): a native dialog returns that button at once and never shows; a wx dialog has the button "
             "pressed as dialog_respond does, so its handler runs. A matching wx dialog that is already open is "
@@ -748,7 +749,7 @@ void register_ui_tools(McpService& service)
     }
 
     reg.add(recover_input_tool(
-        "webview_eval", "Run JavaScript in a web view",
+        "webview_eval", L("Run JavaScript in a web view"),
         "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page and others) and return the value of its "
         "last expression (JSON values come back parsed). While a modal dialog is open, scripts run only in the setup "
         "wizard's and the preset bundle dialogs' pages, never in a sign-in dialog; without a target, the web view of the "
@@ -805,7 +806,8 @@ void register_ui_tools(McpService& service)
             }
             delete_on_ui(sink);
             if (!done)
-                throw ToolFailure(ctx.cancelled() ? "OrcaSlicer is shutting down" : "Timed out waiting for the script result");
+                throw ToolFailure(ctx.cancelled() ? "Cancelled: OrcaSlicer is closing or the script was stopped" :
+                                                    "Timed out waiting for the script result");
             if (error)
                 throw ToolFailure("The script failed: " + text);
             int held = 0;

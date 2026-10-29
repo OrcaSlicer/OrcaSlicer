@@ -2,6 +2,7 @@
 // plugin scripts and pages, and (on request) settings - is reachable through these two tools.
 
 #include "McpOperations.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
@@ -99,7 +100,7 @@ void register_action_tools(McpService& service)
     ToolRegistry& reg = service.registry();
 
     reg.add(inspect_tool(
-        "list_actions", "Search Speed Dial actions",
+        "list_actions", L("Search Speed Dial actions"),
         "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, "
         "calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for run_action, a "
         "description and, when it takes one, a param (type and help). include_settings also lists settings (each jumps "
@@ -120,7 +121,7 @@ void register_action_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "run_action", "Run a Speed Dial action",
+        "run_action", L("Run a Speed Dial action"),
         "Run one action by the id list_actions returned, with its param when it takes one (a percent, tab id, plate index, "
         "or an absolute path - commands with a path parameter skip their file dialog; outputs need {\"path\": ..., "
         "\"overwrite\": true} to replace a file). Actions that open a dialog return blocked_by_dialog; answer it with "

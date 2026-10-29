@@ -135,7 +135,7 @@ json poll_ui(ToolContext& ctx, const std::function<json()>& poll, std::chrono::m
         if (!v.is_null())
             return v;
         if (ctx.cancelled())
-            throw ToolFailure("OrcaSlicer is shutting down");
+            throw ToolFailure("Cancelled: OrcaSlicer is closing or the script was stopped");
         if (std::chrono::steady_clock::now() >= end)
             throw ToolFailure("Timed out waiting for " + what);
         std::this_thread::sleep_for(std::chrono::milliseconds(200));

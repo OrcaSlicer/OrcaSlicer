@@ -796,6 +796,83 @@ TEST_CASE("ancestry lists the job chain nearest first", "[Mcp]")
     CHECK(jobs.ancestry(step) == std::vector<std::string>{step, inner, outer});
 }
 
+TEST_CASE("a stop asked for a job reaches its descendants and no other job", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string script = jobs.create("run_script", "");
+    const std::string step   = jobs.create("slice", script);
+    const std::string other  = jobs.create("open_files", "");
+    CHECK_FALSE(jobs.stop_requested(step));
+    jobs.request_stop(script);
+    CHECK(jobs.stop_requested(script));
+    CHECK(jobs.stop_requested(step));
+    CHECK_FALSE(jobs.stop_requested(other));
+    CHECK_FALSE(jobs.stop_requested(""));
+}
+
+TEST_CASE("a job wait with a stop check looks once at zero timeout and ends when stopped", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string done = jobs.create("slice", "");
+    jobs.finish(done, ToolResult::ok({{"done", true}}));
+    const std::string running = jobs.create("slice", "");
+    const auto        never   = [] { return false; };
+
+    const auto finished = jobs.wait(done, 0ms, never);
+    REQUIRE(finished.has_value());
+    CHECK(finished->data["done"] == true);
+    CHECK_FALSE(jobs.wait(running, 0ms, never).has_value());
+    CHECK_THROWS_AS(jobs.wait("j999", 0ms, never), ToolFailure);
+
+    const auto start = std::chrono::steady_clock::now();
+    CHECK_FALSE(jobs.wait(running, 5000ms, [] { return true; }).has_value());
+    CHECK(std::chrono::steady_clock::now() - start < 2s);
+}
+
+TEST_CASE("a call made by a stopped job sees itself cancelled", "[Mcp]")
+{
+    Harness h;
+    // An inline call that polls for cancellation, as wait does.
+    ToolDef spin = tool("spin", GuardClass::Inspect, [](const json&, ToolContext& ctx) {
+        const auto end = std::chrono::steady_clock::now() + 5s;
+        while (!ctx.cancelled() && std::chrono::steady_clock::now() < end)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok({{"cancelled", ctx.cancelled()}});
+    });
+    spin.inline_call = true;
+    h.registry.add(spin);
+    ToolDef script = tool("script", GuardClass::Mutate, [](const json&, ToolContext& ctx) { return ctx.call_child("spin", json::object()); });
+    script.budget_ms = 50;
+    h.registry.add(script);
+    h.start();
+
+    const ToolResult envelope = h.call("script");
+    REQUIRE(envelope.data["status"] == "running");
+    const auto asked = std::chrono::steady_clock::now();
+    h.jobs.request_stop(envelope.data["job"]);
+    const auto result = h.jobs.wait(envelope.data["job"], 3000ms);
+    REQUIRE(result.has_value());
+    CHECK(result->data["cancelled"] == true);
+    CHECK(std::chrono::steady_clock::now() - asked < 2s);
+}
+
+TEST_CASE("a live descendant keeps its lineage after its ancestors are evicted", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string root  = jobs.create("run_script", "");
+    const std::string inner = jobs.create("run_script", root);
+    const std::string leaf  = jobs.create("wait", inner);
+    jobs.finish(inner, ToolResult::ok());
+    jobs.finish(root, ToolResult::ok());
+    for (int i = 0; i < 70; ++i)
+        jobs.finish(jobs.create("t", ""), ToolResult::ok());
+    CHECK_THROWS_AS(jobs.wait(inner, 0ms), ToolFailure); // evicted
+    const std::set<std::string> lineage = jobs.lineage(leaf);
+    CHECK(lineage.count(root) == 1);
+    CHECK(lineage.count(inner) == 1);
+    CHECK(jobs.ancestry(leaf) == std::vector<std::string>{leaf, inner, root});
+}
+
 TEST_CASE("a finished job stays while its parent script runs", "[Mcp]")
 {
     JobRegistry       jobs;

@@ -19,6 +19,8 @@
 #include <wx/string.h>
 #include <wx/filehistory.h>
 #include <wx/timer.h>
+#include <wx/dialog.h>
+#include <wx/weakref.h>
 #ifdef __APPLE__
 #include <wx/taskbar.h>
 #endif // __APPLE__
@@ -418,6 +420,8 @@ public:
 
     void        reslice_now();
     void        export_config();
+    // Shows the Run Script dialog, creating it the first time and raising the open one after.
+    void        show_script_runner();
     // Query user for the config file and open it.
     void        load_config_file();
     // Import preset files (.json, .zip, .orca_printer, .orca_filament, .orca_bundle) as the Import Configs
@@ -513,6 +517,8 @@ public:
     Input_Shaping_Freq_Test_Dlg* m_IS_freq_calib_dlg{ nullptr };
     Input_Shaping_Damp_Test_Dlg* m_IS_damp_calib_dlg{ nullptr };
     Cornering_Test_Dlg* m_cornering_calib_dlg{ nullptr };
+    // Modeless and owned by this frame; the weak ref clears when it is destroyed.
+    wxWeakRef<wxDialog> m_script_runner;
 
     // BBS. Replace title bar and menu bar with top bar.
     BBLTopbar*            m_topbar{ nullptr };

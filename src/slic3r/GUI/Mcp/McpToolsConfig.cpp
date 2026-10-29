@@ -6,6 +6,7 @@
 // dialog, whose handlers carry their effects.
 
 #include "McpService.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
 #include "slic3r/GUI/CreatePresetsDialog.hpp"
@@ -1601,7 +1602,7 @@ void register_config_tools(McpService& service)
     const json    plate_prop = {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index (plate scope; default: the current plate)."}};
 
     reg.add(inspect_tool(
-        "list_presets", "List presets",
+        "list_presets", L("List presets"),
         "Printer, process or filament presets with flags: system or user, selected (and modified), compatible with the "
         "selected printer, and for filaments the slots using them. Only compatible, visible presets unless asked.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
@@ -1614,7 +1615,7 @@ void register_config_tools(McpService& service)
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_presets(args); })); }));
 
     reg.add(mutate_tool(
-        "select_preset", "Select a preset",
+        "select_preset", L("Select a preset"),
         "Select a printer, process or filament preset by the name its selector shows (or its internal name), as a person "
         "would. With unsaved changes the Transfer-or-discard prompt opens (blocked_by_dialog) unless changes answers it. A "
         "filament is assigned to filament_slot (1-based, default 1). Reply: selected; when presets had or have unsaved "
@@ -1696,7 +1697,7 @@ void register_config_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "save_preset", "Save a preset",
+        "save_preset", L("Save a preset"),
         "Save the printer, process or filament preset being edited, unsaved changes included, under name, as the tab's Save "
         "and the Save preset dialog's OK do; it is then selected. A filament is filament_slot's (default 1), and every slot "
         "using the old preset takes the new one. Replacing another existing preset needs overwrite (pass it in scripts meant "
@@ -1752,7 +1753,7 @@ void register_config_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "delete_preset", "Delete a preset",
+        "delete_preset", L("Delete a preset"),
         "Delete a user preset or one inside the project, its file and its cloud copy, as the tab's Delete does, without "
         "asking. A selected preset is replaced as the tab does (its parent or the next preset). Another filament is deleted "
         "without changing the selection, and slots using it take the selected one; another process is selected, deleted "
@@ -1824,7 +1825,7 @@ void register_config_tools(McpService& service)
         true));
 
     reg.add(inspect_tool(
-        "get_settings", "Read settings",
+        "get_settings", L("Read settings"),
         "Read setting values (as OrcaSlicer serializes them) with label, type, unit, range, allowed values and their labels, "
         "and mode; explain_settings tells what a setting does. Name keys, or search with query (matches key or label); "
         "without either, every option of the scope is "
@@ -2035,7 +2036,7 @@ void register_config_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "set_settings", "Change settings",
+        "set_settings", L("Change settings"),
         "Change settings as if typed into the settings tab: all values are parsed strictly first and applied together, and "
         "nothing changes if any is invalid. Values may be strings in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON "
         "numbers, booleans and arrays (a point as [x, y]). object/volume scopes set per-object or per-part overrides, of the "
@@ -2199,7 +2200,7 @@ void register_config_tools(McpService& service)
         }));
 
     reg.add(inspect_tool(
-        "list_plates", "List plates",
+        "list_plates", L("List plates"),
         "Plates with name, locked, current, objects ([object, instance]), and the settings they print with: curr_bed_type, "
         "print_sequence, spiral_mode, first_layer_print_sequence and other_layers_print_sequence (null: Auto); overrides "
         "lists those the plate sets itself (set_settings scope plate). Also sliced (an up-to-date slice), wipe_tower [x, y] "

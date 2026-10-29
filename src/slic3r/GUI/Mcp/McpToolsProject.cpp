@@ -2,6 +2,7 @@
 // Calibration menu's tests, which start a new project.
 
 #include "libslic3r/Format/ProjectStrategy.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "McpPaths.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
@@ -374,7 +375,7 @@ void register_project_tools(McpService& service)
     ToolRegistry& reg = service.registry();
 
     reg.add(mutate_tool(
-        "open_files", "Open files",
+        "open_files", L("Open files"),
         "Open model files (STL, 3MF, STEP, OBJ, AMF, SVG...), a project (.3mf) or G-code by absolute path, without a file "
         "dialog. Models are added to the current project. A .3mf opens as a project (replacing the current one: pass "
         "discard_changes when it has unsaved changes) unless as is \"geometry\". Importing can open a dialog (STEP mesh "
@@ -383,7 +384,7 @@ void register_project_tools(McpService& service)
                        {"as", enum_prop({"auto", "geometry", "project"}, "How to open .3mf files. Default auto (= project).")},
                        {"discard_changes", prop("boolean", "Replace a project with unsaved changes without asking.")}},
                       {"paths"}),
-        [](const json& args, ToolContext& ctx) {
+        [&service](const json& args, ToolContext& ctx) {
             std::vector<fs::path> paths;
             for (const json& p : args["paths"]) {
                 std::string err;
@@ -395,7 +396,8 @@ void register_project_tools(McpService& service)
             if (paths.empty())
                 throw ToolFailure("paths is empty");
             const std::string as      = arg_string(args, "as", "auto");
-            const bool        discard = arg_bool(args, "discard_changes", false);
+            // A run the user let drop unsaved changes (Run Script's "don't save") counts as discard_changes.
+            const bool        discard = arg_bool(args, "discard_changes", false) || service.discard_authorized(ctx.lineage());
             json out = ctx.run_ui([&]() -> json {
                 Plater& plater = ui_plater();
                 if (paths.size() == 1 && has_extension(paths[0], {".gcode", ".bgcode"})) {
@@ -423,15 +425,15 @@ void register_project_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "new_project", "New project",
+        "new_project", L("New project"),
         "Start a new, empty project. Fails when the current project has unsaved changes unless discard_changes is true. "
         "Modified printer, process and filament presets are kept for the new project, unless changes is \"discard\", the "
         "two answers of New Project's prompt. Reply: objects, names, plates; when presets had or have unsaved changes, "
         "discarded and modified list per preset the keys dropped and the keys still unsaved.",
         object_schema({{"discard_changes", prop("boolean", "Drop unsaved changes without asking.")},
                        {"changes", enum_prop({"keep", "discard"}, "Unsaved changes of the presets: keep them (default) or drop them.")}}),
-        [](const json& args, ToolContext& ctx) {
-            const bool discard         = arg_bool(args, "discard_changes", false);
+        [&service](const json& args, ToolContext& ctx) {
+            const bool discard         = arg_bool(args, "discard_changes", false) || service.discard_authorized(ctx.lineage());
             const bool discard_presets = arg_string(args, "changes", "keep") == "discard";
             json       out             = ctx.run_ui([&] {
                 Plater& plater = ui_plater();
@@ -452,7 +454,7 @@ void register_project_tools(McpService& service)
         true));
 
     reg.add(mutate_tool(
-        "calibrate", "Generate a calibration test",
+        "calibrate", L("Generate a calibration test"),
         "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test "
         "model, and the process, filament and printer presets changed as the test needs (presets_changed). The test prints "
         "with filament slot 1, so the filament tab is pointed at slot 1's preset. Omitted parameters take the dialog's "
@@ -494,9 +496,10 @@ void register_project_tools(McpService& service)
              {"changes", enum_prop({"keep", "discard"}, "Unsaved preset changes: keep them for the test, or drop them first. "
                                                         "Required when presets are modified.")}},
             {"test"}),
-        [](const json& args, ToolContext& ctx) {
-            json recorded = args;
-            json out      = ctx.run_ui([&]() -> json {
+        [&service](const json& args, ToolContext& ctx) {
+            json       recorded = args;
+            const bool discard  = arg_bool(args, "discard_changes", false) || service.discard_authorized(ctx.lineage());
+            json       out      = ctx.run_ui([&]() -> json {
                 Plater& plater = ui_plater();
                 if (plater.printer_technology() != ptFFF)
                     throw ToolFailure("Calibration tests are for filament (FFF) printers");
@@ -507,7 +510,7 @@ void register_project_tools(McpService& service)
                                                                       bundle.printers.get_edited_preset().config;
                 std::vector<std::string> warnings;
                 Calib_Params             params = calib_params_from_args(args, printer, warnings);
-                require_project_discardable(plater, arg_bool(args, "discard_changes", false));
+                require_project_discardable(plater, discard);
                 // The GUI asks whether to keep or discard modified presets here; the caller answers with changes.
                 const json before = unsaved_changes();
                 if (!before.empty() && !args.contains("changes")) {
@@ -600,7 +603,7 @@ void register_project_tools(McpService& service)
         true));
 
     reg.add(mutate_tool(
-        "save_project", "Save the project",
+        "save_project", L("Save the project"),
         "Save the project as a .3mf at an absolute path without a dialog; it becomes the project's file.",
         object_schema({{"path", prop("string", "Absolute .3mf path.")}, {"overwrite", prop("boolean", "Replace an existing file.")}}, {"path"}),
         [](const json& args, ToolContext& ctx) {
@@ -619,7 +622,7 @@ void register_project_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "export", "Export",
+        "export", L("Export"),
         "Write the project to a file without a dialog. gcode: the current plate's G-code (slice first; runs in the "
         "background and the call completes when the file is written). sliced_3mf: the sliced plate (or all plates) as "
         ".gcode.3mf. 3mf: the model without slicing data. stl: all objects as one STL. plate selects the plate first.",

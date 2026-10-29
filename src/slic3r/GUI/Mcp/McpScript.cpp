@@ -3,6 +3,8 @@
 #include "McpTypes.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <cstddef>
 #include <cstdlib>
 #include <optional>
 #include <stdexcept>
@@ -51,16 +53,43 @@ std::optional<json> resolve_placeholder(const std::string& key, const Script& sc
     return std::nullopt;
 }
 
-json substitute_value(const json& value, const Script& script, const ScriptContext& ctx, std::string& err, int depth)
+// How a substitution went: in lenient mode an unresolvable placeholder is kept as written; otherwise
+// the first one fails the substitution and is recorded here, so run_script can say why.
+struct Substitution
+{
+    bool        lenient = false;
+    std::string err;
+    std::string failed; // the placeholder's body, e.g. "jobs.prefs"
+};
+
+// The 1-based index of the step that saves its job as `name`, or 0.
+std::size_t step_saving(const Script& script, const std::string& name)
+{
+    for (std::size_t i = 0; i < script.steps.size(); ++i)
+        if (script.steps[i].save_as == name)
+            return i + 1;
+    return 0;
+}
+
+void fail_placeholder(Substitution& sub, const std::string& key, const std::string& text, const Script& script)
+{
+    sub.failed = key;
+    sub.err    = "unknown placeholder " + text;
+    if (key.rfind("jobs.", 0) == 0)
+        if (const std::size_t saver = step_saving(script, key.substr(5)); saver != 0)
+            sub.err += ": no job is saved as " + key.substr(5) + " yet; step " + std::to_string(saver) + " saves it";
+}
+
+json substitute_value(const json& value, const Script& script, const ScriptContext& ctx, Substitution& sub, int depth)
 {
     if (depth > 8) {
-        err = "variable substitution nests too deeply";
+        sub.err = "variable substitution nests too deeply";
         return value;
     }
     if (value.is_array() || value.is_object()) {
         json out = value;
         for (auto it = out.begin(); it != out.end(); ++it)
-            *it = substitute_value(*it, script, ctx, err, depth);
+            *it = substitute_value(*it, script, ctx, sub, depth);
         return out;
     }
     if (!value.is_string())
@@ -71,28 +100,48 @@ json substitute_value(const json& value, const Script& script, const ScriptConte
     if (std::regex_match(text, whole, placeholder)) {
         auto v = resolve_placeholder(whole[1].str(), script, ctx);
         if (!v) {
-            err = "unknown placeholder " + text;
+            if (!sub.lenient)
+                fail_placeholder(sub, whole[1].str(), text, script);
             return value;
         }
         // A var may itself contain placeholders (e.g. "${script_dir}/part.stl").
-        return substitute_value(*v, script, ctx, err, depth + 1);
+        return substitute_value(*v, script, ctx, sub, depth + 1);
     }
     std::string out;
     auto        begin = std::sregex_iterator(text.begin(), text.end(), placeholder);
     std::size_t last  = 0;
     for (auto it = begin; it != std::sregex_iterator(); ++it) {
         out.append(text, last, std::size_t(it->position()) - last);
+        last   = std::size_t(it->position() + it->length());
         auto v = resolve_placeholder((*it)[1].str(), script, ctx);
         if (!v) {
-            err = "unknown placeholder " + it->str();
-            return value;
+            if (!sub.lenient) {
+                fail_placeholder(sub, (*it)[1].str(), it->str(), script);
+                return value;
+            }
+            out += it->str();
+            continue;
         }
-        const json resolved = substitute_value(*v, script, ctx, err, depth + 1);
+        const json resolved = substitute_value(*v, script, ctx, sub, depth + 1);
         out += resolved.is_string() ? resolved.get<std::string>() : resolved.dump();
-        last = std::size_t(it->position() + it->length());
     }
     out.append(text, last, std::string::npos);
     return json(out);
+}
+
+// "line L, column C" of a 1-based byte offset into `text`, as nlohmann's parse errors give it.
+std::string text_position(const std::string& text, std::size_t byte)
+{
+    const std::size_t end  = std::min(byte, text.size());
+    std::size_t       line = 1, column = 1;
+    for (std::size_t i = 0; i + 1 < end; ++i) {
+        if (text[i] == '\n') {
+            ++line;
+            column = 1;
+        } else
+            ++column;
+    }
+    return "line " + std::to_string(line) + ", column " + std::to_string(column);
 }
 
 bool numeric(const json& v) { return v.is_number(); }
@@ -149,12 +198,18 @@ std::optional<std::string> check_matcher(const std::string& pointer, const json&
 
 std::optional<Script> parse_script(const std::string& text, std::string& err)
 {
-    const json doc = json::parse(text, nullptr, /*allow_exceptions=*/false, /*ignore_comments=*/true);
-    if (doc.is_discarded()) {
-        err = "the script is not valid JSON";
+    json doc;
+    try {
+        doc = json::parse(text, nullptr, /*allow_exceptions=*/true, /*ignore_comments=*/true);
+    } catch (const json::parse_error& e) {
+        // nlohmann's text reads "[json.exception.parse_error.101] parse error at line 3, column 25:
+        // syntax error ..."; keep the reason after the first ": " and give the position in one form.
+        const std::string what = e.what();
+        const auto        sep  = what.find(": ");
+        err = "the script is not valid JSON: " + text_position(text, e.byte) + ": " + (sep == std::string::npos ? what : what.substr(sep + 2));
         return std::nullopt;
     }
-    if (!doc.is_object() || doc.value("orca_script", 0) != 1) {
+    if (!doc.is_object() || !doc.contains("orca_script") || doc["orca_script"] != 1) {
         err = "the script must be an object with \"orca_script\": 1";
         return std::nullopt;
     }
@@ -163,7 +218,13 @@ std::optional<Script> parse_script(const std::string& text, std::string& err)
         return std::nullopt;
     }
     Script script;
-    script.name = doc.value("name", "");
+    if (doc.contains("name")) {
+        if (!doc["name"].is_string()) {
+            err = "\"name\" must be a string";
+            return std::nullopt;
+        }
+        script.name = doc["name"].get<std::string>();
+    }
     if (doc.contains("vars")) {
         if (!doc["vars"].is_object()) {
             err = "\"vars\" must be an object";
@@ -174,24 +235,48 @@ std::optional<Script> parse_script(const std::string& text, std::string& err)
     for (std::size_t i = 0; i < doc["steps"].size(); ++i) {
         const json&       s     = doc["steps"][i];
         const std::string where = "step " + std::to_string(i + 1);
-        if (!s.is_object() || !s.contains("tool") || !s["tool"].is_string()) {
+        if (!s.is_object() || !s.contains("tool")) {
             err = where + " needs a \"tool\" name";
             return std::nullopt;
         }
+        // Each field is checked for its type, so a wrong one is an error naming it, never an exception.
+        auto bad = [&](const char* field, const char* type) {
+            err = where + ": \"" + field + "\" must be " + type;
+            return std::nullopt;
+        };
+        if (!s["tool"].is_string())
+            return bad("tool", "a string");
         ScriptStep step;
         step.tool = s["tool"].get<std::string>();
-        try {
-            if (s.contains("args"))
-                step.args = s["args"].is_object() ? s["args"] : throw std::invalid_argument("\"args\" must be an object");
-            if (s.contains("expect"))
-                step.expect = s["expect"].is_object() ? s["expect"] : throw std::invalid_argument("\"expect\" must be an object");
-            step.optional  = s.value("optional", false);
-            step.await     = s.value("await", true);
-            step.save_as   = s.value("save_as", "");
-            step.timeout_s = s.value("timeout_s", 120);
-        } catch (const std::exception& e) {
-            err = where + ": " + e.what();
-            return std::nullopt;
+        if (s.contains("args")) {
+            if (!s["args"].is_object())
+                return bad("args", "an object");
+            step.args = s["args"];
+        }
+        if (s.contains("expect")) {
+            if (!s["expect"].is_object())
+                return bad("expect", "an object");
+            step.expect = s["expect"];
+        }
+        if (s.contains("optional")) {
+            if (!s["optional"].is_boolean())
+                return bad("optional", "true or false");
+            step.optional = s["optional"].get<bool>();
+        }
+        if (s.contains("await")) {
+            if (!s["await"].is_boolean())
+                return bad("await", "true or false");
+            step.await = s["await"].get<bool>();
+        }
+        if (s.contains("save_as")) {
+            if (!s["save_as"].is_string())
+                return bad("save_as", "a string");
+            step.save_as = s["save_as"].get<std::string>();
+        }
+        if (s.contains("timeout_s")) {
+            if (!s["timeout_s"].is_number_integer() || s["timeout_s"].get<long long>() <= 0)
+                return bad("timeout_s", "a positive whole number");
+            step.timeout_s = int(std::min<long long>(s["timeout_s"].get<long long>(), 86400));
         }
         if (!step.await && step.save_as.empty()) {
             err = where + ": \"await\": false needs \"save_as\" so a later step can wait for the job";
@@ -204,62 +289,115 @@ std::optional<Script> parse_script(const std::string& text, std::string& err)
 
 json substitute(const json& value, const Script& script, const ScriptContext& ctx, std::string& err)
 {
-    return substitute_value(value, script, ctx, err, 0);
+    Substitution sub;
+    json         out = substitute_value(value, script, ctx, sub, 0);
+    if (!sub.err.empty())
+        err = sub.err;
+    return out;
 }
 
-std::optional<std::string> check_expect(const json& result, const json& expect)
+json substitute_lenient(const json& value, const Script& script, const ScriptContext& ctx)
+{
+    Substitution sub;
+    sub.lenient = true;
+    return substitute_value(value, script, ctx, sub, 0);
+}
+
+std::optional<ExpectFailure> check_expect_detail(const json& result, const json& expect)
 {
     for (auto it = expect.begin(); it != expect.end(); ++it) {
+        ExpectFailure f;
+        f.pointer = it.key();
         json::json_pointer ptr;
         try {
             ptr = json::json_pointer(it.key());
         } catch (const std::exception&) {
-            return "invalid JSON pointer " + it.key();
+            f.message = "invalid JSON pointer " + it.key();
+            return f;
         }
-        const bool exists = result.contains(ptr);
-        const json actual = exists ? result.at(ptr) : json();
+        f.exists = result.contains(ptr);
+        f.actual = f.exists ? result.at(ptr) : json();
         const json& matchers = it.value();
-        if (!matchers.is_object())
-            return it.key() + ": the matcher must be an object such as {\"eq\": 1}";
+        if (!matchers.is_object()) {
+            f.message = it.key() + ": the matcher must be an object such as {\"eq\": 1}";
+            return f;
+        }
         for (auto m = matchers.begin(); m != matchers.end(); ++m)
-            if (auto failure = check_matcher(it.key(), actual, exists, m.key(), m.value()))
-                return failure;
+            if (auto failure = check_matcher(it.key(), f.actual, f.exists, m.key(), m.value())) {
+                f.message  = *failure;
+                f.op       = m.key();
+                f.expected = m.value();
+                return f;
+            }
     }
     return std::nullopt;
 }
 
-json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host)
+std::optional<std::string> check_expect(const json& result, const json& expect)
 {
-    json steps  = json::array();
-    bool passed = true;
-    int  failed = -1;
-    for (std::size_t i = 0; i < script.steps.size(); ++i) {
+    if (auto failure = check_expect_detail(result, expect))
+        return failure->message;
+    return std::nullopt;
+}
+
+json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host, std::optional<std::size_t> only_step)
+{
+    std::size_t first = 0, last = script.steps.size();
+    if (only_step) {
+        if (*only_step < 1 || *only_step > script.steps.size())
+            throw std::out_of_range("the script has no step " + std::to_string(*only_step));
+        first = *only_step - 1;
+        last  = *only_step;
+    }
+    const auto stopping = [&host] { return host.cancelled && host.cancelled(); };
+    json       steps    = json::array();
+    bool       passed   = true;
+    int        failed   = -1;
+    const auto report   = [&](json entry) {
+        if (host.step_finished)
+            host.step_finished(entry);
+        steps.push_back(std::move(entry));
+    };
+    for (std::size_t i = first; i < last; ++i) {
         const ScriptStep& step = script.steps[i];
         json              entry{{"index", i + 1}, {"tool", step.tool}};
-        if (host.cancelled && host.cancelled()) {
-            entry["ok"]    = false;
-            entry["error"] = "cancelled";
-            steps.push_back(std::move(entry));
+        if (stopping()) {
+            entry.update({{"ok", false}, {"error", "cancelled"}, {"cancelled", true}, {"reason", {{"kind", "cancelled"}}}, {"duration_ms", 0}});
+            report(std::move(entry));
             passed = false;
             failed = int(i + 1);
             break;
         }
-        std::string err;
-        const json  args = substitute(step.args, script, ctx, err);
-        ToolResult  result;
-        if (!err.empty())
-            result = ToolResult::error(err);
-        else
+        if (host.step_started)
+            host.step_started(i + 1);
+        const auto   start = std::chrono::steady_clock::now();
+        Substitution sub;
+        const json   args = substitute_value(step.args, script, ctx, sub, 0);
+        ToolResult   result;
+        json         reason;
+        if (!sub.err.empty()) {
+            result = ToolResult::error(sub.err);
+            if (sub.failed.rfind("jobs.", 0) == 0) {
+                const std::string name  = sub.failed.substr(5);
+                const std::size_t saver = step_saving(script, name);
+                reason = {{"kind", "missing_job"}, {"name", name}, {"saved_by", saver != 0 ? json(saver) : json()}};
+            } else if (!sub.failed.empty())
+                reason = {{"kind", "placeholder"}, {"text", "${" + sub.failed + "}"}};
+        } else
             result = host.call(step.tool, args);
 
-        if (is_job_envelope(result)) {
+        if (!result.is_error && is_job_envelope(result)) {
             const std::string job = result.data["job"].get<std::string>();
             if (step.await) {
                 if (auto done = host.wait_job(job, step.timeout_s))
                     result = std::move(*done);
-                else
+                else if (stopping())
+                    result = ToolResult::error("cancelled", {{"job", job}});
+                else {
                     result = ToolResult::error("timed out after " + std::to_string(step.timeout_s) + " s waiting for job " + job,
                                                {{"job", job}});
+                    reason = {{"kind", "timeout"}, {"seconds", step.timeout_s}};
+                }
             } else {
                 ctx.jobs[step.save_as] = job;
             }
@@ -270,18 +408,36 @@ json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host
         if (ok) {
             entry["result"] = result.data;
             if (!step.expect.empty())
-                if (auto failure = check_expect(result.data, step.expect)) {
-                    entry["expect_failure"] = *failure;
-                    ok                      = false;
+                if (auto failure = check_expect_detail(result.data, step.expect)) {
+                    entry["expect_failure"] = failure->message;
+                    reason = failure->op.empty() ? json{{"kind", "expect_invalid"}} :
+                                                   json{{"kind", "expect"},          {"pointer", failure->pointer},
+                                                        {"op", failure->op},         {"expected", failure->expected},
+                                                        {"actual", failure->actual}, {"exists", failure->exists}};
+                    ok = false;
                 }
         } else {
             entry["error"] = result.message;
             if (!result.data.is_null())
                 entry["details"] = result.data;
+            if (reason.is_null())
+                reason = {{"kind", "tool"}};
+        }
+        entry["duration_ms"] = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+        // A stop that came while the step ran fails it whatever it returned: a cancelled slice, for
+        // one, still reports its plates.
+        const bool cancelled = stopping();
+        if (cancelled) {
+            ok                 = false;
+            entry["error"]     = "cancelled";
+            entry["cancelled"] = true;
+            reason             = {{"kind", "cancelled"}};
         }
         entry["ok"] = ok;
-        steps.push_back(std::move(entry));
-        if (!ok && !step.optional) {
+        if (!ok)
+            entry["reason"] = reason;
+        report(std::move(entry));
+        if (!ok && (!step.optional || cancelled)) {
             passed = false;
             failed = int(i + 1);
             break;

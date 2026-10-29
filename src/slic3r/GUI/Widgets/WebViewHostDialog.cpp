@@ -244,8 +244,13 @@ void WebViewHostDialog::call_web_handler(const nlohmann::json& payload, const wx
     const wxString payload_text = wxString::FromUTF8(payload.dump(-1, ' ', false, nlohmann::json::error_handler_t::ignore));
     const wxString script       = handler + wxT("(") + payload_text + wxT(")");
 
-    wxGetApp().CallAfter([this, script] { run_script(script); });
+    wxGetApp().CallAfter([this, script, alive = m_host_alive] {
+        if (alive->load())
+            run_script(script);
+    });
 }
+
+WebViewHostDialog::~WebViewHostDialog() { m_host_alive->store(false); }
 
 bool WebViewHostDialog::handle_common_script_command(const nlohmann::json& payload, int close_return_code)
 {

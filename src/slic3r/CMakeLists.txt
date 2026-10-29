@@ -128,6 +128,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PluginsDialog.hpp
     GUI/Shortcuts.cpp
     GUI/Shortcuts.hpp
+    GUI/ScriptRunnerDialog.cpp
+    GUI/ScriptRunnerDialog.hpp
     GUI/SpeedDialDialog.cpp
     GUI/SpeedDialDialog.hpp
     GUI/ColorPickerDialog.cpp
@@ -155,6 +157,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpOptions.hpp
     GUI/Mcp/McpScript.cpp
     GUI/Mcp/McpScript.hpp
+    GUI/Mcp/McpScriptRun.cpp
+    GUI/Mcp/McpScriptRun.hpp
+    GUI/Mcp/McpScriptSummary.cpp
+    GUI/Mcp/McpScriptSummary.hpp
     GUI/Mcp/McpService.cpp
     GUI/Mcp/McpService.hpp
     GUI/Mcp/McpServicePtr.hpp

@@ -3,6 +3,7 @@
 // McpOperations).
 
 #include "CanvasTarget.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "JobRegistry.hpp"
 #include "McpCore.hpp"
 #include "libslic3r/Config.hpp"
@@ -878,7 +879,7 @@ void register_scene_tools(McpService& service)
     ToolRegistry& reg = service.registry();
 
     reg.add(inspect_tool(
-        "list_objects", "List objects",
+        "list_objects", L("List objects"),
         "Objects in the project: filament, auto_drop, bounding box (instance 0), brim ear count and the settings they "
         "override; their instances (plate, offset, rotation in degrees, scale, mirrored, bbox); their parts and modifiers "
         "(type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets "
@@ -896,7 +897,7 @@ void register_scene_tools(McpService& service)
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_objects(args); })); }));
 
     reg.add(mutate_tool(
-        "select", "Select objects",
+        "select", L("Select objects"),
         "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, "
         "instances ([[object, instance], ...]) or volumes ([[object, part], ...]); add keeps the current selection; all / "
         "none select everything or nothing.",
@@ -958,7 +959,7 @@ void register_scene_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "transform", "Move, rotate or scale an instance or a part",
+        "transform", L("Move, rotate or scale an instance or a part"),
         "Change one instance's placement, or one part's with volume. translate is in mm, rotate in degrees about X/Y/Z, "
         "scale a factor (one number or [x, y, z]), size [x, y, z] mm along the object's or part's own axes, plate moves "
         "the instance onto that plate at the same place. mode \"relative\" (default) adds to the current placement, "
@@ -994,7 +995,7 @@ void register_scene_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "add_part", "Add a part or modifier to an object",
+        "add_part", L("Add a part or modifier to an object"),
         "Add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object, as its context "
         "menu's Add items do: a primitive shape at a size, or a model file as Load... adds it. The part lands where the "
         "menu puts it (a shape beside the object, a file at its coordinates relative to the object's first part) unless "
@@ -1020,7 +1021,7 @@ void register_scene_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "arrange", "Arrange objects or fill the bed",
+        "arrange", L("Arrange objects or fill the bed"),
         "Arrange objects as the toolbar's Arrange does (every unlocked plate) or as one plate's Arrange icon does (plates: "
         "an index or \"current\"), or fill object fill's plate with more of it, as Fill bed with instances or copies does. "
         "spacing, rotate, align_y and multi_material are the Arrange options panel's settings: values given are kept as the "
@@ -1066,7 +1067,7 @@ void register_scene_tools(McpService& service)
         }));
 
     ToolDef slice = mutate_tool(
-        "slice", "Slice",
+        "slice", L("Slice"),
         "Slice the current plate, all plates, or one plate by index, the way the toolbar's Slice button does, and wait for "
         "the result (or reply with a job id when it takes longer than the reply budget). Each requested plate reports ok, "
         "error, cancelled, empty or skipped; the whole operation is superseded when someone else started a slice or "
@@ -1203,7 +1204,7 @@ void register_scene_tools(McpService& service)
     reg.add(slice);
 
     ToolDef cancel = mutate_tool(
-        "cancel", "Cancel an operation",
+        "cancel", L("Cancel an operation"),
         "Stop the running slice or G-code export, as the cancel button on the slicing progress does, or the background job "
         "(an arrange, orient or fill bed) an MCP call started. That job then reports cancelled; a background job keeps "
         "other changes out until it has really stopped. With job, only when that job is the running operation. Allowed "

@@ -4,6 +4,8 @@
 #include "McpCore.hpp"
 #include "McpJournal.hpp"
 #include "McpOptions.hpp"
+#include "McpScript.hpp"
+#include "McpScriptRun.hpp"
 #include "McpServicePtr.hpp"
 #include "McpTypes.hpp"
 #include "UiInvoker.hpp"
@@ -13,10 +15,13 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <string>
 #include <thread>
@@ -123,6 +128,26 @@ public:
     // GUI_Run after the event loop ends; wx ignores OnExit()'s return value.
     static int script_exit_code();
 
+    // Runs a script for the script runner dialog: an unjournaled mutate job, as run_script runs one,
+    // whose steps report through `events`. A thread the service owns follows the job to its end, past a
+    // running or blocked_by_dialog reply, and posts `finished`; stop() joins it. `only_step` runs one
+    // step (no result.json). `discard_authorized`: the user chose not to save before a run that
+    // replaces the project, so the replacing tools may drop unsaved changes while it runs. nullptr when
+    // the service is not started or is stopping. UI thread.
+    std::shared_ptr<ScriptRun> start_script_run(Script script, ScriptContext sctx, std::optional<std::size_t> only_step,
+                                                bool discard_authorized, ScriptRun::Events events);
+    // Stops `job` and what it runs: every call it and its descendants make sees itself cancelled
+    // (JobRegistry::request_stop). Any thread.
+    void request_stop(const std::string& job);
+    // True while a run in `lineage` that the user let drop unsaved changes is running. Any thread.
+    bool discard_authorized(const std::set<std::string>& lineage) const;
+    // Stops every run start_script_run() started, while the main window is still the one they run in.
+    // suspend() and stop() call it first. UI thread.
+    void stop_script_runs();
+    bool stopping() const { return m_stopping; }
+    // Queues `fn` on the UI thread; nothing runs once the app is gone. Any thread.
+    void post_ui(std::function<void()> fn);
+
 private:
     friend struct McpServiceDeleter;
     ~McpService();
@@ -163,6 +188,17 @@ private:
     std::atomic<bool>     m_stopping{false};
     std::atomic<uint64_t> m_generation{1};
     std::thread           m_script_thread;
+
+    // Runs of the script runner dialog, each with the thread that follows its job.
+    struct RunThread
+    {
+        std::thread                thread;
+        std::shared_ptr<ScriptRun> run;
+    };
+    std::mutex             m_runs_mutex;
+    std::vector<RunThread> m_run_threads;
+    mutable std::mutex     m_run_state_mutex;
+    std::set<std::string>  m_discard_jobs;
 };
 
 }}} // namespace Slic3r::GUI::Mcp

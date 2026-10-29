@@ -246,6 +246,8 @@ private:
 // button's menu), the one the popup opened from, which on every port is the popup's parent. Guards and
 // `within` judge popup widgets by it.
 wxWindow* owning_window(wxWindow* w);
+// `w` is, or is inside, a top-level window named kHiddenFromAutomation.
+bool hidden_from_automation(const wxWindow* w);
 // The shown popups that opened from `top` or from its widgets, which ui_snapshot lists after it.
 std::vector<wxWindow*> popups_of(wxWindow* top);
 

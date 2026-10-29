@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -41,6 +42,8 @@ class Plater;
 namespace Mcp {
 
 class McpService;
+struct Script;
+struct ScriptContext;
 
 // Each tool family registers itself with the service.
 void register_app_tools(McpService& service);
@@ -52,6 +55,24 @@ void register_view_tools(McpService& service);
 void register_ui_tools(McpService& service);
 void register_script_tools(McpService& service);
 void register_cad_tools(McpService& service);
+
+// How run_script_job() runs a script beyond what the script says.
+struct ScriptRunOptions
+{
+    std::optional<std::size_t> only_step;    // 1-based; the whole script when empty
+    bool                       write_result = true; // result.json in the output folder
+    // Called on the job thread as each step starts and ends (see ScriptHost).
+    std::function<void(std::size_t)>           step_started;
+    std::function<void(const nlohmann::json&)> step_finished;
+};
+
+// Runs a parsed script as the calling job, as run_script does: steps are child calls, dialog rules
+// the script registers end with it, and result.json goes to sctx.out_dir (created if missing). It
+// stops before the next step, and stops waiting on a step's job, once the call is cancelled: the
+// service stops, or a stop was asked for any job in the call's lineage (McpService::request_stop), so
+// a nested run_script stops with the run that holds it. Returns run_script()'s result with out_dir (and result_file).
+nlohmann::json run_script_job(McpService& service, ToolContext& ctx, const Script& script, ScriptContext& sctx,
+                              const ScriptRunOptions& options);
 
 // ---- schema helpers --------------------------------------------------------------------------
 

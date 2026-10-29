@@ -68,7 +68,10 @@ public:
         });
     }
     const std::string& job_id() const override { return m_job; }
-    bool cancelled() const override { return m_core.ui().is_shutdown(); }
+    bool cancelled() const override
+    {
+        return m_core.ui().is_shutdown() || m_core.jobs().stop_requested(m_job.empty() ? m_parent : m_job);
+    }
 
     ToolResult call_child(const std::string& tool, const nlohmann::json& args) override
     {

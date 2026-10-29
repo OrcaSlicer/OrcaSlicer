@@ -89,8 +89,8 @@ file, and one that stops must not hide another's server from the stdio bridge.
 
 `GUI_App::on_init_inner()` starts the service once AppConfig is loaded. That is before the first
 startup dialog, such as the TLS prompt or the setup wizard, so an agent can answer those dialogs.
-`--mcp` or the `mcp_enabled` preference opens the endpoint, while `--mcp-script` alone only builds
-the catalog. `get_state.ready` stays false until `post_init()` calls `mark_ready()`, the Prepare
+`--mcp` or the `mcp_enabled` preference opens the endpoint, while `--mcp-script` alone, or opening the
+Run Script dialog, only builds the catalog. `get_state.ready` stays false until `post_init()` calls `mark_ready()`, the Prepare
 canvas has loaded OpenGL and the main window has built its tab pages, and tools that need the main
 window fail with "still starting". Starting on Home, the canvas loads OpenGL at idle after
 `post_init()` (MainFrame's GL prebuild), and before that a 3MF save would draw its thumbnail with no
@@ -1773,12 +1773,25 @@ at once and stores it under `save_as`, so later steps can answer a dialog it ope
 `wait` for it. `expect` maps JSON pointers into the result to matchers (`eq ne gt ge lt le contains
 regex exists empty`). A failed step or expectation stops the run unless the step is `optional`.
 Auto-answer rules registered by a script end with it. `vars` passed to `run_script` override the
-script's. A step naming an unknown tool makes the script invalid before anything runs. The result,
-also written to `<out_dir>/result.json`, is
-`{passed, name, failed_step, steps: [{index, tool, args, ok, result | error, expect_failure}],
-out_dir, result_file}`. A script file's `out_dir` defaults to `<script name>.out` beside it. An
-inline script's defaults to `<datadir>/mcp/out/script-<timestamp>`, which is also its
-`${script_dir}`.
+script's. A step naming an unknown tool makes the script invalid before anything runs; so does any
+field of the wrong type, and broken JSON is reported with its line and column. The result, also
+written to `<out_dir>/result.json`, is `{passed, name, failed_step, steps: [{index, tool, args, ok,
+duration_ms, result | error, expect_failure, cancelled, reason}], out_dir, result_file}`. A failed
+step's `reason` says why in parts a host can word: `cancelled`, `timeout {seconds}`, `expect {pointer,
+op, expected, actual, exists}`, `expect_invalid`, `placeholder {text}`, `missing_job {name,
+saved_by}` (the step that saves that job, when one does) or `tool` (the tool's own error). A script
+file's `out_dir` defaults to `<script name>.out` beside it. An inline script's defaults to
+`<datadir>/mcp/out/script-<timestamp>`, which is also its `${script_dir}`.
+
+The engine (`McpScript.cpp`, wx-free) and the job around it (`run_script_job()` in
+`McpToolsScript.cpp`) are shared by `run_script`, `--mcp-script` and the Run Script dialog. A run
+stops before its next step, and stops waiting on a step's job, once the service stops or a stop was
+asked for any job in its lineage (`McpService::request_stop()`), so a nested `run_script` stops with
+the run that holds it. Stop requests last the session, and `JobRegistry` records each job's ancestor
+chain when it is created, so a descendant still reaches its root after finished ancestors are
+forgotten. A step during which the stop came is failed as `cancelled` whatever it returned (a
+cancelled slice still reports its plates) and ends the run, `optional` or not. The engine reports
+each step as it starts and ends, and can run a single step with the jobs earlier runs saved.
 
 `orca-slicer --mcp-script FILE [--mcp-script-out DIR]` runs a script once the GUI is ready. It
 doesn't open the endpoint unless `--mcp` is also given. It writes `result.json` and screenshots to
@@ -1787,6 +1800,46 @@ app without prompting and exits 0 if the script passed, 1 if a step failed, and 
 invalid. `OrcaSlicer.cpp` resolves both paths against the original working directory, since the
 GUI changes it. wx ignores `OnExit()`'s return value, so `GUI_Run()` returns
 `McpService::script_exit_code()` after `wxEntry()`.
+
+### Script runner dialog
+
+File › Run Script… and the Speed Dial command `open_script_runner` open `ScriptRunnerDialog`, where a
+person opens or pastes a script, reads its steps and runs it whole or one step at a time. It is a
+`WebViewHostDialog` page (`resources/web/dialog/ScriptRunner/`), modeless and one at a time
+(`MainFrame::show_script_runner()`). Opening it starts the service without the endpoint, as
+`--mcp-script` does, so a person runs scripts with the server off.
+
+`McpService::start_script_run()` runs the script as a job of `run_script`'s kind but outside the
+session journal, since a person's run is not an agent's call. A thread the service owns follows the
+job past a `running` or `blocked_by_dialog` reply to its result, posts it once, and is joined by
+`stop()`. Step reports and the result reach the dialog through the service's dispatcher as
+`ScriptRun` events, which the dialog drops once it is gone. `ScriptRun::stop()` latches, so a stop
+asked before the job exists still counts, requests the stop for the job (`JobRegistry::request_stop()`)
+and cancels its operation as the `cancel` tool does. Every call the run and its nested scripts make
+then sees `ToolContext::cancelled()`, so a step that waits, such as `wait`, returns at once. `suspend()` and `stop()` stop every run first, while the main
+window they run in is still the current one.
+
+Before a run the dialog describes each step with `describe_step()` (`McpScriptSummary.cpp`, wx-free):
+what it acts on, and flags for effects beyond the open project (writes a file outside the output
+folder, changes presets, replaces the project, sends to a printer). It reads the
+arguments after substitution, and nested scripts as their run sees them: an inline one with the outer
+script's placeholders already applied, as `run_script` substitutes the whole step first, and a file
+with its own vars and output folder; a step whose effect can't be
+read (a plugin action, a nested script too deep or unreadable) gets every flag. Flags only inform. A
+replacing step either checks unsaved changes itself (`new_project`, `open_files` of a project,
+`calibrate`) or goes through the app's own save question (`close_with_confirm()`). When the project
+has unsaved changes and the steps to run hold a step of the first kind, or one of the second kind
+with a step that can answer a dialog, the dialog asks whether to save first. Yes saves; No lets the
+run's replacing tools treat the run as `discard_changes: true` (`McpService::discard_authorized()`,
+read from the job lineage when the tool checks), so changes are dropped only when a step really
+replaces the project. The runner never answers the app's own question.
+
+The dialog's window is named `kHiddenFromAutomation`: `ui_snapshot` and locators skip it, web view
+scripts never pick it, a key sent without a target never goes to the focus inside it, and on X11,
+where a window capture reads the screen, it hides for the moment of the capture. Its own wording is
+translated, from the structured step descriptions and failure reasons; a tool's own error, which
+agents read in English, is shown as a detail under a translated lead. Tool titles are marked with
+`L()` so the dialog can show them translated while `tools/list` keeps the English.
 
 The session journal records client calls to journaled tools in order: every mutate tool, plus
 `wait` and `screenshot`, which a replay needs. It keeps the last 5000 calls, dropping the oldest

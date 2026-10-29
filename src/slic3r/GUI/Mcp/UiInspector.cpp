@@ -358,7 +358,7 @@ std::vector<wxTopLevelWindow*> top_level_windows(McpService& service)
     const auto& modals = service.modals().stack();
     for (wxWindow* w : wxTopLevelWindows) {
         auto* tlw = dynamic_cast<wxTopLevelWindow*>(w);
-        if (tlw == nullptr || !tlw->IsShown() || tlw == wxGetApp().mainframe)
+        if (tlw == nullptr || !tlw->IsShown() || tlw == wxGetApp().mainframe || tlw->GetName() == kHiddenFromAutomation)
             continue;
         if (std::find(modals.begin(), modals.end(), tlw) != modals.end())
             continue;
@@ -1036,6 +1036,12 @@ wxWindow* owning_window(wxWindow* w)
     while (dynamic_cast<wxPopupWindow*>(top) != nullptr && top->GetParent() != nullptr)
         top = wxGetTopLevelParent(top->GetParent());
     return top;
+}
+
+bool hidden_from_automation(const wxWindow* w)
+{
+    const wxWindow* top = owning_window(const_cast<wxWindow*>(w));
+    return top != nullptr && top->GetName() == kHiddenFromAutomation;
 }
 
 std::vector<wxWindow*> popups_of(wxWindow* top)
@@ -2998,6 +3004,9 @@ wxWindow* UiInspector::key_target(const UiTarget* t) const
     if (t != nullptr)
         return t->window.get();
     wxWindow* focus = wxWindow::FindFocus();
+    // Focus left in a window the tools don't see (the script runner) is no target for keys.
+    if (focus != nullptr && hidden_from_automation(focus))
+        focus = nullptr;
     if (wxDialog* top = m_service.modals().top())
         return focus != nullptr && owning_window(focus) == top ? focus : top;
     if (focus != nullptr)

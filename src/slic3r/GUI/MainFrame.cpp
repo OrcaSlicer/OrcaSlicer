@@ -85,6 +85,7 @@
 #include "3DScene.hpp"
 #include "ParamsDialog.hpp"
 #include "PrintHostDialogs.hpp"
+#include "ScriptRunnerDialog.hpp"
 #include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 #include "GUI_ObjectList.hpp"
@@ -3201,6 +3202,9 @@ void MainFrame::init_menubar_as_editor()
 
         append_submenu(fileMenu, export_menu, wxID_ANY, _L("Export"), "");
 
+        append_menu_item(fileMenu, wxID_ANY, _L("Run Script") + dots, _L("Open or paste a script and run its steps"),
+            [this](wxCommandEvent&) { show_script_runner(); }, "", nullptr, []() { return true; }, this);
+
         fileMenu->AppendSeparator();
 
 #ifndef __APPLE__
@@ -4028,6 +4032,14 @@ struct ConfigsOverwriteConfirmDialog : MessageDialog
         add_button(wxID_NOTOALL, false, _L("No to All"));
     }
 };
+
+void MainFrame::show_script_runner()
+{
+    if (!m_script_runner)
+        m_script_runner = new ScriptRunnerDialog(this);
+    m_script_runner->Show();
+    m_script_runner->Raise();
+}
 
 void MainFrame::export_config()
 {

@@ -365,6 +365,8 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"new_project", "Start a new, empty project (asks first if the current one has unsaved changes)."},
         {"undo", "Undo the last change to the project."},
         {"redo", "Redo the last undone change."},
+        {"open_script_runner", "Open the Run Script dialog, where a person opens or pastes an orca_script, reads its steps and runs "
+                               "them. Agents run scripts with the run_script tool instead."},
         {"open_preferences", "Open the Preferences dialog on a tab, scrolled to one preference when given (shown on its own tab). Its "
                              "controls are named after their preference keys: ui_input {\"target\": {\"name\": key, \"within\": "
                              "\"Preferences\"}} changes one through the dialog; get_settings scope preferences reads them.",
@@ -600,6 +602,11 @@ std::vector<NativeCommand> build_command_catalog()
     add_with_icon("redo", L("Redo"), L("Commands"), "menu_redo", [](const std::string&) {
         if (Plater* plater = wxGetApp().plater())
             plater->redo();
+        return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
+    add_with_icon("open_script_runner", L("Run Script"), L("Commands"), "media_play", [](const std::string&) {
+        if (MainFrame* mf = wxGetApp().mainframe)
+            mf->show_script_runner();
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("open_preferences", L("Preferences"), L("Commands"), "cog", [](const std::string& param) {

@@ -1,6 +1,7 @@
 // cad_call: the Design tab's control surface (sketches, features, measurements) through MCP.
 
 #include "McpService.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
 #include "slic3r/GUI/CAD/McpControl.hpp"
@@ -16,7 +17,7 @@ using nlohmann::json;
 void register_cad_tools(McpService& service)
 {
     service.registry().add(mutate_tool(
-        "cad_call", "Use the Design tab",
+        "cad_call", L("Use the Design tab"),
         "Call a method of the Design (CAD) tab's control surface. Method \"describe_tools\" lists the methods and their "
         "params; narrow it with params {\"method\": name or [names]} or {\"query\": text}. Typical calls: describe_scene, "
         "describe_feature / set_feature (read and edit a feature as its card does), sketch_begin / sketch_add (entities, "

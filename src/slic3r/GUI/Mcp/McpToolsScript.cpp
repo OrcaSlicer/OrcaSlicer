@@ -1,6 +1,7 @@
 // run_script and export_script: deterministic replays of tool calls, and turning a session into one.
 
 #include "JobRegistry.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "McpJournal.hpp"
 #include "McpPaths.hpp"
 #include "McpScript.hpp"
@@ -11,6 +12,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -59,12 +61,49 @@ ToolResult invalid(const std::string& message) { return ToolResult::error("Inval
 
 } // namespace
 
+json run_script_job(McpService& service, ToolContext& ctx, const Script& script, ScriptContext& sctx, const ScriptRunOptions& options)
+{
+    boost::system::error_code ec;
+    fs::create_directories(sctx.out_dir, ec);
+    if (ec)
+        throw ToolFailure("Cannot create " + path_to_utf8(sctx.out_dir) + ": " + ec.message());
+
+    const std::string job = ctx.job_id();
+    service.begin_script_scope(job);
+    struct ScopeEnd
+    {
+        McpService& service;
+        std::string job;
+        ~ScopeEnd() { service.end_script_scope(job); }
+    } scope_end{service, job};
+
+    const auto stopped = [&ctx] { return ctx.cancelled(); };
+
+    ScriptHost host;
+    host.call     = [&ctx](const std::string& tool, const json& a) { return ctx.call_child(tool, a); };
+    host.wait_job = [&service, &stopped](const std::string& id, int timeout_s) {
+        return service.jobs().wait(id, std::chrono::seconds(timeout_s), stopped);
+    };
+    host.cancelled     = stopped;
+    host.step_started  = options.step_started;
+    host.step_finished = options.step_finished;
+
+    json result       = run_script(script, sctx, host, options.only_step);
+    result["out_dir"] = path_to_utf8(sctx.out_dir);
+    if (options.write_result) {
+        const fs::path file = sctx.out_dir / "result.json";
+        write_file(file, result.dump(2));
+        result["result_file"] = path_to_utf8(file);
+    }
+    return result;
+}
+
 void register_script_tools(McpService& service)
 {
     ToolRegistry& reg = service.registry();
 
     ToolDef run = mutate_tool(
-        "run_script", "Run a script",
+        "run_script", L("Run a script"),
         "Run a script of tool calls in order and report each step: {orca_script:1, name, vars, steps:[{tool, args, expect, "
         "optional, await, save_as, timeout_s}]}, JSON with comments. Strings may use ${script_dir}, ${out_dir}, ${env:NAME}, "
         "${vars.NAME} and ${jobs.NAME}. A step that returns a job is awaited unless await:false, which stores the job under "
@@ -115,48 +154,15 @@ void register_script_tools(McpService& service)
             sctx.out_dir = args.contains("out_dir") ? path_from_utf8(arg_string(args, "out_dir")) : default_out;
             if (!sctx.out_dir.is_absolute())
                 return invalid("out_dir must be an absolute path");
-            boost::system::error_code ec;
-            fs::create_directories(sctx.out_dir, ec);
-            if (ec)
-                throw ToolFailure("Cannot create " + path_to_utf8(sctx.out_dir) + ": " + ec.message());
             if (!has_path)
                 sctx.script_dir = sctx.out_dir;
-
-            const std::string job = ctx.job_id();
-            service.begin_script_scope(job);
-            struct ScopeEnd
-            {
-                McpService& service;
-                std::string job;
-                ~ScopeEnd() { service.end_script_scope(job); }
-            } scope_end{service, job};
-
-            ScriptHost host;
-            host.call     = [&ctx](const std::string& tool, const json& a) { return ctx.call_child(tool, a); };
-            host.wait_job = [&service, &ctx](const std::string& id, int timeout_s) -> std::optional<ToolResult> {
-                const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(timeout_s);
-                while (!ctx.cancelled()) {
-                    const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
-                    if (left.count() <= 0)
-                        break;
-                    if (auto done = service.jobs().wait(id, std::min(left, std::chrono::milliseconds(1000))))
-                        return done;
-                }
-                return std::nullopt;
-            };
-            host.cancelled  = [&ctx] { return ctx.cancelled(); };
-
-            json result         = run_script(*script, sctx, host);
-            result["out_dir"]   = path_to_utf8(sctx.out_dir);
-            const fs::path file = sctx.out_dir / "result.json";
-            write_file(file, result.dump(2));
-            result["result_file"] = path_to_utf8(file);
+            json result = run_script_job(service, ctx, *script, sctx, ScriptRunOptions{});
             return ToolResult::ok(std::move(result));
         });
     reg.add(run);
 
     ToolDef exp = inspect_tool(
-        "export_script", "Export this session as a script",
+        "export_script", L("Export this session as a script"),
         "Turn the calls this session made into a script run_script can replay: mutating calls, wait and screenshot, in order, "
         "with refs replaced by locators, job replies replayed with await:false, and screenshot paths moved under ${out_dir}. "
         "Calls that failed, at once or as a job later, are left out; so is a call whose job is still running (unless it "

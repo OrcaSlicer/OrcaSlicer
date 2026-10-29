@@ -1,5 +1,6 @@
 #include "ScreenCapture.hpp"
 
+#include "McpTypes.hpp"
 #include "UiInspector.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
@@ -96,8 +97,53 @@ std::optional<Capture> capture_canvas(GLCanvas3D& canvas, std::string& err)
     return c;
 }
 
+#if defined(__WXGTK__) && defined(wxHAVE_GDK_X11)
+namespace {
+
+// An X11 window capture reads the screen, so a window the tools don't see (the script runner) that
+// covers the target would show in it. Such windows are hidden for the moment of the capture, and the
+// target repainted where they were.
+class HideCovering
+{
+public:
+    explicit HideCovering(wxTopLevelWindow& target)
+    {
+        GdkDisplay* display = gdk_display_get_default();
+        if (display == nullptr || !GDK_IS_X11_DISPLAY(display))
+            return;
+        const wxRect area = target.GetScreenRect();
+        for (wxWindow* w : wxTopLevelWindows)
+            if (w != &target && w->IsShown() && w->GetName() == kHiddenFromAutomation && w->GetScreenRect().Intersects(area)) {
+                w->Hide();
+                m_hidden.push_back(w);
+            }
+        if (m_hidden.empty())
+            return;
+        gdk_display_sync(display);
+        target.Refresh();
+        target.Update();
+        gdk_display_sync(display);
+    }
+    ~HideCovering()
+    {
+        for (wxWindow* w : m_hidden)
+            w->Show();
+    }
+    HideCovering(const HideCovering&)            = delete;
+    HideCovering& operator=(const HideCovering&) = delete;
+
+private:
+    std::vector<wxWindow*> m_hidden;
+};
+
+} // namespace
+#endif
+
 std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err)
 {
+#if defined(__WXGTK__) && defined(wxHAVE_GDK_X11)
+    const HideCovering hide_covering(window);
+#endif
     if (window.IsIconized() || !window.IsShownOnScreen()) {
         err = "The window is minimized or hidden";
         return std::nullopt;

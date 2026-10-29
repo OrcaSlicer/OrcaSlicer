@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <functional>
 #include <mutex>
 #include <optional>
 #include <set>
@@ -24,6 +25,11 @@ std::string JobRegistry::create(const std::string& tool, const std::string& pare
     job.tool    = tool;
     job.parent  = parent;
     job.created = std::chrono::steady_clock::now();
+    if (!parent.empty()) {
+        job.ancestors.push_back(parent);
+        if (auto it = m_jobs.find(parent); it != m_jobs.end())
+            job.ancestors.insert(job.ancestors.end(), it->second.ancestors.begin(), it->second.ancestors.end());
+    }
     m_jobs.emplace(id, std::move(job));
     return id;
 }
@@ -71,27 +77,50 @@ std::optional<ToolResult> JobRegistry::wait(const std::string& id, std::chrono::
     return it->second.result;
 }
 
-std::set<std::string> JobRegistry::lineage(const std::string& id) const
+std::optional<ToolResult> JobRegistry::wait(const std::string& id, std::chrono::milliseconds timeout, const std::function<bool()>& stop)
+{
+    constexpr std::chrono::milliseconds slice{500};
+    const auto                          deadline = std::chrono::steady_clock::now() + timeout;
+    for (;;) {
+        const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
+        if (auto done = wait(id, std::clamp(left, std::chrono::milliseconds(0), slice)))
+            return done;
+        if (left <= slice || stop())
+            return std::nullopt;
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_woken)
+            return std::nullopt;
+    }
+}
+
+void JobRegistry::request_stop(const std::string& id)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    std::set<std::string> out;
-    std::string           cur = id;
-    while (!cur.empty() && out.insert(cur).second) {
-        auto it = m_jobs.find(cur);
-        cur     = it == m_jobs.end() ? std::string() : it->second.parent;
-    }
-    return out;
+    m_stop_requests.insert(id);
+}
+
+bool JobRegistry::stop_requested(const std::string& id) const
+{
+    const std::vector<std::string> chain = ancestry(id);
+    std::lock_guard<std::mutex>    lock(m_mutex);
+    return std::any_of(chain.begin(), chain.end(), [this](const std::string& job) { return m_stop_requests.count(job) != 0; });
+}
+
+std::set<std::string> JobRegistry::lineage(const std::string& id) const
+{
+    const std::vector<std::string> chain = ancestry(id);
+    return {chain.begin(), chain.end()};
 }
 
 std::vector<std::string> JobRegistry::ancestry(const std::string& id) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<std::string> out;
-    for (std::string cur = id; !cur.empty() && std::find(out.begin(), out.end(), cur) == out.end();) {
-        out.push_back(cur);
-        auto it = m_jobs.find(cur);
-        cur     = it == m_jobs.end() ? std::string() : it->second.parent;
-    }
+    if (id.empty())
+        return out;
+    out.push_back(id);
+    if (auto it = m_jobs.find(id); it != m_jobs.end())
+        out.insert(out.end(), it->second.ancestors.begin(), it->second.ancestors.end());
     return out;
 }
 

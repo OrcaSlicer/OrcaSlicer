@@ -2,6 +2,7 @@
 // pointing the view before looking.
 
 #include "libvgcode/include/ColorRange.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "libvgcode/include/Types.hpp"
 #include "libvgcode/include/Viewer.hpp"
 #include "McpPaths.hpp"
@@ -296,7 +297,7 @@ void register_view_tools(McpService& service)
     ToolRegistry& reg = service.registry();
 
     ToolDef screenshot = inspect_tool(
-        "screenshot", "Take a screenshot",
+        "screenshot", L("Take a screenshot"),
         "Capture what OrcaSlicer shows and return it as an image, downscaled to max_dim on the long edge (default 1280), "
         "plus the full-size PNG written to save_path (or the session's output folder). target: \"window\" (the main "
         "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels; on the "
@@ -440,7 +441,7 @@ void register_view_tools(McpService& service)
     reg.add(screenshot);
 
     reg.add(inspect_tool(
-        "get_preview", "Read the Preview",
+        "get_preview", L("Read the Preview"),
         "What the Preview shows for a sliced plate. summary: the slice reply's, plus prepare and travel time and travel "
         "distance. features: seconds, share of the print time and grams per feature type (the Line Type legend), and "
         "travel. layers: per layer (1-based, as set_view's layer) Z, height, seconds and grams, paged; layer_features adds "
@@ -526,7 +527,7 @@ void register_view_tools(McpService& service)
 #endif
 
     reg.add(mutate_tool(
-        "set_view", "Point the view",
+        "set_view", L("Point the view"),
         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (Prepare's, the preview or "
         "the assemble view, which has its own gizmos), the 3D camera (a named direction, the default view, or fit to bed / "
         "objects / selection), the preview's color scheme (picked as in the legend's combo, which shows every feature type "

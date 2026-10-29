@@ -1,0 +1,326 @@
+/* Script runner. Colours come from the host theme contract (--orca-*) and theme.css's status roles,
+ * so the page follows the app in light and dark. The one distinctive element is the step rail: an
+ * accent thread that fills down the list as steps pass. Everything else stays quiet and host-native. */
+
+:root {
+  --sr-bg: var(--orca-bg, #ffffff);
+  --sr-fg: var(--orca-fg, #262e30);
+  --sr-muted: var(--orca-muted, #6b7478);
+  --sr-rule: var(--border, #dcdfe1);
+  --sr-accent: var(--orca-accent, #009688);
+  --sr-accent-fg: var(--orca-accent-fg, #ffffff);
+  --sr-pass: var(--plugin-status-ok, #137333);
+  --sr-fail: var(--plugin-status-danger, #b42318);
+  --sr-fail-bg: var(--plugin-status-danger-bg, rgba(180, 35, 24, 0.12));
+  --sr-warn: var(--plugin-status-warn, #a15c00);
+  --sr-warn-bg: var(--plugin-status-warn-bg, rgba(199, 122, 22, 0.12));
+  --sr-hover: var(--row-hover, #f7f9fb);
+  --sr-footer: var(--footer-bg, #fafafa);
+  --sr-btn-bg: var(--btn-bg, #ffffff);
+  --sr-btn-border: var(--btn-border, #cccccc);
+  --sr-btn-hover: var(--btn-hover, #f0f0f0);
+  --sr-accent-tint: var(--plugin-source-mine-bg, rgba(0, 150, 136, 0.12));
+  --sr-ring: rgba(0, 150, 136, 0.25);
+  --sr-ring-soft: rgba(0, 150, 136, 0.1);
+  --sr-mono: "Cascadia Code", Consolas, "SF Mono", Menlo, "DejaVu Sans Mono", monospace;
+  --sr-dot: 20px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--sr-bg);
+  color: var(--sr-fg);
+  font-family: var(--orca-font, "Segoe UI", system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+[hidden] { display: none !important; }
+
+.runner { display: flex; flex-direction: column; height: 100%; }
+
+/* ---- buttons ---- */
+.btn {
+  font: inherit;
+  color: var(--sr-fg);
+  background: var(--sr-btn-bg);
+  border: 1px solid var(--sr-btn-border);
+  border-radius: 4px;
+  padding: 4px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--sr-btn-hover); }
+.btn.primary { color: var(--sr-accent-fg); background: var(--sr-accent); border-color: var(--sr-accent); }
+.btn.primary:hover:not(:disabled) { background: var(--sr-accent); filter: brightness(1.08); }
+.btn.small { padding: 2px 10px; font-size: 12px; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.link {
+  font: inherit;
+  font-size: 12px;
+  color: var(--sr-accent);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--sr-accent); outline-offset: 1px; }
+
+/* ---- source bar ---- */
+.source-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--sr-rule);
+}
+.chip {
+  margin-left: 6px;
+  min-width: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--sr-accent-tint);
+  color: var(--sr-fg);
+  overflow: hidden;
+}
+#chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-note { color: var(--sr-muted); white-space: nowrap; }
+
+/* ---- foldable sections ---- */
+.sections { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.section { display: flex; flex-direction: column; min-height: 0; }
+.section + .section { border-top: 1px solid var(--sr-rule); }
+.section.is-open { flex: 1 1 0; }
+#steps-section.is-open { flex-grow: 3; }
+#source-section.is-open { flex-grow: 2; }
+.section-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--sr-fg);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.section.is-open .section-head { border-bottom-color: var(--sr-rule); }
+.section-head:hover { background: var(--sr-hover); }
+.chevron {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 4px 0 4px 6px;
+  border-color: transparent transparent transparent var(--sr-muted);
+  transition: transform 120ms ease;
+}
+.section.is-open .chevron { transform: rotate(90deg); }
+.section-summary { margin-left: auto; font-weight: 400; font-size: 12px; color: var(--sr-muted); }
+.section-summary.is-error { color: var(--sr-fail); }
+.section-body { flex: 1; min-height: 0; overflow: auto; }
+
+/* ---- empty state ---- */
+.empty {
+  height: 100%;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+.empty p { margin: 0; max-width: 34ch; }
+.empty-actions { display: flex; gap: 8px; }
+
+/* ---- the step rail ---- */
+.rail { list-style: none; margin: 0; padding: 6px 0 10px; }
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--sr-dot) minmax(0, 1fr) auto;
+  column-gap: 10px;
+  padding: 0 12px 0 14px;
+}
+/* The thread from this step's dot down to the next one; it takes the accent once the step passed. */
+.step::before {
+  content: "";
+  position: absolute;
+  left: calc(14px + var(--sr-dot) / 2 - 1px);
+  top: calc(6px + var(--sr-dot));
+  bottom: -6px;
+  width: 2px;
+  background: var(--sr-rule);
+  transition: background-color 240ms ease;
+}
+.step:last-child::before { display: none; }
+.step.is-done::before, .step.is-warn::before { background: var(--sr-accent); }
+.dot {
+  margin-top: 6px;
+  width: var(--sr-dot);
+  height: var(--sr-dot);
+  border-radius: 50%;
+  border: 1.5px solid var(--sr-rule);
+  background: var(--sr-bg);
+  color: var(--sr-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 1;
+}
+.step.is-done .dot { background: var(--sr-accent); border-color: var(--sr-accent); color: var(--sr-accent-fg); }
+.step.is-warn .dot { background: var(--sr-warn); border-color: var(--sr-warn); color: #ffffff; }
+.step.is-fail .dot, .step.is-stopped .dot { background: var(--sr-fail); border-color: var(--sr-fail); color: #ffffff; }
+.step.is-skip .dot { border-style: dashed; }
+.step.is-running .dot { border-color: var(--sr-accent); color: var(--sr-accent); animation: sr-ring 1.4s ease-in-out infinite; }
+@keyframes sr-ring {
+  0%, 100% { box-shadow: 0 0 0 2px var(--sr-ring); }
+  50% { box-shadow: 0 0 0 5px var(--sr-ring-soft); }
+}
+
+.step-main { min-width: 0; }
+.step-head {
+  display: block;
+  width: 100%;
+  padding: 6px 4px 6px 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.step-title { font-weight: 600; }
+.step.is-wait .step-title, .step.is-skip .step-title { font-weight: 400; color: var(--sr-muted); }
+.step-what, .step-param { display: block; color: var(--sr-muted); font-size: 12px; overflow-wrap: anywhere; }
+.step-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.tag {
+  font-size: 11px;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: 3px;
+  color: var(--sr-warn);
+  background: var(--sr-warn-bg);
+}
+.tag.is-check { color: var(--sr-muted); background: none; border: 1px solid var(--sr-rule); }
+
+.step-side { display: flex; align-items: flex-start; gap: 6px; padding-top: 7px; }
+.time { font-size: 12px; color: var(--sr-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.step.is-running .time { color: var(--sr-accent); }
+.play {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--sr-accent);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+}
+.step:hover .play:not(:disabled), .play:focus-visible { opacity: 1; border-color: var(--sr-rule); }
+
+/* ---- an opened step ---- */
+.step-detail { padding: 2px 0 10px; font-size: 12px; }
+.step.is-open { background: var(--sr-hover); }
+.args { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; margin: 0 0 6px; }
+.args dt { color: var(--sr-muted); }
+.args dd { margin: 0; font-family: var(--sr-mono); font-size: 11.5px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.result-line { margin: 2px 0; }
+.checks { list-style: none; margin: 0 0 6px; padding: 0; color: var(--sr-muted); }
+.checks li { margin: 2px 0; overflow-wrap: anywhere; }
+.checks li.is-met::before { content: "\2713\00a0"; color: var(--sr-pass); }
+.failure {
+  margin: 4px 0 6px;
+  padding: 6px 8px;
+  border-left: 2px solid var(--sr-fail);
+  border-radius: 0 3px 3px 0;
+  background: var(--sr-fail-bg);
+}
+.step.is-warn .failure { border-left-color: var(--sr-warn); background: var(--sr-warn-bg); }
+.failure-detail { display: block; margin-top: 3px; color: var(--sr-muted); overflow-wrap: anywhere; }
+.files { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0; }
+.thumb {
+  display: block;
+  width: 160px;
+  max-width: 100%;
+  border: 1px solid var(--sr-rule);
+  border-radius: 3px;
+  cursor: zoom-in;
+}
+.actions { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+.raw {
+  margin: 6px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 6px 8px;
+  border: 1px solid var(--sr-rule);
+  border-radius: 3px;
+  font-family: var(--sr-mono);
+  font-size: 11px;
+  white-space: pre;
+  user-select: text;
+}
+
+/* ---- source ---- */
+#source-body { display: flex; padding: 8px 12px; }
+#source {
+  flex: 1;
+  min-height: 80px;
+  resize: none;
+  padding: 6px 8px;
+  font-family: var(--sr-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--sr-fg);
+  background: var(--sr-bg);
+  border: 1px solid var(--sr-rule);
+  border-radius: 4px;
+  tab-size: 2;
+}
+#source:focus { outline: none; border-color: var(--sr-accent); }
+#source[readonly] { color: var(--sr-muted); }
+
+/* ---- footer ---- */
+.foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--sr-rule);
+  background: var(--sr-footer);
+}
+.outcome { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#outcome { font-weight: 600; }
+#outcome.is-pass { color: var(--sr-pass); }
+#outcome.is-fail { color: var(--sr-fail); }
+#outcome.is-warn { color: var(--sr-warn); }
+#outcome.is-quiet { font-weight: 400; color: var(--sr-muted); }
+.outcome-detail { font-size: 12px; color: var(--sr-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .step.is-running .dot { animation: none; box-shadow: 0 0 0 2px var(--sr-ring); }
+  .step::before, .chevron { transition: none; }
+}

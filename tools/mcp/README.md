@@ -236,6 +236,11 @@ button. `test_webview_modal.py` checks what that script cannot: scripts are refu
 volumes dialog and in the Home tab's web view behind a modal, and a page that closes its dialog
 replies `closed` at once.
 
+`test_script_runner_hidden.py` opens the Run Script dialog and checks that the GUI tools don't see
+it: `ui_snapshot` lists no window for it, `webview_eval` without a target behaves as before it
+opened, and a key sent without a target never reaches it; `run_script` still runs the smoke test and
+a nested inline script.
+
 `tests/slice_stats.json` slices one cube, then two cubes in two colours, and checks the slice
 reply's statistics: layers, max Z, filament changes, and each filament slot's model, flush and
 prime tower grams.

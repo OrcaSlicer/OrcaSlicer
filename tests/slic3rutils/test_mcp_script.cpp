@@ -11,6 +11,7 @@
 #include <functional>
 #include <map>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -39,7 +40,8 @@ struct FakeHost
     std::map<std::string, std::function<ToolResult(const json&)>> tools;
     std::map<std::string, ToolResult>                             job_results;
     std::vector<std::pair<std::string, json>>                     calls;
-    bool                                                          ended = false;
+    bool                                                          ended  = false;
+    bool                                                          cancel = false;
 
     ScriptHost host()
     {
@@ -56,7 +58,7 @@ struct FakeHost
             return it->second;
         };
         h.end_script = [this] { ended = true; };
-        h.cancelled  = [] { return false; };
+        h.cancelled  = [this] { return cancel; };
         return h;
     }
 };
@@ -193,4 +195,192 @@ TEST_CASE("a run stops at the first failed step unless it is optional", "[Mcp]")
     CHECK(out["steps"].size() == 2);
     CHECK(out["steps"][1]["expect_failure"].get<std::string>().find("/v") == 0);
     CHECK(f.ended); // script-scoped rules are dropped even when it fails
+}
+
+TEST_CASE("a run reports each step as it starts and ends", "[Mcp]")
+{
+    FakeHost f;
+    f.tools["a"] = [](const json&) { return ToolResult::ok(); };
+    f.tools["b"] = [](const json&) { return ToolResult::ok(); };
+    const Script             s = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "a"}, {"tool": "b"}]})");
+    std::vector<std::string> events;
+    ScriptHost               h = f.host();
+    h.step_started             = [&](std::size_t index) { events.push_back("started " + std::to_string(index)); };
+    h.step_finished            = [&](const json& entry) {
+        events.push_back("finished " + std::to_string(entry["index"].get<int>()));
+        CHECK(entry["ok"] == true);
+        CHECK(entry["duration_ms"].get<long long>() >= 0);
+    };
+    ScriptContext ctx;
+    run_script(s, ctx, h);
+    CHECK(events == std::vector<std::string>{"started 1", "finished 1", "started 2", "finished 2"});
+}
+
+TEST_CASE("only_step runs one step and reports its own index", "[Mcp]")
+{
+    FakeHost f;
+    for (const char* name : {"a", "b", "c"})
+        f.tools[name] = [](const json&) { return ToolResult::ok(); };
+    const Script  s = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "a"}, {"tool": "b"}, {"tool": "c"}]})");
+    ScriptContext ctx;
+    const json    out = run_script(s, ctx, f.host(), 2);
+    REQUIRE(f.calls.size() == 1);
+    CHECK(f.calls[0].first == "b");
+    REQUIRE(out["steps"].size() == 1);
+    CHECK(out["steps"][0]["index"] == 2);
+    CHECK(out["passed"] == true);
+    CHECK_THROWS_AS(run_script(s, ctx, f.host(), 4), std::out_of_range);
+}
+
+TEST_CASE("jobs saved by an earlier run resolve in a later single step", "[Mcp]")
+{
+    FakeHost f;
+    f.tools["x"]    = [](const json&) { return ToolResult::ok({{"status", "running"}, {"job", "j7"}}); };
+    f.tools["wait"] = [](const json& a) { return ToolResult::ok({{"job", a["job"]}}); };
+    const Script s  = parse_ok(R"({"orca_script": 1, "steps": [
+        {"tool": "x", "await": false, "save_as": "prefs"},
+        {"tool": "wait", "args": {"job": "${jobs.prefs}"}},
+        {"tool": "wait", "args": {"job": "${jobs.none}"}}]})");
+
+    ScriptContext fresh;
+    const json    alone = run_script(s, fresh, f.host(), 2);
+    CHECK(alone["steps"][0]["ok"] == false);
+    CHECK(alone["steps"][0]["error"].get<std::string>().find("no job is saved as prefs yet; step 1 saves it") != std::string::npos);
+    CHECK(alone["steps"][0]["reason"] == json{{"kind", "missing_job"}, {"name", "prefs"}, {"saved_by", 1}});
+
+    ScriptContext shared;
+    run_script(s, shared, f.host(), 1);
+    run_script(s, shared, f.host(), 2);
+    CHECK(f.calls.back().second["job"] == "j7");
+
+    const json unsaved = run_script(s, shared, f.host(), 3);
+    CHECK(unsaved["steps"][0]["reason"]["kind"] == "missing_job");
+    CHECK(unsaved["steps"][0]["reason"]["saved_by"].is_null());
+}
+
+TEST_CASE("a stop during a step marks that step, even the last one", "[Mcp]")
+{
+    const std::string text = GENERATE(as<std::string>{}, R"({"orca_script": 1, "steps": [{"tool": "stopper"}]})",
+                                      R"({"orca_script": 1, "steps": [{"tool": "stopper", "optional": true}]})");
+    const bool        single = GENERATE(false, true);
+    FakeHost          f;
+    f.tools["stopper"] = [&f](const json&) {
+        f.cancel = true;
+        return ToolResult::ok({{"plates", json::array()}});
+    };
+    json       reported;
+    ScriptHost h       = f.host();
+    h.step_finished    = [&](const json& entry) { reported = entry; };
+    const Script  s    = parse_ok(text);
+    ScriptContext ctx;
+    const json    out = single ? run_script(s, ctx, h, 1) : run_script(s, ctx, h);
+    for (const json& entry : {reported, out["steps"][0]}) {
+        CHECK(entry["cancelled"] == true);
+        CHECK(entry["ok"] == false);
+        CHECK(entry["reason"]["kind"] == "cancelled");
+    }
+    CHECK(out["passed"] == false);
+    CHECK(out["failed_step"] == 1);
+}
+
+TEST_CASE("a stop during a job wait is a cancel, not a timeout", "[Mcp]")
+{
+    FakeHost f;
+    f.tools["slow"] = [](const json&) { return ToolResult::ok({{"status", "running"}, {"job", "j1"}}); };
+    const Script s  = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "slow"}]})");
+
+    ScriptHost stopping = f.host();
+    stopping.wait_job   = [&f](const std::string&, int) -> std::optional<ToolResult> {
+        f.cancel = true;
+        return std::nullopt;
+    };
+    ScriptContext ctx;
+    const json    stopped = run_script(s, ctx, stopping);
+    CHECK(stopped["steps"][0]["cancelled"] == true);
+    CHECK(stopped["steps"][0]["reason"]["kind"] == "cancelled");
+
+    FakeHost   g;
+    g.tools        = f.tools;
+    const json out = run_script(s, ctx, g.host());
+    CHECK(out["steps"][0]["reason"] == json{{"kind", "timeout"}, {"seconds", 120}});
+}
+
+TEST_CASE("a failed expectation carries its parts", "[Mcp]")
+{
+    FakeHost f;
+    f.tools["slice"] = [](const json&) { return ToolResult::ok({{"plates", {{{"outcome", "error"}}}}}); };
+    const Script  s  = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}}]})");
+    ScriptContext ctx;
+    const json    entry = run_script(s, ctx, f.host())["steps"][0];
+    CHECK(entry["reason"] == json{{"kind", "expect"}, {"pointer", "/plates/0/outcome"}, {"op", "eq"},
+                                  {"expected", "ok"},  {"actual", "error"},              {"exists", true}});
+    CHECK(entry["expect_failure"].get<std::string>().find("/plates/0/outcome: expected eq \"ok\"") == 0);
+}
+
+TEST_CASE("a matcher that is not an object is a malformed expectation", "[Mcp]")
+{
+    FakeHost f;
+    f.tools["slice"] = [](const json&) { return ToolResult::ok({{"outcome", "ok"}}); };
+    const Script  s  = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "slice", "expect": {"/outcome": "ok"}}]})");
+    ScriptContext ctx;
+    const json    entry = run_script(s, ctx, f.host())["steps"][0];
+    CHECK(entry["ok"] == false);
+    CHECK(entry["reason"] == json{{"kind", "expect_invalid"}});
+    CHECK(entry["expect_failure"].get<std::string>().find("must be an object") != std::string::npos);
+}
+
+// The script runner's step descriptions mirror this: an inline nested script reads its placeholders
+// from the outer script, whose substitution runs before the nested run starts.
+TEST_CASE("an inline nested script's placeholders are the outer script's", "[Mcp]")
+{
+    FakeHost f;
+    f.tools["run_script"] = [](const json&) { return ToolResult::ok({{"passed", true}}); };
+    const Script with_outer = parse_ok(R"({"orca_script": 1, "vars": {"p": "outer.stl"}, "steps": [{"tool": "run_script",
+        "args": {"vars": {"p": "step.stl"}, "script": {"orca_script": 1, "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}}]})");
+    ScriptContext ctx;
+    CHECK(run_script(with_outer, ctx, f.host())["passed"] == true);
+    REQUIRE(f.calls.size() == 1);
+    CHECK(f.calls[0].second["script"]["steps"][0]["args"]["paths"][0] == "outer.stl");
+
+    FakeHost     g;
+    const Script step_only = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "run_script",
+        "args": {"vars": {"p": "step.stl"}, "script": {"orca_script": 1, "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}}]})");
+    const json   out = run_script(step_only, ctx, g.host());
+    CHECK(out["passed"] == false);
+    CHECK(out["steps"][0]["reason"] == json{{"kind", "placeholder"}, {"text", "${vars.p}"}});
+    CHECK(g.calls.empty());
+}
+
+TEST_CASE("lenient substitution keeps what it cannot resolve", "[Mcp]")
+{
+    const Script  s = parse_ok(R"({"orca_script": 1, "vars": {"model": "C:/m/part.stl"}, "steps": []})");
+    ScriptContext ctx;
+    CHECK(substitute_lenient("${vars.model}", s, ctx) == "C:/m/part.stl");
+    CHECK(substitute_lenient("${jobs.none}/x", s, ctx) == "${jobs.none}/x");
+    CHECK(substitute_lenient(json{{"p", "${vars.nope}"}}, s, ctx) == json{{"p", "${vars.nope}"}});
+}
+
+TEST_CASE("malformed scripts are errors, not exceptions", "[Mcp]")
+{
+    const auto [text, field] = GENERATE(table<std::string, std::string>({
+        {R"({"orca_script": "1", "steps": []})", "orca_script"},
+        {R"({"orca_script": 1, "name": 5, "steps": []})", "name"},
+        {R"({"orca_script": 1, "steps": [{"tool": 3}]})", "step 1: \"tool\""},
+        {R"({"orca_script": 1, "steps": [{"tool": "a", "timeout_s": "9"}]})", "step 1: \"timeout_s\""},
+        {R"({"orca_script": 1, "steps": [{"tool": "a", "optional": "yes"}]})", "step 1: \"optional\""},
+        {R"([])", "orca_script"},
+        {R"({})", "orca_script"},
+    }));
+    std::string          err;
+    std::optional<Script> s;
+    CHECK_NOTHROW(s = parse_script(text, err));
+    CHECK_FALSE(s.has_value());
+    CHECK(err.find(field) != std::string::npos);
+}
+
+TEST_CASE("broken JSON says where", "[Mcp]")
+{
+    std::string err;
+    CHECK_FALSE(parse_script("{\n  \"orca_script\": 1,\n  \"steps\": [ {\"tool\": \"a\",, } ]\n}", err).has_value());
+    CHECK(err.find("line 3, column") != std::string::npos);
 }

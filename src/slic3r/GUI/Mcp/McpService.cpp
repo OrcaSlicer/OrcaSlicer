@@ -11,6 +11,9 @@
 #include "ModalTracker.hpp"
 #include "UiInspector.hpp"
 #include "McpPaths.hpp"
+#include "McpScript.hpp"
+#include "McpScriptRun.hpp"
+#include "JobRegistry.hpp"
 #include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -38,6 +41,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <functional>
@@ -46,6 +50,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -305,6 +310,10 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
 
 void McpService::stop()
 {
+    // Before the stop flag: a run's stop does nothing once the service is stopping, and it must cancel
+    // the run's slice while the main window is still there.
+    if (m_core != nullptr && !m_stopping)
+        stop_script_runs();
     if (m_core == nullptr || m_stopping.exchange(true))
         return;
     BOOST_LOG_TRIVIAL(info) << "MCP server stopping";
@@ -317,6 +326,13 @@ void McpService::stop()
     stop_serving();
     if (m_script_thread.joinable())
         m_script_thread.join();
+    {
+        std::lock_guard<std::mutex> lock(m_runs_mutex);
+        for (RunThread& r : m_run_threads)
+            if (r.thread.joinable())
+                r.thread.join();
+        m_run_threads.clear();
+    }
     {
         // Script rules too: no script survives the stop.
         std::lock_guard<std::mutex> lock(m_rules_mutex);
@@ -439,6 +455,8 @@ void McpService::stop_serving()
 
 void McpService::suspend()
 {
+    // The main window is about to be rebuilt; runs stop while its plater is still the current one.
+    stop_script_runs();
     m_suspended = true;
     ++m_generation;
 }
@@ -554,6 +572,123 @@ void McpService::run_launch_script()
                 wxGetApp().mainframe->Close(true);
         });
     });
+}
+
+void McpService::post_ui(std::function<void()> fn)
+{
+    if (m_dispatcher)
+        m_dispatcher->post(std::move(fn));
+}
+
+void McpService::request_stop(const std::string& job) { m_jobs.request_stop(job); }
+
+bool McpService::discard_authorized(const std::set<std::string>& lineage) const
+{
+    std::lock_guard<std::mutex> lock(m_run_state_mutex);
+    for (const std::string& job : lineage)
+        if (m_discard_jobs.count(job) != 0)
+            return true;
+    return false;
+}
+
+void McpService::stop_script_runs()
+{
+    std::vector<std::shared_ptr<ScriptRun>> runs;
+    {
+        std::lock_guard<std::mutex> lock(m_runs_mutex);
+        for (const RunThread& r : m_run_threads)
+            if (r.run->running())
+                runs.push_back(r.run);
+    }
+    for (const auto& run : runs)
+        run->stop();
+}
+
+std::shared_ptr<ScriptRun> McpService::start_script_run(Script script, ScriptContext sctx, std::optional<std::size_t> only_step,
+                                                        bool discard_authorized, ScriptRun::Events events)
+{
+    const ToolDef* run_script_def = started() ? m_registry.find("run_script") : nullptr;
+    if (run_script_def == nullptr || m_stopping)
+        return nullptr;
+    {
+        // Threads whose run has ended are done or about to be; joining them keeps the list short.
+        std::lock_guard<std::mutex> lock(m_runs_mutex);
+        for (auto it = m_run_threads.begin(); it != m_run_threads.end();) {
+            if (it->run->running()) {
+                ++it;
+                continue;
+            }
+            if (it->thread.joinable())
+                it->thread.join();
+            it = m_run_threads.erase(it);
+        }
+    }
+
+    auto run      = std::make_shared<ScriptRun>(*this, std::move(events));
+    auto shared   = std::make_shared<Script>(std::move(script));
+    auto ctx_held = std::make_shared<ScriptContext>(std::move(sctx));
+    // run_script's properties, outside the session journal: a person's run is not an agent's call.
+    ToolDef def = *run_script_def;
+    def.journal = false;
+    def.handler = [this, run, shared, ctx_held, only_step, discard_authorized](const json&, ToolContext& ctx) {
+        const std::string job = ctx.job_id();
+        run->set_job(job);
+        struct Authorization
+        {
+            McpService& service;
+            std::string job;
+            bool        held;
+            ~Authorization()
+            {
+                if (held) {
+                    std::lock_guard<std::mutex> lock(service.m_run_state_mutex);
+                    service.m_discard_jobs.erase(job);
+                }
+            }
+        } authorization{*this, job, discard_authorized};
+        if (discard_authorized) {
+            std::lock_guard<std::mutex> lock(m_run_state_mutex);
+            m_discard_jobs.insert(job);
+        }
+        ScriptRunOptions options;
+        options.only_step     = only_step;
+        options.write_result  = !only_step;
+        options.step_started  = [run](std::size_t index) { run->post_step_started(index); };
+        options.step_finished = [run](const json& entry) { run->post_step_finished(entry); };
+        return ToolResult::ok(run_script_job(*this, ctx, *shared, *ctx_held, options));
+    };
+
+    std::lock_guard<std::mutex> lock(m_runs_mutex);
+    m_run_threads.push_back({std::thread([this, run, def, ctx_held] {
+                                 ToolResult        r      = m_core->call(def, json::object());
+                                 const std::string status = r.is_error ? std::string() : r.data.value("status", "");
+                                 if ((status == "running" || status == "blocked_by_dialog") && r.data.contains("job")) {
+                                     const std::string         job = r.data["job"].get<std::string>();
+                                     std::optional<ToolResult> done;
+                                     while (!done && !m_stopping) {
+                                         try {
+                                             done = m_jobs.wait(job, std::chrono::seconds(1));
+                                         } catch (const ToolFailure& f) {
+                                             done = ToolResult::error(f.what()); // the job's result was lost
+                                         }
+                                     }
+                                     if (!done) {
+                                         run->mark_ended();
+                                         return;
+                                     }
+                                     r = std::move(*done);
+                                 }
+                                 run->mark_ended();
+                                 if (m_stopping)
+                                     return;
+                                 // The handler has returned, so the jobs it saved are settled. A run refused
+                                 // before its handler started (another operation holds the project) saved none
+                                 // and replaces none.
+                                 run->post_finished(r.is_error ? json{{"error", r.message}} : r.data,
+                                                    run->job().empty() ? json() : ctx_held->jobs);
+                             }),
+                             run});
+    return run;
 }
 
 }}} // namespace Slic3r::GUI::Mcp

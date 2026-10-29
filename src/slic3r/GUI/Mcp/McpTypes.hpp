@@ -14,6 +14,11 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
+// The name of a top-level window the MCP GUI tools never see: ui_snapshot and locators skip it, web
+// view scripts never pick it, keys sent without a target never go to it, and window screenshots
+// leave it out. The script runner dialog carries it, so a script it runs can't act on it.
+inline constexpr char kHiddenFromAutomation[] = "OrcaHiddenFromMcp";
+
 // What a tool may do while the app is inside another call's nested event loop or behind a modal
 // dialog. Inspect tools only read; Recover tools act on the topmost modal dialog to unblock the
 // app; everything else is Mutate and is refused in both situations.
@@ -68,7 +73,8 @@ public:
     virtual nlohmann::json observe_ui(const std::function<nlohmann::json()>& fn) = 0;
     // Id of the job this call runs as; empty for inline (inspect/recover) calls.
     virtual const std::string& job_id() const = 0;
-    // True once the service is stopping; long-running handlers poll it between steps.
+    // True once the service is stopping, or a stop was asked for this call's job or one of its
+    // ancestors (a script run the user stopped); long-running handlers poll it between steps.
     virtual bool cancelled() const = 0;
     // Calls another tool as a child of this call (script steps). Returns what a client would get:
     // the result, or a job envelope when the child outlives its reply budget.

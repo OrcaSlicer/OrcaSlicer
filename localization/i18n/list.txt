@@ -150,6 +150,17 @@ src/slic3r/GUI/CameraPopup.cpp
 src/slic3r/GUI/ConnectPrinter.cpp
 src/slic3r/GUI/HMSPanel.cpp
 src/slic3r/GUI/MainFrame.cpp
+src/slic3r/GUI/Mcp/McpToolsActions.cpp
+src/slic3r/GUI/Mcp/McpToolsApp.cpp
+src/slic3r/GUI/Mcp/McpToolsCad.cpp
+src/slic3r/GUI/Mcp/McpToolsConfig.cpp
+src/slic3r/GUI/Mcp/McpToolsLayers.cpp
+src/slic3r/GUI/Mcp/McpToolsProject.cpp
+src/slic3r/GUI/Mcp/McpToolsScene.cpp
+src/slic3r/GUI/Mcp/McpToolsScript.cpp
+src/slic3r/GUI/Mcp/McpToolsUi.cpp
+src/slic3r/GUI/Mcp/McpToolsView.cpp
+src/slic3r/GUI/ScriptRunnerDialog.cpp
 src/slic3r/GUI/MediaPlayCtrl.cpp
 src/slic3r/GUI/MediaFilePanel.cpp
 src/slic3r/GUI/ImageGrid.cpp

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Run Script</title>
+  <link rel="stylesheet" type="text/css" href="../css/theme.css" />
+  <link rel="stylesheet" type="text/css" href="./style.css" />
+  <script type="text/javascript" src="../../include/i18n.js"></script>
+  <script type="text/javascript" src="../js/globalapi.js"></script>
+  <script type="text/javascript" src="./script_runner.js"></script>
+</head>
+<body onload="OnInit()">
+  <div class="runner">
+    <header class="source-bar">
+      <button type="button" id="open-file" class="btn" data-i18n="open_file">Open file…</button>
+      <button type="button" id="paste" class="btn" data-i18n="paste">Paste</button>
+      <span id="chip" class="chip" hidden>
+        <span id="chip-name"></span>
+        <span id="chip-edited" class="chip-note" hidden data-i18n="edited">(edited)</span>
+      </span>
+    </header>
+
+    <main class="sections">
+      <section id="steps-section" class="section is-open">
+        <button type="button" class="section-head" aria-expanded="true" aria-controls="steps-body">
+          <span class="chevron" aria-hidden="true"></span>
+          <span class="section-title" data-i18n="steps">Steps</span>
+          <span id="steps-summary" class="section-summary"></span>
+        </button>
+        <div id="steps-body" class="section-body">
+          <div id="empty" class="empty">
+            <p data-i18n="empty_hint">Open a script file or paste one to see what it will do.</p>
+            <div class="empty-actions">
+              <button type="button" id="empty-open" class="btn primary" data-i18n="open_file">Open file…</button>
+              <button type="button" id="empty-paste" class="btn" data-i18n="paste_script">Paste script</button>
+            </div>
+          </div>
+          <ol id="steps" class="rail" hidden></ol>
+        </div>
+      </section>
+
+      <section id="source-section" class="section">
+        <button type="button" class="section-head" aria-expanded="false" aria-controls="source-body">
+          <span class="chevron" aria-hidden="true"></span>
+          <span class="section-title" data-i18n="script_source">Script source</span>
+        </button>
+        <div id="source-body" class="section-body" hidden>
+          <textarea id="source" spellcheck="false" autocomplete="off" data-i18n-aria-label="script_source"
+                    data-i18n-placeholder="source_placeholder" placeholder="Paste a script here"></textarea>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="outcome" role="status" aria-live="polite">
+        <span id="outcome"></span>
+        <span id="outcome-detail" class="outcome-detail"></span>
+      </div>
+      <button type="button" id="open-output" class="btn" hidden data-i18n="open_output">Open output folder</button>
+      <button type="button" id="stop" class="btn" hidden data-i18n="stop">Stop</button>
+      <button type="button" id="run" class="btn primary" disabled data-i18n="run">Run</button>
+      <button type="button" id="close" class="btn" data-i18n="close">Close</button>
+    </footer>
+  </div>
+</body>
+</html>
