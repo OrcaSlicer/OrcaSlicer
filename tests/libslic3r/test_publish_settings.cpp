@@ -15,11 +15,24 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PublishSelection.hpp"
 #include "libslic3r/PublishSettings.hpp"
 
 using namespace Slic3r;
 
 namespace {
+
+PublishRowId make_publish_row(std::vector<std::string> keys, PublishSection section, int owner = -1, int column = -1,
+                              PublishRowKind kind = PublishRowKind::Key)
+{
+    PublishRowId row;
+    row.keys    = std::move(keys);
+    row.owner   = owner;
+    row.column  = column;
+    row.section = section;
+    row.kind    = kind;
+    return row;
+}
 
 void check_double_vector(const std::vector<double> &actual, std::initializer_list<double> expected)
 {
@@ -658,4 +671,118 @@ TEST_CASE("Resizing the filament count keeps variant-bearing vectors at their va
     const auto *colour = config.opt<ConfigOptionStrings>("filament_colour");
     REQUIRE(colour != nullptr);
     CHECK(colour->size() == 1);
+}
+
+TEST_CASE("Checked state round-trips through published keys and material entries", "[PublishSettings]")
+{
+    const PublishRowId printer_row = make_publish_row({ "retraction_length" }, PublishSection::Printer, -1, 1);
+    const PublishRowId slot_row    = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
+    const PublishRowId multi_row =
+        make_publish_row({ "overhang_speed_0", "overhang_speed_1" }, PublishSection::Material, 0, 2);
+    const std::vector<PublishRowId> rows{ printer_row, slot_row, multi_row };
+
+    PublishSelection selection;
+    selection.set_owner_info(0, PublishOwnerInfo());
+    selection.set_owner_enabled(0, true);
+    selection.set_checked(printer_row, true);
+    selection.set_checked(slot_row, true);
+    selection.set_checked(multi_row, true);
+
+    // The variant-bearing printer row publishes its column; the material rows do not.
+    CHECK(selection.published_keys(rows) == std::vector<std::string>{ "retraction_length#1" });
+
+    // Both material rows land in one entry per owner, in row order and key order; the
+    // variant-bearing row keeps its column, the slot-level row stays a plain key.
+    const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+    REQUIRE(entries.size() == 1);
+    CHECK(entries[0].slot == 0);
+    CHECK(entries[0].keys ==
+          std::vector<std::string>{ "filament_cost", "overhang_speed_0#2", "overhang_speed_1#2" });
+}
+
+TEST_CASE("A disabled row is never exported, even when checked", "[PublishSettings]")
+{
+    const PublishRowId printer_row  = make_publish_row({ "retraction_length" }, PublishSection::Printer, -1, 1);
+    const PublishRowId material_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
+    const std::vector<PublishRowId> rows{ printer_row, material_row };
+
+    PublishSelection selection;
+    selection.set_owner_info(0, PublishOwnerInfo());
+    selection.set_owner_enabled(0, true);
+    selection.set_checked(printer_row, true);
+    selection.set_enabled(printer_row, false);
+    selection.set_checked(material_row, true);
+    selection.set_enabled(material_row, false);
+
+    CHECK(selection.published_keys(rows).empty());
+    CHECK(selection.material_entries(rows).empty());
+}
+
+TEST_CASE("Full publish exports every variant of the owner", "[PublishSettings]")
+{
+    const PublishRowId key_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
+    const std::vector<PublishRowId> rows{ key_row };
+
+    PublishOwnerInfo info;
+    info.filament_type = "PLA High Speed";
+    info.full_keys     = { "filament_flow_ratio", "filament_max_volumetric_speed" };
+
+    PublishSelection selection;
+    selection.set_owner_info(0, info);
+    selection.set_owner_enabled(0, true);
+    selection.set_full_publish(0, true);
+    selection.set_checked(key_row, true);
+
+    const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+    REQUIRE(entries.size() == 1);
+    CHECK(entries[0].full);
+    CHECK(entries[0].full_keys == info.full_keys);
+    CHECK(entries[0].publish_type);
+    CHECK(entries[0].publish_type_value == "PLA");
+    // Full Publish ignores the owner's per-key rows.
+    CHECK(entries[0].keys.empty());
+}
+
+TEST_CASE("Mixed dependency issues name the component that is not published", "[PublishSettings]")
+{
+    DynamicPrintConfig project;
+    // Slot 0 is mixed from slot 2 (1-based), so the only component owner to check is slot 1.
+    project.set_key_value("filament_mixed_components", new ConfigOptionStrings({ "2", "" }));
+
+    PublishSelection selection;
+    PublishOwnerInfo mixed;
+    mixed.mixed = true;
+    selection.set_owner_info(0, mixed);
+    PublishOwnerInfo component;
+    component.filament_type = "PLA";
+    selection.set_owner_info(1, component);
+
+    // The component's "Type" requirement row, unchecked.
+    const std::vector<PublishRowId> rows{
+        make_publish_row({ "filament_type" }, PublishSection::Material, 1, -1, PublishRowKind::Type)
+    };
+
+    SECTION("a disabled component is reported") {
+        selection.set_owner_enabled(1, false);
+        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, rows, project);
+        REQUIRE(issues.size() == 1);
+        CHECK(issues[0].mixed_slot == 0);
+        CHECK(issues[0].component_slot == 1);
+        CHECK(issues[0].reason == MixedDependencyIssue::Reason::Disabled);
+    }
+
+    SECTION("an enabled fully published component clears the issue") {
+        selection.set_owner_enabled(1, true);
+        selection.set_full_publish(1, true);
+        CHECK(unpublished_mixed_components(selection, rows, project).empty());
+    }
+
+    SECTION("an enabled component with neither type nor full publish is reported") {
+        selection.set_owner_enabled(1, true);
+        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, rows, project);
+        REQUIRE(issues.size() == 1);
+        CHECK(issues[0].mixed_slot == 0);
+        CHECK(issues[0].component_slot == 1);
+        CHECK(issues[0].reason == MixedDependencyIssue::Reason::MaterialNotPublished);
+    }
 }

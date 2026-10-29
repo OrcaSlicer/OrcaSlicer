@@ -48,17 +48,6 @@ struct PublishMaterialIdentity
     std::string id;
 };
 
-// One unmet dependency of an enabled mixed-filament slot: the component filament the mix uses
-// would ship without its material (either the component slot is not enabled at all, or it is
-// enabled with neither "Full Publish" nor the "Type" requirement checked). Slots are 0-based.
-struct MixedDependencyIssue
-{
-    enum class Reason { Disabled, MaterialNotPublished };
-    size_t mixed_slot{0};
-    size_t component_slot{0};
-    Reason reason{Reason::Disabled};
-};
-
 // Dialog letting a model author select which settings get embedded in a 3MF. Nested tab layout
 // mirroring the Process settings (Printer / Filament / Process outer tabs, category or material
 // tabs inside each). Dirty settings are pre-checked and shown bold; on OK the print rows become
