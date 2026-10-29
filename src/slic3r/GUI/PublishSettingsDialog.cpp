@@ -16,7 +16,6 @@
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/StateColor.hpp"
-#include "Widgets/SwitchButton.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Preset.hpp"
@@ -838,7 +837,7 @@ void PublishSettingsDialog::fit_to_content()
 
     int strip = m_outer_tabs->GetFullSize();
     for (const SectionGroup& section : m_sections) {
-        strip = std::max(strip, (section.page_tabs != nullptr ? section.page_tabs : section.tabs)->GetFullSize());
+        strip = std::max(strip, section.tabs->GetFullSize());
         if (section.mixed_tabs != nullptr)
             strip = std::max(strip, section.mixed_tabs->GetFullSize());
     }
@@ -873,11 +872,6 @@ PublishSettingsDialog::~PublishSettingsDialog()
 
 void PublishSettingsDialog::build_option_model()
 {
-    // Structural / non-publishable keys, shared with the published-3MF overlay path.
-    const std::set<std::string>& denylist = publish_structural_keys();
-    // Base keys already added in the print section (dedup across pages/optgroups).
-    std::set<std::string> added;
-
     PresetBundle* bundle    = wxGetApp().preset_bundle;
     DynamicPrintConfig full = bundle->full_config();
     // Per-extruder rows (printer and process) index the uncompacted variant columns (as the Tabs do);
@@ -897,52 +891,7 @@ void PublishSettingsDialog::build_option_model()
         section_group_for(kind);
     bind_tab_events();
 
-    // Shared per-option label/value computation; returns false when the option must be skipped
-    // (denylisted / unknown / empty label). value is the stringified value; unit the translated
-    // sidetext (may be empty).
-    auto option_text = [&denylist](const DynamicPrintConfig& cfg, const std::string& opt_id, const std::string& pure_key, wxString& label,
-                                   wxString& value, wxString& unit) -> bool {
-        if (denylist.count(pure_key) > 0)
-            return false;
-        const ConfigOptionDef* def = print_config_def.get(pure_key);
-        if (def == nullptr)
-            return false;
-        label = _(def->full_label.empty() ? def->label : def->full_label);
-        if (label.IsEmpty())
-            return false;
-        value = get_string_value(opt_id, cfg);
-        unit  = _(def->sidetext);
-        if (unit == "%" && value.EndsWith("%"))
-            unit.clear();
-        return true;
-    };
-
-    // A scalar always resolves; a vector only when the index addresses one of its elements, so a
-    // short vector hides its row instead of clamping to the first value. An index of -1 means
-    // "the option's single entry", which the group resolves the same way the Tab does.
-    auto index_in_range = [](const DynamicPrintConfig& cfg, const std::string& key, int index) {
-        const ConfigOption* opt = cfg.option(key);
-        if (opt == nullptr)
-            return false;
-        if (index < 0)
-            return true;
-        const auto* values = dynamic_cast<const ConfigOptionVectorBase*>(opt);
-        return values == nullptr || size_t(index) < values->size();
-    };
-
     m_snapshot = uncompacted;
-
-    // The per-extruder icon marks a setting only when its section shows more than one column; a
-    // Printer or Process section shows one column per page, so the rule is applied section-wide.
-    auto unify_section_columns = [this](size_t group) {
-        std::vector<size_t> all;
-        for (size_t c : m_sections[group].categories)
-            for (size_t column : m_categories[c].columns)
-                if (std::find(all.begin(), all.end(), column) == all.end())
-                    all.push_back(column);
-        for (size_t c : m_sections[group].categories)
-            m_categories[c].columns = all;
-    };
 
     // The dialog's own requirement rows: Color and Type on a material slot. They publish
     // publish_color / publish_type, not a key.
@@ -962,45 +911,6 @@ void PublishSettingsDialog::build_option_model()
         row.label    = label;
         row.label_en = label;
         row.value    = value;
-        return row;
-    };
-
-    // One option of a source Line, remapped to the column this dialog shows it at.
-    struct MappedOption
-    {
-        std::string publish_key;
-        RowOption   option;
-    };
-
-    // One row from one source Line: every option of the line is one publish unit with one toggle,
-    // carrying the line's own label, tooltip and wiki path.
-    auto make_line_row = [&option_text](const Line& src, const std::vector<MappedOption>& mapped, int owner, int column,
-                                        Slic3r::PublishSection section,
-                                        const DynamicPrintConfig& cfg) -> std::optional<Row> {
-        if (mapped.empty())
-            return std::nullopt;
-        Row row;
-        row.label         = src.label;
-        row.label_en      = src.label_en;
-        row.label_tooltip = src.label_tooltip;
-        row.label_path    = src.label_path;
-        row.id.owner      = owner;
-        row.id.column     = column;
-        row.id.section    = section;
-        row.id.kind       = Slic3r::PublishRowKind::Key;
-        for (const MappedOption& m : mapped) {
-            row.id.keys.push_back(m.publish_key);
-            row.options.push_back(m.option);
-        }
-        // A row whose control is an action (a colour picker, a plugin dialog, a device picker) is
-        // not a value the author publishes per key, so it carries no publish checkbox.
-        row.publishable = std::none_of(row.options.begin(), row.options.end(),
-                                       [](const RowOption& option) { return is_publish_action(option.def); });
-        // The first option's value and unit name the row in the filter.
-        wxString       label;
-        const RowOption& first = row.options.front();
-        if (!option_text(cfg, mapped.front().publish_key, first.key, label, row.value, row.unit))
-            return std::nullopt;
         return row;
     };
 
@@ -1127,125 +1037,27 @@ void PublishSettingsDialog::build_option_model()
         }
     }
 
-    // --- Phase 3: process (print) settings; grouping matches the process tab. Per-extruder settings
-    // (print_options_with_variant) get one tab per extruder, as the Printer section does, with a row
-    // per extruder column ("key#N"); the other settings stay on the page tabs.
+    // --- Phase 3: the process settings, drawn by one dialog-hosted Process tab over a preset
+    // seeded from the edited print preset (spec 7.4). The tab's own extruder switch and page strip
+    // replace the dialog's per-extruder categories and page tabs, and its page set is kept whole.
     {
-        size_t g = section_group_for(Section::Print);
-
-        // One tab per extruder entry of the Process tab's switch (a single "Extruder" tab for one extruder).
-        struct ExtruderEntry
-        {
-            size_t category{0};
-            int    variant{-1};
-        };
-        std::vector<ExtruderEntry> extruder_entries;
-        if (auto* print_tab = dynamic_cast<TabPrint*>(wxGetApp().get_tab(Preset::TYPE_PRINT))) {
-            const int extruder_count = bundle->get_printer_extruder_count();
-            // The process pages follow the sidebar's extruder switch: it is populated only when
-            // several extruders run different hardware, and a hybrid extruder then shows one page
-            // per sub-nozzle type. Otherwise there is a single "Extruder" page.
-            const bool                    split_hybrid   = extruder_count >= 2 && bundle->support_different_extruders();
-            const std::vector<wxString>   titles         = split_hybrid ? print_tab->generate_extruder_options() : std::vector<wxString>();
-            const DynamicPrintConfig&     print_config   = bundle->prints.get_edited_preset().config;
-            const DynamicPrintConfig&     printer_config = bundle->printers.get_edited_preset().config;
-            size_t                        title_index    = 0;
-            const int                     extruders      = split_hybrid ? extruder_count : 1;
-            for (int extruder = 0; extruder < extruders; ++extruder) {
-                // Labels pair with the switch's own tags, so the pages read exactly like the Tab.
-                for (const Slic3r::PublishExtruderEntry& column : publish_extruder_rule(
-                         print_config, printer_config, bundle->project_config, size_t(extruder), split_hybrid,
-                         "print_extruder_id", "print_extruder_variant")) {
-                    const wxString title = split_hybrid && title_index < titles.size() ?
-                                               titles[title_index] :
-                                               Tab::translate_category(wxString("Extruder"), Preset::TYPE_PRINT);
-                    ++title_index;
-                    extruder_entries.push_back({category_index_for(title, Section::Print, g, extruder_entries.size(),
-                                                                   PublishMaterialIdentity(), false, split_hybrid),
-                                                int(column.column)});
-                }
-            }
-        }
-
-        for (const ExtruderEntry& entry : extruder_entries) {
-            std::vector<size_t>& columns = m_categories[entry.category].columns;
-            if (std::find(columns.begin(), columns.end(), size_t(entry.variant)) == columns.end())
-                columns.push_back(size_t(entry.variant));
-        }
-        unify_section_columns(g);
-
-        std::set<std::string> extruder_added; // "key#N" rows already added
-        for (Tab* tab : wxGetApp().tabs_list) {
-            if (tab->m_type != Preset::TYPE_PRINT)
-                continue;
-            size_t page_index = 0;
-            for (const PageShp& page : tab->m_pages) {
-                const wxString category = Tab::translate_category(page->title(), tab->m_type);
-                // Created with the page's first row, so a page holding only per-extruder settings gets no tab.
-                size_t category_index = size_t(-1);
-
-                for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
-                    // A source Line is one row: its options publish together and share one toggle.
-                    for (const Line& src : optgroup->get_lines()) {
-                        if (src.is_separator())
-                            continue;
-                        const std::vector<Option>& src_options = src.get_options();
-                        if (src_options.empty())
-                            continue;
-
-                        // A line made only of per-variant keys is shown once per extruder column.
-                        bool per_variant = !extruder_entries.empty();
-                        for (const Option& option : src_options)
-                            per_variant = per_variant && print_options_with_variant.count(publish_base_key(option.opt_id)) != 0;
-
-                        if (per_variant) {
-                            for (const ExtruderEntry& entry : extruder_entries) {
-                                std::vector<MappedOption> mapped;
-                                bool                      row_ok = true;
-                                for (const Option& option : src_options) {
-                                    const std::string base = publish_base_key(option.opt_id);
-                                    const std::string key  = base + "#" + std::to_string(entry.variant);
-                                    if (!extruder_added.insert(key).second || !index_in_range(uncompacted, base, entry.variant)) {
-                                        row_ok = false;
-                                        break;
-                                    }
-                                    mapped.push_back({ key, { base, entry.variant, option.opt } });
-                                }
-                                if (!row_ok)
-                                    continue;
-                                size_t sub_index = subcategory_index_for(entry.category, _(optgroup->title), optgroup->icon,
-                                                                         optgroup.get(), page.get(), tab->type());
-                                if (auto row = make_line_row(src, mapped, -1, entry.variant, Slic3r::PublishSection::Process, uncompacted))
-                                    add_row(std::move(*row), entry.category, sub_index);
-                            }
-                            continue;
-                        }
-
-                        // A key may appear in more than one page/group; keep the first.
-                        std::vector<MappedOption> mapped;
-                        bool                      row_ok = true;
-                        for (const Option& option : src_options) {
-                            const std::string base  = publish_base_key(option.opt_id);
-                            const int         index = publish_key_index(option.opt_id);
-                            if (!added.insert(base).second || !index_in_range(uncompacted, base, index)) {
-                                row_ok = false;
-                                break;
-                            }
-                            mapped.push_back({ option.opt_id, { base, index, option.opt } });
-                        }
-                        if (!row_ok)
-                            continue;
-                        if (category_index == size_t(-1))
-                            category_index = category_index_for(category, Section::Print, g, page_index);
-                        size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon,
-                                                                 optgroup.get(), page.get(), tab->type());
-                        if (auto row = make_line_row(src, mapped, -1, publish_key_index(mapped.front().publish_key),
-                                                     Slic3r::PublishSection::Process, uncompacted))
-                            add_row(std::move(*row), category_index, sub_index);
-                    }
-                }
-                ++page_index;
-            }
+        size_t       g              = section_group_for(Section::Print);
+        const size_t category_index = category_index_for(_L("Process"), Section::Print, g, 0);
+        add_print_tab_rows(category_index);
+        if (Tab* tab = m_categories[category_index].publish_tab) {
+            // The switch decides which column's row a checkbox paints; the tab handles its own
+            // switch first (values, greying), then this repaints the publish controls.
+            tab->m_on_variant_changed = [this](int) {
+                sync_all_row_widgets();
+                apply_visibility();
+            };
+            // The tab rewrites its lines' visibility and its label colours on a page switch;
+            // re-apply the filter and the dirty markers on top.
+            tab->m_on_rules_applied = [this] {
+                apply_visibility();
+                for (size_t r = 0; r < m_rows.size(); ++r)
+                    apply_row_label_colour(r);
+            };
         }
     }
 
@@ -1337,10 +1149,6 @@ void PublishSettingsDialog::build_option_model()
     for (SectionGroup& section : m_sections)
         if (!section.categories.empty())
             section.tabs->SelectItem(0);
-    // Orca: several extruders are shown on the same switch as the printer tab's Extruder page.
-    for (size_t s = 0; s < m_sections.size(); ++s)
-        if (m_sections[s].variant_inners.size() > 1)
-            setup_variant_switch(s);
     if (!m_sections.empty()) {
         m_outer_tabs->SelectItem(0);
         show_outer_page(0);
@@ -1380,18 +1188,9 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
     section.tabs->SetFont(Label::Body_14);
     section.tabs->SetBackgroundColour(GetBackgroundColour());
     page_sizer->Add(section.tabs, 0, wxEXPAND);
-    // Process: the full strip stays hidden as the selection model; the page tabs are shown below the
-    // extruder switch instead.
-    if (kind == Section::Print) {
-        section.page_tabs = new TabCtrl(section.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, s_tab_style);
-        section.page_tabs->SetFont(Label::Body_14);
-        section.page_tabs->SetBackgroundColour(GetBackgroundColour());
-        page_sizer->Add(section.page_tabs, 0, wxEXPAND);
-        section.tabs->Hide();
-    }
-    // Printer: one hosted page, so the strip is the selection model only, as on the Process
-    // section; the tab's own extruder switch replaces it.
-    if (kind == Section::Printer)
+    // Printer and Process: one hosted page each, so the strip is the selection model only and the
+    // tab's own pages and extruder switch are the visible navigation.
+    if (kind != Section::Material)
         section.tabs->Hide();
     // Mixed-color filament slots get a second tab strip below the physical filament tabs; only
     // the Material section has them.
@@ -1427,8 +1226,7 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
                                                  size_t group,
                                                  size_t source_index,
                                                  const PublishMaterialIdentity& identity,
-                                                 bool is_mixed,
-                                                 bool is_variant)
+                                                 bool is_mixed)
 {
     // Dedup across both tab rows (physical + mixed); mixed slots are never duplicated anyway.
     auto match = [&](const Category& existing) {
@@ -1543,6 +1341,17 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         category.publish_host = host;
         category.publish_tab  = tab;
         page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
+    } else if (section == Section::Print) {
+        // The process settings are the sidebar's own Process tab, over a private preset seeded
+        // from the edited print preset (spec 7.4). Its own extruder switch and page strip replace
+        // the dialog's per-extruder categories and page tabs; its page set is kept whole.
+        auto* host = new PublishParamsPanel(category.page);
+        auto* tab  = new PublishTabPrint(host);
+        tab->create_publish_tab(wxGetApp().preset_bundle->prints.get_edited_preset().config);
+        host->set_publish_tab(tab);
+        category.publish_host = host;
+        category.publish_tab  = tab;
+        page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
     }
     category.scroll = new wxScrolledWindow(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxHSCROLL);
     category.scroll->SetScrollRate(FromDIP(20), FromDIP(20));
@@ -1555,9 +1364,8 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     category.info->SetFont(Label::Body_13);
     category.list_sizer->Add(category.info, 1, wxALIGN_CENTER_HORIZONTAL | wxALL, FromDIP(10));
     category.info->Hide();
-    // A hosted slot's scroll holds only the requirement rows below the tab, so it keeps its own
-    // height and the tab takes the rest of the page. A hosted printer page has no requirement
-    // rows: its scroll only reports an empty filter, so it takes no height.
+    // A hosted page's scroll holds no setting rows: it only reports an empty filter, so it takes
+    // no height; a hosted material slot's scroll keeps room for its Color/Type rows.
     const bool hosted = category.publish_host != nullptr;
     if (hosted) {
         if (section == Section::Material)
@@ -1578,11 +1386,8 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     // Mixed slots live in a second tab row below the physical filament tabs.
     if (is_mixed)
         m_sections[group].mixed_categories.push_back(category_index);
-    else {
+    else
         m_sections[group].categories.push_back(category_index);
-        if (is_variant)
-            m_sections[group].variant_inners.push_back(m_sections[group].categories.size() - 1);
-    }
     if (section == Section::Material) {
         TabCtrl* target = is_mixed ? m_sections[group].mixed_tabs : m_sections[group].tabs;
         if (is_mixed) {
@@ -1602,10 +1407,6 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         }
     } else {
         m_sections[group].tabs->AppendItem(title);
-        if (section == Section::Print && !is_variant && m_sections[group].page_tabs != nullptr) {
-            m_sections[group].page_tabs->AppendItem(title);
-            m_sections[group].page_inners.push_back(m_sections[group].categories.size() - 1);
-        }
     }
     m_sections[group].page_host_sizer->Add(m_categories[category_index].page, 1, wxEXPAND);
     if (is_mixed) {
@@ -1978,6 +1779,162 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
     }
 }
 
+void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
+{
+    Category&     category = m_categories[category_index];
+    Tab*          tab      = category.publish_tab;
+    PresetBundle* bundle   = wxGetApp().preset_bundle;
+    if (tab == nullptr || bundle == nullptr)
+        return;
+
+    // The columns the Process tab's extruder switch can show, from the same rule the export side
+    // reads. The switch is populated only when several extruders run different hardware, and a
+    // hybrid extruder then shows one entry per sub-nozzle type; otherwise there is one page.
+    const bool                split_hybrid   = bundle->get_printer_extruder_count() >= 2 && bundle->support_different_extruders();
+    const DynamicPrintConfig& print_config   = bundle->prints.get_edited_preset().config;
+    const DynamicPrintConfig& printer_config = bundle->printers.get_edited_preset().config;
+    const int                 extruders      = split_hybrid ? bundle->get_printer_extruder_count() : 1;
+    std::vector<size_t>       columns;
+    for (int extruder = 0; extruder < extruders; ++extruder)
+        for (const Slic3r::PublishExtruderEntry& entry :
+             publish_extruder_rule(print_config, printer_config, bundle->project_config, size_t(extruder), split_hybrid,
+                                   "print_extruder_id", "print_extruder_variant"))
+            if (std::find(columns.begin(), columns.end(), entry.column) == columns.end())
+                columns.push_back(entry.column);
+    category.columns = columns;
+    if (!columns.empty())
+        category.column = int(columns.front());
+
+    const std::set<std::string>& denylist = publish_structural_keys();
+    std::set<std::string>        variant_added; // "base#column" rows already added
+    std::set<std::string>        added;         // plain rows already added, by base key
+
+    auto index_in_range = [this](const std::string& key, int index) {
+        const ConfigOption* opt = m_snapshot.option(key);
+        if (opt == nullptr)
+            return false;
+        if (index < 0)
+            return true;
+        const auto* values = dynamic_cast<const ConfigOptionVectorBase*>(opt);
+        return values == nullptr || size_t(index) < values->size();
+    };
+
+    for (const PageShp& page : tab->m_pages) {
+        // The page title stays the row's filter category, as it was when one page was one category.
+        const wxString page_title = Tab::translate_category(page->title(), tab->type());
+        for (const ConfigOptionsGroupShp& group : page->m_optgroups) {
+            bool touched = false;
+            for (const Line& src : group->get_lines()) {
+                if (src.is_separator() || src.get_options().empty())
+                    continue;
+
+                // A line made only of per-variant settings is shown once per extruder column, as
+                // the sidebar's extruder switch shows it; every other line publishes its keys whole.
+                std::vector<RowOption> options; // key, its own line index (-1 without a '#N'), definition
+                bool                   per_variant = !columns.empty();
+                for (const Option& option : src.get_options()) {
+                    const std::string     base = publish_base_key(option.opt_id);
+                    const ConfigOptionDef* def  = print_config_def.get(base);
+                    // Unknown, structural or action options carry no publish checkbox, and a row
+                    // needs a label to filter on (the same gate the cloned rows used).
+                    if (def == nullptr || denylist.count(base) != 0 || is_publish_action(option.opt))
+                        continue;
+                    if (_(def->full_label.empty() ? def->label : def->full_label).IsEmpty())
+                        continue;
+                    if (std::none_of(options.begin(), options.end(), [&base](const RowOption& o) { return o.key == base; }))
+                        options.push_back({base, publish_key_index(option.opt_id), option.opt});
+                    per_variant = per_variant && print_options_with_variant.count(base) != 0;
+                }
+                if (options.empty())
+                    continue;
+
+                // The checkbox the Tab's own line carries, once per line: it draws the row of the
+                // column the tab's switch currently selects.
+                Line* line = const_cast<Line*>(&src);
+                if (!line->row_toggle)
+                    line->row_toggle = RowToggle();
+                line->row_toggle->on_change = [this, category_index, line](bool checked) {
+                    if (const size_t r = tab_row_for_line(category_index, line); r != size_t(-1))
+                        set_row_checked(r, checked);
+                };
+                touched = true;
+
+                std::vector<Row> rows;
+                if (per_variant) {
+                    for (const size_t column : columns) {
+                        Row                      row;
+                        bool                     row_ok = true;
+                        std::vector<std::string> keys;
+                        for (const RowOption& option : options) {
+                            const std::string key = option.key + "#" + std::to_string(column);
+                            if (variant_added.count(key) != 0 || !index_in_range(option.key, int(column))) {
+                                row_ok = false;
+                                break;
+                            }
+                            keys.push_back(key);
+                            row.options.push_back({option.key, int(column), option.def});
+                        }
+                        if (!row_ok || row.options.empty())
+                            continue;
+                        variant_added.insert(keys.begin(), keys.end());
+                        row.id.keys    = std::move(keys);
+                        row.id.column  = int(column);
+                        rows.push_back(std::move(row));
+                    }
+                } else {
+                    Row                      row;
+                    bool                     row_ok = true;
+                    std::vector<std::string> keys;
+                    for (const RowOption& option : options) {
+                        // A per-variant option inside a mixed line keeps the key its line gave it,
+                        // so the payload names the same setting it always did.
+                        const std::string key = option.key + (option.index >= 0 ? "#" + std::to_string(option.index) : "");
+                        if (!added.insert(option.key).second || !index_in_range(option.key, option.index)) {
+                            row_ok = false;
+                            break;
+                        }
+                        keys.push_back(key);
+                        row.options.push_back(option);
+                    }
+                    if (row_ok && !row.options.empty()) {
+                        row.id.keys   = std::move(keys);
+                        row.id.column = -1;
+                        rows.push_back(std::move(row));
+                    }
+                }
+                if (rows.empty())
+                    continue;
+
+                for (Row& row : rows) {
+                    row.label         = src.label;
+                    row.label_en      = src.label_en;
+                    row.label_tooltip = src.label_tooltip;
+                    row.label_path    = src.label_path;
+                    row.subcategory   = _(group->title); // filter text only; tab rows have no Subcategory
+                    row.id.owner      = -1;
+                    row.id.section    = Slic3r::PublishSection::Process;
+                    row.id.kind       = Slic3r::PublishRowKind::Key;
+
+                    // The first option's value and unit name the row in the filter.
+                    const RowOption& first = row.options.front();
+                    row.value              = get_string_value(row.id.keys.front(), m_snapshot);
+                    if (const ConfigOptionDef* def = print_config_def.get(first.key)) {
+                        row.unit = _(def->sidetext);
+                        if (row.unit == "%" && row.value.EndsWith("%"))
+                            row.unit.clear();
+                    }
+                    row.tab_line             = line;
+                    const size_t added_index = add_tab_row(std::move(row), category_index);
+                    m_rows[added_index].category = page_title;
+                }
+            }
+            // The toggles added a column to the group's rows: re-align the value and unit columns.
+            if (touched)
+                group->msw_rescale();
+        }
+    }
+}
+
 bool PublishSettingsDialog::tab_line_visible(const Tab& tab, const Row& row) const
 {
     // A Tab hides a line through toggle_line(), which records the reason per option key: a row is
@@ -2091,25 +2048,39 @@ void PublishSettingsDialog::build_row_groups(size_t category_index)
     apply_visibility();
 }
 
-int PublishSettingsDialog::printer_active_column(Tab* tab) const
+int PublishSettingsDialog::tab_active_column(Tab* tab) const
 {
     PresetBundle* bundle = wxGetApp().preset_bundle;
     if (tab == nullptr || bundle == nullptr)
         return -1;
 
-    // The tab's switch names the extruder it shows; the rule then names that extruder's column.
-    // Without a switch there is one extruder, and the rule's single entry is its column.
+    // The tab's switch names the extruder (and, for a hybrid, the sub-nozzle type) it shows; the
+    // rule then names that entry's column. Without a switch there is one extruder, and the rule's
+    // single entry is its column.
     int              extruder  = 0;
     NozzleVolumeType nozzle    = NozzleVolumeType::nvtStandard;
     const int        selection = tab->switch_selection();
     if (selection >= 0)
         tab->parse_extruder_selection(selection, extruder, nozzle);
 
+    const bool                process        = tab->type() == Preset::TYPE_PRINT;
+    // The Process tab's switch lists a hybrid extruder as two tags (Standard, then High Flow);
+    // the Printer tab keeps one tag per extruder and reads the Standard column.
+    const bool                split_hybrid   = process && bundle->get_printer_extruder_count() >= 2 && bundle->support_different_extruders();
+    const DynamicPrintConfig& target         = process ? bundle->prints.get_edited_preset().config :
+                                                         bundle->printers.get_edited_preset().config;
     const DynamicPrintConfig& printer_config = bundle->printers.get_edited_preset().config;
     const std::vector<Slic3r::PublishExtruderEntry> entries =
-        publish_extruder_rule(printer_config, printer_config, bundle->project_config, size_t(extruder),
-                              /*split_hybrid=*/false, "printer_extruder_id", "printer_extruder_variant");
-    return entries.empty() ? -1 : int(entries.front().column);
+        publish_extruder_rule(target, printer_config, bundle->project_config, size_t(extruder), split_hybrid,
+                              process ? "print_extruder_id" : "printer_extruder_id",
+                              process ? "print_extruder_variant" : "printer_extruder_variant");
+    if (entries.empty())
+        return -1;
+    if (split_hybrid)
+        for (const Slic3r::PublishExtruderEntry& entry : entries)
+            if (entry.nozzle_type == int(nozzle))
+                return int(entry.column);
+    return int(entries.front().column);
 }
 
 bool PublishSettingsDialog::row_on_selected_variant(size_t row_index) const
@@ -2118,14 +2089,14 @@ bool PublishSettingsDialog::row_on_selected_variant(size_t row_index) const
     if (row.id.column < 0 || row.inner_index >= m_categories.size())
         return true; // slot-level rows belong to every variant
     const Category& category = m_categories[row.inner_index];
-    // The hosted Printer tab shows one extruder at a time: its switch decides which column's row
-    // the shared Line draws.
-    if (row.id.section == Slic3r::PublishSection::Printer) {
+    // The hosted Printer and Process tabs show one extruder entry at a time: the switch decides
+    // which column's row the shared Line draws.
+    if (row.id.section == Slic3r::PublishSection::Printer || row.id.section == Slic3r::PublishSection::Process) {
         if (category.publish_tab == nullptr)
             return true;
         // An extruder the rule defines no column for keeps the page on the last column shown
         // (switch_excluder returns early there), so fall back to the column the page started on.
-        const int column = printer_active_column(category.publish_tab);
+        const int column = tab_active_column(category.publish_tab);
         return row.id.column == (column >= 0 ? column : category.column);
     }
     if (row.id.section != Slic3r::PublishSection::Material)
@@ -2453,15 +2424,6 @@ void PublishSettingsDialog::show_outer_page(size_t section_index)
     m_outer_host_sizer->Layout();
 }
 
-// Position of `value` in `positions`, or -1.
-static int position_of(const std::vector<size_t>& positions, int value)
-{
-    for (size_t i = 0; i < positions.size(); ++i)
-        if (static_cast<int>(positions[i]) == value)
-            return static_cast<int>(i);
-    return -1;
-}
-
 void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_index)
 {
     if (section_index >= m_sections.size())
@@ -2479,19 +2441,6 @@ void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_inde
         section.selected_mixed = -1;
     }
     section.selected_inner = inner_index;
-    // An extruder page selects its switch option; a page tab leaves the switch with no selection.
-    if (section.variant_switch != nullptr) {
-        if (const int pos = position_of(section.variant_inners, inner_index); pos >= 0)
-            section.variant_switch->SetSelection(pos); // fires its event, which ignores the shown page
-        else
-            section.variant_switch->Unselect();
-    }
-    if (section.page_tabs != nullptr) {
-        if (const int pos = position_of(section.page_inners, inner_index); pos >= 0)
-            section.page_tabs->SelectItem(pos);
-        else
-            section.page_tabs->Unselect();
-    }
     Category& category     = m_categories[section.categories[inner_index]];
     build_row_groups(section.categories[inner_index]);
     category.page->Show();
@@ -2500,37 +2449,6 @@ void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_inde
     if (section.mixed_tabs != nullptr)
         section.mixed_tabs->Unselect();
     section.page_host_sizer->Layout();
-}
-
-void PublishSettingsDialog::setup_variant_switch(size_t section_index)
-{
-    SectionGroup& section = m_sections[section_index];
-    std::vector<wxString> titles;
-    for (size_t inner : section.variant_inners)
-        titles.push_back(m_categories[section.categories[inner]].title);
-
-    section.variant_switch = new MultiSwitchButton(section.page);
-    section.variant_switch->SetFitToOptions();
-    section.variant_switch->SetOptions(titles);
-    if (const int pos = position_of(section.variant_inners, section.selected_inner); pos >= 0)
-        section.variant_switch->SetSelection(pos);
-    section.variant_switch->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this, section_index](wxCommandEvent& evt) {
-        evt.Skip();
-        // The hidden tab strip stays the selection model; its event shows the page.
-        SectionGroup& sec = m_sections[section_index];
-        if (evt.GetInt() < 0 || evt.GetInt() >= static_cast<int>(sec.variant_inners.size()))
-            return;
-        const int inner = static_cast<int>(sec.variant_inners[evt.GetInt()]);
-        if (inner != sec.selected_inner)
-            sec.tabs->SelectItem(inner);
-    });
-
-    // The switch takes the place of the printer's tab strip, centered like on the printer tab. On the
-    // Process section it sits below the page tabs.
-    wxSizer* page_sizer = section.page->GetSizer();
-    page_sizer->Insert(section.page_tabs != nullptr ? 2 : 1, section.variant_switch, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(4));
-    section.tabs->Hide();
-    section.page->Layout();
 }
 
 void PublishSettingsDialog::show_mixed_page(size_t section_index, int mixed_index)
@@ -2573,17 +2491,6 @@ void PublishSettingsDialog::on_inner_tab_changed(size_t section_index, wxCommand
         show_inner_page(section_index, selection);
 }
 
-void PublishSettingsDialog::on_page_tab_changed(size_t section_index, wxCommandEvent& event)
-{
-    SectionGroup& section = m_sections[section_index];
-    const int selection   = event.GetInt();
-    if (selection < 0 || selection >= static_cast<int>(section.page_inners.size()))
-        return;
-    const int inner = static_cast<int>(section.page_inners[selection]);
-    if (inner != section.selected_inner)
-        section.tabs->SelectItem(inner);
-}
-
 void PublishSettingsDialog::on_mixed_tab_changed(size_t section_index, wxCommandEvent& event)
 {
     const int selection = event.GetInt();
@@ -2598,9 +2505,6 @@ void PublishSettingsDialog::bind_tab_events()
     for (size_t section_index = 0; section_index < m_sections.size(); ++section_index) {
         m_sections[section_index].tabs->Bind(wxEVT_TAB_SEL_CHANGED,
                                              [this, section_index](wxCommandEvent& event) { on_inner_tab_changed(section_index, event); });
-        if (m_sections[section_index].page_tabs != nullptr)
-            m_sections[section_index].page_tabs->Bind(wxEVT_TAB_SEL_CHANGED,
-                                                      [this, section_index](wxCommandEvent& event) { on_page_tab_changed(section_index, event); });
         if (m_sections[section_index].mixed_tabs != nullptr)
             m_sections[section_index].mixed_tabs->Bind(wxEVT_TAB_SEL_CHANGED, [this, section_index](wxCommandEvent& event) {
                 on_mixed_tab_changed(section_index, event);
@@ -3048,21 +2952,6 @@ void PublishSettingsDialog::refresh_tab_indicators()
             section.tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
             any = any || on;
         }
-        // The switch has no indicator dot; mark its option text instead.
-        if (section.variant_switch != nullptr)
-            for (size_t p = 0; p < section.variant_inners.size(); ++p) {
-                const Category& category = m_categories[section.categories[section.variant_inners[p]]];
-                const bool      on       = category_has_selection(category);
-                const wxString  text     = on ? category.title + wxString(" ") + wxString(wxUniChar(0x2022)) : category.title;
-                if (section.variant_switch->GetOptionText(static_cast<unsigned int>(p)) != text) {
-                    section.variant_switch->SetOptionText(static_cast<unsigned int>(p), text);
-                    section.page->Layout();
-                }
-            }
-        if (section.page_tabs != nullptr)
-            for (size_t j = 0; j < section.page_inners.size(); ++j)
-                section.page_tabs->SetItemIndicator(static_cast<unsigned int>(j),
-                                                    category_has_selection(m_categories[section.categories[section.page_inners[j]]]));
         if (section.mixed_tabs != nullptr)
             for (size_t i = 0; i < section.mixed_categories.size(); ++i) {
                 const bool on = category_has_selection(m_categories[section.mixed_categories[i]]);
@@ -3123,12 +3012,8 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         if (section.icon_bmp.bmp().IsOk())
             m_outer_tabs->SetItemBitmap(s, section.icon_bmp.bmp());
         section.tabs->Rescale();
-        if (section.page_tabs != nullptr)
-            section.page_tabs->Rescale();
         if (section.mixed_tabs != nullptr)
             section.mixed_tabs->Rescale();
-        if (section.variant_switch != nullptr)
-            section.variant_switch->Rescale();
     }
 
     // Rescale the row groups with the same entry point the sidebar's Page uses.

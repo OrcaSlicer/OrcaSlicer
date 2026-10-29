@@ -39,7 +39,6 @@ namespace Slic3r { class DynamicPrintConfig; }
 class TextInput;
 class StaticLine;
 class CheckBox;
-class MultiSwitchButton;
 
 namespace Slic3r { namespace GUI {
 
@@ -110,7 +109,7 @@ private:
         Slic3r::PublishRowId  id;                  // publish-ready keys, owner, column, section, kind
         std::vector<RowOption> options;            // widget mapping, one per published key
         // A hosted-tab row is drawn by the tab's own Line instead of a cloned one; the checkbox is
-        // attached to that line. Null on a cloned (process, requirement) row.
+        // attached to that line. Null on a cloned (requirement) row.
         Line*                 tab_line{nullptr};
         wxString              label;               // the source Line's label, for the filter
         wxString              label_en;            // untranslated label, for the cloned Line
@@ -157,8 +156,8 @@ private:
         wxScrolledWindow* scroll{nullptr};
         wxBoxSizer* list_sizer{nullptr};
         // A physical material slot's settings are the sidebar's own Filament tab, hosted above the
-        // requirement rows; the Printer section's are the sidebar's own Printer tab. Null on a
-        // mixed slot and on the process pages.
+        // requirement rows; the Printer and Process sections' are the sidebar's own tabs. Null on a
+        // mixed slot.
         PublishParamsPanel* publish_host{nullptr};
         Tab*                publish_tab{nullptr};
         wxStaticText* info{nullptr};
@@ -220,16 +219,10 @@ private:
         std::string icon_name;        // "printer" / "filament" / "process"
         ScalableBitmap icon_bmp;      // tab icon next to the title; rescaled on DPI change
         wxPanel* page{nullptr};
-        // Holds every category in order and stays the selection model. Hidden on the Process section,
-        // whose page tabs are shown in `page_tabs` instead.
+        // Holds every category in order and stays the selection model. Hidden on the Printer and
+        // Process sections, which have one hosted page each; there the tab's own strip (pages and
+        // extruder switch) is the visible navigation.
         TabCtrl* tabs{nullptr};
-        // Several extruders: the extruder switch, the same MultiSwitchButton (and option names) as the
-        // printer tab's Extruder page, with one option per entry of `variant_inners`.
-        MultiSwitchButton* variant_switch{nullptr};
-        // Process section: the visible strip of page tabs, shown below the extruder switch.
-        TabCtrl* page_tabs{nullptr};
-        std::vector<size_t> variant_inners; // positions in `categories` of the extruder categories
-        std::vector<size_t> page_inners;    // positions in `categories` of the categories shown in `page_tabs`
         // Second tab strip, below the main one, listing only the mixed-color filament slots.
         // Present on the Material section only (null elsewhere).
         TabCtrl* mixed_tabs{nullptr};
@@ -290,8 +283,7 @@ private:
                               size_t group,
                               size_t source_index,
                               const PublishMaterialIdentity& identity = PublishMaterialIdentity(),
-                              bool is_mixed                          = false,
-                              bool is_variant                        = false);
+                              bool is_mixed                          = false);
     size_t subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon,
                                  const ConfigOptionsGroup* source, const Page* page, int preset_type);
     // Appends one row to the model. Returns the row index. `id.keys` must already be
@@ -307,8 +299,13 @@ private:
     // Builds the hosted Printer page's rows from its tab's lines: one per variant column, keyed
     // "base#column", with the checkbox attached to the shared line.
     void add_printer_tab_rows(size_t category_index);
-    // The variant column the hosted Printer tab's extruder switch shows, or -1 when unknown.
-    int printer_active_column(Tab* tab) const;
+    // Builds the hosted Process page's rows from its tab's lines: a per-variant line gets one row
+    // per extruder column ("base#column"), every other line one row over its whole keys. The
+    // checkbox is attached to the shared line.
+    void add_print_tab_rows(size_t category_index);
+    // The variant column the hosted Printer or Process tab's extruder switch shows, or -1 when
+    // unknown.
+    int tab_active_column(Tab* tab) const;
     // The row of `line` shown for the variant the tab's switch currently selects, or -1.
     size_t tab_row_for_line(size_t category_index, const Line* line) const;
     // Whether the tab's own rules keep the row's line shown (its hide rules run natively).
@@ -333,13 +330,10 @@ private:
     void show_mixed_page(size_t section_index, int mixed_index);
     void on_outer_tab_changed(wxCommandEvent& event);
     void on_inner_tab_changed(size_t section_index, wxCommandEvent& event);
-    void on_page_tab_changed(size_t section_index, wxCommandEvent& event);
     void on_mixed_tab_changed(size_t section_index, wxCommandEvent& event);
     bool row_is_visible(size_t row_index) const;
     void apply_visibility();
     void bind_tab_events();
-    // Replaces a section's inner tab strip with a variant switch (see SectionGroup::variant_switch).
-    void setup_variant_switch(size_t section_index);
 
     TabCtrl* m_outer_tabs{nullptr};
     wxPanel* m_outer_host{nullptr};
