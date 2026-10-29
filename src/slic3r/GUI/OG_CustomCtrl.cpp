@@ -207,14 +207,16 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
                     break;
                 }
             }
+            const int blinking_button_width = m_bmp_blinking_sz.GetWidth() + m_h_gap;
+            // A row toggle is drawn at the start of the row, so it takes its width from the row's
+            // left edge and the act slot is not used; a Tab row keeps the act slot's exact width.
+            const int act_slot_width = line.row_toggle ? 0 : blinking_button_width;
+            if (line.row_toggle)
+                h_pos += blinking_button_width + toggle_gap();
+
             wxString label = line.label;
             if (opt_group->label_width != 0)
                 add_label_width(ctrl_line, label, opt_group->label_width * m_em_unit);
-
-            const int blinking_button_width = m_bmp_blinking_sz.GetWidth() + m_h_gap;
-            // A row toggle keeps its own space from the value or unit beside it; a Tab row has no
-            // toggle and keeps the act slot's exact width.
-            const int act_slot_width = blinking_button_width + (line.row_toggle ? toggle_gap() : 0);
 
             if (line.widget) {
 #ifndef DISABLE_BLINKING
@@ -884,6 +886,10 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         dc.DrawBitmap(bmp, icon_x, icon_y, true);
     }
 
+    // A row toggle opens the row: [checkbox] label ... value, in every section.
+    if (og_line.row_toggle)
+        h_pos = draw_row_toggle(dc, wxPoint(h_pos, v_pos), /*at_row_start=*/true).x;
+
     if (og_line.near_label_widget_win)
         h_pos += og_line.near_label_widget_win->GetSize().x + ctrl->m_h_gap;
 
@@ -930,19 +936,10 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         }
     };
 
-    // One toggle per row: the first option carries it (the first sub-row on a split page), and the
-    // options after it advance by the same slot width without painting another box.
-    bool toggle_drawn = false;
-    auto draw_buttons = [&h_pos, &dc, &v_pos, &toggle_drawn, this](Field* field, size_t bmp_rect_id = 0) {
-        if (og_line.row_toggle) {
-            if (toggle_drawn)
-                h_pos += ctrl->m_bmp_blinking_sz.GetWidth() + ctrl->m_h_gap + ctrl->toggle_gap();
-            else {
-                h_pos        = draw_row_toggle(dc, wxPoint(h_pos, v_pos)).x;
-                toggle_drawn = true;
-            }
+    // The act slot is unused on a row that carries a toggle: the box is in the row's left column.
+    auto draw_buttons = [&h_pos, &dc, &v_pos, this](Field* field, size_t bmp_rect_id = 0) {
+        if (og_line.row_toggle)
             return;
-        }
         if (field && field->undo_to_sys_bitmap()) {
             h_pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), field->undo_to_sys_bitmap()->bmp(), field->undo_bitmap()->bmp(), field->blink(), bmp_rect_id).x;
         }
@@ -1124,9 +1121,9 @@ wxPoint OG_CustomCtrl::CtrlLine::draw_act_bmps(wxDC& dc, wxPoint pos, const wxBi
     return wxPoint(h_pos, v_pos);
 }
 
-// Paints the opt-in row toggle in the act slot, the slot draw_act_bmps paints today, using the
-// same bitmaps ::CheckBox uses. Returns the x the following columns continue from.
-wxPoint OG_CustomCtrl::CtrlLine::draw_row_toggle(wxDC& dc, wxPoint pos)
+// Paints the opt-in row toggle, using the same bitmaps ::CheckBox uses. Returns the x the
+// following columns continue from.
+wxPoint OG_CustomCtrl::CtrlLine::draw_row_toggle(wxDC& dc, wxPoint pos, bool at_row_start)
 {
     const RowToggle* toggle = row_toggle();
     if (toggle == nullptr)
@@ -1143,17 +1140,19 @@ wxPoint OG_CustomCtrl::CtrlLine::draw_row_toggle(wxDC& dc, wxPoint pos)
 
     // Same vertical centring draw_act_bmps uses for the undo icon. The toggle's own gap sits
     // between the box and whatever it shares the row with: before the box when the value comes
-    // first (Printer, Filament), after it when the box comes first (Process).
+    // first in the act slot (Printer, Filament), after it when the box comes first or when the
+    // box opens the row.
     const int     gap    = ctrl->toggle_gap();
-    const wxCoord h_pos  = pos.x - ctrl->m_h_gap + (ctrl->opt_group->option_label_at_right ? 0 : gap);
+    const wxCoord h_pos  = at_row_start ? pos.x :
+                                           pos.x - ctrl->m_h_gap + (ctrl->opt_group->option_label_at_right ? 0 : gap);
     const wxSize  bmp_sz = get_bitmap_size(bmp->bmp());
     const wxCoord v_pos  = pos.y + lround((height - bmp_sz.GetHeight()) / 2);
     rect_row_toggle      = wxRect(h_pos, v_pos, bmp_sz.GetWidth(), bmp_sz.GetHeight());
 
     dc.DrawBitmap(bmp->bmp(), h_pos, v_pos);
 
-    // Keep the value and unit columns where get_pos() reserves them: the act slot plus the gap
-    // the toggle asked for, not its own bitmap width.
+    // Keep the following columns where get_pos() reserves them: the act slot plus the gap the
+    // toggle asked for, not its own bitmap width.
     return wxPoint(pos.x + ctrl->m_bmp_blinking_sz.GetWidth() + ctrl->m_h_gap + gap, pos.y);
 }
 

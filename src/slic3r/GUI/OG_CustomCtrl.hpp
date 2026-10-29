@@ -98,8 +98,9 @@ class OG_CustomCtrl :public wxPanel
         wxCoord draw_text      (wxDC& dc, wxPoint pos, const wxString& text, const wxColour* color, int width, bool is_url = false, bool is_main = false);
         wxPoint draw_blinking_bmp(wxDC& dc, wxPoint pos, bool is_blinking);
         wxPoint draw_act_bmps(wxDC& dc, wxPoint pos, const wxBitmap& bmp_undo_to_sys, const wxBitmap& bmp_undo, bool is_blinking, size_t rect_id = 0, bool is_main = false);
-        // Draws the line's opt-in row toggle in the act slot and advances by that slot's width.
-        wxPoint draw_row_toggle(wxDC& dc, wxPoint pos);
+        // Draws the line's opt-in row toggle. `at_row_start` puts it in a left-hand column, before
+        // the label; otherwise it takes the act slot the Tab uses for its revert icon.
+        wxPoint draw_row_toggle(wxDC& dc, wxPoint pos, bool at_row_start);
         wxCoord draw_edit_bmp(wxDC& dc, wxPoint pos, const wxBitmap& bmp_edit);
         bool    launch_browser() const;
         bool    is_separator() const { return og_line.is_separator(); }
