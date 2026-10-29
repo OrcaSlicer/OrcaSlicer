@@ -99,6 +99,7 @@
 #include <atomic>
 #include <mutex>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
@@ -10905,13 +10906,6 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
     // clear_objects() only drops the ModelObjects; the CAD recipe is Model-level state and would
     // otherwise be written into every project saved for the rest of the session.
     model.cad_recipe.clear();
-#ifdef SLIC3R_CAD
-    // Same reason, one level up: the Design tab keeps the editable document, not the Model, so
-    // clearing the recipe alone leaves the tab showing the previous project's feature tree —
-    // and its next edit syncs that tree straight back into the new project.
-    if (DesignPanel* design = DesignPanel::if_built())
-        design->clear_document();
-#endif
     assemble_view->get_canvas3d()->reset_explosion_ratio();
     update();
 
@@ -10921,6 +10915,17 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
         sidebar->obj_list()->delete_all_objects_from_list();
         object_list_changed();
     }
+
+#ifdef SLIC3R_CAD
+    // Same reason as the recipe, one level up: the Design tab keeps the editable document, not
+    // the Model, so clearing the recipe alone leaves the tab showing the previous project's
+    // feature tree — and its next edit syncs that tree straight back into the new project.
+    // It runs only once the scene is rebuilt: clearing hands the keyboard to the Design canvas,
+    // and when the app has no focus that activates the main window, whose 3D view repaints on
+    // the spot. Before update() that repaint picks against the plates reinit() deleted.
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->clear_document();
+#endif
 
     project.reset();
 
@@ -19793,8 +19798,26 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     nlohmann::json j = nlohmann::json::array();
     for (const std::string& key : published_keys)
         j.push_back(key);
+    // A variant-bearing material key names a file column ("key#col"). Normalize the dialog's
+    // selection to the column each slot prints with before the metadata and the payload are built,
+    // so the receiver can put the value back on the same variant.
+    std::vector<Slic3r::PublishedMaterialEntry> material_entries = material_keys;
+    std::vector<std::string>                   publish_notices;
+    DynamicPrintConfig                         full_cfg;
+    try {
+        full_cfg = wxGetApp().preset_bundle->full_config_secure();
+        Slic3r::publish_normalize_material_entries(material_entries, full_cfg, &publish_notices);
+    } catch (...) {
+        MessageDialog(this, _L("Failed to export the published 3MF file.\nPlease check whether the folder exists online or if other programs "
+                               "have the file open."),
+                      _L("Publish"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        return wxID_CANCEL;
+    }
+    for (const std::string& notice : publish_notices)
+        BOOST_LOG_TRIVIAL(warning) << "publish: " << notice;
     nlohmann::json jm = nlohmann::json::array();
-    for (const Slic3r::PublishedMaterialEntry& e : material_keys)
+    for (const Slic3r::PublishedMaterialEntry& e : material_entries)
         jm.push_back({{"material",
                        {{"filament_type", e.filament_type},
                         {"filament_vendor", e.filament_vendor},
@@ -19879,8 +19902,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
         // filtered values are serialized into the published_config metadata payload instead, so
         // OrcaSlicer versions without the publish feature fall back to importing the geometry only
         // (keeping the receiver's presets) while new versions rebuild the config from the payload.
-        DynamicPrintConfig full_cfg     = wxGetApp().preset_bundle->full_config_secure();
-        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
+        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_entries);
         std::string payload;
         for (const std::string& key : filtered_cfg.keys()) {
             // A value containing a newline would break the INI written below (read_ini throws),
@@ -20279,10 +20301,28 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
         case FT_DRC: ext = ".drc"; break;
         }
 
-        auto path = dir + name + ext;
+        // ORCA fix duplicate extensions, hidden files with leading dots ...
+        static const std::vector<std::string> model_exts{   // longest first
+            ".gcode.3mf", ".zip.amf",
+            ".stl", ".3mf", ".obj", ".step", ".stp", ".amf", ".xml", ".drc", ".ply", ".svg", ".oltp",
+            ".gltf", ".glb", ".fbx", ".usd", ".usda", ".usdc", ".usdz", ".abc"
+        };
+        std::string base_name = name;
+        for (bool stripped = true; stripped; ) {           // handles x.stl.stl
+            boost::algorithm::trim_if(base_name, boost::is_any_of(". "));   // leading/trailing dots & spaces
+            stripped = false;
+            for (const auto& e : model_exts)
+                if (boost::algorithm::iends_with(base_name, e)) {
+                    base_name.resize(base_name.size() - e.size());
+                    stripped = true;
+                    break;
+                }
+        }
+        if (base_name.empty()) base_name = "object";       // e.g. name was "..."
+        auto path = dir + base_name + ext;
         int n = 1;
         while (boost::filesystem::exists(path))
-            path = dir + name + "(" + std::to_string(n++) + ")"+ext;
+            path = dir + base_name + "(" + std::to_string(n++) + ")"+ext;
         return path;
     };
 

@@ -174,22 +174,18 @@ void ConfigManipulation::check_nozzle_temperature_initial_layer_range(DynamicPri
     }
 }
 
-void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfig* config)
+void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfig* config, unsigned int variant_index)
 {
     if (is_msg_dlg_already_exist || !config->has("adaptive_pressure_advance_model"))
         return;
 
     const auto* model = config->option<ConfigOptionStrings>("adaptive_pressure_advance_model");
-    if (model == nullptr)
+    if (model == nullptr || model->values.empty())
         return;
 
-    // Each extruder variant holds its own model.
-    std::string error;
-    for (const std::string& variant_model : model->values) {
-        error = AdaptivePAProcessor::validate_adaptive_pa_model(variant_model);
-        if (!error.empty())
-            break;
-    }
+    // Each extruder variant holds its own model; only the one being edited is checked, the
+    // others may still hold the default placeholder.
+    const std::string error = AdaptivePAProcessor::validate_adaptive_pa_model(model->get_at(variant_index));
     if (!error.empty()) {
         wxString msg_text = _L("Adaptive Pressure Advance model validation failed:\n");
         msg_text += from_u8(error);
