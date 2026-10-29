@@ -1160,10 +1160,6 @@ void add_correct_opts_to_options_list(const std::string &opt_key, std::map<std::
 
 std::string Tab::options_list_storage_key(const std::string& opt_key) const
 {
-    if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" ||
-        opt_key == "compatible_printers" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area")
-        return opt_key;
-
     if (m_config == nullptr || !m_config->has(opt_key))
         return opt_key;
 
@@ -1171,13 +1167,7 @@ std::string Tab::options_list_storage_key(const std::string& opt_key) const
     if (option == nullptr || !option->is_vector())
         return opt_key;
 
-    const ConfigOptionDef* def = m_config->def()->get(opt_key);
-    if (def == nullptr)
-        return opt_key;
-
-    const bool serialized = def->gui_flags == "serialized";
-    const bool is_plugin_field = def->gui_type == ConfigOptionDef::GUIType::plugin_picker;
-    return (serialized || is_plugin_field) ? opt_key : opt_key + "#0";
+    return is_edited_as_whole_list(m_config->def(), opt_key) ? opt_key : opt_key + "#0";
 }
 
 // Orca: deep_diff() flags every vector entry at or past the reference vector's length as changed,

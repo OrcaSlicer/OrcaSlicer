@@ -4106,6 +4106,16 @@ void add_correct_opts_to_diff(const std::string &opt_key, t_config_option_keys& 
     }
 }
 
+bool is_edited_as_whole_list(const ConfigDef *def, const std::string &opt_key)
+{
+    if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" ||
+        opt_key == "compatible_printers" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area")
+        return true;
+    const ConfigOptionDef *opt_def = def ? def->get(opt_key) : nullptr;
+    return opt_def != nullptr &&
+           (opt_def->gui_flags == "serialized" || opt_def->gui_type == ConfigOptionDef::GUIType::plugin_picker);
+}
+
 // Use deep_diff to correct return of changed options, considering individual options for each extruder.
 inline t_config_option_keys deep_diff(const ConfigBase &config_this, const ConfigBase &config_other, bool strict = true)
 {
@@ -4123,8 +4133,7 @@ inline t_config_option_keys deep_diff(const ConfigBase &config_this, const Confi
         const ConfigOption *other_opt = config_other.option(opt_key);
         if (this_opt != nullptr && other_opt != nullptr && *this_opt != *other_opt)
         {
-            //BBS: add bed_exclude_area
-            if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" || opt_key == "compatible_printers" || opt_key == "thumbnails" ||  opt_key == "wrapping_exclude_area" || opt_key == "slicing_pipeline_plugin") {
+            if (is_edited_as_whole_list(config_other.def(), opt_key)) {
                 // Scalar variable, or a vector variable, which is independent from number of extruders,
                 // thus the vector is presented to the user as a single input.
                 diff.emplace_back(opt_key);
@@ -4163,7 +4172,7 @@ inline t_config_option_keys deep_diff(const ConfigBase &config_this, const Confi
             else if (this_opt == nullptr && other_opt != nullptr)
                 opt = other_opt;
             if (opt) {
-                if (opt->type() & coVectorType) {
+                if ((opt->type() & coVectorType) && !is_edited_as_whole_list(config_other.def(), opt_key)) {
                     auto vec = dynamic_cast<ConfigOptionVectorBase const *>(opt);
                     for (size_t i = 0; i < vec->size(); i++)
                         diff.push_back(opt_key + "#" + std::to_string(i));
