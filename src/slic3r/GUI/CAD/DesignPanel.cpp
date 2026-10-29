@@ -3096,6 +3096,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // does not run: a body row still selected would be what on_toggle_visibility acts on.
     m_tree->on_action = [this](int row, int id) {
         if (m_parts) m_parts->unselect();
+        // The action cell does not select its row (only the label does), and Edit / Show-hide / Delete act on the SELECTION: without
+        // this every eye toggled whichever row was selected before, typically the first sketch.
+        m_tree->select(row);
         switch (id) {
         case RowZoom:       zoom_to_feature(row);   break;
         case RowEdit:       on_edit_feature();      break;
@@ -3219,6 +3222,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // selected has moved m_sel_solid_body, which is the body on_move_body and on_delete_body act
     // on.
     m_parts->on_action = [this, apply_body_row](int row, int id) {
+        m_parts->select(row);   // see m_tree->on_action: the action cell does not select its row
         apply_body_row(row);
         switch (id) {
         case RowZoom:       zoom_to_body(row);      break;
@@ -11331,6 +11335,9 @@ bool DesignPanel::mcp_card_set(const std::string& key, double v)
     auto spin = [&](auto* s) { if (!s) return false; s->SetValue(v); refresh_preview(); return true; };
     auto combo = [&](auto* c) { if (!c || int(v) < 0 || int(v) >= int(c->GetCount())) return false; c->SetSelection(int(v)); return true; };
     if (key == "size")            return spin(m_dressup_size);
+    if (key == "plane_offset")    return spin(m_plane_offset);
+    if (key == "plane_u")         return spin(m_plane_usize);
+    if (key == "plane_v")         return spin(m_plane_vsize);
     if (key == "size2")           return spin(m_dressup_size2);
     if (key == "revolve_axis")    { if (!combo(m_revolve_axis)) return false; m_revolve_axis_chosen = true; refresh_preview(); return true; }
     if (key == "surf_revolve_axis") { if (!combo(m_surf_revolve_axis)) return false; m_surf_revolve_axis_chosen = true; refresh_preview(); return true; }

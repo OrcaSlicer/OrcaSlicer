@@ -22,6 +22,7 @@
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepAdaptor_Curve.hxx>
+#include <GeomAbs_CurveType.hxx>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 #include <BRepClass_FaceClassifier.hxx>
@@ -1130,7 +1131,58 @@ std::vector<TopoDS_Face> SketchEngine::wires_to_faces(const std::vector<TopoDS_W
 namespace {
 bool arr_kind_ok(const SketchEntity& e)
 {
-    return e.type == SketchEntity::Type::Line || e.type == SketchEntity::Type::Arc || e.type == SketchEntity::Type::Circle;
+    return e.type == SketchEntity::Type::Line || e.type == SketchEntity::Type::Arc || e.type == SketchEntity::Type::Circle
+        || e.type == SketchEntity::Type::Ellipse;
+}
+// a polyline close enough to the curve to find where two curves cross
+std::vector<Vec2d> arr_poly(const SketchEntity& e)
+{
+    std::vector<Vec2d> p;
+    if (e.type == SketchEntity::Type::Line) return { e.p0, e.p1 };
+    if (e.type == SketchEntity::Type::Arc) {
+        double sweep = e.end_angle - e.start_angle;
+        while (sweep < 0) sweep += 2 * M_PI;
+        const int n = std::max(8, int(std::ceil(sweep / (2 * M_PI) * 96)));
+        for (int i = 0; i <= n; ++i) {
+            const double a = e.start_angle + sweep * i / n;
+            p.push_back(e.center + Vec2d(std::cos(a), std::sin(a)) * e.radius);
+        }
+        return p;
+    }
+    const int n = 96;   // Circle / Ellipse, closed (the last point repeats the first)
+    const double a = e.radius, b = e.type == SketchEntity::Type::Ellipse ? e.rminor : e.radius;
+    const double cp = e.type == SketchEntity::Type::Ellipse ? std::cos(e.rotation) : 1.0, sp = e.type == SketchEntity::Type::Ellipse ? std::sin(e.rotation) : 0.0;
+    for (int i = 0; i <= n; ++i) {
+        const double t = 2 * M_PI * i / n;
+        const Vec2d q(a * std::cos(t), b * std::sin(t));
+        p.push_back(e.center + Vec2d(cp * q.x() - sp * q.y(), sp * q.x() + cp * q.y()));
+    }
+    return p;
+}
+// do the curves of a and b cross, at a point that is not an end of either (an end-to-end joint is an ordinary chain)?
+bool arr_cross(const SketchEntity& a, const SketchEntity& b, double tol)
+{
+    const std::vector<Vec2d> pa = arr_poly(a), pb = arr_poly(b);
+    Vec2d alo = pa[0], ahi = pa[0], blo = pb[0], bhi = pb[0];
+    for (const Vec2d& q : pa) { alo = alo.cwiseMin(q); ahi = ahi.cwiseMax(q); }
+    for (const Vec2d& q : pb) { blo = blo.cwiseMin(q); bhi = bhi.cwiseMax(q); }
+    if ((alo.array() > bhi.array() + tol).any() || (blo.array() > ahi.array() + tol).any()) return false;
+    const auto is_end = [&](const SketchEntity& e, const Vec2d& x) {
+        return e.type != SketchEntity::Type::Circle && e.type != SketchEntity::Type::Ellipse
+            && ((x - e.p0).norm() <= tol || (x - e.p1).norm() <= tol);
+    };
+    for (size_t i = 0; i + 1 < pa.size(); ++i)
+        for (size_t j = 0; j + 1 < pb.size(); ++j) {
+            const Vec2d r = pa[i + 1] - pa[i], s = pb[j + 1] - pb[j];
+            const double den = r.x() * s.y() - r.y() * s.x();
+            if (std::abs(den) < 1e-12) continue;
+            const Vec2d qp = pb[j] - pa[i];
+            const double t = (qp.x() * s.y() - qp.y() * s.x()) / den, u = (qp.x() * r.y() - qp.y() * r.x()) / den;
+            if (t < -1e-9 || t > 1 + 1e-9 || u < -1e-9 || u > 1 + 1e-9) continue;
+            const Vec2d x = pa[i] + r * t;
+            if (!is_end(a, x) && !is_end(b, x)) return true;
+        }
+    return false;
 }
 // distance from p to the curve of `e`, +inf when p is beyond an arc's sweep
 double arr_dist(const SketchEntity& e, const Vec2d& p)
@@ -1141,6 +1193,7 @@ double arr_dist(const SketchEntity& e, const Vec2d& p)
         const double t = L2 > 1e-18 ? std::clamp((p - e.p0).dot(d) / L2, 0.0, 1.0) : 0.0;
         return (e.p0 + d * t - p).norm();
     }
+    if (e.type == SketchEntity::Type::Ellipse) return std::numeric_limits<double>::infinity();   // crossings are found by arr_cross
     const double r = (p - e.center).norm();
     if (e.type == SketchEntity::Type::Arc) {
         double a = std::atan2(p.y() - e.center.y(), p.x() - e.center.x());
@@ -1164,8 +1217,24 @@ bool SketchEngine::arrangement_needed(const std::vector<SketchEntity>& entities)
         v.push_back(&e);
     }
     const double tol = std::max(sketch_join_tol(), 1e-6);   // as loose as the sketch welds its own joints
+    // Curves of DIFFERENT shapes that cross make cells. A shape (a chain joined end to end, or one circle / ellipse) that crosses ITSELF is
+    // a folded outline, not two regions: it stays a defect for the caller to refuse.
+    std::vector<size_t> grp(v.size());
+    for (size_t i = 0; i < v.size(); ++i) grp[i] = i;
+    const auto root = [&](size_t x) { while (grp[x] != x) x = grp[x]; return x; };
+    const auto is_closed_kind = [](const SketchEntity& e) { return e.type == SketchEntity::Type::Circle || e.type == SketchEntity::Type::Ellipse; };
+    for (size_t i = 0; i < v.size(); ++i)
+        for (size_t j = i + 1; j < v.size(); ++j) {
+            if (is_closed_kind(*v[i]) || is_closed_kind(*v[j])) continue;
+            for (const Vec2d& a : { v[i]->p0, v[i]->p1 })
+                for (const Vec2d& b : { v[j]->p0, v[j]->p1 })
+                    if ((a - b).norm() <= tol) grp[root(i)] = root(j);
+        }
+    for (size_t i = 0; i < v.size(); ++i)
+        for (size_t j = i + 1; j < v.size(); ++j)
+            if (root(i) != root(j) && arr_cross(*v[i], *v[j], tol)) return true;
     for (const SketchEntity* a : v) {
-        if (a->type == SketchEntity::Type::Circle) continue;
+        if (a->type == SketchEntity::Type::Circle || a->type == SketchEntity::Type::Ellipse) continue;
         for (const Vec2d& p : { a->p0, a->p1 })
             for (const SketchEntity* b : v) {
                 if (b == a) continue;
@@ -1196,6 +1265,15 @@ std::vector<TopoDS_Face> SketchEngine::arrangement_faces(const std::vector<Sketc
             const Vec3d n = plane.x_axis.cross(plane.y_axis);
             tools.Append(BRepBuilderAPI_MakeEdge(gp_Circ(gp_Ax2(P3(e.center), gp_Dir(n.x(), n.y(), n.z())), e.radius)).Edge());
             grow(e.center - Vec2d(e.radius, e.radius)); grow(e.center + Vec2d(e.radius, e.radius));
+        } else if (e.type == SketchEntity::Type::Ellipse) {
+            if (e.radius <= 1e-9 || e.rminor <= 1e-9) continue;
+            const Vec3d nz = plane.x_axis.cross(plane.y_axis);
+            const Vec3d x3 = plane.to_world(e.center + Vec2d(std::cos(e.rotation), std::sin(e.rotation))) - plane.to_world(e.center);
+            double a = e.radius, b = e.rminor;
+            if (a < b) std::swap(a, b);
+            tools.Append(BRepBuilderAPI_MakeEdge(gp_Elips(gp_Ax2(P3(e.center), gp_Dir(nz.x(), nz.y(), nz.z()), gp_Dir(x3.x(), x3.y(), x3.z())), a, b)).Edge());
+            const double m = std::max(a, b);
+            grow(e.center - Vec2d(m, m)); grow(e.center + Vec2d(m, m));
         } else if (e.type == SketchEntity::Type::Arc) {
             const double mid = 0.5 * (e.start_angle + e.end_angle);
             GC_MakeArcOfCircle mk(P3(e.p0), P3(e.center + Vec2d(std::cos(mid), std::sin(mid)) * e.radius), P3(e.p1));
@@ -1268,6 +1346,85 @@ std::vector<TopoDS_Face> SketchEngine::arrangement_faces(const std::vector<Sketc
         out.push_back(sff.Face());
     }
     if (out.empty()) throw std::runtime_error(_u8L("sketch has no closed loop"));
+    return out;
+}
+
+namespace {
+// The edges of a wire as exact sketch entities (a closed circle / ellipse edge stays a Circle / Ellipse).
+void arr_wire_entities(const TopoDS_Shape& wire, const SketchPlane& plane, std::vector<SketchEntity>& out)
+{
+    const auto loc = [&](const gp_Pnt& p) {
+        const Vec3d d = Vec3d(p.X(), p.Y(), p.Z()) - plane.origin;
+        return Vec2d(d.dot(plane.x_axis), d.dot(plane.y_axis));
+    };
+    const auto norm_angle = [](double a) { while (a < 0) a += 2 * M_PI; while (a >= 2 * M_PI) a -= 2 * M_PI; return a; };
+    for (TopExp_Explorer ex(wire, TopAbs_EDGE); ex.More(); ex.Next()) {
+        BRepAdaptor_Curve c(TopoDS::Edge(ex.Current()));
+        const double f = c.FirstParameter(), l = c.LastParameter();
+        const Vec2d a = loc(c.Value(f)), b = loc(c.Value(l)), m = loc(c.Value(0.5 * (f + l)));
+        const bool closed = (a - b).norm() < 1e-7;
+        SketchEntity s;
+        // counter-clockwise sweep from the first to the last end, or from the last to the first when the edge runs the other way
+        const auto sweep_of = [&](double a0, double a1, double am, bool& swap) {
+            const double sw = norm_angle(a1 - a0), dm = norm_angle(am - a0);
+            swap = !(dm < sw);
+            return swap ? norm_angle(a0 - a1) : sw;
+        };
+        switch (c.GetType()) {
+        case GeomAbs_Line:
+            s.type = SketchEntity::Type::Line; s.p0 = a; s.p1 = b;
+            break;
+        case GeomAbs_Circle: {
+            const gp_Circ ci = c.Circle();
+            s.center = loc(ci.Location()); s.radius = ci.Radius();
+            if (closed) { s.type = SketchEntity::Type::Circle; s.p0 = s.center; break; }
+            const auto ang = [&](const Vec2d& q) { return std::atan2(q.y() - s.center.y(), q.x() - s.center.x()); };
+            bool swap = false;
+            const double sw = sweep_of(ang(a), ang(b), ang(m), swap);
+            s.type = SketchEntity::Type::Arc;
+            s.p0 = swap ? b : a; s.p1 = swap ? a : b;
+            s.start_angle = ang(s.p0); s.end_angle = s.start_angle + sw;
+            break;
+        }
+        case GeomAbs_Ellipse: {
+            const gp_Elips el = c.Ellipse();
+            s.center = loc(el.Location()); s.radius = el.MajorRadius(); s.rminor = el.MinorRadius();
+            const gp_Dir xd = el.XAxis().Direction();
+            const Vec3d x3(xd.X(), xd.Y(), xd.Z());
+            s.rotation = std::atan2(x3.dot(plane.y_axis), x3.dot(plane.x_axis));
+            if (closed) { s.type = SketchEntity::Type::Ellipse; s.p0 = s.center; break; }
+            const Vec2d mj(std::cos(s.rotation), std::sin(s.rotation)), mn(-mj.y(), mj.x());
+            const auto par = [&](const Vec2d& q) { const Vec2d r = q - s.center; return std::atan2(r.dot(mn) / s.rminor, r.dot(mj) / s.radius); };
+            bool swap = false;
+            const double sw = sweep_of(par(a), par(b), par(m), swap);
+            s.type = SketchEntity::Type::EllipseArc;
+            s.p0 = swap ? b : a; s.p1 = swap ? a : b;
+            s.start_angle = par(s.p0); s.end_angle = s.start_angle + sw;
+            break;
+        }
+        default:
+            throw std::runtime_error(_u8L("sketch regions could not be found"));
+        }
+        out.push_back(s);
+    }
+}
+} // namespace
+
+std::vector<SketchEngine::SketchCell> SketchEngine::arrangement_cells(const std::vector<SketchEntity>& entities, const SketchPlane& plane)
+{
+    std::vector<SketchCell> out;
+    for (const TopoDS_Face& f : arrangement_faces(entities, plane)) {
+        SketchCell c;
+        const TopoDS_Wire ow = BRepTools::OuterWire(f);
+        arr_wire_entities(ow, plane, c.outer);
+        for (TopExp_Explorer wx(f, TopAbs_WIRE); wx.More(); wx.Next())
+            if (!wx.Current().IsSame(ow)) {
+                std::vector<SketchEntity> h;
+                arr_wire_entities(wx.Current(), plane, h);
+                c.holes.push_back(std::move(h));
+            }
+        out.push_back(std::move(c));
+    }
     return out;
 }
 

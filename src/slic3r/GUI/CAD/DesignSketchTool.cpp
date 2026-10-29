@@ -4129,6 +4129,8 @@ void DesignSketchTool::hit_display_sketch(const DisplaySketch& d, const Vec2d& p
         bool in_hole = false;
         for (int h : loops[r].holes)
             if (h >= 0 && h < int(loops.size()) && point_in_poly(p, loops[h].poly)) { in_hole = true; break; }
+        for (const std::vector<Vec2d>& hp : loops[r].hole_polys)
+            if (point_in_poly(p, hp)) { in_hole = true; break; }
         if (!in_hole) { face_feat = d.feature; face_reg = r; }
     }
     // edge_ent is printed because it is now DELIVERED (3648) — a tool can ask for the
@@ -4176,6 +4178,8 @@ std::vector<SketchEntity> DesignSketchTool::selected_loop_entities() const
             if (region < 0 || region >= int(loops.size())) return;
             for (int ei : loops[region].ents)
                 if (ei >= 0 && ei < int(d.entities.size())) out.push_back(d.entities[ei]);
+            out.insert(out.end(), loops[region].pieces.begin(), loops[region].pieces.end());          // a cell of overlapping curves
+            out.insert(out.end(), loops[region].hole_pieces.begin(), loops[region].hole_pieces.end());
         };
         take(m_display_pick_region);
         for (int h : loops[m_display_pick_region].holes) take(h);
@@ -4209,6 +4213,8 @@ std::vector<std::vector<SketchEntity>> DesignSketchTool::selected_loop_groups() 
                 if (region < 0 || region >= int(loops.size())) return;
                 for (int ei : loops[region].ents)
                     if (ei >= 0 && ei < int(d.entities.size())) g.push_back(d.entities[ei]);
+                g.insert(g.end(), loops[region].pieces.begin(), loops[region].pieces.end());
+                g.insert(g.end(), loops[region].hole_pieces.begin(), loops[region].hole_pieces.end());
             };
             take(r);
             for (int h : loops[r].holes) take(h);
@@ -5321,6 +5327,10 @@ BoundingBoxf3 DesignSketchTool::scene_bounds() const
         const double hu = i < m_datum_sizes.size() && m_datum_sizes[i].x() > 1e-6 ? m_datum_sizes[i].x() * 0.5 : 40.0;
         const double hv = i < m_datum_sizes.size() && m_datum_sizes[i].y() > 1e-6 ? m_datum_sizes[i].y() * 0.5 : 40.0;
         add(m_datum_planes[i], hu, hv);
+    }
+    if (m_dz_active) {   // the datum being edited is not in m_datum_planes until Confirm; its near edge was clipped away
+        add(m_dz_plane, m_dz_usize * 0.5, m_dz_vsize * 0.5);
+        bb.merge(m_dz_anchor);
     }
     return bb;
 }
@@ -8454,8 +8464,60 @@ void DesignSketchTool::open_pattern_editor()
 // Closed loops + the entity indices that form each one. A circle/ellipse is its own loop;
 // line/arc chains are walked endpoint-to-endpoint. Entity membership lets a single loop be
 // highlighted and extruded on its own.
+namespace {
+bool same_entity(const SketchEntity& a, const SketchEntity& b)
+{
+    return a.type == b.type && a.p0 == b.p0 && a.p1 == b.p1 && a.center == b.center && a.radius == b.radius && a.start_angle == b.start_angle
+        && a.end_angle == b.end_angle && a.construction == b.construction && a.rminor == b.rminor && a.rotation == b.rotation && a.ctrl == b.ctrl;
+}
+bool same_entities(const std::vector<SketchEntity>& a, const std::vector<SketchEntity>& b)
+{
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); ++i) if (!same_entity(a[i], b[i])) return false;
+    return true;
+}
+}
+
 std::vector<DesignSketchTool::RegionLoop>
 DesignSketchTool::region_loops(const std::vector<SketchEntity>& ents) const
+{
+    // Asked for every frame by every sketch: the subdivision is worked out once per distinct sketch and plane.
+    struct Entry { std::vector<SketchEntity> key; SketchPlane plane; bool cells{false}; std::vector<RegionLoop> regions; };
+    static std::vector<Entry> cache;
+    for (const Entry& c : cache)
+        if (c.plane.origin == m_plane.origin && c.plane.x_axis == m_plane.x_axis && c.plane.y_axis == m_plane.y_axis && same_entities(c.key, ents))
+            return c.cells ? c.regions : region_loops_chained(ents);
+    Entry e;
+    e.key = ents; e.plane = m_plane;
+    try { e.cells = SketchEngine::arrangement_needed(ents); } catch (...) { e.cells = false; }
+    if (e.cells) {
+        try {
+            for (const SketchEngine::SketchCell& cell : SketchEngine::arrangement_cells(ents, m_plane)) {
+                const std::vector<RegionLoop> one = region_loops_chained(cell.outer);
+                if (one.size() != 1) continue;
+                RegionLoop r = one[0];
+                r.ents.clear();
+                r.holes.clear();
+                r.defect = false;
+                r.pieces = cell.outer;
+                for (const std::vector<SketchEntity>& h : cell.holes) {
+                    const std::vector<RegionLoop> hl = region_loops_chained(h);
+                    if (hl.size() != 1) continue;
+                    r.hole_polys.push_back(hl[0].poly);
+                    r.hole_pieces.insert(r.hole_pieces.end(), h.begin(), h.end());
+                }
+                e.regions.push_back(std::move(r));
+            }
+        } catch (...) { e.cells = false; e.regions.clear(); }
+        if (e.regions.empty()) e.cells = false;
+    }
+    if (cache.size() >= 16) cache.erase(cache.begin());
+    cache.push_back(std::move(e));
+    return cache.back().cells ? cache.back().regions : region_loops_chained(ents);
+}
+
+std::vector<DesignSketchTool::RegionLoop>
+DesignSketchTool::region_loops_chained(const std::vector<SketchEntity>& ents) const
 {
     std::vector<RegionLoop> regions;
     const double eps2 = sketch_join_tol() * sketch_join_tol();
@@ -8628,6 +8690,8 @@ int DesignSketchTool::region_at(const Vec2d& p) const
             if (h < 0 || h >= int(regions.size()) || regions[h].poly.size() < 3) continue;
             if (inside(p, regions[h].poly)) { in_hole = true; break; }
         }
+        for (const std::vector<Vec2d>& hp : regions[i].hole_polys)
+            if (hp.size() >= 3 && inside(p, hp)) { in_hole = true; break; }
         if (in_hole) continue;
         const double a = poly_area(regions[i].poly);
         if (best < 0 || a < best_area) { best = int(i); best_area = a; }
@@ -10860,7 +10924,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
                 const ColorRGBA* hlc = sketch_hl_color(ds.feature);
                 ColorRGBA fc = sel ? sface : dface;
                 if (hlc && !sel) { fc = *hlc; fc.a(0.20f); }
-                std::vector<std::vector<Vec2d>> hp;
+                std::vector<std::vector<Vec2d>> hp = loops[r].hole_polys;
                 for (int h : loops[r].holes)
                     if (h >= 0 && h < int(loops.size())) hp.push_back(loops[h].poly);
                 draw_fill_holed(m_fill_model, loops[r].poly, hp, fc);
@@ -10871,6 +10935,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             m_plane = ds.plane;
             // Entities forming the selected loop (highlighted cyan); the rest stay orange.
             std::vector<char> sel_ent(ds.entities.size(), 0);
+            std::vector<SketchEntity> sel_pieces;   // the boundary of a picked cell of overlapping curves
             if (ds.feature == m_display_pick && m_display_pick_region >= 0) {
                 const std::vector<RegionLoop> loops = region_loops(ds.entities);
                 if (m_display_pick_region < int(loops.size())) {
@@ -10884,6 +10949,8 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
                         if (region < 0 || region >= int(loops.size())) return;
                         for (int ei : loops[region].ents)
                             if (ei >= 0 && ei < int(sel_ent.size())) sel_ent[ei] = 1;
+                        sel_pieces.insert(sel_pieces.end(), loops[region].pieces.begin(), loops[region].pieces.end());
+                        sel_pieces.insert(sel_pieces.end(), loops[region].hole_pieces.begin(), loops[region].hole_pieces.end());
                     };
                     for (int r : picked) {
                         mark(r);
@@ -10907,6 +10974,10 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
                 const ColorRGBA* hlc = sketch_hl_color(ds.feature);
                 ColorRGBA wc = sel_ent[i] ? swire : (hlc ? *hlc : dwire);
                 draw_quad_strip(m_line_model, poly, closed, wc);
+            }
+            for (const SketchEntity& pc : sel_pieces) {
+                bool closed = false;
+                draw_quad_strip(m_line_model, entity_polyline(pc, closed), closed, swire);
             }
             if (!point_markers.empty()) {
                 const ColorRGBA* hlc = sketch_hl_color(ds.feature);
@@ -11031,7 +11102,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             for (size_t r = 0; r < loops.size(); ++r) {
                 if (loops[r].defect) defects.push_back(loops[r].defect_at);
                 if (is_hole[r]) continue;
-                std::vector<std::vector<Vec2d>> hp;
+                std::vector<std::vector<Vec2d>> hp = loops[r].hole_polys;
                 for (int h : loops[r].holes)
                     if (h >= 0 && h < int(loops.size())) hp.push_back(loops[h].poly);
                 // A loop that crosses or folds back is tinted red, not offered as a face.

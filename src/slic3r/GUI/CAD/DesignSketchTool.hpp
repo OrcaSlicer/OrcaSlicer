@@ -1161,8 +1161,15 @@ private:
         // it does not bound one region, whatever the chainer says. defect_at names the place.
         bool               defect{false};
         Vec2d              defect_at{0, 0};
+        // Overlapping curves: the regions are the cells of the planar subdivision, not loops of the entities, so a cell has no entity
+        // indices (ents is empty) but its own exact boundary: `pieces` (what Extrude is handed) and the boundaries of its holes.
+        std::vector<SketchEntity>       pieces;
+        std::vector<std::vector<Vec2d>> hole_polys;
+        std::vector<SketchEntity>       hole_pieces;
     };
+    // The regions a user can point at. Curves that cross (a triangle over an ellipse) are cut at every crossing first: 5 regions there.
     std::vector<RegionLoop> region_loops(const std::vector<SketchEntity>& ents) const;
+    std::vector<RegionLoop> region_loops_chained(const std::vector<SketchEntity>& ents) const;   // the loops of the entities as they are
     // Index of the closed region containing plane-point p (point-in-polygon), or -1.
     int region_at(const Vec2d& p) const;
 

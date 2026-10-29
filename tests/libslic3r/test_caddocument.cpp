@@ -7887,6 +7887,34 @@ TEST_CASE("An entity sketch that forms no wire fails instead of extruding a defa
     }
 }
 
+// A triangle across an ellipse is five regions, not two loops: the kernel has to cut overlapping loops against each other.
+TEST_CASE("crossing loops are cut into the cells of their subdivision", "[CadDocument]")
+{
+    SketchEntity el; el.type = SketchEntity::Type::Ellipse; el.center = {0, 0}; el.p0 = el.center; el.radius = 30.0; el.rminor = 8.0; el.rotation = 0.0;
+    auto line = [](Vec2d a, Vec2d b) { SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = a; e.p1 = b; return e; };
+    const std::vector<SketchEntity> ents = { el, line({0, -20}, {0, 20}), line({0, 20}, {15, 0}), line({15, 0}, {0, -20}) };
+
+    REQUIRE(SketchEngine::arrangement_needed(ents));
+    const auto cells = SketchEngine::arrangement_cells(ents, SketchPlane::XY());
+    REQUIRE(cells.size() == 5);
+
+    double sum = 0.0;
+    for (const SketchEngine::SketchCell& c : cells) {
+        CadDocument d;
+        d.add_extrude_entities(c.outer, SketchPlane::XY(), 5.0, false, BooleanMode::New, "Cell");
+        REQUIRE(d.recompute());
+        REQUIRE(d.bodies.size() == 1);
+        sum += d.body_mass_properties(0).volume;
+    }
+    CadDocument whole;
+    int sk = whole.add_sketch_entities(ents, SketchPlane::XY(), "Sketch");
+    whole.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(whole.recompute());
+    CHECK_THAT(sum, Catch::Matchers::WithinRel(whole.body_mass_properties(0).volume, 0.01));
+    // disjoint loops are not cut
+    CHECK_FALSE(SketchEngine::arrangement_needed({ el, line({40, -20}, {40, 20}), line({40, 20}, {55, 0}), line({55, 0}, {40, -20}) }));
+}
+
 namespace {
 
 std::vector<SketchEntity> rect_entities(double w, double h)

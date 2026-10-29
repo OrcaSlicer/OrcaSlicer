@@ -342,7 +342,17 @@ public:
     // Sketches whose curves meet in T-junctions (a line ending on a circle or on the middle of another line / arc, as in a belt
     // around two pulleys) do not break into closed chains: the circle belongs to several regions at once. For those the regions
     // are the faces of the planar subdivision. Only lines, arcs and circles take part; any other entity answers false.
+    // Also true when two curves CROSS (a triangle over an ellipse): the sketch is then a set of overlapping loops, not disjoint ones, and
+    // the regions a user can point at are the cells of the subdivision (5 of them for a triangle crossing an ellipse), not the loops.
     static bool arrangement_needed(const std::vector<SketchEntity>& entities);
+    // One cell of the subdivision as exact sketch entities (lines, arcs, ellipse arcs; a whole circle / ellipse when a cell is bounded by
+    // one): `outer` is its boundary, `holes` the boundaries of the regions inside it. Pieces of a cell meet end to end, so a cell is an
+    // ordinary closed loop to everything downstream (Extrude of the entity subset, preview, centroid).
+    struct SketchCell {
+        std::vector<SketchEntity>              outer;
+        std::vector<std::vector<SketchEntity>> holes;
+    };
+    static std::vector<SketchCell> arrangement_cells(const std::vector<SketchEntity>& entities, const SketchPlane& plane);
     // The bounded regions of the subdivision as faces, holes by the same even / odd rule as wires_to_faces (a region wholly
     // inside another region's boundary is its hole).
     static std::vector<TopoDS_Face> arrangement_faces(const std::vector<SketchEntity>& entities, const SketchPlane& plane);
