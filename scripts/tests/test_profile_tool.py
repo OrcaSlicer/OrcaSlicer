@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the tree-maintenance half of scripts/orca_profile_tool.py: the
-normalize, trim, update-index, fix-variant, check and gcode-diff commands, and the
+normalize, trim, update-index, fix-variant, check, gcode-diff and version-check commands, and the
 subcommand dispatch that reaches them (stdlib unittest, no external deps).
 
 The id halves are covered by test_filament_id.py and test_setting_id.py.
@@ -1434,15 +1434,12 @@ class TestDispatch(TreeCase):
 # ---------------------------------------------------------------------------
 
 @unittest.skipUnless(shutil.which("git"), "git not installed")
-class TestGcodeDiff(TreeCase):
-    START = "G28\nM104 S200\nG1 Z5"
+class GitTreeCase(TreeCase):
+    """A tree that is a git repository, for the commands that diff two revisions."""
 
     def git(self, *args):
         subprocess.run(["git", "-C", self.t.dir, "-c", "user.name=t", "-c", "user.email=t@t",
                         "-c", "commit.gpgsign=false", *args], check=True, capture_output=True)
-
-    def printer(self, name, **extra):
-        self.t.write("V", f"machine/{name}.json", {"type": "machine", "name": name, **extra})
 
     def commit(self):
         self.git("add", "-A")
@@ -1466,6 +1463,16 @@ class TestGcodeDiff(TreeCase):
         patcher.start()
         self.addCleanup(patcher.stop)
         self.git("init", "-q")
+
+
+class TestGcodeDiff(GitTreeCase):
+    START = "G28\nM104 S200\nG1 Z5"
+
+    def printer(self, name, **extra):
+        self.t.write("V", f"machine/{name}.json", {"type": "machine", "name": name, **extra})
+
+    def setUp(self):
+        super().setUp()
         for name in ("A", "B", "C"):
             self.printer(name, machine_start_gcode=self.START, nozzle_diameter=["0.4"])
         self.printer("Gone", machine_end_gcode="M84")
@@ -1713,6 +1720,180 @@ class TestGcodeDiff(TreeCase):
         section = apt._gcode_diff_section(["V/a *b*.json", "V/c.json", "V/d.json", "V/e.json",
                                            "V/f.json"], "machine_start_gcode", "@@ -1 +1 @@")
         self.assertIn("\n<p><code>V/a *b*.json</code>, ", section)
+
+
+# ---------------------------------------------------------------------------
+# version-check
+# ---------------------------------------------------------------------------
+
+class TestVersionCheck(GitTreeCase):
+    def index(self, vendor, version, **extra):
+        self.t.write_index(vendor, {"name": vendor, "version": version, **extra})
+
+    def setUp(self):
+        super().setUp()
+        for vendor in ("V", "W"):
+            self.t.add_vendor(vendor)
+            self.t.write(vendor, "machine/A.json", {"type": "machine", "name": "A"})
+        self.commit()
+
+    def check(self, *args):
+        return self.run_command("version-check", "--base", "HEAD", *args)
+
+    def test_a_changed_file_needs_a_bump(self):
+        self.t.write("V", "machine/A.json", {"type": "machine", "name": "A", "x": "1"})
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json: version 01.00.00.00 was not bumped, but 1 file of the bundle "
+                      "changed (V/machine/A.json); bump it to 01.00.00.01", out)
+
+    def test_a_bumped_bundle_passes(self):
+        self.t.write("V", "machine/A.json", {"type": "machine", "name": "A", "x": "1"})
+        self.index("V", "01.00.00.01")
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "V: 01.00.00.00 -> 01.00.00.01, 2 files changed\n"))
+
+    def test_an_index_only_change_needs_a_bump(self):
+        self.index("V", "01.00.00.00", machine_list=[])
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json: version 01.00.00.00 was not bumped, but 1 file", out)
+
+    def test_an_added_and_a_deleted_file_count(self):
+        self.t.write("V", "machine/B.json", {"type": "machine", "name": "B"})  # untracked
+        os.remove(self.t.path("W", "machine/A.json"))
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json: version 01.00.00.00 was not bumped", out)
+        self.assertIn("W.json: version 01.00.00.00 was not bumped, but 1 file of the bundle "
+                      "changed (W/machine/A.json)", out)
+
+    def test_a_file_moved_between_bundles_changes_both(self):
+        os.rename(self.t.path("V", "machine/A.json"), self.t.path("W", "machine/B.json"))
+        self.index("W", "01.00.00.01")
+        self.commit()
+        rc, out = self.run_command("version-check", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 1)
+        self.assertIn("W: 01.00.00.00 -> 01.00.00.01, 2 files changed", out)
+        self.assertIn("V.json: version 01.00.00.00 was not bumped, but 1 file of the bundle "
+                      "changed (V/machine/A.json)", out)
+
+    def test_a_deleted_index_with_files_left_is_an_error(self):
+        os.remove(self.t.index_path("V"))
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json is missing in the working tree while V/ still has files", out)
+        shutil.rmtree(self.t.path("V", ""))
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "no profile bundle changed since HEAD\n"))
+
+    def test_a_base_without_a_usable_version_is_named(self):
+        self.t.write_index("V", {"name": "V"})
+        self.commit()
+        self.index("V", "01.00.00.00")
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "V: no version -> 01.00.00.00, 1 file changed\n"))
+        self.index("V", "garbage")
+        self.commit()
+        self.index("V", "01.00.00.00")
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "V: garbage -> 01.00.00.00, 1 file changed\n"))
+
+    def test_a_new_bundle_passes(self):
+        self.t.add_vendor("N")
+        self.t.write("N", "machine/A.json", {"type": "machine", "name": "A"})
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "N: new bundle -> 01.00.00.00, 2 files changed\n"))
+
+    def test_nothing_changed(self):
+        self.t.write("user", "default/machine/U.json", {"inherits": "A"})
+        with open(os.path.join(self.t.profiles, "blacklist.json"), "w", encoding="utf-8") as f:
+            f.write("{}\n")
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "no profile bundle changed since HEAD\n"))
+
+    def test_a_lower_version_is_not_newer(self):
+        self.index("V", "00.09.00.00")
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json: version 00.09.00.00 is not newer than 01.00.00.00 at HEAD, but "
+                      "1 file of the bundle changed (V.json); bump it to 01.00.00.01", out)
+
+    def test_the_fourth_component_folds_into_the_third(self):
+        # The app reads both as 1.0.100, so this is not a bump.
+        self.index("V", "01.00.01.00")
+        self.commit()
+        self.index("V", "01.00.00.100")
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("version 01.00.00.100 is not newer than 01.00.01.00", out)
+
+    def test_a_version_needs_four_numbers(self):
+        for version in ("1.0.1", "01.00.00.01-beta", "x"):
+            self.index("V", version)
+            rc, out = self.check()
+            self.assertEqual(rc, 1, version)
+            self.assertIn(f'V.json: version "{version}" in the working tree is not four '
+                          "numbers (MM.mm.pp.bb)", out)
+
+    def test_a_three_part_base_version_is_still_compared(self):
+        self.index("V", "1.0.0")
+        self.commit()
+        self.index("V", "1.0.0.01")
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "V: 1.0.0 -> 1.0.0.01, 1 file changed\n"))
+        self.index("V", "1.0.0.00")
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("bump it to 1.0.0.01", out)
+
+    def test_a_missing_version_is_an_error_only_with_a_bundle(self):
+        self.t.write_index("V", {"name": "V"})
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json has no version in the working tree", out)
+        self.index("V", "01.00.00.00")
+        with open(os.path.join(self.t.profiles, "notes.json"), "w", encoding="utf-8") as f:
+            f.write("{}\n")  # a top-level file that is not a bundle
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "no profile bundle changed since HEAD\n"))
+
+    def test_vendor_narrows(self):
+        for vendor in ("V", "W"):
+            self.t.write(vendor, "machine/A.json", {"type": "machine", "name": "A", "x": "1"})
+        rc, out = self.check("--vendor", "W")
+        self.assertEqual(rc, 1)
+        self.assertNotIn("V.json", out)
+        self.assertIn("W.json: version 01.00.00.00 was not bumped", out)
+
+    def test_head_compares_two_commits(self):
+        self.t.write("V", "machine/A.json", {"type": "machine", "name": "A", "x": "1"})
+        self.commit()
+        rc, out = self.run_command("version-check", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json: version 01.00.00.00 was not bumped", out)
+        self.index("V", "01.00.00.01")
+        self.commit()
+        rc, out = self.run_command("version-check", "--base", "HEAD~2", "--head", "HEAD")
+        self.assertEqual((rc, out), (0, "V: 01.00.00.00 -> 01.00.00.01, 2 files changed\n"))
+
+    def test_a_bad_ref_is_an_error(self):
+        rc, out = self.run_command("version-check", "--base", "no-such-ref")
+        self.assertEqual(rc, 1)
+        self.assertIn("no-such-ref", out)
+
+    def test_next_version(self):
+        for version, after in (("02.04.00.16", "02.04.00.17"), ("02.03.02.99", "02.03.03.00"),
+                               ("01.00.00.9", "01.00.00.10"), ("2.4.0.05", "2.4.0.06"),
+                               ("1.0.0", "1.0.0.01")):
+            self.assertEqual(apt.next_version(version), after)
+
+    def test_version_key(self):
+        self.assertEqual(apt._version_key("02.04.00.100"), apt._version_key("02.04.01.00"))
+        self.assertLess(apt._version_key("02.04.00.99"), apt._version_key("02.04.01.00"))
+        self.assertEqual(apt._version_key("1.0.0"), (1, 0, 0))
+        for bad in ("1.0.0.0.0", "a.b.c", "1.0", "", None):
+            self.assertIsNone(apt._version_key(bad), bad)
 
 
 # ---------------------------------------------------------------------------

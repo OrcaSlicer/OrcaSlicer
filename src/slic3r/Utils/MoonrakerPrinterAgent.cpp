@@ -1,5 +1,6 @@
 #include "MoonrakerPrinterAgent.hpp"
 #include "AsioUtils.hpp"
+#include "CrealityCfs.hpp"
 #include "Http.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
@@ -22,8 +23,13 @@
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/address.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/post.hpp>
+#include <boost/asio/ssl/context.hpp>
+#include <boost/asio/ssl/error.hpp>
+#include <boost/asio/ssl/stream_base.hpp>
+#include <boost/asio/ssl/verify_mode.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/core/tcp_stream.hpp>
@@ -33,7 +39,9 @@
 #include <boost/beast/core/buffers_to_string.hpp>
 #include <boost/beast/core/stream_traits.hpp>
 #include <boost/beast/core/string_type.hpp>
+#include <boost/beast/ssl/ssl_stream.hpp>
 #include <boost/beast/websocket.hpp>
+#include <boost/beast/websocket/ssl.hpp>
 #include <boost/beast/websocket/stream.hpp>
 #include <boost/beast/websocket/stream_base.hpp>
 #include <boost/beast/websocket/rfc6455.hpp>
@@ -42,6 +50,9 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+#include <openssl/tls1.h>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -58,6 +69,7 @@
 #include <set>
 #include <thread>
 #include <vector>
+#include <type_traits>
 #include <utility>
 
 namespace {
@@ -66,6 +78,7 @@ namespace beast     = boost::beast;
 namespace http      = beast::http;
 namespace websocket = beast::websocket;
 namespace net       = boost::asio;
+namespace ssl       = net::ssl;
 using tcp           = net::ip::tcp;
 
 struct WsEndpoint
@@ -211,6 +224,7 @@ int MoonrakerPrinterAgent::connect_printer(const PrinterConnectionParams& params
         std::lock_guard<std::recursive_mutex> lock(payload_mutex);
         status_cache = nlohmann::json::object();
     }
+    has_storage.store(false);
     ws_last_emit_ms.store(0);
     ws_last_dispatch_ms.store(0);
     last_print_state.clear();
@@ -390,17 +404,21 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
         return BAMBU_NETWORK_ERR_CANCELED;
     }
 
-    // Start print via gcode script (simpler than JSON-RPC)
     if (update_fn)
         update_fn(PrintingStageSending, 0, _u8L("Starting print..."));
-    std::string gcode = "SDCARD_PRINT_FILE FILENAME=" + upload_filename;
-    if (!send_gcode_sync(device_info.dev_id, gcode)) {
+    if (!print_uploaded_file(params, upload_filename)) {
         return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
     }
 
     if (update_fn)
         update_fn(PrintingStageFinished, 100, _u8L("Print started"));
     return BAMBU_NETWORK_SUCCESS;
+}
+
+bool MoonrakerPrinterAgent::print_uploaded_file(const PrintParams& /*params*/, const std::string& filename)
+{
+    // Start print via gcode script (simpler than JSON-RPC)
+    return send_gcode_sync(device_info.dev_id, "SDCARD_PRINT_FILE FILENAME=" + filename);
 }
 
 int MoonrakerPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
@@ -496,6 +514,9 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
         nlohmann::json ams_unit = nlohmann::json::object();
         ams_unit["id"] = std::to_string(ams_id);
         ams_unit["info"] = "0002";  // treat as AMS_LITE 
+        if (const std::string name = ams_unit_name(ams_id); !name.empty()) {
+            ams_unit["display_name"] = name;
+        }
 
         nlohmann::json tray_array = nlohmann::json::array();
         int max_slot_in_this_ams = std::min(3, max_lane_index - ams_id * 4);
@@ -521,6 +542,17 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 tray_json["tray_info_idx"] = tray->tray_info_idx;
                 tray_json["tray_type"] = tray->tray_type;
                 tray_json["tray_color"] = normalize_color_value(tray->tray_color);
+                // "ctype" uses the filament_colour_type values (0 = gradient, 1 = solid or segments).
+                const bool     multi = tray->tray_colors.size() > 1;
+                nlohmann::json cols  = nlohmann::json::array();
+                if (multi) {
+                    for (const std::string& color : tray->tray_colors)
+                        cols.push_back(normalize_color_value(color));
+                } else {
+                    cols.push_back(tray_json["tray_color"]);
+                }
+                tray_json["cols"]  = cols;
+                tray_json["ctype"] = multi && tray->colors_gradient ? 0 : 1;
 
                 // Add temperature data if provided
                 if (tray->bed_temp > 0) {
@@ -573,9 +605,8 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     }
     obj->last_push_time = std::chrono::system_clock::now();
 
-    // Set storage state - Moonraker printers use virtual_sdcard, storage is always available.
-    // This is required for SelectMachineDialog to allow printing (otherwise it blocks with "No SD card").
-    obj->GetStorage()->set_sdcard_state(DevStorage::HAS_SDCARD_NORMAL);
+    // SelectMachineDialog blocks printing with "No SD card" unless the storage state is normal.
+    obj->GetStorage()->set_sdcard_state(has_storage.load() ? DevStorage::HAS_SDCARD_NORMAL : DevStorage::NO_SDCARD);
 
     // Populate module_vers so is_info_ready() passes the version check.
     // Moonraker printers don't have BBL-style version info, but we need a non-empty map.
@@ -612,8 +643,16 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
         return true;
     }
 
-    // No MMU detected - this is normal for printers without MMU, not an error
-    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected (neither HH nor Moonraker)";
+    // Creality Hi exposes CFS slots as a Moonraker box printer object.
+    if (fetch_creality_cfs_data(trays, max_lane_index)) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Creality CFS with "
+                                << (max_lane_index + 1) << " slots";
+        build_ams_payload((max_lane_index + 4) / 4, max_lane_index, trays);
+        return true;
+    }
+
+    // No MMU detected - this is normal for printers without MMU, not an error.
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected";
     return false;
 }
 
@@ -695,6 +734,42 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
 
     // Unknown material, or no loaded preset data to resolve against
     return UNKNOWN_FILAMENT_ID;
+}
+
+bool MoonrakerPrinterAgent::fetch_creality_cfs_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
+{
+    const std::string url = join_url(device_info.base_url, "/printer/objects/query?box");
+    std::string response_body;
+    auto http = Http::get(url);
+    if (!device_info.api_key.empty())
+        http.header("X-Api-Key", device_info.api_key);
+    http.timeout_connect(5).timeout_max(10)
+        .on_complete([&](std::string body, unsigned status) {
+            if (status == 200)
+                response_body = std::move(body);
+        })
+        .perform_sync();
+
+    std::vector<CrealityCfsSlot> slots;
+    if (response_body.empty() || !parse_creality_cfs_response(response_body, slots) || slots.empty())
+        return false;
+
+    trays.clear();
+    max_lane_index = 0;
+    auto* bundle = GUI::wxGetApp().preset_bundle;
+    for (const auto& slot : slots) {
+        AmsTrayData data;
+        data.slot_index = slot.slot_index;
+        data.tray_type = slot.material_type;
+        data.tray_color = slot.color;
+        data.has_filament = true;
+        data.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(data.tray_type)
+                                    : map_filament_type_to_generic_id(data.tray_type);
+        max_lane_index = std::max(max_lane_index, data.slot_index);
+        trays.push_back(std::move(data));
+    }
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_creality_cfs_data: Detected " << trays.size() << " CFS slots";
+    return true;
 }
 
 // JSON helper methods - null-safe accessors
@@ -844,10 +919,15 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
         tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
+        // A lane's filament_id goes to AMS sync as the tray id, which matches it like a Bambu tray's
+        // and falls back to the material type when no compatible preset carries it. Only a string
+        // counts: Happy Hare writes Spoolman's numeric filament record id under the same key.
+        tray.tray_info_idx = safe_json_string(lane_obj, "filament_id");
         auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        if (tray.tray_info_idx.empty())
+            tray.tray_info_idx = bundle
+                ? bundle->filaments.filament_id_by_type(tray.tray_type)
+                : map_filament_type_to_generic_id(tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, lane_index);
         trays.push_back(tray);
@@ -1119,56 +1199,60 @@ bool MoonrakerPrinterAgent::init_device_info(const std::string& dev_id, const st
     return true;
 }
 
+bool MoonrakerPrinterAgent::get_json(const std::string&           url,
+                                     const std::string&           api_key,
+                                     const std::function<bool()>& cancelled,
+                                     nlohmann::json&              json,
+                                     std::string&                 error) const
+{
+    std::string response_body;
+    bool        success = false;
+    std::string http_error;
+
+    auto http = Http::get(url);
+    if (!api_key.empty()) {
+        http.header("X-Api-Key", api_key);
+    }
+    http.timeout_connect(5)
+        .timeout_max(10)
+        .on_progress(cancel_when(cancelled))
+        .on_complete([&](std::string body, unsigned status) {
+            if (status == 200) {
+                response_body = body;
+                success       = true;
+            } else {
+                http_error = "HTTP error: " + std::to_string(status);
+            }
+        })
+        .on_error([&](std::string body, std::string err, unsigned status) {
+            http_error = err;
+            if (status > 0) {
+                http_error += " (HTTP " + std::to_string(status) + ")";
+            }
+        })
+        .perform_sync();
+
+    if (!success) {
+        error = http_error.empty() ? "Connection failed" : http_error;
+        return false;
+    }
+
+    json = nlohmann::json::parse(response_body, nullptr, false, true);
+    if (json.is_discarded()) {
+        error = "Invalid JSON response";
+        return false;
+    }
+    return true;
+}
+
 bool MoonrakerPrinterAgent::fetch_device_info(const std::string&           base_url,
                                               const std::string&           api_key,
                                               MoonrakerDeviceInfo&         info,
                                               std::string&                 error,
                                               const std::function<bool()>& cancelled) const
 {
-    auto fetch_json = [&](const std::string& url, nlohmann::json& out) {
-        std::string response_body;
-        bool        success = false;
-        std::string http_error;
-
-        auto http = Http::get(url);
-        if (!api_key.empty()) {
-            http.header("X-Api-Key", api_key);
-        }
-        http.timeout_connect(5)
-            .timeout_max(10)
-            .on_progress(cancel_when(cancelled))
-            .on_complete([&](std::string body, unsigned status) {
-                if (status == 200) {
-                    response_body = body;
-                    success       = true;
-                } else {
-                    http_error = "HTTP error: " + std::to_string(status);
-                }
-            })
-            .on_error([&](std::string body, std::string err, unsigned status) {
-                http_error = err;
-                if (status > 0) {
-                    http_error += " (HTTP " + std::to_string(status) + ")";
-                }
-            })
-            .perform_sync();
-
-        if (!success) {
-            error = http_error.empty() ? "Connection failed" : http_error;
-            return false;
-        }
-
-        out = nlohmann::json::parse(response_body, nullptr, false, true);
-        if (out.is_discarded()) {
-            error = "Invalid JSON response";
-            return false;
-        }
-        return true;
-    };
-
     nlohmann::json json;
-    std::string    url = join_url(base_url, "/server/info");
-    if (!fetch_json(url, json)) {
+    if (!get_json(join_url(base_url, "/server/info"), api_key, cancelled, json, error)) {
         return false;
     }
 
@@ -1186,43 +1270,9 @@ bool MoonrakerPrinterAgent::query_printer_status(const std::string&           ba
                                                  std::string&                 error,
                                                  const std::function<bool()>& cancelled) const
 {
-    std::string url = join_url(base_url, "/printer/objects/query?print_stats&virtual_sdcard&extruder&heater_bed&fan");
-
-    std::string response_body;
-    bool        success = false;
-    std::string http_error;
-
-    auto http = Http::get(url);
-    if (!api_key.empty()) {
-        http.header("X-Api-Key", api_key);
-    }
-    http.timeout_connect(5)
-        .timeout_max(10)
-        .on_progress(cancel_when(cancelled))
-        .on_complete([&](std::string body, unsigned status_code) {
-            if (status_code == 200) {
-                response_body = body;
-                success       = true;
-            } else {
-                http_error = "HTTP error: " + std::to_string(status_code);
-            }
-        })
-        .on_error([&](std::string body, std::string err, unsigned status_code) {
-            http_error = err;
-            if (status_code > 0) {
-                http_error += " (HTTP " + std::to_string(status_code) + ")";
-            }
-        })
-        .perform_sync();
-
-    if (!success) {
-        error = http_error.empty() ? "Connection failed" : http_error;
-        return false;
-    }
-
-    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
-    if (json.is_discarded()) {
-        error = "Invalid JSON response";
+    nlohmann::json json;
+    if (!get_json(join_url(base_url, "/printer/objects/query?print_stats&virtual_sdcard&extruder&heater_bed&fan"), api_key, cancelled, json,
+                  error)) {
         return false;
     }
 
@@ -1320,42 +1370,9 @@ bool MoonrakerPrinterAgent::fetch_object_list(const std::string&     base_url,
                                               std::set<std::string>& objects,
                                               std::string&           error) const
 {
-    std::string response_body;
-    bool        success = false;
-    std::string http_error;
-
-    auto http = Http::get(join_url(base_url, "/printer/objects/list"));
-    if (!api_key.empty()) {
-        http.header("X-Api-Key", api_key);
-    }
-    http.timeout_connect(5)
-        .timeout_max(10)
-        // Gives up once the status stream, the only caller, stops
-        .on_progress(cancel_when([this] { return ws_stop.load(); }))
-        .on_complete([&](std::string body, unsigned status) {
-            if (status == 200) {
-                response_body = body;
-                success       = true;
-            } else {
-                http_error = "HTTP error: " + std::to_string(status);
-            }
-        })
-        .on_error([&](std::string body, std::string err, unsigned status) {
-            http_error = err;
-            if (status > 0) {
-                http_error += " (HTTP " + std::to_string(status) + ")";
-            }
-        })
-        .perform_sync();
-
-    if (!success) {
-        error = http_error.empty() ? "Connection failed" : http_error;
-        return false;
-    }
-
-    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
-    if (json.is_discarded()) {
-        error = "Invalid JSON response";
+    nlohmann::json json;
+    // Gives up once the status stream, the only caller, stops
+    if (!get_json(join_url(base_url, "/printer/objects/list"), api_key, [this] { return ws_stop.load(); }, json, error)) {
         return false;
     }
 
@@ -1373,6 +1390,28 @@ bool MoonrakerPrinterAgent::fetch_object_list(const std::string&     base_url,
     }
 
     return !objects.empty();
+}
+
+bool MoonrakerPrinterAgent::fetch_has_free_storage(const std::string& base_url,
+                                                   const std::string& api_key,
+                                                   bool&              has_free,
+                                                   std::string&       error) const
+{
+    nlohmann::json json;
+    // Gives up once the status stream, the only caller, stops
+    if (!get_json(join_url(base_url, "/server/files/directory?path=gcodes"), api_key, [this] { return ws_stop.load(); }, json, error)) {
+        return false;
+    }
+
+    const nlohmann::json& result = json.contains("result") ? json["result"] : json;
+    if (!result.contains("disk_usage") || !result["disk_usage"].is_object() || !result["disk_usage"].contains("free") ||
+        !result["disk_usage"]["free"].is_number()) {
+        error = "No disk usage in the directory listing";
+        return false;
+    }
+
+    has_free = result["disk_usage"]["free"].get<double>() > 0;
+    return true;
 }
 
 int MoonrakerPrinterAgent::send_version_info(const std::string& dev_id)
@@ -1541,11 +1580,6 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
         BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: websocket endpoint invalid for base_url=" << base_url;
         return;
     }
-    if (endpoint.secure) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: websocket wss not supported for base_url=" << base_url;
-        return;
-    }
-
     net::io_context       ioc;
     net::steady_timer     backoff{ioc};
     std::function<void()> abort_connection; // Set while a connection attempt runs
@@ -1575,11 +1609,12 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
     ws_reconnect_requested.store(false); // Reset reconnect flag
     int retry_count = 0;
 
-    while (!ws_stop.load()) {
+    // Runs one connection over a plain or TLS stream, and returns whether it was lost rather than closed cleanly
+    const auto run_connection = [&](auto& ws) {
+        constexpr bool secure = !std::is_same_v<std::decay_t<decltype(ws.next_layer())>, beast::tcp_stream>;
         bool connection_lost = false; // Flag to distinguish clean shutdown from unexpected disconnect
 
         tcp::resolver                        resolver{ioc};
-        websocket::stream<beast::tcp_stream> ws{ioc};
         beast::tcp_stream&                   stream = beast::get_lowest_layer(ws);
         net::steady_timer                    close_deadline{ioc};
         bool                                 closing          = false;
@@ -1627,6 +1662,19 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
             }
             // Clears the connect deadline, which would otherwise close the socket 5 s after connecting
             stream.expires_never();
+            if constexpr (secure) {
+                // Server name indication carries a host name only, never an address
+                beast::error_code not_address;
+                net::ip::make_address(endpoint.host, not_address);
+                if (not_address && !SSL_set_tlsext_host_name(ws.next_layer().native_handle(), endpoint.host.c_str())) {
+                    throw beast::system_error{beast::error_code(static_cast<int>(::ERR_get_error()), net::error::get_ssl_category())};
+                }
+                stream.expires_after(timings.handshake);
+                if (const auto ec = run([&](auto&& handler) { ws.next_layer().async_handshake(ssl::stream_base::client, handler); })) {
+                    throw beast::system_error{ec};
+                }
+                stream.expires_never();
+            }
 
             websocket::stream_base::timeout timeouts{};
             timeouts.handshake_timeout = timings.handshake;
@@ -1648,7 +1696,7 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
             }));
 
             std::string host_header = endpoint.host;
-            if (!endpoint.port.empty() && endpoint.port != "80") {
+            if (!endpoint.port.empty() && endpoint.port != (secure ? "443" : "80")) {
                 host_header += ":" + endpoint.port;
             }
             if (const auto ec = run([&](auto&& handler) { ws.async_handshake(host_header, endpoint.target, handler); })) {
@@ -1711,6 +1759,12 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
                 subscribe_objects.insert("fan");      // Try to subscribe to fan as fallback
             }
 
+            // Queried before the subscription, so the first status push already carries the storage state
+            if (!ws_stop.load()) {
+                refresh_storage(base_url, api_key);
+            }
+            auto last_storage_check = std::chrono::steady_clock::now();
+
             nlohmann::json subscribe;
             subscribe["jsonrpc"]   = "2.0";
             subscribe["method"]    = "printer.objects.subscribe";
@@ -1750,6 +1804,14 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
                     connection_lost = true;
                     break;
                 }
+                // Moonraker sends no free space updates, so they are re-read here; its proc stats arrive every second
+                if (last_message - last_storage_check >= timings.storage_check && !ws_stop.load()) {
+                    last_storage_check = last_message;
+                    // Only a status the printer has reported is re-sent
+                    if (refresh_storage(base_url, api_key) && ws_last_emit_ms.load() != 0) {
+                        dispatch_status(dev_id);
+                    }
+                }
             }
         } catch (const std::exception& e) {
             if (!ws_stop.load()) {
@@ -1762,6 +1824,21 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
         ioc.restart();
         // Both handlers refer to this connection, so neither may be left queued for the next one
         while ((closing || deadline_pending) && ioc.run_one() != 0) {}
+        return connection_lost;
+    };
+
+    while (!ws_stop.load()) {
+        bool connection_lost = false;
+        if (endpoint.secure) {
+            // Unverified, like the agent's HTTP requests, so a printer's self-signed certificate is accepted
+            ssl::context ctx{ssl::context::tls_client};
+            ctx.set_verify_mode(ssl::verify_none);
+            websocket::stream<beast::ssl_stream<beast::tcp_stream>> ws{ioc, ctx};
+            connection_lost = run_connection(ws);
+        } else {
+            websocket::stream<beast::tcp_stream> ws{ioc};
+            connection_lost = run_connection(ws);
+        }
 
         // Exit loop on clean shutdown
         if (!connection_lost) {
@@ -1882,14 +1959,29 @@ void MoonrakerPrinterAgent::send_heartbeat_if_due(const std::string& dev_id, std
     if (last_ms == 0 || now_ms - last_ms < static_cast<uint64_t>(interval.count())) {
         return;
     }
+    dispatch_status(dev_id);
+}
 
+void MoonrakerPrinterAgent::dispatch_status(const std::string& dev_id)
+{
     nlohmann::json message;
     {
         std::lock_guard<std::recursive_mutex> lock(payload_mutex);
         message = build_print_payload_locked();
     }
     dispatch_message(dev_id, message.dump());
-    ws_last_emit_ms.store(now_ms);
+    ws_last_emit_ms.store(steady_now_ms());
+}
+
+bool MoonrakerPrinterAgent::refresh_storage(const std::string& base_url, const std::string& api_key)
+{
+    bool        has_free = false;
+    std::string error;
+    // Storage that could not be checked counts as unavailable
+    if (!fetch_has_free_storage(base_url, api_key, has_free, error)) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: storage query failed: " << error;
+    }
+    return has_storage.exchange(has_free) != has_free;
 }
 
 void MoonrakerPrinterAgent::update_status_cache(const nlohmann::json& updates)
@@ -1954,10 +2046,14 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
     payload["print"]["print_error"]         = 0;
 
     // Map homed axes to bit field: X=bit0, Y=bit1, Z=bit2
-    // WARNING: This only sets bits 0-2, clearing support flags (bit 3+)
+    // WARNING: Apart from the storage state below, this clears the support flags (bit 3+)
     // Bit 3 = 220V voltage, bit 4 = auto recovery, etc.
     // This is acceptable for Moonraker (no AMS, different feature set)
-    int home_flag = 0;
+    // Every push sets the storage state twice, from "sdcard" and then from home_flag bits 8-9,
+    // so both must report it or the send dialog blocks.
+    const bool storage = has_storage.load();
+    payload["print"]["sdcard"] = storage;
+    int home_flag = (storage ? DevStorage::HAS_SDCARD_NORMAL : DevStorage::NO_SDCARD) << 8;
     if (status_cache.contains("toolhead") && status_cache["toolhead"].contains("homed_axes")) {
         std::string homed = status_cache["toolhead"]["homed_axes"].get<std::string>();
         if (homed.find('X') != std::string::npos)
@@ -2212,7 +2308,8 @@ bool MoonrakerPrinterAgent::send_jsonrpc_command(const std::string&    base_url,
     http.header("Content-Type", "application/json")
         .set_post_body(request_str)
         .timeout_connect(5)
-        .timeout_max(10)
+        // Some firmware, like Qidi's, copies the file before starting the print and only answers afterwards
+        .timeout_max(60)
         .on_complete([&](std::string body, unsigned status) {
             if (status == 200) {
                 response = body;
@@ -2244,14 +2341,25 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
     }
 
     try {
+        // Nothing else retries the connection, so retry with the status stream's backoff until superseded: the printer
+        // may still be starting, and on macOS the first attempt has been seen refused while the app's Local Network
+        // access is checked
         MoonrakerDeviceInfo fetched_info;
-        if (!fetch_device_info(base_url, api_key, fetched_info, error_msg, is_stale)) {
-            if (!is_stale()) {
-                BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: Failed to fetch server info: " << error_msg;
+        for (int attempt = 0; !fetch_device_info(base_url, api_key, fetched_info, error_msg, is_stale); ++attempt) {
+            if (is_stale()) {
+                return;
             }
-            // Orca todo: revist here, for now don't send error, this is set current MachineObject to null
-            // dispatch_local_connect(ConnectStatusFailed, dev_id, "server_info_failed");
-            return;
+            const auto delay = ws_timings.reconnect_delay * (1 << std::min(attempt, 5));
+            BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: Failed to fetch server info: " << error_msg << ", retrying in "
+                                       << delay.count() << "ms";
+            // Short steps, so a disconnect or the destructor does not wait out the delay
+            const auto step = std::chrono::milliseconds(50);
+            for (auto waited = std::chrono::milliseconds(0); waited < delay && !is_stale(); waited += step) {
+                std::this_thread::sleep_for(step);
+            }
+            if (is_stale()) {
+                return;
+            }
         }
 
         // Commit fetched info back to device_info under lock, only if still current

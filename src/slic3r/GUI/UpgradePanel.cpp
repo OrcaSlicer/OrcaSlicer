@@ -23,6 +23,7 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <utility>
 #include <wx/scrolwin.h>
+#include <wx/statline.h>
 #include "slic3r/GUI/DeviceTab/uiDeviceUpdateVersion.h"
 #include "slic3r/GUI/DeviceTab/wgtDeviceNozzleRackUpdate.h"
 

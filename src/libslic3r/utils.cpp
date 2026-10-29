@@ -6,8 +6,10 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/log/sinks/sync_frontend.hpp>
 #include <boost/log/keywords/severity.hpp>
+#include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/exception.hpp>
+#include <boost/system/error_code.hpp>
 #include <cstdio>
 #include <boost/log/keywords/file_name.hpp>
 #include <boost/log/keywords/rotation_size.hpp>
@@ -39,6 +41,11 @@
 #include <openssl/md5.h>
 #include <set>
 #include <stdio.h>
+#include <cstdlib>
+#ifndef _WIN32
+#include <pwd.h>
+#include <unistd.h>
+#endif
 #include <filesystem>
 #include <sstream>
 #include <cerrno>
@@ -366,6 +373,44 @@ const std::string& data_dir()
 {
     return g_data_dir;
 }
+
+#ifndef _WIN32
+std::string xdg_config_dir(const std::string &app_name)
+{
+    std::string base;
+    if (const char *xdg = ::getenv("XDG_CONFIG_HOME"); xdg != nullptr && *xdg != '\0') {
+        base = xdg;
+    } else {
+        // The same chain as wxGetHomeDir(): $HOME, then the passwd entry of $USER / $LOGNAME,
+        // then the one of the real uid.
+        const char *home = ::getenv("HOME");
+        if (home == nullptr) {
+            const passwd *pw = nullptr;
+            for (const char *var : {"USER", "LOGNAME"})
+                if (const char *user = ::getenv(var); user != nullptr && (pw = ::getpwnam(user)) != nullptr)
+                    break;
+            if (pw == nullptr)
+                pw = ::getpwuid(::getuid());
+            if (pw != nullptr)
+                home = pw->pw_dir;
+        }
+        base = std::string(home != nullptr ? home : "") + "/.config";
+    }
+    return base + "/" + app_name;
+}
+#endif
+
+#ifdef __linux__
+std::string default_data_dir()
+{
+    // Runs before any error handling is in place, so a lookup that fails only means no portable dir.
+    boost::system::error_code ec;
+    const boost::filesystem::path portable = boost::dll::program_location(ec).parent_path() / "data_dir";
+    if (!ec && boost::filesystem::exists(portable, ec))
+        return portable.string();
+    return xdg_config_dir(SLIC3R_APP_KEY);
+}
+#endif
 
 std::string custom_shapes_dir()
 {
