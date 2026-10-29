@@ -640,14 +640,22 @@ TEST_CASE("Resizing the filament count keeps variant-bearing vectors at their va
     // clamp, so the extra variants silently reused the first value.
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive Standard", "Direct Drive High Flow" };
-    config.option<ConfigOptionFloats>("filament_retract_length_nc", true)->values = { 1.5, 2.5 };
+    // filament_retract_length_nc is declared coFloats but its default is nullable, so it is stored
+    // as ConfigOptionFloatsNullable.
+    config.option<ConfigOptionFloatsNullable>("filament_retract_length_nc", true)->values = { 1.5, 2.5 };
     config.option<ConfigOptionStrings>("volumetric_speed_coefficients", true)->values = { "a", "b" };
     config.option<ConfigOptionStrings>("filament_colour", true)->values = { "#FF0000" };
 
     config.set_num_filaments(1);
 
-    CHECK(config.opt<ConfigOptionFloats>("filament_retract_length_nc")->size() == 2);
-    CHECK(config.opt<ConfigOptionStrings>("volumetric_speed_coefficients")->size() == 2);
+    const auto *retract_nc = config.opt<ConfigOptionFloatsNullable>("filament_retract_length_nc");
+    REQUIRE(retract_nc != nullptr);
+    CHECK(retract_nc->size() == 2);
+    const auto *volumetric = config.opt<ConfigOptionStrings>("volumetric_speed_coefficients");
+    REQUIRE(volumetric != nullptr);
+    CHECK(volumetric->size() == 2);
     // A per-slot key is still sized to the filament count.
-    CHECK(config.opt<ConfigOptionStrings>("filament_colour")->size() == 1);
+    const auto *colour = config.opt<ConfigOptionStrings>("filament_colour");
+    REQUIRE(colour != nullptr);
+    CHECK(colour->size() == 1);
 }
