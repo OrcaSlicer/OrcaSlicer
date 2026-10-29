@@ -1105,7 +1105,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool can_ironing_support = have_raft || (have_support_material && config->opt_int("support_interface_top_layers") > 0);
     toggle_field("support_ironing", can_ironing_support, -1, _L("Enable a raft, or enable supports with top interface layers, to use support ironing."));
     bool has_support_ironing = can_ironing_support && config->opt_bool("support_ironing");
-    for (auto el : {"support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing" })
+    for (auto el : {"support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing", "support_ironing_filament" })
         toggle_line(el, has_support_ironing, -1, _L("Enable support ironing with a raft or top support interface layers to show this setting."));
     // Orca: Force solid support interface when using support ironing
     toggle_field("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing, -1,
@@ -1146,7 +1146,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
                  !have_support_material ? support_reason : _L("Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."));
 
     bool has_ironing = (config->opt_enum<IroningType>("ironing_type") != IroningType::NoIroning);
-    for (auto el : { "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_inset", "ironing_angle_fixed" })
+    for (auto el : { "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_inset", "ironing_angle_fixed", "ironing_filament" })
         toggle_line(el, has_ironing, -1, _L("Enable ironing to use this setting."));
     bool has_rectilinear_ironing = (config->opt_enum<InfillPattern>("ironing_pattern") == InfillPattern::ipRectilinear);
     for (auto el : {"ironing_angle", "ironing_angle_fixed"})
@@ -1241,7 +1241,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     toggle_line("flush_into_objects", !is_global_config, -1, _L("This setting is available in object settings rather than global print settings."));
 
-    toggle_line("support_interface_not_for_body",config->opt_int("support_interface_filament")&&!config->opt_int("support_filament"), -1,
+    // Only meaningful when the interface filament is set and the base is picked for the user (Auto or
+    // Default) - the flag keeps that pick off the interface filament.
+    toggle_line("support_interface_not_for_body",config->opt_int("support_interface_filament")&&config->opt_int("support_filament")<=0, -1,
                 _L("Select a specific support interface filament and use the default support filament to show this setting."));
 
     // Get the current fuzzy skin state
