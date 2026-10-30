@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <cereal/archives/binary.hpp>
@@ -61,17 +62,22 @@ public:
 
     // ---- reading ----
 
-    // The definition an index resolves to in THIS build, or nullptr where the
-    // key is unknown here or is now defined with a different type. A nullptr
-    // entry's value is still read — using type_at(idx), the type the writer
-    // recorded — and then dropped, which is what a JSON profile gets for an
-    // option this build no longer has.
+    // The definition THIS build has for an index's key, or nullptr where the key
+    // is unknown here. type_at(idx) is the type the writer recorded; the value
+    // is read by that type whatever this build's is. With no definition it is
+    // then dropped, which is what a JSON profile gets for an option this build
+    // no longer has; with a definition of another type it is placed as a JSON
+    // profile's text would be (see read_config), so the key is never left at
+    // the collection default while a JSON profile would have mapped it.
     const ConfigOptionDef* def_at(uint16_t idx) const { return m_defs[idx]; }
+    const std::string&     key_at(uint16_t idx) const { return m_keys[idx]; }
     ConfigOptionType       type_at(uint16_t idx) const { return ConfigOptionType(m_types[idx]); }
     const std::string&     enum_name_at(uint16_t idx) const { return m_enum_values[idx]; }
     // m_defs, not m_keys: only load() sizes it, so this is false for every index
     // on a dictionary that was collected rather than read.
     bool valid_key_index(uint16_t idx) const { return size_t(idx) < m_defs.size(); }
+    // True the first time it is asked for an index, false after.
+    bool first_report(uint16_t idx) const { return ! std::exchange(m_reported[idx], char(1)); }
     bool valid_enum_index(uint16_t idx) const { return size_t(idx) < m_enum_values.size(); }
 
     // The layout these two agree on is covered by CACHE_VERSION (PresetCacheFormat.cpp);
@@ -99,6 +105,10 @@ private:
     std::unordered_map<std::string, uint16_t> m_enum_index;
     // Reading, resolved once by load().
     std::vector<const ConfigOptionDef*> m_defs;
+    // Keys whose value read_config already reported dropping from this file,
+    // so a key set by every preset is logged once, not once per preset. The
+    // entries of one file are read in sequence, never concurrently.
+    mutable std::vector<char> m_reported;
 };
 
 // One config, keyed through `dict`. Options print_config_def does not know are
