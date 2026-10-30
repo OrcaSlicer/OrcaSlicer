@@ -195,7 +195,7 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
         return std::nullopt;
     }
     Capture c;
-    if (!capture_native_window(window, c.image, c.approximate, c.note, c.covered, err))
+    if (!capture_native_window(window, options.sessions, c.image, c.approximate, c.note, c.covered, err))
         return std::nullopt;
 
     // Composite every visible 3D canvas inside this window from an exact frame capture.
@@ -265,8 +265,10 @@ wxImage from_cairo(cairo_surface_t* surface)
 
 } // namespace
 
-bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approximate, std::string& note, std::vector<wxRect>& covered,
-                           std::string& err)
+std::shared_ptr<CaptureSessions> open_capture_sessions() { return nullptr; }
+
+bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* /*sessions*/, wxImage& out, bool& approximate, std::string& note,
+                           std::vector<wxRect>& covered, std::string& err)
 {
     GtkWidget* widget = static_cast<GtkWidget*>(window.GetHandle());
     GdkWindow* gdkwin = widget != nullptr ? gtk_widget_get_window(widget) : nullptr;

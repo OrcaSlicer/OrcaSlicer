@@ -1650,10 +1650,23 @@ When the capture may differ from the screen, the result carries `approximate: tr
 
 | Platform | Window capture | Approximate when |
 |---|---|---|
-| Windows | `PrintWindow(PW_CLIENTONLY \| PW_RENDERFULLCONTENT)` | `PrintWindow` fails and the screen is copied instead |
+| Windows | Windows Graphics Capture of the window, cropped to its client area; `PrintWindow(PW_CLIENTONLY \| PW_RENDERFULLCONTENT)` where that is unavailable | `PrintWindow` fails and the screen is copied instead |
 | macOS | `cacheDisplayInRect:toBitmapImageRep:` on the content view | always: web views may be blank |
 | Linux X11, Xvfb, XWayland | `XGetImage` of the top-level X window | part of it is off-screen or under another application's window |
 | Linux Wayland | `gtk_widget_draw()` of the top-level window's child, which leaves out the client-side decoration's shadow | always: web views may be blank |
+
+On Windows the capture never makes the window repaint. `PrintWindow` gets its image by repainting the
+window and every child into its bitmap, and the screen shows that repaint as a flash of the half-drawn
+window, at every frame of a recording. Windows Graphics Capture reads what DWM composed instead, web
+views included, whether or not other windows cover it. A session waits for its first frame; after it,
+Windows sends a frame only when the window changes, and a free-threaded frame pool hands each one to a
+thread pool thread that keeps only the newest, so the pool always has a buffer free and no change is
+dropped. A recording keeps its sessions open from frame to frame (`open_capture_sessions()`, passed in
+`CaptureOptions::sessions`, released when it ends); any other capture opens and closes its own. The
+capture leaves out the pointer and, where Windows allows it (Windows 11), the yellow border it draws
+around a captured window; Windows 10 shows the border while a recording runs. A few pixels at the
+corners Windows 11 rounds read black. A window Windows Graphics Capture cannot read falls back to
+`PrintWindow` for the rest of the recording.
 
 On every platform, a canvas that can't be captured keeps whatever the window capture drew, and the
 result is approximate. A canvas frame that reads back black (`is_blank()`, a stray pixel aside) has

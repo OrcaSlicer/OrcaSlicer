@@ -157,8 +157,9 @@ std::shared_ptr<const TextMask> render_text(const std::string& text, const wxFon
 }
 
 // One recording. Shared between the recorder, a stop or a script end waiting on it, and its posted cleanup,
-// so any of those threads may drop it last. Its wx members are images that cleanup_ui() clears on the UI
-// thread before then; the timer and the input state, which must stay on the UI thread, are the recorder's.
+// so any of those threads may drop it last. Its wx members and window captures are UI-thread objects that
+// cleanup_ui() releases on the UI thread before then; the timer and the input state, which must stay on the
+// UI thread, are the recorder's.
 struct Recording
 {
     RecordingOptions               options;
@@ -176,6 +177,8 @@ struct Recording
     CaptionBoard                   board;           // the recorder's mutex
 
     // UI thread only; cleanup_ui() clears them.
+    std::shared_ptr<CaptureSessions> windows; // open for the whole recording
+
     wxImage           previous; // the last frame queued, for repeats
     OverlaySnapshot   previous_overlay;
     Clock::time_point last_queued;
@@ -426,8 +429,10 @@ json McpRecorder::start(const RecordingOptions& options, uint64_t files_owner)
     rec->options     = options;
     rec->files_owner = files_owner;
     rec->started     = Clock::now();
+    rec->windows     = open_capture_sessions();
     CaptureOptions capture_options;
     capture_options.hide_covering = false;
+    capture_options.sessions      = rec->windows.get();
     capture_options.canvas_frame  = [this, raw = rec.get()](GLCanvas3D& canvas, wxImage& out, std::string& err) {
         return canvas_frame(*raw, canvas, out, err);
     };
@@ -531,6 +536,7 @@ void McpRecorder::capture_frame(Recording& rec, Clock::time_point now, const wxI
         CaptureOptions options;
         options.hide_covering = false;
         options.canvas_frame  = [this, &rec](GLCanvas3D& canvas, wxImage& out, std::string& err) { return canvas_frame(rec, canvas, out, err); };
+        options.sessions      = rec.windows.get();
         std::string err;
         if (!capture_area(m_service, rec, options, image, err)) {
             ++rec.skipped;
@@ -680,6 +686,7 @@ void McpRecorder::cleanup_ui(const std::shared_ptr<Recording>& rec)
         wxEvtHandler::RemoveFilter(m_filter.get());
         m_filter_installed = false;
     }
+    rec->windows.reset();
     rec->previous = wxImage();
     rec->canvases.clear();
     rec->masks.clear();

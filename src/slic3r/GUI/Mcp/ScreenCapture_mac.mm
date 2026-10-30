@@ -4,14 +4,17 @@
 
 #include <wx/toplevel.h>
 
+#include <memory>
 #include <string>
 
 #import <AppKit/AppKit.h>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approximate, std::string& note, std::vector<wxRect>& /*covered*/,
-                           std::string& err)
+std::shared_ptr<CaptureSessions> open_capture_sessions() { return nullptr; }
+
+bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* /*sessions*/, wxImage& out, bool& approximate, std::string& note,
+                           std::vector<wxRect>& /*covered*/, std::string& err)
 {
     NSView* view = (NSView*) window.GetHandle();
     if (view == nil) {

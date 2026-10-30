@@ -4,6 +4,7 @@
 #include <wx/image.h>
 
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -35,6 +36,16 @@ struct Capture
 // How a capture gets a 3D canvas's frame: render one and read it back, unless the caller keeps frames.
 using CanvasFrameProvider = std::function<bool(GLCanvas3D& canvas, wxImage& out, std::string& err)>;
 
+// Window captures kept open from one capture to the next, as a recording's frames are. On Windows a window
+// is read through Windows Graphics Capture, which takes what the screen shows without making the window
+// repaint, as PrintWindow does, visibly. Opening one waits for the next composited frame, and an open one has
+// the newest at hand.
+class CaptureSessions;
+
+// Null where there is nothing to keep open: other platforms, and Windows without Windows Graphics Capture.
+// UI thread, which must also release it.
+std::shared_ptr<CaptureSessions> open_capture_sessions();
+
 struct CaptureOptions
 {
     // X11: hide our hidden-from-automation windows over the target for the moment of the capture. A
@@ -42,6 +53,8 @@ struct CaptureOptions
     bool                hide_covering = true;
     // Empty: GLCanvas3D::render_and_capture().
     CanvasFrameProvider canvas_frame;
+    // Null: the capture opens and closes its own.
+    CaptureSessions*    sessions = nullptr;
 };
 
 // Whether a window capture reads the screen, and so shows our own windows over the target (X11).
@@ -60,11 +73,11 @@ std::optional<Capture> capture_canvas(GLCanvas3D& canvas, std::string& err, cons
 // content on several platforms. Minimized windows fail.
 std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err, const CaptureOptions& options = {});
 
-// The OS part of capture_window(): Windows PrintWindow, macOS cacheDisplayInRect, Linux X11
-// XGetImage or (Wayland) gtk_widget_draw. Implemented per platform. `covered` gets the rectangles where
-// it drew another of our windows (X11).
-bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approximate, std::string& note, std::vector<wxRect>& covered,
-                           std::string& err);
+// The OS part of capture_window(): Windows Graphics Capture (or PrintWindow without it), macOS
+// cacheDisplayInRect, Linux X11 XGetImage or (Wayland) gtk_widget_draw. Implemented per platform. `covered`
+// gets the rectangles where it drew another of our windows (X11).
+bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* sessions, wxImage& out, bool& approximate, std::string& note,
+                           std::vector<wxRect>& covered, std::string& err);
 
 // Physical-pixel offset of `child`'s client area inside `top`'s client area.
 wxPoint client_offset_in(wxWindow& child, wxTopLevelWindow& top);
