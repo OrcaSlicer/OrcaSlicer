@@ -1,10 +1,12 @@
-#include <catch2/catch_all.hpp>
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <ctime>
 #include <set>
 #include <string>
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/BBLPrinterAgent.hpp"
 #include "test_utils.hpp"
