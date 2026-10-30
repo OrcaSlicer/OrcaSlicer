@@ -43,7 +43,9 @@ namespace Slic3r { namespace GUI {
 
 static bool is_point_in_rect(const wxPoint& pt, const wxRect& rect)
 {
-    return  rect.GetLeft() <= pt.x && pt.x <= rect.GetRight() &&
+    // An empty rectangle is a slot that drew nothing: it answers no hit test, whatever the point.
+    return  rect.width > 0 && rect.height > 0 &&
+            rect.GetLeft() <= pt.x && pt.x <= rect.GetRight() &&
             rect.GetTop() <= pt.y && pt.y <= rect.GetBottom();
 }
 
@@ -856,6 +858,10 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         render_separator(dc, v_pos);
         return;
     }
+    // Rewrite the act-slot rectangles every paint: a row that stops drawing its marker must not
+    // keep the previous paint's hit area, or an empty slot would still answer clicks and tooltips.
+    std::fill(rects_undo_icon.begin(), rects_undo_icon.end(), wxRect());
+    std::fill(rects_undo_to_sys_icon.begin(), rects_undo_to_sys_icon.end(), wxRect());
 
     Field* field = og_line.get_options().empty() ? nullptr :
                    ctrl->opt_group->get_field(og_line.get_options().front().opt_id);
@@ -955,6 +961,14 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
     };
 
     auto draw_buttons = [&h_pos, &dc, &v_pos, this](Field* field, size_t bmp_rect_id = 0) {
+        // A publish row draws its revert icon only while its value differs from the saved preset;
+        // the orange label is the marker otherwise. The slot keeps its width and gets no hit
+        // rectangle, so values and units stay in their column and the empty space is inert.
+        if (og_line.row_toggle && field != nullptr && !field->m_is_modified_value) {
+            if (field->undo_bitmap() != nullptr)
+                h_pos += get_bitmap_size(field->undo_bitmap()->bmp()).GetWidth() + ctrl->m_h_gap;
+            return;
+        }
         if (field && field->undo_to_sys_bitmap()) {
             h_pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), field->undo_to_sys_bitmap()->bmp(), field->undo_bitmap()->bmp(), field->blink(), bmp_rect_id).x;
         }

@@ -113,6 +113,7 @@ private:
         std::vector<RowOption> options;            // one per published key: base key and its index
         // The hosted tab's own Line this row is drawn by; the publish checkbox is attached to it.
         Line*                 tab_line{nullptr};
+        wxString              page_title;          // Page::title() of the page the row is drawn on
         wxString              label;               // the label text the filter matches
         wxString              category;
         wxString              subcategory;         // optgroup heading, filter text only
@@ -122,7 +123,6 @@ private:
         size_t                outer_index{0};
         size_t                inner_index{0};
         bool                  publishable{true};      // false for a row whose control is an action
-        bool                  dirty{false};          // matches a dirty base key: pre-checked
         bool                  matches_filter{false}; // survives the active filter
     };
 
@@ -140,6 +140,9 @@ private:
         // Process sections' are the sidebar's own tabs. Null on a mixed slot.
         PublishParamsPanel* publish_host{nullptr};
         Tab*                publish_tab{nullptr};
+        // Any row of this category differs from its preset's saved config: the tab strip shows
+        // the Tab's modified colour. Set from apply_row_label_colours(), for the shown variant.
+        bool                modified{false};
         wxStaticText* info{nullptr};
         // The mixed definition preview, rebuilt when a component's colour changes.
         wxPanel* mixed_visual{nullptr};
@@ -272,11 +275,6 @@ private:
     void on_owner_flag_toggle(size_t category_index, Slic3r::PublishRowKind kind);
     // Pushes the model's Color/Type flags into their checkboxes and greys them under Full Publish.
     void sync_owner_flag_widgets(size_t category_index);
-    // Whether a category currently publishes something, driving its tab's indicator dot.
-    // Print/Printer: any row checked. Material: the owner publishes under the model's rule.
-    bool category_has_selection(const Category& cat) const;
-    // Recompute the indicator dot on every outer/inner tab from the current selection state.
-    void refresh_tab_indicators();
     // Unmet dependencies of publishing mixed-filament slots, one record per (mix, component)
     // pair: the component's Type row is unchecked and Full Publish is off. Either publishes the
     // component's material. Sorted by mixed slot, then component slot.
@@ -342,9 +340,21 @@ private:
     // Pushes one row's model state into its line's row toggle, if the widgets exist.
     void sync_row_widgets(size_t row_index);
     void sync_all_row_widgets();
-    // Colours the row's label the way the Tab marks a modified setting.
-    void apply_row_label_colour(size_t row_index);
+    // Colours the row's label the way the Tab marks a modified setting; true when it is modified.
+    bool apply_row_label_colour(size_t row_index);
+    // Every row's label, then each category's tab from the rows that came out modified.
     void apply_row_label_colours();
+    // Paints the section and inner tab labels: modified colour for a category with a modified
+    // row, and for a section holding one, default otherwise.
+    void refresh_tab_label_colours();
+    // Whether a category currently publishes something, driving its tab's selection dot.
+    // Print/Printer: any row checked. Material: the owner publishes under the model's rule.
+    bool category_has_selection(const Category& cat) const;
+    // Recompute the selection dot on every outer/inner tab from the current selection state.
+    void refresh_tab_indicators();
+    // Recompute the dots on one hosted tab's page strip: a page lights when any row drawn on it
+    // is checked.
+    void refresh_page_indicators(size_t category_index);
     // The line a row is drawn by.
     Line* row_line(size_t row_index) const;
     // Model-backed row state: the payload and the widgets both read this, never each other.

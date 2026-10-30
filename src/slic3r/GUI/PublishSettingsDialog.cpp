@@ -31,6 +31,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <wx/anybutton.h>
 #include <cstddef>
+#include <map>
 #include <wx/colour.h>
 #include <string>
 #include "libslic3r/Config.hpp"
@@ -1041,8 +1042,8 @@ void PublishSettingsDialog::fit_to_content()
     static const wxSize BASE{850, 650}; // base size in DIP, the minimum the dialog can shrink to
     static const wxSize CAP{1300, 850}; // hard cap in DIP, the maximum the dialog can grow to
     // TabCtrl separates its buttons with proportional stretch spacers, which collapse to zero
-    // when the strip is sized to its bare width - the indicator dot on a dirty slot's tab would
-    // sit flush against the next slot's colour chip. Reserve this much per tab item as slack.
+    // when the strip is sized to its bare width - the selection dot on a tab would sit flush
+    // against the next slot's colour chip. Reserve this much per tab item as slack.
     static const int TAB_SLACK_DIP = 10;
 
     const int slack  = FromDIP(TAB_SLACK_DIP);
@@ -1253,14 +1254,12 @@ void PublishSettingsDialog::build_option_model()
                 return key.compare(0, prefix.size(), prefix) == 0;
             });
         }
-        row.dirty = row_dirty;
-        if (row.dirty)
+        if (row_dirty)
             set_row_checked(r, true);
     }
     // A page may already have been built while the model was still being assembled, so paint the
-    // marker once more now that every row knows whether it is dirty.
-    for (size_t r = 0; r < m_rows.size(); ++r)
-        apply_row_label_colour(r);
+    // markers once more now that every row knows whether it is dirty.
+    apply_row_label_colours();
 
     // Wire the header's Color/Type checkboxes (physical slots) and the mixed slots' publish
     // checkboxes. Bind by index so the lambda stays valid even if the vector is reallocated.
@@ -2220,7 +2219,8 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
                 touched = true;
 
                 for (Row& row : rows) {
-                    row.tab_line = line;
+                    row.page_title = page->title();
+                    row.tab_line   = line;
                     add_tab_row(std::move(row), category_index);
                 }
             }
@@ -2386,7 +2386,8 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
                         if (row.unit == "%" && row.value.EndsWith("%"))
                             row.unit.clear();
                     }
-                    row.tab_line = line;
+                    row.page_title = page->title();
+                    row.tab_line   = line;
                     add_tab_row(std::move(row), category_index);
                 }
                 // Only a line that produced at least one row gets a checkbox: a line whose every
@@ -2549,6 +2550,7 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
                         if (row.unit == "%" && row.value.EndsWith("%"))
                             row.unit.clear();
                     }
+                    row.page_title           = page->title();
                     row.tab_line             = line;
                     const size_t added_index = add_tab_row(std::move(row), category_index);
                     m_rows[added_index].category = page_title;
@@ -2652,35 +2654,80 @@ bool PublishSettingsDialog::row_on_selected_variant(size_t row_index) const
     return row.id.column == category.column;
 }
 
-void PublishSettingsDialog::apply_row_label_colour(size_t row_index)
+bool PublishSettingsDialog::apply_row_label_colour(size_t row_index)
 {
     const Row& row = m_rows[row_index];
     if (row.tab_line == nullptr || row.options.empty())
-        return;
+        return false;
     // The Tab draws and colours the row. Only the row the tab's switch shows paints the Line they
     // all share.
     if (row.inner_index >= m_categories.size() || !row_on_selected_variant(row_index))
-        return;
+        return false;
     const Tab* tab = m_categories[row.inner_index].publish_tab;
     if (tab == nullptr)
-        return;
-    // A dirty pre-checked Printer/Process (or material) row marks its line and fields with the
-    // Tab's modified colour; the line returns to the Tab's default colour when not dirty.
-    const wxColour* colour = row.dirty ? &tab->modified_label_colour() : &tab->default_text_colour();
+        return false;
+    // The Tab owns the dirty state: ask it whether the line it drew is modified, so the row's
+    // label follows the same saved/preset comparison as its revert icon, including after a live
+    // edit in this dialog. A widget-only row is compared against the saved config by the Tab.
+    const bool modified = tab->publish_line_is_modified(*row.tab_line);
+    const wxColour* colour = modified ? &tab->modified_label_colour() : &tab->default_text_colour();
     row.tab_line->set_label_colour(colour);
     // The label is drawn from the first option's field colour when the line has a field. Paint the
     // fields the Line actually owns: a row's column index is a file column, not the "#N" id the tab
     // gave the field (the switch re-targets one built field).
-    if (row.dirty)
+    if (modified)
         for (const Option& option : row.tab_line->get_options())
             if (Field* field = tab->get_field(option.opt_id))
                 field->set_label_colour(colour);
+    return modified;
 }
 
 void PublishSettingsDialog::apply_row_label_colours()
 {
+    for (Category& category : m_categories)
+        category.modified = false;
     for (size_t r = 0; r < m_rows.size(); ++r)
-        apply_row_label_colour(r);
+        if (apply_row_label_colour(r) && m_rows[r].inner_index < m_categories.size())
+            m_categories[m_rows[r].inner_index].modified = true;
+    refresh_tab_label_colours();
+    // A page switch or a rule change can hide pages and shift the strip's items: re-place the
+    // selection dots against the inventory that is drawn now.
+    refresh_tab_indicators();
+}
+
+void PublishSettingsDialog::refresh_tab_label_colours()
+{
+    const wxColour* default_clr  = &wxGetApp().get_label_clr_default();
+    const wxColour* modified_clr = &wxGetApp().get_label_clr_modified();
+    // The sidebar's page-tab colours: a modified tab takes the modified colour outright, a clean
+    // one keeps the muted unselected colour and the theme's text colour when selected.
+    auto item_colour = [](const Tab* tab, bool modified, const wxColour& tab_default, const wxColour& tab_modified) {
+        const wxColour& clr = modified ? (tab != nullptr ? tab->modified_label_colour() : tab_modified)
+                                       : (tab != nullptr ? tab->default_text_colour() : tab_default);
+        return modified ? StateColor(clr)
+                        : StateColor(std::make_pair(0x6B6B6C, int(StateColor::NotChecked)),
+                                     std::make_pair(clr, int(StateColor::Normal)));
+    };
+
+    for (size_t s = 0; s < m_sections.size(); ++s) {
+        SectionGroup& section = m_sections[s];
+        bool          any     = false;
+        for (size_t i = 0; i < section.categories.size(); ++i) {
+            const Category& cat = m_categories[section.categories[i]];
+            section.tabs->SetItemTextColour(static_cast<unsigned int>(i),
+                                            item_colour(cat.publish_tab, cat.modified, *default_clr, *modified_clr));
+            any = any || cat.modified;
+        }
+        if (section.mixed_tabs != nullptr)
+            for (size_t i = 0; i < section.mixed_categories.size(); ++i) {
+                const Category& cat = m_categories[section.mixed_categories[i]];
+                section.mixed_tabs->SetItemTextColour(static_cast<unsigned int>(i),
+                                                      item_colour(cat.publish_tab, cat.modified, *default_clr, *modified_clr));
+                any = any || cat.modified;
+            }
+        m_outer_tabs->SetItemTextColour(static_cast<unsigned int>(s),
+                                        item_colour(nullptr, any, *default_clr, *modified_clr));
+    }
 }
 
 void PublishSettingsDialog::sync_row_widgets(size_t row_index)
@@ -2708,6 +2755,8 @@ void PublishSettingsDialog::set_row_checked(size_t row_index, bool checked)
     Row& row = m_rows[row_index];
     m_selection.set_checked(row.id, checked);
     sync_row_widgets(row_index);
+    // A checkbox click changes whether the category publishes anything: move its tab's dot now.
+    refresh_tab_indicators();
     // The row's value is editable exactly while it is checked and writable. A row of another
     // column than the one the tab shows does not draw its line, so it leaves it alone.
     apply_line_field_gating(row_index);
@@ -3744,8 +3793,10 @@ void PublishSettingsDialog::refresh_tab_indicators()
         SectionGroup& section = m_sections[s];
         bool any              = false;
         for (size_t i = 0; i < section.categories.size(); ++i) {
-            const bool on = category_has_selection(m_categories[section.categories[i]]);
+            const size_t c  = section.categories[i];
+            const bool   on = category_has_selection(m_categories[c]);
             section.tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
+            refresh_page_indicators(c);
             any = any || on;
         }
         if (section.mixed_tabs != nullptr)
@@ -3756,6 +3807,27 @@ void PublishSettingsDialog::refresh_tab_indicators()
             }
         m_outer_tabs->SetItemIndicator(static_cast<unsigned int>(s), any);
     }
+}
+
+void PublishSettingsDialog::refresh_page_indicators(size_t category_index)
+{
+    if (category_index >= m_categories.size())
+        return;
+    const Category& category = m_categories[category_index];
+    Tab*            tab      = category.publish_tab;
+    if (tab == nullptr)
+        return;
+    // One dot per page: it publishes something when any row drawn on that page is checked, of
+    // whichever variant column. Pages without rows are not visited, so they stay off.
+    std::map<wxString, bool> pages;
+    for (const size_t r : category.rows) {
+        const Row& row = m_rows[r];
+        if (row.page_title.empty())
+            continue;
+        pages[row.page_title] = pages[row.page_title] || m_selection.checked(row.id);
+    }
+    for (const auto& [title, on] : pages)
+        tab->set_publish_page_indicator(title, on);
 }
 
 std::vector<std::string> PublishSettingsDialog::full_keys_for_slot() const
@@ -3888,8 +3960,7 @@ void PublishSettingsDialog::on_sys_color_changed()
             category.filament_color_chip->Refresh();
         }
     }
-    for (size_t r = 0; r < m_rows.size(); ++r)
-        apply_row_label_colour(r);
+    apply_row_label_colours();
     Refresh();
 }
 

@@ -389,6 +389,13 @@ public:
     void        set_publish_fields_enabled(bool enabled);
     // Enables or disables one field (by its "#N"-suffixed opt_id) on every page.
     void        set_publish_field_enabled(const std::string &opt_id, bool enabled);
+    // Whether `line` differs from the tab's saved preset, as its revert icon paints it. A Field
+    // carries the flag from the last decorate() pass; a widget-only row has no Field and is
+    // compared against the saved config directly. Used by a hosting dialog to mark its rows.
+    bool        publish_line_is_modified(const Line &line) const;
+    // Sets the selection dot on the page tab for `page_title` (Page::title(), not the translated
+    // label). A page the tree does not show is ignored.
+    void        set_publish_page_indicator(const wxString &page_title, bool on);
     void        add_scaled_button(wxWindow* parent, ScalableButton** btn, const std::string& icon_name,
                                   const wxString& label = wxEmptyString,
                                   long style = wxBU_EXACTFIT | wxNO_BORDER);

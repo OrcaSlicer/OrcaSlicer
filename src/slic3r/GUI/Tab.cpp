@@ -820,6 +820,59 @@ void Tab::set_publish_field_enabled(const std::string &opt_id, bool enabled)
                 field->toggle(enabled);
 }
 
+bool Tab::publish_line_is_modified(const Line &line) const
+{
+    // decorate() writes the flag on the active page's fields. A field on another page proves this
+    // is a normal row the Tab marks once that page is shown, so only a line with no field at all
+    // needs the value comparison below.
+    bool field_exists = false;
+    for (const Option &option : line.get_options()) {
+        if (Field *field = get_field(option.opt_id); field != nullptr) {
+            field_exists = true;
+            if (field->m_is_modified_value)
+                return true;
+        } else if (!field_exists) {
+            for (const PageShp &page : m_pages)
+                if (page->get_field(option.opt_id) != nullptr) {
+                    field_exists = true;
+                    break;
+                }
+        }
+    }
+    if (field_exists || m_presets == nullptr)
+        return false;
+    // A widget-only row (filament_ramming_parameters) draws a button instead of a field, so there
+    // is no flag to read; compare its key against the private preset's saved copy.
+    const std::vector<std::string> dirty = m_presets->current_dirty_options(true);
+    for (const Option &option : line.get_options())
+        for (const std::string &key : dirty)
+            if (key == option.opt_id ||
+                (key.size() > option.opt_id.size() &&
+                 key.compare(0, option.opt_id.size(), option.opt_id) == 0 &&
+                 key[option.opt_id.size()] == '#'))
+                return true;
+    return false;
+}
+
+void Tab::set_publish_page_indicator(const wxString &page_title, bool on)
+{
+    if (!m_publish_host || m_tabctrl == nullptr)
+        return;
+    // The page tree holds one item per shown page, in page order (rebuild_page_tree), so walk the
+    // same order rather than matching the translated label.
+    int item = 0;
+    for (const PageShp &page : m_pages) {
+        if (!page->get_show())
+            continue;
+        if (page->title() == page_title) {
+            if (item < int(m_tabctrl->GetCount()))
+                m_tabctrl->SetItemIndicator(static_cast<unsigned int>(item), on);
+            return;
+        }
+        ++item;
+    }
+}
+
 int Tab::last_resolved_column() const
 {
     // The last variant column switch_excluder() resolved, unchanged by a later unresolved switch.
@@ -2343,6 +2396,10 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         if (m_active_page)
             m_active_page->update_visibility(m_mode, true);
         m_page_view->GetParent()->Layout();
+        // update() may have rewritten dependent values after the edit, so recompute the per-row
+        // saved/dirty state from the final private preset: the icon and label then follow the
+        // value as they do in the sidebar.
+        update_dirty();
         // update()/update_visibility() rewrote the lines: re-apply the host's filter.
         if (m_on_rules_applied)
             m_on_rules_applied();
