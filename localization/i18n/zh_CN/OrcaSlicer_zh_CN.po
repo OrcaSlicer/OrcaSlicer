@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-30 09:53-0300\n"
+"POT-Creation-Date: 2026-10-30 10:37-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -1978,18 +1978,18 @@ msgstr "选中项 1"
 
 # AI Translated
 msgid ""
-"Select 2 faces on objects and \n"
-" make objects assemble together."
+"Select 2 faces on objects and\n"
+"make objects assemble together."
 msgstr ""
-"在两个对象上选择两个面 \n"
+"在两个对象上选择两个面\n"
 "并将对象组合在一起。"
 
 # AI Translated
 msgid ""
-"Select 2 points or circles on objects and \n"
-" specify distance between them."
+"Select 2 points or circles on objects and\n"
+"specify distance between them."
 msgstr ""
-"在两个对象上选择两个点或圆 \n"
+"在两个对象上选择两个点或圆\n"
 "并指定它们之间的距离。"
 
 # AI Translated
@@ -2082,7 +2082,7 @@ msgstr "警告：请选择点或圆特征。"
 # AI Translated
 msgid ""
 "It is recommended to assemble objects first,\n"
-"because they are restricted to the bed \n"
+"because they are restricted to the bed\n"
 "and only parts can be lifted."
 msgstr ""
 "建议先组合对象，\n"
@@ -8481,7 +8481,7 @@ msgstr "清除"
 
 # AI Translated
 msgid ""
-"You have completed printing the mall model, \n"
+"You have completed printing the mall model,\n"
 "but synchronizing rating information has failed."
 msgstr ""
 "您已经完成了商城模型的打印，\n"
@@ -8756,10 +8756,10 @@ msgid "You can select up to 16 images."
 msgstr "您最多可以选择16张图像。"
 
 msgid ""
-"At least one successful print record of this print profile is required \n"
+"At least one successful print record of this print profile is required\n"
 "to give a positive rating (4 or 5 stars)."
 msgstr ""
-"此打印配置文件至少需要一个成功的打印记录 \n"
+"此打印配置文件至少需要一个成功的打印记录\n"
 "才能给出好评（4星或5星）。"
 
 msgid "click to add machine"
@@ -10140,12 +10140,10 @@ msgstr "对象尺寸过小"
 # AI Translated
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
+"Instead of considering them as multiple objects, should the file be loaded as a single object with multiple parts?"
 msgstr ""
 "该文件包含多个位于不同高度的对象。\n"
-"是否将该文件加载为一个由多个零件组成的对象，\n"
-"而非多个独立的对象？"
+"是否将该文件加载为一个由多个零件组成的对象，而非多个独立的对象？"
 
 # AI Translated
 msgid "Multi-part object detected"
@@ -10709,7 +10707,7 @@ msgstr "打印文件数据异常，请重新切片"
 
 # AI Translated
 msgid ""
-"Print By Object: \n"
+"Print By Object:\n"
 "We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
 "逐件打印：\n"
@@ -11610,14 +11608,12 @@ msgstr "空闲时复用 3D 场景"
 
 # AI Translated
 msgid ""
-"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, and reuses the previous frame's scene instead. Reduces GPU load.\n"
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
 msgstr ""
-"当仅有鼠标光标在视口上移动时，跳过重绘 3D 场景，\n"
-"改为复用上一帧的场景。可降低 GPU 负载。\n"
+"当仅有鼠标光标在视口上移动时，跳过重绘 3D 场景，改为复用上一帧的场景。可降低 GPU 负载。\n"
 "如果视口显示过时或缺失的内容，请禁用此选项。\n"
 "\n"
 "立即生效。"
@@ -11747,9 +11743,11 @@ msgstr "隐身模式"
 # AI Translated
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+"\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
 "这将禁用所有云功能，包括 Orca Cloud 配置文件同步。希望完全离线工作的用户可以启用此选项。\n"
+"\n"
 "注意：启用隐身模式后，您的用户配置文件将不会备份到 Orca Cloud。"
 
 msgid "Hide login side panel"
@@ -13102,12 +13100,8 @@ msgid "Unknown Failure"
 msgstr "未知错误"
 
 # AI Translated
-msgid ""
-"Please Find the Pin Code in Account page on printer screen,\n"
-" and type in the Pin Code below."
-msgstr ""
-"请在打印机屏幕上的“帐户”页面中找到Pin码，\n"
-"然后在下面输入Pin码。"
+msgid "Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."
+msgstr "请在打印机屏幕上的“帐户”页面中找到Pin码，然后在下面输入Pin码。"
 
 msgid "Can't find Pin Code?"
 msgstr "无法找到Pin码？"
@@ -13286,12 +13280,10 @@ msgstr ""
 # AI Translated
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
-"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
-"and use soluble materials for both support interface and support base."
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height and use soluble materials for both support interface and support base."
 msgstr ""
 "当支撑面使用可溶材料时，我们推荐以下设置：\n"
-"顶部Z距离为0、顶部支撑面线距为0、交叠的直线图案、禁用支撑独立层高，\n"
-"并且支撑面和支撑主体均使用可溶材料。"
+"顶部Z距离为0、顶部支撑面线距为0、交叠的直线图案、禁用支撑独立层高，并且支撑面和支撑主体均使用可溶材料。"
 
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
 msgstr "启用此选项将改变模型的形状。如果您的打印件需要精确的尺寸或是装配体的一部分，请务必仔细检查这种形状的变化是否影响了最终功能。"
@@ -13311,12 +13303,8 @@ msgstr "实验性选项。在更换耗材丝时，将耗材丝回抽一段距离
 
 # AI Translated
 # Needs human review: The menu item named here does not exist (see source notes).
-msgid ""
-"When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr ""
-"在录制无工具头延时摄影视频时，建议添加“延时摄影擦拭塔”：\n"
-"右键单击热床空白处，选择“添加标准模型”->“延时摄影擦拭塔”。"
+msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+msgstr "在录制无工具头延时摄影视频时，建议添加“延时摄影擦拭塔”：右键单击热床空白处，选择“添加标准模型”->“延时摄影擦拭塔”。"
 
 # AI Translated
 msgid "Setting unavailable"
@@ -13875,12 +13863,10 @@ msgstr "打印机的挤出机数。"
 
 # AI Translated
 msgid ""
-"Single Extruder Multi Material is selected,\n"
-"and all extruders must have the same diameter.\n"
+"Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
 msgstr ""
-"已选择单挤出机多材料，\n"
-"所有挤出机必须具有相同的直径。\n"
+"已选择单挤出机多材料，所有挤出机必须具有相同的直径。\n"
 "是否将所有挤出机的直径更改为第一个挤出机的喷嘴直径？"
 
 msgid "Nozzle diameter"
@@ -14385,19 +14371,20 @@ msgstr "将所选项迁移到新的预设中。"
 # AI Translated
 #, boost-format
 msgid ""
-"Save the selected options to preset \n"
+"Save the selected options to preset\n"
 "\"%1%\"."
 msgstr ""
-"将所选选项保存到预设 \n"
+"将所选选项保存到预设\n"
 "“%1%”。"
 
 # AI Translated
+# Needs human review: Kept the existing translation; only the space before the line break was removed. It differs in wording from the human 'Transfer the selected options to the newly selected preset.' (将所选项迁移到新的预设中。); align the two if wanted.
 #, boost-format
 msgid ""
-"Transfer the selected options to the newly selected preset \n"
+"Transfer the selected options to the newly selected preset\n"
 "\"%1%\"."
 msgstr ""
-"将所选选项迁移到新选择的预设 \n"
+"将所选选项迁移到新选择的预设\n"
 "“%1%”。"
 
 # AI Translated
@@ -15268,12 +15255,8 @@ msgstr "连接打印机中… 对话框稍后将自动关闭"
 msgid "Connection failed, please double check IP and Access Code"
 msgstr "连接失败，请再次检查IP地址和访问码"
 
-msgid ""
-"Connection failed! If your IP and Access Code is correct, \n"
-"please move to step 3 for troubleshooting network issues"
-msgstr ""
-"连接失败！如果您的IP地址和访问码是正确的，\n"
-"请查看第三步的提示，以便定位网络问题所在"
+msgid "Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"
+msgstr "连接失败！如果您的IP地址和访问码是正确的，请查看第三步的提示，以便定位网络问题所在"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: 维基 differs from the catalog's Wiki used in every other entry
@@ -16892,8 +16875,14 @@ msgid "Precise wall"
 msgstr "精准外墙尺寸"
 
 # AI Translated
-msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr "通过调整外墙间距来提高外壳精度，同时改善层间一致性。注意：当墙顺序为“外墙/内墙”或“内墙/外墙/内墙”时，此选项将被忽略。"
+msgid ""
+"Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n"
+"\n"
+"Note: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgstr ""
+"通过调整外墙间距来提高外壳精度，同时改善层间一致性。\n"
+"\n"
+"注意：当墙顺序为“外墙/内墙”或“内墙/外墙/内墙”时，此选项将被忽略。"
 
 msgid "Only one wall on top surfaces"
 msgstr "顶面单层墙"
@@ -16909,9 +16898,11 @@ msgstr "单层墙阈值"
 #, no-c-format, no-boost-format
 msgid ""
 "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+"\n"
 "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
 msgstr ""
 "如果需要打印顶面，而它有一部分被另一层覆盖，那么宽度小于此值的部分不会被视为顶层。这样可以避免“顶面单层墙”在本应只由墙覆盖的表面上触发。此值可以是毫米，或墙线宽的百分比（%）。\n"
+"\n"
 "警告：启用后，如果下一层有细小特征（如字母），可能会产生瑕疵。将此值设为0可消除这些瑕疵。"
 
 msgid "Only one wall on first layer"
@@ -17017,7 +17008,7 @@ msgid ""
 "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
 "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 "\n"
-"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen.\n"
 "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
 "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
 "\n"
@@ -17032,7 +17023,7 @@ msgstr ""
 "启用此选项可在墙可能向上翘曲的区域降低打印速度。\n"
 "例如，在打印诸如 Benchy 船头这类尖角处的悬垂时，会施加额外的减速，从而减少在多层中逐渐累积的翘曲。\n"
 "\n"
-"通常建议开启此选项，除非您的打印机冷却足够强劲，或打印速度足够慢，以至于不会发生墙翘曲。 \n"
+"通常建议开启此选项，除非您的打印机冷却足够强劲，或打印速度足够慢，以至于不会发生墙翘曲。\n"
 "如果以较高的外墙速度打印，此参数在减速时可能会引入墙面瑕疵，因为打印速度的差异可能过大，导致挤出机无法跟上所需的流量变化。\n"
 "这些瑕疵的根本原因很可能是 Pressure Advance (PA) 调校略有偏差，尤其是在搭配较长的 PA 平滑时间时。\n"
 "\n"
@@ -17774,15 +17765,27 @@ msgid "Bed mesh min"
 msgstr "网床最小点"
 
 # AI Translated
-msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "此选项设置允许的网床区域的最小点。由于探针存在XY偏移，大多数打印机无法探测整个热床。为确保探测点不超出热床范围，应适当设置网床的最小点和最大点。OrcaSlicer 会确保 adaptive_bed_mesh_min/adaptive_bed_mesh_max 的值不超出这些最小/最大点。此信息通常可从打印机制造商处获得。默认设置为 (-99999, -99999)，表示没有限制，允许探测整个热床。"
+msgid ""
+"This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"此选项设置允许的网床区域的最小点。由于探针存在XY偏移，大多数打印机无法探测整个热床。为确保探测点不超出热床范围，应适当设置网床的最小点和最大点。OrcaSlicer 会确保 adaptive_bed_mesh_min/adaptive_bed_mesh_max 的值不超出这些最小/最大点。此信息通常可从打印机制造商处获得。\n"
+"\n"
+"默认设置为 (-99999, -99999)，表示没有限制，允许探测整个热床。"
 
 msgid "Bed mesh max"
 msgstr "网床最大点"
 
 # AI Translated
-msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "此选项设置允许的网床区域的最大点。由于探针存在XY偏移，大多数打印机无法探测整个热床。为确保探测点不超出热床范围，应适当设置网床的最小点和最大点。OrcaSlicer 会确保 adaptive_bed_mesh_min/adaptive_bed_mesh_max 的值不超出这些最小/最大点。此信息通常可从打印机制造商处获得。默认设置为 (99999, 99999)，表示没有限制，允许探测整个热床。"
+msgid ""
+"This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"此选项设置允许的网床区域的最大点。由于探针存在XY偏移，大多数打印机无法探测整个热床。为确保探测点不超出热床范围，应适当设置网床的最小点和最大点。OrcaSlicer 会确保 adaptive_bed_mesh_min/adaptive_bed_mesh_max 的值不超出这些最小/最大点。此信息通常可从打印机制造商处获得。\n"
+"\n"
+"默认设置为 (99999, 99999)，表示没有限制，允许探测整个热床。"
 
 msgid "Probe point distance"
 msgstr "网格点间距离"
@@ -17904,13 +17907,11 @@ msgstr "桥接的静态 Pressure Advance"
 
 # AI Translated
 msgid ""
-"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
-"equivalent walls (using adaptive settings if enabled).\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"桥接的静态 Pressure Advance 值。设为 0 可应用与 \n"
-"等效墙相同的 Pressure Advance（如果启用，则使用自适应设置）。\n"
+"桥接的静态 Pressure Advance 值。设为 0 可应用与等效墙相同的 Pressure Advance（如果启用，则使用自适应设置）。\n"
 "\n"
 "打印桥接时较低的 PA 值有助于减少桥接之后紧接着出现的轻微欠挤出现象。这是由于在空中打印时喷嘴内压力下降所致，较低的 PA 有助于抵消这种情况。"
 
@@ -19328,15 +19329,35 @@ msgid "Sparse infill rotation template"
 msgstr "稀疏填充旋转模板"
 
 # AI Translated
-msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr "使用角度模板逐层旋转稀疏填充方向。输入以逗号分隔的角度（例如 '0,30,60,90'）。角度按层依次应用，列表结束后重复。支持高级语法：'+5' 表示每层旋转 +5°；'+5#5' 表示每 5 层旋转 +5°。详情请参阅 Wiki。设置模板后，将忽略标准的填充方向设置。注意：某些填充图案（例如螺旋体）会自行控制旋转，请谨慎使用。"
+msgid ""
+"Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends.\n"
+"\n"
+"Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n"
+"\n"
+"When a template is set, the standard infill direction setting is ignored.\n"
+"\n"
+"Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+msgstr ""
+"使用角度模板逐层旋转稀疏填充方向。输入以逗号分隔的角度（例如 '0,30,60,90'）。角度按层依次应用，列表结束后重复。\n"
+"\n"
+"支持高级语法：'+5' 表示每层旋转 +5°；'+5#5' 表示每 5 层旋转 +5°。详情请参阅 Wiki。\n"
+"\n"
+"设置模板后，将忽略标准的填充方向设置。\n"
+"\n"
+"注意：某些填充图案（例如螺旋体）会自行控制旋转，请谨慎使用。"
 
 msgid "Solid infill rotation template"
 msgstr "实心填充旋转模板"
 
 # AI Translated
-msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr "该参数根据指定的模板为每层添加实心填充方向的旋转。该模板是一个以逗号分隔的角度列表，以度为单位，例如'0,90'。第一个角度应用于第一层，第二个角度应用于第二层，依此类推。如果层数多于角度，则角度将重复。请注意，并非所有实心填充图案都支持旋转。"
+msgid ""
+"This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated.\n"
+"\n"
+"Note that not all solid infill patterns support rotation."
+msgstr ""
+"该参数根据指定的模板为每层添加实心填充方向的旋转。该模板是一个以逗号分隔的角度列表，以度为单位，例如'0,90'。第一个角度应用于第一层，第二个角度应用于第二层，依此类推。如果层数多于角度，则角度将重复。\n"
+"\n"
+"请注意，并非所有实心填充图案都支持旋转。"
 
 msgid "Skeleton infill density"
 msgstr "骨架填充密度"
@@ -20183,8 +20204,14 @@ msgid "Reduce infill retraction"
 msgstr "减小填充回抽"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "当空驶完全在填充区域内时不触发回抽。这意味着即使渗料也看不到。对于复杂模型，该设置能够减少回抽次数以及打印时长，但是会造成切片和G-code生成变慢。请注意，在跳过回抽的区域也不会执行Z抬升。"
+msgid ""
+"Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n"
+"\n"
+"Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr ""
+"当空驶完全在填充区域内时不触发回抽。这意味着即使渗料也看不到。对于复杂模型，该设置能够减少回抽次数以及打印时长，但是会造成切片和G-code生成变慢。\n"
+"\n"
+"请注意，在跳过回抽的区域也不会执行Z抬升。"
 
 # AI Translated
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -20656,8 +20683,14 @@ msgstr "此选项设置斜拼接缝应用的悬垂阈值。如果墙的未支撑
 msgid "Scarf joint speed"
 msgstr "斜拼接缝速度"
 
-msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "这个选项设置斜拼接缝的打印速度。建议以较慢的速度（小于100mm/s）打印斜拼接缝。如果设置的速度与外墙或内墙的速度相差较大，建议启用“平滑挤出率”。如果此处指定的速度高于外墙或内墙的速度，则打印机将默认使用两者中较慢的速度。当以百分比（例如80%）指定时，速度将基于外墙或内墙的速度进行计算。默认值为100%。"
+msgid ""
+"This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
+"\n"
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+msgstr ""
+"这个选项设置斜拼接缝的打印速度。建议以较慢的速度（小于100mm/s）打印斜拼接缝。如果设置的速度与外墙或内墙的速度相差较大，建议启用“平滑挤出率”。\n"
+"\n"
+"如果此处指定的速度高于外墙或内墙的速度，则打印机将默认使用两者中较慢的速度。当以百分比（例如80%）指定时，速度将基于外墙或内墙的速度进行计算。默认值为100%。"
 
 # AI Translated
 msgid "Scarf joint flow ratio"
@@ -20925,8 +20958,14 @@ msgid "Sets the finishing flow ratio while ending the spiral. Normally the spira
 msgstr "设置螺旋结束时的结束流量比例。通常，螺旋过渡在最后一圈将流量比例从 100% 缩放到 0%，这在某些情况下可能会导致螺旋末端挤出不足。"
 
 # AI Translated
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "如果启用平滑模式或者传统模式，将在每次打印时生成延时摄影视频。打印完每层后，将用内置摄像头拍摄快照。打印完成后，所有这些快照会组合成一个延时视频。如果启用平滑模式，打印完每层后，工具头将移动到吐料槽，然后拍摄快照。由于平滑模式在拍摄快照的过程中熔丝可能会从喷嘴中泄漏，因此需要使用擦拭塔进行喷嘴擦拭。"
+msgid ""
+"If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n"
+"\n"
+"If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+msgstr ""
+"如果启用平滑模式或者传统模式，将在每次打印时生成延时摄影视频。打印完每层后，将用内置摄像头拍摄快照。打印完成后，所有这些快照会组合成一个延时视频。\n"
+"\n"
+"如果启用平滑模式，打印完每层后，工具头将移动到吐料槽，然后拍摄快照。由于平滑模式在拍摄快照的过程中熔丝可能会从喷嘴中泄漏，因此需要使用擦拭塔进行喷嘴擦拭。"
 
 msgid "Traditional"
 msgstr "传统模式"
@@ -21148,16 +21187,28 @@ msgid "Tool change on wipe tower"
 msgstr "在擦拭塔上换工具头"
 
 # AI Translated
-msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
-msgstr "在发出换工具头命令（Tx）之前，强制工具头先空驶到擦拭塔。仅适用于使用类型 2 擦拭塔的多挤出机（多工具头）打印机。默认情况下，Orca 会在多工具头机器上跳过此空驶，因为固件会处理工具头切换，这可能导致 Tx 命令在打印件上方发出。如果您希望换工具头命令始终在擦拭塔上方发出，请启用此选项。"
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+msgstr ""
+"在发出换工具头命令（Tx）之前，强制工具头先空驶到擦拭塔。\n"
+"\n"
+"仅适用于使用类型 2 擦拭塔的多挤出机（多工具头）打印机。默认情况下，Orca 会在多工具头机器上跳过此空驶，因为固件会处理工具头切换，这可能导致 Tx 命令在打印件上方发出。如果您希望换工具头命令始终在擦拭塔上方发出，请启用此选项。"
 
 # AI Translated
 msgid "Wait for temperature on wipe tower"
 msgstr "在擦拭塔上等待温度"
 
 # AI Translated
-msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr "拾取新工具头后不等待其达到打印温度，直接移动到擦拭塔，并在冲刷前于擦拭塔上等待温度。升温过程中渗出的耗材丝会落在擦拭塔上而不是模型上，且移动时间与加热过程重叠。仅适用于使用类型 2 擦拭塔的多挤出机（多工具头）打印机。固件或换工具头宏本身不得等待温度。禁用时，等待温度的指令将在换工具头命令之后立即发出。"
+msgid ""
+"Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating.\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
+"拾取新工具头后不等待其达到打印温度，直接移动到擦拭塔，并在冲刷前于擦拭塔上等待温度。升温过程中渗出的耗材丝会落在擦拭塔上而不是模型上，且移动时间与加热过程重叠。\n"
+"\n"
+"仅适用于使用类型 2 擦拭塔的多挤出机（多工具头）打印机。固件或换工具头宏本身不得等待温度。禁用时，等待温度的指令将在换工具头命令之后立即发出。"
 
 # AI Translated
 msgid "No sparse layers (beta)"
@@ -21523,9 +21574,11 @@ msgstr "阈值角度"
 
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
 "将会为倾斜角度低于阈值的悬垂生成支撑。该值越小，可在不使用支撑的情况下打印的悬垂就越陡。\n"
+"\n"
 "注意：若设置为 0，普通支撑将改用阈值支撑比例，而树状支撑将回退到默认值 30。"
 
 msgid "Threshold overlap"
@@ -21816,13 +21869,15 @@ msgstr ""
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
-"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this:\n"
+"PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
 "这是打印应当开始时的腔体温度，此时腔体会继续朝“目标”腔体温度加热。例如，将目标设为 60、最低设为 50，即可在腔体达到 50℃ 时开始打印，而无需等待达到完整的 60℃。\n"
 "\n"
-"它会设置一个名为 chamber_minimal_temperature 的 G-code 变量，可以传递给您的打印起始宏或热浸泡宏，例如：PRINT_START (其他变量) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]。\n"
+"它会设置一个名为 chamber_minimal_temperature 的 G-code 变量，可以传递给您的打印起始宏或热浸泡宏，例如：\n"
+"PRINT_START (其他变量) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "与“目标”腔体温度不同，此选项不会发出任何 M141/M191 命令；它只会将该值暴露给您的自定义 G-code。它不应超过“目标”腔体温度。"
 
@@ -22280,8 +22335,18 @@ msgstr "当零件逐渐变薄导致墙的层数发生变化时，需要在过渡
 msgid "Wall transitioning filter margin"
 msgstr "墙过渡过滤间距"
 
-msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
-msgstr "防止墙层数的变化规律在增加和减少之间来回转换。这个参数将挤出宽度的范围扩大到[墙最小宽度-参数值, 2*墙最小宽度+参数值]。增大参数可以减少转换的次数，从而减少挤出开始/停止和空驶的时间。然而，大的挤出宽度变化会导致过挤出或欠挤出的问题。参数值表示为相对于喷嘴直径的百分比。"
+msgid ""
+"Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin].\n"
+"\n"
+"Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems.\n"
+"\n"
+"It's expressed as a percentage over nozzle diameter."
+msgstr ""
+"防止墙层数的变化规律在增加和减少之间来回转换。这个参数将挤出宽度的范围扩大到[墙最小宽度-参数值, 2*墙最小宽度+参数值]。\n"
+"\n"
+"增大参数可以减少转换的次数，从而减少挤出开始/停止和空驶的时间。然而，大的挤出宽度变化会导致过挤出或欠挤出的问题。\n"
+"\n"
+"参数值表示为相对于喷嘴直径的百分比。"
 
 msgid "Wall transitioning threshold angle"
 msgstr "墙过渡阈值角度"
@@ -22371,8 +22436,14 @@ msgid "The maximum volumetric speed for ramming before extruder change, where -1
 msgstr "换出挤出机前的最大预冲刷体积流量，-1 表示使用最大体积流量。"
 
 # AI Translated
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "为防止渗料，预冲刷过程中喷嘴温度会降低。注意：仅触发冷却指令并启动风扇，不保证达到目标温度。0 表示禁用。"
+msgid ""
+"To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n"
+"\n"
+"Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed."
+msgstr ""
+"为防止渗料，预冲刷过程中喷嘴温度会降低。0 表示禁用。\n"
+"\n"
+"注意：仅触发冷却指令并启动风扇，不保证达到目标温度。"
 
 # AI Translated
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
@@ -24944,11 +25015,11 @@ msgstr "根据喷嘴自动缩放"
 
 # AI Translated
 msgid ""
-"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
-"该模型是按 0.4 mm 喷嘴和 0.2 mm 层高设计的。 \n"
+"该模型是按 0.4 mm 喷嘴和 0.2 mm 层高设计的。\n"
 "启用缩放选项后（推荐），模型会根据当前喷嘴直径和合适的层高动态调整尺寸，使测试既准确又易于读取。\n"
 "只有当您希望完全按原样打印参考模型时，才关闭缩放。"
 
@@ -25144,12 +25215,12 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
-" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
 "\n"
 "%s"
 msgstr ""
 "结束速度（%.0f mm/s）超过了耗材丝的最大体积流量（%.1f mm³/s），在当前线宽和层高下，外墙被限制在约 %.0f mm/s。\n"
-" 超过该值的速度会被限制，因此塔的上部区块无法达到设定的速度。\n"
+"超过该值的速度会被限制，因此塔的上部区块无法达到设定的速度。\n"
 "\n"
 "%s"
 
@@ -25822,13 +25893,11 @@ msgstr "您在第一页的可打印区域中输入了不允许的字符，请仅
 # AI Translated
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
+"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "已有一个预设与您创建的打印机预设同名，您想要覆盖它吗？\n"
-"\t是：覆盖同名的打印机预设，具有相同预设名称的耗材丝和工艺预设将被重新创建，\n"
-"没有相同预设名称的耗材丝和工艺预设将被保留。\n"
+"\t是：覆盖同名的打印机预设，具有相同预设名称的耗材丝和工艺预设将被重新创建，没有相同预设名称的耗材丝和工艺预设将被保留。\n"
 "\t取消：不创建预设，返回到创建界面。"
 
 # AI Translated
@@ -25872,7 +25941,7 @@ msgstr "输入的喷嘴直径无效，请重新输入：\n"
 
 # AI Translated
 msgid ""
-"The system preset does not allow creation. \n"
+"The system preset does not allow creation.\n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
 "不允许创建系统级预设。\n"
@@ -26023,7 +26092,7 @@ msgstr "只显示带有用户打印机预设的打印机名称，并且您选择
 
 # AI Translated
 msgid ""
-"Only the filament names with user filament presets will be displayed, \n"
+"Only the filament names with user filament presets will be displayed,\n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "只显示带有用户耗材丝预设的耗材丝名称，\n"
@@ -26031,7 +26100,7 @@ msgstr ""
 
 # AI Translated
 msgid ""
-"Only printer names with changed process presets will be displayed, \n"
+"Only printer names with changed process presets will be displayed,\n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "只显示工艺预设有改动的打印机名称，\n"
@@ -39144,6 +39213,329 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+# AI Translated
+#~ msgid ""
+#~ "Select 2 faces on objects and \n"
+#~ " make objects assemble together."
+#~ msgstr ""
+#~ "在两个对象上选择两个面 \n"
+#~ "并将对象组合在一起。"
+
+# AI Translated
+#~ msgid ""
+#~ "Select 2 points or circles on objects and \n"
+#~ " specify distance between them."
+#~ msgstr ""
+#~ "在两个对象上选择两个点或圆 \n"
+#~ "并指定它们之间的距离。"
+
+# AI Translated
+#~ msgid ""
+#~ "It is recommended to assemble objects first,\n"
+#~ "because they are restricted to the bed \n"
+#~ "and only parts can be lifted."
+#~ msgstr ""
+#~ "建议先组合对象，\n"
+#~ "因为对象被固定在热床上，\n"
+#~ "只有零件可以被抬起。"
+
+# AI Translated
+#~ msgid ""
+#~ "You have completed printing the mall model, \n"
+#~ "but synchronizing rating information has failed."
+#~ msgstr ""
+#~ "您已经完成了商城模型的打印，\n"
+#~ "但是评分信息的同步失败了。"
+
+#~ msgid ""
+#~ "At least one successful print record of this print profile is required \n"
+#~ "to give a positive rating (4 or 5 stars)."
+#~ msgstr ""
+#~ "此打印配置文件至少需要一个成功的打印记录 \n"
+#~ "才能给出好评（4星或5星）。"
+
+# AI Translated
+#~ msgid ""
+#~ "This file contains several objects positioned at multiple heights.\n"
+#~ "Instead of considering them as multiple objects, should \n"
+#~ "the file be loaded as a single object with multiple parts?"
+#~ msgstr ""
+#~ "该文件包含多个位于不同高度的对象。\n"
+#~ "是否将该文件加载为一个由多个零件组成的对象，\n"
+#~ "而非多个独立的对象？"
+
+# AI Translated
+#~ msgid ""
+#~ "Print By Object: \n"
+#~ "We suggest using auto-arrange to avoid collisions when printing."
+#~ msgstr ""
+#~ "逐件打印：\n"
+#~ "建议使用自动摆放避免打印时发生碰撞。"
+
+# AI Translated
+#~ msgid ""
+#~ "Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+#~ "and reuses the previous frame's scene instead. Reduces GPU load.\n"
+#~ "Disable it if the viewport shows stale or missing contents.\n"
+#~ "\n"
+#~ "Takes effect immediately."
+#~ msgstr ""
+#~ "当仅有鼠标光标在视口上移动时，跳过重绘 3D 场景，\n"
+#~ "改为复用上一帧的场景。可降低 GPU 负载。\n"
+#~ "如果视口显示过时或缺失的内容，请禁用此选项。\n"
+#~ "\n"
+#~ "立即生效。"
+
+# AI Translated
+#~ msgid ""
+#~ "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+#~ "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
+#~ msgstr ""
+#~ "这将禁用所有云功能，包括 Orca Cloud 配置文件同步。希望完全离线工作的用户可以启用此选项。\n"
+#~ "注意：启用隐身模式后，您的用户配置文件将不会备份到 Orca Cloud。"
+
+# AI Translated
+#~ msgid ""
+#~ "Please Find the Pin Code in Account page on printer screen,\n"
+#~ " and type in the Pin Code below."
+#~ msgstr ""
+#~ "请在打印机屏幕上的“帐户”页面中找到Pin码，\n"
+#~ "然后在下面输入Pin码。"
+
+# AI Translated
+#~ msgid ""
+#~ "When using soluble material for the support interface, we recommend the following settings:\n"
+#~ "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
+#~ "and use soluble materials for both support interface and support base."
+#~ msgstr ""
+#~ "当支撑面使用可溶材料时，我们推荐以下设置：\n"
+#~ "顶部Z距离为0、顶部支撑面线距为0、交叠的直线图案、禁用支撑独立层高，\n"
+#~ "并且支撑面和支撑主体均使用可溶材料。"
+
+# AI Translated
+# Needs human review: The menu item named here does not exist (see source notes).
+#~ msgid ""
+#~ "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
+#~ "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+#~ msgstr ""
+#~ "在录制无工具头延时摄影视频时，建议添加“延时摄影擦拭塔”：\n"
+#~ "右键单击热床空白处，选择“添加标准模型”->“延时摄影擦拭塔”。"
+
+# AI Translated
+#~ msgid ""
+#~ "Single Extruder Multi Material is selected,\n"
+#~ "and all extruders must have the same diameter.\n"
+#~ "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
+#~ msgstr ""
+#~ "已选择单挤出机多材料，\n"
+#~ "所有挤出机必须具有相同的直径。\n"
+#~ "是否将所有挤出机的直径更改为第一个挤出机的喷嘴直径？"
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "Save the selected options to preset \n"
+#~ "\"%1%\"."
+#~ msgstr ""
+#~ "将所选选项保存到预设 \n"
+#~ "“%1%”。"
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "Transfer the selected options to the newly selected preset \n"
+#~ "\"%1%\"."
+#~ msgstr ""
+#~ "将所选选项迁移到新选择的预设 \n"
+#~ "“%1%”。"
+
+#~ msgid ""
+#~ "Connection failed! If your IP and Access Code is correct, \n"
+#~ "please move to step 3 for troubleshooting network issues"
+#~ msgstr ""
+#~ "连接失败！如果您的IP地址和访问码是正确的，\n"
+#~ "请查看第三步的提示，以便定位网络问题所在"
+
+# AI Translated
+#~ msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+#~ msgstr "通过调整外墙间距来提高外壳精度，同时改善层间一致性。注意：当墙顺序为“外墙/内墙”或“内墙/外墙/内墙”时，此选项将被忽略。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+#~ "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
+#~ msgstr ""
+#~ "如果需要打印顶面，而它有一部分被另一层覆盖，那么宽度小于此值的部分不会被视为顶层。这样可以避免“顶面单层墙”在本应只由墙覆盖的表面上触发。此值可以是毫米，或墙线宽的百分比（%）。\n"
+#~ "警告：启用后，如果下一层有细小特征（如字母），可能会产生瑕疵。将此值设为0可消除这些瑕疵。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
+#~ "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
+#~ "\n"
+#~ "It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+#~ "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
+#~ "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
+#~ "\n"
+#~ "Recommendations when enabling this option:\n"
+#~ "1. Reduce Pressure Advance smooth time to 0.015 - 0.02 so the extruder reacts quickly to the speed changes.\n"
+#~ "2. Increase the minimum print speeds to limit the magnitude of the slowdown and reduce the variance between fast and slow segments.\n"
+#~ "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
+#~ "\n"
+#~ "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
+#~ "For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+#~ msgstr ""
+#~ "启用此选项可在墙可能向上翘曲的区域降低打印速度。\n"
+#~ "例如，在打印诸如 Benchy 船头这类尖角处的悬垂时，会施加额外的减速，从而减少在多层中逐渐累积的翘曲。\n"
+#~ "\n"
+#~ "通常建议开启此选项，除非您的打印机冷却足够强劲，或打印速度足够慢，以至于不会发生墙翘曲。 \n"
+#~ "如果以较高的外墙速度打印，此参数在减速时可能会引入墙面瑕疵，因为打印速度的差异可能过大，导致挤出机无法跟上所需的流量变化。\n"
+#~ "这些瑕疵的根本原因很可能是 Pressure Advance (PA) 调校略有偏差，尤其是在搭配较长的 PA 平滑时间时。\n"
+#~ "\n"
+#~ "启用此选项时的建议：\n"
+#~ "1. 将 Pressure Advance 的平滑时间降低到 0.015 - 0.02，使挤出机能够快速响应速度变化。\n"
+#~ "2. 提高最低打印速度，以限制减速的幅度并减小快慢段之间的差异。\n"
+#~ "3. 如果仍出现瑕疵，启用平滑挤出率 (ERS) 以进一步平滑流量过渡。\n"
+#~ "\n"
+#~ "注意：启用此选项后，悬垂墙会被当作悬垂处理，这意味着即使悬垂墙是桥接的一部分，也会应用悬垂速度。\n"
+#~ "例如，当墙 100% 悬垂、下方没有墙支撑时，将应用 75% 的悬垂速度，并受桥接速度限制。"
+
+# AI Translated
+#~ msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+#~ msgstr "此选项设置允许的网床区域的最小点。由于探针存在XY偏移，大多数打印机无法探测整个热床。为确保探测点不超出热床范围，应适当设置网床的最小点和最大点。OrcaSlicer 会确保 adaptive_bed_mesh_min/adaptive_bed_mesh_max 的值不超出这些最小/最大点。此信息通常可从打印机制造商处获得。默认设置为 (-99999, -99999)，表示没有限制，允许探测整个热床。"
+
+# AI Translated
+#~ msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+#~ msgstr "此选项设置允许的网床区域的最大点。由于探针存在XY偏移，大多数打印机无法探测整个热床。为确保探测点不超出热床范围，应适当设置网床的最小点和最大点。OrcaSlicer 会确保 adaptive_bed_mesh_min/adaptive_bed_mesh_max 的值不超出这些最小/最大点。此信息通常可从打印机制造商处获得。默认设置为 (99999, 99999)，表示没有限制，允许探测整个热床。"
+
+# AI Translated
+#~ msgid ""
+#~ "Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+#~ "equivalent walls (using adaptive settings if enabled).\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr ""
+#~ "桥接的静态 Pressure Advance 值。设为 0 可应用与 \n"
+#~ "等效墙相同的 Pressure Advance（如果启用，则使用自适应设置）。\n"
+#~ "\n"
+#~ "打印桥接时较低的 PA 值有助于减少桥接之后紧接着出现的轻微欠挤出现象。这是由于在空中打印时喷嘴内压力下降所致，较低的 PA 有助于抵消这种情况。"
+
+# AI Translated
+#~ msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+#~ msgstr "使用角度模板逐层旋转稀疏填充方向。输入以逗号分隔的角度（例如 '0,30,60,90'）。角度按层依次应用，列表结束后重复。支持高级语法：'+5' 表示每层旋转 +5°；'+5#5' 表示每 5 层旋转 +5°。详情请参阅 Wiki。设置模板后，将忽略标准的填充方向设置。注意：某些填充图案（例如螺旋体）会自行控制旋转，请谨慎使用。"
+
+# AI Translated
+#~ msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
+#~ msgstr "该参数根据指定的模板为每层添加实心填充方向的旋转。该模板是一个以逗号分隔的角度列表，以度为单位，例如'0,90'。第一个角度应用于第一层，第二个角度应用于第二层，依此类推。如果层数多于角度，则角度将重复。请注意，并非所有实心填充图案都支持旋转。"
+
+# AI Translated
+#~ msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+#~ msgstr "当空驶完全在填充区域内时不触发回抽。这意味着即使渗料也看不到。对于复杂模型，该设置能够减少回抽次数以及打印时长，但是会造成切片和G-code生成变慢。请注意，在跳过回抽的区域也不会执行Z抬升。"
+
+#~ msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+#~ msgstr "这个选项设置斜拼接缝的打印速度。建议以较慢的速度（小于100mm/s）打印斜拼接缝。如果设置的速度与外墙或内墙的速度相差较大，建议启用“平滑挤出率”。如果此处指定的速度高于外墙或内墙的速度，则打印机将默认使用两者中较慢的速度。当以百分比（例如80%）指定时，速度将基于外墙或内墙的速度进行计算。默认值为100%。"
+
+# AI Translated
+#~ msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+#~ msgstr "如果启用平滑模式或者传统模式，将在每次打印时生成延时摄影视频。打印完每层后，将用内置摄像头拍摄快照。打印完成后，所有这些快照会组合成一个延时视频。如果启用平滑模式，打印完每层后，工具头将移动到吐料槽，然后拍摄快照。由于平滑模式在拍摄快照的过程中熔丝可能会从喷嘴中泄漏，因此需要使用擦拭塔进行喷嘴擦拭。"
+
+# AI Translated
+#~ msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+#~ msgstr "在发出换工具头命令（Tx）之前，强制工具头先空驶到擦拭塔。仅适用于使用类型 2 擦拭塔的多挤出机（多工具头）打印机。默认情况下，Orca 会在多工具头机器上跳过此空驶，因为固件会处理工具头切换，这可能导致 Tx 命令在打印件上方发出。如果您希望换工具头命令始终在擦拭塔上方发出，请启用此选项。"
+
+# AI Translated
+#~ msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+#~ msgstr "拾取新工具头后不等待其达到打印温度，直接移动到擦拭塔，并在冲刷前于擦拭塔上等待温度。升温过程中渗出的耗材丝会落在擦拭塔上而不是模型上，且移动时间与加热过程重叠。仅适用于使用类型 2 擦拭塔的多挤出机（多工具头）打印机。固件或换工具头宏本身不得等待温度。禁用时，等待温度的指令将在换工具头命令之后立即发出。"
+
+#~ msgid ""
+#~ "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+#~ "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
+#~ msgstr ""
+#~ "将会为倾斜角度低于阈值的悬垂生成支撑。该值越小，可在不使用支撑的情况下打印的悬垂就越陡。\n"
+#~ "注意：若设置为 0，普通支撑将改用阈值支撑比例，而树状支撑将回退到默认值 30。"
+
+# AI Translated
+#~ msgid ""
+#~ "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
+#~ "\n"
+#~ "It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+#~ "\n"
+#~ "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+#~ msgstr ""
+#~ "这是打印应当开始时的腔体温度，此时腔体会继续朝“目标”腔体温度加热。例如，将目标设为 60、最低设为 50，即可在腔体达到 50℃ 时开始打印，而无需等待达到完整的 60℃。\n"
+#~ "\n"
+#~ "它会设置一个名为 chamber_minimal_temperature 的 G-code 变量，可以传递给您的打印起始宏或热浸泡宏，例如：PRINT_START (其他变量) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]。\n"
+#~ "\n"
+#~ "与“目标”腔体温度不同，此选项不会发出任何 M141/M191 命令；它只会将该值暴露给您的自定义 G-code。它不应超过“目标”腔体温度。"
+
+#~ msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
+#~ msgstr "防止墙层数的变化规律在增加和减少之间来回转换。这个参数将挤出宽度的范围扩大到[墙最小宽度-参数值, 2*墙最小宽度+参数值]。增大参数可以减少转换的次数，从而减少挤出开始/停止和空驶的时间。然而，大的挤出宽度变化会导致过挤出或欠挤出的问题。参数值表示为相对于喷嘴直径的百分比。"
+
+# AI Translated
+#~ msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+#~ msgstr "为防止渗料，预冲刷过程中喷嘴温度会降低。注意：仅触发冷却指令并启动风扇，不保证达到目标温度。0 表示禁用。"
+
+# AI Translated
+#~ msgid ""
+#~ "This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+#~ "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+#~ "Turn scaling off only if you wish to print the reference model exactly as-is."
+#~ msgstr ""
+#~ "该模型是按 0.4 mm 喷嘴和 0.2 mm 层高设计的。 \n"
+#~ "启用缩放选项后（推荐），模型会根据当前喷嘴直径和合适的层高动态调整尺寸，使测试既准确又易于读取。\n"
+#~ "只有当您希望完全按原样打印参考模型时，才关闭缩放。"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+#~ " Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+#~ "\n"
+#~ "%s"
+#~ msgstr ""
+#~ "结束速度（%.0f mm/s）超过了耗材丝的最大体积流量（%.1f mm³/s），在当前线宽和层高下，外墙被限制在约 %.0f mm/s。\n"
+#~ " 超过该值的速度会被限制，因此塔的上部区块无法达到设定的速度。\n"
+#~ "\n"
+#~ "%s"
+
+# AI Translated
+#~ msgid ""
+#~ "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
+#~ "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
+#~ "and filament and process presets without the same preset name will be reserved.\n"
+#~ "\tCancel: Do not create a preset; return to the creation interface."
+#~ msgstr ""
+#~ "已有一个预设与您创建的打印机预设同名，您想要覆盖它吗？\n"
+#~ "\t是：覆盖同名的打印机预设，具有相同预设名称的耗材丝和工艺预设将被重新创建，\n"
+#~ "没有相同预设名称的耗材丝和工艺预设将被保留。\n"
+#~ "\t取消：不创建预设，返回到创建界面。"
+
+# AI Translated
+#~ msgid ""
+#~ "The system preset does not allow creation. \n"
+#~ "Please re-enter the printer model or nozzle diameter."
+#~ msgstr ""
+#~ "不允许创建系统级预设。\n"
+#~ "请重新输入打印机型号或喷嘴直径。"
+
+# AI Translated
+#~ msgid ""
+#~ "Only the filament names with user filament presets will be displayed, \n"
+#~ "and all user filament presets in each filament name you select will be exported as a ZIP archive."
+#~ msgstr ""
+#~ "只显示带有用户耗材丝预设的耗材丝名称，\n"
+#~ "您选择的每个耗材丝名称下的所有用户耗材丝预设都将导出为一个 ZIP 文件。"
+
+# AI Translated
+#~ msgid ""
+#~ "Only printer names with changed process presets will be displayed, \n"
+#~ "and all user process presets in each printer name you select will be exported as a ZIP archive."
+#~ msgstr ""
+#~ "只显示工艺预设有改动的打印机名称，\n"
+#~ "您选择的每个打印机名称下的所有用户工艺预设都将导出为一个 ZIP 文件。"
 
 #~ msgid "Subdivision mesh (Lost color)"
 #~ msgstr "细分网格（颜色会丢失）"

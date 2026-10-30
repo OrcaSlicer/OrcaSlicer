@@ -2099,7 +2099,7 @@ void PreferencesDialog::create_items()
 
     auto item_scene_cache = create_item_checkbox(
         _L("Reuse the 3D scene while idle"),
-        _L("Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+        _L("Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, "
            "and reuses the previous frame's scene instead. Reduces GPU load.\n"
            "Disable it if the viewport shows stale or missing contents.\n\n"
            "Takes effect immediately."),
@@ -2220,7 +2220,7 @@ void PreferencesDialog::create_items()
     auto item_region           = create_item_region_combobox(_L("Login region"), "");
     g_sizer->Add(item_region);
  
-    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\nNote: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."), "stealth_mode");
+    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n\nNote: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."), "stealth_mode");
     g_sizer->Add(item_stealth_mode);
 
     auto item_hide_login_side_panel = create_item_checkbox(_L("Hide login side panel"), _L("Hide the login side panel on the home page."), "hide_login_side_panel");

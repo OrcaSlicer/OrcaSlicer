@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-30 09:53-0300\n"
+"POT-Creation-Date: 2026-10-30 10:37-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2124,19 +2124,19 @@ msgid "Selection 1"
 msgstr "Selectie 1"
 
 msgid ""
-"Select 2 faces on objects and \n"
-" make objects assemble together."
+"Select 2 faces on objects and\n"
+"make objects assemble together."
 msgstr ""
-"Selecteer 2 vlakken op objecten en \n"
-" objecten samenvoegen."
+"Selecteer 2 vlakken op objecten en\n"
+"objecten samenvoegen."
 
 # AI Translated
 msgid ""
-"Select 2 points or circles on objects and \n"
-" specify distance between them."
+"Select 2 points or circles on objects and\n"
+"specify distance between them."
 msgstr ""
-"Selecteer 2 punten of cirkels op objecten en \n"
-" geef de afstand ertussen op."
+"Selecteer 2 punten of cirkels op objecten en\n"
+"geef de afstand ertussen op."
 
 # AI Translated
 msgid "Selection 2"
@@ -2243,11 +2243,11 @@ msgstr "Waarschuwing: selecteer een punt- of cirkelkenmerk."
 # AI Translated
 msgid ""
 "It is recommended to assemble objects first,\n"
-"because they are restricted to the bed \n"
+"because they are restricted to the bed\n"
 "and only parts can be lifted."
 msgstr ""
 "Het is aan te raden eerst objecten samen te stellen,\n"
-"omdat zij aan het printbed gebonden zijn \n"
+"omdat zij aan het printbed gebonden zijn\n"
 "en alleen onderdelen opgetild kunnen worden."
 
 # AI Translated
@@ -8773,10 +8773,10 @@ msgstr "Wissen"
 
 # AI Translated
 msgid ""
-"You have completed printing the mall model, \n"
+"You have completed printing the mall model,\n"
 "but synchronizing rating information has failed."
 msgstr ""
-"U hebt het printen van het mall-model voltooid, \n"
+"U hebt het printen van het mall-model voltooid,\n"
 "maar het synchroniseren van de beoordelingsinformatie is mislukt."
 
 msgid "How do you like this printing file?"
@@ -9050,10 +9050,10 @@ msgstr "Je kunt tot 16 afbeeldingen selecteren."
 
 # AI Translated
 msgid ""
-"At least one successful print record of this print profile is required \n"
+"At least one successful print record of this print profile is required\n"
 "to give a positive rating (4 or 5 stars)."
 msgstr ""
-"Er is minstens één geslaagde printregistratie van dit printprofiel nodig \n"
+"Er is minstens één geslaagde printregistratie van dit printprofiel nodig\n"
 "om een positieve beoordeling (4 of 5 sterren) te geven."
 
 # AI Translated
@@ -10497,12 +10497,10 @@ msgstr "He tobject is te klein"
 
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
+"Instead of considering them as multiple objects, should the file be loaded as a single object with multiple parts?"
 msgstr ""
 "Dit bestand bevat verschillende objecten die op verschillende hoogten zijn geplaatst.\n"
-"In plaats van ze te beschouwen als meerdere objecten, moet\n"
-"het bestand worden geladen als een enkel object met meerdere delen?"
+"In plaats van ze te beschouwen als meerdere objecten, moet het bestand worden geladen als een enkel object met meerdere delen?"
 
 msgid "Multi-part object detected"
 msgstr "Object met meerdere onderdelen gedetecteerd"
@@ -11092,7 +11090,7 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "Abnormale printbestand. Slice opnieuw"
 
 msgid ""
-"Print By Object: \n"
+"Print By Object:\n"
 "We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
 "Afdrukken per object:\n"
@@ -12037,14 +12035,12 @@ msgstr "3D-scène hergebruiken bij inactiviteit"
 
 # AI Translated
 msgid ""
-"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, and reuses the previous frame's scene instead. Reduces GPU load.\n"
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
 msgstr ""
-"Slaat het opnieuw tekenen van de 3D-scène over wanneer alleen de muisaanwijzer over de viewport beweegt,\n"
-"en hergebruikt in plaats daarvan de scène van het vorige frame. Verlaagt de GPU-belasting.\n"
+"Slaat het opnieuw tekenen van de 3D-scène over wanneer alleen de muisaanwijzer over de viewport beweegt, en hergebruikt in plaats daarvan de scène van het vorige frame. Verlaagt de GPU-belasting.\n"
 "Schakel dit uit als de viewport verouderde of ontbrekende inhoud toont.\n"
 "\n"
 "Wordt direct van kracht."
@@ -12174,9 +12170,11 @@ msgstr "Stealth modus"
 # AI Translated
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+"\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
 "Hiermee worden alle cloudfuncties uitgeschakeld, inclusief het synchroniseren van Orca Cloud-profielen. Gebruikers die volledig offline willen werken, kunnen deze optie inschakelen.\n"
+"\n"
 "Let op: wanneer de Stealth-modus is ingeschakeld, worden uw gebruikersprofielen niet geback-upt naar Orca Cloud."
 
 # AI Translated
@@ -13600,12 +13598,8 @@ msgstr "Time-out voor loginrapport ontvangen"
 msgid "Unknown Failure"
 msgstr "Onbekende fout"
 
-msgid ""
-"Please Find the Pin Code in Account page on printer screen,\n"
-" and type in the Pin Code below."
-msgstr ""
-"Zoek de pincode op de accountpagina op het printerscherm,\n"
-" en typ hieronder de pincode."
+msgid "Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."
+msgstr "Zoek de pincode op de accountpagina op het printerscherm, en typ hieronder de pincode."
 
 msgid "Can't find Pin Code?"
 msgstr "Pincode niet gevonden?"
@@ -13782,12 +13776,10 @@ msgstr ""
 # AI Translated
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
-"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
-"and use soluble materials for both support interface and support base."
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height and use soluble materials for both support interface and support base."
 msgstr ""
 "Bij gebruik van oplosbaar materiaal voor de ondersteuningsinterface raden wij de volgende instellingen aan:\n"
-"0 bovenste Z-afstand, 0 interface-afstand, verspringend rechtlijnig patroon, onafhankelijke laaghoogte voor ondersteuning uitschakelen\n"
-"en oplosbare materialen gebruiken voor zowel de ondersteuningsinterface als de basis van de ondersteuning."
+"0 bovenste Z-afstand, 0 interface-afstand, verspringend rechtlijnig patroon, onafhankelijke laaghoogte voor ondersteuning uitschakelen en oplosbare materialen gebruiken voor zowel de ondersteuningsinterface als de basis van de ondersteuning."
 
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
 msgstr "Als u deze optie inschakelt, wordt de vorm van het model aangepast. Als uw afdruk precieze afmetingen vereist of deel uitmaakt van een samenstelling, is het belangrijk om te controleren of deze geometrie verandering van invloed is op de functionaliteit van uw afdruk."
@@ -13805,12 +13797,8 @@ msgstr "Experimentele functie: Het filament op grotere afstand terugtrekken en a
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications. Please use with the latest printer firmware."
 msgstr "Experimentele functie: Het filament op grotere afstand terugtrekken en afsnijden tijdens filamentwisselingen om flush te minimaliseren. Hoewel het het doorspoelen aanzienlijk kan verminderen, kan het ook het risico op een verstopt mondstuk of andere printcomplicaties vergroten. Gebruik dit met de nieuwste printerfirmware."
 
-msgid ""
-"When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr ""
-"Bij het opnemen van timelapse zonder toolhead is het aan te raden om een „Timelapse Wipe Tower” toe te voegen \n"
-"door met de rechtermuisknop op de lege positie van de bouwplaat te klikken en „Add Primitive” ->\"Timelapse Wipe Tower” te kiezen."
+msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+msgstr "Bij het opnemen van timelapse zonder toolhead is het aan te raden om een „Timelapse Wipe Tower” toe te voegen door met de rechtermuisknop op de lege positie van de bouwplaat te klikken en „Add Primitive” ->\"Timelapse Wipe Tower” te kiezen."
 
 msgid "Setting unavailable"
 msgstr ""
@@ -14346,12 +14334,10 @@ msgid "Number of extruders of the printer."
 msgstr "Aantal extruders van de printer."
 
 msgid ""
-"Single Extruder Multi Material is selected,\n"
-"and all extruders must have the same diameter.\n"
+"Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
 msgstr ""
-"Multi-material met één extruder is geselecteerd.\n"
-"Alle extruders moeten daarvoor dezelfde diameter hebben.\n"
+"Multi-material met één extruder is geselecteerd. Alle extruders moeten daarvoor dezelfde diameter hebben.\n"
 "Wilt u de diameters voor alle extruders aanpassen gelijk aan die van de eerste extruder?"
 
 msgid "Nozzle diameter"
@@ -14817,15 +14803,15 @@ msgstr "Breng de geselecteerde opties over naar de nieuwe geselecteerde voorinst
 
 #, boost-format
 msgid ""
-"Save the selected options to preset \n"
+"Save the selected options to preset\n"
 "\"%1%\"."
 msgstr ""
-"Sla de geselecteerde opties op als preset \n"
+"Sla de geselecteerde opties op als preset\n"
 "\"%1%\"."
 
 #, boost-format
 msgid ""
-"Transfer the selected options to the newly selected preset \n"
+"Transfer the selected options to the newly selected preset\n"
 "\"%1%\"."
 msgstr ""
 "Breng de geselecteerde opties over naar de nieuwe geselecteerde voorinstelling\n"
@@ -15743,12 +15729,8 @@ msgstr "Verbinding maken met de printer... Het dialoogvenster sluit later"
 msgid "Connection failed, please double check IP and Access Code"
 msgstr "Verbinding mislukt, controleer IP en toegangscode opnieuw"
 
-msgid ""
-"Connection failed! If your IP and Access Code is correct, \n"
-"please move to step 3 for troubleshooting network issues"
-msgstr ""
-"Verbinding mislukt! Als uw IP-adres en toegangscode correct zijn, \n"
-"ga dan naar stap 3 voor het oplossen van netwerkproblemen"
+msgid "Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"
+msgstr "Verbinding mislukt! Als uw IP-adres en toegangscode correct zijn, ga dan naar stap 3 voor het oplossen van netwerkproblemen"
 
 # AI Translated
 msgid "Connection failed! Please refer to the wiki page."
@@ -17412,8 +17394,14 @@ msgid "Precise wall"
 msgstr "Precieze wand"
 
 # AI Translated
-msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr "Verbeter de precisie van de buitenlaag door de afstand van de buitenste wand aan te passen. Dit verbetert ook de consistentie tussen de lagen. LET OP: deze optie wordt genegeerd bij de wandvolgorden buiten-binnen of binnen-buiten-binnen."
+msgid ""
+"Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n"
+"\n"
+"Note: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgstr ""
+"Verbeter de precisie van de buitenlaag door de afstand van de buitenste wand aan te passen. Dit verbetert ook de consistentie tussen de lagen.\n"
+"\n"
+"LET OP: deze optie wordt genegeerd bij de wandvolgorden buiten-binnen of binnen-buiten-binnen."
 
 msgid "Only one wall on top surfaces"
 msgstr "Slechts één wand op de bovenste oppervlakken"
@@ -17429,9 +17417,11 @@ msgstr "Drempel voor één wand"
 #, no-c-format, no-boost-format
 msgid ""
 "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+"\n"
 "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
 msgstr ""
 "Als een bovenoppervlak moet worden geprint en het gedeeltelijk door een andere laag wordt bedekt, wordt het niet als bovenlaag beschouwd waar de breedte ervan onder deze waarde ligt. Dit kan handig zijn om te voorkomen dat 'één perimeter aan de bovenzijde' wordt geactiveerd op oppervlakken die alleen door perimeters bedekt zouden moeten worden. Deze waarde kan in mm of als % van de extrusiebreedte van de perimeter worden opgegeven.\n"
+"\n"
 "Waarschuwing: indien ingeschakeld kunnen er artefacten ontstaan als de volgende laag dunne details bevat, zoals letters. Zet deze instelling op 0 om die artefacten te verwijderen."
 
 # AI Translated
@@ -17546,7 +17536,7 @@ msgid ""
 "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
 "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 "\n"
-"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen.\n"
 "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
 "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
 "\n"
@@ -17561,7 +17551,7 @@ msgstr ""
 "Schakel deze optie in om af te remmen in gebieden waar perimeters omhoog gekruld kunnen zijn.\n"
 "Zo wordt er extra afgeremd bij het printen van overhangen op scherpe hoeken, zoals de voorkant van de Benchy-romp, wat het omkrullen vermindert dat zich over meerdere lagen opstapelt.\n"
 "\n"
-"Het is over het algemeen aan te raden deze optie ingeschakeld te laten, tenzij de koeling van uw printer krachtig genoeg is of de printsnelheid laag genoeg is om omkrullen van perimeters te voorkomen. \n"
+"Het is over het algemeen aan te raden deze optie ingeschakeld te laten, tenzij de koeling van uw printer krachtig genoeg is of de printsnelheid laag genoeg is om omkrullen van perimeters te voorkomen.\n"
 "Bij printen met een hoge snelheid voor de externe perimeter kan deze parameter tijdens het afremmen wandartefacten veroorzaken, doordat de mogelijk grote verschillen in printsnelheid ervoor zorgen dat de extruder de gevraagde flowverandering niet kan bijhouden.\n"
 "De oorzaak van deze artefacten is meestal een licht afwijkende PA-afstelling, vooral in combinatie met een hoge PA-smoothtijd.\n"
 "\n"
@@ -18329,16 +18319,28 @@ msgid "Bed mesh min"
 msgstr "Bedmesh min"
 
 # AI Translated
-msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Deze optie stelt het minimumpunt in voor het toegestane gebied van de bedmesh. Door de XY-offset van de probe kunnen de meeste printers niet het volledige bed aftasten. Om te voorkomen dat het meetpunt buiten het bedoppervlak komt, moeten het minimum- en maximumpunt van de bedmesh juist worden ingesteld. OrcaSlicer zorgt ervoor dat de waarden adaptive_bed_mesh_min/adaptive_bed_mesh_max deze min-/maxpunten niet overschrijden. Deze informatie is doorgaans verkrijgbaar bij de fabrikant van uw printer. De standaardinstelling is (-99999, -99999), wat betekent dat er geen limieten zijn en het volledige bed kan worden afgetast."
+msgid ""
+"This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Deze optie stelt het minimumpunt in voor het toegestane gebied van de bedmesh. Door de XY-offset van de probe kunnen de meeste printers niet het volledige bed aftasten. Om te voorkomen dat het meetpunt buiten het bedoppervlak komt, moeten het minimum- en maximumpunt van de bedmesh juist worden ingesteld. OrcaSlicer zorgt ervoor dat de waarden adaptive_bed_mesh_min/adaptive_bed_mesh_max deze min-/maxpunten niet overschrijden. Deze informatie is doorgaans verkrijgbaar bij de fabrikant van uw printer.\n"
+"\n"
+"De standaardinstelling is (-99999, -99999), wat betekent dat er geen limieten zijn en het volledige bed kan worden afgetast."
 
 # AI Translated
 msgid "Bed mesh max"
 msgstr "Bedmesh max"
 
 # AI Translated
-msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Deze optie stelt het maximumpunt in voor het toegestane gebied van de bedmesh. Door de XY-offset van de probe kunnen de meeste printers niet het volledige bed aftasten. Om te voorkomen dat het meetpunt buiten het bedoppervlak komt, moeten het minimum- en maximumpunt van de bedmesh juist worden ingesteld. OrcaSlicer zorgt ervoor dat de waarden adaptive_bed_mesh_min/adaptive_bed_mesh_max deze min-/maxpunten niet overschrijden. Deze informatie is doorgaans verkrijgbaar bij de fabrikant van uw printer. De standaardinstelling is (99999, 99999), wat betekent dat er geen limieten zijn en het volledige bed kan worden afgetast."
+msgid ""
+"This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Deze optie stelt het maximumpunt in voor het toegestane gebied van de bedmesh. Door de XY-offset van de probe kunnen de meeste printers niet het volledige bed aftasten. Om te voorkomen dat het meetpunt buiten het bedoppervlak komt, moeten het minimum- en maximumpunt van de bedmesh juist worden ingesteld. OrcaSlicer zorgt ervoor dat de waarden adaptive_bed_mesh_min/adaptive_bed_mesh_max deze min-/maxpunten niet overschrijden. Deze informatie is doorgaans verkrijgbaar bij de fabrikant van uw printer.\n"
+"\n"
+"De standaardinstelling is (99999, 99999), wat betekent dat er geen limieten zijn en het volledige bed kan worden afgetast."
 
 # AI Translated
 msgid "Probe point distance"
@@ -18470,13 +18472,11 @@ msgstr "Statische Pressure Advance voor bruggen"
 
 # AI Translated
 msgid ""
-"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
-"equivalent walls (using adaptive settings if enabled).\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Statische waarde voor Pressure Advance bij bruggen. Zet op 0 om dezelfde Pressure Advance toe te passen als \n"
-"bij gelijkwaardige wanden (met de adaptieve instellingen indien ingeschakeld).\n"
+"Statische waarde voor Pressure Advance bij bruggen. Zet op 0 om dezelfde Pressure Advance toe te passen als bij gelijkwaardige wanden (met de adaptieve instellingen indien ingeschakeld).\n"
 "\n"
 "Een lagere PA-waarde bij het printen van bruggen helpt de lichte onderextrusie die direct na bruggen zichtbaar is te verminderen. Die wordt veroorzaakt door de drukval in het mondstuk bij het printen in de lucht; een lagere PA helpt dit tegen te gaan."
 
@@ -19965,16 +19965,36 @@ msgid "Sparse infill rotation template"
 msgstr "Rotatiesjabloon voor de dunne vulling (infill)"
 
 # AI Translated
-msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr "Draai de richting van de dunne vulling (infill) per laag met behulp van een sjabloon van hoeken. Voer door komma's gescheiden graden in (bijv. '0,30,60,90'). De hoeken worden op volgorde per laag toegepast en herhaald wanneer de lijst afgelopen is. Geavanceerde syntaxis wordt ondersteund: '+5' draait elke laag +5°; '+5#5' draait +5° per 5 lagen. Zie de wiki voor details. Wanneer er een sjabloon is ingesteld, wordt de standaardinstelling voor de vulrichting genegeerd. Let op: sommige vulpatronen (bijv. Gyroide) regelen de rotatie zelf; gebruik dit met beleid."
+msgid ""
+"Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends.\n"
+"\n"
+"Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n"
+"\n"
+"When a template is set, the standard infill direction setting is ignored.\n"
+"\n"
+"Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+msgstr ""
+"Draai de richting van de dunne vulling (infill) per laag met behulp van een sjabloon van hoeken. Voer door komma's gescheiden graden in (bijv. '0,30,60,90'). De hoeken worden op volgorde per laag toegepast en herhaald wanneer de lijst afgelopen is.\n"
+"\n"
+"Geavanceerde syntaxis wordt ondersteund: '+5' draait elke laag +5°; '+5#5' draait +5° per 5 lagen. Zie de wiki voor details.\n"
+"\n"
+"Wanneer er een sjabloon is ingesteld, wordt de standaardinstelling voor de vulrichting genegeerd.\n"
+"\n"
+"Let op: sommige vulpatronen (bijv. Gyroide) regelen de rotatie zelf; gebruik dit met beleid."
 
 # AI Translated
 msgid "Solid infill rotation template"
 msgstr "Rotatiesjabloon voor de solide vulling"
 
 # AI Translated
-msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr "Deze parameter voegt per laag een rotatie van de richting van de solide vulling toe volgens het opgegeven sjabloon. Het sjabloon is een door komma's gescheiden lijst van hoeken in graden, bijv. '0,90'. De eerste hoek wordt toegepast op de eerste laag, de tweede hoek op de tweede laag, enzovoort. Als er meer lagen dan hoeken zijn, worden de hoeken herhaald. Let op: niet alle patronen voor solide vulling ondersteunen rotatie."
+msgid ""
+"This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated.\n"
+"\n"
+"Note that not all solid infill patterns support rotation."
+msgstr ""
+"Deze parameter voegt per laag een rotatie van de richting van de solide vulling toe volgens het opgegeven sjabloon. Het sjabloon is een door komma's gescheiden lijst van hoeken in graden, bijv. '0,90'. De eerste hoek wordt toegepast op de eerste laag, de tweede hoek op de tweede laag, enzovoort. Als er meer lagen dan hoeken zijn, worden de hoeken herhaald.\n"
+"\n"
+"Let op: niet alle patronen voor solide vulling ondersteunen rotatie."
 
 # AI Translated
 msgid "Skeleton infill density"
@@ -20880,8 +20900,14 @@ msgid "Reduce infill retraction"
 msgstr "Reduceer terugtrekken (retraction) bij vulling (infill)"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "Trek niet terug als de beweging zich volledig in een opvulgebied bevindt. Dat betekent dat het sijpelen niet zichtbaar is. Dit kan de retraction times voor complexe modellen verkorten en printtijd besparen, maar het segmenteren en het genereren van G-codes langzamer maken. Let op: Z-hop wordt ook niet uitgevoerd in gebieden waar het terugtrekken wordt overgeslagen."
+msgid ""
+"Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n"
+"\n"
+"Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr ""
+"Trek niet terug als de beweging zich volledig in een opvulgebied bevindt. Dat betekent dat het sijpelen niet zichtbaar is. Dit kan de retraction times voor complexe modellen verkorten en printtijd besparen, maar het segmenteren en het genereren van G-codes langzamer maken.\n"
+"\n"
+"Let op: Z-hop wordt ook niet uitgevoerd in gebieden waar het terugtrekken wordt overgeslagen."
 
 # AI Translated
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -21384,8 +21410,14 @@ msgid "Scarf joint speed"
 msgstr "Snelheid voor schuine naad"
 
 # AI Translated
-msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Deze optie stelt de printsnelheid voor schuine naden in. Het is aan te raden schuine naden op lage snelheid te printen (minder dan 100 mm/s). Het is ook verstandig 'Afvlakking van de extrusiesnelheid' in te schakelen als de ingestelde snelheid sterk afwijkt van de snelheid van de buitenste of binnenste wanden. Als de hier opgegeven snelheid hoger is dan die van de buitenste of binnenste wanden, gebruikt de printer standaard de laagste van de twee snelheden. Bij opgave als percentage (bijv. 80%) wordt de snelheid berekend op basis van de betreffende snelheid van de buitenste of binnenste wand. De standaardwaarde is 100%."
+msgid ""
+"This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
+"\n"
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+msgstr ""
+"Deze optie stelt de printsnelheid voor schuine naden in. Het is aan te raden schuine naden op lage snelheid te printen (minder dan 100 mm/s). Het is ook verstandig 'Afvlakking van de extrusiesnelheid' in te schakelen als de ingestelde snelheid sterk afwijkt van de snelheid van de buitenste of binnenste wanden.\n"
+"\n"
+"Als de hier opgegeven snelheid hoger is dan die van de buitenste of binnenste wanden, gebruikt de printer standaard de laagste van de twee snelheden. Bij opgave als percentage (bijv. 80%) wordt de snelheid berekend op basis van de betreffende snelheid van de buitenste of binnenste wand. De standaardwaarde is 100%."
 
 # AI Translated
 msgid "Scarf joint flow ratio"
@@ -21670,8 +21702,14 @@ msgstr "Eindflow verhouding van de spiraal"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Stelt de flow verhouding in bij het beëindigen van de spiraal. Normaal schaalt de spiraalovergang de flow verhouding tijdens de laatste lus van 100% naar 0%, wat in sommige gevallen tot onderextrusie aan het einde van de spiraal kan leiden."
 
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "Als de vloeiende of traditionele modus is geselecteerd, wordt voor elke print een timelapse-video gegenereerd. Nadat elke laag is geprint, wordt een momentopname gemaakt met de kamercamera. Al deze momentopnamen worden samengevoegd tot een timelapse-video wanneer het afdrukken is voltooid. Als de vloeiende modus is geselecteerd, beweegt de gereedschapskop naar de afvoer chute nadat iedere laag is afgedrukt en maakt vervolgens een momentopname. Aangezien het gesmolten filament uit het mondstuk kan lekken tijdens het maken van een momentopname, is voor de soepele modus een primetoren nodig om het mondstuk schoon te vegen."
+msgid ""
+"If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n"
+"\n"
+"If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+msgstr ""
+"Als de vloeiende of traditionele modus is geselecteerd, wordt voor elke print een timelapse-video gegenereerd. Nadat elke laag is geprint, wordt een momentopname gemaakt met de kamercamera. Al deze momentopnamen worden samengevoegd tot een timelapse-video wanneer het afdrukken is voltooid.\n"
+"\n"
+"Als de vloeiende modus is geselecteerd, beweegt de gereedschapskop naar de afvoer chute nadat iedere laag is afgedrukt en maakt vervolgens een momentopname. Aangezien het gesmolten filament uit het mondstuk kan lekken tijdens het maken van een momentopname, is voor de soepele modus een primetoren nodig om het mondstuk schoon te vegen."
 
 msgid "Traditional"
 msgstr "Traditioneel"
@@ -21912,8 +21950,14 @@ msgstr "Toolwissel op het afveegblok"
 
 # AI Translated
 # Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "afveegblok"; align it once the term is settled; Unsettled glossary term (⚠) "Tool (printer)": this entry uses "tool"; align it once the term is settled.
-msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
-msgstr "Dwing de printkop naar het afveegblok te bewegen voordat de opdracht voor de toolwissel (Tx) wordt gegeven. Alleen relevant voor printers met meerdere extruders (meerdere printkoppen) die een afveegblok van type 2 gebruiken. Standaard slaat Orca deze verplaatsing op machines met meerdere printkoppen over, omdat de firmware de kopwissel afhandelt, waardoor de Tx-opdracht boven het geprinte onderdeel kan worden gegeven. Schakel deze optie in als u wilt dat de toolwissel altijd boven het afveegblok wordt uitgevoerd."
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+msgstr ""
+"Dwing de printkop naar het afveegblok te bewegen voordat de opdracht voor de toolwissel (Tx) wordt gegeven.\n"
+"\n"
+"Alleen relevant voor printers met meerdere extruders (meerdere printkoppen) die een afveegblok van type 2 gebruiken. Standaard slaat Orca deze verplaatsing op machines met meerdere printkoppen over, omdat de firmware de kopwissel afhandelt, waardoor de Tx-opdracht boven het geprinte onderdeel kan worden gegeven. Schakel deze optie in als u wilt dat de toolwissel altijd boven het afveegblok wordt uitgevoerd."
 
 # AI Translated
 # Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "afveegblok"; align it once the term is settled.
@@ -21922,8 +21966,14 @@ msgstr "Wachten op temperatuur bij het afveegblok"
 
 # AI Translated
 # Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "afveegblok"; align it once the term is settled; Unsettled glossary term (⚠) "Tool (printer)": this entry uses "gereedschap"; align it once the term is settled.
-msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr "Pakt het nieuwe gereedschap op zonder te wachten tot het de printtemperatuur bereikt, verplaatst zich naar het afveegblok en wacht daar op de temperatuur, vlak voor het spoelen. Het materiaal dat tijdens het opwarmen uitloopt komt op het blok terecht in plaats van op het model, en de verplaatsing overlapt met het opwarmen. Alleen relevant voor printers met meerdere extruders (meerdere printkoppen) die een afveegblok van type 2 gebruiken. De firmware of de gereedschapswisselmacro mag niet zelf op de temperatuur wachten. Wanneer dit is uitgeschakeld, wordt het wachten op de temperatuur direct na het gereedschapswisselcommando uitgevoerd."
+msgid ""
+"Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating.\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
+"Pakt het nieuwe gereedschap op zonder te wachten tot het de printtemperatuur bereikt, verplaatst zich naar het afveegblok en wacht daar op de temperatuur, vlak voor het spoelen. Het materiaal dat tijdens het opwarmen uitloopt komt op het blok terecht in plaats van op het model, en de verplaatsing overlapt met het opwarmen.\n"
+"\n"
+"Alleen relevant voor printers met meerdere extruders (meerdere printkoppen) die een afveegblok van type 2 gebruiken. De firmware of de gereedschapswisselmacro mag niet zelf op de temperatuur wachten. Wanneer dit is uitgeschakeld, wordt het wachten op de temperatuur direct na het gereedschapswisselcommando uitgevoerd."
 
 # AI Translated
 msgid "No sparse layers (beta)"
@@ -22284,9 +22334,11 @@ msgstr "Drempel hoek"
 
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
 "Er zal ondersteuning support gegenereerd worden voor overhangende hoeken waarvan de hellingshoek lager is dan deze drempel.Hoe kleiner deze waarde is, hoe steiler de overhang die zonder ondersteuning kan worden geprint.\n"
+"\n"
 "Opmerking: Indien ingesteld op 0, gebruiken normale ondersteuningen in plaats daarvan de drempelwaarde voor overlap,terwijl boomstructuurondersteuningen terugvallen op een standaardwaarde van 30."
 
 # AI Translated
@@ -22592,13 +22644,15 @@ msgstr ""
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
-"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this:\n"
+"PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
 "Dit is de kamertemperatuur waarbij het printen moet starten, terwijl de kamer verder opwarmt naar de \"beoogde\" kamertemperatuur. Zet bijvoorbeeld het doel op 60 en het minimum op 50 om te beginnen met printen zodra de kamer 50℃ bereikt, zonder op de volle 60℃ te wachten.\n"
 "\n"
-"Hiermee wordt een G-code-variabele met de naam chamber_minimal_temperature ingesteld, die u kunt doorgeven aan uw print-startmacro of aan een heat soak-macro, bijvoorbeeld: PRINT_START (andere variabelen) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"Hiermee wordt een G-code-variabele met de naam chamber_minimal_temperature ingesteld, die u kunt doorgeven aan uw print-startmacro of aan een heat soak-macro, bijvoorbeeld:\n"
+"PRINT_START (andere variabelen) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Anders dan bij de \"beoogde\" kamertemperatuur stuurt deze optie geen M141/M191-opdrachten uit; de waarde wordt alleen beschikbaar gemaakt voor uw aangepaste G-code. De waarde mag de \"beoogde\" kamertemperatuur niet overschrijden."
 
@@ -23079,8 +23133,18 @@ msgstr "Bij de overgang tussen verschillende aantallen muren naarmate het onderd
 msgid "Wall transitioning filter margin"
 msgstr "Marge van het filter voor wandovergang"
 
-msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
-msgstr "Voorkom heen en weer schakelen tussen een extra wand en een wand minder. Deze marge breidt het bereik van extrusiebreedten uit dat volgt op [Minimum wandbreedte - marge, 2 * Minimale wandbreedte + marge]. Door deze marge te vergroten, wordt het aantal overgangen verminderd, waardoor het aantal extrusie-starts/-stops en travel tijd wordt verminderd. Grote variaties in de extrusiebreedte kunnen echter leiden tot onder- of overextrusieproblemen. Het wordt uitgedrukt als een percentage over de diameter van het mondstuk"
+msgid ""
+"Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin].\n"
+"\n"
+"Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems.\n"
+"\n"
+"It's expressed as a percentage over nozzle diameter."
+msgstr ""
+"Voorkom heen en weer schakelen tussen een extra wand en een wand minder. Deze marge breidt het bereik van extrusiebreedten uit dat volgt op [Minimum wandbreedte - marge, 2 * Minimale wandbreedte + marge].\n"
+"\n"
+"Door deze marge te vergroten, wordt het aantal overgangen verminderd, waardoor het aantal extrusie-starts/-stops en travel tijd wordt verminderd. Grote variaties in de extrusiebreedte kunnen echter leiden tot onder- of overextrusieproblemen.\n"
+"\n"
+"Het wordt uitgedrukt als een percentage over de diameter van het mondstuk"
 
 msgid "Wall transitioning threshold angle"
 msgstr "Drempelhoek voor wandovergang"
@@ -23166,8 +23230,14 @@ msgstr "Om doorsijpelen te voorkomen, wordt de temperatuur van de nozzle afgekoe
 msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
 msgstr "De maximale volumetrische snelheid voor het rammen vóór extruderwissel, waarbij -1 betekent dat de maximale volumetrische snelheid wordt gebruikt."
 
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "Om druipen te voorkomen, wordt de nozzle-temperatuur tijdens het rammen afgekoeld. Opmerking: alleen een koelcommando en ventilatoractivatie worden geactiveerd, het bereiken van de doeldtemperatuur wordt niet gegarandeerd. 0 betekent uitgeschakeld."
+msgid ""
+"To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n"
+"\n"
+"Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed."
+msgstr ""
+"Om druipen te voorkomen, wordt de nozzle-temperatuur tijdens het rammen afgekoeld. 0 betekent uitgeschakeld.\n"
+"\n"
+"Opmerking: alleen een koelcommando en ventilatoractivatie worden geactiveerd, het bereiken van de doeldtemperatuur wordt niet gegarandeerd."
 
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
 msgstr "De maximale volumetrische snelheid voor het rammen vóór een hot-end wissel, waarbij -1 betekent dat de maximale volumetrische snelheid wordt gebruikt."
@@ -25838,11 +25908,11 @@ msgstr "Automatisch schalen naar mondstuk"
 
 # AI Translated
 msgid ""
-"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
-"Dit model is ontworpen voor een mondstuk van 0,4 mm met een laaghoogte van 0,2 mm. \n"
+"Dit model is ontworpen voor een mondstuk van 0,4 mm met een laaghoogte van 0,2 mm.\n"
 "Wanneer de schaaloptie is ingeschakeld (aanbevolen), wordt het model dynamisch aangepast aan je huidige mondstukdiameter en een passende laaghoogte, waardoor de test zowel nauwkeurig als goed afleesbaar is.\n"
 "Schakel het schalen alleen uit als je het referentiemodel precies zo wilt printen als het is."
 
@@ -26028,12 +26098,12 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
-" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
 "\n"
 "%s"
 msgstr ""
 "De eindsnelheid (%.0f mm/s) overschrijdt de maximale volumetrische snelheid van het filament (%.1f mm³/s), waardoor de buitenste wand bij deze lijndikte en laaghoogte beperkt wordt tot ongeveer %.0f mm/s.\n"
-" Hogere snelheden worden begrensd, waardoor de bovenste blokken van de toren niet op de gevraagde snelheid worden geprint.\n"
+"Hogere snelheden worden begrensd, waardoor de bovenste blokken van de toren niet op de gevraagde snelheid worden geprint.\n"
 "\n"
 "%s"
 
@@ -26736,13 +26806,11 @@ msgstr "U hebt een niet toegestaan teken ingevoerd in het gedeelte van het afdru
 # AI Translated
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
+"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "De printervoorinstelling die u hebt gemaakt heeft al een voorinstelling met dezelfde naam. Wilt u die overschrijven?\n"
-"\tJa: overschrijf de printervoorinstelling met dezelfde naam; filament- en procesvoorinstellingen met dezelfde naam worden opnieuw aangemaakt \n"
-"en filament- en procesvoorinstellingen zonder dezelfde naam blijven behouden.\n"
+"\tJa: overschrijf de printervoorinstelling met dezelfde naam; filament- en procesvoorinstellingen met dezelfde naam worden opnieuw aangemaakt en filament- en procesvoorinstellingen zonder dezelfde naam blijven behouden.\n"
 "\tAnnuleren: maak geen voorinstelling en keer terug naar het aanmaakscherm."
 
 msgid "You need to select at least one filament preset."
@@ -26784,10 +26852,10 @@ msgstr "De ingevoerde mondstukdiameter is ongeldig; voer deze opnieuw in:\n"
 
 # AI Translated
 msgid ""
-"The system preset does not allow creation. \n"
+"The system preset does not allow creation.\n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
-"De systeemvoorinstelling staat aanmaken niet toe. \n"
+"De systeemvoorinstelling staat aanmaken niet toe.\n"
 "Voer het printermodel of de mondstukdiameter opnieuw in."
 
 # AI Translated
@@ -26932,17 +27000,17 @@ msgid "Only printer names with user printer presets will be displayed, and each 
 msgstr "Alleen printernamen met gebruikersprinter presets worden weergegeven en elke preset die je kiest, wordt als zip geëxporteerd."
 
 msgid ""
-"Only the filament names with user filament presets will be displayed, \n"
+"Only the filament names with user filament presets will be displayed,\n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
-"Alleen de filamentnamen met gebruikers presets worden weergegeven, \n"
+"Alleen de filamentnamen met gebruikers presets worden weergegeven,\n"
 "en alle gebruikers presets in elke filamentnaam die u selecteert, worden geëxporteerd als zip-bestand."
 
 msgid ""
-"Only printer names with changed process presets will be displayed, \n"
+"Only printer names with changed process presets will be displayed,\n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
-"Alleen printernamen met gewijzigde proces presets worden weergegeven, \n"
+"Alleen printernamen met gewijzigde proces presets worden weergegeven,\n"
 "en alle gebruikersproces presets in elke printernaam die u selecteert, worden als zip geëxporteerd."
 
 msgid "Please select at least one printer or filament."
@@ -40242,6 +40310,320 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+#~ msgid ""
+#~ "Select 2 faces on objects and \n"
+#~ " make objects assemble together."
+#~ msgstr ""
+#~ "Selecteer 2 vlakken op objecten en \n"
+#~ " objecten samenvoegen."
+
+# AI Translated
+#~ msgid ""
+#~ "Select 2 points or circles on objects and \n"
+#~ " specify distance between them."
+#~ msgstr ""
+#~ "Selecteer 2 punten of cirkels op objecten en \n"
+#~ " geef de afstand ertussen op."
+
+# AI Translated
+#~ msgid ""
+#~ "It is recommended to assemble objects first,\n"
+#~ "because they are restricted to the bed \n"
+#~ "and only parts can be lifted."
+#~ msgstr ""
+#~ "Het is aan te raden eerst objecten samen te stellen,\n"
+#~ "omdat zij aan het printbed gebonden zijn \n"
+#~ "en alleen onderdelen opgetild kunnen worden."
+
+# AI Translated
+#~ msgid ""
+#~ "You have completed printing the mall model, \n"
+#~ "but synchronizing rating information has failed."
+#~ msgstr ""
+#~ "U hebt het printen van het mall-model voltooid, \n"
+#~ "maar het synchroniseren van de beoordelingsinformatie is mislukt."
+
+# AI Translated
+#~ msgid ""
+#~ "At least one successful print record of this print profile is required \n"
+#~ "to give a positive rating (4 or 5 stars)."
+#~ msgstr ""
+#~ "Er is minstens één geslaagde printregistratie van dit printprofiel nodig \n"
+#~ "om een positieve beoordeling (4 of 5 sterren) te geven."
+
+#~ msgid ""
+#~ "This file contains several objects positioned at multiple heights.\n"
+#~ "Instead of considering them as multiple objects, should \n"
+#~ "the file be loaded as a single object with multiple parts?"
+#~ msgstr ""
+#~ "Dit bestand bevat verschillende objecten die op verschillende hoogten zijn geplaatst.\n"
+#~ "In plaats van ze te beschouwen als meerdere objecten, moet\n"
+#~ "het bestand worden geladen als een enkel object met meerdere delen?"
+
+#~ msgid ""
+#~ "Print By Object: \n"
+#~ "We suggest using auto-arrange to avoid collisions when printing."
+#~ msgstr ""
+#~ "Afdrukken per object:\n"
+#~ "Het wordt geadviseerd om automatisch rangschikken te gebruiken om botsingen tijdens het afdrukken te voorkomen."
+
+# AI Translated
+#~ msgid ""
+#~ "Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+#~ "and reuses the previous frame's scene instead. Reduces GPU load.\n"
+#~ "Disable it if the viewport shows stale or missing contents.\n"
+#~ "\n"
+#~ "Takes effect immediately."
+#~ msgstr ""
+#~ "Slaat het opnieuw tekenen van de 3D-scène over wanneer alleen de muisaanwijzer over de viewport beweegt,\n"
+#~ "en hergebruikt in plaats daarvan de scène van het vorige frame. Verlaagt de GPU-belasting.\n"
+#~ "Schakel dit uit als de viewport verouderde of ontbrekende inhoud toont.\n"
+#~ "\n"
+#~ "Wordt direct van kracht."
+
+# AI Translated
+#~ msgid ""
+#~ "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+#~ "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
+#~ msgstr ""
+#~ "Hiermee worden alle cloudfuncties uitgeschakeld, inclusief het synchroniseren van Orca Cloud-profielen. Gebruikers die volledig offline willen werken, kunnen deze optie inschakelen.\n"
+#~ "Let op: wanneer de Stealth-modus is ingeschakeld, worden uw gebruikersprofielen niet geback-upt naar Orca Cloud."
+
+#~ msgid ""
+#~ "Please Find the Pin Code in Account page on printer screen,\n"
+#~ " and type in the Pin Code below."
+#~ msgstr ""
+#~ "Zoek de pincode op de accountpagina op het printerscherm,\n"
+#~ " en typ hieronder de pincode."
+
+# AI Translated
+#~ msgid ""
+#~ "When using soluble material for the support interface, we recommend the following settings:\n"
+#~ "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
+#~ "and use soluble materials for both support interface and support base."
+#~ msgstr ""
+#~ "Bij gebruik van oplosbaar materiaal voor de ondersteuningsinterface raden wij de volgende instellingen aan:\n"
+#~ "0 bovenste Z-afstand, 0 interface-afstand, verspringend rechtlijnig patroon, onafhankelijke laaghoogte voor ondersteuning uitschakelen\n"
+#~ "en oplosbare materialen gebruiken voor zowel de ondersteuningsinterface als de basis van de ondersteuning."
+
+#~ msgid ""
+#~ "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
+#~ "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+#~ msgstr ""
+#~ "Bij het opnemen van timelapse zonder toolhead is het aan te raden om een „Timelapse Wipe Tower” toe te voegen \n"
+#~ "door met de rechtermuisknop op de lege positie van de bouwplaat te klikken en „Add Primitive” ->\"Timelapse Wipe Tower” te kiezen."
+
+#~ msgid ""
+#~ "Single Extruder Multi Material is selected,\n"
+#~ "and all extruders must have the same diameter.\n"
+#~ "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
+#~ msgstr ""
+#~ "Multi-material met één extruder is geselecteerd.\n"
+#~ "Alle extruders moeten daarvoor dezelfde diameter hebben.\n"
+#~ "Wilt u de diameters voor alle extruders aanpassen gelijk aan die van de eerste extruder?"
+
+#, boost-format
+#~ msgid ""
+#~ "Save the selected options to preset \n"
+#~ "\"%1%\"."
+#~ msgstr ""
+#~ "Sla de geselecteerde opties op als preset \n"
+#~ "\"%1%\"."
+
+#, boost-format
+#~ msgid ""
+#~ "Transfer the selected options to the newly selected preset \n"
+#~ "\"%1%\"."
+#~ msgstr ""
+#~ "Breng de geselecteerde opties over naar de nieuwe geselecteerde voorinstelling\n"
+#~ "\"%1%\"."
+
+#~ msgid ""
+#~ "Connection failed! If your IP and Access Code is correct, \n"
+#~ "please move to step 3 for troubleshooting network issues"
+#~ msgstr ""
+#~ "Verbinding mislukt! Als uw IP-adres en toegangscode correct zijn, \n"
+#~ "ga dan naar stap 3 voor het oplossen van netwerkproblemen"
+
+# AI Translated
+#~ msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+#~ msgstr "Verbeter de precisie van de buitenlaag door de afstand van de buitenste wand aan te passen. Dit verbetert ook de consistentie tussen de lagen. LET OP: deze optie wordt genegeerd bij de wandvolgorden buiten-binnen of binnen-buiten-binnen."
+
+# AI Translated
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+#~ "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
+#~ msgstr ""
+#~ "Als een bovenoppervlak moet worden geprint en het gedeeltelijk door een andere laag wordt bedekt, wordt het niet als bovenlaag beschouwd waar de breedte ervan onder deze waarde ligt. Dit kan handig zijn om te voorkomen dat 'één perimeter aan de bovenzijde' wordt geactiveerd op oppervlakken die alleen door perimeters bedekt zouden moeten worden. Deze waarde kan in mm of als % van de extrusiebreedte van de perimeter worden opgegeven.\n"
+#~ "Waarschuwing: indien ingeschakeld kunnen er artefacten ontstaan als de volgende laag dunne details bevat, zoals letters. Zet deze instelling op 0 om die artefacten te verwijderen."
+
+# AI Translated
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
+#~ "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
+#~ "\n"
+#~ "It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+#~ "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
+#~ "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
+#~ "\n"
+#~ "Recommendations when enabling this option:\n"
+#~ "1. Reduce Pressure Advance smooth time to 0.015 - 0.02 so the extruder reacts quickly to the speed changes.\n"
+#~ "2. Increase the minimum print speeds to limit the magnitude of the slowdown and reduce the variance between fast and slow segments.\n"
+#~ "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
+#~ "\n"
+#~ "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
+#~ "For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+#~ msgstr ""
+#~ "Schakel deze optie in om af te remmen in gebieden waar perimeters omhoog gekruld kunnen zijn.\n"
+#~ "Zo wordt er extra afgeremd bij het printen van overhangen op scherpe hoeken, zoals de voorkant van de Benchy-romp, wat het omkrullen vermindert dat zich over meerdere lagen opstapelt.\n"
+#~ "\n"
+#~ "Het is over het algemeen aan te raden deze optie ingeschakeld te laten, tenzij de koeling van uw printer krachtig genoeg is of de printsnelheid laag genoeg is om omkrullen van perimeters te voorkomen. \n"
+#~ "Bij printen met een hoge snelheid voor de externe perimeter kan deze parameter tijdens het afremmen wandartefacten veroorzaken, doordat de mogelijk grote verschillen in printsnelheid ervoor zorgen dat de extruder de gevraagde flowverandering niet kan bijhouden.\n"
+#~ "De oorzaak van deze artefacten is meestal een licht afwijkende PA-afstelling, vooral in combinatie met een hoge PA-smoothtijd.\n"
+#~ "\n"
+#~ "Aanbevelingen bij het inschakelen van deze optie:\n"
+#~ "1. Verlaag de smoothtijd van Pressure Advance tot 0,015 - 0,02, zodat de extruder snel op de snelheidsveranderingen reageert.\n"
+#~ "2. Verhoog de minimale printsnelheden om de omvang van de vertraging te beperken en het verschil tussen snelle en trage segmenten te verkleinen.\n"
+#~ "3. Als er nog steeds artefacten optreden, schakel dan Afvlakking van de extrusiesnelheid (ERS) in om de flowovergangen verder af te vlakken.\n"
+#~ "\n"
+#~ "Let op: wanneer deze optie is ingeschakeld, worden overhangende perimeters als overhangen behandeld, wat betekent dat de overhangsnelheid wordt toegepast, zelfs als de overhangende perimeter deel uitmaakt van een brug.\n"
+#~ "Bijvoorbeeld: wanneer de perimeters voor 100% overhangen en er geen wand is die ze van onderaf ondersteunt, wordt de overhangsnelheid voor 75% toegepast, beperkt door de brugsnelheid."
+
+# AI Translated
+#~ msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+#~ msgstr "Deze optie stelt het minimumpunt in voor het toegestane gebied van de bedmesh. Door de XY-offset van de probe kunnen de meeste printers niet het volledige bed aftasten. Om te voorkomen dat het meetpunt buiten het bedoppervlak komt, moeten het minimum- en maximumpunt van de bedmesh juist worden ingesteld. OrcaSlicer zorgt ervoor dat de waarden adaptive_bed_mesh_min/adaptive_bed_mesh_max deze min-/maxpunten niet overschrijden. Deze informatie is doorgaans verkrijgbaar bij de fabrikant van uw printer. De standaardinstelling is (-99999, -99999), wat betekent dat er geen limieten zijn en het volledige bed kan worden afgetast."
+
+# AI Translated
+#~ msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+#~ msgstr "Deze optie stelt het maximumpunt in voor het toegestane gebied van de bedmesh. Door de XY-offset van de probe kunnen de meeste printers niet het volledige bed aftasten. Om te voorkomen dat het meetpunt buiten het bedoppervlak komt, moeten het minimum- en maximumpunt van de bedmesh juist worden ingesteld. OrcaSlicer zorgt ervoor dat de waarden adaptive_bed_mesh_min/adaptive_bed_mesh_max deze min-/maxpunten niet overschrijden. Deze informatie is doorgaans verkrijgbaar bij de fabrikant van uw printer. De standaardinstelling is (99999, 99999), wat betekent dat er geen limieten zijn en het volledige bed kan worden afgetast."
+
+# AI Translated
+#~ msgid ""
+#~ "Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+#~ "equivalent walls (using adaptive settings if enabled).\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr ""
+#~ "Statische waarde voor Pressure Advance bij bruggen. Zet op 0 om dezelfde Pressure Advance toe te passen als \n"
+#~ "bij gelijkwaardige wanden (met de adaptieve instellingen indien ingeschakeld).\n"
+#~ "\n"
+#~ "Een lagere PA-waarde bij het printen van bruggen helpt de lichte onderextrusie die direct na bruggen zichtbaar is te verminderen. Die wordt veroorzaakt door de drukval in het mondstuk bij het printen in de lucht; een lagere PA helpt dit tegen te gaan."
+
+# AI Translated
+#~ msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+#~ msgstr "Draai de richting van de dunne vulling (infill) per laag met behulp van een sjabloon van hoeken. Voer door komma's gescheiden graden in (bijv. '0,30,60,90'). De hoeken worden op volgorde per laag toegepast en herhaald wanneer de lijst afgelopen is. Geavanceerde syntaxis wordt ondersteund: '+5' draait elke laag +5°; '+5#5' draait +5° per 5 lagen. Zie de wiki voor details. Wanneer er een sjabloon is ingesteld, wordt de standaardinstelling voor de vulrichting genegeerd. Let op: sommige vulpatronen (bijv. Gyroide) regelen de rotatie zelf; gebruik dit met beleid."
+
+# AI Translated
+#~ msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
+#~ msgstr "Deze parameter voegt per laag een rotatie van de richting van de solide vulling toe volgens het opgegeven sjabloon. Het sjabloon is een door komma's gescheiden lijst van hoeken in graden, bijv. '0,90'. De eerste hoek wordt toegepast op de eerste laag, de tweede hoek op de tweede laag, enzovoort. Als er meer lagen dan hoeken zijn, worden de hoeken herhaald. Let op: niet alle patronen voor solide vulling ondersteunen rotatie."
+
+# AI Translated
+#~ msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+#~ msgstr "Trek niet terug als de beweging zich volledig in een opvulgebied bevindt. Dat betekent dat het sijpelen niet zichtbaar is. Dit kan de retraction times voor complexe modellen verkorten en printtijd besparen, maar het segmenteren en het genereren van G-codes langzamer maken. Let op: Z-hop wordt ook niet uitgevoerd in gebieden waar het terugtrekken wordt overgeslagen."
+
+# AI Translated
+#~ msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+#~ msgstr "Deze optie stelt de printsnelheid voor schuine naden in. Het is aan te raden schuine naden op lage snelheid te printen (minder dan 100 mm/s). Het is ook verstandig 'Afvlakking van de extrusiesnelheid' in te schakelen als de ingestelde snelheid sterk afwijkt van de snelheid van de buitenste of binnenste wanden. Als de hier opgegeven snelheid hoger is dan die van de buitenste of binnenste wanden, gebruikt de printer standaard de laagste van de twee snelheden. Bij opgave als percentage (bijv. 80%) wordt de snelheid berekend op basis van de betreffende snelheid van de buitenste of binnenste wand. De standaardwaarde is 100%."
+
+#~ msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+#~ msgstr "Als de vloeiende of traditionele modus is geselecteerd, wordt voor elke print een timelapse-video gegenereerd. Nadat elke laag is geprint, wordt een momentopname gemaakt met de kamercamera. Al deze momentopnamen worden samengevoegd tot een timelapse-video wanneer het afdrukken is voltooid. Als de vloeiende modus is geselecteerd, beweegt de gereedschapskop naar de afvoer chute nadat iedere laag is afgedrukt en maakt vervolgens een momentopname. Aangezien het gesmolten filament uit het mondstuk kan lekken tijdens het maken van een momentopname, is voor de soepele modus een primetoren nodig om het mondstuk schoon te vegen."
+
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "afveegblok"; align it once the term is settled; Unsettled glossary term (⚠) "Tool (printer)": this entry uses "tool"; align it once the term is settled.
+#~ msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+#~ msgstr "Dwing de printkop naar het afveegblok te bewegen voordat de opdracht voor de toolwissel (Tx) wordt gegeven. Alleen relevant voor printers met meerdere extruders (meerdere printkoppen) die een afveegblok van type 2 gebruiken. Standaard slaat Orca deze verplaatsing op machines met meerdere printkoppen over, omdat de firmware de kopwissel afhandelt, waardoor de Tx-opdracht boven het geprinte onderdeel kan worden gegeven. Schakel deze optie in als u wilt dat de toolwissel altijd boven het afveegblok wordt uitgevoerd."
+
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "afveegblok"; align it once the term is settled; Unsettled glossary term (⚠) "Tool (printer)": this entry uses "gereedschap"; align it once the term is settled.
+#~ msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+#~ msgstr "Pakt het nieuwe gereedschap op zonder te wachten tot het de printtemperatuur bereikt, verplaatst zich naar het afveegblok en wacht daar op de temperatuur, vlak voor het spoelen. Het materiaal dat tijdens het opwarmen uitloopt komt op het blok terecht in plaats van op het model, en de verplaatsing overlapt met het opwarmen. Alleen relevant voor printers met meerdere extruders (meerdere printkoppen) die een afveegblok van type 2 gebruiken. De firmware of de gereedschapswisselmacro mag niet zelf op de temperatuur wachten. Wanneer dit is uitgeschakeld, wordt het wachten op de temperatuur direct na het gereedschapswisselcommando uitgevoerd."
+
+#~ msgid ""
+#~ "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+#~ "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
+#~ msgstr ""
+#~ "Er zal ondersteuning support gegenereerd worden voor overhangende hoeken waarvan de hellingshoek lager is dan deze drempel.Hoe kleiner deze waarde is, hoe steiler de overhang die zonder ondersteuning kan worden geprint.\n"
+#~ "Opmerking: Indien ingesteld op 0, gebruiken normale ondersteuningen in plaats daarvan de drempelwaarde voor overlap,terwijl boomstructuurondersteuningen terugvallen op een standaardwaarde van 30."
+
+# AI Translated
+#~ msgid ""
+#~ "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
+#~ "\n"
+#~ "It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+#~ "\n"
+#~ "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+#~ msgstr ""
+#~ "Dit is de kamertemperatuur waarbij het printen moet starten, terwijl de kamer verder opwarmt naar de \"beoogde\" kamertemperatuur. Zet bijvoorbeeld het doel op 60 en het minimum op 50 om te beginnen met printen zodra de kamer 50℃ bereikt, zonder op de volle 60℃ te wachten.\n"
+#~ "\n"
+#~ "Hiermee wordt een G-code-variabele met de naam chamber_minimal_temperature ingesteld, die u kunt doorgeven aan uw print-startmacro of aan een heat soak-macro, bijvoorbeeld: PRINT_START (andere variabelen) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+#~ "\n"
+#~ "Anders dan bij de \"beoogde\" kamertemperatuur stuurt deze optie geen M141/M191-opdrachten uit; de waarde wordt alleen beschikbaar gemaakt voor uw aangepaste G-code. De waarde mag de \"beoogde\" kamertemperatuur niet overschrijden."
+
+#~ msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
+#~ msgstr "Voorkom heen en weer schakelen tussen een extra wand en een wand minder. Deze marge breidt het bereik van extrusiebreedten uit dat volgt op [Minimum wandbreedte - marge, 2 * Minimale wandbreedte + marge]. Door deze marge te vergroten, wordt het aantal overgangen verminderd, waardoor het aantal extrusie-starts/-stops en travel tijd wordt verminderd. Grote variaties in de extrusiebreedte kunnen echter leiden tot onder- of overextrusieproblemen. Het wordt uitgedrukt als een percentage over de diameter van het mondstuk"
+
+#~ msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+#~ msgstr "Om druipen te voorkomen, wordt de nozzle-temperatuur tijdens het rammen afgekoeld. Opmerking: alleen een koelcommando en ventilatoractivatie worden geactiveerd, het bereiken van de doeldtemperatuur wordt niet gegarandeerd. 0 betekent uitgeschakeld."
+
+# AI Translated
+#~ msgid ""
+#~ "This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+#~ "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+#~ "Turn scaling off only if you wish to print the reference model exactly as-is."
+#~ msgstr ""
+#~ "Dit model is ontworpen voor een mondstuk van 0,4 mm met een laaghoogte van 0,2 mm. \n"
+#~ "Wanneer de schaaloptie is ingeschakeld (aanbevolen), wordt het model dynamisch aangepast aan je huidige mondstukdiameter en een passende laaghoogte, waardoor de test zowel nauwkeurig als goed afleesbaar is.\n"
+#~ "Schakel het schalen alleen uit als je het referentiemodel precies zo wilt printen als het is."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+#~ " Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+#~ "\n"
+#~ "%s"
+#~ msgstr ""
+#~ "De eindsnelheid (%.0f mm/s) overschrijdt de maximale volumetrische snelheid van het filament (%.1f mm³/s), waardoor de buitenste wand bij deze lijndikte en laaghoogte beperkt wordt tot ongeveer %.0f mm/s.\n"
+#~ " Hogere snelheden worden begrensd, waardoor de bovenste blokken van de toren niet op de gevraagde snelheid worden geprint.\n"
+#~ "\n"
+#~ "%s"
+
+# AI Translated
+#~ msgid ""
+#~ "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
+#~ "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
+#~ "and filament and process presets without the same preset name will be reserved.\n"
+#~ "\tCancel: Do not create a preset; return to the creation interface."
+#~ msgstr ""
+#~ "De printervoorinstelling die u hebt gemaakt heeft al een voorinstelling met dezelfde naam. Wilt u die overschrijven?\n"
+#~ "\tJa: overschrijf de printervoorinstelling met dezelfde naam; filament- en procesvoorinstellingen met dezelfde naam worden opnieuw aangemaakt \n"
+#~ "en filament- en procesvoorinstellingen zonder dezelfde naam blijven behouden.\n"
+#~ "\tAnnuleren: maak geen voorinstelling en keer terug naar het aanmaakscherm."
+
+# AI Translated
+#~ msgid ""
+#~ "The system preset does not allow creation. \n"
+#~ "Please re-enter the printer model or nozzle diameter."
+#~ msgstr ""
+#~ "De systeemvoorinstelling staat aanmaken niet toe. \n"
+#~ "Voer het printermodel of de mondstukdiameter opnieuw in."
+
+#~ msgid ""
+#~ "Only the filament names with user filament presets will be displayed, \n"
+#~ "and all user filament presets in each filament name you select will be exported as a ZIP archive."
+#~ msgstr ""
+#~ "Alleen de filamentnamen met gebruikers presets worden weergegeven, \n"
+#~ "en alle gebruikers presets in elke filamentnaam die u selecteert, worden geëxporteerd als zip-bestand."
+
+#~ msgid ""
+#~ "Only printer names with changed process presets will be displayed, \n"
+#~ "and all user process presets in each printer name you select will be exported as a ZIP archive."
+#~ msgstr ""
+#~ "Alleen printernamen met gewijzigde proces presets worden weergegeven, \n"
+#~ "en alle gebruikersproces presets in elke printernaam die u selecteert, worden als zip geëxporteerd."
 
 # AI Translated
 #~ msgid "Subdivision mesh (Lost color)"
