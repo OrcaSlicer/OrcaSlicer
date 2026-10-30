@@ -146,7 +146,8 @@ const char* kInstructions =
     "or cancel.\n"
     "- Paths are absolute. Outputs never overwrite an existing file unless overwrite is true.\n"
     "- screenshot returns a downscaled image plus the full-size PNG path; target \"canvas\" is the 3D view.\n"
-    "- start_recording / stop_recording record a video (MJPEG .mkv) with the tool calls, clicks and keys as captions; "
+    "- start_recording / stop_recording record a video (MJPEG .mkv), with the tool calls as captions and the pointer "
+    "highlighted when captions and pointer ask for them; "
     "encode_recording turns it into an H.265 MP4 with the system ffmpeg.\n"
     "- export_script saves this session's calls as a replayable script; run_script replays one.";
 

@@ -1181,9 +1181,11 @@ TEST_CASE("each encode preset is matched by its own fields, and a changed field 
         s.crf += 1;
         CHECK(matching_encode_preset(s) == "custom");
     }
-    // The defaults are the Balanced preset, with encoding off until the person turns it on.
+    // The defaults are the Balanced preset, with the overlays and encoding off until the person turns them on.
     const RecordingSettings defaults;
     CHECK(matching_encode_preset(defaults) == "balanced");
+    CHECK_FALSE(defaults.captions);
+    CHECK_FALSE(defaults.pointer);
     CHECK_FALSE(defaults.encode);
     CHECK(defaults.folder.empty());
 }
@@ -1192,13 +1194,15 @@ TEST_CASE("remembered recording settings come back, and a bad value keeps its de
 {
     Slic3r::AppConfig config;
     RecordingSettings s;
-    s.quality = 90;
-    s.encode  = true;
-    s.codec   = "h264";
-    s.crf     = 20;
-    s.speed   = "slow";
-    s.profile = "baseline";
-    s.folder  = "/somewhere/videos";
+    s.quality  = 90;
+    s.captions = true;
+    s.pointer  = true;
+    s.encode   = true;
+    s.codec    = "h264";
+    s.crf      = 20;
+    s.speed    = "slow";
+    s.profile  = "baseline";
+    s.folder   = "/somewhere/videos";
     save_recording_settings(config, s);
     CHECK(load_recording_settings(config) == s);
 
@@ -1220,11 +1224,14 @@ TEST_CASE("Start Recording's parameter overrides the settings, a preset before t
 {
     RecordingSettings s;
     bool              silent = false;
-    CHECK(apply_recording_overrides(s, json{{"encode_preset", "compatible"}, {"crf", 18}, {"quality", 60}, {"silent", true}}, silent).empty());
+    const json overrides{{"encode_preset", "compatible"}, {"crf", 18}, {"quality", 60}, {"pointer", true}, {"silent", true}};
+    CHECK(apply_recording_overrides(s, overrides, silent).empty());
     CHECK(s.codec == "h264");
     CHECK(s.profile == "high");
     CHECK(s.crf == 18);
     CHECK(s.quality == 60);
+    CHECK(s.pointer);
+    CHECK_FALSE(s.captions);
     CHECK(silent);
 
     // A codec without a profile takes the codec's default when the one it had doesn't fit.
@@ -1239,6 +1246,8 @@ TEST_CASE("Start Recording's parameter overrides the settings, a preset before t
     CHECK_FALSE(apply_recording_overrides(s, json{{"codec", "h264"}, {"profile", "main10"}}, silent).empty());
     CHECK_FALSE(apply_recording_overrides(s, json{{"crf", 52}}, silent).empty());
     CHECK_FALSE(apply_recording_overrides(s, json{{"quality", "high"}}, silent).empty());
+    CHECK_FALSE(apply_recording_overrides(s, json{{"captions", "yes"}}, silent).empty());
+    CHECK_FALSE(apply_recording_overrides(s, json{{"overlays", true}}, silent).empty());
     CHECK_FALSE(apply_recording_overrides(s, json{{"encode_preset", "tiny"}}, silent).empty());
     CHECK_FALSE(apply_recording_overrides(s, json{{"fps", 30}}, silent).empty());
     CHECK_FALSE(apply_recording_overrides(s, json::array(), silent).empty());

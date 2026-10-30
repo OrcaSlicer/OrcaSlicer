@@ -11,13 +11,16 @@ class AppConfig;
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-// What the person's Start Recording asks for: the frames' JPEG quality, whether and how the recording is
-// encoded to MP4 once it ends, and the folder both go in. The Start Recording dialog shows them and
-// AppConfig's "recording" section remembers them; the command's parameter overrides them for one recording.
+// What the person's Start Recording asks for: the frames' JPEG quality, whether they show captions and the
+// pointer, whether and how the recording is encoded to MP4 once it ends, and the folder both go in. The Start
+// Recording dialog shows them and AppConfig's "recording" section remembers them; the command's parameter
+// overrides them for one recording.
 struct RecordingSettings
 {
-    int         quality = 80; // the frames' JPEG quality, 30-95, as start_recording's
-    bool        encode  = false;
+    int         quality  = 80;    // the frames' JPEG quality, 30-95, as start_recording's
+    bool        captions = false; // the overlays, as start_recording's
+    bool        pointer  = false;
+    bool        encode   = false;
     std::string codec   = "h265"; // and the rest as encode_recording takes them
     int         crf     = 28;
     std::string speed   = "medium";
@@ -26,8 +29,8 @@ struct RecordingSettings
 
     bool operator==(const RecordingSettings& o) const
     {
-        return quality == o.quality && encode == o.encode && codec == o.codec && crf == o.crf && speed == o.speed && profile == o.profile &&
-               folder == o.folder;
+        return quality == o.quality && captions == o.captions && pointer == o.pointer && encode == o.encode && codec == o.codec &&
+               crf == o.crf && speed == o.speed && profile == o.profile && folder == o.folder;
     }
 };
 
@@ -53,8 +56,8 @@ std::string matching_encode_preset(const RecordingSettings& settings);
 RecordingSettings load_recording_settings(const AppConfig& config);
 void              save_recording_settings(AppConfig& config, const RecordingSettings& settings);
 
-// Applies Start Recording's parameter, an object with any of quality, encode, encode_preset, codec, crf,
-// speed, profile, folder (an existing directory, absolute) and silent: encode_preset's fields first, then the
+// Applies Start Recording's parameter, an object with any of quality, captions, pointer, encode, encode_preset,
+// codec, crf, speed, profile, folder (an existing directory, absolute) and silent: encode_preset's fields first, then the
 // fields it names. A codec named without a profile takes the codec's default profile when the one it had does
 // not fit. Returns what is wrong, "" when nothing; `settings` is then unchanged. `silent` is true when the
 // parameter says so.

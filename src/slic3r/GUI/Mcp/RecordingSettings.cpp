@@ -89,7 +89,9 @@ RecordingSettings load_recording_settings(const AppConfig& config)
     };
     number("quality", kMinQuality, kMaxQuality, s.quality);
     number("crf", 0, kMaxCrf, s.crf);
-    s.encode = config.get(kSection, "encode") == "true";
+    s.captions = config.get(kSection, "captions") == "true";
+    s.pointer  = config.get(kSection, "pointer") == "true";
+    s.encode   = config.get(kSection, "encode") == "true";
     if (const std::string codec = config.get(kSection, "codec"); !encoder_for(codec).empty())
         s.codec = codec;
     if (const std::string speed = config.get(kSection, "speed"); listed(encoder_speeds(), speed))
@@ -104,6 +106,8 @@ RecordingSettings load_recording_settings(const AppConfig& config)
 void save_recording_settings(AppConfig& config, const RecordingSettings& settings)
 {
     config.set(kSection, "quality", std::to_string(settings.quality));
+    config.set(kSection, "captions", settings.captions);
+    config.set(kSection, "pointer", settings.pointer);
     config.set(kSection, "encode", settings.encode);
     config.set(kSection, "codec", settings.codec);
     config.set(kSection, "crf", std::to_string(settings.crf));
@@ -116,10 +120,12 @@ std::string apply_recording_overrides(RecordingSettings& settings, const json& o
 {
     if (!overrides.is_object())
         return "the parameter must be a JSON object";
-    static const std::vector<std::string> keys{"quality", "encode", "encode_preset", "codec", "crf", "speed", "profile", "folder", "silent"};
+    static const std::vector<std::string> keys{"quality", "captions", "pointer", "encode", "encode_preset", "codec",
+                                               "crf",     "speed",    "profile", "folder", "silent"};
     for (const auto& [key, value] : overrides.items())
         if (!listed(keys, key))
-            return "unknown key \"" + key + "\": quality, encode, encode_preset, codec, crf, speed, profile, folder or silent";
+            return "unknown key \"" + key +
+                   "\": quality, captions, pointer, encode, encode_preset, codec, crf, speed, profile, folder or silent";
     const auto integer = [&](const char* key, int min, int max, int& out) -> std::string {
         if (!overrides.contains(key))
             return {};
@@ -161,7 +167,8 @@ std::string apply_recording_overrides(RecordingSettings& settings, const json& o
         }
         apply_encode_preset(s, *p);
     }
-    if (!(err = integer("quality", kMinQuality, kMaxQuality, s.quality)).empty() || !(err = flag("encode", s.encode)).empty() ||
+    if (!(err = integer("quality", kMinQuality, kMaxQuality, s.quality)).empty() || !(err = flag("captions", s.captions)).empty() ||
+        !(err = flag("pointer", s.pointer)).empty() || !(err = flag("encode", s.encode)).empty() ||
         !(err = text("codec", {"h265", "h264"}, s.codec)).empty() || !(err = integer("crf", 0, kMaxCrf, s.crf)).empty() ||
         !(err = text("speed", encoder_speeds(), s.speed)).empty() || !(err = flag("silent", quiet)).empty())
         return err;

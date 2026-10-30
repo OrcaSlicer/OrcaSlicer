@@ -13,8 +13,9 @@
                                                       {"match": "restore", "button": "no"}]}},
     {"tool": "new_project"},
     {"tool": "set_view", "args": {"window_size": [1600, 1000], "tab": "prepare"}},
-    {"tool": "start_recording", "args": {"save_path": "${out_dir}/session.mkv", "overwrite": true},
-     "expect": {"/width": {"ge": 320}, "/fps": {"eq": 10}}},
+    {"tool": "start_recording", "args": {"save_path": "${out_dir}/session.mkv", "overwrite": true, "captions": true,
+                                         "pointer": true},
+     "expect": {"/width": {"ge": 320}, "/fps": {"eq": 10}, "/captions": {"eq": true}, "/pointer": {"eq": true}}},
     {"tool": "get_state", "expect": {"/recording/path": {"regex": "session\\.mkv$"}}},
     {"tool": "open_files", "args": {"paths": ["${vars.model}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "ui_mouse", "args": {"action": "click", "x": 300, "y": 200}},
@@ -48,20 +49,16 @@
     {"tool": "stop_recording", "expect": {"/ended": {"eq": "script_ended"}, "/path": {"regex": "inner\\.mkv$"}}},
     {"tool": "encode_recording", "args": {"overwrite": true, "codec": "h264"}, "optional": true,
      "expect": {"/path": {"regex": "inner\\.mp4$"}, "/encoder": {"eq": "libx264"}}},
-    // The script's end released the file: recording to it again starts at once, with both overlays.
+    // The script's end released the file: recording to it again starts at once, with no overlays by default.
     {"tool": "start_recording", "args": {"save_path": "${out_dir}/inner.mkv", "overwrite": true},
-     "expect": {"/captions": {"eq": true}, "/pointer": {"eq": true}}},
-    {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}},
-
-    // overlays false turns off both, whatever they say; each can also be turned off alone.
-    {"tool": "start_recording", "args": {"save_path": "${out_dir}/plain.mkv", "overwrite": true, "overlays": false,
-                                         "captions": true, "pointer": true},
      "expect": {"/captions": {"eq": false}, "/pointer": {"eq": false}}},
     {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}},
-    {"tool": "start_recording", "args": {"save_path": "${out_dir}/plain.mkv", "overwrite": true, "captions": false},
+
+    // captions and pointer each turn on one.
+    {"tool": "start_recording", "args": {"save_path": "${out_dir}/plain.mkv", "overwrite": true, "pointer": true},
      "expect": {"/captions": {"eq": false}, "/pointer": {"eq": true}}},
     {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}},
-    {"tool": "start_recording", "args": {"save_path": "${out_dir}/plain.mkv", "overwrite": true, "pointer": false},
+    {"tool": "start_recording", "args": {"save_path": "${out_dir}/plain.mkv", "overwrite": true, "captions": true},
      "expect": {"/captions": {"eq": true}, "/pointer": {"eq": false}}},
     {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}}
   ]

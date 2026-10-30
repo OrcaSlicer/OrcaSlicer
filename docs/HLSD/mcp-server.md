@@ -352,7 +352,7 @@ the UI thread.
 | View | `set_view` | tab (Design included), 3D view (Prepare, preview, assemble), camera (the Design view's on the Design tab), preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate, window size |
 | | `screenshot` | window, the 3D view shown (the Design view on the Design tab), topmost dialog or one widget: a downscaled image and a full-size PNG |
 | | `get_preview` | a sliced plate's summary, time and grams per feature type, per-layer Z, height, time and grams (paged), grams per object instance, and the Preview's legend state and colour ranges |
-| Recording | `start_recording` | record the main window with its modal dialogs, or the 3D view shown, into an MJPEG `.mkv`, with the current tool call as a caption and the pointer highlighted |
+| Recording | `start_recording` | record the main window with its modal dialogs, or the 3D view shown, into an MJPEG `.mkv`, with the current tool call as a caption and the pointer highlighted when asked for |
 | | `stop_recording` | capture the last state, end the recording and report its file once written: length, frames, drops, the mean UI time of a capture, size and why it ended |
 | | `encode_recording` | encode a recording into an H.265 or H.264 MP4 with the system ffmpeg; cancellable |
 | GUI | `ui_snapshot` | widgets, rows of lists, trees and tables, popups, menus, GL toolbar items, gizmos, the Prepare view's plates and plate icons, and ImGui items, with refs |
@@ -1750,10 +1750,10 @@ recording counts as active until its file is closed, for the one-at-a-time rule 
 
 **From the app.** The Speed Dial commands `take_screenshot`, `start_recording` and `stop_recording`, which
 the Help menu also has, give a person screenshots and recordings without an agent: a PNG of the main window,
-and a recording of it for up to an hour with the pointer highlighted and any tool call captioned (a Run
-Script run's steps, say). Both go in the person's Downloads folder unless they chose another. Start
-Recording opens `RecordingDialog`, which splits its settings by the file they make. Record holds the JPEG
-quality of the `.mkv`. Encode to MP4 holds whether ffmpeg encodes it once it ends, with a built-in preset or
+and a recording of it for up to an hour. Both go in the person's Downloads folder unless they chose another.
+Start Recording opens `RecordingDialog`, which splits its settings by the file they make. Record holds the
+JPEG quality of the `.mkv` and a switch for each overlay, the pointer and the caption, both off unless the
+person turns them on. Encode to MP4 holds whether ffmpeg encodes it once it ends, with a built-in preset or
 codec, CRF, speed and profile; it is off and disabled when no ffmpeg is found, and says how to get one. A
 rail joins the two stages and shows whether the second runs. The dialog remembers what it starts with in
 AppConfig's `recording` section (`RecordingSettings`). The command's parameter overrides those settings for
@@ -1782,8 +1782,8 @@ captioned. With `pointer`, a `wxEventFilter` sees every mouse and click-type com
 and the ones the GUI tools synthesize alike: mouse events move the pointer, presses add a ripple, and a
 button, checkbox, toggle or radio command with no press on it just before is a click made without the
 mouse (`ui_click`), shown at the control's centre. Events in windows the frame doesn't show, and in
-windows hidden from automation, are ignored. `overlays: false` turns off the caption and the pointer
-both, and installs no filter.
+windows hidden from automation, are ignored. Both are off unless asked for, `captions` and `pointer`
+turning on one each; without the pointer no filter is installed.
 
 The overlays annotate the app without competing with it. They are drawn at the app's own scale:
 `overlay_scale()` is video pixels per app pixel at 100 %, from `em_unit()`, the content scale and the

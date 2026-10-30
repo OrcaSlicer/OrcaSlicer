@@ -49,8 +49,8 @@ struct RecordingOptions
     int                     max_dim     = 1920;
     int                     quality     = 80;
     int                     max_seconds = 600;
-    bool                    captions    = true; // the current tool call's caption
-    bool                    pointer     = true; // the pointer highlighted, its clicks rippling
+    bool                    captions    = false; // the current tool call's caption
+    bool                    pointer     = false; // the pointer highlighted, its clicks rippling
     boost::filesystem::path path;
     std::string             owner; // the job of the script that started it, "" for a client, kPersonOwner
     // Runs on the UI thread once the recording ends, while its file is still being closed, with the reason it
@@ -63,7 +63,7 @@ struct RecordingOptions
 inline constexpr const char* kPersonOwner = "person";
 
 // Records what OrcaSlicer shows into an MJPEG Matroska file, with the current tool call as a caption and
-// the pointer highlighted. At most one recording at a time. The UI thread captures a frame
+// the pointer highlighted when asked for. At most one recording at a time. The UI thread captures a frame
 // per tick of a timer (the main window with the modal dialogs on it, or the 3D view shown); everything
 // after that, scaling, drawing the captions, JPEG and the file, runs on a RecordingSink's threads. A
 // recording ends when stopped, at its time limit, when the script that started it ends, when the

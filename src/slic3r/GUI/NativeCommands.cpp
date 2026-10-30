@@ -293,9 +293,9 @@ bool encode_when_closed(const boost::filesystem::path& path, const Mcp::Recordin
     });
 }
 
-// The person's recording: the main window, its pointer highlighted and any tool call captioned, for up to an
-// hour, into the folder the settings name. The dialog shows the remembered settings, with what `param`
-// overrides, and remembers what it starts with; a silent `param` starts with them at once and remembers
+// The person's recording: the main window, with the overlays the settings ask for, for up to an hour,
+// into the folder the settings name. The dialog shows the remembered settings, with what `param` overrides,
+// and remembers what it starts with; a silent `param` starts with them at once and remembers
 // nothing. Encoding needs an ffmpeg: the dialog says so and records without encoding, and a silent start that
 // would encode is refused. Neither a script's end nor the server turning off ends the recording. Whatever does
 // end it says where it went: Stop Recording itself, or the recording's `ended` for an agent's stop_recording,
@@ -334,6 +334,8 @@ AppActionRunResult start_recording(const std::string& param)
     Mcp::McpRecorder&     recorder = service->recorder();
     Mcp::RecordingOptions options;
     options.quality     = settings.quality;
+    options.captions    = settings.captions;
+    options.pointer     = settings.pointer;
     options.max_seconds = 3600;
     options.path        = Mcp::timestamped_path(capture_folder(settings), "recording", ".mkv", {".mp4"});
     options.owner       = Mcp::kPersonOwner;
@@ -355,6 +357,8 @@ AppActionRunResult start_recording(const std::string& param)
     }
     nlohmann::json reply = Mcp::encode_arguments(settings, Mcp::path_to_utf8(options.path));
     reply["quality"]     = settings.quality;
+    reply["captions"]    = settings.captions;
+    reply["pointer"]     = settings.pointer;
     reply["encode"]      = settings.encode;
     // TRN "Stop Recording" is the command that ends the recording.
     return {AppActionRunResult::Level::Success, _L("Recording started. Stop Recording saves it."), true, reply.dump()};
@@ -497,7 +501,8 @@ void describe_commands(std::vector<NativeCommand>& commands)
                             "they chose another) and show the person a notification naming it; the reply has its path. Agents use "
                             "the screenshot tool, which returns the image."},
         {"start_recording", "Start the person's recording of the main window, for up to an hour, with the settings the Start "
-                            "Recording dialog remembers: JPEG quality, whether and how it is encoded to MP4 once it ends, and the "
+                            "Recording dialog remembers: JPEG quality, whether tool calls are captioned and the pointer highlighted, "
+                            "whether and how it is encoded to MP4 once it ends, and the "
                             "folder both go in (the person's Downloads unless they chose another). Without silent, the dialog opens "
                             "with them (the param's values filled in): set its controls with ui_input (each is named after its "
                             "param key) and answer it with dialog_respond \"Start recording\"; it remembers what it starts with. "
@@ -505,9 +510,10 @@ void describe_commands(std::vector<NativeCommand>& commands)
                             "when no ffmpeg is found. The reply has the path and the settings used. Neither a script's end nor the "
                             "server turning off ends it. Agents record with start_recording instead.",
          CommandParamType::Text,
-         "JSON object, all optional: quality (30-95), encode (bool), encode_preset (small, balanced, quality, compatible; "
-         "applied before the fields), codec (h265, h264), crf (0-51), speed (ultrafast ... veryslow), profile (h264: high, "
-         "main, baseline; h265: main, main10), folder (absolute path of an existing directory), silent (bool)"},
+         "JSON object, all optional: quality (30-95), captions (bool), pointer (bool), encode (bool), encode_preset (small, "
+         "balanced, quality, compatible; applied before the fields), codec (h265, h264), crf (0-51), speed (ultrafast ... "
+         "veryslow), profile (h264: high, main, baseline; h265: main, main10), folder (absolute path of an existing "
+         "directory), silent (bool)"},
         {"stop_recording", "Stop the running recording, whoever started it, without waiting for its file, and show the person a "
                            "notification naming it; the reply has its path. A later stop_recording reports it as ended "
                            "stopped_in_app. Agents stop their own recordings with stop_recording, which waits and reports."},

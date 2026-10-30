@@ -1,5 +1,5 @@
-// start_recording, stop_recording and encode_recording: a video of what OrcaSlicer shows, captioned with the
-// current tool call and its pointer highlighted, and its encode to MP4.
+// start_recording, stop_recording and encode_recording: a video of what OrcaSlicer shows, optionally captioned
+// with the current tool call and its pointer highlighted, and its encode to MP4.
 
 #include "McpPaths.hpp"
 #include "McpRecorder.hpp"
@@ -95,9 +95,9 @@ void register_record_tools(McpService& service)
     reg.add(record_tool(
         "start_recording", L("Start a recording"),
         "Record a video of OrcaSlicer until stop_recording: the main window with any modal dialog on it (target window), or "
-        "the 3D view shown (canvas). Frames are MJPEG in a Matroska (.mkv) file with their real timestamps. The tool call "
-        "acting on the app shows as a caption at the bottom (secret setting values never show), and the pointer is "
-        "highlighted, its clicks rippling; overlays false draws neither. Capture takes at most about a third of the UI thread, so "
+        "the 3D view shown (canvas). Frames are MJPEG in a Matroska (.mkv) file with their real timestamps. With captions, "
+        "the tool call acting on the app shows as a caption at the bottom (secret setting values never show); with pointer, "
+        "the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so "
         "the frame rate drops where capturing is slow. One recording at a time: one a script starts ends with the script, a "
         "client's when the server is turned off. encode_recording makes an MP4 of it.",
         object_schema({{"target", enum_prop({"window", "canvas"}, "window (default): the main window and its dialogs; canvas: the 3D view shown.")},
@@ -105,9 +105,8 @@ void register_record_tools(McpService& service)
                        {"max_dim", int_prop(320, 3840, "Long edge of the video in pixels (default 1920).")},
                        {"quality", int_prop(30, 95, "JPEG quality of the frames (default 80).")},
                        {"max_seconds", int_prop(1, 3600, "The recording ends on its own after this long (default 600).")},
-                       {"captions", prop("boolean", "Caption the tool call acting on the app (default true).")},
-                       {"pointer", prop("boolean", "Highlight the pointer and show its clicks (default true).")},
-                       {"overlays", prop("boolean", "false: no caption and no pointer, whatever captions and pointer say (default true).")},
+                       {"captions", prop("boolean", "Caption the tool call acting on the app (default false).")},
+                       {"pointer", prop("boolean", "Highlight the pointer and show its clicks (default false).")},
                        {"save_path", prop("string", "Absolute .mkv path; default the session's output folder.")},
                        {"overwrite", prop("boolean", "Replace an existing save_path.")}}),
         [&service](const json& args, ToolContext& ctx) {
@@ -117,9 +116,8 @@ void register_record_tools(McpService& service)
             o.max_dim     = arg_int(args, "max_dim", 1920);
             o.quality     = arg_int(args, "quality", 80);
             o.max_seconds = arg_int(args, "max_seconds", 600);
-            const bool overlays = arg_bool(args, "overlays", true);
-            o.captions          = overlays && arg_bool(args, "captions", true);
-            o.pointer           = overlays && arg_bool(args, "pointer", true);
+            o.captions    = arg_bool(args, "captions", false);
+            o.pointer     = arg_bool(args, "pointer", false);
             if (args.contains("save_path")) {
                 const std::string path = arg_string(args, "save_path");
                 if (!boost::algorithm::iends_with(path, ".mkv"))

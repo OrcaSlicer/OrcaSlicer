@@ -235,6 +235,24 @@ RecordingDialog::RecordingDialog(wxWindow* parent, const Mcp::RecordingSettings&
     auto* quality_hint = field_label(_L("30 to 95. Higher is sharper and makes a larger file."));
     quality_row->Add(quality_hint, 0, wxALIGN_BOTTOM | wxLEFT | wxBOTTOM, FromDIP(8));
     record->Add(quality_row, 0, wxTOP | wxBOTTOM, FromDIP(8));
+    // The overlays, each switched at its row's end as encoding is in its stage's header.
+    const auto overlay = [&](const char* name, bool on, const wxString& title, const wxString& hint) {
+        auto* toggle = new ::SwitchButton(this);
+        toggle->SetName(name);
+        toggle->SetValue(on);
+        auto* text = new wxBoxSizer(wxVERTICAL);
+        text->Add(new ::Label(this, Label::Body_14, title), 0);
+        text->Add(field_label(hint), 0, wxTOP, FromDIP(2));
+        auto* row = new wxBoxSizer(wxHORIZONTAL);
+        row->Add(text, 1, wxALIGN_CENTER_VERTICAL);
+        row->Add(toggle, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(12));
+        record->Add(row, 0, wxEXPAND | wxTOP, FromDIP(8));
+        return toggle;
+    };
+    m_pointer  = overlay("pointer", settings.pointer, _L("Highlight the pointer"),
+                         _L("A ring follows the pointer, and its clicks ripple."));
+    m_captions = overlay("captions", settings.captions, _L("Caption each step"),
+                         _L("Names each step an agent or script takes, at the bottom."));
     record->AddSpacer(FromDIP(14));
     auto* record_row = new wxBoxSizer(wxHORIZONTAL);
     record_row->Add(m_record_rail, 0, wxEXPAND | wxRIGHT, FromDIP(14));
@@ -389,8 +407,10 @@ RecordingDialog::RecordingDialog(wxWindow* parent, const Mcp::RecordingSettings&
 Mcp::RecordingSettings RecordingDialog::settings() const
 {
     Mcp::RecordingSettings s;
-    s.quality = typed_value(m_quality);
-    s.encode  = m_encode_on;
+    s.quality  = typed_value(m_quality);
+    s.captions = m_captions->GetValue();
+    s.pointer  = m_pointer->GetValue();
+    s.encode   = m_encode_on;
     s.codec   = codecs()[std::size_t(std::max(0, m_codec->GetSelection()))].first;
     s.crf     = typed_value(m_crf);
     s.speed   = Mcp::encoder_speeds()[std::size_t(std::max(0, m_speed->GetSelection()))];
@@ -462,7 +482,8 @@ void RecordingDialog::on_dpi_changed(const wxRect&)
         c->Rescale();
         c->SetMinSize(wxSize(FromDIP(200), -1));
     }
-    m_encode->Rescale();
+    for (::SwitchButton* toggle : {m_pointer, m_captions, m_encode})
+        toggle->Rescale();
     m_folder_text->Rescale();
     m_change_folder->Rescale();
     for (StageRail* rail : {m_record_rail, m_encode_rail})
