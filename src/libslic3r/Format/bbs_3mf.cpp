@@ -75,6 +75,7 @@
 
 #include <boost/assign.hpp>
 #include <boost/bimap.hpp>
+#include <nlohmann/json.hpp>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -8200,7 +8201,41 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     {
         const std::string& temp_path = model.get_backup_path();
         std::string temp_file = temp_path + std::string("/") + "_temp_1.config";
+        std::vector<const ConfigBase*> model_configs;
+        for (const ModelObject* object : model.objects) {
+            if (object == nullptr)
+                continue;
+            model_configs.emplace_back(&object->config.get());
+            for (const ModelVolume* volume : object->volumes)
+                if (volume != nullptr)
+                    model_configs.emplace_back(&volume->config.get());
+        }
+        DynamicPrintConfig manifest_config = config;
+        manifest_config.update_plugin_manifest(model_configs);
         config.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
+
+        // save_to_json derives the manifest from the config it serializes. Merge the refs derived
+        // from object/volume overrides here, where the model is in scope, without widening the core
+        // serializer API.
+        if (const auto* manifest = manifest_config.option<ConfigOptionStrings>("plugins")) {
+            boost::nowide::ifstream input(temp_file);
+            if (!input)
+                return false;
+            nlohmann::json project_config;
+            input >> project_config;
+            input.close();
+            if (manifest->values.empty())
+                project_config.erase("plugins");
+            else
+                project_config["plugins"] = manifest->values;
+
+            boost::nowide::ofstream output(temp_file);
+            if (!output)
+                return false;
+            output << project_config.dump(1, '\t') << std::endl;
+            if (!output)
+                return false;
+        }
         return _add_file_to_archive(archive, BBS_PROJECT_CONFIG_FILE, temp_file);
     }
 

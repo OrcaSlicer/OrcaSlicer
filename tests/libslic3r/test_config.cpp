@@ -881,6 +881,23 @@ TEST_CASE_METHOD(PluginResolverFixture,
     CHECK(manifest == std::vector<std::string>{"x;;slicing-pipeline"});
 }
 
+TEST_CASE_METHOD(PluginResolverFixture,
+    "update_plugin_manifest includes plugin settings from additional configs",
+    "[Config][plugins]") {
+    DynamicPrintConfig print_config = DynamicPrintConfig::full_print_config();
+    print_config.set_key_value("sparse_infill_pattern", new ConfigOptionString("rectilinear"));
+
+    std::unique_ptr<DynamicPrintConfig> volume_config_ptr(
+        DynamicPrintConfig::new_from_defaults_keys({"sparse_infill_pattern"}));
+    DynamicPrintConfig volume_config = std::move(*volume_config_ptr);
+    volume_config.set_key_value("sparse_infill_pattern", new ConfigOptionString("vendor-pattern"));
+
+    print_config.update_plugin_manifest({ &volume_config });
+    const auto* manifest = print_config.option<ConfigOptionStrings>("plugins");
+    REQUIRE(manifest != nullptr);
+    CHECK(manifest->values == std::vector<std::string>{"vendor-pattern;;infill"});
+}
+
 TEST_CASE("H2C/A2L-era multi-nozzle and pre-heat config keys exist", "[config]") {
     // Foundation keys backing H2C 6-nozzle cluster grouping, the pre-heat/pre-cool time
     // model, and wipe-tower nozzle-change handling. Defaults must keep existing

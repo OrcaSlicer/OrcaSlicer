@@ -1639,11 +1639,10 @@ void ConfigBase::save_plugin_collection(const std::string& opt_key, const Config
         return;
     const std::string& type = opt_def->plugin_type;
 
-    // Resolve a single bare capability value into its full reference and append it, skipping unset
-    // values, capabilities that could not be resolved (resolver returns ""), and duplicates already
-    // collected (preserving insertion order).
-    const auto append_ref = [&plugin_refs, &type](const std::string& capability_value) {
-        if (capability_value.empty())
+    // Resolve a bare capability value or infill pattern ID into its full reference. Skip unset
+    // values and built-in infill keys, then append resolvable references without duplicates.
+    const auto append_ref = [&plugin_refs, &type, opt_def](const std::string& capability_value) {
+        if (capability_value.empty() || (type == "infill" && opt_def->has_enum_value(capability_value)))
             return;
         std::string ref = resolve_capability_fn(capability_value, type);
         if (!ref.empty() && std::find(plugin_refs.begin(), plugin_refs.end(), ref) == plugin_refs.end())
@@ -1684,6 +1683,24 @@ void ConfigBase::update_plugin_manifest()
         return;
     if (auto* manifest = this->option<ConfigOptionStrings>("plugins", true))
         manifest->values = this->collect_plugin_manifest();
+}
+
+void ConfigBase::update_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs)
+{
+    if (!resolve_capability_fn)
+        return;
+
+    std::vector<std::string> refs = this->collect_plugin_manifest();
+    for (const ConfigBase* config : additional_configs) {
+        if (config == nullptr)
+            continue;
+        for (const std::string& opt_key : config->keys())
+            if (const ConfigOption* opt = config->option(opt_key))
+                config->save_plugin_collection(opt_key, opt, refs);
+    }
+
+    if (auto* manifest = this->option<ConfigOptionStrings>("plugins", true))
+        manifest->values = std::move(refs);
 }
 
 DynamicConfig::DynamicConfig(const ConfigBase& rhs, const t_config_option_keys& keys)

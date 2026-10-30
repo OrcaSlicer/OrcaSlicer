@@ -743,6 +743,19 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model& model, const Dyn
     // TODO: add partplate config
     DynamicPrintConfig new_config = config;
     new_config.apply(*m_current_plate->config());
+    // Plugin-backed pattern options may be selected only on a model object or volume. Include those
+    // references in the print-wide manifest before Print::apply(), whose infill preflight uses it to
+    // validate exact provider identity. The 3MF exporter mirrors this when persisting project config.
+    std::vector<const ConfigBase*> model_configs;
+    for (const ModelObject* object : model.objects) {
+        if (object == nullptr)
+            continue;
+        model_configs.emplace_back(&object->config.get());
+        for (const ModelVolume* volume : object->volumes)
+            if (volume != nullptr)
+                model_configs.emplace_back(&volume->config.get());
+    }
+    new_config.update_plugin_manifest(model_configs);
     Print::ApplyStatus invalidated = m_print->apply(model, new_config);
 
     // Orca: prevent resetting under gcode viewer mode

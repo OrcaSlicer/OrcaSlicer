@@ -2885,6 +2885,8 @@ public:
     // memory for the backend (PresetBundle::full_config -> Print::apply) must refresh it here or a
     // picked-but-unsaved plugin never resolves at slice/export time. No-op without a resolver.
     void update_plugin_manifest();
+    // Include plugin-backed settings stored in model object/volume overrides.
+    void update_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs);
 
 	// Set all the nullable values to nils.
     void null_nullables();
