@@ -10,6 +10,9 @@
 namespace Slic3r {
 
 enum class PublishSection { Printer, Material, Process };
+// Color and Type are legacy row kinds from the dialog's removed requirement rows: colour and type
+// are now implicit for every enabled slot, so the dialog builds no row of those kinds. They stay
+// in the enum for compatibility.
 enum class PublishRowKind { Key, Color, Type };
 
 // One selectable row of the dialog. `keys` holds publish-ready keys: "base" for a slot-level row
@@ -93,9 +96,9 @@ struct PublishWriteLocation
 // preset the edit lands in, so it bounds the local variant index; pass the same inputs the dialog
 // has. `full_owner` is true when the row's owner has Full Publish.
 //
-// None for a row with no writable owner: no keys, a Color/Type requirement row, a Full Publish
-// material owner, a material row whose column is the 7.1.1 fallback, and any key the target preset
-// cannot address at that index. A mixed definition key resolves to Project. A material
+// None for a row with no writable owner: no keys, a non-Key row kind, a Full Publish material
+// owner, a material row whose column is the 7.1.1 fallback, and any key the target preset cannot
+// address at that index. A mixed definition key resolves to Project. A material
 // "base#column" row resolves to its slot's filament preset at the local variant index of that file
 // column (not the file column itself); a material row without a column resolves to index 0.
 PublishWriteLocation publish_write_location(const PublishRowId &row,
@@ -107,8 +110,10 @@ PublishWriteLocation publish_write_location(const PublishRowId &row,
 // project config names none for that slot.
 std::vector<unsigned int> publish_mixed_components(const DynamicPrintConfig &project, size_t slot);
 
+// Enabled mixed owners whose component filaments are not published. An enabled component
+// publishes its colour and type implicitly, so only a disabled one is an issue; a component the
+// dialog does not show (no registered owner) is never reported.
 std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSelection &selection,
-                                                              const std::vector<PublishRowId> &rows,
                                                               const DynamicPrintConfig &project);
 
 } // namespace Slic3r

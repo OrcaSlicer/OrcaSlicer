@@ -138,26 +138,25 @@ std::vector<PublishedMaterialEntry> PublishSelection::material_entries(const std
             out.push_back(std::move(entry));
             continue;
         }
+        // An enabled partial slot always publishes its colour and type: they are its identity, not
+        // something the author opts into per row.
+        if (!info.colour.empty()) {
+            entry.publish_color = true;
+            entry.color         = info.colour;
+        }
+        entry.publish_type       = true;
+        entry.publish_type_value = normalize_filament_type(info.filament_type);
         for (const PublishRowId &row : rows) {
             if (row.section != PublishSection::Material || row.owner != owner)
                 continue;
             if (!checked(row) || !enabled(row))
                 continue;
-            if (row.kind == PublishRowKind::Color) {
-                entry.publish_color = true;
-                entry.color         = info.colour;
-            } else if (row.kind == PublishRowKind::Type) {
-                entry.publish_type       = true;
-                entry.publish_type_value = normalize_filament_type(info.filament_type);
-            } else {
-                // Keys are publish-ready: a bare base key is resolved to its column by
-                // publish_normalize_material_entries.
-                entry.keys.insert(entry.keys.end(), row.keys.begin(), row.keys.end());
-            }
+            // Keys are publish-ready: a bare base key is resolved to its column by
+            // publish_normalize_material_entries.
+            entry.keys.insert(entry.keys.end(), row.keys.begin(), row.keys.end());
         }
-        // Nothing checked at all -> nothing to write.
-        if (!entry.keys.empty() || entry.publish_type || entry.publish_color)
-            out.push_back(std::move(entry));
+        // The entry carries the slot's identity even with no key row checked.
+        out.push_back(std::move(entry));
     }
     return out;
 }
@@ -249,7 +248,6 @@ std::vector<unsigned int> publish_mixed_components(const DynamicPrintConfig &pro
 }
 
 std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSelection &selection,
-                                                              const std::vector<PublishRowId> &rows,
                                                               const DynamicPrintConfig &project)
 {
     std::vector<MixedDependencyIssue> out;
@@ -275,22 +273,8 @@ std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSele
                 out.push_back({ size_t(mixed_slot), size_t(component_slot), MixedDependencyIssue::Reason::Disabled });
                 continue;
             }
-            if (selection.full_publish(component_slot))
-                continue;
-            // Colour never counts: the receiver renders the mix from its own components' colours.
-            bool type_checked = false;
-            for (const PublishRowId &row : rows) {
-                if (row.section != PublishSection::Material || row.owner != component_slot ||
-                    row.kind != PublishRowKind::Type)
-                    continue;
-                if (selection.checked(row) && selection.enabled(row)) {
-                    type_checked = true;
-                    break;
-                }
-            }
-            if (!type_checked)
-                out.push_back({ size_t(mixed_slot), size_t(component_slot),
-                                MixedDependencyIssue::Reason::MaterialNotPublished });
+            // An enabled component publishes its colour and type implicitly, with or without Full
+            // Publish, so enabling it is the whole requirement.
         }
     }
     // Deterministic order for the warning rows: by mixed slot, then component slot.

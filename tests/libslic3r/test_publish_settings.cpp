@@ -864,7 +864,52 @@ TEST_CASE("A disabled row is never exported, even when checked", "[PublishSettin
     selection.set_enabled(material_row, false);
 
     CHECK(selection.published_keys(rows).empty());
-    CHECK(selection.material_entries(rows).empty());
+    // The slot itself is enabled, so its identity entry travels; the disabled row adds no key.
+    const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+    REQUIRE(entries.size() == 1);
+    CHECK(entries[0].keys.empty());
+}
+
+TEST_CASE("An enabled slot publishes its colour and type without a requirement row", "[PublishSettings]")
+{
+    // Colour and type are implicit for an enabled partial owner: no row drives them any more.
+    const PublishRowId key_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
+    const std::vector<PublishRowId> rows{ key_row };
+
+    PublishOwnerInfo info;
+    info.filament_type = "PLA High Speed";
+    info.colour        = "#FF0000";
+
+    PublishSelection selection;
+    selection.set_owner_info(0, info);
+    selection.set_owner_enabled(0, true);
+
+    SECTION("with no row checked at all") {
+        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+        REQUIRE(entries.size() == 1);
+        CHECK(entries[0].keys.empty());
+        CHECK(entries[0].publish_color);
+        CHECK(entries[0].color == "#FF0000");
+        CHECK(entries[0].publish_type);
+        CHECK(entries[0].publish_type_value == "PLA");
+    }
+
+    SECTION("next to a checked key row") {
+        selection.set_checked(key_row, true);
+        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+        REQUIRE(entries.size() == 1);
+        CHECK(entries[0].keys == std::vector<std::string>{ "filament_cost" });
+        CHECK(entries[0].publish_color);
+        CHECK(entries[0].publish_type);
+    }
+
+    SECTION("a slot without a colour publishes its type only") {
+        selection.set_owner_info(0, PublishOwnerInfo{});
+        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+        REQUIRE(entries.size() == 1);
+        CHECK_FALSE(entries[0].publish_color);
+        CHECK(entries[0].publish_type);
+    }
 }
 
 TEST_CASE("Full publish exports every variant of the owner", "[PublishSettings]")
@@ -906,14 +951,9 @@ TEST_CASE("Mixed dependency issues name the component that is not published", "[
     component.filament_type = "PLA";
     selection.set_owner_info(1, component);
 
-    // The component's "Type" requirement row, unchecked.
-    const std::vector<PublishRowId> rows{
-        make_publish_row({ "filament_type" }, PublishSection::Material, 1, -1, PublishRowKind::Type)
-    };
-
     SECTION("a disabled component is reported") {
         selection.set_owner_enabled(1, false);
-        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, rows, project);
+        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project);
         REQUIRE(issues.size() == 1);
         CHECK(issues[0].mixed_slot == 0);
         CHECK(issues[0].component_slot == 1);
@@ -923,16 +963,13 @@ TEST_CASE("Mixed dependency issues name the component that is not published", "[
     SECTION("an enabled fully published component clears the issue") {
         selection.set_owner_enabled(1, true);
         selection.set_full_publish(1, true);
-        CHECK(unpublished_mixed_components(selection, rows, project).empty());
+        CHECK(unpublished_mixed_components(selection, project).empty());
     }
 
-    SECTION("an enabled component with neither type nor full publish is reported") {
+    SECTION("an enabled partial component clears the issue too") {
+        // Its colour and type are implicit, so enabling it is the whole requirement.
         selection.set_owner_enabled(1, true);
-        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, rows, project);
-        REQUIRE(issues.size() == 1);
-        CHECK(issues[0].mixed_slot == 0);
-        CHECK(issues[0].component_slot == 1);
-        CHECK(issues[0].reason == MixedDependencyIssue::Reason::MaterialNotPublished);
+        CHECK(unpublished_mixed_components(selection, project).empty());
     }
 }
 
@@ -948,33 +985,7 @@ TEST_CASE("A mixed component that is itself a mixed slot is not reported", "[Pub
     selection.set_owner_info(0, mixed);
     selection.set_owner_info(1, mixed);
 
-    // A mixed slot has no "Type" requirement row of its own.
-    const std::vector<PublishRowId> rows;
-
-    CHECK(unpublished_mixed_components(selection, rows, project).empty());
-}
-
-TEST_CASE("A checked Type requirement row clears the mixed dependency", "[PublishSettings]")
-{
-    DynamicPrintConfig project;
-    project.set_key_value("filament_mixed_components", new ConfigOptionStrings({ "2", "" }));
-
-    PublishSelection selection;
-    PublishOwnerInfo mixed;
-    mixed.mixed = true;
-    selection.set_owner_info(0, mixed);
-    PublishOwnerInfo component;
-    component.filament_type = "PLA";
-    selection.set_owner_info(1, component);
-    selection.set_owner_enabled(1, true);
-
-    const PublishRowId type_row =
-        make_publish_row({ "filament_type" }, PublishSection::Material, 1, -1, PublishRowKind::Type);
-    const std::vector<PublishRowId> rows{ type_row };
-    selection.set_checked(type_row, true);
-    selection.set_enabled(type_row, true);
-
-    CHECK(unpublished_mixed_components(selection, rows, project).empty());
+    CHECK(unpublished_mixed_components(selection, project).empty());
 }
 
 TEST_CASE("A component the dialog does not show is not reported", "[PublishSettings]")
@@ -989,9 +1000,7 @@ TEST_CASE("A component the dialog does not show is not reported", "[PublishSetti
     mixed.mixed = true;
     selection.set_owner_info(0, mixed);
 
-    const std::vector<PublishRowId> rows;
-
-    CHECK(unpublished_mixed_components(selection, rows, project).empty());
+    CHECK(unpublished_mixed_components(selection, project).empty());
 }
 
 TEST_CASE("The printer rule uses the project's nozzle type", "[PublishSettings]")

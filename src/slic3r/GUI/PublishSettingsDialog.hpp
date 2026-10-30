@@ -43,6 +43,7 @@ class CheckBox;
 namespace Slic3r { namespace GUI {
 
 class Line;
+class PublishFilamentPicker;
 class PublishParamsPanel;
 class Tab;
 
@@ -136,10 +137,6 @@ private:
         // Process sections' are the sidebar's own tabs. Null on a mixed slot.
         PublishParamsPanel* publish_host{nullptr};
         Tab*                publish_tab{nullptr};
-        // The lines of the hosted tab's Material page (Color and Type), which the dialog's two
-        // requirement rows are drawn by. Null when the slot has no hosted tab.
-        Line* requirement_colour_line{nullptr};
-        Line* requirement_type_line{nullptr};
         wxStaticText* info{nullptr};
         wxPoint scroll_pos{0, 0};
         wxStaticBitmap* filament_color_chip{nullptr};
@@ -150,9 +147,13 @@ private:
         // publishing the mix definition, so no Full Publish widget exists at all.
         ::CheckBox* enable_check{nullptr};
         wxSizerItem* full_line_item{nullptr}; // sizer item of the Full Publish line (physical slots only)
-        // "Full Publish": while checked, the whole slot preset is serialized and its rows
-        // (incl. Color/Type) are disabled.
+        // "Full Publish": while checked, the whole slot preset is serialized and its rows are
+        // disabled.
         ::CheckBox* full_check{nullptr};
+        // The slot's filament preset picker (the sidebar's own combo), on its own line below Full
+        // Publish and visible only while enabled. Selecting a preset stages it; OK assigns it.
+        PublishFilamentPicker* filament_picker{nullptr};
+        wxSizerItem*           filament_picker_item{nullptr};
         // True for a mixed-color filament slot: no Material/Retraction rows; Enable publishes
         // the slot's gradient/ratio definition as a whole.
         bool is_mixed{false};
@@ -173,6 +174,10 @@ private:
         std::string filament_id;
         // The author's 0-based filament slot this material section represents.
         size_t filament_slot{0};
+        // The slot's preset as the project uses it, and the one the picker staged. They differ
+        // only between a pick and OK; Cancel leaves `filament` in place.
+        std::string filament;
+        std::string pending_filament;
         std::vector<size_t> rows; // flattened rows of this category
     };
 
@@ -248,9 +253,9 @@ private:
     // Recompute the indicator dot on every outer/inner tab from the current selection state.
     void refresh_tab_indicators();
     // Unmet dependencies of enabled mixed-filament slots, one record per (mix, component) pair:
-    // "Enable" not checked on the component, or enabled with neither "Full Publish" nor the
-    // "Type" requirement row checked. Colour is deliberately ignored (the receiver renders the
-    // mix from its own components' colours). Sorted by mixed slot, then component slot.
+    // "Enable" not checked on the component. An enabled component publishes its type and colour
+    // implicitly, and colour is deliberately not required anyway (the receiver renders the mix
+    // from its own components' colours). Sorted by mixed slot, then component slot.
     std::vector<MixedDependencyIssue> unpublished_mixed_components() const;
     // Read-only visualization of a mixed slot's definition (a stacked ratio bar, or the
     // Material Ratio vs Model Height graph for a gradient), inserted above the info hint
@@ -264,9 +269,20 @@ private:
                               size_t source_index,
                               const PublishMaterialIdentity& identity = PublishMaterialIdentity(),
                               bool is_mixed                          = false);
-    // Builds the hosted Filament tab's first page, which carries the slot's Color and Type lines;
-    // the dialog's two requirement rows point at them. Call before the host activates the tab.
-    void add_material_requirement_page(Category& category);
+    // Creates the slot's private Filament tab from `pending_filament` and hands it to the
+    // category's host (spec 7.4.2). Used once at build and again whenever the picker stages
+    // another preset; the previous tab is destroyed by the caller.
+    void build_material_tab(Category& category);
+    // Picker callback: stage `preset_name` for the physical slot, rebuild its tab and rows,
+    // uncheck them and refresh the payload identity. Nothing of the project changes until OK.
+    void on_filament_picked(size_t slot, const std::string& preset_name);
+    // Drops a category's rows and re-indexes every other category's rows.
+    void remove_category_rows(size_t category_index);
+    // Recomputes the file-column layout of every material slot from the staged presets, remaps
+    // the rows' "#col" keys and keeps the selection state on the remapped ids.
+    void refresh_material_layout();
+    // The uncompacted full config the project would have if every staged preset were assigned.
+    Slic3r::DynamicPrintConfig staged_full_config(bool apply_extruder) const;
     // Appends one row drawn by the hosted tab's own Line.
     size_t add_tab_row(Row row, size_t category_index);
     // Builds a physical slot's rows from its hosted Filament tab's lines, and attaches the publish
