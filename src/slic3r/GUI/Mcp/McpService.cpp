@@ -147,8 +147,8 @@ const char* kInstructions =
     "- Paths are absolute. Outputs never overwrite an existing file unless overwrite is true.\n"
     "- screenshot returns a downscaled image plus the full-size PNG path; target \"canvas\" is the 3D view.\n"
     "- start_recording / stop_recording record a video (MJPEG .mkv), with the tool calls as captions and the pointer "
-    "highlighted when captions and pointer ask for them; "
-    "encode_recording turns it into an H.265 MP4 with the system ffmpeg.\n"
+    "highlighted when captions and pointer ask for them; with encode, stop_recording then encodes it to an MP4 with "
+    "the system ffmpeg as a job to wait for, and encode_recording encodes any recording later.\n"
     "- export_script saves this session's calls as a replayable script; run_script replays one.";
 
 } // namespace
@@ -656,6 +656,17 @@ bool McpService::encode_when_closed(json args, std::function<void(const ToolResu
                                 }),
                                 finished});
     return true;
+}
+
+ToolResult McpService::start_encode(const json& args)
+{
+    const ToolDef* encode = started() ? m_registry.find("encode_recording") : nullptr;
+    if (encode == nullptr || m_stopping)
+        return ToolResult::error("OrcaSlicer is shutting down");
+    ToolDef def   = *encode;
+    def.journal   = false;
+    def.budget_ms = 0; // the envelope at once; the result comes from wait
+    return m_core->call(def, args);
 }
 
 bool McpService::discard_authorized(const std::set<std::string>& lineage) const

@@ -152,6 +152,10 @@ public:
     // is cancelled like any encode (cancel {job}, stop()), and `done` is not called once the service stops.
     // False when the service is not started or is stopping. Any thread.
     bool encode_when_closed(nlohmann::json args, std::function<void(const ToolResult&)> done);
+    // Starts encode_recording with `args` as an unjournaled job of its own and returns at once: the job's
+    // envelope, or the error that refused it. For a recording's encode that stop_recording starts, which a
+    // replay of the recording asks for again. Any thread.
+    ToolResult start_encode(const nlohmann::json& args);
 
 private:
     friend struct McpServiceDeleter;

@@ -53,6 +53,9 @@ struct RecordingOptions
     bool                    pointer     = false; // the pointer highlighted, its clicks rippling
     boost::filesystem::path path;
     std::string             owner; // the job of the script that started it, "" for a client, kPersonOwner
+    // encode_recording's arguments, path included, for the stop_recording that reports this recording to run;
+    // null for none.
+    nlohmann::json encode;
     // Runs on the UI thread once the recording ends, while its file is still being closed, with the reason it
     // was ended for ("" when the file ended it: a write error or the size limit). Never after a failed start.
     std::function<void(const std::string& reason)> ended;
@@ -97,8 +100,9 @@ public:
     // for its file to be closed. Returns the path of a file still being written after that wait.
     std::optional<std::string> end_owned_by(const std::string& owner, const std::string& reason, bool wait);
     // stop_recording: ends the running recording and waits for its file, or takes the result of the last
-    // one that ended on its own, once. Null when there is none.
-    nlohmann::json stop_and_report(std::chrono::milliseconds timeout);
+    // one that ended on its own, once. Null when there is none. `encode` gets the recording's
+    // RecordingOptions::encode.
+    nlohmann::json stop_and_report(std::chrono::milliseconds timeout, nlohmann::json& encode);
     // get_state's recording: {path, target, seconds, frames} while one runs, else null.
     nlohmann::json state() const;
     // A recording is being written or finalized.

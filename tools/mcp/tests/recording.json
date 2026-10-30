@@ -60,6 +60,17 @@
     {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}},
     {"tool": "start_recording", "args": {"save_path": "${out_dir}/plain.mkv", "overwrite": true, "captions": true},
      "expect": {"/captions": {"eq": true}, "/pointer": {"eq": false}}},
-    {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}}
+    {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}},
+
+    // Encoding asked for up front (an ffmpeg with libx264): the stop that reports the recording starts the encode
+    // as a job of its own, which wait idle waits for.
+    {"tool": "start_recording", "args": {"save_path": "${out_dir}/encoded.mkv", "overwrite": true, "encode": true,
+                                         "encode_preset": "compatible", "crf": 30}, "optional": true,
+     "expect": {"/encode/codec": {"eq": "h264"}, "/encode/crf": {"eq": 30}, "/encode/profile": {"eq": "high"}}},
+    {"tool": "stop_recording", "optional": true,
+     "expect": {"/path": {"regex": "encoded\\.mkv$"}, "/encode/status": {"eq": "running"}, "/encode/job": {"exists": true}}},
+    {"tool": "wait", "args": {"for": "idle", "timeout_s": 50}, "optional": true, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "get_state", "optional": true,
+     "expect": {"/jobs/0/tool": {"eq": "encode_recording"}, "/jobs/0/state": {"eq": "done"}}}
   ]
 }

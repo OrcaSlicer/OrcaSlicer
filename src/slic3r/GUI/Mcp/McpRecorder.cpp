@@ -722,7 +722,7 @@ json McpRecorder::report(Recording& rec) const
     return out;
 }
 
-json McpRecorder::stop_and_report(std::chrono::milliseconds timeout)
+json McpRecorder::stop_and_report(std::chrono::milliseconds timeout, json& encode)
 {
     std::shared_ptr<Recording> rec;
     {
@@ -738,6 +738,7 @@ json McpRecorder::stop_and_report(std::chrono::milliseconds timeout)
         std::lock_guard<std::mutex> lock(m_mutex);
         rec->reported = true;
     }
+    encode = rec->options.encode;
     return report(*rec);
 }
 

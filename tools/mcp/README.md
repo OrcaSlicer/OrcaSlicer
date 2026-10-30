@@ -122,7 +122,8 @@ filament change, a 3MF round trip, and `clear`.
 Preferences dialog opened and closed, a slice. It stops the recording (frames, length, size) and encodes
 it to H.265, then has a nested script start a recording of the 3D view that it never stops, checks the
 script's end closed it, and encodes that to H.264. Short recordings check that a recording has no overlays
-unless `captions` or `pointer` turns one on. The encodes need an ffmpeg with libx265 and libx264
+unless `captions` or `pointer` turns one on, and that one started with `encode` is encoded as a job once
+`stop_recording` reports it. The encodes need an ffmpeg with libx265 and libx264
 (`ORCA_FFMPEG`, or `ffmpeg` on `PATH`) and are optional without one. Look at the videos, or at frames
 `ffmpeg -i session.mkv -vf fps=1 frame%02d.png` extracts, for the caption, the pointer and the dialog.
 

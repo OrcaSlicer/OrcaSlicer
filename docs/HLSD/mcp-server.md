@@ -352,8 +352,8 @@ the UI thread.
 | View | `set_view` | tab (Design included), 3D view (Prepare, preview, assemble), camera (the Design view's on the Design tab), preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate, window size |
 | | `screenshot` | window, the 3D view shown (the Design view on the Design tab), topmost dialog or one widget: a downscaled image and a full-size PNG |
 | | `get_preview` | a sliced plate's summary, time and grams per feature type, per-layer Z, height, time and grams (paged), grams per object instance, and the Preview's legend state and colour ranges |
-| Recording | `start_recording` | record the main window with its modal dialogs, or the 3D view shown, into an MJPEG `.mkv`, with the current tool call as a caption and the pointer highlighted when asked for |
-| | `stop_recording` | capture the last state, end the recording and report its file once written: length, frames, drops, the mean UI time of a capture, size and why it ended |
+| Recording | `start_recording` | record the main window with its modal dialogs, or the 3D view shown, into an MJPEG `.mkv`, with the current tool call as a caption and the pointer highlighted when asked for, and with `encode` an MP4 of it once stopped |
+| | `stop_recording` | capture the last state, end the recording and report its file once written: length, frames, drops, the mean UI time of a capture, size and why it ended; the job of the encode `start_recording` asked for |
 | | `encode_recording` | encode a recording into an H.265 or H.264 MP4 with the system ffmpeg; cancellable |
 | GUI | `ui_snapshot` | widgets, rows of lists, trees and tables, popups, menus, GL toolbar items, gizmos, the Prepare view's plates and plate icons, and ImGui items, with refs |
 | | `ui_click` | activate a ref or locator, click a row's cell or a plate icon, or click a point of a 3D canvas or custom-drawn widget; list the menu it opens, or run one of its items |
@@ -1687,7 +1687,7 @@ block is scaled to `max_dim` on the long edge (default 1280, clamped to 256–20
 `start_recording` records what OrcaSlicer shows into a video while an agent, a script or a person
 works, and `encode_recording` turns it into an MP4 to attach to an issue. Recording has to stay light,
 since it runs while the app works: frames are kept as JPEG in a Matroska file (MJPEG), and the H.265
-encode, which costs far more, is a later call. There is no audio. `McpRecorder` holds at most one
+encode, which costs far more, comes after it. There is no audio. `McpRecorder` holds at most one
 recording; `get_state.recording` shows it while it runs.
 
 **Capture.** The UI thread captures a frame per tick of a one-shot `wxTimer`, which fires inside
@@ -1748,6 +1748,16 @@ the UI thread, and a step after the script sees a closed file. At exit `stop()` 
 file, then drops what is still queued and leaves the sink to its threads, which own its state. A
 recording counts as active until its file is closed, for the one-at-a-time rule and for encodes.
 
+**Encoding up front.** `start_recording` takes the Start Recording command's encoding keys (`encode`,
+`encode_preset`, `codec`, `crf`, `speed`, `profile`), checked by `apply_recording_overrides()` with its
+defaults, the Balanced preset, and refuses `encode` without an ffmpeg before anything records. The
+recording keeps `encode_recording`'s arguments (`RecordingOptions::encode`), and the `stop_recording`
+that reports it, once its file is closed, starts the encode with `McpService::start_encode()`: a job of
+its own, outside the journal (a replayed `start_recording` asks for it again), whose envelope the report
+carries as `encode`, so the agent waits for the MP4 by that job's id. A recording that ended on its own
+is encoded when the next `stop_recording` reports it; one nothing reports, a client's that ended with
+the endpoint, is not encoded. An agent can still encode any recording later with `encode_recording`.
+
 **From the app.** The Speed Dial commands `take_screenshot`, `start_recording` and `stop_recording`, which
 the Help menu also has, give a person screenshots and recordings without an agent: a PNG of the main window,
 and a recording of it for up to an hour. Both go in the person's Downloads folder unless they chose another.
@@ -1760,7 +1770,9 @@ AppConfig's `recording` section (`RecordingSettings`). The command's parameter o
 one recording, and with `silent` starts at once without the dialog and remembers nothing; a silent start
 that would encode without an ffmpeg is refused rather than recording unencoded. The encode is
 `encode_recording` itself, run by `McpService::encode_when_closed()` as an unjournaled job once the
-recording's file is closed (`McpRecorder::wait_closed()`), so it can be cancelled like any encode.
+recording's file is closed (`McpRecorder::wait_closed()`), so it can be cancelled like any encode. No reply
+names the job, which only exists once the file is closed: an agent finds it in `get_state.jobs` and waits
+for it by its id, as the command's description says.
 Start Recording starts the service without its endpoint when the server is off, as the Run Script dialog
 does. The person's recording has its own owner (`kPersonOwner`), so neither a script's end nor the
 endpoint closing ends it. Whatever ends it tells the person where it went, in a notification whose button

@@ -508,7 +508,9 @@ void describe_commands(std::vector<NativeCommand>& commands)
                             "param key) and answer it with dialog_respond \"Start recording\"; it remembers what it starts with. "
                             "With silent, the recording starts at once and nothing is remembered; one that would encode is refused "
                             "when no ffmpeg is found. The reply has the path and the settings used. Neither a script's end nor the "
-                            "server turning off ends it. Agents record with start_recording instead.",
+                            "server turning off ends it. With encode, the encode starts once the recording's file is closed, as an "
+                            "encode_recording job in get_state.jobs: wait {for: \"job\"} with its id returns the MP4's path, or "
+                            "an error. Agents record with start_recording instead.",
          CommandParamType::Text,
          "JSON object, all optional: quality (30-95), captions (bool), pointer (bool), encode (bool), encode_preset (small, "
          "balanced, quality, compatible; applied before the fields), codec (h265, h264), crf (0-51), speed (ultrafast ... "
@@ -516,7 +518,9 @@ void describe_commands(std::vector<NativeCommand>& commands)
          "directory), silent (bool)"},
         {"stop_recording", "Stop the running recording, whoever started it, without waiting for its file, and show the person a "
                            "notification naming it; the reply has its path. A later stop_recording reports it as ended "
-                           "stopped_in_app. Agents stop their own recordings with stop_recording, which waits and reports."},
+                           "stopped_in_app. A recording Start Recording made with encode is then encoded: find its "
+                           "encode_recording job in get_state.jobs. Agents stop their own recordings with stop_recording, which "
+                           "waits and reports."},
         {"open_preferences", "Open the Preferences dialog on a tab, scrolled to one preference when given (shown on its own tab). Its "
                              "controls are named after their preference keys: ui_input {\"target\": {\"name\": key, \"within\": "
                              "\"Preferences\"}} changes one through the dialog; get_settings scope preferences reads them.",

@@ -6,6 +6,7 @@
 #include "McpService.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
+#include "RecordingSettings.hpp"
 #include "VideoEncode.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
@@ -86,6 +87,14 @@ int process_id()
 #endif
 }
 
+std::vector<std::string> encode_preset_keys()
+{
+    std::vector<std::string> keys;
+    for (const EncodePreset& p : encode_presets())
+        keys.emplace_back(p.key);
+    return keys;
+}
+
 } // namespace
 
 void register_record_tools(McpService& service)
@@ -99,7 +108,8 @@ void register_record_tools(McpService& service)
         "the tool call acting on the app shows as a caption at the bottom (secret setting values never show); with pointer, "
         "the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so "
         "the frame rate drops where capturing is slow. One recording at a time: one a script starts ends with the script, a "
-        "client's when the server is turned off. encode_recording makes an MP4 of it.",
+        "client's when the server is turned off. With encode, the stop_recording that reports it also encodes it to an MP4 "
+        "beside it, as the Start Recording command does; encode_recording makes an MP4 of any recording later.",
         object_schema({{"target", enum_prop({"window", "canvas"}, "window (default): the main window and its dialogs; canvas: the 3D view shown.")},
                        {"fps", int_prop(1, 30, "Frames per second at most (default 10).")},
                        {"max_dim", int_prop(320, 3840, "Long edge of the video in pixels (default 1920).")},
@@ -107,8 +117,17 @@ void register_record_tools(McpService& service)
                        {"max_seconds", int_prop(1, 3600, "The recording ends on its own after this long (default 600).")},
                        {"captions", prop("boolean", "Caption the tool call acting on the app (default false).")},
                        {"pointer", prop("boolean", "Highlight the pointer and show its clicks (default false).")},
+                       {"encode", prop("boolean", "Encode it to an MP4 once stopped; needs an ffmpeg (default false).")},
+                       {"encode_preset", enum_prop(encode_preset_keys(), "With encode: the settings the fields below change "
+                                                                         "(default balanced: h265, crf 28, medium, main).")},
+                       {"codec", enum_prop({"h265", "h264"}, "With encode: the codec (default the preset's).")},
+                       {"crf", int_prop(0, 51, "With encode: constant rate factor, lower is better and larger (default the preset's).")},
+                       {"speed", enum_prop(encoder_speeds(), "With encode: slower makes a smaller file (default the preset's).")},
+                       {"profile", enum_prop({"high", "main", "baseline", "main10"},
+                                             "With encode: h264 high, main or baseline; h265 main or main10 (default the preset's, else "
+                                             "the codec's first).")},
                        {"save_path", prop("string", "Absolute .mkv path; default the session's output folder.")},
-                       {"overwrite", prop("boolean", "Replace an existing save_path.")}}),
+                       {"overwrite", prop("boolean", "Replace an existing save_path, and with encode its MP4.")}}),
         [&service](const json& args, ToolContext& ctx) {
             RecordingOptions o;
             o.target      = arg_string(args, "target", "window");
@@ -118,6 +137,17 @@ void register_record_tools(McpService& service)
             o.max_seconds = arg_int(args, "max_seconds", 600);
             o.captions    = arg_bool(args, "captions", false);
             o.pointer     = arg_bool(args, "pointer", false);
+            // The encode as the Start Recording command takes it: its keys, defaults and checks.
+            json encode_args = json::object();
+            for (const char* key : {"encode", "encode_preset", "codec", "crf", "speed", "profile"})
+                if (args.contains(key))
+                    encode_args[key] = args[key];
+            RecordingSettings settings;
+            bool              silent = false;
+            if (const std::string err = apply_recording_overrides(settings, encode_args, silent); !err.empty())
+                throw ToolFailure(err);
+            if (std::string err; settings.encode && !find_ffmpeg(err))
+                throw ToolFailure("Cannot encode: " + err);
             if (args.contains("save_path")) {
                 const std::string path = arg_string(args, "save_path");
                 if (!boost::algorithm::iends_with(path, ".mkv"))
@@ -129,6 +159,11 @@ void register_record_tools(McpService& service)
                 o.path = *p;
             } else {
                 o.path = timestamped_path(output_dir(), "recording", ".mkv", {".mp4"});
+            }
+            if (settings.encode) {
+                o.encode = encode_arguments(settings, path_to_utf8(o.path));
+                if (arg_bool(args, "overwrite", false))
+                    o.encode["overwrite"] = true;
             }
             // Like auto-answer rules: a script's recording ends with the script, a client's with the endpoint.
             const std::vector<std::string> ancestry = service.jobs().ancestry(ctx.job_id());
@@ -163,6 +198,11 @@ void register_record_tools(McpService& service)
                 handed_over = true; // start() owns the reservation from here, success or not
                 return service.recorder().start(o, owner);
             });
+            if (settings.encode)
+                out["encode"] = {{"codec", settings.codec},
+                                 {"crf", settings.crf},
+                                 {"speed", settings.speed},
+                                 {"profile", settings.profile}};
             // The path used, so a replay records into its own output folder under the same name and its
             // encode finds it there.
             json recorded         = args;
@@ -175,7 +215,9 @@ void register_record_tools(McpService& service)
                         "Stop the running recording and return its file once it is written: seconds, frames captured and "
                         "written, frames dropped when encoding fell behind or skipped when the window could not be captured, "
                         "the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, its script ended, a "
-                        "write error) is reported once by the next stop_recording.",
+                        "write error) is reported once by the next stop_recording. For a recording started with encode, it then "
+                        "starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns "
+                        "encode_recording's result.",
                         object_schema({}), [&service](const json&, ToolContext& ctx) {
                             // The last state too, even if the timer has not ticked since the last call. Without the
                             // UI thread (a native dialog holds it), the recording ends with its last frame.
@@ -186,9 +228,14 @@ void register_record_tools(McpService& service)
                                 });
                             } catch (const ToolFailure&) {
                             }
-                            const json report = service.recorder().stop_and_report(std::chrono::seconds(60));
+                            json encode;
+                            json report = service.recorder().stop_and_report(std::chrono::seconds(60), encode);
                             if (report.is_null())
                                 throw ToolFailure("No recording is running");
+                            if (!encode.is_null()) {
+                                const ToolResult r = service.start_encode(encode);
+                                report["encode"]   = r.is_error ? json{{"error", r.message}} : r.data;
+                            }
                             return ToolResult::ok(report);
                         }));
 
