@@ -187,6 +187,18 @@ GLGizmoMmuSegmentation::GLGizmoMmuSegmentation(GLCanvas3D& parent, const std::st
 {
 }
 
+void GLGizmoMmuSegmentation::gizmo_event(){
+if (m_auto_painter && m_auto_painter->detail_sensitivity_brush_active && mouse_down) {
+    m_auto_painter->on_brush_stroke(
+        mo->volumes.front()->mesh().its,
+        Vec3f(hit_pos.x(), hit_pos.y(), hit_pos.z()),
+        m_cursor_radius
+    );
+    return true;
+}
+    
+}
+
 void GLGizmoMmuSegmentation::render_painter_gizmo()
 {
     const Selection& selection = m_parent.get_selection();
