@@ -1,0 +1,68 @@
+// Recordings: one while the GUI is driven (clicks on the 3D view, a setting typed, a dialog opened and
+// answered, a slice), stopped and encoded; then one a nested script starts and never stops, which ends
+// with that script and is encoded by a step after it. Run with
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/recording.json --out /tmp/recording
+// The encode steps need an ffmpeg with libx265 (ORCA_FFMPEG or on PATH), so they are optional.
+{
+  "orca_script": 1,
+  "name": "recording",
+  "vars": {"model": "${script_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "unsaved changes", "button": "no"},
+                                                      {"match": "restore", "button": "no"}]}},
+    {"tool": "new_project"},
+    {"tool": "set_view", "args": {"window_size": [1600, 1000], "tab": "prepare"}},
+    {"tool": "start_recording", "args": {"save_path": "${out_dir}/session.mkv", "overwrite": true},
+     "expect": {"/width": {"ge": 320}, "/fps": {"eq": 10}}},
+    {"tool": "get_state", "expect": {"/recording/path": {"regex": "session\\.mkv$"}}},
+    {"tool": "open_files", "args": {"paths": ["${vars.model}"]}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "ui_mouse", "args": {"action": "click", "x": 300, "y": 200}},
+    {"tool": "ui_mouse", "args": {"action": "click", "at": {"object": 0, "spot": "top"}}},
+    // The global settings, whatever an earlier script left the Process panel's Global/Objects switch on.
+    {"tool": "ui_input", "args": {"target": {"label": "Process"}, "value": false}},
+    {"tool": "ui_input", "args": {"target": {"option": "layer_height"}, "value": "0.16"}},
+    {"tool": "ui_key", "args": {"target": {"option": "initial_layer_print_height"}, "keys": "ctrl+a", "text": "0.24"}},
+
+    // The action blocks in the dialog it opens, so it is not awaited until the dialog is answered.
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca"}, "await": false, "save_as": "prefs"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "dialog_respond", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs}"}},
+
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "stop_recording",
+     "expect": {"/ended": {"eq": "stopped"}, "/frames": {"ge": 5}, "/written": {"ge": 5}, "/seconds": {"gt": 1}, "/size_bytes": {"gt": 0},
+                "/capture_ms": {"gt": 0}}},
+    {"tool": "get_state", "expect": {"/recording": {"exists": false}}},
+    {"tool": "encode_recording", "args": {"save_path": "${out_dir}/session.mp4", "overwrite": true}, "optional": true,
+     "expect": {"/codec": {"eq": "h265"}, "/encoder": {"eq": "libx265"}, "/seconds": {"gt": 1}}},
+
+    // A recording a script starts ends with that script, its file closed when the script's call returns.
+    {"tool": "run_script", "args": {"script": {"orca_script": 1, "name": "inner", "steps": [
+       {"tool": "start_recording", "args": {"target": "canvas", "fps": 5, "save_path": "${out_dir}/inner.mkv", "overwrite": true}},
+       {"tool": "set_view", "args": {"camera": "iso"}},
+       {"tool": "ui_mouse", "args": {"action": "drag", "x": 400, "y": 300, "to": [500, 340]}}]}},
+     "expect": {"/passed": {"eq": true}, "/unfinished_recording": {"exists": false}}},
+    {"tool": "stop_recording", "expect": {"/ended": {"eq": "script_ended"}, "/path": {"regex": "inner\\.mkv$"}}},
+    {"tool": "encode_recording", "args": {"overwrite": true, "codec": "h264"}, "optional": true,
+     "expect": {"/path": {"regex": "inner\\.mp4$"}, "/encoder": {"eq": "libx264"}}},
+    // The script's end released the file: recording to it again starts at once, with both overlays.
+    {"tool": "start_recording", "args": {"save_path": "${out_dir}/inner.mkv", "overwrite": true},
+     "expect": {"/captions": {"eq": true}, "/pointer": {"eq": true}}},
+    {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}},
+
+    // overlays false turns off both, whatever they say; each can also be turned off alone.
+    {"tool": "start_recording", "args": {"save_path": "${out_dir}/plain.mkv", "overwrite": true, "overlays": false,
+                                         "captions": true, "pointer": true},
+     "expect": {"/captions": {"eq": false}, "/pointer": {"eq": false}}},
+    {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}},
+    {"tool": "start_recording", "args": {"save_path": "${out_dir}/plain.mkv", "overwrite": true, "captions": false},
+     "expect": {"/captions": {"eq": false}, "/pointer": {"eq": true}}},
+    {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}},
+    {"tool": "start_recording", "args": {"save_path": "${out_dir}/plain.mkv", "overwrite": true, "pointer": false},
+     "expect": {"/captions": {"eq": true}, "/pointer": {"eq": false}}},
+    {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}}
+  ]
+}

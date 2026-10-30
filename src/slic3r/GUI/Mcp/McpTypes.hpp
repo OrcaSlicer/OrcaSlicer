@@ -107,6 +107,9 @@ struct ToolDef
     bool           inline_call = false;
     // May run while an MCP slice/export operation holds the project (cancel).
     bool           allowed_during_operation = false;
+    // `cancel {job}` stops a running call of this tool that is not an operation (encode_recording): the
+    // handler sees ToolContext::cancelled() and ends.
+    bool           cancellable = false;
     // Recorded by the session journal for export_script. Observation tools turn this off, except
     // wait and screenshot, which a replay needs.
     bool           journal   = true;

@@ -1207,15 +1207,21 @@ void register_scene_tools(McpService& service)
         "cancel", L("Cancel an operation"),
         "Stop the running slice or G-code export, as the cancel button on the slicing progress does, or the background job "
         "(an arrange, orient or fill bed) an MCP call started. That job then reports cancelled; a background job keeps "
-        "other changes out until it has really stopped. With job, only when that job is the running operation. Allowed "
-        "while an operation holds the project.",
+        "other changes out until it has really stopped. With job, only when that job is the running operation, or a "
+        "running encode_recording, which stops and reports cancelled. Allowed while an operation holds the project.",
         object_schema({{"job", prop("string", "The operation's job to cancel, e.g. \"j12\".")}}),
         [&service](const json& args, ToolContext& ctx) {
             const auto ops = service.jobs().running_operations();
             if (args.contains("job")) {
                 const std::string job = arg_string(args, "job");
-                if (std::find(ops.begin(), ops.end(), job) == ops.end())
-                    throw ToolFailure("Job " + job + " is not a running operation", {{"running", ops}});
+                if (std::find(ops.begin(), ops.end(), job) == ops.end()) {
+                    // A call that is no operation but can be stopped: its handler watches for the stop.
+                    const ToolDef* def = service.registry().find(service.jobs().running_tool(job));
+                    if (def == nullptr || !def->cancellable)
+                        throw ToolFailure("Job " + job + " is not a running operation", {{"running", ops}});
+                    service.request_stop(job);
+                    return ToolResult::ok({{"was_running", true}, {"job", job}});
+                }
             }
             json out = ctx.run_ui([&]() -> json {
                 // Only a job an MCP call started: a person's (Text typing) is theirs to stop.

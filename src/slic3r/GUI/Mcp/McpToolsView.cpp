@@ -49,7 +49,6 @@
 #include <array>
 #include <chrono>
 #include <cmath>
-#include <ctime>
 #include <functional>
 #include <iterator>
 #include <optional>
@@ -72,16 +71,6 @@ std::string base64(const std::string& bytes)
     std::string out(b64::encoded_size(bytes.size()), '\0');
     out.resize(b64::encode(out.data(), bytes.data(), bytes.size()));
     return out;
-}
-
-std::string timestamp_name()
-{
-    const auto        now = std::chrono::system_clock::now();
-    const std::time_t t   = std::chrono::system_clock::to_time_t(now);
-    char              buf[32];
-    std::strftime(buf, sizeof(buf), "%Y%m%d-%H%M%S", std::localtime(&t));
-    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() % 1000;
-    return std::string("screenshot-") + buf + "-" + std::to_string(ms) + ".png";
 }
 
 const char* tab_id(const std::string& name)
@@ -323,7 +312,7 @@ void register_view_tools(McpService& service)
                     throw ToolFailure(err);
                 path = *p;
             } else {
-                path = service.output_dir() / timestamp_name();
+                path = timestamped_path(output_dir(), "screenshot", ".png");
             }
             const int max_dim = std::clamp(arg_int(args, "max_dim", 1280), 256, 2000);
             json      info;

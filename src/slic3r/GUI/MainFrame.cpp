@@ -86,6 +86,7 @@
 #include "ParamsDialog.hpp"
 #include "PrintHostDialogs.hpp"
 #include "ScriptRunnerDialog.hpp"
+#include "NativeCommands.hpp"
 #include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 #include "GUI_ObjectList.hpp"
@@ -2962,6 +2963,19 @@ wxMenu* MainFrame::generate_help_menu()
     if (wxGetApp().is_editor())
         append_menu_item(helpMenu, wxID_ANY, _L("Benchmark 3D Scene"), _L("Measure how fast the 3D scene renders in Prepare and Preview"),
             [](wxCommandEvent&) { run_scene_benchmark(); });
+
+    // Screenshots and recordings of the app, for a bug report or a how-to; the Speed Dial has them too.
+    if (wxGetApp().is_editor()) {
+        helpMenu->AppendSeparator();
+        append_menu_item(helpMenu, wxID_ANY, _L("Take Screenshot"), _L("Save a picture of the main window"),
+            [](wxCommandEvent&) { NativeCommands::notify_result(NativeCommands::run("take_screenshot")); });
+        append_menu_item(helpMenu, wxID_ANY, _L("Start Recording") + dots, _L("Record a video of the main window"),
+            [](wxCommandEvent&) { NativeCommands::notify_result(NativeCommands::run("start_recording")); }, "", nullptr,
+            []() { return !NativeCommands::recording_active(); }, this);
+        append_menu_item(helpMenu, wxID_ANY, _L("Stop Recording"), _L("Stop the recording and save it"),
+            [](wxCommandEvent&) { NativeCommands::notify_result(NativeCommands::run("stop_recording")); }, "", nullptr,
+            []() { return NativeCommands::recording_active(); }, this);
+    }
 
     helpMenu->AppendSeparator();
 

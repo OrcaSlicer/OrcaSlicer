@@ -2332,6 +2332,13 @@ void NotificationManager::push_exporting_finished_notification(const std::string
 	set_slicing_progress_hidden();
 }
 
+void NotificationManager::push_file_saved_notification(const std::string& text, const std::string& path, const std::string& dir_path)
+{
+    close_notification_of_type(NotificationType::ExportFinished);
+    NotificationData data{ NotificationType::ExportFinished, NotificationLevel::RegularNotificationLevel, 20, text + "\n" + path };
+    push_notification_data(std::make_unique<NotificationManager::ExportFinishedNotification>(data, m_id_provider, m_evt_handler, false, path, dir_path), 0);
+}
+
 void NotificationManager::push_import_finished_notification(const std::string& path, const std::string& dir_path, bool on_removable)
 {
     close_notification_of_type(NotificationType::ExportFinished);

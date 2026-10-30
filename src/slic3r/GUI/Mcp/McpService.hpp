@@ -10,7 +10,6 @@
 #include "McpTypes.hpp"
 #include "UiInvoker.hpp"
 
-#include <boost/filesystem/path.hpp>
 #include <nlohmann/json.hpp>
 
 #include <atomic>
@@ -33,6 +32,7 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 class McpHttpServer;
 class McpProtocol;
+class McpRecorder;
 class ModalTracker;
 class UiInspector;
 struct AutoAnswerRule;
@@ -98,6 +98,8 @@ public:
     ModalTracker& modals() { return *m_modals; }
     // Refs from ui_snapshot live here, so they survive between calls. UI thread only.
     UiInspector&  inspector() { return *m_inspector; }
+    // start_recording and its kin; also told about every call, for the captions.
+    McpRecorder&  recorder() { return *m_recorder; }
 
     // Auto-answer rules from dialog_auto_answer. Rules registered from inside a script (the nearest
     // running script in `ancestry`, the caller's job chain, nearest first) last until that script
@@ -106,17 +108,15 @@ public:
     // Returns "script" or "session". Any thread.
     std::string set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry);
     // run_script brackets its steps with these. A mouse press the script left held is released
-    // when it ends.
+    // when it ends, and so is a recording it started; `wait_recording` waits for that recording's file,
+    // unless the run already did.
     void begin_script_scope(const std::string& job);
-    void end_script_scope(const std::string& job);
+    void end_script_scope(const std::string& job, bool wait_recording = true);
     // The job of the nearest running script in `ancestry`, or "" for a client's own call. Any thread.
     std::string script_owner(const std::vector<std::string>& ancestry) const;
     // Whether clients can reach the server: false from stop_serving() until the endpoint opens again.
     // A client's call still running then must not leave state behind that the closing ended. Any thread.
     bool endpoint_open() const;
-
-    // Where screenshots and script outputs go when no path is given.
-    boost::filesystem::path output_dir() const;
 
     // {serving, ready, version, port, url, token_file, token_source, discovery_file,
     // discovery_error} for Preferences and get_state.
@@ -147,12 +147,20 @@ public:
     bool stopping() const { return m_stopping; }
     // Queues `fn` on the UI thread; nothing runs once the app is gone. Any thread.
     void post_ui(std::function<void()> fn);
+    // Encodes a recording once its file is closed: encode_recording with `args` as an unjournaled job, which
+    // a thread the service owns follows to its end before posting `done` its result on the UI thread. The job
+    // is cancelled like any encode (cancel {job}, stop()), and `done` is not called once the service stops.
+    // False when the service is not started or is stopping. Any thread.
+    bool encode_when_closed(nlohmann::json args, std::function<void(const ToolResult&)> done);
 
 private:
     friend struct McpServiceDeleter;
     ~McpService();
 
     void register_tools();
+    // Calls `def` and follows the job it starts to its end; nullopt when the service stops first. A thread
+    // the service owns calls it.
+    std::optional<ToolResult> call_to_end(const ToolDef& def, const nlohmann::json& args);
     void set_ready();
     void run_launch_script();
     GuardState guards_on_ui() const;
@@ -169,6 +177,8 @@ private:
     Journal                        m_journal;
     // Before the invoker, so it outlives the invoker's callbacks, which read it.
     std::unique_ptr<ModalTracker>  m_modals;
+    // Before the core, which reports its calls to it.
+    std::unique_ptr<McpRecorder>   m_recorder;
     std::unique_ptr<UiInvoker>     m_invoker;
     std::unique_ptr<McpCore>       m_core;
     std::unique_ptr<McpProtocol>   m_protocol;
@@ -197,6 +207,13 @@ private:
     };
     std::mutex             m_runs_mutex;
     std::vector<RunThread> m_run_threads;
+    // Threads following encode_when_closed()'s jobs, each with the flag it sets on leaving.
+    struct EncodeThread
+    {
+        std::thread                        thread;
+        std::shared_ptr<std::atomic<bool>> finished;
+    };
+    std::vector<EncodeThread> m_encode_threads; // under m_runs_mutex
     mutable std::mutex     m_run_state_mutex;
     std::set<std::string>  m_discard_jobs;
 };

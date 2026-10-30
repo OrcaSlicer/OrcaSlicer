@@ -95,7 +95,8 @@ nlohmann::json Journal::to_script(const std::string& name, nlohmann::json* left_
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     nlohmann::json                     steps = nlohmann::json::array();
-    std::map<std::string, std::string> job_names; // live job id -> script name
+    std::map<std::string, std::string> job_names;  // live job id -> script name
+    std::map<std::string, std::string> recordings; // a recording's path_compare_key() -> its path in the script
     if (left_out_running != nullptr)
         *left_out_running = nlohmann::json::array();
     // Whether the next call in the script is `e` again, choosing an item of the menu it listed.
@@ -127,10 +128,22 @@ nlohmann::json Journal::to_script(const std::string& name, nlohmann::json* left_
                 continue; // waits on a job the journal did not see start
             step["args"]["job"] = "${jobs." + it->second + "}";
         }
-        if (e.tool == "screenshot" && e.args.contains("save_path") && e.args["save_path"].is_string()) {
-            const std::string file = path_to_utf8(path_from_utf8(e.args["save_path"].get<std::string>()).filename());
-            step["args"]["save_path"] = "${out_dir}/" + file;
+        auto in_out_dir = [&](const char* key) {
+            const std::string file = path_to_utf8(path_from_utf8(e.args[key].get<std::string>()).filename());
+            return "${out_dir}/" + file;
+        };
+        auto has_path = [&](const char* key) { return e.args.contains(key) && e.args[key].is_string(); };
+        if ((e.tool == "screenshot" || e.tool == "encode_recording") && has_path("save_path"))
+            step["args"]["save_path"] = in_out_dir("save_path");
+        if (e.tool == "start_recording" && has_path("save_path")) {
+            step["args"]["save_path"]                                = in_out_dir("save_path");
+            recordings[path_compare_key(path_from_utf8(e.args["save_path"].get<std::string>()))] = step["args"]["save_path"];
         }
+        // An encode of a recording this script makes reads it where the replay writes it; any other
+        // source stays where it is.
+        if (e.tool == "encode_recording" && has_path("path"))
+            if (auto it = recordings.find(path_compare_key(path_from_utf8(e.args["path"].get<std::string>()))); it != recordings.end())
+                step["args"]["path"] = it->second;
         if (e.unawaited()) {
             const std::string job_name = "job" + std::to_string(job_names.size() + 1);
             job_names[e.job]           = job_name;

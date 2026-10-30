@@ -6,8 +6,7 @@
 #include "I18N.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
-#include "NotificationManager.hpp"
-#include "Plater.hpp"
+#include "NativeCommands.hpp"
 #include "Widgets/WebViewHostDialog.hpp"
 
 #include "slic3r/Utils/MacDarkMode.hpp"
@@ -404,20 +403,8 @@ void SpeedDialWebDialog::run_action(const std::string& id, const std::string& ti
     }
 
     wxGetApp().CallAfter([id, param] {
-        if (wxGetApp().is_closing())
-            return;
-        AppActionRunResult result = wxGetApp().action_registry().run(id, param);
-        if (result.level == AppActionRunResult::Level::Busy)
-            return;
-        if (!result.message.IsEmpty() && wxGetApp().plater())
-            wxGetApp()
-                .plater()
-                ->get_notification_manager()
-                ->push_notification(NotificationType::CustomNotification,
-                                    result.level == AppActionRunResult::Level::Error ?
-                                        NotificationManager::NotificationLevel::ErrorNotificationLevel :
-                                        NotificationManager::NotificationLevel::RegularNotificationLevel,
-                                    into_u8(result.message));
+        if (!wxGetApp().is_closing())
+            NativeCommands::notify_result(wxGetApp().action_registry().run(id, param));
     });
 }
 

@@ -118,6 +118,14 @@ custom edit in one call, the refusals (a layer above the top, a code where anoth
 a missing filament, a missing plate, a plate changed since its slice that the Preview does not show), a
 filament change, a 3MF round trip, and `clear`.
 
+`tests/recording.json` records while it drives the GUI: clicks on the 3D view, a setting typed, the
+Preferences dialog opened and closed, a slice. It stops the recording (frames, length, size) and encodes
+it to H.265, then has a nested script start a recording of the 3D view that it never stops, checks the
+script's end closed it, and encodes that to H.264. Short recordings check what `overlays`, `captions` and
+`pointer` turn off. The encodes need an ffmpeg with libx265 and libx264
+(`ORCA_FFMPEG`, or `ffmpeg` on `PATH`) and are optional without one. Look at the videos, or at frames
+`ffmpeg -i session.mkv -vf fps=1 frame%02d.png` extracts, for the caption, the pointer and the dialog.
+
 `tests/multicolor.json` assigns filaments to objects and parts through `set_settings`' object and
 volume scopes, with undo and redo, and reads them back with `get_settings`' effective values. It then
 sets the project's slot colours, flushing multiplier, one flushing volume and plate type through the

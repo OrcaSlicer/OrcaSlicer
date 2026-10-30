@@ -4,6 +4,7 @@
 
 #include "McpHttpServer.hpp"
 #include "McpProtocol.hpp"
+#include "McpRecorder.hpp"
 #include "McpServicePtr.hpp"
 #include "McpToken.hpp"
 #include "McpTools.hpp"
@@ -145,6 +146,8 @@ const char* kInstructions =
     "or cancel.\n"
     "- Paths are absolute. Outputs never overwrite an existing file unless overwrite is true.\n"
     "- screenshot returns a downscaled image plus the full-size PNG path; target \"canvas\" is the 3D view.\n"
+    "- start_recording / stop_recording record a video (MJPEG .mkv) with the tool calls, clicks and keys as captions; "
+    "encode_recording turns it into an H.265 MP4 with the system ffmpeg.\n"
     "- export_script saves this session's calls as a replayable script; run_script replays one.";
 
 } // namespace
@@ -170,14 +173,6 @@ bool McpService::serving() const { return m_http != nullptr && m_http->running()
 
 uint16_t McpService::port() const { return m_http ? m_http->port() : 0; }
 
-fs::path McpService::output_dir() const
-{
-    const fs::path dir = mcp_dir(path_from_utf8(data_dir())) / "out";
-    boost::system::error_code ec;
-    fs::create_directories(dir, ec);
-    return dir;
-}
-
 GuardState McpService::guards_on_ui() const
 {
     GuardState g;
@@ -201,10 +196,12 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
         m_dispatcher = std::make_unique<WxDispatcher>();
         m_modals     = std::make_unique<ModalTracker>();
         m_inspector  = std::make_unique<UiInspector>(*this);
+        m_recorder   = std::make_unique<McpRecorder>(*this);
         m_invoker    = std::make_unique<UiInvoker>(*m_dispatcher, [this] { return guards_on_ui(); }, [this] { return m_generation.load(); },
                                                 [this] { return m_modals->snapshot(); },
                                                 [this](const std::string& tool, bool running) { m_inspector->ui_activity(tool, running); });
-        m_core       = std::make_unique<McpCore>(m_registry, *m_invoker, m_jobs, &m_journal, CoreTiming{}, ui_job_worker_hooks());
+        m_core       = std::make_unique<McpCore>(m_registry, *m_invoker, m_jobs, &m_journal, CoreTiming{}, ui_job_worker_hooks(),
+                                                 m_recorder.get());
         register_tools();
         m_inspector->capture_menus(true);
         if (ImGuiWrapper* imgui = wxGetApp().imgui())
@@ -317,6 +314,8 @@ void McpService::stop()
     if (m_core == nullptr || m_stopping.exchange(true))
         return;
     BOOST_LOG_TRIVIAL(info) << "MCP server stopping";
+    // Its file is finished on the recorder's own threads; this waits a little for them, not for the UI.
+    m_recorder->shutdown(std::chrono::seconds(5));
     if (m_ready_timer)
         m_ready_timer->Stop();
     // Wake everything that waits, so running calls return.
@@ -332,6 +331,10 @@ void McpService::stop()
             if (r.thread.joinable())
                 r.thread.join();
         m_run_threads.clear();
+        for (EncodeThread& e : m_encode_threads)
+            if (e.thread.joinable())
+                e.thread.join();
+        m_encode_threads.clear();
     }
     {
         // Script rules too: no script survives the stop.
@@ -391,8 +394,12 @@ void McpService::begin_script_scope(const std::string& job)
     m_script_rule_layers.emplace(job, std::vector<int>{});
 }
 
-void McpService::end_script_scope(const std::string& job)
+void McpService::end_script_scope(const std::string& job, bool wait_recording)
 {
+    // Noted before the scope goes: from then on a call of this script finds no live scope, and must not be
+    // taken for a client's.
+    if (m_recorder)
+        m_recorder->owner_ended(job);
     {
         std::lock_guard<std::mutex> lock(m_rules_mutex);
         auto it = m_script_rule_layers.find(job);
@@ -403,6 +410,9 @@ void McpService::end_script_scope(const std::string& job)
                 m_modals->pop_rules(layer);
         m_script_rule_layers.erase(it);
     }
+    // A recording the script started ends with it, its file closed before the script's call returns.
+    if (m_recorder)
+        m_recorder->end_owned_by(job, "script_ended", wait_recording);
     // Found again on the UI thread: the service may be gone by the time the closure runs.
     if (m_dispatcher && !m_stopping)
         m_dispatcher->post([job] {
@@ -429,6 +439,9 @@ bool McpService::endpoint_open() const
 void McpService::stop_serving()
 {
     m_port_held_by_other = false;
+    // A client's recording ends with its endpoint; a script's carries on until its script ends.
+    if (m_recorder)
+        m_recorder->end_owned_by({}, "endpoint_closed", false);
     // So does a press a client's ui_mouse left held.
     if (m_inspector) {
         const std::string client;
@@ -457,6 +470,8 @@ void McpService::suspend()
 {
     // The main window is about to be rebuilt; runs stop while its plater is still the current one.
     stop_script_runs();
+    if (m_recorder)
+        m_recorder->suspend();
     m_suspended = true;
     ++m_generation;
 }
@@ -532,6 +547,7 @@ void McpService::register_tools()
     register_view_tools(*this);
     register_ui_tools(*this);
     register_script_tools(*this);
+    register_record_tools(*this);
 #ifdef SLIC3R_CAD
     register_cad_tools(*this);
 #endif
@@ -581,6 +597,65 @@ void McpService::post_ui(std::function<void()> fn)
 }
 
 void McpService::request_stop(const std::string& job) { m_jobs.request_stop(job); }
+
+std::optional<ToolResult> McpService::call_to_end(const ToolDef& def, const json& args)
+{
+    ToolResult        r      = m_core->call(def, args);
+    const std::string status = r.is_error ? std::string() : r.data.value("status", "");
+    if ((status != "running" && status != "blocked_by_dialog") || !r.data.contains("job"))
+        return r;
+    const std::string         job = r.data["job"].get<std::string>();
+    std::optional<ToolResult> done;
+    while (!done && !m_stopping) {
+        try {
+            done = m_jobs.wait(job, std::chrono::seconds(1));
+        } catch (const ToolFailure& f) {
+            done = ToolResult::error(f.what()); // the job's result was lost
+        }
+    }
+    return done;
+}
+
+bool McpService::encode_when_closed(json args, std::function<void(const ToolResult&)> done)
+{
+    const ToolDef* encode = started() ? m_registry.find("encode_recording") : nullptr;
+    if (encode == nullptr || m_stopping)
+        return false;
+    // A person's encode, outside the session journal like the script runner's runs.
+    ToolDef def = *encode;
+    def.journal = false;
+    std::lock_guard<std::mutex> lock(m_runs_mutex);
+    // Threads that have set their flag are done or about to be; joining them keeps the list short.
+    for (auto it = m_encode_threads.begin(); it != m_encode_threads.end();) {
+        if (!*it->finished) {
+            ++it;
+            continue;
+        }
+        if (it->thread.joinable())
+            it->thread.join();
+        it = m_encode_threads.erase(it);
+    }
+    auto finished = std::make_shared<std::atomic<bool>>(false);
+    m_encode_threads.push_back({std::thread([this, def, args = std::move(args), done = std::move(done), finished] {
+                                    struct Finished
+                                    {
+                                        std::atomic<bool>& flag;
+                                        ~Finished() { flag = true; }
+                                    } mark{*finished};
+                                    // The sink's threads close the file soon after the recording ends.
+                                    const fs::path source = path_from_utf8(args.value("path", std::string()));
+                                    while (!m_stopping && !m_recorder->wait_closed(source, std::chrono::seconds(1))) {
+                                    }
+                                    if (m_stopping)
+                                        return;
+                                    std::optional<ToolResult> r = call_to_end(def, args);
+                                    if (!r || m_stopping)
+                                        return;
+                                    post_ui([done, result = std::move(*r)] { done(result); });
+                                }),
+                                finished});
+    return true;
+}
 
 bool McpService::discard_authorized(const std::set<std::string>& lineage) const
 {
@@ -660,31 +735,14 @@ std::shared_ptr<ScriptRun> McpService::start_script_run(Script script, ScriptCon
 
     std::lock_guard<std::mutex> lock(m_runs_mutex);
     m_run_threads.push_back({std::thread([this, run, def, ctx_held] {
-                                 ToolResult        r      = m_core->call(def, json::object());
-                                 const std::string status = r.is_error ? std::string() : r.data.value("status", "");
-                                 if ((status == "running" || status == "blocked_by_dialog") && r.data.contains("job")) {
-                                     const std::string         job = r.data["job"].get<std::string>();
-                                     std::optional<ToolResult> done;
-                                     while (!done && !m_stopping) {
-                                         try {
-                                             done = m_jobs.wait(job, std::chrono::seconds(1));
-                                         } catch (const ToolFailure& f) {
-                                             done = ToolResult::error(f.what()); // the job's result was lost
-                                         }
-                                     }
-                                     if (!done) {
-                                         run->mark_ended();
-                                         return;
-                                     }
-                                     r = std::move(*done);
-                                 }
+                                 const std::optional<ToolResult> r = call_to_end(def, json::object());
                                  run->mark_ended();
-                                 if (m_stopping)
+                                 if (!r || m_stopping)
                                      return;
                                  // The handler has returned, so the jobs it saved are settled. A run refused
                                  // before its handler started (another operation holds the project) saved none
                                  // and replaces none.
-                                 run->post_finished(r.is_error ? json{{"error", r.message}} : r.data,
+                                 run->post_finished(r->is_error ? json{{"error", r->message}} : r->data,
                                                     run->job().empty() ? json() : ctx_held->jobs);
                              }),
                              run});

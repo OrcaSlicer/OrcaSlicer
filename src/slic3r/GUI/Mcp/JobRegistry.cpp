@@ -152,6 +152,13 @@ std::vector<std::string> JobRegistry::running_operations() const
     return out;
 }
 
+std::string JobRegistry::running_tool(const std::string& id) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto                  it = m_jobs.find(id);
+    return it == m_jobs.end() || it->second.finished ? std::string() : it->second.tool;
+}
+
 nlohmann::json JobRegistry::list() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);

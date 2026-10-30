@@ -2,6 +2,8 @@
 
 #include "ScreenCapture.hpp"
 
+#include <wx/gdicmn.h>
+#include <wx/image.h>
 #include <wx/toplevel.h>
 
 #include <string>
@@ -18,7 +20,8 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approximate, std::string& note, std::string& err)
+bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approximate, std::string& note, std::vector<wxRect>& /*covered*/,
+                           std::string& err)
 {
     HWND hwnd = static_cast<HWND>(window.GetHWND());
     RECT rc{};

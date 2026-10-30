@@ -2864,6 +2864,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     // already issued before this point cannot be redirected - only this swap is protected.
     if (m_canvas->IsShownOnScreen() && _set_current()) {
         m_canvas->SwapBuffers();
+        ++m_presented_frames;
         m_frame_profiler.mark("swap");
         if (!overlay_tick)
             m_render_stats.increment_fps_counter();

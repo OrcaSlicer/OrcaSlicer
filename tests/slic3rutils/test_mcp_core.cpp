@@ -16,7 +16,9 @@
 #include <deque>
 #include <functional>
 #include <memory>
+#include <new>
 #include <set>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 #include <future>
@@ -626,6 +628,100 @@ TEST_CASE("every mutate call is refused while a slice job runs, but cancel and r
     CHECK_FALSE(h.call("cancel").is_error);
     CHECK(h.jobs.wait(running.data["job"], 3000ms).has_value());
     CHECK_FALSE(h.call("new_project").is_error);
+}
+
+// What a recording's CallObserver hears, in order.
+struct HeardCalls final : CallObserver
+{
+    std::mutex               mutex;
+    std::vector<std::string> events;
+    void call_started(uint64_t, const ToolDef& def, const json&, const std::string& parent) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        events.push_back("start " + def.name + (parent.empty() ? "" : " in a job"));
+    }
+    void call_args(uint64_t, const json& args) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        events.push_back("args " + args.dump());
+    }
+    void call_ended(uint64_t, const ToolResult& result) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        events.push_back(std::string("end ") + (result.is_error ? "error" : "ok"));
+    }
+    std::vector<std::string> take()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return std::exchange(events, {});
+    }
+};
+
+TEST_CASE("the call observer hears inline, job and child calls, and not calls refused before they run", "[Mcp]")
+{
+    Harness    h;
+    HeardCalls heard;
+    ToolDef    look = tool("look", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok(); });
+    look.inline_call = true;
+    h.registry.add(look);
+    h.registry.add(tool("click", GuardClass::Recover, [](const json&, ToolContext& ctx) {
+        // A ref resolved to its locator, as the GUI tools record it.
+        ctx.set_journal_args({{"target", {{"label", "Slice"}}}});
+        return ToolResult::error("gone");
+    }));
+    h.registry.add(tool("script", GuardClass::Mutate, [](const json&, ToolContext& ctx) { return ctx.call_child("click", json::object()); }));
+    std::atomic<bool> release{false};
+    ToolDef           slice = tool("slice", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.begin_operation();
+        while (!release)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok();
+    });
+    slice.budget_ms = 100;
+    h.registry.add(slice);
+    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{}, &heard);
+
+    CHECK_FALSE(h.call("look").is_error);
+    CHECK(heard.take() == std::vector<std::string>{"start look", "end ok"});
+    CHECK(h.call("click").is_error);
+    CHECK(heard.take() == std::vector<std::string>{"start click", R"(args {"target":{"label":"Slice"}})", "end error"});
+    h.call("script");
+    CHECK(heard.take() ==
+          std::vector<std::string>{"start script", "start click in a job", R"(args {"target":{"label":"Slice"}})", "end error", "end error"});
+
+    const ToolResult running = h.call("slice");
+    REQUIRE(running.data["status"] == "running");
+    CHECK(heard.take() == std::vector<std::string>{"start slice"});
+    CHECK(h.call("script").is_error); // refused by admission: it never ran
+    CHECK(heard.take().empty());
+    release = true;
+    REQUIRE(h.jobs.wait(running.data["job"], 3000ms).has_value());
+    CHECK(heard.take() == std::vector<std::string>{"end ok"});
+}
+
+TEST_CASE("an observer that throws fails no call", "[Mcp]")
+{
+    struct Throwing final : CallObserver
+    {
+        void call_started(uint64_t, const ToolDef&, const json&, const std::string&) override { throw std::runtime_error("started"); }
+        void call_args(uint64_t, const json&) override { throw std::bad_alloc(); }
+        void call_ended(uint64_t, const ToolResult&) override { throw std::runtime_error("ended"); }
+    } throwing;
+    Harness h;
+    ToolDef look = tool("look", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok({{"seen", true}}); });
+    look.inline_call = true;
+    h.registry.add(look);
+    h.registry.add(tool("act", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
+        ctx.set_journal_args({{"x", 1}});
+        return ToolResult::ok({{"done", true}});
+    }));
+    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{}, &throwing);
+    const ToolResult looked = h.call("look");
+    CHECK_FALSE(looked.is_error);
+    CHECK(looked.data["seen"] == true);
+    const ToolResult acted = h.call("act");
+    CHECK_FALSE(acted.is_error);
+    CHECK(acted.data["done"] == true);
 }
 
 TEST_CASE("without a blocking slot a job call returns its envelope at once and an inline call returns pending", "[Mcp]")

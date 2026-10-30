@@ -6,8 +6,10 @@
 
 #include <nlohmann/json.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <functional>
 #include <mutex>
 #include <set>
@@ -35,6 +37,22 @@ struct WorkerHooks
     std::function<void()> cancel; // asks the running job to stop, without waiting for it
 };
 
+// Told about each call the core runs, client and child calls alike: what a recording captions. A call
+// refused before its handler runs (admission, blocking slots) is not reported. Methods are called on
+// the call's own thread, must be quick, and must not call back into the core; what they throw is
+// swallowed, so a caption never fails a call.
+class CallObserver
+{
+public:
+    virtual ~CallObserver() = default;
+    // Right before the handler runs: on the request thread for an inline call, the job's thread for a job.
+    virtual void call_started(uint64_t call, const ToolDef& def, const nlohmann::json& args, const std::string& parent) = 0;
+    // The handler replaced the arguments the journal records (refs became locators).
+    virtual void call_args(uint64_t call, const nlohmann::json& args) = 0;
+    // The call's final result: a job's once it finished, its UI job worker included.
+    virtual void call_ended(uint64_t call, const ToolResult& result) = 0;
+};
+
 // Executes tool calls for the protocol layer and for scripts: observation tools inline on the
 // calling thread, everything else as a job on a thread of its own, with the reply budget, the
 // blocked-by-dialog probe, blocking slots, operation admission and the session journal. Independent
@@ -47,8 +65,9 @@ struct WorkerHooks
 class McpCore : public ToolCaller
 {
 public:
+    // `observer`, when given, must outlive the core.
     McpCore(const ToolRegistry& registry, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing = {},
-            WorkerHooks worker = {});
+            WorkerHooks worker = {}, CallObserver* observer = nullptr);
     // Refuses new calls and waits for every call and job thread to leave, however long that takes:
     // they use the core. The owner drains first, so this returns at once.
     ~McpCore() override;
@@ -96,6 +115,8 @@ private:
     Journal*            m_journal;
     CoreTiming          m_timing;
     WorkerHooks         m_worker;
+    CallObserver*       m_observer;
+    std::atomic<uint64_t> m_next_call{1};
 
     // The job whose call started the worker's current job, and whether a cancel was asked for it.
     mutable std::mutex m_worker_mutex;

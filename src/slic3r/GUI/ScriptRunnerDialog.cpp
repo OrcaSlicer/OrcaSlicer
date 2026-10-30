@@ -387,8 +387,8 @@ fs::path ScriptRunnerDialog::out_dir() const
         if (!m_file.empty()) {
             m_out_dir = m_file.parent_path() / m_file.stem();
             m_out_dir += ".out";
-        } else if (Mcp::McpService* s = service())
-            m_out_dir = s->output_dir() / ("script-" + timestamp());
+        } else
+            m_out_dir = Mcp::output_dir() / ("script-" + timestamp());
     }
     return m_out_dir;
 }

@@ -283,6 +283,19 @@ json describe_what(const std::string& tool, const json& args)
 
 } // namespace
 
+json describe_call(const std::string& tool, const json& args)
+{
+    if (tool == "run_action") {
+        Builder b;
+        describe_action(b, args);
+        return b.d.what;
+    }
+    if (tool == "run_script")
+        return args.contains("path") && args["path"].is_string() ? json{{"kind", "files"}, {"names", {file_name(args["path"].get<std::string>())}}} :
+                                                                    json();
+    return describe_what(tool, args);
+}
+
 const char* flag_id(StepFlag flag)
 {
     switch (flag) {
@@ -318,8 +331,14 @@ StepDescription describe_step(const ScriptStep& step, const Script& script, cons
     };
     if (one_of(tool, {"export", "save_project"}))
         b.flag(StepFlag::WritesFile);
-    if (tool == "screenshot")
+    if (one_of(tool, {"screenshot", "start_recording"}))
         writes_outside("save_path");
+    if (tool == "encode_recording") {
+        // Without save_path the video goes beside its source; delete_source removes the source.
+        writes_outside(args.contains("save_path") ? "save_path" : "path");
+        if (args.contains("delete_source") && args["delete_source"].is_boolean() && args["delete_source"].get<bool>())
+            writes_outside("path");
+    }
     if (tool == "export_script")
         writes_outside("path");
     if (tool == "gizmo_file" && args.value("action", std::string()) == "svg_save_as")

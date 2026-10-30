@@ -156,10 +156,13 @@ src/slic3r/GUI/Mcp/McpToolsCad.cpp
 src/slic3r/GUI/Mcp/McpToolsConfig.cpp
 src/slic3r/GUI/Mcp/McpToolsLayers.cpp
 src/slic3r/GUI/Mcp/McpToolsProject.cpp
+src/slic3r/GUI/Mcp/McpToolsRecord.cpp
 src/slic3r/GUI/Mcp/McpToolsScene.cpp
 src/slic3r/GUI/Mcp/McpToolsScript.cpp
 src/slic3r/GUI/Mcp/McpToolsUi.cpp
 src/slic3r/GUI/Mcp/McpToolsView.cpp
+src/slic3r/GUI/Mcp/RecordingSettings.cpp
+src/slic3r/GUI/RecordingDialog.cpp
 src/slic3r/GUI/ScriptRunnerDialog.cpp
 src/slic3r/GUI/MediaPlayCtrl.cpp
 src/slic3r/GUI/MediaFilePanel.cpp

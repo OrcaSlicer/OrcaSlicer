@@ -54,6 +54,7 @@ void register_scene_tools(McpService& service);
 void register_view_tools(McpService& service);
 void register_ui_tools(McpService& service);
 void register_script_tools(McpService& service);
+void register_record_tools(McpService& service);
 void register_cad_tools(McpService& service);
 
 // How run_script_job() runs a script beyond what the script says.

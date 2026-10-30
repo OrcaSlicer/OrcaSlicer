@@ -169,7 +169,7 @@ made already.
 
 | Class | Tools | Runs behind a modal or inside another call |
 |---|---|---|
-| `Inspect` | get_state, wait, get_log, list tools, get_settings, explain_settings, screenshot, ui_snapshot | yes |
+| `Inspect` | get_state, wait, get_log, list tools, get_settings, explain_settings, screenshot, ui_snapshot, start_recording, stop_recording, encode_recording | yes |
 | `Recover` | dialog_respond, dialog_auto_answer, GUI input aimed at the topmost modal | yes |
 | `Mutate` | everything else | no |
 
@@ -347,11 +347,14 @@ the UI thread.
 | | `set_layer_ranges` | replace an object's height range modifiers: Z ranges with their own layer height, filament and process settings |
 | | `set_layer_height_profile` | the Variable layer height panel's Adaptive (with its quality), Smooth (radius, keep min) or Reset on an object |
 | Slice | `slice` | current, one or all plates, then the Preview tab as after the Slice button; outcome for each plate, and for an `ok` one its time, filament totals with the flush, cost, layers, max Z, filament changes and grams per slot by use |
-| | `cancel` | stop the running slice or G-code export, a pending automatic reslice, or a background job an MCP call started (optionally only a given job); allowed during an operation |
+| | `cancel` | stop the running slice or G-code export, a pending automatic reslice, or a background job an MCP call started (optionally only a given job), or with `job` a running `encode_recording`; allowed during an operation |
 | | `set_layer_gcode` | add or remove a plate's pauses, custom G-code, custom templates and filament changes on its sliced layers, as the Preview layer slider's menu does |
 | View | `set_view` | tab (Design included), 3D view (Prepare, preview, assemble), camera (the Design view's on the Design tab), preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate, window size |
 | | `screenshot` | window, the 3D view shown (the Design view on the Design tab), topmost dialog or one widget: a downscaled image and a full-size PNG |
 | | `get_preview` | a sliced plate's summary, time and grams per feature type, per-layer Z, height, time and grams (paged), grams per object instance, and the Preview's legend state and colour ranges |
+| Recording | `start_recording` | record the main window with its modal dialogs, or the 3D view shown, into an MJPEG `.mkv`, with the current tool call as a caption and the pointer highlighted |
+| | `stop_recording` | capture the last state, end the recording and report its file once written: length, frames, drops, the mean UI time of a capture, size and why it ended |
+| | `encode_recording` | encode a recording into an H.265 or H.264 MP4 with the system ffmpeg; cancellable |
 | GUI | `ui_snapshot` | widgets, rows of lists, trees and tables, popups, menus, GL toolbar items, gizmos, the Prepare view's plates and plate icons, and ImGui items, with refs |
 | | `ui_click` | activate a ref or locator, click a row's cell or a plate icon, or click a point of a 3D canvas or custom-drawn widget; list the menu it opens, or run one of its items |
 | | `ui_input` | set a control's text, value, selection or checked state, or a row's checkbox |
@@ -1662,9 +1665,156 @@ says it is left out. Minimized and hidden windows fail. X11 reads only the on-sc
 for the rest), which leaves the remainder black. X11 keeps no backing store, so a part
 covered by another window reads back black. OrcaSlicer's own popups and tooltips stacked above the
 window are read and drawn in, as they appear on screen; another application's window leaves the
-hole, and the result is approximate. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/screenshot-<timestamp>.png`. The image
+hole, and the result is approximate. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/OrcaSlicer-screenshot-<timestamp>.png`. The image
 block is scaled to `max_dim` on the long edge (default 1280, clamped to 256–2000).
 `include_image: false` returns only the path.
+
+## Recording
+
+`start_recording` records what OrcaSlicer shows into a video while an agent, a script or a person
+works, and `encode_recording` turns it into an MP4 to attach to an issue. Recording has to stay light,
+since it runs while the app works: frames are kept as JPEG in a Matroska file (MJPEG), and the H.265
+encode, which costs far more, is a later call. There is no audio. `McpRecorder` holds at most one
+recording; `get_state.recording` shows it while it runs.
+
+**Capture.** The UI thread captures a frame per tick of a one-shot `wxTimer`, which fires inside
+modal loops too. `start_recording` takes the first frame in its own UI closure: it fixes the video's
+size (fit to `max_dim`, rounded down to even numbers for 4:2:0), and a failure fails the call before
+any file exists. The `window` target is the main window as `screenshot` captures it, with the modal
+stack (`ModalTracker::stack()`, outermost first, so in stacking order) composited at each dialog's
+client offset, resampled to the main window's content scale off MSW. Modeless windows, popups and
+native dialogs are left out: `wxTopLevelWindows` is creation order, not stacking order. On X11 the
+capture reads the screen, so it already shows our windows over the main window as they are, the
+script runner included when it covers it, and nothing more is composited (a reparenting window manager's
+frame is searched for our window inside it); the capture records the
+rectangles it drew another of our windows in (`Capture::covered`) and composites the 3D views
+everywhere else, so they are not pasted over those windows (X11 screenshots get this too). On
+Wayland, where the app can't know where its windows are, dialogs are not composited. The result's
+`note` says which applies. The `canvas` target is `shown_canvas()`. A recording captures with
+`CaptureOptions::hide_covering` off, so X11 never hides and re-shows the script runner at each frame.
+
+The costly part is a 3D view: `render_and_capture()` draws a frame and reads it back. A recording
+keeps each canvas's last capture with `GLCanvas3D::presented_frames()`, which counts the frames the
+canvas presented, and its size and the UI generation; while all three are unchanged, the frame on
+screen is the kept one, so the canvas is drawn only when it changed. Each tick measures its capture
+and the next comes after `max(1000/fps, 3 x capture time)`, so recording takes at most about a third
+of the UI thread wherever window capture is slow (macOS `cacheDisplayInRect`, X11 `XGetImage`). A
+tick is skipped while the main window is minimized or being rebuilt, or no canvas is shown for
+`canvas`. A frame whose pixels equal the last queued one (`memcmp`), under the same overlay, is not
+queued, unless an overlay is animating (a ripple, a caption or the pointer fading) or a second has
+passed (`repeats_last_frame()`), so an idle window costs nothing.
+
+**Writing.** Only the capture runs on the UI thread. `RecordingSink` (wx-free) takes each frame as RGB
+bytes plus its overlay, since wxImage reference counts are not atomic. One budget of 512 MB covers a
+frame from `push()` until it is written: frames being encoded and encoded ones waiting their turn
+count, and a frame that doesn't fit is dropped (`dropped`), never waited for. The budget is an atomic
+counter, the queue's mutex is held only to push or pop, and only the sink's threads take the writer's
+mutex, so a stalled disk never holds up the UI thread. Two detached encoder threads run
+`render_frame()`: bilinear scaling into the video through one `FrameTransform` (scale and letterbox
+offset) that the pixels and every overlay position share, the overlays, and JPEG through libjpeg
+directly (`encode_jpeg()`, whose libjpeg error handler longjmps back into a frame holding only C
+structs). They use nothing of wx, so a thread still running at exit touches nothing wx has torn
+down. Frames are written in capture order through a reorder map; a failed encode is a skip, and a
+dropped frame has no sequence number, so the order never waits on a hole. `MkvWriter` writes the
+Matroska file: one `V_MJPEG` track, SimpleBlocks with millisecond timestamps in Clusters of 5 s, and
+the Segment, Cluster sizes and Duration written as unknown and patched on close, so a file never
+closed (a crash) still reads up to its last frame. Matroska rather than AVI because frames keep their
+real, uneven times; one file rather than a folder of JPEGs because it plays as it is.
+
+**Ending.** `stop_recording` first captures one more frame in a UI closure, when the UI thread can run
+it, so the last call's effect is in the video even if the timer has not ticked since. A recording ends on
+`stop_recording`, after `max_seconds`, at 4 GiB, on a write error, when
+the script that started it ends (`run_script_job()`, which names a file still being written after 30 s
+as the result's `unfinished_recording`), when the endpoint closes for a client's
+(`stop_serving()`; a script's carries on), and at exit. Ending from any thread sets a flag the next tick
+reads, tells the sink to finish, and posts the timer and input filter's cleanup to the UI thread; the
+sink drains its queue, writes the last frame again at the end time so the video lasts until then,
+closes the file and calls back, on its own thread. So ending never needs a UI round trip: a script's
+end waits for the file without deadlocking against `McpService::stop()`, which joins script threads on
+the UI thread, and a step after the script sees a closed file. At exit `stop()` waits 5 s for the
+file, then drops what is still queued and leaves the sink to its threads, which own its state. A
+recording counts as active until its file is closed, for the one-at-a-time rule and for encodes.
+
+**From the app.** The Speed Dial commands `take_screenshot`, `start_recording` and `stop_recording`, which
+the Help menu also has, give a person screenshots and recordings without an agent: a PNG of the main window,
+and a recording of it for up to an hour with the pointer highlighted and any tool call captioned (a Run
+Script run's steps, say). Both go in the person's Downloads folder unless they chose another. Start
+Recording opens `RecordingDialog`, which splits its settings by the file they make. Record holds the JPEG
+quality of the `.mkv`. Encode to MP4 holds whether ffmpeg encodes it once it ends, with a built-in preset or
+codec, CRF, speed and profile; it is off and disabled when no ffmpeg is found, and says how to get one. A
+rail joins the two stages and shows whether the second runs. The dialog remembers what it starts with in
+AppConfig's `recording` section (`RecordingSettings`). The command's parameter overrides those settings for
+one recording, and with `silent` starts at once without the dialog and remembers nothing; a silent start
+that would encode without an ffmpeg is refused rather than recording unencoded. The encode is
+`encode_recording` itself, run by `McpService::encode_when_closed()` as an unjournaled job once the
+recording's file is closed (`McpRecorder::wait_closed()`), so it can be cancelled like any encode.
+Start Recording starts the service without its endpoint when the server is off, as the Run Script dialog
+does. The person's recording has its own owner (`kPersonOwner`), so neither a script's end nor the
+endpoint closing ends it. Whatever ends it tells the person where it went, in a notification whose button
+opens the folder: Stop Recording itself, which stops any recording, an agent's too, ending it as
+`stopped_in_app`; or `RecordingOptions::ended`, which the recorder runs on the UI thread when an agent's
+`stop_recording`, the time or size limit, or a write error ends it, and which starts the encode. A second
+notification then names the MP4, or says why it could not be made.
+
+**Captions.** `McpCore` reports each call it runs to a `CallObserver`: when its handler starts, when
+`set_journal_args()` replaces its arguments (refs become locators), and its final result (a job's,
+worker job included). Calls refused before they run are not reported. The recorder captions calls
+that are not `Inspect` (mutate and recover tools, script steps included) as the tool's translated
+title and what it acts on (`caption_detail()`), with a mark: a ring while it runs, then a dot, red
+with the failure's first line, from which `caption_error()` takes out every value the caption hides.
+One caption shows at a time, the current call's (`CaptionBoard::current()`): of the calls that run or
+linger (4 s after they end, then fading), the one started last, so a script's steps replace one another
+and a script still running between them shows again once its step has faded. Clicks and keys are not
+captioned. With `pointer`, a `wxEventFilter` sees every mouse and click-type command event, a person's
+and the ones the GUI tools synthesize alike: mouse events move the pointer, presses add a ripple, and a
+button, checkbox, toggle or radio command with no press on it just before is a click made without the
+mouse (`ui_click`), shown at the control's centre. Events in windows the frame doesn't show, and in
+windows hidden from automation, are ignored. `overlays: false` turns off the caption and the pointer
+both, and installs no filter.
+
+The overlays annotate the app without competing with it. They are drawn at the app's own scale:
+`overlay_scale()` is video pixels per app pixel at 100 %, from `em_unit()`, the content scale and the
+capture-to-video transform's scale (the one the pixels are drawn with), at least 0.75 so a small video
+stays readable; it travels with each frame's overlay. The caption sits at the bottom centre, where
+subtitles are read, in the app's own label font (`Label::Body_14`) at the size the sidebar's labels
+have, on a translucent charcoal plate; a title followed by a detail is quieter than the detail. It is at
+most 40 % of the video's width (240 units in a small one), fitted by `fit_spans()`: the title first,
+then a failure's error, then the detail, each cut with an ellipsis or left out when too little room is
+left. The pointer is an arrow in an amber ring with nothing inside it, which reads on the light UI and
+the dark bed alike; presses ripple out in the button's colour. Text is rasterized on the UI thread,
+only when it changes, as a coverage mask (`wxMemoryDC`, white on black) the encoders colour and blend.
+
+What a caption adds must not leak secrets, although the screen itself shows whatever its fields show.
+A setting whose key names a password, API key, access code, token or secret (`is_sensitive_key()`;
+`printhost_apikey` is a plain text field) shows `•••` for its value; `ui_input` shows its value only
+for a non-sensitive setting located by its key, since a field located by its label, or a ref not yet
+resolved, may be a password box; and `ui_key` shows its chord, never its text.
+
+**Encoding.** The bundled FFmpeg only decodes, so `encode_recording` runs the system `ffmpeg`:
+`ORCA_FFMPEG`, else `PATH`, else on macOS the Homebrew and MacPorts folders, which an app started from
+Finder doesn't have on its `PATH`. Its path is never a tool argument, so a call can't run an arbitrary
+program. The command keeps the recording's timestamps to the millisecond: variable frame rate (`-fps_mode vfr`,
+`-vsync vfr` before ffmpeg 5.1) in the source's time base (`-enc_time_base demux` from 6.1, `-1` from 3.4;
+without it they round to whole frames), the spelling chosen by `ffmpeg -version`, and for a git build,
+whose version is unknown, each older spelling of the two in turn while ffmpeg refuses the last. It evens the size, converts the
+full-range JPEG frames to the limited range players expect, encodes 4:2:0 with libx265 (tagged `hvc1` for
+Apple's players) or libx264 at `crf`, at the encoder's `speed` preset and in `profile` (main10 encodes 10 bits
+per sample), and writes MP4 with `+faststart`. Constant quality (CRF) suits a screen recording: the bitrate
+falls to almost nothing while the window is still and rises for the motion, where a bitrate target would
+spend it evenly; the video's length in the reply is
+the MP4's movie header's (`mp4_duration()`); an ffmpeg without the encoder is refused, naming what is needed. It runs
+without a console window, polled every 100 ms and terminated when the call is cancelled
+(`ToolDef::cancellable`: `cancel {job}` stops it through `McpService::request_stop()`). On Windows it is
+ended with `TerminateProcess()` on its handle and waited for on that handle, since `TerminateProcess()`
+returns before the process is gone and boost's `terminate()` closes the handle right after it; a child not
+gone within 5 s keeps its files, which the error names, and its source and destination stay reserved for
+the session, since it may still be using them. `RecordingFiles`
+keeps the files in use, compared by `path_compare_key()` (Unicode case-folded on Windows and macOS): the
+recording until its file is closed, and each encode's source and destination. Encodes may share a source, but one with `delete_source` holds its source alone, and
+nothing writes a file anything else uses. Output goes to a temporary file of the call's own, renamed
+over the destination on success; the call's files (that, ffmpeg's log, and the listings it read) are
+removed whatever the outcome, and no other call's. `delete_source` deletes
+only a recording this session made.
 
 ## Preview data
 
@@ -1850,7 +2000,9 @@ drops failed calls and an input call that only listed the menu it opened when th
 it with a `popup_item` (otherwise it stays: its right click changed the selection), turns a call that
 returned a job into a step with `"await": false` and
 `"save_as": "jobN"`, points the `wait {for: "job"}` that followed at `${jobs.jobN}` (dropping waits
-on jobs it never saw start) and rewrites screenshot paths to `${out_dir}/<file name>`.
+on jobs it never saw start) and rewrites screenshot paths to `${out_dir}/<file name>`. It moves a
+recording's path there too (`start_recording` records the one it used), and an encode's `save_path`, and
+an encode's source when an earlier `start_recording` recorded it; another source stays where it is.
 
 A call that runs as a job is judged by its job's final result, not by its reply. `McpCore` tells the
 journal the job's id when it starts it (`Journal::job_started()`) and its result when the handler
@@ -1955,7 +2107,10 @@ windows, plate icon names and bed picking ids, an upload's percentage while its 
 the `send_gcode` command's catalog entry;
 `test_imgui_wrapper` the
 ImGui recorder (named items, kinds, values, text, clipping) on frames drawn without OpenGL;
-`test_mcp_tools` setting serialization; `test_mcp_config` the object and volume scopes' keys and
+`test_mcp_recording` the Matroska file (read back closed and unclosed), the sink's order, memory
+budget, non-blocking push, finish, abort and failed frames, the video transform, overlays and frame
+repeats, captions and what they hide, the ffmpeg command and listings, the files recordings and
+encodes reserve, and the journal's recording paths; `test_mcp_tools` setting serialization; `test_mcp_config` the object and volume scopes' keys and
 effective values, the names and places `save_preset` accepts, enum labels, `explain_settings`' search,
 per-variant entries and their writes, preset comparison, `changed`, which unsaved changes a call discarded, which presets
 `delete_preset` refuses or deletes with a custom printer, the project scope's slot colours,
@@ -1978,7 +2133,8 @@ reply's statistics on one and two colours, `tools/mcp/tests/preview.json` `get_p
 `get_state.preview` and `set_view`'s preview arguments, `tools/mcp/tests/context_menus.json` context
 and button menus listed and run without one ever showing, `tools/mcp/tests/rows.json` object list
 rows, checklist rows, the object settings table and the print button's popup,
-`tools/mcp/tests/plate_icons.json` plate icons (lock, settings, arrange, the plate menu, move to
+`tools/mcp/tests/recording.json` a recording with clicks, a dialog and a slice, stopped and encoded,
+and one a script ends, `tools/mcp/tests/plate_icons.json` plate icons (lock, settings, arrange, the plate menu, move to
 front), `tools/mcp/tests/webview_modal.json` scripts in the preset bundle dialog and the setup
 wizard, `tools/mcp/test_webview_modal.py` the dialogs scripts are refused in and a page that closes
 its dialog, `tools/mcp/test_set_view_preview.py` the

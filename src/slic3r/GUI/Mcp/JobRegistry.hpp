@@ -60,6 +60,8 @@ public:
 
     // [{id, tool, parent, state, age_ms}] for get_state.
     nlohmann::json list() const;
+    // The tool of `id` while it runs; empty for an unknown or finished job.
+    std::string running_tool(const std::string& id) const;
 
     // Wakes every waiter; later waits return nullopt immediately.
     void wake_all();

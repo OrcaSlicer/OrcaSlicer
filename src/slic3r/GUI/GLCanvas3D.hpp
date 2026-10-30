@@ -651,6 +651,8 @@ private:
     bool m_in_render;
     // Set only during render_and_capture(): the frame is read back into it before the swap.
     wxImage* m_frame_capture{ nullptr };
+    // Frames presented so far; see presented_frames().
+    uint64_t m_presented_frames{ 0 };
     // How many canvases are inside _render_frame() right now - see is_frame_in_progress().
     static int s_frames_in_progress;
     wxTimer m_timer;
@@ -1171,6 +1173,9 @@ public:
     // `err` when the canvas is hidden, not drawable, or already inside a frame (a dialog opened
     // from one of its panels). UI thread.
     bool render_and_capture(wxImage& out, std::string& err);
+    // How many frames this canvas has presented. While it stays the same, the frame on screen is the last
+    // one presented, so a recording can reuse its capture of it instead of drawing another.
+    uint64_t presented_frames() const { return m_presented_frames; }
     bool is_rendering_enabled()
     {
         return m_enable_render;

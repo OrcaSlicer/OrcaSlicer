@@ -45,6 +45,11 @@ struct StepDescription
 // answers_dialogs.
 StepDescription describe_step(const ScriptStep& step, const Script& script, const ScriptContext& ctx, int depth = 0);
 
+// What a call of `tool` with `args` acts on, as describe_step()'s `what` says it, Speed Dial ids
+// included, but from the arguments as they are and without reading files: a run_script call is named
+// by its script file. For recording captions.
+nlohmann::json describe_call(const std::string& tool, const nlohmann::json& args);
+
 // What a finished step returned, from the tools' real replies: {"kind":"objects","count":n}
 // | {"kind":"plates","ok":n,"other":m} | {"kind":"file","name":n}
 // | {"kind":"script","passed":b,"failed_step"?:n} | null.

@@ -2,6 +2,7 @@
 
 #include "McpTypes.hpp"
 #include "UiInspector.hpp"
+#include "slic3r/GUI/LinuxDisplayBackend.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
 #include <wx/gdicmn.h>
@@ -17,6 +18,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #if defined(__WXGTK__)
@@ -40,16 +42,31 @@ wxSize fit_within(const wxSize& size, int max_dim)
     return {std::max(1, int(std::lround(size.x * scale))), std::max(1, int(std::lround(size.y * scale)))};
 }
 
-void composite(wxImage& dst, const wxImage& src, const wxPoint& at)
+void composite(wxImage& dst, const wxImage& src, const wxPoint& at, const std::vector<wxRect>& excluded)
 {
     if (!dst.IsOk() || !src.IsOk())
         return;
     const int x0 = std::max(0, at.x), y0 = std::max(0, at.y);
     const int x1 = std::min(dst.GetWidth(), at.x + src.GetWidth()), y1 = std::min(dst.GetHeight(), at.y + src.GetHeight());
+    std::vector<std::pair<int, int>> skip; // the row's excluded spans, sorted
     for (int y = y0; y < y1; ++y) {
-        const unsigned char* s = src.GetData() + (size_t(y - at.y) * size_t(src.GetWidth()) + size_t(x0 - at.x)) * 3;
-        unsigned char*       d = dst.GetData() + (size_t(y) * size_t(dst.GetWidth()) + size_t(x0)) * 3;
-        std::copy(s, s + size_t(std::max(0, x1 - x0)) * 3, d);
+        const unsigned char* s = src.GetData() + size_t(y - at.y) * size_t(src.GetWidth()) * 3;
+        unsigned char*       d = dst.GetData() + size_t(y) * size_t(dst.GetWidth()) * 3;
+        skip.clear();
+        for (const wxRect& r : excluded)
+            if (y >= r.GetTop() && y <= r.GetBottom())
+                skip.emplace_back(r.GetLeft(), r.GetRight() + 1);
+        std::sort(skip.begin(), skip.end());
+        int x = x0;
+        for (const auto& [from, to] : skip) {
+            if (from > x)
+                std::copy(s + size_t(x - at.x) * 3, s + size_t(std::min(from, x1) - at.x) * 3, d + size_t(x) * 3);
+            x = std::max(x, to);
+            if (x >= x1)
+                break;
+        }
+        if (x < x1)
+            std::copy(s + size_t(x - at.x) * 3, s + size_t(x1 - at.x) * 3, d + size_t(x) * 3);
     }
 }
 
@@ -88,10 +105,37 @@ bool is_blank(const wxImage& image)
     return true;
 }
 
-std::optional<Capture> capture_canvas(GLCanvas3D& canvas, std::string& err)
+namespace {
+
+bool canvas_frame(GLCanvas3D& canvas, wxImage& out, std::string& err, const CaptureOptions& options)
+{
+    return options.canvas_frame ? options.canvas_frame(canvas, out, err) : canvas.render_and_capture(out, err);
+}
+
+} // namespace
+
+bool capture_reads_screen()
+{
+#if defined(__WXGTK__)
+    return get_linux_display_backend() == LinuxDisplayBackend::X11;
+#else
+    return false;
+#endif
+}
+
+bool window_positions_known()
+{
+#if defined(__WXGTK__)
+    return get_linux_display_backend() != LinuxDisplayBackend::Wayland;
+#else
+    return true;
+#endif
+}
+
+std::optional<Capture> capture_canvas(GLCanvas3D& canvas, std::string& err, const CaptureOptions& options)
 {
     Capture c;
-    if (!canvas.render_and_capture(c.image, err))
+    if (!canvas_frame(canvas, c.image, err, options))
         return std::nullopt;
     c.blank_canvas = is_blank(c.image);
     return c;
@@ -139,17 +183,19 @@ private:
 } // namespace
 #endif
 
-std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err)
+std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err, const CaptureOptions& options)
 {
 #if defined(__WXGTK__) && defined(wxHAVE_GDK_X11)
-    const HideCovering hide_covering(window);
+    std::optional<HideCovering> hide_covering;
+    if (options.hide_covering)
+        hide_covering.emplace(window);
 #endif
     if (window.IsIconized() || !window.IsShownOnScreen()) {
         err = "The window is minimized or hidden";
         return std::nullopt;
     }
     Capture c;
-    if (!capture_native_window(window, c.image, c.approximate, c.note, err))
+    if (!capture_native_window(window, c.image, c.approximate, c.note, c.covered, err))
         return std::nullopt;
 
     // Composite every visible 3D canvas inside this window from an exact frame capture.
@@ -163,13 +209,14 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
             continue;
         std::string canvas_err;
         wxImage     frame;
-        if (!canvas->render_and_capture(frame, canvas_err)) {
+        if (!canvas_frame(*canvas, frame, canvas_err, options)) {
             c.approximate = true;
             c.note += (c.note.empty() ? "" : "; ") + std::string("3D view not composited: ") + canvas_err;
             continue;
         }
         c.blank_canvas = c.blank_canvas || is_blank(frame);
-        composite(c.image, frame, client_offset_in(*glc, window));
+        // Not over our own windows on top of it, which an X11 capture drew in as they are on screen.
+        composite(c.image, frame, client_offset_in(*glc, window), c.covered);
     }
 
     // An OpenGL view with no frame capture: say so rather than return its area as the window
@@ -218,7 +265,8 @@ wxImage from_cairo(cairo_surface_t* surface)
 
 } // namespace
 
-bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approximate, std::string& note, std::string& err)
+bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approximate, std::string& note, std::vector<wxRect>& covered,
+                           std::string& err)
 {
     GtkWidget* widget = static_cast<GtkWidget*>(window.GetHandle());
     GdkWindow* gdkwin = widget != nullptr ? gtk_widget_get_window(widget) : nullptr;
@@ -300,6 +348,21 @@ bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approxi
                 break;
             top = parent;
         }
+        // A window manager that reparents puts every top-level window, ours included, in a frame window
+        // of its own, so a child of the root is our window or a frame holding it a level or two down.
+        GdkDisplay*                        gdisplay   = gdk_window_get_display(gdkwin);
+        std::function<Window(Window, int)> own_client = [&](Window w, int depth) -> Window {
+            if (gdk_x11_window_lookup_for_display(gdisplay, w) != nullptr)
+                return w;
+            Window   found = 0, r = 0, p = 0, *kids = nullptr;
+            unsigned n = 0;
+            if (depth > 0 && XQueryTree(dpy, w, &r, &p, &kids, &n) && kids != nullptr) {
+                for (unsigned k = n; k-- > 0 && found == 0;) // topmost first
+                    found = own_client(kids[k], depth - 1);
+                XFree(kids);
+            }
+            return found;
+        };
         Window   root_ret = 0, parent = 0, *stack = nullptr;
         unsigned nstack = 0;
         if (XQueryTree(dpy, attr.root, &root_ret, &parent, &stack, &nstack) && stack != nullptr) {
@@ -313,17 +376,29 @@ bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approxi
                 XWindowAttributes a;
                 if (!above || !XGetWindowAttributes(dpy, stack[i], &a) || a.map_state != IsViewable)
                     continue;
-                const wxRect cover = mine.Intersect(wxRect(a.x + a.border_width, a.y + a.border_width, a.width, a.height));
-                if (cover.IsEmpty())
+                const wxRect frame_cover = mine.Intersect(wxRect(a.x + a.border_width, a.y + a.border_width, a.width, a.height));
+                if (frame_cover.IsEmpty())
                     continue;
-                const bool own = gdk_x11_window_lookup_for_display(gdk_window_get_display(gdkwin), stack[i]) != nullptr;
-                XImage*    part = own ? XGetImage(dpy, stack[i], cover.x - a.x - a.border_width, cover.y - a.y - a.border_width,
-                                                  unsigned(cover.width), unsigned(cover.height), AllPlanes, ZPixmap)
-                                      : nullptr;
+                wxRect            cover;
+                XImage*           part   = nullptr;
+                const Window      client = own_client(stack[i], 3);
+                XWindowAttributes ca;
+                int               cx = 0, cy = 0;
+                Window            child = 0;
+                if (client != 0 && XGetWindowAttributes(dpy, client, &ca) && ca.map_state == IsViewable &&
+                    XTranslateCoordinates(dpy, client, attr.root, 0, 0, &cx, &cy, &child)) {
+                    cover = mine.Intersect(wxRect(cx, cy, ca.width, ca.height));
+                    if (!cover.IsEmpty())
+                        part = XGetImage(dpy, client, cover.x - cx, cover.y - cy, unsigned(cover.width), unsigned(cover.height), AllPlanes,
+                                         ZPixmap);
+                }
                 if (part != nullptr) {
                     blit(part, cover.x - rx, cover.y - ry);
                     XDestroyImage(part);
-                } else {
+                    covered.emplace_back(cover.x - rx, cover.y - ry, cover.width, cover.height);
+                }
+                // The rest is another application's window, or the decorations of a frame around ours.
+                if (part == nullptr || cover != frame_cover) {
                     approximate = true;
                     note        = note.empty() ? "another window covers part of it" : note + "; another window covers part of it";
                 }

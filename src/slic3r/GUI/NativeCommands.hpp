@@ -51,6 +51,13 @@ const std::vector<NativeCommand>& catalog();
 // Dispatches `key` to its runner (unknown keys return a quiet Info). UI thread only.
 AppActionRunResult run(const std::string& key, const std::string& param = {});
 
+// Shows what a command run from the palette or a menu said: its message as a notification at its level,
+// nothing for an empty message or a Busy one. UI thread only.
+void notify_result(const AppActionRunResult& result);
+
+// Whether a recording is being written, whoever started it. UI thread only.
+bool recording_active();
+
 // The catalog entry for `key`, or nullptr.
 const NativeCommand* find(const std::string& key);
 

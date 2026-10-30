@@ -24,11 +24,19 @@
 #include "PluginsDialog.hpp"
 #include "PartPlate.hpp"
 #include "PlateSettingsDialog.hpp"
+#include "RecordingDialog.hpp"
 #include "Preferences.hpp"
 #include "SceneBenchmark.hpp"
 #include "format.hpp"
 #include "DeviceCore/DevManager.h"
 #include "Mcp/McpPaths.hpp"
+#include "Mcp/McpRecorder.hpp"
+#include "Mcp/McpService.hpp"
+#include "Mcp/McpTypes.hpp"
+#include "Mcp/RecordingSettings.hpp"
+#include "Mcp/ScreenCapture.hpp"
+#include "Mcp/VideoEncode.hpp"
+#include "NotificationManager.hpp"
 
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Config.hpp"
@@ -54,6 +62,7 @@
 #include <charconv>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include "libslic3r/libslic3r.h"
@@ -68,6 +77,8 @@
 
 #include <vector>
 #include <wx/dataview.h>
+#include <wx/gdicmn.h>
+#include <wx/image.h>
 #include <wx/string.h>
 #include <wx/utils.h>
 
@@ -234,6 +245,121 @@ AppActionRunResult written(const boost::filesystem::path& path)
     return {AppActionRunResult::Level::Error, _L("The file was not written.")};
 }
 
+// A screenshot or recording saved into the MCP output folder, which a person would not find by themselves: a
+// notification names the file, with a button that opens its folder.
+void notify_saved(const wxString& text, const boost::filesystem::path& path)
+{
+    if (Plater* plater = wxGetApp().plater(); plater != nullptr && !wxGetApp().is_closing())
+        plater->get_notification_manager()->push_file_saved_notification(into_u8(text), Mcp::path_to_utf8(path),
+                                                                         Mcp::path_to_utf8(path.parent_path()));
+}
+
+// For automation: the file a command saved, which its notification shows the person.
+std::string path_reply(const boost::filesystem::path& path) { return nlohmann::json{{"path", Mcp::path_to_utf8(path)}}.dump(); }
+
+// Why a recording ended when Stop Recording ended it; an agent's stop_recording reports it.
+constexpr const char* kStoppedInApp = "stopped_in_app";
+
+void notify_error(const wxString& text)
+{
+    if (Plater* plater = wxGetApp().plater(); plater != nullptr && !wxGetApp().is_closing())
+        plater->get_notification_manager()->push_notification(NotificationType::CustomNotification,
+                                                               NotificationManager::NotificationLevel::ErrorNotificationLevel, into_u8(text));
+}
+
+// Recordings are the MCP service's. With the server off, Start Recording starts the service without its endpoint,
+// as the Run Script dialog does. nullptr while OrcaSlicer closes.
+Mcp::McpService* recording_service()
+{
+    if (Mcp::McpService* s = wxGetApp().mcp_service(); s == nullptr || !s->started())
+        wxGetApp().start_mcp_service(false);
+    Mcp::McpService* s = wxGetApp().mcp_service();
+    return s != nullptr && s->started() && !s->stopping() ? s : nullptr;
+}
+
+// Encodes the recording at `path` to an MP4 beside it once its file is closed, and tells the person how that
+// went. False when it cannot start: OrcaSlicer is closing.
+bool encode_when_closed(const boost::filesystem::path& path, const Mcp::RecordingSettings& settings)
+{
+    Mcp::McpService* service = wxGetApp().mcp_service();
+    if (service == nullptr || wxGetApp().is_closing())
+        return false;
+    return service->encode_when_closed(Mcp::encode_arguments(settings, Mcp::path_to_utf8(path)), [](const Mcp::ToolResult& r) {
+        if (r.is_error)
+            // TRN %1% is why, in English.
+            notify_error(format_wxstr(_L("The recording was saved, but could not be encoded: %1%"), r.message));
+        else
+            notify_saved(_L("Recording encoded"), Mcp::path_from_utf8(r.data.value("path", std::string())));
+    });
+}
+
+// The person's recording: the main window, its pointer highlighted and any tool call captioned, for up to an
+// hour, into the folder the settings name. The dialog shows the remembered settings, with what `param`
+// overrides, and remembers what it starts with; a silent `param` starts with them at once and remembers
+// nothing. Encoding needs an ffmpeg: the dialog says so and records without encoding, and a silent start that
+// would encode is refused. Neither a script's end nor the server turning off ends the recording. Whatever does
+// end it says where it went: Stop Recording itself, or the recording's `ended` for an agent's stop_recording,
+// the limit or a write error; with encode, `ended` also encodes it.
+AppActionRunResult start_recording(const std::string& param)
+{
+    if (NativeCommands::recording_active())
+        return {AppActionRunResult::Level::Info, _L("A recording is already running."), false};
+    AppConfig&             config   = *wxGetApp().app_config;
+    Mcp::RecordingSettings settings = Mcp::load_recording_settings(config);
+    bool                   silent   = false;
+    if (!param.empty())
+        if (const std::string err = Mcp::apply_recording_overrides(settings, nlohmann::json::parse(param, nullptr, false), silent);
+            !err.empty())
+            return {AppActionRunResult::Level::Error, from_u8(err), false};
+    std::string ffmpeg_err;
+    const bool  has_ffmpeg = Mcp::find_ffmpeg(ffmpeg_err).has_value();
+    if (silent && settings.encode && !has_ffmpeg)
+        // TRN %1% is why, in English.
+        return {AppActionRunResult::Level::Error,
+                format_wxstr(_L("The recording could not be encoded: %1%. Install ffmpeg, or start without encoding."), ffmpeg_err), false};
+    if (!silent) {
+        RecordingDialog dialog(wxGetApp().mainframe, settings);
+        if (dialog.ShowModal() != wxID_OK)
+            return {AppActionRunResult::Level::Info, _L("Recording cancelled."), false};
+        settings = dialog.settings();
+        Mcp::save_recording_settings(config, settings);
+        config.save();
+    }
+
+    Mcp::McpService* service = recording_service();
+    if (service == nullptr)
+        return {};
+    // The switch is remembered as the person left it; without an ffmpeg this recording is not encoded.
+    settings.encode                = settings.encode && has_ffmpeg;
+    Mcp::McpRecorder&     recorder = service->recorder();
+    Mcp::RecordingOptions options;
+    options.quality     = settings.quality;
+    options.max_seconds = 3600;
+    options.path        = Mcp::timestamped_path(capture_folder(settings), "recording", ".mkv", {".mp4"});
+    options.owner       = Mcp::kPersonOwner;
+    options.ended       = [path = options.path, settings](const std::string& reason) {
+        if (settings.encode && encode_when_closed(path, settings))
+            notify_saved(_L("Recording saved. Encoding it to MP4..."), path);
+        else if (reason != kStoppedInApp)
+            notify_saved(_L("Recording saved"), path);
+    };
+    const std::shared_ptr<Mcp::RecordingFiles>& files = recorder.files();
+    const uint64_t                              owner = files->new_owner();
+    if (const std::string why = files->reserve(owner, {{options.path, Mcp::RecordingFiles::Use::Recording}}); !why.empty())
+        // TRN %1% is why, in English.
+        return {AppActionRunResult::Level::Error, format_wxstr(_L("The recording could not start: %1%"), why), false};
+    try {
+        recorder.start(options, owner); // owns the reservation from here, whether it starts or not
+    } catch (const std::exception& e) {
+        return {AppActionRunResult::Level::Error, format_wxstr(_L("The recording could not start: %1%"), e.what()), false};
+    }
+    nlohmann::json reply = Mcp::encode_arguments(settings, Mcp::path_to_utf8(options.path));
+    reply["quality"]     = settings.quality;
+    reply["encode"]      = settings.encode;
+    // TRN "Stop Recording" is the command that ends the recording.
+    return {AppActionRunResult::Level::Success, _L("Recording started. Stop Recording saves it."), true, reply.dump()};
+}
+
 // Select a named camera view. Plater::select_view dispatches to the current panel.
 AppActionRunResult view_command(Plater* plater, const std::string& dir)
 {
@@ -367,6 +493,24 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"redo", "Redo the last undone change."},
         {"open_script_runner", "Open the Run Script dialog, where a person opens or pastes an orca_script, reads its steps and runs "
                                "them. Agents run scripts with the run_script tool instead."},
+        {"take_screenshot", "Save a PNG of the main window in the folder Start Recording saves in (the person's Downloads unless "
+                            "they chose another) and show the person a notification naming it; the reply has its path. Agents use "
+                            "the screenshot tool, which returns the image."},
+        {"start_recording", "Start the person's recording of the main window, for up to an hour, with the settings the Start "
+                            "Recording dialog remembers: JPEG quality, whether and how it is encoded to MP4 once it ends, and the "
+                            "folder both go in (the person's Downloads unless they chose another). Without silent, the dialog opens "
+                            "with them (the param's values filled in): set its controls with ui_input (each is named after its "
+                            "param key) and answer it with dialog_respond \"Start recording\"; it remembers what it starts with. "
+                            "With silent, the recording starts at once and nothing is remembered; one that would encode is refused "
+                            "when no ffmpeg is found. The reply has the path and the settings used. Neither a script's end nor the "
+                            "server turning off ends it. Agents record with start_recording instead.",
+         CommandParamType::Text,
+         "JSON object, all optional: quality (30-95), encode (bool), encode_preset (small, balanced, quality, compatible; "
+         "applied before the fields), codec (h265, h264), crf (0-51), speed (ultrafast ... veryslow), profile (h264: high, "
+         "main, baseline; h265: main, main10), folder (absolute path of an existing directory), silent (bool)"},
+        {"stop_recording", "Stop the running recording, whoever started it, without waiting for its file, and show the person a "
+                           "notification naming it; the reply has its path. A later stop_recording reports it as ended "
+                           "stopped_in_app. Agents stop their own recordings with stop_recording, which waits and reports."},
         {"open_preferences", "Open the Preferences dialog on a tab, scrolled to one preference when given (shown on its own tab). Its "
                              "controls are named after their preference keys: ui_input {\"target\": {\"name\": key, \"within\": "
                              "\"Preferences\"}} changes one through the dialog; get_settings scope preferences reads them.",
@@ -628,6 +772,39 @@ std::vector<NativeCommand> build_command_catalog()
                                       from_u8("Unknown tab \"" + tab + "\": general, control, graphics, online or developer")};
         wxGetApp().open_preferences(it->second, colon == std::string::npos ? std::string() : param.substr(colon + 1));
         return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
+
+    // ---- Screenshots and recordings ---- (the MCP screenshot and recording tools' defaults, for the person)
+    add_with_icon("take_screenshot", L("Take Screenshot"), L("Commands"), "monitor_recording_off", [](const std::string&) {
+        MainFrame* mf = wxGetApp().mainframe;
+        if (mf == nullptr)
+            return AppActionRunResult{};
+        std::string                       err;
+        const std::optional<Mcp::Capture> cap = Mcp::capture_window(*mf, err);
+        if (!cap)
+            // TRN %1% is why, in English.
+            return AppActionRunResult{AppActionRunResult::Level::Error, format_wxstr(_L("The screenshot could not be taken: %1%"), err), false};
+        const boost::filesystem::path path =
+            Mcp::timestamped_path(capture_folder(Mcp::load_recording_settings(*wxGetApp().app_config)), "screenshot", ".png");
+        if (!cap->image.SaveFile(from_path(path), wxBITMAP_TYPE_PNG))
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("The screenshot could not be saved."), false};
+        notify_saved(_L("Screenshot saved"), path);
+        return AppActionRunResult{AppActionRunResult::Level::Success, {}, true, path_reply(path)};
+    });
+    add_with_icon("start_recording", L("Start Recording"), L("Commands"), "monitor_recording_on", start_recording);
+    add_with_icon("stop_recording", L("Stop Recording"), L("Commands"), "video_state_off", [](const std::string&) {
+        Mcp::McpService*     service = wxGetApp().mcp_service();
+        const nlohmann::json state   = service != nullptr && service->started() ? service->recorder().state() : nlohmann::json();
+        if (state.is_null() || state.value("ending", false))
+            return AppActionRunResult{AppActionRunResult::Level::Info, _L("No recording is running."), false};
+        // What the window shows now, even if the timer has not ticked since, before the notification shows.
+        service->recorder().capture_now();
+        // The recording may be an agent's or a script's; the person stopped it all the same, so they are told
+        // where it went. Before it ends: a person's recording that is to be encoded says so instead, as it ends.
+        const boost::filesystem::path path = Mcp::path_from_utf8(state["path"].get<std::string>());
+        notify_saved(_L("Recording saved"), path);
+        service->recorder().end(kStoppedInApp);
+        return AppActionRunResult{AppActionRunResult::Level::Success, {}, true, path_reply(path)};
     });
 
     // ---- Mode ----
@@ -1453,6 +1630,23 @@ AppActionRunResult NativeCommands::run(const std::string& key, const std::string
         if (c.key == key)
             return c.runner(param);
     return {AppActionRunResult::Level::Info, _L("Unknown command.")};
+}
+
+void NativeCommands::notify_result(const AppActionRunResult& result)
+{
+    if (result.level == AppActionRunResult::Level::Busy || result.message.IsEmpty() || wxGetApp().plater() == nullptr)
+        return;
+    wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification,
+                                                                      result.level == AppActionRunResult::Level::Error ?
+                                                                          NotificationManager::NotificationLevel::ErrorNotificationLevel :
+                                                                          NotificationManager::NotificationLevel::RegularNotificationLevel,
+                                                                      into_u8(result.message));
+}
+
+bool NativeCommands::recording_active()
+{
+    Mcp::McpService* service = wxGetApp().mcp_service();
+    return service != nullptr && service->started() && service->recorder().active();
 }
 
 }} // namespace Slic3r::GUI

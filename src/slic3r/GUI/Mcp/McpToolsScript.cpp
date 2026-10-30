@@ -4,6 +4,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "McpJournal.hpp"
 #include "McpPaths.hpp"
+#include "McpRecorder.hpp"
 #include "McpScript.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
@@ -74,7 +75,8 @@ json run_script_job(McpService& service, ToolContext& ctx, const Script& script,
     {
         McpService& service;
         std::string job;
-        ~ScopeEnd() { service.end_script_scope(job); }
+        bool        recording_waited = false; // the run below waited for the script's recording already
+        ~ScopeEnd() { service.end_script_scope(job, !recording_waited); }
     } scope_end{service, job};
 
     const auto stopped = [&ctx] { return ctx.cancelled(); };
@@ -88,7 +90,13 @@ json run_script_job(McpService& service, ToolContext& ctx, const Script& script,
     host.step_started  = options.step_started;
     host.step_finished = options.step_finished;
 
-    json result       = run_script(script, sctx, host, options.only_step);
+    json result = run_script(script, sctx, host, options.only_step);
+    // A recording the script started ends with it, its file closed before the result is written; one still
+    // being written after the wait is named, since an encode of it would fail.
+    std::optional<std::string> unfinished = service.recorder().end_owned_by(job, "script_ended", true);
+    scope_end.recording_waited            = true;
+    if (unfinished)
+        result["unfinished_recording"] = *unfinished;
     result["out_dir"] = path_to_utf8(sctx.out_dir);
     if (options.write_result) {
         const fs::path file = sctx.out_dir / "result.json";
@@ -140,7 +148,7 @@ void register_script_tools(McpService& service)
                 default_out += ".out";
             } else {
                 script      = parse_script(args["script"].dump(), err);
-                default_out = service.output_dir() / ("script-" + timestamp());
+                default_out = output_dir() / ("script-" + timestamp());
             }
             if (!script)
                 return invalid(err);

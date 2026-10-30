@@ -10,7 +10,8 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approximate, std::string& note, std::string& err)
+bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approximate, std::string& note, std::vector<wxRect>& /*covered*/,
+                           std::string& err)
 {
     NSView* view = (NSView*) window.GetHandle();
     if (view == nil) {

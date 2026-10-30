@@ -270,6 +270,23 @@ TEST_CASE("Native command catalog includes the Help and developer-mode commands"
     CHECK(dev_mode->group == mode_simple->group);
 }
 
+// A person takes screenshots and records from the palette, beside Run Script, with no agent involved. Start
+// Recording takes its settings as a parameter, which an agent passes to skip its dialog.
+TEST_CASE("Native command catalog has the screenshot and recording commands", "[ActionSource][SpeedDial]")
+{
+    const Slic3r::GUI::NativeCommand* runner = Slic3r::GUI::NativeCommands::find("open_script_runner");
+    REQUIRE(runner != nullptr);
+    for (const char* key : {"take_screenshot", "start_recording", "stop_recording"}) {
+        INFO(key);
+        const Slic3r::GUI::NativeCommand* c = Slic3r::GUI::NativeCommands::find(key);
+        REQUIRE(c != nullptr);
+        CHECK(c->group == runner->group);
+        CHECK(c->input.empty());
+        CHECK(c->param.type == (std::string(key) == "start_recording" ? Slic3r::GUI::CommandParamType::Text : Slic3r::GUI::CommandParamType::None));
+        CHECK_FALSE(c->description.empty());
+    }
+}
+
 // Every "Add Primitive" item and shipped handy model has a palette command, grouped as in the Add
 // menu. Groups are compared to a peer's own group to stay independent of translation.
 TEST_CASE("Native command catalog covers the Add menus", "[ActionSource][SpeedDial]")

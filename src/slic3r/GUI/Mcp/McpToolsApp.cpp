@@ -3,6 +3,7 @@
 #include "JobRegistry.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "McpPaths.hpp"
+#include "McpRecorder.hpp"
 #include "libslic3r/Config.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
@@ -103,6 +104,8 @@ json app_state(McpService& service)
                {"auto_answer_rules", service.modals().rules_json()},
                {"mcp", service.describe()},
                {"jobs", service.jobs().list()}};
+    if (json recording = service.recorder().state(); !recording.is_null())
+        state["recording"] = std::move(recording);
     MainFrame* frame  = wxGetApp().mainframe;
     Plater*    plater = wxGetApp().plater();
     if (frame == nullptr || plater == nullptr)
@@ -206,7 +209,7 @@ void register_app_tools(McpService& service)
         "Snapshot of OrcaSlicer: version, platform, whether it is ready, current tab and mode, project, selected printer/process/"
         "filament presets, plates, the Preview's view type, time mode and layer range (1-based, with their Z), object count, "
         "slicing state, print host uploads (state, progress, error), the open gizmo, open modal dialogs, menus closed "
-        "unseen (a menu a call opened that no reply listed), notifications and running jobs. Call it "
+        "unseen (a menu a call opened that no reply listed), notifications, running jobs and a running recording. Call it "
         "first and whenever you are unsure what the app is doing.",
         object_schema({}), [&service](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&service] { return app_state(service); })); }));
 

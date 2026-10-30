@@ -21,6 +21,18 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 namespace {
 
+// Calls an observer method; what it throws stays here, out of the call's thread.
+template<class Fn> void notify(CallObserver* observer, Fn&& fn)
+{
+    if (observer == nullptr)
+        return;
+    try {
+        fn(*observer);
+    } catch (...) {
+        // A recording's caption is not worth a call.
+    }
+}
+
 // What a mutating call is told while another job's operation holds the project.
 std::string busy_message(const std::string& op)
 {
@@ -30,8 +42,16 @@ std::string busy_message(const std::string& op)
 class CallContext final : public ToolContext
 {
 public:
-    CallContext(McpCore& core, const ToolDef& def, std::string job, std::string parent, Journal* journal, uint64_t journal_seq)
-        : m_core(core), m_def(def), m_job(std::move(job)), m_parent(std::move(parent)), m_journal(journal), m_seq(journal_seq)
+    CallContext(McpCore& core, const ToolDef& def, std::string job, std::string parent, Journal* journal, uint64_t journal_seq,
+                CallObserver* observer, uint64_t call)
+        : m_core(core)
+        , m_def(def)
+        , m_job(std::move(job))
+        , m_parent(std::move(parent))
+        , m_journal(journal)
+        , m_seq(journal_seq)
+        , m_observer(observer)
+        , m_call(call)
     {}
 
     nlohmann::json run_ui(const std::function<nlohmann::json()>& fn) override
@@ -91,6 +111,7 @@ public:
 
     void set_journal_args(nlohmann::json args) override
     {
+        notify(m_observer, [&](CallObserver& o) { o.call_args(m_call, args); });
         if (m_journal != nullptr && m_seq != 0)
             m_journal->set_args(m_seq, std::move(args));
     }
@@ -118,6 +139,8 @@ private:
     std::string    m_parent;
     Journal*       m_journal;
     uint64_t       m_seq;
+    CallObserver*  m_observer;
+    uint64_t       m_call;
     bool           m_saw_idle = false; // UI thread
 };
 
@@ -136,8 +159,9 @@ ToolResult invoke(const ToolDef& def, const nlohmann::json& args, ToolContext& c
 
 } // namespace
 
-McpCore::McpCore(const ToolRegistry& registry, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing, WorkerHooks worker)
-    : m_registry(registry), m_ui(ui), m_jobs(jobs), m_journal(journal), m_timing(timing), m_worker(std::move(worker))
+McpCore::McpCore(const ToolRegistry& registry, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing, WorkerHooks worker,
+                 CallObserver* observer)
+    : m_registry(registry), m_ui(ui), m_jobs(jobs), m_journal(journal), m_timing(timing), m_worker(std::move(worker)), m_observer(observer)
 {}
 
 McpCore::~McpCore()
@@ -187,12 +211,15 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
         return r;
     };
 
+    const uint64_t call = m_next_call++;
     if (def.inline_call) {
-        CallContext ctx(*this, def, {}, parent, m_journal, seq);
+        CallContext ctx(*this, def, {}, parent, m_journal, seq, m_observer, call);
         // Any inline call can wait for the UI thread, so each holds a blocking slot.
         if (!acquire_slot())
             return finish(ToolResult::ok({{"status", "pending"}, {"note", "Too many calls are waiting right now; try again shortly."}}));
+        notify(m_observer, [&](CallObserver& o) { o.call_started(call, def, args, parent); });
         ToolResult r = invoke(def, args, ctx);
+        notify(m_observer, [&](CallObserver& o) { o.call_ended(call, r); });
         release_slot();
         return finish(std::move(r));
     }
@@ -219,9 +246,11 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     // The job thread owns copies of what it needs; the core outlives it, as the owner destroys the
     // core only once drain() has seen every job thread leave.
     try {
-        std::thread([this, def, args, job, parent, seq]() {
-            CallContext ctx(*this, def, job, parent, m_journal, seq);
-            ToolResult  result = await_worker(job, def.name, invoke(def, args, ctx));
+        std::thread([this, def, args, job, parent, seq, call]() {
+            CallContext ctx(*this, def, job, parent, m_journal, seq, m_observer, call);
+            notify(m_observer, [&](CallObserver& o) { o.call_started(call, def, args, parent); });
+            ToolResult result = await_worker(job, def.name, invoke(def, args, ctx));
+            notify(m_observer, [&](CallObserver& o) { o.call_ended(call, result); });
             // Before finish(): an export_script right after the wait that sees the result must know it.
             if (seq != 0)
                 m_journal->job_ended(seq, result);
