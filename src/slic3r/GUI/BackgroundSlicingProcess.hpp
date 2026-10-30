@@ -166,7 +166,7 @@ public:
 	// Set print host upload job data to be enqueued to the PrintHostJobQueue
 	// after current print slicing is complete
 	void schedule_upload(Slic3r::PrintHostJob upload_job);
-	// Clear m_export_path.
+	// Clear m_export_path and drop a scheduled upload that was not handed to the print host job queue.
 	void reset_export();
 	// Once the G-code export is scheduled, the apply() methods will do nothing.
 	bool is_export_scheduled() const { return ! m_export_path.empty(); }
