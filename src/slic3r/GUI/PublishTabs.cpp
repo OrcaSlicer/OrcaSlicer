@@ -156,7 +156,12 @@ void PublishTabPrinter::build()
 void PublishTabPrint::build()
 {
     TabPrint::build();
-    prune_publish_pages(m_pages, is_action_option);
+    // The note is free text and the bed type is project state the published import deliberately
+    // leaves to the receiver, so neither is a setting this file can carry. Everything else on the
+    // process pages is a print preset value.
+    prune_publish_pages(m_pages, [](const std::string &key) {
+        return is_action_option(key) || key == "notes" || key == "curr_bed_type";
+    });
 }
 
 PublishTabPrint::PublishTabPrint(ParamsPanel *host)
