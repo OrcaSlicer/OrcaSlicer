@@ -72,6 +72,7 @@ A layer comes from one of three generators:
   connect them along the boundary even then, as chaining their many islands is
   slow.
 - The layers of TPMS-P, I-WP, Neovius, F-RD and Split P are grids of separate
-  closed rings, each printed from where its generator started it, so they travel
-  more than Gyroid, TPMS-D, TPMS-FK and Lidinoid, whose layers are mostly long
+  closed rings, and about half the line of Lidinoid's layers is in closed loops.
+  Each loop is printed from where its generator started it, so these patterns
+  travel more than Gyroid, TPMS-D and TPMS-FK, whose layers are mostly long
   lines.
