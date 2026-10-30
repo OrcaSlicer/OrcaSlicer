@@ -483,7 +483,7 @@ std::string SceneBenchmarkDialog::report() const
         << ", scene cache " << on_off(config.get_bool(SETTING_OPENGL_SCENE_CACHE)) << ", VSync " << m_vsync << '\n'
         << "Realistic:  ";
     if (config.get_bool(SETTING_OPENGL_REALISTIC_MODE))
-        out << "on, Phong " << on_off(config.get_bool(SETTING_OPENGL_REALISTIC_PHONG)) << ", SSAO "
+        out << "on, " << config.get(SETTING_OPENGL_SHADING_MODEL) << ", SSAO "
             << on_off(config.get_bool(SETTING_OPENGL_PHONG_SSAO)) << ", shadows " << config.get(SETTING_OPENGL_REALISTIC_SHADOWS)
             << ", in Preview " << on_off(config.get_bool(SETTING_OPENGL_REALISTIC_PREVIEW)) << '\n';
     else
