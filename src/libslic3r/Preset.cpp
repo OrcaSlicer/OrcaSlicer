@@ -297,8 +297,8 @@ static const std::unordered_map<std::string, std::string> pre_family_model_map {
 }};
 
 
-// Orca: update_diff_values_to_child_config() only fills the parent's variant slots, so a printer
-// with more extruders than its parent lost the extra extruders' values. Grow the parent copy first.
+// Orca: update_diff_values_to_child_config() only fills the parent's variant slots, so grow a printer
+// parent to the child's extruder count first.
 static void extend_parent_extruders_to_child(DynamicPrintConfig& parent_config, const DynamicPrintConfig& child_config, Preset::Type type)
 {
     if (type != Preset::TYPE_PRINTER)

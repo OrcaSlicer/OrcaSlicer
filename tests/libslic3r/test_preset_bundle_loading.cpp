@@ -1050,22 +1050,35 @@ TEST_CASE("A user printer with more extruders than its parent keeps every extrud
 
     // A user printer adding a fifth extruder. The four it shares with the parent leave
     // nozzle_volume unset, as a saved user preset does for values equal to its parent's.
-    const fs::path file = temp_dir.path() / PRESET_PRINTER_NAME / "User Printer.json";
-    fs::create_directories(file.parent_path());
-    std::ofstream(file.string()) << R"({
-        "type": "machine", "name": "User Printer", "from": "User", "version": "1.0.0",
-        "inherits": "Parent Printer", "printer_settings_id": "User Printer",
-        "nozzle_diameter": ["0.4", "0.4", "0.4", "0.4", "0.4"],
-        "extruder_variant_list": ["Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard"],
-        "printer_extruder_id": ["1", "2", "3", "4", "5"],
-        "printer_extruder_variant": ["Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard"],
-        "retract_length_toolchange": ["1", "2", "3", "4", "5"],
-        "nozzle_volume": ["nil", "nil", "nil", "nil", "143"]
-    })";
-
     PresetsConfigSubstitutions substitutions;
-    printers.load_presets(temp_dir.path().string(), PRESET_PRINTER_NAME, substitutions,
-                          ForwardCompatibilitySubstitutionRule::Disable);
+    SECTION("from its file") {
+        const fs::path file = temp_dir.path() / PRESET_PRINTER_NAME / "User Printer.json";
+        fs::create_directories(file.parent_path());
+        std::ofstream(file.string()) << R"({
+            "type": "machine", "name": "User Printer", "from": "User", "version": "1.0.0",
+            "inherits": "Parent Printer", "printer_settings_id": "User Printer",
+            "nozzle_diameter": ["0.4", "0.4", "0.4", "0.4", "0.4"],
+            "extruder_variant_list": ["Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard"],
+            "printer_extruder_id": ["1", "2", "3", "4", "5"],
+            "printer_extruder_variant": ["Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard"],
+            "retract_length_toolchange": ["1", "2", "3", "4", "5"],
+            "nozzle_volume": ["nil", "nil", "nil", "nil", "143"]
+        })";
+        printers.load_presets(temp_dir.path().string(), PRESET_PRINTER_NAME, substitutions,
+                              ForwardCompatibilitySubstitutionRule::Disable);
+    }
+    SECTION("from the cloud") {
+        const std::map<std::string, std::string> values = {
+            {BBL_JSON_KEY_VERSION, "1.0.0"}, {BBL_JSON_KEY_SETTING_ID, "child-id"}, {BBL_JSON_KEY_USER_ID, "user"},
+            {BBL_JSON_KEY_INHERITS, "Parent Printer"}, {"printer_settings_id", "User Printer"},
+            {"nozzle_diameter", "0.4,0.4,0.4,0.4,0.4"},
+            {"extruder_variant_list", "Direct Drive Standard;Direct Drive Standard;Direct Drive Standard;Direct Drive Standard;Direct Drive Standard"},
+            {"printer_extruder_id", "1,2,3,4,5"},
+            {"printer_extruder_variant", "Direct Drive Standard;Direct Drive Standard;Direct Drive Standard;Direct Drive Standard;Direct Drive Standard"},
+            {"retract_length_toolchange", "1,2,3,4,5"},
+            {"nozzle_volume", "nil,nil,nil,nil,143"}};
+        REQUIRE(printers.load_user_preset("User Printer", values, substitutions, ForwardCompatibilitySubstitutionRule::Disable));
+    }
 
     const Preset *child = printers.find_preset("User Printer");
     REQUIRE(child != nullptr);
