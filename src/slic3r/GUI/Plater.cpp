@@ -99,6 +99,7 @@
 #include <atomic>
 #include <mutex>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
@@ -3750,8 +3751,11 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
         }
         else {
             // SINGLE MATERIAL / MULTI EXTRUDER / TOOLCHANGER / IDEX Opens Dialog directly
-            p->editing_filament = filament_idx;
-            combobox->switch_to_tab();
+            // -1 first, like Sidebar::edit_filament(): switch_to_tab() can run select_preset(),
+            // whose on_presets_changed() cascade would otherwise write into this slot mid-switch.
+            p->editing_filament = -1;
+            if (combobox->switch_to_tab())
+                p->editing_filament = filament_idx;
         }
     });
     combobox->edit_btn = edit_btn;
@@ -6313,6 +6317,14 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
 
     auto & list = wxGetApp().preset_bundle->filament_ams_list;
     if (list.empty()) {
+        // Only an unreachable printer is "not connected". One that is online and has
+        // delivered at least one status push answered the request without listing any
+        // filament slot, and the message then names the machine that answered.
+        if (obj->is_connected() && obj->m_push_count > 0) {
+            p->plater->pop_warning_and_go_to_device_page(from_u8(obj->get_dev_name()), Plater::PrinterWarningType::NO_FILAMENT_SYSTEM,
+                                                         _L("Sync printer information"));
+            return;
+        }
         auto printer_name = p->plater->get_selected_printer_name_in_combox();
         p->plater->pop_warning_and_go_to_device_page(printer_name, Plater::PrinterWarningType::NOT_CONNECTED, _L("Sync printer information"));
         return;
@@ -7187,6 +7199,9 @@ struct Plater::priv
     bool                                        m_has_pending_published{false};
     std::vector<std::string>                    m_pending_published_keys;
     std::vector<Slic3r::PublishedMaterialEntry> m_pending_material_keys;
+    // The pending keys come from a file published before per-extruder process keys were exported:
+    // a "key#N" process entry then stands for the whole vector.
+    bool                                        m_pending_published_legacy_process{false};
 
     // Data
     Slic3r::DynamicPrintConfig *config;        // FIXME: leak?
@@ -9187,6 +9202,25 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 }
                             }
 
+                            auto layout_it = model.model_info->metadata_items.find(ORCA_PUBLISHED_LAYOUT_TAG);
+                            if (layout_it != model.model_info->metadata_items.end()) {
+                                try {
+                                    auto jl = nlohmann::json::parse(layout_it->second);
+                                    PublishedExtruderLayout layout;
+                                    layout.extruder_ids = jl.at("extruder_ids").get<std::vector<int>>();
+                                    layout.variants     = jl.at("variants").get<std::vector<std::string>>();
+                                    published_config.printer_layout = std::move(layout);
+                                    if (jl.contains("print_extruder_ids") && jl.contains("print_variants")) {
+                                        PublishedExtruderLayout print_layout;
+                                        print_layout.extruder_ids = jl.at("print_extruder_ids").get<std::vector<int>>();
+                                        print_layout.variants     = jl.at("print_variants").get<std::vector<std::string>>();
+                                        published_config.print_layout = std::move(print_layout);
+                                    }
+                                } catch (const nlohmann::json::exception&) {
+                                    // Malformed layout: the keys without a parsed layout fall back to the positional import.
+                                }
+                            }
+
                             // Rebuild the published values from the metadata payload: a published
                             // file carries no project_settings.config, so config_loaded is filled
                             // from here; a missing or malformed payload leaves it empty and the
@@ -9509,6 +9543,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_KEYS_TAG);
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_MATERIAL_TAG);
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_LAYOUT_TAG);
                 }
 
                 if (load_config) {
@@ -9665,6 +9700,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 this->m_has_pending_published = true;
                                 this->m_pending_published_keys = published_config.published_keys;
                                 this->m_pending_material_keys  = published_config.material_keys;
+                                this->m_pending_published_legacy_process = published_config.print_layout.extruder_ids.empty();
                             }
 
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
@@ -10843,6 +10879,7 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
     m_has_pending_published   = false;
     m_pending_published_keys.clear();
     m_pending_material_keys.clear();
+    m_pending_published_legacy_process = false;
 
     set_project_filename("");
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " call set_project_filename: empty";
@@ -10877,13 +10914,6 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
     // clear_objects() only drops the ModelObjects; the CAD recipe is Model-level state and would
     // otherwise be written into every project saved for the rest of the session.
     model.cad_recipe.clear();
-#ifdef SLIC3R_CAD
-    // Same reason, one level up: the Design tab keeps the editable document, not the Model, so
-    // clearing the recipe alone leaves the tab showing the previous project's feature tree —
-    // and its next edit syncs that tree straight back into the new project.
-    if (DesignPanel* design = DesignPanel::if_built())
-        design->clear_document();
-#endif
     assemble_view->get_canvas3d()->reset_explosion_ratio();
     update();
 
@@ -10893,6 +10923,17 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
         sidebar->obj_list()->delete_all_objects_from_list();
         object_list_changed();
     }
+
+#ifdef SLIC3R_CAD
+    // Same reason as the recipe, one level up: the Design tab keeps the editable document, not
+    // the Model, so clearing the recipe alone leaves the tab showing the previous project's
+    // feature tree — and its next edit syncs that tree straight back into the new project.
+    // It runs only once the scene is rebuilt: clearing hands the keyboard to the Design canvas,
+    // and when the app has no focus that activates the main window, whose 3D view repaints on
+    // the spot. Before update() that repaint picks against the plates reinit() deleted.
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->clear_document();
+#endif
 
     project.reset();
 
@@ -13892,7 +13933,12 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
     const bool use_printer_agents = wxGetApp().app_config->get_bool("use_printer_agents");
     const bool use_native_device_tab = wxGetApp().preset_bundle &&
         (wxGetApp().preset_bundle->use_bbl_device_tab() || use_printer_agents);
-    if (use_native_device_tab && new_name == TAB_ID_MONITOR) {
+    // Pointer test, not a name lookup: in printer-agents mode this page is TAB_ID_MONITOR_WEB
+    // while the native Device tab holds TAB_ID_MONITOR, and in legacy-web mode, or for an agent
+    // without the native tab, it holds TAB_ID_MONITOR itself.
+    const bool selecting_web_device_tab = main_frame->m_printer_view_page &&
+        main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view_page;
+    if (use_native_device_tab && new_name == TAB_ID_MONITOR && !selecting_web_device_tab) {
         // BBL network module is only required for BBL-vendor printers.
         // Non-BBL Python plugins (e.g. moonraker) drive the Device tab without it.
         if (!use_printer_agents && wxGetApp().preset_bundle->is_bbl_vendor() && !Slic3r::NetworkAgent::is_network_module_loaded()) {
@@ -13904,11 +13950,6 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
             }
         }
     } else {
-        // Pointer test, not a name lookup: in printer-agents mode this page is TAB_ID_MONITOR_WEB
-        // while the native Device tab holds TAB_ID_MONITOR, and in legacy-web mode it holds
-        // TAB_ID_MONITOR itself.
-        const bool selecting_web_device_tab = main_frame->m_printer_view_page &&
-            main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view_page;
         if (selecting_web_device_tab) {
             // Use the selected discovered machine when the preset has no host.
             main_frame->load_printer_url();
@@ -16308,6 +16349,13 @@ int Plater::save_project(bool saveAs)
     if (filename.empty())
         return wxID_NO;
     if (filename == "<cancel>")
+        return wxID_CANCEL;
+
+    // The project file records "name;uuid;capability" references for its plugin-backed settings. A
+    // value the resolver cannot map loses its reference when written. Ask before writing; Cancel
+    // leaves the project file, its dirty state and its lifecycle events untouched.
+    const DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config_secure();
+    if (!confirm_save_with_unresolved_plugins(this, full_config, SaveSubject::Project))
         return wxID_CANCEL;
 
     //BBS export 3mf without gcode
@@ -19219,12 +19267,10 @@ int GUI::Plater::close_with_confirm(std::function<bool(bool)> second_check)
             wxGetApp().app_config->set("save_project_choise", result == wxID_YES ? "yes" : "no");
         if (result == wxID_YES) {
             result = save_project();
-            if (result == wxID_CANCEL) {
-                if (choise.empty())
-                    return result;
-                else
-                    result = wxID_NO;
-            }
+            // A Cancel from the save (including the unresolved-plugin warning) must abort the close
+            // even when "Remember my choice" previously selected Save.
+            if (result == wxID_CANCEL)
+                return result;
         }
     }
 
@@ -19760,8 +19806,26 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     nlohmann::json j = nlohmann::json::array();
     for (const std::string& key : published_keys)
         j.push_back(key);
+    // A variant-bearing material key names a file column ("key#col"). Normalize the dialog's
+    // selection to the column each slot prints with before the metadata and the payload are built,
+    // so the receiver can put the value back on the same variant.
+    std::vector<Slic3r::PublishedMaterialEntry> material_entries = material_keys;
+    std::vector<std::string>                   publish_notices;
+    DynamicPrintConfig                         full_cfg;
+    try {
+        full_cfg = wxGetApp().preset_bundle->full_config_secure();
+        Slic3r::publish_normalize_material_entries(material_entries, full_cfg, &publish_notices);
+    } catch (...) {
+        MessageDialog(this, _L("Failed to export the published 3MF file.\nPlease check whether the folder exists online or if other programs "
+                               "have the file open."),
+                      _L("Publish"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        return wxID_CANCEL;
+    }
+    for (const std::string& notice : publish_notices)
+        BOOST_LOG_TRIVIAL(warning) << "publish: " << notice;
     nlohmann::json jm = nlohmann::json::array();
-    for (const Slic3r::PublishedMaterialEntry& e : material_keys)
+    for (const Slic3r::PublishedMaterialEntry& e : material_entries)
         jm.push_back({{"material",
                        {{"filament_type", e.filament_type},
                         {"filament_vendor", e.filament_vendor},
@@ -19820,6 +19884,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
                 model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = prev_payload;
             else
                 model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
+            model.model_info->metadata_items.erase(ORCA_PUBLISHED_LAYOUT_TAG);
         }
     };
     bool state_restored = false;
@@ -19845,8 +19910,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
         // filtered values are serialized into the published_config metadata payload instead, so
         // OrcaSlicer versions without the publish feature fall back to importing the geometry only
         // (keeping the receiver's presets) while new versions rebuild the config from the payload.
-        DynamicPrintConfig full_cfg     = wxGetApp().preset_bundle->full_config_secure();
-        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
+        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_entries);
         std::string payload;
         for (const std::string& key : filtered_cfg.keys()) {
             // A value containing a newline would break the INI written below (read_ini throws),
@@ -19861,6 +19925,17 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
             payload += key + " = " + value + "\n";
         }
         model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = std::move(payload);
+        // The author's extruder layouts, so the receiver can place each per-extruder key on the extruder with the same number.
+        const auto *layout_ids      = full_cfg.option<ConfigOptionInts>("printer_extruder_id");
+        const auto *layout_variants = full_cfg.option<ConfigOptionStrings>("printer_extruder_variant");
+        const auto *print_ids       = full_cfg.option<ConfigOptionInts>("print_extruder_id");
+        const auto *print_variants  = full_cfg.option<ConfigOptionStrings>("print_extruder_variant");
+        if (layout_ids != nullptr && layout_variants != nullptr && print_ids != nullptr && print_variants != nullptr)
+            model.model_info->metadata_items[ORCA_PUBLISHED_LAYOUT_TAG] =
+                nlohmann::json{{"extruder_ids", layout_ids->values},
+                               {"variants", layout_variants->values},
+                               {"print_extruder_ids", print_ids->values},
+                               {"print_variants", print_variants->values}}.dump();
 
         // Same file layout as save_project(), plus Silence (so export_3mf does not set the project
         // filename on success, keeping this a pure export like export_core_3mf()) and MinimalPublished.
@@ -19897,12 +19972,13 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
 }
 
 bool Plater::get_pending_published(std::vector<std::string>& out_keys,
-                                   std::vector<Slic3r::PublishedMaterialEntry>& out_material) const
+                                   std::vector<Slic3r::PublishedMaterialEntry>& out_material, bool& out_legacy_process) const
 {
     if (!p->m_has_pending_published)
         return false;
-    out_keys     = p->m_pending_published_keys;
-    out_material = p->m_pending_material_keys;
+    out_keys           = p->m_pending_published_keys;
+    out_material       = p->m_pending_material_keys;
+    out_legacy_process = p->m_pending_published_legacy_process;
     return true;
 }
 
@@ -19912,6 +19988,7 @@ void Plater::set_pending_published(const std::vector<std::string>& published_key
     p->m_has_pending_published = true;
     p->m_pending_published_keys = published_keys;
     p->m_pending_material_keys  = material_keys;
+    p->m_pending_published_legacy_process = false;
 }
 
 Preset *get_printer_preset(const MachineObject *obj)
@@ -20232,10 +20309,28 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
         case FT_DRC: ext = ".drc"; break;
         }
 
-        auto path = dir + name + ext;
+        // ORCA fix duplicate extensions, hidden files with leading dots ...
+        static const std::vector<std::string> model_exts{   // longest first
+            ".gcode.3mf", ".zip.amf",
+            ".stl", ".3mf", ".obj", ".step", ".stp", ".amf", ".xml", ".drc", ".ply", ".svg", ".oltp",
+            ".gltf", ".glb", ".fbx", ".usd", ".usda", ".usdc", ".usdz", ".abc"
+        };
+        std::string base_name = name;
+        for (bool stripped = true; stripped; ) {           // handles x.stl.stl
+            boost::algorithm::trim_if(base_name, boost::is_any_of(". "));   // leading/trailing dots & spaces
+            stripped = false;
+            for (const auto& e : model_exts)
+                if (boost::algorithm::iends_with(base_name, e)) {
+                    base_name.resize(base_name.size() - e.size());
+                    stripped = true;
+                    break;
+                }
+        }
+        if (base_name.empty()) base_name = "object";       // e.g. name was "..."
+        auto path = dir + base_name + ext;
         int n = 1;
         while (boost::filesystem::exists(path))
-            path = dir + name + "(" + std::to_string(n++) + ")"+ext;
+            path = dir + base_name + "(" + std::to_string(n++) + ")"+ext;
         return path;
     };
 
@@ -21110,7 +21205,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
                                                                    flashforge_host,
                                                                    supports_material_station,
                                                                    std::move(slots),
-                                                                   project_filaments);
+                                                                   project_filaments,
+                                                                   cfg.opt_bool("manual_filament_change"));
         } else {
             pDlg = std::make_unique<PrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
                                                          storage_paths, storage_names, config->get_bool("open_device_tab_post_upload"));
@@ -22384,6 +22480,9 @@ void Plater::pop_warning_and_go_to_device_page(wxString printer_name, PrinterWar
         content = _L("There are no filaments on the printer. Please load the filaments on the printer first.");
     } else if (type == PrinterWarningType::EMPTY_FILAMENT) {
         content = _L("The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type.");
+    } else if (type == PrinterWarningType::NO_FILAMENT_SYSTEM) {
+        // TRN %s is the connected printer's name.
+        content = wxString::Format(_L("%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."), printer_name);
     }
     MessageDialog dlg(this, content, title, wxOK | wxFORWARD | wxICON_WARNING, _L("Device Page"));
     auto          result = dlg.ShowModal();

@@ -1,0 +1,44 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PLA @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OFLDtYZA",
+	"instantiation": "false",
+	"filament_vendor": [
+		"PrintaLot"
+	],
+	"filament_type": [
+		"PLA"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"filament_max_volumetric_speed": [
+		"19"
+	],
+	"filament_notes": [
+		"PrintaLot PLA, 1.75 mm."
+	],
+	"filament_adhesiveness_category": [
+		"100"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	]
+}

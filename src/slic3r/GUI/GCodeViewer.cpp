@@ -24,10 +24,10 @@
 #include "FilamentGroupPopup.hpp"
 #include "GLToolbar.hpp"
 #include "libslic3r/BeltTransform.hpp"
-#include "libslic3r/GCode/MachineFrameTransform.hpp"
 #include "MsgDialog.hpp"
 #include <boost/container_hash/hash.hpp>
 #include "slic3r/GUI/MeshUtils.hpp"
+#include <initializer_list>
 #include <set>
 #include <string>
 #include "libvgcode/include/Types.hpp"
@@ -1350,52 +1350,6 @@ std::vector<int> GCodeViewer::get_plater_extruder()
     return m_plater_extruder;
 }
 
-// Belt printers: compute the full machine->model back-transform from the print
-// config, so the "designed" (upright) G-code preview maps each toolpath vertex
-// back to Cartesian space. The G-code forward pipeline is (BeltKinematics::
-// to_machine_coords):  gcode = MachineFrame( AxisRemap( X ) ), with X the model
-// already un-rotated to Cartesian by the back-transform. So the inverse is:
-//   model = AxisRemap^-1 . MachineFrame^-1
-// (origin-snap is a per-instance translation that only shifts position, not
-// orientation, so it is intentionally omitted.)
-static Transform3d compute_belt_back_transform(const PrintConfig& cfg)
-{
-    if (!cfg.belt_printer.value)
-        return Transform3d::Identity();
-
-    MachineFrameTransform mft;
-    mft.init_from_config(cfg);
-    const Transform3d mf_inv = mft.is_active() ? Transform3d(mft.transform().inverse())
-                                               : Transform3d::Identity();
-
-    // Forward G-code axis remap as an affine matrix (out_i = sign * in[r_i % 3], plus a
-    // build-volume offset for Rev axes). This is the matrix form of the per-point
-    // GCodeWriter::apply_axis_remap (row convention: each OUTPUT axis selects an input
-    // axis + sign) and MUST stay in sync with it. The build-volume max matches what the
-    // writer is fed in GCode.cpp (printable_area max + printable_height). (Follow-up:
-    // precompute this matrix once in GCodeWriter and share it with apply_axis_remap to
-    // remove the parallel encoding.)
-    Transform3d ar = Transform3d::Identity();
-    const int rr[3] = { int(cfg.gcode_remap_x.value), int(cfg.gcode_remap_y.value), int(cfg.gcode_remap_z.value) };
-    if (rr[0] != 0 || rr[1] != 1 || rr[2] != 2) {
-        BoundingBoxf bbox_bed(cfg.printable_area.values);
-        const Vec3d vmax(bbox_bed.max.x(), bbox_bed.max.y(), cfg.printable_height.value);
-        Matrix3d M = Matrix3d::Zero();
-        Vec3d    t = Vec3d::Zero();
-        for (int i = 0; i < 3; ++i) {
-            const int axis = rr[i] % 3;
-            if (rr[i] < 3)      M(i, axis) =  1.0;
-            else if (rr[i] < 6) M(i, axis) = -1.0;
-            else              { M(i, axis) = -1.0; t[i] = vmax[axis]; }
-        }
-        ar.linear()      = M;
-        ar.translation() = t;
-    }
-    const Transform3d ar_inv = ar.inverse();
-
-    return ar_inv * mf_inv;
-}
-
 //BBS: always load shell at preview
 void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const Print& print, const std::vector<std::string>& str_tool_colors,
                 const std::vector<std::string>& str_color_print_colors, const BuildVolume& build_volume,
@@ -1469,7 +1423,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // raw machine-frame G-code is shown (useful for checking the transform itself).
     const bool is_belt = m_belt_view_enabled && print.config().belt_printer.value;
     Transform3d belt_inv = (is_belt && m_belt_show_designed)
-        ? compute_belt_back_transform(print.config()) : Transform3d::Identity();
+        ? BeltTransformPipeline::build_gcode_back_transform(print.config()) : Transform3d::Identity();
     // Belt: move positions are stored as gcode_Z + belt_z_origin (the start G-code's
     // purge-blob advance baked into the machine-Z origin by its G92 Z0 resets). Subtract
     // that constant before the linear back-transform so every toolpath maps to the model's
@@ -1565,6 +1519,11 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             const Vec3d d = model_bb.min - tp_bb.min;
             belt_inv = Transform3d(Eigen::Translation3d(d)) * belt_inv;
         }
+        // The masses into the toolpaths' frame.
+        m_plate_mass.transform(belt_inv);
+        for (std::vector<GCodeProcessorResult::ObjectMass>* masses : { &m_object_masses, &m_body_masses, &m_support_masses })
+            for (GCodeProcessorResult::ObjectMass& mass : *masses)
+                mass.transform(belt_inv);
     }
     libvgcode::GCodeInputData data = libvgcode::convert(gcode_result, str_tool_colors, str_color_print_colors, m_viewer,
         apply_belt ? &belt_inv : nullptr);
@@ -2286,34 +2245,17 @@ void GCodeViewer::render_markers(int canvas_width, int canvas_height)
                 // Cache guard. The marker plan below is resolved from preset/plate state only,
                 // so it is rebuilt when that state moves and reused otherwise — the sequential
                 // slider is sticky, and re-resolving the zone layout on every frame of the rest
-                // of the session showed up as a measurable per-frame cost. The comparison is
-                // deliberately made against the live config rather than against a freshly built
-                // key, so an unchanged frame allocates nothing at all.
-                static const std::vector<std::string> s_no_strings;
-                auto* names_opt  = printer_cfg.opt<ConfigOptionStrings>("imex_mode_names");
-                auto* tools_opt  = printer_cfg.opt<ConfigOptionStrings>("imex_mode_active_tools");
-                const std::vector<std::string>& mode_names   = names_opt ? names_opt->values : s_no_strings;
-                const std::vector<std::string>& active_tools = tools_opt ? tools_opt->values : s_no_strings;
+                // of the session showed up as a measurable per-frame cost.
+                ImexMarkerKey::Plate plate;
+                plate.plate_index = plate_list.get_curr_plate_index();
+                plate.bed_min_x   = bed_extents.min.x();
+                plate.bed_min_y   = bed_extents.min.y();
+                plate.bed_max_x   = bed_extents.max.x();
+                plate.bed_max_y   = bed_extents.max.y();
 
-                ImexMarkerKey::Scalars key;
-                key.plate_index      = plate_list.get_curr_plate_index();
-                // Same accessor the plan is built from: a key holding a different fallback than
-                // the value actually laid out would compare equal across a real change.
-                key.gantry_count     = imex_cfg_int(printer_cfg, "imex_gantry_count");
-                key.tools_per_gantry = imex_cfg_int(printer_cfg, "imex_tools_per_gantry");
-                key.tool_layout      = (int)imex_cfg_enum<ImexToolLayout>(printer_cfg, "imex_tool_layout");
-                key.clearance_x      = imex_cfg_float(printer_cfg, "imex_nozzle_clearance_x");
-                key.clearance_y      = imex_cfg_float(printer_cfg, "imex_nozzle_clearance_y");
-                key.firmware_managed = imex_cfg_bool(printer_cfg, "imex_firmware_managed_zones");
-                key.bed_min_x        = bed_extents.min.x();
-                key.bed_min_y        = bed_extents.min.y();
-                key.bed_max_x        = bed_extents.max.x();
-                key.bed_max_y        = bed_extents.max.y();
-
-                if (!(m_imex_marker_key.s == key) || m_imex_marker_key.mode != mode ||
-                    m_imex_marker_key.mode_names != mode_names ||
-                    m_imex_marker_key.mode_active_tools != active_tools) {
-                    m_imex_marker_key = ImexMarkerKey{ key, mode, mode_names, active_tools };
+                const bool layout_changed = update_imex_layout_key(m_imex_marker_key.layout, &printer_cfg, mode);
+                if (layout_changed || !(m_imex_marker_key.plate == plate)) {
+                    m_imex_marker_key.plate = plate;
                     m_imex_marker_plan = resolve_imex_marker_plan(printer_cfg, mode, bed_extents);
                     // The carriage roster — and with it the marker count — can change with any
                     // of those inputs, so drop the markers and let the lazy init below rebuild
@@ -3273,7 +3215,7 @@ void GCodeViewer::render_toolpaths()
     Matrix4f view = camera.get_view_matrix().matrix().cast<float>();
     // Belt "designed" (upright) view is produced by back-transforming the toolpath
     // GEOMETRY into model space at load time (see load_as_gcode ->
-    // compute_belt_back_transform -> libvgcode::convert). The camera is left untouched
+    // BeltTransformPipeline::build_gcode_back_transform -> libvgcode::convert). The camera is left untouched
     // here; transforming the view as well would double-apply the inverse. Baking the
     // transform into the geometry (not the camera) also keeps the bed and toolpaths in
     // the same frame so they stay aligned.

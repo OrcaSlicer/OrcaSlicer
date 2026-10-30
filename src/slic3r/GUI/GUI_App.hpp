@@ -23,6 +23,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r_version.h"
 #include "slic3r/GUI/UserNotification.hpp"
+#include "slic3r/Utils/CloudDeleteQueue.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include "libslic3r/Point.hpp"
 
@@ -330,7 +331,7 @@ private:
     Slic3r::UserManager* m_user_manager { nullptr };
     Slic3r::TaskManager* m_task_manager { nullptr };
     NetworkAgent* m_agent { nullptr };
-    std::map<std::string, std::string> need_delete_presets;   // store setting ids of preset
+    CloudDeleteQueue m_cloud_delete_queue; // cloud deletes of synced presets, sent by the preset sync thread
     std::vector<bool> m_create_preset_blocked { false, false, false, false, false, false }; // excceed limit
     std::vector<std::string> m_pending_conflict_setting_ids; // setting_id from the most recent 409 conflict
     bool m_networking_compatible { false };
@@ -709,13 +710,12 @@ public:
     bool            checked_tab(Tab* tab);
     //BBS: add preset combox re-active logic
     void            load_current_presets(bool active_preset_combox = false, bool check_printer_presets = true);
-    std::map<std::string, std::string> &get_delete_cache_presets();
-    std::map<std::string, std::string> get_delete_cache_presets_lock();
     void            process_delete_presets();
-    void            delete_preset_from_cloud(std::string setting_id, std::string preset_file_path);
-    void            preset_deleted_from_cloud(std::string setting_id);
+    // Queues the cloud delete of a user preset synced to the signed-in account; any other preset is ignored.
+    void            delete_preset_from_cloud(const Preset& preset);
     void            scan_orphaned_info_files();
-    static std::string extract_setting_id_from_info(const std::string& info_file_path);
+    // Changes whenever the signed-in account whose presets are loaded changes.
+    uint64_t        user_preset_session() const { return m_cloud_delete_queue.generation(); }
 
     wxString        filter_string(wxString str);
 	wxString        current_language_code() const { return m_active_language_code.empty() && m_wxLocale ? m_wxLocale->GetCanonicalName() : m_active_language_code; }
