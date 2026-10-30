@@ -6317,6 +6317,14 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
 
     auto & list = wxGetApp().preset_bundle->filament_ams_list;
     if (list.empty()) {
+        // Only an unreachable printer is "not connected". One that is online and has
+        // delivered at least one status push answered the request without listing any
+        // filament slot, and the message then names the machine that answered.
+        if (obj->is_connected() && obj->m_push_count > 0) {
+            p->plater->pop_warning_and_go_to_device_page(from_u8(obj->get_dev_name()), Plater::PrinterWarningType::NO_FILAMENT_SYSTEM,
+                                                         _L("Sync printer information"));
+            return;
+        }
         auto printer_name = p->plater->get_selected_printer_name_in_combox();
         p->plater->pop_warning_and_go_to_device_page(printer_name, Plater::PrinterWarningType::NOT_CONNECTED, _L("Sync printer information"));
         return;
@@ -10906,13 +10914,6 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
     // clear_objects() only drops the ModelObjects; the CAD recipe is Model-level state and would
     // otherwise be written into every project saved for the rest of the session.
     model.cad_recipe.clear();
-#ifdef SLIC3R_CAD
-    // Same reason, one level up: the Design tab keeps the editable document, not the Model, so
-    // clearing the recipe alone leaves the tab showing the previous project's feature tree —
-    // and its next edit syncs that tree straight back into the new project.
-    if (DesignPanel* design = DesignPanel::if_built())
-        design->clear_document();
-#endif
     assemble_view->get_canvas3d()->reset_explosion_ratio();
     update();
 
@@ -10922,6 +10923,17 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
         sidebar->obj_list()->delete_all_objects_from_list();
         object_list_changed();
     }
+
+#ifdef SLIC3R_CAD
+    // Same reason as the recipe, one level up: the Design tab keeps the editable document, not
+    // the Model, so clearing the recipe alone leaves the tab showing the previous project's
+    // feature tree — and its next edit syncs that tree straight back into the new project.
+    // It runs only once the scene is rebuilt: clearing hands the keyboard to the Design canvas,
+    // and when the app has no focus that activates the main window, whose 3D view repaints on
+    // the spot. Before update() that repaint picks against the plates reinit() deleted.
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->clear_document();
+#endif
 
     project.reset();
 
@@ -22468,6 +22480,9 @@ void Plater::pop_warning_and_go_to_device_page(wxString printer_name, PrinterWar
         content = _L("There are no filaments on the printer. Please load the filaments on the printer first.");
     } else if (type == PrinterWarningType::EMPTY_FILAMENT) {
         content = _L("The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type.");
+    } else if (type == PrinterWarningType::NO_FILAMENT_SYSTEM) {
+        // TRN %s is the connected printer's name.
+        content = wxString::Format(_L("%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."), printer_name);
     }
     MessageDialog dlg(this, content, title, wxOK | wxFORWARD | wxICON_WARNING, _L("Device Page"));
     auto          result = dlg.ShowModal();

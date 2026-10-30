@@ -10694,6 +10694,12 @@ void DynamicPrintConfig::set_num_filaments(unsigned int num_filaments)
             // Don't resize this field, as it is presented to the user at the "Dependencies" page of the Printer profile and we don't want to present
             // empty fields there, if not defined by the system profile.
             continue;
+        // A variant-bearing key holds one value per (slot, variant): its length is the preset's
+        // variant list, not the filament count. Resizing it here truncated every variant but the
+        // first, which the readers then hid by clamping to the first value. Preset::normalize
+        // skips the same keys in its own pass below this call.
+        if (filament_options_with_variant.count(key) != 0)
+            continue;
         auto* opt = this->option(key, false);
         assert(opt != nullptr);
         assert(opt->is_vector());
@@ -13427,9 +13433,9 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
     def->label = L("Print time (normal mode)");
     def->tooltip = L("Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time.");
 
-    //def = this->add("printing_filament_types", coString);
-    //def->label = L("Used filament types");
-    //def->tooltip = L("Comma-separated list of all filament types used during the print.");
+    def = this->add("printing_filament_types", coString);
+    def->label = L("Used filament types");
+    def->tooltip = L("Underscore-separated list of all filament types used during the print.");
 
     def = this->add("silent_print_time", coString);
     def->label = L("Print time (silent mode)");
