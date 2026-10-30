@@ -11450,7 +11450,18 @@ msgstr "Filamento mixto - se publica como un conjunto cuando se selecciona \"Hab
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Publicar este filamento mixto y habilitar + publicar completamente sus filamentos componentes"
 
-msgid "Publish this filament slot's color and material type in the 3MF file"
+msgctxt "Publish"
+msgid "Color"
+msgstr ""
+
+msgid "Publish this filament slot's color in the 3MF file"
+msgstr ""
+
+msgctxt "Publish"
+msgid "Type"
+msgstr ""
+
+msgid "Publish this filament slot's material type in the 3MF file"
 msgstr ""
 
 # AI Translated
@@ -11515,7 +11526,7 @@ msgstr "El perfil \"%1%\" ya existe y es incompatible con la impresora actual."
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Tenga en cuenta que la acción de guardar reemplazará este perfil."
 
-msgid "control characters are not allowed."
+msgid "Name is invalid;\ncontrol characters are not allowed."
 msgstr ""
 
 msgid "The name is a reserved system name."
@@ -22246,6 +22257,7 @@ msgstr ""
 "Valores posibles:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
 
+#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
 #, boost-format
 msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
 msgstr ""
@@ -37193,28 +37205,3 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
-
-#~ msgid "Subdivision mesh (Lost color)"
-#~ msgstr "Subdivisión de malla (Color perdido)"
-
-#~ msgid "Storage needs to be inserted before sending to printer."
-#~ msgstr "Es necesario insertar el almacenamiento antes de enviar a la impresora."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% needs %2%, which is not enabled."
-#~ msgstr "%1% necesita %2%, que no está habilitado."
-
-# AI Translated
-#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-#~ msgstr "Para publicar un filamento mixto, habilite todos los filamentos que utiliza y elija Publicación completa o cumpla su requisito de Tipo."
-
-# AI Translated
-#~ msgid "Publish this filament slot in the 3MF file"
-#~ msgstr "Publicar esta ranura de filamento en el archivo 3MF"
-
-#~ msgid "Storage needs to be inserted before printing."
-#~ msgstr "Es necesario insertar un dispositivo de almacenamiento antes de imprimir."
-
-#~ msgid "Storage needs to be inserted before send to printer."
-#~ msgstr "Es necesario insertar el almacenamiento antes de enviarlo a la impresora."

@@ -11557,7 +11557,18 @@ msgstr "Filamentu nahasia - osorik argitaratzen da goian \"Gaitu\" hautatuta dag
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Argitaratu filamentu nahasi hau eta gaitu + argitaratu osorik bere osagai diren filamentuak"
 
-msgid "Publish this filament slot's color and material type in the 3MF file"
+msgctxt "Publish"
+msgid "Color"
+msgstr ""
+
+msgid "Publish this filament slot's color in the 3MF file"
+msgstr ""
+
+msgctxt "Publish"
+msgid "Type"
+msgstr ""
+
+msgid "Publish this filament slot's material type in the 3MF file"
 msgstr ""
 
 # AI Translated
@@ -11622,7 +11633,7 @@ msgstr "\"%1%\" aurrezarpena badago lehendik eta ez da bateragarria uneko inprim
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Kontuan izan gordetzeak uneko aurrezarpena gainidatziko duela."
 
-msgid "control characters are not allowed."
+msgid "Name is invalid;\ncontrol characters are not allowed."
 msgstr ""
 
 msgid "The name is a reserved system name."
@@ -22460,6 +22471,7 @@ msgstr ""
 "Balio posibleak:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
 
+#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
 #, boost-format
 msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
 msgstr ""
@@ -37441,28 +37453,3 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
-
-#~ msgid "Subdivision mesh (Lost color)"
-#~ msgstr "Azpibanaketa-sarea (Kolorea galdu da)"
-
-#~ msgid "Storage needs to be inserted before sending to printer."
-#~ msgstr "Biltegiratze-gailu bat sartu behar da inprimagailura bidali aurretik."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% needs %2%, which is not enabled."
-#~ msgstr "%1% filamentuak %2% behar du, baina ez dago gaituta."
-
-# AI Translated
-#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-#~ msgstr "Filamentu nahasi bat argitaratzeko, gaitu erabiltzen dituen filamentu guztiak eta hautatu Argitalpen osoa edo bete bere Mota baldintza."
-
-# AI Translated
-#~ msgid "Publish this filament slot in the 3MF file"
-#~ msgstr "Argitaratu filamentu-erreten hau 3MF fitxategian"
-
-#~ msgid "Storage needs to be inserted before printing."
-#~ msgstr "Biltegiratze-gailua sartu behar da inprimatu aurretik."
-
-#~ msgid "Storage needs to be inserted before send to printer."
-#~ msgstr "Biltegiratze-gailua sartu behar da inprimagailura bidali aurretik."

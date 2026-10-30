@@ -12328,7 +12328,18 @@ msgstr "Filament pha trộn - được xuất bản trọn bộ khi chọn \"B�
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Xuất bản filament pha trộn này và bật + xuất bản đầy đủ các filament thành phần của nó"
 
-msgid "Publish this filament slot's color and material type in the 3MF file"
+msgctxt "Publish"
+msgid "Color"
+msgstr ""
+
+msgid "Publish this filament slot's color in the 3MF file"
+msgstr ""
+
+msgctxt "Publish"
+msgid "Type"
+msgstr ""
+
+msgid "Publish this filament slot's material type in the 3MF file"
 msgstr ""
 
 # AI Translated
@@ -12394,7 +12405,7 @@ msgstr "Preset \"%1%\" đã tồn tại và không tương thích với máy in 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Vui lòng lưu ý rằng việc lưu sẽ ghi đè preset này."
 
-msgid "control characters are not allowed."
+msgid "Name is invalid;\ncontrol characters are not allowed."
 msgstr ""
 
 msgid "The name is a reserved system name."
@@ -23680,6 +23691,7 @@ msgstr ""
 "Giá trị có thể có:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
 
+#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
 #, boost-format
 msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
 msgstr ""
@@ -38899,32 +38911,3 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
-
-# AI Translated
-#~ msgid "Subdivision mesh (Lost color)"
-#~ msgstr "Chia nhỏ lưới (Mất màu)"
-
-# AI Translated
-#~ msgid "Storage needs to be inserted before sending to printer."
-#~ msgstr "Cần lắp Bộ nhớ trước khi gửi đến máy in."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% needs %2%, which is not enabled."
-#~ msgstr "%1% cần %2%, nhưng filament này chưa được bật."
-
-# AI Translated
-#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-#~ msgstr "Để xuất bản một filament pha trộn, hãy bật mọi filament mà nó sử dụng rồi chọn Xuất bản đầy đủ, hoặc đáp ứng yêu cầu Loại của nó."
-
-# AI Translated
-#~ msgid "Publish this filament slot in the 3MF file"
-#~ msgstr "Xuất bản khe filament này trong tệp 3MF"
-
-# AI Translated
-#~ msgid "Storage needs to be inserted before printing."
-#~ msgstr "Cần lắp bộ nhớ trước khi in."
-
-# AI Translated
-#~ msgid "Storage needs to be inserted before send to printer."
-#~ msgstr "Cần lắp bộ nhớ trước khi gửi đến máy in."

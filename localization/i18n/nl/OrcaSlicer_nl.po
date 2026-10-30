@@ -12629,7 +12629,18 @@ msgstr "Gemengd filament - wordt als geheel gepubliceerd wanneer hierboven \"Ins
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Dit gemengde filament publiceren en de samenstellende filamenten inschakelen + volledig publiceren"
 
-msgid "Publish this filament slot's color and material type in the 3MF file"
+msgctxt "Publish"
+msgid "Color"
+msgstr ""
+
+msgid "Publish this filament slot's color in the 3MF file"
+msgstr ""
+
+msgctxt "Publish"
+msgid "Type"
+msgstr ""
+
+msgid "Publish this filament slot's material type in the 3MF file"
 msgstr ""
 
 # AI Translated
@@ -12695,7 +12706,7 @@ msgstr "Voorinstelling \"%1%\" bestaat al en is niet compatibel met de huidige p
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Let er aub op dat opslaan de voorinstelling zal overschrijven"
 
-msgid "control characters are not allowed."
+msgid "Name is invalid;\ncontrol characters are not allowed."
 msgstr ""
 
 msgid "The name is a reserved system name."
@@ -24704,6 +24715,7 @@ msgstr ""
 "Mogelijke waarden:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
 
+#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
 #, boost-format
 msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
 msgstr ""
@@ -40116,32 +40128,3 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
-
-# AI Translated
-#~ msgid "Subdivision mesh (Lost color)"
-#~ msgstr "Onderverdelingsmesh (Kleur verloren)"
-
-# AI Translated
-#~ msgid "Storage needs to be inserted before sending to printer."
-#~ msgstr "Er moet een opslagmedium worden geplaatst voordat u naar de printer verzendt."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% needs %2%, which is not enabled."
-#~ msgstr "%1% heeft %2% nodig, dat niet is ingeschakeld."
-
-# AI Translated
-#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-#~ msgstr "Om een gemengd filament te publiceren, schakel je elk filament in dat het gebruikt en kies je Volledig publiceren of voldoe je aan de Type-vereiste ervan."
-
-# AI Translated
-#~ msgid "Publish this filament slot in the 3MF file"
-#~ msgstr "Deze filamentsleuf publiceren in het 3MF-bestand"
-
-# AI Translated
-#~ msgid "Storage needs to be inserted before printing."
-#~ msgstr "Er moet een opslagmedium worden geplaatst voordat u kunt printen."
-
-# AI Translated
-#~ msgid "Storage needs to be inserted before send to printer."
-#~ msgstr "Er moet een opslagmedium worden geplaatst voordat u naar de printer verzendt."

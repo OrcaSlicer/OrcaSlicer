@@ -12187,7 +12187,18 @@ msgstr "混合耗材丝：在上方选择“开启”后将整体发布"
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "发布此混合耗材丝，并对其组成耗材丝勾选“开启”和“完整发布”"
 
-msgid "Publish this filament slot's color and material type in the 3MF file"
+msgctxt "Publish"
+msgid "Color"
+msgstr ""
+
+msgid "Publish this filament slot's color in the 3MF file"
+msgstr ""
+
+msgctxt "Publish"
+msgid "Type"
+msgstr ""
+
+msgid "Publish this filament slot's material type in the 3MF file"
 msgstr ""
 
 # AI Translated
@@ -12253,7 +12264,7 @@ msgstr "预设“%1%”已存在，并且和当前打印机不兼容。"
 msgid "Please note that saving will overwrite the current preset."
 msgstr "请注意，保存操作将覆盖此预设。"
 
-msgid "control characters are not allowed."
+msgid "Name is invalid;\ncontrol characters are not allowed."
 msgstr ""
 
 msgid "The name is a reserved system name."
@@ -23799,6 +23810,7 @@ msgstr ""
 "可能的值：\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
 
+#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
 #, boost-format
 msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
 msgstr ""
@@ -39014,30 +39026,3 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
-
-#~ msgid "Subdivision mesh (Lost color)"
-#~ msgstr "细分网格（颜色会丢失）"
-
-#~ msgid "Storage needs to be inserted before sending to printer."
-#~ msgstr "请在插入存储器后再发送打印任务。"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% needs %2%, which is not enabled."
-#~ msgstr "%1% 需要 %2%，但它未开启。"
-
-# AI Translated
-#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-#~ msgstr "要发布混合耗材丝，请开启它所使用的每一种耗材丝，并选择“完整发布”或勾选其“类型”要求。"
-
-# AI Translated
-#~ msgid "Publish this filament slot in the 3MF file"
-#~ msgstr "在 3MF 文件中发布此耗材丝槽位"
-
-# AI Translated
-#~ msgid "Storage needs to be inserted before printing."
-#~ msgstr "打印前需要插入存储设备。"
-
-# AI Translated
-#~ msgid "Storage needs to be inserted before send to printer."
-#~ msgstr "发送到打印机前需要插入存储设备。"

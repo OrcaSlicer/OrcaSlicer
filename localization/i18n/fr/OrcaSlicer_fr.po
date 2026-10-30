@@ -11711,7 +11711,18 @@ msgstr "Filament mixte - publié dans son ensemble lorsque « Activer » est coc
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Publier ce filament mixte, puis activer + publier entièrement ses filaments composants"
 
-msgid "Publish this filament slot's color and material type in the 3MF file"
+msgctxt "Publish"
+msgid "Color"
+msgstr ""
+
+msgid "Publish this filament slot's color in the 3MF file"
+msgstr ""
+
+msgctxt "Publish"
+msgid "Type"
+msgstr ""
+
+msgid "Publish this filament slot's material type in the 3MF file"
 msgstr ""
 
 # AI Translated
@@ -11776,7 +11787,7 @@ msgstr "Le préréglage \"%1%\" existe déjà et est incompatible avec l'imprima
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Veuillez noter que l’enregistrement écrasera ce préréglage."
 
-msgid "control characters are not allowed."
+msgid "Name is invalid;\ncontrol characters are not allowed."
 msgstr ""
 
 msgid "The name is a reserved system name."
@@ -22680,6 +22691,7 @@ msgstr ""
 "Valeurs possibles :\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
 
+#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
 #, boost-format
 msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
 msgstr ""
@@ -37367,28 +37379,3 @@ msgid ""
 msgstr ""
 "Éviter la déformation\n"
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se déformer, tels que l’ABS, une augmentation appropriée de la température du plateau chauffant peut réduire la probabilité de déformation?"
-
-#~ msgid "Subdivision mesh (Lost color)"
-#~ msgstr "Maillage par subdivision (Couleur perdue)"
-
-#~ msgid "Storage needs to be inserted before sending to printer."
-#~ msgstr "Un stockage doit être inséré avant d'envoyer à l'imprimante."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% needs %2%, which is not enabled."
-#~ msgstr "%1% nécessite %2%, qui n'est pas activé."
-
-# AI Translated
-#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-#~ msgstr "Pour publier un filament mixte, activez chacun des filaments qu'il utilise et choisissez Publication complète ou satisfaites son exigence de Type."
-
-# AI Translated
-#~ msgid "Publish this filament slot in the 3MF file"
-#~ msgstr "Publier cet emplacement de filament dans le fichier 3MF"
-
-#~ msgid "Storage needs to be inserted before printing."
-#~ msgstr "Un stockage doit être inséré avant d'imprimer."
-
-#~ msgid "Storage needs to be inserted before send to printer."
-#~ msgstr "Un stockage doit être inséré avant d'envoyer à l'imprimante."

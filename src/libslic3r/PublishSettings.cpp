@@ -239,6 +239,7 @@ std::string publish_variant_notice(const DynamicPrintConfig &uncompacted, size_t
     if (resolved.exact || !resolved.file_column.has_value() || resolved.required_variant.empty() ||
         resolved.used_variant.empty())
         return std::string();
+    // TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
     return (boost::format(L("Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. "
                             "Publishing the values printed with \"%3%\".")) %
             (slot + 1) % resolved.required_variant % resolved.used_variant)

@@ -11727,7 +11727,18 @@ msgstr "เส้นพลาสติกผสม - จะได้รับก
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "เผยแพร่เส้นพลาสติกผสมนี้ พร้อมเลือก \"เปิดใช้\" และ \"เผยแพร่ทั้งหมด (Full Publish)\" ให้เส้นพลาสติกที่เป็นส่วนประกอบ"
 
-msgid "Publish this filament slot's color and material type in the 3MF file"
+msgctxt "Publish"
+msgid "Color"
+msgstr ""
+
+msgid "Publish this filament slot's color in the 3MF file"
+msgstr ""
+
+msgctxt "Publish"
+msgid "Type"
+msgstr ""
+
+msgid "Publish this filament slot's material type in the 3MF file"
 msgstr ""
 
 # AI Translated
@@ -11792,7 +11803,7 @@ msgstr "ค่าที่ตั้งไว้ล่วงหน้า \"%1%\" 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "โปรดทราบว่าการบันทึกจะเขียนทับค่าที่ตั้งล่วงหน้านี้"
 
-msgid "control characters are not allowed."
+msgid "Name is invalid;\ncontrol characters are not allowed."
 msgstr ""
 
 msgid "The name is a reserved system name."
@@ -22920,6 +22931,7 @@ msgstr ""
 "ค่าที่เป็นไปได้:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
 
+#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
 #, boost-format
 msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
 msgstr ""
@@ -37925,28 +37937,3 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
-
-#~ msgid "Subdivision mesh (Lost color)"
-#~ msgstr "แบ่งตาข่าย (สีที่หายไป)"
-
-#~ msgid "Storage needs to be inserted before sending to printer."
-#~ msgstr "ต้องใส่ที่เก็บข้อมูลก่อนที่จะส่งไปยังเครื่องพิมพ์"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% needs %2%, which is not enabled."
-#~ msgstr "%1% ต้องใช้ %2% แต่ยังไม่ได้เปิดใช้"
-
-# AI Translated
-#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-#~ msgstr "หากต้องการเผยแพร่เส้นพลาสติกผสม ให้เลือก \"เปิดใช้\" สำหรับเส้นพลาสติกทุกเส้นที่เป็นส่วนประกอบ แล้วเลือก \"เผยแพร่ทั้งหมด (Full Publish)\" หรือทำเครื่องหมายที่ข้อกำหนด \"ชนิด\" ของแต่ละเส้น"
-
-# AI Translated
-#~ msgid "Publish this filament slot in the 3MF file"
-#~ msgstr "เผยแพร่ช่องเส้นพลาสติกนี้ในไฟล์ 3MF"
-
-#~ msgid "Storage needs to be inserted before printing."
-#~ msgstr "ต้องใส่ที่เก็บข้อมูลก่อนพิมพ์"
-
-#~ msgid "Storage needs to be inserted before send to printer."
-#~ msgstr "ต้องใส่ที่เก็บข้อมูลก่อนส่งไปยังเครื่องพิมพ์"

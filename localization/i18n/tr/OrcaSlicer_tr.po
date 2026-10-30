@@ -11851,7 +11851,18 @@ msgstr "Karışık filament - yukarıdaki \"Aktif et\" seçildiğinde bir bütü
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Bu karışık filamenti yayınla ve bileşen filamentlerini etkinleştir + tam olarak yayınla"
 
-msgid "Publish this filament slot's color and material type in the 3MF file"
+msgctxt "Publish"
+msgid "Color"
+msgstr ""
+
+msgid "Publish this filament slot's color in the 3MF file"
+msgstr ""
+
+msgctxt "Publish"
+msgid "Type"
+msgstr ""
+
+msgid "Publish this filament slot's material type in the 3MF file"
 msgstr ""
 
 # AI Translated
@@ -11916,7 +11927,7 @@ msgstr "\"%1%\" ön ayarı zaten mevcut ve mevcut yazıcıyla uyumlu değil."
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Kaydetme eyleminin bu ön ayarın yerini alacağını lütfen unutmayın."
 
-msgid "control characters are not allowed."
+msgid "Name is invalid;\ncontrol characters are not allowed."
 msgstr ""
 
 msgid "The name is a reserved system name."
@@ -23051,6 +23062,7 @@ msgstr ""
 "Olası değerler:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
 
+#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
 #, boost-format
 msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
 msgstr ""
@@ -38246,28 +38258,3 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
-
-#~ msgid "Subdivision mesh (Lost color)"
-#~ msgstr "Poligon artırma (Renk kaybı)"
-
-#~ msgid "Storage needs to be inserted before sending to printer."
-#~ msgstr "Yazıcıya göndermeden önce depolama biriminin eklenmesi gerekir."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% needs %2%, which is not enabled."
-#~ msgstr "%1% için %2% gerekiyor, ancak o etkin değil."
-
-# AI Translated
-#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-#~ msgstr "Bir karışık filamenti yayınlamak için kullandığı her filamenti etkinleştirin ve Tam Yayınlama'yı seçin ya da Tür gereksinimini karşılayın."
-
-# AI Translated
-#~ msgid "Publish this filament slot in the 3MF file"
-#~ msgstr "Bu filament yuvasını 3MF dosyasında yayınla"
-
-#~ msgid "Storage needs to be inserted before printing."
-#~ msgstr "Yazdırmadan önce depolamanın eklenmesi gerekir."
-
-#~ msgid "Storage needs to be inserted before send to printer."
-#~ msgstr "Yazıcıya gönderilmeden önce depolama biriminin eklenmesi gerekir."

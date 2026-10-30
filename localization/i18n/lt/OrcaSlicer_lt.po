@@ -11781,7 +11781,18 @@ msgstr "Mišri gija - talpinama kaip visuma, kai viršuje pasirinkta \"Įjungti\
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Talpinti šią mišrią giją ir įjungti + pilnai patalpinti jos sudedamąsias gijas"
 
-msgid "Publish this filament slot's color and material type in the 3MF file"
+msgctxt "Publish"
+msgid "Color"
+msgstr ""
+
+msgid "Publish this filament slot's color in the 3MF file"
+msgstr ""
+
+msgctxt "Publish"
+msgid "Type"
+msgstr ""
+
+msgid "Publish this filament slot's material type in the 3MF file"
 msgstr ""
 
 # AI Translated
@@ -11846,7 +11857,7 @@ msgstr "Profilis „%1%“ jau egzistuoja ir yra nesuderinamas su dabartiniu spa
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Atkreipkite dėmesį, kad išsaugojus bus perrašytas šis profilis."
 
-msgid "control characters are not allowed."
+msgid "Name is invalid;\ncontrol characters are not allowed."
 msgstr ""
 
 msgid "The name is a reserved system name."
@@ -22829,6 +22840,7 @@ msgstr ""
 "Galimos reikšmės:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
 
+#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
 #, boost-format
 msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
 msgstr ""
@@ -37922,28 +37934,3 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
-
-#~ msgid "Subdivision mesh (Lost color)"
-#~ msgstr "Skaidomas paviršius (Prarasta spalva)"
-
-#~ msgid "Storage needs to be inserted before sending to printer."
-#~ msgstr "Prieš siunčiant užduotį į spausdintuvą, būtina įdėti atminties laikmeną."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% needs %2%, which is not enabled."
-#~ msgstr "%1% reikalauja %2%, kuri nėra įjungta."
-
-# AI Translated
-#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-#~ msgstr "Norėdami patalpinti mišrią giją, įjunkite kiekvieną jos naudojamą giją ir pasirinkite Pilną talpinimą arba įvykdykite jos Tipo reikalavimą."
-
-# AI Translated
-#~ msgid "Publish this filament slot in the 3MF file"
-#~ msgstr "Talpinti šį gijos lizdą 3MF faile"
-
-#~ msgid "Storage needs to be inserted before printing."
-#~ msgstr "Prieš spausdinant būtina įdėti laikmeną."
-
-#~ msgid "Storage needs to be inserted before send to printer."
-#~ msgstr "Prieš siunčiant į spausdintuvą, būtina įdėti laikmeną."

@@ -11943,7 +11943,18 @@ msgstr "혼합 필라멘트 - 위에서 \"활성화\"를 선택하면 전체가 
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "이 혼합 필라멘트를 게시하고 구성 필라멘트를 활성화 + 전체 게시합니다"
 
-msgid "Publish this filament slot's color and material type in the 3MF file"
+msgctxt "Publish"
+msgid "Color"
+msgstr ""
+
+msgid "Publish this filament slot's color in the 3MF file"
+msgstr ""
+
+msgctxt "Publish"
+msgid "Type"
+msgstr ""
+
+msgid "Publish this filament slot's material type in the 3MF file"
 msgstr ""
 
 # AI Translated
@@ -12009,7 +12020,7 @@ msgstr "%1% 사전 설정이 이미 있으며 현재 프린터와 호환되지 �
 msgid "Please note that saving will overwrite the current preset."
 msgstr "저장 작업이 이 사전 설정을 대체합니다"
 
-msgid "control characters are not allowed."
+msgid "Name is invalid;\ncontrol characters are not allowed."
 msgstr ""
 
 msgid "The name is a reserved system name."
@@ -23283,6 +23294,7 @@ msgstr ""
 "가능한 값:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
 
+#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
 #, boost-format
 msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
 msgstr ""
@@ -38458,28 +38470,3 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
-
-#~ msgid "Subdivision mesh (Lost color)"
-#~ msgstr "서브디비전 메쉬 (색상 손실)"
-
-#~ msgid "Storage needs to be inserted before sending to printer."
-#~ msgstr "프린터에 보내기 전에 저장 장치를 삽입해야 합니다."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% needs %2%, which is not enabled."
-#~ msgstr "%1%에는 %2%이(가) 필요하지만 활성화되어 있지 않습니다."
-
-# AI Translated
-#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-#~ msgstr "혼합 필라멘트를 게시하려면 사용하는 모든 필라멘트를 활성화하고 전체 게시를 선택하거나 유형 요구 사항을 충족하세요."
-
-# AI Translated
-#~ msgid "Publish this filament slot in the 3MF file"
-#~ msgstr "이 필라멘트 슬롯을 3MF 파일에 게시합니다"
-
-#~ msgid "Storage needs to be inserted before printing."
-#~ msgstr "출력하기 전에 저장소를 삽입해야 합니다."
-
-#~ msgid "Storage needs to be inserted before send to printer."
-#~ msgstr "프린터로 보내기 전에 저장소를 삽입해야 합니다."
