@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 11:58-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -1974,18 +1974,18 @@ msgid "Selection 1"
 msgstr "선택 1"
 
 msgid ""
-"Select 2 faces on objects and \n"
-" make objects assemble together."
+"Select 2 faces on objects and\n"
+"make objects assemble together."
 msgstr ""
 "객체에서 2개의 면을 선택하고\n"
-" 객체를 함께 조립합니다."
+"객체를 함께 조립합니다."
 
 msgid ""
-"Select 2 points or circles on objects and \n"
-" specify distance between them."
+"Select 2 points or circles on objects and\n"
+"specify distance between them."
 msgstr ""
 "객체 위의 점이나 원 2개를 선택하고\n"
-" 그들 사이의 거리를 지정하십시오."
+"그들 사이의 거리를 지정하십시오."
 
 # AI Translated
 msgid "Selection 2"
@@ -2074,7 +2074,7 @@ msgstr "경고: 점 또는 원의 특징을 선택하십시오."
 # AI Translated
 msgid ""
 "It is recommended to assemble objects first,\n"
-"because they are restricted to the bed \n"
+"because they are restricted to the bed\n"
 "and only parts can be lifted."
 msgstr ""
 "먼저 객체를 조립하는 것이 좋습니다.\n"
@@ -2273,6 +2273,18 @@ msgstr "비밀번호가 다릅니다"
 #, c-format, boost-format
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "%s 연결 실패! [SN:%s, code=%s]"
+
+# AI Translated
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr "프린터가 이 컴퓨터와 같은 네트워크에 있는지, IP 주소가 올바른지 확인하세요."
+
+# AI Translated
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr "그래도 연결에 실패하면 기본 설정에서 다른 네트워크 플러그인 버전을 사용해 보세요."
+
+# AI Translated
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr "'printer.cer'의 TLS/CA 인증서가 없거나 손상된 경우에도 이 오류가 발생할 수 있습니다."
 
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
@@ -3278,8 +3290,10 @@ msgstr "이름"
 msgid "All Plates"
 msgstr "전체 플레이트"
 
+# AI Translated
+# Needs human review: Submenu of the plate context menu that sorts objects in the object list by name, filament, height or size; it sits right below 'Arrange' (정렬). Check the two read as different commands.
 msgid "Order By"
-msgstr ""
+msgstr "정렬 기준"
 
 # AI Translated
 msgid "Fix All"
@@ -3333,8 +3347,9 @@ msgstr "복제"
 msgid "Simplify Model"
 msgstr "모델 단순화"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "서브디비전 메쉬 (색상 손실)"
+# AI Translated
+msgid "Subdivision mesh"
+msgstr "메시 세분화"
 
 msgid "Center"
 msgstr "중앙"
@@ -3490,6 +3505,25 @@ msgstr "오류!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "현재 파일에서 모델의 데이터를 가져오지 못했습니다."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+# AI Translated
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr "내부 직경"
+
+# AI Translated
+msgid "Tube diameter"
+msgstr "튜브 직경"
 
 # AI Translated
 msgid "Add primitive"
@@ -4411,8 +4445,9 @@ msgstr "SD 카드로 G-code 파일 전송 중"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "성공적으로 보냈습니다. %s초 내에 현재 페이지가 닫힙니다"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "프린터에 보내기 전에 저장 장치를 삽입해야 합니다."
+# AI Translated
+msgid "Insert storage or free up space before sending to the printer."
+msgstr "프린터로 전송하기 전에 저장 장치를 삽입하거나 공간을 확보하세요."
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "LAN을 통해 G-code 파일을 보내는 중이지만 프린터의 저장 장치에 이상이 있어 인쇄 문제가 발생할 수 있습니다."
@@ -5385,137 +5420,182 @@ msgstr ""
 "예 - 아라크네 벽 생성기 활성화\n"
 "아니오 - 아라크네 벽 생성기 비활성화 및 퍼지 스킨 [변위] 모드 설정"
 
+# AI Translated
 msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
-msgstr ""
+msgstr "'유연한 압출량'을 사용하려면 최대 체적 압출 속도 기울기를 0보다 크게 설정하세요."
 
+# AI Translated
+# Needs human review: Glossary cell for Arc fitting (원호 맞춤) is marked unsettled; it matches the setting's label.
 msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
-msgstr ""
+msgstr "벨트 프린터에서나 '유연한 압출량'을 활성화한 경우에는 '원호 맞춤'을 사용할 수 없습니다."
 
+# AI Translated
 msgid "Set wall loops above zero to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '벽 루프' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "This setting is hidden because sparse infill density is zero."
-msgstr ""
+msgstr "'드문 채우기 밀도'가 0이므로 이 설정은 숨겨집니다."
 
+# AI Translated
 msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
-msgstr ""
+msgstr "채우기 고정점을 사용하려면 '드문 채우기 밀도'가 0보다 크고 패턴이 '동심' 또는 '나선형 인셋'이 아니어야 합니다."
 
+# AI Translated
 msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
-msgstr ""
+msgstr "이 설정을 표시하려면 '채우기 결합'을 활성화하고 '드문 채우기 밀도'를 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "'드문 채우기 밀도'가 0보다 크고 100% 미만인 상태에서 '자이로이드', 'TPMS-D' 또는 'TPMS-FK' 채우기를 선택하세요."
 
+# AI Translated
 msgid "Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "'드문 채우기 밀도'가 0보다 크고 100% 미만인 '자이로이드', 'TPMS-D' 또는 'TPMS-FK' 채우기에서 '적응형 밀도'를 활성화하세요."
 
+# AI Translated
 msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '드문 채우기 밀도'가 0보다 큰 '자이로이드' 채우기를 선택하고 '적응형 밀도'를 비활성화하세요."
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support multiline infill."
-msgstr ""
+msgstr "선택한 드문 채우기 패턴은 '다중 선 채우기'를 지원하지 않습니다."
 
+# AI Translated
 msgid "The Line infill pattern does not support infill anchors."
-msgstr ""
+msgstr "'선' 채우기 패턴은 채우기 고정점을 지원하지 않습니다."
 
+# AI Translated
 msgid "Select an infill pattern other than Line and set the maximum infill anchor length above zero."
-msgstr ""
+msgstr "'선' 이외의 채우기 패턴을 선택하고 '채우기 고정점 최대 길이' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 드문 채우기 패턴으로 '크로스 재그' 또는 '잠긴 재그'를 선택하세요."
 
+# AI Translated
 msgid "Select the Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 드문 채우기 패턴으로 '잠긴 재그'를 선택하세요."
 
+# AI Translated
 msgid "Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 드문 채우기 패턴으로 '지그재그', '크로스 재그' 또는 '잠긴 재그'를 선택하세요."
 
+# AI Translated
 msgid "Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '드문 채우기 밀도'가 0보다 큰 '3D 벌집' 채우기를 선택하세요."
 
+# AI Translated
 msgid "Enable spiral vase mode to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '나선형 꽃병 모드'를 활성화하세요."
 
+# AI Translated
 msgid "Enable spiral vase mode and spiral smoothing to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '나선형 꽃병 모드'와 '부드러운 나선형'을 활성화하세요."
 
+# AI Translated
 msgid "This setting requires top shell layers, or more than one bottom shell layer in spiral vase mode."
-msgstr ""
+msgstr "이 설정을 사용하려면 '상단 쉘 레이어'가 있거나, '나선형 꽃병 모드'에서 '하단 쉘 레이어'가 2개 이상이어야 합니다."
 
+# AI Translated
 msgid "This setting requires a top shell with nonzero top surface density."
-msgstr ""
+msgstr "이 설정에는 '상단 표면 밀도'가 0보다 큰 상단 쉘이 필요합니다."
 
+# AI Translated
 msgid "Set bottom shell layers above zero to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '하단 쉘 레이어' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."
-msgstr ""
+msgstr "'드문 채우기 밀도'를 0보다 크게 설정하고, 채우기 스무딩을 지원하는 채우기 패턴과 '다중 선 채우기' 값을 사용하세요."
 
+# AI Translated
 msgid "Set top surface expansion above zero to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '상단 표면 확장' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Use a top or bottom shell with the Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "상단 또는 하단 쉘을 사용하고 표면 패턴으로 '아르키메데스 코드' 또는 '팔각 나선형'을 선택하세요."
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support separated infills."
-msgstr ""
+msgstr "선택한 드문 채우기 패턴은 '분리된 채우기'를 지원하지 않습니다."
 
+# AI Translated
 msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "'상단 표면 밀도'가 0보다 큰 상단 쉘을 사용하고 표면 패턴으로 '동심', '나선형 인셋', '아르키메데스 코드' 또는 '팔각 나선형'을 선택하세요."
 
+# AI Translated
 msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "'하단 쉘 레이어'를 사용하고 표면 패턴으로 '동심', '나선형 인셋', '아르키메데스 코드' 또는 '팔각 나선형'을 선택하세요."
 
+# AI Translated
 msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 '드문 채우기 밀도'를 0보다 크게 설정하거나 상단 또는 하단 쉘 레이어를 사용하세요."
 
+# AI Translated
 msgid "Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."
-msgstr ""
+msgstr "'상단 쉘 두께'를 편집하려면 '나선형 꽃병 모드'를 비활성화하고 '상단 쉘 레이어' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
-msgstr ""
+msgstr "'하단 쉘 두께'를 편집하려면 '나선형 꽃병 모드'를 비활성화하고 '하단 쉘 레이어' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
-msgstr ""
+msgstr "압출 역할별 가속도를 편집하려면 기본 가속도를 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "This setting requires the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "이 설정에는 Marlin 펌웨어 G-code 유형이 필요합니다."
 
+# AI Translated
 msgid "Jerk settings are unavailable while the printer uses junction deviation."
-msgstr ""
+msgstr "프린터가 Junction Deviation을 사용하는 동안에는 Jerk 설정을 사용할 수 없습니다."
 
+# AI Translated
 msgid "Set the printer junction deviation limit above zero with the Marlin firmware G-code flavor to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 Marlin 펌웨어 G-code 유형에서 프린터의 Junction Deviation 제한을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Set default jerk above zero to edit jerk for individual extrusion roles."
-msgstr ""
+msgstr "압출 역할별 Jerk를 편집하려면 기본 Jerk를 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 벨트 프린터가 아닌 프린터에서 '스커트 루프' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero and disable the full-height draft shield to edit skirt height."
-msgstr ""
+msgstr "'스커트 높이'를 편집하려면 벨트 프린터가 아닌 프린터에서 '스커트 루프' 값을 0보다 크게 설정하고 전체 높이 드래프트 실드를 비활성화하세요."
 
+# AI Translated
 msgid "Skirts are unavailable for belt printers."
-msgstr ""
+msgstr "벨트 프린터에서는 스커트를 사용할 수 없습니다."
 
+# AI Translated
 msgid "Select a brim type other than No brim to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '브림 유형'을 '사용안함' 이외의 값으로 선택하세요."
 
+# AI Translated
 msgid "Enable a brim on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 기울어진 벨트가 없는 프린터에서 브림을 활성화하세요."
 
+# AI Translated
 msgid "Select a brim type with an editable width, or enable a brim on a tilted belt printer."
-msgstr ""
+msgstr "너비를 편집할 수 있는 브림 유형을 선택하거나, 기울어진 벨트 프린터에서 브림을 활성화하세요."
 
+# AI Translated
 msgid "This setting requires a belt printer with a tilted slicing plane."
-msgstr ""
+msgstr "이 설정에는 슬라이싱 평면이 기울어진 벨트 프린터가 필요합니다."
 
+# AI Translated
 msgid "Enable a brim on a belt printer with a tilted slicing plane to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 슬라이싱 평면이 기울어진 벨트 프린터에서 브림을 활성화하세요."
 
+# AI Translated
 msgid "Enable walls or a brim to select the wall filament."
-msgstr ""
+msgstr "벽 필라멘트를 선택하려면 벽 또는 브림을 활성화하세요."
 
 # AI Translated
 msgid "Brim ear radius"
@@ -5524,284 +5604,378 @@ msgstr "브림 귀 반경"
 msgid "Brim width"
 msgstr "브림 너비"
 
+# AI Translated
 msgid "Set brim width above zero to edit brim ear detection."
-msgstr ""
+msgstr "브림 귀 감지를 편집하려면 '브림 너비' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Use painted brim ears or set brim width above zero to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 칠한 브림 귀를 사용하거나 '브림 너비' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 기울어진 벨트가 없는 프린터에서 자동 브림 귀를 선택하세요."
 
+# AI Translated
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 기울어진 벨트가 없는 프린터에서 자동 또는 칠한 브림 귀를 선택하세요."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '코끼리 발 보정'을 활성화하거나 '코끼리 발 레이어 밀도' 값을 100%보다 작게 설정하세요."
 
+# AI Translated
 msgid "Rafts are unavailable for belt printers."
-msgstr ""
+msgstr "벨트 프린터에서는 라프트를 사용할 수 없습니다."
 
+# AI Translated
 msgid "Enable support to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 서포트를 활성화하세요."
 
+# AI Translated
 msgid "Enable support or add raft layers to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 서포트를 활성화하거나 라프트 레이어를 추가하세요."
 
+# AI Translated
 msgid "Select an automatic support type to edit the threshold angle."
-msgstr ""
+msgstr "'임계값 각도'를 편집하려면 자동 서포트 유형을 선택하세요."
 
+# AI Translated
 msgid "Select an automatic support type and set the threshold angle to zero to edit threshold overlap."
-msgstr ""
+msgstr "'임계값 중복'을 편집하려면 자동 서포트 유형을 선택하고 '임계값 각도'를 0으로 설정하세요."
 
+# AI Translated
 msgid "Threshold overlap is unavailable for tree supports."
-msgstr ""
+msgstr "트리 서포트에서는 '임계값 중복'을 사용할 수 없습니다."
 
+# AI Translated
 msgid "Enable tree supports and select a style other than Organic or Default to show this setting."
-msgstr ""
+msgstr "이 설정을 표시하려면 트리 서포트를 활성화하고 '모양'을 '유기체' 또는 '기본값' 이외의 값으로 선택하세요."
 
+# AI Translated
 msgid "Enable tree supports with the Organic or Default style to show this setting."
-msgstr ""
+msgstr "이 설정을 표시하려면 트리 서포트를 활성화하고 '모양'을 '유기체' 또는 '기본값'으로 선택하세요."
 
+# AI Translated
 msgid "Independent support layer height is unavailable for organic tree supports."
-msgstr ""
+msgstr "유기체 트리 서포트에서는 '독립적 서포트 레이어 높이'를 사용할 수 없습니다."
 
+# AI Translated
 msgid "Enable tree supports and turn off automatic brim width to edit the tree support brim width."
-msgstr ""
+msgstr "'트리 서포트 브림 너비'를 편집하려면 트리 서포트를 활성화하고 '트리 서포트 자동 브림 너비'를 끄세요."
 
+# AI Translated
 msgid "Enable tree supports to show the maximum bridge length."
-msgstr ""
+msgstr "'최대 브릿지 길이'를 표시하려면 트리 서포트를 활성화하세요."
 
+# AI Translated
 msgid "Tree supports use maximum bridge length instead of the bridge support setting."
-msgstr ""
+msgstr "트리 서포트는 브릿지 서포트 설정 대신 '최대 브릿지 길이'를 사용합니다."
 
+# AI Translated
 msgid "Enable automatic tree supports to show this setting."
-msgstr ""
+msgstr "이 설정을 표시하려면 자동 트리 서포트를 활성화하세요."
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 '상단 접점 레이어' 또는 '하단 접점 레이어' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Enable a raft, or enable supports with top interface layers, to use support ironing."
-msgstr ""
+msgstr "서포트 다림질을 사용하려면 라프트를 활성화하거나, 상단 접점 레이어가 있는 서포트를 활성화하세요."
 
+# AI Translated
 msgid "Enable support ironing with a raft or top support interface layers to show this setting."
-msgstr ""
+msgstr "이 설정을 표시하려면 라프트 또는 상단 서포트 접점 레이어와 함께 서포트 다림질을 활성화하세요."
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit interface spacing."
-msgstr ""
+msgstr "접점 선 간격을 편집하려면 '상단 접점 레이어' 또는 '하단 접점 레이어' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Support ironing requires a solid interface, so interface spacing cannot be edited."
-msgstr ""
+msgstr "서포트 다림질에는 꽉찬 접점이 필요하므로 접점 선 간격을 편집할 수 없습니다."
 
+# AI Translated
 msgid "Enable walls, a skirt or a brim to edit inner wall line width."
-msgstr ""
+msgstr "내벽 선 너비를 편집하려면 벽, 스커트 또는 브림을 활성화하세요."
 
+# AI Translated
 msgid "Enable support, a raft, or a skirt to select the support filament."
-msgstr ""
+msgstr "서포트 필라멘트를 선택하려면 서포트, 라프트 또는 스커트를 활성화하세요."
 
+# AI Translated
 msgid "Add raft layers to show raft contact distance."
-msgstr ""
+msgstr "'라프트 접점 Z 거리'를 표시하려면 라프트 레이어를 추가하세요."
 
+# AI Translated
 msgid "Raft contact distance is unavailable when the top support Z distance is zero."
-msgstr ""
+msgstr "서포트의 '상단 Z 거리'가 0이면 '라프트 접점 Z 거리'를 사용할 수 없습니다."
 
+# AI Translated
 msgid "Add raft layers to show raft expansion."
-msgstr ""
+msgstr "'라프트 확장'을 표시하려면 라프트 레이어를 추가하세요."
 
+# AI Translated
 msgid "Slim, Strong and Hybrid tree supports use first layer expansion instead of raft expansion."
-msgstr ""
+msgstr "'얇은 트리', '강한 트리', '혼합 트리' 서포트는 '라프트 확장' 대신 '초기 레이어 확장'을 사용합니다."
 
+# AI Translated
 msgid "Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."
-msgstr ""
+msgstr "'초기 레이어 확장'을 편집하려면 라프트를 추가하거나 '얇은 트리' 또는 '강한 트리' 이외의 트리 서포트 모양을 선택하세요."
 
+# AI Translated
 msgid "Enable ironing to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 다림질을 활성화하세요."
 
+# AI Translated
 msgid "Enable ironing with the Rectilinear pattern to edit ironing angles."
-msgstr ""
+msgstr "다림질 각도를 편집하려면 '직선' 패턴으로 다림질을 활성화하세요."
 
+# AI Translated
 msgid "Enable ironing or support ironing to edit ironing speed."
-msgstr ""
+msgstr "'다림질 속도'를 편집하려면 다림질 또는 서포트 다림질을 활성화하세요."
 
+# AI Translated
 msgid "Enable Z contouring to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 Z 윤곽 처리를 활성화하세요."
 
+# AI Translated
 msgid "Print order cannot be edited when the print sequence is By object."
-msgstr ""
+msgstr "'출력 순서'가 '객체별'이면 '레이어 내 순서'를 편집할 수 없습니다."
 
+# AI Translated
 msgid "This setting is unavailable for Bambu Lab printers."
-msgstr ""
+msgstr "Bambu Lab 프린터에서는 이 설정을 사용할 수 없습니다."
 
+# AI Translated
 msgid "This setting is unavailable in single extruder multimaterial mode."
-msgstr ""
+msgstr "단일 압출기 다중 재료 모드에서는 이 설정을 사용할 수 없습니다."
 
+# AI Translated
 msgid "Enable ooze prevention to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 흘러내림 방지를 활성화하세요."
 
+# AI Translated
 msgid "Enable ooze prevention and use a positive number of preheat steps to show this setting."
-msgstr ""
+msgstr "이 설정을 표시하려면 흘러내림 방지를 활성화하고 '예열 단계' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Enable the belt purge tower in the belt printer settings to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 벨트 프린터 설정에서 벨트 퍼지 타워를 활성화하세요."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 벨트 프린터가 아닌 프린터에서 프라임 타워를 활성화하세요."
 
+# AI Translated
 msgid "Enable the prime tower and tower interface features on a non-belt printer to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 벨트 프린터가 아닌 프린터에서 프라임 타워와 타워 인터페이스 기능을 활성화하세요."
 
+# AI Translated
 msgid "Enable the prime tower and select wipe tower Type 2 on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Bambu Lab 및 벨트 프린터가 아닌 프린터에서 프라임 타워를 활성화하고 '프라임 타워 유형'을 '유형 2'로 선택하세요."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer and turn off skipping sparse tower layers to use layer combination."
-msgstr ""
+msgstr "레이어 결합을 사용하려면 벨트 프린터가 아닌 프린터에서 프라임 타워를 활성화하고 희소 타워 레이어 건너뛰기를 끄세요."
 
+# AI Translated
 msgid "Enable the prime tower with Rib walls on a non-belt printer to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 벨트 프린터가 아닌 프린터에서 벽 유형이 '리브'인 프라임 타워를 활성화하세요."
 
+# AI Translated
 msgid "Enable a Type 2 prime tower with Cone walls on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Bambu Lab 및 벨트 프린터가 아닌 프린터에서 벽 유형이 '원뿔'인 '유형 2' 프라임 타워를 활성화하세요."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer and choose a wall type other than Rib to edit tower width."
-msgstr ""
+msgstr "타워 너비를 편집하려면 벨트 프린터가 아닌 프린터에서 프라임 타워를 활성화하고 '리브' 이외의 벽 유형을 선택하세요."
 
+# AI Translated
 msgid "Enable a Type 2 prime tower on a non-Bambu, non-belt printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Bambu Lab 및 벨트 프린터가 아닌 프린터에서 '유형 2' 프라임 타워를 활성화하고 단일 압출기 다중 재료 모드를 비활성화하세요."
 
+# AI Translated
 msgid "Select Cyclic tool change ordering to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '툴 체인지 순서'를 '순환'으로 선택하세요."
 
+# AI Translated
 msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
-msgstr ""
+msgstr "프라임 타워를 활성화하고, '프라임 타워에서 플러시'를 비활성화하거나 단일 압출기 다중 재료 모드를 비활성화하세요."
 
+# AI Translated
 msgid "Enable the prime tower to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 프라임 타워를 활성화하세요."
 
+# AI Translated
 msgid "Enable avoiding crossing walls to edit the maximum travel detour distance."
-msgstr ""
+msgstr "최대 이동 우회 길이를 편집하려면 '벽 가로지름 방지'를 활성화하세요."
 
+# AI Translated
 msgid "Enable setting other flow ratios to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '기타 압출량 비율 설정'을 활성화하세요."
 
+# AI Translated
 msgid "Enable slowing down for overhangs to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '오버행에서 감속'을 활성화하세요."
 
+# AI Translated
 msgid "This setting is available in object settings rather than global print settings."
-msgstr ""
+msgstr "이 설정은 전역 출력 설정이 아닌 객체 설정에서 사용할 수 있습니다."
 
+# AI Translated
 msgid "Select a specific support interface filament and use the default support filament to show this setting."
-msgstr ""
+msgstr "이 설정을 표시하려면 서포트 접점 필라멘트로 특정 필라멘트를 선택하고 서포트 필라멘트는 기본값을 사용하세요."
 
+# AI Translated
 msgid "Enable fuzzy skin to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 퍼지 스킨을 활성화하세요."
 
+# AI Translated
 msgid "Enable fuzzy skin with Ripple noise to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 'Ripple' 노이즈로 퍼지 스킨을 활성화하세요."
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic or Ripple to edit noise scale."
-msgstr ""
+msgstr "노이즈 스케일을 편집하려면 퍼지 스킨을 활성화하고 '클래식' 또는 'Ripple' 이외의 노이즈 유형을 선택하세요."
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic, Voronoi or Ripple to edit noise octaves."
-msgstr ""
+msgstr "노이즈 옥타브를 편집하려면 퍼지 스킨을 활성화하고 '클래식', '보로노이' 또는 'Ripple' 이외의 노이즈 유형을 선택하세요."
 
+# AI Translated
 msgid "Enable fuzzy skin with Perlin or Billow noise to edit persistence."
-msgstr ""
+msgstr "지속성을 편집하려면 '펄린' 또는 '빌로우' 노이즈로 퍼지 스킨을 활성화하세요."
 
+# AI Translated
 msgid "Select the Arachne wall generator to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '벽 생성기'로 '아라크네'를 선택하세요."
 
+# AI Translated
 msgid "Thin wall detection is unavailable with the Arachne wall generator."
-msgstr ""
+msgstr "'아라크네' 벽 생성기에서는 '얇은 벽 감지'를 사용할 수 없습니다."
 
+# AI Translated
 msgid "Disable role-based wipe speed to edit wipe speed manually."
-msgstr ""
+msgstr "'노즐 청소 속도'를 직접 편집하려면 '역할 기반 노즐 청소 속도'를 비활성화하세요."
 
+# AI Translated
 msgid "Enable inward wiping to edit inward wipe distance."
-msgstr ""
+msgstr "'안쪽 노즐 청소 거리'를 편집하려면 '안쪽으로 노즐 청소'를 활성화하세요."
 
+# AI Translated
 msgid "This setting requires the Klipper G-code flavor."
-msgstr ""
+msgstr "이 설정에는 Klipper G-code 유형이 필요합니다."
 
+# AI Translated
 msgid "Enable acceleration to deceleration to edit its factor."
-msgstr ""
+msgstr "가속/감속 계수를 편집하려면 가속/감속을 활성화하세요."
 
+# AI Translated
 msgid "Enable excluding objects with the Klipper G-code flavor to edit the outline tolerance."
-msgstr ""
+msgstr "'외곽선 공차'를 편집하려면 Klipper G-code 유형에서 '객체 제외'를 활성화하세요."
 
+# AI Translated
 msgid "Enable making overhangs printable to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '오버행 형상 변경'을 활성화하세요."
 
+# AI Translated
 msgid "Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5."
-msgstr ""
+msgstr "'상단 쉘 레이어'가 있는 상태에서 '상단 표면에 단일 벽 생성'을 활성화하거나, '최소 벽 길이' 계수가 0.5보다 큰 '아라크네'를 사용하세요."
 
+# AI Translated
 msgid "Enable converting holes to polyholes to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '구멍을 폴리홀로 변환'을 활성화하세요."
 
+# AI Translated
 msgid "Enable overhang wall detection to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '오버행 벽 감지'를 활성화하세요."
 
+# AI Translated
 msgid "Reverse overhang direction is unavailable in spiral vase mode."
-msgstr ""
+msgstr "'나선형 꽃병 모드'에서는 오버행 방향 반전을 사용할 수 없습니다."
 
+# AI Translated
 msgid "Disable spiral vase mode and enable reverse overhang direction to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '나선형 꽃병 모드'를 비활성화하고 오버행 방향 반전을 활성화하세요."
 
+# AI Translated
 msgid "Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."
-msgstr ""
+msgstr "'오버행 벽 감지'와 오버행 방향 반전을 활성화하고, '나선형 꽃병 모드'를 비활성화하고, '내부 둘레만 반전'을 끄세요."
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer."
-msgstr ""
+msgstr "이 설정에는 Bambu Lab 프린터가 필요합니다."
 
+# AI Translated
 msgid "Enable small area infill flow compensation to edit its model."
-msgstr ""
+msgstr "'압출량 보상 모델'을 편집하려면 작은 영역 채우기 압출량 보상을 활성화하세요."
 
+# AI Translated
 msgid "Scarf seams are unavailable in spiral vase mode and for belt printers."
-msgstr ""
+msgstr "'나선형 꽃병 모드'와 벨트 프린터에서는 스카프 조인트 재봉선을 사용할 수 없습니다."
 
+# AI Translated
 msgid "Enable scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 벨트 프린터가 아닌 프린터에서 '나선형 꽃병 모드'를 끈 상태로 스카프 조인트 재봉선을 활성화하세요."
 
+# AI Translated
 msgid "Disable scarfing the entire loop to edit the minimum scarf length."
-msgstr ""
+msgstr "최소 스카프 길이를 편집하려면 '전체 벽 주위에 스카프'를 비활성화하세요."
 
+# AI Translated
 msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 벨트 프린터가 아닌 프린터에서 '나선형 꽃병 모드'를 끈 상태로 '조건부 스카프 조인트'를 활성화하세요."
 
+# AI Translated
 msgid "Enable beam interlocking to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 인터로킹 빔을 활성화하세요."
 
+# AI Translated
 msgid "Disable beam interlocking to edit segmented region interlocking depth."
-msgstr ""
+msgstr "'분할된 영역의 연동 깊이'를 편집하려면 인터로킹 빔을 비활성화하세요."
 
+# AI Translated
 msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 드문 채우기 패턴으로 '2D 격자'를 선택하세요."
 
+# AI Translated
 msgid "Select the Lightning sparse infill pattern to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 드문 채우기 패턴으로 '번개'를 선택하세요."
 
+# AI Translated
 msgid "Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."
-msgstr ""
+msgstr "'적응형 정육면체' 및 '정육면체 서포트' 채우기에서는 채우기 회전 템플릿을 사용할 수 없습니다."
 
+# AI Translated
 msgid "Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."
-msgstr ""
+msgstr "채우기 방향을 편집하려면 '드문 채우기 회전 템플릿'을 비우고 '적응형 정육면체' 또는 '정육면체 서포트' 이외의 패턴을 선택하세요."
 
+# AI Translated
 msgid "Clear the solid infill rotation template to edit solid infill direction."
-msgstr ""
+msgstr "'꽉찬 채우기 방향'을 편집하려면 '꽉찬 채우기 회전 템플릿'을 비우세요."
 
+# AI Translated
 msgid "Select the Lateral Honeycomb sparse infill pattern to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 드문 채우기 패턴으로 '측면 벌집'을 선택하세요."
 
+# AI Translated
 msgid "The selected printer does not support wrapping detection."
-msgstr ""
+msgstr "선택한 프린터는 뭉침 감지를 지원하지 않습니다."
 
+# AI Translated
 msgid "Enable the pad to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 패드를 활성화하세요."
 
+# AI Translated
 msgid "Enable the pad around the object to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 객체 주변 패드를 활성화하세요."
 
+# AI Translated
 msgid "Enable support and disable the pad around the object to edit object elevation."
-msgstr ""
+msgstr "객체 띄우기 높이를 편집하려면 서포트를 활성화하고 객체 주변 패드를 비활성화하세요."
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "나선형 모드는 벽 루프가 1이고, 서포트가 비활성화되고, 프로빙에 의한 클럼핑 감지가 비활성화되고, 상단 셸 레이어가 0이고, 희소 인필 밀도가 0이고 타임랩스 유형이 전통적인 경우에만 작동합니다."
@@ -6816,6 +6990,10 @@ msgstr "왼쪽 노즐: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "오른쪽 노즐: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+# AI Translated
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr "일부 모델의 위치 또는 크기가 할당된 압출기의 출력 가능 범위를 초과합니다. 부품의 위치 또는 크기를 출력 가능 범위에 맞게 확인하고 조정하세요."
+
 msgid "Mirror object"
 msgstr "객체 반전"
 
@@ -7072,7 +7250,7 @@ msgid "Size:"
 msgstr "크기:"
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "레이어 %d, Z = %.2lf mm에서 G-code 경로 충돌이 발견되었습니다. 충돌하는 객체를 더 멀리 분리하세요 (%s <-> %s)."
 
@@ -7561,8 +7739,9 @@ msgstr "창 레이아웃 재설정"
 msgid "Reset to default window layout"
 msgstr "기본 창 레이아웃으로 재설정"
 
+# AI Translated
 msgid "Show 3Dconnexion Settings"
-msgstr ""
+msgstr "3D연결 설정 표시"
 
 msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr "3D 연결 장치 설정 표시/숨기기 대화상자"
@@ -7916,6 +8095,10 @@ msgstr "다운로드"
 msgid "Download selected files from printer."
 msgstr "선택된 파일을 프린터에서 다운로드합니다."
 
+# AI Translated
+msgid "Select all files in the list for batch management."
+msgstr "일괄 관리를 위해 목록의 모든 파일을 선택합니다."
+
 msgid "Batch manage files."
 msgstr "파일을 일괄 관리합니다."
 
@@ -8187,7 +8370,7 @@ msgid "Clear"
 msgstr "지우기"
 
 msgid ""
-"You have completed printing the mall model, \n"
+"You have completed printing the mall model,\n"
 "but synchronizing rating information has failed."
 msgstr ""
 "쇼핑몰 모델 출력이 완료되었으나,\n"
@@ -8448,7 +8631,7 @@ msgid "You can select up to 16 images."
 msgstr "최대 16개의 이미지를 선택할 수 있습니다."
 
 msgid ""
-"At least one successful print record of this print profile is required \n"
+"At least one successful print record of this print profile is required\n"
 "to give a positive rating (4 or 5 stars)."
 msgstr ""
 "긍정적인 평가(별4개 또는 5개)를 제공하려면\n"
@@ -9061,19 +9244,23 @@ msgstr ""
 "이 유형에 사용할 수 있는 플러그인 기능이 없습니다.\n"
 "사용하려면 기능을 활성화하거나 설치하십시오."
 
+# AI Translated
 msgid "Hidden by the current configuration."
-msgstr ""
+msgstr "현재 설정으로 인해 숨겨져 있습니다."
 
+# AI Translated
 #, boost-format
 msgid "Hidden: %1%"
-msgstr ""
+msgstr "숨김: %1%"
 
+# AI Translated
 msgid "Disabled by the current configuration."
-msgstr ""
+msgstr "현재 설정으로 인해 비활성화되어 있습니다."
 
+# AI Translated
 #, boost-format
 msgid "Disabled: %1%"
-msgstr ""
+msgstr "비활성화됨: %1%"
 
 # AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
@@ -9292,8 +9479,9 @@ msgstr "모든 객체 설정 보기"
 msgid "Material settings"
 msgstr "재료 설정"
 
+# AI Translated
 msgid "The process flow ratio cannot be edited in this panel."
-msgstr ""
+msgstr "이 패널에서는 프로세스 압출량 비율을 편집할 수 없습니다."
 
 # AI Translated
 msgid "Each mode names the tool heads that take part and the role each one plays. Click a tool button to cycle its role — hover a color below for what each role does."
@@ -9304,6 +9492,7 @@ msgid "Add Mode"
 msgstr "모드 추가"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "도구"
 
@@ -9320,8 +9509,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "모드에 참여하는 툴헤드와 각 툴헤드의 역할입니다. 타일을 클릭하면 역할이 차례로 바뀝니다."
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "출력 시작 시 프린터를 이 모드로 전환하기 위해 실행되는 G-code입니다(예: Klipper SET_PRINT_MODE 호출). 슬라이서는 주(Primary) 도구의 경로만 생성하며, 나머지 도구는 펌웨어가 제어합니다."
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"출력 시작 시 프린터를 이 모드로 전환하기 위해 실행되는 G-code입니다(예: Klipper SET_PRINT_MODE 호출).\n"
+"\n"
+"슬라이서는 주(Primary) 도구의 경로만 생성하며, 나머지 도구는 펌웨어가 제어합니다."
 
 # AI Translated
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -9383,8 +9578,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "플레이트의 IDEX/IQEX 모드 선택기에 표시되는 이 병렬 모드의 이름입니다. 프로젝트에는 이름으로 저장되므로, 플레이트에서 이미 사용 중인 모드의 이름을 바꾸면 해당 플레이트는 주(Primary) 모드로 돌아갑니다. 비워 둘 수 없으며, 빈 이름은 자동 생성된 이름으로 바뀝니다."
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "이 모드를 사용하는 출력의 시작 시 장치 시작 G-code보다 먼저 한 번 출력되는 G-code입니다. 슬라이서는 주(Primary) 도구의 경로만 생성하고 복사(Copy)/미러(Mirror) 도구는 펌웨어가 제어하므로, 여기에서 프린터를 해당 펌웨어 모드로 전환합니다(예: Klipper SET_PRINT_MODE 호출 또는 RepRapFirmware M567). 자리 표시자를 사용할 수 있으며, 편집 버튼으로 찾아볼 수 있습니다. 모드에 펌웨어 설정이 필요 없으면 비워 두세요."
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"이 모드를 사용하는 출력의 시작 시 장치 시작 G-code보다 먼저 한 번 출력되는 G-code입니다. 슬라이서는 주(Primary) 도구의 경로만 생성하고 복사(Copy)/미러(Mirror) 도구는 펌웨어가 제어하므로, 여기에서 프린터를 해당 펌웨어 모드로 전환합니다(예: Klipper SET_PRINT_MODE 호출 또는 RepRapFirmware M567).\n"
+"\n"
+"자리 표시자를 사용할 수 있으며, 편집 버튼으로 찾아볼 수 있습니다. 모드에 펌웨어 설정이 필요 없으면 비워 두세요."
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -9810,12 +10011,10 @@ msgstr "객체가 너무 작음"
 
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
+"Instead of considering them as multiple objects, should the file be loaded as a single object with multiple parts?"
 msgstr ""
 "이 파일에는 여러 높이에 배치된 여러 객체가 포함되어 있습니다.\n"
-"여러 객체로 간주하는 대신\n"
-"파일을 여러 부품이 있는 단일 객체로 로드하시겠습니까?"
+"여러 객체로 간주하는 대신 파일을 여러 부품이 있는 단일 객체로 로드하시겠습니까?"
 
 msgid "Multi-part object detected"
 msgstr "여러 부품으로 구성된 객체 감지됨"
@@ -10393,7 +10592,7 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "비정상적인 출력 파일 데이터입니다. 다시 슬라이스하세요"
 
 msgid ""
-"Print By Object: \n"
+"Print By Object:\n"
 "We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
 "객체별 출력:\n"
@@ -10430,6 +10629,12 @@ msgstr "프린터에 필라멘트가 없습니다. 먼저 프린터에 필라멘
 
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "프린터의 필라멘트가 모두 알 수 없는 유형입니다. 프린터 화면 또는 소프트웨어 장치 페이지로 이동하여 필라멘트 유형을 설정하세요."
+
+# AI Translated
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr "%s이(가) 연결되었지만 필라멘트 시스템(AMS, CFS 또는 기타 다중 재료 장치)을 찾을 수 없어 동기화할 필라멘트가 없습니다."
 
 msgid "Device Page"
 msgstr "디바이스 페이지"
@@ -10752,13 +10957,15 @@ msgstr "창 버튼을 왼쪽에 표시"
 msgid "(Requires restart)"
 msgstr "(다시 시작 필요)"
 
+# AI Translated
 #. TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
 msgid "Render on the discrete GPU"
-msgstr ""
+msgstr "외장 GPU로 렌더링"
 
+# AI Translated
 #. TRN DRI_PRIME is an environment variable name and must stay as it is.
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
-msgstr ""
+msgstr "GPU가 두 개인 컴퓨터에서 디스플레이를 구동하는 GPU 대신 외장 GPU에서 OrcaSlicer를 실행합니다. 일부 Wayland 시스템에서는 다른 GPU에서 렌더링한 프레임을 표시하지 못하거나 창이 아예 열리지 않습니다. 3D 보기가 비어 있으면 이 옵션을 끄세요. OrcaSlicer가 시작되지 않으면 환경 변수 DRI_PRIME=0을 설정한 상태로 한 번 실행하면 이 설정으로 돌아올 수 있습니다."
 
 # AI Translated
 msgid "Downloads folder"
@@ -11000,6 +11207,14 @@ msgstr "선택한 값이 변경되면 플러시 볼륨을 자동으로 계산합
 
 msgid "Auto arrange plate after cloning"
 msgstr "복제 후 플레이트 자동 정렬"
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "기본 모델 추가 시 옵션 표시"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "활성화하면 기본 모델을 추가하기 전에 대화 상자에서 크기를 묻습니다."
 
 # AI Translated
 msgid "Auto slice after changes"
@@ -11302,14 +11517,12 @@ msgstr "유휴 상태에서 3D 장면 재사용"
 
 # AI Translated
 msgid ""
-"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, and reuses the previous frame's scene instead. Reduces GPU load.\n"
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
 msgstr ""
-"뷰포트 위에서 마우스 커서만 움직일 때는 3D 장면을 다시 그리지 않고,\n"
-"이전 프레임의 장면을 재사용합니다. GPU 부하가 줄어듭니다.\n"
+"뷰포트 위에서 마우스 커서만 움직일 때는 3D 장면을 다시 그리지 않고, 이전 프레임의 장면을 재사용합니다. GPU 부하가 줄어듭니다.\n"
 "뷰포트에 오래된 내용이 표시되거나 내용이 누락되면 비활성화하십시오.\n"
 "\n"
 "즉시 적용됩니다."
@@ -11439,9 +11652,11 @@ msgstr "스텔스 모드"
 # AI Translated
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+"\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
 "이 옵션은 Orca Cloud 프로필 동기화를 포함한 모든 클라우드 기능을 비활성화합니다. 완전히 오프라인으로 작업하려는 사용자는 이 옵션을 활성화할 수 있습니다.\n"
+"\n"
 "참고: 스텔스 모드를 활성화하면 사용자 프로필이 Orca Cloud에 백업되지 않습니다."
 
 # AI Translated
@@ -11777,6 +11992,30 @@ msgid "The selected preset is null!"
 msgstr "선택한 사전 설정의 값이 존재하지 않습니다!"
 
 # AI Translated
+msgid "Changing one dimension changes the others in proportion."
+msgstr "한 방향의 크기를 변경하면 나머지 크기도 같은 비율로 변경됩니다."
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "이 설정을 기본값으로 저장"
+
+# AI Translated
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr "활성화하면 이후 이 모양에는 이 크기가 사용되며, 이 대화 상자가 표시되지 않을 때도 마찬가지입니다."
+
+# AI Translated
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr "활성화하면 묻지 않고 기본 크기로 모양이 추가됩니다. 이 대화 상자는 기본 설정에서 다시 켤 수 있습니다."
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "크기는 0보다 커야 합니다"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "잘못된 숫자 입력입니다."
+
+# AI Translated
 msgctxt "Layer range"
 msgid "End"
 msgstr "끝"
@@ -11956,6 +12195,18 @@ msgstr "%1% 사전 설정이 이미 있으며 현재 프린터와 호환되지 �
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "저장 작업이 이 사전 설정을 대체합니다"
+
+# AI Translated
+msgid "control characters are not allowed."
+msgstr "제어 문자는 사용할 수 없습니다."
+
+# AI Translated
+msgid "The name is a reserved system name."
+msgstr "시스템에서 예약된 이름입니다."
+
+# AI Translated
+msgid "The name is too long."
+msgstr "이름이 너무 깁니다."
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "이름은 사전 설정의 별칭 이름과 같을 수 없습니다."
@@ -12648,8 +12899,9 @@ msgstr "LAN을 통해 출력하기 전에 스토리지를 삽입해야 합니다
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "저장 장치가 비정상 상태이거나 읽기 전용 모드입니다."
 
-msgid "Storage needs to be inserted before printing."
-msgstr "출력하기 전에 저장소를 삽입해야 합니다."
+# AI Translated
+msgid "Insert storage or free up space before printing."
+msgstr "출력하기 전에 저장 장치를 삽입하거나 공간을 확보하세요."
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "펌웨어를 업데이트해야 하는 프린터로 출력 작업을 보낼 수 없습니다."
@@ -12723,9 +12975,6 @@ msgstr "업그레이드가 진행 중일 때 출력 작업을 보낼 수 없습�
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "선택한 프린터가 선택한 프린터 사전 설정과 호환되지 않습니다."
 
-msgid "Storage needs to be inserted before send to printer."
-msgstr "프린터로 보내기 전에 저장소를 삽입해야 합니다."
-
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "프린터는 Orca Slicer와 동일한 네트워크에 있어야 합니다."
 
@@ -12779,12 +13028,8 @@ msgstr "로그인 보고서 수신 시간 초과"
 msgid "Unknown Failure"
 msgstr "알 수 없는 실패"
 
-msgid ""
-"Please Find the Pin Code in Account page on printer screen,\n"
-" and type in the Pin Code below."
-msgstr ""
-"프린터 화면의 계정 페이지에서 핀 코드를 찾으십시오.\n"
-" 그리고 아래에 핀코드를 입력하세요."
+msgid "Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."
+msgstr "프린터 화면의 계정 페이지에서 핀 코드를 찾으십시오. 그리고 아래에 핀코드를 입력하세요."
 
 msgid "Can't find Pin Code?"
 msgstr "핀 코드를 찾을 수 없나요?"
@@ -12953,12 +13198,10 @@ msgstr ""
 # AI Translated
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
-"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
-"and use soluble materials for both support interface and support base."
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height and use soluble materials for both support interface and support base."
 msgstr ""
 "서포트 접점에 수용성 재료를 사용할 때는 다음 설정을 권장합니다:\n"
-"상단 Z 거리 0, 접점 간격 0, 교차 직선 패턴, 독립 서포트 레이어 높이 비활성화\n"
-"그리고 서포트 접점과 서포트 베이스 모두에 수용성 재료를 사용하십시오."
+"상단 Z 거리 0, 접점 간격 0, 교차 직선 패턴, 독립 서포트 레이어 높이 비활성화 그리고 서포트 접점과 서포트 베이스 모두에 수용성 재료를 사용하십시오."
 
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
 msgstr "이 옵션을 활성화하면 모델의 모양이 수정됩니다. 출력물에 정확한 치수가 필요하거나 어셈블리의 일부인 경우 이러한 형상 변경이 출력물의 기능에 영향을 미치는지 다시 확인하는 것이 중요합니다."
@@ -12976,15 +13219,12 @@ msgstr "실험적 기능: 플러시를 최소화하기 위해 필라멘트 교�
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications. Please use with the latest printer firmware."
 msgstr "실험적 기능: 플러시를 최소화하기 위해 필라멘트 교체 중에 더 먼 거리에서 필라멘트를 집어넣고 절단합니다. 플러시를 크게 줄일 수 있지만 노즐 막힘이나 기타 출력 문제의 위험을 높일 수도 있습니다. 최신 프린터 펌웨어와 함께 사용하십시오."
 
-msgid ""
-"When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr ""
-"툴헤드 없이 시간 경과를 기록할 경우 \"타임랩스 프라임 타워\"를 추가하는 것이 좋습니다\n"
-"빌드 플레이트의 빈 위치를 마우스 오른쪽 버튼으로 클릭하고 \"기본 모델 추가\"-> \"타임랩스 프라임 타워\"를 선택합니다."
+msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+msgstr "툴헤드 없이 시간 경과를 기록할 경우 \"타임랩스 프라임 타워\"를 추가하는 것이 좋습니다. 빌드 플레이트의 빈 위치를 마우스 오른쪽 버튼으로 클릭하고 \"기본 모델 추가\"-> \"타임랩스 프라임 타워\"를 선택합니다."
 
+# AI Translated
 msgid "Setting unavailable"
-msgstr ""
+msgstr "설정 사용 불가"
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "현재 시스템 프리셋의 복사본이 생성되며, 이 복사본은 시스템 프리셋에서 분리됩니다."
@@ -13156,14 +13396,16 @@ msgstr "플러그인 구성"
 msgid "Notes"
 msgstr "메모"
 
+# AI Translated
 msgid "The selected printer does not support multiple bed types."
-msgstr ""
+msgstr "선택한 프린터는 여러 베드 유형을 지원하지 않습니다."
 
 msgid "Frequent"
 msgstr "빈도"
 
+# AI Translated
 msgid "Custom filament print order is unavailable while the plate contains mixed-color filaments."
-msgstr ""
+msgstr "플레이트에 혼합 필라멘트가 있는 동안에는 사용자 지정 필라멘트 출력 순서를 사용할 수 없습니다."
 
 #, c-format, boost-format
 msgid ""
@@ -13188,14 +13430,17 @@ msgstr "설정 덮어쓰기"
 msgid "Retraction when switching material"
 msgstr "재료 전환 시 후퇴"
 
+# AI Translated
 msgid "Set the filament retraction length above zero, or use the printer's value, to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 필라멘트 후퇴 길이를 0보다 크게 설정하거나 프린터 값을 사용하세요."
 
+# AI Translated
 msgid "The printer profile must allow filament overrides for long retraction when cutting."
-msgstr ""
+msgstr "프린터 사전 설정에서 절단 시 긴 후퇴에 대한 필라멘트 덮어쓰기를 허용해야 합니다."
 
+# AI Translated
 msgid "Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 프린터 사전 설정에서 절단 시 긴 후퇴를 허용하고 필라멘트 사전 설정에서 이를 활성화하세요."
 
 msgid "Basic information"
 msgstr "기본 정보"
@@ -13330,59 +13575,78 @@ msgstr "호환 프린터"
 msgid "Compatible process profiles"
 msgstr "호환 프로세스 사전설정"
 
+# AI Translated
 msgid "Enable cooling for overhangs and bridges to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 '오버행 및 브릿지에 대한 강제 냉각'을 활성화하세요."
 
+# AI Translated
 msgid "Enable slowing down for layer cooling to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '레이어 냉각 향상을 위한 감속'을 활성화하세요."
 
+# AI Translated
 msgid "Set the number of initial layers without cooling to zero to override the first layer fan speed."
-msgstr ""
+msgstr "'초기 레이어 팬 속도'를 사용하려면 냉각하지 않는 초기 레이어 수를 0으로 설정하세요."
 
+# AI Translated
 msgid "Enable the auxiliary fan in the printer profile to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 프린터 사전 설정에서 '보조 출력물 냉각 팬'을 활성화하세요."
 
+# AI Translated
 msgid "The selected printer does not support air filtration."
-msgstr ""
+msgstr "선택한 프린터는 공기 여과를 지원하지 않습니다."
 
+# AI Translated
 msgid "Activate air filtration to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 공기 여과를 활성화하세요."
 
+# AI Translated
 msgid "Activate air filtration and enable it during printing to edit the exhaust fan speed."
-msgstr ""
+msgstr "공기 여과 팬 속도를 편집하려면 공기 여과를 활성화하고 '출력 중' 옵션을 켜세요."
 
+# AI Translated
 msgid "Activate air filtration and enable it on completion to edit the exhaust fan speed."
-msgstr ""
+msgstr "공기 여과 팬 속도를 편집하려면 공기 여과를 활성화하고 '완료 시' 옵션을 켜세요."
 
+# AI Translated
 msgid "Enable pressure advance to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 Pressure Advance를 활성화하세요."
 
+# AI Translated
 msgid "Select this bed type or enable support for multiple bed types in the printer profile to show its temperature settings."
-msgstr ""
+msgstr "온도 설정을 표시하려면 이 베드 유형을 선택하거나 프린터 사전 설정에서 '멀티 베드 유형 지원'을 활성화하세요."
 
+# AI Translated
 msgid "Enable pressure advance and adaptive pressure advance to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 Pressure Advance와 적응형 Pressure Advance를 활성화하세요."
 
+# AI Translated
 msgid "Enable the pellet printer option in the printer profile to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 프린터 사전 설정에서 '펠릿 프린터' 옵션을 활성화하세요."
 
+# AI Translated
 msgid "Filament diameter is unavailable for pellet printers."
-msgstr ""
+msgstr "펠릿 프린터에서는 필라멘트 직경을 사용할 수 없습니다."
 
+# AI Translated
 msgid "The selected printer does not support chamber temperature control."
-msgstr ""
+msgstr "선택한 프린터는 챔버 온도 제어를 지원하지 않습니다."
 
+# AI Translated
+# Needs human review: Quotes the existing labels '적응형 볼륨 속도' and '최대 체적 속도 다항 계수', which do not use the glossary rendering 압출 속도 for Volumetric Speed; update together if those labels change.
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
-msgstr ""
+msgstr "'적응형 볼륨 속도'를 활성화하기 전에 '최대 체적 속도 다항 계수'를 0이 아닌 값으로 설정하세요."
 
+# AI Translated
 msgid "Enable multitool ramming to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 다중 툴 채워넣기를 활성화하세요."
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer with multiple extruders."
-msgstr ""
+msgstr "이 설정에는 압출기가 여러 개인 Bambu Lab 프린터가 필요합니다."
 
+# AI Translated
 msgid "Use a Bambu Lab printer with multiple extruders and enable long retraction when the extruder changes."
-msgstr ""
+msgstr "압출기가 여러 개인 Bambu Lab 프린터를 사용하고 '압출기 교체 시 긴 수축'을 활성화하세요."
 
 msgid "Printable space"
 msgstr "출력 가능 공간"
@@ -13514,12 +13778,10 @@ msgid "Number of extruders of the printer."
 msgstr "프린터 익스트루더 수."
 
 msgid ""
-"Single Extruder Multi Material is selected,\n"
-"and all extruders must have the same diameter.\n"
+"Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
 msgstr ""
-"단일 압출기 다중 재료가 선택되었습니다,\n"
-"를 선택하면 모든 압출기의 직경이 동일해야 합니다.\n"
+"단일 압출기 다중 재료가 선택되었습니다, 를 선택하면 모든 압출기의 직경이 동일해야 합니다.\n"
 "모든 압출기의 직경을 첫 번째 압출기 노즐 직경 값으로 변경하시겠습니까?"
 
 msgid "Nozzle diameter"
@@ -13560,62 +13822,81 @@ msgstr "레이어 높이 한도"
 msgid "Z-Hop"
 msgstr "Z올리기"
 
+# AI Translated
 msgid "Power loss recovery requires a Bambu Lab printer or the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "'정전 복구'에는 Bambu Lab 프린터 또는 Marlin 펌웨어 G-code 유형이 필요합니다."
 
+# AI Translated
 msgid "Build plate tilt is derived from the belt tilt on belt printers."
-msgstr ""
+msgstr "벨트 프린터에서는 베드 기울기가 벨트 기울기에서 결정됩니다."
 
+# AI Translated
 msgid "Enable belt printer mode to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 벨트 프린터 모드를 활성화하세요."
 
+# AI Translated
 msgid "Enable belt printer mode and select a belt rotation axis to edit its angle."
-msgstr ""
+msgstr "각도를 편집하려면 벨트 프린터 모드를 활성화하고 '벨트 기울기 축'을 선택하세요."
 
+# AI Translated
 msgid "Enable belt printer mode and select Expert or Developer settings visibility to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 벨트 프린터 모드를 활성화하고 설정 표시 방식을 '전문가' 또는 '개발자'로 선택하세요."
 
+# AI Translated
 msgid "Enable belt printer mode, select Expert or Developer settings visibility, and decouple the machine frame tilt to edit its angle."
-msgstr ""
+msgstr "각도를 편집하려면 벨트 프린터 모드를 활성화하고, 설정 표시 방식을 '전문가' 또는 '개발자'로 선택하고, '기계 좌표계 기울기 분리'를 켜세요."
 
+# AI Translated
 msgid "Enable support for parallel printheads to edit their count."
-msgstr ""
+msgstr "개수를 편집하려면 '병렬 프린트헤드 지원'을 활성화하세요."
 
+# AI Translated
 msgid "Collision volume mode selection requires multiple extruders."
-msgstr ""
+msgstr "충돌 부피 모드를 선택하려면 압출기가 여러 개 있어야 합니다."
 
+# AI Translated
 msgid "Select a shared collision volume mode or use a single-extruder printer to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 공유 충돌 부피 모드를 선택하거나 단일 압출기 프린터를 사용하세요."
 
+# AI Translated
 msgid "Enable the auxiliary fan to edit its direction."
-msgstr ""
+msgstr "'팬 방향'을 편집하려면 '보조 출력물 냉각 팬'을 활성화하세요."
 
+# AI Translated
 msgid "Air filtration and the cooling filter are alternative accessories; disable cooling filter support to use air filtration."
-msgstr ""
+msgstr "공기 여과와 냉각 필터는 서로 대체되는 액세서리입니다. 공기 여과를 사용하려면 냉각 필터 지원을 비활성화하세요."
 
+# AI Translated
 msgid "Enable cooling filter support in the printer profile to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 프린터 사전 설정에서 냉각 필터 지원을 활성화하세요."
 
+# AI Translated
 msgid "Enable belt printer mode to use the belt purge tower."
-msgstr ""
+msgstr "벨트 퍼지 타워를 사용하려면 벨트 프린터 모드를 활성화하세요."
 
+# AI Translated
 msgid "Wipe tower type selection is unavailable for Bambu Lab printers and belt printers."
-msgstr ""
+msgstr "Bambu Lab 프린터와 벨트 프린터에서는 '프라임 타워 유형'을 선택할 수 없습니다."
 
+# AI Translated
 msgid "Select wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 Bambu Lab이 아닌 프린터에서 '프라임 타워 유형'을 '유형 2'로 선택하세요."
 
+# AI Translated
 msgid "Extruder count cannot be edited in single extruder multimaterial mode."
-msgstr ""
+msgstr "단일 압출기 다중 재료 모드에서는 압출기 수를 편집할 수 없습니다."
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode to use manual filament changes."
-msgstr ""
+msgstr "'수동 필라멘트 교체'를 사용하려면 단일 압출기 다중 재료 모드를 활성화하세요."
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 Bambu Lab이 아닌 프린터에서 '프라임 타워 유형'을 '유형 2'로 하고 단일 압출기 다중 재료 모드를 활성화하세요."
 
+# AI Translated
 msgid "Enable IDEX/IQEX printer mode to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 IDEX/IQEX 프린터 모드를 활성화하세요."
 
 # AI Translated
 msgid "Front-left"
@@ -13633,35 +13914,47 @@ msgstr "왼쪽 뒤"
 msgid "Rear-right"
 msgstr "오른쪽 뒤"
 
+# AI Translated
 msgid "Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Bambu Lab이 아닌 프린터에서 '프라임 타워 유형'을 '유형 2'로 하여 여러 압출기를 사용하고 단일 압출기 다중 재료 모드를 비활성화하세요."
 
+# AI Translated
 msgid "Set retraction length above zero or enable firmware retraction to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 후퇴 길이를 0보다 크게 설정하거나 '펌웨어 리트렉션 사용'을 활성화하세요."
 
+# AI Translated
 msgid "The extruder printable area and height are fixed by the printer profile."
-msgstr ""
+msgstr "압출기 출력 가능 영역과 높이는 프린터 사전 설정에서 고정됩니다."
 
+# AI Translated
 msgid "This setting is shown for printers with exactly two extruders."
-msgstr ""
+msgstr "이 설정은 압출기가 정확히 2개인 프린터에 표시됩니다."
 
+# AI Translated
 msgid "Select per-extruder collision volumes on a printer with multiple extruders to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 압출기가 여러 개인 프린터에서 압출기별 충돌 부피를 선택하세요."
 
+# AI Translated
 msgid "Retraction length is controlled by the firmware while firmware retraction is enabled."
-msgstr ""
+msgstr "'펌웨어 리트렉션 사용'이 활성화된 동안에는 펌웨어가 후퇴 길이를 제어합니다."
 
+# AI Translated
 msgid "Enable retraction and set Z hop above zero to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 후퇴를 활성화하고 'Z올리기 높이' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 후퇴 길이를 0보다 크게 설정하고 '펌웨어 리트렉션 사용'을 비활성화하세요."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
-msgstr ""
+msgstr "'노즐 청소 전 후퇴량'을 편집하려면 후퇴와 '후퇴 시 노즐 청소'를 활성화하고 '노즐 청소 후 후퇴량' 값을 100%보다 작게 설정하세요."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
-msgstr ""
+msgstr "'노즐 청소 후 후퇴량'을 편집하려면 후퇴와 '후퇴 시 노즐 청소'를 활성화하고 '노즐 청소 전 후퇴량' 값을 100%보다 작게 설정하세요."
 
 # AI Translated
 msgid ""
@@ -13676,47 +13969,61 @@ msgstr ""
 msgid "Firmware Retraction"
 msgstr "펌웨어 리트렉션"
 
+# AI Translated
 msgid "Enable retraction and wiping to edit wipe distance."
-msgstr ""
+msgstr "'노즐 청소 거리'를 편집하려면 후퇴와 '후퇴 시 노즐 청소'를 활성화하세요."
 
+# AI Translated
 msgid "This setting requires multiple extruders."
-msgstr ""
+msgstr "이 설정에는 여러 개의 압출기가 필요합니다."
 
+# AI Translated
 msgid "Use multiple extruders and set tool change retraction length above zero to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 여러 압출기를 사용하고 '후퇴 길이 (툴 체인지)' 값을 0보다 크게 설정하세요."
 
+# AI Translated
 msgid "Disable firmware retraction and allow long retraction when cutting to use this setting."
-msgstr ""
+msgstr "이 설정을 사용하려면 '펌웨어 리트렉션 사용'을 비활성화하고 절단 시 긴 후퇴를 허용하세요."
 
+# AI Translated
 msgid "Enable long retraction when cutting to edit the retraction distance."
-msgstr ""
+msgstr "'절단 시 후퇴 거리'를 편집하려면 절단 시 긴 후퇴를 활성화하세요."
 
+# AI Translated
 msgid "Select a Z hop type other than Normal to edit travel slope."
-msgstr ""
+msgstr "'이동 각도'를 편집하려면 '일반' 이외의 'Z올리기 유형'을 선택하세요."
 
+# AI Translated
 msgid "Travel acceleration limits are unavailable for the Marlin legacy and Klipper G-code flavors."
-msgstr ""
+msgstr "Marlin (레거시) 및 Klipper G-code 유형에서는 이동 가속도 제한을 사용할 수 없습니다."
 
+# AI Translated
 msgid "Jerk limits are unavailable while Marlin uses nonzero junction deviation."
-msgstr ""
+msgstr "Marlin이 0이 아닌 Junction Deviation을 사용하는 동안에는 Jerk 제한을 사용할 수 없습니다."
 
+# AI Translated
 msgid "Emitting machine limits requires the Marlin legacy, Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "장치 한계를 G-code에 출력하려면 Marlin (레거시), Marlin 또는 RepRapFirmware G-code 유형이 필요합니다."
 
+# AI Translated
 msgid "Enable resonance avoidance to edit its speed range."
-msgstr ""
+msgstr "속도 범위를 편집하려면 '공진 회피'를 활성화하세요."
 
+# AI Translated
 msgid "This input shaping setting requires the Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "이 입력 셰이핑 설정에는 Marlin 또는 RepRapFirmware G-code 유형이 필요합니다."
 
+# AI Translated
 msgid "Enable emitting machine limits to G-code to emit input shaping settings."
-msgstr ""
+msgstr "입력 셰이핑 설정을 출력하려면 장치 한계를 G-code에 출력하도록 활성화하세요."
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code to edit this setting."
-msgstr ""
+msgstr "이 설정을 편집하려면 장치 한계와 입력 셰이핑을 G-code에 출력하도록 활성화하세요."
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code with the Marlin firmware G-code flavor to edit separate Y-axis values."
-msgstr ""
+msgstr "Y축 값을 따로 편집하려면 Marlin 펌웨어 G-code 유형에서 장치 한계와 입력 셰이핑을 G-code에 출력하도록 활성화하세요."
 
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
 msgstr "압출기 유형 또는 번호가 다른 프린터로 전환하면 압출기 또는 다중 노즐 관련 매개 변수의 변경 사항이 삭제되거나 초기화됩니다."
@@ -13771,8 +14078,9 @@ msgstr ""
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "선택한 사전 설정을 삭제하시겠습니까?"
 
+# AI Translated
 msgid "Select \"All\" to edit the compatibility condition instead of using an explicit profile list."
-msgstr ""
+msgstr "명시적인 사전 설정 목록 대신 호환성 조건을 편집하려면 \"모두\"를 선택하세요."
 
 # AI Translated
 msgid "Select printers"
@@ -13893,8 +14201,9 @@ msgstr "현재 값을 재설정하고 전역 값에 연결하려면 클릭합니
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "현재 수정 내용을 삭제하고 저장된 값으로 재설정하려면 클릭하세요."
 
+# AI Translated
 msgid "Material print speed cannot be edited for the SL1 printer."
-msgstr ""
+msgstr "SL1 프린터에서는 재료 출력 속도를 편집할 수 없습니다."
 
 msgid "Process Settings"
 msgstr "프로세스 설정"
@@ -13981,7 +14290,7 @@ msgstr "선택한 옵션을 새로 선택한 사전 설정으로 이전합니다
 
 #, boost-format
 msgid ""
-"Save the selected options to preset \n"
+"Save the selected options to preset\n"
 "\"%1%\"."
 msgstr ""
 "선택한 옵션을 사전 설정에 저장\n"
@@ -13989,7 +14298,7 @@ msgstr ""
 
 #, boost-format
 msgid ""
-"Transfer the selected options to the newly selected preset \n"
+"Transfer the selected options to the newly selected preset\n"
 "\"%1%\"."
 msgstr ""
 "선택한 옵션을 새로 선택한 사전 설정으로 이전\n"
@@ -14846,12 +15155,8 @@ msgstr "프린터에 연결 중... 대화 상자가 나중에 닫힙니다."
 msgid "Connection failed, please double check IP and Access Code"
 msgstr "연결에 실패했습니다. IP와 액세스 코드를 다시 확인하세요"
 
-msgid ""
-"Connection failed! If your IP and Access Code is correct, \n"
-"please move to step 3 for troubleshooting network issues"
-msgstr ""
-"연결에 실패했습니다. IP와 액세스 코드가 올바른 경우 \n"
-"네트워크 문제를 해결하려면 3단계로 이동하세요"
+msgid "Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"
+msgstr "연결에 실패했습니다. IP와 액세스 코드가 올바른 경우 네트워크 문제를 해결하려면 3단계로 이동하세요"
 
 msgid "Connection failed! Please refer to the wiki page."
 msgstr "연결에 실패했습니다! 위키 페이지를 참조하세요."
@@ -15359,6 +15664,11 @@ msgstr "%1%이(가) 압출기 %2%의 충돌 부피와 교차합니다."
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% 이(가) 다른 객체와 너무 가까워 출력 시 충돌이 발생 할 수 있습니다."
 
+# AI Translated
+#, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr "충돌을 피하기 위해 %1%은(는) 객체 목록의 순서보다 나중에 출력됩니다."
+
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% 이(가) 너무 높아서 충돌이 출력 시 발생할 수 있습니다."
@@ -15411,10 +15721,11 @@ msgstr "그래도 출력하려면 기본 설정 / 제어 / 슬라이싱 / 혼합
 msgid "No extrusions under current settings."
 msgstr "현재 설정에 압출기가 없습니다."
 
+# AI Translated
 #. TRN %1% is the filament number as shown in the filament list, starting from 1.
 #, boost-format
 msgid "The flow ratio of filament %1% must be greater than 0."
-msgstr ""
+msgstr "필라멘트 %1%의 압출량 비율은 0보다 커야 합니다."
 
 # AI Translated
 msgid "Mixed filaments are not supported in IDEX/IQEX parallel modes. Switch this plate to Primary mode."
@@ -15678,8 +15989,19 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "정밀 벽 옵션은 외벽-내벽 또는 내벽-외벽-내벽 순서에서는 무시됩니다."
 
 # AI Translated
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "하나 이상의 압출기에 대한 적응형 Pressure Advance 모델에 잘못된 값이 포함되어 있을 수 있습니다."
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr "하나 이상의 압출기에서 적응형 Pressure Advance가 활성화되어 있지만, 해당 적응형 Pressure Advance 모델에 입력된 측정값이 없습니다."
+
+# AI Translated
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
+"필라멘트 %1%의 적응형 Pressure Advance 모델에 잘못된 값이 포함되어 있습니다.\n"
+"%2%"
 
 # AI Translated
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
@@ -16440,8 +16762,14 @@ msgid "Precise wall"
 msgstr "정밀한 벽"
 
 # AI Translated
-msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr "외벽 간격을 조정하여 쉘 정밀도를 높입니다. 레이어 일관성도 향상됩니다. 참고: 이 옵션은 외벽-내벽 또는 내벽-외벽-내벽 순서에서는 무시됩니다."
+msgid ""
+"Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n"
+"\n"
+"Note: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgstr ""
+"외벽 간격을 조정하여 쉘 정밀도를 높입니다. 레이어 일관성도 향상됩니다.\n"
+"\n"
+"참고: 이 옵션은 외벽-내벽 또는 내벽-외벽-내벽 순서에서는 무시됩니다."
 
 msgid "Only one wall on top surfaces"
 msgstr "상단 표면에 단일 벽 생성"
@@ -16455,9 +16783,11 @@ msgstr "단일 벽 임계값"
 #, no-c-format, no-boost-format
 msgid ""
 "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+"\n"
 "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
 msgstr ""
 "상단 표면을 출력해야 하고 부분적으로 다른 레이어로 덮여 있는 경우 너비가 이 값 미만인 상단 레이어에서는 고려되지 않습니다. 이는 둘레로만 덮여야 하는 표면에서 '상단 둘레 하나'가 발동되지 않도록 하는 데 유용할 수 있습니다. 이 값은 압출 너비의 mm 또는 %로 설정됩니다.\n"
+"\n"
 "경고: 활성화된 경우, 의도치 않은 형상이 생성되는건 다음 레이어에 문자와 같은 일부 얇은 형상이 있기 때문입니다. 이러한 형상을 제거하려면 이 값을 0으로 설정하세요."
 
 msgid "Only one wall on first layer"
@@ -16554,7 +16884,7 @@ msgid ""
 "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
 "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 "\n"
-"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen.\n"
 "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
 "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
 "\n"
@@ -16839,8 +17169,12 @@ msgid "Activate air filtration"
 msgstr "공기 여과 활성화"
 
 # AI Translated
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "더 나은 공기 여과를 위해 활성화하세요. G-code 명령: M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"더 나은 공기 여과를 위해 활성화하세요.\n"
+"G-code 명령: M106 P3 S(0-255)"
 
 # AI Translated
 msgid "Enable this to override the fan speed set in custom G-code during print."
@@ -17291,14 +17625,26 @@ msgstr "노즐 팁의 높이."
 msgid "Bed mesh min"
 msgstr "베드 메시 최소"
 
-msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "이 옵션은 허용되는 베드 메시 영역의 최소 지점을 설정합니다. 프로브의 XY 옵셋으로 인해 대부분의 프린터는 전체 베드를 프로브할 수 없습니다. 프로브 포인트가 베드 영역 밖으로 나가지 않도록 하려면 베드 메시의 최소 및 최대 지점을 적절하게 설정해야 합니다. OrcaSlicer는 adaptive_bed_mesh_min/adaptive_bed_mesh_max 값이 이러한 최소/최대 포인트를 초과하지 않도록 보장합니다. 이 정보는 일반적으로 프린터 제조업체로부터 얻을 수 있습니다. 기본 설정은 (-99999, -99999)입니다. 이는 제한이 없으므로 전체 베드에 걸쳐 프로빙이 가능함을 의미합니다."
+msgid ""
+"This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"이 옵션은 허용되는 베드 메시 영역의 최소 지점을 설정합니다. 프로브의 XY 옵셋으로 인해 대부분의 프린터는 전체 베드를 프로브할 수 없습니다. 프로브 포인트가 베드 영역 밖으로 나가지 않도록 하려면 베드 메시의 최소 및 최대 지점을 적절하게 설정해야 합니다. OrcaSlicer는 adaptive_bed_mesh_min/adaptive_bed_mesh_max 값이 이러한 최소/최대 포인트를 초과하지 않도록 보장합니다. 이 정보는 일반적으로 프린터 제조업체로부터 얻을 수 있습니다.\n"
+"\n"
+"기본 설정은 (-99999, -99999)입니다. 이는 제한이 없으므로 전체 베드에 걸쳐 프로빙이 가능함을 의미합니다."
 
 msgid "Bed mesh max"
 msgstr "베드 메시 최대"
 
-msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "이 옵션은 허용되는 침대 메시 영역의 최대 지점을 설정합니다. 프로브의 XY 옵셋으로 인해 대부분의 프린터는 전체 베드를 프로브할 수 없습니다. 프로브 포인트가 베드 영역 밖으로 나가지 않도록 하려면 베드 메시의 최소 및 최대 지점을 적절하게 설정해야 합니다. OrcaSlicer는 adaptive_bed_mesh_min/adaptive_bed_mesh_max 값이 이러한 최소/최대 포인트를 초과하지 않도록 보장합니다. 이 정보는 일반적으로 프린터 제조업체로부터 얻을 수 있습니다. 기본 설정은 (99999, 99999)입니다. 이는 제한이 없으므로 전체 베드에 걸쳐 프로빙이 가능함을 의미합니다."
+msgid ""
+"This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"이 옵션은 허용되는 침대 메시 영역의 최대 지점을 설정합니다. 프로브의 XY 옵셋으로 인해 대부분의 프린터는 전체 베드를 프로브할 수 없습니다. 프로브 포인트가 베드 영역 밖으로 나가지 않도록 하려면 베드 메시의 최소 및 최대 지점을 적절하게 설정해야 합니다. OrcaSlicer는 adaptive_bed_mesh_min/adaptive_bed_mesh_max 값이 이러한 최소/최대 포인트를 초과하지 않도록 보장합니다. 이 정보는 일반적으로 프린터 제조업체로부터 얻을 수 있습니다.\n"
+"\n"
+"기본 설정은 (99999, 99999)입니다. 이는 제한이 없으므로 전체 베드에 걸쳐 프로빙이 가능함을 의미합니다."
 
 msgid "Probe point distance"
 msgstr "프로브 포인트 거리"
@@ -17424,13 +17770,11 @@ msgstr "브릿지용 정적 Pressure Advance"
 
 # AI Translated
 msgid ""
-"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
-"equivalent walls (using adaptive settings if enabled).\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"브릿지에 사용할 정적 Pressure Advance 값입니다. 0으로 설정하면 이에 상응하는 \n"
-"벽과 동일한 Pressure Advance가 적용됩니다(활성화된 경우 적응형 설정 사용).\n"
+"브릿지에 사용할 정적 Pressure Advance 값입니다. 0으로 설정하면 이에 상응하는 벽과 동일한 Pressure Advance가 적용됩니다(활성화된 경우 적응형 설정 사용).\n"
 "\n"
 "브릿지를 출력할 때 PA 값을 낮추면 브릿지 직후에 나타나는 약간의 압출 부족 현상을 줄일 수 있습니다. 이는 공중에 출력할 때 노즐 내 압력이 떨어지기 때문이며, PA를 낮추면 이를 상쇄하는 데 도움이 됩니다."
 
@@ -18593,8 +18937,12 @@ msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "베드 모양 w.r.t. 범위 [0,1] 내에서 가장 좋은 자동 정렬 위치입니다."
 
 # AI Translated
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "장치에 보조 출력물 냉각팬이 있는 경우 이 옵션을 활성화합니다. G-code 명령: M106 P2 S(0-255)."
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"장치에 보조 출력물 냉각팬이 있는 경우 이 옵션을 활성화합니다.\n"
+"G-code 명령: M106 P2 S(0-255)."
 
 # AI Translated
 msgid "Fan direction"
@@ -18709,8 +19057,14 @@ msgid "Skip G-code config block"
 msgstr "G-code 설정 블록 생략"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "CONFIG_BLOCK(슬라이서 설정의 키/값 쌍)을 G-code 파일에 기록하지 않습니다. 이 주석 줄을 해석할 때 펌웨어가 중단되는 프린터(예: Anycubic go-klipper)에 도움이 될 수 있습니다. 참고: G-code 파일에 슬라이서 설정이 더 이상 포함되지 않으므로, 이 파일을 OrcaSlicer로 다시 가져와도 설정이 복원되지 않습니다."
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"CONFIG_BLOCK(슬라이서 설정의 키/값 쌍)을 G-code 파일에 기록하지 않습니다. 이 주석 줄을 해석할 때 펌웨어가 중단되는 프린터(예: Anycubic go-klipper)에 도움이 될 수 있습니다.\n"
+"\n"
+"참고: G-code 파일에 슬라이서 설정이 더 이상 포함되지 않으므로, 이 파일을 OrcaSlicer로 다시 가져와도 설정이 복원되지 않습니다."
 
 msgid "Pellet Modded Printer"
 msgstr "펠릿 프린터"
@@ -18728,9 +19082,14 @@ msgid "Label objects"
 msgstr "객체 이름표"
 
 # AI Translated
-# Wipe into this object;s infill/Wipe into this object
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "출력 이동이 어느 객체에 속하는지 표시하는 주석을 G-code에 추가하려면 이 옵션을 활성화하세요. 이는 Octoprint CancelObject 플러그인에 유용합니다. 이 설정은 단일 압출기 다중 재료 설정 및 객체에서 플러시 / 채우기에서 플러시와 호환되지 않습니다."
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"출력 이동이 어느 객체에 속하는지 표시하는 주석을 G-code에 추가하려면 이 옵션을 활성화하세요. 이는 Octoprint CancelObject 플러그인에 유용합니다.\n"
+"\n"
+"이 설정은 단일 압출기 다중 재료 설정 및 객체에서 플러시 / 채우기에서 플러시와 호환되지 않습니다."
 
 msgid "Exclude objects"
 msgstr "객체 제외"
@@ -18752,14 +19111,28 @@ msgid "Verbose G-code"
 msgstr "상세한 G-code"
 
 # AI Translated
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "주석이 달린 G-code 파일을 가져오려면 이 기능을 활성화하세요. 각 라인은 설명 텍스트로 설명됩니다. SD 카드에서 출력하는 경우 파일의 추가 크기로 인해 펌웨어 속도가 느려질 수 있습니다."
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"주석이 달린 G-code 파일을 가져오려면 이 기능을 활성화하세요. 각 라인은 설명 텍스트로 설명됩니다.\n"
+"\n"
+"SD 카드에서 출력하는 경우 파일의 추가 크기로 인해 펌웨어 속도가 느려질 수 있습니다."
 
+# AI Translated
 msgid "High precision G-code (experimental)"
-msgstr ""
+msgstr "고정밀 G-code(실험적)"
 
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+# AI Translated
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
 msgstr ""
+"G-code의 반올림 오차를 줄이기 위해 X, Y, Z, I, J를 소수점 3자리 대신 4자리로, E를 5자리 대신 6자리로 기록합니다. 상대 E 거리를 사용하면 각 이동의 반올림 오차가 다음 이동으로도 이어집니다. 서포트는 출력 후 제거되므로 표준 정밀도를 유지합니다. 작은 노즐(예: 0.2mm)과 얇은 레이어(예: 0.08mm 이하)에서는 이동마다 압출되는 재료가 매우 적어 반올림 오차의 영향이 가장 크므로, 압출을 안정시키는 데 도움이 될 수 있습니다. 효과는 나머지 설정이 얼마나 잘 조정되었는지에 크게 좌우되며, 출력 사전 설정이 잘 교정되어 있지 않으면 알아차리기 어려울 수 있습니다.\n"
+"\n"
+"G-code 파일이 약 10퍼센트 커지므로 G-code를 느리게 해석하는 프린터에서는 속도가 느려질 수 있습니다."
 
 msgid "Infill combination"
 msgstr "채우기 결합"
@@ -18778,16 +19151,36 @@ msgid "Sparse infill rotation template"
 msgstr "드문 채우기 회전 템플릿"
 
 # AI Translated
-msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr "각도 템플릿을 사용하여 레이어별로 드문 채우기 방향을 회전시킵니다. 쉼표로 구분된 각도(예: '0,30,60,90')를 입력하십시오. 각도는 레이어 순서대로 적용되며 목록이 끝나면 처음부터 반복됩니다. 고급 구문도 지원됩니다. '+5'는 매 레이어마다 +5°씩 회전하고, '+5#5'는 5개 레이어마다 +5°씩 회전합니다. 자세한 내용은 Wiki를 참조하십시오. 템플릿이 설정되면 표준 채우기 방향 설정은 무시됩니다. 참고: 일부 채우기 패턴(예: 자이로이드)은 회전을 자체적으로 제어하므로 주의해서 사용하십시오."
+msgid ""
+"Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends.\n"
+"\n"
+"Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n"
+"\n"
+"When a template is set, the standard infill direction setting is ignored.\n"
+"\n"
+"Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+msgstr ""
+"각도 템플릿을 사용하여 레이어별로 드문 채우기 방향을 회전시킵니다. 쉼표로 구분된 각도(예: '0,30,60,90')를 입력하십시오. 각도는 레이어 순서대로 적용되며 목록이 끝나면 처음부터 반복됩니다.\n"
+"\n"
+"고급 구문도 지원됩니다. '+5'는 매 레이어마다 +5°씩 회전하고, '+5#5'는 5개 레이어마다 +5°씩 회전합니다. 자세한 내용은 Wiki를 참조하십시오.\n"
+"\n"
+"템플릿이 설정되면 표준 채우기 방향 설정은 무시됩니다.\n"
+"\n"
+"참고: 일부 채우기 패턴(예: 자이로이드)은 회전을 자체적으로 제어하므로 주의해서 사용하십시오."
 
 # AI Translated
 msgid "Solid infill rotation template"
 msgstr "꽉찬 채우기 회전 템플릿"
 
 # AI Translated
-msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr "이 매개변수는 지정한 템플릿에 따라 각 레이어의 꽉찬 채우기 방향에 회전을 더합니다. 템플릿은 쉼표로 구분된 각도 목록으로, 예를 들어 '0,90'과 같습니다. 첫 번째 각도는 첫 번째 레이어에, 두 번째 각도는 두 번째 레이어에 적용되는 식입니다. 레이어 수가 각도 수보다 많으면 각도가 반복됩니다. 모든 꽉찬 채우기 패턴이 회전을 지원하는 것은 아닙니다."
+msgid ""
+"This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated.\n"
+"\n"
+"Note that not all solid infill patterns support rotation."
+msgstr ""
+"이 매개변수는 지정한 템플릿에 따라 각 레이어의 꽉찬 채우기 방향에 회전을 더합니다. 템플릿은 쉼표로 구분된 각도 목록으로, 예를 들어 '0,90'과 같습니다. 첫 번째 각도는 첫 번째 레이어에, 두 번째 각도는 두 번째 레이어에 적용되는 식입니다. 레이어 수가 각도 수보다 많으면 각도가 반복됩니다.\n"
+"\n"
+"모든 꽉찬 채우기 패턴이 회전을 지원하는 것은 아닙니다."
 
 msgid "Skeleton infill density"
 msgstr "골격 채우기 밀도"
@@ -19542,10 +19935,12 @@ msgstr "출력물 냉각 팬의 최소 속도"
 # AI Translated
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "보조 출력물 냉각팬의 속도. 냉각 레이어가 없는 것으로 정의된 처음 여러 레이어를 제외하고 출력 중에 보조 팬이 이 속도로 작동합니다.\n"
-"이 기능을 사용하려면 프린터 설정에서 보조 팬을 활성화하세요. G-code 명령: M106 P2 S(0-255)"
+"이 기능을 사용하려면 프린터 설정에서 보조 팬을 활성화하세요.\n"
+"G-code 명령: M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "첫 몇개의"
@@ -19638,8 +20033,14 @@ msgid "Reduce infill retraction"
 msgstr "채우기 후퇴 감소"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "이동 경로가 완전히 채우기 영역 안에 있으면 후퇴하지 않습니다. 흘러내림이 보이지 않기 때문입니다. 복잡한 모델에서 후퇴 횟수를 줄여 출력 시간을 절약할 수 있지만 슬라이싱과 G-code 생성 속도는 느려집니다. 후퇴를 건너뛴 영역에서는 Z 올리기도 수행되지 않습니다."
+msgid ""
+"Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n"
+"\n"
+"Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr ""
+"이동 경로가 완전히 채우기 영역 안에 있으면 후퇴하지 않습니다. 흘러내림이 보이지 않기 때문입니다. 복잡한 모델에서 후퇴 횟수를 줄여 출력 시간을 절약할 수 있지만 슬라이싱과 G-code 생성 속도는 느려집니다.\n"
+"\n"
+"후퇴를 건너뛴 영역에서는 Z 올리기도 수행되지 않습니다."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "이 옵션은 비활성 압출기의 온도를 낮추어 스며드는 것을 방지합니다."
@@ -20097,8 +20498,14 @@ msgstr "이 옵션은 스카프 조인트 이음새 적용을 위한 돌출 임�
 msgid "Scarf joint speed"
 msgstr "스카프 조인트 속도"
 
-msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "이 옵션은 스카프 조인트의 출력 속도를 설정합니다. 스카프 조인트를 느린 속도(100mm/s 미만)로 출력하는 것이 좋습니다. 또한 설정 속도가 외벽 또는 내벽의 속도와 크게 다른 경우 '압출 속도 평탄화'를 활성화하는 것이 좋습니다. 여기에 지정된 속도가 외부 또는 내부 벽의 속도보다 높을 경우 프린터는 기본적으로 두 가지 속도 중 더 느린 속도로 설정됩니다. 백분율(예: 80%)로 지정되면 속도는 각각의 외부 또는 내부 벽 속도를 기준으로 계산됩니다. 기본값은 100%로 설정되어 있습니다."
+msgid ""
+"This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
+"\n"
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+msgstr ""
+"이 옵션은 스카프 조인트의 출력 속도를 설정합니다. 스카프 조인트를 느린 속도(100mm/s 미만)로 출력하는 것이 좋습니다. 또한 설정 속도가 외벽 또는 내벽의 속도와 크게 다른 경우 '압출 속도 평탄화'를 활성화하는 것이 좋습니다.\n"
+"\n"
+"여기에 지정된 속도가 외부 또는 내부 벽의 속도보다 높을 경우 프린터는 기본적으로 두 가지 속도 중 더 느린 속도로 설정됩니다. 백분율(예: 80%)로 지정되면 속도는 각각의 외부 또는 내부 벽 속도를 기준으로 계산됩니다. 기본값은 100%로 설정되어 있습니다."
 
 msgid "Scarf joint flow ratio"
 msgstr "스카프 조인트 압출량 비율"
@@ -20348,8 +20755,14 @@ msgstr "나선형 종료 유량비"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "나선형을 끝내는 동안 마무리 압출량을 설정합니다. 일반적으로 나선형 전환은 마지막 루프 동안 압출량 비율을 100% 에서 0% 로 스케일링하므로 경우에 따라 나선형 끝에서 압출이 미달될 수 있습니다."
 
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "유연 또는 기존 모드를 선택한 경우 각 출력에 대해 타임랩스 비디오가 생성됩니다. 각 레이어가 출력된 후 챔버 카메라로 스냅샷을 찍습니다. 이 모든 스냅샷은 출력이 완료되면 타임랩스 비디오로 구성됩니다. 유연 모드를 선택하면 각 레이어가 출력된 후 툴 헤드가 여유 공간으로 이동한 다음 스냅샷을 찍습니다. 스냅샷을 찍는 과정에서 노즐에서 녹은 필라멘트가 새어 나올 수 있기 때문에 유연 모드에서 노즐을 닦으려면 프라임 타워가 필요합니다."
+msgid ""
+"If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n"
+"\n"
+"If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+msgstr ""
+"유연 또는 기존 모드를 선택한 경우 각 출력에 대해 타임랩스 비디오가 생성됩니다. 각 레이어가 출력된 후 챔버 카메라로 스냅샷을 찍습니다. 이 모든 스냅샷은 출력이 완료되면 타임랩스 비디오로 구성됩니다.\n"
+"\n"
+"유연 모드를 선택하면 각 레이어가 출력된 후 툴 헤드가 여유 공간으로 이동한 다음 스냅샷을 찍습니다. 스냅샷을 찍는 과정에서 노즐에서 녹은 필라멘트가 새어 나올 수 있기 때문에 유연 모드에서 노즐을 닦으려면 프라임 타워가 필요합니다."
 
 msgid "Traditional"
 msgstr "기존"
@@ -20570,16 +20983,28 @@ msgid "Tool change on wipe tower"
 msgstr "프라임 타워에서 툴 체인지"
 
 # AI Translated
-msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
-msgstr "툴 체인지 명령(Tx)을 실행하기 전에 툴헤드가 반드시 프라임 타워로 이동하도록 합니다. 유형 2 프라임 타워를 사용하는 다중 압출기(멀티 툴헤드) 프린터에만 해당됩니다. 기본적으로 Orca는 멀티 툴헤드 장비에서 펌웨어가 헤드 교체를 처리하므로 이동을 생략하는데, 이 때문에 Tx 명령이 출력물 위에서 실행될 수 있습니다. 툴 체인지가 항상 프라임 타워 위에서 실행되도록 하려면 이 옵션을 활성화하십시오."
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+msgstr ""
+"툴 체인지 명령(Tx)을 실행하기 전에 툴헤드가 반드시 프라임 타워로 이동하도록 합니다.\n"
+"\n"
+"유형 2 프라임 타워를 사용하는 다중 압출기(멀티 툴헤드) 프린터에만 해당됩니다. 기본적으로 Orca는 멀티 툴헤드 장비에서 펌웨어가 헤드 교체를 처리하므로 이동을 생략하는데, 이 때문에 Tx 명령이 출력물 위에서 실행될 수 있습니다. 툴 체인지가 항상 프라임 타워 위에서 실행되도록 하려면 이 옵션을 활성화하십시오."
 
 # AI Translated
 msgid "Wait for temperature on wipe tower"
 msgstr "프라임 타워에서 온도 대기"
 
 # AI Translated
-msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr "출력 온도에 도달할 때까지 기다리지 않고 새 툴을 집은 뒤 프라임 타워로 이동하여, 플러시 직전에 그곳에서 온도를 기다립니다. 가열 중 흘러나온 재료는 모델이 아닌 타워에 떨어지고, 이동 시간이 가열 시간과 겹칩니다. 타입 2 프라임 타워를 사용하는 다중 압출기(다중 툴헤드) 프린터에만 해당합니다. 펌웨어나 툴 체인지 매크로가 직접 온도를 기다려서는 안 됩니다. 비활성화하면 툴 체인지 명령 직후에 온도 대기가 실행됩니다."
+msgid ""
+"Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating.\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
+"출력 온도에 도달할 때까지 기다리지 않고 새 툴을 집은 뒤 프라임 타워로 이동하여, 플러시 직전에 그곳에서 온도를 기다립니다. 가열 중 흘러나온 재료는 모델이 아닌 타워에 떨어지고, 이동 시간이 가열 시간과 겹칩니다.\n"
+"\n"
+"타입 2 프라임 타워를 사용하는 다중 압출기(다중 툴헤드) 프린터에만 해당합니다. 펌웨어나 툴 체인지 매크로가 직접 온도를 기다려서는 안 됩니다. 비활성화하면 툴 체인지 명령 직후에 온도 대기가 실행됩니다."
 
 msgid "No sparse layers (beta)"
 msgstr "희소 레이어 없음(베타)"
@@ -20878,10 +21303,16 @@ msgid "This is the speed for support."
 msgstr "서포트 속도"
 
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"서포트의 스타일과 모양. 일반 서포트의 경우, 격자는 보다 안정적인 서포트(기본값)가 생성되는 반면, 맞춤 서포트는 재료를 절약하고 서포트 자국을 줄입니다.\n"
+"서포트의 스타일과 모양.\n"
+"\n"
+"일반 서포트의 경우, 격자는 보다 안정적인 서포트(기본값)가 생성되는 반면, 맞춤 서포트는 재료를 절약하고 서포트 자국을 줄입니다.\n"
+"\n"
 "트리 서포트의 경우, 얇은 및 유기체 모양은 가지를 보다 적극적으로 병합하고 많은 재료를 절약합니다(기본값 유기체). 반면 혼합 모양은 크고 평평한 오버행 아래에 일반 서포트와 유사한 구조를 만듭니다."
 
 msgid "Default (Grid/Organic)"
@@ -20913,9 +21344,11 @@ msgstr "임계값 각도"
 
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
 "기울기 각도가 임계값보다 작은 오버행에 대해 서포트가 생성됩니다.이 값이 작을수록 서포트 없이 출력할 수 있는 오버행이 더 가파릅니다.\n"
+"\n"
 "참고: 0으로 설정하면 일반 서포트는 대신 임계값 중복을 사용하고, 트리 서포트는 기본값 30으로 돌아갑니다."
 
 msgid "Threshold overlap"
@@ -20963,16 +21396,6 @@ msgstr "벨트 기울기 축"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "슬라이스 전에 메시를 회전시키는 기준 축입니다. 벨트 프린터의 기울기에 해당하며, 왜곡 없는(등거리) 회전으로 베드 렌더링과 서포트 중력 기울기에도 적용됩니다. G-code 역변환은 기계 좌표계 전단/배율 및 재매핑 전에 이 회전을 되돌립니다. 일반적인 갠트리 기울기는 X입니다(벨트는 Y 방향으로 이동)."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -21184,13 +21607,11 @@ msgid "Activate temperature control"
 msgstr "온도 제어 활성화"
 
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"자동화된 챔버 온도 제어를 위해 이 옵션을 활성화합니다. 이 옵션은 \"machine_start_gcode\" 이전에 M191 명령 내보내기를 활성화합니다.\n"
-" 챔버 온도를 설정하고 온도에 도달할 때까지 기다립니다. 또한 출력가 끝나면 챔버 히터를 끄는 M141 명령을 내보냅니다(있는 경우).\n"
+"자동화된 챔버 온도 제어를 위해 이 옵션을 활성화합니다. 이 옵션은 \"machine_start_gcode\" 이전에 M191 명령 내보내기를 활성화합니다. 챔버 온도를 설정하고 온도에 도달할 때까지 기다립니다. 또한 출력가 끝나면 챔버 히터를 끄는 M141 명령을 내보냅니다(있는 경우).\n"
 "\n"
 "이 옵션은 매크로를 통해 또는 기본적으로 M191 및 M141 명령을 지원하는 펌웨어에 의존하며 일반적으로 활성 챔버 히터가 설치된 경우 사용됩니다."
 
@@ -21200,25 +21621,31 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "ABS, ASA, PC 및 PA와 같은 고온 재료의 경우 챔버 온도가 높을수록 뒤틀림을 억제하거나 줄이는 데 도움이 될 수 있으며 잠재적으로 층간 결합 강도가 높아질 수 있습니다. 그러나 동시에 챔버 온도가 높을수록 ABS 및 ASA의 공기 여과 효율성이 감소합니다.\n"
 "\n"
 "PLA, PETG, TPU, PVA 및 기타 저온 재료의 경우 열 차단 시 재료 연화로 인한 압출기 막힘을 방지하기 위해 챔버 온도가 낮아야 하므로 이 옵션을 비활성화(0으로 설정)해야 합니다.\n"
 "\n"
-"활성화된 경우 이 매개변수는 원하는 챔버 온도를 출력 시작 매크로 또는 PRINT_START(기타 변수) CHAMBER_TEMP=[chamber_temperature]와 같은 열 흡수 매크로에 전달하는 데 사용할 수 있는 chamber_temperature라는 G-code 변수도 설정합니다. 이는 프린터가 M141/M191 명령을 지원하지 않거나 활성 챔버 히터가 설치되지 않은 경우 출력 시작 매크로에서 열 흡수를 처리하려는 경우 유용할 수 있습니다."
+"활성화된 경우 이 매개변수는 chamber_temperature라는 G-code 변수도 설정합니다. 이 변수로 원하는 챔버 온도를 출력 시작 매크로나 다음과 같은 열 흡수 매크로에 전달할 수 있습니다:\n"
+"PRINT_START(기타 변수) CHAMBER_TEMP=[chamber_temperature]\n"
+"이는 프린터가 M141/M191 명령을 지원하지 않거나 활성 챔버 히터가 설치되지 않은 경우 출력 시작 매크로에서 열 흡수를 처리하려는 경우 유용할 수 있습니다."
 
 # AI Translated
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
-"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this:\n"
+"PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
 "챔버가 \"목표\" 챔버 온도까지 계속 가열되는 동안 출력을 시작할 챔버 온도입니다. 예를 들어 목표를 60으로, 최소를 50으로 설정하면 60℃가 될 때까지 기다리지 않고 챔버가 50℃에 도달하는 즉시 출력을 시작합니다.\n"
 "\n"
-"이 옵션은 chamber_minimal_temperature라는 G-code 변수를 설정하며, 이 변수는 다음과 같이 출력 시작 매크로나 히트 소크 매크로에 전달할 수 있습니다: PRINT_START (기타 변수) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"이 옵션은 chamber_minimal_temperature라는 G-code 변수를 설정하며, 이 변수는 다음과 같이 출력 시작 매크로나 히트 소크 매크로에 전달할 수 있습니다:\n"
+"PRINT_START (기타 변수) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "\"목표\" 챔버 온도와 달리 이 옵션은 M141/M191 명령을 생성하지 않고 값을 사용자 정의 G-code에 노출하기만 합니다. 이 값은 \"목표\" 챔버 온도를 초과해서는 안 됩니다."
 
@@ -21670,8 +22097,18 @@ msgstr "부품이 얇아짐에 따라 벽의 수가 변화하는 경우, 벽 구
 msgid "Wall transitioning filter margin"
 msgstr "벽 변환 필터 마진"
 
-msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
-msgstr "출력물의 벽 두께를 한 번 두껍게 한 다음 다시 한 번 더 얇게 하는 것을 방지합니다. 이 마진은 다음의 범위로 압출 너비를 확장합니다: [최소 벽 너비 - 마진, 2 * 최소 벽 너비 + 마진]. 이 마진이 증가하면 변환 횟수가 줄어들어 압출 시작/중지 횟수와 이동 시간이 줄어듭니다. 그러나, 큰 압출 너비 변동은 압출 과다 또는 압출 과소 문제를 일으킬 수 있습니다. 노즐 직경을 기준으로 백분율로 표시됩니다"
+msgid ""
+"Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin].\n"
+"\n"
+"Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems.\n"
+"\n"
+"It's expressed as a percentage over nozzle diameter."
+msgstr ""
+"출력물의 벽 두께를 한 번 두껍게 한 다음 다시 한 번 더 얇게 하는 것을 방지합니다. 이 마진은 다음의 범위로 압출 너비를 확장합니다: [최소 벽 너비 - 마진, 2 * 최소 벽 너비 + 마진].\n"
+"\n"
+"이 마진이 증가하면 변환 횟수가 줄어들어 압출 시작/중지 횟수와 이동 시간이 줄어듭니다. 그러나, 큰 압출 너비 변동은 압출 과다 또는 압출 과소 문제를 일으킬 수 있습니다.\n"
+"\n"
+"노즐 직경을 기준으로 백분율로 표시됩니다"
 
 msgid "Wall transitioning threshold angle"
 msgstr "벽 변환 임계값"
@@ -21757,8 +22194,14 @@ msgstr "흘러내림을 방지하기 위해 래밍하는 동안 노즐 온도가
 msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
 msgstr "압출기 교체 전 충돌을 위한 최대 체적 속도이며, 여기서 -1은 최대 체적 속도를 사용함을 의미합니다."
 
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "누수 방지를 위해 충돌 중 노즐 온도가 낮아집니다. 참고: 냉각 명령과 팬 작동만 실행되며, 목표 온도 도달은 보장되지 않습니다. 0은 비활성화를 의미합니다."
+msgid ""
+"To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n"
+"\n"
+"Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed."
+msgstr ""
+"누수 방지를 위해 충돌 중 노즐 온도가 낮아집니다. 0은 비활성화를 의미합니다.\n"
+"\n"
+"참고: 냉각 명령과 팬 작동만 실행되며, 목표 온도 도달은 보장되지 않습니다."
 
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
 msgstr "핫엔드 교체 전에 적용되는 충돌의 최대 체적 속도이며, 여기서 -1은 최대 체적 속도를 사용함을 의미합니다."
@@ -22379,6 +22822,14 @@ msgstr "일반 모드(즉, 저소음 모드가 아닌 상태)로 출력할 때�
 # AI Translated
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "일반 모드(즉, 저소음 모드가 아닌 상태)로 출력할 때의 예상 출력 시간입니다. normal_print_time과 동일합니다."
+
+# AI Translated
+msgid "Used filament types"
+msgstr "사용된 필라멘트 유형"
+
+# AI Translated
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr "출력 중 사용된 모든 필라멘트 유형을 밑줄로 구분한 목록입니다."
 
 # AI Translated
 msgid "Print time (silent mode)"
@@ -24110,6 +24561,10 @@ msgstr ""
 "- 동일한 히트베드 온도를 공유할 수 있는 소재\n"
 "- 다양한 필라멘트 브랜드 및 제품군(브랜드 = 뱀부, 제품군 = 기본, 메트)"
 
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "선"
+
 msgid "Pattern"
 msgstr "패턴"
 
@@ -24244,11 +24699,11 @@ msgstr "노즐에 맞춰 자동 크기 조정"
 
 # AI Translated
 msgid ""
-"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
-"이 모델은 0.4 mm 노즐과 0.2 mm 레이어 높이를 기준으로 설계되었습니다. \n"
+"이 모델은 0.4 mm 노즐과 0.2 mm 레이어 높이를 기준으로 설계되었습니다.\n"
 "크기 조정 옵션을 활성화하면(권장) 현재 노즐 직경과 적절한 레이어 높이에 맞춰 크기가 동적으로 조정되어 테스트가 정확하고 읽기 쉬워집니다.\n"
 "참조 모델을 있는 그대로 출력하려는 경우에만 크기 조정을 끄십시오."
 
@@ -24428,12 +24883,12 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
-" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
 "\n"
 "%s"
 msgstr ""
 "종료 속도(%.0f mm/s)가 필라멘트의 최대 압출 속도(%.1f mm³/s)를 초과합니다. 현재 선 너비와 레이어 높이에서는 외벽이 약 %.0f mm/s로 제한됩니다.\n"
-" 이보다 빠른 속도는 제한되므로 타워의 상단 블록은 요청한 속도로 출력되지 않습니다.\n"
+"이보다 빠른 속도는 제한되므로 타워의 상단 블록은 요청한 속도로 출력되지 않습니다.\n"
 "\n"
 "%s"
 
@@ -25120,13 +25575,11 @@ msgstr "첫 번째 페이지의 출력 가능 영역 섹션에 허용되지 않�
 # AI Translated
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
+"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "생성한 프린터 사전 설정에 동일한 이름의 사전 설정이 이미 있습니다. 덮어쓰시겠습니까?\n"
-"\t예: 동일한 이름의 프린터 사전 설정을 덮어쓰고, 동일한 사전 설정 이름을 가진 필라멘트 및 프로세스 사전 설정이 다시 생성되며 \n"
-"동일한 사전 설정 이름이 없는 필라멘트 및 프로세스 사전 설정은 유지됩니다.\n"
+"\t예: 동일한 이름의 프린터 사전 설정을 덮어쓰고, 동일한 사전 설정 이름을 가진 필라멘트 및 프로세스 사전 설정이 다시 생성되며 동일한 사전 설정 이름이 없는 필라멘트 및 프로세스 사전 설정은 유지됩니다.\n"
 "\t취소: 사전 설정을 생성하지 않고 생성 화면으로 돌아갑니다."
 
 msgid "You need to select at least one filament preset."
@@ -25166,7 +25619,7 @@ msgid "The entered nozzle diameter is invalid, please re-enter:\n"
 msgstr "입력한 노즐 직경이 잘못되었습니다. 다시 입력해 주세요:\n"
 
 msgid ""
-"The system preset does not allow creation. \n"
+"The system preset does not allow creation.\n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
 "시스템 프리셋으로 만들 수 없습니다.\n"
@@ -25308,14 +25761,14 @@ msgid "Only printer names with user printer presets will be displayed, and each 
 msgstr "사용자 프린터 사전 설정이 있는 프린터 이름만 표시되며, 선택한 각 사전 설정은 zip으로 내보내집니다."
 
 msgid ""
-"Only the filament names with user filament presets will be displayed, \n"
+"Only the filament names with user filament presets will be displayed,\n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "사용자 필라멘트 사전 설정이 있는 필라멘트 이름만 표시됩니다.\n"
 "선택한 각 필라멘트 이름의 모든 사용자 필라멘트 사전 설정은 zip으로 내보내집니다."
 
 msgid ""
-"Only printer names with changed process presets will be displayed, \n"
+"Only printer names with changed process presets will be displayed,\n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "프로세스 사전 설정이 변경된 프린터 이름만 표시됩니다.\n"
@@ -26616,10 +27069,6 @@ msgstr "삼각형 패싯 수"
 
 msgid "Calculating, please wait..."
 msgstr "계산 중, 잠시만 기다려주세요..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "이 설정을 기본값으로 저장"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -30562,10 +31011,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "두 선이 코너에서 만나지 않습니다 — 코너에서 만나는 두 선을 선택하십시오"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "크기는 0보다 커야 합니다"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "필렛: 반지름이 한쪽 변을 벗어나거나 두 선이 코너에서 만나지 않습니다"
 
@@ -30637,21 +31082,43 @@ msgstr "숫자를 입력하십시오"
 msgid "Not a number"
 msgstr "숫자가 아닙니다"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "생성"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "재료 추가"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "제거"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "필렛 / 모따기 / 구배"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "반복"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "변환"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "기준"
+
+# AI Translated
+msgctxt "Design"
+msgid "Modify"
+msgstr "수정"
 
 # AI Translated
 msgctxt "Design"
@@ -30985,6 +31452,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "코너 직사각형"
 
+msgctxt "Design"
+msgid "Rectangle"
+msgstr "직사각형"
+
 # AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
@@ -31005,6 +31476,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "중심 원"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "원"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -31019,6 +31494,11 @@ msgstr "3점 원"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "3점 호"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "호"
 
 # AI Translated
 msgctxt "Design"
@@ -31059,6 +31539,11 @@ msgstr "스플라인"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "삼각형"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "다각형"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -31166,6 +31651,7 @@ msgid "Linear array"
 msgstr "선형 배열"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "배열"
 
@@ -31477,6 +31963,46 @@ msgstr "준비 하기/미리 보기 전환"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "사이드바 접기/펼치기"
+
+# AI Translated
+msgid "Go to the Home tab"
+msgstr "홈 탭으로 이동"
+
+# AI Translated
+msgid "Go to the Design tab"
+msgstr "디자인 탭으로 이동"
+
+# AI Translated
+msgid "Go to the Prepare tab"
+msgstr "준비 하기 탭으로 이동"
+
+# AI Translated
+msgid "Go to the Preview tab"
+msgstr "미리 보기 탭으로 이동"
+
+# AI Translated
+msgid "Go to the Device tab"
+msgstr "장치 탭으로 이동"
+
+# AI Translated
+msgid "Go to the Multi-device tab"
+msgstr "멀티 디바이스 탭으로 이동"
+
+# AI Translated
+msgid "Go to the Project tab"
+msgstr "프로젝트 탭으로 이동"
+
+# AI Translated
+msgid "Go to the Calibration tab"
+msgstr "교정 탭으로 이동"
+
+# AI Translated
+msgid "Switch to the next tab"
+msgstr "다음 탭으로 전환"
+
+# AI Translated
+msgid "Switch to the previous tab"
+msgstr "이전 탭으로 전환"
 
 # AI Translated
 msgid "Reload the device page"
@@ -32463,8 +32989,9 @@ msgstr "현재 색상 저장"
 msgid "Palettes"
 msgstr "팔레트"
 
+# AI Translated
 msgid "Pick color from screen"
-msgstr ""
+msgstr "화면에서 색상 선택"
 
 # AI Translated
 msgid "Search colors"
@@ -34159,10 +34686,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "프린터 베드의 모양을 설정하십시오."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "잘못된 숫자 입력입니다."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "필라멘트 및 노즐 직경"
 
@@ -34390,6 +34913,71 @@ msgstr "위키->"
 # AI Translated
 msgid "Note:"
 msgstr "참고:"
+
+# AI Translated
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr "• %1%: %2%"
+
+# AI Translated
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr "• %1% - %2%: %3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"다음 설정은 이 컴퓨터에서 Orca Slicer가 식별할 수 없는 플러그인을 참조합니다:\n"
+"\n"
+"%1%\n"
+"\n"
+"그래도 저장하면 사전 설정에 이 설정들의 플러그인 참조가 유지되지 않습니다. 다른 컴퓨터에서는 Orca Slicer가 어떤 플러그인을 제안해야 할지 알 수 없어 해당 설정이 작동하지 않을 수 있습니다."
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"다음 설정은 이 컴퓨터에서 Orca Slicer가 식별할 수 없는 플러그인을 참조합니다:\n"
+"\n"
+"%1%\n"
+"\n"
+"그래도 저장하면 프로젝트에 이 설정들의 플러그인 참조가 유지되지 않습니다. 다른 컴퓨터에서는 Orca Slicer가 어떤 플러그인을 제안해야 할지 알 수 없어 해당 설정이 작동하지 않을 수 있습니다."
+
+# AI Translated
+msgid "Plugin Not Identified"
+msgstr "플러그인을 식별할 수 없음"
+
+# AI Translated
+msgid "Save anyway"
+msgstr "그래도 저장"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"저장하려는 사전 설정이 이 컴퓨터에서 Orca Slicer가 식별할 수 없는 플러그인을 참조합니다:\n"
+"\n"
+"%1%\n"
+"\n"
+"그래도 저장하면 사전 설정에 이 설정들의 플러그인 참조가 유지되지 않습니다. 다른 컴퓨터에서는 Orca Slicer가 어떤 플러그인을 제안해야 할지 알 수 없어 해당 설정이 작동하지 않을 수 있습니다."
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -35184,6 +35772,10 @@ msgstr "칠한 영역 전체에 텍스처를 반복합니다. 끄면 데칼처�
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "텍스처 반복 방식을 고르려면 타일을 켜십시오."
+
+# AI Translated
+msgid "Repeat"
+msgstr "반복"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -36925,6 +37517,10 @@ msgid "Forward"
 msgstr "앞으로"
 
 # AI Translated
+msgid "Tools"
+msgstr "도구"
+
+# AI Translated
 msgid "View Source"
 msgstr "소스 보기"
 
@@ -37110,6 +37706,7 @@ msgstr[0] ""
 "플러그인 \"%s\"이(가) 다음 파일 삭제를 요청하고 있습니다:\n"
 "%s"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -37117,7 +37714,12 @@ msgid ""
 "\n"
 "Approval covers HTTP or HTTPS access and raw network connections to the listed hosts. It does not restrict ports. A URL with a path, query or port is covered only for that exact URL."
 msgstr ""
+"플러그인 \"%s\"이(가) 다음에 대한 네트워크 접근을 요청하고 있습니다:\n"
+"%s\n"
+"\n"
+"승인하면 나열된 호스트에 대한 HTTP 또는 HTTPS 접근과 원시 네트워크 연결이 허용됩니다. 포트는 제한되지 않습니다. 경로, 쿼리 또는 포트가 포함된 URL은 해당 URL에 대해서만 허용됩니다."
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -37125,6 +37727,10 @@ msgid ""
 "\n"
 "Approval covers raw network connections to the listed hosts. It does not restrict ports."
 msgstr ""
+"플러그인 \"%s\"이(가) 다음에 대한 네트워크 접근을 요청하고 있습니다:\n"
+"%s\n"
+"\n"
+"승인하면 나열된 호스트에 대한 원시 네트워크 연결이 허용됩니다. 포트는 제한되지 않습니다."
 
 # AI Translated
 #, c-format, boost-format

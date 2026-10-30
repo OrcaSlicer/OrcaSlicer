@@ -44,8 +44,8 @@ def tstr(s):
 
 
 def tstr_design(s):
-    # Verb name: same msgctxt as the Design panel's own tool labels.
-    return "L_CONTEXT(" + cstr(s) + ', "Design")'
+    # Verb, row and family names: same msgctxt as the Design panel's own tool labels.
+    return "nullptr" if s is None else "L_CONTEXT(" + cstr(s) + ', "Design")'
 
 
 def validate(A):
@@ -145,7 +145,7 @@ def main():
     ]
     # A flat row's label is never shown, so it is not marked for translation.
     for s in A["slots"]:
-        lines.append(f'    {cstr(s["label"]) if s.get("flat") else tstr(s["label"])},')
+        lines.append(f'    {cstr(s["label"]) if s.get("flat") else tstr_design(s["label"])},')
     lines += [
         "};",
         f"static const int kOfferRowCount = {len(slots)};",
@@ -183,7 +183,7 @@ def main():
                 mask, n.get("bodies", 0), n.get("sketches", 0),
                 "true" if n.get("sheet") else "false",
                 "true" if v.get("mode") == "sketch" else "false",
-                tstr(v.get("family")), cstr(v.get("icon")), tstr(v.get("hint"))))
+                tstr_design(v.get("family")), cstr(v.get("icon")), tstr(v.get("hint"))))
     lines += [
         "};",
         f"static const int kOfferVerbCount = {len(A['verbs'])};",
