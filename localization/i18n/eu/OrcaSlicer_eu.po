@@ -5424,26 +5424,26 @@ msgstr "Gaitu hormak edo itsaspen ertza hormen filamentua hautatzeko."
 
 # AI Translated
 msgid "Brim ear radius"
-msgstr "Ertz-belarriaren erradioa"
+msgstr "Itsaspen-belarriaren erradioa"
 
 msgid "Brim width"
 msgstr "Itsaspen ertzaren zabalera"
 
 # AI Translated
 msgid "Set brim width above zero to edit brim ear detection."
-msgstr "Ezarri \"Itsaspen ertzaren zabalera\" zerotik gorako balio batean ertz-belarrien detekzioa editatzeko."
+msgstr "Ezarri \"Itsaspen ertzaren zabalera\" zerotik gorako balio batean itsaspen-belarrien detekzioa editatzeko."
 
 # AI Translated
 msgid "Use painted brim ears or set brim width above zero to edit this setting."
-msgstr "Erabili ertz-belarri margotuak edo ezarri \"Itsaspen ertzaren zabalera\" zerotik gorako balio batean ezarpen hau editatzeko."
+msgstr "Erabili itsaspen-belarri margotuak edo ezarri \"Itsaspen ertzaren zabalera\" zerotik gorako balio batean ezarpen hau editatzeko."
 
 # AI Translated
 msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
-msgstr "Hautatu ertz-belarri automatikoak zinta inklinaturik gabeko inprimagailu batean ezarpen hau erabiltzeko."
+msgstr "Hautatu itsaspen-belarri automatikoak zinta inklinaturik gabeko inprimagailu batean ezarpen hau erabiltzeko."
 
 # AI Translated
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
-msgstr "Hautatu ertz-belarri automatikoak edo margotuak zinta inklinaturik gabeko inprimagailu batean ezarpen hau erabiltzeko."
+msgstr "Hautatu itsaspen-belarri automatikoak edo margotuak zinta inklinaturik gabeko inprimagailu batean ezarpen hau erabiltzeko."
 
 # AI Translated
 #, no-c-format, no-boost-format
@@ -16472,26 +16472,30 @@ msgstr "Konbinatu itsaspen ertzak"
 msgid "Combine multiple brims into one when they are close to each other. This can improve brim adhesion."
 msgstr "Konbinatu elkarrengandik gertu dauden hainbat itsaspen ertz bakar batean. Horrek ertzen itsaspena hobetu dezake."
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Itsaspen-belarriak» (the brim is "Itsaspen ertza"; the ears now carry its adhesion word instead of "ertz" (edge)).
 msgid "Brim ears"
-msgstr "Ertz-belarriak"
+msgstr "Itsaspen-belarriak"
 
 msgid "Only draw brim over the sharp edges of the model."
 msgstr "Marraztu itsaspen ertza modeloaren ertz zorrotzetan soilik."
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Itsaspen-belarriak» (the brim is "Itsaspen ertza"; the ears now carry its adhesion word instead of "ertz" (edge)).
 msgid "Brim ear max angle"
-msgstr "Ertz-belarriaren geh. angelua"
+msgstr "Itsaspen-belarriaren geh. angelua"
 
 msgid ""
 "Maximum angle to let a brim ear appear.\n"
 "If set to 0, no brim will be created.\n"
 "If set to ~180, brim will be created on everything but straight sections."
 msgstr ""
-"Ertz-belarri bat agertzeko gehieneko angelua.\n"
+"Itsaspen-belarri bat agertzeko gehieneko angelua.\n"
 "0 ezarriz gero, ez da ertzik sortuko.\n"
 "~180 ezarriz gero, ertza atal zuzenetan izan ezik guztian sortuko da."
 
 msgid "Brim ear detection radius"
-msgstr "Ertz-belarriak detektatzeko erradioa"
+msgstr "Itsaspen-belarriak detektatzeko erradioa"
 
 msgid ""
 "The geometry will be decimated before detecting sharp angles. This parameter indicates the minimum length of the deviation for the decimation.\n"
@@ -16502,7 +16506,7 @@ msgstr ""
 
 # AI Translated
 msgid "Brim ears outer only"
-msgstr "Ertz-belarriak kanpoaldean soilik"
+msgstr "Itsaspen-belarriak kanpoaldean soilik"
 
 # AI Translated
 msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
@@ -25862,13 +25866,13 @@ msgid "Auto-generate"
 msgstr "Sortu automatikoki"
 
 msgid "Generate brim ears using Max angle and Detection radius"
-msgstr "Sortu ertz-belarriak gehieneko angelua eta detekzio-erradioa erabiliz"
+msgstr "Sortu itsaspen-belarriak gehieneko angelua eta detekzio-erradioa erabiliz"
 
 msgid "Add or Select"
 msgstr "Gehitu edo Hautatu"
 
 msgid "Warning: The brim type is not set to \"painted\", the brim ears will not take effect!"
-msgstr "Abisua: itsaspen ertz mota ez dago \"margotua\" gisa ezarrita; ertz-belarriek ez dute eraginik izango!"
+msgstr "Abisua: itsaspen ertz mota ez dago \"margotua\" gisa ezarrita; itsaspen-belarriek ez dute eraginik izango!"
 
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Ezarri objektu honen itsaspen ertz mota \"margotua\" gisa"
@@ -25877,20 +25881,26 @@ msgstr "Ezarri objektu honen itsaspen ertz mota \"margotua\" gisa"
 #, c-format, boost-format
 msgid "%d invalid brim ear"
 msgid_plural "%d invalid brim ears"
-msgstr[0] "%d ertz-belarri baliogabe"
-msgstr[1] "%d ertz-belarri baliogabe"
+msgstr[0] "%d itsaspen-belarri baliogabe"
+msgstr[1] "%d itsaspen-belarri baliogabe"
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Itsaspen-belarriak» (the brim is "Itsaspen ertza"; the ears now carry its adhesion word instead of "ertz" (edge)).
 msgid "Brim Ears"
-msgstr "Ertz-belarriak"
+msgstr "Itsaspen-belarriak"
 
 msgid "Please select single object."
 msgstr "Hautatu objektu bakarra."
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Itsaspen-belarriak» (the brim is "Itsaspen ertza"; the ears now carry its adhesion word instead of "ertz" (edge)).
 msgid "Entering Brim Ears"
-msgstr "Ertz-belarrietan sartzen"
+msgstr "Itsaspen-belarrietan sartzen"
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Itsaspen-belarriak» (the brim is "Itsaspen ertza"; the ears now carry its adhesion word instead of "ertz" (edge)).
 msgid "Leaving Brim Ears"
-msgstr "Ertz-belarrietatik irteten"
+msgstr "Itsaspen-belarrietatik irteten"
 
 msgid "Zoom Out"
 msgstr "Txikiagotu zooma"
@@ -30842,8 +30852,10 @@ msgstr "Neurtzeko tresna"
 msgid "Gizmo assemble"
 msgstr "Muntatzeko tresna"
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Itsaspen-belarriak» (the brim is "Itsaspen ertza"; the ears now carry its adhesion word instead of "ertz" (edge)).
 msgid "Gizmo brim ears"
-msgstr "Belarri ertzen tresna"
+msgstr "Itsaspen-belarrien tresna"
 
 # AI Translated
 msgid "Gizmo texture displacement painting"

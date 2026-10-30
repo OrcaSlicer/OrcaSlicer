@@ -6043,15 +6043,15 @@ msgstr "Ställ in brimbredd på ett värde över noll för att ändra detekterin
 
 # AI Translated
 msgid "Use painted brim ears or set brim width above zero to edit this setting."
-msgstr "Använd målade brätte öron eller ställ in brimbredd på ett värde över noll för att ändra den här inställningen."
+msgstr "Använd målade brim-öron eller ställ in brimbredd på ett värde över noll för att ändra den här inställningen."
 
 # AI Translated
 msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
-msgstr "Välj automatiska brätte öron på en skrivare utan lutande band för att använda den här inställningen."
+msgstr "Välj automatiska brim-öron på en skrivare utan lutande band för att använda den här inställningen."
 
 # AI Translated
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
-msgstr "Välj automatiska eller målade brätte öron på en skrivare utan lutande band för att använda den här inställningen."
+msgstr "Välj automatiska eller målade brim-öron på en skrivare utan lutande band för att använda den här inställningen."
 
 # AI Translated
 #, no-c-format, no-boost-format
@@ -18121,8 +18121,10 @@ msgstr "Kombinera brim"
 msgid "Combine multiple brims into one when they are close to each other. This can improve brim adhesion."
 msgstr "Slå ihop flera brim till en när de ligger nära varandra. Det kan förbättra brimmets vidhäftning."
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Brim-öron» (matches the Brim term "Brim" and the catalog's other "brim-öron" entries).
 msgid "Brim ears"
-msgstr "Brätte öron"
+msgstr "Brim-öron"
 
 # AI Translated
 msgid "Only draw brim over the sharp edges of the model."
@@ -28641,8 +28643,10 @@ msgid_plural "%d invalid brim ears"
 msgstr[0] "%d ogiltigt brim-öra"
 msgstr[1] "%d ogiltiga brim-öron"
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Brim-öron» (matches the Brim term "Brim" and the catalog's other "brim-öron" entries).
 msgid "Brim Ears"
-msgstr "Brätte Öron"
+msgstr "Brim-öron"
 
 # AI Translated
 msgid "Please select single object."
@@ -33734,8 +33738,10 @@ msgstr "Gizmo mäta"
 msgid "Gizmo assemble"
 msgstr "Gizmo montera"
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Brim-öron» (matches the Brim term "Brim" and the catalog's other "brim-öron" entries).
 msgid "Gizmo brim ears"
-msgstr "Gizmo brätte öron"
+msgstr "Gizmo brim-öron"
 
 # AI Translated
 msgid "Gizmo texture displacement painting"

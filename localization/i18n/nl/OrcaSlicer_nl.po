@@ -17943,7 +17943,7 @@ msgid "Combine multiple brims into one when they are close to each other. This c
 msgstr "Voeg meerdere randen samen tot één wanneer ze dicht bij elkaar liggen. Dit kan de hechting van de rand verbeteren."
 
 msgid "Brim ears"
-msgstr "Rand oren"
+msgstr "Randoren"
 
 # AI Translated
 msgid "Only draw brim over the sharp edges of the model."
@@ -28442,8 +28442,10 @@ msgid_plural "%d invalid brim ears"
 msgstr[0] "%d ongeldig randoor"
 msgstr[1] "%d ongeldige randoren"
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Randoren» (Dutch writes the compound as one word, as the catalog's other "randoren" entries do).
 msgid "Brim Ears"
-msgstr "Rand Oren"
+msgstr "Randoren"
 
 msgid "Please select single object."
 msgstr "Selecteer een enkel object."
@@ -33525,7 +33527,7 @@ msgid "Gizmo assemble"
 msgstr "Gizmo monteren"
 
 msgid "Gizmo brim ears"
-msgstr "Gizmo rand oren"
+msgstr "Gizmo randoren"
 
 # AI Translated
 msgid "Gizmo texture displacement painting"
