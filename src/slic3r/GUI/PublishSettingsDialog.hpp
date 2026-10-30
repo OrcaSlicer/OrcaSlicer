@@ -20,6 +20,7 @@
 #include <wx/timer.h>
 #include <utility>
 #include <vector>
+#include <set>
 #include <string>
 #include <boost/any.hpp>
 
@@ -358,7 +359,8 @@ private:
     // The line a row is drawn by.
     Line* row_line(size_t row_index) const;
     // Model-backed row state: the payload and the widgets both read this, never each other.
-    void set_row_checked(size_t row_index, bool checked);
+    // `refresh` is false in a bulk loop, which refreshes the tab indicators once at the end.
+    void set_row_checked(size_t row_index, bool checked, bool refresh = true);
     void set_row_enabled(size_t row_index, bool enabled);
     // Whether a row's value can be written to the project (spec 7.10): the slot must not have Full
     // Publish, and the row must resolve to a real write target. Colour/Type rows have no key, so
@@ -430,6 +432,10 @@ private:
     // The selection state: checked and enabled per row, published and Full Publish per owner, and
     // the owner identity the payload needs. The widgets are a view over it.
     Slic3r::PublishSelection m_selection;
+    // Component slot numbers whose Full Publish this dialog set while publishing a mixed slot. A
+    // component the author Full-Published by hand is never listed, so unchecking a mix clears only
+    // what the dialog published on its own.
+    std::set<size_t> m_auto_full_slots;
 };
 
 }} // namespace Slic3r::GUI
