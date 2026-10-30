@@ -88,6 +88,7 @@
 #include <tbb/partitioner.h>
 #include <vector>
 #include <utility>
+#include <nlohmann/json.hpp>
 
 namespace fs = boost::filesystem;
 
@@ -421,58 +422,81 @@ std::string PresetBundle::find_preset_vendor(const std::string &preset_name, Pre
         return "";
     }
 
-    // A vendor is named by its profile or, where the build ships preset caches
-    // instead of the raw profile JSONs, by its cache alone.
-    for (const std::string& vendor_name : vendor_names_in(system_dir)) {
-        const fs::path vendor_json = system_dir / (vendor_name + ".json");
-        if (! fs::exists(vendor_json)) {
-            if (VendorCacheFile::carries_preset((system_dir / (vendor_name + ".opc")).string(), vendor_name, type, preset_name)) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << preset_name
-                                        << " in vendor cache " << vendor_name;
-                return vendor_name;
+    // A preset's old names are kept in its own file, not in the vendor's list, so they are only read
+    // once no vendor lists the name itself.
+    auto renamed_from = [&preset_name](const fs::path &preset_file) {
+        boost::nowide::ifstream ifs(preset_file.string());
+        const std::string       text((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+        if (text.find(ORCA_JSON_KEY_RENAMED_FROM) == std::string::npos)
+            return false;
+        const json preset = json::parse(text, nullptr, false);
+        if (!preset.is_object() || !preset.contains(ORCA_JSON_KEY_RENAMED_FROM) || !preset[ORCA_JSON_KEY_RENAMED_FROM].is_string())
+            return false;
+        std::vector<std::string> names;
+        return unescape_strings_cstyle(preset[ORCA_JSON_KEY_RENAMED_FROM].get<std::string>(), names) &&
+               std::find(names.begin(), names.end(), preset_name) != names.end();
+    };
+
+    for (const bool renamed : {false, true}) {
+        // A vendor is named by its profile or, where the build ships preset caches
+        // instead of the raw profile JSONs, by its cache alone.
+        for (const std::string& vendor_name : vendor_names_in(system_dir)) {
+            const fs::path vendor_json = system_dir / (vendor_name + ".json");
+            if (! fs::exists(vendor_json)) {
+                if (VendorCacheFile::carries_preset((system_dir / (vendor_name + ".opc")).string(), vendor_name, type, preset_name, renamed)) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << preset_name << (renamed ? " as an old name" : "")
+                                            << " in vendor cache " << vendor_name;
+                    return vendor_name;
+                }
+                continue;
             }
-            continue;
-        }
-        const std::string vendor_file = vendor_json.string();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Checking vendor: " << vendor_file;
+            const std::string vendor_file = vendor_json.string();
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Checking vendor: " << vendor_file;
 
-        try {
-            // Load and parse the vendor JSON file
-            boost::nowide::ifstream ifs(vendor_file);
-            json j;
-            ifs >> j;
+            try {
+                // Load and parse the vendor JSON file
+                boost::nowide::ifstream ifs(vendor_file);
+                json j;
+                ifs >> j;
 
-            // Check if the preset list key exists
-            if (!j.contains(preset_list_key))
-                continue;
-
-            auto& preset_list = j[preset_list_key];
-            if (!preset_list.is_array())
-                continue;
-
-            // Search for the preset in the list
-            for (auto& preset_entry : preset_list) {
-                if (!preset_entry.is_object())
+                // Check if the preset list key exists
+                if (!j.contains(preset_list_key))
                     continue;
 
-                // Get the preset name
-                std::string p_name;
-                if (preset_entry.contains(BBL_JSON_KEY_NAME) && preset_entry[BBL_JSON_KEY_NAME].is_string())
-                    p_name = preset_entry[BBL_JSON_KEY_NAME].get<std::string>();
-
-                if (p_name != preset_name)
+                auto& preset_list = j[preset_list_key];
+                if (!preset_list.is_array())
                     continue;
 
-                // Found the preset! Get the vendor name and install the entire bundle
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << p_name
+                // Search for the preset in the list
+                for (auto& preset_entry : preset_list) {
+                    if (!preset_entry.is_object())
+                        continue;
+
+                    if (renamed) {
+                        if (!preset_entry.contains(BBL_JSON_KEY_SUB_PATH) || !preset_entry[BBL_JSON_KEY_SUB_PATH].is_string() ||
+                            !renamed_from(system_dir / vendor_name / preset_entry[BBL_JSON_KEY_SUB_PATH].get<std::string>()))
+                            continue;
+                    } else {
+                        // Get the preset name
+                        std::string p_name;
+                        if (preset_entry.contains(BBL_JSON_KEY_NAME) && preset_entry[BBL_JSON_KEY_NAME].is_string())
+                            p_name = preset_entry[BBL_JSON_KEY_NAME].get<std::string>();
+
+                        if (p_name != preset_name)
+                            continue;
+                    }
+
+                    // Found the preset! Get the vendor name and install the entire bundle
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << preset_name << (renamed ? " as an old name" : "")
                                             << " in vendor bundle " << vendor_name;
-                
-                return vendor_name;
+
+                    return vendor_name;
+                }
             }
-        }
-        catch (const std::exception &e) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to find vendor name for " << preset_name << ": " << e.what();
-            return "";
+            catch (const std::exception &e) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to find vendor name for " << preset_name << ": " << e.what();
+                return "";
+            }
         }
     }
 
@@ -682,6 +706,8 @@ const PresetBundle *PresetBundle::load_source_vendor(const boost::filesystem::pa
         error = "Vendor bundle contains invalid presets";
         return nullptr;
     }
+    // Lets find_preset() resolve a name a preset was renamed from.
+    bundle->update_system_maps();
     return m_source_vendor_bundles.emplace(std::move(key), std::move(bundle)).first->second.get();
 }
 
@@ -4340,8 +4366,9 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     ConfigOptionInts* filament_volume_map = project_config.option<ConfigOptionInts>("filament_volume_map");
 
     // Which slots are new is a fact about the arrays below, not about filament_presets:
-    // update_multi_material_filament_presets() tops that list up to the nozzle count on its own,
-    // so it can already sit at the new size while every array below is still at the old one.
+    // on a tool changer, update_multi_material_filament_presets() tops that list up to the tool
+    // count on its own, so it can already sit at the new size while every array below is still at
+    // the old one.
     const size_t old_slot_count = filament_color->values.size();
 
     filament_color->resize(n);
@@ -4475,7 +4502,7 @@ size_t PresetBundle::num_mixed_filaments() const
     return size_t(std::count(opt->values.begin(), opt->values.begin() + std::min(slot_count, opt->values.size()), true));
 }
 
-// Colours describe actual slots; filament_presets can be topped up to the nozzle count alone.
+// Colours describe actual slots; on a tool changer filament_presets can be topped up to the tool count alone.
 // Imported projects may have fewer mixed flags than slots. Missing flags mean physical filaments.
 size_t PresetBundle::num_physical_filaments() const
 {
@@ -4773,6 +4800,16 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         }
     }
 
+    // A slot whose current preset is a compatible user preset for the filament the sync picked keeps
+    // that preset and its overrides, so the sync updates the tray metadata only. User presets carry
+    // their system parent's filament_id.
+    auto synced_preset_name = [this](const std::string &current_name, const std::string &ams_name) -> std::string {
+        const Preset *current = filaments.find_preset(current_name, false);
+        const Preset *synced  = filaments.find_preset(ams_name, false);
+        return current && synced && !current->is_system && current->is_compatible &&
+               !synced->filament_id.empty() && current->filament_id == synced->filament_id ? current_name : ams_name;
+    };
+
     if (color_only) {
         auto get_map_index = [&ams_infos](const std::vector<AMSMapInfo> &infos, const AMSMapInfo &temp) {
             for (int i = 0; i < infos.size(); i++) {
@@ -4885,7 +4922,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                 if (valid_index >= 0 && valid_index < ams_filament_presets.size()) {
                     exist_colors[i]           = ams_filament_colors[valid_index];
                     exist_color_types[i]      = ams_filament_color_types[valid_index];
-                    exist_filament_presets[i] = ams_filament_presets[valid_index];
+                    exist_filament_presets[i] = synced_preset_name(exist_filament_presets[i], ams_filament_presets[valid_index]);
                     exist_multi_color_filment[i] = ams_multi_color_filment[valid_index];
                 } else {
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "check error: array bound (mapping exist)";
@@ -4927,9 +4964,10 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                                       ams_multi_color_filment.end());
         if (need_append_colors.size() > 0 && enable_append) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "need_append_colors.size() > 0 && enable_append";
-            auto get_idx_in_array = [](std::vector<std::string> &presets, std::vector<std::string> &colors, const std::string &preset, const std::string &color) -> int {
+            // A slot that kept a user preset for the tray's filament counts as that filament too.
+            auto get_idx_in_array = [&synced_preset_name](std::vector<std::string> &presets, std::vector<std::string> &colors, const std::string &preset, const std::string &color) -> int {
                 for (size_t i = 0; i < presets.size(); i++) {
-                    if (presets[i] == preset && colors[i] == color) {
+                    if (synced_preset_name(presets[i], preset) == presets[i] && colors[i] == color) {
                         return i;
                     }
                 }
@@ -4980,7 +5018,11 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     // Loaded tray: use tray's filament data
                     result_colors.push_back(ams_filament_colors[i]);
                     result_color_types.push_back(ams_filament_color_types[i]);
-                    result_presets.push_back(ams_filament_presets[i]);
+                    // exist_presets[i] is the current preset for this slot; keep it when it is a user
+                    // preset for the same filament.
+                    result_presets.push_back(i < exist_presets.size()
+                                                 ? synced_preset_name(exist_presets[i], ams_filament_presets[i])
+                                                 : ams_filament_presets[i]);
                     result_multi_colors.push_back(
                         i < ams_multi_color_filment.size() ? ams_multi_color_filment[i]
                                                            : std::vector<std::string>{ams_filament_colors[i]});
@@ -5014,6 +5056,10 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             // BBL: existing wholesale replace
             filament_color->values = ams_filament_colors;
             filament_color_type->values = ams_filament_color_types;
+            // Empty trays are left out of ams_filament_presets, so slot i may now hold a later tray.
+            // That is harmless here: a slot only keeps its preset when it is for the same filament.
+            for (size_t i = 0; i < std::min(ams_filament_presets.size(), this->filament_presets.size()); i++)
+                ams_filament_presets[i] = synced_preset_name(this->filament_presets[i], ams_filament_presets[i]);
             this->filament_presets = ams_filament_presets;
             filament_map->values.resize(ams_filament_colors.size(), 1);
             filament_volume_map->values.resize(ams_filament_colors.size(), static_cast<int>(NozzleVolumeType::nvtStandard));
@@ -5065,9 +5111,16 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
 
 void PresetBundle::update_filament_multi_color()
 {
+    const auto &single_colors = project_config.option<ConfigOptionStrings>("filament_colour")->values;
     std::vector<std::string> exsit_multi_colors;
     for (auto &fil_item : ams_multi_color_filment){
-        if (fil_item.empty()) break;
+        // Orca: placeholder slots that sync_ams_list() pushes as {} carry no multi-colour list.
+        // Fall back to the slot's own colour so the list stays aligned with filament_colour.
+        if (fil_item.empty()) {
+            const size_t idx = exsit_multi_colors.size();
+            exsit_multi_colors.push_back(idx < single_colors.size() ? single_colors[idx] : std::string());
+            continue;
+        }
         if (fil_item.size() == 1)
             exsit_multi_colors.push_back(fil_item[0]);
         else {
@@ -5378,14 +5431,21 @@ int PresetBundle::get_printer_extruder_count() const
     return count;
 }
 
+size_t PresetBundle::min_filament_count() const
+{
+    if (printers.get_edited_preset().config.opt_bool("single_extruder_multi_material"))
+        return 1;
+    return static_cast<size_t>(get_printer_extruder_count());
+}
+
 void PresetBundle::update_filament_count()
 {
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
-    const size_t num_extruders = static_cast<size_t>(get_printer_extruder_count());
-    if (filament_presets.size() >= num_extruders)
+    const size_t min_filaments = min_filament_count();
+    if (filament_presets.size() >= min_filaments)
         return;
-    filament_presets.resize(num_extruders, filament_presets.empty()
+    filament_presets.resize(min_filaments, filament_presets.empty()
         ? filaments.first_visible().name
         : filament_presets.back());
 }
@@ -6437,6 +6497,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             // (the author's "left or right" whichever came first), the rest are reported as
             // skipped. Per-target, so the process and printer passes each track their own bases.
             std::set<std::string> collapsed_bases;
+            // Per-extruder keys map by extruder identity when the file carries this pass's layout. Printer
+            // keys do so on any receiver; process keys only on a multi-extruder receiver, a single-extruder
+            // receiver keeps the positional / collapse import.
+            const bool is_printer_pass = allowlist != nullptr;
+            const PublishedExtruderLayout& layout = is_printer_pass ? published_config->printer_layout : published_config->print_layout;
+            const bool by_identity = !layout.extruder_ids.empty() && (is_printer_pass || this->get_printer_extruder_count() >= 2);
             for (const std::string& key : published_config->published_keys) {
                 if (applied_keys.count(key) != 0)
                     continue; // already applied
@@ -6491,6 +6557,19 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         if (!valid || idx >= src_size)
                             continue; // malformed or out-of-range on the author's side: cannot apply; reported as skipped
                         const size_t dst_size = static_cast<const ConfigOptionVectorBase*>(dst_opt)->size();
+                        if (by_identity) {
+                            // Each key goes to the receiver's extruder with the author's number, in the nozzle
+                            // type it runs now. Anything that does not resolve stays unapplied and is reported.
+                            const int slot = is_printer_pass ?
+                                resolve_published_extruder_slot(layout, idx, target, this->project_config) :
+                                resolve_published_extruder_slot(layout, idx, this->printers.get_edited_preset().config, this->project_config,
+                                                                target, "print_extruder_id", "print_extruder_variant");
+                            if (slot < 0 || size_t(slot) >= dst_size)
+                                continue;
+                            static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, size_t(slot), idx);
+                            applied_keys.insert(key);
+                            continue;
+                        }
                         if (dst_size == 1) {
                             // Single-extruder receiver: collapse the author's per-extruder slots
                             // onto the receiver's single slot. Only the first serialized variant
@@ -7044,13 +7123,24 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 
                 auto apply_slot_keys = [&](DynamicPrintConfig& preset_config, const std::vector<std::string>& slot_keys, int author_slot,
                                            const std::string& material_label) {
+                    // A variant-bearing key (filament_options_with_variant) addresses a file column
+                    // ("key#col"): the column names its owner slot (filament_self_index) and its
+                    // variant (filament_extruder_variant), and lands on the receiver variant with
+                    // that name. Every other filament key is a per-slot value, applied positionally
+                    // as before. A plain variant-bearing key from an older publish keeps the
+                    // positional meaning.
+                    // filament_self_index was moved out of `config` above; the local copy holds it.
+                    const auto *variant_list = config.option<ConfigOptionStrings>("filament_extruder_variant");
                     for (const std::string& key : slot_keys) {
                         const std::string base_key = publish_base_key(key);
                         if (structural_keys.count(base_key) != 0)
                             continue;
+                        // Layout keys describe the file's variant columns; they are never a value
+                        // to overlay (and overwriting one would corrupt every later lookup).
+                        if (base_key == "filament_extruder_variant" || base_key == "filament_self_index")
+                            continue;
                         const ConfigOption* src_opt = config.option(base_key);
-                        if (src_opt == nullptr || !src_opt->is_vector() || author_slot < 0 ||
-                            author_slot >= static_cast<int>(static_cast<const ConfigOptionVectorBase*>(src_opt)->size())) {
+                        if (src_opt == nullptr || !src_opt->is_vector()) {
                             skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
                             continue;
                         }
@@ -7060,9 +7150,49 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
                             continue;
                         }
-                        // Per-slot scalar copy: the receiver preset holds one value per key
-                        // (vector of size 1), the file holds the per-slot vector.
-                        static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, author_slot);
+                        const auto *src_vec = dynamic_cast<const ConfigOptionVectorBase*>(src_opt);
+                        auto       *dst_vec = dynamic_cast<ConfigOptionVectorBase*>(dst_opt);
+                        const int   column  = publish_key_index(key);
+                        if (column >= 0 && filament_options_with_variant.count(base_key) == 0) {
+                            // The key names a file column, so the author wrote it as a
+                            // variant-bearing value, but this build holds it per slot: the column
+                            // does not address a variant here, and reading the author's slot index
+                            // would return another slot's column. Skip and report.
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key +
+                                                      ", not a per-variant key on this build)");
+                            continue;
+                        }
+                        if (column < 0) {
+                            // Per-slot scalar copy: the receiver preset holds one value per key
+                            // (vector of size 1), the file holds the per-slot vector.
+                            if (author_slot < 0 || size_t(author_slot) >= src_vec->size()) {
+                                skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
+                                continue;
+                            }
+                            dst_vec->set_at(src_opt, 0, author_slot);
+                            material_applied = true;
+                            continue;
+                        }
+                        // The file column must belong to this entry's author slot.
+                        if (size_t(column) >= filament_self_indice.size() || variant_list == nullptr ||
+                            size_t(column) >= variant_list->size() || filament_self_indice[size_t(column)] - 1 != author_slot) {
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key + ", file column " +
+                                                      std::to_string(column) + " does not belong to this slot)");
+                            continue;
+                        }
+                        if (size_t(column) >= src_vec->size()) {
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key + ", file column " +
+                                                      std::to_string(column) + " is out of range)");
+                            continue;
+                        }
+                        const std::string          &variant = variant_list->get_at(column);
+                        const std::optional<size_t> local   = publish_match_variant(preset_config, std::nullopt, variant);
+                        if (!local.has_value()) {
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key + ", variant \"" + variant +
+                                                      "\" not in receiver preset)");
+                            continue;
+                        }
+                        dst_vec->set_at(src_opt, *local, column);
                         material_applied = true;
                     }
                 };
@@ -7222,6 +7352,22 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     // stripped ("(Published)" uniquification on collision). No existing
                     // preset is ever mutated.
                     if (entry.full) {
+                        // The author slot's columns and their variant names are the copy's layout.
+                        // Both come from the file's identity keys and both must be complete before
+                        // any variant-bearing key is copied: a copy whose list and vectors disagree
+                        // silently reads one variant's value for another (V5).
+                        const std::vector<size_t> full_columns = entry.slot >= 0 ?
+                                                                     publish_filament_columns(filament_self_indice, size_t(entry.slot)) :
+                                                                     std::vector<size_t>();
+                        std::vector<std::string> author_variants;
+                        if (const auto *src_variants = config.option<ConfigOptionStrings>("filament_extruder_variant")) {
+                            author_variants.reserve(full_columns.size());
+                            for (const size_t column : full_columns)
+                                if (column < src_variants->size())
+                                    author_variants.push_back(src_variants->get_at(column));
+                        }
+                        const bool author_layout = !full_columns.empty() && author_variants.size() == full_columns.size();
+
                         std::string dedup_key = entry.setting_id + std::string("\x1f") + entry.preset_name;
                         // Identity-less hand-crafted files (empty setting_id+name) must not
                         // collide: fall back to slot-scoped key so each slot gets its own copy
@@ -7230,6 +7376,10 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             dedup_key = dedup_key + std::to_string(slot);
                         else if (!entry.filament_id.empty())
                             dedup_key += std::string("\x1f") + entry.filament_id;
+                        // The layout joins the key: two entries naming one preset but carrying
+                        // different variants cannot share a copy.
+                        for (const std::string &variant : author_variants)
+                            dedup_key += std::string("\x1f") + variant;
                         std::string new_name;
                         const auto dedup_it = published_full_dedup.find(dedup_key);
                         if (dedup_it != published_full_dedup.end()) {
@@ -7238,19 +7388,89 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             // Baseline: clone the receiver slot's stored preset config (schema-
                             // complete across versions), then overlay the published full_keys.
                             DynamicPrintConfig new_cfg = recv != nullptr ? recv->config : this->filaments.default_preset().config;
+                            std::set<std::string> copied_variant_keys;
                             for (const std::string& key : entry.full_keys) {
                                 const std::string base_key = publish_base_key(key);
                                 if (structural_keys.count(base_key) != 0)
                                     continue;
-                                const ConfigOption* src_opt = config.option(base_key);
-                                if (src_opt == nullptr || !src_opt->is_vector() || entry.slot < 0 ||
-                                    entry.slot >= static_cast<int>(static_cast<const ConfigOptionVectorBase*>(src_opt)->size()))
+                                // Layout keys describe the file's variant columns; the block below
+                                // writes the copy's variant list from the file.
+                                if (base_key == "filament_extruder_variant" || base_key == "filament_self_index")
                                     continue;
+                                const ConfigOption* src_opt = config.option(base_key);
+                                if (src_opt == nullptr || !src_opt->is_vector()) {
+                                    // The file carries no value for this key: nothing to copy, not a
+                                    // value the receiver lost.
+                                    continue;
+                                }
                                 ConfigOption* dst_opt = new_cfg.option(base_key);
                                 if (dst_opt == nullptr || !dst_opt->is_vector() ||
-                                    static_cast<const ConfigOptionVectorBase*>(dst_opt)->empty() || dst_opt->type() != src_opt->type())
+                                    static_cast<const ConfigOptionVectorBase*>(dst_opt)->empty() || dst_opt->type() != src_opt->type()) {
+                                    skipped_keys.emplace_back("material:" + material_label + " (" + base_key + ")");
                                     continue;
-                                static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, entry.slot);
+                                }
+                                const auto *src_vec = dynamic_cast<const ConfigOptionVectorBase*>(src_opt);
+                                auto       *dst_vec = dynamic_cast<ConfigOptionVectorBase*>(dst_opt);
+                                if (filament_options_with_variant.count(base_key) != 0) {
+                                    // Copy only when the author's layout is known and the file
+                                    // carries every one of its columns. A key left short would
+                                    // describe columns the copy cannot name; the cleanup after
+                                    // this loop drops it instead.
+                                    if (!author_layout ||
+                                        std::any_of(full_columns.begin(), full_columns.end(),
+                                                    [src_vec](size_t column) { return column >= src_vec->size(); })) {
+                                        BOOST_LOG_TRIVIAL(info) << "publish: not copying \"" << base_key << "\" for slot "
+                                                                << entry.slot << " (the file has no value for its variant column)";
+                                        continue;
+                                    }
+                                    dst_vec->resize(full_columns.size());
+                                    for (size_t i = 0; i < full_columns.size(); ++i)
+                                        dst_vec->set_at(src_opt, i, full_columns[i]);
+                                    copied_variant_keys.insert(base_key);
+                                } else {
+                                    if (entry.slot < 0 || size_t(entry.slot) >= src_vec->size()) {
+                                        // Nothing in the file for this slot; the copy keeps its own
+                                        // value. Only data that exists but cannot be applied is
+                                        // reported as skipped.
+                                        BOOST_LOG_TRIVIAL(info) << "publish: not copying \"" << base_key << "\" for slot "
+                                                                << entry.slot << " (the file has no value for it)";
+                                        continue;
+                                    }
+                                    dst_vec->set_at(src_opt, 0, entry.slot);
+                                }
+                            }
+                            // The copy's layout is the author's list. A key the file carried is
+                            // aligned by construction. A key it did not carry is kept only when
+                            // the receiver's own list already describes the same variants, or the
+                            // receiver has a single value whose position is the same either way;
+                            // otherwise its values would be relabelled with the author's variant
+                            // names, so it is dropped and reported.
+                            if (author_layout) {
+                                std::vector<std::string> receiver_variants;
+                                if (const auto *recv_list = new_cfg.option<ConfigOptionStrings>("filament_extruder_variant"))
+                                    receiver_variants = recv_list->values;
+                                const bool same_layout = receiver_variants == author_variants ||
+                                                         receiver_variants.size() <= 1;
+                                for (const std::string &key : new_cfg.keys()) {
+                                    // The layout key is the reference every other key is checked
+                                    // against; it is set below, never dropped.
+                                    if (key == "filament_extruder_variant")
+                                        continue;
+                                    if (filament_options_with_variant.count(key) == 0)
+                                        continue;
+                                    if (copied_variant_keys.count(key) != 0)
+                                        continue;
+                                    const auto *vec = dynamic_cast<const ConfigOptionVectorBase *>(new_cfg.option(key));
+                                    if (vec != nullptr && (!same_layout || vec->size() != full_columns.size())) {
+                                        BOOST_LOG_TRIVIAL(info) << "publish: dropping \"" << key << "\" from the Full copy of slot "
+                                                                << entry.slot << " (the file carries no value for its variant)";
+                                        skipped_keys.emplace_back("material:" + material_label + " (" + key +
+                                                                  ", the file carries no value for its variant)");
+                                        new_cfg.erase(key);
+                                    }
+                                }
+                                if (auto *dst_variants = new_cfg.option<ConfigOptionStrings>("filament_extruder_variant"))
+                                    dst_variants->values = author_variants;
                             }
                             // The published colour is authoritative even for Full (the payload's
                             // filament_colour plus the explicit publish_color field).
@@ -8392,19 +8612,20 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
 
-    // Orca: when the number of existing filament presets is less than the number of extruders, we will append new filament presets with the
-    // same value as the last existing one.
+    // Orca: when there are fewer filament presets than the printer runs with (min_filament_count(): one per tool on a
+    // tool changer, one on a printer sharing its nozzles), append copies of the last one. Padding a shared-nozzle printer
+    // up to its nozzle count would bring back a filament the user deleted, in this list alone, without the colours and
+    // maps of the parallel per-filament arrays.
     //
     // Verify and select the filament presets.
     size_t num_filaments = this->filament_presets.size();
 
-    auto* nozzle_diameter = static_cast<const ConfigOptionFloats*>(printers.get_edited_preset().config.option("nozzle_diameter"));
-    size_t num_extruders  = nozzle_diameter->values.size();
-    if (num_extruders > num_filaments) { // Verify validity of the current filament presets.
-        for (size_t i = 0; i < std::min(this->filament_presets.size(), num_extruders); ++i)
+    const size_t min_filaments = min_filament_count();
+    if (min_filaments > num_filaments) { // Verify validity of the current filament presets.
+        for (size_t i = 0; i < this->filament_presets.size(); ++i)
             this->filament_presets[i] = this->filaments.find_preset(this->filament_presets[i], true)->name;
         // Append the rest of filament presets.
-        this->filament_presets.resize(num_extruders, this->filament_presets.empty() ? this->filaments.first_visible().name :
+        this->filament_presets.resize(min_filaments, this->filament_presets.empty() ? this->filaments.first_visible().name :
                                                                                       this->filament_presets.back());
         num_filaments = this->filament_presets.size();
     }

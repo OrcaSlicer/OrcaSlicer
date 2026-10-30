@@ -87,6 +87,7 @@
 #include "../Utils/ColorSpaceConvert.hpp"
 #include "../Utils/NetworkAgentFactory.hpp"
 #include <wx/sizer.h>
+#include <nlohmann/json.hpp>
 #ifdef __WXOSX__
 #define wxOSX true
 #else
@@ -355,44 +356,12 @@ void Field::PostInitialize()
 
 	BUILD();
 
-	// For the mode, when settings are in non-modal dialog, neither dialog nor tabpanel doesn't receive wxEVT_KEY_UP event, when some field is selected.
-	// So, like a workaround check wxEVT_KEY_UP event for the Filed and switch between tabs if Ctrl+(1-4) was pressed
     if (getWindow()) {
         if (m_opt.readonly) {
             this->disable();
         } else {
             this->enable();
         }
-		getWindow()->Bind(wxEVT_KEY_UP, [](wxKeyEvent& evt) {
-		    if ((evt.GetModifiers() & wxMOD_CONTROL) != 0) {
-			    int tab_id = -1;
-			    switch (evt.GetKeyCode()) {
-			    case '1': { tab_id = 0; break; }
-			    case '2': { tab_id = 1; break; }
-				case '3': { tab_id = 2; break; }
-				case '4': { tab_id = 3; break; }
-#ifdef __APPLE__
-				case 'f':
-#else /* __APPLE__ */
-				case WXK_CONTROL_F:
-#endif /* __APPLE__ */
-                case 'F': {
-                    //wxGetApp().plater()->search(false, Preset::TYPE_MODEL, nullptr, nullptr);
-                    break;
-                }
-			    default: break;
-			    }
-			    if (tab_id >= 0) {
-					static constexpr const char* kShortcutTabIds[] = {TAB_ID_HOME, TAB_ID_PREPARE, TAB_ID_PREVIEW, TAB_ID_MONITOR};
-					wxGetApp().mainframe->select_tab(kShortcutTabIds[tab_id]);
-				}
-				if (tab_id > 0)
-					// tab panel should be focused for correct navigation between tabs
-				    wxGetApp().tab_panel()->SetFocus();
-		    }
-
-		    evt.Skip();
-	    }, getWindow()->GetId());
     }
 }
 
@@ -1027,7 +996,10 @@ void TextCtrl::BUILD() {
     auto temp = m_opt.multiline
         ? (wxWindow*)builder1.build(m_parent, wxID_ANY, "", wxDefaultPosition, size, wxTE_MULTILINE)
         : builder2.build(m_parent, "", "", "", wxDefaultPosition, size, wxTE_PROCESS_ENTER);
-    temp->SetLabel(_L(m_opt.sidetext));
+    // multiline: temp is a plain wxTextCtrl whose SetLabel() asserts in wx 3.3+.
+    // Only set the label on the TextInput composite.
+    if (!m_opt.multiline)
+        temp->SetLabel(_L(m_opt.sidetext));
 	auto text_ctrl = m_opt.multiline ? (wxTextCtrl *)temp : ((TextInput *) temp)->GetTextCtrl();
     text_ctrl->SetValue(text_value);
     temp->SetSize(size);
@@ -1410,7 +1382,6 @@ void SpinCtrl::BUILD() {
 		wxSP_ARROW_KEYS);
     temp->SetSize(size);
     temp->SetLabel(_L(m_opt.sidetext));
-    temp->GetTextCtrl()->SetLabel(text_value);
     temp->SetRange(min_val, max_val);
     temp->SetValue(default_value);
     m_combine_side_text = true;
@@ -1485,7 +1456,7 @@ void SpinCtrl::propagate_value()
             ctrl->SetValue(tmp_value); // Clamp now when the user is done typing (kill focus / Enter / spin arrows)
 
         if (m_value.empty()
-            ? !ctrl->GetTextCtrl()->GetLabel().IsEmpty()
+            ? !ctrl->GetTextCtrl()->GetValue().IsEmpty()
             : ctrl->GetValue() != boost::any_cast<int>(m_value))
             on_change_field();
     }
@@ -3007,7 +2978,7 @@ void SliderCtrl::BUILD()
 	m_slider->Bind(wxEVT_SLIDER, ([this](wxCommandEvent e) {
 		if (!m_disable_change_event) {
 			int val = boost::any_cast<int>(get_value());
-			m_textctrl->SetLabel(wxString::Format("%d", val));
+			m_textctrl->ChangeValue(wxString::Format("%d", val));
 			on_change_field();
 		}
 	}), m_slider->GetId());
@@ -3031,7 +3002,7 @@ void SliderCtrl::set_value(const boost::any& value, bool change_event)
 
 	m_slider->SetValue(boost::any_cast<int>(value)*m_scale);
 	int val = boost::any_cast<int>(get_value());
-	m_textctrl->SetLabel(wxString::Format("%d", val));
+	m_textctrl->ChangeValue(wxString::Format("%d", val));
 
 	m_disable_change_event = false;
 }
