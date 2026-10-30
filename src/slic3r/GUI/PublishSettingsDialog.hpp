@@ -17,7 +17,6 @@
 #include <wx/colour.h>
 #include <wx/scrolwin.h>
 #include <wx/menu.h>
-#include <wx/timer.h>
 #include <utility>
 #include <vector>
 #include <set>
@@ -123,7 +122,6 @@ private:
         wxString              section_title;       // outer tab title, for filter matching
         size_t                outer_index{0};
         size_t                inner_index{0};
-        bool                  publishable{true};      // false for a row whose control is an action
         bool                  matches_filter{false}; // survives the active filter
     };
 
@@ -153,10 +151,13 @@ private:
         wxBitmapButton* filament_color_chip{nullptr};
         // A physical slot's two publish flags, below the picker, each a checkbox with a read-only
         // value: the colour it prints with and its normalised material type. Both start off and
-        // follow the picked preset and the picked colour.
+        // follow the picked preset and the picked colour. A flag's label is its own wxStaticText,
+        // so it is kept to dim alongside a disabled checkbox.
         ::CheckBox*     color_check{nullptr};
+        wxStaticText*   color_label{nullptr};
         wxStaticBitmap* color_value{nullptr};
         ::CheckBox*     type_check{nullptr};
+        wxStaticText*   type_label{nullptr};
         wxStaticText*   type_value{nullptr};
         // One publish switch per owner, never null after build. A physical slot has none: its
         // colour and type are the flag rows above, and its key rows publish independently. A mixed
@@ -418,17 +419,15 @@ private:
     ScalableBitmap m_menu;
     bool m_legacy_process_selection{false};
 
-    // The coalesced plater refresh: every edit wants the plater to re-read the config, but typing
-    // would otherwise refresh once per keystroke. One refresh runs after this timer expires.
-
+    // Every publishable value the dialog shows: read when it opens, and re-read by
+    // refresh_material_layout() when a slot's layout changes. Declared before the rows, categories
+    // and groups so it outlives them.
+    Slic3r::DynamicPrintConfig m_snapshot;
     std::vector<Row> m_rows;
     std::vector<Category> m_categories;
     std::vector<SectionGroup> m_sections;
     // One entry per row, in display order, handed to the selection model's conversions.
     std::vector<Slic3r::PublishRowId> m_row_ids;
-    // Every publishable value the dialog shows, read once when it opens. Declared before the
-    // groups so it outlives them.
-    Slic3r::DynamicPrintConfig m_snapshot;
     // The selection state: checked and enabled per row, published and Full Publish per owner, and
     // the owner identity the payload needs. The widgets are a view over it.
     Slic3r::PublishSelection m_selection;

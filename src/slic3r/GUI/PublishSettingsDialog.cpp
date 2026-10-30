@@ -46,7 +46,6 @@
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/tglbtn.h>
-#include <wx/timer.h>
 #include <wx/treebase.h>
 #include <wx/sizer.h>
 #include <wx/string.h>
@@ -149,6 +148,19 @@ const std::set<std::string>& publish_material_identity_keys()
 // A control that performs an action (a colour picker, a plugin dialog, a device picker) is not a
 // value published per key: it gets no row and no publish checkbox.
 bool is_publish_action(const ConfigOptionDef& def) { return Slic3r::publish_is_action_control(def); }
+
+// Whether `key` exists in `config` and, when `index` addresses a vector entry, that entry exists:
+// the way the export path masks a slot or file column before keying a row by it.
+bool option_index_in_range(const DynamicPrintConfig& config, const std::string& key, int index)
+{
+    const ConfigOption* opt = config.option(key);
+    if (opt == nullptr)
+        return false;
+    if (index < 0)
+        return true;
+    const auto* values = dynamic_cast<const ConfigOptionVectorBase*>(opt);
+    return values == nullptr || size_t(index) < values->size();
+}
 
 // The author's hex colour for a filament slot (empty when the slot is out of range); shared by
 // the picker badge, the inner-tab chip and the DPI rescale paths.
@@ -1229,9 +1241,8 @@ void PublishSettingsDialog::build_option_model()
     const std::set<std::string> dirty_material_keys(dirty_material.begin(), dirty_material.end());
     for (size_t r = 0; r < m_rows.size(); ++r) {
         Row& row = m_rows[r];
-        // A row whose control is an action has no publish checkbox to check; only key rows are
-        // "dirty overrides".
-        if (row.id.kind != Slic3r::PublishRowKind::Key || !row.publishable)
+        // Only key rows are "dirty overrides": the Color/Type flag rows carry no key to look up.
+        if (row.id.kind != Slic3r::PublishRowKind::Key)
             continue;
         // A row is one publish unit, so any of its keys being modified marks the whole row.
         const bool material = row.id.section == Slic3r::PublishSection::Material;
@@ -1466,8 +1477,9 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
             // with; "Type" shows its normalised material type. Both start off.
             auto* color_sizer = new wxBoxSizer(wxHORIZONTAL);
             category.color_check = new ::CheckBox(category.page, wxID_ANY);
-            add_checkbox_label(category.page, color_sizer, category.color_check, _L("Color"),
-                               _L("Publish this filament slot's color and material type in the 3MF file"));
+            category.color_label =
+                add_checkbox_label(category.page, color_sizer, category.color_check, _L_CONTEXT("Color", "Publish"),
+                                   _L("Publish this filament slot's color in the 3MF file"));
             category.color_value = make_color_value_chip(category.page, hex, chip_label, FromDIP(16));
             if (category.color_value != nullptr)
                 color_sizer->Add(category.color_value, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
@@ -1475,8 +1487,9 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
 
             auto* type_sizer    = new wxBoxSizer(wxHORIZONTAL);
             category.type_check = new ::CheckBox(category.page, wxID_ANY);
-            add_checkbox_label(category.page, type_sizer, category.type_check, _L("Type"),
-                               _L("Publish this filament slot's color and material type in the 3MF file"));
+            category.type_label =
+                add_checkbox_label(category.page, type_sizer, category.type_check, _L_CONTEXT("Type", "Publish"),
+                                   _L("Publish this filament slot's material type in the 3MF file"));
             category.type_value = new wxStaticText(category.page, wxID_ANY, from_u8(normalize_filament_type(category.filament_type)));
             category.type_value->SetFont(Label::Body_13);
             category.type_value->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
@@ -2076,21 +2089,9 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
     std::set<std::string> variant_added;
     std::set<std::string> slot_added;
 
-    // Index this slot's config entry, the way the export path masks it.
-    auto index_in_range = [this](const std::string& key, int index) {
-        const ConfigOption* opt = m_snapshot.option(key);
-        if (opt == nullptr)
-            return false;
-        if (index < 0)
-            return true;
-        const auto* values = dynamic_cast<const ConfigOptionVectorBase*>(opt);
-        return values == nullptr || size_t(index) < values->size();
-    };
-
+    // The tab's page set is the publish one already: PublishTabFilament::build dropped the action
+    // controls and the Dependencies/Notes pages before this walks it.
     for (const PageShp& page : tab->m_pages) {
-        // Dependencies and Notes hold no publishable setting.
-        if (page->title() == "Dependencies" || page->title() == "Notes")
-            continue;
         for (const ConfigOptionsGroupShp& group : page->m_optgroups) {
             bool touched = false;
             for (const Line& src : group->get_lines()) {
@@ -2112,7 +2113,7 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
                             variant_options.push_back(base);
                         continue;
                     }
-                    if (!index_in_range(base, slot))
+                    if (!option_index_in_range(m_snapshot, base, slot))
                         continue;
                     if (std::none_of(slot_options.begin(), slot_options.end(),
                                      [&base](const RowOption& o) { return o.key == base; }))
@@ -2158,7 +2159,7 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
                             const std::string key = base + "#" + std::to_string(column);
                             if (variant_added.count(key) != 0)
                                 continue;
-                            if (!index_in_range(base, int(column))) {
+                            if (!option_index_in_range(m_snapshot, base, int(column))) {
                                 ok = false;
                                 break;
                             }
@@ -2251,7 +2252,8 @@ void PublishSettingsDialog::add_owner_flag_rows(size_t category_index)
     for (const Slic3r::PublishRowKind kind :
          { Slic3r::PublishRowKind::Color, Slic3r::PublishRowKind::Type }) {
         Row row;
-        row.label          = kind == Slic3r::PublishRowKind::Color ? _L("Color") : _L("Type");
+        row.label          = kind == Slic3r::PublishRowKind::Color ? _L_CONTEXT("Color", "Publish") :
+                                                                     _L_CONTEXT("Type", "Publish");
         row.id.owner       = int(category.filament_slot);
         row.id.section     = Slic3r::PublishSection::Material;
         row.id.kind        = kind;
@@ -2292,7 +2294,7 @@ void PublishSettingsDialog::sync_owner_flag_widgets(size_t category_index)
     Category&  category = m_categories[category_index];
     const bool full     = category.section == Section::Material &&
                       m_selection.full_publish(int(category.filament_slot));
-    auto sync = [&](::CheckBox* box, Slic3r::PublishRowKind kind) {
+    auto sync = [&](::CheckBox* box, wxStaticText* label, Slic3r::PublishRowKind kind) {
         if (box == nullptr)
             return;
         const size_t row = owner_flag_row(category_index, kind);
@@ -2300,9 +2302,16 @@ void PublishSettingsDialog::sync_owner_flag_widgets(size_t category_index)
         // Full Publish ships both flags itself, so neither is the author's to toggle.
         box->Enable(!full);
         box->Refresh();
+        // The label is the checkbox's sibling, not its child: dim it too, or a disabled row keeps
+        // its normal colour and still looks clickable.
+        if (label != nullptr) {
+            label->SetForegroundColour(StateColor::darkModeColorFor(wxColour(full ? "#6B6B6B" : "#363636")));
+            label->SetCursor(full ? wxCURSOR_ARROW : wxCURSOR_HAND);
+            label->Refresh();
+        }
     };
-    sync(category.color_check, Slic3r::PublishRowKind::Color);
-    sync(category.type_check, Slic3r::PublishRowKind::Type);
+    sync(category.color_check, category.color_label, Slic3r::PublishRowKind::Color);
+    sync(category.type_check, category.type_label, Slic3r::PublishRowKind::Type);
 }
 
 void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
@@ -2332,16 +2341,6 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
     const std::set<std::string>& allow    = publishable_printer_keys();
     const std::set<std::string>& denylist = publish_structural_keys();
     std::set<std::string>        added; // "base#column" rows already added
-
-    auto index_in_range = [this](const std::string& key, int index) {
-        const ConfigOption* opt = m_snapshot.option(key);
-        if (opt == nullptr)
-            return false;
-        if (index < 0)
-            return true;
-        const auto* values = dynamic_cast<const ConfigOptionVectorBase*>(opt);
-        return values == nullptr || size_t(index) < values->size();
-    };
 
     for (const PageShp& page : tab->m_pages) {
         for (const ConfigOptionsGroupShp& group : page->m_optgroups) {
@@ -2377,7 +2376,7 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
                     std::vector<std::string> keys;
                     for (const RowOption& option : options) {
                         const std::string key = option.key + "#" + std::to_string(column);
-                        if (added.count(key) != 0 || !index_in_range(option.key, int(column))) {
+                        if (added.count(key) != 0 || !option_index_in_range(m_snapshot, option.key, int(column))) {
                             row_ok = false;
                             break;
                         }
@@ -2452,16 +2451,6 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
     std::set<std::string>        variant_added; // "base#column" rows already added
     std::set<std::string>        added;         // plain rows already added, by base key
 
-    auto index_in_range = [this](const std::string& key, int index) {
-        const ConfigOption* opt = m_snapshot.option(key);
-        if (opt == nullptr)
-            return false;
-        if (index < 0)
-            return true;
-        const auto* values = dynamic_cast<const ConfigOptionVectorBase*>(opt);
-        return values == nullptr || size_t(index) < values->size();
-    };
-
     for (const PageShp& page : tab->m_pages) {
         // The page title is the row's filter category.
         const wxString page_title = Tab::translate_category(page->title(), tab->type());
@@ -2501,7 +2490,8 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
                         std::vector<std::string> keys;
                         for (const RowOption& option : options) {
                             const std::string key = option.key + "#" + std::to_string(column);
-                            if (variant_added.count(key) != 0 || !index_in_range(option.key, int(column))) {
+                            if (variant_added.count(key) != 0 ||
+                                !option_index_in_range(m_snapshot, option.key, int(column))) {
                                 row_ok = false;
                                 break;
                             }
@@ -2523,7 +2513,8 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
                         // A per-variant option inside a mixed line keeps the key its line gave it,
                         // so the payload names the same setting it always did.
                         const std::string key = option.key + (option.index >= 0 ? "#" + std::to_string(option.index) : "");
-                        if (!added.insert(option.key).second || !index_in_range(option.key, option.index)) {
+                        if (!added.insert(option.key).second ||
+                            !option_index_in_range(m_snapshot, option.key, option.index)) {
                             row_ok = false;
                             break;
                         }
@@ -2784,7 +2775,7 @@ void PublishSettingsDialog::set_row_checked(size_t row_index, bool checked, bool
 void PublishSettingsDialog::set_row_enabled(size_t row_index, bool enabled)
 {
     Row& row = m_rows[row_index];
-    m_selection.set_enabled(row.id, enabled && row.publishable);
+    m_selection.set_enabled(row.id, enabled);
     sync_row_widgets(row_index);
 }
 
@@ -4066,6 +4057,11 @@ void PublishSettingsDialog::on_sys_color_changed()
         }
     }
     apply_row_label_colours();
+    // A flag row resolves its label colours at sync time, so the theme pass has to re-run it or an
+    // open dialog keeps the previous theme's normal and dimmed label colours.
+    for (size_t c = 0; c < m_categories.size(); ++c)
+        if (m_categories[c].section == Section::Material && !m_categories[c].is_mixed)
+            sync_owner_flag_widgets(c);
     Refresh();
 }
 
