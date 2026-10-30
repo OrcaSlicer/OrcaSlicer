@@ -74,6 +74,7 @@
 #include <wx/imaglist.h>
 #include <wx/settings.h>
 #include <wx/filedlg.h>
+#include <wx/weakref.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -205,7 +206,7 @@ void Tab::Highlighter::blink()
 }
 
 //BBS: GUI refactor
-Tab::Tab(ParamsPanel* parent, const wxString& title, Preset::Type type) :
+Tab::Tab(ParamsPanel* parent, const wxString& title, Preset::Type type, bool register_in_app) :
     m_parent(parent), m_title(title), m_type(type)
 {
     Create(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBK_LEFT | wxTAB_TRAVERSAL/*, name*/);
@@ -226,7 +227,10 @@ Tab::Tab(ParamsPanel* parent, const wxString& title, Preset::Type type) :
     //m_compatible_prints.dialog_title 	= _L("Compatible print profiles");
     //m_compatible_prints.dialog_label 	= _L("Select the print profiles this profile is compatible with.");
 
-    wxGetApp().tabs_list.push_back(this);
+    // A publish tab is hosted by the dialog, so it never enters the app's list: detaching it after
+    // construction would leave a window in which the app sees a tab it must not touch.
+    if (register_in_app)
+        wxGetApp().tabs_list.push_back(this);
 
     m_em_unit = em_unit(m_parent); //wxGetApp().em_unit();
 
@@ -709,8 +713,6 @@ void Tab::create_publish_tab(const DynamicPrintConfig &config, const DynamicPrin
     m_opt_status_value = osInitValue | osSystemValue;
     m_is_default_preset = true;
 
-    detach_from_tabs_list();
-
     if (PresetCollection *presets = publish_presets()) {
         // Start from the type's full default config, so optional keys (e.g. compatible_printers)
         // exist even when the seed config leaves them out. The selected preset is the saved
@@ -786,12 +788,6 @@ void Tab::adopt_publish_host_theme()
     Refresh();
 }
 
-void Tab::detach_from_tabs_list()
-{
-    auto &tabs = wxGetApp().tabs_list;
-    tabs.erase(std::remove(tabs.begin(), tabs.end(), this), tabs.end());
-}
-
 void Tab::set_publish_readonly(bool readonly)
 {
     // Only the group's change-accepting flag: field events must reach the private preset. The
@@ -812,45 +808,122 @@ void Tab::set_publish_fields_enabled(bool enabled)
                 group->disable();
 }
 
+Tab::PublishHandlingSnapshot::PublishHandlingSnapshot(Tab &tab)
+    : m_tab(tab)
+{
+    // A sidebar edit needs no snapshot, and a derived override may already have opened one for this
+    // event: only the guard that captures it drops it.
+    if (m_tab.m_publish_host && m_tab.m_config != nullptr && !m_tab.m_publish_handling_before) {
+        m_tab.m_publish_handling_before = *m_tab.m_config;
+        m_owner = true;
+    }
+}
+
+Tab::PublishHandlingSnapshot::~PublishHandlingSnapshot()
+{
+    if (m_owner)
+        m_tab.m_publish_handling_before.reset();
+}
+
 void Tab::set_publish_field_enabled(const std::string &opt_id, bool enabled)
 {
+    // The tab's rules win: a checked publish row may enable a field, but never one a rule disabled
+    // with a reason. The registry keeps the key the rule passed, which is the base key for an
+    // indexed field ("retraction_length" for "retraction_length#0").
+    if (enabled) {
+        const std::string base = publish_base_key(opt_id);
+        enabled = m_option_state_registry.disabled_reason(opt_id) == nullptr &&
+                  m_option_state_registry.disabled_reason(base) == nullptr;
+    }
     for (const PageShp &page : m_pages)
         for (const ConfigOptionsGroupShp &group : page->m_optgroups)
             if (Field *field = group->get_field(opt_id))
                 field->toggle(enabled);
 }
 
+// Whether `opt_id`'s value differs between the tab's private preset and its saved baseline.
+// `field_index` is the config element the built field edits (-1 when it has no per-column index).
+// A scalar or an option edited as one list is compared whole; any other vector at that element,
+// with an unindexed field editing element 0 as the sidebar's own convention does.
+static bool publish_option_differs_at(const DynamicPrintConfig &current, const DynamicPrintConfig &saved,
+                                      const std::string &opt_id, int field_index)
+{
+    const std::string base = publish_base_key(opt_id);
+    const ConfigOption *cur = current.option(base);
+    if (cur == nullptr)
+        return false;
+    const ConfigOption *ref = saved.option(base);
+    if (ref == nullptr)
+        // A key the baseline does not hold was added after it: that is a modification.
+        return true;
+    if (cur->type() != ref->type())
+        return true; // a type change is a modification
+    if (cur->is_scalar() || is_edited_as_whole_list(current.def(), base))
+        return *cur != *ref;
+    const auto *cur_vector = dynamic_cast<const ConfigOptionVectorBase *>(cur);
+    const auto *ref_vector = dynamic_cast<const ConfigOptionVectorBase *>(ref);
+    const size_t element = field_index > 0 ? size_t(field_index) : size_t(0);
+    if (cur_vector == nullptr || ref_vector == nullptr ||
+        element >= cur_vector->size() || element >= ref_vector->size())
+        return *cur != *ref;
+    // The baseline with just this element taken from the current preset differs from the baseline
+    // exactly when the element itself was edited.
+    std::unique_ptr<ConfigOption> probe(ref->clone());
+    if (auto *probe_vector = dynamic_cast<ConfigOptionVectorBase *>(probe.get()))
+        probe_vector->set_at(cur, element, element);
+    return *probe != *ref;
+}
+
 bool Tab::publish_line_is_modified(const Line &line) const
 {
-    // decorate() writes the flag on the active page's fields. A field on another page proves this
-    // is a normal row the Tab marks once that page is shown, so only a line with no field at all
-    // needs the value comparison below.
-    bool field_exists = false;
+    if (m_presets == nullptr || m_config == nullptr)
+        return false;
+    const DynamicPrintConfig &saved = m_presets->get_selected_preset().config;
+    std::vector<std::string> dirty; // computed once, and only for a widget-only row
+    bool dirty_computed = false;
     for (const Option &option : line.get_options()) {
+        // decorate() writes the flag on the active page's field: that is the row's own signal.
         if (Field *field = get_field(option.opt_id); field != nullptr) {
-            field_exists = true;
             if (field->m_is_modified_value)
                 return true;
-        } else if (!field_exists) {
-            for (const PageShp &page : m_pages)
-                if (page->get_field(option.opt_id) != nullptr) {
-                    field_exists = true;
+            continue;
+        }
+        // A field built on another page carries no flag before that page is decorated, so compare
+        // its value: whole for a one-list option, otherwise at the element the owning group's map
+        // resolves (switch_excluder() re-targets that index on a variant switch and leaves the
+        // field's "#N" id at its build-time value).
+        const ConfigOptionsGroup *owner = nullptr;
+        for (const PageShp &page : m_pages) {
+            if (page == nullptr)
+                continue;
+            for (const ConfigOptionsGroupShp &group : page->m_optgroups)
+                if (group != nullptr && group->get_field(option.opt_id) != nullptr) {
+                    owner = group.get();
                     break;
                 }
+            if (owner != nullptr)
+                break;
         }
-    }
-    if (field_exists || m_presets == nullptr)
-        return false;
-    // A widget-only row (filament_ramming_parameters) draws a button instead of a field, so there
-    // is no flag to read; compare its key against the private preset's saved copy.
-    const std::vector<std::string> dirty = m_presets->current_dirty_options(true);
-    for (const Option &option : line.get_options())
+        if (owner != nullptr) {
+            const auto it = owner->opt_map().find(option.opt_id);
+            const int  field_index = it != owner->opt_map().end() ? it->second.second : -1;
+            if (publish_option_differs_at(*m_config, saved, option.opt_id, field_index))
+                return true;
+            continue;
+        }
+        // A widget-only row (filament_ramming_parameters) draws a button instead of a field, so there
+        // is no flag to read; compare its key against the private preset's saved copy.
+        if (!dirty_computed) {
+            dirty = m_presets->current_dirty_options(true);
+            dirty_computed = true;
+        }
         for (const std::string &key : dirty)
             if (key == option.opt_id ||
                 (key.size() > option.opt_id.size() &&
                  key.compare(0, option.opt_id.size(), option.opt_id) == 0 &&
                  key[option.opt_id.size()] == '#'))
                 return true;
+    }
     return false;
 }
 
@@ -1353,9 +1426,12 @@ void Tab::update_changed_ui()
     decorate();
     update_extruder_switch_colors();
 
-    wxTheApp->CallAfter([this]() {
-        if (parent()) //To avoid a crash, parent should be exist for a moment of a tree updating
-            update_changed_tree_ui();
+    // A publish tab is destroyed when the dialog replaces it, possibly before this update runs, so
+    // the queued call must test the tab is still alive rather than trust the captured pointer.
+    wxWeakRef<Tab> self(this);
+    wxTheApp->CallAfter([self]() {
+        if (self && self->parent()) //To avoid a crash, parent should be exist for a moment of a tree updating
+            self->update_changed_tree_ui();
     });
     // BBS:
     update_undo_buttons();
@@ -2315,8 +2391,34 @@ static void update_all_extruder_variants(int extruder_idx = -1)
         tab->update_extruder_variants(extruder_idx);
 }
 
+// The keys whose value differs between `after` and `before`, including a key only one of the two
+// holds (a manifest a change added or dropped).
+static std::vector<std::string> changed_config_keys(const DynamicPrintConfig &after, const DynamicPrintConfig &before)
+{
+    std::vector<std::string> keys = after.keys();
+    std::vector<std::string> before_keys = before.keys();
+    keys.insert(keys.end(), before_keys.begin(), before_keys.end());
+    std::sort(keys.begin(), keys.end());
+    keys.erase(std::unique(keys.begin(), keys.end()), keys.end());
+
+    std::vector<std::string> changed;
+    for (const std::string &key : keys) {
+        const ConfigOption *lhs = after.option(key);
+        const ConfigOption *rhs = before.option(key);
+        if (lhs == nullptr || rhs == nullptr || lhs->type() != rhs->type() || *lhs != *rhs)
+            changed.push_back(key);
+    }
+    return changed;
+}
+
 void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 {
+    // The private preset's config as it stood before the Tab's own handling of this edit. The field
+    // has already written the edited key, so that key is in the snapshot and is never read from it;
+    // a derived override that rewrites the config before handing the edit here already opened the
+    // snapshot, and this guard reuses it.
+    PublishHandlingSnapshot snapshot(*this);
+
     // Writes this tab owns for the edit, wherever it is hosted: a paired option, a dependent field
     // or a dependent value. App-facing effects are not part of this.
     auto apply_tab_local_writes = [&]() {
@@ -2378,7 +2480,9 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
     if (m_publish_host) {
         // A publish tab stages its edit in its private preset: refresh its own rows and marks and
-        // leave the app's presets, dependent tabs, sidebar and the Plater untouched.
+        // leave the app's presets, dependent tabs, sidebar and the Plater untouched. The keys that
+        // handling rewrites here have to reach the host's real preset too, or the row would show
+        // one value while the preset (and the exported payload) keeps the old one.
         apply_tab_local_writes();
         if (opt_key == "gcode_flavor" && m_type == Preset::TYPE_PRINTER) {
             if (auto printer_tab = dynamic_cast<TabPrinter*>(this))
@@ -2403,9 +2507,12 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         // update()/update_visibility() rewrote the lines: re-apply the host's filter.
         if (m_on_rules_applied)
             m_on_rules_applied();
-        // The host applies the edit to the real preset or project at once (spec 7.10).
-        if (m_on_publish_edit)
-            m_on_publish_edit(opt_key, value);
+        // The host applies the edit to the real preset or project at once (spec 7.10); the keys this
+        // tab's own handling rewrote (a paired option, a validator's correction) go with it, and the
+        // pre-edit config tells the host which of them another tab may have changed meanwhile.
+        if (m_on_publish_edit && m_publish_handling_before)
+            m_on_publish_edit(opt_key, value, changed_config_keys(*m_config, *m_publish_handling_before),
+                              *m_publish_handling_before);
         return;
     }
 
@@ -5614,6 +5721,9 @@ void TabFilament::clear_pages()
 // Orca:
 void TabFilament::on_value_change(const std::string& opt_key, const boost::any& value)
 {
+    // This override clamps options before calling the base, so the snapshot of the config before the
+    // Tab's own handling has to be taken here or those writes would never reach the host's preset.
+    PublishHandlingSnapshot snapshot(*this);
     if (wxGetApp().plater() == nullptr || m_config_manipulation.is_applying())
         return;
 
@@ -7356,6 +7466,10 @@ void TabPrinter::toggle_options()
 // Orca:
 void TabPrinter::on_value_change(const std::string& opt_key, const boost::any& value)
 {
+    // This override clamps wipe options before calling the base, so the snapshot of the config
+    // before the Tab's own handling has to be taken here or those writes would never reach the
+    // host's preset.
+    PublishHandlingSnapshot snapshot(*this);
     if (wxGetApp().plater() == nullptr || m_config_manipulation.is_applying())
         return;
 
@@ -7404,10 +7518,16 @@ void TabPrinter::on_value_change(const std::string& opt_key, const boost::any& v
         }
     }
 
-    // Orca: report Extruder page changes as "key#<extruder>", as the former "Extruder N" pages did,
-    // so per-extruder handling in Tab::on_value_change() sees the extruder that was edited.
+    // Orca: report Extruder page changes as "key#<column>", as the former "Extruder N" pages did, so
+    // per-extruder handling in Tab::on_value_change() sees the column that was edited. The sidebar's
+    // shared Extruder page is one field set the switch re-targets, so it reports the extruder the
+    // switch shows. A publish row draws the column its group resolved: for a variant-bearing option
+    // that is a column, not an extruder, and the switch must not replace it. A field off this page
+    // keeps the index its own id carries.
     if (data_idx >= 0)
-        Tab::on_value_change(opt_key.substr(0, pos) + "#" + std::to_string(get_current_active_extruder()), value);
+        Tab::on_value_change(opt_key.substr(0, pos) + "#" +
+                                 std::to_string(m_publish_host ? data_idx : get_current_active_extruder()),
+                             value);
     else
         Tab::on_value_change(opt_key, value);
 }

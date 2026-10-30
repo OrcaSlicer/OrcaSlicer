@@ -670,6 +670,65 @@ bool copy_option_element_at(Slic3r::DynamicPrintConfig& dst, const std::string& 
     return true;
 }
 
+// Whether `lhs`'s element `index` equals `rhs`'s. The vector base has no per-element getter, so a
+// copy of `lhs` with that one element replaced by `rhs`'s is compared whole.
+bool element_equals(const Slic3r::ConfigOption& lhs, const Slic3r::ConfigOption& rhs, size_t index)
+{
+    std::unique_ptr<Slic3r::ConfigOption> probe(lhs.clone());
+    auto* probe_values = dynamic_cast<Slic3r::ConfigOptionVectorBase*>(probe.get());
+    if (probe_values == nullptr)
+        return false;
+    probe_values->set_at(&rhs, index, index);
+    return *probe == lhs;
+}
+
+// Copies `src`'s value for `key` into `dst`, leaving alone what another writer already changed:
+// several slots can share one filament preset, and a dependent write must not revert a value the
+// preset no longer holds from before the Tab's handling of the edit (`before`).
+//   - a scalar, or an option edited as one list ("post_process", "printable_area", ...), is copied
+//     whole, and only while `dst` still holds the pre-handling value;
+//   - any other vector is merged element by element, so a write another writer made to a different
+//     element of the shared preset survives.
+// Returns false when nothing was copied: a key `dst` does not own (a dependent key is never added
+// to a preset), different option types, values already in step, or a vector whose width differs
+// from the source's, where the element mapping is unknown and the key is skipped rather than
+// guessed.
+bool copy_option_whole(Slic3r::DynamicPrintConfig& dst, const std::string& key,
+                       const Slic3r::DynamicPrintConfig& src, const Slic3r::DynamicPrintConfig& before)
+{
+    const Slic3r::ConfigOption* from = src.option(key);
+    Slic3r::ConfigOption*       to   = dst.option(key, false);
+    const Slic3r::ConfigOption* was  = before.option(key);
+    if (from == nullptr || to == nullptr || was == nullptr)
+        return false;
+    if (from->type() != to->type() || was->type() != to->type())
+        return false;
+
+    if (!to->is_vector() || Slic3r::is_edited_as_whole_list(src.def(), key)) {
+        if (*from == *to || *to != *was)
+            return false;
+        to->set(from);
+        return true;
+    }
+
+    const auto* from_values = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(from);
+    const auto* was_values  = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(was);
+    auto*       to_values   = dynamic_cast<Slic3r::ConfigOptionVectorBase*>(to);
+    if (from_values == nullptr || was_values == nullptr || to_values == nullptr ||
+        from_values->size() != to_values->size() || was_values->size() != to_values->size())
+        return false;
+
+    bool copied = false;
+    for (size_t i = 0; i < to_values->size(); ++i) {
+        // Only the elements this handling changed, and only where nobody else got there first.
+        if (element_equals(*from, *was, i) || !element_equals(*to, *was, i))
+            continue;
+        to_values->set_at(from, i, i);
+        copied = true;
+    }
+    return copied;
+}
+
 // Whether the Line draws this option through an indexed field ("base#N"), the way per-variant rows
 // are built. Such a field edits the element the tab's switch resolves; an unindexed field always
 // edits index 0.
@@ -2852,8 +2911,10 @@ void PublishSettingsDialog::bind_publish_tab(size_t category_index)
         apply_row_label_colours();
     };
     // Every edit reaches the project at once, through the row it is drawn by (spec 7.10).
-    tab->m_on_publish_edit = [this, category_index](const std::string& opt_id, const boost::any& value) {
-        on_publish_edit(category_index, opt_id, value);
+    tab->m_on_publish_edit = [this, category_index](const std::string& opt_id, const boost::any& value,
+                                                    const std::vector<std::string>& dependent_keys,
+                                                    const DynamicPrintConfig& before_handling) {
+        on_publish_edit(category_index, opt_id, value, dependent_keys, before_handling);
     };
 }
 
@@ -2894,7 +2955,9 @@ size_t PublishSettingsDialog::row_for_edit(size_t category_index, const std::str
     return size_t(-1);
 }
 
-void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::string& opt_id, const boost::any& value)
+void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::string& opt_id, const boost::any& value,
+                                            const std::vector<std::string>& dependent_keys,
+                                            const DynamicPrintConfig& before_handling)
 {
     PresetBundle* bundle = wxGetApp().preset_bundle;
     if (bundle == nullptr || category_index >= m_categories.size())
@@ -2947,6 +3010,16 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
         index = published->index >= 0 ? size_t(published->index)
                                       : (indexed ? location.option_index : size_t(0));
 
+    // The preset the edited key lands in, and the real tab that paints it. The keys the hosted
+    // tab's own handling rewrote alongside the edit are copied into the same preset afterwards:
+    // they never leave the tab's preset, so the write location above covers them too.
+    DynamicPrintConfig* dependent_target = nullptr;
+    Tab*                dependent_tab    = nullptr;
+    // The filament tab's edit already refreshed itself through load_key_value(), so it only needs
+    // another pass when a copied key actually changed its preset.
+    bool                dependent_tab_only_on_copy = false;
+    bool                dependents_copied          = false;
+
     switch (location.target) {
     case Slic3r::PublishWriteTarget::FilamentPreset: {
         if (location.owner < 0 || size_t(location.owner) >= bundle->filament_presets.size())
@@ -2958,6 +3031,9 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
         if (name == bundle->filaments.get_selected_preset_name())
             if (Tab* filament_tab = wxGetApp().get_tab(Preset::TYPE_FILAMENT)) {
                 filament_tab->load_key_value(published->key, value, false, int(index));
+                dependent_target = &bundle->filaments.get_edited_preset().config;
+                dependent_tab    = filament_tab;
+                dependent_tab_only_on_copy = true;
                 handled = true;
             }
         if (!handled) {
@@ -2969,6 +3045,7 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
                 !copy_option_element_at(target->config, published->key, *tab->m_config, index))
                 break;
             target->set_dirty(true);
+            dependent_target = &target->config;
             // No Tab was refreshed for this preset: the scene re-reads the project itself.
             plater_refresh = true;
         }
@@ -2977,20 +3054,14 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
     case Slic3r::PublishWriteTarget::PrinterPreset:
         if (!copy_option_element_at(bundle->printers.get_edited_preset().config, published->key, *tab->m_config, index))
             break;
-        if (Tab* printer_tab = wxGetApp().get_tab(Preset::TYPE_PRINTER)) {
-            printer_tab->update_dirty();
-            printer_tab->reload_config();
-            printer_tab->update();
-        }
+        dependent_target = &bundle->printers.get_edited_preset().config;
+        dependent_tab    = wxGetApp().get_tab(Preset::TYPE_PRINTER);
         break;
     case Slic3r::PublishWriteTarget::ProcessPreset:
         if (!copy_option_element_at(bundle->prints.get_edited_preset().config, published->key, *tab->m_config, index))
             break;
-        if (Tab* print_tab = wxGetApp().get_tab(Preset::TYPE_PRINT)) {
-            print_tab->update_dirty();
-            print_tab->reload_config();
-            print_tab->update();
-        }
+        dependent_target = &bundle->prints.get_edited_preset().config;
+        dependent_tab    = wxGetApp().get_tab(Preset::TYPE_PRINT);
         break;
     case Slic3r::PublishWriteTarget::Project: {
         // No dialog row carries a mixed project key today (a mixed slot shows only its definition
@@ -3005,6 +3076,23 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
     }
     case Slic3r::PublishWriteTarget::None:
         return;
+    }
+
+    if (dependent_target != nullptr)
+        for (const std::string& key : dependent_keys) {
+            // The edited key has its own element-wise write above from the field's own value: it is
+            // never read from `before_handling`, which already holds it. A structural key belongs to
+            // the preset's inheritance, not to the value the author edited.
+            if (key == published->key || publish_structural_keys().count(key) != 0)
+                continue;
+            dependents_copied =
+                copy_option_whole(*dependent_target, key, *tab->m_config, before_handling) || dependents_copied;
+        }
+    if (dependent_tab != nullptr && (!dependent_tab_only_on_copy || dependents_copied)) {
+        // The real preset changed behind the tab: repaint it.
+        dependent_tab->update_dirty();
+        dependent_tab->reload_config();
+        dependent_tab->update();
     }
 
     if (plater_refresh)

@@ -115,21 +115,19 @@ void PublishTabFilament::build()
 }
 
 PublishTabFilament::PublishTabFilament(ParamsPanel *host)
-    : TabFilament(host)
+    : TabFilament(host, false)
     , m_presets_private(Preset::TYPE_FILAMENT, Preset::filament_options(),
                         static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()),
                         PresetBundle::ORCA_DEFAULT_FILAMENT_PLACEHOLDER)
 {
-    detach_from_tabs_list();
 }
 
 PublishTabPrinter::PublishTabPrinter(ParamsPanel *host)
-    : TabPrinter(host)
+    : TabPrinter(host, false)
     , m_presets_private(Preset::TYPE_PRINTER, Preset::printer_options(),
                         static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()),
                         "Default Printer")
 {
-    detach_from_tabs_list();
 }
 
 void PublishTabPrinter::build()
@@ -161,11 +159,10 @@ void PublishTabPrint::build()
 }
 
 PublishTabPrint::PublishTabPrint(ParamsPanel *host)
-    : TabPrint(host)
+    : TabPrint(host, Preset::TYPE_PRINT, false)
     , m_presets_private(Preset::TYPE_PRINT, Preset::print_options(),
                         static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()))
 {
-    detach_from_tabs_list();
 }
 
 } // GUI

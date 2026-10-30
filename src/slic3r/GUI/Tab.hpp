@@ -39,6 +39,7 @@
 #include <map>
 #include <vector>
 #include <memory>
+#include <optional>
 
 //#include "BedShapeDialog.hpp"
 #include "wxExtensions.hpp"
@@ -286,6 +287,12 @@ protected:
     bool                m_publish_host { false };
     // The field state a page starts from when it is built after the dialog gated its rows.
     bool                m_publish_fields_enabled { true };
+    // The private preset's config as it stood before the Tab's own handling of this edit started:
+    // the field has already written the edited key, which is therefore never read from here. It
+    // tells the host which other keys that handling rewrote and what they held before. A derived
+    // on_value_change opens it before its own writes and the base reuses it; it is dropped once the
+    // edit is handled.
+    std::optional<DynamicPrintConfig> m_publish_handling_before;
     // The variant column switch_excluder() last resolved; -1 until one resolves.
     int                 m_last_resolved_column { -1 };
     ConfigOptionMode    m_mode = comAdvanced; // to correct first Tab update_visibility() set mode to Advanced
@@ -313,6 +320,22 @@ protected:
 	bool				m_page_switch_planned = false;
 
     bool				m_is_timelapse_wipe_tower_already_prompted = false;
+
+    // Captures the private preset's config before the Tab's own handling of an edit and drops it
+    // when that handling returns, however it returns.
+    class PublishHandlingSnapshot
+    {
+    public:
+        explicit PublishHandlingSnapshot(Tab &tab);
+        ~PublishHandlingSnapshot();
+        PublishHandlingSnapshot(const PublishHandlingSnapshot &) = delete;
+        PublishHandlingSnapshot &operator=(const PublishHandlingSnapshot &) = delete;
+
+    private:
+        Tab &m_tab;
+        // True when this guard opened the snapshot and is the one that has to drop it.
+        bool m_owner { false };
+    };
 
 public:
 	PresetBundle*		m_preset_bundle;
@@ -350,13 +373,18 @@ public:
     // filter; null by default.
     std::function<void()> m_on_rules_applied;
     // Called after a publish tab's own handling of an edit, with the field's opt_id (which carries
-    // its "#N") and the new value, so the host dialog can apply it to the real preset or project;
-    // null by default.
-    std::function<void(const std::string &opt_id, const boost::any &value)> m_on_publish_edit;
+    // its "#N"), the new value, the other keys that handling rewrote (a paired option, a
+    // validator's correction) and the private config as it stood before that handling started, so
+    // the host dialog can apply them to the real preset or project. The edited key is already in
+    // that config and is never read from it; null by default.
+    std::function<void(const std::string &opt_id, const boost::any &value,
+                       const std::vector<std::string> &dependent_keys,
+                       const DynamicPrintConfig &before_handling)> m_on_publish_edit;
 
 public:
 	// BBS
-	Tab(ParamsPanel* parent, const wxString& title, Preset::Type type);
+	// A dialog-hosted tab is not part of the app's tab list; it passes register_in_app = false.
+	Tab(ParamsPanel* parent, const wxString& title, Preset::Type type, bool register_in_app = true);
 
     ~Tab() {}
 
@@ -387,11 +415,13 @@ public:
     void        set_publish_readonly(bool readonly);
     // Enables or disables every field of every page, including the pages built later.
     void        set_publish_fields_enabled(bool enabled);
-    // Enables or disables one field (by its "#N"-suffixed opt_id) on every page.
+    // Enables or disables one field (by its "#N"-suffixed opt_id) on every page. A rule that
+    // disabled the option wins over `enabled`.
     void        set_publish_field_enabled(const std::string &opt_id, bool enabled);
-    // Whether `line` differs from the tab's saved preset, as its revert icon paints it. A Field
-    // carries the flag from the last decorate() pass; a widget-only row has no Field and is
-    // compared against the saved config directly. Used by a hosting dialog to mark its rows.
+    // Whether `line` differs from the tab's saved preset, as its revert icon paints it. A Field on
+    // the active page carries the flag from the last decorate() pass; a field of another page is
+    // compared against the saved config directly, and a widget-only row likewise has no Field to
+    // read. Used by a hosting dialog to mark its rows.
     bool        publish_line_is_modified(const Line &line) const;
     // Sets the selection dot on the page tab for `page_title` (Page::title(), not the translated
     // label). A page the tree does not show is ignored.
@@ -597,8 +627,6 @@ public:
 protected:
 	// The collection a publish tab renders; nullptr means the app's collection for this type.
 	virtual PresetCollection* publish_presets() { return nullptr; }
-	// Removes this tab from wxGetApp().tabs_list (a publish tab must not be in the app's list).
-	void			detach_from_tabs_list();
 	// The page strip and the extruder/variant switch row, shared by both construction paths.
 	void			create_page_tree();
 	void			create_variant_switch();
@@ -641,8 +669,8 @@ class TabPrint : public Tab
 {
 public:
 	//BBS: GUI refactor
-	TabPrint(ParamsPanel* parent, Preset::Type type = Preset::TYPE_PRINT) :
-        Tab(parent, _(L("Process")), type) {}
+	TabPrint(ParamsPanel* parent, Preset::Type type = Preset::TYPE_PRINT, bool register_in_app = true) :
+        Tab(parent, _(L("Process")), type, register_in_app) {}
 	~TabPrint() {}
 
 	void		build() override;
@@ -767,8 +795,8 @@ private:
 
 public:
 	//BBS: GUI refactor
-	TabFilament(ParamsPanel* parent) :
-		Tab(parent, _(L("Filament")), Slic3r::Preset::TYPE_FILAMENT) {}
+	TabFilament(ParamsPanel* parent, bool register_in_app = true) :
+		Tab(parent, _(L("Filament")), Slic3r::Preset::TYPE_FILAMENT, register_in_app) {}
 	~TabFilament() {}
 
 	void		build() override;
@@ -822,8 +850,8 @@ public:
     PrinterTechnology               m_printer_technology = ptFFF;
 
 	//BBS: GUI refactor
-    TabPrinter(ParamsPanel* parent) :
-        Tab(parent, _L("Machine"), Slic3r::Preset::TYPE_PRINTER) {}
+    TabPrinter(ParamsPanel* parent, bool register_in_app = true) :
+        Tab(parent, _L("Machine"), Slic3r::Preset::TYPE_PRINTER, register_in_app) {}
 	~TabPrinter() {}
 
 	void		build() override;
@@ -878,8 +906,8 @@ class TabSLAMaterial : public Tab
 {
 public:
 	//BBS: GUI refactor
-    TabSLAMaterial(ParamsPanel* parent) :
-		Tab(parent, _(_devL("Material Settings")), Slic3r::Preset::TYPE_SLA_MATERIAL) {}
+    TabSLAMaterial(ParamsPanel* parent, bool register_in_app = true) :
+		Tab(parent, _(_devL("Material Settings")), Slic3r::Preset::TYPE_SLA_MATERIAL, register_in_app) {}
     ~TabSLAMaterial() {}
 
 	void		build() override;
@@ -893,8 +921,8 @@ class TabSLAPrint : public Tab
 {
 public:
 	//BBS: GUI refactor
-    TabSLAPrint(ParamsPanel* parent) :
-        Tab(parent, _(L("Process Settings")), Slic3r::Preset::TYPE_SLA_PRINT) {}
+    TabSLAPrint(ParamsPanel* parent, bool register_in_app = true) :
+        Tab(parent, _(L("Process Settings")), Slic3r::Preset::TYPE_SLA_PRINT, register_in_app) {}
     ~TabSLAPrint() {}
 
 	ogStaticText* m_support_object_elevation_description_line = nullptr;
