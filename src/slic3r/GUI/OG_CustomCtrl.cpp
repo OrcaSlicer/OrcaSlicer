@@ -199,9 +199,9 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             // BBS: new layout
             // h_pos = m_bmp_mode_sz.GetWidth() + m_h_gap;
             const int blinking_button_width = m_bmp_blinking_sz.GetWidth() + m_h_gap;
-            // A row toggle is drawn at the start of the row, so it takes its width from the row's
-            // left edge and the act slot is not used; a Tab row keeps the act slot's exact width.
-            const int act_slot_width = line.row_toggle ? 0 : blinking_button_width;
+            // A row toggle is drawn at the start of the row and keeps the act slot after the value:
+            // a publish row shows the Tab's revert-to-saved icon there as any other row does.
+            const int act_slot_width = blinking_button_width;
             if (line.row_toggle)
                 h_pos += blinking_button_width + toggle_gap();
             // A per-extruder icon on a row that also carries a toggle sits after the toggle, not
@@ -954,10 +954,7 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         }
     };
 
-    // The act slot is unused on a row that carries a toggle: the box is in the row's left column.
     auto draw_buttons = [&h_pos, &dc, &v_pos, this](Field* field, size_t bmp_rect_id = 0) {
-        if (og_line.row_toggle)
-            return;
         if (field && field->undo_to_sys_bitmap()) {
             h_pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), field->undo_to_sys_bitmap()->bmp(), field->undo_bitmap()->bmp(), field->blink(), bmp_rect_id).x;
         }

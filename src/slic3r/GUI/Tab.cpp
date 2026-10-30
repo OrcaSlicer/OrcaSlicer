@@ -701,7 +701,7 @@ void Tab::create_preset_tab()
 
 // Minimal construction path for a dialog-hosted tab: no preset combo, save/delete, mode switch
 // or compatibility bar, and no registration in the app's tab list.
-void Tab::create_publish_tab(const DynamicPrintConfig &config)
+void Tab::create_publish_tab(const DynamicPrintConfig &config, const DynamicPrintConfig &saved)
 {
     m_preset_bundle = wxGetApp().preset_bundle;
     m_publish_host  = true;
@@ -713,13 +713,20 @@ void Tab::create_publish_tab(const DynamicPrintConfig &config)
 
     if (PresetCollection *presets = publish_presets()) {
         // Start from the type's full default config, so optional keys (e.g. compatible_printers)
-        // exist even when the seed config leaves them out.
-        DynamicPrintConfig seeded = presets->default_preset().config;
-        seeded.apply(config);
-        presets->get_selected_preset().config = seeded;
-        presets->get_edited_preset().config   = seeded;
-        // The seeded config is also the tab's system reference: a default preset is its own parent.
+        // exist even when the seed config leaves them out. The selected preset is the saved
+        // baseline the tab compares against; the edited copy carries the current values, so a
+        // setting the author changed before opening the dialog still shows its revert icon.
+        const DynamicPrintConfig &baseline = saved.empty() ? config : saved;
+        DynamicPrintConfig        saved_cfg = presets->default_preset().config;
+        saved_cfg.apply(baseline);
+        presets->get_selected_preset().config = saved_cfg;
+        presets->get_edited_preset().config   = saved_cfg;
         presets->update_saved_preset_from_current_preset();
+        if (!saved.empty()) {
+            DynamicPrintConfig working = presets->default_preset().config;
+            working.apply(config);
+            presets->get_edited_preset().config = working;
+        }
     }
 
     m_sys_label_clr      = wxGetApp().get_label_clr_sys();
@@ -747,6 +754,9 @@ void Tab::create_publish_tab(const DynamicPrintConfig &config)
     // then land in this tab's private preset and run the Tab's own rules.
     set_publish_readonly(false);
     set_publish_fields_enabled(false);
+    // Seed the revert-to-saved icons: the private preset's saved copy is the config this tab opened
+    // with, so a row that differs from it shows the Tab's reset icon.
+    update_dirty();
 
     adopt_publish_host_theme();
 

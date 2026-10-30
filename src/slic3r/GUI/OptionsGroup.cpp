@@ -214,6 +214,12 @@ void OptionsGroup::remove_option_if(std::function<bool(std::string const&)> cons
     // TODO: remove items from g->m_options;
 }
 
+void OptionsGroup::clear_undo_to_sys()
+{
+    for (Line& line : m_lines)
+        line.undo_to_sys = false;
+}
+
 void OptionsGroup::show_field(const t_config_option_key& opt_key, bool show /* = true*/)
 {
     Field* field = get_field(opt_key);

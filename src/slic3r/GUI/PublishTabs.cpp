@@ -28,8 +28,12 @@ namespace {
 void prune_publish_pages(std::vector<PageShp> &pages, const std::function<bool(const std::string &)> &drop)
 {
     for (const PageShp &page : pages) {
-        for (const ConfigOptionsGroupShp &group : page->m_optgroups)
+        for (const ConfigOptionsGroupShp &group : page->m_optgroups) {
             group->remove_option_if(drop);
+            // remove_option_if() marks every survivor as an object override; a pruned row must keep
+            // drawing the revert-to-saved icon, not the system lock.
+            group->clear_undo_to_sys();
+        }
         page->m_optgroups.erase(std::remove_if(page->m_optgroups.begin(), page->m_optgroups.end(),
                                                [](const ConfigOptionsGroupShp &group) { return group->get_lines().empty(); }),
                                 page->m_optgroups.end());
@@ -144,8 +148,10 @@ void PublishTabPrinter::build()
         return allow.count(base_key) == 0 || is_action_option(base_key);
     };
     for (const PageShp &page : m_pages) {
-        for (const ConfigOptionsGroupShp &group : page->m_optgroups)
+        for (const ConfigOptionsGroupShp &group : page->m_optgroups) {
             group->remove_option_if(is_pruned);
+            group->clear_undo_to_sys();
+        }
         page->m_optgroups.erase(std::remove_if(page->m_optgroups.begin(), page->m_optgroups.end(),
                                                [](const ConfigOptionsGroupShp &group) {
                                                    return group->get_lines().empty();

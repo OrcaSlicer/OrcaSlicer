@@ -275,6 +275,9 @@ public:
 	bool				is_activated() { return sizer != nullptr; }
 
 	void remove_option_if(std::function<bool(std::string const &)> const & comp);
+	// Clears the object-config marker remove_option_if() stamps on every surviving line, so a
+	// pruned page draws the saved-value revert icon as an unpruned one does.
+	void clear_undo_to_sys();
 protected:
 	std::map<t_config_option_key, Option>	m_options;
     wxWindow*				m_parent {nullptr};

@@ -375,7 +375,9 @@ public:
 
 	void		create_preset_tab();
     // Builds a dialog-hosted tab over a private preset, without the sidebar chrome.
-    void        create_publish_tab(const DynamicPrintConfig &config);
+    // `saved` is the real preset's saved config: the tab's baseline for the revert icon, so a
+    // value edited in the sidebar before the dialog opened still shows as modified.
+    void        create_publish_tab(const DynamicPrintConfig &config, const DynamicPrintConfig &saved = DynamicPrintConfig());
     // Takes the background and the dark-UI colours of the panel hosting the tab. The host dialog
     // themes its children when they are built, so a tab it rebuilds later has to do it itself;
     // a sidebar tab keeps the Tab's own colours.

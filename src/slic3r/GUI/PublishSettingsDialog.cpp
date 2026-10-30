@@ -1508,8 +1508,9 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         // and its pages are pruned to the publish allowlist.
         auto* host = new PublishParamsPanel(category.page);
         auto* tab  = new PublishTabPrinter(host);
-        const DynamicPrintConfig seed = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-        tab->create_publish_tab(seed);
+        const DynamicPrintConfig seed  = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        const DynamicPrintConfig saved = wxGetApp().preset_bundle->printers.get_selected_preset().config;
+        tab->create_publish_tab(seed, saved);
         host->set_publish_tab(tab);
         category.publish_host = host;
         category.publish_tab  = tab;
@@ -1520,8 +1521,9 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         // navigation; its page set is kept whole.
         auto* host = new PublishParamsPanel(category.page);
         auto* tab  = new PublishTabPrint(host);
-        const DynamicPrintConfig seed = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-        tab->create_publish_tab(seed);
+        const DynamicPrintConfig seed  = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        const DynamicPrintConfig saved = wxGetApp().preset_bundle->prints.get_selected_preset().config;
+        tab->create_publish_tab(seed, saved);
         host->set_publish_tab(tab);
         category.publish_host = host;
         category.publish_tab  = tab;
@@ -1596,8 +1598,15 @@ void PublishSettingsDialog::build_material_tab(Category& category)
                                     (slot < bundle->filament_presets.size() ? bundle->filament_presets[slot] : std::string());
     const Preset* slot_preset = preset_name.empty() ? nullptr : bundle->filaments.find_preset(preset_name, false, true);
     DynamicPrintConfig seed;
-    if (slot_preset != nullptr)
-        seed = slot_preset->config;
+    DynamicPrintConfig saved;
+    if (!preset_name.empty() && preset_name == bundle->filaments.get_selected_preset_name()) {
+        // The slot uses the preset the sidebar edits: its working copy is the current values and
+        // the collection's selected preset is the saved baseline.
+        seed  = bundle->filaments.get_edited_preset().config;
+        saved = bundle->filaments.get_selected_preset().config;
+    } else if (slot_preset != nullptr) {
+        seed = saved = slot_preset->config;
+    }
     if (seed.empty())
         seed = bundle->filaments.get_edited_preset().config;
     // A filament preset carries no filament_colour (it is not in Preset::filament_options): the
@@ -1617,7 +1626,7 @@ void PublishSettingsDialog::build_material_tab(Category& category)
     seed.set_key_value("filament_type", new ConfigOptionStrings{type.empty() ? full_value("filament_type") : type});
 
     auto* tab = new PublishTabFilament(category.publish_host);
-    tab->create_publish_tab(seed);
+    tab->create_publish_tab(seed, saved);
     category.publish_tab = tab;
     category.publish_host->set_publish_tab(tab);
     // A rebuilt tab is built long after the dialog's theme pass ran, so it takes the host's
