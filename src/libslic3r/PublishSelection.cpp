@@ -104,10 +104,19 @@ bool PublishSelection::owner_publishes(int owner, const std::vector<PublishRowId
     // A mixed slot publishes its definition as one unit: its publish checkbox is the whole rule.
     if (owner_info->second.mixed)
         return owner_published(owner);
-    if (owner_published(owner) || full_publish(owner))
+    // A physical slot publishes through its rows (keys, colour, type) or Full Publish.
+    if (full_publish(owner))
         return true;
     return std::any_of(rows.begin(), rows.end(), [owner, this](const PublishRowId &row) {
         return row.section == PublishSection::Material && row.owner == owner && checked(row) && enabled(row);
+    });
+}
+
+bool PublishSelection::type_row_checked(int owner) const
+{
+    return std::any_of(m_checked.begin(), m_checked.end(), [owner, this](const auto &entry) {
+        return entry.second && entry.first.section == PublishSection::Material && entry.first.owner == owner &&
+               entry.first.kind == PublishRowKind::Type && enabled(entry.first);
     });
 }
 
@@ -153,26 +162,32 @@ std::vector<PublishedMaterialEntry> PublishSelection::material_entries(const std
             out.push_back(std::move(entry));
             continue;
         }
-        // The material checkbox is the only switch for a partial slot's colour and type; its key
-        // rows publish independently, so a slot with rows checked and the box off ships keys
-        // without an identity.
-        const bool material = owner_published(owner);
-        if (material && !info.colour.empty()) {
-            entry.publish_color = true;
-            entry.color         = info.colour;
-        }
-        if (material) {
-            entry.publish_type       = true;
-            entry.publish_type_value = normalize_filament_type(info.filament_type);
-        }
+        // A physical slot's colour and type are their own flagged rows, published independently of
+        // its keys, so a slot with key rows only ships no identity.
+        bool colour = false;
+        bool type   = false;
         for (const PublishRowId &row : rows) {
             if (row.section != PublishSection::Material || row.owner != owner)
                 continue;
             if (!checked(row) || !enabled(row))
                 continue;
-            // Keys are publish-ready: a bare base key is resolved to its column by
-            // publish_normalize_material_entries.
-            entry.keys.insert(entry.keys.end(), row.keys.begin(), row.keys.end());
+            if (row.kind == PublishRowKind::Color) {
+                colour = true;
+            } else if (row.kind == PublishRowKind::Type) {
+                type = true;
+            } else {
+                // Keys are publish-ready: a bare base key is resolved to its column by
+                // publish_normalize_material_entries.
+                entry.keys.insert(entry.keys.end(), row.keys.begin(), row.keys.end());
+            }
+        }
+        if (colour && !info.colour.empty()) {
+            entry.publish_color = true;
+            entry.color         = info.colour;
+        }
+        if (type) {
+            entry.publish_type       = true;
+            entry.publish_type_value = normalize_filament_type(info.filament_type);
         }
         out.push_back(std::move(entry));
     }
@@ -287,9 +302,9 @@ std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSele
             // A mixed slot is not a physical filament: the dialog this replaced skipped it too.
             if (component_owner->second.mixed)
                 continue;
-            // A component publishes its identity through its material checkbox or Full Publish;
-            // checked key rows alone ship no material.
-            if (!selection.owner_published(component_slot) && !selection.full_publish(component_slot)) {
+            // A component publishes its type through its Type row, or its whole preset through
+            // Full Publish; checked key rows alone ship no material.
+            if (!selection.type_row_checked(component_slot) && !selection.full_publish(component_slot)) {
                 out.push_back({ size_t(mixed_slot), size_t(component_slot), MixedDependencyIssue::Reason::Disabled });
                 continue;
             }

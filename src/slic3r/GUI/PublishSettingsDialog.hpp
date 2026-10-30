@@ -141,24 +141,31 @@ private:
         PublishParamsPanel* publish_host{nullptr};
         Tab*                publish_tab{nullptr};
         wxStaticText* info{nullptr};
+        // The mixed definition preview, rebuilt when a component's colour changes.
+        wxPanel* mixed_visual{nullptr};
         wxPoint scroll_pos{0, 0};
         // The slot's colour swatch, a button in the sidebar's style: a click writes the colour
         // to the project at once, and the badge and the tab strip show it.
         wxBitmapButton* filament_color_chip{nullptr};
-        wxStaticText* title_label{nullptr}; // material title, refreshed on a DPI change
-        // One publish switch per owner, never null after build. A physical slot's "Material"
-        // checkbox sits immediately left of its colour chip and publishes the slot's colour and
-        // material type; its key rows publish independently of it. A mixed slot's "Enable"
-        // checkbox tops its definition page and publishes the mix definition, auto Full Publishing
-        // its component filaments.
+        // A physical slot's two publish flags, below the picker, each a checkbox with a read-only
+        // value: the colour it prints with and its normalised material type. Both start off and
+        // follow the picked preset and the picked colour.
+        ::CheckBox*     color_check{nullptr};
+        wxStaticBitmap* color_value{nullptr};
+        ::CheckBox*     type_check{nullptr};
+        wxStaticText*   type_value{nullptr};
+        // One publish switch per owner, never null after build. A physical slot has none: its
+        // colour and type are the flag rows above, and its key rows publish independently. A mixed
+        // slot's checkbox sits above its definition page and publishes the mix definition,
+        // auto-Full-Publishing its component filaments.
         ::CheckBox* owner_check{nullptr};
         wxSizerItem* full_line_item{nullptr}; // sizer item of the Full Publish line (physical slots only)
         // "Full Publish": while checked, the whole slot preset is serialized and its rows are
         // disabled.
         ::CheckBox* full_check{nullptr};
-        // The slot's filament preset picker (the sidebar's own combo), on its own line below Full
-        // Publish, with the slot's colour badge on its left as the sidebar places its swatch.
-        // Selecting a preset assigns it to the slot at once.
+        // The slot's filament preset picker (the sidebar's own combo), on its own line above the
+        // colour/type rows, with the slot's colour badge on its left as the sidebar places its
+        // swatch. Selecting a preset assigns it to the slot at once.
         PublishFilamentPicker* filament_picker{nullptr};
         wxSizerItem*           filament_picker_item{nullptr};
         // True for a mixed-color filament slot: no Material/Retraction rows; its publish checkbox
@@ -251,25 +258,35 @@ private:
     void select_all(bool value);
     void select_visible(bool value);
     void show_menu(wxMouseEvent& evt);
-    // "Full Publish" toggled: disables/enables the material's rows.
+    // "Full Publish" toggled: disables/enables the material's rows and its Color/Type checkboxes.
     void on_full_toggle(size_t category_index);
-    // An owner's publish checkbox toggled: a physical slot's material checkbox publishes or
-    // stops publishing its colour and type; a mixed slot's checkbox publishes the definition and
-    // auto-selects its component filaments' material + "Full Publish" toggles.
+    // A mixed slot's publish checkbox toggled: publishes the definition and auto-selects its
+    // component filaments' "Full Publish" toggles. A physical slot has no owner checkbox.
     void on_owner_toggle(size_t category_index);
+    // Adds a physical slot's Color and Type rows: one flagged row each, no config keys. Called at
+    // build and again whenever the slot's rows are rebuilt from a picked preset.
+    void add_owner_flag_rows(size_t category_index);
+    // The index of a category's Color or Type row, or size_t(-1) when it has none.
+    size_t owner_flag_row(size_t category_index, Slic3r::PublishRowKind kind) const;
+    // A Color/Type checkbox toggled: the row owns the flag.
+    void on_owner_flag_toggle(size_t category_index, Slic3r::PublishRowKind kind);
+    // Pushes the model's Color/Type flags into their checkboxes and greys them under Full Publish.
+    void sync_owner_flag_widgets(size_t category_index);
     // Whether a category currently publishes something, driving its tab's indicator dot.
     // Print/Printer: any row checked. Material: the owner publishes under the model's rule.
     bool category_has_selection(const Category& cat) const;
     // Recompute the indicator dot on every outer/inner tab from the current selection state.
     void refresh_tab_indicators();
     // Unmet dependencies of publishing mixed-filament slots, one record per (mix, component)
-    // pair: the component's material checkbox and Full Publish are both off. A component with
-    // either publishes its type and colour. Sorted by mixed slot, then component slot.
+    // pair: the component's Type row is unchecked and Full Publish is off. Either publishes the
+    // component's material. Sorted by mixed slot, then component slot.
     std::vector<MixedDependencyIssue> unpublished_mixed_components() const;
     // Read-only visualization of a mixed slot's definition (a stacked ratio bar, or the
     // Material Ratio vs Model Height graph for a gradient), inserted above the info hint
     // inside the category's scroll area.
     void add_mixed_visual(size_t category_index, const MixedVisualSpec& spec);
+    // Rebuilds every mixed slot's definition preview from the current project colours.
+    void refresh_mixed_visuals();
     // Return/create the fixed outer page for a Section kind.
     size_t section_group_for(Section kind);
     size_t category_index_for(const wxString& title,
@@ -334,8 +351,8 @@ private:
     void set_row_checked(size_t row_index, bool checked);
     void set_row_enabled(size_t row_index, bool enabled);
     // Whether a row's value can be written to the project (spec 7.10): the slot must not have Full
-    // Publish, and the row must resolve to a real write target. The owner's material checkbox does
-    // not gate it: a checked row publishes and edits its key on its own.
+    // Publish, and the row must resolve to a real write target. Colour/Type rows have no key, so
+    // they are never writable; the flag rows do not gate a key row's edit.
     bool row_writable(size_t row_index) const;
     // Enables the line's fields while the row it draws is checked and writable, and disables them
     // otherwise. A row of a column the tab does not show leaves the line alone.
@@ -351,10 +368,8 @@ private:
     // The row of `category_index` whose published option `opt_id` names and whose column the tab
     // currently shows, or size_t(-1) when the field is not a published row.
     size_t row_for_edit(size_t category_index, const std::string& opt_id) const;
-    // Coalesces the plater's re-read of the config: a burst of edits refreshes it once, after a
-    // short idle, instead of once per keystroke.
-    void schedule_live_refresh();
-    void flush_live_refresh();
+    // Re-reads the project after a write that no sidebar Tab refreshed.
+    void refresh_published_plater();
     // The non-structural filament keys of a slot's preset, for a "Full Publish" entry.
     std::vector<std::string> full_keys_for_slot() const;
     void save_scroll_position(Category& category);
@@ -393,7 +408,6 @@ private:
 
     // The coalesced plater refresh: every edit wants the plater to re-read the config, but typing
     // would otherwise refresh once per keystroke. One refresh runs after this timer expires.
-    wxTimer m_live_refresh_timer;
 
     std::vector<Row> m_rows;
     std::vector<Category> m_categories;

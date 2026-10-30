@@ -812,7 +812,6 @@ TEST_CASE("Checked state round-trips through published keys and material entries
 
     PublishSelection selection;
     selection.set_owner_info(0, PublishOwnerInfo());
-    selection.set_owner_published(0, true);
     selection.set_checked(printer_row, true);
     selection.set_checked(slot_row, true);
     selection.set_checked(multi_row, true);
@@ -857,24 +856,22 @@ TEST_CASE("A disabled row is never exported, even when checked", "[PublishSettin
 
     PublishSelection selection;
     selection.set_owner_info(0, PublishOwnerInfo());
-    selection.set_owner_published(0, true);
     selection.set_checked(printer_row, true);
     selection.set_enabled(printer_row, false);
     selection.set_checked(material_row, true);
     selection.set_enabled(material_row, false);
 
     CHECK(selection.published_keys(rows).empty());
-    // The slot's material checkbox is on, so its identity entry travels; the disabled row adds no
-    // key.
-    const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
-    REQUIRE(entries.size() == 1);
-    CHECK(entries[0].keys.empty());
+    // The slot's only checked row is disabled: it contributes no entry at all.
+    CHECK(selection.material_entries(rows).empty());
 }
 
-TEST_CASE("A fresh owner publishes nothing until rows, Material or Full are chosen", "[PublishSettings]")
+TEST_CASE("A physical slot publishes the colour and type its flagged rows select", "[PublishSettings]")
 {
-    const PublishRowId key_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
-    const std::vector<PublishRowId> rows{ key_row };
+    const PublishRowId key_row   = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
+    const PublishRowId color_row = make_publish_row({}, PublishSection::Material, 0, -1, PublishRowKind::Color);
+    const PublishRowId type_row  = make_publish_row({}, PublishSection::Material, 0, -1, PublishRowKind::Type);
+    const std::vector<PublishRowId> rows{ key_row, color_row, type_row };
 
     PublishOwnerInfo info;
     info.filament_type = "PLA High Speed";
@@ -883,11 +880,12 @@ TEST_CASE("A fresh owner publishes nothing until rows, Material or Full are chos
     PublishSelection selection;
     selection.set_owner_info(0, info);
 
-    CHECK_FALSE(selection.owner_published(0));
-    CHECK_FALSE(selection.owner_publishes(0, rows));
-    CHECK(selection.material_entries(rows).empty());
+    SECTION("nothing checked publishes nothing") {
+        CHECK_FALSE(selection.owner_publishes(0, rows));
+        CHECK(selection.material_entries(rows).empty());
+    }
 
-    SECTION("a checked row publishes only its key") {
+    SECTION("a key row publishes its key without colour or type") {
         selection.set_checked(key_row, true);
         CHECK(selection.owner_publishes(0, rows));
         const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
@@ -899,31 +897,55 @@ TEST_CASE("A fresh owner publishes nothing until rows, Material or Full are chos
         CHECK(entries[0].publish_type_value.empty());
     }
 
-    SECTION("the material checkbox publishes the identity with no row") {
-        selection.set_owner_published(0, true);
+    SECTION("the Color row publishes only the colour") {
+        selection.set_checked(color_row, true);
         const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
         REQUIRE(entries.size() == 1);
         CHECK(entries[0].keys.empty());
         CHECK(entries[0].publish_color);
         CHECK(entries[0].color == "#FF0000");
+        CHECK_FALSE(entries[0].publish_type);
+        CHECK(entries[0].publish_type_value.empty());
+    }
+
+    SECTION("the Type row publishes only the normalised type") {
+        selection.set_checked(type_row, true);
+        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+        REQUIRE(entries.size() == 1);
+        CHECK(entries[0].keys.empty());
+        CHECK_FALSE(entries[0].publish_color);
         CHECK(entries[0].publish_type);
         CHECK(entries[0].publish_type_value == "PLA");
     }
 
-    SECTION("Full Publish publishes the identity on its own") {
-        selection.set_full_publish(0, true);
+    SECTION("both rows publish both flags next to a checked key row") {
+        selection.set_checked(key_row, true);
+        selection.set_checked(color_row, true);
+        selection.set_checked(type_row, true);
         const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
         REQUIRE(entries.size() == 1);
-        CHECK(entries[0].full);
+        CHECK(entries[0].keys == std::vector<std::string>{ "filament_cost" });
+        CHECK(entries[0].publish_color);
+        CHECK(entries[0].color == "#FF0000");
         CHECK(entries[0].publish_type);
         CHECK(entries[0].publish_type_value == "PLA");
     }
 }
 
-TEST_CASE("The material checkbox is the only switch for a partial slot's colour and type", "[PublishSettings]")
+TEST_CASE("A file entry's colour and type flags seed the rows that reproduce it", "[PublishSettings]")
 {
-    const PublishRowId key_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
-    const std::vector<PublishRowId> rows{ key_row };
+    // A published entry seeds its Color row from publish_color and its Type row from publish_type;
+    // with those rows checked the selection emits the same entry again.
+    const PublishRowId color_row = make_publish_row({}, PublishSection::Material, 0, -1, PublishRowKind::Color);
+    const PublishRowId type_row  = make_publish_row({}, PublishSection::Material, 0, -1, PublishRowKind::Type);
+    const std::vector<PublishRowId> rows{ color_row, type_row };
+
+    PublishedMaterialEntry file_entry;
+    file_entry.slot               = 0;
+    file_entry.publish_color      = true;
+    file_entry.color              = "#FF0000";
+    file_entry.publish_type       = true;
+    file_entry.publish_type_value = "PLA";
 
     PublishOwnerInfo info;
     info.filament_type = "PLA High Speed";
@@ -931,45 +953,18 @@ TEST_CASE("The material checkbox is the only switch for a partial slot's colour 
 
     PublishSelection selection;
     selection.set_owner_info(0, info);
-    selection.set_owner_published(0, true);
+    // The dialog's seeding: one row per flag the entry carries.
+    if (file_entry.publish_color)
+        selection.set_checked(color_row, true);
+    if (file_entry.publish_type)
+        selection.set_checked(type_row, true);
 
-    SECTION("with no row checked at all") {
-        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
-        REQUIRE(entries.size() == 1);
-        CHECK(entries[0].keys.empty());
-        CHECK_FALSE(entries[0].full);
-        CHECK(entries[0].publish_color);
-        CHECK(entries[0].color == "#FF0000");
-        CHECK(entries[0].publish_type);
-        CHECK(entries[0].publish_type_value == "PLA");
-    }
-
-    SECTION("next to a checked key row") {
-        selection.set_checked(key_row, true);
-        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
-        REQUIRE(entries.size() == 1);
-        CHECK(entries[0].keys == std::vector<std::string>{ "filament_cost" });
-        CHECK(entries[0].publish_color);
-        CHECK(entries[0].publish_type);
-    }
-
-    SECTION("a slot without a colour publishes its type only") {
-        selection.set_owner_info(0, PublishOwnerInfo{});
-        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
-        REQUIRE(entries.size() == 1);
-        CHECK_FALSE(entries[0].publish_color);
-        CHECK(entries[0].publish_type);
-    }
-
-    SECTION("unchecking it keeps a checked row's key and drops the identity") {
-        selection.set_checked(key_row, true);
-        selection.set_owner_published(0, false);
-        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
-        REQUIRE(entries.size() == 1);
-        CHECK(entries[0].keys == std::vector<std::string>{ "filament_cost" });
-        CHECK_FALSE(entries[0].publish_color);
-        CHECK_FALSE(entries[0].publish_type);
-    }
+    const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+    REQUIRE(entries.size() == 1);
+    CHECK(entries[0].publish_color == file_entry.publish_color);
+    CHECK(entries[0].color == file_entry.color);
+    CHECK(entries[0].publish_type == file_entry.publish_type);
+    CHECK(entries[0].publish_type_value == file_entry.publish_type_value);
 }
 
 TEST_CASE("A mixed owner publishes its definition only while its publish checkbox is on", "[PublishSettings]")
@@ -1010,8 +1005,7 @@ TEST_CASE("Full publish exports every variant of the owner", "[PublishSettings]"
 
     PublishSelection selection;
     selection.set_owner_info(0, info);
-    // Full Publish publishes the owner on its own, whatever the material checkbox says.
-    selection.set_owner_published(0, false);
+    // Full Publish publishes the owner on its own, without any flag row.
     selection.set_full_publish(0, true);
     selection.set_checked(key_row, true);
 
@@ -1042,7 +1036,6 @@ TEST_CASE("Mixed dependency issues name the component that publishes no material
     selection.set_owner_info(1, component);
 
     SECTION("an unpublished component is reported") {
-        selection.set_owner_published(1, false);
         const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project);
         REQUIRE(issues.size() == 1);
         CHECK(issues[0].mixed_slot == 0);
@@ -1051,14 +1044,22 @@ TEST_CASE("Mixed dependency issues name the component that publishes no material
     }
 
     SECTION("a fully published component clears the issue") {
-        selection.set_owner_published(1, false);
         selection.set_full_publish(1, true);
         CHECK(unpublished_mixed_components(selection, project).empty());
     }
 
-    SECTION("a component with its material checkbox on clears the issue too") {
-        selection.set_owner_published(1, true);
+    SECTION("a checked Type row clears the issue") {
+        const PublishRowId type_row = make_publish_row({}, PublishSection::Material, 1, -1, PublishRowKind::Type);
+        selection.set_checked(type_row, true);
         CHECK(unpublished_mixed_components(selection, project).empty());
+    }
+
+    SECTION("a checked Color row alone does not satisfy the mix") {
+        const PublishRowId color_row = make_publish_row({}, PublishSection::Material, 1, -1, PublishRowKind::Color);
+        selection.set_checked(color_row, true);
+        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project);
+        REQUIRE(issues.size() == 1);
+        CHECK(issues[0].reason == MixedDependencyIssue::Reason::Disabled);
     }
 
     SECTION("checked key rows alone do not satisfy the mix") {
