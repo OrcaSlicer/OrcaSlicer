@@ -25,6 +25,10 @@ constexpr const char* SNAPMAKER_AGENT_VERSION = "0.0.1";
 // still leaving it ahead of no match at all. The largest real distance is 3 * 255^2 = 195075.
 constexpr unsigned int UNRANKED_COLOR_DISTANCE = 0xfffffffeu;
 
+// filament_vendor of the presets Orca ships in OrcaFilamentLibrary, set in that library's own
+// filament/base/fdm_filament_common.json, so every "Generic ..." preset inherits it.
+constexpr const char* GENERIC_FILAMENT_VENDOR = "Generic";
+
 // Safely access a parallel array by index, returning a fallback if out of bounds.
 template<typename T>
 T safe_at(const std::vector<T>& vec, int index, const T& fallback)
@@ -128,22 +132,22 @@ bool vendor_matches(const std::string& tag_vendor, const std::string& profile_ve
     return contains_word_ci(tag_vendor, profile_vendor) || contains_word_ci(profile_vendor, tag_vendor);
 }
 // Rank the visible, compatible base presets of one filament type by colour distance, preferring a
-// name that carries the spool's sub type. An empty vendor_name matches any vendor; require_sub
-// drops candidates that do not carry the sub type at all.
-std::string closest_preset_by_colour(const PresetCollection& filaments, const std::string& vendor_name,
-                                     const std::string& filament_type, const std::string& sub_wanted,
-                                     bool require_sub, unsigned int target_color_value)
+// name that carries the spool's sub type. Candidates are limited to vendor_filter, which nothing
+// matches when it is empty; tag_vendor is the tag's own vendor field, which a legacy tag uses to
+// name the variant.
+std::string closest_preset_by_colour(const PresetCollection& filaments, const std::string& vendor_filter,
+                                     const std::string& tag_vendor, const std::string& filament_type,
+                                     const std::string& sub_wanted, unsigned int target_color_value)
 {
     std::string  best_match_id       = "";
     unsigned int best_color_distance = 0xffffffffu;
     bool         best_matches_sub    = false;
-    const bool   match_vendor        = !vendor_name.empty();
 
     for (const auto& p : filaments.get_presets()) {
         // Only a base preset can be loaded: sync_ams_list() resolves a filament_id to the first
         // base preset carrying it, so a derived copy never loads and could outrank its parent.
         if (p.is_visible && p.is_compatible && filaments.get_preset_base(p) == &p && !p.filament_id.empty() &&
-            (!match_vendor || vendor_matches(vendor_name, p.config.opt_string("filament_vendor", 0u))) &&
+            vendor_matches(vendor_filter, p.config.opt_string("filament_vendor", 0u)) &&
             p.config.opt_string("filament_type", 0u) == filament_type) {
             // A profile that specifies no colour, or one that cannot be parsed, is unranked: it
             // is kept as a last resort rather than scored as black, which would otherwise let a
@@ -171,10 +175,8 @@ std::string closest_preset_by_colour(const PresetCollection& filaments, const st
             const std::string p_sub = p.config.has("filament_subtype") ? p.config.opt_string("filament_subtype", 0u) : std::string();
             const bool matches_sub  = !sub_wanted.empty() ?
                                           (contains_sub_type_ci(p.name, sub_wanted) || contains_sub_type_ci(p_sub, sub_wanted)) :
-                                          (contains_word_ci(vendor_name, p_sub) || contains_word_ci(p.name, vendor_name) ||
-                                           contains_word_ci(vendor_name, p.name));
-            if (require_sub && !matches_sub)
-                continue;
+                                          (contains_word_ci(tag_vendor, p_sub) || contains_word_ci(p.name, tag_vendor) ||
+                                           contains_word_ci(tag_vendor, p.name));
             if (best_matches_sub && !matches_sub)
                 continue;
 
@@ -205,22 +207,21 @@ std::string SnapmakerPrinterAgent::find_closest_color_preset_by_vendor_and_type(
 
     const std::string sub_wanted = normalize_fibre_sub_type(trim_and_upper(sub_type));
 
-    // The spool's own vendor first, with the sub type as a preference. A tag that reports no vendor
-    // has none to match, and an empty vendor_name means "any vendor" to the helper, so skip this
-    // pass entirely rather than letting such a spool take the closest-coloured preset of any brand.
-    const std::string vendor_match = vendor_name.empty() ?
-                                         std::string() :
-                                         closest_preset_by_colour(filaments, vendor_name, filament_type, sub_wanted,
-                                                                  /*require_sub=*/false, target_color_value);
-    if (!vendor_match.empty() || sub_wanted.empty())
+    // The spool's own vendor first, with the sub type as a preference. A tag that reports no
+    // vendor matches no profile's filament_vendor, so such a spool finds nothing in this pass.
+    const std::string vendor_match = closest_preset_by_colour(filaments, vendor_name, vendor_name, filament_type,
+                                                              sub_wanted, target_color_value);
+    if (!vendor_match.empty())
         return vendor_match;
 
-    // Orca ships no preset for this spool's vendor. A profile that names the spool's sub type is
-    // still closer than the caller's fallback, filament_id_by_type(), which ignores the sub type
-    // and takes the first visible preset of the type -- a silk spool would land on a plain one.
-    // Vendor is ignored here, so the sub type has to be carried rather than merely preferred.
-    return closest_preset_by_colour(filaments, std::string(), filament_type, sub_wanted,
-                                    /*require_sub=*/true, target_color_value);
+    // Orca ships no preset for this spool's vendor, so fall back to its own Generic presets: they
+    // cover the sub types the U1 sees (Generic PLA Silk @U1, Generic PLA High Speed @U1,
+    // Generic PETG HF @U1) and carry no other brand's temperatures or flow. That beats another
+    // brand's preset of the same finish, and it beats the caller's fallback,
+    // filament_id_by_type(), which takes the first visible preset of the type whatever its vendor
+    // and finish.
+    return closest_preset_by_colour(filaments, GENERIC_FILAMENT_VENDOR, vendor_name, filament_type, sub_wanted,
+                                    target_color_value);
 }
 
 SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
@@ -356,7 +357,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
 
                 if (!filament_id.empty()) {
                     tray.tray_info_idx = filament_id;
-                    BOOST_LOG_TRIVIAL(warning) << "Filament sync: Found manufacturer-specific profile for slot " << i << ": "
+                    BOOST_LOG_TRIVIAL(warning) << "Filament sync: Found profile for slot " << i << ": "
                                                << filament_id;
                 } else {
                     tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);

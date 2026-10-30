@@ -215,9 +215,10 @@ TEST_CASE("A preset with no colour is unranked, not black", "[Snapmaker]")
 }
 
 // Orca: Orca ships U1-compatible presets for a handful of vendors, so a spool from any other
-// brand finds nothing in the vendor pass. A profile naming its sub type is still closer than the
-// caller's fallback, filament_id_by_type(), which ignores the sub type entirely.
-TEST_CASE("A spool from an unknown vendor still reaches its sub type", "[Snapmaker]")
+// brand finds nothing in the vendor pass. Orca's own Generic presets cover the sub types the U1
+// sees and carry no other brand's temperatures or flow, so they are the fallback - ahead of the
+// caller's filament_id_by_type(), which ignores the sub type entirely.
+TEST_CASE("A spool from an unknown vendor falls back to a Generic preset", "[Snapmaker]")
 {
     const std::vector<FilamentSpec> library{
         {"Generic PLA",      "PLA-GENERIC", "PLA", "Generic", "#102030"},
@@ -226,18 +227,41 @@ TEST_CASE("A spool from an unknown vendor still reaches its sub type", "[Snapmak
     // Nothing carries the spool's vendor, and the plain preset is the exact colour match, so only
     // the sub type can decide it.
     CHECK(match(library, "Polar Filament", "PLA", "Silk", "102030FF") == "PLA-SILK");
+    // With no sub type the Generic preset of the type is taken, rather than whichever preset
+    // filament_id_by_type() happens to find first.
+    CHECK(match(library, "Polar Filament", "PLA", "", "102030FF") == "PLA-GENERIC");
     // Within the sub type, colour still ranks.
     const std::vector<FilamentSpec> two_silks{
-        {"Generic PLA",           "PLA-GENERIC", "PLA", "Generic", "#102030"},
-        {"Generic PLA Silk",      "PLA-SILK",    "PLA", "Generic", "#F0A0B0"},
-        {"Snapmaker PLA Silk",    "SM-SILK",     "PLA", "Snapmaker", "#102030"},
+        {"Generic PLA",         "PLA-GENERIC", "PLA", "Generic", "#102030"},
+        {"Generic PLA Silk",    "PLA-SILK",    "PLA", "Generic", "#F0A0B0"},
+        {"Generic PLA Silk HF", "PLA-SILK-HF", "PLA", "Generic", "#102030"},
     };
-    CHECK(match(two_silks, "Polar Filament", "PLA", "Silk", "102030FF") == "SM-SILK");
+    CHECK(match(two_silks, "Polar Filament", "PLA", "Silk", "102030FF") == "PLA-SILK-HF");
 }
 
-// Orca: a tag that reports no vendor has none to match, so the vendor pass is skipped rather than
-// matching every vendor - a vendorless spool must not take the closest-coloured preset of any
-// brand. With no sub type either, it falls through to the caller's type-only lookup.
+// Orca: the fallback pass looks at Generic presets only. An unknown brand's Matte spool taking
+// "Snapmaker PLA Matte", or a user's Matte preset from a third brand, would print with that
+// brand's temperatures and flow, which is worse than a plain profile that carries nobody's.
+TEST_CASE("The Generic pass ignores other brands' presets", "[Snapmaker]")
+{
+    const std::vector<FilamentSpec> other_brand{
+        {"Generic PLA",         "PLA-GENERIC", "PLA", "Generic",   "#102030"},
+        {"Snapmaker PLA Matte", "SM-MATTE",    "PLA", "Snapmaker", "#F0A0B0"},
+    };
+    // The Snapmaker preset names the sub type and matches the colour exactly, and still loses.
+    CHECK(match(other_brand, "Anycubic", "PLA", "Matte", "F0A0B0FF") == "PLA-GENERIC");
+
+    // A Generic preset that does name the finish is taken, however far its colour.
+    const std::vector<FilamentSpec> generic_matte{
+        {"Generic PLA",       "PLA-GENERIC", "PLA", "Generic", "#102030"},
+        {"Generic PLA Matte", "PLA-MATTE",   "PLA", "Generic", "#F0A0B0"},
+    };
+    CHECK(match(generic_matte, "Anycubic", "PLA", "Matte", "102030FF") == "PLA-MATTE");
+}
+
+// Orca: a tag that reports no vendor matches no profile's filament_vendor, so the vendor pass
+// finds nothing for it - a vendorless spool must not take the closest-coloured preset of any
+// brand. The Generic pass then handles it, with or without a sub type.
 TEST_CASE("A tag with no vendor does not match every vendor", "[Snapmaker]")
 {
     const std::vector<FilamentSpec> library{
@@ -245,21 +269,25 @@ TEST_CASE("A tag with no vendor does not match every vendor", "[Snapmaker]")
         {"Snapmaker PLA",    "SM-PLA",      "PLA", "Snapmaker", "#102030"},
         {"Generic PLA Silk", "PLA-SILK",    "PLA", "Generic",   "#F0A0B0"},
     };
-    CHECK(match(library, "", "PLA", "", "102030FF").empty());
-    // A vendorless tag that does name a sub type still reaches it through the second pass.
+    // The Snapmaker preset is an equally exact colour match and is never considered.
+    CHECK(match(library, "", "PLA", "", "102030FF") == "PLA-GENERIC");
+    // A vendorless tag that does name a sub type still reaches it through the Generic pass.
     CHECK(match(library, "", "PLA", "Silk", "102030FF") == "PLA-SILK");
 }
 
-// Orca: the second pass only helps a sub type some profile actually carries. A brand word that
-// names no preset must not drag in an unrelated vendor's filament - the slot falls through to the
-// caller's type-only lookup, as it did before.
-TEST_CASE("An unknown vendor and an unknown sub type fall through", "[Snapmaker]")
+// Orca: the Generic pass only helps for a type Orca ships a Generic preset of. For any other
+// type the slot falls through to the caller's type-only lookup, as it did before - an unrelated
+// vendor's filament is never dragged in.
+TEST_CASE("A type with no Generic preset falls through", "[Snapmaker]")
 {
     const std::vector<FilamentSpec> library{
-        {"Generic PLA",      "PLA-GENERIC", "PLA", "Generic", "#102030"},
-        {"Generic PLA Silk", "PLA-SILK",    "PLA", "Generic", "#F0A0B0"},
+        {"Generic PLA", "PLA-GENERIC", "PLA",    "Generic", "#102030"},
+        {"QIDI PPS-GF", "PPS-GF",      "PPS-GF", "QIDI",    "#102030"},
     };
-    CHECK(match(library, "Polar Filament", "PLA", "Pure", "102030FF").empty());
+    CHECK(match(library, "Polar Filament", "PPS-GF", "GF", "102030FF").empty());
+    // A sub type no preset carries is still only a preference, so the plain Generic preset of the
+    // type is taken.
+    CHECK(match(library, "Polar Filament", "PLA", "Pure", "102030FF") == "PLA-GENERIC");
 }
 
 // Orca: sync_ams_list() resolves a filament_id to the first base preset carrying it, so a derived
