@@ -3756,19 +3756,26 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 refresh_preview();
             }
         }
-        // Plane tool with a pick armed: capture the right kind of reference (face for Face A/B,
-        // edge for Edge A/B). If the click wasn't the right kind, stay armed so the user retries.
-        if (m_active == Tool::Plane && m_plane_pick != PlanePick::None) {
+        // Plane tool: a click on a body's FACE is Face A (a plane is most often made from a face, so it must not need the "Pick face A"
+        // button first), and with a pick armed the click fills that reference. The face and edge under the cursor come from the click
+        // itself (`face`, `edge`), not from m_sel_solid_*: the first click on a body selects the WHOLE body and leaves those at -1,
+        // which is why a face could not be chosen at all. A click of the wrong kind leaves the pick armed.
+        if (m_active == Tool::Plane && body >= 0 && body < int(m_doc.bodies.size())) {
+            const PlanePick pk = m_plane_pick != PlanePick::None ? m_plane_pick : (face >= 0 ? PlanePick::FaceA : PlanePick::None);
             bool got = false;
-            switch (m_plane_pick) {
-            case PlanePick::FaceA: if (m_sel_solid_face >= 0) { m_pl_faceA_body = m_sel_solid_body; m_pl_faceA = m_sel_solid_face; got = true; } break;
-            case PlanePick::FaceB: if (m_sel_solid_face >= 0) { m_pl_faceB_body = m_sel_solid_body; m_pl_faceB = m_sel_solid_face; got = true; } break;
-            case PlanePick::EdgeA: if (m_sel_solid_edge >= 0) { m_pl_edgeA_body = m_sel_solid_body; m_pl_edgeA = m_sel_solid_edge; got = true; } break;
-            case PlanePick::EdgeB: if (m_sel_solid_edge >= 0) { m_pl_edgeB_body = m_sel_solid_body; m_pl_edgeB = m_sel_solid_edge; got = true; } break;
+            switch (pk) {
+            case PlanePick::FaceA: if (face >= 0) { m_pl_faceA_body = body; m_pl_faceA = face; got = true; } break;
+            case PlanePick::FaceB: if (face >= 0) { m_pl_faceB_body = body; m_pl_faceB = face; got = true; } break;
+            case PlanePick::EdgeA: if (edge >= 0) { m_pl_edgeA_body = body; m_pl_edgeA = edge; got = true; } break;
+            case PlanePick::EdgeB: if (edge >= 0) { m_pl_edgeB_body = body; m_pl_edgeB = edge; got = true; } break;
             default: break;
             }
-            if (got) { m_plane_pick = PlanePick::None; refresh_plane_labels(); }
-            if (got && m_viewport) m_viewport->set_escalate_on_repick(true);
+            if (got) {
+                m_plane_pick = PlanePick::None;
+                refresh_plane_labels();
+                if (m_viewport) m_viewport->set_escalate_on_repick(true);
+                refresh_preview();
+            }
         }
         // Axis tool with a pick armed: face or edge.
         if (m_active == Tool::Axis && m_axis_pick != AxisPick::None) {
