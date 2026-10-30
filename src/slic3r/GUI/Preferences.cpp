@@ -416,6 +416,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         wxLANGUAGE_TURKISH,
         wxLANGUAGE_POLISH,
         wxLANGUAGE_CATALAN,
+        wxLANGUAGE_BASQUE,
         wxLANGUAGE_PORTUGUESE_BRAZILIAN,
         wxLANGUAGE_LITHUANIAN,
         wxLANGUAGE_VIETNAMESE,
@@ -508,6 +509,9 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         }
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_CATALAN)) {
             language_name = wxString::FromUTF8("Catalan");
+        }
+        else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_BASQUE)) {
+            language_name = wxString::FromUTF8("Euskara");
         }
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_PORTUGUESE_BRAZILIAN)) {
             language_name = wxString::FromUTF8("Português (Brasil)");
