@@ -13,6 +13,8 @@
 
 #include <algorithm>
 #include <set>
+#include <vector>
+#include <string>
 #include <wx/defs.h>
 #include <wx/sizer.h>
 

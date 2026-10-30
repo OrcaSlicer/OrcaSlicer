@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Config.hpp"
 #include "PrintConfig.hpp"
 
 #include <cstddef>

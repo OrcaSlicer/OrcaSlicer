@@ -29,6 +29,8 @@
 #include "libslic3r/Model.hpp"
 
 #include <boost/algorithm/string/trim.hpp>
+#include <wx/anybutton.h>
+#include <cstddef>
 #include <wx/colour.h>
 #include <string>
 #include "libslic3r/Config.hpp"
