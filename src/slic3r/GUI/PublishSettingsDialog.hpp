@@ -22,6 +22,7 @@
 #include <string>
 
 class TabCtrl;
+class wxBitmapButton;
 class wxBoxSizer;
 class wxCommandEvent;
 class wxMouseEvent;
@@ -139,7 +140,9 @@ private:
         Tab*                publish_tab{nullptr};
         wxStaticText* info{nullptr};
         wxPoint scroll_pos{0, 0};
-        wxStaticBitmap* filament_color_chip{nullptr}; // read-only colour badge left of the preset picker
+        // The slot's colour swatch, a button in the sidebar's style: a click stages a colour for
+        // the slot, shown on the badge and the tab strip and written by OK only.
+        wxBitmapButton* filament_color_chip{nullptr};
         wxStaticText* title_label{nullptr}; // material title, refreshed on a DPI change
         // "Enable": while unchecked nothing of this slot is exported and everything below the
         // header row is hidden. For physical slots the Full Publish toggle sits on a second
@@ -179,6 +182,10 @@ private:
         // only between a pick and OK; Cancel leaves `filament` in place.
         std::string filament;
         std::string pending_filament;
+        // An explicit colour pick from the badge: the slot colour the badge shows and OK writes,
+        // overriding the staged preset's declared colour until another preset is picked.
+        std::vector<std::string> pending_colours;
+        bool                     pending_gradient{false};
         std::vector<size_t> rows; // flattened rows of this category
     };
 
@@ -277,6 +284,14 @@ private:
     // Picker callback: stage `preset_name` for the physical slot, rebuild its tab and rows,
     // uncheck them and refresh the payload identity. Nothing of the project changes until OK.
     void on_filament_picked(size_t slot, const std::string& preset_name);
+    // Badge callback: open the sidebar's colour picker on the slot's colour and stage the
+    // choice for the badge, the tab strip and the payload. Nothing of the project changes until OK.
+    void on_filament_color_picked(size_t slot);
+    // Repaints the slot's badge and tab-strip chip from its staged/declared colour and carries
+    // that colour into the payload identity.
+    void refresh_slot_colour(size_t category_index);
+    // The page of a physical slot, or nullptr.
+    Category* material_category(size_t slot);
     // The colour the slot's badge and tab-strip chip show: the staged pick's own colour while a
     // pick is pending, the project's colour otherwise. `full` is the project's config.
     std::string staged_badge_color(const Category& category, const Slic3r::DynamicPrintConfig& full) const;

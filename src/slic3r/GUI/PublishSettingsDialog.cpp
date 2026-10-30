@@ -3,6 +3,7 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
+#include "ColorPickerDialog.hpp"
 #include "I18N.hpp"
 #include "OptionStateRegistry.hpp"
 #include "OptionsGroup.hpp"
@@ -64,6 +65,7 @@
 #include <memory>
 #include <numeric>
 #include <optional>
+#include <sstream>
 #include <tuple>
 #include <utility>
 
@@ -168,12 +170,69 @@ std::string badge_color_hex(PresetBundle& bundle, const DynamicPrintConfig& full
     return filament_color_hex(full, slot);
 }
 
-// A read-only colour chip, drawn with the same helper as the sidebar's swatch and the tab strip:
-// a static bitmap cannot open the colour editor and never writes the project.
-wxStaticBitmap* make_filament_badge(wxWindow* parent, const std::string& hex, const std::string& label, int size)
+// The slot's colour swatch, drawn with the same helper as the sidebar's swatch and the tab strip,
+// as a button in the sidebar's colour-button style so it opens the same colour picker. A pick is
+// staged by the caller; the badge itself never writes the project.
+wxBitmapButton* make_filament_badge(wxWindow* parent, const std::string& hex, const std::string& label, int size)
 {
     wxBitmap* chip = get_extruder_color_icon(hex, label, size, size);
-    return chip != nullptr ? new wxStaticBitmap(parent, wxID_ANY, *chip) : nullptr;
+    if (chip == nullptr)
+        return nullptr;
+    auto* button = new wxBitmapButton(parent, wxID_ANY, *chip, wxDefaultPosition, wxSize(size, size),
+                                      wxBU_EXACTFIT | wxBU_AUTODRAW | wxBORDER_NONE);
+    button->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    button->SetToolTip(_L("Click to select filament color"));
+#ifdef __WXGTK__
+    RemoveButtonBorder(button);
+#endif
+    return button;
+}
+
+// The slot colour the shared picker opens on: the primary colour plus its stored multi-colour
+// spelling, as the sidebar's combo reads it before showing the same dialog.
+FilamentColorPickerValue slot_colour_value(const DynamicPrintConfig& project, size_t slot)
+{
+    FilamentColorPickerValue value;
+    if (const auto* primary = project.opt<ConfigOptionStrings>("filament_colour"))
+        if (slot < primary->values.size())
+            value.primary = primary->values[slot];
+    if (const auto* multi = project.opt<ConfigOptionStrings>("filament_multi_colour"))
+        if (slot < multi->values.size()) {
+            std::istringstream stream(multi->values[slot]);
+            for (std::string colour; stream >> colour;)
+                value.colors.push_back(std::move(colour));
+        }
+    if (value.colors.empty() && !value.primary.empty())
+        value.colors.push_back(value.primary);
+    if (const auto* types = project.opt<ConfigOptionStrings>("filament_colour_type"))
+        if (slot < types->values.size())
+            value.gradient = value.colors.size() > 1 && types->values[slot] == "0";
+    return value;
+}
+
+// Mirrors PlaterPresetComboBox::sync_colour_config for one slot: the primary colour, its
+// multi-colour spelling and the colour type that goes with it.
+bool write_project_slot_colour(DynamicPrintConfig& project, size_t slot, const std::vector<std::string>& colours, bool gradient)
+{
+    if (colours.empty())
+        return false;
+    auto* primary = project.opt<ConfigOptionStrings>("filament_colour");
+    auto* multi   = project.opt<ConfigOptionStrings>("filament_multi_colour");
+    auto* type    = project.opt<ConfigOptionStrings>("filament_colour_type");
+    if (primary == nullptr || multi == nullptr || type == nullptr)
+        return false;
+    for (ConfigOptionStrings* values : { primary, multi, type })
+        if (values->values.size() <= slot)
+            values->values.resize(slot + 1);
+    std::string joined;
+    for (const std::string& hex : colours)
+        joined += hex + " ";
+    if (!joined.empty())
+        joined.pop_back();
+    primary->values[slot] = colours.front();
+    multi->values[slot]   = joined;
+    type->values[slot]    = gradient ? "0" : "1";
+    return true;
 }
 
 PublishMaterialIdentity material_identity(size_t slot, const DynamicPrintConfig& full)
@@ -674,13 +733,37 @@ public:
     // holds the slot's committed preset while a pick is only staged.
     void show_preset(const std::string& preset_name)
     {
+        if (preset_name.empty())
+            return;
+        // An AMS item carries no stored preset name (add_ams_filaments does not set an alias), so
+        // its displayed text is resolved the way the pick's own callback resolves it.
+        int fallback = -1;
         for (int item = 0; item < GetCount(); ++item) {
+            const Marker marker = reinterpret_cast<Marker>(GetClientData(item));
+            if (marker >= LABEL_ITEM_DISABLED && marker < LABEL_ITEM_MAX)
+                continue;
+            std::string name;
             const wxString stored = GetItemAlias(item);
-            if (!stored.empty() && Preset::remove_suffix_modified(stored.ToUTF8().data()) == preset_name) {
+            if (!stored.empty())
+                name = Preset::remove_suffix_modified(stored.ToUTF8().data());
+            else
+                name = wxGetApp().preset_bundle->get_preset_name_by_alias(
+                    Preset::TYPE_FILAMENT, Preset::remove_suffix_modified(GetString(item).ToUTF8().data()));
+            if (name != preset_name)
+                continue;
+            // The AMS item carries the swatch the pick was made from, so it wins over the plain
+            // preset item of the same name.
+            if (GetFlag(item) == int(FilamentAMSType::FROM_AMS)) {
                 m_last_selected = item;
                 SetSelection(item);
                 return;
             }
+            if (fallback < 0)
+                fallback = item;
+        }
+        if (fallback >= 0) {
+            m_last_selected = fallback;
+            SetSelection(fallback);
         }
     }
 
@@ -1417,12 +1500,15 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
 
             // Line 3: the slot's filament preset, the sidebar's own picker, with the slot's colour
             // badge on its left as the sidebar places its swatch. Choosing a preset stages a
-            // different preset for this slot; OK assigns it. Hidden until the slot is enabled,
-            // like Full Publish.
+            // different preset for this slot; clicking the badge stages a colour. OK assigns both.
+            // Hidden until the slot is enabled, like Full Publish.
             auto* picker_sizer = new wxBoxSizer(wxHORIZONTAL);
             category.filament_color_chip = make_filament_badge(category.page, hex, chip_label, FromDIP(20));
-            if (category.filament_color_chip != nullptr)
+            if (category.filament_color_chip != nullptr) {
+                category.filament_color_chip->Bind(wxEVT_BUTTON,
+                                                   [this, source_index](wxCommandEvent&) { on_filament_color_picked(source_index); });
                 picker_sizer->Add(category.filament_color_chip, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+            }
             category.filament_picker = new PublishFilamentPicker(
                 category.page, int(source_index),
                 [this, source_index](const std::string& preset_name) { on_filament_picked(source_index, preset_name); });
@@ -1604,6 +1690,31 @@ DynamicPrintConfig PublishSettingsDialog::staged_full_config(bool apply_extruder
         if (category.filament_slot < bundle->filament_presets.size())
             bundle->filament_presets[category.filament_slot] = category.pending_filament;
     }
+
+    // A one-slot project has no slot list to read: full_fff_config uses the collection's edited
+    // preset there, which the slot names cannot reach. Build with the picked preset in that layer,
+    // as the sidebar's own one-slot pick selects it, and restore the author's after the build.
+    const Preset* picked = nullptr;
+    if (bundle->filament_presets.size() <= 1) {
+        for (const Category& category : m_categories) {
+            if (category.section != Section::Material || category.is_mixed || category.pending_filament.empty() ||
+                category.pending_filament == category.filament)
+                continue;
+            picked = bundle->filaments.find_preset(category.pending_filament, false, true);
+            if (picked != nullptr)
+                break;
+        }
+    }
+    if (picked == nullptr)
+        return bundle->full_config(apply_extruder);
+
+    struct RestoreEditedFilament
+    {
+        PresetCollection&  filaments;
+        DynamicPrintConfig authored;
+        ~RestoreEditedFilament() { filaments.get_edited_preset().config = std::move(authored); }
+    } restore_edited{bundle->filaments, bundle->filaments.get_edited_preset().config};
+    bundle->filaments.get_edited_preset().config = picked->config;
     return bundle->full_config(apply_extruder);
 }
 
@@ -1630,7 +1741,22 @@ void PublishSettingsDialog::refresh_material_layout()
 {
     m_snapshot = staged_full_config(/*apply_extruder=*/false);
 
-    for (Category& category : m_categories) {
+    // The selection is keyed by the row id, so a slot's remap must not read a state another slot
+    // already rewrote: every row's state is read before any id moves.
+    struct RowState
+    {
+        Slic3r::PublishRowId id;
+        bool                 checked{false};
+        bool                 enabled{true};
+    };
+    std::vector<RowState> states;
+    states.reserve(m_rows.size());
+    for (const Row& row : m_rows)
+        states.push_back({ row.id, m_selection.checked(row.id), m_selection.enabled(row.id) });
+    std::vector<bool> dropped(m_rows.size(), false);
+
+    for (size_t c = 0; c < m_categories.size(); ++c) {
+        Category& category = m_categories[c];
         if (category.section != Section::Material || category.is_mixed)
             continue;
         const std::vector<size_t>           columns  = publish_filament_columns(m_snapshot, category.filament_slot);
@@ -1644,46 +1770,160 @@ void PublishSettingsDialog::refresh_material_layout()
         // A staged preset with another variant count moved the file columns this slot's rows
         // name: follow the same local variant to its new column.
         auto remap = [&previous, &columns](int file_column) {
+            if (file_column < 0)
+                return file_column;
             const auto found = std::find(previous.begin(), previous.end(), size_t(file_column));
             if (found == previous.end())
                 return file_column;
             const size_t local = size_t(found - previous.begin());
             return local < columns.size() ? int(columns[local]) : -1;
         };
+
         for (const size_t r : category.rows) {
-            Row&                       row    = m_rows[r];
-            const Slic3r::PublishRowId before = row.id;
-            if (row.id.column >= 0)
-                row.id.column = remap(row.id.column);
-            for (std::string& key : row.id.keys) {
-                const int index  = publish_key_index(key);
-                const int mapped = index >= 0 ? remap(index) : -1;
-                if (mapped >= 0)
-                    key = publish_base_key(key) + "#" + std::to_string(mapped);
+            Row&            row    = m_rows[r];
+            const RowState& before = states[r];
+            row.id.column          = remap(before.id.column);
+            row.id.keys.clear();
+            bool lost = row.id.column < 0 && before.id.column >= 0;
+            for (const std::string& key : before.id.keys) {
+                const int index = publish_key_index(key);
+                if (index < 0) {
+                    row.id.keys.push_back(key);
+                    continue;
+                }
+                const int mapped = remap(index);
+                if (mapped < 0) {
+                    lost = true;
+                    continue;
+                }
+                row.id.keys.push_back(publish_base_key(key) + "#" + std::to_string(mapped));
             }
             for (RowOption& option : row.options)
                 if (option.index >= 0 && Slic3r::publish_is_variant_bearing(option.key))
                     option.index = remap(option.index);
-            // The selection is keyed by the row id: carry its state to the remapped id and leave
-            // the old entry unused.
-            if (!(before < row.id) && !(row.id < before))
+            // A row the new layout cannot place is gone: keep it out rather than leave its old
+            // "base#col" keys on a row that no longer names a column.
+            if (lost || row.id.keys.empty()) {
+                dropped[r] = true;
                 continue;
-            m_selection.set_checked(row.id, m_selection.checked(before));
-            m_selection.set_enabled(row.id, m_selection.enabled(before));
+            }
+            m_selection.set_checked(row.id, before.checked);
+            m_selection.set_enabled(row.id, before.enabled);
         }
+    }
+
+    if (std::find(dropped.begin(), dropped.end(), true) != dropped.end()) {
+        std::vector<Row> kept;
+        kept.reserve(m_rows.size());
+        for (size_t r = 0; r < m_rows.size(); ++r)
+            if (!dropped[r])
+                kept.push_back(std::move(m_rows[r]));
+        m_rows = std::move(kept);
+        // Every index-based view of the rows moved with them; rebuild them from the rows' own owner.
+        for (Category& category : m_categories)
+            category.rows.clear();
+        for (size_t r = 0; r < m_rows.size(); ++r)
+            m_categories[m_rows[r].inner_index].rows.push_back(r);
     }
 
     m_row_ids.clear();
     m_row_ids.reserve(m_rows.size());
     for (const Row& row : m_rows)
         m_row_ids.push_back(row.id);
+    sync_all_row_widgets();
 }
 
 std::string PublishSettingsDialog::staged_badge_color(const Category& category, const DynamicPrintConfig& full) const
 {
+    // An explicit pick from the badge outranks the staged preset's declared colour until another
+    // preset is picked.
+    if (!category.pending_colours.empty())
+        return category.pending_colours.front();
     const bool staged = !category.pending_filament.empty() && category.pending_filament != category.filament;
     return badge_color_hex(*wxGetApp().preset_bundle, full, staged ? category.pending_filament : std::string(),
                            category.filament_slot);
+}
+
+PublishSettingsDialog::Category* PublishSettingsDialog::material_category(size_t slot)
+{
+    for (size_t c = 0; c < m_categories.size(); ++c) {
+        Category& candidate = m_categories[c];
+        if (candidate.section == Section::Material && !candidate.is_mixed && candidate.filament_slot == slot)
+            return &candidate;
+    }
+    return nullptr;
+}
+
+void PublishSettingsDialog::refresh_slot_colour(size_t category_index)
+{
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+    Category&          category = m_categories[category_index];
+    const std::string hex      = staged_badge_color(category, bundle->full_config());
+    const std::string label    = std::to_string(category.filament_slot + 1);
+
+    // The badge and the tab strip's chip show one colour for the slot.
+    if (category.filament_color_chip != nullptr) {
+        if (wxBitmap* chip = get_extruder_color_icon(hex, label, FromDIP(20), FromDIP(20))) {
+            category.filament_color_chip->SetBitmap(*chip);
+            category.filament_color_chip->SetMinSize(chip->GetSize());
+            category.filament_color_chip->InvalidateBestSize();
+        }
+    }
+    const SectionGroup& section = m_sections[category.group];
+    const auto          item    = std::find(section.categories.begin(), section.categories.end(), category_index);
+    if (item != section.categories.end())
+        if (wxBitmap* chip = get_extruder_color_icon(hex, label, FromDIP(20), FromDIP(20)))
+            m_sections[category.group].tabs->SetItemBitmap(static_cast<unsigned int>(item - section.categories.begin()), *chip);
+
+    // The payload's identity colour is the colour the badge shows.
+    Slic3r::PublishOwnerInfo info;
+    const auto               registered = m_selection.owners().find(int(category.filament_slot));
+    if (registered != m_selection.owners().end())
+        info = registered->second;
+    info.colour = hex;
+    m_selection.set_owner_info(int(category.filament_slot), std::move(info));
+}
+
+void PublishSettingsDialog::on_filament_color_picked(size_t slot)
+{
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    Category*     category = bundle != nullptr ? material_category(slot) : nullptr;
+    if (category == nullptr)
+        return;
+
+    // The sidebar's own colour picker, over the colour the badge shows now.
+    FilamentColorPickerValue value;
+    if (!category->pending_colours.empty()) {
+        value.colors   = category->pending_colours;
+        value.gradient = category->pending_gradient;
+        value.primary  = category->pending_colours.front();
+    } else {
+        value = slot_colour_value(bundle->project_config, slot);
+        // A staged preset's own colour is what the badge shows, so the picker opens on it.
+        const std::string badge_hex = staged_badge_color(*category, bundle->full_config());
+        if (!badge_hex.empty() && badge_hex != value.primary) {
+            value.colors.assign(1, badge_hex);
+            value.primary  = badge_hex;
+            value.gradient = false;
+        }
+    }
+    const ColorSelection initial = filament_color_picker_initial(value);
+    // Parented to the dialog and anchored at the badge, as the sidebar opens it from its combo.
+    ColorPickerDialog dialog(this, initial, { true, true }, !filament_color_picker_selection(value),
+                             category->filament_color_chip);
+    if (dialog.ShowModal() != wxID_OK || !dialog.selection().has_value() ||
+        !filament_color_picker_changed(initial, dialog.selection()))
+        return;
+    const FilamentColorPickerValue picked = filament_color_picker_result(*dialog.selection());
+    if (picked.colors.empty())
+        return;
+
+    const size_t category_index = size_t(category - m_categories.data());
+    category->pending_colours   = picked.colors;
+    category->pending_gradient  = picked.gradient;
+    refresh_slot_colour(category_index);
 }
 
 void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& preset_name)
@@ -1691,38 +1931,43 @@ void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& p
     PresetBundle* bundle = wxGetApp().preset_bundle;
     if (bundle == nullptr || preset_name.empty())
         return;
-    size_t category_index = size_t(-1);
-    for (size_t c = 0; c < m_categories.size(); ++c) {
-        const Category& candidate = m_categories[c];
-        if (candidate.section == Section::Material && !candidate.is_mixed && candidate.filament_slot == slot) {
-            category_index = c;
-            break;
-        }
-    }
-    if (category_index == size_t(-1))
+    Category* category = material_category(slot);
+    if (category == nullptr)
         return;
-    Category& category = m_categories[category_index];
-    if (preset_name == category.pending_filament)
+    // A name no preset answers is not a pick: keep the slot as it is rather than fall back to the
+    // first visible preset the rebuilt tab would seed from.
+    const Preset* picked = bundle->filaments.find_preset(preset_name, false, true);
+    if (picked == nullptr) {
+        if (category->filament_picker != nullptr)
+            category->filament_picker->show_preset(category->pending_filament.empty() ? category->filament : category->pending_filament);
+        return;
+    }
+    if (preset_name == category->pending_filament)
         return;
 
+    const size_t category_index = size_t(category - m_categories.data());
     // The old preset's rows describe another filament: drop them and uncheck what replaces them.
     remove_category_rows(category_index);
-    category.pending_filament = preset_name;
+    category = &m_categories[category_index];
+    category->pending_filament = preset_name;
+    // Another preset's declared colour replaces an explicit pick from the badge.
+    category->pending_colours.clear();
+    category->pending_gradient = false;
 
     // The variant columns of every slot follow the staged presets, this one's included.
     refresh_material_layout();
 
     // Swap the slot's tab for one built from the picked preset, on the same host.
-    if (Tab* old_tab = category.publish_tab) {
+    if (Tab* old_tab = category->publish_tab) {
         old_tab->m_on_variant_changed = nullptr;
         old_tab->m_on_rules_applied   = nullptr;
-        category.publish_host->set_publish_tab(nullptr);
+        category->publish_host->set_publish_tab(nullptr);
         old_tab->Destroy();
-        category.publish_tab = nullptr;
+        category->publish_tab = nullptr;
     }
-    build_material_tab(category);
+    build_material_tab(*category);
     add_material_tab_rows(category_index);
-    if (Tab* tab = category.publish_tab) {
+    if (Tab* tab = category->publish_tab) {
         tab->m_on_variant_changed = [this, category_index](int) {
             sync_all_row_widgets();
             apply_row_field_gating(category_index);
@@ -1737,65 +1982,55 @@ void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& p
     }
 
     // The payload's identity is the picked preset's, not the assigned one's.
-    const Preset* picked = bundle->filaments.find_preset(preset_name, false, true);
     auto preset_value = [picked](const char* key) {
-        if (picked == nullptr)
-            return std::string();
         const auto* values = picked->config.opt<ConfigOptionStrings>(key);
         return values != nullptr && !values->values.empty() ? values->values.front() : std::string();
     };
     const std::string type   = preset_value("filament_type");
     const std::string vendor = preset_value("filament_vendor");
-    category.filament_type   = type;
-    category.filament_vendor = vendor;
-    category.filament_id     = picked != nullptr ? picked->filament_id : std::string();
+    category->filament_type   = type;
+    category->filament_vendor = vendor;
+    category->filament_id     = picked->filament_id;
 
     Slic3r::PublishOwnerInfo owner_info;
     const auto               registered = m_selection.owners().find(int(slot));
     if (registered != m_selection.owners().end())
         owner_info = registered->second;
-    owner_info.filament_type   = category.filament_type;
-    owner_info.filament_vendor = category.filament_vendor;
-    owner_info.filament_id     = category.filament_id;
-    owner_info.setting_id      = picked != nullptr ? picked->setting_id : std::string();
-    owner_info.preset_name     = picked != nullptr ? picked->name : preset_name;
+    owner_info.filament_type   = category->filament_type;
+    owner_info.filament_vendor = category->filament_vendor;
+    owner_info.filament_id     = category->filament_id;
+    owner_info.setting_id      = picked->setting_id;
+    owner_info.preset_name     = picked->name;
     m_selection.set_owner_info(int(slot), std::move(owner_info));
 
-    // The tab strip and the header show the picked filament; the badge beside the picker shows
-    // the colour the sidebar's own swatch would carry once the pick is assigned. The tab strip's
-    // chip follows the same colour, so a slot never shows two colours.
-    const std::string badge_hex = staged_badge_color(category, bundle->full_config());
-    const wxString    title     = material_title_for(picked, type);
-    category.title       = title;
-    if (category.title_label != nullptr)
-        category.title_label->SetLabel(title);
-    const SectionGroup& section = m_sections[category.group];
+    const wxString title = material_title_for(picked, type);
+    category->title      = title;
+    if (category->title_label != nullptr)
+        category->title_label->SetLabel(title);
+    const SectionGroup& section = m_sections[category->group];
     const auto          item    = std::find(section.categories.begin(), section.categories.end(), category_index);
     if (item != section.categories.end())
-        m_sections[category.group].tabs->SetItemText(static_cast<unsigned int>(item - section.categories.begin()), title);
-    // The badge and the tab strip's chip show one colour for the slot.
-    if (wxBitmap* chip = get_extruder_color_icon(badge_hex, std::to_string(slot + 1), FromDIP(20), FromDIP(20))) {
-        if (category.filament_color_chip != nullptr)
-            category.filament_color_chip->SetBitmap(*chip);
-        if (item != section.categories.end())
-            m_sections[category.group].tabs->SetItemBitmap(static_cast<unsigned int>(item - section.categories.begin()), *chip);
-    }
-    for (const size_t r : category.rows)
+        m_sections[category->group].tabs->SetItemText(static_cast<unsigned int>(item - section.categories.begin()), title);
+    // The tab strip and the header show the picked filament; the badge beside the picker shows the
+    // picked preset's declared colour, and the tab strip's chip follows it, so a slot never shows
+    // two colours.
+    refresh_slot_colour(category_index);
+    for (const size_t r : category->rows)
         m_rows[r].category = title;
 
     // Q1: the picked preset may not define the variant the printer needs.
-    if (category.variant_notice != nullptr) {
+    if (category->variant_notice != nullptr) {
         const std::string notice = publish_variant_notice(m_snapshot, slot);
-        category.variant_notice->SetLabel(from_u8(notice));
+        category->variant_notice->SetLabel(from_u8(notice));
         if (!notice.empty())
-            category.variant_notice->Wrap(FromDIP(460));
-        category.variant_notice->Show(!notice.empty());
+            category->variant_notice->Wrap(FromDIP(460));
+        category->variant_notice->Show(!notice.empty());
     }
 
     // Every replacement row starts unchecked: the old checks named another preset. Enable and
     // Full Publish stay as the owner set them, and Full Publish keeps the rows unchecked-out.
     const bool full = m_selection.full_publish(int(slot));
-    for (const size_t r : category.rows) {
+    for (const size_t r : category->rows) {
         set_row_checked(r, false);
         set_row_enabled(r, !full);
     }
@@ -1804,14 +2039,14 @@ void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& p
     if (m_filter_mode != FilterMode::Text || !m_filter_ctrl->GetValue().IsEmpty())
         refresh_filter(m_filter_ctrl->GetValue().Lower());
     else {
-        for (const size_t r : category.rows)
+        for (const size_t r : category->rows)
             m_rows[r].matches_filter = true;
         apply_visibility();
     }
     apply_row_label_colours();
     apply_row_field_gating(category_index);
-    if (category.page != nullptr)
-        category.page->GetSizer()->Layout();
+    if (category->page != nullptr)
+        category->page->GetSizer()->Layout();
     refresh_tab_indicators();
 }
 
@@ -3204,6 +3439,32 @@ void PublishSettingsDialog::commit_publish_edits()
     bool slot_assigned     = false; // a slot's filament preset changed
     bool support_changed   = false; // ...and it changed the slot's support role
     std::vector<size_t> assigned_slots;
+    std::vector<size_t> recoloured_slots; // slots whose colour follows a pick, badge click or preset
+
+    // The slot's colour is staged like the rows: the badge pick, else the picked preset's declared
+    // colour, becomes the project's slot colour here. It runs before the assignment below so a
+    // colour-only edit still commits, and the row writes do not depend on it.
+    for (Category& category : m_categories) {
+        if (category.section != Section::Material || category.is_mixed)
+            continue;
+        if (category.filament_slot >= bundle->filament_presets.size())
+            continue;
+        const bool preset_staged = !category.pending_filament.empty() && category.pending_filament != category.filament;
+        if (category.pending_colours.empty() && !preset_staged)
+            continue;
+        std::vector<std::string> colours = category.pending_colours;
+        bool                     gradient = category.pending_gradient;
+        if (colours.empty()) {
+            if (const Preset* picked = bundle->filaments.find_preset(category.pending_filament, false, true)) {
+                const std::string colour = picked->config.opt_string("default_filament_colour", 0u);
+                if (!colour.empty())
+                    colours.emplace_back(colour);
+            }
+        }
+        // The dialog's badge, the payload's identity and the exported slot colour agree.
+        if (write_project_slot_colour(bundle->project_config, category.filament_slot, colours, gradient))
+            recoloured_slots.push_back(category.filament_slot);
+    }
 
     // The picker's staged preset becomes the slot's preset here, the only place the project
     // changes. Assign it before the rows are written: their write locations resolve through
@@ -3217,6 +3478,13 @@ void PublishSettingsDialog::commit_publish_edits()
         const bool was_support = is_support_filament(int(category.filament_slot));
         // The sidebar's own slot assignment. Its dependent UI refresh runs after the writes.
         bundle->set_filament_preset(category.filament_slot, category.pending_filament);
+        // A one-slot project exports through full_fff_config's edited-preset branch, which the
+        // slot list cannot reach: select the picked preset as the sidebar's own pick does, or the
+        // export carries the previous filament.
+        if (bundle->filament_presets.size() <= 1) {
+            if (Tab* filament_tab = wxGetApp().get_tab(Preset::TYPE_FILAMENT))
+                filament_tab->select_preset(category.pending_filament);
+        }
         category.filament = bundle->filament_presets[category.filament_slot];
         slot_assigned     = true;
         assigned_slots.push_back(category.filament_slot);
@@ -3339,7 +3607,7 @@ void PublishSettingsDialog::commit_publish_edits()
         refresh_tab(Preset::TYPE_FILAMENT);
 
     if (Plater* plater = wxGetApp().plater()) {
-        if (any_written || slot_assigned)
+        if (any_written || slot_assigned || !recoloured_slots.empty())
             plater->update_project_dirty_from_presets();
         // A project-level key (a mixed definition) is not part of any preset's config.
         if (project_written)
@@ -3362,6 +3630,17 @@ void PublishSettingsDialog::commit_publish_edits()
                 if (support_changed && wxGetApp().app_config->get("auto_calculate_flush") == "all")
                     sidebar.auto_calc_flushing_volumes(int(slot));
             }
+        }
+        // The sidebar re-reads the plater's config after assigning a slot or picking a colour, so
+        // the scene, the mixed-filament list and the cached config follow it.
+        if (slot_assigned || !recoloured_slots.empty())
+            plater->on_config_change(bundle->full_config());
+        // A colour change also invalidates the AMS colour cache and the flush volumes, which the
+        // sidebar signals with this event from the same handler that writes the colour.
+        for (const size_t slot : recoloured_slots) {
+            auto* evt = new wxCommandEvent(EVT_FILAMENT_COLOR_CHANGED);
+            evt->SetInt(int(slot));
+            wxQueueEvent(plater, evt);
         }
     }
 }
@@ -3534,6 +3813,11 @@ void PublishSettingsDialog::on_sys_color_changed()
         if (category.filament_picker != nullptr) {
             category.filament_picker->sys_color_changed();
             category.filament_picker->show_preset(category.pending_filament);
+        }
+        if (category.filament_color_chip != nullptr) {
+            // The badge is a button: its background is the theme's, resolved again here.
+            category.filament_color_chip->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+            category.filament_color_chip->Refresh();
         }
     }
     for (size_t r = 0; r < m_rows.size(); ++r)

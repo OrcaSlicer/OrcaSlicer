@@ -870,6 +870,24 @@ TEST_CASE("A disabled row is never exported, even when checked", "[PublishSettin
     CHECK(entries[0].keys.empty());
 }
 
+TEST_CASE("A disabled slot produces no material entry", "[PublishSettings]")
+{
+    const PublishRowId key_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
+    const std::vector<PublishRowId> rows{ key_row };
+
+    PublishOwnerInfo info;
+    info.filament_type = "PLA High Speed";
+    info.colour        = "#FF0000";
+
+    PublishSelection selection;
+    selection.set_owner_info(0, info);
+    selection.set_owner_enabled(0, false);
+    // A checked row of a disabled slot travels nowhere: the gate is the owner, not the row.
+    selection.set_checked(key_row, true);
+
+    CHECK(selection.material_entries(rows).empty());
+}
+
 TEST_CASE("An enabled slot publishes its colour and type without a requirement row", "[PublishSettings]")
 {
     // Colour and type are implicit for an enabled partial owner: no row drives them any more.
@@ -888,6 +906,7 @@ TEST_CASE("An enabled slot publishes its colour and type without a requirement r
         const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
         REQUIRE(entries.size() == 1);
         CHECK(entries[0].keys.empty());
+        CHECK_FALSE(entries[0].full);
         CHECK(entries[0].publish_color);
         CHECK(entries[0].color == "#FF0000");
         CHECK(entries[0].publish_type);
