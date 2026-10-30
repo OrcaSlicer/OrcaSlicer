@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 09:53-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -2190,6 +2190,15 @@ msgstr "Contraseña incorrecta"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "¡Conexión %s fallida! [SN:%s, code=%s]"
 
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr ""
+
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3192,8 +3201,8 @@ msgstr "Clonar"
 msgid "Simplify Model"
 msgstr "Simplificar modelo"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "Subdivisión de malla (Color perdido)"
+msgid "Subdivision mesh"
+msgstr ""
 
 msgid "Center"
 msgstr "Centrar"
@@ -3337,6 +3346,23 @@ msgstr "¡Error!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Fallo recuperando los datos del modelo del archivo actual."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
+msgstr ""
 
 msgid "Add primitive"
 msgstr "Añadir primitivo"
@@ -4220,8 +4246,8 @@ msgstr "Enviando el archivo de G-Code a la tarjeta SD"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Envío exitoso. Cerrando la página actual en %s s"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "Es necesario insertar el almacenamiento antes de enviar a la impresora."
+msgid "Insert storage or free up space before sending to the printer."
+msgstr ""
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "Envío de archivo G-code a través de LAN, pero el almacenamiento en la impresora es anormal y esto puede causar problemas de impresión."
@@ -5307,6 +5333,7 @@ msgstr ""
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
 msgstr ""
 
+#, c-format, boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
 msgstr ""
 
@@ -6572,6 +6599,9 @@ msgstr "Boquilla izquierda: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Boquilla derecha: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr "Reflejar objeto"
 
@@ -6825,7 +6855,7 @@ msgstr "Volumen:"
 msgid "Size:"
 msgstr "Tamaño:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Se han encontrado conflictos de rutas G-Code en la capa %d, Z = %.2lfmm. Por favor, separe más los objetos en conflicto (%s <-> %s)."
 
@@ -7652,6 +7682,9 @@ msgstr "Descargar"
 
 msgid "Download selected files from printer."
 msgstr "Descargar achivos seleccionados desde la impresora."
+
+msgid "Select all files in the list for batch management."
+msgstr ""
 
 msgid "Batch manage files."
 msgstr "Procesado de archivo por lotes."
@@ -9003,6 +9036,7 @@ msgid "Add Mode"
 msgstr "Añadir modo"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "Herramientas"
 
@@ -9019,8 +9053,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "Qué cabezales participan en el modo y qué rol desempeña cada uno. Haga clic en una casilla para alternar su rol."
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "G-Code que se ejecuta al inicio de la impresión para poner la impresora en este modo (por ejemplo, una llamada a SET_PRINT_MODE de Klipper). El laminador solo emite las trayectorias de la herramienta Principal (Primary); el firmware controla las demás."
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"G-Code que se ejecuta al inicio de la impresión para poner la impresora en este modo (por ejemplo, una llamada a SET_PRINT_MODE de Klipper).\n"
+"\n"
+"El laminador solo emite las trayectorias de la herramienta Principal (Primary); el firmware controla las demás."
 
 # AI Translated
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -9081,8 +9121,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "Nombre de este modo paralelo, tal como aparece en el selector de modo IDEX/IQEX de la cama. Se guarda en el proyecto por su nombre, así que al renombrar un modo que ya usan algunas camas, estas vuelven al modo Principal (Primary). No puede estar vacío: un nombre en blanco se sustituye por uno generado."
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "G-Code que se emite una vez al inicio de una impresión que usa este modo, antes del G-Code de inicio de la máquina. Aquí es donde la impresora se pone en el modo de firmware correspondiente (por ejemplo, con una llamada a SET_PRINT_MODE de Klipper o un M567 de RepRapFirmware), ya que el laminador solo emite las trayectorias de la herramienta Principal (Primary) y el firmware controla las herramientas Copia (Copy) / Espejo (Mirror). Se admiten marcadores de posición; use el botón de edición para consultarlos. Déjelo vacío si el modo no necesita configuración del firmware."
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"G-Code que se emite una vez al inicio de una impresión que usa este modo, antes del G-Code de inicio de la máquina. Aquí es donde la impresora se pone en el modo de firmware correspondiente (por ejemplo, con una llamada a SET_PRINT_MODE de Klipper o un M567 de RepRapFirmware), ya que el laminador solo emite las trayectorias de la herramienta Principal (Primary) y el firmware controla las herramientas Copia (Copy) / Espejo (Mirror).\n"
+"\n"
+"Se admiten marcadores de posición; use el botón de edición para consultarlos. Déjelo vacío si el modo no necesita configuración del firmware."
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -10066,6 +10112,11 @@ msgstr "No hay filamentos en la impresora. Cargue primero los filamentos en la i
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "Los filamentos en la impresora son de tipos desconocidos. Vaya a la pantalla de la impresora o a la página del dispositivo en el software para establecer el tipo de filamento."
 
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr ""
+
 msgid "Device Page"
 msgstr "Página del dispositivo"
 
@@ -10581,6 +10632,12 @@ msgstr "Calcular automáticamente los volúmenes de purga cuando cambien los val
 
 msgid "Auto arrange plate after cloning"
 msgstr "Disposición automática de la placa tras la clonación"
+
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
 
 msgid "Auto slice after changes"
 msgstr "Laminar automáticamente tras cambios"
@@ -11286,6 +11343,26 @@ msgstr "Incompatible"
 msgid "The selected preset is null!"
 msgstr "¡El ajuste seleccionado es nulo!"
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+msgid "Save these settings as default"
+msgstr "Guardar estos ajustes como predeterminados"
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "El tamaño debe ser mayor que cero"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Entrada numérica no válida."
+
 msgctxt "Layer range"
 msgid "End"
 msgstr "Fin"
@@ -11463,6 +11540,15 @@ msgstr "El perfil \"%1%\" ya existe y es incompatible con la impresora actual."
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Tenga en cuenta que la acción de guardar reemplazará este perfil."
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
+msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "El nombre no puede ser el mismo que el nombre del perfil."
@@ -12110,8 +12196,8 @@ msgstr "Es necesario insertar un dispositivo de almacenamiento antes de imprimir
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "El almacenamiento está en un estado anómalo o en modo solo lectura."
 
-msgid "Storage needs to be inserted before printing."
-msgstr "Es necesario insertar un dispositivo de almacenamiento antes de imprimir."
+msgid "Insert storage or free up space before printing."
+msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "No es posible enviar el trabajo de impresión a una impresora la cual necesita una actualización de firmware."
@@ -12180,9 +12266,6 @@ msgstr "No se puede enviar la tarea de impresión cuando la actualización está
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "La impresora seleccionada es incompatible con los perfiles seleccionados."
-
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Es necesario insertar el almacenamiento antes de enviarlo a la impresora."
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Es necesario que la impresora esté conectada a la misma red LAN que Orca Slicer."
@@ -13075,9 +13158,11 @@ msgstr ""
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
 msgstr ""
 
+#, c-format, boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
 msgstr ""
 
+#, c-format, boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
 msgstr ""
 
@@ -14716,6 +14801,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% está demasiado cerca de otros, y pueden producirse colisiones."
 
 #, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% es demasiado alto, y se producirán colisiones."
 
@@ -15015,8 +15104,16 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "La opción de pared precisa se ignorará para secuencias de paredes externo-interno o interno-externo-interno."
 
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "El modelo de Adaptive Pressure Advance de uno o más extrusores puede contener valores no válidos."
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
+
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "La contracción del filamento no se utilizará porque la contracción del filamento para los filamentos utilizados difiere significativamente."
@@ -16109,8 +16206,12 @@ msgstr "Perfil de proceso por defecto cuando se cambia a este perfil de máquina
 msgid "Activate air filtration"
 msgstr "Activar filtración de aire"
 
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "Activar para una mejor filtración del aire. Comando de G-Code: M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"Activar para una mejor filtración del aire.\n"
+"Comando de G-Code: M106 P3 S(0-255)"
 
 # AI Translated
 msgid "Enable this to override the fan speed set in custom G-code during print."
@@ -17768,8 +17869,12 @@ msgstr "Mejor posición de los objetos"
 msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "Mejor auto posicionamiento de los objetos en el rango [0,1] con respecto a la forma de la cama."
 
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "Activar esta opción si la máquina dispone de ventilador auxiliar de refrigeración de piezas. Comando G-Code: M106 P2 S(0-255)."
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"Activar esta opción si la máquina dispone de ventilador auxiliar de refrigeración de piezas.\n"
+"Comando G-Code: M106 P2 S(0-255)."
 
 msgid "Fan direction"
 msgstr "Dirección del ventilador"
@@ -17875,8 +17980,14 @@ msgid "Skip G-code config block"
 msgstr "Omitir el bloque de configuración del G-code"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "No escribe el CONFIG_BLOCK (los pares clave/valor de la configuración del laminador) en el archivo G-code. Esto puede ayudar con impresoras cuyo firmware falla al analizar esas líneas de comentario (p. ej. Anycubic go-klipper). Nota: el archivo G-code ya no contendrá los ajustes del laminador, por lo que al importarlo de nuevo en OrcaSlicer no se restaurará la configuración."
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"No escribe el CONFIG_BLOCK (los pares clave/valor de la configuración del laminador) en el archivo G-code. Esto puede ayudar con impresoras cuyo firmware falla al analizar esas líneas de comentario (p. ej. Anycubic go-klipper).\n"
+"\n"
+"Nota: el archivo G-code ya no contendrá los ajustes del laminador, por lo que al importarlo de nuevo en OrcaSlicer no se restaurará la configuración."
 
 msgid "Pellet Modded Printer"
 msgstr "Impresora Modificada para Pellets"
@@ -17893,8 +18004,14 @@ msgstr "Active esta opción si desea utilizar varios tipos de cama."
 msgid "Label objects"
 msgstr "Etiquetar objetos"
 
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "Habilite esta opción para añadir comentarios en el G-Code etiquetando los movimientos de impresión con el objeto al que pertenecen, lo cual es útil para el plugin CancelObject deOctoprint. Esta configuración NO es compatible con la configuración de Extrusor Único Multi Material y Limpiar en Objeto / Limpiar en Relleno."
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"Habilite esta opción para añadir comentarios en el G-Code etiquetando los movimientos de impresión con el objeto al que pertenecen, lo cual es útil para el plugin CancelObject deOctoprint.\n"
+"\n"
+"Esta configuración NO es compatible con la configuración de Extrusor Único Multi Material y Limpiar en Objeto / Limpiar en Relleno."
 
 msgid "Exclude objects"
 msgstr "Excluir objetos"
@@ -17913,13 +18030,22 @@ msgstr "Desviación máxima del contorno del objeto escrito en EXCLUDE_OBJECT_DE
 msgid "Verbose G-code"
 msgstr "G-Code detallado"
 
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "Activar esta opción para generar archivos de G-Code comentados, con cada línea explicada por un texto descriptivo. Si se imprime desde la tarjeta SD, el tamaño adicional del archivo podría hacer que el firmware se ralentice."
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"Activar esta opción para generar archivos de G-Code comentados, con cada línea explicada por un texto descriptivo.\n"
+"\n"
+"Si se imprime desde la tarjeta SD, el tamaño adicional del archivo podría hacer que el firmware se ralentice."
 
 msgid "High precision G-code (experimental)"
 msgstr ""
 
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
 msgstr ""
 
 msgid "Infill combination"
@@ -18648,10 +18774,12 @@ msgstr "Velocidad mínima del ventilador de refrigeración de la pieza."
 
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "Velocidad del ventilador de ventilación de la parte auxiliar. El ventilador auxiliar funcionará a esta velocidad durante la impresión, excepto en las primeras capas, que se define como sin capas de refrigeración.\n"
-"Por favor, active auxiliary_fan en la configuración de la impresora para utilizar esta función. Comando G-Code: M106 P2 S(0-255)"
+"Por favor, active auxiliary_fan en la configuración de la impresora para utilizar esta función.\n"
+"Comando G-Code: M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "Para la/s primer/as"
@@ -19924,10 +20052,16 @@ msgid "This is the speed for support."
 msgstr "Velocidad en soportes."
 
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"Estilo y forma del soporte. Para el soporte Normal, proyectar los soportes en una cuadrícula regular creará soportes más estables (por defecto), mientras que las torres de soporte ajustadas ahorrarán material y reducirán las cicatrices del objeto.\n"
+"Estilo y forma del soporte.\n"
+"\n"
+"Para el soporte Normal, proyectar los soportes en una cuadrícula regular creará soportes más estables (por defecto), mientras que las torres de soporte ajustadas ahorrarán material y reducirán las cicatrices del objeto.\n"
+"\n"
 "Para el soporte Árbol, los estilos Esbelto y Orgánico fusionarán las ramas de forma más agresiva y ahorrará mucho material (Orgánico por defecto), mientras que el estilo Híbrido creará una estructura similar a la del soporte Normal bajo grandes voladizos planos."
 
 msgid "Default (Grid/Organic)"
@@ -20009,16 +20143,6 @@ msgstr "Eje de inclinación de la cinta"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Eje alrededor del cual se gira la malla antes de laminar. Es la inclinación de la impresora de cinta: una rotación isométrica (sin distorsión) que también determina la representación de la cama y la inclinación de la gravedad de los soportes, y que la transformación inversa del G-code deshace antes del cizallamiento/escalado y la reasignación al sistema de coordenadas de la máquina. X es la inclinación típica del pórtico (la cinta avanza a lo largo de Y)."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -20227,13 +20351,11 @@ msgid "Activate temperature control"
 msgstr "Activar control de temperatura"
 
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"Habilite esta función para usar un control automático de la temperatura de la recámara. Cuando está habilitada, se emitirá un comando M191 antes de \"machine_start_gcode\".\n"
-"Este comando especifica la temperatura objetivo de la recámara y mantendrá la impresora en espera hasta que se alcance dicha temperatura. Adicionalmente, se emite un comando M141 al finalizar la impresión para apagar el sistema de calentamiento de recámara, en caso de existir.\n"
+"Habilite esta función para usar un control automático de la temperatura de la recámara. Cuando está habilitada, se emitirá un comando M191 antes de \"machine_start_gcode\". Este comando especifica la temperatura objetivo de la recámara y mantendrá la impresora en espera hasta que se alcance dicha temperatura. Adicionalmente, se emite un comando M141 al finalizar la impresión para apagar el sistema de calentamiento de recámara, en caso de existir.\n"
 "\n"
 "Esta función requiere de que el firmware de la impresora sea compatible con los comandos M191 y M141, ya sea nativamente o mediante el uso de macros. Esta función se usa generalmente con impresoras con sistema de calentamiento de recámara activo."
 
@@ -20242,13 +20364,17 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "Una mayor temperatura de la recámara puede ayudar a suprimir o reducir la deformación y potencialmente conducir a una mayor resistencia de unión entre capas para materiales de alta temperatura como ABS, ASA, PC, PA, etc. Al mismo tiempo, la filtración de aire de ABS y ASA empeorará.\n"
 "\n"
 "Por otro lado, materiales como PLA, PETG, TPU, PVA y otros materiales de baja temperatura, la temperatura real de la recámara no debe ser alta para evitar obstrucciones causadas por reblandecimiento del filamento en el disipador.\n"
 "\n"
-"Cuando se activa, este parámetro crea una variable de G-Code llamada chamber_temperature, que puede ser utilizada en macros personalizados, por ejemplo el macro de PRINT_START, para controlar el precalentamiento en impresoras encapsuladas que cuenten con un sensor de temperatura de recámara. Ejemplo de uso: PRINT_START (otras variables) CHAMBER_TEMP=[chamber_temperature]. Esta función es útil para impresoras no compatibles con los comandos M141 o M191, o si prefiere realizar un precalentamiento usando un macro si no dispone de un sistema de calentamiento activo de recámara."
+"Cuando se activa, este parámetro crea una variable de G-Code llamada chamber_temperature, que puede ser utilizada en macros personalizados, por ejemplo el macro de PRINT_START, para controlar el precalentamiento en impresoras encapsuladas que cuenten con un sensor de temperatura de recámara. Ejemplo de uso:\n"
+"PRINT_START (otras variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"Esta función es útil para impresoras no compatibles con los comandos M141 o M191, o si prefiere realizar un precalentamiento usando un macro si no dispone de un sistema de calentamiento activo de recámara."
 
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
@@ -21351,6 +21477,12 @@ msgstr "Tiempo de impresión estimado cuando se imprime en modo normal (es decir
 
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "Tiempo de impresión estimado cuando se imprime en modo normal (es decir, no en modo silencioso). Igual que normal_print_time."
+
+msgid "Used filament types"
+msgstr ""
+
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr ""
 
 msgid "Print time (silent mode)"
 msgstr "Tiempo de impresión (modo silencioso)"
@@ -23073,6 +23205,10 @@ msgstr ""
 "Consejos para la calibración del material:\n"
 "- Los materiales que pueden tener la misma temperatura de cama\n"
 "- Las diferentes marcas de filamento y familias(Marca = Bambú. Familia = Básica, Mate)"
+
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "Línea"
 
 msgid "Pattern"
 msgstr "Patrón"
@@ -25390,9 +25526,6 @@ msgstr "Número de caras triangulares"
 
 msgid "Calculating, please wait..."
 msgstr "Calculando, por favor espere..."
-
-msgid "Save these settings as default"
-msgstr "Guardar estos ajustes como predeterminados"
 
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Si está activado, los valores anteriores se guardan como los predeterminados usados para futuras importaciones STEP (y se muestran en Preferencias)."
@@ -29289,10 +29422,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Esas dos líneas no se encuentran en una esquina — elija dos líneas que sí lo hagan"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "El tamaño debe ser mayor que cero"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Redondeo: el radio sobrepasa uno de los lados, o las dos líneas no se encuentran en una esquina"
 
@@ -29366,21 +29495,42 @@ msgstr "Introduzca un número"
 msgid "Not a number"
 msgstr "No es un número"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "Crear"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "Añadir material"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "Eliminar"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "Redondeo / chaflán / desmoldeo"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "Repetir"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "Transformar"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "Referencia"
+
+msgctxt "Design"
+msgid "Modify"
+msgstr "Modificar"
 
 # AI Translated
 msgctxt "Design"
@@ -29714,6 +29864,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "Rectángulo por esquinas"
 
+msgctxt "Design"
+msgid "Rectangle"
+msgstr "Rectángulo"
+
 # AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
@@ -29734,6 +29888,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "Círculo desde el centro"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "Círculo"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -29748,6 +29906,11 @@ msgstr "Círculo por 3 puntos"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "Arco por 3 puntos"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "Arco"
 
 # AI Translated
 msgctxt "Design"
@@ -29788,6 +29951,11 @@ msgstr "Spline"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "Triángulo"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "Polígono"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -29895,6 +30063,7 @@ msgid "Linear array"
 msgstr "Matriz lineal"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "Matriz"
 
@@ -30197,6 +30366,36 @@ msgstr "Cambiar entre Preparar/Previsualizar"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Ocultar/Expandir barra lateral"
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -32885,10 +33084,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Establezca la forma de la cama de su impresora."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Entrada numérica no válida."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Diámetros del filamento y de la boquilla"
 
@@ -33117,6 +33312,49 @@ msgstr "Wiki->"
 # AI Translated
 msgid "Note:"
 msgstr "Nota:"
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -33914,6 +34152,10 @@ msgstr "Repite la textura por el área pintada. Desactivado coloca una sola copi
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "Active Mosaico para elegir cómo se repite la textura."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Repetir"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -35650,6 +35892,10 @@ msgid "Forward"
 msgstr "Adelante"
 
 # AI Translated
+msgid "Tools"
+msgstr "Herramientas"
+
+# AI Translated
 msgid "View Source"
 msgstr "Ver código fuente"
 
@@ -37073,3 +37319,96 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#~ msgid "Subdivision mesh (Lost color)"
+#~ msgstr "Subdivisión de malla (Color perdido)"
+
+#~ msgid "Storage needs to be inserted before sending to printer."
+#~ msgstr "Es necesario insertar el almacenamiento antes de enviar a la impresora."
+
+# AI Translated
+#~ msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
+#~ msgstr "G-Code que se ejecuta al inicio de la impresión para poner la impresora en este modo (por ejemplo, una llamada a SET_PRINT_MODE de Klipper). El laminador solo emite las trayectorias de la herramienta Principal (Primary); el firmware controla las demás."
+
+# AI Translated
+#~ msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+#~ msgstr "G-Code que se emite una vez al inicio de una impresión que usa este modo, antes del G-Code de inicio de la máquina. Aquí es donde la impresora se pone en el modo de firmware correspondiente (por ejemplo, con una llamada a SET_PRINT_MODE de Klipper o un M567 de RepRapFirmware), ya que el laminador solo emite las trayectorias de la herramienta Principal (Primary) y el firmware controla las herramientas Copia (Copy) / Espejo (Mirror). Se admiten marcadores de posición; use el botón de edición para consultarlos. Déjelo vacío si el modo no necesita configuración del firmware."
+
+#~ msgid "Storage needs to be inserted before printing."
+#~ msgstr "Es necesario insertar un dispositivo de almacenamiento antes de imprimir."
+
+#~ msgid "Storage needs to be inserted before send to printer."
+#~ msgstr "Es necesario insertar el almacenamiento antes de enviarlo a la impresora."
+
+#~ msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+#~ msgstr "El modelo de Adaptive Pressure Advance de uno o más extrusores puede contener valores no válidos."
+
+#~ msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
+#~ msgstr "Activar para una mejor filtración del aire. Comando de G-Code: M106 P3 S(0-255)"
+
+#~ msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
+#~ msgstr "Activar esta opción si la máquina dispone de ventilador auxiliar de refrigeración de piezas. Comando G-Code: M106 P2 S(0-255)."
+
+# AI Translated
+#~ msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+#~ msgstr "No escribe el CONFIG_BLOCK (los pares clave/valor de la configuración del laminador) en el archivo G-code. Esto puede ayudar con impresoras cuyo firmware falla al analizar esas líneas de comentario (p. ej. Anycubic go-klipper). Nota: el archivo G-code ya no contendrá los ajustes del laminador, por lo que al importarlo de nuevo en OrcaSlicer no se restaurará la configuración."
+
+#~ msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+#~ msgstr "Habilite esta opción para añadir comentarios en el G-Code etiquetando los movimientos de impresión con el objeto al que pertenecen, lo cual es útil para el plugin CancelObject deOctoprint. Esta configuración NO es compatible con la configuración de Extrusor Único Multi Material y Limpiar en Objeto / Limpiar en Relleno."
+
+#~ msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
+#~ msgstr "Activar esta opción para generar archivos de G-Code comentados, con cada línea explicada por un texto descriptivo. Si se imprime desde la tarjeta SD, el tamaño adicional del archivo podría hacer que el firmware se ralentice."
+
+#~ msgid ""
+#~ "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
+#~ "Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+#~ msgstr ""
+#~ "Velocidad del ventilador de ventilación de la parte auxiliar. El ventilador auxiliar funcionará a esta velocidad durante la impresión, excepto en las primeras capas, que se define como sin capas de refrigeración.\n"
+#~ "Por favor, active auxiliary_fan en la configuración de la impresora para utilizar esta función. Comando G-Code: M106 P2 S(0-255)"
+
+#~ msgid ""
+#~ "Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+#~ "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
+#~ msgstr ""
+#~ "Estilo y forma del soporte. Para el soporte Normal, proyectar los soportes en una cuadrícula regular creará soportes más estables (por defecto), mientras que las torres de soporte ajustadas ahorrarán material y reducirán las cicatrices del objeto.\n"
+#~ "Para el soporte Árbol, los estilos Esbelto y Orgánico fusionarán las ramas de forma más agresiva y ahorrará mucho material (Orgánico por defecto), mientras que el estilo Híbrido creará una estructura similar a la del soporte Normal bajo grandes voladizos planos."
+
+#~ msgid ""
+#~ "Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
+#~ " which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+#~ "\n"
+#~ "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
+#~ msgstr ""
+#~ "Habilite esta función para usar un control automático de la temperatura de la recámara. Cuando está habilitada, se emitirá un comando M191 antes de \"machine_start_gcode\".\n"
+#~ "Este comando especifica la temperatura objetivo de la recámara y mantendrá la impresora en espera hasta que se alcance dicha temperatura. Adicionalmente, se emite un comando M141 al finalizar la impresión para apagar el sistema de calentamiento de recámara, en caso de existir.\n"
+#~ "\n"
+#~ "Esta función requiere de que el firmware de la impresora sea compatible con los comandos M191 y M141, ya sea nativamente o mediante el uso de macros. Esta función se usa generalmente con impresoras con sistema de calentamiento de recámara activo."
+
+#~ msgid ""
+#~ "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
+#~ "\n"
+#~ "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
+#~ "\n"
+#~ "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+#~ msgstr ""
+#~ "Una mayor temperatura de la recámara puede ayudar a suprimir o reducir la deformación y potencialmente conducir a una mayor resistencia de unión entre capas para materiales de alta temperatura como ABS, ASA, PC, PA, etc. Al mismo tiempo, la filtración de aire de ABS y ASA empeorará.\n"
+#~ "\n"
+#~ "Por otro lado, materiales como PLA, PETG, TPU, PVA y otros materiales de baja temperatura, la temperatura real de la recámara no debe ser alta para evitar obstrucciones causadas por reblandecimiento del filamento en el disipador.\n"
+#~ "\n"
+#~ "Cuando se activa, este parámetro crea una variable de G-Code llamada chamber_temperature, que puede ser utilizada en macros personalizados, por ejemplo el macro de PRINT_START, para controlar el precalentamiento en impresoras encapsuladas que cuenten con un sensor de temperatura de recámara. Ejemplo de uso: PRINT_START (otras variables) CHAMBER_TEMP=[chamber_temperature]. Esta función es útil para impresoras no compatibles con los comandos M141 o M191, o si prefiere realizar un precalentamiento usando un macro si no dispone de un sistema de calentamiento activo de recámara."
+
+# AI Translated
+#~ msgid "Add material"
+#~ msgstr "Añadir material"
+
+# AI Translated
+#~ msgid "Fillet / chamfer / draft"
+#~ msgstr "Redondeo / chaflán / desmoldeo"
+
+# AI Translated
+#~ msgid "Reference"
+#~ msgstr "Referencia"
+
+# AI Translated
+#~ msgid "Array"
+#~ msgstr "Matriz"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 09:53-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -2280,6 +2280,15 @@ msgstr "Neteisingas slaptažodis"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "Nepavyko %s prisijungimas! [SN:%s, kodas=%s]"
 
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr ""
+
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3304,8 +3313,8 @@ msgstr "Klonuoti"
 msgid "Simplify Model"
 msgstr "Supaprastinti modelį"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "Skaidomas paviršius (Prarasta spalva)"
+msgid "Subdivision mesh"
+msgstr ""
 
 msgid "Center"
 msgstr "Centras"
@@ -3465,6 +3474,23 @@ msgstr "Klaida!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Nepavyko gauti modelio duomenų iš dabartinio failo."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
+msgstr ""
 
 # AI Translated
 msgid "Add primitive"
@@ -4391,8 +4417,8 @@ msgstr "Į SD kortelę siunčiamas G-code failas"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Sėkmingai išsiųsta. Dabartinis puslapis užsivers po %s sek"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "Prieš siunčiant užduotį į spausdintuvą, būtina įdėti atminties laikmeną."
+msgid "Insert storage or free up space before sending to the printer."
+msgstr ""
 
 # AI Translated
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
@@ -5505,6 +5531,7 @@ msgstr ""
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
 msgstr ""
 
+#, c-format, boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
 msgstr ""
 
@@ -6792,6 +6819,9 @@ msgstr "Kairysis purkštukas: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Dešinysis purkštukas: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr "Atspindėti objektą"
 
@@ -7046,7 +7076,7 @@ msgid "Size:"
 msgstr "Dydis:"
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Rasta G-code trajektorijų konfliktų %d sluoksnyje, Z = %.2lfmm. Prašome labiau atskirti konfliktuojančius objektus (%s <-> %s)."
 
@@ -7889,6 +7919,9 @@ msgstr "Atsisiųsti"
 
 msgid "Download selected files from printer."
 msgstr "Atsisiųsti pasirinktus failus iš spausdintuvo."
+
+msgid "Select all files in the list for batch management."
+msgstr ""
 
 msgid "Batch manage files."
 msgstr "Masinis failų valdymas."
@@ -9280,6 +9313,7 @@ msgid "Add Mode"
 msgstr "Pridėti režimą"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "Įrankiai"
 
@@ -9296,8 +9330,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "Kurios spausdinimo galvutės dalyvauja režime ir kokį vaidmenį atlieka kiekviena. Spustelėkite langelį, kad perjungtumėte jo vaidmenį."
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "G-code, vykdomas spausdinimo pradžioje, kad spausdintuvas būtų perjungtas į šį režimą (pavyzdžiui, Klipper SET_PRINT_MODE iškvietimas). Pjaustyklė generuoja tik pagrindinio (Primary) įrankio trajektorijas; kitus įrankius valdo programinė aparatinė įranga."
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"G-code, vykdomas spausdinimo pradžioje, kad spausdintuvas būtų perjungtas į šį režimą (pavyzdžiui, Klipper SET_PRINT_MODE iškvietimas).\n"
+"\n"
+"Pjaustyklė generuoja tik pagrindinio (Primary) įrankio trajektorijas; kitus įrankius valdo programinė aparatinė įranga."
 
 # AI Translated
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -9358,8 +9398,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "Šio lygiagretaus režimo pavadinimas, rodomas plokštės IDEX/IQEX režimo pasirinkimo sąraše. Projekte saugomas pagal pavadinimą, todėl pervadinus režimą, kurį jau naudoja plokštės, jos grįžta į režimą „Pagrindinis“. Negali būti tuščias — tuščias pavadinimas pakeičiamas sugeneruotu."
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "G-code, išvedamas vieną kartą spausdinimo, kuriame naudojamas šis režimas, pradžioje, prieš įrenginio pradžios G-code. Čia spausdintuvas perjungiamas į atitinkamą programinės aparatinės įrangos režimą — pavyzdžiui, Klipper SET_PRINT_MODE iškvietimu arba RepRapFirmware M567 — nes pjaustyklė generuoja tik pagrindinio (Primary) įrankio trajektorijas, o kopijos (Copy) / veidrodžio (Mirror) įrankius valdo programinė aparatinė įranga. Palaikomi kintamieji; norėdami juos peržiūrėti, naudokite redagavimo mygtuką. Palikite tuščią, jei režimui nereikia programinės aparatinės įrangos sąrankos."
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"G-code, išvedamas vieną kartą spausdinimo, kuriame naudojamas šis režimas, pradžioje, prieš įrenginio pradžios G-code. Čia spausdintuvas perjungiamas į atitinkamą programinės aparatinės įrangos režimą — pavyzdžiui, Klipper SET_PRINT_MODE iškvietimu arba RepRapFirmware M567 — nes pjaustyklė generuoja tik pagrindinio (Primary) įrankio trajektorijas, o kopijos (Copy) / veidrodžio (Mirror) įrankius valdo programinė aparatinė įranga.\n"
+"\n"
+"Palaikomi kintamieji; norėdami juos peržiūrėti, naudokite redagavimo mygtuką. Palikite tuščią, jei režimui nereikia programinės aparatinės įrangos sąrankos."
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -10377,6 +10423,11 @@ msgstr "Spausdintuve nėra gijų. Pirmiausia įspauskite (įkelkite) gijas į sp
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "Visos spausdintuve esančios gijos yra nežinomo tipo. Gijos tipą nustatykite spausdintuvo ekrane arba programos įrenginio puslapyje."
 
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr ""
+
 msgid "Device Page"
 msgstr "Įrenginio puslapis"
 
@@ -10903,6 +10954,12 @@ msgstr "Automatiškai apskaičiuoti išvalymo tūrius, kai pasikeičia pasirinkt
 
 msgid "Auto arrange plate after cloning"
 msgstr "Automatiškai išdėstyti objektus ant pagrindo po klonavimo"
+
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
 
 msgid "Auto slice after changes"
 msgstr "Automatinis sluoksniavimas po pakeitimų"
@@ -11615,6 +11672,26 @@ msgstr "Nesuderinama"
 msgid "The selected preset is null!"
 msgstr "Pasirinktas profilis yra tuščias (null)!"
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+msgid "Save these settings as default"
+msgstr "Išsaugoti kaip numatytuosius nustatymus."
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "Dydis turi būti didesnis už nulį"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Netinkama skaitinė reikšmė."
+
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -11794,6 +11871,15 @@ msgstr "Profilis „%1%“ jau egzistuoja ir yra nesuderinamas su dabartiniu spa
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Atkreipkite dėmesį, kad išsaugojus bus perrašytas šis profilis."
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
+msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "Pavadinimas negali sutapti su profilio alternatyviuoju pavadinimu (alias)."
@@ -12483,8 +12569,8 @@ msgstr "Prieš spausdinant per vietinį tinklą (LAN), būtina įdėti laikmeną
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "Laikmena veikia su sutrikimais arba yra tik skaitymo režime."
 
-msgid "Storage needs to be inserted before printing."
-msgstr "Prieš spausdinant būtina įdėti laikmeną."
+msgid "Insert storage or free up space before printing."
+msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Neįmanoma išsiųsti spausdinimo užduoties spausdintuvui, kurio aparatinę programinę įrangą (firmware) reikia atnaujinti."
@@ -12556,9 +12642,6 @@ msgstr "Negalima nusiųsti spausdinimo užduočių aparatinės programinės įra
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "Pasirinktas spausdintuvas yra nesuderinamas su parinktais spausdintuvo profiliais."
-
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Prieš siunčiant į spausdintuvą, būtina įdėti laikmeną."
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Spausdintuvas privalo būti tame pačiame vietiniame tinkle (LAN) kaip ir „OrcaSlicer“."
@@ -13476,9 +13559,11 @@ msgstr ""
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
 msgstr ""
 
+#, c-format, boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
 msgstr ""
 
+#, c-format, boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
 msgstr ""
 
@@ -15141,6 +15226,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% yra per arti kitų, todėl gali įvykti susidūrimas."
 
 #, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% yra per aukštas, todėl įvyks susidūrimai."
 
@@ -15442,9 +15531,16 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "Tikslios sienelės (precise wall) parinktis bus ignoruojama esant išorinės–vidinės arba vidinės–išorinės–vidinės sienelių spausdinimo sekai."
 
-# AI Translated
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "Vieno ar kelių ekstruderių adaptyviojo Pressure Advance modelis gali turėti netinkamų reikšmių."
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
+
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Gijų susitraukimas nenaudojamas, nes naudojamų gijų susitraukimas labai skiriasi."
@@ -16561,8 +16657,12 @@ msgid "Activate air filtration"
 msgstr "Įjungti oro filtravimą"
 
 # AI Translated
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "Įjungti efektyvesniam oro filtravimui. G-code komanda: M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"Įjungti efektyvesniam oro filtravimui.\n"
+"G-code komanda: M106 P3 S(0-255)"
 
 # AI Translated
 msgid "Enable this to override the fan speed set in custom G-code during print."
@@ -18261,8 +18361,12 @@ msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "Geriausia automatinio išdėstymo padėtis intervale [0,1] pagal pagrindo formą."
 
 # AI Translated
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "Įjunkite šią parinktį, jei įrenginyje yra papildomas detalės aušinimo ventiliatorius (auxiliary fan). G-code komanda: M106 P2 S(0-255)."
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"Įjunkite šią parinktį, jei įrenginyje yra papildomas detalės aušinimo ventiliatorius (auxiliary fan).\n"
+"G-code komanda: M106 P2 S(0-255)."
 
 # AI Translated
 msgid "Fan direction"
@@ -18377,8 +18481,14 @@ msgid "Skip G-code config block"
 msgstr "Praleisti G-code konfigūracijos bloką"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "Neįrašo CONFIG_BLOCK (pjaustyklės konfigūracijos raktų ir reikšmių porų) į G-code failą. Tai gali padėti su spausdintuvais, kurių programinė įranga stringa apdorodama šias komentarų eilutes (pvz., Anycubic go-klipper). Pastaba: G-code faile nebeliks pjaustyklės nustatymų, todėl importavus jį atgal į OrcaSlicer konfigūracija nebus atkurta."
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"Neįrašo CONFIG_BLOCK (pjaustyklės konfigūracijos raktų ir reikšmių porų) į G-code failą. Tai gali padėti su spausdintuvais, kurių programinė įranga stringa apdorodama šias komentarų eilutes (pvz., Anycubic go-klipper).\n"
+"\n"
+"Pastaba: G-code faile nebeliks pjaustyklės nustatymų, todėl importavus jį atgal į OrcaSlicer konfigūracija nebus atkurta."
 
 msgid "Pellet Modded Printer"
 msgstr "Modifikuotas granulinis spausdintuvas"
@@ -18396,8 +18506,14 @@ msgid "Label objects"
 msgstr "Objektų žymėjimas"
 
 # AI Translated
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "Įjunkite, kad į G-code būtų įtraukti komentarai, pažymintys, kuriam objektui priklauso spausdinimo judesiai – tai naudinga „Octoprint CancelObject“ papildiniui. Šis nustatymas NĖRA suderinamas su vieno ekstruderio kelių medžiagų (Multi Material) sąranka bei su parinktimis „Valyti į objektą“ / „Valyti į užpildą“."
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"Įjunkite, kad į G-code būtų įtraukti komentarai, pažymintys, kuriam objektui priklauso spausdinimo judesiai – tai naudinga „Octoprint CancelObject“ papildiniui.\n"
+"\n"
+"Šis nustatymas NĖRA suderinamas su vieno ekstruderio kelių medžiagų (Multi Material) sąranka bei su parinktimis „Valyti į objektą“ / „Valyti į užpildą“."
 
 msgid "Exclude objects"
 msgstr "Išskirti objektus"
@@ -18419,13 +18535,22 @@ msgid "Verbose G-code"
 msgstr "Išsamus G-code (Verbose)"
 
 # AI Translated
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "Įjunkite, kad gautumėte pakomentuotą G-code failą, kuriame kiekviena eilutė paaiškinta aprašomuoju tekstu. Jei spausdinate iš SD kortelės, dėl padidėjusio failo dydžio programinė įranga gali veikti lėčiau."
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"Įjunkite, kad gautumėte pakomentuotą G-code failą, kuriame kiekviena eilutė paaiškinta aprašomuoju tekstu.\n"
+"\n"
+"Jei spausdinate iš SD kortelės, dėl padidėjusio failo dydžio programinė įranga gali veikti lėčiau."
 
 msgid "High precision G-code (experimental)"
 msgstr ""
 
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
 msgstr ""
 
 msgid "Infill combination"
@@ -19168,10 +19293,12 @@ msgstr "Mažiausias modelio aušinimo ventiliatoriaus greitis."
 # AI Translated
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "Papildomo modelio aušinimo ventiliatoriaus greitis. Papildomas ventiliatorius veiks šiuo greičiu spausdinimo metu, išskyrus pirmuosius kelis sluoksnius, nurodytus neaušinamų sluoksnių nustatymuose.\n"
-"Norėdami naudoti šią funkciją, spausdintuvo nustatymuose įjunkite „auxiliary_fan“. G-code komanda: M106 P2 S(0-255)"
+"Norėdami naudoti šią funkciją, spausdintuvo nustatymuose įjunkite „auxiliary_fan“.\n"
+"G-code komanda: M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "Pirmiesiems"
@@ -20467,10 +20594,16 @@ msgid "This is the speed for support."
 msgstr "Tai yra atramų spausdinimo greitis."
 
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"Atramų stilius ir forma. Naudojant įprastas atramas, jų projektavimas į reguliarų tinklelį sukuria stabilesnes struktūras (numatytasis nustatymas), o prigludusios (snug) atramos taupo medžiagą ir palieka mažiau žymių ant objekto.\n"
+"Atramų stilius ir forma.\n"
+"\n"
+"Naudojant įprastas atramas, jų projektavimas į reguliarų tinklelį sukuria stabilesnes struktūras (numatytasis nustatymas), o prigludusios (snug) atramos taupo medžiagą ir palieka mažiau žymių ant objekto.\n"
+"\n"
 "Medinėms (tree) atramoms grakštus (slim) ir organinis (organic) stilius agresyviau sujungia šakas ir sutaupo daug medžiagos (numatytasis organinis), o hibridinis (hybrid) stilius sukuria struktūrą, panašią į įprastas atramas po didelėmis plokščiomis iškyšomis (overhangs)."
 
 msgid "Default (Grid/Organic)"
@@ -20552,16 +20685,6 @@ msgstr "Juostos pokrypio ašis"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Ašis, apie kurią poligoninis tinklas pasukamas prieš sluoksniavimą. Tai juostinio spausdintuvo pokrypis: izometrinis (be iškraipymų) pasukimas, kuris taip pat lemia pagrindo atvaizdavimą ir atramų sunkio jėgos pokrypį ir kurį atvirkštinė G-code transformacija panaikina prieš mašinos koordinačių sistemos šlytį / mastelį ir ašių perskirstymą. X – įprastas portalo pokrypis (juosta juda išilgai Y)."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -20772,13 +20895,11 @@ msgid "Activate temperature control"
 msgstr "Suaktyvinti temperatūros reguliavimą"
 
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"Įjunkite šią parinktį automatiniam kameros temperatūros valdymui. Ši parinktis aktyvuoja M191 komandos įterpimą prieš „machine_start_gcode“\n"
-" – ji nustato kameros temperatūrą ir laukia, kol ji bus pasiekta. Taip pat spausdinimo pabaigoje generuojama M141 komanda, skirta išjungti kameros šildytuvą (jei jis yra).\n"
+"Įjunkite šią parinktį automatiniam kameros temperatūros valdymui. Ši parinktis aktyvuoja M191 komandos įterpimą prieš „machine_start_gcode“ – ji nustato kameros temperatūrą ir laukia, kol ji bus pasiekta. Taip pat spausdinimo pabaigoje generuojama M141 komanda, skirta išjungti kameros šildytuvą (jei jis yra).\n"
 "\n"
 "Ši funkcija veikia tik jei aparatinė programinė įranga palaiko M191 ir M141 komandas (gimtąja kalba arba per makrokomandas) ir dažniausiai naudojama, kai yra sumontuotas aktyvus kameros šildytuvas."
 
@@ -20788,13 +20909,17 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "Aukštos temperatūros medžiagoms (tokioms kaip ABS, ASA, PC ir PA) aukštesnė kameros temperatūra padeda išvengti deformavimosi (warping) arba jį sumažinti, bei gali padidinti tarpsluoksninį sukibimą. Tačiau kartu aukštesnė kameros temperatūra sumažina ABS ir ASA oro filtravimo efektyvumą.\n"
 "\n"
 "Žemos temperatūros medžiagoms (tokioms kaip PLA, PETG, TPU, PVA) ši parinktis turėtų būti išjungta (nustatyta reikšmė 0), nes kameros temperatūra privalo išlikti žema, kad gija nesuminkštėtų termoizoliaciniame vamzdelyje (heatbreak) ir neužkimštų ekstruderio.\n"
 "\n"
-"Jei įjungta, šis parametras taip pat nustato G-code kintamąjį „chamber_temperature“, kurį galima naudoti norimai kameros temperatūrai perduoti į spausdinimo pradžios ar pirminio įšildymo (heat soak) makrokomandą, pavyzdžiui: PRINT_START (kiti kintamieji) CHAMBER_TEMP=[chamber_temperature]. Tai naudinga, jei spausdintuvas nepalaiko M141/M191 komandų arba jei norite pradinį įšildymą valdyti pačioje pradžios makrokomandoje, kai nėra įdiegto aktyvaus kameros šildytuvo."
+"Jei įjungta, šis parametras taip pat nustato G-code kintamąjį „chamber_temperature“, kurį galima naudoti norimai kameros temperatūrai perduoti į spausdinimo pradžios ar pirminio įšildymo (heat soak) makrokomandą, pavyzdžiui:\n"
+"PRINT_START (kiti kintamieji) CHAMBER_TEMP=[chamber_temperature]\n"
+"Tai naudinga, jei spausdintuvas nepalaiko M141/M191 komandų arba jei norite pradinį įšildymą valdyti pačioje pradžios makrokomandoje, kai nėra įdiegto aktyvaus kameros šildytuvo."
 
 # AI Translated
 msgid ""
@@ -21937,6 +22062,12 @@ msgstr "Numatomas spausdinimo laikas, kai spausdinama normaliu režimu (t. y. ne
 
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "Numatomas spausdinimo laikas, kai spausdinama normaliu režimu (t. y. ne tyliuoju režimu). Toks pat kaip „normal_print_time“."
+
+msgid "Used filament types"
+msgstr ""
+
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr ""
 
 msgid "Print time (silent mode)"
 msgstr "Spausdinimo laikas (tylusis režimas)"
@@ -23660,6 +23791,10 @@ msgstr ""
 "Patarimai dėl kalibravimo medžiagos: \n"
 " - Medžiagos, kurios gali turėti tą pačią karšto pagrindo temperatūrą\n"
 " - Skirtingas gijų prekės ženklas ir šeima (prekės ženklas = Bambu, šeima = Basic, Matte)"
+
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "Linija"
 
 msgid "Pattern"
 msgstr "Raštas"
@@ -25990,9 +26125,6 @@ msgstr "Trikampių briaunų skaičius"
 
 msgid "Calculating, please wait..."
 msgstr "Skaičiuojama, palaukite..."
-
-msgid "Save these settings as default"
-msgstr "Išsaugoti kaip numatytuosius nustatymus."
 
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Jei įjungta, aukščiau nurodytos vertės yra išsaugomos kaip numatytosios, naudojamos būsimiems STEP importams (ir rodomos nustatymuose)."
@@ -29961,10 +30093,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Šios dvi linijos nesusitinka kampe — pasirinkite dvi, kurios susitinka"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "Dydis turi būti didesnis už nulį"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Suapvalinimas: spindulys viršija kraštinės ilgį arba šios dvi linijos nesusitinka kampe"
 
@@ -30040,21 +30168,43 @@ msgstr "Įveskite skaičių"
 msgid "Not a number"
 msgstr "Ne skaičius"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "Sukurti"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "Pridėti medžiagos"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "Pašalinti"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "Suapvalinimas / nuožula / nuolydis"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "Kartoti"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "Transformuoti"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "Atskaitos geometrija"
+
+# AI Translated
+msgctxt "Design"
+msgid "Modify"
+msgstr "Keisti"
 
 # AI Translated
 msgctxt "Design"
@@ -30388,6 +30538,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "Stačiakampis pagal kampus"
 
+msgctxt "Design"
+msgid "Rectangle"
+msgstr "Stačiakampis"
+
 # AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
@@ -30408,6 +30562,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "Apskritimas nuo centro"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "Apskritimas"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -30422,6 +30580,11 @@ msgstr "Apskritimas per 3 taškus"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "Lankas per 3 taškus"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "Lankas"
 
 # AI Translated
 msgctxt "Design"
@@ -30462,6 +30625,11 @@ msgstr "Splainas"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "Trikampis"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "Daugiakampis"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -30569,6 +30737,7 @@ msgid "Linear array"
 msgstr "Linijinis masyvas"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "Masyvas"
 
@@ -30878,6 +31047,36 @@ msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Sutraukti / išskleisti šoninę juostą"
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -33569,10 +33768,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Nustatykite spausdintuvo pagrindo formą."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Netinkama skaitinė reikšmė."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Gijos ir purkštuko skersmenys"
 
@@ -33803,6 +33998,49 @@ msgstr "„Wiki“ ->"
 # AI Translated
 msgid "Note:"
 msgstr "Pastaba:"
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -34603,6 +34841,10 @@ msgstr "Kartoja tekstūrą visoje nupieštoje srityje. Išjungus, dedama viena k
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "Įjunkite „Plytelės“, kad pasirinktumėte, kaip tekstūra kartojama."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Kartoti"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -36359,6 +36601,10 @@ msgid "Forward"
 msgstr "Pirmyn"
 
 # AI Translated
+msgid "Tools"
+msgstr "Įrankiai"
+
+# AI Translated
 msgid "View Source"
 msgstr "Rodyti šaltinį"
 
@@ -37802,3 +38048,103 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "Subdivision mesh (Lost color)"
+#~ msgstr "Skaidomas paviršius (Prarasta spalva)"
+
+#~ msgid "Storage needs to be inserted before sending to printer."
+#~ msgstr "Prieš siunčiant užduotį į spausdintuvą, būtina įdėti atminties laikmeną."
+
+# AI Translated
+#~ msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
+#~ msgstr "G-code, vykdomas spausdinimo pradžioje, kad spausdintuvas būtų perjungtas į šį režimą (pavyzdžiui, Klipper SET_PRINT_MODE iškvietimas). Pjaustyklė generuoja tik pagrindinio (Primary) įrankio trajektorijas; kitus įrankius valdo programinė aparatinė įranga."
+
+# AI Translated
+#~ msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+#~ msgstr "G-code, išvedamas vieną kartą spausdinimo, kuriame naudojamas šis režimas, pradžioje, prieš įrenginio pradžios G-code. Čia spausdintuvas perjungiamas į atitinkamą programinės aparatinės įrangos režimą — pavyzdžiui, Klipper SET_PRINT_MODE iškvietimu arba RepRapFirmware M567 — nes pjaustyklė generuoja tik pagrindinio (Primary) įrankio trajektorijas, o kopijos (Copy) / veidrodžio (Mirror) įrankius valdo programinė aparatinė įranga. Palaikomi kintamieji; norėdami juos peržiūrėti, naudokite redagavimo mygtuką. Palikite tuščią, jei režimui nereikia programinės aparatinės įrangos sąrankos."
+
+#~ msgid "Storage needs to be inserted before printing."
+#~ msgstr "Prieš spausdinant būtina įdėti laikmeną."
+
+#~ msgid "Storage needs to be inserted before send to printer."
+#~ msgstr "Prieš siunčiant į spausdintuvą, būtina įdėti laikmeną."
+
+# AI Translated
+#~ msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+#~ msgstr "Vieno ar kelių ekstruderių adaptyviojo Pressure Advance modelis gali turėti netinkamų reikšmių."
+
+# AI Translated
+#~ msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
+#~ msgstr "Įjungti efektyvesniam oro filtravimui. G-code komanda: M106 P3 S(0-255)"
+
+# AI Translated
+#~ msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
+#~ msgstr "Įjunkite šią parinktį, jei įrenginyje yra papildomas detalės aušinimo ventiliatorius (auxiliary fan). G-code komanda: M106 P2 S(0-255)."
+
+# AI Translated
+#~ msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+#~ msgstr "Neįrašo CONFIG_BLOCK (pjaustyklės konfigūracijos raktų ir reikšmių porų) į G-code failą. Tai gali padėti su spausdintuvais, kurių programinė įranga stringa apdorodama šias komentarų eilutes (pvz., Anycubic go-klipper). Pastaba: G-code faile nebeliks pjaustyklės nustatymų, todėl importavus jį atgal į OrcaSlicer konfigūracija nebus atkurta."
+
+# AI Translated
+#~ msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+#~ msgstr "Įjunkite, kad į G-code būtų įtraukti komentarai, pažymintys, kuriam objektui priklauso spausdinimo judesiai – tai naudinga „Octoprint CancelObject“ papildiniui. Šis nustatymas NĖRA suderinamas su vieno ekstruderio kelių medžiagų (Multi Material) sąranka bei su parinktimis „Valyti į objektą“ / „Valyti į užpildą“."
+
+# AI Translated
+#~ msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
+#~ msgstr "Įjunkite, kad gautumėte pakomentuotą G-code failą, kuriame kiekviena eilutė paaiškinta aprašomuoju tekstu. Jei spausdinate iš SD kortelės, dėl padidėjusio failo dydžio programinė įranga gali veikti lėčiau."
+
+# AI Translated
+#~ msgid ""
+#~ "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
+#~ "Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+#~ msgstr ""
+#~ "Papildomo modelio aušinimo ventiliatoriaus greitis. Papildomas ventiliatorius veiks šiuo greičiu spausdinimo metu, išskyrus pirmuosius kelis sluoksnius, nurodytus neaušinamų sluoksnių nustatymuose.\n"
+#~ "Norėdami naudoti šią funkciją, spausdintuvo nustatymuose įjunkite „auxiliary_fan“. G-code komanda: M106 P2 S(0-255)"
+
+#~ msgid ""
+#~ "Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+#~ "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
+#~ msgstr ""
+#~ "Atramų stilius ir forma. Naudojant įprastas atramas, jų projektavimas į reguliarų tinklelį sukuria stabilesnes struktūras (numatytasis nustatymas), o prigludusios (snug) atramos taupo medžiagą ir palieka mažiau žymių ant objekto.\n"
+#~ "Medinėms (tree) atramoms grakštus (slim) ir organinis (organic) stilius agresyviau sujungia šakas ir sutaupo daug medžiagos (numatytasis organinis), o hibridinis (hybrid) stilius sukuria struktūrą, panašią į įprastas atramas po didelėmis plokščiomis iškyšomis (overhangs)."
+
+#~ msgid ""
+#~ "Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
+#~ " which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+#~ "\n"
+#~ "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
+#~ msgstr ""
+#~ "Įjunkite šią parinktį automatiniam kameros temperatūros valdymui. Ši parinktis aktyvuoja M191 komandos įterpimą prieš „machine_start_gcode“\n"
+#~ " – ji nustato kameros temperatūrą ir laukia, kol ji bus pasiekta. Taip pat spausdinimo pabaigoje generuojama M141 komanda, skirta išjungti kameros šildytuvą (jei jis yra).\n"
+#~ "\n"
+#~ "Ši funkcija veikia tik jei aparatinė programinė įranga palaiko M191 ir M141 komandas (gimtąja kalba arba per makrokomandas) ir dažniausiai naudojama, kai yra sumontuotas aktyvus kameros šildytuvas."
+
+# AI Translated
+#~ msgid ""
+#~ "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
+#~ "\n"
+#~ "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
+#~ "\n"
+#~ "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+#~ msgstr ""
+#~ "Aukštos temperatūros medžiagoms (tokioms kaip ABS, ASA, PC ir PA) aukštesnė kameros temperatūra padeda išvengti deformavimosi (warping) arba jį sumažinti, bei gali padidinti tarpsluoksninį sukibimą. Tačiau kartu aukštesnė kameros temperatūra sumažina ABS ir ASA oro filtravimo efektyvumą.\n"
+#~ "\n"
+#~ "Žemos temperatūros medžiagoms (tokioms kaip PLA, PETG, TPU, PVA) ši parinktis turėtų būti išjungta (nustatyta reikšmė 0), nes kameros temperatūra privalo išlikti žema, kad gija nesuminkštėtų termoizoliaciniame vamzdelyje (heatbreak) ir neužkimštų ekstruderio.\n"
+#~ "\n"
+#~ "Jei įjungta, šis parametras taip pat nustato G-code kintamąjį „chamber_temperature“, kurį galima naudoti norimai kameros temperatūrai perduoti į spausdinimo pradžios ar pirminio įšildymo (heat soak) makrokomandą, pavyzdžiui: PRINT_START (kiti kintamieji) CHAMBER_TEMP=[chamber_temperature]. Tai naudinga, jei spausdintuvas nepalaiko M141/M191 komandų arba jei norite pradinį įšildymą valdyti pačioje pradžios makrokomandoje, kai nėra įdiegto aktyvaus kameros šildytuvo."
+
+# AI Translated
+#~ msgid "Add material"
+#~ msgstr "Pridėti medžiagos"
+
+# AI Translated
+#~ msgid "Fillet / chamfer / draft"
+#~ msgstr "Suapvalinimas / nuožula / nuolydis"
+
+# AI Translated
+#~ msgid "Reference"
+#~ msgstr "Atskaitos geometrija"
+
+# AI Translated
+#~ msgid "Array"
+#~ msgstr "Masyvas"

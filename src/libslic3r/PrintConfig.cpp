@@ -2361,7 +2361,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("activate_air_filtration",coBools);
     def->label = L("Activate air filtration");
-    def->tooltip = L("Activate for better air filtration. G-code command: M106 P3 S(0-255)");
+    def->tooltip = L("Activate for better air filtration.\nG-code command: M106 P3 S(0-255)");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBools{false});
     
@@ -4530,7 +4530,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("auxiliary_fan", coBool);
     def->label = L("Auxiliary part cooling fan");
-    def->tooltip = L("Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255).");
+    def->tooltip = L("Enable this option if machine has auxiliary part cooling fan.\nG-code command: M106 P2 S(0-255).");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -4673,7 +4673,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Skip G-code config block");
     def->tooltip = L("Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. "
                    "This can help with printers whose firmware crashes when parsing these comment lines "
-                   "(e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, "
+                   "(e.g. Anycubic go-klipper).\n\nNote: the G-code file will no longer contain slicer settings, "
                    "so importing it back into OrcaSlicer will not restore the configuration.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
@@ -4693,7 +4693,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("gcode_label_objects", coBool);
     def->label = L("Label objects");
     def->tooltip = L("Enable this to add comments into the G-code labeling print moves with what object they belong to,"
-                   " which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with "
+                   " which is useful for the Octoprint CancelObject plug-in.\n\nThis setting is NOT compatible with "
                    "Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(1));
@@ -4717,7 +4717,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("gcode_comments", coBool);
     def->label = L("Verbose G-code");
-    def->tooltip = L("Enable this to get a commented G-code file, with each line explained by a descriptive text. "
+    def->tooltip = L("Enable this to get a commented G-code file, with each line explained by a descriptive text.\n\n"
                    "If you print from SD card, the additional weight of the file could make your firmware "
                    "slow down.");
     def->mode = comAdvanced;
@@ -4731,7 +4731,7 @@ void PrintConfigDef::init_fff_params()
                      "precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and "
                      "thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors "
                      "matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard "
-                     "to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, "
+                     "to notice unless the print profile is well calibrated.\n\nThe G-code file becomes about 10 percent larger, "
                      "which may slow down printers that parse G-code slowly.");
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
@@ -5686,7 +5686,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("additional_cooling_fan_speed", coInts);
     def->label = L("Fan speed");
     def->tooltip = L("Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers "
-                     "which is defined by no cooling layers.\nPlease enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)");
+                     "which is defined by no cooling layers.\nPlease enable auxiliary_fan in printer settings to use this feature.\nG-code command: M106 P2 S(0-255)");
     def->sidetext = "%";
     def->min = 0;
     def->max = 100;
@@ -7615,9 +7615,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_style", coEnum);
     def->label = L("Style");
     def->category = L("Support");
-    def->tooltip = L("Style and shape of the support. For normal support, projecting the supports into a regular grid "
+    def->tooltip = L("Style and shape of the support.\n\n"
+                     "For normal support, projecting the supports into a regular grid "
                      "will create more stable supports (default), while snug support towers will save material and reduce "
-                     "object scarring.\n"
+                     "object scarring.\n\n"
                      "For tree support, slim and organic style will merge branches more aggressively and save "
                      "a lot of material (default organic), while hybrid style will create similar structure to normal support "
                      "under large flat overhangs.");
@@ -8016,7 +8017,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("activate_chamber_temp_control",coBools);
     def->label = L("Activate temperature control");
     def->tooltip = L("Enable this option for automated chamber temperature control. "
-                     "This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n which sets the chamber temperature and waits until it is reached. "
+                     "This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. "
                      "In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n\n"
                      "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed.");
     def->mode = comSimple;
@@ -8033,7 +8034,7 @@ void PrintConfigDef::init_fff_params()
                      "material softening at the heat break.\n\n"
                      "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be "
                      "used to pass the desired chamber temperature to your print start macro, or a heat soak macro "
-                     "like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. "
+                     "like this:\nPRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
                      "This may be useful if your printer does not support M141/M191 commands, or if you desire "
                      "to handle heat soaking in the print start macro if no active chamber heater is installed."
                     );

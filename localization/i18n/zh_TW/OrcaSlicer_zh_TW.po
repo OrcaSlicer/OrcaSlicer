@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 09:53-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -2374,6 +2374,15 @@ msgstr "密碼不正確"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "無法連線至 %s！[SN:%s, code=%s]"
 
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr ""
+
 # AI Translated
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
@@ -3459,8 +3468,8 @@ msgstr "複製"
 msgid "Simplify Model"
 msgstr "簡化模型"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "細分網格（失去顏色）"
+msgid "Subdivision mesh"
+msgstr ""
 
 # AI Translated
 msgid "Center"
@@ -3622,6 +3631,23 @@ msgstr "錯誤！"
 
 msgid "Failed to get the model data in the current file."
 msgstr "取得目前檔案中的模型資料失敗。"
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
+msgstr ""
 
 # AI Translated
 msgid "Add primitive"
@@ -4592,8 +4618,8 @@ msgstr "傳送 G-code 檔案到 SD 記憶卡"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "傳送成功。將於 %s 秒後關閉目前頁面"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "傳送到列印裝置前需要插入儲存空間。"
+msgid "Insert storage or free up space before sending to the printer."
+msgstr ""
 
 # AI Translated
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
@@ -5804,6 +5830,7 @@ msgid "Select automatic or painted brim ears on a printer without a tilted belt 
 msgstr "在沒有傾斜輸送帶的列印裝置上將「Brim 類型」設為「圓盤」或「繪製」後，才能使用此設定。"
 
 # AI Translated
+#, fuzzy, c-format, boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
 msgstr "啟用「象腳補償」，或將「象腳層密度」設為小於 100% 後，才能使用此設定。"
 
@@ -7219,6 +7246,9 @@ msgstr "左噴嘴：X:%1%-%2%、Y:%3%-%4%、Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "右噴嘴：X:%1%-%2%、Y:%3%-%4%、Z:%5%-%6%"
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr "鏡像物件"
 
@@ -7493,7 +7523,7 @@ msgid "Size:"
 msgstr "尺寸："
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "在第 %d 層（Z = %.2lf mm）發現 G-code 路徑衝突。請將有衝突的物件分開得更遠（%s <-> %s）。"
 
@@ -8370,6 +8400,9 @@ msgstr "下載"
 
 msgid "Download selected files from printer."
 msgstr "從列印裝置中下載選取的檔案。"
+
+msgid "Select all files in the list for batch management."
+msgstr ""
 
 msgid "Batch manage files."
 msgstr "批次管理檔案。"
@@ -9812,6 +9845,7 @@ msgid "Add Mode"
 msgstr "新增模式"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "工具"
 
@@ -9828,8 +9862,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "參與此模式的工具頭及各自扮演的角色。點選方塊可循環切換其角色。"
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "列印開始時執行的 G-code，用於將列印裝置切換至此模式（例如呼叫 Klipper 的 SET_PRINT_MODE）。切片軟體只會產生主（Primary）工具頭的路徑，其餘工具頭由韌體驅動。"
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"列印開始時執行的 G-code，用於將列印裝置切換至此模式（例如呼叫 Klipper 的 SET_PRINT_MODE）。\n"
+"\n"
+"切片軟體只會產生主（Primary）工具頭的路徑，其餘工具頭由韌體驅動。"
 
 # AI Translated
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -9890,8 +9930,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "此並行模式在列印板的 IDEX/IQEX 模式選擇器中顯示的名稱。專案以名稱記錄所用的模式，因此重新命名已被列印板使用的模式，會使這些列印板回退至主模式。不可為空，空白名稱會被替換為自動產生的名稱。"
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "在使用此模式的列印開始時輸出一次的 G-code，位於列印裝置起始 G-code 之前。列印裝置會在此切換至對應的韌體模式（例如呼叫 Klipper 的 SET_PRINT_MODE 或 RepRapFirmware 的 M567），因為切片軟體只會產生主（Primary）工具頭的路徑，複製（Copy）／鏡像（Mirror）工具頭則由韌體驅動。支援占位符，可使用編輯按鈕瀏覽。若此模式不需要韌體設定，請留空。"
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"在使用此模式的列印開始時輸出一次的 G-code，位於列印裝置起始 G-code 之前。列印裝置會在此切換至對應的韌體模式（例如呼叫 Klipper 的 SET_PRINT_MODE 或 RepRapFirmware 的 M567），因為切片軟體只會產生主（Primary）工具頭的路徑，複製（Copy）／鏡像（Mirror）工具頭則由韌體驅動。\n"
+"\n"
+"支援占位符，可使用編輯按鈕瀏覽。若此模式不需要韌體設定，請留空。"
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -10945,6 +10991,11 @@ msgstr "列印裝置上沒有線材。請先在列印裝置上載入線材。"
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "列印裝置上的線材均為未知類型。請前往列印裝置螢幕或軟體裝置頁面設定線材類型。"
 
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr ""
+
 msgid "Device Page"
 msgstr "裝置頁面"
 
@@ -11514,6 +11565,12 @@ msgstr "選取的值變更時，自動計算清理體積"
 # AI Translated
 msgid "Auto arrange plate after cloning"
 msgstr "複製後自動擺放列印板"
+
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
 
 msgid "Auto slice after changes"
 msgstr "變更後自動切片"
@@ -12252,6 +12309,27 @@ msgstr "不相容"
 msgid "The selected preset is null!"
 msgstr "選擇的預設為空！"
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "將這些設定儲存為預設"
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "尺寸必須大於零"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "無效的數值輸入。"
+
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -12436,6 +12514,15 @@ msgstr "預設「%1%」已存在，並且和目前列印裝置不相容。"
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "請注意，儲存將會覆蓋此預設。"
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
+msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "名稱不能和一個預設的別名相同。"
@@ -13143,9 +13230,8 @@ msgstr "透過 LAN 列印前需要插入儲存裝置。"
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "儲存空間處於異常狀態或為唯讀模式。"
 
-# AI Translated
-msgid "Storage needs to be inserted before printing."
-msgstr "列印前需要插入儲存裝置。"
+msgid "Insert storage or free up space before printing."
+msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "列印裝置需要更新韌體才能接收列印作業。"
@@ -13222,10 +13308,6 @@ msgstr "裝置升級中，無法傳送列印作業"
 # AI Translated
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "所選列印裝置與選擇的列印裝置預設不相容。"
-
-# AI Translated
-msgid "Storage needs to be inserted before send to printer."
-msgstr "傳送至列印裝置前需要插入儲存裝置。"
 
 # AI Translated
 msgid "The printer is required to be on the same LAN as Orca Slicer."
@@ -14251,10 +14333,12 @@ msgid "Set retraction length above zero and disable firmware retraction to edit 
 msgstr "將回抽長度設為大於 0 並關閉韌體回抽後，才能編輯此設定。"
 
 # AI Translated
+#, fuzzy, c-format, boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
 msgstr "啟用回抽和擦拭，並將「擦拭後的回抽量」設為小於 100% 後，才能編輯「擦拭前的回抽量」。"
 
 # AI Translated
+#, fuzzy, c-format, boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
 msgstr "啟用回抽和擦拭，並將「擦拭前的回抽量」設為小於 100% 後，才能編輯「擦拭後的回抽量」。"
 
@@ -16002,6 +16086,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% 離其它物件太近，可能會發生碰撞。"
 
 #, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% 太高，會發生碰撞。"
 
@@ -16338,8 +16426,16 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "當「牆列印順序」為「外牆/內牆」或「內牆/外牆/內牆」時，將忽略「精準外牆尺寸」選項。"
 
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "一個或多個擠出機的適應性 Pressure Advance 模型可能包含無效值。"
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
+
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
 
 # AI Translated
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
@@ -17544,8 +17640,12 @@ msgid "Activate air filtration"
 msgstr "啟用空氣過濾器/排風扇"
 
 # AI Translated
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "啟用以獲得更好的空氣過濾。G-code 指令：M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"啟用以獲得更好的空氣過濾。\n"
+"G-code 指令：M106 P3 S(0-255)"
 
 msgid "Enable this to override the fan speed set in custom G-code during print."
 msgstr "啟用此選項可覆寫列印期間在自訂 G-code 中設定的風扇速度。"
@@ -19382,8 +19482,12 @@ msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "自動擺放的最佳位置，範圍為 [0,1]，相對於列印板形狀。"
 
 # AI Translated
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "如果列印裝置配有輔助物件冷卻風扇，請啟用此選項。G-code 指令：M106 P2 S(0-255)。"
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"如果列印裝置配有輔助物件冷卻風扇，請啟用此選項。\n"
+"G-code 指令：M106 P2 S(0-255)。"
 
 # AI Translated
 msgid "Fan direction"
@@ -19501,8 +19605,14 @@ msgid "Skip G-code config block"
 msgstr "略過 G-code 設定區塊"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "不將 CONFIG_BLOCK（切片軟體設定的鍵值對）寫入 G-code 檔案。這對於韌體在解析這些註解行時會當機的列印裝置（例如 Anycubic go-klipper）有幫助。注意：G-code 檔案將不再包含切片設定，因此重新匯入 OrcaSlicer 時無法還原設定。"
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"不將 CONFIG_BLOCK（切片軟體設定的鍵值對）寫入 G-code 檔案。這對於韌體在解析這些註解行時會當機的列印裝置（例如 Anycubic go-klipper）有幫助。\n"
+"\n"
+"注意：G-code 檔案將不再包含切片設定，因此重新匯入 OrcaSlicer 時無法還原設定。"
 
 msgid "Pellet Modded Printer"
 msgstr "顆粒改裝列印裝置"
@@ -19523,8 +19633,14 @@ msgstr "標註物件"
 
 # AI Translated
 # Needs human review: English names Prusa's Wipe into Object / Wipe into Infill; translation quotes Orca's Flush into this object / Flush into objects' infill labels (printconfig3) instead
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "啟用此選項會在 G-code 中加入註解，標示每段列印移動所屬的物件，適用於 Octoprint CancelObject 外掛程式。此設定與「單擠出機多線材」設定以及「將換料的廢料使用在這個物件」/「將換料的廢料使用在物件的填充」不相容。"
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"啟用此選項會在 G-code 中加入註解，標示每段列印移動所屬的物件，適用於 Octoprint CancelObject 外掛程式。\n"
+"\n"
+"此設定與「單擠出機多線材」設定以及「將換料的廢料使用在這個物件」/「將換料的廢料使用在物件的填充」不相容。"
 
 msgid "Exclude objects"
 msgstr "物件排除"
@@ -19545,16 +19661,28 @@ msgid "Verbose G-code"
 msgstr "詳細 G-code"
 
 # AI Translated
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "啟用此選項可產生附有註解的 G-code 檔案，每一行都以描述文字說明。如果您從 SD 卡列印，檔案增加的大小可能會使韌體變慢。"
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"啟用此選項可產生附有註解的 G-code 檔案，每一行都以描述文字說明。\n"
+"\n"
+"如果您從 SD 卡列印，檔案增加的大小可能會使韌體變慢。"
 
 # AI Translated
 msgid "High precision G-code (experimental)"
 msgstr "高精度 G-code（實驗性）"
 
 # AI Translated
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
-msgstr "將 X、Y、Z、I 和 J 寫成 4 位小數（而非 3 位），將 E 寫成 6 位小數（而非 5 位），以減少 G-code 中的捨入誤差。使用相對 E 距離時，每次移動的捨入誤差還會累積到下一次移動。支撐在列印後會拆除，因此維持標準精度。使用小噴嘴（例如 0.2 mm）和薄層（例如 0.08 mm 或更薄）時，每次移動的擠出量很少，捨入誤差的影響最大，此選項可能有助於穩定擠出。效果在很大程度上取決於其他設定的調校情況；除非列印設定檔已充分校正，否則可能難以察覺。G-code 檔案會增大約 10%，可能使解析 G-code 較慢的列印裝置變慢。"
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+msgstr ""
+"將 X、Y、Z、I 和 J 寫成 4 位小數（而非 3 位），將 E 寫成 6 位小數（而非 5 位），以減少 G-code 中的捨入誤差。使用相對 E 距離時，每次移動的捨入誤差還會累積到下一次移動。支撐在列印後會拆除，因此維持標準精度。使用小噴嘴（例如 0.2 mm）和薄層（例如 0.08 mm 或更薄）時，每次移動的擠出量很少，捨入誤差的影響最大，此選項可能有助於穩定擠出。效果在很大程度上取決於其他設定的調校情況；除非列印設定檔已充分校正，否則可能難以察覺。\n"
+"\n"
+"G-code 檔案會增大約 10%，可能使解析 G-code 較慢的列印裝置變慢。"
 
 msgid "Infill combination"
 msgstr "合併填充"
@@ -20359,10 +20487,12 @@ msgstr "物件冷卻風扇的最小轉速。"
 # AI Translated
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "輔助物件冷卻風扇的轉速。列印期間輔助風扇會以此速度運轉，但設為不冷卻的前幾層除外。\n"
-"請在列印裝置設定中啟用「輔助物件冷卻風扇」才能使用此功能。G-code 指令：M106 P2 S(0-255)"
+"請在列印裝置設定中啟用「輔助物件冷卻風扇」才能使用此功能。\n"
+"G-code 指令：M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "在最初的"
@@ -21790,10 +21920,16 @@ msgstr "支撐的列印速度。"
 
 # AI Translated
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"支撐的樣式與形狀。普通支撐將支撐投影到規則網格上，可產生更穩定的支撐（預設）；緊貼的支撐塔則能節省材料並減少物件表面的瑕疵。\n"
+"支撐的樣式與形狀。\n"
+"\n"
+"普通支撐將支撐投影到規則網格上，可產生更穩定的支撐（預設）；緊貼的支撐塔則能節省材料並減少物件表面的瑕疵。\n"
+"\n"
 "樹狀支撐中，「苗條樹」與「有機樹」樣式會更積極地合併分支並節省大量材料（預設為有機樹）；「混合樹」樣式則會在大面積平坦懸空下產生與普通支撐類似的結構。"
 
 # AI Translated
@@ -21879,16 +22015,6 @@ msgstr "輸送帶傾斜軸"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "切片前網格旋轉所繞的軸。這就是輸送帶列印裝置的傾斜：一種等距（無變形）旋轉，同時用於列印板渲染與支撐的重力傾斜；G-code 反向轉換會先還原此旋轉，再進行機器座標系的剪切／縮放與重新映射。X 是典型的龍門傾斜軸（輸送帶沿 Y 方向移動）。"
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -22106,13 +22232,11 @@ msgstr "啟動溫度控制"
 
 # AI Translated
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"啟用此選項可自動控制腔體溫度。此選項會在 \"machine_start_gcode\" 之前發出 M191 指令，\n"
-"用於設定腔體溫度並等待達到該溫度。此外，若裝有腔體加熱器，還會在列印結束時發出 M141 指令將其關閉。\n"
+"啟用此選項可自動控制腔體溫度。此選項會在 \"machine_start_gcode\" 之前發出 M191 指令，用於設定腔體溫度並等待達到該溫度。此外，若裝有腔體加熱器，還會在列印結束時發出 M141 指令將其關閉。\n"
 "\n"
 "此選項需要韌體以巨集或原生方式支援 M191 和 M141 指令，通常用於裝有主動式腔體加熱器的情況。"
 
@@ -22122,13 +22246,17 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "對於 ABS、ASA、PC 和 PA 等高溫材料，較高的腔體溫度有助於抑制或減少翹曲，並可能提升層間結合強度。但同時，較高的腔體溫度也會降低 ABS 和 ASA 的空氣過濾效率。\n"
 "\n"
 "對於 PLA、PETG、TPU、PVA 等低溫材料，應停用此選項（設為 0），因為腔體溫度應保持較低，以免材料在喉管處軟化而導致擠出機堵塞。\n"
 "\n"
-"啟用時，此參數也會設定一個名為 chamber_temperature 的 G-code 變數，可用於將所需的腔體溫度傳給列印開始巨集或熱浸泡巨集，例如：PRINT_START (其他變數) CHAMBER_TEMP=[chamber_temperature]。若您的列印裝置不支援 M141/M191 指令，或未安裝主動式腔體加熱器而想在列印開始巨集中處理熱浸泡，這會很有用。"
+"啟用時，此參數也會設定一個名為 chamber_temperature 的 G-code 變數，可用於將所需的腔體溫度傳給列印開始巨集或熱浸泡巨集，例如：\n"
+"PRINT_START (其他變數) CHAMBER_TEMP=[chamber_temperature]\n"
+"若您的列印裝置不支援 M141/M191 指令，或未安裝主動式腔體加熱器而想在列印開始巨集中處理熱浸泡，這會很有用。"
 
 # AI Translated
 msgid ""
@@ -23385,6 +23513,12 @@ msgstr "以正常模式（非靜音模式）列印時的預估列印時間。與
 # AI Translated
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "以正常模式（非靜音模式）列印時的預估列印時間。與 normal_print_time 相同。"
+
+msgid "Used filament types"
+msgstr ""
+
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr ""
 
 msgid "Print time (silent mode)"
 msgstr "列印時間（靜音模式）"
@@ -25176,6 +25310,10 @@ msgstr ""
 "校正線材提示：\n"
 "- 可共用相同熱床溫度的線材\n"
 "- 不同的線材品牌和系列（品牌 = Bambu，系列 = Basic、Matte）"
+
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "線"
 
 # AI Translated
 msgid "Pattern"
@@ -27699,10 +27837,6 @@ msgstr "三角面片數量"
 
 msgid "Calculating, please wait..."
 msgstr "正在計算，請稍候..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "將這些設定儲存為預設"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -31625,10 +31759,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "這兩條直線未相交於角點，請選取兩條相交於角點的直線"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "尺寸必須大於零"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "圓角：半徑超出其中一邊的長度，或兩條直線未相交於角點"
 
@@ -31700,21 +31830,43 @@ msgstr "請輸入數字"
 msgid "Not a number"
 msgstr "不是數字"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "建立"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "增加材料"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "移除"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "圓角 / 倒角 / 拔模"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "重複"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "變換"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "參考"
+
+# AI Translated
+msgctxt "Design"
+msgid "Modify"
+msgstr "修改"
 
 # AI Translated
 msgctxt "Design"
@@ -32048,6 +32200,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "角點矩形"
 
+msgctxt "Design"
+msgid "Rectangle"
+msgstr "矩形"
+
 # AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
@@ -32068,6 +32224,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "中心圓"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "圓形"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -32082,6 +32242,11 @@ msgstr "三點圓"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "三點圓弧"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "圓弧"
 
 # AI Translated
 msgctxt "Design"
@@ -32122,6 +32287,11 @@ msgstr "雲形線"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "三角形"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "多邊形"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -32229,6 +32399,7 @@ msgid "Linear array"
 msgstr "線性陣列"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "陣列"
 
@@ -32571,6 +32742,36 @@ msgstr "在「準備」與「預覽」之間切換"
 # AI Translated
 msgid "Collapse/Expand the sidebar"
 msgstr "摺疊/展開側邊欄"
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -35251,10 +35452,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "設定列印裝置的熱床形狀。"
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "無效的數值輸入。"
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "線材與噴嘴直徑"
 
@@ -35483,6 +35680,49 @@ msgstr "Wiki 說明->"
 # AI Translated
 msgid "Note:"
 msgstr "備註："
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -36273,6 +36513,10 @@ msgstr "在繪製區域上重複紋理。關閉時則以「平鋪尺寸」設定
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "開啟「平鋪」以選擇紋理的重複方式。"
+
+# AI Translated
+msgid "Repeat"
+msgstr "重複"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -38016,6 +38260,10 @@ msgid "Forward"
 msgstr "前進"
 
 # AI Translated
+msgid "Tools"
+msgstr "工具"
+
+# AI Translated
 msgid "View Source"
 msgstr "檢視原始碼"
 
@@ -39462,3 +39710,111 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+#~ msgid "Subdivision mesh (Lost color)"
+#~ msgstr "細分網格（失去顏色）"
+
+#~ msgid "Storage needs to be inserted before sending to printer."
+#~ msgstr "傳送到列印裝置前需要插入儲存空間。"
+
+# AI Translated
+#~ msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
+#~ msgstr "列印開始時執行的 G-code，用於將列印裝置切換至此模式（例如呼叫 Klipper 的 SET_PRINT_MODE）。切片軟體只會產生主（Primary）工具頭的路徑，其餘工具頭由韌體驅動。"
+
+# AI Translated
+#~ msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+#~ msgstr "在使用此模式的列印開始時輸出一次的 G-code，位於列印裝置起始 G-code 之前。列印裝置會在此切換至對應的韌體模式（例如呼叫 Klipper 的 SET_PRINT_MODE 或 RepRapFirmware 的 M567），因為切片軟體只會產生主（Primary）工具頭的路徑，複製（Copy）／鏡像（Mirror）工具頭則由韌體驅動。支援占位符，可使用編輯按鈕瀏覽。若此模式不需要韌體設定，請留空。"
+
+# AI Translated
+#~ msgid "Storage needs to be inserted before printing."
+#~ msgstr "列印前需要插入儲存裝置。"
+
+# AI Translated
+#~ msgid "Storage needs to be inserted before send to printer."
+#~ msgstr "傳送至列印裝置前需要插入儲存裝置。"
+
+#~ msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+#~ msgstr "一個或多個擠出機的適應性 Pressure Advance 模型可能包含無效值。"
+
+# AI Translated
+#~ msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
+#~ msgstr "啟用以獲得更好的空氣過濾。G-code 指令：M106 P3 S(0-255)"
+
+# AI Translated
+#~ msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
+#~ msgstr "如果列印裝置配有輔助物件冷卻風扇，請啟用此選項。G-code 指令：M106 P2 S(0-255)。"
+
+# AI Translated
+#~ msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+#~ msgstr "不將 CONFIG_BLOCK（切片軟體設定的鍵值對）寫入 G-code 檔案。這對於韌體在解析這些註解行時會當機的列印裝置（例如 Anycubic go-klipper）有幫助。注意：G-code 檔案將不再包含切片設定，因此重新匯入 OrcaSlicer 時無法還原設定。"
+
+# AI Translated
+# Needs human review: English names Prusa's Wipe into Object / Wipe into Infill; translation quotes Orca's Flush into this object / Flush into objects' infill labels (printconfig3) instead
+#~ msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+#~ msgstr "啟用此選項會在 G-code 中加入註解，標示每段列印移動所屬的物件，適用於 Octoprint CancelObject 外掛程式。此設定與「單擠出機多線材」設定以及「將換料的廢料使用在這個物件」/「將換料的廢料使用在物件的填充」不相容。"
+
+# AI Translated
+#~ msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
+#~ msgstr "啟用此選項可產生附有註解的 G-code 檔案，每一行都以描述文字說明。如果您從 SD 卡列印，檔案增加的大小可能會使韌體變慢。"
+
+# AI Translated
+#~ msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+#~ msgstr "將 X、Y、Z、I 和 J 寫成 4 位小數（而非 3 位），將 E 寫成 6 位小數（而非 5 位），以減少 G-code 中的捨入誤差。使用相對 E 距離時，每次移動的捨入誤差還會累積到下一次移動。支撐在列印後會拆除，因此維持標準精度。使用小噴嘴（例如 0.2 mm）和薄層（例如 0.08 mm 或更薄）時，每次移動的擠出量很少，捨入誤差的影響最大，此選項可能有助於穩定擠出。效果在很大程度上取決於其他設定的調校情況；除非列印設定檔已充分校正，否則可能難以察覺。G-code 檔案會增大約 10%，可能使解析 G-code 較慢的列印裝置變慢。"
+
+# AI Translated
+#~ msgid ""
+#~ "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
+#~ "Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+#~ msgstr ""
+#~ "輔助物件冷卻風扇的轉速。列印期間輔助風扇會以此速度運轉，但設為不冷卻的前幾層除外。\n"
+#~ "請在列印裝置設定中啟用「輔助物件冷卻風扇」才能使用此功能。G-code 指令：M106 P2 S(0-255)"
+
+# AI Translated
+#~ msgid ""
+#~ "Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+#~ "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
+#~ msgstr ""
+#~ "支撐的樣式與形狀。普通支撐將支撐投影到規則網格上，可產生更穩定的支撐（預設）；緊貼的支撐塔則能節省材料並減少物件表面的瑕疵。\n"
+#~ "樹狀支撐中，「苗條樹」與「有機樹」樣式會更積極地合併分支並節省大量材料（預設為有機樹）；「混合樹」樣式則會在大面積平坦懸空下產生與普通支撐類似的結構。"
+
+# AI Translated
+#~ msgid ""
+#~ "Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
+#~ " which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+#~ "\n"
+#~ "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
+#~ msgstr ""
+#~ "啟用此選項可自動控制腔體溫度。此選項會在 \"machine_start_gcode\" 之前發出 M191 指令，\n"
+#~ "用於設定腔體溫度並等待達到該溫度。此外，若裝有腔體加熱器，還會在列印結束時發出 M141 指令將其關閉。\n"
+#~ "\n"
+#~ "此選項需要韌體以巨集或原生方式支援 M191 和 M141 指令，通常用於裝有主動式腔體加熱器的情況。"
+
+# AI Translated
+#~ msgid ""
+#~ "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
+#~ "\n"
+#~ "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
+#~ "\n"
+#~ "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+#~ msgstr ""
+#~ "對於 ABS、ASA、PC 和 PA 等高溫材料，較高的腔體溫度有助於抑制或減少翹曲，並可能提升層間結合強度。但同時，較高的腔體溫度也會降低 ABS 和 ASA 的空氣過濾效率。\n"
+#~ "\n"
+#~ "對於 PLA、PETG、TPU、PVA 等低溫材料，應停用此選項（設為 0），因為腔體溫度應保持較低，以免材料在喉管處軟化而導致擠出機堵塞。\n"
+#~ "\n"
+#~ "啟用時，此參數也會設定一個名為 chamber_temperature 的 G-code 變數，可用於將所需的腔體溫度傳給列印開始巨集或熱浸泡巨集，例如：PRINT_START (其他變數) CHAMBER_TEMP=[chamber_temperature]。若您的列印裝置不支援 M141/M191 指令，或未安裝主動式腔體加熱器而想在列印開始巨集中處理熱浸泡，這會很有用。"
+
+# AI Translated
+#~ msgid "Add material"
+#~ msgstr "增加材料"
+
+# AI Translated
+#~ msgid "Fillet / chamfer / draft"
+#~ msgstr "圓角 / 倒角 / 拔模"
+
+# AI Translated
+#~ msgid "Reference"
+#~ msgstr "參考"
+
+# AI Translated
+#~ msgid "Array"
+#~ msgstr "陣列"

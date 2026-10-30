@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 09:53-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -2274,6 +2274,15 @@ msgstr "비밀번호가 다릅니다"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "%s 연결 실패! [SN:%s, code=%s]"
 
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr ""
+
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3333,8 +3342,8 @@ msgstr "복제"
 msgid "Simplify Model"
 msgstr "모델 단순화"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "서브디비전 메쉬 (색상 손실)"
+msgid "Subdivision mesh"
+msgstr ""
 
 msgid "Center"
 msgstr "중앙"
@@ -3490,6 +3499,23 @@ msgstr "오류!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "현재 파일에서 모델의 데이터를 가져오지 못했습니다."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
+msgstr ""
 
 # AI Translated
 msgid "Add primitive"
@@ -4411,8 +4437,8 @@ msgstr "SD 카드로 G-code 파일 전송 중"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "성공적으로 보냈습니다. %s초 내에 현재 페이지가 닫힙니다"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "프린터에 보내기 전에 저장 장치를 삽입해야 합니다."
+msgid "Insert storage or free up space before sending to the printer."
+msgstr ""
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "LAN을 통해 G-code 파일을 보내는 중이지만 프린터의 저장 장치에 이상이 있어 인쇄 문제가 발생할 수 있습니다."
@@ -5536,6 +5562,7 @@ msgstr ""
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
 msgstr ""
 
+#, c-format, boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
 msgstr ""
 
@@ -6816,6 +6843,9 @@ msgstr "왼쪽 노즐: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "오른쪽 노즐: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr "객체 반전"
 
@@ -7072,7 +7102,7 @@ msgid "Size:"
 msgstr "크기:"
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "레이어 %d, Z = %.2lf mm에서 G-code 경로 충돌이 발견되었습니다. 충돌하는 객체를 더 멀리 분리하세요 (%s <-> %s)."
 
@@ -7915,6 +7945,9 @@ msgstr "다운로드"
 
 msgid "Download selected files from printer."
 msgstr "선택된 파일을 프린터에서 다운로드합니다."
+
+msgid "Select all files in the list for batch management."
+msgstr ""
 
 msgid "Batch manage files."
 msgstr "파일을 일괄 관리합니다."
@@ -9304,6 +9337,7 @@ msgid "Add Mode"
 msgstr "모드 추가"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "도구"
 
@@ -9320,8 +9354,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "모드에 참여하는 툴헤드와 각 툴헤드의 역할입니다. 타일을 클릭하면 역할이 차례로 바뀝니다."
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "출력 시작 시 프린터를 이 모드로 전환하기 위해 실행되는 G-code입니다(예: Klipper SET_PRINT_MODE 호출). 슬라이서는 주(Primary) 도구의 경로만 생성하며, 나머지 도구는 펌웨어가 제어합니다."
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"출력 시작 시 프린터를 이 모드로 전환하기 위해 실행되는 G-code입니다(예: Klipper SET_PRINT_MODE 호출).\n"
+"\n"
+"슬라이서는 주(Primary) 도구의 경로만 생성하며, 나머지 도구는 펌웨어가 제어합니다."
 
 # AI Translated
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -9383,8 +9423,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "플레이트의 IDEX/IQEX 모드 선택기에 표시되는 이 병렬 모드의 이름입니다. 프로젝트에는 이름으로 저장되므로, 플레이트에서 이미 사용 중인 모드의 이름을 바꾸면 해당 플레이트는 주(Primary) 모드로 돌아갑니다. 비워 둘 수 없으며, 빈 이름은 자동 생성된 이름으로 바뀝니다."
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "이 모드를 사용하는 출력의 시작 시 장치 시작 G-code보다 먼저 한 번 출력되는 G-code입니다. 슬라이서는 주(Primary) 도구의 경로만 생성하고 복사(Copy)/미러(Mirror) 도구는 펌웨어가 제어하므로, 여기에서 프린터를 해당 펌웨어 모드로 전환합니다(예: Klipper SET_PRINT_MODE 호출 또는 RepRapFirmware M567). 자리 표시자를 사용할 수 있으며, 편집 버튼으로 찾아볼 수 있습니다. 모드에 펌웨어 설정이 필요 없으면 비워 두세요."
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"이 모드를 사용하는 출력의 시작 시 장치 시작 G-code보다 먼저 한 번 출력되는 G-code입니다. 슬라이서는 주(Primary) 도구의 경로만 생성하고 복사(Copy)/미러(Mirror) 도구는 펌웨어가 제어하므로, 여기에서 프린터를 해당 펌웨어 모드로 전환합니다(예: Klipper SET_PRINT_MODE 호출 또는 RepRapFirmware M567).\n"
+"\n"
+"자리 표시자를 사용할 수 있으며, 편집 버튼으로 찾아볼 수 있습니다. 모드에 펌웨어 설정이 필요 없으면 비워 두세요."
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -10431,6 +10477,11 @@ msgstr "프린터에 필라멘트가 없습니다. 먼저 프린터에 필라멘
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "프린터의 필라멘트가 모두 알 수 없는 유형입니다. 프린터 화면 또는 소프트웨어 장치 페이지로 이동하여 필라멘트 유형을 설정하세요."
 
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr ""
+
 msgid "Device Page"
 msgstr "디바이스 페이지"
 
@@ -11000,6 +11051,12 @@ msgstr "선택한 값이 변경되면 플러시 볼륨을 자동으로 계산합
 
 msgid "Auto arrange plate after cloning"
 msgstr "복제 후 플레이트 자동 정렬"
+
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
 
 # AI Translated
 msgid "Auto slice after changes"
@@ -11776,6 +11833,27 @@ msgstr "호환되지 않음"
 msgid "The selected preset is null!"
 msgstr "선택한 사전 설정의 값이 존재하지 않습니다!"
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "이 설정을 기본값으로 저장"
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "크기는 0보다 커야 합니다"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "잘못된 숫자 입력입니다."
+
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -11956,6 +12034,15 @@ msgstr "%1% 사전 설정이 이미 있으며 현재 프린터와 호환되지 �
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "저장 작업이 이 사전 설정을 대체합니다"
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
+msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "이름은 사전 설정의 별칭 이름과 같을 수 없습니다."
@@ -12648,8 +12735,8 @@ msgstr "LAN을 통해 출력하기 전에 스토리지를 삽입해야 합니다
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "저장 장치가 비정상 상태이거나 읽기 전용 모드입니다."
 
-msgid "Storage needs to be inserted before printing."
-msgstr "출력하기 전에 저장소를 삽입해야 합니다."
+msgid "Insert storage or free up space before printing."
+msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "펌웨어를 업데이트해야 하는 프린터로 출력 작업을 보낼 수 없습니다."
@@ -12722,9 +12809,6 @@ msgstr "업그레이드가 진행 중일 때 출력 작업을 보낼 수 없습�
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "선택한 프린터가 선택한 프린터 사전 설정과 호환되지 않습니다."
-
-msgid "Storage needs to be inserted before send to printer."
-msgstr "프린터로 보내기 전에 저장소를 삽입해야 합니다."
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "프린터는 Orca Slicer와 동일한 네트워크에 있어야 합니다."
@@ -13657,9 +13741,11 @@ msgstr ""
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
 msgstr ""
 
+#, c-format, boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
 msgstr ""
 
+#, c-format, boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
 msgstr ""
 
@@ -15360,6 +15446,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% 이(가) 다른 객체와 너무 가까워 출력 시 충돌이 발생 할 수 있습니다."
 
 #, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% 이(가) 너무 높아서 충돌이 출력 시 발생할 수 있습니다."
 
@@ -15677,9 +15767,16 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "정밀 벽 옵션은 외벽-내벽 또는 내벽-외벽-내벽 순서에서는 무시됩니다."
 
-# AI Translated
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "하나 이상의 압출기에 대한 적응형 Pressure Advance 모델에 잘못된 값이 포함되어 있을 수 있습니다."
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
+
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
 
 # AI Translated
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
@@ -16839,8 +16936,12 @@ msgid "Activate air filtration"
 msgstr "공기 여과 활성화"
 
 # AI Translated
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "더 나은 공기 여과를 위해 활성화하세요. G-code 명령: M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"더 나은 공기 여과를 위해 활성화하세요.\n"
+"G-code 명령: M106 P3 S(0-255)"
 
 # AI Translated
 msgid "Enable this to override the fan speed set in custom G-code during print."
@@ -18593,8 +18694,12 @@ msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "베드 모양 w.r.t. 범위 [0,1] 내에서 가장 좋은 자동 정렬 위치입니다."
 
 # AI Translated
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "장치에 보조 출력물 냉각팬이 있는 경우 이 옵션을 활성화합니다. G-code 명령: M106 P2 S(0-255)."
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"장치에 보조 출력물 냉각팬이 있는 경우 이 옵션을 활성화합니다.\n"
+"G-code 명령: M106 P2 S(0-255)."
 
 # AI Translated
 msgid "Fan direction"
@@ -18709,8 +18814,14 @@ msgid "Skip G-code config block"
 msgstr "G-code 설정 블록 생략"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "CONFIG_BLOCK(슬라이서 설정의 키/값 쌍)을 G-code 파일에 기록하지 않습니다. 이 주석 줄을 해석할 때 펌웨어가 중단되는 프린터(예: Anycubic go-klipper)에 도움이 될 수 있습니다. 참고: G-code 파일에 슬라이서 설정이 더 이상 포함되지 않으므로, 이 파일을 OrcaSlicer로 다시 가져와도 설정이 복원되지 않습니다."
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"CONFIG_BLOCK(슬라이서 설정의 키/값 쌍)을 G-code 파일에 기록하지 않습니다. 이 주석 줄을 해석할 때 펌웨어가 중단되는 프린터(예: Anycubic go-klipper)에 도움이 될 수 있습니다.\n"
+"\n"
+"참고: G-code 파일에 슬라이서 설정이 더 이상 포함되지 않으므로, 이 파일을 OrcaSlicer로 다시 가져와도 설정이 복원되지 않습니다."
 
 msgid "Pellet Modded Printer"
 msgstr "펠릿 프린터"
@@ -18728,9 +18839,14 @@ msgid "Label objects"
 msgstr "객체 이름표"
 
 # AI Translated
-# Wipe into this object;s infill/Wipe into this object
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "출력 이동이 어느 객체에 속하는지 표시하는 주석을 G-code에 추가하려면 이 옵션을 활성화하세요. 이는 Octoprint CancelObject 플러그인에 유용합니다. 이 설정은 단일 압출기 다중 재료 설정 및 객체에서 플러시 / 채우기에서 플러시와 호환되지 않습니다."
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"출력 이동이 어느 객체에 속하는지 표시하는 주석을 G-code에 추가하려면 이 옵션을 활성화하세요. 이는 Octoprint CancelObject 플러그인에 유용합니다.\n"
+"\n"
+"이 설정은 단일 압출기 다중 재료 설정 및 객체에서 플러시 / 채우기에서 플러시와 호환되지 않습니다."
 
 msgid "Exclude objects"
 msgstr "객체 제외"
@@ -18752,13 +18868,22 @@ msgid "Verbose G-code"
 msgstr "상세한 G-code"
 
 # AI Translated
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "주석이 달린 G-code 파일을 가져오려면 이 기능을 활성화하세요. 각 라인은 설명 텍스트로 설명됩니다. SD 카드에서 출력하는 경우 파일의 추가 크기로 인해 펌웨어 속도가 느려질 수 있습니다."
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"주석이 달린 G-code 파일을 가져오려면 이 기능을 활성화하세요. 각 라인은 설명 텍스트로 설명됩니다.\n"
+"\n"
+"SD 카드에서 출력하는 경우 파일의 추가 크기로 인해 펌웨어 속도가 느려질 수 있습니다."
 
 msgid "High precision G-code (experimental)"
 msgstr ""
 
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
 msgstr ""
 
 msgid "Infill combination"
@@ -19542,10 +19667,12 @@ msgstr "출력물 냉각 팬의 최소 속도"
 # AI Translated
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "보조 출력물 냉각팬의 속도. 냉각 레이어가 없는 것으로 정의된 처음 여러 레이어를 제외하고 출력 중에 보조 팬이 이 속도로 작동합니다.\n"
-"이 기능을 사용하려면 프린터 설정에서 보조 팬을 활성화하세요. G-code 명령: M106 P2 S(0-255)"
+"이 기능을 사용하려면 프린터 설정에서 보조 팬을 활성화하세요.\n"
+"G-code 명령: M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "첫 몇개의"
@@ -20878,10 +21005,16 @@ msgid "This is the speed for support."
 msgstr "서포트 속도"
 
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"서포트의 스타일과 모양. 일반 서포트의 경우, 격자는 보다 안정적인 서포트(기본값)가 생성되는 반면, 맞춤 서포트는 재료를 절약하고 서포트 자국을 줄입니다.\n"
+"서포트의 스타일과 모양.\n"
+"\n"
+"일반 서포트의 경우, 격자는 보다 안정적인 서포트(기본값)가 생성되는 반면, 맞춤 서포트는 재료를 절약하고 서포트 자국을 줄입니다.\n"
+"\n"
 "트리 서포트의 경우, 얇은 및 유기체 모양은 가지를 보다 적극적으로 병합하고 많은 재료를 절약합니다(기본값 유기체). 반면 혼합 모양은 크고 평평한 오버행 아래에 일반 서포트와 유사한 구조를 만듭니다."
 
 msgid "Default (Grid/Organic)"
@@ -20963,16 +21096,6 @@ msgstr "벨트 기울기 축"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "슬라이스 전에 메시를 회전시키는 기준 축입니다. 벨트 프린터의 기울기에 해당하며, 왜곡 없는(등거리) 회전으로 베드 렌더링과 서포트 중력 기울기에도 적용됩니다. G-code 역변환은 기계 좌표계 전단/배율 및 재매핑 전에 이 회전을 되돌립니다. 일반적인 갠트리 기울기는 X입니다(벨트는 Y 방향으로 이동)."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -21184,13 +21307,11 @@ msgid "Activate temperature control"
 msgstr "온도 제어 활성화"
 
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"자동화된 챔버 온도 제어를 위해 이 옵션을 활성화합니다. 이 옵션은 \"machine_start_gcode\" 이전에 M191 명령 내보내기를 활성화합니다.\n"
-" 챔버 온도를 설정하고 온도에 도달할 때까지 기다립니다. 또한 출력가 끝나면 챔버 히터를 끄는 M141 명령을 내보냅니다(있는 경우).\n"
+"자동화된 챔버 온도 제어를 위해 이 옵션을 활성화합니다. 이 옵션은 \"machine_start_gcode\" 이전에 M191 명령 내보내기를 활성화합니다. 챔버 온도를 설정하고 온도에 도달할 때까지 기다립니다. 또한 출력가 끝나면 챔버 히터를 끄는 M141 명령을 내보냅니다(있는 경우).\n"
 "\n"
 "이 옵션은 매크로를 통해 또는 기본적으로 M191 및 M141 명령을 지원하는 펌웨어에 의존하며 일반적으로 활성 챔버 히터가 설치된 경우 사용됩니다."
 
@@ -21200,13 +21321,17 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "ABS, ASA, PC 및 PA와 같은 고온 재료의 경우 챔버 온도가 높을수록 뒤틀림을 억제하거나 줄이는 데 도움이 될 수 있으며 잠재적으로 층간 결합 강도가 높아질 수 있습니다. 그러나 동시에 챔버 온도가 높을수록 ABS 및 ASA의 공기 여과 효율성이 감소합니다.\n"
 "\n"
 "PLA, PETG, TPU, PVA 및 기타 저온 재료의 경우 열 차단 시 재료 연화로 인한 압출기 막힘을 방지하기 위해 챔버 온도가 낮아야 하므로 이 옵션을 비활성화(0으로 설정)해야 합니다.\n"
 "\n"
-"활성화된 경우 이 매개변수는 원하는 챔버 온도를 출력 시작 매크로 또는 PRINT_START(기타 변수) CHAMBER_TEMP=[chamber_temperature]와 같은 열 흡수 매크로에 전달하는 데 사용할 수 있는 chamber_temperature라는 G-code 변수도 설정합니다. 이는 프린터가 M141/M191 명령을 지원하지 않거나 활성 챔버 히터가 설치되지 않은 경우 출력 시작 매크로에서 열 흡수를 처리하려는 경우 유용할 수 있습니다."
+"활성화된 경우 이 매개변수는 chamber_temperature라는 G-code 변수도 설정합니다. 이 변수로 원하는 챔버 온도를 출력 시작 매크로나 다음과 같은 열 흡수 매크로에 전달할 수 있습니다:\n"
+"PRINT_START(기타 변수) CHAMBER_TEMP=[chamber_temperature]\n"
+"이는 프린터가 M141/M191 명령을 지원하지 않거나 활성 챔버 히터가 설치되지 않은 경우 출력 시작 매크로에서 열 흡수를 처리하려는 경우 유용할 수 있습니다."
 
 # AI Translated
 msgid ""
@@ -22379,6 +22504,12 @@ msgstr "일반 모드(즉, 저소음 모드가 아닌 상태)로 출력할 때�
 # AI Translated
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "일반 모드(즉, 저소음 모드가 아닌 상태)로 출력할 때의 예상 출력 시간입니다. normal_print_time과 동일합니다."
+
+msgid "Used filament types"
+msgstr ""
+
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr ""
 
 # AI Translated
 msgid "Print time (silent mode)"
@@ -24109,6 +24240,10 @@ msgstr ""
 "교정 재료에 대한 팁:\n"
 "- 동일한 히트베드 온도를 공유할 수 있는 소재\n"
 "- 다양한 필라멘트 브랜드 및 제품군(브랜드 = 뱀부, 제품군 = 기본, 메트)"
+
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "선"
 
 msgid "Pattern"
 msgstr "패턴"
@@ -26616,10 +26751,6 @@ msgstr "삼각형 패싯 수"
 
 msgid "Calculating, please wait..."
 msgstr "계산 중, 잠시만 기다려주세요..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "이 설정을 기본값으로 저장"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -30562,10 +30693,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "두 선이 코너에서 만나지 않습니다 — 코너에서 만나는 두 선을 선택하십시오"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "크기는 0보다 커야 합니다"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "필렛: 반지름이 한쪽 변을 벗어나거나 두 선이 코너에서 만나지 않습니다"
 
@@ -30637,21 +30764,43 @@ msgstr "숫자를 입력하십시오"
 msgid "Not a number"
 msgstr "숫자가 아닙니다"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "생성"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "재료 추가"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "제거"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "필렛 / 모따기 / 구배"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "반복"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "변환"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "기준"
+
+# AI Translated
+msgctxt "Design"
+msgid "Modify"
+msgstr "수정"
 
 # AI Translated
 msgctxt "Design"
@@ -30985,6 +31134,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "코너 직사각형"
 
+msgctxt "Design"
+msgid "Rectangle"
+msgstr "직사각형"
+
 # AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
@@ -31005,6 +31158,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "중심 원"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "원"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -31019,6 +31176,11 @@ msgstr "3점 원"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "3점 호"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "호"
 
 # AI Translated
 msgctxt "Design"
@@ -31059,6 +31221,11 @@ msgstr "스플라인"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "삼각형"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "다각형"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -31166,6 +31333,7 @@ msgid "Linear array"
 msgstr "선형 배열"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "배열"
 
@@ -31477,6 +31645,36 @@ msgstr "준비 하기/미리 보기 전환"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "사이드바 접기/펼치기"
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -34159,10 +34357,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "프린터 베드의 모양을 설정하십시오."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "잘못된 숫자 입력입니다."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "필라멘트 및 노즐 직경"
 
@@ -34390,6 +34584,49 @@ msgstr "위키->"
 # AI Translated
 msgid "Note:"
 msgstr "참고:"
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -35184,6 +35421,10 @@ msgstr "칠한 영역 전체에 텍스처를 반복합니다. 끄면 데칼처�
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "텍스처 반복 방식을 고르려면 타일을 켜십시오."
+
+# AI Translated
+msgid "Repeat"
+msgstr "반복"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -36925,6 +37166,10 @@ msgid "Forward"
 msgstr "앞으로"
 
 # AI Translated
+msgid "Tools"
+msgstr "도구"
+
+# AI Translated
 msgid "View Source"
 msgstr "소스 보기"
 
@@ -38338,3 +38583,104 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#~ msgid "Subdivision mesh (Lost color)"
+#~ msgstr "서브디비전 메쉬 (색상 손실)"
+
+#~ msgid "Storage needs to be inserted before sending to printer."
+#~ msgstr "프린터에 보내기 전에 저장 장치를 삽입해야 합니다."
+
+# AI Translated
+#~ msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
+#~ msgstr "출력 시작 시 프린터를 이 모드로 전환하기 위해 실행되는 G-code입니다(예: Klipper SET_PRINT_MODE 호출). 슬라이서는 주(Primary) 도구의 경로만 생성하며, 나머지 도구는 펌웨어가 제어합니다."
+
+# AI Translated
+#~ msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+#~ msgstr "이 모드를 사용하는 출력의 시작 시 장치 시작 G-code보다 먼저 한 번 출력되는 G-code입니다. 슬라이서는 주(Primary) 도구의 경로만 생성하고 복사(Copy)/미러(Mirror) 도구는 펌웨어가 제어하므로, 여기에서 프린터를 해당 펌웨어 모드로 전환합니다(예: Klipper SET_PRINT_MODE 호출 또는 RepRapFirmware M567). 자리 표시자를 사용할 수 있으며, 편집 버튼으로 찾아볼 수 있습니다. 모드에 펌웨어 설정이 필요 없으면 비워 두세요."
+
+#~ msgid "Storage needs to be inserted before printing."
+#~ msgstr "출력하기 전에 저장소를 삽입해야 합니다."
+
+#~ msgid "Storage needs to be inserted before send to printer."
+#~ msgstr "프린터로 보내기 전에 저장소를 삽입해야 합니다."
+
+# AI Translated
+#~ msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+#~ msgstr "하나 이상의 압출기에 대한 적응형 Pressure Advance 모델에 잘못된 값이 포함되어 있을 수 있습니다."
+
+# AI Translated
+#~ msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
+#~ msgstr "더 나은 공기 여과를 위해 활성화하세요. G-code 명령: M106 P3 S(0-255)"
+
+# AI Translated
+#~ msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
+#~ msgstr "장치에 보조 출력물 냉각팬이 있는 경우 이 옵션을 활성화합니다. G-code 명령: M106 P2 S(0-255)."
+
+# AI Translated
+#~ msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+#~ msgstr "CONFIG_BLOCK(슬라이서 설정의 키/값 쌍)을 G-code 파일에 기록하지 않습니다. 이 주석 줄을 해석할 때 펌웨어가 중단되는 프린터(예: Anycubic go-klipper)에 도움이 될 수 있습니다. 참고: G-code 파일에 슬라이서 설정이 더 이상 포함되지 않으므로, 이 파일을 OrcaSlicer로 다시 가져와도 설정이 복원되지 않습니다."
+
+# AI Translated
+# Wipe into this object;s infill/Wipe into this object
+#~ msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+#~ msgstr "출력 이동이 어느 객체에 속하는지 표시하는 주석을 G-code에 추가하려면 이 옵션을 활성화하세요. 이는 Octoprint CancelObject 플러그인에 유용합니다. 이 설정은 단일 압출기 다중 재료 설정 및 객체에서 플러시 / 채우기에서 플러시와 호환되지 않습니다."
+
+# AI Translated
+#~ msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
+#~ msgstr "주석이 달린 G-code 파일을 가져오려면 이 기능을 활성화하세요. 각 라인은 설명 텍스트로 설명됩니다. SD 카드에서 출력하는 경우 파일의 추가 크기로 인해 펌웨어 속도가 느려질 수 있습니다."
+
+# AI Translated
+#~ msgid ""
+#~ "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
+#~ "Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+#~ msgstr ""
+#~ "보조 출력물 냉각팬의 속도. 냉각 레이어가 없는 것으로 정의된 처음 여러 레이어를 제외하고 출력 중에 보조 팬이 이 속도로 작동합니다.\n"
+#~ "이 기능을 사용하려면 프린터 설정에서 보조 팬을 활성화하세요. G-code 명령: M106 P2 S(0-255)"
+
+#~ msgid ""
+#~ "Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+#~ "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
+#~ msgstr ""
+#~ "서포트의 스타일과 모양. 일반 서포트의 경우, 격자는 보다 안정적인 서포트(기본값)가 생성되는 반면, 맞춤 서포트는 재료를 절약하고 서포트 자국을 줄입니다.\n"
+#~ "트리 서포트의 경우, 얇은 및 유기체 모양은 가지를 보다 적극적으로 병합하고 많은 재료를 절약합니다(기본값 유기체). 반면 혼합 모양은 크고 평평한 오버행 아래에 일반 서포트와 유사한 구조를 만듭니다."
+
+#~ msgid ""
+#~ "Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
+#~ " which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+#~ "\n"
+#~ "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
+#~ msgstr ""
+#~ "자동화된 챔버 온도 제어를 위해 이 옵션을 활성화합니다. 이 옵션은 \"machine_start_gcode\" 이전에 M191 명령 내보내기를 활성화합니다.\n"
+#~ " 챔버 온도를 설정하고 온도에 도달할 때까지 기다립니다. 또한 출력가 끝나면 챔버 히터를 끄는 M141 명령을 내보냅니다(있는 경우).\n"
+#~ "\n"
+#~ "이 옵션은 매크로를 통해 또는 기본적으로 M191 및 M141 명령을 지원하는 펌웨어에 의존하며 일반적으로 활성 챔버 히터가 설치된 경우 사용됩니다."
+
+# AI Translated
+#~ msgid ""
+#~ "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
+#~ "\n"
+#~ "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
+#~ "\n"
+#~ "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+#~ msgstr ""
+#~ "ABS, ASA, PC 및 PA와 같은 고온 재료의 경우 챔버 온도가 높을수록 뒤틀림을 억제하거나 줄이는 데 도움이 될 수 있으며 잠재적으로 층간 결합 강도가 높아질 수 있습니다. 그러나 동시에 챔버 온도가 높을수록 ABS 및 ASA의 공기 여과 효율성이 감소합니다.\n"
+#~ "\n"
+#~ "PLA, PETG, TPU, PVA 및 기타 저온 재료의 경우 열 차단 시 재료 연화로 인한 압출기 막힘을 방지하기 위해 챔버 온도가 낮아야 하므로 이 옵션을 비활성화(0으로 설정)해야 합니다.\n"
+#~ "\n"
+#~ "활성화된 경우 이 매개변수는 원하는 챔버 온도를 출력 시작 매크로 또는 PRINT_START(기타 변수) CHAMBER_TEMP=[chamber_temperature]와 같은 열 흡수 매크로에 전달하는 데 사용할 수 있는 chamber_temperature라는 G-code 변수도 설정합니다. 이는 프린터가 M141/M191 명령을 지원하지 않거나 활성 챔버 히터가 설치되지 않은 경우 출력 시작 매크로에서 열 흡수를 처리하려는 경우 유용할 수 있습니다."
+
+# AI Translated
+#~ msgid "Add material"
+#~ msgstr "재료 추가"
+
+# AI Translated
+#~ msgid "Fillet / chamfer / draft"
+#~ msgstr "필렛 / 모따기 / 구배"
+
+# AI Translated
+#~ msgid "Reference"
+#~ msgstr "기준"
+
+# AI Translated
+#~ msgid "Array"
+#~ msgstr "배열"
