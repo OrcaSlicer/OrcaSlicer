@@ -1163,7 +1163,6 @@ TEST_CASE("Mixed dependency issues name the component that publishes no material
         REQUIRE(issues.size() == 1);
         CHECK(issues[0].mixed_slot == 0);
         CHECK(issues[0].component_slot == 1);
-        CHECK(issues[0].reason == MixedDependencyIssue::Reason::Disabled);
     }
 
     SECTION("a fully published component clears the issue") {
@@ -1197,7 +1196,6 @@ TEST_CASE("Mixed dependency issues name the component that publishes no material
         selection.set_checked(color_row, true);
         const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project, {});
         REQUIRE(issues.size() == 1);
-        CHECK(issues[0].reason == MixedDependencyIssue::Reason::Disabled);
     }
 
     SECTION("checked key rows alone do not satisfy the mix") {
@@ -1205,7 +1203,6 @@ TEST_CASE("Mixed dependency issues name the component that publishes no material
         selection.set_checked(key_row, true);
         const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project, {});
         REQUIRE(issues.size() == 1);
-        CHECK(issues[0].reason == MixedDependencyIssue::Reason::Disabled);
     }
 
     SECTION("a repeated component is one issue") {

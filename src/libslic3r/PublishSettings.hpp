@@ -123,10 +123,8 @@ struct PublishedMaterialEntry {
 // is not Full-Published. Slots are 0-based.
 struct MixedDependencyIssue
 {
-    enum class Reason { Disabled };
     size_t mixed_slot{0};
     size_t component_slot{0};
-    Reason reason{Reason::Disabled};
 };
 
 // The author's printer_extruder_id and printer_extruder_variant, one entry per per-variant index

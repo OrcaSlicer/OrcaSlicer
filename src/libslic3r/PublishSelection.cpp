@@ -325,7 +325,7 @@ std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSele
             const bool publishes_type = selection.type_row_checked(component_slot, rows) &&
                                         !normalize_filament_type(component_owner->second.filament_type).empty();
             if (!publishes_type && !selection.full_publish(component_slot)) {
-                out.push_back({ size_t(mixed_slot), size_t(component_slot), MixedDependencyIssue::Reason::Disabled });
+                out.push_back({ size_t(mixed_slot), size_t(component_slot) });
                 continue;
             }
         }

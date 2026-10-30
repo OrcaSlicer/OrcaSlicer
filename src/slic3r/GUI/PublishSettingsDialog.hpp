@@ -37,10 +37,8 @@ class wxTextCtrl;
 class wxWindow;
 namespace Slic3r { class DynamicPrintConfig; }
 
-// Forward declarations (all are global classes, see Widgets/TextInput.hpp and
-// Widgets/StaticLine.hpp).
+// Forward declarations (all are global classes, see Widgets/TextInput.hpp).
 class TextInput;
-class StaticLine;
 class CheckBox;
 
 namespace Slic3r { namespace GUI {
@@ -190,10 +188,8 @@ private:
         std::string filament_id;
         // The author's 0-based filament slot this material section represents.
         size_t filament_slot{0};
-        // The slot's preset as the project uses it, and the one the picker last picked. A pick is
-        // assigned to the slot at once; `pending_filament` only names the preset the page was
-        // rebuilt from.
-        std::string filament;
+        // The preset the slot's page was rebuilt from: a pick is assigned to the slot at once, so
+        // this only names the preset the page is drawn from.
         std::string pending_filament;
         // The colour last picked on the badge: it is written to the project at once and kept here
         // as the value the badge and the payload identity show, until another preset is picked.
@@ -277,10 +273,6 @@ private:
     void on_owner_flag_toggle(size_t category_index, Slic3r::PublishRowKind kind);
     // Pushes the model's Color/Type flags into their checkboxes and greys them under Full Publish.
     void sync_owner_flag_widgets(size_t category_index);
-    // Unmet dependencies of publishing mixed-filament slots, one record per (mix, component)
-    // pair: the component's Type row is unchecked and Full Publish is off. Either publishes the
-    // component's material. Sorted by mixed slot, then component slot.
-    std::vector<MixedDependencyIssue> unpublished_mixed_components() const;
     // Read-only visualization of a mixed slot's definition (a stacked ratio bar, or the
     // Material Ratio vs Model Height graph for a gradient), inserted above the info hint
     // inside the category's scroll area.
@@ -289,6 +281,8 @@ private:
     void refresh_mixed_visuals();
     // Return/create the fixed outer page for a Section kind.
     size_t section_group_for(Section kind);
+    // The category's position in its section's category list, or -1 when it is not in it.
+    int section_item_index(size_t category_index) const;
     size_t category_index_for(const wxString& title,
                               Section section,
                               size_t group,
@@ -308,6 +302,8 @@ private:
     // Repaints the slot's badge and tab-strip chip from the colour the project carries (or the
     // colour last picked on the badge) and carries that colour into the payload identity.
     void refresh_slot_colour(size_t category_index);
+    // The payload identity a slot's owner already carries, or an empty one when it has none.
+    Slic3r::PublishOwnerInfo owner_info_for(size_t slot) const;
     // The page of a physical slot, or nullptr.
     Category* material_category(size_t slot);
     // The colour the slot's badge and tab-strip chip show: the colour last picked on the badge
@@ -320,6 +316,8 @@ private:
     void refresh_material_layout();
     // Appends one row drawn by the hosted tab's own Line.
     size_t add_tab_row(Row row, size_t category_index);
+    // Fills the row's unit from the option definition of its first option's key.
+    void set_row_unit_from_options(Row& row) const;
     // Builds a physical slot's rows from its hosted Filament tab's lines, and attaches the publish
     // checkbox to each line they came from.
     void add_material_tab_rows(size_t category_index);
@@ -363,6 +361,9 @@ private:
     // `refresh` is false in a bulk loop, which refreshes the tab indicators once at the end.
     void set_row_checked(size_t row_index, bool checked, bool refresh = true);
     void set_row_enabled(size_t row_index, bool enabled);
+    // Where an edit of the row must be written, or a None target when the row has no writable
+    // owner.
+    Slic3r::PublishWriteLocation write_location_for(size_t row_index) const;
     // Whether a row's value can be written to the project (spec 7.10): the slot must not have Full
     // Publish, and the row must resolve to a real write target. Colour/Type rows have no key, so
     // they are never writable; the flag rows do not gate a key row's edit.
@@ -386,8 +387,9 @@ private:
                          const std::vector<std::string>& dependent_keys,
                          const Slic3r::DynamicPrintConfig& before_handling);
     // The row of `category_index` whose published option `opt_id` names and whose column the tab
-    // currently shows, or size_t(-1) when the field is not a published row.
-    size_t row_for_edit(size_t category_index, const std::string& opt_id) const;
+    // currently shows, or size_t(-1) when the field is not a published row. `out_option` receives
+    // the row's option for `opt_id`.
+    size_t row_for_edit(size_t category_index, const std::string& opt_id, const RowOption** out_option = nullptr) const;
     // Re-reads the project after a write that no sidebar Tab refreshed.
     void refresh_published_plater();
     // The non-structural filament keys of a slot's preset, for a "Full Publish" entry.

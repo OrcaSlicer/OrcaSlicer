@@ -617,8 +617,6 @@ public:
 	int         get_current_active_extruder();
 
 	std::vector<wxString>  generate_extruder_options();
-    // The label the Filament tab's variant switch shows for one variant string.
-    static wxString        filament_variant_label(const std::string& variant);
     NozzleVolumeType       get_actual_nozzle_volume_type(int extruder_id);
 
 protected:
@@ -649,6 +647,8 @@ protected:
 	void			update_preset_description_line();
 	void			update_frequently_changed_parameters();
 	void			set_tooltips_text();
+    // Re-applies a hosted dialog's own row filter after the Tab rewrote its lines' visibility.
+    void            notify_rules_applied();
     void			filter_diff_option(std::vector<std::string> &options);
 
     ConfigManipulation m_config_manipulation;

@@ -128,9 +128,8 @@ std::vector<unsigned int> publish_mixed_components(const DynamicPrintConfig &pro
 
 // Publishing mixed owners whose component filaments publish no material. A component satisfies
 // the mix when one of its Type rows in `rows` is checked and its type is non-empty, or it is
-// Full-Published; only a component with neither, and that is not itself a mixed slot, is an issue,
-// and it is always reported as Disabled. A component the dialog does not show (no registered
-// owner) is never reported.
+// Full-Published; only a component with neither, and that is not itself a mixed slot, is an issue.
+// A component the dialog does not show (no registered owner) is never reported.
 std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSelection &selection,
                                                               const DynamicPrintConfig &project,
                                                               const std::vector<PublishRowId> &rows);

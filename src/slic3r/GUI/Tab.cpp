@@ -131,6 +131,9 @@ t_config_option_keys deep_diff(const ConfigBase &config_this, const ConfigBase &
 
 namespace GUI {
 
+// Forward declaration for early use; the definition lives later in this translation unit.
+static wxString short_nozzle_volume_name(const std::string& volume_name);
+
 namespace
 {
 int mode_to_selection(ConfigOptionMode mode)
@@ -138,6 +141,44 @@ int mode_to_selection(ConfigOptionMode mode)
     return mode == comExpert ? 2 :
            mode == comAdvanced ? 1 :
            0;
+}
+
+// The label the Filament tab's variant switch shows for one variant string
+// ("Direct Drive High Flow" -> "Direct Drive HF").
+wxString filament_variant_label(const std::string& variant)
+{
+    std::string drive, nozzle;
+
+    static std::vector<std::string> known_nozzle_types;
+    if (known_nozzle_types.empty()) {
+        for (auto nvt : get_valid_nozzle_volume_type()) {
+            known_nozzle_types.push_back(get_nozzle_volume_type_string(nvt));
+        }
+        std::sort(known_nozzle_types.begin(), known_nozzle_types.end(),
+            [](const std::string& a, const std::string& b) { return a.size() > b.size(); });
+    }
+    bool found = false;
+    for (const auto& nozzle_type : known_nozzle_types) {
+        if (variant.size() > nozzle_type.size() &&
+            variant.substr(variant.size() - nozzle_type.size()) == nozzle_type &&
+            variant[variant.size() - nozzle_type.size() - 1] == ' ') {
+            drive = variant.substr(0, variant.size() - nozzle_type.size() - 1);
+            nozzle = nozzle_type;
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        size_t pos = variant.rfind(' ');
+        if (pos != std::string::npos) {
+            drive = variant.substr(0, pos);
+            nozzle = variant.substr(pos + 1);
+        } else {
+            drive = variant;
+            nozzle = "";
+        }
+    }
+    return wxString::Format("%s %s", _L(drive), short_nozzle_volume_name(nozzle));
 }
 }
 
@@ -2073,6 +2114,12 @@ void Tab::update_mode()
     update_changed_tree_ui();
 }
 
+void Tab::notify_rules_applied()
+{
+    if (m_publish_host && m_on_rules_applied)
+        m_on_rules_applied();
+}
+
 void Tab::update_visibility()
 {
     Freeze(); // There is needed Freeze/Thaw to avoid a flashing after Show/Layout
@@ -2082,8 +2129,7 @@ void Tab::update_visibility()
     rebuild_page_tree();
 
     // The Tab rewrote its lines' visibility; a hosted dialog re-applies its own filter on top.
-    if (m_publish_host && m_on_rules_applied)
-        m_on_rules_applied();
+    notify_rules_applied();
 
     if (m_type == Preset::TYPE_SLA_PRINT)
         update_description_lines();
@@ -2327,8 +2373,7 @@ void Tab::load_key_value(const std::string& opt_key, const boost::any& value, bo
         if (m_active_page)
             m_active_page->update_visibility(m_mode, true);
         // toggle_options()/update_visibility() rewritten the lines: re-apply the host's filter.
-        if (m_on_rules_applied)
-            m_on_rules_applied();
+        notify_rules_applied();
         return;
     }
     // Mark the print & filament enabled if they are compatible with the currently selected preset.
@@ -2446,14 +2491,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                     overrides_field->set_value(boost::any(m_config->opt_string(overrides_key)), false);
             }
         }
-    };
 
-    if (m_publish_host) {
-        // A publish tab stages its edit in its private preset: refresh its own rows and marks and
-        // leave the app's presets, dependent tabs, sidebar and the Plater untouched. The keys that
-        // handling rewrites here have to reach the host's real preset too, or the row would show
-        // one value while the preset (and the exported payload) keeps the old one.
-        apply_tab_local_writes();
         if (opt_key == "gcode_flavor" && m_type == Preset::TYPE_PRINTER) {
             if (auto printer_tab = dynamic_cast<TabPrinter*>(this))
                 printer_tab->on_gcode_flavor_changed();
@@ -2462,6 +2500,14 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             this->compatible_widget_reload(m_compatible_prints);
         if (opt_key == "compatible_printers")
             this->compatible_widget_reload(m_compatible_printers);
+    };
+
+    if (m_publish_host) {
+        // A publish tab stages its edit in its private preset: refresh its own rows and marks and
+        // leave the app's presets, dependent tabs, sidebar and the Plater untouched. The keys that
+        // handling rewrites here have to reach the host's real preset too, or the row would show
+        // one value while the preset (and the exported payload) keeps the old one.
+        apply_tab_local_writes();
 
         if (m_postpone_update_ui)
             return;
@@ -2475,8 +2521,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         // value as they do in the sidebar.
         update_dirty();
         // update()/update_visibility() rewrote the lines: re-apply the host's filter.
-        if (m_on_rules_applied)
-            m_on_rules_applied();
+        notify_rules_applied();
         // The host applies the edit to the real preset or project at once (spec 7.10); the keys this
         // tab's own handling rewrote (a paired option, a validator's correction) go with it, and the
         // pre-edit config tells the host which of them another tab may have changed meanwhile.
@@ -2525,16 +2570,6 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             return;
         }
     }
-
-    if (opt_key == "gcode_flavor" && m_type == Preset::TYPE_PRINTER) {
-        if (auto printer_tab = dynamic_cast<TabPrinter*>(this))
-            printer_tab->on_gcode_flavor_changed();
-    }
-
-    if (opt_key == "compatible_prints")
-        this->compatible_widget_reload(m_compatible_prints);
-    if (opt_key == "compatible_printers")
-        this->compatible_widget_reload(m_compatible_printers);
 
     const bool is_fff = supports_printer_technology(ptFFF);
     ConfigOptionsGroup* og_freq_chng_params = wxGetApp().sidebar().og_freq_chng_params(is_fff);
@@ -8369,8 +8404,7 @@ void Tab::activate_selected_page(std::function<void()> throw_if_canceled)
         toggle_options();
     m_active_page->update_visibility(m_mode, true); // for taggle line
     // The Tab rewrote its lines' visibility; a hosted dialog re-applies its own filter on top.
-    if (m_publish_host && m_on_rules_applied)
-        m_on_rules_applied();
+    notify_rules_applied();
 }
 
 //BBS: GUI refactor
@@ -9422,44 +9456,6 @@ static wxString short_nozzle_volume_name(const std::string &volume_name)
         // TRN Short tag for the Extra High Flow nozzle flow type.
         return _L_CONTEXT("XHF", "Nozzle flow type");
     return from_u8(volume_name);
-}
-
-// The label the Filament tab's variant switch shows for one variant string
-// ("Direct Drive High Flow" -> "Direct Drive HF").
-wxString Tab::filament_variant_label(const std::string& variant)
-{
-    std::string drive, nozzle;
-
-    static std::vector<std::string> known_nozzle_types;
-    if (known_nozzle_types.empty()) {
-        for (auto nvt : get_valid_nozzle_volume_type()) {
-            known_nozzle_types.push_back(get_nozzle_volume_type_string(nvt));
-        }
-        std::sort(known_nozzle_types.begin(), known_nozzle_types.end(),
-            [](const std::string& a, const std::string& b) { return a.size() > b.size(); });
-    }
-    bool found = false;
-    for (const auto& nozzle_type : known_nozzle_types) {
-        if (variant.size() > nozzle_type.size() &&
-            variant.substr(variant.size() - nozzle_type.size()) == nozzle_type &&
-            variant[variant.size() - nozzle_type.size() - 1] == ' ') {
-            drive = variant.substr(0, variant.size() - nozzle_type.size() - 1);
-            nozzle = nozzle_type;
-            found = true;
-            break;
-        }
-    }
-    if (!found) {
-        size_t pos = variant.rfind(' ');
-        if (pos != std::string::npos) {
-            drive = variant.substr(0, pos);
-            nozzle = variant.substr(pos + 1);
-        } else {
-            drive = variant;
-            nozzle = "";
-        }
-    }
-    return wxString::Format("%s %s", _L(drive), short_nozzle_volume_name(nozzle));
 }
 
 std::vector<wxString> Tab::generate_extruder_options()
