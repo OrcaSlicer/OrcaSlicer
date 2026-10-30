@@ -83,11 +83,23 @@ public:
     bool type_row_checked(int owner, const std::vector<PublishRowId> &rows) const;
 
 private:
-    std::map<PublishRowId, bool> m_checked;
-    std::map<PublishRowId, bool> m_enabled;
-    std::map<int, PublishOwnerInfo> m_owners;
-    std::map<int, bool> m_owner_published;
-    std::map<int, bool> m_full;
+    // A row's dialog state. The two flags are set independently, so a row that has never been set
+    // keeps the defaults.
+    struct RowState
+    {
+        bool checked{false};
+        bool enabled{true};
+    };
+    // An owner's publish switches: the mixed slot's publish checkbox and Full Publish.
+    struct OwnerState
+    {
+        bool published{false};
+        bool full{false};
+    };
+
+    std::map<PublishRowId, RowState> m_row_states;
+    std::map<int, PublishOwnerInfo>  m_owners;
+    std::map<int, OwnerState>        m_owner_states;
 };
 
 // Where an edit to a publish row has to be written so the project's real presets carry it (spec

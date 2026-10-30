@@ -22,6 +22,7 @@
 
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PublishSelection.hpp"
 #include "libslic3r/PublishSettings.hpp"
 #include "libslic3r/FilamentMixer.hpp"
@@ -134,10 +135,6 @@ const std::set<std::string>& publish_material_identity_keys()
     };
     return keys;
 }
-
-// A control that performs an action (a colour picker, a plugin dialog, a device picker) is not a
-// value published per key: it gets no row and no publish checkbox.
-bool is_publish_action(const ConfigOptionDef& def) { return Slic3r::publish_is_action_control(def); }
 
 // Whether `key` exists in `config` and, when `index` addresses a vector entry, that entry exists:
 // the way the export path masks a slot or file column before keying a row by it.
@@ -1816,11 +1813,16 @@ std::string PublishSettingsDialog::staged_badge_color(const Category& category, 
     return filament_color_hex(full, category.filament_slot);
 }
 
+bool PublishSettingsDialog::material_category_matches(const Category& cat, bool mixed, size_t slot)
+{
+    return cat.section == Section::Material && cat.is_mixed == mixed && (slot == size_t(-1) || cat.filament_slot == slot);
+}
+
 PublishSettingsDialog::Category* PublishSettingsDialog::material_category(size_t slot)
 {
     for (size_t c = 0; c < m_categories.size(); ++c) {
         Category& candidate = m_categories[c];
-        if (candidate.section == Section::Material && !candidate.is_mixed && candidate.filament_slot == slot)
+        if (material_category_matches(candidate, false, slot))
             return &candidate;
     }
     return nullptr;
@@ -2118,11 +2120,9 @@ void PublishSettingsDialog::set_row_unit_from_options(Row& row) const
 
 size_t PublishSettingsDialog::add_tab_row(Row row, size_t category_index)
 {
-    Category& category  = m_categories[category_index];
-    row.category        = category.title;
-    row.section_title   = m_sections[category.group].title;
-    row.outer_index     = category.group;
-    row.inner_index     = category_index;
+    Category& category = m_categories[category_index];
+    row.category       = category.title;
+    row.inner_index    = category_index;
     const size_t row_index = m_rows.size();
     m_rows.push_back(std::move(row));
     m_row_ids.push_back(m_rows.back().id);
@@ -2159,7 +2159,8 @@ void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
                 std::vector<RowOption>   slot_options;
                 for (const Option& option : src.get_options()) {
                     const std::string base = publish_base_key(option.opt_id);
-                    if (denylist.count(base) != 0 || identity.count(base) != 0 || is_publish_action(option.opt))
+                    if (denylist.count(base) != 0 || identity.count(base) != 0 ||
+                        Slic3r::publish_is_action_control(option.opt))
                         continue;
                     // Without a variant layout the key stays slot-indexed, as the legacy export
                     // path masks it.
@@ -2404,7 +2405,8 @@ void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
                 std::vector<RowOption> options;
                 for (const Option& option : src.get_options()) {
                     const std::string base = publish_base_key(option.opt_id);
-                    if (allow.count(base) == 0 || denylist.count(base) != 0 || is_publish_action(option.opt))
+                    if (allow.count(base) == 0 || denylist.count(base) != 0 ||
+                        Slic3r::publish_is_action_control(option.opt))
                         continue;
                     if (std::none_of(options.begin(), options.end(), [&base](const RowOption& o) { return o.key == base; }))
                         options.push_back({base, -1});
@@ -2516,7 +2518,7 @@ void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
                     const ConfigOptionDef* def  = print_config_def.get(base);
                     // Unknown, structural or action options carry no publish checkbox, and a row
                     // needs a label to filter on.
-                    if (def == nullptr || denylist.count(base) != 0 || is_publish_action(option.opt))
+                    if (def == nullptr || denylist.count(base) != 0 || Slic3r::publish_is_action_control(option.opt))
                         continue;
                     if (_(def->full_label.empty() ? def->label : def->full_label).IsEmpty())
                         continue;
@@ -2762,19 +2764,17 @@ void PublishSettingsDialog::refresh_tab_label_colours()
     for (size_t s = 0; s < m_sections.size(); ++s) {
         SectionGroup& section = m_sections[s];
         bool          any     = false;
-        for (size_t i = 0; i < section.categories.size(); ++i) {
-            const Category& cat = m_categories[section.categories[i]];
-            section.tabs->SetItemTextColour(static_cast<unsigned int>(i),
-                                            item_colour(cat.publish_tab, cat.modified, *default_clr, *modified_clr));
-            any = any || cat.modified;
-        }
-        if (section.mixed_tabs != nullptr)
-            for (size_t i = 0; i < section.mixed_categories.size(); ++i) {
-                const Category& cat = m_categories[section.mixed_categories[i]];
-                section.mixed_tabs->SetItemTextColour(static_cast<unsigned int>(i),
-                                                      item_colour(cat.publish_tab, cat.modified, *default_clr, *modified_clr));
+        auto colour_items     = [&](const std::vector<size_t>& items, TabCtrl* tabs) {
+            for (size_t i = 0; i < items.size(); ++i) {
+                const Category& cat = m_categories[items[i]];
+                tabs->SetItemTextColour(static_cast<unsigned int>(i),
+                                        item_colour(cat.publish_tab, cat.modified, *default_clr, *modified_clr));
                 any = any || cat.modified;
             }
+        };
+        colour_items(section.categories, section.tabs);
+        if (section.mixed_tabs != nullptr)
+            colour_items(section.mixed_categories, section.mixed_tabs);
         m_outer_tabs->SetItemTextColour(static_cast<unsigned int>(s),
                                         item_colour(nullptr, any, *default_clr, *modified_clr));
     }
@@ -3151,7 +3151,7 @@ void PublishSettingsDialog::on_owner_toggle(size_t category_index)
             const size_t component_slot = size_t(component) - 1;
             for (size_t c = 0; c < m_categories.size(); ++c) {
                 Category& comp_cat = m_categories[c];
-                if (comp_cat.section != Section::Material || comp_cat.is_mixed || comp_cat.filament_slot != component_slot)
+                if (!material_category_matches(comp_cat, false, component_slot))
                     continue;
                 if (comp_cat.full_check != nullptr) {
                     // Only the ones this dialog publishes are recorded: a component the author
@@ -3190,8 +3190,8 @@ void PublishSettingsDialog::on_owner_toggle(size_t category_index)
                 continue; // its entry stays: the other mix still needs the slot published
             for (size_t c = 0; c < m_categories.size(); ++c) {
                 Category& comp_cat = m_categories[c];
-                if (comp_cat.section != Section::Material || comp_cat.is_mixed || comp_cat.filament_slot != slot ||
-                    comp_cat.full_check == nullptr || !comp_cat.full_check->GetValue())
+                if (!material_category_matches(comp_cat, false, slot) || comp_cat.full_check == nullptr ||
+                    !comp_cat.full_check->GetValue())
                     continue;
                 comp_cat.full_check->SetValue(false);
                 on_full_toggle(c);
@@ -3405,60 +3405,40 @@ void PublishSettingsDialog::show_outer_page(size_t section_index)
     section.page->Show();
     // Restore whichever tab row (physical or mixed) was active.
     if (section.selected_inner >= 0)
-        show_inner_page(section_index, section.selected_inner);
+        show_category_page(section_index, false, section.selected_inner);
     else if (section.selected_mixed >= 0)
-        show_mixed_page(section_index, section.selected_mixed);
+        show_category_page(section_index, true, section.selected_mixed);
     m_outer_host_sizer->Layout();
 }
 
-void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_index)
+void PublishSettingsDialog::show_category_page(size_t section_index, bool mixed, int index)
 {
     if (section_index >= m_sections.size())
         return;
     SectionGroup& section = m_sections[section_index];
-    if (inner_index < 0 || inner_index >= static_cast<int>(section.categories.size()))
+    std::vector<size_t>& items       = mixed ? section.mixed_categories : section.categories;
+    std::vector<size_t>& other_items = mixed ? section.categories : section.mixed_categories;
+    int&                 selected    = mixed ? section.selected_mixed : section.selected_inner;
+    int&                 other       = mixed ? section.selected_inner : section.selected_mixed;
+    TabCtrl*             other_tabs  = mixed ? section.tabs : section.mixed_tabs;
+    if (index < 0 || index >= static_cast<int>(items.size()))
         return;
-    if (section.selected_inner >= 0 && section.selected_inner < static_cast<int>(section.categories.size())) {
-        save_scroll_position(m_categories[section.categories[section.selected_inner]]);
-        m_categories[section.categories[section.selected_inner]].page->Hide();
+    if (selected >= 0 && selected < static_cast<int>(items.size())) {
+        save_scroll_position(m_categories[items[selected]]);
+        m_categories[items[selected]].page->Hide();
     }
-    if (section.selected_mixed >= 0 && section.selected_mixed < static_cast<int>(section.mixed_categories.size())) {
-        save_scroll_position(m_categories[section.mixed_categories[section.selected_mixed]]);
-        m_categories[section.mixed_categories[section.selected_mixed]].page->Hide();
-        section.selected_mixed = -1;
+    if (other >= 0 && other < static_cast<int>(other_items.size())) {
+        save_scroll_position(m_categories[other_items[other]]);
+        m_categories[other_items[other]].page->Hide();
+        other = -1;
     }
-    section.selected_inner = inner_index;
-    Category& category     = m_categories[section.categories[inner_index]];
+    selected           = index;
+    Category& category = m_categories[items[index]];
     category.page->Show();
     category.scroll->FitInside();
     category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
-    if (section.mixed_tabs != nullptr)
-        section.mixed_tabs->Unselect();
-    section.page_host_sizer->Layout();
-}
-
-void PublishSettingsDialog::show_mixed_page(size_t section_index, int mixed_index)
-{
-    if (section_index >= m_sections.size())
-        return;
-    SectionGroup& section = m_sections[section_index];
-    if (mixed_index < 0 || mixed_index >= static_cast<int>(section.mixed_categories.size()))
-        return;
-    if (section.selected_mixed >= 0 && section.selected_mixed < static_cast<int>(section.mixed_categories.size())) {
-        save_scroll_position(m_categories[section.mixed_categories[section.selected_mixed]]);
-        m_categories[section.mixed_categories[section.selected_mixed]].page->Hide();
-    }
-    if (section.selected_inner >= 0 && section.selected_inner < static_cast<int>(section.categories.size())) {
-        save_scroll_position(m_categories[section.categories[section.selected_inner]]);
-        m_categories[section.categories[section.selected_inner]].page->Hide();
-        section.selected_inner = -1;
-    }
-    section.selected_mixed = mixed_index;
-    Category& category     = m_categories[section.mixed_categories[mixed_index]];
-    category.page->Show();
-    category.scroll->FitInside();
-    category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
-    section.tabs->Unselect();
+    if (other_tabs != nullptr)
+        other_tabs->Unselect();
     section.page_host_sizer->Layout();
 }
 
@@ -3473,7 +3453,7 @@ void PublishSettingsDialog::on_inner_tab_changed(size_t section_index, wxCommand
 {
     const int selection = event.GetInt();
     if (section_index < m_sections.size() && selection >= 0 && selection < static_cast<int>(m_sections[section_index].categories.size()))
-        show_inner_page(section_index, selection);
+        show_category_page(section_index, false, selection);
 }
 
 void PublishSettingsDialog::on_mixed_tab_changed(size_t section_index, wxCommandEvent& event)
@@ -3481,7 +3461,7 @@ void PublishSettingsDialog::on_mixed_tab_changed(size_t section_index, wxCommand
     const int selection = event.GetInt();
     if (section_index < m_sections.size() && selection >= 0 &&
         selection < static_cast<int>(m_sections[section_index].mixed_categories.size()))
-        show_mixed_page(section_index, selection);
+        show_category_page(section_index, true, selection);
 }
 
 void PublishSettingsDialog::bind_tab_events()
@@ -3528,7 +3508,8 @@ void PublishSettingsDialog::refresh_filter(const wxString& filter)
     } else {
         const bool clear = filter.IsEmpty();
         for (Row& row : m_rows) {
-            row.matches_filter = clear || (row.section_title + " " + row.category + " " + row.subcategory + " " + row.label + " " +
+            const wxString& section_title = m_sections[m_categories[row.inner_index].group].title;
+            row.matches_filter = clear || (section_title + " " + row.category + " " + row.subcategory + " " + row.label + " " +
                                            row.value + " " + row.unit)
                                               .Lower()
                                               .Contains(filter);
@@ -3574,7 +3555,7 @@ void PublishSettingsDialog::refresh_filter(const wxString& filter)
             show_outer_page(first_outer);
         }
         m_sections[first_outer].tabs->SelectItem(first_inner);
-        show_inner_page(first_outer, first_inner);
+        show_category_page(first_outer, false, first_inner);
     }
 
     apply_visibility();
@@ -3708,7 +3689,8 @@ bool PublishSettingsDialog::row_is_visible(size_t row_index) const
 {
     const Row& row = m_rows[row_index];
     if (m_selected_outer < 0 || m_selected_outer >= static_cast<int>(m_sections.size()) ||
-        row.outer_index != static_cast<size_t>(m_selected_outer) || m_sections[m_selected_outer].selected_inner < 0 ||
+        m_categories[row.inner_index].group != static_cast<size_t>(m_selected_outer) ||
+        m_sections[m_selected_outer].selected_inner < 0 ||
         m_sections[m_selected_outer].selected_inner >= static_cast<int>(m_sections[m_selected_outer].categories.size()) ||
         row.inner_index != m_sections[m_selected_outer].categories[m_sections[m_selected_outer].selected_inner] || !row.matches_filter ||
         !m_selection.enabled(row.id) || !row_on_selected_variant(row_index))
@@ -3853,7 +3835,7 @@ void PublishSettingsDialog::apply_selection(const std::vector<std::string>& publ
         size_t cat_idx = size_t(-1);
         for (size_t c = 0; c < m_categories.size(); ++c) {
             const Category& cat = m_categories[c];
-            if (cat.section != Section::Material || cat.is_mixed != entry_mixed || cat.filament_slot != size_t(entry.slot))
+            if (!material_category_matches(cat, entry_mixed, size_t(entry.slot)))
                 continue;
             cat_idx = c;
             break;
@@ -3963,20 +3945,20 @@ void PublishSettingsDialog::refresh_tab_indicators()
 {
     for (size_t s = 0; s < m_sections.size(); ++s) {
         SectionGroup& section = m_sections[s];
-        bool any              = false;
-        for (size_t i = 0; i < section.categories.size(); ++i) {
-            const size_t c  = section.categories[i];
-            const bool   on = category_has_selection(m_categories[c]);
-            section.tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
-            refresh_page_indicators(c);
-            any = any || on;
-        }
-        if (section.mixed_tabs != nullptr)
-            for (size_t i = 0; i < section.mixed_categories.size(); ++i) {
-                const bool on = category_has_selection(m_categories[section.mixed_categories[i]]);
-                section.mixed_tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
+        bool          any     = false;
+        auto mark_items       = [&](const std::vector<size_t>& items, TabCtrl* tabs, bool page_dots) {
+            for (size_t i = 0; i < items.size(); ++i) {
+                const size_t c  = items[i];
+                const bool   on = category_has_selection(m_categories[c]);
+                tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
+                if (page_dots)
+                    refresh_page_indicators(c);
                 any = any || on;
             }
+        };
+        mark_items(section.categories, section.tabs, true);
+        if (section.mixed_tabs != nullptr)
+            mark_items(section.mixed_categories, section.mixed_tabs, false);
         m_outer_tabs->SetItemIndicator(static_cast<unsigned int>(s), any);
     }
 }
@@ -4119,7 +4101,7 @@ void PublishSettingsDialog::on_sys_color_changed()
     // A flag row resolves its label colours at sync time, so the theme pass has to re-run it or an
     // open dialog keeps the previous theme's normal and dimmed label colours.
     for (size_t c = 0; c < m_categories.size(); ++c)
-        if (m_categories[c].section == Section::Material && !m_categories[c].is_mixed)
+        if (material_category_matches(m_categories[c], false))
             sync_owner_flag_widgets(c);
     Refresh();
 }

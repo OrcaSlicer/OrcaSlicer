@@ -117,8 +117,6 @@ private:
         wxString              subcategory;         // optgroup heading, filter text only
         wxString              value;               // first option's value as shown, for the filter
         wxString              unit;
-        wxString              section_title;       // outer tab title, for filter matching
-        size_t                outer_index{0};
         size_t                inner_index{0};
         bool                  matches_filter{false}; // survives the active filter
     };
@@ -304,6 +302,9 @@ private:
     void refresh_slot_colour(size_t category_index);
     // The payload identity a slot's owner already carries, or an empty one when it has none.
     Slic3r::PublishOwnerInfo owner_info_for(size_t slot) const;
+    // Whether `cat` is a Material category of the wanted kind (mixed or physical), optionally
+    // restricted to one slot; size_t(-1) matches any slot.
+    static bool material_category_matches(const Category& cat, bool mixed, size_t slot = size_t(-1));
     // The page of a physical slot, or nullptr.
     Category* material_category(size_t slot);
     // The colour the slot's badge and tab-strip chip show: the colour last picked on the badge
@@ -396,8 +397,9 @@ private:
     std::vector<std::string> full_keys_for_slot() const;
     void save_scroll_position(Category& category);
     void show_outer_page(size_t section_index);
-    void show_inner_page(size_t section_index, int inner_index);
-    void show_mixed_page(size_t section_index, int mixed_index);
+    // Shows the section's physical (mixed == false) or mixed (mixed == true) category page at
+    // `index`, hiding the previously shown page of either list.
+    void show_category_page(size_t section_index, bool mixed, int index);
     void on_outer_tab_changed(wxCommandEvent& event);
     void on_inner_tab_changed(size_t section_index, wxCommandEvent& event);
     void on_mixed_tab_changed(size_t section_index, wxCommandEvent& event);

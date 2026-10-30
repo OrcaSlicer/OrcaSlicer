@@ -29,46 +29,46 @@ void PublishSelection::set_owner_info(int owner, PublishOwnerInfo info)
 
 void PublishSelection::set_owner_published(int owner, bool published)
 {
-    m_owner_published[owner] = published;
+    m_owner_states[owner].published = published;
 }
 
 bool PublishSelection::owner_published(int owner) const
 {
-    const auto it = m_owner_published.find(owner);
-    return it == m_owner_published.end() ? false : it->second;
+    const auto it = m_owner_states.find(owner);
+    return it == m_owner_states.end() ? false : it->second.published;
 }
 
 void PublishSelection::set_full_publish(int owner, bool full)
 {
-    m_full[owner] = full;
+    m_owner_states[owner].full = full;
 }
 
 bool PublishSelection::full_publish(int owner) const
 {
-    const auto it = m_full.find(owner);
-    return it == m_full.end() ? false : it->second;
+    const auto it = m_owner_states.find(owner);
+    return it == m_owner_states.end() ? false : it->second.full;
 }
 
 void PublishSelection::set_checked(const PublishRowId &row, bool checked)
 {
-    m_checked[row] = checked;
+    m_row_states[row].checked = checked;
 }
 
 bool PublishSelection::checked(const PublishRowId &row) const
 {
-    const auto it = m_checked.find(row);
-    return it == m_checked.end() ? false : it->second;
+    const auto it = m_row_states.find(row);
+    return it == m_row_states.end() ? false : it->second.checked;
 }
 
 void PublishSelection::set_enabled(const PublishRowId &row, bool enabled)
 {
-    m_enabled[row] = enabled;
+    m_row_states[row].enabled = enabled;
 }
 
 bool PublishSelection::enabled(const PublishRowId &row) const
 {
-    const auto it = m_enabled.find(row);
-    return it == m_enabled.end() ? true : it->second;
+    const auto it = m_row_states.find(row);
+    return it == m_row_states.end() ? true : it->second.enabled;
 }
 
 const std::map<int, PublishOwnerInfo> &PublishSelection::owners() const
@@ -87,6 +87,37 @@ std::vector<std::string> PublishSelection::published_keys(const std::vector<Publ
     return out;
 }
 
+// The values one owner's checked and enabled Material rows carry. Keys, colour and type are
+// independent of each other; whether the owner has a value to put in them is the caller's rule.
+struct PublishRowValues
+{
+    std::vector<std::string> keys; // every key row's keys, in row order
+    bool                     colour{false};
+    bool                     type{false};
+};
+
+// Walks the rows once for both rules: owner_publishes asks whether any value is present,
+// material_entries takes the keys and the two flags.
+static PublishRowValues publish_row_values(const PublishSelection &selection, int owner,
+                                           const std::vector<PublishRowId> &rows)
+{
+    PublishRowValues out;
+    for (const PublishRowId &row : rows) {
+        if (row.section != PublishSection::Material || row.owner != owner)
+            continue;
+        if (!selection.checked(row) || !selection.enabled(row))
+            continue;
+        if (row.kind == PublishRowKind::Color) {
+            out.colour = true;
+        } else if (row.kind == PublishRowKind::Type) {
+            out.type = true;
+        } else {
+            out.keys.insert(out.keys.end(), row.keys.begin(), row.keys.end());
+        }
+    }
+    return out;
+}
+
 bool PublishSelection::owner_publishes(int owner, const std::vector<PublishRowId> &rows) const
 {
     const auto owner_info = m_owners.find(owner);
@@ -100,21 +131,10 @@ bool PublishSelection::owner_publishes(int owner, const std::vector<PublishRowId
         return true;
     // A physical slot publishes through a checked row that carries a value: a key row's keys, or a
     // Color/Type row whose owner value is non-empty.
-    bool keys   = false;
-    bool colour = false;
-    bool type   = false;
-    for (const PublishRowId &row : rows) {
-        if (row.section != PublishSection::Material || row.owner != owner || !checked(row) || !enabled(row))
-            continue;
-        if (row.kind == PublishRowKind::Color)
-            colour = true;
-        else if (row.kind == PublishRowKind::Type)
-            type = true;
-        else
-            keys = keys || !row.keys.empty();
-    }
-    return keys || (colour && !owner_info->second.colour.empty()) ||
-           (type && !normalize_filament_type(owner_info->second.filament_type).empty());
+    const PublishRowValues values = publish_row_values(*this, owner, rows);
+    const bool             keys   = !values.keys.empty();
+    return keys || (values.colour && !owner_info->second.colour.empty()) ||
+           (values.type && !normalize_filament_type(owner_info->second.filament_type).empty());
 }
 
 bool PublishSelection::type_row_checked(int owner, const std::vector<PublishRowId> &rows) const
@@ -170,29 +190,16 @@ std::vector<PublishedMaterialEntry> PublishSelection::material_entries(const std
         // A physical slot's colour and type are their own flagged rows, published independently of
         // its keys, so a slot with key rows only ships no identity. owner_publishes has ensured at
         // least one of keys, colour and type is present.
-        bool colour = false;
-        bool type   = false;
-        for (const PublishRowId &row : rows) {
-            if (row.section != PublishSection::Material || row.owner != owner)
-                continue;
-            if (!checked(row) || !enabled(row))
-                continue;
-            if (row.kind == PublishRowKind::Color) {
-                colour = true;
-            } else if (row.kind == PublishRowKind::Type) {
-                type = true;
-            } else {
-                // Keys are publish-ready: a bare base key is resolved to its column by
-                // publish_normalize_material_entries.
-                entry.keys.insert(entry.keys.end(), row.keys.begin(), row.keys.end());
-            }
-        }
-        if (colour && !info.colour.empty()) {
+        PublishRowValues values = publish_row_values(*this, owner, rows);
+        // Keys are publish-ready: a bare base key is resolved to its column by
+        // publish_normalize_material_entries.
+        entry.keys = std::move(values.keys);
+        if (values.colour && !info.colour.empty()) {
             entry.publish_color = true;
             entry.color         = info.colour;
         }
         const std::string type_value = normalize_filament_type(info.filament_type);
-        if (type && !type_value.empty()) {
+        if (values.type && !type_value.empty()) {
             entry.publish_type       = true;
             entry.publish_type_value = type_value;
         }

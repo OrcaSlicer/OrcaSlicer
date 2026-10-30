@@ -246,6 +246,22 @@ std::string publish_variant_notice(const DynamicPrintConfig &uncompacted, size_t
         .str();
 }
 
+// A caller-supplied variant column must address `slot`. In a real layout that means one of the
+// slot's file columns; an identity layout has one column per slot, so the slot index is the column.
+// publish_normalize_material_entries never asks that of an identity layout - it leaves such keys
+// untouched - so the fallback only serves the filter's slot masking.
+static bool publish_column_in_slot(const std::vector<size_t> &columns, int slot, int column)
+{
+    if (column < 0)
+        return false;
+    if (columns.empty())
+        return column == slot;
+    return std::find(columns.begin(), columns.end(), size_t(column)) != columns.end();
+}
+
+// Why both column checks drop a caller-supplied column.
+static constexpr const char *PUBLISH_COLUMN_OUT_OF_SLOT_REASON = " (the column belongs to another slot or is out of range)";
+
 void publish_normalize_material_entries(std::vector<PublishedMaterialEntry> &entries,
                                         const DynamicPrintConfig &uncompacted,
                                         std::vector<std::string> *notices)
@@ -282,9 +298,6 @@ void publish_normalize_material_entries(std::vector<PublishedMaterialEntry> &ent
             }
         }
 
-        auto in_slot = [&columns](int column) {
-            return column >= 0 && std::find(columns.begin(), columns.end(), size_t(column)) != columns.end();
-        };
         std::vector<std::string> keys;
         keys.reserve(entry.keys.size());
         std::set<std::string> seen;
@@ -294,9 +307,9 @@ void publish_normalize_material_entries(std::vector<PublishedMaterialEntry> &ent
             if (publish_is_variant_bearing(base)) {
                 if (const int column = publish_key_index(key); column >= 0) {
                     // A caller-supplied column must address this slot; never ship another slot's value.
-                    if (!in_slot(column)) {
-                        BOOST_LOG_TRIVIAL(warning) << "publish: dropping \"" << key << "\" from slot " << (entry.slot + 1)
-                                                   << " (the column belongs to another slot or is out of range)";
+                    if (!publish_column_in_slot(columns, entry.slot, column)) {
+                        BOOST_LOG_TRIVIAL(warning) << "publish: dropping \"" << key << "\" from slot "
+                                                   << (entry.slot + 1) << PUBLISH_COLUMN_OUT_OF_SLOT_REASON;
                         continue;
                     }
                 } else {
@@ -610,11 +623,9 @@ DynamicPrintConfig filter_published_config(
         const int                 supplied = publish_key_index(key);
         if (supplied >= 0) {
             // A caller-supplied column must address this slot; never ship another slot's value.
-            const bool valid = columns.empty() ? supplied == entry.slot :
-                                                 std::find(columns.begin(), columns.end(), size_t(supplied)) != columns.end();
-            if (!valid) {
-                BOOST_LOG_TRIVIAL(warning) << "publish: dropping material key \"" << key << "\" of slot " << (entry.slot + 1)
-                                           << " (the column belongs to another slot or is out of range)";
+            if (!publish_column_in_slot(columns, entry.slot, supplied)) {
+                BOOST_LOG_TRIVIAL(warning) << "publish: dropping material key \"" << key << "\" of slot "
+                                           << (entry.slot + 1) << PUBLISH_COLUMN_OUT_OF_SLOT_REASON;
                 return;
             }
         }

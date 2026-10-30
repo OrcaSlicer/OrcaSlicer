@@ -2,11 +2,14 @@
 #define slic3r_GUI_PublishTabs_hpp_
 
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include "ParamsPanel.hpp"
 #include "Tab.hpp"
+
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 namespace GUI {
@@ -16,7 +19,7 @@ namespace GUI {
 class PublishParamsPanel : public ParamsPanel
 {
 public:
-    explicit PublishParamsPanel(wxWindow *parent);
+    using ParamsPanel::ParamsPanel;
     ~PublishParamsPanel();
 
     // Lays out `tab` and activates its first page. Call after Tab::create_publish_tab().
@@ -27,20 +30,27 @@ private:
     Tab *m_publish_tab{nullptr};
 };
 
-// A settings Tab over a dialog-owned PresetCollection. Construct, then call
-// create_publish_tab(seed_config) before handing the tab to PublishParamsPanel.
+// A settings Tab over a dialog-owned PresetCollection holding only the default preset of the tab's
+// own type, over that type's option keys. Construct, then call create_publish_tab(seed_config)
+// before handing the tab to PublishParamsPanel.
 //
 // Teardown invariant, for all three subclasses below: the pages have to be cleared while
-// m_presets_private is still alive. Every Page::m_config points into it, and because
-// m_presets_private is a member of the derived class it dies before ~Tab runs, so the destructors
-// cannot do the clearing themselves - by then clear_pages() would reach a host that has already
-// been destroyed. PublishParamsPanel therefore clears the pages before it lets go of the tab, in
-// ~PublishParamsPanel and in set_publish_tab(). A new owner of a publish tab has to do the same.
-class PublishTabFilament : public TabFilament
+// m_presets_private is still alive. Every Page::m_config points into it, and because it is a member
+// of this base it dies before ~Tab runs, so the destructors cannot do the clearing themselves - by
+// then clear_pages() would reach a host that has already been destroyed. PublishParamsPanel
+// therefore clears the pages before it lets go of the tab, in ~PublishParamsPanel and in
+// set_publish_tab(). A new owner of a publish tab has to do the same.
+template <class TabBase>
+class PublishTabWithPresets : public TabBase
 {
 public:
-    explicit PublishTabFilament(ParamsPanel *host);
-    void build() override;
+    // `keys` and `default_name` describe the collection; `tab_args` are TabBase's own.
+    template <class... TabArgs>
+    PublishTabWithPresets(Preset::Type type, const std::vector<std::string> &keys, const std::string &default_name, TabArgs &&...tab_args)
+        : TabBase(std::forward<TabArgs>(tab_args)...)
+        , m_presets_private(type, keys, static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()), default_name)
+    {
+    }
 
 protected:
     PresetCollection *publish_presets() override { return &m_presets_private; }
@@ -49,7 +59,14 @@ private:
     PresetCollection m_presets_private;
 };
 
-class PublishTabPrinter : public TabPrinter
+class PublishTabFilament : public PublishTabWithPresets<TabFilament>
+{
+public:
+    explicit PublishTabFilament(ParamsPanel *host);
+    void build() override;
+};
+
+class PublishTabPrinter : public PublishTabWithPresets<TabPrinter>
 {
 public:
     explicit PublishTabPrinter(ParamsPanel *host);
@@ -57,25 +74,13 @@ public:
     // TabPrinter's pages, pruned to today's published-3MF allowlist: every other option, group
     // and page is dropped rather than shown unchecked (the TabPrintModel pattern).
     void build() override;
-
-protected:
-    PresetCollection *publish_presets() override { return &m_presets_private; }
-
-private:
-    PresetCollection m_presets_private;
 };
 
-class PublishTabPrint : public TabPrint
+class PublishTabPrint : public PublishTabWithPresets<TabPrint>
 {
 public:
     explicit PublishTabPrint(ParamsPanel *host);
     void build() override;
-
-protected:
-    PresetCollection *publish_presets() override { return &m_presets_private; }
-
-private:
-    PresetCollection m_presets_private;
 };
 
 } // GUI

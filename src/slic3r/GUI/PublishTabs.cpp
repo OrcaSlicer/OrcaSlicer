@@ -8,6 +8,7 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PublishSettings.hpp"
 
@@ -49,18 +50,14 @@ bool is_action_option(const std::string &key)
 
 } // namespace
 
-PublishParamsPanel::PublishParamsPanel(wxWindow *parent)
-    : ParamsPanel(parent)
-{
-}
-
 PublishParamsPanel::~PublishParamsPanel()
 {
     // This is the teardown the publish tabs' invariant depends on (see PublishTabs.hpp): the tab's
-    // own PresetCollection is a member of the tab, so it dies before ~Tab, and every Page::m_config
-    // points into it. Clear the pages here, while the page view and the host still exist, rather
-    // than leaving it to ~Tab - whose clear_pages() would reach a host that is already gone.
-    // ~ParamsPanel() clears the *current* tab's pages, which is why m_current_tab is nulled after.
+    // own PresetCollection is a member of its PublishTabWithPresets base, so it dies before ~Tab,
+    // and every Page::m_config points into it. Clear the pages here, while the page view and the
+    // host still exist, rather than leaving it to ~Tab - whose clear_pages() would reach a host
+    // that is already gone. ~ParamsPanel() clears the *current* tab's pages, which is why
+    // m_current_tab is nulled after.
     if (m_publish_tab != nullptr)
         m_publish_tab->clear_pages();
     m_current_tab = nullptr;
@@ -117,18 +114,13 @@ void PublishTabFilament::build()
 }
 
 PublishTabFilament::PublishTabFilament(ParamsPanel *host)
-    : TabFilament(host, false)
-    , m_presets_private(Preset::TYPE_FILAMENT, Preset::filament_options(),
-                        static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()),
-                        PresetBundle::ORCA_DEFAULT_FILAMENT_PLACEHOLDER)
+    : PublishTabWithPresets(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                            PresetBundle::ORCA_DEFAULT_FILAMENT_PLACEHOLDER, host, false)
 {
 }
 
 PublishTabPrinter::PublishTabPrinter(ParamsPanel *host)
-    : TabPrinter(host, false)
-    , m_presets_private(Preset::TYPE_PRINTER, Preset::printer_options(),
-                        static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()),
-                        "Default Printer")
+    : PublishTabWithPresets(Preset::TYPE_PRINTER, Preset::printer_options(), "Default Printer", host, false)
 {
 }
 
@@ -161,9 +153,7 @@ void PublishTabPrint::build()
 }
 
 PublishTabPrint::PublishTabPrint(ParamsPanel *host)
-    : TabPrint(host, Preset::TYPE_PRINT, false)
-    , m_presets_private(Preset::TYPE_PRINT, Preset::print_options(),
-                        static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()))
+    : PublishTabWithPresets(Preset::TYPE_PRINT, Preset::print_options(), "Default Setting", host, Preset::TYPE_PRINT, false)
 {
 }
 
