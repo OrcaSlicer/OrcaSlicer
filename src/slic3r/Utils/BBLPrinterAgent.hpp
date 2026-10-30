@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <set>
 #include <vector>
 
 namespace Slic3r { class ICloudServiceAgent; }
@@ -111,6 +112,14 @@ public:
     // Taken by value: most outbound traffic carries no filament id and is moved straight back out.
     static std::string to_orca_payload(std::string json_text);
     static std::string from_orca_payload(std::string json_text);
+
+    // The plug-in checks LAN MQTT and FTPS certificates against <cert folder>/printer.cer. A printer
+    // behind a proxy with its own CA (the "HTTPS CA File" of the connect dialog) needs that CA there
+    // too. Writes out_dir/printer.cer as bundled_dir/printer.cer plus the certificates of every file
+    // in extra_cas that holds only CA certificates, copies the other files of bundled_dir, and
+    // returns out_dir. Files are replaced in one step, and only when their content changes.
+    // Returns bundled_dir when no extra CA is usable or out_dir cannot be written.
+    static std::string cert_dir_with_cas(const std::string& bundled_dir, const std::string& out_dir, const std::set<std::string>& extra_cas);
 
 private:
     int publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode);
