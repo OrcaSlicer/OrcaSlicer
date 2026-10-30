@@ -61,8 +61,6 @@ public:
     void set_enabled(const PublishRowId &row, bool enabled);
     bool enabled(const PublishRowId &row) const; // true when never set
 
-    void clear();
-
     // Registered owners in ascending slot order; unpublished_mixed_components walks it.
     const std::map<int, PublishOwnerInfo> &owners() const;
 
@@ -70,16 +68,19 @@ public:
     std::vector<std::string> published_keys(const std::vector<PublishRowId> &rows) const;
 
     // One entry per publishing owner, in ascending slot order. A mixed owner publishes when its
-    // publish checkbox is on. A physical owner publishes when one of its rows is checked or it has
-    // Full Publish; its Color and Type rows publish the corresponding flag, its key rows the keys.
+    // publish checkbox is on. A physical owner publishes when Full Publish is on or a checked row
+    // carries a value: a key row's keys, or a Color/Type row whose owner value is non-empty. Its
+    // Color and Type rows publish the corresponding flag, its key rows the keys.
     std::vector<PublishedMaterialEntry> material_entries(const std::vector<PublishRowId> &rows) const;
 
-    // Whether `owner` contributes an entry under the rule material_entries applies.
+    // Whether `owner` contributes an entry: the rule material_entries applies. A mixed owner counts
+    // when published, a Full owner always, and a physical owner only when a checked row carries a
+    // key or a non-empty colour/type value.
     bool owner_publishes(int owner, const std::vector<PublishRowId> &rows) const;
 
-    // Whether `owner`'s Type row is checked and enabled: the material type a physical owner
-    // publishes.
-    bool type_row_checked(int owner) const;
+    // Whether one of `owner`'s Type rows in `rows` is checked and enabled. Only the rows the dialog
+    // shows count; the owner still needs a non-empty type value to publish one.
+    bool type_row_checked(int owner, const std::vector<PublishRowId> &rows) const;
 
 private:
     std::map<PublishRowId, bool> m_checked;
@@ -90,9 +91,10 @@ private:
 };
 
 // Where an edit to a publish row has to be written so the project's real presets carry it (spec
-// 7.10). `owner` is the filament slot for FilamentPreset, -1 otherwise. `option_index` is the index
-// in the target preset's vector for the row's key: a material row's local variant index, the
-// column of a "base#N" printer or process row, and 0 for a value that has no per-column dimension.
+// 7.10). `owner` is the filament slot for FilamentPreset and Project, -1 otherwise.
+// `option_index` is the index in the target preset's vector for the row's key: a material row's
+// local variant index, the column of a "base#N" printer or process row, and 0 for a value that has
+// no per-column dimension. For Project it is the element of the per-slot array the row addresses.
 enum class PublishWriteTarget { None, FilamentPreset, PrinterPreset, ProcessPreset, Project };
 
 struct PublishWriteLocation
@@ -108,11 +110,13 @@ struct PublishWriteLocation
 // preset the edit lands in, so it bounds the local variant index; pass the same inputs the dialog
 // has. `full_owner` is true when the row's owner has Full Publish.
 //
-// None for a row with no writable owner: no keys, a non-Key row kind, a Full Publish material
-// owner, a material row whose column is the 7.1.1 fallback, and any key the target preset cannot
-// address at that index. A mixed definition key resolves to Project. A material
-// "base#column" row resolves to its slot's filament preset at the local variant index of that file
-// column (not the file column itself); a material row without a column resolves to index 0.
+// None for a row with no writable owner: no keys, a non-Key row kind, a mixed definition key on a
+// non-material row, a Full Publish material owner, a material row whose column is the 7.1.1
+// fallback, and any key the target preset cannot address at that index. A mixed definition key
+// resolves to Project, which names its slot in `owner` and its element in `option_index`. A
+// material "base#column" row resolves to its slot's filament preset at the local variant index of
+// that file column (not the file column itself); a material row without a column resolves to
+// index 0.
 PublishWriteLocation publish_write_location(const PublishRowId &row,
                                             const DynamicPrintConfig &uncompacted,
                                             const DynamicPrintConfig &resolved,
@@ -123,10 +127,12 @@ PublishWriteLocation publish_write_location(const PublishRowId &row,
 std::vector<unsigned int> publish_mixed_components(const DynamicPrintConfig &project, size_t slot);
 
 // Publishing mixed owners whose component filaments publish no material. A component satisfies
-// the mix when its Type row is checked or it is Full-Published; only a component with neither is
-// an issue, and it is always reported as Disabled. A component the dialog does not show (no
-// registered owner) is never reported.
+// the mix when one of its Type rows in `rows` is checked and its type is non-empty, or it is
+// Full-Published; only a component with neither, and that is not itself a mixed slot, is an issue,
+// and it is always reported as Disabled. A component the dialog does not show (no registered
+// owner) is never reported.
 std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSelection &selection,
-                                                              const DynamicPrintConfig &project);
+                                                              const DynamicPrintConfig &project,
+                                                              const std::vector<PublishRowId> &rows);
 
 } // namespace Slic3r

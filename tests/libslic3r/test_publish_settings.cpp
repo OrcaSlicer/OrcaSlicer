@@ -932,6 +932,49 @@ TEST_CASE("A physical slot publishes the colour and type its flagged rows select
     }
 }
 
+TEST_CASE("A flag row with no value publishes no entry", "[PublishSettings]")
+{
+    const PublishRowId              key_row   = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
+    const PublishRowId              color_row = make_publish_row({}, PublishSection::Material, 0, -1, PublishRowKind::Color);
+    const PublishRowId              type_row  = make_publish_row({}, PublishSection::Material, 0, -1, PublishRowKind::Type);
+    const std::vector<PublishRowId> rows{ key_row, color_row, type_row };
+
+    PublishSelection selection;
+    selection.set_owner_info(0, PublishOwnerInfo());
+
+    SECTION("an empty colour ships nothing") {
+        selection.set_checked(color_row, true);
+        CHECK_FALSE(selection.owner_publishes(0, rows));
+        CHECK(selection.material_entries(rows).empty());
+    }
+
+    SECTION("an empty type ships nothing") {
+        selection.set_checked(type_row, true);
+        CHECK_FALSE(selection.owner_publishes(0, rows));
+        CHECK(selection.material_entries(rows).empty());
+    }
+
+    SECTION("an empty colour is not published next to a key") {
+        selection.set_checked(key_row, true);
+        selection.set_checked(color_row, true);
+        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+        REQUIRE(entries.size() == 1);
+        CHECK_FALSE(entries[0].publish_color);
+        CHECK(entries[0].color.empty());
+        CHECK_FALSE(entries[0].publish_type);
+    }
+
+    SECTION("an empty type is not published next to a key") {
+        selection.set_checked(key_row, true);
+        selection.set_checked(type_row, true);
+        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+        REQUIRE(entries.size() == 1);
+        CHECK_FALSE(entries[0].publish_type);
+        CHECK(entries[0].publish_type_value.empty());
+        CHECK_FALSE(entries[0].publish_color);
+    }
+}
+
 TEST_CASE("A file entry's colour and type flags seed the rows that reproduce it", "[PublishSettings]")
 {
     // A published entry seeds its Color row from publish_color and its Type row from publish_type;
@@ -1036,7 +1079,7 @@ TEST_CASE("Mixed dependency issues name the component that publishes no material
     selection.set_owner_info(1, component);
 
     SECTION("an unpublished component is reported") {
-        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project);
+        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project, {});
         REQUIRE(issues.size() == 1);
         CHECK(issues[0].mixed_slot == 0);
         CHECK(issues[0].component_slot == 1);
@@ -1045,19 +1088,34 @@ TEST_CASE("Mixed dependency issues name the component that publishes no material
 
     SECTION("a fully published component clears the issue") {
         selection.set_full_publish(1, true);
-        CHECK(unpublished_mixed_components(selection, project).empty());
+        CHECK(unpublished_mixed_components(selection, project, {}).empty());
     }
 
     SECTION("a checked Type row clears the issue") {
+        const PublishRowId              type_row = make_publish_row({}, PublishSection::Material, 1, -1, PublishRowKind::Type);
+        const std::vector<PublishRowId> rows{ type_row };
+        selection.set_checked(type_row, true);
+        CHECK(unpublished_mixed_components(selection, project, rows).empty());
+    }
+
+    SECTION("a Type row the dialog does not show does not clear the issue") {
         const PublishRowId type_row = make_publish_row({}, PublishSection::Material, 1, -1, PublishRowKind::Type);
         selection.set_checked(type_row, true);
-        CHECK(unpublished_mixed_components(selection, project).empty());
+        CHECK(unpublished_mixed_components(selection, project, {}).size() == 1);
+    }
+
+    SECTION("a shown Type row on an owner with no type value does not clear the issue") {
+        selection.set_owner_info(1, PublishOwnerInfo());
+        const PublishRowId              type_row = make_publish_row({}, PublishSection::Material, 1, -1, PublishRowKind::Type);
+        const std::vector<PublishRowId> rows{ type_row };
+        selection.set_checked(type_row, true);
+        CHECK(unpublished_mixed_components(selection, project, rows).size() == 1);
     }
 
     SECTION("a checked Color row alone does not satisfy the mix") {
         const PublishRowId color_row = make_publish_row({}, PublishSection::Material, 1, -1, PublishRowKind::Color);
         selection.set_checked(color_row, true);
-        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project);
+        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project, {});
         REQUIRE(issues.size() == 1);
         CHECK(issues[0].reason == MixedDependencyIssue::Reason::Disabled);
     }
@@ -1065,14 +1123,20 @@ TEST_CASE("Mixed dependency issues name the component that publishes no material
     SECTION("checked key rows alone do not satisfy the mix") {
         const PublishRowId key_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 1, -1);
         selection.set_checked(key_row, true);
-        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project);
+        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project, {});
         REQUIRE(issues.size() == 1);
         CHECK(issues[0].reason == MixedDependencyIssue::Reason::Disabled);
     }
 
+    SECTION("a repeated component is one issue") {
+        project.set_key_value("filament_mixed_components", new ConfigOptionStrings({ "2,2" }));
+        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project, {});
+        CHECK(issues.size() == 1);
+    }
+
     SECTION("a mixed slot whose publish checkbox is off reports nothing") {
         selection.set_owner_published(0, false);
-        CHECK(unpublished_mixed_components(selection, project).empty());
+        CHECK(unpublished_mixed_components(selection, project, {}).empty());
     }
 }
 
@@ -1089,7 +1153,7 @@ TEST_CASE("A mixed component that is itself a mixed slot is not reported", "[Pub
     selection.set_owner_published(0, true);
     selection.set_owner_info(1, mixed);
 
-    CHECK(unpublished_mixed_components(selection, project).empty());
+    CHECK(unpublished_mixed_components(selection, project, {}).empty());
 }
 
 TEST_CASE("A component the dialog does not show is not reported", "[PublishSettings]")
@@ -1105,7 +1169,7 @@ TEST_CASE("A component the dialog does not show is not reported", "[PublishSetti
     selection.set_owner_info(0, mixed);
     selection.set_owner_published(0, true);
 
-    CHECK(unpublished_mixed_components(selection, project).empty());
+    CHECK(unpublished_mixed_components(selection, project, {}).empty());
 }
 
 TEST_CASE("The printer rule uses the project's nozzle type", "[PublishSettings]")
@@ -1442,8 +1506,21 @@ TEST_CASE("A mixed definition key resolves to the project config", "[PublishSett
     const DynamicPrintConfig preset; // mixed keys are project arrays, not preset keys
 
     const PublishWriteLocation location = publish_write_location(
-        make_publish_row({ "filament_mixed_components", "filament_mixed_gradient" }, PublishSection::Material, 0, -1),
+        make_publish_row({ "filament_mixed_components", "filament_mixed_gradient" }, PublishSection::Material, 1, -1),
         uncompacted, preset, /*full_owner=*/false);
     CHECK(location.target == PublishWriteTarget::Project);
-    CHECK(location.owner == -1);
+    CHECK(location.owner == 1);
+    CHECK(location.option_index == 1);
+
+    // Full Publish writes no row, so its mixed keys are not a project edit either.
+    const PublishWriteLocation full = publish_write_location(
+        make_publish_row({ "filament_mixed_components" }, PublishSection::Material, 1, -1), uncompacted, preset,
+        /*full_owner=*/true);
+    CHECK(full.target == PublishWriteTarget::None);
+
+    // A mixed key has no project slot outside a material row.
+    const PublishWriteLocation printer = publish_write_location(
+        make_publish_row({ "filament_mixed_components" }, PublishSection::Printer, -1, -1), uncompacted, preset,
+        /*full_owner=*/false);
+    CHECK(printer.target == PublishWriteTarget::None);
 }

@@ -2927,12 +2927,15 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
     // The element the tab's own field edits: an indexed line addresses the resolved variant, an
     // unindexed one always element 0. A material key is written at the row's local variant index;
     // a printer or process key at the column it names. The private preset and the real one are
-    // seeded from the same config, so their indices match.
+    // seeded from the same config, so their indices match. A project key names its slot instead,
+    // which the returned location carries.
     const bool   indexed = row.tab_line != nullptr && line_option_indexed(*row.tab_line, published->key);
-    const size_t index   = location.target == Slic3r::PublishWriteTarget::FilamentPreset
-                               ? (indexed ? location.option_index : size_t(0))
-                               : (published->index >= 0 ? size_t(published->index)
-                                                        : (indexed ? location.option_index : size_t(0)));
+    size_t       index   = 0;
+    if (location.target == Slic3r::PublishWriteTarget::FilamentPreset)
+        index = indexed ? location.option_index : size_t(0);
+    else if (location.target != Slic3r::PublishWriteTarget::Project)
+        index = published->index >= 0 ? size_t(published->index)
+                                      : (indexed ? location.option_index : size_t(0));
 
     switch (location.target) {
     case Slic3r::PublishWriteTarget::FilamentPreset: {
@@ -2979,11 +2982,17 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
             print_tab->update();
         }
         break;
-    case Slic3r::PublishWriteTarget::Project:
-        if (!copy_option_element_at(bundle->project_config, published->key, *tab->m_config, index))
+    case Slic3r::PublishWriteTarget::Project: {
+        // No dialog row carries a mixed project key today (a mixed slot shows only its definition
+        // visual); this is the forward path. The edit is the field's own value, and the project
+        // array holds it at the author slot, which the tab's private filament preset cannot address.
+        const Slic3r::ConfigOption* option = bundle->project_config.option(published->key, true);
+        if (option == nullptr || option->is_scalar())
             break;
+        change_opt_value(bundle->project_config, published->key, value, int(location.option_index));
         plater_refresh = true;
         break;
+    }
     case Slic3r::PublishWriteTarget::None:
         return;
     }
@@ -3765,7 +3774,7 @@ std::vector<std::string> PublishSettingsDialog::GetPublishedKeys() const
 
 std::vector<MixedDependencyIssue> PublishSettingsDialog::unpublished_mixed_components() const
 {
-    return Slic3r::unpublished_mixed_components(m_selection, m_snapshot);
+    return Slic3r::unpublished_mixed_components(m_selection, m_snapshot, m_row_ids);
 }
 
 std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedMaterialKeys() const
@@ -3777,7 +3786,7 @@ std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedM
 bool PublishSettingsDialog::category_has_selection(const Category& cat) const
 {
     // A material slot publishes under the model's rule: a mixed slot through its checkbox, a
-    // physical slot through any checked row (keys, color, type) or Full Publish.
+    // physical slot when a checked row carries a key or a non-empty colour/type, or Full Publish.
     if (cat.section == Section::Material)
         return m_selection.owner_publishes(int(cat.filament_slot), m_row_ids);
     // Print/Printer categories have no gate: any checked row counts.

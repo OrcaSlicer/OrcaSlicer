@@ -236,7 +236,8 @@ std::vector<PublishExtruderEntry> publish_extruder_rule(const DynamicPrintConfig
 std::string publish_variant_notice(const DynamicPrintConfig &uncompacted, size_t slot)
 {
     const PublishResolvedColumn resolved = publish_resolved_column(uncompacted, slot);
-    if (resolved.exact || !resolved.file_column.has_value())
+    if (resolved.exact || !resolved.file_column.has_value() || resolved.required_variant.empty() ||
+        resolved.used_variant.empty())
         return std::string();
     return (boost::format(L("Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. "
                             "Publishing the values printed with \"%3%\".")) %
@@ -271,7 +272,7 @@ void publish_normalize_material_entries(std::vector<PublishedMaterialEntry> &ent
         if (!resolved.exact && notices != nullptr) {
             // One notice per partial slot that has variant-bearing keys to write.
             const bool has_variant_key = std::any_of(entry.keys.begin(), entry.keys.end(), [](const std::string &key) {
-                return filament_options_with_variant.count(publish_base_key(key)) != 0;
+                return publish_is_variant_bearing(key);
             });
             if (has_variant_key) {
                 const std::string notice = publish_variant_notice(uncompacted, size_t(entry.slot));
@@ -289,7 +290,7 @@ void publish_normalize_material_entries(std::vector<PublishedMaterialEntry> &ent
         for (const std::string &key : entry.keys) {
             const std::string base = publish_base_key(key);
             std::string normalized  = key;
-            if (filament_options_with_variant.count(base) != 0) {
+            if (publish_is_variant_bearing(base)) {
                 if (const int column = publish_key_index(key); column >= 0) {
                     // A caller-supplied column must address this slot; never ship another slot's value.
                     if (!in_slot(column)) {
@@ -578,7 +579,7 @@ DynamicPrintConfig filter_published_config(
             base_keys_to_include.insert(base_key); // hand-crafted, slot-less: whole vector
             return;
         }
-        if (filament_options_with_variant.count(base_key) == 0) {
+        if (!publish_is_variant_bearing(base_key)) {
             base_keys_to_include.insert(base_key);
             slot_mask_map[base_key].insert(entry.slot);
             material_masked_keys.insert(base_key);

@@ -71,15 +71,6 @@ bool PublishSelection::enabled(const PublishRowId &row) const
     return it == m_enabled.end() ? true : it->second;
 }
 
-void PublishSelection::clear()
-{
-    m_checked.clear();
-    m_enabled.clear();
-    m_owners.clear();
-    m_owner_published.clear();
-    m_full.clear();
-}
-
 const std::map<int, PublishOwnerInfo> &PublishSelection::owners() const
 {
     return m_owners;
@@ -104,19 +95,33 @@ bool PublishSelection::owner_publishes(int owner, const std::vector<PublishRowId
     // A mixed slot publishes its definition as one unit: its publish checkbox is the whole rule.
     if (owner_info->second.mixed)
         return owner_published(owner);
-    // A physical slot publishes through its rows (keys, colour, type) or Full Publish.
+    // Full Publish embeds the whole preset.
     if (full_publish(owner))
         return true;
-    return std::any_of(rows.begin(), rows.end(), [owner, this](const PublishRowId &row) {
-        return row.section == PublishSection::Material && row.owner == owner && checked(row) && enabled(row);
-    });
+    // A physical slot publishes through a checked row that carries a value: a key row's keys, or a
+    // Color/Type row whose owner value is non-empty.
+    bool keys   = false;
+    bool colour = false;
+    bool type   = false;
+    for (const PublishRowId &row : rows) {
+        if (row.section != PublishSection::Material || row.owner != owner || !checked(row) || !enabled(row))
+            continue;
+        if (row.kind == PublishRowKind::Color)
+            colour = true;
+        else if (row.kind == PublishRowKind::Type)
+            type = true;
+        else
+            keys = keys || !row.keys.empty();
+    }
+    return keys || (colour && !owner_info->second.colour.empty()) ||
+           (type && !normalize_filament_type(owner_info->second.filament_type).empty());
 }
 
-bool PublishSelection::type_row_checked(int owner) const
+bool PublishSelection::type_row_checked(int owner, const std::vector<PublishRowId> &rows) const
 {
-    return std::any_of(m_checked.begin(), m_checked.end(), [owner, this](const auto &entry) {
-        return entry.second && entry.first.section == PublishSection::Material && entry.first.owner == owner &&
-               entry.first.kind == PublishRowKind::Type && enabled(entry.first);
+    return std::any_of(rows.begin(), rows.end(), [owner, this](const PublishRowId &row) {
+        return row.section == PublishSection::Material && row.owner == owner && row.kind == PublishRowKind::Type &&
+               checked(row) && enabled(row);
     });
 }
 
@@ -163,7 +168,8 @@ std::vector<PublishedMaterialEntry> PublishSelection::material_entries(const std
             continue;
         }
         // A physical slot's colour and type are their own flagged rows, published independently of
-        // its keys, so a slot with key rows only ships no identity.
+        // its keys, so a slot with key rows only ships no identity. owner_publishes has ensured at
+        // least one of keys, colour and type is present.
         bool colour = false;
         bool type   = false;
         for (const PublishRowId &row : rows) {
@@ -185,9 +191,10 @@ std::vector<PublishedMaterialEntry> PublishSelection::material_entries(const std
             entry.publish_color = true;
             entry.color         = info.colour;
         }
-        if (type) {
+        const std::string type_value = normalize_filament_type(info.filament_type);
+        if (type && !type_value.empty()) {
             entry.publish_type       = true;
-            entry.publish_type_value = normalize_filament_type(info.filament_type);
+            entry.publish_type_value = type_value;
         }
         out.push_back(std::move(entry));
     }
@@ -225,18 +232,25 @@ PublishWriteLocation publish_write_location(const PublishRowId &row,
     if (row.keys.empty() || row.kind != PublishRowKind::Key)
         return location;
 
-    // A mixed definition is a project-level per-slot array, not a preset key.
+    // Full Publish copies the whole preset; its rows are not written one by one, not even a
+    // mixed definition key.
+    if (row.section == PublishSection::Material && (row.owner < 0 || full_owner))
+        return location;
+
+    // A mixed definition is a project-level per-slot array, not a preset key; only a material row
+    // names the slot that holds its element.
     const std::set<std::string> &mixed_keys = publish_mixed_keys();
     for (const std::string &key : row.keys)
         if (mixed_keys.count(publish_base_key(key)) != 0) {
-            location.target = PublishWriteTarget::Project;
+            if (row.section != PublishSection::Material)
+                return location;
+            location.target       = PublishWriteTarget::Project;
+            location.owner        = row.owner;
+            location.option_index = size_t(row.owner); // the material guard above keeps it non-negative
             return location;
         }
 
     if (row.section == PublishSection::Material) {
-        // Full Publish copies the whole preset; its rows are not written one by one.
-        if (row.owner < 0 || full_owner)
-            return location;
         size_t local = 0;
         if (row.column >= 0) {
             // The 7.1.1 fallback column is the value the printer forces, not the author's choice.
@@ -281,7 +295,8 @@ std::vector<unsigned int> publish_mixed_components(const DynamicPrintConfig &pro
 }
 
 std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSelection &selection,
-                                                              const DynamicPrintConfig &project)
+                                                              const DynamicPrintConfig &project,
+                                                              const std::vector<PublishRowId> &rows)
 {
     std::vector<MixedDependencyIssue> out;
     const std::map<int, PublishOwnerInfo> &owners = selection.owners();
@@ -290,9 +305,12 @@ std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSele
         const PublishOwnerInfo &info       = owner_info.second;
         if (!info.mixed || !selection.owner_published(mixed_slot))
             continue;
-        // Components are 1-based physical filament indices.
+        if (mixed_slot < 0)
+            continue;
+        // Components are 1-based physical filament indices; a repeated component is one issue.
+        std::set<unsigned int> seen;
         for (const unsigned int component : publish_mixed_components(project, size_t(mixed_slot))) {
-            if (component == 0)
+            if (component == 0 || !seen.insert(component).second)
                 continue;
             const int component_slot = int(component) - 1;
             // Only a component the dialog shows (it registered an owner) can be missing.
@@ -302,9 +320,11 @@ std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSele
             // A mixed slot is not a physical filament: the dialog this replaced skipped it too.
             if (component_owner->second.mixed)
                 continue;
-            // A component publishes its type through its Type row, or its whole preset through
-            // Full Publish; checked key rows alone ship no material.
-            if (!selection.type_row_checked(component_slot) && !selection.full_publish(component_slot)) {
+            // A component publishes its material through a Type row that carries a value, or its
+            // whole preset through Full Publish; checked key rows or an empty type ship no material.
+            const bool publishes_type = selection.type_row_checked(component_slot, rows) &&
+                                        !normalize_filament_type(component_owner->second.filament_type).empty();
+            if (!publishes_type && !selection.full_publish(component_slot)) {
                 out.push_back({ size_t(mixed_slot), size_t(component_slot), MixedDependencyIssue::Reason::Disabled });
                 continue;
             }
