@@ -2208,3 +2208,43 @@ TEST_CASE("Single-filament print does not emit M104 after start G-code", "[Multi
     CHECK(between.find("M109") == std::string::npos);
     CHECK(between.find("T0") == std::string::npos);
 }
+
+// A custom M104 in filament start G-code must be preserved after T0 and the slicer's default M104.
+TEST_CASE("Custom M104 in filament start G-code wins on a T0-only print", "[MultiFilament]")
+{
+    const int slicer_temp = 240;
+    const int custom_temp = 255;
+    const std::string gcode = slice({ cube(20) },
+        multifilament_config(2, {
+            { "nozzle_temperature",               std::to_string(slicer_temp) + "," + std::to_string(slicer_temp) },
+            { "nozzle_temperature_initial_layer", std::to_string(slicer_temp) + "," + std::to_string(slicer_temp) },
+            { "filament_start_gcode",             std::string("M104 S") + std::to_string(custom_temp) + "\n" },
+            { "machine_start_gcode",              "" },
+            { "enable_prime_tower",               "0" },
+        }));
+
+    bool found_t0 = false;
+    std::vector<int> temps_after_t0;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        const std::string cmd(line.cmd());
+        if (cmd == ";LAYER_CHANGE" || line.comment() == "LAYER_CHANGE") {
+            if (found_t0)
+                self.quit_parsing();
+            return;
+        }
+        if (!found_t0) {
+            if (cmd == "T0")
+                found_t0 = true;
+        } else if (cmd == "M104" || cmd == "M109") {
+            float s_val = 0;
+            if (line.has_value('S', s_val))
+                temps_after_t0.push_back(int(s_val));
+        }
+    });
+
+    REQUIRE(found_t0);
+    REQUIRE(temps_after_t0.size() >= 2);
+    CHECK(temps_after_t0.front() == slicer_temp);
+    CHECK(temps_after_t0.back() == custom_temp);
+}
