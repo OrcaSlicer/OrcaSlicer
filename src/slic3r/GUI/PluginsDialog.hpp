@@ -241,11 +241,6 @@ private:
     nlohmann::json localized_strings() const override;
     // Runs one web command on a clean main-loop stack; see on_script_message.
     void handle_web_command(const nlohmann::json& payload);
-    // Re-raises this dialog after a transient modal it opened (file dialog, message box,
-    // progress dialog). Native macOS panels end by re-activating the app's main window
-    // (the mainframe) instead of this webview-hosting dialog, burying it; wx only
-    // compensates for generic wxDialog modals (wxDialog::EndModal raises the parent).
-    void restore_z_order();
 
     void send_plugins();
     void set_plugin_sort(const std::string& sort_key, const std::string& sort_order);

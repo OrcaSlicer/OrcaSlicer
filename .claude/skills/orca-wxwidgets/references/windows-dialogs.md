@@ -496,16 +496,18 @@ name — for any other window call `window_pos_save/restore` with its own name.
   through `EndModal`. The `Raise()` is deferred to run after the modal has fully torn down, and guarded
   because the dialog may be destroyed while queued.
   ```cpp
-  void PluginsDialog::restore_z_order()
+  void WebViewHostDialog::restore_z_order()
   {
-      wxGetApp().CallAfter([this, alive = m_alive]() {
-          if (alive->load(std::memory_order_acquire) && IsShown())
+      wxGetApp().CallAfter([this, alive = m_host_alive] {
+          if (alive->load() && IsShown())
               Raise();
       });
   }
   ```
-  Cite: 0a0d59b76b (`PluginsDialog::restore_z_order`; also passed as the `restore` callback of
-  `detail::run_off_thread_with_progress`).
+  A `WebViewHostDialog` subclass calls the inherited `restore_z_order()` after each such modal, on every
+  outcome including Cancel.
+  Cite: 0a0d59b76b (`PluginsDialog`: also passed as the `restore` callback of
+  `detail::run_off_thread_with_progress`); `ScriptRunnerDialog::open_file`.
 - **Rule:** Never position windows by absolute coordinates on Wayland, and never expect `SetIcon` to show on
   macOS or Wayland.
 

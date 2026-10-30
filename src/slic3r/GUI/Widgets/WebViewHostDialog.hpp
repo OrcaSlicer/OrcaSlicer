@@ -78,6 +78,11 @@ protected:
 
     wxString build_resource_url(const std::string& resource_path) const;
     bool handle_common_script_command(const nlohmann::json& payload, int close_return_code = wxID_CANCEL);
+    // Re-raises this dialog after a transient modal it opened (file dialog, message box,
+    // progress dialog). Native macOS panels end by re-activating the app's main window
+    // (the mainframe) instead of this webview-hosting dialog, burying it; wx only
+    // compensates for generic wxDialog modals (wxDialog::EndModal raises the parent).
+    void restore_z_order();
 
     void on_dpi_changed(const wxRect& suggested_rect) override;
 

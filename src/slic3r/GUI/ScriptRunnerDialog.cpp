@@ -344,7 +344,11 @@ void ScriptRunnerDialog::open_file()
 {
     wxFileDialog dialog(this, _L("Open a script"), wxEmptyString, wxEmptyString,
                         format_wxstr("%1% (*.json)|*.json", _L("Script files")), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-    if (dialog.ShowModal() != wxID_OK || !m_alive->load())
+    const int result = dialog.ShowModal();
+    if (!m_alive->load())
+        return;
+    restore_z_order();
+    if (result != wxID_OK)
         return;
     const fs::path          path = into_path(dialog.GetPath());
     boost::nowide::ifstream in(Mcp::path_to_utf8(path).c_str(), std::ios::binary);
@@ -519,6 +523,9 @@ void ScriptRunnerDialog::run(const nlohmann::json& payload)
             return;
         if (answer == wxID_YES) {
             if (plater->save_project() != wxID_YES) {
+                // Saving a new project asks for a file name in a native panel, which leaves the
+                // main window in front; the run isn't going ahead, so bring this dialog back.
+                restore_z_order();
                 refuse({});
                 return;
             }

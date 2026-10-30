@@ -1019,16 +1019,6 @@ void PluginsDialog::handle_plugin_menu_action(const std::string& plugin_key, con
     }
 }
 
-void PluginsDialog::restore_z_order()
-{
-    // Deferred so it runs on a clean stack after the modal has fully torn down; the
-    // alive guard covers the dialog being destroyed while the CallAfter is queued.
-    wxGetApp().CallAfter([this, alive = m_alive]() {
-        if (alive->load(std::memory_order_acquire) && IsShown())
-            Raise();
-    });
-}
-
 void PluginsDialog::install_plugin_from_file()
 {
     wxFileDialog dialog(this, _L("Select plugin package"), wxEmptyString, wxEmptyString, _L("Plugin files (*.py;*.whl)|*.py;*.whl"),
