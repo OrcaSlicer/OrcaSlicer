@@ -1579,6 +1579,44 @@ TEST_CASE("handle_legacy migrates the adaptive TPMS keys", "[Config]") {
     CHECK(ctxt.substitutions.empty());
 }
 
+TEST_CASE("handle_legacy loads the solid infill filament into internal solid, top and bottom", "[Config]") {
+    const auto [key, value, filament] = GENERATE(table<std::string, std::string, int>({
+        { "solid_infill_filament", "2", 2 },
+        { "solid_infill_extruder", "3", 3 },
+        // The legacy default, the first filament, is now "Default".
+        { "solid_infill_filament", "1", 0 },
+    }));
+    INFO(key << " = " << value);
+    ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Disable);
+    DynamicPrintConfig config;
+    config.set_deserialize(key, value, ctxt);
+    for (const char *loaded_key : { "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id" }) {
+        INFO(loaded_key);
+        REQUIRE(config.has(loaded_key));
+        CHECK(config.opt_int(loaded_key) == filament);
+    }
+    CHECK_FALSE(config.has("solid_infill_filament"));
+}
+
+TEST_CASE("A legacy solid infill filament listed as changed lists the keys it loads into", "[Config]") {
+    ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Disable);
+    DynamicPrintConfig config;
+    config.set_deserialize("different_settings_to_system", "\"solid_infill_filament;wall_loops\";\"\"", ctxt);
+    const std::vector<std::string> &columns = config.option<ConfigOptionStrings>("different_settings_to_system")->values;
+    REQUIRE(columns.size() == 2);
+    CHECK(columns[0] == "internal_solid_filament_id;top_surface_filament_id;bottom_surface_filament_id;wall_loops");
+}
+
+TEST_CASE("normalize_fdm leaves feature filaments on Default", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("sparse_infill_filament_id", new ConfigOptionInt(2));
+    config.set_key_value("internal_solid_filament_id", new ConfigOptionInt(0));
+    config.set_key_value("top_surface_filament_id", new ConfigOptionInt(3));
+    config.normalize_fdm();
+    CHECK(config.opt_int("internal_solid_filament_id") == 0);
+    CHECK_FALSE(config.has("bottom_surface_filament_id"));
+}
+
 TEST_CASE("silent_mode is no longer saved and is dropped on load", "[Config]") {
     DynamicPrintConfig full;
     full.apply(FullPrintConfig::defaults());
