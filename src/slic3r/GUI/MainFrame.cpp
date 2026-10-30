@@ -878,14 +878,16 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
                 if (m_tabpanel->GetSelection() == sel)
                     break;
             }
-            // Focus the tab bar on any page but the canvases, since CHAR_HOOK gets no keys while a web page has focus
+            // Focus the selected tab on any page but the canvases, since CHAR_HOOK gets no keys while a web page has focus.
+            // The tab rather than the strip, so the arrow keys and the focus indicator work from there.
             wxWindow* const page = m_tabpanel->GetCurrentPage();
             bool keeps_focus = page == m_plater;
 #ifdef SLIC3R_CAD
             keeps_focus = keeps_focus || page == m_design_page;
 #endif
             if (!keeps_focus)
-                m_tabpanel->GetBtnsListCtrl()->SetFocus();
+                if (wxWindow* tab = m_tabpanel->GetBtnsListCtrl()->GetSelectedButton())
+                    tab->SetFocusFromKbd();
         }
         break;
     }
