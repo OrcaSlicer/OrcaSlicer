@@ -868,6 +868,14 @@ public:
     void apply_background_progress();
     //BBS: select the plate by hover_id
     int select_plate_by_hover_id(int hover_id, bool right_click = false, bool isModidyPlateName = false);
+    // Orca: custom plate layout. Each takes an undo snapshot; those returning int return 0 on success.
+    int move_plate_to_cell(int plate_index, const Vec2i32& cell);
+    void reset_plate_layout();
+    // Move the current plate one cell left (-1) or right (1), making room like a drag does.
+    bool can_move_current_plate_by(int columns);
+    int move_current_plate_by(int columns);
+    int close_plate_gaps();
+    int renumber_plates_by_position();
     //BBS: add an empty plate and switch to it (the toolbar's Add Plate). Returns the new
     // plate index, or -1 when the plate cap is reached.
     int add_plate();

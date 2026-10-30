@@ -86,7 +86,7 @@ public:
             m_arrow.reset();
         }
         float get_total_length() const { return m_stem_length; } // + DefaultTipLength; } // ORCA axis without arrow
-        void render();
+        void render(const Vec3d& offset = Vec3d::Zero());
     };
 
 public:
@@ -122,6 +122,7 @@ private:
     float m_scale_factor{ 1.0f };
     //BBS: add part plate related logic
     Vec2d m_position{ Vec2d::Zero() };
+    Vec3d m_render_offset{ Vec3d::Zero() };
     std::vector<Vec2d>  m_bed_shape;
     std::vector<std::vector<Vec2d>> m_extruder_shapes;
     std::vector<double> m_extruder_heights;
@@ -143,6 +144,8 @@ public:
     void set_axes_mode(bool origin);
     void set_axes_origin(const Vec3d& origin) { m_axes.set_origin(origin); }   // Design tab: triad at bed centre
     const Vec2d& get_position() const { return m_position; }
+    // Orca: draw the bed shifted by offset, without changing its shape or position (plate drag preview).
+    void set_render_offset(const Vec3d& offset) { m_render_offset = offset; }
 
     // Build volume geometry for various collision detection tasks.
     const BuildVolume& build_volume() const { return m_build_volume; }

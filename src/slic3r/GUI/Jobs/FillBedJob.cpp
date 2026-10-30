@@ -63,8 +63,8 @@ void FillBedJob::prepare()
     PartPlate* plate = plate_list.get_curr_plate();
     Model& model = m_plater->model();
     BoundingBox plate_bb = plate->get_bounding_box_crd();
-    int plate_cols = plate_list.get_plate_cols();
     int cur_plate_index = plate->get_index();
+    const Vec2i32 cur_plate_cell = plate_list.get_plate_cell(cur_plate_index);
 
     ModelObject *model_object = m_plater->model().objects[m_object_idx];
     if (model_object->instances.empty()) return;
@@ -97,8 +97,8 @@ void FillBedJob::prepare()
                     {
                         ap.bed_idx = 0;
                         ap.itemid = m_unselected.size();
-                        ap.row = cur_plate_index / plate_cols;
-                        ap.col = cur_plate_index % plate_cols;
+                        ap.row = cur_plate_cell.y();
+                        ap.col = cur_plate_cell.x();
                         ap.translation(X) -= bed_stride_x(m_plater) * ap.col;
                         ap.translation(Y) += bed_stride_y(m_plater) * ap.row;
                         m_unselected.emplace_back(ap);
@@ -117,8 +117,8 @@ void FillBedJob::prepare()
                 {
                     ap.bed_idx = 0;
                     ap.itemid = m_unselected.size();
-                    ap.row = cur_plate_index / plate_cols;
-                    ap.col = cur_plate_index % plate_cols;
+                    ap.row = cur_plate_cell.y();
+                    ap.col = cur_plate_cell.x();
                     ap.translation(X) -= bed_stride_x(m_plater) * ap.col;
                     ap.translation(Y) += bed_stride_y(m_plater) * ap.row;
                     m_unselected.emplace_back(ap);
@@ -352,7 +352,6 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
 
     //BBS: partplate
     PartPlateList& plate_list = m_plater->get_partplate_list();
-    int plate_cols = plate_list.get_plate_cols();
     int cur_plate = plate_list.get_curr_plate_index();
 
     size_t inst_cnt = model_object->instances.size();
@@ -376,8 +375,9 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
                 ap.bed_idx = cur_plate;
 
             if (m_selected.size() <= 100) {
-                ap.row = ap.bed_idx / plate_cols;
-                ap.col = ap.bed_idx % plate_cols;
+                const Vec2i32 cell = plate_list.get_plate_cell(ap.bed_idx);
+                ap.row = cell.y();
+                ap.col = cell.x();
                 ap.translation(X) += bed_stride_x(m_plater) * ap.col;
                 ap.translation(Y) -= bed_stride_y(m_plater) * ap.row;
             }

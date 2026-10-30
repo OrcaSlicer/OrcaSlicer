@@ -400,6 +400,9 @@ static constexpr const char* INSTANCEID_ATTR = "instance_id";
 static constexpr const char* IDENTIFYID_ATTR = "identify_id";
 static constexpr const char* PLATERID_ATTR = "plater_id";
 static constexpr const char* PLATER_NAME_ATTR = "plater_name";
+// Orca: custom plate layout, written only when the plates don't follow the automatic grid.
+static constexpr const char* LAYOUT_CELL_ATTR = "layout_cell";
+static constexpr const char* LAYOUT_INSTANCES_ATTR = "layout_instances";
 static constexpr const char* PLATE_IDX_ATTR = "index";
 static constexpr const char* PRINTER_MODEL_ID_ATTR = "printer_model_id";
 static constexpr const char* EXTRUDER_TYPE_ATTR = "extruder_type";
@@ -1727,6 +1730,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             plate->locked = it->second->locked;
             plate->plate_index = it->second->plate_index-1;
             plate->obj_inst_map = it->second->obj_inst_map;
+            plate->layout_cell = it->second->layout_cell;
+            plate->objects_and_instances = it->second->objects_and_instances;
             plate->gcode_file = it->second->gcode_file;
             plate->gcode_prediction = it->second->gcode_prediction;
             plate->gcode_weight = it->second->gcode_weight;
@@ -2432,6 +2437,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             plate_data_list[it->first-1]->plate_index = it->second->plate_index-1;
             plate_data_list[it->first-1]->plate_name = it->second->plate_name;
             plate_data_list[it->first-1]->obj_inst_map = it->second->obj_inst_map;
+            plate_data_list[it->first-1]->layout_cell = it->second->layout_cell;
+            plate_data_list[it->first-1]->objects_and_instances = it->second->objects_and_instances;
             plate_data_list[it->first-1]->gcode_file = (m_load_restore || it->second->gcode_file.empty()) ? it->second->gcode_file : m_backup_path + "/" + it->second->gcode_file;
             plate_data_list[it->first-1]->gcode_prediction = it->second->gcode_prediction;
             plate_data_list[it->first-1]->gcode_weight = it->second->gcode_weight;
@@ -4634,6 +4641,21 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             else if (key == PLATER_NAME_ATTR) {
                 m_curr_plater->plate_name = xml_unescape(value.c_str());
             }
+            else if (key == LAYOUT_CELL_ATTR) {
+                Vec2i32 cell;
+                if (std::istringstream(value) >> cell.x() >> cell.y())
+                    m_curr_plater->layout_cell = cell;
+            }
+            else if (key == LAYOUT_INSTANCES_ATTR) {
+                // "object:instance" pairs of model indices, separated by spaces.
+                std::istringstream stream(value);
+                std::string        item;
+                while (stream >> item) {
+                    int obj_id = -1, inst_id = -1;
+                    if (sscanf(item.c_str(), "%d:%d", &obj_id, &inst_id) == 2)
+                        m_curr_plater->objects_and_instances.emplace_back(obj_id, inst_id);
+                }
+            }
             else if (key == LOCK_ATTR)
             {
                 std::istringstream(value) >> std::boolalpha >> m_curr_plater->locked;
@@ -6229,6 +6251,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_minimal_published { false }; // published 3MF: omit the project config, the embedded preset files and the slicer tags
         bool m_use_loaded_id { false };        // whether to use loaded id for identify_id
         bool m_share_mesh { false };        // whether to share mesh between objects
+        // Orca: translation written into the build item of each instance on a plate of a custom layout.
+        std::map<const ModelInstance*, Vec3d> m_layout_offsets;
         std::string m_thumbnail_middle = PRINTER_THUMBNAIL_MIDDLE_FILE;
         std::string m_thumbnail_small  = PRINTER_THUMBNAIL_SMALL_FILE;
         std::map<void const *, std::pair<ObjectData*, ModelVolume const *>> m_shared_meshes;
@@ -6680,6 +6704,19 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // Adds model file ("3D/3dmodel.model").
         // This is the one and only file that contains all the geometry (vertices and triangles) of all ModelVolumes.
         ObjectToObjectDataMap objects_data;
+        m_layout_offsets.clear();
+        if (!plate_data_list.empty() && plate_data_list.front() != nullptr && plate_data_list.front()->layout_cell) {
+            for (const ModelObject* object : model.objects)
+                for (const ModelInstance* instance : object->instances)
+                    m_layout_offsets[instance] = plate_data_list.front()->layout_unplaced_offset;
+            for (const PlateData* plate_data : plate_data_list) {
+                if (plate_data == nullptr)
+                    continue;
+                for (const auto& [obj_id, inst_id] : plate_data->objects_and_instances)
+                    if (obj_id >= 0 && obj_id < (int)model.objects.size() && inst_id >= 0 && inst_id < (int)model.objects[obj_id]->instances.size())
+                        m_layout_offsets[model.objects[obj_id]->instances[inst_id]] = plate_data->layout_offset;
+            }
+        }
         //if (!m_skip_model)
         {
             if (!_add_model_file_to_archive(filename, archive, model, objects_data, proFn, project)) { return false; }
@@ -7419,6 +7456,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 unsigned int count = 0;
                 for (const ModelInstance* instance : obj->instances) {
                     Transform3d t = instance->get_matrix();
+                    if (auto it = m_layout_offsets.find(instance); it != m_layout_offsets.end())
+                        t.pretranslate(it->second);
                     // instance_id is just a 1 indexed index in build_items.
                     //assert(m_skip_static || curr_id == build_items.size() + 1);
 
@@ -8443,6 +8482,14 @@ bool _BBS_3MF_Exporter::_add_model_config_file_to_archive(mz_zip_archive& archiv
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << PLATERID_ATTR << "\" " << VALUE_ATTR << "=\"" << plate_data->plate_index + 1 << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << PLATER_NAME_ATTR << "\" " << VALUE_ATTR << "=\"" <<  xml_escape(plate_data->plate_name.c_str()) << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LOCK_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha<< plate_data->locked<< "\"/>\n";
+                if (plate_data->layout_cell) {
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LAYOUT_CELL_ATTR << "\" " << VALUE_ATTR << "=\""
+                           << plate_data->layout_cell->x() << " " << plate_data->layout_cell->y() << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LAYOUT_INSTANCES_ATTR << "\" " << VALUE_ATTR << "=\"";
+                    for (size_t j = 0; j < plate_data->objects_and_instances.size(); ++j)
+                        stream << (j == 0 ? "" : " ") << plate_data->objects_and_instances[j].first << ":" << plate_data->objects_and_instances[j].second;
+                    stream << "\"/>\n";
+                }
                 ConfigOption* bed_type_opt = plate_data->config.option("curr_bed_type");
                 t_config_enum_names bed_type_names = ConfigOptionEnum<BedType>::get_enum_names();
                 if (bed_type_opt != nullptr && bed_type_names.size() > bed_type_opt->getInt())

@@ -2054,6 +2054,24 @@ void MenuFactory::create_plate_menu()
 
     m_plate_mods_pos = menu->GetMenuItemCount(); // pos for dynamic plate items (Edit Plate Name / Lock / Delete Plate)
 
+    menu->AppendSeparator();
+    // Orca: custom plate layout
+    append_menu_item(menu, wxID_ANY, _L("Move Plate Left"), _L("Move the plate one place to the left, making room if needed"),
+        [](wxCommandEvent&) { plater()->move_current_plate_by(-1); }, "", nullptr,
+        []() { return plater()->can_move_current_plate_by(-1); }, m_parent);
+    append_menu_item(menu, wxID_ANY, _L("Move Plate Right"), _L("Move the plate one place to the right, making room if needed"),
+        [](wxCommandEvent&) { plater()->move_current_plate_by(1); }, "", nullptr,
+        []() { return plater()->can_move_current_plate_by(1); }, m_parent);
+    append_menu_item(menu, wxID_ANY, _L("Close Gaps"), _L("Slide the plates of each row to the left and remove empty rows"),
+        [](wxCommandEvent&) { plater()->close_plate_gaps(); }, "", nullptr,
+        []() { return !plater()->get_partplate_list().plan_close_gaps().empty(); }, m_parent);
+    append_menu_item(menu, wxID_ANY, _L("Renumber Plates by Position"), _L("Number the plates row by row, from left to right"),
+        [](wxCommandEvent&) { plater()->renumber_plates_by_position(); }, "", nullptr,
+        []() { return !plater()->get_partplate_list().is_numbered_by_position(); }, m_parent);
+    append_menu_item(menu, wxID_ANY, _L("Reset Plate Layout"), _L("Place all plates in the default grid again"),
+        [](wxCommandEvent&) { plater()->reset_plate_layout(); }, "", nullptr,
+        []() { return plater()->get_partplate_list().has_custom_layout(); }, m_parent);
+
     // add shapes
     menu->AppendSeparator();
     wxMenu* sub_menu_primitives = append_submenu_add_generic(menu, ModelVolumeType::INVALID);

@@ -657,6 +657,31 @@ private:
     bool m_fps_overlay_tick{ false };
     LayersEditing m_layers_editing;
     Mouse m_mouse;
+    // Orca: a plate dragged by its move handle to another cell of the plate layout.
+    struct PlateDrag
+    {
+        int     plate_idx{-1};
+        Point   start;                      // mouse position when the button went down
+        Point   last_mouse;                 // latest mouse position, where the plate is carried while the view pans
+        Vec2d   grab_offset{Vec2d::Zero()}; // from the grab point to the plate origin
+        Vec2d   ghost_shift{Vec2d::Zero()}; // from the plate's cell to where it is carried under the mouse
+        Vec2i32 cell{-1, -1};               // cell the plate would be dropped on
+        bool    valid{false};
+        GLModel target;                     // highlight of that cell
+        GLModel outline;                    // border of the carried plate, also drawn around a plate whose handle is hovered
+        BoundingBoxf outline_box;           // what the outline was built for
+        bool    cancelled{false};           // the drag was cancelled; the rest of the press does nothing
+        static constexpr double Lift = 2.; // mm the carried plate is raised, so it reads as picked up
+    } m_plate_drag;
+    // Orca: plates sliding out of the way of a dragged plate, and back, and the dragged plate carried under the
+    // mouse. Each frame eases the offset a plate is drawn at toward its target; neither the plates nor the model
+    // move until the drop, after which the plates settle from where they were drawn into their new cells.
+    struct PlateShiftPreview
+    {
+        std::map<int, Vec3d> target;  // plate index -> offset to slide to; plates not listed slide home
+        std::map<int, Vec3d> current; // plate index -> offset drawn now, nonzero only
+        std::chrono::steady_clock::time_point last_frame;
+    } m_plate_shift;
     // Orca: Gesture pans have their own lifecycle and stable world-space anchor.
     std::optional<Vec3d> m_gesture_pan_anchor;
     GLGizmosManager m_gizmos;
@@ -1402,6 +1427,9 @@ public:
     void export_toolpaths_to_obj(const char* filename) const { m_gcode_viewer.export_toolpaths_to_obj(filename); }
 
     void mouse_up_cleanup();
+    // Orca: Esc, a lost mouse capture or focus: the plates glide home and the rest of the press does nothing.
+    // Returns false if no plate is being dragged.
+    bool cancel_plate_drag();
 
     bool are_labels_shown() const { return m_labels.is_shown(); }
     void show_labels(bool show) { m_labels.show(show); }
@@ -1539,6 +1567,7 @@ private:
     void _render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add part plate related logic
     void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
+    void _render_plate_drag_target(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     bool _hides_inactive_plates() const;
     // Returns whether what the scene shows changed.
     bool _update_inactive_plates_visibility();
@@ -1615,6 +1644,16 @@ private:
 
     // Convert the screen space coordinate to world coordinate on the bed.
     Vec3d _mouse_to_bed_3d(const Point& mouse_pos);
+    // Orca: the plate whose move handle is hovered, if a drag can start there; -1 otherwise.
+    int  _hovered_plate_handle() const;
+    // Orca: start dragging a plate when the left button goes down on its move handle.
+    bool _start_plate_drag(const Point& mouse_pos);
+    void _update_plate_drag(const Point& mouse_pos);
+    void _update_plate_shift_preview();
+    void _apply_plate_shift_offsets(const std::map<int, Vec3d>& offsets);
+    void _clear_plate_shift_preview();
+    // Orca: pan the view while a dragged plate is held near the edge of the canvas; returns true if it panned.
+    bool _pan_plate_drag_at_edge(double dt);
 
     // Orca: Navigation type selects the legacy pivot policy used when no visible surface is hit.
     enum class ECameraNavigationType : unsigned char

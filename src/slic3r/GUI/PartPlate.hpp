@@ -125,6 +125,10 @@ private:
     std::set<std::pair<int, int>> instance_outside_set;
     int m_plate_index;
     Vec3d m_origin;
+    // Orca: grid cell (col, row) this plate occupies when the plate list uses a custom layout.
+    Vec2i32 m_layout_cell{-1, -1};
+    // Orca: where the plate is drawn relative to its origin while plates slide out of the way of a dragged plate.
+    Vec3d m_preview_offset{Vec3d::Zero()};
     int m_width;
     int m_depth;
     double m_height;
@@ -210,6 +214,7 @@ private:
     PickingModel m_plate_filament_map_icon;
     PickingModel m_plate_name_edit_icon;
     PickingModel m_move_front_icon;
+    PickingModel m_move_plate_icon;
     PickingModel m_imex_mode_icon;
     GLModel      m_imex_warn_icon;   // warning badge: IMEX parallel mode + multi-material conflict
     GLModel m_plate_idx_icon;
@@ -289,6 +294,7 @@ private:
     // has objects assigned to more than one filament — a combination that warrants caution.
     bool has_imex_multimaterial_conflict() const;
     void render_only_numbers(bool bottom);
+    Transform3d preview_view_matrix(const Transform3d& view_matrix) const;
     void render_plate_name_texture();
     void invalidate_plate_name_texture();
     void register_raycasters_for_picking(GLCanvas3D& canvas);
@@ -303,7 +309,8 @@ public:
     static constexpr unsigned int PLATE_NAME_HOVER_ID = 6;
     static constexpr unsigned int PLATE_FILAMENT_MAP_ID = 8;
     static constexpr unsigned int PLATE_IMEX_MODE_ID = 9;
-    static constexpr unsigned int GRABBER_COUNT = 10;
+    static constexpr unsigned int PLATE_MOVE_ID = 10;
+    static constexpr unsigned int GRABBER_COUNT = 11;
 
     // Sentinel encoded into GLVolume::composite_id.object_id for IMEX ghost volumes.
     // Real object_ids are small non-negative ints, so a large-negative base is unambiguous.
@@ -608,6 +615,9 @@ public:
     void render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_body = false, bool force_background_color = false, HeightLimitMode mode = HEIGHT_LIMIT_NONE, int hover_id = -1, bool render_cali = false, bool show_grid = true, bool hide_chrome = false);
 
     void set_selected();
+    // Orca: draw the plate moved by offset, without moving it or its objects.
+    void set_preview_offset(const Vec3d& offset) { m_preview_offset = offset; }
+    const Vec3d& get_preview_offset() const { return m_preview_offset; }
     void set_unselected();
     void set_hover_id(int id) { m_hover_id = id; }
     const BoundingBoxf3& get_bounding_box(bool extended = false) { return extended ? m_extended_bounding_box : m_bounding_box; }
@@ -749,7 +759,7 @@ public:
         std::vector<std::pair<int, int>>	objects_and_instances;
         std::vector<std::pair<int, int>>	instances_outside;
 
-        ar(m_plate_index, m_name, m_print_index, m_origin, m_width, m_depth, m_height, m_locked, m_selected, m_ready_for_slice, m_slice_result_valid, m_apply_invalid, m_printable, m_tmp_gcode_path, objects_and_instances, instances_outside, m_config);
+        ar(m_plate_index, m_name, m_print_index, m_origin, m_width, m_depth, m_height, m_locked, m_selected, m_ready_for_slice, m_slice_result_valid, m_apply_invalid, m_printable, m_tmp_gcode_path, objects_and_instances, instances_outside, m_config, m_layout_cell);
 
         for (std::vector<std::pair<int, int>>::iterator it = objects_and_instances.begin(); it != objects_and_instances.end(); ++it)
             obj_to_instance_set.insert(std::pair(it->first, it->second));
@@ -769,7 +779,7 @@ public:
         for (std::set<std::pair<int, int>>::iterator it = obj_to_instance_set.begin(); it != obj_to_instance_set.end(); ++it)
             objects_and_instances.emplace_back(it->first, it->second);
 
-        ar(m_plate_index, m_name, m_print_index, m_origin, m_width, m_depth, m_height, m_locked, m_selected, m_ready_for_slice, m_slice_result_valid, m_apply_invalid, m_printable, m_tmp_gcode_path, objects_and_instances, instances_outside, m_config);
+        ar(m_plate_index, m_name, m_print_index, m_origin, m_width, m_depth, m_height, m_locked, m_selected, m_ready_for_slice, m_slice_result_valid, m_apply_invalid, m_printable, m_tmp_gcode_path, objects_and_instances, instances_outside, m_config, m_layout_cell);
     }
     /*template<class Archive> void serialize(Archive& ar)
     {
@@ -792,6 +802,15 @@ class PartPlateList : public ObjectBase
     std::mutex m_plates_mutex;
     int m_plate_count;
     int m_plate_cols;
+    // Orca: when true, every plate keeps the cell in m_layout_cell instead of following the automatic grid.
+    bool m_custom_layout{false};
+    // Orca: custom layout read from a 3MF, applied by apply_loaded_layout() once the objects are loaded.
+    struct PendingLayoutPlate
+    {
+        Vec2i32                          cell;
+        std::vector<std::pair<int, int>> instances;
+    };
+    std::vector<PendingLayoutPlate> m_pending_layout;
     int m_current_plate;
     int m_print_index;
 
@@ -817,6 +836,8 @@ class PartPlateList : public ObjectBase
     GLTexture m_del_hovered_texture;
     GLTexture m_move_front_hovered_texture;
     GLTexture m_move_front_texture;
+    GLTexture m_move_plate_hovered_texture;
+    GLTexture m_move_plate_texture;
     GLTexture m_arrange_texture;
     GLTexture m_arrange_hovered_texture;
     GLTexture m_orient_texture;
@@ -856,6 +877,13 @@ class PartPlateList : public ObjectBase
     Vec3d compute_origin_for_unprintable();
     //compute shape position
     Vec2d compute_shape_position(int index, int cols);
+    // Orca: cell of the plate at index; indices past the last plate give the cells new plates would take.
+    Vec2i32 compute_plate_cell(int index, int cols) const;
+    Vec2d   compute_cell_position(const Vec2i32& cell);
+    Vec2i32 compute_grid_cell_for_unprintable() const;
+    bool    cells_clear_of_loose_objects(const std::map<int, Vec2i32>& moves);
+    // Move plates with their objects to new cells and switch to the custom layout. Returns 0 on success.
+    int     move_plates_to_cells(const std::map<int, Vec2i32>& moves);
     //generate icon textures
     void generate_icon_textures();
     void release_icon_textures();
@@ -1015,6 +1043,38 @@ public:
     //move the plate to position index
     int move_plate_to_index(int old_index, int new_index);
 
+    // Orca: custom plate layout. Plates sit in cells of the automatic grid's stride, so they never overlap.
+    // The rules live in libslic3r/PlateLayout.hpp; this class applies them to plates and objects.
+    bool    has_custom_layout() const { return m_custom_layout; }
+    Vec2i32 get_plate_cell(int index) const { return compute_plate_cell(index, m_plate_cols); }
+    std::vector<Vec2i32> get_plate_cells() const;
+    // Cell whose plate origin is nearest to origin.
+    Vec2i32 get_cell_at(const Vec2d& origin);
+    // Area the plate covers when it sits in cell.
+    BoundingBoxf compute_cell_box(const Vec2i32& cell);
+    // Orca: the plates that move, with their new cells, when plate index is dropped on cell (see
+    // PlateLayout::plan_drop()); empty when the drop is not allowed, also when a plate would land on objects
+    // that are on no plate.
+    std::map<int, Vec2i32> plan_plate_move(int index, const Vec2i32& cell);
+    bool    can_move_plate_to_cell(int index, const Vec2i32& cell);
+    // Move the plate and its objects to cell, making room as plan_plate_move() does; switches to the custom layout.
+    // Returns 0 on success.
+    int     move_plate_to_cell(int index, const Vec2i32& cell);
+    // The moves that slide each row left and remove empty rows (see PlateLayout::close_gaps()); empty when
+    // nothing would move or a plate would land on objects that are on no plate.
+    std::map<int, Vec2i32> plan_close_gaps();
+    // Returns 0 on success.
+    int     close_gaps();
+    // Whether plate numbers follow the reading order of the cells.
+    bool    is_numbered_by_position() const;
+    // Number the plates in reading order of their cells; plates and objects stay in place. Returns 0 on success.
+    int     renumber_plates_by_position();
+    // Return to the automatic grid, moving plates and their objects.
+    void    reset_layout();
+    // Apply the layout read by load_from_3mf_structure(); returns true if plates moved.
+    bool    apply_loaded_layout();
+    void    discard_loaded_layout() { m_pending_layout.clear(); }
+
     //lock plate
     int lock_plate(int index, bool state);
 
@@ -1140,7 +1200,7 @@ public:
     {
         //ar(cereal::base_class<ObjectBase>(this));
         //Cancel undo/redo for m_shape ,Because the printing area of different models is different, currently if the grid changes, it cannot correspond to the model on the left ui
-        ar(m_plate_width, m_plate_depth, m_plate_height, m_height_to_lid, m_height_to_rod, m_height_limit_mode, m_plate_count, m_current_plate, m_plate_list, unprintable_plate);
+        ar(m_plate_width, m_plate_depth, m_plate_height, m_height_to_lid, m_height_to_rod, m_height_limit_mode, m_plate_count, m_current_plate, m_plate_list, unprintable_plate, m_custom_layout);
         //ar(m_plate_width, m_plate_depth, m_plate_height, m_plate_count, m_current_plate);
     }
     struct Rect
