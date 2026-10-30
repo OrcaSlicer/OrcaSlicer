@@ -299,6 +299,17 @@ private:
     void cancel_and_wait_for_capabilities(
         const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities);
 
+    // Publish or retract one loaded plugin's infill patterns from its current enable state. Holds
+    // m_infill_publication_mutex across reading that state and touching the registry, so a pass
+    // that observed an older state cannot republish a pattern whose capability is now disabled or
+    // unloaded.
+    void sync_infill_patterns_for_plugin(const std::string& plugin_key);
+    // Caller holds m_infill_publication_mutex.
+    void sync_infill_patterns_for_plugin_locked(const std::string& plugin_key);
+    // Caller holds m_infill_publication_mutex.
+    void retract_infill_patterns_locked(
+        const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities);
+
     // Snapshot subscribers under m_mutex so they can be invoked without holding it.
     std::vector<PluginLifecycleCompleteFn> copy_callbacks(CallbackType type) const;
     std::vector<CapabilityLifecycleFn> copy_capability_callbacks(CallbackType type) const;
@@ -343,6 +354,11 @@ private:
 
     // Serialize sidecar snapshots so concurrent capability toggles cannot write stale state out of order.
     mutable std::mutex m_install_state_mutex;
+
+    // Publication gate for plugin infill pattern IDs. Lock order: this mutex, then m_mutex, then the
+    // InfillFactory registry lock. Load/enable publishes under it, and unload detaches and retracts
+    // under it, so the last operation to run always reflects the live capability state.
+    std::mutex m_infill_publication_mutex;
 
     std::map<CallbackType, std::vector<PluginLifecycleCompleteFn>> m_callbacks;
     std::map<CallbackType, std::vector<CapabilityLifecycleFn>> m_capability_callbacks;

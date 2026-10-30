@@ -3088,12 +3088,16 @@ void GUI_App::init_plugin_gui_wiring()
 
     plugin_mgr.subscribe_on_unload_callback(PluginHostUi::close_windows_for_plugin);
     const auto refresh_infill_choices = [](bool invalidate_plate) {
-        wxGetApp().CallAfter([invalidate_plate]() {
-            if (wxGetApp().is_closing())
+        auto* app = static_cast<GUI_App*>(wxTheApp);
+        if (app == nullptr || app->is_closing())
+            return;
+
+        app->CallAfter([app, invalidate_plate]() {
+            if (wxTheApp != app || app->is_closing())
                 return;
             Choice::refresh_plugin_infill_choices();
             if (invalidate_plate) {
-                if (Plater* plater = wxGetApp().plater()) {
+                if (Plater* plater = app->plater()) {
                     // Public background-process invalidation is unavailable; reset invalidates stale slice state.
                     plater->background_process().reset();
                     plater->revalidate_current_plate_if_plugins_missing();

@@ -424,8 +424,8 @@ public:
 class Choice;
 
 // A string option that lists the allowed keys is a "key choice": the configuration keeps the raw
-// key (a built-in key today, a plugin-provided id later) while the field shows the matching
-// translated enum label, like an enum field. sparse_infill_pattern is such an option.
+// key (a built-in key, or a plugin-provided id) while the field shows the matching translated enum
+// label, like an enum field. The four infill pattern settings are such options.
 bool is_key_choice_option(const ConfigOptionDef& opt);
 
 class DynamicList
@@ -450,9 +450,9 @@ private:
 class Choice : public Field {
 	using Field::Field;
 	DynamicList * m_list = nullptr;
-	// Key-choice fields (a string option with enum choices, e.g. sparse_infill_pattern) show enum
-	// labels but store the raw key. A key with no dropdown entry (a plugin id) has nothing to select,
-	// so the key that was loaded is kept here to be returned by get_value() unchanged.
+	// Key-choice fields (a string option with enum choices, e.g. the infill pattern settings) show
+	// enum labels but store the raw key. A key with no dropdown entry (a plugin id) has nothing to
+	// select, so the key that was loaded is kept here to be returned by get_value() unchanged.
 	std::string m_key_choice_value;
 public:
 	Choice(const ConfigOptionDef& opt, const t_config_option_key& id) : Field(opt, id) {}

@@ -47,6 +47,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <cctype>
+#include <chrono>
 
 #include <boost/format/format_fwd.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -58,6 +59,7 @@
 #include "libslic3r_version.h"
 #include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 #include "libslic3r/GCode/GCodeStatistics.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
@@ -67,6 +69,48 @@
 #endif
 
 namespace Slic3r {
+
+namespace {
+
+// Slicing may start before the packages the print's manifest references have finished auto-loading.
+// The infill registry is populated by the load worker, so a preflight that runs first would report
+// the selected pattern as unavailable. Wait once, bounded, for referenced packages that are
+// currently loading — the same grace the other capability dispatch sites apply. Runs on the slicing
+// worker, never the UI thread.
+//
+// A package that does not finish in time is not reported here: PrintObject's infill preflight
+// raises the ordinary slicing error and the load has already recorded its own failure.
+void wait_for_referenced_plugin_loads(const Print& print)
+{
+    const auto* manifest = print.full_print_config().option<ConfigOptionStrings>("plugins");
+    if (manifest == nullptr || manifest->values.empty())
+        return;
+
+    PluginManager& manager  = PluginManager::instance();
+    const auto     deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    for (const std::string& entry : manifest->values) {
+        const auto ref = parse_capability_ref(entry);
+        if (!ref)
+            continue;
+
+        // Cloud manifests identify the package by UUID, local ones by plugin key.
+        const std::string plugin_key = ref->uuid.empty() ? ref->name : ref->uuid;
+        if (plugin_key.empty() || !manager.is_plugin_load_in_progress(plugin_key))
+            continue;
+
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= deadline)
+            break;
+
+        std::string error;
+        if (!manager.wait_for_plugin_load(
+                plugin_key, std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now), error))
+            BOOST_LOG_TRIVIAL(warning) << "Plugin '" << plugin_key
+                                       << "' was still loading when slicing started: " << error;
+    }
+}
+
+} // namespace
 
 bool SlicingProcessCompletedEvent::critical_error() const
 {
@@ -255,6 +299,7 @@ void BackgroundSlicingProcess::process_fff()
         m_gcode_result->reset();
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: gcode_result reseted, will start print::process") % __LINE__;
+        wait_for_referenced_plugin_loads(*m_fff_print);
         m_print->process();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__
                                 << boost::format(" %1%: after print::process, send slicing complete event to gui...") % __LINE__;
