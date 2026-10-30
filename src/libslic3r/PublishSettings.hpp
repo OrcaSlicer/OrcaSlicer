@@ -40,6 +40,10 @@ const std::set<std::string>& publish_structural_keys();
 // s_project_options). Import applies them into project_config, not a filament preset.
 const std::set<std::string>& publish_mixed_keys();
 
+// Keys whose value differs between `before` and `after`, including a key only one of the two holds
+// (a manifest the handling added or dropped). Sorted and unique.
+std::vector<std::string> publish_changed_keys(const DynamicPrintConfig &before, const DynamicPrintConfig &after);
+
 // One row of the printer tab's "Retraction" / "Z-Hop" optgroups (config key + tab icon id).
 struct PublishablePrinterOption {
     const char *key;  // config key, e.g. "retraction_length"

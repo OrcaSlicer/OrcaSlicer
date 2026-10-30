@@ -2381,26 +2381,6 @@ static void update_all_extruder_variants(int extruder_idx = -1)
         tab->update_extruder_variants(extruder_idx);
 }
 
-// The keys whose value differs between `after` and `before`, including a key only one of the two
-// holds (a manifest a change added or dropped).
-static std::vector<std::string> changed_config_keys(const DynamicPrintConfig &after, const DynamicPrintConfig &before)
-{
-    std::vector<std::string> keys = after.keys();
-    std::vector<std::string> before_keys = before.keys();
-    keys.insert(keys.end(), before_keys.begin(), before_keys.end());
-    std::sort(keys.begin(), keys.end());
-    keys.erase(std::unique(keys.begin(), keys.end()), keys.end());
-
-    std::vector<std::string> changed;
-    for (const std::string &key : keys) {
-        const ConfigOption *lhs = after.option(key);
-        const ConfigOption *rhs = before.option(key);
-        if (lhs == nullptr || rhs == nullptr || lhs->type() != rhs->type() || *lhs != *rhs)
-            changed.push_back(key);
-    }
-    return changed;
-}
-
 void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 {
     // The private preset's config as it stood before the Tab's own handling of this edit. The field
@@ -2501,7 +2481,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         // tab's own handling rewrote (a paired option, a validator's correction) go with it, and the
         // pre-edit config tells the host which of them another tab may have changed meanwhile.
         if (m_on_publish_edit && m_publish_handling_before)
-            m_on_publish_edit(opt_key, value, changed_config_keys(*m_config, *m_publish_handling_before),
+            m_on_publish_edit(opt_key, value, publish_changed_keys(*m_publish_handling_before, *m_config),
                               *m_publish_handling_before);
         return;
     }

@@ -390,6 +390,25 @@ const std::set<std::string>& publish_mixed_keys()
     return mixed_keys;
 }
 
+std::vector<std::string> publish_changed_keys(const DynamicPrintConfig &before, const DynamicPrintConfig &after)
+{
+    std::vector<std::string> keys = after.keys();
+    std::vector<std::string> before_keys = before.keys();
+    keys.insert(keys.end(), before_keys.begin(), before_keys.end());
+    std::sort(keys.begin(), keys.end());
+    keys.erase(std::unique(keys.begin(), keys.end()), keys.end());
+
+    std::vector<std::string> changed;
+    for (const std::string &key : keys) {
+        const ConfigOption *after_option  = after.option(key);
+        const ConfigOption *before_option = before.option(key);
+        if (after_option == nullptr || before_option == nullptr || after_option->type() != before_option->type() ||
+            *after_option != *before_option)
+            changed.push_back(key);
+    }
+    return changed;
+}
+
 // The printer tab's "Retraction" optgroup (TabPrinter::build_fff, Tab.cpp), in tab order.
 // KEEP IN SYNC with that optgroup: the published-3MF printer allowlist is built from these
 // lists, so any key shown there must be publishable here (and vice versa).

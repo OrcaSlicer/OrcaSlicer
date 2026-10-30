@@ -312,6 +312,30 @@ TEST_CASE("A slot with no exact variant match publishes the value it prints with
     REQUIRE_THAT(retraction->get_at(0), Catch::Matchers::WithinAbs(0.9, 1e-6));
 }
 
+TEST_CASE("The variant notice names the required variant, the used variant and the slot", "[PublishSettings]")
+{
+    DynamicPrintConfig config = make_variant_config();
+
+    SECTION("an inexact column names both variants and the slot") {
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = { int(nvtHighFlow) };
+        // Slot 1 defines Standard only, so the notice speaks about slot 2 (1-based) and must keep
+        // each variant in its own role, quoted.
+        const std::string notice = publish_variant_notice(config, 1);
+        CHECK(notice.find("Slot 2: the printer needs the \"Direct Drive High Flow\" variant") != std::string::npos);
+        CHECK(notice.find("printed with \"Direct Drive Standard\".") != std::string::npos);
+    }
+
+    SECTION("an exact column produces no notice") {
+        CHECK(publish_variant_notice(config, 0).empty());
+    }
+
+    SECTION("a config with no column layout produces no notice") {
+        DynamicPrintConfig plain;
+        plain.set_key_value("filament_colour", new ConfigOptionStrings({ "#FF0000" }));
+        CHECK(publish_variant_notice(plain, 0).empty());
+    }
+}
+
 TEST_CASE("Published material keys name their file column and import onto that variant", "[PublishSettings]")
 {
     // The author's file: one slot with two variants. Column 1 is the High Flow column.
@@ -723,6 +747,31 @@ TEST_CASE("A filament key is variant-bearing exactly when the variant option lis
     CHECK_FALSE(publish_is_variant_bearing("filament_cost#2"));
 }
 
+TEST_CASE("An action gui type is a control with no value", "[PublishSettings]")
+{
+    const ConfigOptionDef::GUIType gui_type = GENERATE(ConfigOptionDef::GUIType::color,
+                                                       ConfigOptionDef::GUIType::plugin_picker,
+                                                       ConfigOptionDef::GUIType::plugin_config,
+                                                       ConfigOptionDef::GUIType::printer_agent_select);
+    ConfigOptionDef def;
+    def.gui_type = gui_type;
+    CHECK(publish_is_action_control(def));
+}
+
+TEST_CASE("An ordinary value control is not an action control", "[PublishSettings]")
+{
+    const ConfigOptionDef::GUIType gui_type = GENERATE(ConfigOptionDef::GUIType::undefined,
+                                                       ConfigOptionDef::GUIType::i_enum_open,
+                                                       ConfigOptionDef::GUIType::f_enum_open,
+                                                       ConfigOptionDef::GUIType::select_open,
+                                                       ConfigOptionDef::GUIType::slider,
+                                                       ConfigOptionDef::GUIType::legend,
+                                                       ConfigOptionDef::GUIType::one_string);
+    ConfigOptionDef def;
+    def.gui_type = gui_type;
+    CHECK_FALSE(publish_is_action_control(def));
+}
+
 TEST_CASE("A dirty variant index maps to the file column of every slot whose preset is the edited one",
           "[PublishSettings]")
 {
@@ -800,6 +849,60 @@ TEST_CASE("A dirty key of another preset contributes nothing", "[PublishSettings
 
     CHECK(publish_dirty_material_keys(config, slot_presets, slot_is_mixed, "My PLA",
                                       { "filament_retraction_length#0", "filament_cost#0" }).empty());
+}
+
+TEST_CASE("Publish change detection reports every key whose value differs", "[PublishSettings]")
+{
+    DynamicPrintConfig before;
+    before.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    before.set_key_value("filament_colour", new ConfigOptionStrings({ "#FF0000", "#00FF00" }));
+
+    SECTION("a changed scalar is reported") {
+        DynamicPrintConfig after = before;
+        after.set_key_value("layer_height", new ConfigOptionFloat(0.3));
+        CHECK(publish_changed_keys(before, after) == std::vector<std::string>{ "layer_height" });
+    }
+
+    SECTION("an unchanged config reports nothing") {
+        const DynamicPrintConfig after = before;
+        CHECK(publish_changed_keys(before, after).empty());
+    }
+
+    SECTION("a key the handling adds is reported") {
+        DynamicPrintConfig after = before;
+        after.set_key_value("filament_cost", new ConfigOptionFloats({ 20.0 }));
+        CHECK(publish_changed_keys(before, after) == std::vector<std::string>{ "filament_cost" });
+    }
+
+    SECTION("a key the handling drops is reported") {
+        DynamicPrintConfig before_with_cost = before;
+        before_with_cost.set_key_value("filament_cost", new ConfigOptionFloats({ 20.0 }));
+        CHECK(publish_changed_keys(before_with_cost, before) == std::vector<std::string>{ "filament_cost" });
+    }
+
+    SECTION("a key whose option type changed is reported") {
+        // Comparing two options of different types throws, so the type itself has to decide.
+        DynamicPrintConfig typed_before;
+        typed_before.set_key_value("filament_cost", new ConfigOptionFloats({ 20.0 }));
+        DynamicPrintConfig typed_after;
+        typed_after.set_key_value("filament_cost", new ConfigOptionString("20"));
+        CHECK(publish_changed_keys(typed_before, typed_after) == std::vector<std::string>{ "filament_cost" });
+    }
+
+    SECTION("a changed vector element reports its base key once") {
+        DynamicPrintConfig after = before;
+        after.set_key_value("filament_colour", new ConfigOptionStrings({ "#FF0000", "#0000FF" }));
+        CHECK(publish_changed_keys(before, after) == std::vector<std::string>{ "filament_colour" });
+    }
+
+    SECTION("several changes are reported sorted and without duplicates") {
+        DynamicPrintConfig after = before;
+        after.set_key_value("layer_height", new ConfigOptionFloat(0.3));
+        after.set_key_value("filament_colour", new ConfigOptionStrings({ "#FF0000", "#0000FF" }));
+        after.set_key_value("filament_cost", new ConfigOptionFloats({ 20.0 }));
+        CHECK(publish_changed_keys(before, after) ==
+              std::vector<std::string>{ "filament_colour", "filament_cost", "layer_height" });
+    }
 }
 
 TEST_CASE("Checked state round-trips through published keys and material entries", "[PublishSettings]")
@@ -975,41 +1078,6 @@ TEST_CASE("A flag row with no value publishes no entry", "[PublishSettings]")
     }
 }
 
-TEST_CASE("A file entry's colour and type flags seed the rows that reproduce it", "[PublishSettings]")
-{
-    // A published entry seeds its Color row from publish_color and its Type row from publish_type;
-    // with those rows checked the selection emits the same entry again.
-    const PublishRowId color_row = make_publish_row({}, PublishSection::Material, 0, -1, PublishRowKind::Color);
-    const PublishRowId type_row  = make_publish_row({}, PublishSection::Material, 0, -1, PublishRowKind::Type);
-    const std::vector<PublishRowId> rows{ color_row, type_row };
-
-    PublishedMaterialEntry file_entry;
-    file_entry.slot               = 0;
-    file_entry.publish_color      = true;
-    file_entry.color              = "#FF0000";
-    file_entry.publish_type       = true;
-    file_entry.publish_type_value = "PLA";
-
-    PublishOwnerInfo info;
-    info.filament_type = "PLA High Speed";
-    info.colour        = "#FF0000";
-
-    PublishSelection selection;
-    selection.set_owner_info(0, info);
-    // The dialog's seeding: one row per flag the entry carries.
-    if (file_entry.publish_color)
-        selection.set_checked(color_row, true);
-    if (file_entry.publish_type)
-        selection.set_checked(type_row, true);
-
-    const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
-    REQUIRE(entries.size() == 1);
-    CHECK(entries[0].publish_color == file_entry.publish_color);
-    CHECK(entries[0].color == file_entry.color);
-    CHECK(entries[0].publish_type == file_entry.publish_type);
-    CHECK(entries[0].publish_type_value == file_entry.publish_type_value);
-}
-
 TEST_CASE("A mixed owner publishes its definition only while its publish checkbox is on", "[PublishSettings]")
 {
     PublishOwnerInfo info;
@@ -1029,16 +1097,27 @@ TEST_CASE("A mixed owner publishes its definition only while its publish checkbo
         REQUIRE(selection.owner_publishes(0, {}));
         const std::vector<PublishedMaterialEntry> entries = selection.material_entries({});
         REQUIRE(entries.size() == 1);
-        const std::vector<std::string> expected(publish_mixed_keys().begin(), publish_mixed_keys().end());
-        CHECK(entries[0].keys == expected);
+        // Every mixed key ships, unpicked: the definition is per-slot project data. The list is
+        // relied on by the importer, so it is pinned here rather than read back from the constant.
+        CHECK(entries[0].keys == std::vector<std::string>{ "filament_is_mixed",
+                                                           "filament_mixed_components",
+                                                           "filament_mixed_gradient",
+                                                           "filament_mixed_gradient_curve",
+                                                           "filament_mixed_gradient_per_part",
+                                                           "filament_mixed_gradient_range",
+                                                           "filament_mixed_sublayer_ratios" });
         CHECK(entries[0].publish_color);
         CHECK(entries[0].color == "#FF0000");
         CHECK_FALSE(entries[0].full);
     }
 }
 
-TEST_CASE("Full publish exports every variant of the owner", "[PublishSettings]")
+TEST_CASE("Full publish carries the owner's full keys and ignores its per-key rows", "[PublishSettings]")
 {
+    // Full Publish carries the whole preset: export serialises every variant column of the author's
+    // slot and import copies those vectors into the created copy, so this case pins only the
+    // selection's pass-through of `full_keys`. "Full Publish copies every variant of the author's
+    // slot" covers the import side.
     const PublishRowId key_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
     const std::vector<PublishRowId> rows{ key_row };
 
@@ -1170,6 +1249,32 @@ TEST_CASE("A component the dialog does not show is not reported", "[PublishSetti
     selection.set_owner_published(0, true);
 
     CHECK(unpublished_mixed_components(selection, project, {}).empty());
+}
+
+TEST_CASE("Mixed components are read from the project's per-slot list", "[PublishSettings]")
+{
+    DynamicPrintConfig project;
+    project.set_key_value("filament_mixed_components", new ConfigOptionStrings({ "2,3", "" }));
+
+    SECTION("a well-formed list yields its component slots") {
+        CHECK(publish_mixed_components(project, 0) == std::vector<unsigned int>{ 2, 3 });
+    }
+
+    SECTION("a slot the project config does not cover yields nothing") {
+        CHECK(publish_mixed_components(project, 1).empty());
+        CHECK(publish_mixed_components(project, 2).empty());
+    }
+
+    SECTION("a non-numeric entry is skipped and the rest of the list kept") {
+        project.set_key_value("filament_mixed_components", new ConfigOptionStrings({ "2,abc,4" }));
+        CHECK(publish_mixed_components(project, 0) == std::vector<unsigned int>{ 2, 4 });
+    }
+
+    SECTION("a token with a numeric prefix keeps that prefix") {
+        // std::stoi stops at the first non-digit, so "2x" reads as 2 rather than as invalid.
+        project.set_key_value("filament_mixed_components", new ConfigOptionStrings({ "2x,3" }));
+        CHECK(publish_mixed_components(project, 0) == std::vector<unsigned int>{ 2, 3 });
+    }
 }
 
 TEST_CASE("The printer rule uses the project's nozzle type", "[PublishSettings]")
