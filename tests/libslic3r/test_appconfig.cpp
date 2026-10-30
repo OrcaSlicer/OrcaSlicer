@@ -26,6 +26,23 @@ TEST_CASE("Full collision-volume previews are opt-in and retain the user's prefe
     CHECK(config.get_bool("show_collision_volumes"));
 }
 
+TEST_CASE("The shading model keeps the choice of the Phong shading checkbox it replaces", "[AppConfig]")
+{
+    const bool phong = GENERATE(true, false);
+    AppConfig config;
+    // A config written before the shading model: no shading model yet, and the unused
+    // opengl_shading_model as "gouraud".
+    config.set(SETTING_OPENGL_SHADING_MODEL, "");
+    config.set("opengl_shading_model", "gouraud");
+    config.set_bool(SETTING_OPENGL_REALISTIC_PHONG, phong);
+    config.set_defaults();
+    CHECK(config.get(SETTING_OPENGL_SHADING_MODEL) == (phong ? "phong" : "gouraud"));
+
+    config.set(SETTING_OPENGL_SHADING_MODEL, "pathtrace");
+    config.set_defaults();
+    CHECK(config.get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace");
+}
+
 TEST_CASE("AppConfig network version helpers", "[AppConfig]") {
     AppConfig config;
 
