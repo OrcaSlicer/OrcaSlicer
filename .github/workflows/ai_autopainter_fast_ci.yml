@@ -1,0 +1,25 @@
+name: AI Auto-Painter Fast C++ Check
+
+on:
+  push:
+    paths:
+      - 'src/slic3r/GUI/Gizmos/OrcaMultiScaleAutoPainter.cpp'
+      - '.github/workflows/ai_autopainter_fast_ci.yml'
+  pull_request:
+    paths:
+      - 'src/slic3r/GUI/Gizmos/OrcaMultiScaleAutoPainter.cpp'
+  workflow_dispatch:
+
+jobs:
+  verify-segmentation-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Fork
+        uses: actions/checkout@v4
+
+      - name: Compile & Run Standalone Multi-Scale Segmentation Unit Test
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror \
+            src/slic3r/GUI/Gizmos/OrcaMultiScaleAutoPainter.cpp \
+            -o /tmp/test_orca_autopainter
+          /tmp/test_orca_autopainter
