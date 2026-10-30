@@ -85,6 +85,18 @@ void set_title_colour_after_set_title(void * window)
   }
 }
 
+void keep_window_above(void * window, void * parent, bool keep)
+{
+    NSWindow* child = [(NSView*) window window];
+    NSWindow* owner = [(NSView*) parent window];
+    if (child == nil || owner == nil)
+        return;
+    if (keep)
+        [owner addChildWindow:child ordered:NSWindowAbove];
+    else if ([child parentWindow] == owner)
+        [owner removeChildWindow:child];
+}
+
 void WKWebView_evaluateJavaScript(void * web, wxString const & script, void (*callback)(wxString const &))
 {
     [(WKWebView*)web evaluateJavaScript:wxCFStringRef(script).AsNSString() completionHandler: ^(id result, NSError *error) {

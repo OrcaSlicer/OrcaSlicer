@@ -15,6 +15,10 @@ void WKWebView_setTransparentBackground(void * web);
 void WKWebView_force_display(void * web);
 void set_tag_when_enter_full_screen(bool isfullscreen);
 void set_title_colour_after_set_title(void * window);
+// Keeps a top-level window (by its GetHandle()) above `parent` while `keep` holds, as a Cocoa child
+// window: it stays in sight when the parent is raised and moves with it. wx never attaches dialogs this
+// way (it broke modal dialogs across Spaces), so a macOS dialog otherwise falls behind a raised parent.
+void keep_window_above(void * window, void * parent, bool keep);
 void initGestures(void * view,  wxEvtHandler * handler);
 void openFolderForFile(wxString const & file);
 void StaticGroup_layoutBadge(void * group, void * badge);

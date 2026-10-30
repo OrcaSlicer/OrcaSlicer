@@ -17,6 +17,9 @@
 #include "Mcp/McpTypes.hpp"
 #include "Widgets/WebViewHostDialog.hpp"
 #include "libslic3r/Utils.hpp"
+#ifdef __APPLE__
+#include "slic3r/Utils/MacDarkMode.hpp"
+#endif
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -682,6 +685,12 @@ void ScriptRunnerDialog::run(const nlohmann::json& payload)
         if (!jobs.is_null())
             m_jobs = jobs;
         call_web_handler(finished_view(result));
+        // The run lent the focus to the main window; it comes back to this dialog, which shows the outcome.
+#ifdef __APPLE__
+        if (MainFrame* frame = wxGetApp().mainframe)
+            keep_window_above(GetHandle(), frame->GetHandle(), false);
+#endif
+        restore_z_order();
     };
     m_single  = only;
     m_total   = script->steps.size();
@@ -691,6 +700,12 @@ void ScriptRunnerDialog::run(const nlohmann::json& payload)
         refuse(_u8L("Scripts can't run while OrcaSlicer is starting or closing."));
         return;
     }
+#ifdef __APPLE__
+    // The run's progress and its Stop button stay in sight above the raised main window, as Windows and
+    // GTK keep a dialog above its parent by themselves.
+    if (MainFrame* frame = wxGetApp().mainframe)
+        keep_window_above(GetHandle(), frame->GetHandle(), true);
+#endif
     // Reaches the page before any report of this run: those come through the service's dispatcher
     // and then call_web_handler(), two CallAfter()s on the app's queue, after this one.
     json started{{"command", "run_started"}, {"total", m_total}};
