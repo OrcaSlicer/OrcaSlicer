@@ -10,9 +10,9 @@
 namespace Slic3r {
 
 enum class PublishSection { Printer, Material, Process };
-// Color and Type are legacy row kinds from the dialog's removed requirement rows: colour and type
-// are now implicit for every enabled slot, so the dialog builds no row of those kinds. They stay
-// in the enum for compatibility.
+// Color and Type are legacy row kinds from the dialog's removed requirement rows: the slot's
+// material checkbox now publishes colour and type, so the dialog builds no row of those kinds.
+// They stay in the enum for compatibility.
 enum class PublishRowKind { Key, Color, Type };
 
 // One selectable row of the dialog. `keys` holds publish-ready keys: "base" for a slot-level row
@@ -48,8 +48,11 @@ class PublishSelection
 {
 public:
     void set_owner_info(int owner, PublishOwnerInfo info);
-    void set_owner_enabled(int owner, bool enabled);
-    bool owner_enabled(int owner) const; // true when never set
+    // "Publish this owner's identity": a physical slot's colour and material type (its material
+    // checkbox), or a mixed slot's definition (its publish checkbox). Row keys are published
+    // independently of it.
+    void set_owner_published(int owner, bool published);
+    bool owner_published(int owner) const; // false when never set
     void set_full_publish(int owner, bool full);
     bool full_publish(int owner) const; // false when never set
 
@@ -66,14 +69,19 @@ public:
     // Print/printer rows (section != Material) that are checked and enabled, in the given order.
     std::vector<std::string> published_keys(const std::vector<PublishRowId> &rows) const;
 
-    // One entry per enabled material owner, in ascending slot order.
+    // One entry per publishing owner, in ascending slot order. An owner publishes when its
+    // identity flag is set, one of its rows is checked, or it has Full Publish; an owner with
+    // none of them contributes nothing.
     std::vector<PublishedMaterialEntry> material_entries(const std::vector<PublishRowId> &rows) const;
+
+    // Whether `owner` contributes an entry under the rule material_entries applies.
+    bool owner_publishes(int owner, const std::vector<PublishRowId> &rows) const;
 
 private:
     std::map<PublishRowId, bool> m_checked;
     std::map<PublishRowId, bool> m_enabled;
     std::map<int, PublishOwnerInfo> m_owners;
-    std::map<int, bool> m_owner_enabled;
+    std::map<int, bool> m_owner_published;
     std::map<int, bool> m_full;
 };
 
@@ -110,9 +118,10 @@ PublishWriteLocation publish_write_location(const PublishRowId &row,
 // project config names none for that slot.
 std::vector<unsigned int> publish_mixed_components(const DynamicPrintConfig &project, size_t slot);
 
-// Enabled mixed owners whose component filaments are not published. An enabled component
-// publishes its colour and type implicitly, so only a disabled one is an issue; a component the
-// dialog does not show (no registered owner) is never reported.
+// Publishing mixed owners whose component filaments publish no identity. A component satisfies
+// the mix when its material checkbox or Full Publish is on; only a component without either is an
+// issue, and it is always reported as Disabled. A component the dialog does not show (no
+// registered owner) is never reported.
 std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSelection &selection,
                                                               const DynamicPrintConfig &project);
 

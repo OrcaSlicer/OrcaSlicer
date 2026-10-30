@@ -146,22 +146,23 @@ private:
         // to the project at once, and the badge and the tab strip show it.
         wxBitmapButton* filament_color_chip{nullptr};
         wxStaticText* title_label{nullptr}; // material title, refreshed on a DPI change
-        // "Enable": while unchecked nothing of this slot is exported and everything below the
-        // header row is hidden. For physical slots the Full Publish toggle sits on a second
-        // line (full_line_item) visible only when enabled; for mixed slots Enable alone implies
-        // publishing the mix definition, so no Full Publish widget exists at all.
-        ::CheckBox* enable_check{nullptr};
+        // One publish switch per owner, never null after build. A physical slot's "Material"
+        // checkbox sits immediately left of its colour chip and publishes the slot's colour and
+        // material type; its key rows publish independently of it. A mixed slot's "Enable"
+        // checkbox tops its definition page and publishes the mix definition, auto Full Publishing
+        // its component filaments.
+        ::CheckBox* owner_check{nullptr};
         wxSizerItem* full_line_item{nullptr}; // sizer item of the Full Publish line (physical slots only)
         // "Full Publish": while checked, the whole slot preset is serialized and its rows are
         // disabled.
         ::CheckBox* full_check{nullptr};
-        // The slot's filament preset picker (the sidebar's own combo), preceded by the slot's
-        // colour badge, on its own line below Full Publish and visible only while enabled.
+        // The slot's filament preset picker (the sidebar's own combo), on its own line below Full
+        // Publish, with the slot's colour badge on its left as the sidebar places its swatch.
         // Selecting a preset assigns it to the slot at once.
         PublishFilamentPicker* filament_picker{nullptr};
         wxSizerItem*           filament_picker_item{nullptr};
-        // True for a mixed-color filament slot: no Material/Retraction rows; Enable publishes
-        // the slot's gradient/ratio definition as a whole.
+        // True for a mixed-color filament slot: no Material/Retraction rows; its publish checkbox
+        // publishes the slot's gradient/ratio definition as a whole.
         bool is_mixed{false};
         // The file column this category starts on; -1 when the owner has no variant layout. The
         // hosted tab's switch picks the shown column, with this as the fallback.
@@ -252,18 +253,18 @@ private:
     void show_menu(wxMouseEvent& evt);
     // "Full Publish" toggled: disables/enables the material's rows.
     void on_full_toggle(size_t category_index);
-    // "Enable" toggled on a material slot: reveals/hides everything below the header and, for a
-    // mixed slot, auto-selects its component filaments' "Enable" + "Full Publish" toggles.
-    void on_enable_toggle(size_t category_index);
+    // An owner's publish checkbox toggled: a physical slot's material checkbox publishes or
+    // stops publishing its colour and type; a mixed slot's checkbox publishes the definition and
+    // auto-selects its component filaments' material + "Full Publish" toggles.
+    void on_owner_toggle(size_t category_index);
     // Whether a category currently publishes something, driving its tab's indicator dot.
-    // Print/Printer: any row checked. Material: the slot's "Enable" is on.
+    // Print/Printer: any row checked. Material: the owner publishes under the model's rule.
     bool category_has_selection(const Category& cat) const;
     // Recompute the indicator dot on every outer/inner tab from the current selection state.
     void refresh_tab_indicators();
-    // Unmet dependencies of enabled mixed-filament slots, one record per (mix, component) pair:
-    // "Enable" not checked on the component. An enabled component publishes its type and colour
-    // implicitly, and colour is deliberately not required anyway (the receiver renders the mix
-    // from its own components' colours). Sorted by mixed slot, then component slot.
+    // Unmet dependencies of publishing mixed-filament slots, one record per (mix, component)
+    // pair: the component's material checkbox and Full Publish are both off. A component with
+    // either publishes its type and colour. Sorted by mixed slot, then component slot.
     std::vector<MixedDependencyIssue> unpublished_mixed_components() const;
     // Read-only visualization of a mixed slot's definition (a stacked ratio bar, or the
     // Material Ratio vs Model Height graph for a gradient), inserted above the info hint
@@ -332,8 +333,9 @@ private:
     // Model-backed row state: the payload and the widgets both read this, never each other.
     void set_row_checked(size_t row_index, bool checked);
     void set_row_enabled(size_t row_index, bool enabled);
-    // Whether a row's value can be written to the project (spec 7.10): a material slot must be
-    // enabled and not Full Publish, and the row must resolve to a real write target.
+    // Whether a row's value can be written to the project (spec 7.10): the slot must not have Full
+    // Publish, and the row must resolve to a real write target. The owner's material checkbox does
+    // not gate it: a checked row publishes and edits its key on its own.
     bool row_writable(size_t row_index) const;
     // Enables the line's fields while the row it draws is checked and writable, and disables them
     // otherwise. A row of a column the tab does not show leaves the line alone.
@@ -401,7 +403,7 @@ private:
     // Every publishable value the dialog shows, read once when it opens. Declared before the
     // groups so it outlives them.
     Slic3r::DynamicPrintConfig m_snapshot;
-    // The selection state: checked and enabled per row, enabled and Full Publish per owner, and
+    // The selection state: checked and enabled per row, published and Full Publish per owner, and
     // the owner identity the payload needs. The widgets are a view over it.
     Slic3r::PublishSelection m_selection;
 };

@@ -812,7 +812,7 @@ TEST_CASE("Checked state round-trips through published keys and material entries
 
     PublishSelection selection;
     selection.set_owner_info(0, PublishOwnerInfo());
-    selection.set_owner_enabled(0, true);
+    selection.set_owner_published(0, true);
     selection.set_checked(printer_row, true);
     selection.set_checked(slot_row, true);
     selection.set_checked(multi_row, true);
@@ -857,20 +857,21 @@ TEST_CASE("A disabled row is never exported, even when checked", "[PublishSettin
 
     PublishSelection selection;
     selection.set_owner_info(0, PublishOwnerInfo());
-    selection.set_owner_enabled(0, true);
+    selection.set_owner_published(0, true);
     selection.set_checked(printer_row, true);
     selection.set_enabled(printer_row, false);
     selection.set_checked(material_row, true);
     selection.set_enabled(material_row, false);
 
     CHECK(selection.published_keys(rows).empty());
-    // The slot itself is enabled, so its identity entry travels; the disabled row adds no key.
+    // The slot's material checkbox is on, so its identity entry travels; the disabled row adds no
+    // key.
     const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
     REQUIRE(entries.size() == 1);
     CHECK(entries[0].keys.empty());
 }
 
-TEST_CASE("A disabled slot produces no material entry", "[PublishSettings]")
+TEST_CASE("A fresh owner publishes nothing until rows, Material or Full are chosen", "[PublishSettings]")
 {
     const PublishRowId key_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
     const std::vector<PublishRowId> rows{ key_row };
@@ -881,16 +882,46 @@ TEST_CASE("A disabled slot produces no material entry", "[PublishSettings]")
 
     PublishSelection selection;
     selection.set_owner_info(0, info);
-    selection.set_owner_enabled(0, false);
-    // A checked row of a disabled slot travels nowhere: the gate is the owner, not the row.
-    selection.set_checked(key_row, true);
 
+    CHECK_FALSE(selection.owner_published(0));
+    CHECK_FALSE(selection.owner_publishes(0, rows));
     CHECK(selection.material_entries(rows).empty());
+
+    SECTION("a checked row publishes only its key") {
+        selection.set_checked(key_row, true);
+        CHECK(selection.owner_publishes(0, rows));
+        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+        REQUIRE(entries.size() == 1);
+        CHECK(entries[0].keys == std::vector<std::string>{ "filament_cost" });
+        CHECK_FALSE(entries[0].publish_color);
+        CHECK(entries[0].color.empty());
+        CHECK_FALSE(entries[0].publish_type);
+        CHECK(entries[0].publish_type_value.empty());
+    }
+
+    SECTION("the material checkbox publishes the identity with no row") {
+        selection.set_owner_published(0, true);
+        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+        REQUIRE(entries.size() == 1);
+        CHECK(entries[0].keys.empty());
+        CHECK(entries[0].publish_color);
+        CHECK(entries[0].color == "#FF0000");
+        CHECK(entries[0].publish_type);
+        CHECK(entries[0].publish_type_value == "PLA");
+    }
+
+    SECTION("Full Publish publishes the identity on its own") {
+        selection.set_full_publish(0, true);
+        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+        REQUIRE(entries.size() == 1);
+        CHECK(entries[0].full);
+        CHECK(entries[0].publish_type);
+        CHECK(entries[0].publish_type_value == "PLA");
+    }
 }
 
-TEST_CASE("An enabled slot publishes its colour and type without a requirement row", "[PublishSettings]")
+TEST_CASE("The material checkbox is the only switch for a partial slot's colour and type", "[PublishSettings]")
 {
-    // Colour and type are implicit for an enabled partial owner: no row drives them any more.
     const PublishRowId key_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 0, -1);
     const std::vector<PublishRowId> rows{ key_row };
 
@@ -900,7 +931,7 @@ TEST_CASE("An enabled slot publishes its colour and type without a requirement r
 
     PublishSelection selection;
     selection.set_owner_info(0, info);
-    selection.set_owner_enabled(0, true);
+    selection.set_owner_published(0, true);
 
     SECTION("with no row checked at all") {
         const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
@@ -929,6 +960,43 @@ TEST_CASE("An enabled slot publishes its colour and type without a requirement r
         CHECK_FALSE(entries[0].publish_color);
         CHECK(entries[0].publish_type);
     }
+
+    SECTION("unchecking it keeps a checked row's key and drops the identity") {
+        selection.set_checked(key_row, true);
+        selection.set_owner_published(0, false);
+        const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
+        REQUIRE(entries.size() == 1);
+        CHECK(entries[0].keys == std::vector<std::string>{ "filament_cost" });
+        CHECK_FALSE(entries[0].publish_color);
+        CHECK_FALSE(entries[0].publish_type);
+    }
+}
+
+TEST_CASE("A mixed owner publishes its definition only while its publish checkbox is on", "[PublishSettings]")
+{
+    PublishOwnerInfo info;
+    info.mixed  = true;
+    info.colour = "#FF0000";
+
+    PublishSelection selection;
+    selection.set_owner_info(0, info);
+
+    SECTION("unchecked publishes nothing") {
+        CHECK_FALSE(selection.owner_publishes(0, {}));
+        CHECK(selection.material_entries({}).empty());
+    }
+
+    SECTION("checked publishes the mix definition") {
+        selection.set_owner_published(0, true);
+        REQUIRE(selection.owner_publishes(0, {}));
+        const std::vector<PublishedMaterialEntry> entries = selection.material_entries({});
+        REQUIRE(entries.size() == 1);
+        const std::vector<std::string> expected(publish_mixed_keys().begin(), publish_mixed_keys().end());
+        CHECK(entries[0].keys == expected);
+        CHECK(entries[0].publish_color);
+        CHECK(entries[0].color == "#FF0000");
+        CHECK_FALSE(entries[0].full);
+    }
 }
 
 TEST_CASE("Full publish exports every variant of the owner", "[PublishSettings]")
@@ -942,10 +1010,12 @@ TEST_CASE("Full publish exports every variant of the owner", "[PublishSettings]"
 
     PublishSelection selection;
     selection.set_owner_info(0, info);
-    selection.set_owner_enabled(0, true);
+    // Full Publish publishes the owner on its own, whatever the material checkbox says.
+    selection.set_owner_published(0, false);
     selection.set_full_publish(0, true);
     selection.set_checked(key_row, true);
 
+    REQUIRE(selection.owner_publishes(0, rows));
     const std::vector<PublishedMaterialEntry> entries = selection.material_entries(rows);
     REQUIRE(entries.size() == 1);
     CHECK(entries[0].full);
@@ -956,7 +1026,7 @@ TEST_CASE("Full publish exports every variant of the owner", "[PublishSettings]"
     CHECK(entries[0].keys.empty());
 }
 
-TEST_CASE("Mixed dependency issues name the component that is not published", "[PublishSettings]")
+TEST_CASE("Mixed dependency issues name the component that publishes no material", "[PublishSettings]")
 {
     DynamicPrintConfig project;
     // Slot 0 is mixed from slot 2 (1-based), so the only component owner to check is slot 1.
@@ -966,12 +1036,13 @@ TEST_CASE("Mixed dependency issues name the component that is not published", "[
     PublishOwnerInfo mixed;
     mixed.mixed = true;
     selection.set_owner_info(0, mixed);
+    selection.set_owner_published(0, true);
     PublishOwnerInfo component;
     component.filament_type = "PLA";
     selection.set_owner_info(1, component);
 
-    SECTION("a disabled component is reported") {
-        selection.set_owner_enabled(1, false);
+    SECTION("an unpublished component is reported") {
+        selection.set_owner_published(1, false);
         const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project);
         REQUIRE(issues.size() == 1);
         CHECK(issues[0].mixed_slot == 0);
@@ -979,15 +1050,27 @@ TEST_CASE("Mixed dependency issues name the component that is not published", "[
         CHECK(issues[0].reason == MixedDependencyIssue::Reason::Disabled);
     }
 
-    SECTION("an enabled fully published component clears the issue") {
-        selection.set_owner_enabled(1, true);
+    SECTION("a fully published component clears the issue") {
+        selection.set_owner_published(1, false);
         selection.set_full_publish(1, true);
         CHECK(unpublished_mixed_components(selection, project).empty());
     }
 
-    SECTION("an enabled partial component clears the issue too") {
-        // Its colour and type are implicit, so enabling it is the whole requirement.
-        selection.set_owner_enabled(1, true);
+    SECTION("a component with its material checkbox on clears the issue too") {
+        selection.set_owner_published(1, true);
+        CHECK(unpublished_mixed_components(selection, project).empty());
+    }
+
+    SECTION("checked key rows alone do not satisfy the mix") {
+        const PublishRowId key_row = make_publish_row({ "filament_cost" }, PublishSection::Material, 1, -1);
+        selection.set_checked(key_row, true);
+        const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(selection, project);
+        REQUIRE(issues.size() == 1);
+        CHECK(issues[0].reason == MixedDependencyIssue::Reason::Disabled);
+    }
+
+    SECTION("a mixed slot whose publish checkbox is off reports nothing") {
+        selection.set_owner_published(0, false);
         CHECK(unpublished_mixed_components(selection, project).empty());
     }
 }
@@ -1002,6 +1085,7 @@ TEST_CASE("A mixed component that is itself a mixed slot is not reported", "[Pub
     PublishOwnerInfo mixed;
     mixed.mixed = true;
     selection.set_owner_info(0, mixed);
+    selection.set_owner_published(0, true);
     selection.set_owner_info(1, mixed);
 
     CHECK(unpublished_mixed_components(selection, project).empty());
@@ -1018,6 +1102,7 @@ TEST_CASE("A component the dialog does not show is not reported", "[PublishSetti
     PublishOwnerInfo mixed;
     mixed.mixed = true;
     selection.set_owner_info(0, mixed);
+    selection.set_owner_published(0, true);
 
     CHECK(unpublished_mixed_components(selection, project).empty());
 }

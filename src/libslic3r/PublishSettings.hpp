@@ -114,10 +114,10 @@ struct PublishedMaterialEntry {
     bool mixed_placeholder{false};
 };
 
-// One unmet dependency of an enabled mixed-filament slot: the component filament the mix uses
-// would ship without its material, because its slot is not enabled at all. Slots are 0-based.
-// `MaterialNotPublished` is kept for compatibility; an enabled slot publishes its type and colour
-// implicitly, so nothing produces it any more.
+// One unmet dependency of a publishing mixed-filament slot: the component filament the mix uses
+// would ship without its material, because neither its material checkbox nor its Full Publish is
+// on. Slots are 0-based. `MaterialNotPublished` is kept for compatibility; identity is published
+// per slot, so nothing produces it any more.
 struct MixedDependencyIssue
 {
     enum class Reason { Disabled, MaterialNotPublished };

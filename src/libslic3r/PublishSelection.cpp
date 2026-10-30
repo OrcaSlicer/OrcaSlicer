@@ -27,15 +27,15 @@ void PublishSelection::set_owner_info(int owner, PublishOwnerInfo info)
     m_owners[owner] = std::move(info);
 }
 
-void PublishSelection::set_owner_enabled(int owner, bool enabled)
+void PublishSelection::set_owner_published(int owner, bool published)
 {
-    m_owner_enabled[owner] = enabled;
+    m_owner_published[owner] = published;
 }
 
-bool PublishSelection::owner_enabled(int owner) const
+bool PublishSelection::owner_published(int owner) const
 {
-    const auto it = m_owner_enabled.find(owner);
-    return it == m_owner_enabled.end() ? true : it->second;
+    const auto it = m_owner_published.find(owner);
+    return it == m_owner_published.end() ? false : it->second;
 }
 
 void PublishSelection::set_full_publish(int owner, bool full)
@@ -76,7 +76,7 @@ void PublishSelection::clear()
     m_checked.clear();
     m_enabled.clear();
     m_owners.clear();
-    m_owner_enabled.clear();
+    m_owner_published.clear();
     m_full.clear();
 }
 
@@ -96,13 +96,28 @@ std::vector<std::string> PublishSelection::published_keys(const std::vector<Publ
     return out;
 }
 
+bool PublishSelection::owner_publishes(int owner, const std::vector<PublishRowId> &rows) const
+{
+    const auto owner_info = m_owners.find(owner);
+    if (owner_info == m_owners.end())
+        return false;
+    // A mixed slot publishes its definition as one unit: its publish checkbox is the whole rule.
+    if (owner_info->second.mixed)
+        return owner_published(owner);
+    if (owner_published(owner) || full_publish(owner))
+        return true;
+    return std::any_of(rows.begin(), rows.end(), [owner, this](const PublishRowId &row) {
+        return row.section == PublishSection::Material && row.owner == owner && checked(row) && enabled(row);
+    });
+}
+
 std::vector<PublishedMaterialEntry> PublishSelection::material_entries(const std::vector<PublishRowId> &rows) const
 {
     std::vector<PublishedMaterialEntry> out;
     for (const auto &owner_info : m_owners) {
         const int               owner = owner_info.first;
         const PublishOwnerInfo &info  = owner_info.second;
-        if (!owner_enabled(owner))
+        if (!owner_publishes(owner, rows))
             continue;
 
         PublishedMaterialEntry entry;
@@ -138,14 +153,18 @@ std::vector<PublishedMaterialEntry> PublishSelection::material_entries(const std
             out.push_back(std::move(entry));
             continue;
         }
-        // An enabled partial slot always publishes its colour and type: they are its identity, not
-        // something the author opts into per row.
-        if (!info.colour.empty()) {
+        // The material checkbox is the only switch for a partial slot's colour and type; its key
+        // rows publish independently, so a slot with rows checked and the box off ships keys
+        // without an identity.
+        const bool material = owner_published(owner);
+        if (material && !info.colour.empty()) {
             entry.publish_color = true;
             entry.color         = info.colour;
         }
-        entry.publish_type       = true;
-        entry.publish_type_value = normalize_filament_type(info.filament_type);
+        if (material) {
+            entry.publish_type       = true;
+            entry.publish_type_value = normalize_filament_type(info.filament_type);
+        }
         for (const PublishRowId &row : rows) {
             if (row.section != PublishSection::Material || row.owner != owner)
                 continue;
@@ -155,7 +174,6 @@ std::vector<PublishedMaterialEntry> PublishSelection::material_entries(const std
             // publish_normalize_material_entries.
             entry.keys.insert(entry.keys.end(), row.keys.begin(), row.keys.end());
         }
-        // The entry carries the slot's identity even with no key row checked.
         out.push_back(std::move(entry));
     }
     return out;
@@ -255,7 +273,7 @@ std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSele
     for (const auto &owner_info : owners) {
         const int               mixed_slot = owner_info.first;
         const PublishOwnerInfo &info       = owner_info.second;
-        if (!info.mixed || !selection.owner_enabled(mixed_slot))
+        if (!info.mixed || !selection.owner_published(mixed_slot))
             continue;
         // Components are 1-based physical filament indices.
         for (const unsigned int component : publish_mixed_components(project, size_t(mixed_slot))) {
@@ -269,12 +287,12 @@ std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSele
             // A mixed slot is not a physical filament: the dialog this replaced skipped it too.
             if (component_owner->second.mixed)
                 continue;
-            if (!selection.owner_enabled(component_slot)) {
+            // A component publishes its identity through its material checkbox or Full Publish;
+            // checked key rows alone ship no material.
+            if (!selection.owner_published(component_slot) && !selection.full_publish(component_slot)) {
                 out.push_back({ size_t(mixed_slot), size_t(component_slot), MixedDependencyIssue::Reason::Disabled });
                 continue;
             }
-            // An enabled component publishes its colour and type implicitly, with or without Full
-            // Publish, so enabling it is the whole requirement.
         }
     }
     // Deterministic order for the warning rows: by mixed slot, then component slot.
