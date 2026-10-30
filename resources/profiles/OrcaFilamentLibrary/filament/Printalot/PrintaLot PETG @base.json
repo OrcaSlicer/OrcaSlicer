@@ -63,6 +63,9 @@
 	"filament_dev_drying_softening_temperature": [
 		"60"
 	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	],
 	"filament_flow_ratio": [
 		"0.95"
 	],
@@ -71,6 +74,9 @@
 	],
 	"filament_notes": [
 		"PrintaLot PETG, 1.75 mm."
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
 	],
 	"filament_type": [
 		"PETG"
@@ -95,5 +101,8 @@
 	],
 	"slow_down_layer_time": [
 		"12"
+	],
+	"slow_down_min_speed": [
+		"20"
 	]
 }

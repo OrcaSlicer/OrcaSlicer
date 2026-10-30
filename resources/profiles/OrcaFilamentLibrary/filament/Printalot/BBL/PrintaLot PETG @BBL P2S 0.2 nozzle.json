@@ -5,9 +5,6 @@
 	"from": "system",
 	"setting_id": "r48auBZKFziukKKO",
 	"instantiation": "true",
-	"filament_end_gcode": [
-		"; filament end gcode \n\n"
-	],
 	"filament_extruder_variant": [
 		"Direct Drive Standard",
 		"Direct Drive High Flow"
@@ -20,18 +17,11 @@
 		"1",
 		"1"
 	],
-	"filament_start_gcode": [
-		"; filament start gcode\n"
-	],
 	"hot_plate_temp": [
 		"70"
 	],
 	"hot_plate_temp_initial_layer": [
 		"70"
-	],
-	"slow_down_min_speed": [
-		"20",
-		"20"
 	],
 	"textured_plate_temp": [
 		"70"

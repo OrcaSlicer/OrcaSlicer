@@ -13,18 +13,10 @@
 		"Direct Drive High Flow",
 		"Direct Drive E3D High Flow"
 	],
-	"filament_max_volumetric_speed": [
-		"17",
-		"17",
-		"17"
-	],
 	"filament_retraction_length": [
 		"0.4",
 		"0.4",
 		"0.4"
-	],
-	"filament_start_gcode": [
-		"; filament start gcode\n"
 	],
 	"filament_wipe": [
 		"1",
@@ -46,11 +38,6 @@
 	],
 	"hot_plate_temp_initial_layer": [
 		"70"
-	],
-	"slow_down_min_speed": [
-		"20",
-		"20",
-		"20"
 	],
 	"textured_plate_temp": [
 		"70"

@@ -44,9 +44,6 @@
 		"18",
 		"18"
 	],
-	"filament_start_gcode": [
-		"; filament start gcode\n"
-	],
 	"hot_plate_temp": [
 		"70"
 	],
@@ -56,10 +53,6 @@
 	"long_retractions_when_ec": [
 		"1",
 		"1"
-	],
-	"slow_down_min_speed": [
-		"20",
-		"20"
 	],
 	"temperature_vitrification": [
 		"60"

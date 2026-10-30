@@ -5,9 +5,6 @@
 	"from": "system",
 	"setting_id": "I998kWd5XwKZznv8",
 	"instantiation": "true",
-	"filament_end_gcode": [
-		"; filament end gcode \n\n"
-	],
 	"filament_extruder_variant": [
 		"Direct Drive Standard",
 		"Direct Drive High Flow",
@@ -25,9 +22,6 @@
 		"1",
 		"1",
 		"1"
-	],
-	"filament_start_gcode": [
-		"; filament start gcode\n"
 	],
 	"filament_tower_interface_print_temp": [
 		"255"
@@ -52,12 +46,6 @@
 		"3",
 		"4",
 		"4"
-	],
-	"slow_down_min_speed": [
-		"20",
-		"20",
-		"20",
-		"20"
 	],
 	"textured_plate_temp": [
 		"70"

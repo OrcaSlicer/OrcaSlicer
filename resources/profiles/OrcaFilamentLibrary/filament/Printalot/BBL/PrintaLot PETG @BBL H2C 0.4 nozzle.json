@@ -19,11 +19,6 @@
 		"Direct Drive High Flow",
 		"Direct Drive E3D High Flow"
 	],
-	"filament_max_volumetric_speed": [
-		"17",
-		"17",
-		"17"
-	],
 	"filament_pre_cooling_temperature_nc": [
 		"215",
 		"215",
@@ -55,9 +50,6 @@
 		"0.4",
 		"0.4"
 	],
-	"filament_start_gcode": [
-		"; filament start gcode\n"
-	],
 	"filament_wipe": [
 		"1",
 		"1",
@@ -83,11 +75,6 @@
 		"1",
 		"1",
 		"1"
-	],
-	"slow_down_min_speed": [
-		"20",
-		"20",
-		"20"
 	],
 	"temperature_vitrification": [
 		"60"

@@ -8,9 +8,6 @@
 	"filament_cooling_before_tower": [
 		"0"
 	],
-	"filament_end_gcode": [
-		"; filament end gcode \n\n"
-	],
 	"filament_max_volumetric_speed": [
 		"1"
 	],
@@ -22,9 +19,6 @@
 	],
 	"hot_plate_temp_initial_layer": [
 		"70"
-	],
-	"slow_down_min_speed": [
-		"20"
 	],
 	"textured_plate_temp": [
 		"70"

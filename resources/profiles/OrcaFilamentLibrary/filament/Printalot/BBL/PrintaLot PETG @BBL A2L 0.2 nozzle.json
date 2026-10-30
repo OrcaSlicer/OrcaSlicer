@@ -8,9 +8,6 @@
 	"filament_cooling_before_tower": [
 		"0"
 	],
-	"filament_end_gcode": [
-		"; filament end gcode \n\n"
-	],
 	"filament_flush_temp_fast": [
 		"255"
 	],
