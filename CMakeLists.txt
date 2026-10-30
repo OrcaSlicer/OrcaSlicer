@@ -206,10 +206,8 @@ if(NOT ORCA_BUNDLED_UV_EXECUTABLE)
             list(GET ORCA_UV_DL_STATUS 0 ORCA_UV_DL_CODE)
             list(GET ORCA_UV_DL_STATUS 1 ORCA_UV_DL_MSG)
             if(NOT ORCA_UV_DL_CODE EQUAL 0)
-                # Network failure keeps the historical graceful degradation (uv is
-                # optional at build time) -- but a hash mismatch below is fatal.
-                message(WARNING "Failed to download uv: ${ORCA_UV_DL_MSG}")
                 file(REMOVE "${ORCA_UV_ARCHIVE}")
+                message(FATAL_ERROR "Failed to download uv: ${ORCA_UV_DL_MSG}")
             else()
                 file(SHA256 "${ORCA_UV_ARCHIVE}" _orca_uv_actual_sha256)
                 if(NOT _orca_uv_actual_sha256 STREQUAL "${ORCA_UV_SHA256_${ORCA_UV_ARCH}}")
