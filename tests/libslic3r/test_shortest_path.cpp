@@ -203,7 +203,7 @@ TEST_CASE("A short chain need not start with the path nearest to its start", "[S
 
 TEST_CASE("Path ordering visits every path and respects direction restrictions", "[ShortestPath]")
 {
-    const size_t count = GENERATE(size_t(0), size_t(1), size_t(512));
+    const size_t count = GENERATE(size_t(0), size_t(1), size_t(512), size_t(999), size_t(1000), size_t(1001), size_t(2002), size_t(4096));
     const int direction = GENERATE(0, 1, 2);
     const bool fixed_start = GENERATE(false, true);
     std::mt19937 random(83719);

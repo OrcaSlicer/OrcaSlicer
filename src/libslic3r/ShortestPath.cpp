@@ -341,11 +341,13 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 #ifndef NDEBUG
 		double distance_taken_last = 0.;
 #endif /* NDEBUG */
+		constexpr int min_segments_for_kdtree_rebuild = 1000;
 		size_t indexed_end_points = end_points.size();
 		for (int iter = int(num_segments) - 2;; -- iter) {
 			// Occupied endpoints cannot be selected again. Compact geometrically so
 			// late nearest-neighbor queries do not traverse mostly rejected points.
-			if (queue.size() < indexed_end_points / 2) {
+			// After joining segments, iter + 2 chains remain to be connected.
+			if (iter + 2 >= min_segments_for_kdtree_rebuild && queue.size() < indexed_end_points / 2) {
 				std::vector<size_t> indices;
 				indices.reserve(queue.size());
 				for (const EndPoint *ep : queue)
