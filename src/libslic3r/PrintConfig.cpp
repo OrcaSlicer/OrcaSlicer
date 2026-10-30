@@ -38,7 +38,6 @@
 #include <optional>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
-#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -6854,11 +6853,6 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
 
-    // Legacy selector of all solid infill, loaded into the three keys above.
-    def = this->add("solid_infill_filament", coInt);
-    def->cli = ConfigOptionDef::nocli;
-    def->shortcut = { "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id" };
-
     def = this->add("internal_solid_infill_line_width", coFloatOrPercent);
     def->label = L("Internal solid infill");
     def->category = L("Quality");
@@ -9783,7 +9777,7 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "sparse_infill_filament_id";
         if (value == "1") value = "0";
     } else if (opt_key == "solid_infill_extruder" || opt_key == "solid_infill_filament") {
-        opt_key = "solid_infill_filament";
+        opt_key = "internal_solid_filament_id";
         if (value == "1") value = "0";
     } else if (opt_key == "top_solid_infill_filament") {
         opt_key = "top_surface_filament_id";
@@ -9852,8 +9846,6 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         for (std::string split_key : split_keys) {
             std::string copy_key = split_key, copy_value = "";
             handle_legacy(copy_key, copy_value);
-            if (const ConfigOptionDef *def = print_config_def.get(copy_key); def != nullptr && !def->shortcut.empty())
-                copy_key = boost::algorithm::join(def->shortcut, ";");
             if (copy_key != split_key) {
                 ReplaceString(value, split_key, copy_key);
             }
