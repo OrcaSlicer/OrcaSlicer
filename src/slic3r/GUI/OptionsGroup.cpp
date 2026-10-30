@@ -219,9 +219,11 @@ void ConfigOptionsGroup::remove_option_if(std::function<bool(std::string const&)
     OptionsGroup::remove_option_if(comp);
     // m_opt_map is filled by get_option() while the lines are created, so it still names the pruned
     // options. Tab reads it for the dirty/modified flags and builds its option-id map from it, so it
-    // has to drop them as well: m_options now holds exactly the surviving options.
+    // has to drop them as well. A surviving line is the test, not m_options: append_line() returns
+    // before filling m_options for a full-width widget line, so its keys are in m_opt_map and its
+    // line is still there while m_options never held them.
     for (auto it = m_opt_map.begin(); it != m_opt_map.end();) {
-        if (m_options.count(it->first) != 0)
+        if (this->get_line(it->first) != nullptr)
             ++it;
         else
             it = m_opt_map.erase(it);

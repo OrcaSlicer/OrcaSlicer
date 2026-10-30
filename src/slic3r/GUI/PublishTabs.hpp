@@ -29,6 +29,13 @@ private:
 
 // A settings Tab over a dialog-owned PresetCollection. Construct, then call
 // create_publish_tab(seed_config) before handing the tab to PublishParamsPanel.
+//
+// Teardown invariant, for all three subclasses below: the pages have to be cleared while
+// m_presets_private is still alive. Every Page::m_config points into it, and because
+// m_presets_private is a member of the derived class it dies before ~Tab runs, so the destructors
+// cannot do the clearing themselves - by then clear_pages() would reach a host that has already
+// been destroyed. PublishParamsPanel therefore clears the pages before it lets go of the tab, in
+// ~PublishParamsPanel and in set_publish_tab(). A new owner of a publish tab has to do the same.
 class PublishTabFilament : public TabFilament
 {
 public:

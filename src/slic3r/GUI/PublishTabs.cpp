@@ -56,9 +56,11 @@ PublishParamsPanel::PublishParamsPanel(wxWindow *parent)
 
 PublishParamsPanel::~PublishParamsPanel()
 {
-    // ~ParamsPanel() clears the current tab's pages, and the page view must still exist while
-    // their Page/OptionsGroup destructors run. Run that teardown here, before dropping the
-    // pointer, so it is not skipped: the tab is a child of this panel and dies with it.
+    // This is the teardown the publish tabs' invariant depends on (see PublishTabs.hpp): the tab's
+    // own PresetCollection is a member of the tab, so it dies before ~Tab, and every Page::m_config
+    // points into it. Clear the pages here, while the page view and the host still exist, rather
+    // than leaving it to ~Tab - whose clear_pages() would reach a host that is already gone.
+    // ~ParamsPanel() clears the *current* tab's pages, which is why m_current_tab is nulled after.
     if (m_publish_tab != nullptr)
         m_publish_tab->clear_pages();
     m_current_tab = nullptr;

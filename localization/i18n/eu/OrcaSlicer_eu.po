@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-30 17:29+0800\n"
+"POT-Creation-Date: 2026-10-26 21:45+0800\n"
 "PO-Revision-Date: 2026-10-19 18:56+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -2229,15 +2229,6 @@ msgstr "Pasahitza okerra da"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "%s konexioak huts egin du! [SN:%s, code=%s]"
 
-msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
-msgstr ""
-
-msgid "If the connection still fails, try a different network plug-in version in Preferences."
-msgstr ""
-
-msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
-msgstr ""
-
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3244,8 +3235,8 @@ msgstr "Klonatu"
 msgid "Simplify Model"
 msgstr "Modeloa sinplifikatu"
 
-msgid "Subdivision mesh"
-msgstr ""
+msgid "Subdivision mesh (Lost color)"
+msgstr "Azpibanaketa-sarea (Kolorea galdu da)"
 
 msgid "Center"
 msgstr "Zentratu"
@@ -3389,23 +3380,6 @@ msgstr "Errorea!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Ezin izan dira uneko fitxategiko modeloaren datuak lortu."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
-
-#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
-msgid "Inner diameter"
-msgstr ""
-
-msgid "Tube diameter"
-msgstr ""
 
 msgid "Add primitive"
 msgstr "Gehitu oinarrizko geometria"
@@ -4292,8 +4266,8 @@ msgstr "G-code fitxategia SD txartelera bidaltzen"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Ongi bidali da. Uneko orria %s s-tan itxiko da"
 
-msgid "Insert storage or free up space before sending to the printer."
-msgstr ""
+msgid "Storage needs to be inserted before sending to printer."
+msgstr "Biltegiratze-gailu bat sartu behar da inprimagailura bidali aurretik."
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "G-code fitxategia LAN bidez bidaltzen ari da, baina inprimagailuko biltegiratze-gailuak arazoak ditu, eta horrek inprimatze-arazoak sor ditzake."
@@ -6661,9 +6635,6 @@ msgstr "Ezkerreko pita: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Eskuineko pita: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
-msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
-msgstr ""
-
 msgid "Mirror object"
 msgstr "Islatu objektua"
 
@@ -7744,9 +7715,6 @@ msgstr "Deskargatu"
 
 msgid "Download selected files from printer."
 msgstr "Deskargatu hautatutako fitxategiak inprimagailutik."
-
-msgid "Select all files in the list for batch management."
-msgstr ""
 
 msgid "Batch manage files."
 msgstr "Kudeatu fitxategiak multzoka."
@@ -10713,12 +10681,6 @@ msgstr "Kalkulatu automatikoki purgatze-bolumenak hautatutako balioak aldatzean"
 msgid "Auto arrange plate after cloning"
 msgstr "Antolatu plaka automatikoki klonatu ondoren"
 
-msgid "Show options when adding a primitive"
-msgstr ""
-
-msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
-msgstr ""
-
 msgid "Auto slice after changes"
 msgstr "Xerratu automatikoki aldaketen ondoren"
 
@@ -11429,26 +11391,6 @@ msgstr "Bateraezina"
 msgid "The selected preset is null!"
 msgstr "Hautatutako aurrezarpena hutsa da!"
 
-msgid "Changing one dimension changes the others in proportion."
-msgstr ""
-
-msgid "Save these settings as default"
-msgstr "Gorde ezarpen hauek lehenetsi gisa"
-
-msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
-msgstr ""
-
-msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
-msgstr ""
-
-# AI Translated
-msgid "The size must be greater than zero"
-msgstr "Tamainak zero baino handiagoa izan behar du"
-
-# AI Translated
-msgid "Invalid numeric input."
-msgstr "Zenbakizko sarrera baliogabea."
-
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -11531,11 +11473,17 @@ msgstr "%d filamentua (nahasia)"
 
 # AI Translated
 #, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% filamentuak %2% behar du, baina ez dago gaituta."
+
+# AI Translated
+#, boost-format
 msgid "%1% needs %2%, whose material will not be published."
 msgstr "%1% filamentuak %2% behar du, baina haren materiala ez da argitaratuko."
 
-msgid "To publish a mixed filament, publish every filament it uses."
-msgstr ""
+# AI Translated
+msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+msgstr "Filamentu nahasi bat argitaratzeko, gaitu erabiltzen dituen filamentu guztiak eta hautatu Argitalpen osoa edo bete bere Mota baldintza."
 
 # AI Translated
 msgid "Publish anyway"
@@ -11557,19 +11505,9 @@ msgstr "Filamentu nahasia - osorik argitaratzen da goian \"Gaitu\" hautatuta dag
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Argitaratu filamentu nahasi hau eta gaitu + argitaratu osorik bere osagai diren filamentuak"
 
-msgctxt "Publish"
-msgid "Color"
-msgstr ""
-
-msgid "Publish this filament slot's color in the 3MF file"
-msgstr ""
-
-msgctxt "Publish"
-msgid "Type"
-msgstr ""
-
-msgid "Publish this filament slot's material type in the 3MF file"
-msgstr ""
+# AI Translated
+msgid "Publish this filament slot in the 3MF file"
+msgstr "Argitaratu filamentu-erreten hau 3MF fitxategian"
 
 # AI Translated
 msgid "Full Publish"
@@ -11632,15 +11570,6 @@ msgstr "\"%1%\" aurrezarpena badago lehendik eta ez da bateragarria uneko inprim
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Kontuan izan gordetzeak uneko aurrezarpena gainidatziko duela."
-
-msgid "Name is invalid;\ncontrol characters are not allowed."
-msgstr ""
-
-msgid "The name is a reserved system name."
-msgstr ""
-
-msgid "The name is too long."
-msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "Izena ezin da aurrezarpen baten alias-izenaren berdina izan."
@@ -12307,8 +12236,8 @@ msgstr "Biltegiratze-gailua sartu behar da LAN bidez inprimatu aurretik."
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "Biltegiratzea egoera anormalean dago edo irakurtzeko soilik moduan dago."
 
-msgid "Insert storage or free up space before printing."
-msgstr ""
+msgid "Storage needs to be inserted before printing."
+msgstr "Biltegiratze-gailua sartu behar da inprimatu aurretik."
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Ezin zaio inprimatze-lana bidali firmwarea eguneratu behar duen inprimagailu bati."
@@ -12380,6 +12309,9 @@ msgstr "Ezin dira inprimatze-lanak bidali eguneraketa bat abian dagoenean"
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "Hautatutako inprimagailua ez da bateragarria aukeratutako inprimagailu-aurrezarpenekin."
+
+msgid "Storage needs to be inserted before send to printer."
+msgstr "Biltegiratze-gailua sartu behar da inprimagailura bidali aurretik."
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Inprimagailuak OrcaSlicer-en LAN berean egon behar du."
@@ -12510,16 +12442,6 @@ msgstr "Arazo bat egon da inprimagailura konektatzean. Saiatu berriro."
 msgid "Failed to log out."
 msgstr "Saioa amaitzeak huts egin du."
 
-msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
-msgstr "Ez da onartzen estrusore-eragile desberdinak edo pita-bolumen mota desberdinak sinkronizatzea."
-
-msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
-msgstr "Sinkronizatu parametroen aldaketak beste estrusoreko parametro baliokideekin."
-
-# AI Translated
-msgid "Parameters with this icon can be configured per nozzle."
-msgstr "Ikono hau duten parametroak pita bakoitzeko konfigura daitezke."
-
 #. TRN "Save current Settings"
 #, c-format, boost-format
 msgid "Save current %s"
@@ -12530,6 +12452,16 @@ msgstr "Ezabatu aurrezarpen hau"
 
 msgid "Search in preset"
 msgstr "Bilatu aurrezarpenean"
+
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr "Ez da onartzen estrusore-eragile desberdinak edo pita-bolumen mota desberdinak sinkronizatzea."
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr "Sinkronizatu parametroen aldaketak beste estrusoreko parametro baliokideekin."
+
+# AI Translated
+msgid "Parameters with this icon can be configured per nozzle."
+msgstr "Ikono hau duten parametroak pita bakoitzeko konfigura daitezke."
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Egin klik ezarpen guztiak azken aurrezarpen gordera berrezartzeko."
@@ -14942,10 +14874,6 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% besteetatik gertuegi dago, eta talkak sor daitezke."
 
 #, boost-format
-msgid "%1% is printed later than its place in the object list, to avoid a collision."
-msgstr ""
-
-#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% altuegia da, eta talkak sortuko dira."
 
@@ -15248,9 +15176,6 @@ msgstr ""
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "Horma zehatza aukera ezikusi egingo da kanpo-barru edo barru-kanpo-barru horma-sekuentzietan."
-
-msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
-msgstr ""
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "Estrusore baten edo gehiagoren Pressure Advance egokigarriaren modeloak balio baliogabeak izan ditzake."
@@ -20298,6 +20223,16 @@ msgstr "Zintaren inklinazio-ardatza"
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Xerratu aurretik sarea zein ardatzaren inguruan biratzen den. Zinta-inprimagailuaren inklinazioa da: biraketa isometriko bat (distortsiorik gabea), ohearen errendatzea eta euskarrien grabitate-inklinazioa ere gidatzen dituena, eta G-codearen alderantzizko transformazioak desegiten duena makinaren koordenatu-sistemaren zizailadura/eskala eta berresleipena aplikatu aurretik. X da atariaren ohiko inklinazioa (zinta Y ardatzean zehar mugitzen da)."
 
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
 # AI Translated
 msgid "Belt tilt angle"
 msgstr "Zintaren inklinazio-angelua"
@@ -22470,11 +22405,6 @@ msgstr ""
 "Aurrez erabilitako estrusio-rol/mota\n"
 "Balio posibleak:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
-
-#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
-#, boost-format
-msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
-msgstr ""
 
 msgid "Error in zip archive"
 msgstr "Errorea ZIP artxiboan"
@@ -25678,6 +25608,9 @@ msgstr "Aurpegi triangeluarren kopurua"
 
 msgid "Calculating, please wait..."
 msgstr "Kalkulatzen, itxaron..."
+
+msgid "Save these settings as default"
+msgstr "Gorde ezarpen hauek lehenetsi gisa"
 
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Gaituz gero, goiko balioak etorkizuneko STEP inportazioetan erabiliko diren lehenetsi gisa gordeko dira (eta Hobespenetan erakutsiko dira)."
@@ -29574,6 +29507,10 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Bi lerro horiek ez dira izkina batean elkartzen — hautatu elkartzen diren bi lerro"
 
 # AI Translated
+msgid "The size must be greater than zero"
+msgstr "Tamainak zero baino handiagoa izan behar du"
+
+# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Biribildu: erradioak alde bateko luzera gainditzen du, edo bi lerroak ez dira izkina batean elkartzen"
 
@@ -30484,36 +30421,6 @@ msgstr "Aldatu Prestatu/Aurrebista artean"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Tolestu/Zabaldu alboko barra"
-
-msgid "Go to the Home tab"
-msgstr ""
-
-msgid "Go to the Design tab"
-msgstr ""
-
-msgid "Go to the Prepare tab"
-msgstr ""
-
-msgid "Go to the Preview tab"
-msgstr ""
-
-msgid "Go to the Device tab"
-msgstr ""
-
-msgid "Go to the Multi-device tab"
-msgstr ""
-
-msgid "Go to the Project tab"
-msgstr ""
-
-msgid "Go to the Calibration tab"
-msgstr ""
-
-msgid "Switch to the next tab"
-msgstr ""
-
-msgid "Switch to the previous tab"
-msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -33208,6 +33115,10 @@ msgid "Set the shape of your printer's bed."
 msgstr "Ezarri zure inprimagailuaren ohearen forma."
 
 # AI Translated
+msgid "Invalid numeric input."
+msgstr "Zenbakizko sarrera baliogabea."
+
+# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Filamentuaren eta pitaren diametroak"
 
@@ -33436,49 +33347,6 @@ msgstr "Wikia->"
 # AI Translated
 msgid "Note:"
 msgstr "Oharra:"
-
-#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
-#, boost-format
-msgid "• %1%: %2%"
-msgstr ""
-
-#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
-#, boost-format
-msgid "• %1% — %2%: %3%"
-msgstr ""
-
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-
-msgid "Plugin Not Identified"
-msgstr ""
-
-msgid "Save anyway"
-msgstr ""
-
-#, boost-format
-msgid ""
-"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"

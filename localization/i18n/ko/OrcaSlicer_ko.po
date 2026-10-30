@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-30 17:29+0800\n"
+"POT-Creation-Date: 2026-10-26 21:45+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -2274,15 +2274,6 @@ msgstr "비밀번호가 다릅니다"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "%s 연결 실패! [SN:%s, code=%s]"
 
-msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
-msgstr ""
-
-msgid "If the connection still fails, try a different network plug-in version in Preferences."
-msgstr ""
-
-msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
-msgstr ""
-
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3342,8 +3333,8 @@ msgstr "복제"
 msgid "Simplify Model"
 msgstr "모델 단순화"
 
-msgid "Subdivision mesh"
-msgstr ""
+msgid "Subdivision mesh (Lost color)"
+msgstr "서브디비전 메쉬 (색상 손실)"
 
 msgid "Center"
 msgstr "중앙"
@@ -3499,23 +3490,6 @@ msgstr "오류!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "현재 파일에서 모델의 데이터를 가져오지 못했습니다."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
-
-#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
-msgid "Inner diameter"
-msgstr ""
-
-msgid "Tube diameter"
-msgstr ""
 
 # AI Translated
 msgid "Add primitive"
@@ -4437,8 +4411,8 @@ msgstr "SD 카드로 G-code 파일 전송 중"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "성공적으로 보냈습니다. %s초 내에 현재 페이지가 닫힙니다"
 
-msgid "Insert storage or free up space before sending to the printer."
-msgstr ""
+msgid "Storage needs to be inserted before sending to printer."
+msgstr "프린터에 보내기 전에 저장 장치를 삽입해야 합니다."
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "LAN을 통해 G-code 파일을 보내는 중이지만 프린터의 저장 장치에 이상이 있어 인쇄 문제가 발생할 수 있습니다."
@@ -6842,9 +6816,6 @@ msgstr "왼쪽 노즐: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "오른쪽 노즐: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
-msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
-msgstr ""
-
 msgid "Mirror object"
 msgstr "객체 반전"
 
@@ -7944,9 +7915,6 @@ msgstr "다운로드"
 
 msgid "Download selected files from printer."
 msgstr "선택된 파일을 프린터에서 다운로드합니다."
-
-msgid "Select all files in the list for batch management."
-msgstr ""
 
 msgid "Batch manage files."
 msgstr "파일을 일괄 관리합니다."
@@ -11033,12 +11001,6 @@ msgstr "선택한 값이 변경되면 플러시 볼륨을 자동으로 계산합
 msgid "Auto arrange plate after cloning"
 msgstr "복제 후 플레이트 자동 정렬"
 
-msgid "Show options when adding a primitive"
-msgstr ""
-
-msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
-msgstr ""
-
 # AI Translated
 msgid "Auto slice after changes"
 msgstr "변경 후 자동 슬라이스"
@@ -11814,27 +11776,6 @@ msgstr "호환되지 않음"
 msgid "The selected preset is null!"
 msgstr "선택한 사전 설정의 값이 존재하지 않습니다!"
 
-msgid "Changing one dimension changes the others in proportion."
-msgstr ""
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "이 설정을 기본값으로 저장"
-
-msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
-msgstr ""
-
-msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
-msgstr ""
-
-# AI Translated
-msgid "The size must be greater than zero"
-msgstr "크기는 0보다 커야 합니다"
-
-# AI Translated
-msgid "Invalid numeric input."
-msgstr "잘못된 숫자 입력입니다."
-
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -11917,11 +11858,17 @@ msgstr "필라멘트 %d (혼합)"
 
 # AI Translated
 #, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1%에는 %2%이(가) 필요하지만 활성화되어 있지 않습니다."
+
+# AI Translated
+#, boost-format
 msgid "%1% needs %2%, whose material will not be published."
 msgstr "%1%에는 %2%이(가) 필요하지만 해당 재료는 게시되지 않습니다."
 
-msgid "To publish a mixed filament, publish every filament it uses."
-msgstr ""
+# AI Translated
+msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+msgstr "혼합 필라멘트를 게시하려면 사용하는 모든 필라멘트를 활성화하고 전체 게시를 선택하거나 유형 요구 사항을 충족하세요."
 
 # AI Translated
 msgid "Publish anyway"
@@ -11943,19 +11890,9 @@ msgstr "혼합 필라멘트 - 위에서 \"활성화\"를 선택하면 전체가 
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "이 혼합 필라멘트를 게시하고 구성 필라멘트를 활성화 + 전체 게시합니다"
 
-msgctxt "Publish"
-msgid "Color"
-msgstr ""
-
-msgid "Publish this filament slot's color in the 3MF file"
-msgstr ""
-
-msgctxt "Publish"
-msgid "Type"
-msgstr ""
-
-msgid "Publish this filament slot's material type in the 3MF file"
-msgstr ""
+# AI Translated
+msgid "Publish this filament slot in the 3MF file"
+msgstr "이 필라멘트 슬롯을 3MF 파일에 게시합니다"
 
 # AI Translated
 msgid "Full Publish"
@@ -12019,15 +11956,6 @@ msgstr "%1% 사전 설정이 이미 있으며 현재 프린터와 호환되지 �
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "저장 작업이 이 사전 설정을 대체합니다"
-
-msgid "Name is invalid;\ncontrol characters are not allowed."
-msgstr ""
-
-msgid "The name is a reserved system name."
-msgstr ""
-
-msgid "The name is too long."
-msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "이름은 사전 설정의 별칭 이름과 같을 수 없습니다."
@@ -12720,8 +12648,8 @@ msgstr "LAN을 통해 출력하기 전에 스토리지를 삽입해야 합니다
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "저장 장치가 비정상 상태이거나 읽기 전용 모드입니다."
 
-msgid "Insert storage or free up space before printing."
-msgstr ""
+msgid "Storage needs to be inserted before printing."
+msgstr "출력하기 전에 저장소를 삽입해야 합니다."
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "펌웨어를 업데이트해야 하는 프린터로 출력 작업을 보낼 수 없습니다."
@@ -12794,6 +12722,9 @@ msgstr "업그레이드가 진행 중일 때 출력 작업을 보낼 수 없습�
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "선택한 프린터가 선택한 프린터 사전 설정과 호환되지 않습니다."
+
+msgid "Storage needs to be inserted before send to printer."
+msgstr "프린터로 보내기 전에 저장소를 삽입해야 합니다."
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "프린터는 Orca Slicer와 동일한 네트워크에 있어야 합니다."
@@ -12925,6 +12856,17 @@ msgstr "프린터에 연결하는 동안 문제가 발생했습니다. 다시 �
 msgid "Failed to log out."
 msgstr "로그아웃에 실패했습니다."
 
+#. TRN "Save current Settings"
+#, c-format, boost-format
+msgid "Save current %s"
+msgstr "현재 %s 저장"
+
+msgid "Delete this preset"
+msgstr "이 사전 설정 삭제"
+
+msgid "Search in preset"
+msgstr "사전 설정에서 찾기"
+
 # AI Translated
 msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
 msgstr "서로 다른 압출기 구동 방식이나 노즐 부피 유형 간의 동기화는 지원되지 않습니다."
@@ -12936,17 +12878,6 @@ msgstr "변경한 매개변수를 다른 압출기의 해당 매개변수에 동
 # AI Translated
 msgid "Parameters with this icon can be configured per nozzle."
 msgstr "이 아이콘이 있는 매개변수는 노즐별로 설정할 수 있습니다."
-
-#. TRN "Save current Settings"
-#, c-format, boost-format
-msgid "Save current %s"
-msgstr "현재 %s 저장"
-
-msgid "Delete this preset"
-msgstr "이 사전 설정 삭제"
-
-msgid "Search in preset"
-msgstr "사전 설정에서 찾기"
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "모든 설정을 마지막으로 저장한 사전 설정으로 되돌립니다."
@@ -15429,10 +15360,6 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% 이(가) 다른 객체와 너무 가까워 출력 시 충돌이 발생 할 수 있습니다."
 
 #, boost-format
-msgid "%1% is printed later than its place in the object list, to avoid a collision."
-msgstr ""
-
-#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% 이(가) 너무 높아서 충돌이 출력 시 발생할 수 있습니다."
 
@@ -15749,9 +15676,6 @@ msgstr ""
 # AI Translated
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "정밀 벽 옵션은 외벽-내벽 또는 내벽-외벽-내벽 순서에서는 무시됩니다."
-
-msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
-msgstr ""
 
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
@@ -21040,6 +20964,16 @@ msgstr "벨트 기울기 축"
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "슬라이스 전에 메시를 회전시키는 기준 축입니다. 벨트 프린터의 기울기에 해당하며, 왜곡 없는(등거리) 회전으로 베드 렌더링과 서포트 중력 기울기에도 적용됩니다. G-code 역변환은 기계 좌표계 전단/배율 및 재매핑 전에 이 회전을 되돌립니다. 일반적인 갠트리 기울기는 X입니다(벨트는 Y 방향으로 이동)."
 
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
 # AI Translated
 msgid "Belt tilt angle"
 msgstr "벨트 기울기 각도"
@@ -23293,11 +23227,6 @@ msgstr ""
 "이전에 사용된 압출 역할/유형\n"
 "가능한 값:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
-
-#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
-#, boost-format
-msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
-msgstr ""
 
 msgid "Error in zip archive"
 msgstr "ZIP 압축파일 오류"
@@ -26687,6 +26616,10 @@ msgstr "삼각형 패싯 수"
 
 msgid "Calculating, please wait..."
 msgstr "계산 중, 잠시만 기다려주세요..."
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "이 설정을 기본값으로 저장"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -30629,6 +30562,10 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "두 선이 코너에서 만나지 않습니다 — 코너에서 만나는 두 선을 선택하십시오"
 
 # AI Translated
+msgid "The size must be greater than zero"
+msgstr "크기는 0보다 커야 합니다"
+
+# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "필렛: 반지름이 한쪽 변을 벗어나거나 두 선이 코너에서 만나지 않습니다"
 
@@ -31540,36 +31477,6 @@ msgstr "준비 하기/미리 보기 전환"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "사이드바 접기/펼치기"
-
-msgid "Go to the Home tab"
-msgstr ""
-
-msgid "Go to the Design tab"
-msgstr ""
-
-msgid "Go to the Prepare tab"
-msgstr ""
-
-msgid "Go to the Preview tab"
-msgstr ""
-
-msgid "Go to the Device tab"
-msgstr ""
-
-msgid "Go to the Multi-device tab"
-msgstr ""
-
-msgid "Go to the Project tab"
-msgstr ""
-
-msgid "Go to the Calibration tab"
-msgstr ""
-
-msgid "Switch to the next tab"
-msgstr ""
-
-msgid "Switch to the previous tab"
-msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -34252,6 +34159,10 @@ msgid "Set the shape of your printer's bed."
 msgstr "프린터 베드의 모양을 설정하십시오."
 
 # AI Translated
+msgid "Invalid numeric input."
+msgstr "잘못된 숫자 입력입니다."
+
+# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "필라멘트 및 노즐 직경"
 
@@ -34479,49 +34390,6 @@ msgstr "위키->"
 # AI Translated
 msgid "Note:"
 msgstr "참고:"
-
-#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
-#, boost-format
-msgid "• %1%: %2%"
-msgstr ""
-
-#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
-#, boost-format
-msgid "• %1% — %2%: %3%"
-msgstr ""
-
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-
-msgid "Plugin Not Identified"
-msgstr ""
-
-msgid "Save anyway"
-msgstr ""
-
-#, boost-format
-msgid ""
-"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"

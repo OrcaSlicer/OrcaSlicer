@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-30 17:29+0800\n"
+"POT-Creation-Date: 2026-10-26 21:45+0800\n"
 "PO-Revision-Date: 2026-10-21 19:32-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -2149,15 +2149,6 @@ msgstr "Senha incorreta"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "Falha na conexão %s! [SN:%s, código=%s]"
 
-msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
-msgstr ""
-
-msgid "If the connection still fails, try a different network plug-in version in Preferences."
-msgstr ""
-
-msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
-msgstr ""
-
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3135,8 +3126,8 @@ msgstr "Clonar"
 msgid "Simplify Model"
 msgstr "Simplificar Modelo"
 
-msgid "Subdivision mesh"
-msgstr ""
+msgid "Subdivision mesh (Lost color)"
+msgstr "Malha de sub-divisão (Cor perdida)"
 
 msgid "Center"
 msgstr "Centralizar"
@@ -3278,23 +3269,6 @@ msgstr "Erro!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Falha ao obter os dados do modelo no arquivo atual."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
-
-#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
-msgid "Inner diameter"
-msgstr ""
-
-msgid "Tube diameter"
-msgstr ""
 
 msgid "Add primitive"
 msgstr "Adicionar primitiva"
@@ -4161,8 +4135,8 @@ msgstr "Enviando arquivo de G-code para o cartão SD"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Enviado com sucesso. Feche a página atual em %s s"
 
-msgid "Insert storage or free up space before sending to the printer."
-msgstr ""
+msgid "Storage needs to be inserted before sending to printer."
+msgstr "É necessário inserir Armazenamento antes de enviar para a impressora."
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "O arquivo G-code está sendo enviado pela LAN, mas o Armazenamento na impressora está anormal e pode causar falhas na impressão."
@@ -6476,9 +6450,6 @@ msgstr "Bico esquerdo: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Bico direito: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
-msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
-msgstr ""
-
 msgid "Mirror object"
 msgstr "Espelhar objeto"
 
@@ -7548,9 +7519,6 @@ msgstr "Baixar"
 
 msgid "Download selected files from printer."
 msgstr "Baixar arquivos selecionados da impressora."
-
-msgid "Select all files in the list for batch management."
-msgstr ""
 
 msgid "Batch manage files."
 msgstr "Gerenciar arquivos em lote."
@@ -10441,12 +10409,6 @@ msgstr "Calcula automaticamente os volumes de purga quando os valores selecionad
 msgid "Auto arrange plate after cloning"
 msgstr "Organizar automaticamente a placa após a clonagem"
 
-msgid "Show options when adding a primitive"
-msgstr ""
-
-msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
-msgstr ""
-
 msgid "Auto slice after changes"
 msgstr "Fatiar automaticamente após mudanças"
 
@@ -11150,26 +11112,6 @@ msgstr "Incompatível"
 msgid "The selected preset is null!"
 msgstr "A predefinição selecionada é nula!"
 
-msgid "Changing one dimension changes the others in proportion."
-msgstr ""
-
-msgid "Save these settings as default"
-msgstr "Salvar estas configurações como padrão"
-
-msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
-msgstr ""
-
-msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
-msgstr ""
-
-# AI Translated
-msgid "The size must be greater than zero"
-msgstr "O tamanho deve ser maior que zero"
-
-# AI Translated
-msgid "Invalid numeric input."
-msgstr "Entrada numérica inválida."
-
 msgctxt "Layer range"
 msgid "End"
 msgstr "Final"
@@ -11245,11 +11187,15 @@ msgid "Filament %d (mixed)"
 msgstr "Filamento %d (misto)"
 
 #, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% precisa de %2%, que não está ativado."
+
+#, boost-format
 msgid "%1% needs %2%, whose material will not be published."
 msgstr "%1% precisa de %2%, cujo material não será publicado."
 
-msgid "To publish a mixed filament, publish every filament it uses."
-msgstr ""
+msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+msgstr "Para publicar um filamento misto, ative todos os filamentos que ele usa e escolha Publicação Completa ou marque o seu requisito de Tipo."
 
 msgid "Publish anyway"
 msgstr "Publicar mesmo assim"
@@ -11266,19 +11212,8 @@ msgstr "Filamento misto - publicado por inteiro quando \"Ativar\" acima está se
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Publicar este filamento misto e ativar + Publicação Completa de seus filamentos componentes"
 
-msgctxt "Publish"
-msgid "Color"
-msgstr ""
-
-msgid "Publish this filament slot's color in the 3MF file"
-msgstr ""
-
-msgctxt "Publish"
-msgid "Type"
-msgstr ""
-
-msgid "Publish this filament slot's material type in the 3MF file"
-msgstr ""
+msgid "Publish this filament slot in the 3MF file"
+msgstr "Publicar este espaço de filamento no arquivo 3MF"
 
 msgid "Full Publish"
 msgstr "Publicação Completa"
@@ -11333,15 +11268,6 @@ msgstr "A predefinição \"%1%\" já existe e é incompatível com a impressora 
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Por favor, note que a ação de salvar sobrescreverá esta predefinição."
-
-msgid "Name is invalid;\ncontrol characters are not allowed."
-msgstr ""
-
-msgid "The name is a reserved system name."
-msgstr ""
-
-msgid "The name is too long."
-msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "O nome não pode ser o mesmo que um nome de alias de predefinição."
@@ -11977,8 +11903,8 @@ msgstr "O armazenamento precisa estar inserido antes de imprimir via LAN."
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "O armazenamento está em um estado anormal ou em modo apenas de leitura."
 
-msgid "Insert storage or free up space before printing."
-msgstr ""
+msgid "Storage needs to be inserted before printing."
+msgstr "O armazenamento precisa estar inserido antes de imprimir."
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Não é possível enviar o trabalho de impressão para uma impressora cujo firmware precisa ser atualizado."
@@ -12046,6 +11972,9 @@ msgstr "Não é possível enviar tarefas de impressão quando uma atualização 
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "A impressora selecionada é incompatível com as predefinições de impressora escolhidas."
+
+msgid "Storage needs to be inserted before send to printer."
+msgstr "O armazenamento precisa estar inserido antes de enviar para a impressora."
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "A impressora deve estar na mesma LAN do OrcaSlicer."
@@ -12175,16 +12104,6 @@ msgstr "Houve um problema ao conectar à impressora. Por favor, tente novamente.
 msgid "Failed to log out."
 msgstr "Falha ao desconectar."
 
-msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
-msgstr "A sincronização de diferentes acionamentos de extrusora ou tipos de volume do bico não é suportada."
-
-msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
-msgstr "Sincroniza a modificação de parâmetros com os parâmetros correspondentes de outra extrusora."
-
-# AI Translated
-msgid "Parameters with this icon can be configured per nozzle."
-msgstr "Parâmetros com este ícone podem ser configurados por bico."
-
 #. TRN "Save current Settings"
 #, c-format, boost-format
 msgid "Save current %s"
@@ -12195,6 +12114,16 @@ msgstr "Excluir esta predefinição"
 
 msgid "Search in preset"
 msgstr "Pesquisar nas predefinições"
+
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr "A sincronização de diferentes acionamentos de extrusora ou tipos de volume do bico não é suportada."
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr "Sincroniza a modificação de parâmetros com os parâmetros correspondentes de outra extrusora."
+
+# AI Translated
+msgid "Parameters with this icon can be configured per nozzle."
+msgstr "Parâmetros com este ícone podem ser configurados por bico."
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Clique para redefinir todas as configurações para a última predefinição salva."
@@ -14534,10 +14463,6 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% está muito perto de outros, e colisões podem ocorrer."
 
 #, boost-format
-msgid "%1% is printed later than its place in the object list, to avoid a collision."
-msgstr ""
-
-#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% está muito alto, e ocorrerão colisões."
 
@@ -14834,9 +14759,6 @@ msgstr ""
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "A opção de parede precisa será ignorada para sequências externa-interna ou interna-externa-interna."
-
-msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
-msgstr ""
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "O modelo de Pressure Advance Adaptativo para uma ou mais extrusoras pode conter valores inválidos."
@@ -19797,6 +19719,16 @@ msgstr "Eixo de inclinação da esteira"
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Eixo em torno do qual a malha é girada antes do fatiamento. Esta é a inclinação da impressora de esteira: uma rotação isométrica (sem distorção) que também define a renderização da mesa e a inclinação da gravidade dos suportes, e que a transformação inversa do G-code desfaz antes do cisalhamento/escala e do remapeamento do referencial da máquina. X é a inclinação típica do pórtico (a esteira se move ao longo de Y)."
 
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
 # AI Translated
 msgid "Belt tilt angle"
 msgstr "Ângulo de inclinação da esteira"
@@ -21926,11 +21858,6 @@ msgstr ""
 "O tipo de extrusão usado anteriormente\n"
 "Valores possíveis:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
-
-#. TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
-#, boost-format
-msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
-msgstr ""
 
 msgid "Error in zip archive"
 msgstr "Erro no arquivo zip"
@@ -25098,6 +25025,9 @@ msgstr "Numero de facetas triangulares"
 
 msgid "Calculating, please wait..."
 msgstr "Calculando, por favor aguarde…"
+
+msgid "Save these settings as default"
+msgstr "Salvar estas configurações como padrão"
 
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Se ativado, os valores acima são armazenados como os padrões usados para futuras importações STEP (e mostrados nas Preferências)."
@@ -28893,6 +28823,10 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Essas duas linhas não se encontram em um canto — selecione duas linhas que se encontrem"
 
 # AI Translated
+msgid "The size must be greater than zero"
+msgstr "O tamanho deve ser maior que zero"
+
+# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Filete: o raio excede o comprimento de um dos lados, ou as duas linhas não se encontram em um canto"
 
@@ -29790,36 +29724,6 @@ msgstr "Alternar entre Preparar/Pré-visualizar"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Recolher/Expandir a barra lateral"
-
-msgid "Go to the Home tab"
-msgstr ""
-
-msgid "Go to the Design tab"
-msgstr ""
-
-msgid "Go to the Prepare tab"
-msgstr ""
-
-msgid "Go to the Preview tab"
-msgstr ""
-
-msgid "Go to the Device tab"
-msgstr ""
-
-msgid "Go to the Multi-device tab"
-msgstr ""
-
-msgid "Go to the Project tab"
-msgstr ""
-
-msgid "Go to the Calibration tab"
-msgstr ""
-
-msgid "Switch to the next tab"
-msgstr ""
-
-msgid "Switch to the previous tab"
-msgstr ""
 
 msgid "Reload the device page"
 msgstr "Recarregar a página do dispositivo"
@@ -32332,6 +32236,10 @@ msgid "Set the shape of your printer's bed."
 msgstr "Defina a forma da mesa da sua impressora."
 
 # AI Translated
+msgid "Invalid numeric input."
+msgstr "Entrada numérica inválida."
+
+# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Diâmetros do Filamento e do Bico"
 
@@ -32558,49 +32466,6 @@ msgstr "Wiki->"
 
 msgid "Note:"
 msgstr "Nota:"
-
-#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
-#, boost-format
-msgid "• %1%: %2%"
-msgstr ""
-
-#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
-#, boost-format
-msgid "• %1% — %2%: %3%"
-msgstr ""
-
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-
-msgid "Plugin Not Identified"
-msgstr ""
-
-msgid "Save anyway"
-msgstr ""
-
-#, boost-format
-msgid ""
-"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
 
 msgctxt "Texture Displacement"
 msgid "Bake"
