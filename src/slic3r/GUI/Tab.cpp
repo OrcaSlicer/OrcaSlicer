@@ -6968,8 +6968,10 @@ void TabPrinter::toggle_options()
         double retract_after_wipe  = m_config->option<ConfigOptionPercents>("retract_after_wipe")->get_at(variant_index);
 
         toggle_option("retract_before_wipe", wipe && !is_approx(retract_after_wipe, 100.), i,
+            // xgettext:no-c-format, no-boost-format
             _L("Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."));
         toggle_option("retract_after_wipe", wipe && !is_approx(retract_before_wipe, 100.), i,
+            // xgettext:no-c-format, no-boost-format
             _L("Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."));
 
         if (use_firmware_retraction && wipe && retract_before_wipe < 100.0) {
