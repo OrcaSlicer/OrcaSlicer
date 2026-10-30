@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 11:58-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1844,13 +1844,13 @@ msgid "Selection 1"
 msgstr ""
 
 msgid ""
-"Select 2 faces on objects and \n"
-" make objects assemble together."
+"Select 2 faces on objects and\n"
+"make objects assemble together."
 msgstr ""
 
 msgid ""
-"Select 2 points or circles on objects and \n"
-" specify distance between them."
+"Select 2 points or circles on objects and\n"
+"specify distance between them."
 msgstr ""
 
 msgid "Selection 2"
@@ -1933,7 +1933,7 @@ msgstr ""
 
 msgid ""
 "It is recommended to assemble objects first,\n"
-"because they are restricted to the bed \n"
+"because they are restricted to the bed\n"
 "and only parts can be lifted."
 msgstr ""
 
@@ -2110,6 +2110,15 @@ msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid "Connect %s failed! [SN:%s, code=%s]"
+msgstr ""
+
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
 msgstr ""
 
 msgid ""
@@ -3033,7 +3042,7 @@ msgstr ""
 msgid "Simplify Model"
 msgstr ""
 
-msgid "Subdivision mesh (Lost color)"
+msgid "Subdivision mesh"
 msgstr ""
 
 msgid "Center"
@@ -3175,6 +3184,22 @@ msgid "Error!"
 msgstr ""
 
 msgid "Failed to get the model data in the current file."
+msgstr ""
+
+msgid "X"
+msgstr ""
+
+msgid "Y"
+msgstr ""
+
+msgid "Z"
+msgstr ""
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
 msgstr ""
 
 msgid "Add primitive"
@@ -4023,7 +4048,7 @@ msgstr ""
 msgid "Successfully sent. Close current page in %s s"
 msgstr ""
 
-msgid "Storage needs to be inserted before sending to printer."
+msgid "Insert storage or free up space before sending to the printer."
 msgstr ""
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
@@ -5020,6 +5045,7 @@ msgstr ""
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
 msgstr ""
 
+#, no-c-format, no-boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
 msgstr ""
 
@@ -6247,6 +6273,9 @@ msgstr ""
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr ""
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr ""
 
@@ -6482,7 +6511,7 @@ msgstr ""
 msgid "Size:"
 msgstr ""
 
-#, possible-boost-format
+#, possible-c-format, possible-boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
 
@@ -7274,6 +7303,9 @@ msgstr ""
 msgid "Download selected files from printer."
 msgstr ""
 
+msgid "Select all files in the list for batch management."
+msgstr ""
+
 msgid "Batch manage files."
 msgstr ""
 
@@ -7540,7 +7572,7 @@ msgid "Clear"
 msgstr ""
 
 msgid ""
-"You have completed printing the mall model, \n"
+"You have completed printing the mall model,\n"
 "but synchronizing rating information has failed."
 msgstr ""
 
@@ -7779,7 +7811,7 @@ msgid "You can select up to 16 images."
 msgstr ""
 
 msgid ""
-"At least one successful print record of this print profile is required \n"
+"At least one successful print record of this print profile is required\n"
 "to give a positive rating (4 or 5 stars)."
 msgstr ""
 
@@ -8517,6 +8549,7 @@ msgstr ""
 msgid "Add Mode"
 msgstr ""
 
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr ""
 
@@ -8529,7 +8562,10 @@ msgstr ""
 msgid "Which tool heads take part in the mode and what role each one plays. Click a tile to cycle its role."
 msgstr ""
 
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
 msgstr ""
 
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -8578,7 +8614,10 @@ msgstr ""
 msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode selector. Stored in the project by name, so renaming a mode that plates already use makes them fall back to Primary. Cannot be empty — a blank name is replaced with a generated one."
 msgstr ""
 
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
 msgstr ""
 
 msgid "Edit G-code / browse placeholders"
@@ -8958,8 +8997,7 @@ msgstr ""
 
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
+"Instead of considering them as multiple objects, should the file be loaded as a single object with multiple parts?"
 msgstr ""
 
 msgid "Multi-part object detected"
@@ -9446,7 +9484,7 @@ msgid "Abnormal print file data. Please slice again"
 msgstr ""
 
 msgid ""
-"Print By Object: \n"
+"Print By Object:\n"
 "We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
 
@@ -9478,6 +9516,11 @@ msgid "There are no filaments on the printer. Please load the filaments on the p
 msgstr ""
 
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
+msgstr ""
+
+#. TRN %s is the connected printer's name.
+#, possible-c-format, possible-boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
 msgstr ""
 
 msgid "Device Page"
@@ -9952,6 +9995,12 @@ msgstr ""
 msgid "Auto arrange plate after cloning"
 msgstr ""
 
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
+
 msgid "Auto slice after changes"
 msgstr ""
 
@@ -10178,8 +10227,7 @@ msgid "Reuse the 3D scene while idle"
 msgstr ""
 
 msgid ""
-"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, and reuses the previous frame's scene instead. Reduces GPU load.\n"
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
@@ -10274,6 +10322,7 @@ msgstr ""
 
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+"\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
 
@@ -10565,6 +10614,24 @@ msgstr ""
 msgid "The selected preset is null!"
 msgstr ""
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+msgid "Save these settings as default"
+msgstr ""
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+msgid "The size must be greater than zero"
+msgstr ""
+
+msgid "Invalid numeric input."
+msgstr ""
+
 msgctxt "Layer range"
 msgid "End"
 msgstr ""
@@ -10720,6 +10787,15 @@ msgid "Preset \"%1%\" already exists and is incompatible with the current printe
 msgstr ""
 
 msgid "Please note that saving will overwrite the current preset."
+msgstr ""
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
 msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
@@ -11308,7 +11384,7 @@ msgstr ""
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr ""
 
-msgid "Storage needs to be inserted before printing."
+msgid "Insert storage or free up space before printing."
 msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
@@ -11378,9 +11454,6 @@ msgstr ""
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr ""
 
-msgid "Storage needs to be inserted before send to printer."
-msgstr ""
-
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr ""
 
@@ -11432,9 +11505,7 @@ msgstr ""
 msgid "Unknown Failure"
 msgstr ""
 
-msgid ""
-"Please Find the Pin Code in Account page on printer screen,\n"
-" and type in the Pin Code below."
+msgid "Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."
 msgstr ""
 
 msgid "Can't find Pin Code?"
@@ -11584,8 +11655,7 @@ msgstr ""
 
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
-"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
-"and use soluble materials for both support interface and support base."
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height and use soluble materials for both support interface and support base."
 msgstr ""
 
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
@@ -11603,9 +11673,7 @@ msgstr ""
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications. Please use with the latest printer firmware."
 msgstr ""
 
-msgid ""
-"When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 
 msgid "Setting unavailable"
@@ -12098,8 +12166,7 @@ msgid "Number of extruders of the printer."
 msgstr ""
 
 msgid ""
-"Single Extruder Multi Material is selected,\n"
-"and all extruders must have the same diameter.\n"
+"Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
 msgstr ""
 
@@ -12229,9 +12296,11 @@ msgstr ""
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
 msgstr ""
 
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
 msgstr ""
 
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
 msgstr ""
 
@@ -12498,13 +12567,13 @@ msgstr ""
 
 #, possible-boost-format
 msgid ""
-"Save the selected options to preset \n"
+"Save the selected options to preset\n"
 "\"%1%\"."
 msgstr ""
 
 #, possible-boost-format
 msgid ""
-"Transfer the selected options to the newly selected preset \n"
+"Transfer the selected options to the newly selected preset\n"
 "\"%1%\"."
 msgstr ""
 
@@ -13252,9 +13321,7 @@ msgstr ""
 msgid "Connection failed, please double check IP and Access Code"
 msgstr ""
 
-msgid ""
-"Connection failed! If your IP and Access Code is correct, \n"
-"please move to step 3 for troubleshooting network issues"
+msgid "Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"
 msgstr ""
 
 msgid "Connection failed! Please refer to the wiki page."
@@ -13692,6 +13759,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr ""
 
 #, possible-boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, possible-boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr ""
 
@@ -13955,7 +14026,15 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr ""
 
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
+
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, possible-boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
 msgstr ""
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
@@ -14536,7 +14615,10 @@ msgstr ""
 msgid "Precise wall"
 msgstr ""
 
-msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgid ""
+"Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n"
+"\n"
+"Note: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr ""
 
 msgid "Only one wall on top surfaces"
@@ -14551,6 +14633,7 @@ msgstr ""
 #, no-c-format, no-boost-format
 msgid ""
 "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+"\n"
 "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
 msgstr ""
 
@@ -14632,7 +14715,7 @@ msgid ""
 "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
 "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 "\n"
-"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen.\n"
 "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
 "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
 "\n"
@@ -14843,7 +14926,9 @@ msgstr ""
 msgid "Activate air filtration"
 msgstr ""
 
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
 msgstr ""
 
 msgid "Enable this to override the fan speed set in custom G-code during print."
@@ -15198,13 +15283,19 @@ msgstr ""
 msgid "Bed mesh min"
 msgstr ""
 
-msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+msgid ""
+"This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
 msgstr ""
 
 msgid "Bed mesh max"
 msgstr ""
 
-msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+msgid ""
+"This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
 msgstr ""
 
 msgid "Probe point distance"
@@ -15294,8 +15385,7 @@ msgid "Static pressure advance for bridges"
 msgstr ""
 
 msgid ""
-"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
-"equivalent walls (using adaptive settings if enabled).\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
@@ -16290,7 +16380,9 @@ msgstr ""
 msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr ""
 
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
 msgstr ""
 
 msgid "Fan direction"
@@ -16379,7 +16471,10 @@ msgstr ""
 msgid "Skip G-code config block"
 msgstr ""
 
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
 msgstr ""
 
 msgid "Pellet Modded Printer"
@@ -16397,7 +16492,10 @@ msgstr ""
 msgid "Label objects"
 msgstr ""
 
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
 msgstr ""
 
 msgid "Exclude objects"
@@ -16415,13 +16513,19 @@ msgstr ""
 msgid "Verbose G-code"
 msgstr ""
 
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
 msgstr ""
 
 msgid "High precision G-code (experimental)"
 msgstr ""
 
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
 msgstr ""
 
 msgid "Infill combination"
@@ -16439,13 +16543,23 @@ msgstr ""
 msgid "Sparse infill rotation template"
 msgstr ""
 
-msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+msgid ""
+"Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends.\n"
+"\n"
+"Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n"
+"\n"
+"When a template is set, the standard infill direction setting is ignored.\n"
+"\n"
+"Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
 msgstr ""
 
 msgid "Solid infill rotation template"
 msgstr ""
 
-msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
+msgid ""
+"This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated.\n"
+"\n"
+"Note that not all solid infill patterns support rotation."
 msgstr ""
 
 msgid "Skeleton infill density"
@@ -17075,7 +17189,8 @@ msgstr ""
 
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 
 msgid "For the first"
@@ -17161,7 +17276,10 @@ msgstr ""
 msgid "Reduce infill retraction"
 msgstr ""
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgid ""
+"Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n"
+"\n"
+"Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -17569,7 +17687,10 @@ msgstr ""
 msgid "Scarf joint speed"
 msgstr ""
 
-msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+msgid ""
+"This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
+"\n"
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
 msgstr ""
 
 msgid "Scarf joint flow ratio"
@@ -17782,7 +17903,10 @@ msgstr ""
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr ""
 
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+msgid ""
+"If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n"
+"\n"
+"If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr ""
 
 msgid "Traditional"
@@ -17960,13 +18084,19 @@ msgstr ""
 msgid "Tool change on wipe tower"
 msgstr ""
 
-msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr ""
 
 msgid "Wait for temperature on wipe tower"
 msgstr ""
 
-msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgid ""
+"Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating.\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
 msgstr ""
 
 msgid "No sparse layers (beta)"
@@ -18223,7 +18353,10 @@ msgid "This is the speed for support."
 msgstr ""
 
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
 
@@ -18256,6 +18389,7 @@ msgstr ""
 
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
 
@@ -18293,15 +18427,6 @@ msgid "Belt tilt axis"
 msgstr ""
 
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
-msgstr ""
-
-msgid "X"
-msgstr ""
-
-msgid "Y"
-msgstr ""
-
-msgid "Z"
 msgstr ""
 
 msgid "Belt tilt angle"
@@ -18481,8 +18606,7 @@ msgid "Activate temperature control"
 msgstr ""
 
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
@@ -18492,13 +18616,16 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
-"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this:\n"
+"PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
@@ -18863,7 +18990,12 @@ msgstr ""
 msgid "Wall transitioning filter margin"
 msgstr ""
 
-msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
+msgid ""
+"Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin].\n"
+"\n"
+"Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems.\n"
+"\n"
+"It's expressed as a percentage over nozzle diameter."
 msgstr ""
 
 msgid "Wall transitioning threshold angle"
@@ -18941,7 +19073,10 @@ msgstr ""
 msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
 msgstr ""
 
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgid ""
+"To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n"
+"\n"
+"Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed."
 msgstr ""
 
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
@@ -19502,6 +19637,12 @@ msgid "Estimated print time when printed in normal mode (i.e. not in silent mode
 msgstr ""
 
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
+msgstr ""
+
+msgid "Used filament types"
+msgstr ""
+
+msgid "Underscore-separated list of all filament types used during the print."
 msgstr ""
 
 msgid "Print time (silent mode)"
@@ -20898,6 +21039,10 @@ msgid ""
 "- Different filament brand and family (Brand = Bambu, Family = Basic, Matte)"
 msgstr ""
 
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr ""
+
 msgid "Pattern"
 msgstr ""
 
@@ -21026,7 +21171,7 @@ msgid "Auto-scale for nozzle"
 msgstr ""
 
 msgid ""
-"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
@@ -21179,7 +21324,7 @@ msgstr ""
 #, possible-c-format, possible-boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
-" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
 "\n"
 "%s"
 msgstr ""
@@ -21763,8 +21908,7 @@ msgstr ""
 
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
+"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 
@@ -21805,7 +21949,7 @@ msgid "The entered nozzle diameter is invalid, please re-enter:\n"
 msgstr ""
 
 msgid ""
-"The system preset does not allow creation. \n"
+"The system preset does not allow creation.\n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
 
@@ -21920,12 +22064,12 @@ msgid "Only printer names with user printer presets will be displayed, and each 
 msgstr ""
 
 msgid ""
-"Only the filament names with user filament presets will be displayed, \n"
+"Only the filament names with user filament presets will be displayed,\n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 
 msgid ""
-"Only printer names with changed process presets will be displayed, \n"
+"Only printer names with changed process presets will be displayed,\n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 
@@ -23034,9 +23178,6 @@ msgid "Number of triangular facets"
 msgstr ""
 
 msgid "Calculating, please wait..."
-msgstr ""
-
-msgid "Save these settings as default"
 msgstr ""
 
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -26066,9 +26207,6 @@ msgstr ""
 msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr ""
 
-msgid "The size must be greater than zero"
-msgstr ""
-
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr ""
 
@@ -26126,16 +26264,36 @@ msgstr ""
 msgid "Not a number"
 msgstr ""
 
+msgctxt "Design"
+msgid "Create"
+msgstr ""
+
+msgctxt "Design"
 msgid "Add material"
 msgstr ""
 
+msgctxt "Design"
+msgid "Remove"
+msgstr ""
+
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr ""
 
+msgctxt "Design"
 msgid "Repeat"
 msgstr ""
 
+msgctxt "Design"
+msgid "Transform"
+msgstr ""
+
+msgctxt "Design"
 msgid "Reference"
+msgstr ""
+
+msgctxt "Design"
+msgid "Modify"
 msgstr ""
 
 msgctxt "Design"
@@ -26398,6 +26556,10 @@ msgid "Corner rectangle"
 msgstr ""
 
 msgctxt "Design"
+msgid "Rectangle"
+msgstr ""
+
+msgctxt "Design"
 msgid "Center rectangle"
 msgstr ""
 
@@ -26414,6 +26576,10 @@ msgid "Center circle"
 msgstr ""
 
 msgctxt "Design"
+msgid "Circle"
+msgstr ""
+
+msgctxt "Design"
 msgid "2-point circle"
 msgstr ""
 
@@ -26423,6 +26589,10 @@ msgstr ""
 
 msgctxt "Design"
 msgid "3-point arc"
+msgstr ""
+
+msgctxt "Design"
+msgid "Arc"
 msgstr ""
 
 msgctxt "Design"
@@ -26455,6 +26625,10 @@ msgstr ""
 
 msgctxt "Design"
 msgid "Triangle"
+msgstr ""
+
+msgctxt "Design"
+msgid "Polygon"
 msgstr ""
 
 msgid "Triangle — click center, then a vertex"
@@ -26539,6 +26713,7 @@ msgctxt "Design"
 msgid "Linear array"
 msgstr ""
 
+msgctxt "Design"
 msgid "Array"
 msgstr ""
 
@@ -26804,6 +26979,36 @@ msgid "Switch between Prepare/Preview"
 msgstr ""
 
 msgid "Collapse/Expand the sidebar"
+msgstr ""
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
 msgstr ""
 
 msgid "Reload the device page"
@@ -28830,9 +29035,6 @@ msgstr ""
 msgid "Set the shape of your printer's bed."
 msgstr ""
 
-msgid "Invalid numeric input."
-msgstr ""
-
 msgid "Filament and Nozzle Diameters"
 msgstr ""
 
@@ -29006,6 +29208,49 @@ msgid "Wiki->"
 msgstr ""
 
 msgid "Note:"
+msgstr ""
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, possible-boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, possible-boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, possible-boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, possible-boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, possible-boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
 msgstr ""
 
 msgctxt "Texture Displacement"
@@ -29602,6 +29847,9 @@ msgid "Repeats the texture across the painted area. Off places one copy, like a 
 msgstr ""
 
 msgid "Turn Tile on to choose how the texture repeats."
+msgstr ""
+
+msgid "Repeat"
 msgstr ""
 
 msgid "Mirrored repeat"
@@ -30929,6 +31177,9 @@ msgid "Recently opened"
 msgstr ""
 
 msgid "Forward"
+msgstr ""
+
+msgid "Tools"
 msgstr ""
 
 msgid "View Source"

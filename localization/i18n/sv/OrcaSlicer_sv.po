@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 11:58-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2203,19 +2203,19 @@ msgstr "Markering 1"
 
 # AI Translated
 msgid ""
-"Select 2 faces on objects and \n"
-" make objects assemble together."
+"Select 2 faces on objects and\n"
+"make objects assemble together."
 msgstr ""
-"Välj 2 ytor på objekten och \n"
-" montera ihop objekten."
+"Välj 2 ytor på objekten och\n"
+"montera ihop objekten."
 
 # AI Translated
 msgid ""
-"Select 2 points or circles on objects and \n"
-" specify distance between them."
+"Select 2 points or circles on objects and\n"
+"specify distance between them."
 msgstr ""
-"Välj 2 punkter eller cirklar på objekten och \n"
-" ange avståndet mellan dem."
+"Välj 2 punkter eller cirklar på objekten och\n"
+"ange avståndet mellan dem."
 
 # AI Translated
 msgid "Selection 2"
@@ -2321,11 +2321,11 @@ msgstr "Varning: välj en punkt- eller cirkelgeometri."
 # AI Translated
 msgid ""
 "It is recommended to assemble objects first,\n"
-"because they are restricted to the bed \n"
+"because they are restricted to the bed\n"
 "and only parts can be lifted."
 msgstr ""
 "Det rekommenderas att montera objekten först,\n"
-"eftersom de är låsta till byggplattan \n"
+"eftersom de är låsta till byggplattan\n"
 "och endast delar kan lyftas."
 
 # AI Translated
@@ -2543,6 +2543,18 @@ msgstr "Felaktigt lösenord"
 #, c-format, boost-format
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "Det gick inte att ansluta %s! [SN: %s, kod=%s]"
+
+# AI Translated
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr "Kontrollera att skrivaren finns på samma nätverk som den här datorn och att dess IP-adress är korrekt."
+
+# AI Translated
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr "Om anslutningen fortfarande misslyckas kan du prova en annan version av nätverkets insticksmodul i Inställningar."
+
+# AI Translated
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr "Ett saknat eller skadat TLS/CA-certifikat i 'printer.cer' kan också orsaka det här felet."
 
 # AI Translated
 msgid ""
@@ -3596,8 +3608,9 @@ msgstr "Namn"
 msgid "All Plates"
 msgstr "Alla plattor"
 
+# AI Translated
 msgid "Order By"
-msgstr ""
+msgstr "Sortera efter"
 
 # AI Translated
 msgid "Fix All"
@@ -3662,8 +3675,8 @@ msgid "Simplify Model"
 msgstr "Förenkla modellen"
 
 # AI Translated
-msgid "Subdivision mesh (Lost color)"
-msgstr "Underindelning av mesh (Färg förlorad)"
+msgid "Subdivision mesh"
+msgstr "Underindela mesh"
 
 # AI Translated
 msgid "Center"
@@ -3825,6 +3838,25 @@ msgstr "Fel!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Det gick inte att hämta modelldata i den aktuella filen."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+# AI Translated
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr "Innerdiameter"
+
+# AI Translated
+msgid "Tube diameter"
+msgstr "Ringtjocklek"
 
 # AI Translated
 msgid "Add primitive"
@@ -4795,8 +4827,8 @@ msgid "Successfully sent. Close current page in %s s"
 msgstr "Framgångsrikt skickat. Stäng den aktuella sidan i %s s"
 
 # AI Translated
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "Ett lagringsmedium måste sättas in innan något skickas till skrivaren."
+msgid "Insert storage or free up space before sending to the printer."
+msgstr "Sätt in ett lagringsmedium eller frigör utrymme innan du skickar till skrivaren."
 
 # AI Translated
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
@@ -5821,137 +5853,182 @@ msgstr ""
 "Ja – Aktivera Arachne-väggeneratorn\n"
 "Nej – Inaktivera Arachne-väggeneratorn och ställ in läget [Förskjutning] för ojämn yta"
 
+# AI Translated
 msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
-msgstr ""
+msgstr "Ställ in den maximala lutningen för volymetrisk extruderingshastighet på ett värde över noll för att använda utjämning av extruderingshastighet."
 
+# AI Translated
+# Needs human review: Glossary cell for Arc fitting is unsettled (⚠); used the label "Arc passning", while a tooltip says "båganpassning".
 msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
-msgstr ""
+msgstr "Arc passning är inte tillgänglig på bandskrivare eller när utjämning av extruderingshastighet är aktiverad."
 
+# AI Translated
 msgid "Set wall loops above zero to use this setting."
-msgstr ""
+msgstr "Ställ in antal väggar på ett värde över noll för att använda den här inställningen."
 
+# AI Translated
 msgid "This setting is hidden because sparse infill density is zero."
-msgstr ""
+msgstr "Den här inställningen är dold eftersom sparsam ifyllnadsdensitet är noll."
 
+# AI Translated
 msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
-msgstr ""
+msgstr "Ifyllnadsförankringar kräver en sparsam ifyllnadsdensitet över noll och ett annat mönster än \"Koncentrisk\" eller \"Spiralinsättning\"."
 
+# AI Translated
 msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
-msgstr ""
+msgstr "Aktivera ifyllnadskombination och ställ in sparsam ifyllnadsdensitet på ett värde över noll för att visa den här inställningen."
 
+# AI Translated
 msgid "Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "Välj ifyllnadsmönstret \"Gyroid\", \"TPMS-D\" eller \"TPMS-FK\" med en sparsam ifyllnadsdensitet över noll och under 100 %."
 
+# AI Translated
 msgid "Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "Aktivera adaptiv densitet för ifyllnadsmönstret \"Gyroid\", \"TPMS-D\" eller \"TPMS-FK\" med en sparsam ifyllnadsdensitet över noll och under 100 %."
 
+# AI Translated
 msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
-msgstr ""
+msgstr "Välj ifyllnadsmönstret \"Gyroid\" med en sparsam ifyllnadsdensitet över noll och inaktivera adaptiv densitet för att använda den här inställningen."
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support multiline infill."
-msgstr ""
+msgstr "Det valda mönstret för sparsam ifyllnad stöder inte flerlinjig fyllning."
 
+# AI Translated
 msgid "The Line infill pattern does not support infill anchors."
-msgstr ""
+msgstr "Ifyllnadsmönstret \"Linje\" stöder inte ifyllnadsförankringar."
 
+# AI Translated
 msgid "Select an infill pattern other than Line and set the maximum infill anchor length above zero."
-msgstr ""
+msgstr "Välj ett annat ifyllnadsmönster än \"Linje\" och ställ in maximal längd på ifyllnadsförankringen på ett värde över noll."
 
+# AI Translated
 msgid "Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Välj \"Cross Zag\" eller \"Locked Zag\" som mönster för sparsam ifyllnad för att använda den här inställningen."
 
+# AI Translated
 msgid "Select the Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Välj \"Locked Zag\" som mönster för sparsam ifyllnad för att använda den här inställningen."
 
+# AI Translated
 msgid "Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Välj \"Zig Zag\", \"Cross Zag\" eller \"Locked Zag\" som mönster för sparsam ifyllnad för att använda den här inställningen."
 
+# AI Translated
 msgid "Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."
-msgstr ""
+msgstr "Välj ifyllnadsmönstret \"3D-bikaka\" med en sparsam ifyllnadsdensitet över noll för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable spiral vase mode to use this setting."
-msgstr ""
+msgstr "Aktivera spiralvasläget för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable spiral vase mode and spiral smoothing to use this setting."
-msgstr ""
+msgstr "Aktivera spiralvasläget och jämn spiral för att använda den här inställningen."
 
+# AI Translated
 msgid "This setting requires top shell layers, or more than one bottom shell layer in spiral vase mode."
-msgstr ""
+msgstr "Den här inställningen kräver övre skallager, eller mer än ett bottenskallager i spiralvasläget."
 
+# AI Translated
 msgid "This setting requires a top shell with nonzero top surface density."
-msgstr ""
+msgstr "Den här inställningen kräver ett övre skal med en densitet på ovansidan över noll."
 
+# AI Translated
 msgid "Set bottom shell layers above zero to use this setting."
-msgstr ""
+msgstr "Ställ in bottenskallager på ett värde över noll för att använda den här inställningen."
 
+# AI Translated
 msgid "Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."
-msgstr ""
+msgstr "Använd en sparsam ifyllnadsdensitet över noll och ett ifyllnadsmönster och en inställning för flerlinjig fyllning som stöder utjämning av ifyllnaden."
 
+# AI Translated
 msgid "Set top surface expansion above zero to use this setting."
-msgstr ""
+msgstr "Ställ in expansion av ovansidan på ett värde över noll för att använda den här inställningen."
 
+# AI Translated
 msgid "Use a top or bottom shell with the Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Använd ett övre skal eller bottenskal med ytmönstret \"Arkimediska kordor\" eller \"Oktagramspiral\"."
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support separated infills."
-msgstr ""
+msgstr "Det valda mönstret för sparsam ifyllnad stöder inte separerade ifyllnader."
 
+# AI Translated
 msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Använd ett övre skal med en ytdensitet över noll och ytmönstret \"Koncentrisk\", \"Spiralinsättning\", \"Arkimediska kordor\" eller \"Oktagramspiral\"."
 
+# AI Translated
 msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Använd bottenskallager och ytmönstret \"Koncentrisk\", \"Spiralinsättning\", \"Arkimediska kordor\" eller \"Oktagramspiral\"."
 
+# AI Translated
 msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
-msgstr ""
+msgstr "Använd en sparsam ifyllnadsdensitet över noll, eller övre skallager eller bottenskallager, för att ändra den här inställningen."
 
+# AI Translated
 msgid "Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."
-msgstr ""
+msgstr "Inaktivera spiralvasläget och ställ in övre skallager på ett värde över noll för att ändra övre skalets tjocklek."
 
+# AI Translated
 msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
-msgstr ""
+msgstr "Inaktivera spiralvasläget och ställ in bottenskallager på ett värde över noll för att ändra bottenskalets tjocklek."
 
+# AI Translated
 msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
-msgstr ""
+msgstr "Ställ in standardaccelerationen på ett värde över noll för att ändra accelerationen för enskilda extruderingstyper."
 
+# AI Translated
 msgid "This setting requires the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "Den här inställningen kräver G-code-varianten Marlin 2."
 
+# AI Translated
 msgid "Jerk settings are unavailable while the printer uses junction deviation."
-msgstr ""
+msgstr "Jerk-inställningar är inte tillgängliga när skrivaren använder Junction Deviation."
 
+# AI Translated
 msgid "Set the printer junction deviation limit above zero with the Marlin firmware G-code flavor to edit this setting."
-msgstr ""
+msgstr "Ställ in skrivarens gräns för Junction Deviation på ett värde över noll med G-code-varianten Marlin 2 för att ändra den här inställningen."
 
+# AI Translated
 msgid "Set default jerk above zero to edit jerk for individual extrusion roles."
-msgstr ""
+msgstr "Ställ in standard-jerk på ett värde över noll för att ändra jerk för enskilda extruderingstyper."
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero to use this setting."
-msgstr ""
+msgstr "Använd en skrivare som inte är en bandskrivare och ställ in skirtvarv på ett värde över noll för att använda den här inställningen."
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero and disable the full-height draft shield to edit skirt height."
-msgstr ""
+msgstr "Använd en skrivare som inte är en bandskrivare, ställ in skirtvarv på ett värde över noll och inaktivera dragskydd i full höjd för att ändra skirthöjden."
 
+# AI Translated
 msgid "Skirts are unavailable for belt printers."
-msgstr ""
+msgstr "Skirt är inte tillgängligt på bandskrivare."
 
+# AI Translated
 msgid "Select a brim type other than No brim to use this setting."
-msgstr ""
+msgstr "Välj en annan brimtyp än \"Ingen Brim\" för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable a brim on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "Aktivera brim på en skrivare utan lutande band för att använda den här inställningen."
 
+# AI Translated
 msgid "Select a brim type with an editable width, or enable a brim on a tilted belt printer."
-msgstr ""
+msgstr "Välj en brimtyp med redigerbar bredd, eller aktivera brim på en bandskrivare med lutande band."
 
+# AI Translated
 msgid "This setting requires a belt printer with a tilted slicing plane."
-msgstr ""
+msgstr "Den här inställningen kräver en bandskrivare med lutande beredningsplan."
 
+# AI Translated
 msgid "Enable a brim on a belt printer with a tilted slicing plane to use this setting."
-msgstr ""
+msgstr "Aktivera brim på en bandskrivare med lutande beredningsplan för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable walls or a brim to select the wall filament."
-msgstr ""
+msgstr "Aktivera väggar eller brim för att välja filament för väggarna."
 
 # AI Translated
 msgid "Brim ear radius"
@@ -5960,284 +6037,383 @@ msgstr "Radie för brim-öra"
 msgid "Brim width"
 msgstr "Brim bredd"
 
+# AI Translated
 msgid "Set brim width above zero to edit brim ear detection."
-msgstr ""
+msgstr "Ställ in brimbredd på ett värde över noll för att ändra detekteringen av brim-öron."
 
+# AI Translated
 msgid "Use painted brim ears or set brim width above zero to edit this setting."
-msgstr ""
+msgstr "Använd målade brim-öron eller ställ in brimbredd på ett värde över noll för att ändra den här inställningen."
 
+# AI Translated
 msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "Välj automatiska brim-öron på en skrivare utan lutande band för att använda den här inställningen."
 
+# AI Translated
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "Välj automatiska eller målade brim-öron på en skrivare utan lutande band för att använda den här inställningen."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
-msgstr ""
+msgstr "Aktivera elefantfotskompensation eller ställ in densiteten för elefantfotslager på ett värde under 100% för att använda den här inställningen."
 
+# AI Translated
 msgid "Rafts are unavailable for belt printers."
-msgstr ""
+msgstr "Raft är inte tillgängligt på bandskrivare."
 
+# AI Translated
 msgid "Enable support to edit this setting."
-msgstr ""
+msgstr "Aktivera support för att ändra den här inställningen."
 
+# AI Translated
 msgid "Enable support or add raft layers to edit this setting."
-msgstr ""
+msgstr "Aktivera support eller lägg till raftlager för att ändra den här inställningen."
 
+# AI Translated
 msgid "Select an automatic support type to edit the threshold angle."
-msgstr ""
+msgstr "Välj en automatisk supporttyp för att ändra gränsvinkeln."
 
+# AI Translated
 msgid "Select an automatic support type and set the threshold angle to zero to edit threshold overlap."
-msgstr ""
+msgstr "Välj en automatisk supporttyp och ställ in gränsvinkeln på noll för att ändra tröskeln för överlappning."
 
+# AI Translated
 msgid "Threshold overlap is unavailable for tree supports."
-msgstr ""
+msgstr "Tröskel för överlappning är inte tillgänglig för tree support."
 
+# AI Translated
 msgid "Enable tree supports and select a style other than Organic or Default to show this setting."
-msgstr ""
+msgstr "Aktivera tree support och välj en annan stil än \"Organisk\" eller \"Standard\" för att visa den här inställningen."
 
+# AI Translated
 msgid "Enable tree supports with the Organic or Default style to show this setting."
-msgstr ""
+msgstr "Aktivera tree support med stilen \"Organisk\" eller \"Standard\" för att visa den här inställningen."
 
+# AI Translated
 msgid "Independent support layer height is unavailable for organic tree supports."
-msgstr ""
+msgstr "Oberoende lagerhöjd för support är inte tillgänglig för organisk tree support."
 
+# AI Translated
 msgid "Enable tree supports and turn off automatic brim width to edit the tree support brim width."
-msgstr ""
+msgstr "Aktivera tree support och stäng av automatisk brim-bredd för att ändra tree supportens brimbredd."
 
+# AI Translated
 msgid "Enable tree supports to show the maximum bridge length."
-msgstr ""
+msgstr "Aktivera tree support för att visa maximal bridge-längd."
 
+# AI Translated
 msgid "Tree supports use maximum bridge length instead of the bridge support setting."
-msgstr ""
+msgstr "Tree support använder maximal bridge-längd i stället för inställningen för support under bridges."
 
+# AI Translated
 msgid "Enable automatic tree supports to show this setting."
-msgstr ""
+msgstr "Aktivera automatisk tree support för att visa den här inställningen."
 
+# AI Translated
+# Needs human review: Follows the support labels "Översta gränssnitts lager" / "Botten gränssnitts lager"; the glossary renders Support interface as "Support kontaktyta". Check which term the hint should use.
 msgid "Set top or bottom support interface layers above zero to edit this setting."
-msgstr ""
+msgstr "Ställ in översta eller nedersta gränssnittslager för support på ett värde över noll för att ändra den här inställningen."
 
+# AI Translated
 msgid "Enable a raft, or enable supports with top interface layers, to use support ironing."
-msgstr ""
+msgstr "Aktivera en raft, eller aktivera support med översta gränssnittslager, för att använda strykning av supportens kontaktyta."
 
+# AI Translated
 msgid "Enable support ironing with a raft or top support interface layers to show this setting."
-msgstr ""
+msgstr "Aktivera strykning av supportens kontaktyta med en raft eller med översta gränssnittslager för support för att visa den här inställningen."
 
+# AI Translated
+# Needs human review: Follows the support labels "Översta gränssnitts lager" / "Botten gränssnitts lager"; the glossary renders Support interface as "Support kontaktyta". Check which term the hint should use.
 msgid "Set top or bottom support interface layers above zero to edit interface spacing."
-msgstr ""
+msgstr "Ställ in översta eller nedersta gränssnittslager för support på ett värde över noll för att ändra gränssnittsavståndet."
 
+# AI Translated
 msgid "Support ironing requires a solid interface, so interface spacing cannot be edited."
-msgstr ""
+msgstr "Strykning av supportens kontaktyta kräver ett solitt gränssnitt, så gränssnittsavståndet kan inte ändras."
 
+# AI Translated
 msgid "Enable walls, a skirt or a brim to edit inner wall line width."
-msgstr ""
+msgstr "Aktivera väggar, skirt eller brim för att ändra linjebredden för inre vägg."
 
+# AI Translated
 msgid "Enable support, a raft, or a skirt to select the support filament."
-msgstr ""
+msgstr "Aktivera support, en raft eller skirt för att välja filament för support."
 
+# AI Translated
 msgid "Add raft layers to show raft contact distance."
-msgstr ""
+msgstr "Lägg till raftlager för att visa raftens kontaktavstånd."
 
+# AI Translated
 msgid "Raft contact distance is unavailable when the top support Z distance is zero."
-msgstr ""
+msgstr "Raftens kontaktavstånd är inte tillgängligt när supportens topp Z-distans är noll."
 
+# AI Translated
 msgid "Add raft layers to show raft expansion."
-msgstr ""
+msgstr "Lägg till raftlager för att visa raft-expansion."
 
+# AI Translated
 msgid "Slim, Strong and Hybrid tree supports use first layer expansion instead of raft expansion."
-msgstr ""
+msgstr "Tree support med stilen \"Tree Slim\", \"Tree Stark\" eller \"Tree Hybrid\" använder expansion av första lagret i stället för raft-expansion."
 
+# AI Translated
 msgid "Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."
-msgstr ""
+msgstr "Lägg till en raft eller välj en annan stil för tree support än \"Tree Slim\" eller \"Tree Stark\" för att ändra expansion av första lagret."
 
+# AI Translated
 msgid "Enable ironing to use this setting."
-msgstr ""
+msgstr "Aktivera strykning för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable ironing with the Rectilinear pattern to edit ironing angles."
-msgstr ""
+msgstr "Aktivera strykning med mönstret \"Räta linjer\" för att ändra strykningsvinklarna."
 
+# AI Translated
 msgid "Enable ironing or support ironing to edit ironing speed."
-msgstr ""
+msgstr "Aktivera strykning eller strykning av supportens kontaktyta för att ändra strykningshastigheten."
 
+# AI Translated
 msgid "Enable Z contouring to use this setting."
-msgstr ""
+msgstr "Aktivera Z-konturering för att använda den här inställningen."
 
+# AI Translated
 msgid "Print order cannot be edited when the print sequence is By object."
-msgstr ""
+msgstr "Utskriftsordningen kan inte ändras när utskriftssekvensen är \"Per objekt\"."
 
+# AI Translated
 msgid "This setting is unavailable for Bambu Lab printers."
-msgstr ""
+msgstr "Den här inställningen är inte tillgänglig för Bambu Lab-skrivare."
 
+# AI Translated
 msgid "This setting is unavailable in single extruder multimaterial mode."
-msgstr ""
+msgstr "Den här inställningen är inte tillgänglig i läget multimaterial med en extruder."
 
+# AI Translated
 msgid "Enable ooze prevention to use this setting."
-msgstr ""
+msgstr "Aktivera droppförebyggande för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable ooze prevention and use a positive number of preheat steps to show this setting."
-msgstr ""
+msgstr "Aktivera droppförebyggande och ange ett positivt antal förvärmningssteg för att visa den här inställningen."
 
+# AI Translated
 msgid "Enable the belt purge tower in the belt printer settings to use this setting."
-msgstr ""
+msgstr "Aktivera bandrensningstornet i bandskrivarens inställningar för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer to use this setting."
-msgstr ""
+msgstr "Aktivera prime tornet på en skrivare som inte är en bandskrivare för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable the prime tower and tower interface features on a non-belt printer to use this setting."
-msgstr ""
+msgstr "Aktivera prime tornet och funktioner för tornets gränssnittslager på en skrivare som inte är en bandskrivare för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable the prime tower and select wipe tower Type 2 on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Aktivera prime tornet och välj \"Typ 2\" för prime tornet på en skrivare som varken är från Bambu Lab eller en bandskrivare."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer and turn off skipping sparse tower layers to use layer combination."
-msgstr ""
+msgstr "Aktivera prime tornet på en skrivare som inte är en bandskrivare och stäng av \"Inga glesa lager\" för att använda \"Kombinera glesa lager\"."
 
+# AI Translated
 msgid "Enable the prime tower with Rib walls on a non-belt printer to use this setting."
-msgstr ""
+msgstr "Aktivera prime tornet med väggtypen \"Ribba\" på en skrivare som inte är en bandskrivare för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable a Type 2 prime tower with Cone walls on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Aktivera ett prime torn av \"Typ 2\" med väggtypen \"Kon\" på en skrivare som varken är från Bambu Lab eller en bandskrivare."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer and choose a wall type other than Rib to edit tower width."
-msgstr ""
+msgstr "Aktivera prime tornet på en skrivare som inte är en bandskrivare och välj en annan väggtyp än \"Ribba\" för att ändra tornets bredd."
 
+# AI Translated
 msgid "Enable a Type 2 prime tower on a non-Bambu, non-belt printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Aktivera ett prime torn av \"Typ 2\" på en skrivare som varken är från Bambu Lab eller en bandskrivare och inaktivera läget multimaterial med en extruder."
 
+# AI Translated
 msgid "Select Cyclic tool change ordering to use this setting."
-msgstr ""
+msgstr "Välj ordningen \"Cyklisk\" för verktygsbyten för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Aktivera prime tornet och inaktivera antingen rensning i prime tornet eller läget multimaterial med en extruder."
 
+# AI Translated
 msgid "Enable the prime tower to use this setting."
-msgstr ""
+msgstr "Aktivera prime tornet för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable avoiding crossing walls to edit the maximum travel detour distance."
-msgstr ""
+msgstr "Aktivera \"Undvik att korsa väggar\" för att ändra den maximala omvägslängden."
 
+# AI Translated
 msgid "Enable setting other flow ratios to use this setting."
-msgstr ""
+msgstr "Aktivera \"Ange övriga flödesförhållanden\" för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable slowing down for overhangs to use this setting."
-msgstr ""
+msgstr "Aktivera \"Sakta ner vid överhäng\" för att använda den här inställningen."
 
+# AI Translated
 msgid "This setting is available in object settings rather than global print settings."
-msgstr ""
+msgstr "Den här inställningen finns i objektinställningarna i stället för i de globala utskriftsinställningarna."
 
+# AI Translated
 msgid "Select a specific support interface filament and use the default support filament to show this setting."
-msgstr ""
+msgstr "Välj ett specifikt filament för supportens kontaktyta och använd standardfilamentet för support för att visa den här inställningen."
 
+# AI Translated
 msgid "Enable fuzzy skin to use this setting."
-msgstr ""
+msgstr "Aktivera ojämn yta för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable fuzzy skin with Ripple noise to use this setting."
-msgstr ""
+msgstr "Aktivera ojämn yta med brustypen \"Ripple\" för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic or Ripple to edit noise scale."
-msgstr ""
+msgstr "Aktivera ojämn yta och välj en annan brustyp än \"Klassisk\" eller \"Ripple\" för att ändra detaljstorleken för ojämn yta."
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic, Voronoi or Ripple to edit noise octaves."
-msgstr ""
+msgstr "Aktivera ojämn yta och välj en annan brustyp än \"Klassisk\", \"Voronoi\" eller \"Ripple\" för att ändra brusoktaverna."
 
+# AI Translated
 msgid "Enable fuzzy skin with Perlin or Billow noise to edit persistence."
-msgstr ""
+msgstr "Aktivera ojämn yta med brustypen \"Perlin\" eller \"Billow\" för att ändra bruspersistensen."
 
+# AI Translated
 msgid "Select the Arachne wall generator to use this setting."
-msgstr ""
+msgstr "Välj väggeneratorn \"Arachne\" för att använda den här inställningen."
 
+# AI Translated
 msgid "Thin wall detection is unavailable with the Arachne wall generator."
-msgstr ""
+msgstr "Detektering av tunna väggar är inte tillgänglig med väggeneratorn \"Arachne\"."
 
+# AI Translated
 msgid "Disable role-based wipe speed to edit wipe speed manually."
-msgstr ""
+msgstr "Inaktivera avtorkningshastighet efter extruderingstyp för att ändra avtorkningshastigheten manuellt."
 
+# AI Translated
 msgid "Enable inward wiping to edit inward wipe distance."
-msgstr ""
+msgstr "Aktivera \"Torka inåt\" för att ändra avståndet för att torka inåt."
 
+# AI Translated
 msgid "This setting requires the Klipper G-code flavor."
-msgstr ""
+msgstr "Den här inställningen kräver G-code-varianten Klipper."
 
+# AI Translated
 msgid "Enable acceleration to deceleration to edit its factor."
-msgstr ""
+msgstr "Aktivera accel_to_decel för att ändra dess faktor."
 
+# AI Translated
 msgid "Enable excluding objects with the Klipper G-code flavor to edit the outline tolerance."
-msgstr ""
+msgstr "Aktivera \"Exkludera objekt\" med G-code-varianten Klipper för att ändra konturtoleransen."
 
+# AI Translated
 msgid "Enable making overhangs printable to use this setting."
-msgstr ""
+msgstr "Aktivera \"Gör överhäng utskrivbara\" för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5."
-msgstr ""
+msgstr "Aktivera \"Endast en vägg på topp ytan\" med övre skallager, eller använd \"Arachne\" med en minsta vägglängd över 0,5."
 
+# AI Translated
 msgid "Enable converting holes to polyholes to use this setting."
-msgstr ""
+msgstr "Aktivera \"Konvertera hål till polyholes\" för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable overhang wall detection to use this setting."
-msgstr ""
+msgstr "Aktivera detektering av överhängsväggar för att använda den här inställningen."
 
+# AI Translated
 msgid "Reverse overhang direction is unavailable in spiral vase mode."
-msgstr ""
+msgstr "Omvänd riktning vid överhäng är inte tillgänglig i spiralvasläget."
 
+# AI Translated
 msgid "Disable spiral vase mode and enable reverse overhang direction to use this setting."
-msgstr ""
+msgstr "Inaktivera spiralvasläget och aktivera omvänd riktning vid överhäng för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."
-msgstr ""
+msgstr "Aktivera detektering av överhängsväggar och omvänd riktning vid överhäng, inaktivera spiralvasläget och stäng av \"Vänd endast inre perimetrar\"."
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer."
-msgstr ""
+msgstr "Den här inställningen kräver en Bambu Lab-skrivare."
 
+# AI Translated
 msgid "Enable small area infill flow compensation to edit its model."
-msgstr ""
+msgstr "Aktivera flödeskompensation för små områden för att ändra dess modell."
 
+# AI Translated
 msgid "Scarf seams are unavailable in spiral vase mode and for belt printers."
-msgstr ""
+msgstr "Sömmar med snedskarv är inte tillgängliga i spiralvasläget och på bandskrivare."
 
+# AI Translated
 msgid "Enable scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "Aktivera söm med snedskarv på en skrivare som inte är en bandskrivare och med spiralvasläget inaktiverat för att använda den här inställningen."
 
+# AI Translated
 msgid "Disable scarfing the entire loop to edit the minimum scarf length."
-msgstr ""
+msgstr "Inaktivera \"Snedskarv runt hela väggen\" för att ändra snedskarvens minsta längd."
 
+# AI Translated
 msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "Aktivera villkorlig snedskarv på en skrivare som inte är en bandskrivare och med spiralvasläget inaktiverat för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable beam interlocking to use this setting."
-msgstr ""
+msgstr "Aktivera sammanflätande balkar för att använda den här inställningen."
 
+# AI Translated
 msgid "Disable beam interlocking to edit segmented region interlocking depth."
-msgstr ""
+msgstr "Inaktivera sammanflätande balkar för att ändra sammanflätningsdjupet i en segmenterad region."
 
+# AI Translated
 msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Välj \"Lateralt galler\" som mönster för sparsam ifyllnad för att använda den här inställningen."
 
+# AI Translated
 msgid "Select the Lightning sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Välj \"Blixt\" som mönster för sparsam ifyllnad för att använda den här inställningen."
 
+# AI Translated
 msgid "Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."
-msgstr ""
+msgstr "Rotationsmallar för ifyllnad är inte tillgängliga för ifyllnadsmönstren \"Adaptiv Cubic\" och \"Kubik Support\"."
 
+# AI Translated
 msgid "Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."
-msgstr ""
+msgstr "Töm rotationsmallen för sparsam ifyllnad och välj ett annat mönster än \"Adaptiv Cubic\" eller \"Kubik Support\" för att ändra riktningen för sparsam ifyllnad."
 
+# AI Translated
 msgid "Clear the solid infill rotation template to edit solid infill direction."
-msgstr ""
+msgstr "Töm rotationsmallen för solid ifyllnad för att ändra riktningen för solid ifyllnad."
 
+# AI Translated
 msgid "Select the Lateral Honeycomb sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Välj \"Lateral bikaka\" som mönster för sparsam ifyllnad för att använda den här inställningen."
 
+# AI Translated
 msgid "The selected printer does not support wrapping detection."
-msgstr ""
+msgstr "Den valda skrivaren stöder inte klumpdetektering."
 
+# AI Translated
+# Needs human review: SLA pad: the setting has no translated label in the source; "sockel" is a guess, check the term used for the SLA pad.
 msgid "Enable the pad to edit this setting."
-msgstr ""
+msgstr "Aktivera sockeln för att ändra den här inställningen."
 
+# AI Translated
+# Needs human review: SLA pad: the setting has no translated label in the source; "sockel" is a guess, check the term used for the SLA pad.
 msgid "Enable the pad around the object to edit this setting."
-msgstr ""
+msgstr "Aktivera sockeln runt objektet för att ändra den här inställningen."
 
+# AI Translated
+# Needs human review: SLA pad: the setting has no translated label in the source; "sockel" is a guess, check the term used for the SLA pad.
 msgid "Enable support and disable the pad around the object to edit object elevation."
-msgstr ""
+msgstr "Aktivera support och inaktivera sockeln runt objektet för att ändra objektets upphöjning."
 
 # AI Translated
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
@@ -7376,6 +7552,10 @@ msgstr "Vänster nozzel: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Höger nozzel: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+# AI Translated
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr "Positionen eller storleken för vissa modeller överskrider det utskrivbara området för den tilldelade extrudern. Kontrollera och justera delens position eller storlek så att den ryms inom det utskrivbara området."
+
 msgid "Mirror object"
 msgstr "Spegelvänd objektet"
 
@@ -7640,7 +7820,7 @@ msgid "Size:"
 msgstr "Storlek:"
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Konflikter mellan G-code-banor hittades på lager %d, Z = %.2lfmm. Placera de objekt som krockar längre ifrån varandra (%s <-> %s)."
 
@@ -8160,8 +8340,9 @@ msgstr "Återställ fönsterlayout"
 msgid "Reset to default window layout"
 msgstr "Återställ till standardfönsterlayouten"
 
+# AI Translated
 msgid "Show 3Dconnexion Settings"
-msgstr ""
+msgstr "Visa 3Dconnexion inställningar"
 
 msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr "Visa/Dölj 3Dconnexion enheternas inställnings dialogruta"
@@ -8531,6 +8712,10 @@ msgstr "Ladda ner"
 msgid "Download selected files from printer."
 msgstr "Ladda ner valda filer från skrivaren."
 
+# AI Translated
+msgid "Select all files in the list for batch management."
+msgstr "Välj alla filer i listan för batchhantering."
+
 msgid "Batch manage files."
 msgstr "Batch hantera filer."
 
@@ -8839,10 +9024,10 @@ msgstr "Rensa"
 
 # AI Translated
 msgid ""
-"You have completed printing the mall model, \n"
+"You have completed printing the mall model,\n"
 "but synchronizing rating information has failed."
 msgstr ""
-"Du har slutfört utskriften av butiksmodellen, \n"
+"Du har slutfört utskriften av butiksmodellen,\n"
 "men synkroniseringen av betygsinformationen misslyckades."
 
 msgid "How do you like this printing file?"
@@ -9122,10 +9307,10 @@ msgstr "Du kan välja upp till 16 bilder."
 
 # AI Translated
 msgid ""
-"At least one successful print record of this print profile is required \n"
+"At least one successful print record of this print profile is required\n"
 "to give a positive rating (4 or 5 stars)."
 msgstr ""
-"Minst en lyckad utskrift med den här utskriftsprofilen krävs \n"
+"Minst en lyckad utskrift med den här utskriftsprofilen krävs\n"
 "för att ge ett positivt betyg (4 eller 5 stjärnor)."
 
 # AI Translated
@@ -9757,19 +9942,23 @@ msgstr ""
 "Inga insticksmodulsfunktioner är tillgängliga för den här typen.\n"
 "Aktivera eller installera några för att kunna använda dem."
 
+# AI Translated
 msgid "Hidden by the current configuration."
-msgstr ""
+msgstr "Dold på grund av den aktuella konfigurationen."
 
+# AI Translated
 #, boost-format
 msgid "Hidden: %1%"
-msgstr ""
+msgstr "Dold: %1%"
 
+# AI Translated
 msgid "Disabled by the current configuration."
-msgstr ""
+msgstr "Inaktiverad på grund av den aktuella konfigurationen."
 
+# AI Translated
 #, boost-format
 msgid "Disabled: %1%"
-msgstr ""
+msgstr "Inaktiverad: %1%"
 
 # AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
@@ -10010,8 +10199,9 @@ msgstr "Se alla objektens inställningar"
 msgid "Material settings"
 msgstr "Materialinställningar"
 
+# AI Translated
 msgid "The process flow ratio cannot be edited in this panel."
-msgstr ""
+msgstr "Processens flödesförhållande kan inte ändras i den här panelen."
 
 # AI Translated
 msgid "Each mode names the tool heads that take part and the role each one plays. Click a tool button to cycle its role — hover a color below for what each role does."
@@ -10022,6 +10212,7 @@ msgid "Add Mode"
 msgstr "Lägg till läge"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "Verktyg"
 
@@ -10038,8 +10229,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "Vilka verktygshuvuden som deltar i läget och vilken roll vart och ett har. Klicka på en ruta för att växla dess roll."
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "G-code som körs vid utskriftsstart för att försätta skrivaren i det här läget (till exempel ett Klipper-anrop till SET_PRINT_MODE). Beredningsprogrammet genererar bara banorna för det primära verktyget (Primary); den fasta programvaran styr de övriga."
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"G-code som körs vid utskriftsstart för att försätta skrivaren i det här läget (till exempel ett Klipper-anrop till SET_PRINT_MODE).\n"
+"\n"
+"Beredningsprogrammet genererar bara banorna för det primära verktyget (Primary); den fasta programvaran styr de övriga."
 
 # AI Translated
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -10100,8 +10297,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "Namnet på det här parallella läget, som det visas i plattans IDEX/IQEX-lägesväljare. Sparas i projektet med namn, så om du byter namn på ett läge som plattor redan använder återgår de till Primär. Får inte vara tomt — ett tomt namn ersätts med ett genererat."
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "G-code som skrivs en gång i början av en utskrift som använder det här läget, före maskinens start-G-code. Här försätts skrivaren i motsvarande läge i den fasta programvaran — till exempel med ett Klipper-anrop till SET_PRINT_MODE eller ett RepRapFirmware M567 — eftersom beredningsprogrammet bara genererar banorna för det primära verktyget (Primary) och den fasta programvaran styr verktygen Kopia/Spegel (Copy/Mirror). Platshållare stöds; använd redigeringsknappen för att bläddra bland dem. Lämna tomt om läget inte kräver någon inställning i den fasta programvaran."
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"G-code som skrivs en gång i början av en utskrift som använder det här läget, före maskinens start-G-code. Här försätts skrivaren i motsvarande läge i den fasta programvaran — till exempel med ett Klipper-anrop till SET_PRINT_MODE eller ett RepRapFirmware M567 — eftersom beredningsprogrammet bara genererar banorna för det primära verktyget (Primary) och den fasta programvaran styr verktygen Kopia/Spegel (Copy/Mirror).\n"
+"\n"
+"Platshållare stöds; använd redigeringsknappen för att bläddra bland dem. Lämna tomt om läget inte kräver någon inställning i den fasta programvaran."
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -10558,12 +10761,10 @@ msgstr "För litet objekt"
 
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
+"Instead of considering them as multiple objects, should the file be loaded as a single object with multiple parts?"
 msgstr ""
 "Filen innehåller flera objekt som är placerade på olika höjder.\n"
-"Istället för att betrakta dem som flera objekt, ska\n"
-"filen laddas som ett enda objekt med flera delar?"
+"Istället för att betrakta dem som flera objekt, ska filen laddas som ett enda objekt med flera delar?"
 
 msgid "Multi-part object detected"
 msgstr "Objekt i flera delar har upptäckts"
@@ -11160,7 +11361,7 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "Onormal utskrifts fil data. Vänligen bered igen"
 
 msgid ""
-"Print By Object: \n"
+"Print By Object:\n"
 "We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
 "Skriv ut per Objekt:\n"
@@ -11202,6 +11403,12 @@ msgstr "Det finns inga filament i skrivaren. Ladda filament i skrivaren först."
 # AI Translated
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "Alla filament i skrivaren är av okänd typ. Gå till skrivarens skärm eller programmets enhetssida för att ange filamenttypen."
+
+# AI Translated
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr "%s är ansluten, men inget filamentsystem (AMS, CFS eller annan multimaterialenhet) hittades på den, så det finns inga filament att synkronisera."
 
 # AI Translated
 msgid "Device Page"
@@ -11543,13 +11750,15 @@ msgstr "Använd fönsterknappar på vänster sida"
 msgid "(Requires restart)"
 msgstr "(Kräver omstart)"
 
+# AI Translated
 #. TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
 msgid "Render on the discrete GPU"
-msgstr ""
+msgstr "Rendera med det diskreta grafikkortet"
 
+# AI Translated
 #. TRN DRI_PRIME is an environment variable name and must stay as it is.
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
-msgstr ""
+msgstr "På en dator med två grafikkort körs OrcaSlicer på det diskreta grafikkortet i stället för på det som driver bildskärmen. Vissa Wayland-system kan inte visa bildrutor som renderats på det andra grafikkortet, eller kan inte öppna fönstret alls. Stäng av detta om 3D-vyn förblir tom; om OrcaSlicer inte längre startar, starta det en gång med DRI_PRIME=0 i miljön för att komma tillbaka hit."
 
 # AI Translated
 msgid "Downloads folder"
@@ -11803,6 +12012,14 @@ msgstr "Beräkna rensningsvolymer automatiskt när valda värden ändras"
 # AI Translated
 msgid "Auto arrange plate after cloning"
 msgstr "Placera automatiskt ut plattan efter kloning"
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "Visa alternativ när en primitiv läggs till"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "Om detta är aktiverat frågar en dialogruta efter måtten på en primitiv form innan den läggs till."
 
 # AI Translated
 msgid "Auto slice after changes"
@@ -12112,14 +12329,12 @@ msgstr "Återanvänd 3D-scenen vid inaktivitet"
 
 # AI Translated
 msgid ""
-"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, and reuses the previous frame's scene instead. Reduces GPU load.\n"
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
 msgstr ""
-"Hoppar över omritning av 3D-scenen när bara muspekaren rör sig över vyn,\n"
-"och återanvänder i stället scenen från föregående bildruta. Minskar GPU-belastningen.\n"
+"Hoppar över omritning av 3D-scenen när bara muspekaren rör sig över vyn, och återanvänder i stället scenen från föregående bildruta. Minskar GPU-belastningen.\n"
 "Stäng av detta om vyn visar inaktuellt eller saknat innehåll.\n"
 "\n"
 "Träder i kraft omedelbart."
@@ -12250,9 +12465,11 @@ msgstr "Stealth-läge"
 # AI Translated
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+"\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
 "Detta stänger av alla molnfunktioner, inklusive profilsynkronisering med Orca Cloud. Användare som föredrar att arbeta helt offline kan aktivera det här alternativet.\n"
+"\n"
 "Obs! När Stealth-läget är aktiverat säkerhetskopieras inte dina användarprofiler till Orca Cloud."
 
 # AI Translated
@@ -12594,6 +12811,30 @@ msgid "The selected preset is null!"
 msgstr "Den valda förinställningen är noll!"
 
 # AI Translated
+msgid "Changing one dimension changes the others in proportion."
+msgstr "När ett mått ändras ändras de övriga proportionellt."
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "Spara de här inställningarna som standard"
+
+# AI Translated
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr "Om detta är aktiverat används de här måtten för den här formen från och med nu, även när den här dialogrutan inte visas."
+
+# AI Translated
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr "Om detta är aktiverat läggs former till i standardstorlek utan att du tillfrågas. Dialogrutan kan aktiveras igen i Inställningar."
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "Storleken måste vara större än noll"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Ogiltig numerisk inmatning."
+
+# AI Translated
 msgctxt "Layer range"
 msgid "End"
 msgstr "Slut"
@@ -12778,6 +13019,18 @@ msgstr "Förinställning \"%1%\" finns redan och fungerar inte med nuvarande skr
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Observera att om du sparar kommer den aktuella förinställningen att skrivas över"
+
+# AI Translated
+msgid "control characters are not allowed."
+msgstr "kontrolltecken är inte tillåtna."
+
+# AI Translated
+msgid "The name is a reserved system name."
+msgstr "Namnet är ett reserverat systemnamn."
+
+# AI Translated
+msgid "The name is too long."
+msgstr "Namnet är för långt."
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "Namnet får inte vara samma som förinställt namn."
@@ -13514,8 +13767,8 @@ msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "Lagringsmediet är i onormalt tillstånd eller skrivskyddat."
 
 # AI Translated
-msgid "Storage needs to be inserted before printing."
-msgstr "Ett lagringsmedium måste sättas in före utskrift."
+msgid "Insert storage or free up space before printing."
+msgstr "Sätt in ett lagringsmedium eller frigör utrymme innan du skriver ut."
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Det går inte att skicka utskriftsjobbet till en skrivare vars fasta programvara måste uppdateras."
@@ -13601,10 +13854,6 @@ msgstr "Det går inte att skicka utskriftsuppgiften när uppgraderingen pågår"
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "Den valda skrivaren är inte kompatibel med de valda skrivar inställningarna."
 
-# AI Translated
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Ett lagringsmedium måste sättas in innan något skickas till skrivaren."
-
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Skrivaren måste finnas på samma LAN som Orca Slicer."
 
@@ -13662,12 +13911,8 @@ msgid "Unknown Failure"
 msgstr "Okänt fel"
 
 # AI Translated
-msgid ""
-"Please Find the Pin Code in Account page on printer screen,\n"
-" and type in the Pin Code below."
-msgstr ""
-"Leta upp PIN-koden på kontosidan på skrivarens skärm,\n"
-" och skriv in PIN-koden nedan."
+msgid "Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."
+msgstr "Leta upp PIN-koden på kontosidan på skrivarens skärm, och skriv in PIN-koden nedan."
 
 # AI Translated
 msgid "Can't find Pin Code?"
@@ -13840,12 +14085,10 @@ msgstr ""
 # AI Translated
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
-"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
-"and use soluble materials for both support interface and support base."
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height and use soluble materials for both support interface and support base."
 msgstr ""
 "När du använder lösligt material för supportens kontaktyta rekommenderar vi följande inställningar:\n"
-"0 i övre Z-avstånd, 0 i kontaktytans mellanrum, växlande rätlinjigt mönster, avaktivera oberoende supportlagerhöjd\n"
-"samt lösligt material för både supportens kontaktyta och supportbasen."
+"0 i övre Z-avstånd, 0 i kontaktytans mellanrum, växlande rätlinjigt mönster, avaktivera oberoende supportlagerhöjd samt lösligt material för både supportens kontaktyta och supportbasen."
 
 # AI Translated
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
@@ -13867,15 +14110,12 @@ msgstr "Experimentell funktion: Filamentet dras tillbaka och kapas på ett läng
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications. Please use with the latest printer firmware."
 msgstr "Experimentell funktion: Filamentet dras tillbaka och kapas på ett längre avstånd vid filamentbyten för att minimera rensningen. Det kan minska rensningen avsevärt, men kan också öka risken för igensatt nozzel eller andra utskriftsproblem. Använd funktionen med den senaste fasta programvaran till skrivaren."
 
-msgid ""
-"When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr ""
-"När du spelar in timelapse utan verktygshuvud rekommenderas att du lägger till ett \"Timelapse Wipe Tower\".\n"
-"genom att högerklicka på den tomma positionen på byggplattan och välja \"Lägg till Primitiv\"->\"Timelapse Wipe Tower\"."
+msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+msgstr "När du spelar in timelapse utan verktygshuvud rekommenderas att du lägger till ett \"Timelapse Wipe Tower\" genom att högerklicka på den tomma positionen på byggplattan och välja \"Lägg till Primitiv\"->\"Timelapse Wipe Tower\"."
 
+# AI Translated
 msgid "Setting unavailable"
-msgstr ""
+msgstr "Inställningen är inte tillgänglig"
 
 # AI Translated
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
@@ -14079,14 +14319,16 @@ msgstr "Konfiguration av insticksmodul"
 msgid "Notes"
 msgstr "Anteckningar"
 
+# AI Translated
 msgid "The selected printer does not support multiple bed types."
-msgstr ""
+msgstr "Den valda skrivaren stöder inte flera typer av byggplattor."
 
 msgid "Frequent"
 msgstr "Återkommande"
 
+# AI Translated
 msgid "Custom filament print order is unavailable while the plate contains mixed-color filaments."
-msgstr ""
+msgstr "Anpassad utskriftsordning för filament är inte tillgänglig när plattan innehåller blandade filament."
 
 #, c-format, boost-format
 msgid ""
@@ -14115,14 +14357,17 @@ msgstr "Åsidosätter inställningar"
 msgid "Retraction when switching material"
 msgstr "Retraktion vid material byte"
 
+# AI Translated
 msgid "Set the filament retraction length above zero, or use the printer's value, to edit this setting."
-msgstr ""
+msgstr "Ställ in filamentets retraktionslängd på ett värde över noll, eller använd skrivarens värde, för att ändra den här inställningen."
 
+# AI Translated
 msgid "The printer profile must allow filament overrides for long retraction when cutting."
-msgstr ""
+msgstr "Skrivarprofilen måste tillåta att filamentet åsidosätter lång retraktion vid kapning."
 
+# AI Translated
 msgid "Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."
-msgstr ""
+msgstr "Tillåt lång retraktion vid kapning i skrivarprofilen och aktivera den i filamentprofilen för att använda den här inställningen."
 
 msgid "Basic information"
 msgstr "Allmän information"
@@ -14268,59 +14513,77 @@ msgstr "Kompatibla skrivare"
 msgid "Compatible process profiles"
 msgstr "Kompatibla process profiler"
 
+# AI Translated
 msgid "Enable cooling for overhangs and bridges to edit this setting."
-msgstr ""
+msgstr "Aktivera kylning för överhäng och bridges för att ändra den här inställningen."
 
+# AI Translated
 msgid "Enable slowing down for layer cooling to use this setting."
-msgstr ""
+msgstr "Aktivera \"Sakta ner utskrift för bättre kylning av lager\" för att använda den här inställningen."
 
+# AI Translated
 msgid "Set the number of initial layers without cooling to zero to override the first layer fan speed."
-msgstr ""
+msgstr "Ställ in antalet första lager utan kylning på noll för att åsidosätta fläkthastigheten för första lagret."
 
+# AI Translated
 msgid "Enable the auxiliary fan in the printer profile to use this setting."
-msgstr ""
+msgstr "Aktivera den extra delkylningsfläkten i skrivarprofilen för att använda den här inställningen."
 
+# AI Translated
 msgid "The selected printer does not support air filtration."
-msgstr ""
+msgstr "Den valda skrivaren stöder inte luftfiltrering."
 
+# AI Translated
 msgid "Activate air filtration to edit this setting."
-msgstr ""
+msgstr "Aktivera luftfiltrering för att ändra den här inställningen."
 
+# AI Translated
 msgid "Activate air filtration and enable it during printing to edit the exhaust fan speed."
-msgstr ""
+msgstr "Aktivera luftfiltrering och slå på den under utskrift för att ändra utsugsfläktens hastighet."
 
+# AI Translated
 msgid "Activate air filtration and enable it on completion to edit the exhaust fan speed."
-msgstr ""
+msgstr "Aktivera luftfiltrering och slå på den när utskriften är klar för att ändra utsugsfläktens hastighet."
 
+# AI Translated
 msgid "Enable pressure advance to use this setting."
-msgstr ""
+msgstr "Aktivera Pressure Advance för att använda den här inställningen."
 
+# AI Translated
 msgid "Select this bed type or enable support for multiple bed types in the printer profile to show its temperature settings."
-msgstr ""
+msgstr "Välj den här typen av byggplatta eller aktivera stöd för flera byggplattstyper i skrivarprofilen för att visa dess temperaturinställningar."
 
+# AI Translated
 msgid "Enable pressure advance and adaptive pressure advance to use this setting."
-msgstr ""
+msgstr "Aktivera Pressure Advance och adaptiv Pressure Advance för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable the pellet printer option in the printer profile to use this setting."
-msgstr ""
+msgstr "Aktivera \"Skrivare ombyggd för pellets\" i skrivarprofilen för att använda den här inställningen."
 
+# AI Translated
 msgid "Filament diameter is unavailable for pellet printers."
-msgstr ""
+msgstr "Filamentdiametern är inte tillgänglig för pelletsskrivare."
 
+# AI Translated
 msgid "The selected printer does not support chamber temperature control."
-msgstr ""
+msgstr "Den valda skrivaren stöder inte styrning av kammarens temperatur."
 
+# AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
-msgstr ""
+msgstr "Ange koefficienter för volymetrisk hastighet som inte är noll innan du aktiverar adaptiv volymetrisk hastighet."
 
+# AI Translated
 msgid "Enable multitool ramming to edit this setting."
-msgstr ""
+msgstr "Aktivera ramming för flera verktyg för att ändra den här inställningen."
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer with multiple extruders."
-msgstr ""
+msgstr "Den här inställningen kräver en Bambu Lab-skrivare med flera extrudrar."
 
+# AI Translated
 msgid "Use a Bambu Lab printer with multiple extruders and enable long retraction when the extruder changes."
-msgstr ""
+msgstr "Använd en Bambu Lab-skrivare med flera extrudrar och aktivera lång retraktion vid extruderbyte."
 
 msgid "Printable space"
 msgstr "Utskriftsbar yta"
@@ -14459,12 +14722,10 @@ msgstr "Antal extrudrar på skrivaren."
 
 # AI Translated
 msgid ""
-"Single Extruder Multi Material is selected,\n"
-"and all extruders must have the same diameter.\n"
+"Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
 msgstr ""
-"Multimaterial med en extruder är valt,\n"
-"och alla extrudrar måste ha samma diameter.\n"
+"Multimaterial med en extruder är valt, och alla extrudrar måste ha samma diameter.\n"
 "Vill du ändra diametern för alla extrudrar till den första extruderns nozzeldiameter?"
 
 msgid "Nozzle diameter"
@@ -14508,62 +14769,82 @@ msgstr "Lagerhöjds begränsning"
 msgid "Z-Hop"
 msgstr "Z-Hop"
 
+# AI Translated
 msgid "Power loss recovery requires a Bambu Lab printer or the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "Återhämtning efter strömavbrott kräver en Bambu Lab-skrivare eller G-code-varianten Marlin 2."
 
+# AI Translated
 msgid "Build plate tilt is derived from the belt tilt on belt printers."
-msgstr ""
+msgstr "På bandskrivare härleds byggplattans lutning från bandets lutning."
 
+# AI Translated
 msgid "Enable belt printer mode to use this setting."
-msgstr ""
+msgstr "Aktivera bandskrivarläget för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable belt printer mode and select a belt rotation axis to edit its angle."
-msgstr ""
+msgstr "Aktivera bandskrivarläget och välj en lutningsaxel för bandet för att ändra dess vinkel."
 
+# AI Translated
 msgid "Enable belt printer mode and select Expert or Developer settings visibility to use this setting."
-msgstr ""
+msgstr "Aktivera bandskrivarläget och visa inställningar på nivån \"Expert\" eller \"Utvecklare\" för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable belt printer mode, select Expert or Developer settings visibility, and decouple the machine frame tilt to edit its angle."
-msgstr ""
+msgstr "Aktivera bandskrivarläget, visa inställningar på nivån \"Expert\" eller \"Utvecklare\" och frikoppla lutningen för maskinkoordinatsystemet för att ändra dess vinkel."
 
+# AI Translated
 msgid "Enable support for parallel printheads to edit their count."
-msgstr ""
+msgstr "Aktivera stöd för parallella skrivhuvuden för att ändra deras antal."
 
+# AI Translated
 msgid "Collision volume mode selection requires multiple extruders."
-msgstr ""
+msgstr "Val av beteende för kollisionsvolymer kräver flera extrudrar."
 
+# AI Translated
 msgid "Select a shared collision volume mode or use a single-extruder printer to edit this setting."
-msgstr ""
+msgstr "Välj ett gemensamt beteende för kollisionsvolymer eller använd en skrivare med en extruder för att ändra den här inställningen."
 
+# AI Translated
 msgid "Enable the auxiliary fan to edit its direction."
-msgstr ""
+msgstr "Aktivera den extra delkylningsfläkten för att ändra dess riktning."
 
+# AI Translated
 msgid "Air filtration and the cooling filter are alternative accessories; disable cooling filter support to use air filtration."
-msgstr ""
+msgstr "Luftfiltrering och kylfiltret är alternativa tillbehör; inaktivera stöd för kylfilter för att använda luftfiltrering."
 
+# AI Translated
 msgid "Enable cooling filter support in the printer profile to use this setting."
-msgstr ""
+msgstr "Aktivera stöd för kylfilter i skrivarprofilen för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable belt printer mode to use the belt purge tower."
-msgstr ""
+msgstr "Aktivera bandskrivarläget för att använda bandrensningstornet."
 
+# AI Translated
+# Needs human review: The setting this names is labelled "Typ av rengöringstorn"; the glossary and most of the catalog say "prime torn". Check which one the hint should quote.
 msgid "Wipe tower type selection is unavailable for Bambu Lab printers and belt printers."
-msgstr ""
+msgstr "Val av typ av prime torn är inte tillgängligt för Bambu Lab-skrivare och bandskrivare."
 
+# AI Translated
 msgid "Select wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "Välj \"Typ 2\" för prime tornet på en skrivare som inte är från Bambu Lab för att använda den här inställningen."
 
+# AI Translated
 msgid "Extruder count cannot be edited in single extruder multimaterial mode."
-msgstr ""
+msgstr "Antalet extrudrar kan inte ändras i läget multimaterial med en extruder."
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode to use manual filament changes."
-msgstr ""
+msgstr "Aktivera läget multimaterial med en extruder för att använda manuella filamentbyten."
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "Aktivera läget multimaterial med en extruder med prime torn av \"Typ 2\" på en skrivare som inte är från Bambu Lab för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable IDEX/IQEX printer mode to use this setting."
-msgstr ""
+msgstr "Aktivera IDEX/IQEX-skrivarläget för att använda den här inställningen."
 
 # AI Translated
 msgid "Front-left"
@@ -14581,35 +14862,47 @@ msgstr "Bakre vänster"
 msgid "Rear-right"
 msgstr "Bakre höger"
 
+# AI Translated
 msgid "Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Använd flera extrudrar med prime torn av \"Typ 2\" på en skrivare som inte är från Bambu Lab och inaktivera läget multimaterial med en extruder."
 
+# AI Translated
 msgid "Set retraction length above zero or enable firmware retraction to use this setting."
-msgstr ""
+msgstr "Ställ in retraktionslängden på ett värde över noll eller aktivera firmware-retraktion för att använda den här inställningen."
 
+# AI Translated
 msgid "The extruder printable area and height are fixed by the printer profile."
-msgstr ""
+msgstr "Extruderns utskrivbara område och höjd bestäms av skrivarprofilen."
 
+# AI Translated
 msgid "This setting is shown for printers with exactly two extruders."
-msgstr ""
+msgstr "Den här inställningen visas för skrivare med exakt två extrudrar."
 
+# AI Translated
 msgid "Select per-extruder collision volumes on a printer with multiple extruders to edit this setting."
-msgstr ""
+msgstr "Välj kollisionsvolymer per extruder på en skrivare med flera extrudrar för att ändra den här inställningen."
 
+# AI Translated
 msgid "Retraction length is controlled by the firmware while firmware retraction is enabled."
-msgstr ""
+msgstr "Retraktionslängden styrs av den fasta programvaran när firmware-retraktion är aktiverad."
 
+# AI Translated
 msgid "Enable retraction and set Z hop above zero to use this setting."
-msgstr ""
+msgstr "Aktivera retraktion och ställ in Z-hop på ett värde över noll för att använda den här inställningen."
 
+# AI Translated
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
-msgstr ""
+msgstr "Ställ in retraktionslängden på ett värde över noll och inaktivera firmware-retraktion för att ändra den här inställningen."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
-msgstr ""
+msgstr "Aktivera retraktion och avtorkning, och ställ in retraktionsmängden efter avtorkning på ett värde under 100% för att ändra retraktionsmängden före avtorkning."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
-msgstr ""
+msgstr "Aktivera retraktion och avtorkning, och ställ in retraktionsmängden före avtorkning på ett värde under 100% för att ändra retraktionsmängden efter avtorkning."
 
 # AI Translated
 msgid ""
@@ -14624,47 +14917,61 @@ msgstr ""
 msgid "Firmware Retraction"
 msgstr "Firmware Retraktion"
 
+# AI Translated
 msgid "Enable retraction and wiping to edit wipe distance."
-msgstr ""
+msgstr "Aktivera retraktion och avskrapning för att ändra avskrapningsavståndet."
 
+# AI Translated
 msgid "This setting requires multiple extruders."
-msgstr ""
+msgstr "Den här inställningen kräver flera extrudrar."
 
+# AI Translated
 msgid "Use multiple extruders and set tool change retraction length above zero to edit this setting."
-msgstr ""
+msgstr "Använd flera extrudrar och ställ in retraktionslängden vid verktygsbyte på ett värde över noll för att ändra den här inställningen."
 
+# AI Translated
 msgid "Disable firmware retraction and allow long retraction when cutting to use this setting."
-msgstr ""
+msgstr "Inaktivera firmware-retraktion och tillåt lång retraktion vid kapning för att använda den här inställningen."
 
+# AI Translated
 msgid "Enable long retraction when cutting to edit the retraction distance."
-msgstr ""
+msgstr "Aktivera lång retraktion vid kapning för att ändra retraktionssträckan."
 
+# AI Translated
 msgid "Select a Z hop type other than Normal to edit travel slope."
-msgstr ""
+msgstr "Välj en annan Z-hop-typ än \"Normal\" för att ändra flyttvinkeln."
 
+# AI Translated
 msgid "Travel acceleration limits are unavailable for the Marlin legacy and Klipper G-code flavors."
-msgstr ""
+msgstr "Gränser för flyttacceleration är inte tillgängliga för G-code-varianterna Marlin (äldre) och Klipper."
 
+# AI Translated
 msgid "Jerk limits are unavailable while Marlin uses nonzero junction deviation."
-msgstr ""
+msgstr "Jerk-gränser är inte tillgängliga när Marlin använder en Junction Deviation som inte är noll."
 
+# AI Translated
 msgid "Emitting machine limits requires the Marlin legacy, Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "Att skriva maskingränser till G-code kräver G-code-varianten Marlin (äldre), Marlin 2 eller RepRapFirmware."
 
+# AI Translated
 msgid "Enable resonance avoidance to edit its speed range."
-msgstr ""
+msgstr "Aktivera resonansundvikande för att ändra dess hastighetsintervall."
 
+# AI Translated
 msgid "This input shaping setting requires the Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "Den här inställningen för Input Shaping kräver G-code-varianten Marlin 2 eller RepRapFirmware."
 
+# AI Translated
 msgid "Enable emitting machine limits to G-code to emit input shaping settings."
-msgstr ""
+msgstr "Aktivera \"Skriv gränser till G-code\" för att skriva inställningar för Input Shaping."
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code to edit this setting."
-msgstr ""
+msgstr "Aktivera \"Skriv gränser till G-code\" och \"Skriv input shaping\" för att ändra den här inställningen."
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code with the Marlin firmware G-code flavor to edit separate Y-axis values."
-msgstr ""
+msgstr "Aktivera \"Skriv gränser till G-code\" och \"Skriv input shaping\" med G-code-varianten Marlin 2 för att ändra separata värden för Y-axeln."
 
 # AI Translated
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
@@ -14725,8 +15032,9 @@ msgstr ""
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "Är du säker på att du vill radera den valda förinställningen?"
 
+# AI Translated
 msgid "Select \"All\" to edit the compatibility condition instead of using an explicit profile list."
-msgstr ""
+msgstr "Välj \"Allt\" för att ändra kompatibilitetsvillkoret i stället för att använda en uttrycklig profillista."
 
 # AI Translated
 msgid "Select printers"
@@ -14842,8 +15150,9 @@ msgstr "Klicka för att återställa aktuellt värde och koppla till det övergr
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Klicka för att släppa aktuell modifiering och återställa till sparat värde."
 
+# AI Translated
 msgid "Material print speed cannot be edited for the SL1 printer."
-msgstr ""
+msgstr "Materialets utskriftshastighet kan inte ändras för SL1-skrivaren."
 
 msgid "Process Settings"
 msgstr "Processinställningar"
@@ -14930,18 +15239,18 @@ msgstr "Överför de valda alternativen till den nyligen valda förinställninge
 
 #, boost-format
 msgid ""
-"Save the selected options to preset \n"
+"Save the selected options to preset\n"
 "\"%1%\"."
 msgstr ""
-"Spara de valda alternativen för förinställning \n"
+"Spara de valda alternativen för förinställning\n"
 "\"%1%\"."
 
 #, boost-format
 msgid ""
-"Transfer the selected options to the newly selected preset \n"
+"Transfer the selected options to the newly selected preset\n"
 "\"%1%\"."
 msgstr ""
-"Överför de valda alternativen till den nyligen valda förinställningen \n"
+"Överför de valda alternativen till den nyligen valda förinställningen\n"
 "\"%1%\"."
 
 #, boost-format
@@ -15857,12 +16166,8 @@ msgstr "Ansluter till skrivaren... Dialogrutan stängs senare"
 msgid "Connection failed, please double check IP and Access Code"
 msgstr "Anslutningen misslyckades, kontrollera IP och åtkomstkod"
 
-msgid ""
-"Connection failed! If your IP and Access Code is correct, \n"
-"please move to step 3 for troubleshooting network issues"
-msgstr ""
-"Anslutningen misslyckades! Om din IP-adress och åtkomstkod är korrekta, \n"
-"gå vidare till steg 3 för felsökning av nätverksproblem"
+msgid "Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"
+msgstr "Anslutningen misslyckades! Om din IP-adress och åtkomstkod är korrekta, gå vidare till steg 3 för felsökning av nätverksproblem"
 
 # AI Translated
 msgid "Connection failed! Please refer to the wiki page."
@@ -16383,6 +16688,11 @@ msgstr "%1% skär en kollisionsvolym för extruder %2%."
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% är för nära andra och kan orsaka kollisioner."
 
+# AI Translated
+#, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr "%1% skrivs ut senare än sin plats i objektlistan för att undvika en kollision."
+
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% är för hög, och kollisioner kommer att uppstå."
@@ -16435,10 +16745,11 @@ msgstr "Om du ändå vill skriva ut kan du aktivera alternativet i Inställninga
 msgid "No extrusions under current settings."
 msgstr "Nuvarande inställning har ingen extrudering."
 
+# AI Translated
 #. TRN %1% is the filament number as shown in the filament list, starting from 1.
 #, boost-format
 msgid "The flow ratio of filament %1% must be greater than 0."
-msgstr ""
+msgstr "Flödesförhållandet för filament %1% måste vara större än 0."
 
 # AI Translated
 msgid "Mixed filaments are not supported in IDEX/IQEX parallel modes. Switch this plate to Primary mode."
@@ -16718,8 +17029,19 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "Alternativet exakt vägg ignoreras för väggsekvenserna yttre-inre och inre-yttre-inre."
 
 # AI Translated
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "Modellen för adaptiv Pressure Advance för en eller flera extrudrar kan innehålla ogiltiga värden."
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr "Adaptiv Pressure Advance är aktiverad för en eller flera extrudrar, men inga mätvärden har angetts i deras modell för adaptiv Pressure Advance."
+
+# AI Translated
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
+"Modellen för adaptiv Pressure Advance för filament %1% innehåller ogiltiga värden.\n"
+"%2%"
 
 # AI Translated
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
@@ -17516,8 +17838,14 @@ msgid "Precise wall"
 msgstr "Exakt vägg"
 
 # AI Translated
-msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr "Förbättra skalets precision genom att justera avståndet till ytterväggen. Detta förbättrar även lagerkonsekvensen. OBS! Det här alternativet ignoreras för väggsekvenserna yttre-inre och inre-yttre-inre."
+msgid ""
+"Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n"
+"\n"
+"Note: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgstr ""
+"Förbättra skalets precision genom att justera avståndet till ytterväggen. Detta förbättrar även lagerkonsekvensen.\n"
+"\n"
+"Obs! Det här alternativet ignoreras för väggsekvenserna yttre-inre och inre-yttre-inre."
 
 msgid "Only one wall on top surfaces"
 msgstr "Endast en vägg på topp ytan"
@@ -17533,9 +17861,11 @@ msgstr "Tröskel för en vägg"
 #, no-c-format, no-boost-format
 msgid ""
 "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+"\n"
 "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
 msgstr ""
 "Om en ovansida ska skrivas ut och den delvis täcks av ett annat lager betraktas den inte som ett topplager där dess bredd understiger detta värde. Det kan vara användbart för att inte låta 'en perimeter på ovansidan' aktiveras på ytor som bara ska täckas av perimetrar. Värdet kan anges i mm eller som en % av perimeterns extruderingsbredd.\n"
+"\n"
 "Varning: Om detta är aktiverat kan artefakter uppstå om du har tunna detaljer på nästa lager, till exempel bokstäver. Sätt inställningen till 0 för att ta bort dessa artefakter."
 
 msgid "Only one wall on first layer"
@@ -17648,7 +17978,7 @@ msgid ""
 "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
 "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 "\n"
-"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen.\n"
 "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
 "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
 "\n"
@@ -17663,7 +17993,7 @@ msgstr ""
 "Aktivera det här alternativet för att sakta ner utskriften i områden där perimetrar kan ha böjt sig uppåt.\n"
 "Till exempel tillämpas ytterligare nedsaktning vid utskrift av överhäng i skarpa hörn, som fören på en Benchy, vilket minskar uppböjning som annars förvärras över flera lager.\n"
 "\n"
-"Det rekommenderas i allmänhet att ha det här alternativet påslaget, om inte skrivarens kylning är tillräckligt kraftfull eller utskriftshastigheten tillräckligt låg för att perimetrarna inte ska böja sig. \n"
+"Det rekommenderas i allmänhet att ha det här alternativet påslaget, om inte skrivarens kylning är tillräckligt kraftfull eller utskriftshastigheten tillräckligt låg för att perimetrarna inte ska böja sig.\n"
 "Om du skriver ut med hög hastighet på ytterperimetern kan den här parametern ge väggartefakter vid nedsaktningen, eftersom den potentiellt stora variationen i utskriftshastighet gör att extrudern inte hinner med den begärda flödesändringen.\n"
 "Den bakomliggande orsaken till dessa artefakter är sannolikt att PA-inställningen är något fel, särskilt i kombination med lång PA-utjämningstid.\n"
 "\n"
@@ -17791,8 +18121,10 @@ msgstr "Kombinera brim"
 msgid "Combine multiple brims into one when they are close to each other. This can improve brim adhesion."
 msgstr "Slå ihop flera brim till en när de ligger nära varandra. Det kan förbättra brimmets vidhäftning."
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Brim-öron» (matches the Brim term "Brim" and the catalog's other "brim-öron" entries).
 msgid "Brim ears"
-msgstr "Brätte öron"
+msgstr "Brim-öron"
 
 # AI Translated
 msgid "Only draw brim over the sharp edges of the model."
@@ -17943,8 +18275,12 @@ msgid "Activate air filtration"
 msgstr "Aktivera luftfiltrering"
 
 # AI Translated
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "Aktivera för bättre luftfiltrering. G-code-kommando: M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"Aktivera för bättre luftfiltrering.\n"
+"G-code-kommando: M106 P3 S(0-255)"
 
 # AI Translated
 msgid "Enable this to override the fan speed set in custom G-code during print."
@@ -18429,16 +18765,28 @@ msgid "Bed mesh min"
 msgstr "Byggplattsnät min"
 
 # AI Translated
-msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Det här alternativet anger minpunkten för det tillåtna området för byggplattsnätet. På grund av sondens XY-förskjutning kan de flesta skrivare inte sondera hela byggplattan. För att sondpunkten inte ska hamna utanför byggplattans yta bör byggplattsnätets min- och maxpunkter ställas in korrekt. OrcaSlicer ser till att värdena adaptive_bed_mesh_min/adaptive_bed_mesh_max inte överskrider dessa min-/maxpunkter. Den här informationen får du oftast från skrivartillverkaren. Standardinställningen är (-99999, -99999), vilket innebär att det inte finns några gränser och att sondering kan ske över hela byggplattan."
+msgid ""
+"This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Det här alternativet anger minpunkten för det tillåtna området för byggplattsnätet. På grund av sondens XY-förskjutning kan de flesta skrivare inte sondera hela byggplattan. För att sondpunkten inte ska hamna utanför byggplattans yta bör byggplattsnätets min- och maxpunkter ställas in korrekt. OrcaSlicer ser till att värdena adaptive_bed_mesh_min/adaptive_bed_mesh_max inte överskrider dessa min-/maxpunkter. Den här informationen får du oftast från skrivartillverkaren.\n"
+"\n"
+"Standardinställningen är (-99999, -99999), vilket innebär att det inte finns några gränser och att sondering kan ske över hela byggplattan."
 
 # AI Translated
 msgid "Bed mesh max"
 msgstr "Byggplattsnät max"
 
 # AI Translated
-msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Det här alternativet anger maxpunkten för det tillåtna området för byggplattsnätet. På grund av sondens XY-förskjutning kan de flesta skrivare inte sondera hela byggplattan. För att sondpunkten inte ska hamna utanför byggplattans yta bör byggplattsnätets min- och maxpunkter ställas in korrekt. OrcaSlicer ser till att värdena adaptive_bed_mesh_min/adaptive_bed_mesh_max inte överskrider dessa min-/maxpunkter. Den här informationen får du oftast från skrivartillverkaren. Standardinställningen är (99999, 99999), vilket innebär att det inte finns några gränser och att sondering kan ske över hela byggplattan."
+msgid ""
+"This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Det här alternativet anger maxpunkten för det tillåtna området för byggplattsnätet. På grund av sondens XY-förskjutning kan de flesta skrivare inte sondera hela byggplattan. För att sondpunkten inte ska hamna utanför byggplattans yta bör byggplattsnätets min- och maxpunkter ställas in korrekt. OrcaSlicer ser till att värdena adaptive_bed_mesh_min/adaptive_bed_mesh_max inte överskrider dessa min-/maxpunkter. Den här informationen får du oftast från skrivartillverkaren.\n"
+"\n"
+"Standardinställningen är (99999, 99999), vilket innebär att det inte finns några gränser och att sondering kan ske över hela byggplattan."
 
 # AI Translated
 msgid "Probe point distance"
@@ -18570,13 +18918,11 @@ msgstr "Statisk Pressure Advance för bridges"
 
 # AI Translated
 msgid ""
-"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
-"equivalent walls (using adaptive settings if enabled).\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Statiskt Pressure Advance-värde för bridges. Sätt till 0 för att använda samma Pressure Advance som \n"
-"motsvarande väggar (med adaptiva inställningar om de är aktiverade).\n"
+"Statiskt Pressure Advance-värde för bridges. Sätt till 0 för att använda samma Pressure Advance som motsvarande väggar (med adaptiva inställningar om de är aktiverade).\n"
 "\n"
 "Ett lägre PA-värde vid utskrift av bridges minskar den lätta underextrudering som syns direkt efter bridges. Den orsakas av tryckfallet i nozzeln vid utskrift i luften, och ett lägre PA motverkar detta."
 
@@ -19860,8 +20206,12 @@ msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "Bästa automatiska arrangemangs position i intervallet [0,1] w.r.t. bäddens form."
 
 # AI Translated
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "Aktivera det här alternativet om maskinen har en extra delkylningsfläkt. G-code-kommando: M106 P2 S(0-255)."
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"Aktivera det här alternativet om maskinen har en extra delkylningsfläkt.\n"
+"G-code-kommando: M106 P2 S(0-255)."
 
 # AI Translated
 msgid "Fan direction"
@@ -19983,8 +20333,14 @@ msgid "Skip G-code config block"
 msgstr "Hoppa över G-code-konfigurationsblocket"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "Skriver inte CONFIG_BLOCK (nyckel/värde-paren för slicerkonfigurationen) till G-code-filen. Detta kan hjälpa med skrivare vars firmware kraschar när dessa kommentarrader tolkas (t.ex. Anycubic go-klipper). Obs: G-code-filen kommer inte längre att innehålla slicerinställningarna, så att importera den tillbaka till OrcaSlicer återställer inte konfigurationen."
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"Skriver inte CONFIG_BLOCK (nyckel/värde-paren för slicerkonfigurationen) till G-code-filen. Detta kan hjälpa med skrivare vars firmware kraschar när dessa kommentarrader tolkas (t.ex. Anycubic go-klipper).\n"
+"\n"
+"Obs: G-code-filen kommer inte längre att innehålla slicerinställningarna, så att importera den tillbaka till OrcaSlicer återställer inte konfigurationen."
 
 # AI Translated
 msgid "Pellet Modded Printer"
@@ -20007,8 +20363,14 @@ msgid "Label objects"
 msgstr "Märk objekt"
 
 # AI Translated
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "Aktivera detta för att lägga till kommentarer i G-code som märker utskriftsrörelser med vilket objekt de tillhör, vilket är användbart för Octoprints CancelObject-insticksmodul. Inställningen är INTE kompatibel med uppsättningen Single Extruder Multi Material eller med Torka i objekt/Torka i ifyllnad."
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"Aktivera detta för att lägga till kommentarer i G-code som märker utskriftsrörelser med vilket objekt de tillhör, vilket är användbart för Octoprints CancelObject-insticksmodul.\n"
+"\n"
+"Inställningen är INTE kompatibel med uppsättningen Single Extruder Multi Material eller med Torka i objekt/Torka i ifyllnad."
 
 msgid "Exclude objects"
 msgstr "Exkludera objekt"
@@ -20030,14 +20392,28 @@ msgid "Verbose G-code"
 msgstr "Utförlig G-code"
 
 # AI Translated
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "Aktivera detta för att få en kommenterad G-code-fil, där varje rad förklaras med en beskrivande text. Om du skriver ut från SD-kort kan filens extra storlek göra den fasta programvaran långsam."
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"Aktivera detta för att få en kommenterad G-code-fil, där varje rad förklaras med en beskrivande text.\n"
+"\n"
+"Om du skriver ut från SD-kort kan filens extra storlek göra den fasta programvaran långsam."
 
+# AI Translated
 msgid "High precision G-code (experimental)"
-msgstr ""
+msgstr "G-code med hög precision (experimentell)"
 
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+# AI Translated
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
 msgstr ""
+"Skriv X, Y, Z, I och J med 4 decimaler i stället för 3, och E med 6 i stället för 5, för att minska avrundningsfelen i G-code. Med relativa E-avstånd förs även avrundningsfelet för varje rörelse vidare till nästa. Support tas bort efter utskriften och behåller därför standardprecisionen. Detta kan hjälpa till att stabilisera extruderingen med små nozzlar (t.ex. 0,2 mm) och tunna lager (t.ex. 0,08 mm eller mindre), där varje rörelse extruderar så lite material att avrundningsfelen spelar störst roll. Effekten beror starkt på hur väl övriga inställningar är justerade och kan vara svår att märka om inte utskriftsprofilen är väl kalibrerad.\n"
+"\n"
+"G-code-filen blir ungefär 10 procent större, vilket kan göra skrivare som tolkar G-code långsamt ännu långsammare."
 
 msgid "Infill combination"
 msgstr "Ifyllnads kombination"
@@ -20058,16 +20434,36 @@ msgid "Sparse infill rotation template"
 msgstr "Rotationsmall för sparsam ifyllnad"
 
 # AI Translated
-msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr "Rotera riktningen för sparsam ifyllnad per lager med hjälp av en mall med vinklar. Ange grader separerade med kommatecken (t.ex. '0,30,60,90'). Vinklarna tillämpas i ordning per lager och upprepas när listan tar slut. Avancerad syntax stöds: '+5' roterar +5° varje lager; '+5#5' roterar +5° var 5:e lager. Se wikin för detaljer. När en mall är angiven ignoreras standardinställningen för ifyllnadsriktning. Obs! Vissa ifyllnadsmönster (t.ex. Gyroid) styr rotationen själva; använd med försiktighet."
+msgid ""
+"Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends.\n"
+"\n"
+"Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n"
+"\n"
+"When a template is set, the standard infill direction setting is ignored.\n"
+"\n"
+"Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+msgstr ""
+"Rotera riktningen för sparsam ifyllnad per lager med hjälp av en mall med vinklar. Ange grader separerade med kommatecken (t.ex. '0,30,60,90'). Vinklarna tillämpas i ordning per lager och upprepas när listan tar slut.\n"
+"\n"
+"Avancerad syntax stöds: '+5' roterar +5° varje lager; '+5#5' roterar +5° var 5:e lager. Se wikin för detaljer.\n"
+"\n"
+"När en mall är angiven ignoreras standardinställningen för ifyllnadsriktning.\n"
+"\n"
+"Obs! Vissa ifyllnadsmönster (t.ex. Gyroid) styr rotationen själva; använd med försiktighet."
 
 # AI Translated
 msgid "Solid infill rotation template"
 msgstr "Rotationsmall för solid ifyllnad"
 
 # AI Translated
-msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr "Den här parametern lägger till en rotation av riktningen för solid ifyllnad på varje lager enligt den angivna mallen. Mallen är en kommaseparerad lista med vinklar i grader, t.ex. '0,90'. Den första vinkeln tillämpas på det första lagret, den andra vinkeln på det andra lagret och så vidare. Om det finns fler lager än vinklar upprepas vinklarna. Observera att alla mönster för solid ifyllnad inte stöder rotation."
+msgid ""
+"This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated.\n"
+"\n"
+"Note that not all solid infill patterns support rotation."
+msgstr ""
+"Den här parametern lägger till en rotation av riktningen för solid ifyllnad på varje lager enligt den angivna mallen. Mallen är en kommaseparerad lista med vinklar i grader, t.ex. '0,90'. Den första vinkeln tillämpas på det första lagret, den andra vinkeln på det andra lagret och så vidare. Om det finns fler lager än vinklar upprepas vinklarna.\n"
+"\n"
+"Observera att alla mönster för solid ifyllnad inte stöder rotation."
 
 # AI Translated
 msgid "Skeleton infill density"
@@ -20881,10 +21277,12 @@ msgstr "Min hastighet för delkylningsfläkten."
 # AI Translated
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "Hastighet för den extra delkylningsfläkten. Den extra fläkten körs med den här hastigheten under utskriften, utom de första lagren som definieras av antalet lager utan kylning.\n"
-"Aktivera auxiliary_fan i skrivarinställningarna för att kunna använda funktionen. G-code-kommando: M106 P2 S(0-255)"
+"Aktivera auxiliary_fan i skrivarinställningarna för att kunna använda funktionen.\n"
+"G-code-kommando: M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "För det första"
@@ -20989,8 +21387,14 @@ msgid "Reduce infill retraction"
 msgstr "Minska ifyllnads retraktionen"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "Dra inte tillbaka när förflyttningen är helt i ett utfyllnadsområde. Det betyder att läckage av filament inte kan ses. Detta kan minska tiderna för indragning för komplexa modeller och spara utskriftstid, men gör beredning och generering av G-code långsammare. Observera att Z-hop inte heller utförs i områden där retraktionen hoppas över."
+msgid ""
+"Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n"
+"\n"
+"Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr ""
+"Dra inte tillbaka när förflyttningen är helt i ett utfyllnadsområde. Det betyder att läckage av filament inte kan ses. Detta kan minska tiderna för indragning för komplexa modeller och spara utskriftstid, men gör beredning och generering av G-code långsammare.\n"
+"\n"
+"Observera att Z-hop inte heller utförs i områden där retraktionen hoppas över."
 
 # AI Translated
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -21503,8 +21907,14 @@ msgid "Scarf joint speed"
 msgstr "Hastighet för snedskarv"
 
 # AI Translated
-msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Det här alternativet anger utskriftshastigheten för snedskarvar. Vi rekommenderar att snedskarvar skrivs ut i låg hastighet (under 100 mm/s). Det är också bra att aktivera 'Utjämning av extruderingshastighet' om den angivna hastigheten skiljer sig mycket från ytter- eller innerväggarnas hastighet. Om hastigheten som anges här är högre än ytter- eller innerväggarnas hastighet använder skrivaren den lägre av de två. När den anges i procent (t.ex. 80 %) beräknas hastigheten utifrån respektive ytter- eller innerväggshastighet. Standardvärdet är 100 %."
+msgid ""
+"This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
+"\n"
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+msgstr ""
+"Det här alternativet anger utskriftshastigheten för snedskarvar. Vi rekommenderar att snedskarvar skrivs ut i låg hastighet (under 100 mm/s). Det är också bra att aktivera 'Utjämning av extruderingshastighet' om den angivna hastigheten skiljer sig mycket från ytter- eller innerväggarnas hastighet.\n"
+"\n"
+"Om hastigheten som anges här är högre än ytter- eller innerväggarnas hastighet använder skrivaren den lägre av de två. När den anges i procent (t.ex. 80 %) beräknas hastigheten utifrån respektive ytter- eller innerväggshastighet. Standardvärdet är 100 %."
 
 # AI Translated
 msgid "Scarf joint flow ratio"
@@ -21790,8 +22200,14 @@ msgstr "Slutflödesförhållande för spiral"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Anger flödesförhållandet när spiralen avslutas. Normalt skalar spiralövergången flödesförhållandet från 100 % till 0 % under det sista varvet, vilket i vissa fall kan ge underextrudering i slutet av spiralen."
 
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "Om Smooth eller Traditionellt läge väljs genereras en timelapse-video för varje utskrift. När varje lager har skrivits ut tas en ögonblicksbild med kammarkameran. Alla dessa ögonblicksbilder är sammansatta i en timelapse-video när utskriften är klar. Om Smooth läge är valt flyttas verktygshuvudet till utloppsrännan efter att varje lager har skrivits ut och tar sedan en ögonblicksbild. Eftersom smält filament kan läcka från nozzeln under processen att ta en ögonblicksbild krävs ett prime torn för Smooth läge för att torka nozzeln."
+msgid ""
+"If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n"
+"\n"
+"If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+msgstr ""
+"Om Smooth eller Traditionellt läge väljs genereras en timelapse-video för varje utskrift. När varje lager har skrivits ut tas en ögonblicksbild med kammarkameran. Alla dessa ögonblicksbilder är sammansatta i en timelapse-video när utskriften är klar.\n"
+"\n"
+"Om Smooth läge är valt flyttas verktygshuvudet till utloppsrännan efter att varje lager har skrivits ut och tar sedan en ögonblicksbild. Eftersom smält filament kan läcka från nozzeln under processen att ta en ögonblicksbild krävs ett prime torn för Smooth läge för att torka nozzeln."
 
 msgid "Traditional"
 msgstr "Traditionell"
@@ -22021,16 +22437,28 @@ msgid "Tool change on wipe tower"
 msgstr "Verktygsbyte vid prime tornet"
 
 # AI Translated
-msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
-msgstr "Tvinga verktygshuvudet att flytta till prime tornet innan verktygsbyteskommandot (Tx) skickas. Endast relevant för skrivare med flera extrudrar (flera verktygshuvuden) som använder ett prime torn av typ 2. Som standard hoppar Orca över flytten på maskiner med flera verktygshuvuden, eftersom den fasta programvaran hanterar huvudbytet, vilket kan leda till att Tx-kommandot skickas ovanför den utskrivna delen. Aktivera det här alternativet om du vill att verktygsbytet alltid ska ske ovanför prime tornet i stället."
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+msgstr ""
+"Tvinga verktygshuvudet att flytta till prime tornet innan verktygsbyteskommandot (Tx) skickas.\n"
+"\n"
+"Endast relevant för skrivare med flera extrudrar (flera verktygshuvuden) som använder ett prime torn av typ 2. Som standard hoppar Orca över flytten på maskiner med flera verktygshuvuden, eftersom den fasta programvaran hanterar huvudbytet, vilket kan leda till att Tx-kommandot skickas ovanför den utskrivna delen. Aktivera det här alternativet om du vill att verktygsbytet alltid ska ske ovanför prime tornet i stället."
 
 # AI Translated
 msgid "Wait for temperature on wipe tower"
 msgstr "Vänta på temperatur vid prime tornet"
 
 # AI Translated
-msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr "Hämtar det nya verktyget utan att vänta på att det ska nå utskriftstemperatur, förflyttar sig till prime tornet och väntar på temperaturen där, precis före rensningen. Materialet som droppar under uppvärmningen hamnar på tornet i stället för på modellen, och förflyttningen sker samtidigt som uppvärmningen. Endast relevant för skrivare med flera extrudrar (flera verktygshuvuden) som använder ett prime torn av typ 2. Firmware eller verktygsbytesmakrot får inte vänta på temperaturen själv. När detta är avaktiverat utfärdas temperaturväntan direkt efter verktygsbyteskommandot."
+msgid ""
+"Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating.\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
+"Hämtar det nya verktyget utan att vänta på att det ska nå utskriftstemperatur, förflyttar sig till prime tornet och väntar på temperaturen där, precis före rensningen. Materialet som droppar under uppvärmningen hamnar på tornet i stället för på modellen, och förflyttningen sker samtidigt som uppvärmningen.\n"
+"\n"
+"Endast relevant för skrivare med flera extrudrar (flera verktygshuvuden) som använder ett prime torn av typ 2. Firmware eller verktygsbytesmakrot får inte vänta på temperaturen själv. När detta är avaktiverat utfärdas temperaturväntan direkt efter verktygsbyteskommandot."
 
 # AI Translated
 msgid "No sparse layers (beta)"
@@ -22339,10 +22767,16 @@ msgstr "Support hastighet"
 
 # AI Translated
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"Supportens stil och form. För normal support ger projicering av supporten i ett regelbundet rutnät stabilare support (standard), medan tätt åtsittande supporttorn sparar material och minskar märken på objektet.\n"
+"Supportens stil och form.\n"
+"\n"
+"För normal support ger projicering av supporten i ett regelbundet rutnät stabilare support (standard), medan tätt åtsittande supporttorn sparar material och minskar märken på objektet.\n"
+"\n"
 "För tree support slår stilarna slim och organisk ihop grenar mer aggressivt och sparar mycket material (standard är organisk), medan hybridstilen skapar en struktur som liknar normal support under stora plana överhäng."
 
 # AI Translated
@@ -22378,9 +22812,11 @@ msgstr "Gräns vinkel"
 
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
 "Support skapas för överhäng vars sluttning är under denna gräns.Ju mindre detta värde är, desto brantare överhäng kan skrivas ut utan stöd.\n"
+"\n"
 "Obs: Om det är satt till 0 använder vanliga stöd istället tröskelöverlappningen, medan trädstöd faller tillbaka till ett standardvärde på 30."
 
 # AI Translated
@@ -22429,16 +22865,6 @@ msgstr "Bandets lutningsaxel"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Axeln som meshen roteras kring före beredning. Detta är bandskrivarens lutning: en isometrisk (förvrängningsfri) rotation som även styr renderingen av byggplattan och tyngdkraftslutningen för support, och som G-code-baktransformationen inverterar före skjuvningen/skalningen och ommappningen till maskinkoordinatsystemet. X är den typiska portallutningen (bandet rör sig längs Y)."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -22664,13 +23090,11 @@ msgstr "Aktivera temperaturstyrning"
 
 # AI Translated
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"Aktivera det här alternativet för automatisk styrning av kammartemperaturen. Alternativet gör att ett M191-kommando skickas före \"machine_start_gcode\"\n"
-" vilket ställer in kammartemperaturen och väntar tills den är uppnådd. Dessutom skickas ett M141-kommando i slutet av utskriften för att stänga av kammarvärmaren, om en sådan finns.\n"
+"Aktivera det här alternativet för automatisk styrning av kammartemperaturen. Alternativet gör att ett M191-kommando skickas före \"machine_start_gcode\" vilket ställer in kammartemperaturen och väntar tills den är uppnådd. Dessutom skickas ett M141-kommando i slutet av utskriften för att stänga av kammarvärmaren, om en sådan finns.\n"
 "\n"
 "Alternativet förutsätter att den fasta programvaran stöder kommandona M191 och M141, antingen via makron eller inbyggt, och används vanligtvis när en aktiv kammarvärmare är installerad."
 
@@ -22680,25 +23104,31 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "För högtemperaturmaterial som ABS, ASA, PC och PA kan en högre kammartemperatur bidra till att motverka eller minska skevhet och potentiellt ge högre bindningsstyrka mellan lagren. Samtidigt försämrar en högre kammartemperatur luftfiltreringens effektivitet för ABS och ASA.\n"
 "\n"
 "För PLA, PETG, TPU, PVA och andra lågtemperaturmaterial bör det här alternativet vara avstängt (satt till 0), eftersom kammartemperaturen bör vara låg för att undvika igensättning i extrudern på grund av att materialet mjuknar vid heat break.\n"
 "\n"
-"Om alternativet är aktiverat sätter parametern även en G-code-variabel med namnet chamber_temperature, som kan användas för att skicka önskad kammartemperatur till ditt print start-makro eller ett heat soak-makro så här: PRINT_START (andra variabler) CHAMBER_TEMP=[chamber_temperature]. Det kan vara användbart om din skrivare inte stöder M141/M191-kommandon, eller om du vill hantera uppvärmningen i print start-makrot när ingen aktiv kammarvärmare är installerad."
+"Om alternativet är aktiverat sätter parametern även en G-code-variabel med namnet chamber_temperature, som kan användas för att skicka önskad kammartemperatur till ditt print start-makro eller ett heat soak-makro så här:\n"
+"PRINT_START (andra variabler) CHAMBER_TEMP=[chamber_temperature]\n"
+"Det kan vara användbart om din skrivare inte stöder M141/M191-kommandon, eller om du vill hantera uppvärmningen i print start-makrot när ingen aktiv kammarvärmare är installerad."
 
 # AI Translated
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
-"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this:\n"
+"PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
 "Detta är den kammartemperatur vid vilken utskriften ska starta, medan kammaren fortsätter värmas mot kammarens \"Mål\"-temperatur. Sätt till exempel Mål till 60 och Minimum till 50 för att börja skriva ut när kammaren når 50℃, utan att vänta på hela 60℃.\n"
 "\n"
-"Det sätter en G-code-variabel med namnet chamber_minimal_temperature, som kan skickas till ditt print start-makro eller ett heat soak-makro så här: PRINT_START (andra variabler) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"Det sätter en G-code-variabel med namnet chamber_minimal_temperature, som kan skickas till ditt print start-makro eller ett heat soak-makro så här:\n"
+"PRINT_START (andra variabler) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Till skillnad från kammarens \"Mål\"-temperatur skickar det här alternativet inga M141/M191-kommandon; det exponerar bara värdet för din anpassade G-code. Det bör inte överstiga kammarens \"Mål\"-temperatur."
 
@@ -23171,8 +23601,18 @@ msgstr "Vid övergång mellan olika antal väggar när delen blir tunnare, tilld
 msgid "Wall transitioning filter margin"
 msgstr "Vägg övergångs filter marginal"
 
-msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
-msgstr "Förhindra övergång fram och tillbaka mellan en extra vägg och en mindre. Denna marginal utökar intervallet av extruderingsbredder som följer till [Minsta väggbredds - marginal, 2 * Minsta väggbredd + marginal]. Att öka denna marginal minskar antalet övergångar, vilket minskar antalet extruderings start/stopp och restiden. Stor variation av extruderings bredd kan dock leda till under- eller överextruderings problem. Det uttrycks i procent över nozzel diametern"
+msgid ""
+"Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin].\n"
+"\n"
+"Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems.\n"
+"\n"
+"It's expressed as a percentage over nozzle diameter."
+msgstr ""
+"Förhindra övergång fram och tillbaka mellan en extra vägg och en mindre. Denna marginal utökar intervallet av extruderingsbredder som följer till [Minsta väggbredds - marginal, 2 * Minsta väggbredd + marginal].\n"
+"\n"
+"Att öka denna marginal minskar antalet övergångar, vilket minskar antalet extruderings start/stopp och restiden. Stor variation av extruderings bredd kan dock leda till under- eller överextruderings problem.\n"
+"\n"
+"Det uttrycks i procent över nozzel diametern"
 
 msgid "Wall transitioning threshold angle"
 msgstr "Tröskel vinkel för vägg övergång"
@@ -23261,8 +23701,14 @@ msgstr "För att förhindra ooze ur nozzle kyls nozzle temperatur under ramning.
 msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
 msgstr "Den maximala volymetriska hastigheten för ramning före extruder byte, där -1 innebär att den maximala volymetriska hastigheten används."
 
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "För att förhindra läckage kyls nozzle temperatur ner under ramningen. Obs: endast ett nedkylnings kommando och fläktaktivering utlöses, det är inte garanterat att måltemperaturen uppnås. 0 betyder inaktiverad."
+msgid ""
+"To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n"
+"\n"
+"Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed."
+msgstr ""
+"För att förhindra läckage kyls nozzle temperatur ner under ramningen. 0 betyder inaktiverad.\n"
+"\n"
+"Obs: endast ett nedkylnings kommando och fläktaktivering utlöses, det är inte garanterat att måltemperaturen uppnås."
 
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
 msgstr "Den maximala volymetriska hastigheten för ramning före ett hotend byte, där -1 innebär att den maximala volymetriska hastigheten används."
@@ -23959,6 +24405,14 @@ msgstr "Beräknad utskriftstid vid utskrift i normalläge (alltså inte i tyst l
 # AI Translated
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "Beräknad utskriftstid vid utskrift i normalläge (alltså inte i tyst läge). Samma som normal_print_time."
+
+# AI Translated
+msgid "Used filament types"
+msgstr "Använda filamenttyper"
+
+# AI Translated
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr "Lista över alla filamenttyper som används under utskriften, åtskilda med understreck."
 
 # AI Translated
 msgid "Print time (silent mode)"
@@ -25746,6 +26200,10 @@ msgstr ""
 "- Material som kan ha samma temperatur på den varma bädden\n"
 "- Olika filament märken och -familjer (märke = Bambu, familj = Basic, Matte, etc.)"
 
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "Linje"
+
 msgid "Pattern"
 msgstr "Mönster"
 
@@ -25892,11 +26350,11 @@ msgstr "Autoskala efter nozzel"
 
 # AI Translated
 msgid ""
-"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
-"Den här modellen är utformad för en nozzel på 0,4 mm med en lagerhöjd på 0,2 mm. \n"
+"Den här modellen är utformad för en nozzel på 0,4 mm med en lagerhöjd på 0,2 mm.\n"
 "När skalningsalternativet är aktiverat (rekommenderas) ändras storleken dynamiskt så att den matchar din aktuella nozzeldiameter och en lämplig lagerhöjd, vilket gör testet både noggrant och lättläst.\n"
 "Stäng bara av skalningen om du vill skriva ut referensmodellen exakt som den är."
 
@@ -26084,12 +26542,12 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
-" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
 "\n"
 "%s"
 msgstr ""
 "Sluthastigheten (%.0f mm/s) överskrider filamentets maximala volymetriska hastighet (%.1f mm³/s), vilket begränsar den yttre väggen till omkring %.0f mm/s vid den här linjebredden och lagerhöjden.\n"
-" Högre hastigheter kapas, så tornets övre block skrivs inte ut med den begärda hastigheten.\n"
+"Högre hastigheter kapas, så tornets övre block skrivs inte ut med den begärda hastigheten.\n"
 "\n"
 "%s"
 
@@ -26799,13 +27257,11 @@ msgstr "Du har angett ett otillåtet tecken i det utskrivbara området på förs
 # AI Translated
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
+"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "Skrivarförinställningen du skapade har redan en förinställning med samma namn. Vill du skriva över den?\n"
-"\tJa: Skriv över skrivarförinställningen med samma namn; filament- och processförinställningar med samma namn återskapas \n"
-"och filament- och processförinställningar utan samma namn behålls.\n"
+"\tJa: Skriv över skrivarförinställningen med samma namn; filament- och processförinställningar med samma namn återskapas och filament- och processförinställningar utan samma namn behålls.\n"
 "\tAvbryt: Skapa ingen förinställning; återgå till skapandevyn."
 
 msgid "You need to select at least one filament preset."
@@ -26847,10 +27303,10 @@ msgstr "Den angivna nozzeldiametern är ogiltig, skriv in igen:\n"
 
 # AI Translated
 msgid ""
-"The system preset does not allow creation. \n"
+"The system preset does not allow creation.\n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
-"Systemförinställningen tillåter inte skapande. \n"
+"Systemförinställningen tillåter inte skapande.\n"
 "Ange skrivarmodell eller nozzeldiameter på nytt."
 
 # AI Translated
@@ -26995,17 +27451,17 @@ msgid "Only printer names with user printer presets will be displayed, and each 
 msgstr "Endast printer namn med inställningar för printer visas, och varje inställning du väljer exporteras som zip-fil."
 
 msgid ""
-"Only the filament names with user filament presets will be displayed, \n"
+"Only the filament names with user filament presets will be displayed,\n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
-"Endast filament namn med inställningar för användar filament visas, \n"
+"Endast filament namn med inställningar för användar filament visas,\n"
 "och alla inställningar för användar filament i varje filament namn du väljer exporteras som en zip-fil."
 
 msgid ""
-"Only printer names with changed process presets will be displayed, \n"
+"Only printer names with changed process presets will be displayed,\n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
-"Endast printer namn med ändrade process inställningar visas, \n"
+"Endast printer namn med ändrade process inställningar visas,\n"
 "och alla användarprocess inställningar i varje printer namn som du väljer exporteras som zip-fil."
 
 msgid "Please select at least one printer or filament."
@@ -28187,8 +28643,10 @@ msgid_plural "%d invalid brim ears"
 msgstr[0] "%d ogiltigt brim-öra"
 msgstr[1] "%d ogiltiga brim-öron"
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Brim-öron» (matches the Brim term "Brim" and the catalog's other "brim-öron" entries).
 msgid "Brim Ears"
-msgstr "Brätte Öron"
+msgstr "Brim-öron"
 
 # AI Translated
 msgid "Please select single object."
@@ -28422,10 +28880,6 @@ msgstr "Antal triangulära facetter"
 # AI Translated
 msgid "Calculating, please wait..."
 msgstr "Beräknar, vänta..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "Spara de här inställningarna som standard"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -32401,10 +32855,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "De två linjerna möts inte i ett hörn — välj två linjer som gör det"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "Storleken måste vara större än noll"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Avrundning: radien sträcker sig förbi ett av benen, eller så möts inte de två linjerna i ett hörn"
 
@@ -32478,21 +32928,43 @@ msgstr "Ange ett tal"
 msgid "Not a number"
 msgstr "Inte ett tal"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "Skapa"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "Lägg till material"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "Ta bort"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "Avrundning / fasning / släppvinkel"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "Upprepa"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "Transformera"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "Referens"
+
+# AI Translated
+msgctxt "Design"
+msgid "Modify"
+msgstr "Ändra"
 
 # AI Translated
 msgctxt "Design"
@@ -32826,6 +33298,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "Hörnrektangel"
 
+msgctxt "Design"
+msgid "Rectangle"
+msgstr "Rektangel"
+
 # AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
@@ -32846,6 +33322,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "Mittpunktscirkel"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "Cirkel"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -32860,6 +33340,11 @@ msgstr "Trepunktscirkel"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "Trepunktsbåge"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "Båge"
 
 # AI Translated
 msgctxt "Design"
@@ -32900,6 +33385,11 @@ msgstr "Spline"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "Triangel"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "Polygon"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -33007,6 +33497,7 @@ msgid "Linear array"
 msgstr "Linjärt mönster"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "Mönster"
 
@@ -33247,8 +33738,10 @@ msgstr "Gizmo mäta"
 msgid "Gizmo assemble"
 msgstr "Gizmo montera"
 
+# AI Translated
+# Needs human review: Only the term changed: Brim ears is now «Brim-öron» (matches the Brim term "Brim" and the catalog's other "brim-öron" entries).
 msgid "Gizmo brim ears"
-msgstr "Gizmo brätte öron"
+msgstr "Gizmo brim-öron"
 
 # AI Translated
 msgid "Gizmo texture displacement painting"
@@ -33321,6 +33814,46 @@ msgstr "Växla mellan Förbered/Förhandsgranska"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Dölj/Visa meny"
+
+# AI Translated
+msgid "Go to the Home tab"
+msgstr "Gå till fliken Hem"
+
+# AI Translated
+msgid "Go to the Design tab"
+msgstr "Gå till fliken Design"
+
+# AI Translated
+msgid "Go to the Prepare tab"
+msgstr "Gå till fliken Förbered"
+
+# AI Translated
+msgid "Go to the Preview tab"
+msgstr "Gå till fliken Förhandsvisning"
+
+# AI Translated
+msgid "Go to the Device tab"
+msgstr "Gå till fliken Enhet"
+
+# AI Translated
+msgid "Go to the Multi-device tab"
+msgstr "Gå till fliken Flera enheter"
+
+# AI Translated
+msgid "Go to the Project tab"
+msgstr "Gå till fliken Projekt"
+
+# AI Translated
+msgid "Go to the Calibration tab"
+msgstr "Gå till fliken Kalibrering"
+
+# AI Translated
+msgid "Switch to the next tab"
+msgstr "Växla till nästa flik"
+
+# AI Translated
+msgid "Switch to the previous tab"
+msgstr "Växla till föregående flik"
 
 # AI Translated
 msgid "Reload the device page"
@@ -34310,8 +34843,9 @@ msgstr "Spara aktuell färg"
 msgid "Palettes"
 msgstr "Paletter"
 
+# AI Translated
 msgid "Pick color from screen"
-msgstr ""
+msgstr "Välj färg från skärmen"
 
 # AI Translated
 msgid "Search colors"
@@ -36008,10 +36542,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Ange formen på skrivarens byggplatta."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Ogiltig numerisk inmatning."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Filament- och nozzeldiametrar"
 
@@ -36240,6 +36770,71 @@ msgstr "Wiki->"
 # AI Translated
 msgid "Note:"
 msgstr "Obs:"
+
+# AI Translated
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr "• %1%: %2%"
+
+# AI Translated
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr "• %1% – %2%: %3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Följande inställningar hänvisar till insticksmoduler som Orca Slicer inte kan identifiera på den här datorn:\n"
+"\n"
+"%1%\n"
+"\n"
+"Om du sparar ändå behåller förinställningen inte referenserna till insticksmodulerna för de här inställningarna. På en annan dator vet Orca Slicer inte vilka insticksmoduler som ska erbjudas, och inställningarna kanske inte fungerar där."
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Följande inställningar hänvisar till insticksmoduler som Orca Slicer inte kan identifiera på den här datorn:\n"
+"\n"
+"%1%\n"
+"\n"
+"Om du sparar ändå behåller projektet inte referenserna till insticksmodulerna för de här inställningarna. På en annan dator vet Orca Slicer inte vilka insticksmoduler som ska erbjudas, och inställningarna kanske inte fungerar där."
+
+# AI Translated
+msgid "Plugin Not Identified"
+msgstr "Insticksmodulen kunde inte identifieras"
+
+# AI Translated
+msgid "Save anyway"
+msgstr "Spara ändå"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Förinställningarna som sparas hänvisar till insticksmoduler som Orca Slicer inte kan identifiera på den här datorn:\n"
+"\n"
+"%1%\n"
+"\n"
+"Om du sparar ändå behåller förinställningarna inte referenserna till insticksmodulerna för de här inställningarna. På en annan dator vet Orca Slicer inte vilka insticksmoduler som ska erbjudas, och inställningarna kanske inte fungerar där."
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -37035,6 +37630,10 @@ msgstr "Upprepar texturen över det målade området. Av placerar en enda kopia,
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "Aktivera Sida vid sida för att välja hur texturen upprepas."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Upprepa"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -38789,6 +39388,10 @@ msgid "Forward"
 msgstr "Framåt"
 
 # AI Translated
+msgid "Tools"
+msgstr "Verktyg"
+
+# AI Translated
 msgid "View Source"
 msgstr "Visa källkod"
 
@@ -38986,6 +39589,7 @@ msgstr[1] ""
 "Insticksmodulen \"%s\" begär att få radera följande filer:\n"
 "%s"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -38993,7 +39597,12 @@ msgid ""
 "\n"
 "Approval covers HTTP or HTTPS access and raw network connections to the listed hosts. It does not restrict ports. A URL with a path, query or port is covered only for that exact URL."
 msgstr ""
+"Insticksmodulen \"%s\" begär nätverksåtkomst till:\n"
+"%s\n"
+"\n"
+"Godkännandet omfattar HTTP- eller HTTPS-åtkomst och råa nätverksanslutningar till de listade värdarna. Det begränsar inte portar. En URL med sökväg, frågesträng eller port omfattas bara för exakt den URL:en."
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -39001,6 +39610,10 @@ msgid ""
 "\n"
 "Approval covers raw network connections to the listed hosts. It does not restrict ports."
 msgstr ""
+"Insticksmodulen \"%s\" begär nätverksåtkomst till:\n"
+"%s\n"
+"\n"
+"Godkännandet omfattar råa nätverksanslutningar till de listade värdarna. Det begränsar inte portar."
 
 # AI Translated
 #, c-format, boost-format
