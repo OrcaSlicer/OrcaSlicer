@@ -795,6 +795,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     return;
                 }
                 m_loft_refs.clear();   // fresh loft: nothing pre-checked
+                m_loft_faces.clear();
                 open_tool(Tool::Loft);
              }, SHIFT('L')},
             {"design_thicken", _L("Thicken"), _L("Offset a solid face into a thin plate (new body)"),
@@ -3704,6 +3705,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 : _L("(pick a side face)"));
             refresh_preview();
         }
+        // Loft card open: clicking a body's face makes it a profile (the start of the loft, then the end).
+        if (m_active == Tool::Loft && m_loft_list != nullptr && face >= 0 && body >= 0 && body < int(m_doc.bodies.size())) {
+            loft_pick_face(body, face);
+            return;
+        }
         // Hole card open: clicking a solid FACE re-targets the hole ONTO that face (Orca-style),
         // so the hole lives on the object's face — not on a stale dropdown/datum plane. Uses the
         // face under the cursor from the FIRST click (handle_solid_click reports it even at the
@@ -5517,11 +5523,22 @@ void DesignPanel::on_add_sweep()
 }
 
 void DesignPanel::fill_loft_rows(CheckListField* list, std::vector<int>& idx, std::vector<std::vector<int>>& row_loop,
-                                const std::vector<int>& refs, const std::vector<std::vector<int>>& chosen)
+                                const std::vector<int>& refs, const std::vector<std::vector<int>>& chosen,
+                                std::vector<int>* row_face, const LoftFacePick* picks)
 {
     list->Clear();
     idx.clear();
     row_loop.clear();
+    if (row_face) row_face->clear();
+    const auto face_row = [&](int k) {
+        if (picks == nullptr || picks[k].face < 0) return;
+        const int row = list->Append(wxString::Format(_L("Face %d of body %d — %s"), picks[k].face, picks[k].body + 1, k == 0 ? _L("start") : _L("end")));
+        idx.push_back(-1);
+        row_loop.push_back({});
+        if (row_face) row_face->push_back(picks[k].face);
+        list->Check(row, picks[k].on);
+    };
+    face_row(0);
     for (int i = 0; i < int(m_doc.features.size()); ++i) {
         const CadFeature& sf = m_doc.features[i];
         if (sf.type != CadFeatureType::Sketch) continue;
@@ -5541,34 +5558,89 @@ void DesignPanel::fill_loft_rows(CheckListField* list, std::vector<int>& idx, st
             const int row = list->Append(label);
             idx.push_back(i);
             row_loop.push_back(loop);
+            if (row_face) row_face->push_back(-1);
             for (size_t c = 0; c < refs.size(); ++c)
                 if (refs[c] == i && (c < chosen.size() ? chosen[c] : std::vector<int>{}) == loop) { list->Check(row, true); break; }
         }
     }
+    face_row(1);
 }
 
 void DesignPanel::read_loft_rows(CheckListField* list, const std::vector<int>& idx, const std::vector<std::vector<int>>& row_loop,
-                                 std::vector<int>& refs, std::vector<std::vector<int>>& loops) const
+                                 std::vector<int>& refs, std::vector<std::vector<int>>& loops,
+                                 const std::vector<int>* row_face, std::vector<int>* faces) const
 {
     refs.clear();
     loops.clear();
+    if (faces) faces->clear();
     for (unsigned i = 0; i < list->GetCount(); ++i)
         if (list->IsChecked(i) && i < idx.size()) {
             refs.push_back(idx[i]);
             loops.push_back(i < row_loop.size() ? row_loop[i] : std::vector<int>{});
+            if (faces) faces->push_back(row_face && i < row_face->size() ? (*row_face)[i] : -1);
         }
+}
+
+int DesignPanel::loft_faces_body(bool& mixed) const
+{
+    mixed = false;
+    int body = -1;
+    for (const LoftFacePick& p : m_loft_face_pick) {
+        if (p.face < 0 || !p.on) continue;
+        if (body >= 0 && body != p.body) mixed = true;
+        if (body < 0) body = p.body;
+    }
+    return body;
+}
+
+void DesignPanel::loft_rebuild_rows()
+{
+    // what is checked now: a face row's tick belongs to its pick
+    for (unsigned i = 0; i < m_loft_list->GetCount() && i < m_loft_row_face.size(); ++i)
+        if (m_loft_row_face[i] >= 0)
+            for (LoftFacePick& p : m_loft_face_pick) if (p.face == m_loft_row_face[i]) p.on = m_loft_list->IsChecked(i);
+    std::vector<int> refs;
+    std::vector<std::vector<int>> loops;
+    read_loft_rows(m_loft_list, m_loft_sketch_idx, m_loft_row_loop, refs, loops);
+    fill_loft_rows(m_loft_list, m_loft_sketch_idx, m_loft_row_loop, refs, loops, &m_loft_row_face, m_loft_face_pick);
+}
+
+void DesignPanel::loft_pick_face(int body, int face)
+{
+    loft_rebuild_rows();   // sync the ticks first
+    int slot = -1;
+    for (int k = 0; k < 2; ++k)
+        if (m_loft_face_pick[k].face == face && m_loft_face_pick[k].body == body) {   // the face is already a profile: toggle it
+            m_loft_face_pick[k].on = !m_loft_face_pick[k].on;
+            loft_rebuild_rows();
+            refresh_preview();
+            set_status(StatusKind::Info, m_loft_face_pick[k].on ? _L("Face added as a loft profile") : _L("Face removed from the loft profiles"));
+            return;
+        }
+    // the first face is the start of the loft, the second its end; a third replaces the end
+    if (m_loft_face_pick[0].face < 0 || !m_loft_face_pick[0].on) slot = 0;
+    else slot = 1;
+    m_loft_face_pick[slot] = { body, face, true };
+    loft_rebuild_rows();
+    refresh_preview();
+    set_status(StatusKind::Info, slot == 0 ? _L("Face is the start of the loft — click a sketch or another face for the rest, click the face again to drop it")
+                                           : _L("Face is the end of the loft — click the face again to drop it"));
 }
 
 void DesignPanel::on_add_loft()
 {
     // Collect the checked profile sketches in list (recipe) order.
-    std::vector<int> refs;
+    std::vector<int> refs, faces;
     std::vector<std::vector<int>> loops;
-    read_loft_rows(m_loft_list, m_loft_sketch_idx, m_loft_row_loop, refs, loops);
+    loft_rebuild_rows();   // sync the face ticks
+    read_loft_rows(m_loft_list, m_loft_sketch_idx, m_loft_row_loop, refs, loops, &m_loft_row_face, &faces);
     if (refs.size() < 2) {
-        set_status(_L("Check at least two profile sketches to loft"));
+        set_status(_L("Check at least two profiles (sketches or faces) to loft"));
         return;
     }
+    bool mixed = false;
+    const int face_body = loft_faces_body(mixed);
+    if (mixed) { set_status(StatusKind::Warning, _L("Both faces must be on the same body")); return; }
     const BooleanMode mode = static_cast<BooleanMode>(m_loft_mode->GetSelection());
     if (mode != BooleanMode::New && m_doc.body.IsNull()) {
         set_status(StatusKind::Warning, _L("Loft needs a solid body — add or import one first"));
@@ -5579,6 +5651,7 @@ void DesignPanel::on_add_loft()
                                         feature_name(_L("Loft")));
     if (loft_idx >= 0 && loft_idx < int(m_doc.features.size())) {
         m_doc.features[loft_idx].loft_profile_loops = loops;
+        if (face_body >= 0) { m_doc.features[loft_idx].loft_profile_faces = faces; m_doc.features[loft_idx].target_body = face_body; }
         m_doc.features[loft_idx].loft_start_cond = m_loft_start_cond->GetSelection();
         m_doc.features[loft_idx].loft_end_cond   = m_loft_end_cond->GetSelection();
     }
@@ -10234,6 +10307,8 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
     case CadFeatureType::Loft:
         m_loft_refs = f.loft_profile_refs;   // show_tool re-checks these in the list
         m_loft_loops = f.loft_profile_loops;
+        m_loft_faces = f.loft_profile_faces;
+        m_loft_face_body = f.target_body >= 0 ? f.target_body : int(m_doc.bodies.size()) - 1;
         m_loft_ruled->SetValue(f.loft_ruled);
         m_loft_mode->SetSelection(static_cast<int>(f.mode));
         m_loft_start_cond->SetSelection(f.loft_start_cond == 1 ? 1 : 0);
@@ -10968,7 +11043,13 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         f.loft_start_cond = m_loft_start_cond->GetSelection();
         f.loft_end_cond   = m_loft_end_cond->GetSelection();
         f.mode      = static_cast<BooleanMode>(m_loft_mode->GetSelection());
-        read_loft_rows(m_loft_list, m_loft_sketch_idx, m_loft_row_loop, f.loft_profile_refs, f.loft_profile_loops);
+        read_loft_rows(m_loft_list, m_loft_sketch_idx, m_loft_row_loop, f.loft_profile_refs, f.loft_profile_loops, &m_loft_row_face, &f.loft_profile_faces);
+        {
+            bool mixed = false;
+            const int fb = loft_faces_body(mixed);
+            if (fb >= 0) f.target_body = fb;
+            else f.loft_profile_faces.clear();
+        }
         break;
     }
     case Tool::Boolean: {
@@ -11805,7 +11886,7 @@ void DesignPanel::update_operand_highlight()
         // (exactly as build_candidate(Tool::Loft) reads them).
         if (m_loft_list)
             for (unsigned i = 0; i < m_loft_list->GetCount(); ++i)
-                if (m_loft_list->IsChecked(i) && i < m_loft_sketch_idx.size())
+                if (m_loft_list->IsChecked(i) && i < m_loft_sketch_idx.size() && m_loft_sketch_idx[i] >= 0)
                     sk.emplace_back(m_loft_sketch_idx[i], ColorRGBA(0.40f, 0.90f, 0.50f, 1.0f)); // profiles = green
     }
     m_viewport->set_operand_bodies(bt, bl);
@@ -13080,7 +13161,10 @@ void DesignPanel::open_tool(Tool t)
     if (t == Tool::Loft) {
         // List every Sketch feature; the feature index for each row rides in
         // m_loft_sketch_idx. Re-check the stored profile refs (re-edit).
-        fill_loft_rows(m_loft_list, m_loft_sketch_idx, m_loft_row_loop, m_loft_refs, m_loft_loops);
+        m_loft_face_pick[0] = m_loft_face_pick[1] = {};
+        for (size_t ri = 0; ri < m_loft_faces.size(); ++ri)
+            if (m_loft_faces[ri] >= 0) m_loft_face_pick[ri == 0 ? 0 : 1] = { m_loft_face_body, m_loft_faces[ri], true };
+        fill_loft_rows(m_loft_list, m_loft_sketch_idx, m_loft_row_loop, m_loft_refs, m_loft_loops, &m_loft_row_face, m_loft_face_pick);
     }
 
     if (t == Tool::SurfaceExtrude) {

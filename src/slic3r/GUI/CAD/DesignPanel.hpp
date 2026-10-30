@@ -779,10 +779,23 @@ private:
     // re-edit, per chosen ref) the entity indices of that loop; empty = the whole sketch.
     std::vector<std::vector<int>> m_loft_row_loop, m_loft_loops;
     std::vector<std::vector<int>> m_surf_loft_row_loop, m_surf_loft_loops;
+    // A loft profile can also be a FACE of a body (a loft starts or ends on a body's surface): at most two, the first picked is the
+    // start (top of the list), the second the end (bottom). A face row has -1 in m_loft_sketch_idx and its face in m_loft_row_face.
+    struct LoftFacePick { int body{-1}; int face{-1}; bool on{true}; };
+    LoftFacePick      m_loft_face_pick[2];
+    std::vector<int>  m_loft_row_face;             // per row of m_loft_list: the face it stands for, or -1 (a sketch)
+    std::vector<int>  m_loft_faces;                // re-edit: the loft's loft_profile_faces
+    int               m_loft_face_body{-1};        // re-edit: the body those faces are on
     void fill_loft_rows(CheckListField* list, std::vector<int>& idx, std::vector<std::vector<int>>& row_loop,
-                        const std::vector<int>& refs, const std::vector<std::vector<int>>& chosen);
+                        const std::vector<int>& refs, const std::vector<std::vector<int>>& chosen,
+                        std::vector<int>* row_face = nullptr, const LoftFacePick* picks = nullptr);
     void read_loft_rows(CheckListField* list, const std::vector<int>& idx, const std::vector<std::vector<int>>& row_loop,
-                        std::vector<int>& refs, std::vector<std::vector<int>>& loops) const;
+                        std::vector<int>& refs, std::vector<std::vector<int>>& loops,
+                        const std::vector<int>* row_face = nullptr, std::vector<int>* faces = nullptr) const;
+    void loft_pick_face(int body, int face);      // a click on a body's face while the Loft card is open
+    void loft_rebuild_rows();                     // refill the list from the sketches and the face picks, keeping what is checked
+    // The body the picked faces are on, -1 when none is picked; `mixed` is set when the two are on different bodies.
+    int  loft_faces_body(bool& mixed) const;
 
     // Surface Extrude controls (sheet from sketch profile).
     CardText*     m_surf_extrude_sketch_label{nullptr};

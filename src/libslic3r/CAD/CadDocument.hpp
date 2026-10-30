@@ -211,6 +211,9 @@ struct CadFeature {
     // Parallel to loft_profile_refs: the entities (indices into that sketch) of the ONE closed loop the profile is. Empty, or a
     // missing entry = the whole sketch (it must then be one closed shape). A sketch is not a profile; a closed loop is.
     std::vector<std::vector<int>> loft_profile_loops;
+    // Parallel to loft_profile_refs: a profile that is a FACE of the target body instead of a sketch (its outer boundary, so a loft can start or
+    // end on the surface of a body). The face's index in the target body; the entry in loft_profile_refs is then -1. Empty / -1 = a sketch.
+    std::vector<int> loft_profile_faces;
     bool        loft_ruled{false};
 
     // Pattern: replicate the target body, copies fused into it. pattern_circular=false
@@ -1053,7 +1056,8 @@ public:
 private:
     TopoDS_Wire build_sketch_wire(const CadFeature& sketch, bool closed_only = false) const;
     // Profile number `ri` of Loft / Surface Loft `f`: the wire of its one chosen loop, or of the whole sketch when none is chosen.
-    TopoDS_Wire loft_profile_wire(const CadFeature& f, size_t ri, bool closed_only) const;
+    TopoDS_Wire loft_profile_wire(const CadFeature& f, size_t ri, bool closed_only, const TopoDS_Shape& context) const;
+    static bool loft_profile_is_face(const CadFeature& f, size_t ri) { return ri < f.loft_profile_faces.size() && f.loft_profile_faces[ri] >= 0; }
     // The planar region an Extrude sweeps: the sketch's outer loop with its inner loops as
     // holes. Falls back to a face over build_sketch_wire() for the legacy profile/shape paths,
     // which have no concept of a second loop.

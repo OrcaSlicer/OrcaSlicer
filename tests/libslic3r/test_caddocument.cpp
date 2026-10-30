@@ -11343,3 +11343,46 @@ TEST_CASE("Chamfering three tangent top segments leaves the others alone", "[Cad
     REQUIRE(removed > 0.85 * expect);
     REQUIRE(removed < 1.05 * expect);
 }
+
+TEST_CASE("a loft can start on a face of a body", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    SketchProfile base;
+    base.points = {{-10,-10},{10,-10},{10,10},{-10,10}};
+    base.closed = true;
+    const int sb = doc.add_sketch_profile(base, SketchPlane::XY(), "Base");
+    doc.add_extrude(sb, 10.0, false, BooleanMode::New, "Block");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    // the block's top face (z = 10)
+    int top_face = -1;
+    const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+    for (size_t i = 0; i < faces.size(); ++i) {
+        Bnd_Box bb; BRepBndLib::Add(faces[i], bb);
+        double x0, y0, z0, x1, y1, z1; bb.Get(x0, y0, z0, x1, y1, z1);
+        if (std::abs(z0 - 10.0) < 1e-6 && std::abs(z1 - 10.0) < 1e-6) top_face = int(i);
+    }
+    REQUIRE(top_face >= 0);
+
+    // a 6 x 6 square on a plane 30 mm up; the loft runs from the block's top face to it
+    doc.add_plane(0 /*XY*/, 30.0, 0.0, 0, "Plane1");
+    const SketchPlane up = doc.resolve_datum_planes()[0].second;
+    SketchProfile tp;
+    tp.points = {{-3,-3},{3,-3},{3,3},{-3,3}};
+    tp.closed = true;
+    const int st = doc.add_sketch_profile(tp, up, "Top");
+    const int li = doc.add_loft({-1, st}, true /*ruled*/, BooleanMode::New, "FaceLoft");
+    REQUIRE(li >= 0);
+    doc.features[li].loft_profile_faces = {top_face, -1};
+    doc.features[li].target_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    // frustum 20 mm tall, 20 x 20 to 6 x 6: V = h/3 (A1 + sqrt(A1 A2) + A2)
+    const double v = 20.0 / 3.0 * (400.0 + 120.0 + 36.0);
+    REQUIRE_THAT(double(doc.display_body_meshes[1].volume()), WithinRel(v, 0.02));
+}

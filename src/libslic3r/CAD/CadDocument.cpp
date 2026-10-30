@@ -2800,8 +2800,15 @@ std::vector<std::vector<int>> CadDocument::sketch_closed_loops(const CadFeature&
     return loops;
 }
 
-TopoDS_Wire CadDocument::loft_profile_wire(const CadFeature& f, size_t ri, bool closed_only) const
+TopoDS_Wire CadDocument::loft_profile_wire(const CadFeature& f, size_t ri, bool closed_only, const TopoDS_Shape& context) const
 {
+    if (loft_profile_is_face(f, ri)) {   // a face of the target body: its outer boundary is the profile
+        const TopoDS_Face face = context.IsNull() ? TopoDS_Face() : GeometryEngine::face_by_index(context, f.loft_profile_faces[ri]);
+        if (face.IsNull()) throw std::runtime_error(_u8L("loft: the face chosen as a profile is no longer on the body — pick it again"));
+        const TopoDS_Wire w = BRepTools::OuterWire(face);
+        if (w.IsNull()) throw std::runtime_error(_u8L("loft: the face chosen as a profile has no outer boundary"));
+        return w;
+    }
     const CadFeature& sk = features[size_t(f.loft_profile_refs[ri])];
     if (ri >= f.loft_profile_loops.size() || f.loft_profile_loops[ri].empty()) return build_sketch_wire(sk, closed_only);
     CadFeature sub = sk;
@@ -3296,11 +3303,12 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         std::vector<TopoDS_Wire> profiles;
         for (size_t ri = 0; ri < f.loft_profile_refs.size(); ++ri) {
             const int ref = f.loft_profile_refs[ri];
-            if (ref < 0 || ref >= int(features.size())
-                || (features[ref].type != CadFeatureType::Sketch
-                    && features[ref].type != CadFeatureType::Project))
+            if (!loft_profile_is_face(f, ri)
+                && (ref < 0 || ref >= int(features.size())
+                    || (features[ref].type != CadFeatureType::Sketch
+                        && features[ref].type != CadFeatureType::Project)))
                 continue;
-            profiles.push_back(loft_profile_wire(f, ri, false));
+            profiles.push_back(loft_profile_wire(f, ri, false, context));
         }
         if (profiles.size() < 2)
             throw std::runtime_error(_u8L("surface-loft needs 2+ valid profile sketches"));
@@ -3366,6 +3374,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         const size_t n_refs = f.loft_profile_refs.size();
         for (size_t ri = 0; ri < n_refs; ++ri) {
             const int ref = f.loft_profile_refs[ri];
+            if (loft_profile_is_face(f, ri)) { profiles.push_back(loft_profile_wire(f, ri, true, context)); continue; }
             if (ref < 0 || ref >= int(features.size())
                 || (features[ref].type != CadFeatureType::Sketch
                     && features[ref].type != CadFeatureType::Project))
@@ -3377,7 +3386,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                 (ri == 0 ? apex_first : apex_last) = gp_Pnt(w.x(), w.y(), w.z());
                 continue;
             }
-            profiles.push_back(loft_profile_wire(f, ri, true));
+            profiles.push_back(loft_profile_wire(f, ri, true, context));
         }
         const bool tip = apex_first || apex_last;
         if (profiles.size() < (tip ? 1u : 2u))
@@ -3784,7 +3793,11 @@ static TriangleMesh tessellate_bodies(const std::vector<CadBody>& bodies,
     indexed_triangle_set merged;
     for (int bi = 0; bi < int(bodies.size()); ++bi) {
         std::vector<int> tf;
-        TriangleMesh bm = SketchEngine::tessellate(bodies[bi].shape, tf, lin, ang);
+        // The deflection is a fixed 0.003 mm so a small part reads as smooth as an imported one, but on a 200 mm body with a thread that
+        // meant minutes of meshing (65 s measured). It is floored at a fraction of the body's size: 0.02 % of it is invisible on screen.
+        Bnd_Box bb; BRepBndLib::Add(bodies[bi].shape, bb);
+        const double diag = bb.IsVoid() ? 0.0 : std::sqrt(bb.SquareExtent());
+        TriangleMesh bm = SketchEngine::tessellate(bodies[bi].shape, tf, std::max(lin, diag * 2e-4), ang);
         const indexed_triangle_set& its = bm.its;
         const int voff = int(merged.vertices.size());
         for (const auto& v : its.vertices) merged.vertices.push_back(v);
