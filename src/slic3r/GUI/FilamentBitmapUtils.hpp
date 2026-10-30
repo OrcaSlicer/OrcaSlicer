@@ -123,17 +123,21 @@ wxRect mixed_gradient_plot_rect(const wxSize& canvas);
 // Draw the whole plot (grid, axes + arrowheads, axis labels, each curve with an optional
 // near-background outline, and anchor circles). `anchors` are empty when the caller has
 // none to show. `dc` is the caller's buffered paint DC; a wxGCDC is created inside so the
-// geometry gets anti-aliased.
+// geometry gets anti-aliased. A positive `min_ratio` draws dashed lines at the `min_ratio` and
+// `1 - min_ratio` ratios.
 void draw_mixed_gradient_plot(wxDC& dc, const wxSize& canvas,
                               const std::vector<MixedGradientCurve>& curves,
                               const std::vector<wxPoint2DDouble>& anchors,
-                              const MixedGradientTheme& theme);
+                              const MixedGradientTheme& theme,
+                              double min_ratio = 0.0);
 
 // --- Ratio bar (2-component continuous blend + divider, matching MixedFilamentDialog).
 // Colours blend first->second across the rect; the divider marks `second_fraction` of the
-// rect's width (the second component's share, 0..1).
+// rect's width (the second component's share, 0..1). A positive `min_ratio` draws dashed lines
+// where either share reaches `min_ratio`.
 void draw_mixed_ratio_blend_bar(wxDC& dc, const wxRect& rect, const wxColour& first,
-                                const wxColour& second, double second_fraction);
+                                const wxColour& second, double second_fraction,
+                                double min_ratio = 0.0);
 
 // Fallback ratio bar for N>2 non-gradient slots: one solid segment per component,
 // widths proportional to shares. Label text (the "NN%" inside wide-enough segments) is

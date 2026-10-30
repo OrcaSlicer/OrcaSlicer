@@ -868,7 +868,7 @@ wxBoxSizer* MixedFilamentDialog::create_ratio_slider()
         wxBufferedPaintDC dc(m_ratio_bar);
         wxSize sz = m_ratio_bar->GetClientSize();
         draw_mixed_ratio_blend_bar(dc, wxRect(0, 0, sz.GetWidth(), sz.GetHeight()),
-                                   comp_colour(0), comp_colour(1), ratio(1) / 100.0);
+                                   comp_colour(0), comp_colour(1), ratio(1) / 100.0, MIN_COMPONENT_RATIO / 100.0);
     });
 
     m_ratio_bar->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
