@@ -464,14 +464,22 @@ TEST_CASE("An exported G-code's settings load back as the settings it was sliced
     CHECK(bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value == PrimeVolumeMode::pvmFast);
 }
 
-TEST_CASE("Z hop follows the lift height limits of the filament printing", "[GCode]")
+TEST_CASE("Z hop follows the lift settings of the filament printing", "[GCode]")
 {
-    // One nozzle, two filaments. Filament 2 overrides "Only lift Z above" to 1 mm; filament 1 keeps the printer's default of 0.
+    // One nozzle, two filaments. Filament 2 overrides one lift setting; filament 1 keeps the printer's default,
+    // which lifts on every layer.
+    auto [key, value] = GENERATE(table<std::string, std::string>({
+        {"filament_retract_lift_above", "nil,1"},             // only lift Z above 1 mm
+        {"filament_retract_lift_enforce", "nil,Bottom Only"}, // only lift on the first layer
+    }));
     const int filament = GENERATE(1, 2);
-    CAPTURE(filament);
+    CAPTURE(key, filament);
     DynamicPrintConfig config = Test::multifilament_config(2, {
+        // each filament its own variant column, as in a real preset
+        {"filament_self_index", "1,2"},
+        {"filament_extruder_variant", "Direct Drive Standard;Direct Drive Standard"},
         {"z_hop", "0.6"},
-        {"filament_retract_lift_above", "nil,1"},
+        {key, value},
         {"layer_height", "0.2"},
         {"initial_layer_print_height", "0.2"},
         {"enable_prime_tower", 0},
@@ -482,9 +490,9 @@ TEST_CASE("Z hop follows the lift height limits of the filament printing", "[GCo
     // Two objects, so every layer travels between them with a retraction.
     Test::init_print({Test::cube(20), Test::cube(20)}, print, model, config, &overrides);
 
-    // Count the moves that lift Z above the layer, below and above 1 mm.
-    int                low_lifts = 0, high_lifts = 0;
-    double             layer_z   = 0.;
+    // The heights of the layers with a move that lifts Z above the layer.
+    std::set<double>   lift_layers;
+    double             layer_z = 0.;
     std::istringstream lines(Test::gcode(print));
     std::string        line;
     const std::regex   z_word(R"(\bZ([-0-9.]+))");
@@ -499,14 +507,19 @@ TEST_CASE("Z hop follows the lift height limits of the filament printing", "[GCo
         const std::string move = line.substr(0, line.find(';'));
         std::smatch       match;
         if (std::regex_search(move, match, z_word) && std::stod(match[1]) > layer_z + 0.3)
-            ++(layer_z < 1. - EPSILON ? low_lifts : high_lifts);
+            lift_layers.insert(layer_z);
     }
 
-    CHECK(high_lifts > 0);
-    if (filament == 1)
-        CHECK(low_lifts > 0);
+    REQUIRE_FALSE(lift_layers.empty());
+    const double first = *lift_layers.begin();
+    const double last  = *lift_layers.rbegin();
+    if (filament == 1) {
+        CHECK(first < 0.2 + EPSILON);
+        CHECK(last > 1.);
+    } else if (key == "filament_retract_lift_above")
+        CHECK(first > 1. - EPSILON);
     else
-        CHECK(low_lifts == 0);
+        CHECK(last < 0.2 + EPSILON);
 }
 
 // A temperature tower re-targets the hotend at every layer. On a multi-tool printer that
