@@ -225,7 +225,7 @@ void BackgroundSlicingProcess::process_fff()
     // BBS: add the logic to process from an existed gcode file
     if (m_print->finished()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: skip slicing, to process previous gcode file") % __LINE__;
-        m_fff_print->set_status(80, _utf8(L("Processing G-Code from previous file\u2026")));
+        m_fff_print->set_status(80, _utf8(L("Processing G-code from previous file\u2026" /* \u2026 -> ... */)));
         wxCommandEvent evt(m_event_slicing_completed_id);
         // Post the Slicing Finished message for the G-code viewer to update.
         // Passing the timestamp
@@ -807,6 +807,10 @@ void BackgroundSlicingProcess::reset_export()
     if (!this->running()) {
         m_export_path.clear();
         m_export_path_on_removable_media = false;
+        // A scheduled upload only leaves m_upload_job when prepare_upload() hands it to the print host
+        // job queue. If the run ended before that (a post-processing script or plugin failure, or a
+        // cancel), the job must not survive into the next plain slice, which would upload again.
+        m_upload_job = PrintHostJob();
         // invalidate_step expects the mutex to be locked.
         std::scoped_lock<std::mutex> lock(m_print->state_mutex());
         this->invalidate_step(bspsGCodeFinalize);

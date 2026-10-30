@@ -2,6 +2,8 @@
 
 #include <libslic3r/BoundingBox.hpp>
 #include <libslic3r/Config.hpp>
+#include <cmath>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -576,4 +578,86 @@ TEST_CASE("an aggregated gantry raises its collision strip from the zone it pain
             check_rect(l.margin_bands[0], 0.0, 94.0, 200.0, 96.0);
         }
     }
+}
+
+TEST_CASE("a plate's IMEX layout key changes with each input of its zones and ghosts", "[IMEXZones]")
+{
+    PrinterCfg p;
+    p.active_tools     = "0:P,1:M";
+    DynamicPrintConfig cfg = make_cfg(p);
+    cfg.set_key_value("imex_firmware_managed_zones", new ConfigOptionBool(false));
+    std::string                mode    = kMode;
+    const DynamicPrintConfig*  cfg_ptr = &cfg;
+
+    std::optional<ImexLayoutKey> key;
+    REQUIRE(update_imex_layout_key(key, cfg_ptr, mode));
+    REQUIRE_FALSE(update_imex_layout_key(key, cfg_ptr, mode));
+
+    SECTION("imex_gantry_count") { cfg.set_key_value("imex_gantry_count", new ConfigOptionInt(2)); }
+    SECTION("imex_tools_per_gantry") { cfg.set_key_value("imex_tools_per_gantry", new ConfigOptionInt(3)); }
+    SECTION("imex_tool_layout")
+    {
+        cfg.set_deserialize_strict("imex_tool_layout", ConfigOptionEnum<ImexToolLayout>(ImexToolLayout::RearRight).serialize());
+    }
+    // Clearances and the margin are compared exactly, so even 0.05 mm counts.
+    SECTION("imex_nozzle_clearance_x") { cfg.set_key_value("imex_nozzle_clearance_x", new ConfigOptionFloat(0.05)); }
+    SECTION("imex_nozzle_clearance_y") { cfg.set_key_value("imex_nozzle_clearance_y", new ConfigOptionFloat(0.05)); }
+    SECTION("imex_carriage_margin") { cfg.set_key_value("imex_carriage_margin", new ConfigOptionFloat(0.05)); }
+    SECTION("imex_firmware_managed_zones") { cfg.set_key_value("imex_firmware_managed_zones", new ConfigOptionBool(true)); }
+    SECTION("the plate's mode") { mode = kImexPrimaryMode; }
+    SECTION("the printer config going away") { cfg_ptr = nullptr; }
+    SECTION("the mode's roster, under the same name") { cfg.option<ConfigOptionStrings>("imex_mode_active_tools")->values[1] = "0:P,1:C"; }
+    // The plate's mode no longer names a row, so it has no zones.
+    SECTION("the mode's name in the table") { cfg.option<ConfigOptionStrings>("imex_mode_names")->values[1] = "renamed"; }
+    SECTION("another mode in the table")
+    {
+        cfg.option<ConfigOptionStrings>("imex_mode_names")->values.emplace_back("other");
+        cfg.option<ConfigOptionStrings>("imex_mode_active_tools")->values.emplace_back("0:P,1:C");
+    }
+
+    CHECK(update_imex_layout_key(key, cfg_ptr, mode));
+    CHECK_FALSE(update_imex_layout_key(key, cfg_ptr, mode));
+}
+
+TEST_CASE("a plate's IMEX layout key ignores a mode's G-code and settles on a NaN clearance", "[IMEXZones]")
+{
+    PrinterCfg p;
+    p.active_tools     = "0:P,1:M";
+    DynamicPrintConfig cfg = make_cfg(p);
+    cfg.set_key_value("imex_mode_gcodes", new ConfigOptionStrings(std::vector<std::string>{ std::string(), "M400" }));
+
+    std::optional<ImexLayoutKey> key;
+    REQUIRE(update_imex_layout_key(key, &cfg, kMode));
+
+    SECTION("a mode's G-code, which moves no zone")
+    {
+        cfg.option<ConfigOptionStrings>("imex_mode_gcodes")->values[1] = "G28";
+        CHECK_FALSE(update_imex_layout_key(key, &cfg, kMode));
+    }
+    // A clearance field accepts "nan". Setting it changes the key once, then the key holds still.
+    SECTION("a NaN clearance")
+    {
+        cfg.set_key_value("imex_nozzle_clearance_x", new ConfigOptionFloat(std::nan("")));
+        CHECK(update_imex_layout_key(key, &cfg, kMode));
+        CHECK_FALSE(update_imex_layout_key(key, &cfg, kMode));
+    }
+}
+
+TEST_CASE("a plate's IMEX layout key ignores the IMEX inputs while IMEX is off", "[IMEXZones]")
+{
+    PrinterCfg p;
+    p.is_imex          = false;
+    p.active_tools     = "0:P,1:M";
+    DynamicPrintConfig cfg = make_cfg(p);
+
+    std::optional<ImexLayoutKey> key;
+    REQUIRE(update_imex_layout_key(key, &cfg, kMode));
+    cfg.set_key_value("imex_nozzle_clearance_x", new ConfigOptionFloat(5.0));
+    cfg.option<ConfigOptionStrings>("imex_mode_active_tools")->values[1] = "0:P,1:C";
+    CHECK_FALSE(update_imex_layout_key(key, &cfg, "other"));
+    // No printer config at all reads the same as IMEX off.
+    CHECK_FALSE(update_imex_layout_key(key, nullptr, kMode));
+
+    cfg.set_key_value("is_imex", new ConfigOptionBool(true));
+    CHECK(update_imex_layout_key(key, &cfg, kMode));
 }

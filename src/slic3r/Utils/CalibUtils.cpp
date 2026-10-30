@@ -23,6 +23,7 @@
 #include "../GUI/Plater.hpp"
 #include <memory>
 #include "slic3r/GUI/Jobs/Worker.hpp"
+#include "slic3r/GUI/format.hpp"
 #include <string>
 #include <vector>
 #include "libslic3r/PrintConfig.hpp"
@@ -181,7 +182,7 @@ void update_speed_parameter( const std::string& key)
     }
 }
 
-std::vector<double> generate_max_speed_parameter_value(const std::string &key, const bool linear, const int pass)
+std::vector<double> generate_max_speed_parameter_value(const std::string &key, const float line_width, const float layer_height, const bool linear, const int pass)
 {
     auto  preset_bundle   = wxGetApp().preset_bundle;
     auto &printer_config  = preset_bundle->printers.get_edited_preset().config;
@@ -193,8 +194,6 @@ std::vector<double> generate_max_speed_parameter_value(const std::string &key, c
     std::vector<int> nozzle_volume_types = preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
 
     float nozzle_diameter = printer_config.option<ConfigOptionFloats>("nozzle_diameter")->values[0];
-    float layer_height    = print_config.option<ConfigOptionFloat>("layer_height")->value;
-    float line_width      = print_config.get_abs_value("line_width", nozzle_diameter);
 
     Flow flow = Flow(line_width, layer_height, nozzle_diameter);
 
@@ -312,7 +311,7 @@ static bool is_same_nozzle_type(const DynamicPrintConfig &full_config, const Mac
         if (abs(filament_nozzle_hrc) > abs(printer_nozzle_hrc)) {
             BOOST_LOG_TRIVIAL(info) << "filaments hardness mismatch:  printer_nozzle_hrc = " << printer_nozzle_hrc << ", filament_nozzle_hrc = " << filament_nozzle_hrc;
             std::string filament_type = full_config.opt_string("filament_type", 0);
-            error_msg = wxString::Format(_L("Printing %1s material with %2s nozzle may cause nozzle damage."), filament_type, to_wstring_name(NozzleTypeEumnToStr[obj->GetExtderSystem()->GetNozzleType(0)]));
+            error_msg = format_wxstr(_L("Printing %1% material with %2% nozzle may cause nozzle damage."), filament_type, to_wstring_name(NozzleTypeEumnToStr[obj->GetExtderSystem()->GetNozzleType(0)]));
             error_msg += "\n";
 
             MessageDialog msg_dlg(nullptr, error_msg, wxEmptyString, wxICON_WARNING | wxOK | wxCANCEL);
@@ -1854,7 +1853,7 @@ void CalibUtils::send_to_print(const CalibInfo &calib_info, wxString &error_mess
     }
 
     else if (!obj_->GetConfig()->SupportPrintWithoutSD() && (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD)) {
-        error_message = _L("Storage needs to be inserted before printing.");
+        error_message = _L("Insert storage or free up space before printing.");
         return;
     }
     if (obj_->is_lan_mode_printer()) {
@@ -1960,7 +1959,7 @@ void CalibUtils::send_to_print(const std::vector<CalibInfo> &calib_infos, wxStri
     }
 
     else if (!obj_->GetConfig()->SupportPrintWithoutSD() && (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD)) {
-        error_message = _L("Storage needs to be inserted before printing.");
+        error_message = _L("Insert storage or free up space before printing.");
         return;
     }
     if (obj_->is_lan_mode_printer()) {

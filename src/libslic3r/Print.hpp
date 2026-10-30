@@ -12,7 +12,7 @@
 #include "PrintBase.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/FillLightning.hpp"
-#include "Fill/FillTpmsAdaptive.hpp"
+#include "Fill/AdaptiveInfillField.hpp"
 
 #include "BoundingBox.hpp"
 #include "ExtrusionEntityCollection.hpp"
@@ -407,7 +407,7 @@ public:
     double                      max_z() const         { return m_max_z; }
     // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
     const Point& 			     center_offset() const  { return m_center_offset; }
-    const TpmsRadialField*       tpms_radial_field(TpmsAdaptiveMode mode) const { return m_tpms_radial_fields[size_t(mode)].get(); }
+    const AdaptiveInfillField*       adaptive_infill_field(AdaptiveInfillMode mode) const { return m_adaptive_infill_fields[size_t(mode)].get(); }
 
     // BBS
     void generate_support_preview();
@@ -516,6 +516,7 @@ public:
 
     // returns 0-based indices of extruders used to print the object (without brim, support and other helper extrusions)
     std::vector<unsigned int>   object_extruders() const;
+    std::vector<unsigned int>   printing_extruders() const;
 
     // Called by make_perimeters()
     void slice();
@@ -655,7 +656,7 @@ private:
     FillAdaptive::RegionOctrees prepare_adaptive_infill_data(
         const std::vector<std::pair<const Surface*, const Layer*>>& surfaces_w_layer) const;
     FillLightning::GeneratorPtr prepare_lightning_infill_data();
-    TpmsRadialFields prepare_tpms_radial_fields() const;
+    AdaptiveInfillFields prepare_adaptive_infill_fields() const;
 
     // BBS
     SupportNecessaryType is_support_necessary();
@@ -706,7 +707,7 @@ private:
     FillAdaptive::RegionOctrees             m_adaptive_fill_octrees;
     std::vector<BoundingBox>                m_separated_body_bboxes;
     FillLightning::GeneratorPtr m_lightning_generator;
-    TpmsRadialFields m_tpms_radial_fields;
+    AdaptiveInfillFields m_adaptive_infill_fields;
 
     std::vector < VolumeSlices >            firstLayerObjSliceByVolume;
     std::vector<groupedVolumeSlices>        firstLayerObjSliceByGroups;
@@ -964,6 +965,8 @@ struct PrintStatistics
     double                          total_wipe_tower_filament;
     unsigned int                    initial_tool;
     unsigned int                    initial_no_support_tool;
+    // Orca: underscore-separated list of the filament types really extruded on the plate.
+    std::string                     printing_filament_types;
     std::map<size_t, double>        filament_stats;
 
     // Config with the filled in print statistics.
@@ -983,6 +986,7 @@ struct PrintStatistics
         total_wipe_tower_filament = 0.;
         initial_tool           = 0;
         initial_no_support_tool = 0;
+        printing_filament_types.clear();
         filament_stats.clear();
     }
     static const std::string FilamentUsedG;
@@ -1156,6 +1160,8 @@ public:
         struct Brim {
             ExtrusionEntityCollection brim;
             std::vector<ObjectInstanceID> instances;
+            // Zero-based logical filament selected when the brim was planned.
+            unsigned int filament_id { unsigned(-1) };
         };
 
         ExtrusionEntityCollection skirt;
@@ -1326,7 +1332,9 @@ public:
     }
 
     //BBS
-    static StringObjectException sequential_print_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr);
+    // warning, if given, names the instances printed later than their place in the object list to avoid a collision.
+    static StringObjectException sequential_print_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr,
+                                                                  StringObjectException *warning = nullptr);
     // Orca: pre-slice clearance check for a prime tower compacted by "No sparse layers".
     static StringObjectException compacted_wipe_tower_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr);
     ConflictResultOpt            get_conflict_result() const { return m_conflict_result; }
@@ -1511,6 +1519,8 @@ private:
     bool                                    m_has_shared_per_object_skirt { false };
     // Orca: Object-keyed brim paths kept for existing code.
     std::map<ObjectID, ExtrusionEntityCollection>         m_brimMap;
+    // Zero-based logical filament selected for each object's brim.
+    std::map<ObjectID, unsigned int>                       m_brimFilamentMap;
     // Orca: Actual brim paths keyed by object instance.
     std::map<ObjectInstanceID, ExtrusionEntityCollection> m_brimMapByInstance;
     // Orca: Translated brim areas keyed by instance, used to find touching brims.

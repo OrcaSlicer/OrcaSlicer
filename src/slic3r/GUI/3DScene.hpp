@@ -69,7 +69,7 @@ enum ModelInstanceEPrintVolumeState : unsigned char;
 using ModelObjectPtrs = std::vector<ModelObject*>;
 
 struct ObjectFilamentInfo {
-    ModelObject* object;
+    ModelObject* object { nullptr };
     std::map<int, int> manual_filaments; //manual mode: filament id -> extruder id can not be printed
 
     std::vector<int> auto_filaments; //auto mode: filaments in all extruder's outside area
@@ -370,7 +370,7 @@ public:
     virtual void render_with_outline(const GUI::Size& cnv_size);
 
     //BBS: add simple render function for thumbnail
-    void simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light =false);
+    void simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light =false, bool ban_color_volume = false);
 
     void                set_bounding_boxes_as_dirty() {
         m_transformed_bounding_box.reset();

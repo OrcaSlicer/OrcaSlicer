@@ -223,23 +223,11 @@ std::vector<unsigned char> read_file_bytes(const std::string &path)
     return std::vector<unsigned char>(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 }
 
-// True if these bytes are a PNG libslic3r can decode, i.e. can be stored on a layer as-is. Mirrors
-// exactly what decode_height_texture() accepts: 8-bit grayscale, or 8-bit colour (whose luminance is
-// the height and whose RGB is available to colour the model). Anything else is converted on load.
+// True if decode_height_texture() can read these bytes, so they can be stored on a layer as-is.
+// Anything else is converted on load.
 bool is_supported_height_map(const std::vector<unsigned char> &bytes)
 {
-    if (bytes.empty())
-        return false;
-    const png::ReadBuf rbuf{ bytes.data(), bytes.size() };
-    if (!png::is_png(rbuf))
-        return false;
-    png::ImageGreyscale gray;
-    if (png::decode_png(rbuf, gray) && gray.cols > 0 && gray.rows > 0)
-        return true;
-    png::ImageColorscale color;
-    return png::decode_colored_png(rbuf, color) && color.cols > 0 && color.rows > 0 &&
-           color.bytes_per_pixel >= 3 &&
-           color.buf.size() == color.cols * color.rows * size_t(color.bytes_per_pixel);
+    return !bytes.empty() && png::is_decodable_8bit_png(png::ReadBuf{ bytes.data(), bytes.size() });
 }
 
 std::vector<TextureLibraryEntry> g_library;

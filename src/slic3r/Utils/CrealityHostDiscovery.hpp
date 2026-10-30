@@ -12,10 +12,10 @@ struct CrealityHost
     std::string ip;            // dotted-quad IPv4
     std::string service_name;  // raw mDNS service type, e.g. "_Creality-543324280CDB19._udp.local."
     std::string hostname;      // e.g. "K2-DB19" (derived from service-name suffix)
-    std::string model_code;    // "F008" / "F012" / "F021" (empty if /info probe failed)
-    std::string model_name;    // "K2 Plus" / "K2 Pro" / "K2" (empty if model not in our table)
+    std::string model_code;    // "F008" / "F012" / "F021" on K2, literal name (e.g. "K1 Max") on K1-family (empty if /info probe failed)
+    std::string model_name;    // display name from the CFS table, e.g. "K2 Plus" / "K1 Max" (empty if model not in our table)
     std::string mac;           // from /info if probed
-    bool        cfs_capable = false;  // true when model_code is in the K2 family
+    bool        cfs_capable = false;  // true when model_code is in the CFS-capable table
 };
 
 // Synchronous LAN discovery for Creality K-series printers via DNS-SD mDNS.
@@ -28,10 +28,10 @@ struct CrealityHost
 // reliable way to find them.
 //
 // When probe_info is true, each discovered host is followed up with an HTTP
-// GET http://<ip>/info call to fetch the printer's model code (F008/F012/F021)
-// and MAC. The probe step adds ~2-4 seconds per host but yields enriched
-// results that let the UI display "K2" / "K2 Plus" / "K2 Pro" instead of
-// just an IP.
+// GET http://<ip>/info call to fetch the printer's model code (F008/F012/F021
+// on K2, a literal model name on K1-family) and MAC. The probe step adds
+// ~2-4 seconds per host but yields enriched results that let the UI display
+// "K2 Plus" / "K1 Max" instead of just an IP.
 //
 // Call from a background thread -- the function blocks for at least 5 seconds.
 class CrealityHostDiscovery
