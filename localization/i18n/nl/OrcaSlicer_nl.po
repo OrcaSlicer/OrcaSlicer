@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 17:29+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2463,6 +2463,15 @@ msgstr "Onjuist wachtwoord"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "Verbinding met %s is mislukt! [SN: %s, code=%s]"
 
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr ""
+
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3571,9 +3580,8 @@ msgstr "Dupliceren"
 msgid "Simplify Model"
 msgstr "Model vereenvoudigen"
 
-# AI Translated
-msgid "Subdivision mesh (Lost color)"
-msgstr "Onderverdelingsmesh (Kleur verloren)"
+msgid "Subdivision mesh"
+msgstr ""
 
 msgid "Center"
 msgstr "Centreren"
@@ -3736,6 +3744,23 @@ msgstr "Fout!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Kon de modelinformatie niet laden uit het huidige bestand."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
+msgstr ""
 
 # AI Translated
 msgid "Add primitive"
@@ -4720,9 +4745,8 @@ msgstr "G-codebestand naar SD-kaart verzenden"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Succesvol verzonden. Sluit de huidige pagina in %s s"
 
-# AI Translated
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "Er moet een opslagmedium worden geplaatst voordat u naar de printer verzendt."
+msgid "Insert storage or free up space before sending to the printer."
+msgstr ""
 
 # AI Translated
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
@@ -7285,6 +7309,9 @@ msgstr "Linker mondstuk: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Rechter mondstuk: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr "Spiegel object"
 
@@ -8433,6 +8460,9 @@ msgstr "Downloaden"
 
 msgid "Download selected files from printer."
 msgstr "Download geselecteerde bestanden van de printer."
+
+msgid "Select all files in the list for batch management."
+msgstr ""
 
 msgid "Batch manage files."
 msgstr "Batchbeheer van bestanden."
@@ -11677,6 +11707,12 @@ msgstr "Spoelvolumes automatisch berekenen wanneer de geselecteerde waarden wijz
 msgid "Auto arrange plate after cloning"
 msgstr "Plaat automatisch rangschikken na het klonen"
 
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
+
 # AI Translated
 msgid "Auto slice after changes"
 msgstr "Automatisch slicen na wijzigingen"
@@ -12462,6 +12498,27 @@ msgstr "Incompatibel"
 msgid "The selected preset is null!"
 msgstr "De geselecteerde preset is nul!"
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "Deze instellingen als standaard opslaan"
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "De grootte moet groter zijn dan nul"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Ongeldige numerieke invoer."
+
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -12546,17 +12603,11 @@ msgstr "Filament %d (gemengd)"
 
 # AI Translated
 #, boost-format
-msgid "%1% needs %2%, which is not enabled."
-msgstr "%1% heeft %2% nodig, dat niet is ingeschakeld."
-
-# AI Translated
-#, boost-format
 msgid "%1% needs %2%, whose material will not be published."
 msgstr "%1% heeft %2% nodig, waarvan het materiaal niet wordt gepubliceerd."
 
-# AI Translated
-msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr "Om een gemengd filament te publiceren, schakel je elk filament in dat het gebruikt en kies je Volledig publiceren of voldoe je aan de Type-vereiste ervan."
+msgid "To publish a mixed filament, publish every filament it uses."
+msgstr ""
 
 # AI Translated
 msgid "Publish anyway"
@@ -12578,9 +12629,8 @@ msgstr "Gemengd filament - wordt als geheel gepubliceerd wanneer hierboven \"Ins
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Dit gemengde filament publiceren en de samenstellende filamenten inschakelen + volledig publiceren"
 
-# AI Translated
-msgid "Publish this filament slot in the 3MF file"
-msgstr "Deze filamentsleuf publiceren in het 3MF-bestand"
+msgid "Publish this filament slot's color and material type in the 3MF file"
+msgstr ""
 
 # AI Translated
 msgid "Full Publish"
@@ -12644,6 +12694,15 @@ msgstr "Voorinstelling \"%1%\" bestaat al en is niet compatibel met de huidige p
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Let er aub op dat opslaan de voorinstelling zal overschrijven"
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
+msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "Er kan niet voor een naam gekozen worden die hetzelfde is als de naam van een voorinstelling."
@@ -13373,9 +13432,8 @@ msgstr "Er moet een opslagmedium worden geplaatst voordat u via LAN kunt printen
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "Het opslagmedium verkeert in een afwijkende staat of staat in de alleen-lezenmodus."
 
-# AI Translated
-msgid "Storage needs to be inserted before printing."
-msgstr "Er moet een opslagmedium worden geplaatst voordat u kunt printen."
+msgid "Insert storage or free up space before printing."
+msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Kan de printopdracht niet naar een printer sturen waarvan de firmware moet worden bijgewerkt."
@@ -13460,10 +13518,6 @@ msgstr "Kan de printtaak niet verzenden wanneer de upgrade wordt uitgevoerd"
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "De geselecteerde printer is niet compatibel met de gekozen printervoorinstellingen."
-
-# AI Translated
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Er moet een opslagmedium worden geplaatst voordat u naar de printer verzendt."
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "De printer moet zich in hetzelfde LAN bevinden als Orca Slicer."
@@ -13602,17 +13656,6 @@ msgstr "Er is een probleem opgetreden tijdens het verbinden met de printer. Prob
 msgid "Failed to log out."
 msgstr "Uitloggen mislukt."
 
-#. TRN "Save current Settings"
-#, c-format, boost-format
-msgid "Save current %s"
-msgstr "Bewaar huidige %s"
-
-msgid "Delete this preset"
-msgstr "Verwijder deze voorinstelling"
-
-msgid "Search in preset"
-msgstr "Zoeken in voorinstelling"
-
 # AI Translated
 msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
 msgstr "Synchronisatie van verschillende extruderaandrijvingen of typen mondstuk volume wordt niet ondersteund."
@@ -13624,6 +13667,17 @@ msgstr "Synchroniseer de wijziging van parameters met de overeenkomstige paramet
 # AI Translated
 msgid "Parameters with this icon can be configured per nozzle."
 msgstr "Parameters met dit pictogram kunnen per mondstuk worden ingesteld."
+
+#. TRN "Save current Settings"
+#, c-format, boost-format
+msgid "Save current %s"
+msgstr "Bewaar huidige %s"
+
+msgid "Delete this preset"
+msgstr "Verwijder deze voorinstelling"
+
+msgid "Search in preset"
+msgstr "Zoeken in voorinstelling"
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Klik om alle instellingen terug te zetten naar de laatst opgeslagen voorinstelling."
@@ -16191,6 +16245,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% staat te dicht bij anderen en er kunnen botsingen ontstaan."
 
 #, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% is te hoog en er kunnen botsingen ontstaan."
 
@@ -16535,6 +16593,9 @@ msgstr ""
 # AI Translated
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "De optie precieze wand wordt genegeerd bij de wandvolgorden buiten-binnen of binnen-buiten-binnen."
+
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
 
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
@@ -22206,16 +22267,6 @@ msgstr "Kantelas band"
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "As waaromheen de mesh vóór het slicen wordt gedraaid. Dit is de kanteling van de bandprinter: een isometrische rotatie (zonder vervorming) die ook de weergave van het printbed en de zwaartekrachtkanteling van de ondersteuning bepaalt, en die de G-code-terugtransformatie omkeert vóór de afschuiving/schaling naar het machinecoördinatenstelsel en de herindeling van de assen. X is de gebruikelijke kanteling van het portaal (de band beweegt langs Y)."
 
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
-
 # AI Translated
 msgid "Belt tilt angle"
 msgstr "Kantelhoek band"
@@ -24652,6 +24703,10 @@ msgstr ""
 "Het eerder gebruikte extrusietype\n"
 "Mogelijke waarden:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
+
+#, boost-format
+msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
+msgstr ""
 
 msgid "Error in zip archive"
 msgstr "Fout in het zip archief"
@@ -28199,10 +28254,6 @@ msgstr "Aantal driehoekige facetten"
 # AI Translated
 msgid "Calculating, please wait..."
 msgstr "Bezig met berekenen, even geduld..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "Deze instellingen als standaard opslaan"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -32178,10 +32229,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Die twee lijnen komen niet samen in een hoek — kies twee lijnen die dat wel doen"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "De grootte moet groter zijn dan nul"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Afronding: de straal reikt voorbij een van de benen, of de twee lijnen komen niet samen in een hoek"
 
@@ -33100,6 +33147,36 @@ msgstr "Wisselen tussen Voorbereiden/Voorvertoning"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "De menubalk in-/uitschuiven"
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -35791,10 +35868,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Stel de vorm van het printbed van uw printer in."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Ongeldige numerieke invoer."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Filament- en mondstukdiameters"
 
@@ -36023,6 +36096,49 @@ msgstr "Wiki->"
 # AI Translated
 msgid "Note:"
 msgstr "Opmerking:"
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -40000,3 +40116,32 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+# AI Translated
+#~ msgid "Subdivision mesh (Lost color)"
+#~ msgstr "Onderverdelingsmesh (Kleur verloren)"
+
+# AI Translated
+#~ msgid "Storage needs to be inserted before sending to printer."
+#~ msgstr "Er moet een opslagmedium worden geplaatst voordat u naar de printer verzendt."
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% needs %2%, which is not enabled."
+#~ msgstr "%1% heeft %2% nodig, dat niet is ingeschakeld."
+
+# AI Translated
+#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+#~ msgstr "Om een gemengd filament te publiceren, schakel je elk filament in dat het gebruikt en kies je Volledig publiceren of voldoe je aan de Type-vereiste ervan."
+
+# AI Translated
+#~ msgid "Publish this filament slot in the 3MF file"
+#~ msgstr "Deze filamentsleuf publiceren in het 3MF-bestand"
+
+# AI Translated
+#~ msgid "Storage needs to be inserted before printing."
+#~ msgstr "Er moet een opslagmedium worden geplaatst voordat u kunt printen."
+
+# AI Translated
+#~ msgid "Storage needs to be inserted before send to printer."
+#~ msgstr "Er moet een opslagmedium worden geplaatst voordat u naar de printer verzendt."

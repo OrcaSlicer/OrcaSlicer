@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 17:29+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2315,6 +2315,15 @@ msgstr "Contrasenya incorrecta"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "La connexió %s ha fallat! [SN:%s, codi=%s]"
 
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr ""
+
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3373,8 +3382,8 @@ msgstr "Clonar"
 msgid "Simplify Model"
 msgstr "Simplificar el model"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "Subdivisió de la malla (Color perdut)"
+msgid "Subdivision mesh"
+msgstr ""
 
 msgid "Center"
 msgstr "Centre"
@@ -3534,6 +3543,23 @@ msgstr "Error!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "No s'han pogut obtenir les dades del model al fitxer actual."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
+msgstr ""
 
 # AI Translated
 msgid "Add primitive"
@@ -4462,8 +4488,8 @@ msgstr "Enviant el fitxer G-code a sdcard"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Enviat correctament. Tanca la pàgina actual en %s s"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "Cal inserir un emmagatzematge abans d'enviar a la impressora."
+msgid "Insert storage or free up space before sending to the printer."
+msgstr ""
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "S'envia el fitxer G-code per LAN, però l'emmagatzematge de la impressora és anormal i això pot causar problemes d'impressió."
@@ -6858,6 +6884,9 @@ msgstr "Broquet esquerre: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Broquet dret: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr "Emmirallar objecte"
 
@@ -7955,6 +7984,9 @@ msgstr "Descarregar"
 
 msgid "Download selected files from printer."
 msgstr "Baixeu els fitxers seleccionats de la impressora."
+
+msgid "Select all files in the list for batch management."
+msgstr ""
 
 msgid "Batch manage files."
 msgstr "Gestió per lots de fitxers."
@@ -10989,6 +11021,12 @@ msgstr "Calcula automàticament els volums de purga quan canvien els valors sele
 msgid "Auto arrange plate after cloning"
 msgstr "Disposició automàtica de la placa després de la clonació"
 
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
+
 msgid "Auto slice after changes"
 msgstr "Tall automàtic després dels canvis"
 
@@ -11741,6 +11779,27 @@ msgstr "Incompatible"
 msgid "The selected preset is null!"
 msgstr "El perfil seleccionat és nul!"
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "Desar aquesta configuració com a predeterminada"
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "La mida ha de ser més gran que zero"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Entrada numèrica no vàlida."
+
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -11823,17 +11882,11 @@ msgstr "Filament %d (mixt)"
 
 # AI Translated
 #, boost-format
-msgid "%1% needs %2%, which is not enabled."
-msgstr "%1% necessita %2%, que no està activat."
-
-# AI Translated
-#, boost-format
 msgid "%1% needs %2%, whose material will not be published."
 msgstr "%1% necessita %2%, el material del qual no es publicarà."
 
-# AI Translated
-msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr "Per publicar un filament mixt, activeu tots els filaments que fa servir i trieu Publicació completa o compliu el seu requisit de Tipus."
+msgid "To publish a mixed filament, publish every filament it uses."
+msgstr ""
 
 # AI Translated
 msgid "Publish anyway"
@@ -11855,9 +11908,8 @@ msgstr "Filament mixt - es publica com un conjunt quan se selecciona \"Activar\"
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Publicar aquest filament mixt i activar + publicar completament els seus filaments components"
 
-# AI Translated
-msgid "Publish this filament slot in the 3MF file"
-msgstr "Publicar aquesta ranura de filament al fitxer 3MF"
+msgid "Publish this filament slot's color and material type in the 3MF file"
+msgstr ""
 
 # AI Translated
 msgid "Full Publish"
@@ -11920,6 +11972,15 @@ msgstr "El Perfil \"%1%\" ja existeix i és incompatible amb la impressora actua
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Tingueu en compte que l'acció de desar substituirà aquest perfil"
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
+msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "El nom no pot ser el mateix que un àlies preestablert."
@@ -12608,8 +12669,8 @@ msgstr "Cal inserir un emmagatzematge abans d'imprimir per LAN."
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "L'emmagatzematge està en estat anormal o en mode de només lectura."
 
-msgid "Storage needs to be inserted before printing."
-msgstr "Cal inserir un emmagatzematge abans d'imprimir."
+msgid "Insert storage or free up space before printing."
+msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "No es pot enviar el treball d'impressió a una impressora el firmware de la qual necessita una actualització."
@@ -12682,9 +12743,6 @@ msgstr "No es pot enviar la tasca d'impressió quan l'actualització està en cu
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "La impressora seleccionada és incompatible amb els perfils de la impressora escollits."
-
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Cal inserir un emmagatzematge abans d'enviar a la impressora."
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Es requereix que la impressora estigui a la mateixa LAN que Orca Slicer."
@@ -12816,17 +12874,6 @@ msgstr "Hi ha hagut un problema en connectar-se a la impressora. Torneu-ho a pro
 msgid "Failed to log out."
 msgstr "No s'ha pogut tancar la sessió."
 
-#. TRN "Save current Settings"
-#, c-format, boost-format
-msgid "Save current %s"
-msgstr "Desa l'actual %s"
-
-msgid "Delete this preset"
-msgstr "Suprimeix aquest perfil"
-
-msgid "Search in preset"
-msgstr "Cercar al perfil"
-
 # AI Translated
 msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
 msgstr "No s'admet la sincronització entre transmissions d'extrusor diferents ni entre tipus de volum del broquet diferents."
@@ -12838,6 +12885,17 @@ msgstr "Sincronitza la modificació de paràmetres amb els paràmetres correspon
 # AI Translated
 msgid "Parameters with this icon can be configured per nozzle."
 msgstr "Els paràmetres amb aquesta icona es poden configurar per broquet."
+
+#. TRN "Save current Settings"
+#, c-format, boost-format
+msgid "Save current %s"
+msgstr "Desa l'actual %s"
+
+msgid "Delete this preset"
+msgstr "Suprimeix aquest perfil"
+
+msgid "Search in preset"
+msgstr "Cercar al perfil"
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Feu clic per restablir tots els paràmetres a l'última configuració desada."
@@ -15285,6 +15343,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% està massa a prop d'altres i es poden produir col·lisions."
 
 #, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% és massa alt i es provocaran col·lisions."
 
@@ -15593,6 +15655,9 @@ msgstr ""
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "L'opció de paret precisa s'ignorarà per a les seqüències de parets exterior-interior o interior-exterior-interior."
+
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
 
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
@@ -20792,16 +20857,6 @@ msgstr "Eix d'inclinació de la cinta"
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Eix al voltant del qual es gira la malla abans de laminar. És la inclinació de la impressora de cinta: una rotació isomètrica (sense distorsió) que també determina la representació del llit i la inclinació de la gravetat dels suports, i que la transformació inversa del G-code desfà abans del cisallament/escala i la reassignació d'eixos del sistema de coordenades de la màquina. X és la inclinació típica del pòrtic (la cinta es desplaça al llarg de Y)."
 
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
-
 # AI Translated
 msgid "Belt tilt angle"
 msgstr "Angle d'inclinació de la cinta"
@@ -23009,6 +23064,10 @@ msgstr ""
 "El rol/tipus d'extrusió utilitzat anteriorment\n"
 "Valors possibles:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
+
+#, boost-format
+msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
+msgstr ""
 
 msgid "Error in zip archive"
 msgstr "Error amb el fitxer ZIP"
@@ -26360,10 +26419,6 @@ msgstr "Nombre de cares triangulars"
 
 msgid "Calculating, please wait..."
 msgstr "Calculant, espereu..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "Desar aquesta configuració com a predeterminada"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -30333,10 +30388,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Aquestes dues línies no es troben en una cantonada — trieu dues línies que sí que s'hi trobin"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "La mida ha de ser més gran que zero"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Arrodoniment: el radi sobrepassa un dels costats, o les dues línies no es troben en una cantonada"
 
@@ -31248,6 +31299,36 @@ msgstr "Canviar entre Preparar/Previsualitzar"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Replegar/Expandir barra lateral"
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -33935,10 +34016,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Establiu la forma del llit de la vostra impressora."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Entrada numèrica no vàlida."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Diàmetres del filament i del broquet"
 
@@ -34167,6 +34244,49 @@ msgstr "Wiki->"
 # AI Translated
 msgid "Note:"
 msgstr "Nota:"
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -38126,3 +38246,28 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid "Subdivision mesh (Lost color)"
+#~ msgstr "Subdivisió de la malla (Color perdut)"
+
+#~ msgid "Storage needs to be inserted before sending to printer."
+#~ msgstr "Cal inserir un emmagatzematge abans d'enviar a la impressora."
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% needs %2%, which is not enabled."
+#~ msgstr "%1% necessita %2%, que no està activat."
+
+# AI Translated
+#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+#~ msgstr "Per publicar un filament mixt, activeu tots els filaments que fa servir i trieu Publicació completa o compliu el seu requisit de Tipus."
+
+# AI Translated
+#~ msgid "Publish this filament slot in the 3MF file"
+#~ msgstr "Publicar aquesta ranura de filament al fitxer 3MF"
+
+#~ msgid "Storage needs to be inserted before printing."
+#~ msgstr "Cal inserir un emmagatzematge abans d'imprimir."
+
+#~ msgid "Storage needs to be inserted before send to printer."
+#~ msgstr "Cal inserir un emmagatzematge abans d'enviar a la impressora."

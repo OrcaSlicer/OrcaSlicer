@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 17:29+0800\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -2279,6 +2279,15 @@ msgstr "访问码不正确"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "连接 %s 失败。[SN:%s, code=%s]"
 
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr ""
+
 # AI Translated
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
@@ -3346,8 +3355,8 @@ msgstr "克隆"
 msgid "Simplify Model"
 msgstr "简化模型"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "细分网格（颜色会丢失）"
+msgid "Subdivision mesh"
+msgstr ""
 
 msgid "Center"
 msgstr "居中"
@@ -3493,6 +3502,23 @@ msgstr "错误！"
 
 msgid "Failed to get the model data in the current file."
 msgstr "无法获取当前文件中的模型数据。"
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
+msgstr ""
 
 # AI Translated
 msgid "Add primitive"
@@ -4407,8 +4433,8 @@ msgstr "发送G-code文件到SD卡"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "成功发送。即将关闭当前页面（%s秒）"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "请在插入存储器后再发送打印任务。"
+msgid "Insert storage or free up space before sending to the printer."
+msgstr ""
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "正在通过局域网发送G-code，但打印机存储器异常，可能导致打印出现问题。"
@@ -7037,6 +7063,9 @@ msgstr "左喷嘴：X：%1%-%2%，Y：%3%-%4%，Z：%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "右喷嘴：X：%1%-%2%，Y：%3%-%4%，Z：%5%-%6%"
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr "镜像对象"
 
@@ -8168,6 +8197,9 @@ msgstr "下载"
 
 msgid "Download selected files from printer."
 msgstr "从打印机中下载选择的文件。"
+
+msgid "Select all files in the list for batch management."
+msgstr ""
 
 msgid "Batch manage files."
 msgstr "批量管理文件。"
@@ -11275,6 +11307,12 @@ msgstr "选定值更改时自动计算冲刷体积"
 msgid "Auto arrange plate after cloning"
 msgstr "克隆后自动摆放盘"
 
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
+
 msgid "Auto slice after changes"
 msgstr "更改后自动切片"
 
@@ -12017,6 +12055,27 @@ msgstr "不兼容"
 msgid "The selected preset is null!"
 msgstr "选择的预设为空！"
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "将这些设置保存为默认值"
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "大小必须大于零"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "数值输入无效。"
+
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -12102,17 +12161,11 @@ msgstr "耗材丝 %d（混合）"
 
 # AI Translated
 #, boost-format
-msgid "%1% needs %2%, which is not enabled."
-msgstr "%1% 需要 %2%，但它未开启。"
-
-# AI Translated
-#, boost-format
 msgid "%1% needs %2%, whose material will not be published."
 msgstr "%1% 需要 %2%，但其材料不会被发布。"
 
-# AI Translated
-msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr "要发布混合耗材丝，请开启它所使用的每一种耗材丝，并选择“完整发布”或勾选其“类型”要求。"
+msgid "To publish a mixed filament, publish every filament it uses."
+msgstr ""
 
 # AI Translated
 msgid "Publish anyway"
@@ -12134,9 +12187,8 @@ msgstr "混合耗材丝：在上方选择“开启”后将整体发布"
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "发布此混合耗材丝，并对其组成耗材丝勾选“开启”和“完整发布”"
 
-# AI Translated
-msgid "Publish this filament slot in the 3MF file"
-msgstr "在 3MF 文件中发布此耗材丝槽位"
+msgid "Publish this filament slot's color and material type in the 3MF file"
+msgstr ""
 
 # AI Translated
 msgid "Full Publish"
@@ -12200,6 +12252,15 @@ msgstr "预设“%1%”已存在，并且和当前打印机不兼容。"
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "请注意，保存操作将覆盖此预设。"
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
+msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "名称不能和一个预设的别名相同。"
@@ -12882,9 +12943,8 @@ msgstr "通过 LAN 打印之前需要插入存储设备。"
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "存储处于异常状态或处于只读模式。"
 
-# AI Translated
-msgid "Storage needs to be inserted before printing."
-msgstr "打印前需要插入存储设备。"
+msgid "Insert storage or free up space before printing."
+msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "需要更新打印机固件后，才能将打印任务发送到打印机。"
@@ -12959,10 +13019,6 @@ msgstr "设备升级中，无法发送打印任务"
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "所选打印机与选择的打印机预设不兼容。"
-
-# AI Translated
-msgid "Storage needs to be inserted before send to printer."
-msgstr "发送到打印机前需要插入存储设备。"
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "打印机需要与Orca Slicer在同一个局域网内。"
@@ -13101,17 +13157,6 @@ msgstr "连接打印机时发生错误。请重试。"
 msgid "Failed to log out."
 msgstr "登出失败。"
 
-#. TRN "Save current Settings"
-#, c-format, boost-format
-msgid "Save current %s"
-msgstr "保存当前 %s"
-
-msgid "Delete this preset"
-msgstr "删除此预设"
-
-msgid "Search in preset"
-msgstr "在预设中搜索"
-
 # AI Translated
 msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
 msgstr "不支持同步不同的挤出机传动方式或喷嘴流量类型。"
@@ -13123,6 +13168,17 @@ msgstr "将参数的修改同步到另一个挤出机的相应参数。"
 # AI Translated
 msgid "Parameters with this icon can be configured per nozzle."
 msgstr "带有此图标的参数可以按喷嘴分别设置。"
+
+#. TRN "Save current Settings"
+#, c-format, boost-format
+msgid "Save current %s"
+msgstr "保存当前 %s"
+
+msgid "Delete this preset"
+msgstr "删除此预设"
+
+msgid "Search in preset"
+msgstr "在预设中搜索"
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "点击以将所有设置还原到最后一次保存的版本。"
@@ -15701,6 +15757,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1%离其它对象太近，可能会发生碰撞。"
 
 #, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1%太高，会发生碰撞。"
 
@@ -16026,6 +16086,9 @@ msgstr ""
 # AI Translated
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "当“墙顺序”为“外墙/内墙”或“内墙/外墙/内墙”时，“精准外墙尺寸”选项将被忽略。"
+
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
 msgstr "一个或多个挤出机的自适应 Pressure Advance 模型可能包含无效值。"
@@ -21438,16 +21501,6 @@ msgstr "传送带倾斜轴"
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "切片前模型网格的旋转轴。这一旋转即传送带打印机的倾斜：它是保距（无畸变）旋转，同时用于热床渲染和支撑的重力倾斜；生成 G-code 时，逆变换会先还原这一旋转，再进行机器坐标系剪切/缩放和重映射。X 是典型的龙门倾斜轴（传送带沿 Y 方向移动）。"
 
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
-
 # AI Translated
 msgid "Belt tilt angle"
 msgstr "传送带倾斜角度"
@@ -23745,6 +23798,10 @@ msgstr ""
 "上一次使用的挤出类型\n"
 "可能的值：\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
+
+#, boost-format
+msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
+msgstr ""
 
 msgid "Error in zip archive"
 msgstr "zip文件中存在错误"
@@ -27159,10 +27216,6 @@ msgstr "三角面片数量"
 
 msgid "Calculating, please wait..."
 msgstr "正在计算，请稍候..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "将这些设置保存为默认值"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -31089,10 +31142,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "这两条直线未在角点相交，请选取两条在角点相交的直线"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "大小必须大于零"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "圆角：半径超出了其中一条边的长度，或两条直线未在角点相交"
 
@@ -32028,6 +32077,36 @@ msgstr "在“准备”和“预览”之间切换"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "收起/展开 侧边栏"
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -34705,10 +34784,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "设置打印机热床的形状。"
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "数值输入无效。"
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "耗材丝和喷嘴直径"
 
@@ -34937,6 +35012,49 @@ msgstr "查看 Wiki->"
 # AI Translated
 msgid "Note:"
 msgstr "注意："
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -38896,3 +39014,30 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "Subdivision mesh (Lost color)"
+#~ msgstr "细分网格（颜色会丢失）"
+
+#~ msgid "Storage needs to be inserted before sending to printer."
+#~ msgstr "请在插入存储器后再发送打印任务。"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% needs %2%, which is not enabled."
+#~ msgstr "%1% 需要 %2%，但它未开启。"
+
+# AI Translated
+#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+#~ msgstr "要发布混合耗材丝，请开启它所使用的每一种耗材丝，并选择“完整发布”或勾选其“类型”要求。"
+
+# AI Translated
+#~ msgid "Publish this filament slot in the 3MF file"
+#~ msgstr "在 3MF 文件中发布此耗材丝槽位"
+
+# AI Translated
+#~ msgid "Storage needs to be inserted before printing."
+#~ msgstr "打印前需要插入存储设备。"
+
+# AI Translated
+#~ msgid "Storage needs to be inserted before send to printer."
+#~ msgstr "发送到打印机前需要插入存储设备。"

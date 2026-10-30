@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 17:29+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -2291,6 +2291,15 @@ msgstr "Nesprávné heslo"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "Připojení %s selhalo! [SN:%s, kód=%s]"
 
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr ""
+
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3342,8 +3351,8 @@ msgstr "Klonovat"
 msgid "Simplify Model"
 msgstr "Zjednodušit model"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "Subdivizní síť (Ztracená barva)"
+msgid "Subdivision mesh"
+msgstr ""
 
 msgid "Center"
 msgstr "Střed"
@@ -3504,6 +3513,23 @@ msgstr "Chyba!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Nepodařilo se získat data modelu v aktuálním souboru."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
+msgstr ""
 
 # AI Translated
 msgid "Add primitive"
@@ -4429,8 +4455,8 @@ msgstr "Odesílání G-code souboru na SD kartu"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Úspěšně odesláno. Aktuální stránka se zavře za %s s"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "Před odesláním do tiskárny je nutné vložit úložiště."
+msgid "Insert storage or free up space before sending to the printer."
+msgstr ""
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "Odesílání G-code souboru přes LAN, ale úložiště v tiskárně není v pořádku a může způsobit problémy při tisku."
@@ -6836,6 +6862,9 @@ msgstr "Levá tryska: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Pravá tryska: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr "Zrcadlit objekt"
 
@@ -7944,6 +7973,9 @@ msgstr "Stáhnout"
 
 msgid "Download selected files from printer."
 msgstr "Stáhnout vybrané soubory z tiskárny."
+
+msgid "Select all files in the list for batch management."
+msgstr ""
 
 msgid "Batch manage files."
 msgstr "Hromadná správa souborů."
@@ -10975,6 +11007,12 @@ msgstr "Automaticky vypočítat objemy čištění při změně vybraných hodno
 msgid "Auto arrange plate after cloning"
 msgstr "Automaticky uspořádat podložku po klonování"
 
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
+
 msgid "Auto slice after changes"
 msgstr "Automaticky slicovat po změnách"
 
@@ -11723,6 +11761,27 @@ msgstr "Nekompatibilní"
 msgid "The selected preset is null!"
 msgstr "Zvolená předvolba je nulová!"
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "Uložit toto nastavení jako výchozí"
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "Velikost musí být větší než nula"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Neplatný číselný vstup."
+
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -11805,17 +11864,11 @@ msgstr "Filament %d (míchaný)"
 
 # AI Translated
 #, boost-format
-msgid "%1% needs %2%, which is not enabled."
-msgstr "%1% vyžaduje %2%, který není povolen."
-
-# AI Translated
-#, boost-format
 msgid "%1% needs %2%, whose material will not be published."
 msgstr "%1% vyžaduje %2%, jehož materiál nebude publikován."
 
-# AI Translated
-msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr "Chcete-li publikovat míchaný filament, povolte každý filament, který používá, a zvolte Úplné publikování nebo splňte jeho požadavek Typ."
+msgid "To publish a mixed filament, publish every filament it uses."
+msgstr ""
 
 # AI Translated
 msgid "Publish anyway"
@@ -11837,9 +11890,8 @@ msgstr "Míchaný filament - publikuje se jako celek, pokud je výše zvoleno \"
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Publikovat tento míchaný filament a povolit + úplně publikovat jeho složkové filamenty"
 
-# AI Translated
-msgid "Publish this filament slot in the 3MF file"
-msgstr "Publikovat tento slot filamentu v souboru 3MF"
+msgid "Publish this filament slot's color and material type in the 3MF file"
+msgstr ""
 
 # AI Translated
 msgid "Full Publish"
@@ -11903,6 +11955,15 @@ msgstr "Předvolba „%1%“ již existuje a není kompatibilní s aktuální ti
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Upozorňujeme, že uložením přepíšete tuto předvolbu."
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
+msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "Název nesmí být stejný jako alias předvolby."
@@ -12596,8 +12657,8 @@ msgstr "Před tiskem přes LAN je nutné vložit úložiště."
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "Úložiště je v neplatném stavu nebo je pouze pro čtení."
 
-msgid "Storage needs to be inserted before printing."
-msgstr "Před tiskem je nutné vložit úložiště."
+msgid "Insert storage or free up space before printing."
+msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Nelze odeslat tiskovou úlohu do tiskárny, která vyžaduje aktualizaci firmwaru."
@@ -12669,9 +12730,6 @@ msgstr "Nelze odeslat tiskovou úlohu během probíhající aktualizace."
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "Vybraná tiskárna není kompatibilní se zvolenými předvolbami tiskárny."
-
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Před odesláním do tiskárny je nutné vložit úložiště."
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Tiskárna musí být ve stejné síti LAN jako Orca Slicer."
@@ -12803,17 +12861,6 @@ msgstr "Došlo k problému s připojením k tiskárně. Zkuste to znovu."
 msgid "Failed to log out."
 msgstr "Odhlášení se nezdařilo."
 
-#. TRN "Save current Settings"
-#, c-format, boost-format
-msgid "Save current %s"
-msgstr "Uložit aktuální %s"
-
-msgid "Delete this preset"
-msgstr "Smazat tuto předvolbu"
-
-msgid "Search in preset"
-msgstr "Hledat v předvolbě"
-
 # AI Translated
 msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
 msgstr "Synchronizace mezi různými pohony extruderu nebo typy objemu trysky není podporována."
@@ -12825,6 +12872,17 @@ msgstr "Synchronizovat úpravu parametrů s odpovídajícími parametry druhého
 # AI Translated
 msgid "Parameters with this icon can be configured per nozzle."
 msgstr "Parametry s touto ikonou lze nastavit pro každou trysku zvlášť."
+
+#. TRN "Save current Settings"
+#, c-format, boost-format
+msgid "Save current %s"
+msgstr "Uložit aktuální %s"
+
+msgid "Delete this preset"
+msgstr "Smazat tuto předvolbu"
+
+msgid "Search in preset"
+msgstr "Hledat v předvolbě"
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Kliknutím obnovíte všechna nastavení na poslední uloženou předvolbu."
@@ -15312,6 +15370,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% je příliš blízko ostatním, může dojít ke kolizím."
 
 #, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% je příliš vysoký, může dojít ke kolizím."
 
@@ -15625,6 +15687,9 @@ msgstr ""
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "Možnost přesné stěny se ignoruje pro sekvence stěn vnější-vnitřní nebo vnitřní-vnější-vnitřní."
+
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
 
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
@@ -20774,16 +20839,6 @@ msgstr "Osa naklonění pásu"
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Osa, kolem které se síť před slicováním otočí. Jde o naklonění pásové tiskárny: izometrická rotace (bez zkreslení), která řídí také vykreslování podložky a naklonění gravitace pro podpory a kterou zpětná transformace G-code invertuje před zkosením/změnou měřítka v souřadnicovém systému stroje a přemapováním os. Obvyklé je naklonění portálu kolem osy X (pás se pohybuje podél Y)."
 
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
-
 # AI Translated
 msgid "Belt tilt angle"
 msgstr "Úhel naklonění pásu"
@@ -22990,6 +23045,10 @@ msgstr ""
 "Dříve použitá role/typ extruze\n"
 "Možné hodnoty:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
+
+#, boost-format
+msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
+msgstr ""
 
 msgid "Error in zip archive"
 msgstr "Chyba v zip archivu"
@@ -26389,10 +26448,6 @@ msgstr "Počet trojúhelníkových plošek"
 # AI Translated
 msgid "Calculating, please wait..."
 msgstr "Probíhá výpočet, čekejte prosím..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "Uložit toto nastavení jako výchozí"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -30392,10 +30447,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Tyto dvě čáry se nestýkají v rohu — vyberte dvě čáry, které se v rohu stýkají"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "Velikost musí být větší než nula"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Zaoblení: poloměr přesahuje délku ramene, nebo se obě čáry nestýkají v rohu"
 
@@ -31309,6 +31360,36 @@ msgstr "Přepnout mezi Přípravou/Náhledem"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Sbalit/rozbalit postranní panel"
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -33999,10 +34080,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Nastavte tvar podložky vaší tiskárny."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Neplatný číselný vstup."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Průměry filamentu a trysky"
 
@@ -34233,6 +34310,49 @@ msgstr "Wiki->"
 # AI Translated
 msgid "Note:"
 msgstr "Poznámka:"
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -38231,3 +38351,28 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+#~ msgid "Subdivision mesh (Lost color)"
+#~ msgstr "Subdivizní síť (Ztracená barva)"
+
+#~ msgid "Storage needs to be inserted before sending to printer."
+#~ msgstr "Před odesláním do tiskárny je nutné vložit úložiště."
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% needs %2%, which is not enabled."
+#~ msgstr "%1% vyžaduje %2%, který není povolen."
+
+# AI Translated
+#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+#~ msgstr "Chcete-li publikovat míchaný filament, povolte každý filament, který používá, a zvolte Úplné publikování nebo splňte jeho požadavek Typ."
+
+# AI Translated
+#~ msgid "Publish this filament slot in the 3MF file"
+#~ msgstr "Publikovat tento slot filamentu v souboru 3MF"
+
+#~ msgid "Storage needs to be inserted before printing."
+#~ msgstr "Před tiskem je nutné vložit úložiště."
+
+#~ msgid "Storage needs to be inserted before send to printer."
+#~ msgstr "Před odesláním do tiskárny je nutné vložit úložiště."

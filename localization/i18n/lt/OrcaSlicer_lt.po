@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 17:29+0800\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -2280,6 +2280,15 @@ msgstr "Neteisingas slaptažodis"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "Nepavyko %s prisijungimas! [SN:%s, kodas=%s]"
 
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr ""
+
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3304,8 +3313,8 @@ msgstr "Klonuoti"
 msgid "Simplify Model"
 msgstr "Supaprastinti modelį"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "Skaidomas paviršius (Prarasta spalva)"
+msgid "Subdivision mesh"
+msgstr ""
 
 msgid "Center"
 msgstr "Centras"
@@ -3465,6 +3474,23 @@ msgstr "Klaida!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Nepavyko gauti modelio duomenų iš dabartinio failo."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
+msgstr ""
 
 # AI Translated
 msgid "Add primitive"
@@ -4391,8 +4417,8 @@ msgstr "Į SD kortelę siunčiamas G-code failas"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Sėkmingai išsiųsta. Dabartinis puslapis užsivers po %s sek"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "Prieš siunčiant užduotį į spausdintuvą, būtina įdėti atminties laikmeną."
+msgid "Insert storage or free up space before sending to the printer."
+msgstr ""
 
 # AI Translated
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
@@ -6792,6 +6818,9 @@ msgstr "Kairysis purkštukas: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Dešinysis purkštukas: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr "Atspindėti objektą"
 
@@ -7889,6 +7918,9 @@ msgstr "Atsisiųsti"
 
 msgid "Download selected files from printer."
 msgstr "Atsisiųsti pasirinktus failus iš spausdintuvo."
+
+msgid "Select all files in the list for batch management."
+msgstr ""
 
 msgid "Batch manage files."
 msgstr "Masinis failų valdymas."
@@ -10904,6 +10936,12 @@ msgstr "Automatiškai apskaičiuoti išvalymo tūrius, kai pasikeičia pasirinkt
 msgid "Auto arrange plate after cloning"
 msgstr "Automatiškai išdėstyti objektus ant pagrindo po klonavimo"
 
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
+
 msgid "Auto slice after changes"
 msgstr "Automatinis sluoksniavimas po pakeitimų"
 
@@ -11615,6 +11653,26 @@ msgstr "Nesuderinama"
 msgid "The selected preset is null!"
 msgstr "Pasirinktas profilis yra tuščias (null)!"
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+msgid "Save these settings as default"
+msgstr "Išsaugoti kaip numatytuosius nustatymus."
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "Dydis turi būti didesnis už nulį"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Netinkama skaitinė reikšmė."
+
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -11697,17 +11755,11 @@ msgstr "Gija %d (mišri)"
 
 # AI Translated
 #, boost-format
-msgid "%1% needs %2%, which is not enabled."
-msgstr "%1% reikalauja %2%, kuri nėra įjungta."
-
-# AI Translated
-#, boost-format
 msgid "%1% needs %2%, whose material will not be published."
 msgstr "%1% reikalauja %2%, kurios medžiaga nebus paskelbta."
 
-# AI Translated
-msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr "Norėdami patalpinti mišrią giją, įjunkite kiekvieną jos naudojamą giją ir pasirinkite Pilną talpinimą arba įvykdykite jos Tipo reikalavimą."
+msgid "To publish a mixed filament, publish every filament it uses."
+msgstr ""
 
 # AI Translated
 msgid "Publish anyway"
@@ -11729,9 +11781,8 @@ msgstr "Mišri gija - talpinama kaip visuma, kai viršuje pasirinkta \"Įjungti\
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Talpinti šią mišrią giją ir įjungti + pilnai patalpinti jos sudedamąsias gijas"
 
-# AI Translated
-msgid "Publish this filament slot in the 3MF file"
-msgstr "Talpinti šį gijos lizdą 3MF faile"
+msgid "Publish this filament slot's color and material type in the 3MF file"
+msgstr ""
 
 # AI Translated
 msgid "Full Publish"
@@ -11794,6 +11845,15 @@ msgstr "Profilis „%1%“ jau egzistuoja ir yra nesuderinamas su dabartiniu spa
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Atkreipkite dėmesį, kad išsaugojus bus perrašytas šis profilis."
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
+msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "Pavadinimas negali sutapti su profilio alternatyviuoju pavadinimu (alias)."
@@ -12483,8 +12543,8 @@ msgstr "Prieš spausdinant per vietinį tinklą (LAN), būtina įdėti laikmeną
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "Laikmena veikia su sutrikimais arba yra tik skaitymo režime."
 
-msgid "Storage needs to be inserted before printing."
-msgstr "Prieš spausdinant būtina įdėti laikmeną."
+msgid "Insert storage or free up space before printing."
+msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Neįmanoma išsiųsti spausdinimo užduoties spausdintuvui, kurio aparatinę programinę įrangą (firmware) reikia atnaujinti."
@@ -12556,9 +12616,6 @@ msgstr "Negalima nusiųsti spausdinimo užduočių aparatinės programinės įra
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "Pasirinktas spausdintuvas yra nesuderinamas su parinktais spausdintuvo profiliais."
-
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Prieš siunčiant į spausdintuvą, būtina įdėti laikmeną."
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Spausdintuvas privalo būti tame pačiame vietiniame tinkle (LAN) kaip ir „OrcaSlicer“."
@@ -12689,6 +12746,16 @@ msgstr "Nepavyko prijungti spausdintuvo. Prašome pabandyti vėliau."
 msgid "Failed to log out."
 msgstr "Nepavyko atsijungti."
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr "Skirtingų ekstruderių pavarų arba purkštukų tūrio tipų sinchronizavimas nepalaikomas."
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr "Sinchronizuoti parametrų pakeitimus su atitinkamais kito ekstruderio parametrais."
+
+# AI Translated
+msgid "Parameters with this icon can be configured per nozzle."
+msgstr "Parametrus su šia piktograma galima konfigūruoti kiekvienam purkštukui atskirai."
+
 #. TRN "Save current Settings"
 #, c-format, boost-format
 msgid "Save current %s"
@@ -12699,16 +12766,6 @@ msgstr "Ištrinti šį profilį"
 
 msgid "Search in preset"
 msgstr "Ieškoti profilyje"
-
-msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
-msgstr "Skirtingų ekstruderių pavarų arba purkštukų tūrio tipų sinchronizavimas nepalaikomas."
-
-msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
-msgstr "Sinchronizuoti parametrų pakeitimus su atitinkamais kito ekstruderio parametrais."
-
-# AI Translated
-msgid "Parameters with this icon can be configured per nozzle."
-msgstr "Parametrus su šia piktograma galima konfigūruoti kiekvienam purkštukui atskirai."
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Paspauskite, norėdami atkurti visus nustatymus pagal paskutinį išsaugotą profilį."
@@ -15141,6 +15198,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% yra per arti kitų, todėl gali įvykti susidūrimas."
 
 #, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% yra per aukštas, todėl įvyks susidūrimai."
 
@@ -15441,6 +15502,9 @@ msgstr ""
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "Tikslios sienelės (precise wall) parinktis bus ignoruojama esant išorinės–vidinės arba vidinės–išorinės–vidinės sienelių spausdinimo sekai."
+
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
 
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
@@ -20553,16 +20617,6 @@ msgstr "Juostos pokrypio ašis"
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Ašis, apie kurią poligoninis tinklas pasukamas prieš sluoksniavimą. Tai juostinio spausdintuvo pokrypis: izometrinis (be iškraipymų) pasukimas, kuris taip pat lemia pagrindo atvaizdavimą ir atramų sunkio jėgos pokrypį ir kurį atvirkštinė G-code transformacija panaikina prieš mašinos koordinačių sistemos šlytį / mastelį ir ašių perskirstymą. X – įprastas portalo pokrypis (juosta juda išilgai Y)."
 
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
-
 # AI Translated
 msgid "Belt tilt angle"
 msgstr "Juostos pokrypio kampas"
@@ -22774,6 +22828,10 @@ msgstr ""
 "Anksčiau naudotas ekstruzijos vaidmuo / tipas\n"
 "Galimos reikšmės:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
+
+#, boost-format
+msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
+msgstr ""
 
 msgid "Error in zip archive"
 msgstr "Klaida zip archyve"
@@ -25990,9 +26048,6 @@ msgstr "Trikampių briaunų skaičius"
 
 msgid "Calculating, please wait..."
 msgstr "Skaičiuojama, palaukite..."
-
-msgid "Save these settings as default"
-msgstr "Išsaugoti kaip numatytuosius nustatymus."
 
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Jei įjungta, aukščiau nurodytos vertės yra išsaugomos kaip numatytosios, naudojamos būsimiems STEP importams (ir rodomos nustatymuose)."
@@ -29961,10 +30016,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Šios dvi linijos nesusitinka kampe — pasirinkite dvi, kurios susitinka"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "Dydis turi būti didesnis už nulį"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Suapvalinimas: spindulys viršija kraštinės ilgį arba šios dvi linijos nesusitinka kampe"
 
@@ -30878,6 +30929,36 @@ msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Sutraukti / išskleisti šoninę juostą"
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -33569,10 +33650,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Nustatykite spausdintuvo pagrindo formą."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Netinkama skaitinė reikšmė."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Gijos ir purkštuko skersmenys"
 
@@ -33803,6 +33880,49 @@ msgstr "„Wiki“ ->"
 # AI Translated
 msgid "Note:"
 msgstr "Pastaba:"
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -37802,3 +37922,28 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "Subdivision mesh (Lost color)"
+#~ msgstr "Skaidomas paviršius (Prarasta spalva)"
+
+#~ msgid "Storage needs to be inserted before sending to printer."
+#~ msgstr "Prieš siunčiant užduotį į spausdintuvą, būtina įdėti atminties laikmeną."
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% needs %2%, which is not enabled."
+#~ msgstr "%1% reikalauja %2%, kuri nėra įjungta."
+
+# AI Translated
+#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+#~ msgstr "Norėdami patalpinti mišrią giją, įjunkite kiekvieną jos naudojamą giją ir pasirinkite Pilną talpinimą arba įvykdykite jos Tipo reikalavimą."
+
+# AI Translated
+#~ msgid "Publish this filament slot in the 3MF file"
+#~ msgstr "Talpinti šį gijos lizdą 3MF faile"
+
+#~ msgid "Storage needs to be inserted before printing."
+#~ msgstr "Prieš spausdinant būtina įdėti laikmeną."
+
+#~ msgid "Storage needs to be inserted before send to printer."
+#~ msgstr "Prieš siunčiant į spausdintuvą, būtina įdėti laikmeną."

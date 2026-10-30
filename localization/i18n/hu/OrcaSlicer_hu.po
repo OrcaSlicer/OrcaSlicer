@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 17:29+0800\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2271,6 +2271,15 @@ msgstr "Helytelen jelszó"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "A következőhöz való csatlakozás sikertelen: %s! [SN:%s, code=%s]"
 
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr ""
+
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3311,8 +3320,8 @@ msgstr "Klónozás"
 msgid "Simplify Model"
 msgstr "Modell egyszerűsítése"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "Háló felosztása (Elveszett szín)"
+msgid "Subdivision mesh"
+msgstr ""
 
 msgid "Center"
 msgstr "Közép"
@@ -3470,6 +3479,23 @@ msgstr "Hiba!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Nem sikerült beolvasni a modelladatokat az aktuális fájlból."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
+msgstr ""
 
 # AI Translated
 msgid "Add primitive"
@@ -4394,8 +4420,8 @@ msgstr "G-code fájl küldése SD-kártyára"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Sikeresen elküldve. Az oldal bezárul %s mp-en belül"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "A nyomtatóra küldés előtt be kell helyezni egy tárolót."
+msgid "Insert storage or free up space before sending to the printer."
+msgstr ""
 
 # AI Translated
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
@@ -6792,6 +6818,9 @@ msgstr "Bal fúvóka: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Jobb fúvóka: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr "Objektum tükrözése"
 
@@ -7888,6 +7917,9 @@ msgstr "Letöltés"
 
 msgid "Download selected files from printer."
 msgstr "Kiválasztott fájlok letöltése a nyomtatóról."
+
+msgid "Select all files in the list for batch management."
+msgstr ""
 
 msgid "Batch manage files."
 msgstr "Fájlok kötegelt kezelése."
@@ -10915,6 +10947,12 @@ msgstr "Öblítési mennyiségek automatikus számítása, ha a kiválasztott é
 msgid "Auto arrange plate after cloning"
 msgstr "Tálca automatikus elrendezése klónozás után"
 
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
+
 msgid "Auto slice after changes"
 msgstr "Automatikus szeletelés módosítások után"
 
@@ -11645,6 +11683,27 @@ msgstr "Nem kompatibilis"
 msgid "The selected preset is null!"
 msgstr "A kiválasztott beállítás nulla!"
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "Beállítások mentése alapértelmezettként"
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "A méretnek nagyobbnak kell lennie nullánál"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Érvénytelen számérték."
+
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -11731,17 +11790,11 @@ msgstr "%d. filament (kevert)"
 
 # AI Translated
 #, boost-format
-msgid "%1% needs %2%, which is not enabled."
-msgstr "%1% a következőt igényli: %2%, amely nincs engedélyezve."
-
-# AI Translated
-#, boost-format
 msgid "%1% needs %2%, whose material will not be published."
 msgstr "%1% a következőt igényli: %2%, amelynek az anyaga nem lesz közzétéve."
 
-# AI Translated
-msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr "Kevert filament közzétételéhez engedélyezd az összes általa használt filamentet, és válaszd a Teljes közzétételt, vagy teljesítsd a Típus követelményét."
+msgid "To publish a mixed filament, publish every filament it uses."
+msgstr ""
 
 # AI Translated
 msgid "Publish anyway"
@@ -11763,9 +11816,8 @@ msgstr "Kevert filament - egészében kerül közzétételre, ha fent az \"Enged
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "Ennek a kevert filamentnek a közzététele, valamint az összetevő filamentjeinek engedélyezése + teljes közzététele"
 
-# AI Translated
-msgid "Publish this filament slot in the 3MF file"
-msgstr "Ennek a filamenthelynek a közzététele a 3MF fájlban"
+msgid "Publish this filament slot's color and material type in the 3MF file"
+msgstr ""
 
 # AI Translated
 msgid "Full Publish"
@@ -11828,6 +11880,15 @@ msgstr "A(z) \"%1%\" már létezik és nem kompatibilis a jelenlegi nyomtatóval
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Figyelem, a mentési művelet lecseréli ezt a beállítást"
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
+msgstr ""
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "A név nem lehet azonos egy beállítás alias névvel."
@@ -12518,8 +12579,8 @@ msgstr "LAN-on történő nyomtatás előtt be kell helyezni a tárolót."
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "A tároló rendellenes állapotban van vagy csak olvasható módban van."
 
-msgid "Storage needs to be inserted before printing."
-msgstr "Nyomtatás előtt be kell helyezni a tárolót."
+msgid "Insert storage or free up space before printing."
+msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Nem küldhetsz nyomtatási feladatot a nyomtatóra, mert annak firmware-jét frissíteni kell."
@@ -12591,9 +12652,6 @@ msgstr "Nem küldhető nyomtatási feladat a nyomtatóra, amikor frissítés van
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "A nyomtató nem kompatibilis a kiválasztott nyomtatóbeállításokkal."
-
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Nyomtatóra küldés előtt be kell helyezni a tárolót."
 
 # AI Translated
 msgid "The printer is required to be on the same LAN as Orca Slicer."
@@ -12726,17 +12784,6 @@ msgstr "Hiba történt a nyomtatóhoz való csatlakozáskor. Kérlek, próbáld 
 msgid "Failed to log out."
 msgstr "Sikertelen kijelentkezés."
 
-#. TRN "Save current Settings"
-#, c-format, boost-format
-msgid "Save current %s"
-msgstr "Jelenlegi %s mentése"
-
-msgid "Delete this preset"
-msgstr "Ezen beállítás törlése"
-
-msgid "Search in preset"
-msgstr "Keresés a beállításokban"
-
 # AI Translated
 msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
 msgstr "A különböző extruderhajtások vagy fúvókatérfogat-típusok szinkronizálása nem támogatott."
@@ -12748,6 +12795,17 @@ msgstr "A paraméterek módosításának szinkronizálása egy másik extruder m
 # AI Translated
 msgid "Parameters with this icon can be configured per nozzle."
 msgstr "Az ezzel az ikonnal jelölt paraméterek fúvókánként állíthatók."
+
+#. TRN "Save current Settings"
+#, c-format, boost-format
+msgid "Save current %s"
+msgstr "Jelenlegi %s mentése"
+
+msgid "Delete this preset"
+msgstr "Ezen beállítás törlése"
+
+msgid "Search in preset"
+msgstr "Keresés a beállításokban"
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Kattints az összes beállítás utolsó mentett változatának visszaállításához."
@@ -15202,6 +15260,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% túl közel van más tárgyakhoz, a nyomtatás során előfordulhatnak ütközések."
 
 #, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% túl magas, a nyomtatás során előfordulhatnak ütközések."
 
@@ -15507,6 +15569,9 @@ msgstr ""
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "A szeletelő figyelmen kívül hagyja a pontos fal beállítást Külső/Belső vagy Belső/Külső/Belső falsorrendnél."
+
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
 
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
@@ -20662,16 +20727,6 @@ msgstr "Szalag dőlési tengelye"
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Az a tengely, amely körül a háló szeletelés előtt elfordul. Ez a szalagos nyomtató dőlése: izometrikus (torzításmentes) forgatás, amely az asztal megjelenítését és a támaszok gravitációs dőlését is meghatározza, és amelyet a G-code visszatranszformáció megfordít a gépi koordináta-rendszerbe történő nyírás/skálázás és tengelyleképezés előtt. Jellemzően X a portál dőlési tengelye (a szalag Y irányban halad)."
 
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
-
 # AI Translated
 msgid "Belt tilt angle"
 msgstr "Szalag dőlésszöge"
@@ -22878,6 +22933,10 @@ msgstr ""
 "Az előzőleg használt extrudálási szerep/típus\n"
 "Lehetséges értékek:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
+
+#, boost-format
+msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
+msgstr ""
 
 msgid "Error in zip archive"
 msgstr "Hiba a zip fájlban"
@@ -26207,10 +26266,6 @@ msgstr "Háromszögfelületek száma"
 
 msgid "Calculating, please wait..."
 msgstr "Számítás folyamatban, kérlek, várj..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "Beállítások mentése alapértelmezettként"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -30179,10 +30234,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Ez a két vonal nem találkozik egy sarokban — válassz két olyan vonalat, amelyek találkoznak"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "A méretnek nagyobbnak kell lennie nullánál"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Lekerekítés: a sugár túlnyúlik az egyik szár végén, vagy a két vonal nem találkozik egy sarokban"
 
@@ -31094,6 +31145,36 @@ msgstr "Váltás előkészítés/előnézet között"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Az oldalsáv összecsukása/kinyitása"
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -33779,10 +33860,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Állítsd be a nyomtatód asztalának alakját."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Érvénytelen számérték."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Filament- és fúvókaátmérők"
 
@@ -34012,6 +34089,49 @@ msgstr "Wiki->"
 # AI Translated
 msgid "Note:"
 msgstr "Megjegyzés:"
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -37994,3 +38114,28 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "Subdivision mesh (Lost color)"
+#~ msgstr "Háló felosztása (Elveszett szín)"
+
+#~ msgid "Storage needs to be inserted before sending to printer."
+#~ msgstr "A nyomtatóra küldés előtt be kell helyezni egy tárolót."
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% needs %2%, which is not enabled."
+#~ msgstr "%1% a következőt igényli: %2%, amely nincs engedélyezve."
+
+# AI Translated
+#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+#~ msgstr "Kevert filament közzétételéhez engedélyezd az összes általa használt filamentet, és válaszd a Teljes közzétételt, vagy teljesítsd a Típus követelményét."
+
+# AI Translated
+#~ msgid "Publish this filament slot in the 3MF file"
+#~ msgstr "Ennek a filamenthelynek a közzététele a 3MF fájlban"
+
+#~ msgid "Storage needs to be inserted before printing."
+#~ msgstr "Nyomtatás előtt be kell helyezni a tárolót."
+
+#~ msgid "Storage needs to be inserted before send to printer."
+#~ msgstr "Nyomtatóra küldés előtt be kell helyezni a tárolót."

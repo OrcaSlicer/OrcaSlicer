@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 17:29+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2376,6 +2376,15 @@ msgstr "パスワードが正しくありません"
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "%s を接続できませんでした　[SN: %s、code = %s]"
 
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr ""
+
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr ""
+
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr ""
+
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
 "Click Yes to install it now."
@@ -3462,8 +3471,8 @@ msgstr "複製"
 msgid "Simplify Model"
 msgstr "モデルを簡略化"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "サブディビジョンメッシュ（色が失われました）"
+msgid "Subdivision mesh"
+msgstr ""
 
 msgid "Center"
 msgstr "センター"
@@ -3619,6 +3628,23 @@ msgstr "エラー！"
 
 msgid "Failed to get the model data in the current file."
 msgstr "現在のファイルのモデルデータの取得に失敗しました。"
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr ""
+
+msgid "Tube diameter"
+msgstr ""
 
 # AI Translated
 msgid "Add primitive"
@@ -4558,8 +4584,8 @@ msgstr "G-codeファイルをSDカードに送信"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "送信しました。%s秒後に自動で閉じます"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "プリンターに送信する前にストレージを挿入する必要があります。"
+msgid "Insert storage or free up space before sending to the printer."
+msgstr ""
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "LAN経由でG-codeファイルを送信中ですが、プリンターのストレージに異常があり、印刷問題が発生する可能性があります。"
@@ -7172,6 +7198,9 @@ msgstr "左ノズル: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "右ノズル: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr ""
+
 msgid "Mirror object"
 msgstr "オブジェクトを反転"
 
@@ -8292,6 +8321,9 @@ msgstr "ダウンロード"
 
 msgid "Download selected files from printer."
 msgstr "プリンターから選択したファイルをダウンロード。"
+
+msgid "Select all files in the list for batch management."
+msgstr ""
 
 msgid "Batch manage files."
 msgstr "ファイルのバッチ処理。"
@@ -11375,6 +11407,12 @@ msgstr "選択した値が変更されたときにフラッシュ量を自動計
 msgid "Auto arrange plate after cloning"
 msgstr "複製後にプレートを自動配置"
 
+msgid "Show options when adding a primitive"
+msgstr ""
+
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr ""
+
 msgid "Auto slice after changes"
 msgstr "変更後に自動スライス"
 
@@ -12133,6 +12171,27 @@ msgstr "互換性なし"
 msgid "The selected preset is null!"
 msgstr "選択したプリセットがnullです！"
 
+msgid "Changing one dimension changes the others in proportion."
+msgstr ""
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "これらの設定をデフォルトとして保存"
+
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr ""
+
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr ""
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "サイズは0より大きくする必要があります"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "無効な数値入力です。"
+
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
@@ -12221,17 +12280,11 @@ msgstr "フィラメント %d (混合)"
 
 # AI Translated
 #, boost-format
-msgid "%1% needs %2%, which is not enabled."
-msgstr "%1%には%2%が必要ですが、有効化されていません。"
-
-# AI Translated
-#, boost-format
 msgid "%1% needs %2%, whose material will not be published."
 msgstr "%1%には%2%が必要ですが、その材料は公開されません。"
 
-# AI Translated
-msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr "混合フィラメントを公開するには、使用しているすべてのフィラメントを有効にし、完全公開を選ぶか、タイプの要件を満たしてください。"
+msgid "To publish a mixed filament, publish every filament it uses."
+msgstr ""
 
 # AI Translated
 msgid "Publish anyway"
@@ -12253,9 +12306,8 @@ msgstr "混合フィラメント - 上の「有効化」を選択すると全体
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
 msgstr "この混合フィラメントを公開し、その構成フィラメントを有効化＋完全公開します"
 
-# AI Translated
-msgid "Publish this filament slot in the 3MF file"
-msgstr "このフィラメントスロットを3MFファイルで公開します"
+msgid "Publish this filament slot's color and material type in the 3MF file"
+msgstr ""
 
 # AI Translated
 msgid "Full Publish"
@@ -12324,6 +12376,15 @@ msgstr "プリセット\"%1%\"は既に存在し、現在のプリンターと�
 # Needs human review: Rewrote a person's translation: Ungrammatical passive with を.
 msgid "Please note that saving will overwrite the current preset."
 msgstr "注意：保存すると現在のプリセットが上書きされます。"
+
+msgid "control characters are not allowed."
+msgstr ""
+
+msgid "The name is a reserved system name."
+msgstr ""
+
+msgid "The name is too long."
+msgstr ""
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Lost 'alias' and is ungrammatical.
@@ -13026,8 +13087,8 @@ msgstr "LAN経由で印刷する前にストレージを挿入する必要があ
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "ストレージが異常な状態または読み取り専用モードです。"
 
-msgid "Storage needs to be inserted before printing."
-msgstr "印刷する前にストレージを挿入する必要があります。"
+msgid "Insert storage or free up space before printing."
+msgstr ""
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "ファームウェアを更新する必要がある為、造形タスクを送信できません。"
@@ -13102,9 +13163,6 @@ msgstr "アップデート中では造形タスクを送信できません"
 
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "選択したプリンターが選択されたプリンタープリセットと互換性がありません。"
-
-msgid "Storage needs to be inserted before send to printer."
-msgstr "プリンターに送信する前にストレージを挿入する必要があります。"
 
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "このプリンターを使用するには、Orca Slicerを同一のLANで使用してください。"
@@ -13236,17 +13294,6 @@ msgstr "プリンターと接続できませんでした。もう一度試して
 msgid "Failed to log out."
 msgstr "サインアウトできませんでした。"
 
-#. TRN "Save current Settings"
-#, c-format, boost-format
-msgid "Save current %s"
-msgstr "現在の %s を保存"
-
-msgid "Delete this preset"
-msgstr "このプリセットを削除"
-
-msgid "Search in preset"
-msgstr "検索"
-
 # AI Translated
 msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
 msgstr "異なる押出機の駆動方式やノズルフロータイプの同期には対応していません。"
@@ -13258,6 +13305,17 @@ msgstr "パラメータの変更を、もう一方の押出機の対応するパ
 # AI Translated
 msgid "Parameters with this icon can be configured per nozzle."
 msgstr "このアイコンが付いたパラメータは、ノズルごとに設定できます。"
+
+#. TRN "Save current Settings"
+#, c-format, boost-format
+msgid "Save current %s"
+msgstr "現在の %s を保存"
+
+msgid "Delete this preset"
+msgstr "このプリセットを削除"
+
+msgid "Search in preset"
+msgstr "検索"
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "全ての変更をリセットします。"
@@ -15871,6 +15929,10 @@ msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% は他のオブジェクトと近すぎるため、衝突の可能性があります。"
 
 #, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr ""
+
+#, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% は高すぎます、衝突の可能性があります。"
 
@@ -16221,6 +16283,9 @@ msgstr ""
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "正確な壁オプションは外側-内側または内側-外側-内側の壁シーケンスでは無視されます。"
+
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr ""
 
 # AI Translated
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
@@ -21844,16 +21909,6 @@ msgstr "ベルト傾斜軸"
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "スライス前にメッシュを回転させる軸です。これはベルトプリンターの傾斜で、歪みのない等長回転です。ベッドの描画とサポートの重力方向の傾斜にも使用され、G-codeの逆変換では、機械座標系のせん断/スケールとリマップの前にこの回転が元に戻されます。一般的なガントリーの傾斜はXです (ベルトはY方向に移動)。"
 
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
-
 # AI Translated
 msgid "Belt tilt angle"
 msgstr "ベルト傾斜角度"
@@ -24276,6 +24331,10 @@ msgstr ""
 "直前に使用された押出ロール/タイプ\n"
 "指定可能な値:\n"
 "[\"Perimeter\", \"ExternalPerimeter\", \"OverhangPerimeter\", \"InternalInfill\", \"SolidInfill\", \"TopSolidInfill\", \"BottomSurface\", \"BridgeInfill\", \"GapFill\", \"Ironing\", \"Skirt\", \"Brim\", \"SupportMaterial\", \"SupportMaterialInterface\", \"SupportTransition\", \"WipeTower\", \"Mixed\"]"
+
+#, boost-format
+msgid "Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. Publishing the values printed with \"%3%\"."
+msgstr ""
 
 msgid "Error in zip archive"
 msgstr "ファイル圧縮にエラー発生"
@@ -27698,10 +27757,6 @@ msgstr "三角面の数"
 
 msgid "Calculating, please wait..."
 msgstr "計算中、お待ちください..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "これらの設定をデフォルトとして保存"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -31647,10 +31702,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "その2本の線分は角で交わっていません — 角で交わる2本の線分を選択してください"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "サイズは0より大きくする必要があります"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "フィレット: 半径が一方の辺の長さを超えているか、2本の線分が角で交わっていません"
 
@@ -32574,6 +32625,36 @@ msgstr "準備/プレビュー間の切り替え"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "サイドバーを展開/隠す"
+
+msgid "Go to the Home tab"
+msgstr ""
+
+msgid "Go to the Design tab"
+msgstr ""
+
+msgid "Go to the Prepare tab"
+msgstr ""
+
+msgid "Go to the Preview tab"
+msgstr ""
+
+msgid "Go to the Device tab"
+msgstr ""
+
+msgid "Go to the Multi-device tab"
+msgstr ""
+
+msgid "Go to the Project tab"
+msgstr ""
+
+msgid "Go to the Calibration tab"
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
 
 # AI Translated
 msgid "Reload the device page"
@@ -35252,10 +35333,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "プリンターのベッドの形状を設定してください。"
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "無効な数値入力です。"
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "フィラメントとノズルの直径"
 
@@ -35483,6 +35560,49 @@ msgstr "Wikiへ->"
 # AI Translated
 msgid "Note:"
 msgstr "注:"
+
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+
+msgid "Plugin Not Identified"
+msgstr ""
+
+msgid "Save anyway"
+msgstr ""
+
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -39457,3 +39577,28 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+#~ msgid "Subdivision mesh (Lost color)"
+#~ msgstr "サブディビジョンメッシュ（色が失われました）"
+
+#~ msgid "Storage needs to be inserted before sending to printer."
+#~ msgstr "プリンターに送信する前にストレージを挿入する必要があります。"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% needs %2%, which is not enabled."
+#~ msgstr "%1%には%2%が必要ですが、有効化されていません。"
+
+# AI Translated
+#~ msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+#~ msgstr "混合フィラメントを公開するには、使用しているすべてのフィラメントを有効にし、完全公開を選ぶか、タイプの要件を満たしてください。"
+
+# AI Translated
+#~ msgid "Publish this filament slot in the 3MF file"
+#~ msgstr "このフィラメントスロットを3MFファイルで公開します"
+
+#~ msgid "Storage needs to be inserted before printing."
+#~ msgstr "印刷する前にストレージを挿入する必要があります。"
+
+#~ msgid "Storage needs to be inserted before send to printer."
+#~ msgstr "プリンターに送信する前にストレージを挿入する必要があります。"
