@@ -510,8 +510,8 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_CATALAN)) {
             language_name = wxString::FromUTF8("Catalan");
         }
-            else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_BASQUE)) {
-    language_name = wxString::FromUTF8("Euskara");
+        else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_BASQUE)) {
+            language_name = wxString::FromUTF8("Euskara");
         }
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_PORTUGUESE_BRAZILIAN)) {
             language_name = wxString::FromUTF8("Português (Brasil)");
