@@ -660,6 +660,33 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         }
     }
 
+    if (!m_auto_painter) {
+        m_auto_painter = std::make_unique<OrcaAutoPainterGizmoController>();
+    }
+
+    const ModelObject* mo = m_c->selection_info()->model_object();
+    if (mo && !mo->volumes.empty()) {
+    const indexed_triangle_set& its = mo->volumes.front()->mesh().its;
+
+    // Collect currently configured AMS / Extruder filament names and hex colors
+    std::vector<FilamentSlot> filaments;
+    for (size_t i = 0; i < m_extruders_colors.size(); ++i) {
+        FilamentSlot slot;
+        slot.extruder_id = static_cast<int>(i + 1);
+        slot.name = "Filament " + std::to_string(i + 1);
+        slot.hex_color = encode_color(m_extruders_colors[i]);
+        filaments.push_back(slot);
+    }
+
+    m_auto_painter->render_imgui_controls(
+        its,
+        m_triangle_selectors,
+        filaments,
+        [this]() { Plater::TakeSnapshot snapshot(wxGetApp().plater(), _L("AI Auto-Paint")); },
+        [this]() { update_model_from_selectors(); }
+    );
+    }
+
     ImGui::Separator();
 
     render_tooltip_button(x, y);
@@ -693,6 +720,8 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
     // BBS
     ImGuiWrapper::pop_toolbar_style();
+
+    
 }
 
 
