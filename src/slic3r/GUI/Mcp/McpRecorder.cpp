@@ -422,8 +422,12 @@ json McpRecorder::start(const RecordingOptions& options, uint64_t files_owner)
             throw ToolFailure("A recording is already running (" + path_to_utf8(m_rec->options.path) + "); stop_recording ends it");
         previous = m_rec;
     }
-    if (previous)
+    if (previous) {
+        // One whose sink ended on its own (write error, size limit) before its timer saw it ends here, as the
+        // timer would end it: its `ended` runs and the REC pill goes, even if this start fails.
+        end_recording(previous, "");
         cleanup_ui(previous);
+    }
 
     auto rec         = std::make_shared<Recording>();
     rec->options     = options;
@@ -497,6 +501,7 @@ json McpRecorder::start(const RecordingOptions& options, uint64_t files_owner)
         rec->sink->abort("start_failed");
         throw;
     }
+    update_indicator();
 
     json out{{"path", path_to_utf8(options.path)}, {"target", options.target}, {"width", w}, {"height", h}, {"fps", options.fps},
              {"captions", options.captions}, {"pointer", options.pointer}};
@@ -619,6 +624,7 @@ void McpRecorder::end_recording(const std::shared_ptr<Recording>& rec, const std
     rec->sink->finish(rec->elapsed_ms(Clock::now()), reason);
     const auto ended = [rec, reason](McpRecorder& recorder) {
         recorder.cleanup_ui(rec);
+        recorder.update_indicator(); // a recording started since then keeps it
         if (rec->options.ended)
             rec->options.ended(reason);
     };
@@ -781,6 +787,22 @@ void McpRecorder::suspend()
     }
     if (rec)
         rec->canvases.clear();
+}
+
+void McpRecorder::resume() { update_indicator(); }
+
+bool McpRecorder::running() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_rec && !m_rec->ending;
+}
+
+void McpRecorder::update_indicator() const
+{
+    if (wxGetApp().is_closing() || m_service.suspended())
+        return;
+    if (MainFrame* frame = wxGetApp().mainframe; frame != nullptr)
+        frame->show_recording_indicator(running());
 }
 
 void McpRecorder::shutdown(std::chrono::milliseconds timeout)

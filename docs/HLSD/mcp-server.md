@@ -1781,6 +1781,16 @@ opens the folder: Stop Recording itself, which stops any recording, an agent's t
 `stop_recording`, the time or size limit, or a write error ends it, and which starts the encode. A second
 notification then names the MP4, or says why it could not be made.
 
+**The REC pill.** While a recording runs, whoever started it, the main window's tab bar shows a REC pill
+before the slice button, so the person always knows the app is being recorded: an outlined pill whose dot
+pulses, filled red with a stop square under the pointer, and a click runs Stop Recording. The recorder shows
+it once a recording starts and hides it once one ends (`McpRecorder::update_indicator()`), and shows it again
+on the window a rebuild makes. It is `RecordingIndicator`, one of the tab bar's side tools, in the same place
+on every platform: the window's content, which captures and full screen keep, where macOS's native title bar
+is in neither. Recordings and screenshots show it as the person sees it, since captures show what the app
+shows, so its pulsing dot is in the frames and a recording never sees an idle window: each frame in which the
+dot changed is queued.
+
 **Captions.** `McpCore` reports each call it runs to a `CallObserver`: when its handler starts, when
 `set_journal_args()` replaces its arguments (refs become locators), and its final result (a job's,
 worker job included). Calls refused before they run are not reported. The recorder captions calls

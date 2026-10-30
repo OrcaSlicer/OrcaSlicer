@@ -130,6 +130,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Shortcuts.hpp
     GUI/RecordingDialog.cpp
     GUI/RecordingDialog.hpp
+    GUI/RecordingIndicator.cpp
+    GUI/RecordingIndicator.hpp
     GUI/ScriptRunnerDialog.cpp
     GUI/ScriptRunnerDialog.hpp
     GUI/SpeedDialDialog.cpp

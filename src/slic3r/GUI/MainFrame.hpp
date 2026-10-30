@@ -100,6 +100,7 @@ class DesignPanel;
 class MainFrame;
 class WebViewPanel;
 class ParamsDialog;
+class RecordingIndicator;
 enum class Shortcut : uint8_t;
 struct KeyChord;
 #ifdef __WXGTK__
@@ -387,6 +388,8 @@ public:
 
 	void        update_title_colour_after_set_title();
     void        show_option(bool show);
+    // The tab bar's REC pill, shown while a recording runs.
+    void        show_recording_indicator(bool show);
     void        init_tabpanel();
     void        create_preset_tabs();
     //BBS: GUI refactor
@@ -567,6 +570,7 @@ public:
     SideButton* m_slice_option_btn{ nullptr };
     SideButton* m_print_btn{ nullptr };
     SideButton* m_print_option_btn{ nullptr };
+    RecordingIndicator* m_recording{ nullptr };
 
     SidePopup*  m_slice_option_pop_up{ nullptr };
 

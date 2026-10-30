@@ -163,6 +163,7 @@ src/slic3r/GUI/Mcp/McpToolsUi.cpp
 src/slic3r/GUI/Mcp/McpToolsView.cpp
 src/slic3r/GUI/Mcp/RecordingSettings.cpp
 src/slic3r/GUI/RecordingDialog.cpp
+src/slic3r/GUI/RecordingIndicator.cpp
 src/slic3r/GUI/ScriptRunnerDialog.cpp
 src/slic3r/GUI/MediaPlayCtrl.cpp
 src/slic3r/GUI/MediaFilePanel.cpp

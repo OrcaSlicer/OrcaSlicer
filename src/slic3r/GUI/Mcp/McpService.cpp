@@ -481,6 +481,8 @@ void McpService::resume()
 {
     ++m_generation;
     m_suspended = false;
+    if (m_recorder)
+        m_recorder->resume();
 }
 
 void McpService::mark_ready()

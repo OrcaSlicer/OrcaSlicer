@@ -85,6 +85,7 @@
 #include "3DScene.hpp"
 #include "ParamsDialog.hpp"
 #include "PrintHostDialogs.hpp"
+#include "RecordingIndicator.hpp"
 #include "ScriptRunnerDialog.hpp"
 #include "NativeCommands.hpp"
 #include "libslic3r_version.h"
@@ -1452,6 +1453,14 @@ void MainFrame::show_publish_button(bool show)
     // Layout();
 }
 
+void MainFrame::show_recording_indicator(bool show)
+{
+    if (m_recording->Show(show)) {
+        m_recording->GetParent()->Layout();
+        fit_tab_labels(); // ORCA on the REC pill showing or going
+    }
+}
+
 void MainFrame::update_title_colour_after_set_title()
 {
 #ifdef __APPLE__
@@ -1822,7 +1831,7 @@ bool MainFrame::is_prepare_or_preview_tab() const
 
 void MainFrame::fit_tab_labels()
 {
-    if (!m_tabpanel || !m_slice_option_btn) // ignore layout change while slice/print buttons not visible
+    if (!m_tabpanel || !m_slice_option_btn || !m_recording) // ignore layout change while the side tools are not built
         return;
 
     auto* ctrl  = m_tabpanel->GetBtnsListCtrl();
@@ -1835,9 +1844,14 @@ void MainFrame::fit_tab_labels()
     m_tabpanel->Refresh();
     Layout();
 
+    // The side tools start at the REC pill while it shows, else at the slice button's dropdown.
+    const wxWindow* side = m_slice_option_btn;
+    if (m_recording->IsShown())
+        side = m_recording;
+
     // Compact (last to first)
     for (size_t i = count - 1; i >= 1; --i) {
-        int right = ScreenToClient(m_slice_option_btn->ClientToScreen({})).x;
+        int right = ScreenToClient(side->ClientToScreen({})).x;
         int left  = sizer->GetSize().GetWidth();
         // The overflow button sits between the tab buttons and the side tools, so it is not free space.
         if (const wxWindow* overflow = ctrl->GetOverflowButton())
@@ -2373,6 +2387,9 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_slice_option_btn->Enable();
     m_print_option_btn->Enable();
     //sizer->Add(FromDIP(15), 0, 0, 0, 0);
+    m_recording = new RecordingIndicator(this);
+    m_recording->Hide();
+    sizer->Add(m_recording, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(15));
     sizer->Add(slice_panel);
     sizer->Add(FromDIP(15), 0, 0, 0, 0);
     sizer->Add(print_panel);

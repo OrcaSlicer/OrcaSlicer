@@ -115,6 +115,8 @@ public:
 
     // UI thread. The main window is about to be rebuilt: frames kept of its canvases go.
     void suspend();
+    // UI thread. The main window has been rebuilt: its tab bar shows the REC pill of the recording that runs.
+    void resume();
     // UI thread, at exit: ends the recording and waits up to `timeout` for its file, then drops what is
     // still queued and leaves the rest to the sink's threads.
     void shutdown(std::chrono::milliseconds timeout);
@@ -142,6 +144,11 @@ private:
     bool canvas_frame(Recording& rec, GLCanvas3D& canvas, wxImage& out, std::string& err);
     void on_event(wxEvent& event);
     bool shows(wxWindow* window) const;
+    // A recording runs and is not ending.
+    bool running() const;
+    // Shows the tab bar's REC pill while running(), and hides it otherwise; not while the main window is
+    // rebuilt or the app closes. UI thread.
+    void update_indicator() const;
     nlohmann::json report(Recording& rec) const;
 
     McpService&                     m_service;
