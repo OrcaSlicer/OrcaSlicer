@@ -807,6 +807,10 @@ void BackgroundSlicingProcess::reset_export()
     if (!this->running()) {
         m_export_path.clear();
         m_export_path_on_removable_media = false;
+        // A scheduled upload only leaves m_upload_job when prepare_upload() hands it to the print host
+        // job queue. If the run ended before that (a post-processing script or plugin failure, or a
+        // cancel), the job must not survive into the next plain slice, which would upload again.
+        m_upload_job = PrintHostJob();
         // invalidate_step expects the mutex to be locked.
         std::scoped_lock<std::mutex> lock(m_print->state_mutex());
         this->invalidate_step(bspsGCodeFinalize);

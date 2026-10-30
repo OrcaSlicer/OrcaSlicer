@@ -3015,10 +3015,12 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                              "adaptive_pressure_advance_model");
                         break;
                     }
-                    if (!AdaptivePAProcessor::validate_adaptive_pa_model(pa_model).empty()) {
-                        warn(L("The Adaptive Pressure Advance model for one or more extruders may contain invalid values."),
+                    const std::string pa_error = AdaptivePAProcessor::validate_adaptive_pa_model(pa_model);
+                    if (!pa_error.empty()) {
+                        // TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+                        // one warning per filament, the notifications stack
+                        warn(Slic3r::format(L("The Adaptive Pressure Advance model of filament %1% contains invalid values.\n%2%"), filament_id + 1, pa_error),
                              "adaptive_pressure_advance_model");
-                        break;
                     }
                 }
             }

@@ -2600,6 +2600,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     camera.apply_projection(_max_bounding_box(true, true, true));
 
+    const ImGuiID active_id = ImGui::GetActiveID();
     wxGetApp().imgui()->new_frame();
 
     if (_update_inactive_plates_visibility())
@@ -2754,6 +2755,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     m_frame_profiler.mark("notifications");
 
     ImDrawData* draw_data = wxGetApp().imgui()->end_frame();
+    m_overlay_dirty |= active_id != ImGui::GetActiveID();
 
     std::optional<size_t> signature;
     if (_is_frame_skipping_enabled())
@@ -3390,9 +3392,14 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 volume->is_modifier = !mvs->model_volume->is_model_part();
                 volume->set_color(color_from_model_volume(*mvs->model_volume));
 
+                const ModelInstance& instance = *mvs->model_volume->get_object()->instances[mvs->composite_id.instance_id];
+                // Follow the instance's printable flag on every reload; the assemble view never shows it.
+                if (m_canvas_type != ECanvasType::CanvasAssembleView)
+                    volume->printable = instance.printable;
+
                 // updates volumes transformations
                 if (m_canvas_type != ECanvasType::CanvasAssembleView) {
-                    volume->set_instance_transformation(mvs->model_volume->get_object()->instances[mvs->composite_id.instance_id]->get_transformation());
+                    volume->set_instance_transformation(instance.get_transformation());
                     volume->set_volume_transformation(mvs->model_volume->get_transformation());
                     // updates volumes convex hull
                     if (mvs->model_volume->is_model_part() && ! volume->convex_hull())
@@ -3402,14 +3409,14 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                     volume->set_offset_to_assembly(Vec3d(0, 0, 0));
                 }
                 else {
-                    volume->set_instance_transformation(mvs->model_volume->get_object()->instances[mvs->composite_id.instance_id]->get_assemble_transformation());
+                    volume->set_instance_transformation(instance.get_assemble_transformation());
                     volume->set_volume_transformation(mvs->model_volume->get_transformation());
                     // updates volumes convex hull
                     if (mvs->model_volume->is_model_part() && ! volume->convex_hull())
                         // Model volume was likely changed from modifier or support blocker / enforcer to a model part.
                         // Only model parts require convex hulls.
                         volume->set_convex_hull(mvs->model_volume->get_convex_hull_shared_ptr());
-                    volume->set_offset_to_assembly(mvs->model_volume->get_object()->instances[mvs->composite_id.instance_id]->get_offset_to_assembly());
+                    volume->set_offset_to_assembly(instance.get_offset_to_assembly());
                 }
             }
         }
@@ -3479,6 +3486,8 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                     it->volume_idx = m_volumes.volumes.size();
                     m_volumes.load_object_volume(&model_object, obj_idx, volume_idx, instance_idx, m_color_by, m_initialized, m_canvas_type == ECanvasType::CanvasAssembleView);
                     m_volumes.volumes.back()->geometry_id = key.geometry_id;
+                    if (m_canvas_type != ECanvasType::CanvasAssembleView)
+                        m_volumes.volumes.back()->printable = model_instance.printable;
                     update_object_list = true;
                 } else {
 					// Recycling an old GLVolume.
@@ -4077,8 +4086,10 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     if (m_extra_frame_requested || mouse3d_controller_applied) {
         m_dirty = true;
         m_extra_frame_requested = false;
-        evt.RequestMore();
     }
+
+    if (m_dirty)
+        evt.RequestMore();
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     else if (imgui_requires_extra_frame || wxGetApp().imgui()->requires_extra_frame()) {
         // ImGui settling a window or fading a tooltip.

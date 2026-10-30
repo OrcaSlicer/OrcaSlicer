@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 11:58-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -1971,18 +1971,18 @@ msgid "Selection 1"
 msgstr "การเลือก 1"
 
 msgid ""
-"Select 2 faces on objects and \n"
-" make objects assemble together."
+"Select 2 faces on objects and\n"
+"make objects assemble together."
 msgstr ""
-"เลือก 2 ผิวหน้าบนวัตถุและ \n"
-" ทำให้วัตถุมาประกอบกัน"
+"เลือก 2 ผิวหน้าบนวัตถุและ\n"
+"ทำให้วัตถุมาประกอบกัน"
 
 msgid ""
-"Select 2 points or circles on objects and \n"
-" specify distance between them."
+"Select 2 points or circles on objects and\n"
+"specify distance between them."
 msgstr ""
-"เลือก 2 จุดหรือวงกลมบนวัตถุและ \n"
-" ระบุระยะห่างระหว่างพวกเขา"
+"เลือก 2 จุดหรือวงกลมบนวัตถุและ\n"
+"ระบุระยะห่างระหว่างพวกเขา"
 
 # AI Translated
 msgid "Selection 2"
@@ -2069,11 +2069,11 @@ msgstr "คำเตือน: โปรดเลือกคุณลักษ�
 # AI Translated
 msgid ""
 "It is recommended to assemble objects first,\n"
-"because they are restricted to the bed \n"
+"because they are restricted to the bed\n"
 "and only parts can be lifted."
 msgstr ""
 "แนะนำให้ประกอบวัตถุก่อน,\n"
-"เนื่องจากวัตถุถูกจำกัดอยู่บนฐานพิมพ์ \n"
+"เนื่องจากวัตถุถูกจำกัดอยู่บนฐานพิมพ์\n"
 "และยกได้เฉพาะชิ้นส่วนเท่านั้น"
 
 msgid "Face and face assembly"
@@ -2266,6 +2266,18 @@ msgstr "รหัสผ่านไม่ถูกต้อง"
 #, c-format, boost-format
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "เชื่อมต่อ %s ล้มเหลว! [SN:%s, รหัส=%s]"
+
+# AI Translated
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr "ตรวจสอบว่าเครื่องพิมพ์อยู่ในเครือข่ายเดียวกันกับคอมพิวเตอร์เครื่องนี้ และที่อยู่ IP ของเครื่องพิมพ์ถูกต้อง"
+
+# AI Translated
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr "หากยังเชื่อมต่อไม่สำเร็จ ให้ลองใช้ปลั๊กอินเครือข่ายเวอร์ชันอื่นในการตั้งค่า"
+
+# AI Translated
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr "ใบรับรอง TLS/CA ใน 'printer.cer' ที่หายไปหรือเสียหายก็อาจทำให้เกิดข้อผิดพลาดนี้ได้เช่นกัน"
 
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
@@ -3248,8 +3260,9 @@ msgstr "ชื่อ"
 msgid "All Plates"
 msgstr "ทุกแผ่น"
 
+# AI Translated
 msgid "Order By"
-msgstr ""
+msgstr "เรียงลำดับตาม"
 
 # AI Translated
 msgid "Fix All"
@@ -3303,8 +3316,9 @@ msgstr "โคลน"
 msgid "Simplify Model"
 msgstr "ลดความซับซ้อนของโมเดล"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "แบ่งตาข่าย (สีที่หายไป)"
+# AI Translated
+msgid "Subdivision mesh"
+msgstr "แบ่งย่อยเมช"
 
 msgid "Center"
 msgstr "กึ่งกลาง"
@@ -3459,6 +3473,26 @@ msgstr "ข้อผิดพลาด!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "ไม่สามารถรับข้อมูลโมเดลในไฟล์ปัจจุบัน"
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+# AI Translated
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr "เส้นผ่านศูนย์กลางด้านใน"
+
+# AI Translated
+# Needs human review: Torus primitive size field: the thickness of the ring; check that 'ท่อ' reads right next to the inner diameter field.
+msgid "Tube diameter"
+msgstr "เส้นผ่านศูนย์กลางท่อ"
 
 # AI Translated
 msgid "Add primitive"
@@ -4377,8 +4411,9 @@ msgstr "กำลังส่งไฟล์ G-code ไปยังการ์�
 msgid "Successfully sent. Close current page in %s s"
 msgstr "ส่งสำเร็จ หน้านี้จะปิดใน %s วินาที"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "ต้องใส่ที่เก็บข้อมูลก่อนที่จะส่งไปยังเครื่องพิมพ์"
+# AI Translated
+msgid "Insert storage or free up space before sending to the printer."
+msgstr "ใส่ที่เก็บข้อมูลหรือเพิ่มพื้นที่ว่างก่อนส่งไปยังเครื่องพิมพ์"
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "กำลังส่งไฟล์ G-code ผ่าน LAN แต่ที่เก็บข้อมูลในเครื่องพิมพ์ผิดปกติและปัญหาการพิมพ์อาจมีสาเหตุจากสิ่งนี้"
@@ -5331,137 +5366,182 @@ msgstr ""
 "ใช่ - เปิดใช้งาน Arachne Wall Generator\n"
 "ไม่ - ปิดการใช้งาน Arachne Wall Generator และตั้งค่าโหมด [Displacement] ของผิวฟัซซี"
 
+# AI Translated
 msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
-msgstr ""
+msgstr "ตั้งค่าความชันสูงสุดของอัตราการอัดรีดเชิงปริมาตรให้มากกว่าศูนย์เพื่อใช้อัตราการอัดรีดให้เรียบ"
 
+# AI Translated
+# Needs human review: Arc fitting glossary cell is unsettled (⚠); quotes the current setting label ข้อต่อส่วนโค้ง.
 msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
-msgstr ""
+msgstr "ข้อต่อส่วนโค้งใช้ไม่ได้กับเครื่องพิมพ์สายพาน และเมื่อเปิดใช้งานอัตราการอัดรีดให้เรียบ"
 
+# AI Translated
 msgid "Set wall loops above zero to use this setting."
-msgstr ""
+msgstr "ตั้งค่าจำนวนรอบผนังให้มากกว่าศูนย์เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "This setting is hidden because sparse infill density is zero."
-msgstr ""
+msgstr "การตั้งค่านี้ถูกซ่อนเนื่องจากความหนาแน่นไส้ในแบบโปร่งเป็นศูนย์"
 
+# AI Translated
 msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
-msgstr ""
+msgstr "พุกไส้ในต้องใช้ความหนาแน่นไส้ในแบบโปร่งที่ไม่เป็นศูนย์ และรูปแบบอื่นที่ไม่ใช่ \"ศูนย์กลาง\" หรือ \"เกลียวร่นเข้า\""
 
+# AI Translated
 msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
-msgstr ""
+msgstr "เปิดใช้งานไส้ในชุดค่าผสม และใช้ความหนาแน่นไส้ในแบบโปร่งที่ไม่เป็นศูนย์เพื่อแสดงการตั้งค่านี้"
 
+# AI Translated
 msgid "Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "เลือกไส้ใน \"ไจรอยด์\", \"TPMS-D\" หรือ \"TPMS-FK\" โดยให้ความหนาแน่นไส้ในแบบโปร่งมากกว่าศูนย์และน้อยกว่า 100%"
 
+# AI Translated
 msgid "Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "เปิดใช้งานความหนาแน่นแบบปรับได้สำหรับไส้ใน \"ไจรอยด์\", \"TPMS-D\" หรือ \"TPMS-FK\" โดยให้ความหนาแน่นไส้ในแบบโปร่งมากกว่าศูนย์และน้อยกว่า 100%"
 
+# AI Translated
 msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
-msgstr ""
+msgstr "เลือกไส้ใน \"ไจรอยด์\" ที่มีความหนาแน่นไส้ในแบบโปร่งไม่เป็นศูนย์ และปิดใช้งานความหนาแน่นแบบปรับได้เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support multiline infill."
-msgstr ""
+msgstr "รูปแบบไส้ในแบบโปร่งที่เลือกไม่รองรับไส้ในหลายบรรทัด"
 
+# AI Translated
 msgid "The Line infill pattern does not support infill anchors."
-msgstr ""
+msgstr "รูปแบบไส้ใน \"เส้น\" ไม่รองรับพุกไส้ใน"
 
+# AI Translated
 msgid "Select an infill pattern other than Line and set the maximum infill anchor length above zero."
-msgstr ""
+msgstr "เลือกรูปแบบไส้ในอื่นที่ไม่ใช่ \"เส้น\" และตั้งค่าความยาวสูงสุดของพุกไส้ในให้มากกว่าศูนย์"
 
+# AI Translated
 msgid "Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "เลือกรูปแบบไส้ในแบบโปร่ง \"ข้ามแซก\" หรือ \"ล็อคแซก\" เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Select the Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "เลือกรูปแบบไส้ในแบบโปร่ง \"ล็อคแซก\" เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "เลือกรูปแบบไส้ในแบบโปร่ง \"ซิกแซก\", \"ข้ามแซก\" หรือ \"ล็อคแซก\" เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."
-msgstr ""
+msgstr "เลือกไส้ใน \"รังผึ้ง 3 มิติ\" ที่มีความหนาแน่นไส้ในแบบโปร่งไม่เป็นศูนย์เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable spiral vase mode to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานโหมดแจกันเกลียวเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable spiral vase mode and spiral smoothing to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานโหมดแจกันเกลียวและเกลียวเรียบเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "This setting requires top shell layers, or more than one bottom shell layer in spiral vase mode."
-msgstr ""
+msgstr "การตั้งค่านี้ต้องใช้เลเยอร์ผนังด้านบน หรือเลเยอร์ผนังด้านล่างมากกว่าหนึ่งเลเยอร์ในโหมดแจกันเกลียว"
 
+# AI Translated
 msgid "This setting requires a top shell with nonzero top surface density."
-msgstr ""
+msgstr "การตั้งค่านี้ต้องใช้ผนังด้านบนที่มีความหนาแน่นผิวด้านบนไม่เป็นศูนย์"
 
+# AI Translated
 msgid "Set bottom shell layers above zero to use this setting."
-msgstr ""
+msgstr "ตั้งค่าเลเยอร์ผนังด้านล่างให้มากกว่าศูนย์เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."
-msgstr ""
+msgstr "ใช้ความหนาแน่นไส้ในแบบโปร่งที่ไม่เป็นศูนย์ ร่วมกับรูปแบบไส้ในและการตั้งค่าไส้ในหลายบรรทัดที่รองรับการทำให้ไส้ในเรียบ"
 
+# AI Translated
 msgid "Set top surface expansion above zero to use this setting."
-msgstr ""
+msgstr "ตั้งค่าการขยายพื้นผิวด้านบนให้มากกว่าศูนย์เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Use a top or bottom shell with the Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "ใช้ผนังด้านบนหรือด้านล่างที่มีรูปแบบพื้นผิว \"คอร์ดอาร์คิมีดีน\" หรือ \"เกลียวแปดเหลี่ยม\""
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support separated infills."
-msgstr ""
+msgstr "รูปแบบไส้ในแบบโปร่งที่เลือกไม่รองรับไส้ในแบบแยก"
 
+# AI Translated
 msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "ใช้ผนังด้านบนที่มีความหนาแน่นพื้นผิวไม่เป็นศูนย์ และรูปแบบพื้นผิว \"ศูนย์กลาง\", \"เกลียวร่นเข้า\", \"คอร์ดอาร์คิมีดีน\" หรือ \"เกลียวแปดเหลี่ยม\""
 
+# AI Translated
 msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "ใช้เลเยอร์ผนังด้านล่าง และรูปแบบพื้นผิว \"ศูนย์กลาง\", \"เกลียวร่นเข้า\", \"คอร์ดอาร์คิมีดีน\" หรือ \"เกลียวแปดเหลี่ยม\""
 
+# AI Translated
 msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
-msgstr ""
+msgstr "ใช้ความหนาแน่นไส้ในแบบโปร่งที่ไม่เป็นศูนย์ หรือใช้เลเยอร์ผนังด้านบนหรือด้านล่าง เพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."
-msgstr ""
+msgstr "ปิดใช้งานโหมดแจกันเกลียว และตั้งค่าเลเยอร์ผนังด้านบนให้มากกว่าศูนย์เพื่อแก้ไขความหนาผนังด้านบน"
 
+# AI Translated
 msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
-msgstr ""
+msgstr "ปิดใช้งานโหมดแจกันเกลียว และตั้งค่าเลเยอร์ผนังด้านล่างให้มากกว่าศูนย์เพื่อแก้ไขความหนาผนังด้านล่าง"
 
+# AI Translated
 msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
-msgstr ""
+msgstr "ตั้งค่าความเร่งเริ่มต้นให้มากกว่าศูนย์เพื่อแก้ไขความเร่งของแต่ละประเภทการพิมพ์"
 
+# AI Translated
 msgid "This setting requires the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "การตั้งค่านี้ต้องใช้ชนิด G-code แบบเฟิร์มแวร์ Marlin"
 
+# AI Translated
 msgid "Jerk settings are unavailable while the printer uses junction deviation."
-msgstr ""
+msgstr "การตั้งค่า Jerk ใช้ไม่ได้ขณะที่เครื่องพิมพ์ใช้ Junction Deviation"
 
+# AI Translated
 msgid "Set the printer junction deviation limit above zero with the Marlin firmware G-code flavor to edit this setting."
-msgstr ""
+msgstr "ตั้งค่าขีดจำกัด Junction Deviation ของเครื่องพิมพ์ให้มากกว่าศูนย์ และใช้ชนิด G-code แบบเฟิร์มแวร์ Marlin เพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Set default jerk above zero to edit jerk for individual extrusion roles."
-msgstr ""
+msgstr "ตั้งค่า Jerk เริ่มต้นให้มากกว่าศูนย์เพื่อแก้ไข Jerk ของแต่ละประเภทการพิมพ์"
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero to use this setting."
-msgstr ""
+msgstr "ใช้เครื่องพิมพ์ที่ไม่ใช่เครื่องพิมพ์สายพาน และตั้งค่าห่วงเส้นล้อมชิ้นงานให้มากกว่าศูนย์เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero and disable the full-height draft shield to edit skirt height."
-msgstr ""
+msgstr "ใช้เครื่องพิมพ์ที่ไม่ใช่เครื่องพิมพ์สายพาน ตั้งค่าห่วงเส้นล้อมชิ้นงานให้มากกว่าศูนย์ และปิดแนวป้องกันลม (Draft Shield) แบบเต็มความสูง เพื่อแก้ไขความสูงของเส้นล้อมชิ้นงาน"
 
+# AI Translated
 msgid "Skirts are unavailable for belt printers."
-msgstr ""
+msgstr "เส้นล้อมชิ้นงานใช้ไม่ได้กับเครื่องพิมพ์สายพาน"
 
+# AI Translated
 msgid "Select a brim type other than No brim to use this setting."
-msgstr ""
+msgstr "เลือกชนิดขอบยึดชิ้นงานอื่นที่ไม่ใช่ \"ไม่มี ขอบยึดชิ้นงาน\" เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable a brim on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานขอบยึดชิ้นงานบนเครื่องพิมพ์ที่ไม่มีสายพานเอียงเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Select a brim type with an editable width, or enable a brim on a tilted belt printer."
-msgstr ""
+msgstr "เลือกชนิดขอบยึดชิ้นงานที่แก้ไขความกว้างได้ หรือเปิดใช้งานขอบยึดชิ้นงานบนเครื่องพิมพ์สายพานแบบเอียง"
 
+# AI Translated
 msgid "This setting requires a belt printer with a tilted slicing plane."
-msgstr ""
+msgstr "การตั้งค่านี้ต้องใช้เครื่องพิมพ์สายพานที่มีระนาบการสไลซ์แบบเอียง"
 
+# AI Translated
 msgid "Enable a brim on a belt printer with a tilted slicing plane to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานขอบยึดชิ้นงานบนเครื่องพิมพ์สายพานที่มีระนาบการสไลซ์แบบเอียงเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable walls or a brim to select the wall filament."
-msgstr ""
+msgstr "เปิดใช้งานผนังหรือขอบยึดชิ้นงานเพื่อเลือกเส้นพลาสติกสำหรับผนัง"
 
 # AI Translated
 msgid "Brim ear radius"
@@ -5470,284 +5550,382 @@ msgstr "รัศมีของหูขอบยึดชิ้นงาน"
 msgid "Brim width"
 msgstr "ความกว้าง ขอบยึดชิ้นงาน"
 
+# AI Translated
 msgid "Set brim width above zero to edit brim ear detection."
-msgstr ""
+msgstr "ตั้งค่าความกว้างขอบยึดชิ้นงานให้มากกว่าศูนย์เพื่อแก้ไขการตรวจจับหูขอบยึดชิ้นงาน"
 
+# AI Translated
 msgid "Use painted brim ears or set brim width above zero to edit this setting."
-msgstr ""
+msgstr "ใช้หูขอบยึดชิ้นงานแบบทาสี หรือตั้งค่าความกว้างขอบยึดชิ้นงานให้มากกว่าศูนย์เพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "เลือกหูขอบยึดชิ้นงานแบบอัตโนมัติบนเครื่องพิมพ์ที่ไม่มีสายพานเอียงเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "เลือกหูขอบยึดชิ้นงานแบบอัตโนมัติหรือแบบทาสีบนเครื่องพิมพ์ที่ไม่มีสายพานเอียงเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานการชดเชยอาการฐานบาน หรือตั้งค่าความหนาแน่นของเลเยอร์อาการฐานบานให้น้อยกว่า 100% เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Rafts are unavailable for belt printers."
-msgstr ""
+msgstr "ฐานรองชิ้นงานใช้ไม่ได้กับเครื่องพิมพ์สายพาน"
 
+# AI Translated
 msgid "Enable support to edit this setting."
-msgstr ""
+msgstr "เปิดใช้ส่วนรองรับเพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Enable support or add raft layers to edit this setting."
-msgstr ""
+msgstr "เปิดใช้ส่วนรองรับหรือเพิ่มเลเยอร์ฐานรองชิ้นงานเพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Select an automatic support type to edit the threshold angle."
-msgstr ""
+msgstr "เลือกชนิดส่วนรองรับแบบอัตโนมัติเพื่อแก้ไขมุมเกณฑ์"
 
+# AI Translated
 msgid "Select an automatic support type and set the threshold angle to zero to edit threshold overlap."
-msgstr ""
+msgstr "เลือกชนิดส่วนรองรับแบบอัตโนมัติ และตั้งค่ามุมเกณฑ์เป็นศูนย์เพื่อแก้ไขการทับซ้อนกันของเกณฑ์"
 
+# AI Translated
 msgid "Threshold overlap is unavailable for tree supports."
-msgstr ""
+msgstr "การทับซ้อนกันของเกณฑ์ใช้ไม่ได้กับส่วนรองรับแบบต้นไม้"
 
+# AI Translated
 msgid "Enable tree supports and select a style other than Organic or Default to show this setting."
-msgstr ""
+msgstr "เปิดใช้งานส่วนรองรับแบบต้นไม้ และเลือกสไตล์อื่นที่ไม่ใช่ \"ออร์แกนิก\" หรือ \"ค่าเริ่มต้น\" เพื่อแสดงการตั้งค่านี้"
 
+# AI Translated
 msgid "Enable tree supports with the Organic or Default style to show this setting."
-msgstr ""
+msgstr "เปิดใช้งานส่วนรองรับแบบต้นไม้ที่มีสไตล์ \"ออร์แกนิก\" หรือ \"ค่าเริ่มต้น\" เพื่อแสดงการตั้งค่านี้"
 
+# AI Translated
 msgid "Independent support layer height is unavailable for organic tree supports."
-msgstr ""
+msgstr "ความสูงของเลเยอร์รองรับอิสระใช้ไม่ได้กับส่วนรองรับแบบต้นไม้ออร์แกนิก"
 
+# AI Translated
 msgid "Enable tree supports and turn off automatic brim width to edit the tree support brim width."
-msgstr ""
+msgstr "เปิดใช้งานส่วนรองรับแบบต้นไม้ และปิดความกว้างขอบยึดชิ้นงานอัตโนมัติ เพื่อแก้ไขความกว้างขอบยึดชิ้นงานของส่วนรองรับแบบต้นไม้"
 
+# AI Translated
 msgid "Enable tree supports to show the maximum bridge length."
-msgstr ""
+msgstr "เปิดใช้งานส่วนรองรับแบบต้นไม้เพื่อแสดงความยาวสะพานสูงสุด"
 
+# AI Translated
 msgid "Tree supports use maximum bridge length instead of the bridge support setting."
-msgstr ""
+msgstr "ส่วนรองรับแบบต้นไม้ใช้ความยาวสะพานสูงสุดแทนการตั้งค่าส่วนรองรับสำหรับสะพาน"
 
+# AI Translated
 msgid "Enable automatic tree supports to show this setting."
-msgstr ""
+msgstr "เปิดใช้งานส่วนรองรับแบบต้นไม้อัตโนมัติเพื่อแสดงการตั้งค่านี้"
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit this setting."
-msgstr ""
+msgstr "ตั้งค่าเลเยอร์อินเทอร์เฟซด้านบนหรือด้านล่างของส่วนรองรับให้มากกว่าศูนย์เพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Enable a raft, or enable supports with top interface layers, to use support ironing."
-msgstr ""
+msgstr "เปิดใช้งานฐานรองชิ้นงาน หรือเปิดใช้ส่วนรองรับที่มีเลเยอร์อินเทอร์เฟซด้านบน เพื่อใช้การรีดผิวส่วนรองรับ"
 
+# AI Translated
 msgid "Enable support ironing with a raft or top support interface layers to show this setting."
-msgstr ""
+msgstr "เปิดใช้งานการรีดผิวส่วนรองรับร่วมกับฐานรองชิ้นงานหรือเลเยอร์อินเทอร์เฟซด้านบนของส่วนรองรับเพื่อแสดงการตั้งค่านี้"
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit interface spacing."
-msgstr ""
+msgstr "ตั้งค่าเลเยอร์อินเทอร์เฟซด้านบนหรือด้านล่างของส่วนรองรับให้มากกว่าศูนย์เพื่อแก้ไขระยะห่างของอินเทอร์เฟซ"
 
+# AI Translated
 msgid "Support ironing requires a solid interface, so interface spacing cannot be edited."
-msgstr ""
+msgstr "การรีดผิวส่วนรองรับต้องใช้อินเทอร์เฟซแบบทึบ จึงไม่สามารถแก้ไขระยะห่างของอินเทอร์เฟซได้"
 
+# AI Translated
 msgid "Enable walls, a skirt or a brim to edit inner wall line width."
-msgstr ""
+msgstr "เปิดใช้งานผนัง เส้นล้อมชิ้นงาน หรือขอบยึดชิ้นงาน เพื่อแก้ไขความกว้างเส้นของผนังด้านใน"
 
+# AI Translated
 msgid "Enable support, a raft, or a skirt to select the support filament."
-msgstr ""
+msgstr "เปิดใช้ส่วนรองรับ ฐานรองชิ้นงาน หรือเส้นล้อมชิ้นงาน เพื่อเลือกเส้นพลาสติกสำหรับส่วนรองรับ"
 
+# AI Translated
 msgid "Add raft layers to show raft contact distance."
-msgstr ""
+msgstr "เพิ่มเลเยอร์ฐานรองชิ้นงานเพื่อแสดงระยะสัมผัสฐานรองชิ้นงาน"
 
+# AI Translated
 msgid "Raft contact distance is unavailable when the top support Z distance is zero."
-msgstr ""
+msgstr "ระยะสัมผัสฐานรองชิ้นงานใช้ไม่ได้เมื่อระยะ Z ด้านบนของส่วนรองรับเป็นศูนย์"
 
+# AI Translated
 msgid "Add raft layers to show raft expansion."
-msgstr ""
+msgstr "เพิ่มเลเยอร์ฐานรองชิ้นงานเพื่อแสดงการขยายฐานรองชิ้นงาน"
 
+# AI Translated
 msgid "Slim, Strong and Hybrid tree supports use first layer expansion instead of raft expansion."
-msgstr ""
+msgstr "ส่วนรองรับแบบต้นไม้ \"ทรี สลิม\", \"ต้นไม้แข็งแกร่ง\" และ \"ต้นไม้ไฮบริด\" ใช้การขยายเลเยอร์แรกแทนการขยายฐานรองชิ้นงาน"
 
+# AI Translated
 msgid "Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."
-msgstr ""
+msgstr "เพิ่มฐานรองชิ้นงาน หรือเลือกสไตล์ส่วนรองรับแบบต้นไม้อื่นที่ไม่ใช่ \"ทรี สลิม\" หรือ \"ต้นไม้แข็งแกร่ง\" เพื่อแก้ไขการขยายเลเยอร์แรก"
 
+# AI Translated
 msgid "Enable ironing to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานการรีดผิวเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable ironing with the Rectilinear pattern to edit ironing angles."
-msgstr ""
+msgstr "เปิดใช้งานการรีดผิวด้วยรูปแบบ \"เป็นเส้นตรง\" เพื่อแก้ไขมุมการรีดผิว"
 
+# AI Translated
 msgid "Enable ironing or support ironing to edit ironing speed."
-msgstr ""
+msgstr "เปิดใช้งานการรีดผิวหรือการรีดผิวส่วนรองรับเพื่อแก้ไขความเร็วรีดผิว"
 
+# AI Translated
 msgid "Enable Z contouring to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานรูปร่าง Z เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Print order cannot be edited when the print sequence is By object."
-msgstr ""
+msgstr "ไม่สามารถแก้ไขลำดับภายในเลเยอร์ได้เมื่อลำดับการพิมพ์เป็น \"ตามวัตถุ\""
 
+# AI Translated
 msgid "This setting is unavailable for Bambu Lab printers."
-msgstr ""
+msgstr "การตั้งค่านี้ใช้ไม่ได้กับเครื่องพิมพ์ Bambu Lab"
 
+# AI Translated
 msgid "This setting is unavailable in single extruder multimaterial mode."
-msgstr ""
+msgstr "การตั้งค่านี้ใช้ไม่ได้ในโหมดชุดดันเส้นเดี่ยวหลายวัสดุ"
 
+# AI Translated
 msgid "Enable ooze prevention to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานการป้องกันน้ำซึมเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable ooze prevention and use a positive number of preheat steps to show this setting."
-msgstr ""
+msgstr "เปิดใช้งานการป้องกันน้ำซึม และตั้งค่าจำนวนขั้นตอนการอุ่นเครื่องเป็นค่าบวกเพื่อแสดงการตั้งค่านี้"
 
+# AI Translated
 msgid "Enable the belt purge tower in the belt printer settings to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานหอไล่เส้นบนสายพานในการตั้งค่าเครื่องพิมพ์สายพานเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer to use this setting."
-msgstr ""
+msgstr "เปิดใช้งาน Prime Tower บนเครื่องพิมพ์ที่ไม่ใช่เครื่องพิมพ์สายพานเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable the prime tower and tower interface features on a non-belt printer to use this setting."
-msgstr ""
+msgstr "เปิดใช้งาน Prime Tower และคุณสมบัติอินเทอร์เฟซแบบทาวเวอร์บนเครื่องพิมพ์ที่ไม่ใช่เครื่องพิมพ์สายพานเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable the prime tower and select wipe tower Type 2 on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "เปิดใช้งาน Prime Tower และเลือกชนิด Wipe Tower เป็น \"ประเภทที่ 2\" บนเครื่องพิมพ์ที่ไม่ใช่ Bambu และไม่ใช่เครื่องพิมพ์สายพาน"
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer and turn off skipping sparse tower layers to use layer combination."
-msgstr ""
+msgstr "เปิดใช้งาน Prime Tower บนเครื่องพิมพ์ที่ไม่ใช่เครื่องพิมพ์สายพาน และปิดการข้ามเลเยอร์กระจัดกระจายของทาวเวอร์ เพื่อใช้การรวมเลเยอร์"
 
+# AI Translated
 msgid "Enable the prime tower with Rib walls on a non-belt printer to use this setting."
-msgstr ""
+msgstr "เปิดใช้งาน Prime Tower ที่มีผนังแบบ \"ซี่โครง\" บนเครื่องพิมพ์ที่ไม่ใช่เครื่องพิมพ์สายพานเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable a Type 2 prime tower with Cone walls on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "เปิดใช้งาน Prime Tower \"ประเภทที่ 2\" ที่มีผนังแบบ \"ทรงกรวย\" บนเครื่องพิมพ์ที่ไม่ใช่ Bambu และไม่ใช่เครื่องพิมพ์สายพาน"
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer and choose a wall type other than Rib to edit tower width."
-msgstr ""
+msgstr "เปิดใช้งาน Prime Tower บนเครื่องพิมพ์ที่ไม่ใช่เครื่องพิมพ์สายพาน และเลือกชนิดผนังอื่นที่ไม่ใช่ \"ซี่โครง\" เพื่อแก้ไขความกว้างของทาวเวอร์"
 
+# AI Translated
 msgid "Enable a Type 2 prime tower on a non-Bambu, non-belt printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "เปิดใช้งาน Prime Tower \"ประเภทที่ 2\" บนเครื่องพิมพ์ที่ไม่ใช่ Bambu และไม่ใช่เครื่องพิมพ์สายพาน และปิดใช้งานโหมดชุดดันเส้นเดี่ยวหลายวัสดุ"
 
+# AI Translated
 msgid "Select Cyclic tool change ordering to use this setting."
-msgstr ""
+msgstr "เลือกลำดับการเปลี่ยนเครื่องมือแบบ \"Cyclic\" เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
-msgstr ""
+msgstr "เปิดใช้งาน Prime Tower และปิดการไล่เส้นใน Prime Tower หรือปิดใช้งานโหมดชุดดันเส้นเดี่ยวหลายวัสดุ"
 
+# AI Translated
 msgid "Enable the prime tower to use this setting."
-msgstr ""
+msgstr "เปิดใช้งาน Prime Tower เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable avoiding crossing walls to edit the maximum travel detour distance."
-msgstr ""
+msgstr "เปิดใช้งานหลีกเลี่ยงการข้ามผนังเพื่อแก้ไขความยาวทางเบี่ยงสูงสุดของการเดินหัวเปล่า"
 
+# AI Translated
 msgid "Enable setting other flow ratios to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานตั้งค่าอัตราส่วนการไหลอื่นๆ เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable slowing down for overhangs to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานลดความเร็วสำหรับส่วนยื่นเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "This setting is available in object settings rather than global print settings."
-msgstr ""
+msgstr "การตั้งค่านี้มีให้ในการตั้งค่าของวัตถุ ไม่ใช่ในการตั้งค่าการพิมพ์ส่วนกลาง"
 
+# AI Translated
 msgid "Select a specific support interface filament and use the default support filament to show this setting."
-msgstr ""
+msgstr "เลือกเส้นพลาสติกเฉพาะสำหรับผิวสัมผัสส่วนรองรับ และใช้เส้นพลาสติกส่วนรองรับแบบ \"ค่าเริ่มต้น\" เพื่อแสดงการตั้งค่านี้"
 
+# AI Translated
 msgid "Enable fuzzy skin to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานผิวฟัซซีเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable fuzzy skin with Ripple noise to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานผิวฟัซซีด้วย Noise แบบ \"ระลอกคลื่น\" เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic or Ripple to edit noise scale."
-msgstr ""
+msgstr "เปิดใช้งานผิวฟัซซี และเลือกประเภท Noise อื่นที่ไม่ใช่ \"คลาสสิค\" หรือ \"ระลอกคลื่น\" เพื่อแก้ไขสเกลของ Noise"
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic, Voronoi or Ripple to edit noise octaves."
-msgstr ""
+msgstr "เปิดใช้งานผิวฟัซซี และเลือกประเภท Noise อื่นที่ไม่ใช่ \"คลาสสิค\", \"Voronoi\" หรือ \"ระลอกคลื่น\" เพื่อแก้ไขจำนวน Octave ของ Noise"
 
+# AI Translated
 msgid "Enable fuzzy skin with Perlin or Billow noise to edit persistence."
-msgstr ""
+msgstr "เปิดใช้งานผิวฟัซซีด้วย Noise แบบ \"เพอร์ลิน\" หรือ \"บิลโลว์\" เพื่อแก้ไขค่า Persistence"
 
+# AI Translated
 msgid "Select the Arachne wall generator to use this setting."
-msgstr ""
+msgstr "เลือกตัวสร้างผนังแบบ \"อารัคเน่\" เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Thin wall detection is unavailable with the Arachne wall generator."
-msgstr ""
+msgstr "การตรวจจับผนังบางใช้ไม่ได้กับตัวสร้างผนังแบบ \"อารัคเน่\""
 
+# AI Translated
 msgid "Disable role-based wipe speed to edit wipe speed manually."
-msgstr ""
+msgstr "ปิดใช้งานความเร็วเช็ดหัวฉีดตามประเภทการพิมพ์เพื่อแก้ไขความเร็วเช็ดหัวฉีดด้วยตนเอง"
 
+# AI Translated
 msgid "Enable inward wiping to edit inward wipe distance."
-msgstr ""
+msgstr "เปิดใช้งานการเช็ดเข้าด้านในเพื่อแก้ไขระยะเช็ดเข้าด้านใน"
 
+# AI Translated
 msgid "This setting requires the Klipper G-code flavor."
-msgstr ""
+msgstr "การตั้งค่านี้ต้องใช้ชนิด G-code แบบ Klipper"
 
+# AI Translated
 msgid "Enable acceleration to deceleration to edit its factor."
-msgstr ""
+msgstr "เปิดใช้งาน accel_to_decel เพื่อแก้ไขค่าตัวคูณ"
 
+# AI Translated
 msgid "Enable excluding objects with the Klipper G-code flavor to edit the outline tolerance."
-msgstr ""
+msgstr "เปิดใช้งานการไม่รวมวัตถุร่วมกับชนิด G-code แบบ Klipper เพื่อแก้ไขค่าความเผื่อเส้นขอบ"
 
+# AI Translated
 msgid "Enable making overhangs printable to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานการทำให้ส่วนยื่นสามารถพิมพ์ได้เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5."
-msgstr ""
+msgstr "เปิดใช้งานมีเพียงผนังเดียวบนพื้นผิวด้านบนร่วมกับเลเยอร์ผนังด้านบน หรือใช้ \"อารัคเน่\" ที่มีค่าความยาวผนังขั้นต่ำมากกว่า 0.5"
 
+# AI Translated
 msgid "Enable converting holes to polyholes to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานการแปลงรูเป็นโพลีโฮลเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable overhang wall detection to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานการตรวจจับผนังส่วนยื่นเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Reverse overhang direction is unavailable in spiral vase mode."
-msgstr ""
+msgstr "การกลับทิศทางส่วนยื่นใช้ไม่ได้ในโหมดแจกันเกลียว"
 
+# AI Translated
 msgid "Disable spiral vase mode and enable reverse overhang direction to use this setting."
-msgstr ""
+msgstr "ปิดใช้งานโหมดแจกันเกลียว และเปิดใช้งานการกลับทิศทางส่วนยื่นเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."
-msgstr ""
+msgstr "เปิดใช้งานการตรวจจับผนังส่วนยื่นและการกลับทิศทางส่วนยื่น ปิดใช้งานโหมดแจกันเกลียว และปิดการกลับด้านเฉพาะเส้นรอบวงภายใน"
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer."
-msgstr ""
+msgstr "การตั้งค่านี้ต้องใช้เครื่องพิมพ์ Bambu Lab"
 
+# AI Translated
 msgid "Enable small area infill flow compensation to edit its model."
-msgstr ""
+msgstr "เปิดใช้งานการชดเชยการไหลของพื้นที่ขนาดเล็กเพื่อแก้ไขแบบจำลองการชดเชยการไหล"
 
+# AI Translated
 msgid "Scarf seams are unavailable in spiral vase mode and for belt printers."
-msgstr ""
+msgstr "รอยต่อ Scarf ใช้ไม่ได้ในโหมดแจกันเกลียวและกับเครื่องพิมพ์สายพาน"
 
+# AI Translated
 msgid "Enable scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานรอยต่อ Scarf บนเครื่องพิมพ์ที่ไม่ใช่เครื่องพิมพ์สายพาน และปิดใช้งานโหมดแจกันเกลียว เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Disable scarfing the entire loop to edit the minimum scarf length."
-msgstr ""
+msgstr "ปิดใช้งานการใช้รอยต่อ Scarf ตลอดทั้งผนัง เพื่อแก้ไขความยาวรอยต่อ Scarf ขั้นต่ำ"
 
+# AI Translated
 msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานรอยต่อ Scarf แบบมีเงื่อนไขบนเครื่องพิมพ์ที่ไม่ใช่เครื่องพิมพ์สายพาน และปิดใช้งานโหมดแจกันเกลียว เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
+# Needs human review: Quotes the label 'ใช้การประสานลำแสง' (Use beam interlocking), which renders beam as a light beam; if the label is corrected to a structural beam (คาน), update this hint too.
 msgid "Enable beam interlocking to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานการประสานลำแสงเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
+# Needs human review: Quotes the labels 'ใช้การประสานลำแสง' (beam rendered as a light beam) and 'ความลึกที่ประสานกันของภูมิภาคที่แบ่งส่วน'; update with them if they are corrected.
 msgid "Disable beam interlocking to edit segmented region interlocking depth."
-msgstr ""
+msgstr "ปิดใช้งานการประสานลำแสงเพื่อแก้ไขความลึกที่ประสานกันของภูมิภาคที่แบ่งส่วน"
 
+# AI Translated
 msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
-msgstr ""
+msgstr "เลือกรูปแบบไส้ในแบบโปร่ง \"ตาข่ายด้านข้าง\" เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Select the Lightning sparse infill pattern to use this setting."
-msgstr ""
+msgstr "เลือกรูปแบบไส้ในแบบโปร่ง \"ฟ้าผ่า\" เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."
-msgstr ""
+msgstr "เทมเพลตการหมุนไส้ในใช้ไม่ได้กับไส้ใน \"ลูกบาศก์แบบปรับได้\" และ \"รองรับคิวบิก\""
 
+# AI Translated
 msgid "Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."
-msgstr ""
+msgstr "ล้างเทมเพลตการหมุนไส้ในแบบโปร่ง และเลือกรูปแบบอื่นที่ไม่ใช่ \"ลูกบาศก์แบบปรับได้\" หรือ \"รองรับคิวบิก\" เพื่อแก้ไขทิศทางไส้ใน"
 
+# AI Translated
 msgid "Clear the solid infill rotation template to edit solid infill direction."
-msgstr ""
+msgstr "ล้างเทมเพลตการหมุนไส้ในแบบทึบเพื่อแก้ไขทิศทางไส้ในแบบทึบ"
 
+# AI Translated
 msgid "Select the Lateral Honeycomb sparse infill pattern to use this setting."
-msgstr ""
+msgstr "เลือกรูปแบบไส้ในแบบโปร่ง \"รังผึ้งด้านข้าง\" เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
+# Needs human review: The English says 'wrapping detection' but the setting it hides is labelled 'Enable clumping detection' (เปิดใช้งานการตรวจจับการจับกันเป็นก้อน); this follows the label.
 msgid "The selected printer does not support wrapping detection."
-msgstr ""
+msgstr "เครื่องพิมพ์ที่เลือกไม่รองรับการตรวจจับการจับกันเป็นก้อน"
 
+# AI Translated
+# Needs human review: SLA pad: no Thai label exists for the pad settings; check 'แผ่นฐาน' against the SLA pad options if they are shown.
 msgid "Enable the pad to edit this setting."
-msgstr ""
+msgstr "เปิดใช้งานแผ่นฐานเพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Enable the pad around the object to edit this setting."
-msgstr ""
+msgstr "เปิดใช้งานแผ่นฐานรอบวัตถุเพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Enable support and disable the pad around the object to edit object elevation."
-msgstr ""
+msgstr "เปิดใช้ส่วนรองรับ และปิดใช้งานแผ่นฐานรอบวัตถุ เพื่อแก้ไขระยะยกวัตถุ"
 
 # AI Translated
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
@@ -6757,6 +6935,10 @@ msgstr "หัวฉีดด้านซ้าย: X:%1%-%2%, Y:%3%-%4%, Z:%5%-
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "หัวฉีดด้านขวา: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+# AI Translated
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr "ตำแหน่งหรือขนาดของโมเดลบางส่วนเกินช่วงที่สามารถพิมพ์ได้ของชุดดันเส้นที่กำหนด โปรดตรวจสอบและปรับตำแหน่งหรือขนาดของชิ้นส่วนให้พอดีกับช่วงที่สามารถพิมพ์ได้"
+
 msgid "Mirror object"
 msgstr "กลับด้านวัตถุ"
 
@@ -7012,7 +7194,7 @@ msgid "Size:"
 msgstr "ขนาด:"
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "พบความขัดแย้งของเส้นทาง G-code ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
 
@@ -7493,8 +7675,9 @@ msgstr "รีเซ็ตเค้าโครงหน้าต่าง"
 msgid "Reset to default window layout"
 msgstr "รีเซ็ตเป็นเค้าโครงหน้าต่างเริ่มต้น"
 
+# AI Translated
 msgid "Show 3Dconnexion Settings"
-msgstr ""
+msgstr "แสดงการตั้งค่า 3Dconnexion"
 
 msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr "แสดง/ซ่อนกล่องโต้ตอบการตั้งค่าอุปกรณ์ 3Dconnexion"
@@ -7840,6 +8023,10 @@ msgstr "ดาวน์โหลด"
 msgid "Download selected files from printer."
 msgstr "ดาวน์โหลดไฟล์ที่เลือกจากเครื่องพิมพ์"
 
+# AI Translated
+msgid "Select all files in the list for batch management."
+msgstr "เลือกไฟล์ทั้งหมดในรายการเพื่อจัดการเป็นกลุ่ม"
+
 msgid "Batch manage files."
 msgstr "จัดการไฟล์เป็นกลุ่ม"
 
@@ -8110,10 +8297,10 @@ msgid "Clear"
 msgstr "ชัดเจน"
 
 msgid ""
-"You have completed printing the mall model, \n"
+"You have completed printing the mall model,\n"
 "but synchronizing rating information has failed."
 msgstr ""
-"คุณพิมพ์โมเดลห้างสรรพสินค้าเสร็จแล้ว \n"
+"คุณพิมพ์โมเดลห้างสรรพสินค้าเสร็จแล้ว\n"
 "แต่การซิงโครไนซ์ข้อมูลการให้คะแนนล้มเหลว"
 
 msgid "How do you like this printing file?"
@@ -8372,10 +8559,10 @@ msgid "You can select up to 16 images."
 msgstr "คุณสามารถเลือกได้สูงสุด 16 ภาพ"
 
 msgid ""
-"At least one successful print record of this print profile is required \n"
+"At least one successful print record of this print profile is required\n"
 "to give a positive rating (4 or 5 stars)."
 msgstr ""
-"ต้องมีบันทึกการพิมพ์ที่สำเร็จของโปรไฟล์การพิมพ์นี้อย่างน้อยหนึ่งรายการ \n"
+"ต้องมีบันทึกการพิมพ์ที่สำเร็จของโปรไฟล์การพิมพ์นี้อย่างน้อยหนึ่งรายการ\n"
 "เพื่อให้คะแนนเป็นบวก (4 หรือ 5 ดาว)"
 
 msgid "click to add machine"
@@ -8977,19 +9164,23 @@ msgstr ""
 "ไม่มีความสามารถของปลั๊กอินสำหรับประเภทนี้\n"
 "เปิดใช้งานหรือติดตั้งเพิ่มเพื่อใช้งาน"
 
+# AI Translated
 msgid "Hidden by the current configuration."
-msgstr ""
+msgstr "ถูกซ่อนโดยการกำหนดค่าปัจจุบัน"
 
+# AI Translated
 #, boost-format
 msgid "Hidden: %1%"
-msgstr ""
+msgstr "ถูกซ่อน: %1%"
 
+# AI Translated
 msgid "Disabled by the current configuration."
-msgstr ""
+msgstr "ถูกปิดใช้งานโดยการกำหนดค่าปัจจุบัน"
 
+# AI Translated
 #, boost-format
 msgid "Disabled: %1%"
-msgstr ""
+msgstr "ถูกปิดใช้งาน: %1%"
 
 # AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
@@ -9209,8 +9400,9 @@ msgstr "ดูการตั้งค่าของวัตถุทั้ง
 msgid "Material settings"
 msgstr "การตั้งค่าวัสดุ"
 
+# AI Translated
 msgid "The process flow ratio cannot be edited in this panel."
-msgstr ""
+msgstr "ไม่สามารถแก้ไขอัตราส่วนการไหลของกระบวนการในแผงนี้ได้"
 
 # AI Translated
 msgid "Each mode names the tool heads that take part and the role each one plays. Click a tool button to cycle its role — hover a color below for what each role does."
@@ -9221,6 +9413,7 @@ msgid "Add Mode"
 msgstr "เพิ่มโหมด"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "เครื่องมือ"
 
@@ -9237,8 +9430,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "หัวพิมพ์ใดบ้างที่เข้าร่วมในโหมดนี้และแต่ละหัวมีบทบาทอะไร คลิกที่ช่องเพื่อสลับบทบาท"
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "G-code ที่รันเมื่อเริ่มพิมพ์เพื่อให้เครื่องพิมพ์เข้าสู่โหมดนี้ (เช่น การเรียก SET_PRINT_MODE ของ Klipper) สไลเซอร์สร้างเฉพาะเส้นทางของเครื่องมือหลัก (Primary) เท่านั้น ส่วนเครื่องมืออื่นเฟิร์มแวร์เป็นผู้ควบคุม"
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"G-code ที่รันเมื่อเริ่มพิมพ์เพื่อให้เครื่องพิมพ์เข้าสู่โหมดนี้ (เช่น การเรียก SET_PRINT_MODE ของ Klipper)\n"
+"\n"
+"สไลเซอร์สร้างเฉพาะเส้นทางของเครื่องมือหลัก (Primary) เท่านั้น ส่วนเครื่องมืออื่นเฟิร์มแวร์เป็นผู้ควบคุม"
 
 # AI Translated
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -9299,8 +9498,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "ชื่อของโหมดขนานนี้ตามที่แสดงในตัวเลือกโหมด IDEX/IQEX ของเพลต โปรเจกต์จัดเก็บโหมดตามชื่อ ดังนั้นการเปลี่ยนชื่อโหมดที่เพลตใช้อยู่จะทำให้เพลตเหล่านั้นกลับไปใช้โหมดหลัก (Primary) เว้นว่างไม่ได้ — ชื่อที่ว่างจะถูกแทนที่ด้วยชื่อที่สร้างขึ้นอัตโนมัติ"
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "G-code ที่ส่งออกครั้งเดียวเมื่อเริ่มงานพิมพ์ที่ใช้โหมดนี้ ก่อน G-code เริ่มต้นของเครื่อง ส่วนนี้ใช้ตั้งเครื่องพิมพ์ให้เข้าสู่โหมดเฟิร์มแวร์ที่ตรงกัน — เช่น การเรียก SET_PRINT_MODE ของ Klipper หรือ M567 ของ RepRapFirmware — เนื่องจากสไลเซอร์สร้างเฉพาะเส้นทางของเครื่องมือหลัก (Primary) และเฟิร์มแวร์เป็นผู้ควบคุมเครื่องมือสำเนา (Copy) / กระจกเงา (Mirror) รองรับตัวยึดตำแหน่ง ใช้ปุ่มแก้ไขเพื่อเรียกดู เว้นว่างไว้หากโหมดนี้ไม่ต้องตั้งค่าเฟิร์มแวร์"
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"G-code ที่ส่งออกครั้งเดียวเมื่อเริ่มงานพิมพ์ที่ใช้โหมดนี้ ก่อน G-code เริ่มต้นของเครื่อง ส่วนนี้ใช้ตั้งเครื่องพิมพ์ให้เข้าสู่โหมดเฟิร์มแวร์ที่ตรงกัน — เช่น การเรียก SET_PRINT_MODE ของ Klipper หรือ M567 ของ RepRapFirmware — เนื่องจากสไลเซอร์สร้างเฉพาะเส้นทางของเครื่องมือหลัก (Primary) และเฟิร์มแวร์เป็นผู้ควบคุมเครื่องมือสำเนา (Copy) / กระจกเงา (Mirror)\n"
+"\n"
+"รองรับตัวยึดตำแหน่ง ใช้ปุ่มแก้ไขเพื่อเรียกดู เว้นว่างไว้หากโหมดนี้ไม่ต้องตั้งค่าเฟิร์มแวร์"
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -9714,12 +9919,10 @@ msgstr "วัตถุมีขนาดเล็กเกินไป"
 
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
+"Instead of considering them as multiple objects, should the file be loaded as a single object with multiple parts?"
 msgstr ""
 "ไฟล์นี้ประกอบด้วยวัตถุหลายชิ้นที่อยู่ในตำแหน่งที่มีความสูงหลายระดับ\n"
-"แทนที่จะพิจารณาว่าเป็นวัตถุหลายชิ้นควร \n"
-"โหลดไฟล์เป็นวัตถุเดียวที่มีหลายส่วน?"
+"แทนที่จะพิจารณาว่าเป็นวัตถุหลายชิ้น ควรโหลดไฟล์เป็นวัตถุเดียวที่มีหลายส่วน?"
 
 msgid "Multi-part object detected"
 msgstr "ตรวจพบวัตถุที่มีหลายส่วน"
@@ -10272,10 +10475,10 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "ข้อมูลไฟล์การพิมพ์ผิดปกติ กรุณาสไลซ์อีกครั้ง"
 
 msgid ""
-"Print By Object: \n"
+"Print By Object:\n"
 "We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
-"พิมพ์ตามวัตถุ: \n"
+"พิมพ์ตามวัตถุ:\n"
 "แนะนำให้ใช้การจัดเรียงอัตโนมัติเพื่อหลีกเลี่ยงการชนกันเมื่อพิมพ์"
 
 msgid "Send G-code"
@@ -10307,6 +10510,12 @@ msgstr "ไม่มีเส้นพลาสติกบนเครื่อ
 
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "เส้นพลาสติกบนเครื่องพิมพ์ล้วนเป็นประเภทที่ไม่รู้จัก โปรดไปที่หน้าจอเครื่องพิมพ์หรือหน้าอุปกรณ์ซอฟต์แวร์เพื่อตั้งค่าประเภทเส้นพลาสติก"
+
+# AI Translated
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr "%s เชื่อมต่อแล้ว แต่ไม่พบระบบเส้นพลาสติก (AMS, CFS หรือชุดหลายวัสดุอื่นๆ) บนเครื่องพิมพ์นี้ จึงไม่มีเส้นพลาสติกให้ซิงค์"
 
 msgid "Device Page"
 msgstr "หน้าอุปกรณ์"
@@ -10618,13 +10827,15 @@ msgstr "ใช้ปุ่มหน้าต่างทางด้านซ้
 msgid "(Requires restart)"
 msgstr "(ต้องรีสตาร์ท)"
 
+# AI Translated
 #. TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
 msgid "Render on the discrete GPU"
-msgstr ""
+msgstr "เรนเดอร์บน GPU แยก"
 
+# AI Translated
 #. TRN DRI_PRIME is an environment variable name and must stay as it is.
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
-msgstr ""
+msgstr "บนคอมพิวเตอร์ที่มี GPU สองตัว ให้รัน OrcaSlicer บน GPU แยกแทน GPU ที่ใช้แสดงผลหน้าจอ ระบบ Wayland บางระบบไม่สามารถแสดงเฟรมที่เรนเดอร์บน GPU อีกตัวได้ หรือเปิดหน้าต่างไม่ได้เลย ให้ปิดตัวเลือกนี้หากมุมมอง 3 มิติว่างเปล่า หาก OrcaSlicer เปิดไม่ขึ้นอีก ให้เริ่มโปรแกรมหนึ่งครั้งโดยตั้งค่า DRI_PRIME=0 ในตัวแปรสภาพแวดล้อม เพื่อกลับมาที่หน้านี้"
 
 msgid "Downloads folder"
 msgstr "โฟลเดอร์ดาวน์โหลด"
@@ -10843,6 +11054,14 @@ msgstr "คำนวณปริมาณการไล่เส้นชิ่
 
 msgid "Auto arrange plate after cloning"
 msgstr "จัดเรียงจานอัตโนมัติหลังจากการโคลน"
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "แสดงตัวเลือกเมื่อเพิ่มรูปทรงพื้นฐาน"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "หากเปิดใช้งาน กล่องโต้ตอบจะถามขนาดของรูปทรงพื้นฐานก่อนเพิ่ม"
 
 msgid "Auto slice after changes"
 msgstr "แบ่งส่วนอัตโนมัติหลังจากการเปลี่ยนแปลง"
@@ -11115,14 +11334,12 @@ msgstr "ใช้ฉาก 3 มิติซ้ำขณะไม่มีกา
 
 # AI Translated
 msgid ""
-"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, and reuses the previous frame's scene instead. Reduces GPU load.\n"
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
 msgstr ""
-"ข้ามการวาดฉาก 3 มิติใหม่เมื่อมีเพียงเคอร์เซอร์เมาส์เคลื่อนที่บนวิวพอร์ต\n"
-"และใช้ฉากจากเฟรมก่อนหน้าแทน ช่วยลดภาระของ GPU\n"
+"ข้ามการวาดฉาก 3 มิติใหม่เมื่อมีเพียงเคอร์เซอร์เมาส์เคลื่อนที่บนวิวพอร์ต และใช้ฉากจากเฟรมก่อนหน้าแทน ช่วยลดภาระของ GPU\n"
 "ปิดใช้งานหากวิวพอร์ตแสดงเนื้อหาที่ไม่อัปเดตหรือขาดหายไป\n"
 "\n"
 "มีผลทันที"
@@ -11250,9 +11467,11 @@ msgstr "โหมดซ่อนตัว"
 
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+"\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
 "ตัวเลือกนี้จะปิดการใช้งานฟีเจอร์คลาวด์ทั้งหมด รวมถึงการซิงก์โปรไฟล์ Orca Cloud ผู้ใช้ที่ต้องการทำงานแบบออฟไลน์ทั้งหมดสามารถเปิดตัวเลือกนี้ได้\n"
+"\n"
 "หมายเหตุ: เมื่อเปิดโหมดซ่อนตัว โปรไฟล์ผู้ใช้ของคุณจะไม่ถูกสำรองไปยัง Orca Cloud"
 
 msgid "Hide login side panel"
@@ -11559,6 +11778,30 @@ msgid "The selected preset is null!"
 msgstr "ค่าที่ตั้งล่วงหน้าที่เลือกเป็นโมฆะ!"
 
 # AI Translated
+msgid "Changing one dimension changes the others in proportion."
+msgstr "การเปลี่ยนขนาดด้านหนึ่งจะเปลี่ยนขนาดด้านอื่นตามสัดส่วน"
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "บันทึกการตั้งค่าเหล่านี้เป็นค่าเริ่มต้น"
+
+# AI Translated
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr "หากเปิดใช้งาน จะใช้ขนาดเหล่านี้กับรูปทรงนี้ต่อจากนี้ไป รวมถึงเมื่อไม่ได้แสดงกล่องโต้ตอบนี้"
+
+# AI Translated
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr "หากเปิดใช้งาน รูปทรงจะถูกเพิ่มด้วยขนาดเริ่มต้นโดยไม่ถาม สามารถเปิดกล่องโต้ตอบนี้อีกครั้งได้ในการตั้งค่า"
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "ขนาดต้องมากกว่าศูนย์"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "ป้อนตัวเลขไม่ถูกต้อง"
+
+# AI Translated
 msgctxt "Layer range"
 msgid "End"
 msgstr "สิ้นสุด"
@@ -11739,6 +11982,18 @@ msgstr "ค่าที่ตั้งไว้ล่วงหน้า \"%1%\" 
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "โปรดทราบว่าการบันทึกจะเขียนทับค่าที่ตั้งล่วงหน้านี้"
+
+# AI Translated
+msgid "control characters are not allowed."
+msgstr "ไม่อนุญาตให้ใช้อักขระควบคุม"
+
+# AI Translated
+msgid "The name is a reserved system name."
+msgstr "ชื่อนี้เป็นชื่อที่ระบบสงวนไว้"
+
+# AI Translated
+msgid "The name is too long."
+msgstr "ชื่อยาวเกินไป"
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "ชื่อต้องไม่เหมือนกับชื่อนามแฝงที่ตั้งไว้ล่วงหน้า"
@@ -12429,8 +12684,9 @@ msgstr "ต้องใส่ที่เก็บข้อมูลก่อน
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "ที่เก็บข้อมูลอยู่ในสถานะผิดปกติหรืออยู่ในโหมดอ่านอย่างเดียว"
 
-msgid "Storage needs to be inserted before printing."
-msgstr "ต้องใส่ที่เก็บข้อมูลก่อนพิมพ์"
+# AI Translated
+msgid "Insert storage or free up space before printing."
+msgstr "ใส่ที่เก็บข้อมูลหรือเพิ่มพื้นที่ว่างก่อนพิมพ์"
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "ไม่สามารถส่งงานพิมพ์ไปยังเครื่องพิมพ์ที่จำเป็นต้องอัปเดตเฟิร์มแวร์ได้"
@@ -12503,9 +12759,6 @@ msgstr "ไม่สามารถส่งงานพิมพ์ขณะก
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "เครื่องพิมพ์ที่เลือกเข้ากันไม่ได้กับการตั้งค่าล่วงหน้าของเครื่องพิมพ์ที่เลือก"
 
-msgid "Storage needs to be inserted before send to printer."
-msgstr "ต้องใส่ที่เก็บข้อมูลก่อนส่งไปยังเครื่องพิมพ์"
-
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "เครื่องพิมพ์จะต้องอยู่ใน LAN เดียวกันกับ Orca Slicer"
 
@@ -12558,12 +12811,8 @@ msgstr "รับการหมดเวลารายงานการเข
 msgid "Unknown Failure"
 msgstr "ความล้มเหลวที่ไม่รู้จัก"
 
-msgid ""
-"Please Find the Pin Code in Account page on printer screen,\n"
-" and type in the Pin Code below."
-msgstr ""
-"กรุณาค้นหารหัส PIN ในหน้าบัญชีบนหน้าจอเครื่องพิมพ์\n"
-" และพิมพ์รหัสพินด้านล่าง"
+msgid "Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."
+msgstr "กรุณาค้นหารหัส PIN ในหน้าบัญชีบนหน้าจอเครื่องพิมพ์ และพิมพ์รหัสพินด้านล่าง"
 
 msgid "Can't find Pin Code?"
 msgstr "ไม่พบรหัสพิน?"
@@ -12727,12 +12976,10 @@ msgstr ""
 
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
-"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
-"and use soluble materials for both support interface and support base."
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height and use soluble materials for both support interface and support base."
 msgstr ""
 "เมื่อใช้วัสดุที่ละลายน้ำได้สำหรับอินเทอร์เฟซส่วนรองรับ เราขอแนะนำการตั้งค่าต่อไปนี้:\n"
-"0 ระยะทาง Z บนสุด, ระยะห่างระหว่างอินเทอร์เฟซ 0, รูปแบบเส้นตรงแบบอินเทอร์เลซ, ปิดใช้งานความสูงของเลเยอร์รองรับอิสระ\n"
-"และใช้วัสดุที่ละลายน้ำได้สำหรับทั้งส่วนต่อประสานและฐานรองรับ"
+"0 ระยะทาง Z บนสุด, ระยะห่างระหว่างอินเทอร์เฟซ 0, รูปแบบเส้นตรงแบบอินเทอร์เลซ, ปิดใช้งานความสูงของเลเยอร์รองรับอิสระ และใช้วัสดุที่ละลายน้ำได้สำหรับทั้งส่วนต่อประสานและฐานรองรับ"
 
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
 msgstr "การเปิดใช้งานตัวเลือกนี้จะปรับเปลี่ยนรูปร่างของแบบจำลอง หากการพิมพ์ของคุณต้องการขนาดที่แม่นยำหรือเป็นส่วนหนึ่งของชุดประกอบ สิ่งสำคัญคือต้องตรวจสอบอีกครั้งว่าการเปลี่ยนแปลงทางเรขาคณิตนี้ส่งผลต่อการทำงานของการพิมพ์ของคุณหรือไม่"
@@ -12750,15 +12997,12 @@ msgid "Experimental feature: Retracting and cutting off the filament at a greate
 msgstr "คุณลักษณะการทดลอง: การดึงกลับและตัดเส้นพลาสติกออกในระยะห่างที่มากขึ้นระหว่างการเปลี่ยนเส้นพลาสติกเพื่อลดการไล่เส้น แม้ว่าจะสามารถลดการไล่เส้นได้อย่างเห็นได้ชัด แต่ก็อาจเพิ่มความเสี่ยงของการอุดตันของหัวฉีดหรือภาวะแทรกซ้อนในการพิมพ์อื่นๆ อีกด้วย กรุณาใช้กับเฟิร์มแวร์เครื่องพิมพ์ล่าสุด"
 
 # AI Translated
-msgid ""
-"When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr ""
-"เมื่อบันทึกไทม์แลปส์โดยไม่มีหัวเครื่องมือ แนะนำให้เพิ่ม \"Timelapse Wipe Tower\" \n"
-"โดยคลิกขวาที่ตำแหน่งว่างของฐานพิมพ์แล้วเลือก \"Add Primitive\"->\"Timelapse Wipe Tower\""
+msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+msgstr "เมื่อบันทึกไทม์แลปส์โดยไม่มีหัวเครื่องมือ แนะนำให้เพิ่ม \"Timelapse Wipe Tower\" โดยคลิกขวาที่ตำแหน่งว่างของฐานพิมพ์แล้วเลือก \"Add Primitive\"->\"Timelapse Wipe Tower\""
 
+# AI Translated
 msgid "Setting unavailable"
-msgstr ""
+msgstr "การตั้งค่าไม่พร้อมใช้งาน"
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "สำเนาของค่าที่ตั้งล่วงหน้าของระบบปัจจุบันจะถูกสร้างขึ้น ซึ่งจะแยกออกจากค่าที่ตั้งล่วงหน้าของระบบ"
@@ -12931,14 +13175,16 @@ msgstr "การกำหนดค่าปลั๊กอิน"
 msgid "Notes"
 msgstr "หมายเหตุ"
 
+# AI Translated
 msgid "The selected printer does not support multiple bed types."
-msgstr ""
+msgstr "เครื่องพิมพ์ที่เลือกไม่รองรับฐานพิมพ์หลายประเภท"
 
 msgid "Frequent"
 msgstr "บ่อย"
 
+# AI Translated
 msgid "Custom filament print order is unavailable while the plate contains mixed-color filaments."
-msgstr ""
+msgstr "ลำดับเส้นพลาสติกแบบกำหนดเองใช้ไม่ได้ขณะที่เพลตมีเส้นพลาสติกผสม"
 
 #, c-format, boost-format
 msgid ""
@@ -12963,14 +13209,17 @@ msgstr "การตั้งค่าการแทนที่"
 msgid "Retraction when switching material"
 msgstr "การร่นกลับเมื่อเปลี่ยนวัสดุ"
 
+# AI Translated
 msgid "Set the filament retraction length above zero, or use the printer's value, to edit this setting."
-msgstr ""
+msgstr "ตั้งค่าระยะดึงกลับของเส้นพลาสติกให้มากกว่าศูนย์ หรือใช้ค่าของเครื่องพิมพ์ เพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "The printer profile must allow filament overrides for long retraction when cutting."
-msgstr ""
+msgstr "โปรไฟล์เครื่องพิมพ์ต้องอนุญาตให้โปรไฟล์เส้นพลาสติกแทนที่ค่าการดึงกลับยาวเมื่อตัด"
 
+# AI Translated
 msgid "Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."
-msgstr ""
+msgstr "อนุญาตการดึงกลับยาวเมื่อตัดในโปรไฟล์เครื่องพิมพ์ และเปิดใช้งานในโปรไฟล์เส้นพลาสติกเพื่อใช้การตั้งค่านี้"
 
 msgid "Basic information"
 msgstr "ข้อมูลพื้นฐาน"
@@ -13107,59 +13356,78 @@ msgstr "เครื่องพิมพ์ที่เข้ากันได
 msgid "Compatible process profiles"
 msgstr "โปรไฟล์กระบวนการที่เข้ากันได้"
 
+# AI Translated
 msgid "Enable cooling for overhangs and bridges to edit this setting."
-msgstr ""
+msgstr "เปิดใช้งานการระบายความร้อนสำหรับส่วนยื่นและสะพานเพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Enable slowing down for layer cooling to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานชะลอการพิมพ์ลงเพื่อการระบายความร้อนที่ดีขึ้น เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Set the number of initial layers without cooling to zero to override the first layer fan speed."
-msgstr ""
+msgstr "ตั้งค่าจำนวนเลเยอร์แรกที่ไม่มีการระบายความร้อนเป็นศูนย์ เพื่อกำหนดความเร็วพัดลมเลเยอร์แรกแทน"
 
+# AI Translated
 msgid "Enable the auxiliary fan in the printer profile to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานพัดลมระบายความร้อนชิ้นส่วนเสริมในโปรไฟล์เครื่องพิมพ์เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "The selected printer does not support air filtration."
-msgstr ""
+msgstr "เครื่องพิมพ์ที่เลือกไม่รองรับการกรองอากาศ"
 
+# AI Translated
 msgid "Activate air filtration to edit this setting."
-msgstr ""
+msgstr "เปิดใช้งานการกรองอากาศเพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Activate air filtration and enable it during printing to edit the exhaust fan speed."
-msgstr ""
+msgstr "เปิดใช้งานการกรองอากาศ และเปิดใช้ระหว่างพิมพ์ เพื่อแก้ไขความเร็วพัดลมดูดอากาศ"
 
+# AI Translated
 msgid "Activate air filtration and enable it on completion to edit the exhaust fan speed."
-msgstr ""
+msgstr "เปิดใช้งานการกรองอากาศ และเปิดใช้เมื่อเสร็จสิ้น เพื่อแก้ไขความเร็วพัดลมดูดอากาศ"
 
+# AI Translated
 msgid "Enable pressure advance to use this setting."
-msgstr ""
+msgstr "เปิดใช้ Pressure Advance เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Select this bed type or enable support for multiple bed types in the printer profile to show its temperature settings."
-msgstr ""
+msgstr "เลือกฐานพิมพ์ประเภทนี้ หรือเปิดใช้งานรองรับฐานพิมพ์หลายประเภทในโปรไฟล์เครื่องพิมพ์ เพื่อแสดงการตั้งค่าอุณหภูมิของฐานพิมพ์นี้"
 
+# AI Translated
 msgid "Enable pressure advance and adaptive pressure advance to use this setting."
-msgstr ""
+msgstr "เปิดใช้ Pressure Advance และ Adaptive Pressure Advance เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable the pellet printer option in the printer profile to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานตัวเลือก เครื่องพิมพ์ Modded เม็ด ในโปรไฟล์เครื่องพิมพ์เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Filament diameter is unavailable for pellet printers."
-msgstr ""
+msgstr "เส้นผ่านศูนย์กลางเส้นพลาสติกใช้ไม่ได้กับเครื่องพิมพ์แบบเม็ด"
 
+# AI Translated
 msgid "The selected printer does not support chamber temperature control."
-msgstr ""
+msgstr "เครื่องพิมพ์ที่เลือกไม่รองรับการควบคุมอุณหภูมิห้องพิมพ์"
 
+# AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
-msgstr ""
+msgstr "ตั้งค่าค่าสัมประสิทธิ์ความเร็วปริมาตรที่ไม่เป็นศูนย์ก่อนเปิดใช้งานความเร็วตามปริมาตรแบบปรับได้"
 
+# AI Translated
+# Needs human review: Ramming has no settled glossary term; this quotes the label 'เปิดใช้งานการกระแทกสำหรับการตั้งค่าหลายเครื่องมือ' (Enable ramming for multi-tool setups).
 msgid "Enable multitool ramming to edit this setting."
-msgstr ""
+msgstr "เปิดใช้งานการกระแทกสำหรับการตั้งค่าหลายเครื่องมือเพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer with multiple extruders."
-msgstr ""
+msgstr "การตั้งค่านี้ต้องใช้เครื่องพิมพ์ Bambu Lab ที่มีชุดดันเส้นหลายชุด"
 
+# AI Translated
 msgid "Use a Bambu Lab printer with multiple extruders and enable long retraction when the extruder changes."
-msgstr ""
+msgstr "ใช้เครื่องพิมพ์ Bambu Lab ที่มีชุดดันเส้นหลายชุด และเปิดใช้งานการดึงกลับยาวเมื่อเปลี่ยนชุดดันเส้น"
 
 msgid "Printable space"
 msgstr "พื้นที่ที่สามารถพิมพ์ได้"
@@ -13275,12 +13543,10 @@ msgid "Number of extruders of the printer."
 msgstr "จำนวนชุดดันเส้นของเครื่องพิมพ์"
 
 msgid ""
-"Single Extruder Multi Material is selected,\n"
-"and all extruders must have the same diameter.\n"
+"Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
 msgstr ""
-"เลือกวัสดุหลายชุดดันเส้นเดี่ยว\n"
-"และชุดดันเส้นทั้งหมดจะต้องมีเส้นผ่านศูนย์กลางเท่ากัน\n"
+"เลือกวัสดุหลายชุดดันเส้นเดี่ยว และชุดดันเส้นทั้งหมดจะต้องมีเส้นผ่านศูนย์กลางเท่ากัน\n"
 "คุณต้องการเปลี่ยนเส้นผ่านศูนย์กลางสำหรับชุดดันเส้นทั้งหมดเป็นค่าเส้นผ่านศูนย์กลางหัวฉีดของชุดดันเส้นตัวแรกหรือไม่?"
 
 msgid "Nozzle diameter"
@@ -13321,62 +13587,81 @@ msgstr "การจำกัดความสูงของเลเยอร
 msgid "Z-Hop"
 msgstr "ยกแกน Z"
 
+# AI Translated
 msgid "Power loss recovery requires a Bambu Lab printer or the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "การกู้คืนการสูญเสียพลังงานต้องใช้เครื่องพิมพ์ Bambu Lab หรือชนิด G-code แบบเฟิร์มแวร์ Marlin"
 
+# AI Translated
 msgid "Build plate tilt is derived from the belt tilt on belt printers."
-msgstr ""
+msgstr "บนเครื่องพิมพ์สายพาน การเอียงฐานพิมพ์จะได้มาจากการเอียงของสายพาน"
 
+# AI Translated
 msgid "Enable belt printer mode to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานโหมดเครื่องพิมพ์สายพานเพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable belt printer mode and select a belt rotation axis to edit its angle."
-msgstr ""
+msgstr "เปิดใช้งานโหมดเครื่องพิมพ์สายพาน และเลือกแกนเอียงสายพาน เพื่อแก้ไขมุมเอียง"
 
+# AI Translated
 msgid "Enable belt printer mode and select Expert or Developer settings visibility to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานโหมดเครื่องพิมพ์สายพาน และเลือกการแสดงการตั้งค่าเป็น \"ผู้เชี่ยวชาญ\" หรือ \"นักพัฒนา\" เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable belt printer mode, select Expert or Developer settings visibility, and decouple the machine frame tilt to edit its angle."
-msgstr ""
+msgstr "เปิดใช้งานโหมดเครื่องพิมพ์สายพาน เลือกการแสดงการตั้งค่าเป็น \"ผู้เชี่ยวชาญ\" หรือ \"นักพัฒนา\" และแยกการเอียงของระบบพิกัดเครื่อง เพื่อแก้ไขมุมเอียง"
 
+# AI Translated
 msgid "Enable support for parallel printheads to edit their count."
-msgstr ""
+msgstr "เปิดใช้งานรองรับหัวพิมพ์แบบขนานเพื่อแก้ไขจำนวนหัวพิมพ์"
 
+# AI Translated
 msgid "Collision volume mode selection requires multiple extruders."
-msgstr ""
+msgstr "การเลือกโหมดปริมาตรการชนต้องใช้ชุดดันเส้นหลายชุด"
 
+# AI Translated
 msgid "Select a shared collision volume mode or use a single-extruder printer to edit this setting."
-msgstr ""
+msgstr "เลือกโหมดปริมาตรการชนแบบใช้ร่วมกัน หรือใช้เครื่องพิมพ์ที่มีชุดดันเส้นเดียว เพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Enable the auxiliary fan to edit its direction."
-msgstr ""
+msgstr "เปิดใช้งานพัดลมระบายความร้อนชิ้นส่วนเสริมเพื่อแก้ไขทิศทางพัดลม"
 
+# AI Translated
 msgid "Air filtration and the cooling filter are alternative accessories; disable cooling filter support to use air filtration."
-msgstr ""
+msgstr "การกรองอากาศและตัวกรองความเย็นเป็นอุปกรณ์เสริมที่ใช้แทนกัน ปิดการรองรับตัวกรองความเย็นเพื่อใช้การกรองอากาศ"
 
+# AI Translated
 msgid "Enable cooling filter support in the printer profile to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานการรองรับตัวกรองความเย็นในโปรไฟล์เครื่องพิมพ์เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable belt printer mode to use the belt purge tower."
-msgstr ""
+msgstr "เปิดใช้งานโหมดเครื่องพิมพ์สายพานเพื่อใช้หอไล่เส้นบนสายพาน"
 
+# AI Translated
 msgid "Wipe tower type selection is unavailable for Bambu Lab printers and belt printers."
-msgstr ""
+msgstr "การเลือกชนิด Wipe Tower ใช้ไม่ได้กับเครื่องพิมพ์ Bambu Lab และเครื่องพิมพ์สายพาน"
 
+# AI Translated
 msgid "Select wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "เลือกชนิด Wipe Tower เป็น \"ประเภทที่ 2\" บนเครื่องพิมพ์ที่ไม่ใช่ Bambu เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Extruder count cannot be edited in single extruder multimaterial mode."
-msgstr ""
+msgstr "ไม่สามารถแก้ไขจำนวนชุดดันเส้นได้ในโหมดชุดดันเส้นเดี่ยวหลายวัสดุ"
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode to use manual filament changes."
-msgstr ""
+msgstr "เปิดใช้งานโหมดชุดดันเส้นเดี่ยวหลายวัสดุเพื่อใช้การเปลี่ยนเส้นพลาสติกด้วยตนเอง"
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานโหมดชุดดันเส้นเดี่ยวหลายวัสดุร่วมกับ Wipe Tower \"ประเภทที่ 2\" บนเครื่องพิมพ์ที่ไม่ใช่ Bambu เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable IDEX/IQEX printer mode to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานโหมดเครื่องพิมพ์ IDEX/IQEX เพื่อใช้การตั้งค่านี้"
 
 # AI Translated
 msgid "Front-left"
@@ -13394,35 +13679,47 @@ msgstr "ด้านหลังซ้าย"
 msgid "Rear-right"
 msgstr "ด้านหลังขวา"
 
+# AI Translated
 msgid "Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "ใช้ชุดดันเส้นหลายชุดร่วมกับ Wipe Tower \"ประเภทที่ 2\" บนเครื่องพิมพ์ที่ไม่ใช่ Bambu และปิดใช้งานโหมดชุดดันเส้นเดี่ยวหลายวัสดุ"
 
+# AI Translated
 msgid "Set retraction length above zero or enable firmware retraction to use this setting."
-msgstr ""
+msgstr "ตั้งค่าระยะดึงกลับให้มากกว่าศูนย์ หรือเปิดใช้งานการดึงกลับด้วยเฟิร์มแวร์ เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "The extruder printable area and height are fixed by the printer profile."
-msgstr ""
+msgstr "พื้นที่และความสูงที่พิมพ์ได้ของชุดดันเส้นถูกกำหนดตายตัวโดยโปรไฟล์เครื่องพิมพ์"
 
+# AI Translated
 msgid "This setting is shown for printers with exactly two extruders."
-msgstr ""
+msgstr "การตั้งค่านี้จะแสดงเฉพาะสำหรับเครื่องพิมพ์ที่มีชุดดันเส้นสองชุดพอดี"
 
+# AI Translated
 msgid "Select per-extruder collision volumes on a printer with multiple extruders to edit this setting."
-msgstr ""
+msgstr "เลือกปริมาตรการชนแบบแยกตามชุดดันเส้นบนเครื่องพิมพ์ที่มีชุดดันเส้นหลายชุดเพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Retraction length is controlled by the firmware while firmware retraction is enabled."
-msgstr ""
+msgstr "ระยะดึงกลับถูกควบคุมโดยเฟิร์มแวร์ขณะที่เปิดใช้งานการดึงกลับด้วยเฟิร์มแวร์"
 
+# AI Translated
 msgid "Enable retraction and set Z hop above zero to use this setting."
-msgstr ""
+msgstr "เปิดใช้งานการดึงกลับ และตั้งค่าความสูงยกแกน Z ให้มากกว่าศูนย์เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
-msgstr ""
+msgstr "ตั้งค่าระยะดึงกลับให้มากกว่าศูนย์ และปิดใช้งานการดึงกลับด้วยเฟิร์มแวร์ เพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
-msgstr ""
+msgstr "เปิดใช้งานการดึงกลับและการเช็ดหัวฉีด และตั้งค่าปริมาณการดึงกลับหลังเช็ดหัวให้น้อยกว่า 100% เพื่อแก้ไขสัดส่วนการดึงกลับก่อน Wipe"
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
-msgstr ""
+msgstr "เปิดใช้งานการดึงกลับและการเช็ดหัวฉีด และตั้งค่าสัดส่วนการดึงกลับก่อน Wipe ให้น้อยกว่า 100% เพื่อแก้ไขปริมาณการดึงกลับหลังเช็ดหัว"
 
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
@@ -13436,47 +13733,61 @@ msgstr ""
 msgid "Firmware Retraction"
 msgstr "การดึงกลับด้วยเฟิร์มแวร์ (Firmware Retraction)"
 
+# AI Translated
 msgid "Enable retraction and wiping to edit wipe distance."
-msgstr ""
+msgstr "เปิดใช้งานการดึงกลับและการเช็ดหัวฉีดเพื่อแก้ไขระยะเช็ดหัวฉีด"
 
+# AI Translated
 msgid "This setting requires multiple extruders."
-msgstr ""
+msgstr "การตั้งค่านี้ต้องใช้ชุดดันเส้นหลายชุด"
 
+# AI Translated
 msgid "Use multiple extruders and set tool change retraction length above zero to edit this setting."
-msgstr ""
+msgstr "ใช้ชุดดันเส้นหลายชุด และตั้งค่าความยาวการดึงกลับเมื่อเปลี่ยนเครื่องมือให้มากกว่าศูนย์ เพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Disable firmware retraction and allow long retraction when cutting to use this setting."
-msgstr ""
+msgstr "ปิดใช้งานการดึงกลับด้วยเฟิร์มแวร์ และอนุญาตการดึงกลับยาวเมื่อตัด เพื่อใช้การตั้งค่านี้"
 
+# AI Translated
 msgid "Enable long retraction when cutting to edit the retraction distance."
-msgstr ""
+msgstr "เปิดใช้งานการดึงกลับยาวเมื่อตัดเพื่อแก้ไขระยะการดึงกลับ"
 
+# AI Translated
 msgid "Select a Z hop type other than Normal to edit travel slope."
-msgstr ""
+msgstr "เลือกประเภท Z-hop อื่นที่ไม่ใช่ \"ปกติ\" เพื่อแก้ไขมุมการเดินหัวเปล่า"
 
+# AI Translated
 msgid "Travel acceleration limits are unavailable for the Marlin legacy and Klipper G-code flavors."
-msgstr ""
+msgstr "ขีดจำกัดความเร่งการเดินหัวเปล่าใช้ไม่ได้กับชนิด G-code แบบ Marlin (รุ่นเก่า) และ Klipper"
 
+# AI Translated
 msgid "Jerk limits are unavailable while Marlin uses nonzero junction deviation."
-msgstr ""
+msgstr "ขีดจำกัด Jerk ใช้ไม่ได้ขณะที่ Marlin ใช้ค่า Junction Deviation ที่ไม่เป็นศูนย์"
 
+# AI Translated
 msgid "Emitting machine limits requires the Marlin legacy, Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "การปล่อยขีดจำกัดของเครื่องต้องใช้ชนิด G-code แบบ Marlin (รุ่นเก่า), Marlin หรือ RepRapFirmware"
 
+# AI Translated
 msgid "Enable resonance avoidance to edit its speed range."
-msgstr ""
+msgstr "เปิดใช้งานการหลีกเลี่ยงการสั่นพ้องเพื่อแก้ไขช่วงความเร็ว"
 
+# AI Translated
 msgid "This input shaping setting requires the Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "การตั้งค่า Input Shaping นี้ต้องใช้ชนิด G-code แบบ Marlin หรือ RepRapFirmware"
 
+# AI Translated
 msgid "Enable emitting machine limits to G-code to emit input shaping settings."
-msgstr ""
+msgstr "เปิดใช้งานการปล่อยขีดจำกัดของเครื่องให้กับ G-code เพื่อปล่อยการตั้งค่า Input Shaping"
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code to edit this setting."
-msgstr ""
+msgstr "เปิดใช้งานการปล่อยขีดจำกัดของเครื่องและ Input Shaping ให้กับ G-code เพื่อแก้ไขการตั้งค่านี้"
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code with the Marlin firmware G-code flavor to edit separate Y-axis values."
-msgstr ""
+msgstr "เปิดใช้งานการปล่อยขีดจำกัดของเครื่องและ Input Shaping ให้กับ G-code ร่วมกับชนิด G-code แบบเฟิร์มแวร์ Marlin เพื่อแก้ไขค่าแกน Y แยกต่างหาก"
 
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
 msgstr "การเปลี่ยนไปใช้เครื่องพิมพ์ที่มีประเภทหรือหมายเลขชุดดันเส้นที่แตกต่างกันจะยกเลิกหรือรีเซ็ตการเปลี่ยนแปลงในชุดดันเส้นหรือพารามิเตอร์ที่เกี่ยวข้องกับหัวฉีดหลายตัว"
@@ -13531,8 +13842,9 @@ msgstr ""
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "คุณแน่ใจหรือไม่ว่าต้องการลบพรีเซ็ตที่เลือก?"
 
+# AI Translated
 msgid "Select \"All\" to edit the compatibility condition instead of using an explicit profile list."
-msgstr ""
+msgstr "เลือก \"ทั้งหมด\" เพื่อแก้ไขเงื่อนไขความเข้ากันได้ แทนการใช้รายการโปรไฟล์ที่ระบุไว้"
 
 msgid "Select printers"
 msgstr "เลือกเครื่องพิมพ์"
@@ -13641,8 +13953,9 @@ msgstr "คลิกเพื่อรีเซ็ตค่าปัจจุบ
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "คลิกเพื่อลบการแก้ไขปัจจุบันและรีเซ็ตเป็นค่าที่บันทึกไว้"
 
+# AI Translated
 msgid "Material print speed cannot be edited for the SL1 printer."
-msgstr ""
+msgstr "ไม่สามารถแก้ไขความเร็วการพิมพ์วัสดุสำหรับเครื่องพิมพ์ SL1 ได้"
 
 msgid "Process Settings"
 msgstr "การตั้งค่ากระบวนการ"
@@ -13725,18 +14038,18 @@ msgstr "ถ่ายโอนตัวเลือกที่เลือกไ
 
 #, boost-format
 msgid ""
-"Save the selected options to preset \n"
+"Save the selected options to preset\n"
 "\"%1%\"."
 msgstr ""
-"บันทึกตัวเลือกที่เลือกเพื่อตั้งค่าล่วงหน้า \n"
+"บันทึกตัวเลือกที่เลือกเพื่อตั้งค่าล่วงหน้า\n"
 "\"%1%\""
 
 #, boost-format
 msgid ""
-"Transfer the selected options to the newly selected preset \n"
+"Transfer the selected options to the newly selected preset\n"
 "\"%1%\"."
 msgstr ""
-"ถ่ายโอนตัวเลือกที่เลือกไปยังค่าที่ตั้งล่วงหน้าที่เลือกใหม่ \n"
+"ถ่ายโอนตัวเลือกที่เลือกไปยังค่าที่ตั้งล่วงหน้าที่เลือกใหม่\n"
 "\"%1%\""
 
 #, boost-format
@@ -14580,12 +14893,8 @@ msgstr "กำลังเชื่อมต่อกับเครื่อง
 msgid "Connection failed, please double check IP and Access Code"
 msgstr "การเชื่อมต่อล้มเหลว โปรดตรวจสอบ IP และรหัสการเข้าถึงอีกครั้ง"
 
-msgid ""
-"Connection failed! If your IP and Access Code is correct, \n"
-"please move to step 3 for troubleshooting network issues"
-msgstr ""
-"การเชื่อมต่อล้มเหลว! หาก IP และรหัสการเข้าถึงของคุณถูกต้อง \n"
-"โปรดย้ายไปยังขั้นตอนที่ 3 เพื่อแก้ไขปัญหาเครือข่าย"
+msgid "Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"
+msgstr "การเชื่อมต่อล้มเหลว! หาก IP และรหัสการเข้าถึงของคุณถูกต้อง โปรดย้ายไปยังขั้นตอนที่ 3 เพื่อแก้ไขปัญหาเครือข่าย"
 
 msgid "Connection failed! Please refer to the wiki page."
 msgstr "การเชื่อมต่อล้มเหลว! โปรดดูที่หน้าวิกิ"
@@ -15087,6 +15396,11 @@ msgstr "%1% ตัดกับปริมาตรการชนของช�
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% อยู่ใกล้ผู้อื่นมากเกินไป และอาจเกิดการชนกันได้"
 
+# AI Translated
+#, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr "%1% จะถูกพิมพ์ช้ากว่าตำแหน่งในรายการวัตถุ เพื่อหลีกเลี่ยงการชน"
+
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% สูงเกินไป และจะเกิดการชนกัน"
@@ -15136,10 +15450,11 @@ msgstr "หากคุณยังต้องการพิมพ์ คุ�
 msgid "No extrusions under current settings."
 msgstr "ไม่มีการอัดขึ้นรูปภายใต้การตั้งค่าปัจจุบัน"
 
+# AI Translated
 #. TRN %1% is the filament number as shown in the filament list, starting from 1.
 #, boost-format
 msgid "The flow ratio of filament %1% must be greater than 0."
-msgstr ""
+msgstr "อัตราส่วนการไหลของเส้นพลาสติก %1% ต้องมากกว่า 0"
 
 # AI Translated
 msgid "Mixed filaments are not supported in IDEX/IQEX parallel modes. Switch this plate to Primary mode."
@@ -15398,8 +15713,19 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "ตัวเลือกผนังที่แม่นยำจะถูกละเว้นสำหรับลำดับผนังด้านนอก-ด้านใน หรือด้านใน-ด้านนอก-ด้านใน"
 
 # AI Translated
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "โมเดล Adaptive Pressure Advance สำหรับชุดดันเส้นหนึ่งตัวขึ้นไปอาจมีค่าที่ไม่ถูกต้อง"
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr "เปิดใช้ Adaptive Pressure Advance สำหรับชุดดันเส้นอย่างน้อยหนึ่งชุด แต่ยังไม่ได้ป้อนข้อมูลวัดในแบบจำลอง Adaptive Pressure Advance ของชุดดันเส้นเหล่านั้น"
+
+# AI Translated
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
+"แบบจำลอง Adaptive Pressure Advance ของเส้นพลาสติก %1% มีค่าที่ไม่ถูกต้อง\n"
+"%2%"
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "การหดตัวของเส้นพลาสติกจะไม่ถูกนำมาใช้เนื่องจากการหดตัวของเส้นพลาสติกสำหรับเส้นพลาสติกที่ใช้ไม่ตรงกัน"
@@ -16153,8 +16479,14 @@ msgid "Precise wall"
 msgstr "ผนังที่แม่นยำ"
 
 # AI Translated
-msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr "ปรับปรุงความแม่นยำของผนังโดยการปรับระยะห่างผนังด้านนอก นอกจากนี้ยังช่วยปรับปรุงความสม่ำเสมอของเลเยอร์อีกด้วย หมายเหตุ: ตัวเลือกนี้จะถูกละเว้นสำหรับลำดับผนังด้านนอก-ด้านใน หรือด้านใน-ด้านนอก-ด้านใน"
+msgid ""
+"Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n"
+"\n"
+"Note: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgstr ""
+"ปรับปรุงความแม่นยำของผนังโดยการปรับระยะห่างผนังด้านนอก นอกจากนี้ยังช่วยปรับปรุงความสม่ำเสมอของเลเยอร์อีกด้วย\n"
+"\n"
+"หมายเหตุ: ตัวเลือกนี้จะถูกละเว้นสำหรับลำดับผนังด้านนอก-ด้านใน หรือด้านใน-ด้านนอก-ด้านใน"
 
 msgid "Only one wall on top surfaces"
 msgstr "มีเพียงผนังเดียวบนพื้นผิวด้านบน"
@@ -16169,9 +16501,11 @@ msgstr "เกณฑ์ผนังด้านหนึ่ง"
 #, no-c-format, no-boost-format
 msgid ""
 "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+"\n"
 "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
 msgstr ""
 "หากต้องพิมพ์พื้นผิวด้านบนและปิดบางส่วนด้วยเลเยอร์อื่น จะไม่ได้รับการพิจารณาที่เลเยอร์บนสุดซึ่งมีความกว้างต่ำกว่าค่านี้ วิธีนี้จะเป็นประโยชน์ในการไม่ปล่อยให้ 'เส้นรอบวงด้านบนหนึ่งเส้น' ทริกเกอร์บนพื้นผิวที่ควรครอบคลุมเฉพาะเส้นรอบวงเท่านั้น ค่านี้อาจเป็นหน่วย มม. หรือ % ของความกว้างของการอัดขึ้นรูปเส้นรอบวง\n"
+"\n"
 "คำเตือน: หากเปิดใช้งาน สามารถสร้างสิ่งประดิษฐ์ได้หากคุณมีคุณสมบัติบางๆ ในเลเยอร์ถัดไป เช่น ตัวอักษร ตั้งค่านี้เป็น 0 เพื่อลบสิ่งประดิษฐ์เหล่านี้"
 
 # AI Translated
@@ -16273,7 +16607,7 @@ msgid ""
 "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
 "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 "\n"
-"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen.\n"
 "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
 "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
 "\n"
@@ -16557,8 +16891,12 @@ msgid "Activate air filtration"
 msgstr "เปิดใช้งานการกรองอากาศ"
 
 # AI Translated
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "เปิดใช้งานเพื่อการกรองอากาศที่ดีขึ้น คำสั่ง G-code: M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"เปิดใช้งานเพื่อการกรองอากาศที่ดีขึ้น\n"
+"คำสั่ง G-code: M106 P3 S(0-255)"
 
 msgid "Enable this to override the fan speed set in custom G-code during print."
 msgstr "เปิดใช้งานสิ่งนี้เพื่อแทนที่ความเร็วพัดลมที่ตั้งไว้ใน G-code แบบกำหนดเองระหว่างการพิมพ์"
@@ -17005,15 +17343,27 @@ msgid "Bed mesh min"
 msgstr "ตาข่ายฐานพิมพ์ขั้นต่ำ"
 
 # AI Translated
-msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "ตัวเลือกนี้จะตั้งค่าจุดต่ำสุดสำหรับพื้นที่ตาข่ายฐานพิมพ์ที่อนุญาต เนื่องจากออฟเซ็ต XY ของโพรบ เครื่องพิมพ์ส่วนใหญ่จึงไม่สามารถตรวจสอบทั้งฐานพิมพ์ได้ เพื่อให้แน่ใจว่าจุดโพรบไม่ออกไปนอกบริเวณฐานพิมพ์ ควรตั้งค่าจุดต่ำสุดและสูงสุดของตาข่ายฐานพิมพ์อย่างเหมาะสม OrcaSlicer ช่วยให้มั่นใจได้ว่าค่าของ adaptive_bed_mesh_min/adaptive_bed_mesh_max จะต้องไม่เกินจุดต่ำสุด/สูงสุดเหล่านี้ โดยปกติข้อมูลนี้สามารถรับได้จากผู้ผลิตเครื่องพิมพ์ของคุณ การตั้งค่าเริ่มต้นคือ (-99999, -99999) ซึ่งหมายความว่าไม่มีขีดจำกัด จึงสามารถตรวจวัดทั่วทั้งฐานพิมพ์ได้"
+msgid ""
+"This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"ตัวเลือกนี้จะตั้งค่าจุดต่ำสุดสำหรับพื้นที่ตาข่ายฐานพิมพ์ที่อนุญาต เนื่องจากออฟเซ็ต XY ของโพรบ เครื่องพิมพ์ส่วนใหญ่จึงไม่สามารถตรวจสอบทั้งฐานพิมพ์ได้ เพื่อให้แน่ใจว่าจุดโพรบไม่ออกไปนอกบริเวณฐานพิมพ์ ควรตั้งค่าจุดต่ำสุดและสูงสุดของตาข่ายฐานพิมพ์อย่างเหมาะสม OrcaSlicer ช่วยให้มั่นใจได้ว่าค่าของ adaptive_bed_mesh_min/adaptive_bed_mesh_max จะต้องไม่เกินจุดต่ำสุด/สูงสุดเหล่านี้ โดยปกติข้อมูลนี้สามารถรับได้จากผู้ผลิตเครื่องพิมพ์ของคุณ\n"
+"\n"
+"การตั้งค่าเริ่มต้นคือ (-99999, -99999) ซึ่งหมายความว่าไม่มีขีดจำกัด จึงสามารถตรวจวัดทั่วทั้งฐานพิมพ์ได้"
 
 msgid "Bed mesh max"
 msgstr "ตาข่ายฐานพิมพ์สูงสุด"
 
 # AI Translated
-msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "ตัวเลือกนี้จะตั้งค่าจุดสูงสุดสำหรับพื้นที่ตาข่ายฐานพิมพ์ที่อนุญาต เนื่องจากออฟเซ็ต XY ของโพรบ เครื่องพิมพ์ส่วนใหญ่จึงไม่สามารถตรวจสอบทั้งฐานพิมพ์ได้ เพื่อให้แน่ใจว่าจุดโพรบไม่ออกไปนอกบริเวณฐานพิมพ์ ควรตั้งค่าจุดต่ำสุดและสูงสุดของตาข่ายฐานพิมพ์อย่างเหมาะสม OrcaSlicer ช่วยให้มั่นใจได้ว่าค่าของ adaptive_bed_mesh_min/adaptive_bed_mesh_max จะต้องไม่เกินจุดต่ำสุด/สูงสุดเหล่านี้ โดยปกติข้อมูลนี้สามารถรับได้จากผู้ผลิตเครื่องพิมพ์ของคุณ การตั้งค่าเริ่มต้นคือ (99999, 99999) ซึ่งหมายความว่าไม่มีขีดจำกัด จึงสามารถตรวจวัดทั่วทั้งฐานพิมพ์ได้"
+msgid ""
+"This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"ตัวเลือกนี้จะตั้งค่าจุดสูงสุดสำหรับพื้นที่ตาข่ายฐานพิมพ์ที่อนุญาต เนื่องจากออฟเซ็ต XY ของโพรบ เครื่องพิมพ์ส่วนใหญ่จึงไม่สามารถตรวจสอบทั้งฐานพิมพ์ได้ เพื่อให้แน่ใจว่าจุดโพรบไม่ออกไปนอกบริเวณฐานพิมพ์ ควรตั้งค่าจุดต่ำสุดและสูงสุดของตาข่ายฐานพิมพ์อย่างเหมาะสม OrcaSlicer ช่วยให้มั่นใจได้ว่าค่าของ adaptive_bed_mesh_min/adaptive_bed_mesh_max จะต้องไม่เกินจุดต่ำสุด/สูงสุดเหล่านี้ โดยปกติข้อมูลนี้สามารถรับได้จากผู้ผลิตเครื่องพิมพ์ของคุณ\n"
+"\n"
+"การตั้งค่าเริ่มต้นคือ (99999, 99999) ซึ่งหมายความว่าไม่มีขีดจำกัด จึงสามารถตรวจวัดทั่วทั้งฐานพิมพ์ได้"
 
 msgid "Probe point distance"
 msgstr "ระยะทางจุดโพรบ"
@@ -17132,13 +17482,11 @@ msgstr "Pressure Advance แบบคงที่สำหรับสะพา�
 
 # AI Translated
 msgid ""
-"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
-"equivalent walls (using adaptive settings if enabled).\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"ค่า Pressure Advance แบบคงที่สำหรับสะพาน ตั้งเป็น 0 เพื่อใช้ Pressure Advance เดียวกับ \n"
-"ผนังที่เทียบเท่า (ใช้การตั้งค่าปรับได้หากเปิดใช้งาน)\n"
+"ค่า Pressure Advance แบบคงที่สำหรับสะพาน ตั้งเป็น 0 เพื่อใช้ Pressure Advance เดียวกับผนังที่เทียบเท่า (ใช้การตั้งค่าปรับได้หากเปิดใช้งาน)\n"
 "\n"
 "ค่า PA ที่ต่ำกว่าเมื่อพิมพ์สะพานช่วยลดการปรากฏของการอัดขึ้นรูปน้อยเกินไปเล็กน้อยทันทีหลังสะพาน สาเหตุมาจากแรงดันที่ลดลงในหัวฉีดเมื่อพิมพ์กลางอากาศ และค่า PA ที่ต่ำกว่าช่วยชดเชยสิ่งนี้"
 
@@ -18300,8 +18648,12 @@ msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "ตำแหน่งการจัดเรียงอัตโนมัติที่ดีที่สุดในช่วง [0,1] w.r.t. รูปร่างฐานพิมพ์"
 
 # AI Translated
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "เปิดใช้งานตัวเลือกนี้หากเครื่องมีพัดลมระบายความร้อนชิ้นส่วนเสริม คำสั่ง G-code: M106 P2 S(0-255)"
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"เปิดใช้งานตัวเลือกนี้หากเครื่องมีพัดลมระบายความร้อนชิ้นส่วนเสริม\n"
+"คำสั่ง G-code: M106 P2 S(0-255)"
 
 # AI Translated
 msgid "Fan direction"
@@ -18415,8 +18767,14 @@ msgid "Skip G-code config block"
 msgstr "ข้ามบล็อกการตั้งค่าใน G-code"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "ไม่เขียน CONFIG_BLOCK (คู่คีย์/ค่าของการตั้งค่าโปรแกรมสไลซ์) ลงในไฟล์ G-code ซึ่งอาจช่วยได้กับเครื่องพิมพ์ที่เฟิร์มแวร์ขัดข้องเมื่ออ่านบรรทัดคอมเมนต์เหล่านี้ (เช่น Anycubic go-klipper) หมายเหตุ: ไฟล์ G-code จะไม่มีการตั้งค่าโปรแกรมสไลซ์อีกต่อไป ดังนั้นการนำเข้ากลับมาใน OrcaSlicer จะไม่คืนค่าการตั้งค่า"
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"ไม่เขียน CONFIG_BLOCK (คู่คีย์/ค่าของการตั้งค่าโปรแกรมสไลซ์) ลงในไฟล์ G-code ซึ่งอาจช่วยได้กับเครื่องพิมพ์ที่เฟิร์มแวร์ขัดข้องเมื่ออ่านบรรทัดคอมเมนต์เหล่านี้ (เช่น Anycubic go-klipper)\n"
+"\n"
+"หมายเหตุ: ไฟล์ G-code จะไม่มีการตั้งค่าโปรแกรมสไลซ์อีกต่อไป ดังนั้นการนำเข้ากลับมาใน OrcaSlicer จะไม่คืนค่าการตั้งค่า"
 
 msgid "Pellet Modded Printer"
 msgstr "เครื่องพิมพ์ Modded เม็ด"
@@ -18433,8 +18791,14 @@ msgstr "เปิดใช้งานตัวเลือกนี้หาก
 msgid "Label objects"
 msgstr "ติดป้ายกำกับวัตถุ"
 
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "เปิดใช้งานสิ่งนี้เพื่อเพิ่มความคิดเห็นลงในการพิมพ์การติดฉลาก G-code ด้วยวัตถุที่อยู่ในนั้น ซึ่งมีประโยชน์สำหรับปลั๊กอิน Octoprint CancelObject การตั้งค่านี้เข้ากันไม่ได้กับการตั้งค่า Single ชุดดันเส้น Multi Material และ Wipe into Object / Wipe into ไส้ใน"
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"เปิดใช้งานสิ่งนี้เพื่อเพิ่มความคิดเห็นลงในการพิมพ์การติดฉลาก G-code ด้วยวัตถุที่อยู่ในนั้น ซึ่งมีประโยชน์สำหรับปลั๊กอิน Octoprint CancelObject\n"
+"\n"
+"การตั้งค่านี้เข้ากันไม่ได้กับการตั้งค่า Single ชุดดันเส้น Multi Material และ Wipe into Object / Wipe into ไส้ใน"
 
 msgid "Exclude objects"
 msgstr "ไม่รวมวัตถุ"
@@ -18453,14 +18817,28 @@ msgstr "ค่าเบี่ยงเบนสูงสุดของเส้
 msgid "Verbose G-code"
 msgstr "G-code แบบละเอียด"
 
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "เปิดใช้งานสิ่งนี้เพื่อรับไฟล์ G-code ที่มีความคิดเห็น โดยแต่ละบรรทัดจะอธิบายด้วยข้อความอธิบาย หากคุณพิมพ์จากการ์ด SD น้ำหนักที่เพิ่มขึ้นของไฟล์อาจทำให้เฟิร์มแวร์ของคุณช้าลง"
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"เปิดใช้งานสิ่งนี้เพื่อรับไฟล์ G-code ที่มีความคิดเห็น โดยแต่ละบรรทัดจะอธิบายด้วยข้อความอธิบาย\n"
+"\n"
+"หากคุณพิมพ์จากการ์ด SD น้ำหนักที่เพิ่มขึ้นของไฟล์อาจทำให้เฟิร์มแวร์ของคุณช้าลง"
 
+# AI Translated
 msgid "High precision G-code (experimental)"
-msgstr ""
+msgstr "G-code ความแม่นยำสูง (ทดลอง)"
 
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+# AI Translated
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
 msgstr ""
+"เขียนค่า X, Y, Z, I และ J ด้วยทศนิยม 4 ตำแหน่งแทน 3 ตำแหน่ง และค่า E ด้วยทศนิยม 6 ตำแหน่งแทน 5 ตำแหน่ง เพื่อลดค่าคลาดเคลื่อนจากการปัดเศษใน G-code เมื่อใช้ระยะห่าง E สัมพัทธ์ ค่าคลาดเคลื่อนจากการปัดเศษของการเคลื่อนที่แต่ละครั้งจะถูกยกไปยังการเคลื่อนที่ครั้งถัดไปด้วย ส่วนรองรับจะถูกแกะออกหลังพิมพ์ จึงยังคงใช้ความแม่นยำมาตรฐาน ตัวเลือกนี้อาจช่วยให้การอัดรีดสม่ำเสมอขึ้นเมื่อใช้หัวฉีดขนาดเล็ก (เช่น 0.2 มม.) และเลเยอร์บาง (เช่น 0.08 มม. หรือน้อยกว่า) ซึ่งการเคลื่อนที่แต่ละครั้งอัดรีดวัสดุออกมาน้อยมากจนค่าคลาดเคลื่อนจากการปัดเศษมีผลมากที่สุด ผลลัพธ์ขึ้นอยู่กับการปรับแต่งการตั้งค่าอื่นๆ เป็นอย่างมาก และอาจสังเกตได้ยากหากโปรไฟล์การพิมพ์ไม่ได้ปรับเทียบไว้อย่างดี\n"
+"\n"
+"ไฟล์ G-code จะมีขนาดใหญ่ขึ้นประมาณ 10 เปอร์เซ็นต์ ซึ่งอาจทำให้เครื่องพิมพ์ที่ประมวลผล G-code ได้ช้าทำงานช้าลง"
 
 msgid "Infill combination"
 msgstr "ไส้ในชุดค่าผสม"
@@ -18480,15 +18858,35 @@ msgid "Sparse infill rotation template"
 msgstr "เทมเพลตการหมุน ไส้ใน แบบกระจัดกระจาย"
 
 # AI Translated
-msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr "หมุนทิศทางไส้ในแบบโปร่งต่อเลเยอร์โดยใช้เทมเพลตมุม ป้อนองศาที่คั่นด้วยเครื่องหมายจุลภาค (เช่น '0,30,60,90') มุมจะถูกนำไปใช้ตามลำดับเลเยอร์และทำซ้ำเมื่อรายการสิ้นสุด รองรับไวยากรณ์ขั้นสูง: '+5' หมุน +5° ทุกเลเยอร์; '+5#5' หมุน +5° ทุกๆ 5 เลเยอร์ ดูวิกิสำหรับรายละเอียด เมื่อตั้งค่าเทมเพลต การตั้งค่าทิศทางไส้ในมาตรฐานจะถูกละเว้น หมายเหตุ: รูปแบบไส้ในบางรูปแบบ (เช่น ไจรอยด์) จะควบคุมการหมุนด้วยตัวเอง ใช้ด้วยความระมัดระวัง"
+msgid ""
+"Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends.\n"
+"\n"
+"Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n"
+"\n"
+"When a template is set, the standard infill direction setting is ignored.\n"
+"\n"
+"Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+msgstr ""
+"หมุนทิศทางไส้ในแบบโปร่งต่อเลเยอร์โดยใช้เทมเพลตมุม ป้อนองศาที่คั่นด้วยเครื่องหมายจุลภาค (เช่น '0,30,60,90') มุมจะถูกนำไปใช้ตามลำดับเลเยอร์และทำซ้ำเมื่อรายการสิ้นสุด\n"
+"\n"
+"รองรับไวยากรณ์ขั้นสูง: '+5' หมุน +5° ทุกเลเยอร์; '+5#5' หมุน +5° ทุกๆ 5 เลเยอร์ ดูวิกิสำหรับรายละเอียด\n"
+"\n"
+"เมื่อตั้งค่าเทมเพลต การตั้งค่าทิศทางไส้ในมาตรฐานจะถูกละเว้น\n"
+"\n"
+"หมายเหตุ: รูปแบบไส้ในบางรูปแบบ (เช่น ไจรอยด์) จะควบคุมการหมุนด้วยตัวเอง ใช้ด้วยความระมัดระวัง"
 
 msgid "Solid infill rotation template"
 msgstr "เทมเพลตการหมุน ไส้ใน ที่เป็นของแข็ง"
 
 # AI Translated
-msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr "พารามิเตอร์นี้จะเพิ่มการหมุนของทิศทางไส้ในแบบทึบลงในแต่ละเลเยอร์ตามเทมเพลตที่ระบุ เทมเพลตคือรายการมุมในหน่วยองศาที่คั่นด้วยเครื่องหมายจุลภาค เช่น '0,90'. มุมแรกใช้กับเลเยอร์แรก มุมที่สองกับเลเยอร์ที่สอง และอื่นๆ หากมีเลเยอร์มากกว่ามุม มุมจะเกิดซ้ำ โปรดทราบว่ารูปแบบไส้ในแบบทึบบางรูปแบบไม่รองรับการหมุน"
+msgid ""
+"This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated.\n"
+"\n"
+"Note that not all solid infill patterns support rotation."
+msgstr ""
+"พารามิเตอร์นี้จะเพิ่มการหมุนของทิศทางไส้ในแบบทึบลงในแต่ละเลเยอร์ตามเทมเพลตที่ระบุ เทมเพลตคือรายการมุมในหน่วยองศาที่คั่นด้วยเครื่องหมายจุลภาค เช่น '0,90'. มุมแรกใช้กับเลเยอร์แรก มุมที่สองกับเลเยอร์ที่สอง และอื่นๆ หากมีเลเยอร์มากกว่ามุม มุมจะเกิดซ้ำ\n"
+"\n"
+"โปรดทราบว่ารูปแบบไส้ในแบบทึบบางรูปแบบไม่รองรับการหมุน"
 
 msgid "Skeleton infill density"
 msgstr "ความหนาแน่นของโครงกระดูก"
@@ -19217,10 +19615,12 @@ msgstr "ความเร็วขั้นต่ำสำหรับพัด
 # AI Translated
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "ความเร็วของพัดลมระบายความร้อนชิ้นส่วนเสริม พัดลมเสริมจะทำงานที่ความเร็วนี้ในระหว่างการพิมพ์ ยกเว้นหลายเลเยอร์แรกซึ่งถูกกำหนดโดยไม่มีเลเยอร์ระบายความร้อน\n"
-"โปรดเปิดใช้งาน auxiliary_fan ในการตั้งค่าเครื่องพิมพ์เพื่อใช้คุณสมบัตินี้ คำสั่ง G-code: M106 P2 S(0-255)"
+"โปรดเปิดใช้งาน auxiliary_fan ในการตั้งค่าเครื่องพิมพ์เพื่อใช้คุณสมบัตินี้\n"
+"คำสั่ง G-code: M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "สำหรับครั้งแรก"
@@ -19310,8 +19710,14 @@ msgid "Reduce infill retraction"
 msgstr "ลดการดึงกลับในไส้ใน"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "อย่าถอยกลับเมื่อการเดินหัวเปล่าอยู่ภายในพื้นที่ที่ไส้ในเข้าไปทั้งหมด นั่นหมายความว่าไม่สามารถมองเห็นการรั่วไหลได้ วิธีนี้จะช่วยลดเวลาในการดึงกลับสำหรับโมเดลที่ซับซ้อนและประหยัดเวลาในการพิมพ์ แต่จะทำให้การแบ่งส่วนและการสร้าง G-code ช้าลง โปรดทราบว่า Z-hop จะไม่ดำเนินการในพื้นที่ที่มีการข้ามการถอนกลับ"
+msgid ""
+"Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n"
+"\n"
+"Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr ""
+"อย่าถอยกลับเมื่อการเดินหัวเปล่าอยู่ภายในพื้นที่ที่ไส้ในเข้าไปทั้งหมด นั่นหมายความว่าไม่สามารถมองเห็นการรั่วไหลได้ วิธีนี้จะช่วยลดเวลาในการดึงกลับสำหรับโมเดลที่ซับซ้อนและประหยัดเวลาในการพิมพ์ แต่จะทำให้การแบ่งส่วนและการสร้าง G-code ช้าลง\n"
+"\n"
+"โปรดทราบว่า Z-hop จะไม่ดำเนินการในพื้นที่ที่มีการข้ามการถอนกลับ"
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "ตัวเลือกนี้จะทำให้อุณหภูมิของชุดดันเส้นที่ไม่ใช้งานลดลงเพื่อป้องกันการไหลซึม"
@@ -19769,8 +20175,14 @@ msgstr "ตัวเลือกนี้จะกำหนดเกณฑ์ส
 msgid "Scarf joint speed"
 msgstr "ความเร็วรอยต่อ Scarf"
 
-msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "ตัวเลือกนี้จะตั้งค่าความเร็วในการพิมพ์สำหรับรอยต่อ Scarf ขอแนะนำให้พิมพ์รอยต่อ Scarfด้วยความเร็วต่ำ (น้อยกว่า 100 มม./วินาที) ขอแนะนำให้เปิดใช้งาน 'การปรับอัตราการอัดรีดให้เรียบ' หากความเร็วที่ตั้งไว้แตกต่างอย่างมากจากความเร็วของผนังด้านนอกหรือด้านใน หากความเร็วที่ระบุที่นี่สูงกว่าความเร็วของผนังด้านนอกหรือด้านใน เครื่องพิมพ์จะตั้งค่าเริ่มต้นไว้ที่ความเร็วที่ช้ากว่าทั้งสอง เมื่อระบุเป็นเปอร์เซ็นต์ (เช่น 80%) ความเร็วจะคำนวณตามความเร็วผนังด้านนอกหรือด้านในตามลำดับ ค่าเริ่มต้นตั้งไว้ที่ 100%"
+msgid ""
+"This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
+"\n"
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+msgstr ""
+"ตัวเลือกนี้จะตั้งค่าความเร็วในการพิมพ์สำหรับรอยต่อ Scarf ขอแนะนำให้พิมพ์รอยต่อ Scarfด้วยความเร็วต่ำ (น้อยกว่า 100 มม./วินาที) ขอแนะนำให้เปิดใช้งาน 'การปรับอัตราการอัดรีดให้เรียบ' หากความเร็วที่ตั้งไว้แตกต่างอย่างมากจากความเร็วของผนังด้านนอกหรือด้านใน\n"
+"\n"
+"หากความเร็วที่ระบุที่นี่สูงกว่าความเร็วของผนังด้านนอกหรือด้านใน เครื่องพิมพ์จะตั้งค่าเริ่มต้นไว้ที่ความเร็วที่ช้ากว่าทั้งสอง เมื่อระบุเป็นเปอร์เซ็นต์ (เช่น 80%) ความเร็วจะคำนวณตามความเร็วผนังด้านนอกหรือด้านในตามลำดับ ค่าเริ่มต้นตั้งไว้ที่ 100%"
 
 msgid "Scarf joint flow ratio"
 msgstr "อัตราส่วนการไหลของรอยต่อ Scarf"
@@ -20023,8 +20435,14 @@ msgid "Sets the finishing flow ratio while ending the spiral. Normally the spira
 msgstr "ตั้งค่าอัตราส่วนการไหลขั้นสุดท้ายขณะสิ้นสุดเกลียว โดยปกติการเปลี่ยนผ่านของเกลียวจะปรับขนาดอัตราส่วนการไหลจาก 100% เป็น 0% ในระหว่างลูปสุดท้าย ซึ่งในบางกรณีอาจนำไปสู่การรีดขึ้นรูปที่ปลายเกลียว"
 
 # AI Translated
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "หากเลือกโหมดเรียบหรือโหมดดั้งเดิม วิดีโอไทม์แลปส์จะถูกสร้างขึ้นสำหรับการพิมพ์แต่ละครั้ง หลังจากพิมพ์แต่ละเลเยอร์แล้ว กล้องจะถ่ายภาพสแนปช็อตด้วยกล้องแชมเบอร์ สแน็ปช็อตทั้งหมดนี้จะถูกประกอบเป็นวิดีโอไทม์แลปส์เมื่อการพิมพ์เสร็จสิ้น หากเลือกโหมดเรียบ หัวเครื่องมือจะย้ายไปยังรางส่วนเกินหลังจากพิมพ์แต่ละเลเยอร์แล้วจึงถ่ายภาพสแน็ปช็อต เนื่องจากเส้นพลาสติกที่หลอมละลายอาจรั่วไหลออกจากหัวฉีดในระหว่างขั้นตอนการถ่ายภาพ จึงจำเป็นต้องมี Prime Tower เพื่อให้โหมดราบรื่นในการเช็ดหัวฉีด"
+msgid ""
+"If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n"
+"\n"
+"If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+msgstr ""
+"หากเลือกโหมดเรียบหรือโหมดดั้งเดิม วิดีโอไทม์แลปส์จะถูกสร้างขึ้นสำหรับการพิมพ์แต่ละครั้ง หลังจากพิมพ์แต่ละเลเยอร์แล้ว กล้องจะถ่ายภาพสแนปช็อตด้วยกล้องแชมเบอร์ สแน็ปช็อตทั้งหมดนี้จะถูกประกอบเป็นวิดีโอไทม์แลปส์เมื่อการพิมพ์เสร็จสิ้น\n"
+"\n"
+"หากเลือกโหมดเรียบ หัวเครื่องมือจะย้ายไปยังรางส่วนเกินหลังจากพิมพ์แต่ละเลเยอร์แล้วจึงถ่ายภาพสแน็ปช็อต เนื่องจากเส้นพลาสติกที่หลอมละลายอาจรั่วไหลออกจากหัวฉีดในระหว่างขั้นตอนการถ่ายภาพ จึงจำเป็นต้องมี Prime Tower เพื่อให้โหมดราบรื่นในการเช็ดหัวฉีด"
 
 msgid "Traditional"
 msgstr "แบบดั้งเดิม"
@@ -20236,16 +20654,28 @@ msgid "Tool change on wipe tower"
 msgstr "การเปลี่ยนเครื่องมือบน Wipe Tower"
 
 # AI Translated
-msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
-msgstr "บังคับให้หัวเครื่องมือเคลื่อนที่ไปที่ Wipe Tower ก่อนที่จะออกคำสั่งเปลี่ยนเครื่องมือ (Tx) เกี่ยวข้องเฉพาะกับเครื่องพิมพ์ที่มีชุดดันเส้นหลายเครื่อง (หลายหัวเครื่องมือ) ที่ใช้แผ่นเช็ดแบบ Type 2 ตามค่าเริ่มต้น Orca จะข้ามการเดินหัวเปล่าบนเครื่องที่มีหัวเครื่องมือหลายหัวเนื่องจากเฟิร์มแวร์จัดการการสลับหัว ซึ่งอาจส่งผลให้มีการออกคำสั่ง Tx เหนือส่วนที่พิมพ์ เปิดใช้งานตัวเลือกนี้หากคุณต้องการให้ทำการเปลี่ยนแปลงเครื่องมือเหนือ Wipe Tower แทนเสมอ"
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+msgstr ""
+"บังคับให้หัวเครื่องมือเคลื่อนที่ไปที่ Wipe Tower ก่อนที่จะออกคำสั่งเปลี่ยนเครื่องมือ (Tx)\n"
+"\n"
+"เกี่ยวข้องเฉพาะกับเครื่องพิมพ์ที่มีชุดดันเส้นหลายเครื่อง (หลายหัวเครื่องมือ) ที่ใช้แผ่นเช็ดแบบ Type 2 ตามค่าเริ่มต้น Orca จะข้ามการเดินหัวเปล่าบนเครื่องที่มีหัวเครื่องมือหลายหัวเนื่องจากเฟิร์มแวร์จัดการการสลับหัว ซึ่งอาจส่งผลให้มีการออกคำสั่ง Tx เหนือส่วนที่พิมพ์ เปิดใช้งานตัวเลือกนี้หากคุณต้องการให้ทำการเปลี่ยนแปลงเครื่องมือเหนือ Wipe Tower แทนเสมอ"
 
 # AI Translated
 msgid "Wait for temperature on wipe tower"
 msgstr "รอให้ถึงอุณหภูมิที่ Wipe Tower"
 
 # AI Translated
-msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr "รับเครื่องมือใหม่โดยไม่รอให้ถึงอุณหภูมิการพิมพ์ แล้วเคลื่อนที่ไปยัง Wipe Tower และรออุณหภูมิที่นั่นก่อนไล่เส้นทันที เส้นพลาสติกที่ซึมออกมาระหว่างการอุ่นจะตกลงบน Wipe Tower แทนที่จะตกบนโมเดล และการเคลื่อนที่จะเกิดขึ้นพร้อมกับการอุ่น ใช้ได้เฉพาะกับเครื่องพิมพ์แบบหลายชุดดันเส้น (หลายหัวพิมพ์) ที่ใช้ Wipe Tower ชนิดที่ 2 เฟิร์มแวร์หรือแมโครการเปลี่ยนเครื่องมือต้องไม่รออุณหภูมิเอง เมื่อปิดใช้ คำสั่งรออุณหภูมิจะถูกส่งทันทีหลังคำสั่งเปลี่ยนเครื่องมือ"
+msgid ""
+"Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating.\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
+"รับเครื่องมือใหม่โดยไม่รอให้ถึงอุณหภูมิการพิมพ์ แล้วเคลื่อนที่ไปยัง Wipe Tower และรออุณหภูมิที่นั่นก่อนไล่เส้นทันที เส้นพลาสติกที่ซึมออกมาระหว่างการอุ่นจะตกลงบน Wipe Tower แทนที่จะตกบนโมเดล และการเคลื่อนที่จะเกิดขึ้นพร้อมกับการอุ่น\n"
+"\n"
+"ใช้ได้เฉพาะกับเครื่องพิมพ์แบบหลายชุดดันเส้น (หลายหัวพิมพ์) ที่ใช้ Wipe Tower ชนิดที่ 2 เฟิร์มแวร์หรือแมโครการเปลี่ยนเครื่องมือต้องไม่รออุณหภูมิเอง เมื่อปิดใช้ คำสั่งรออุณหภูมิจะถูกส่งทันทีหลังคำสั่งเปลี่ยนเครื่องมือ"
 
 # AI Translated
 msgid "No sparse layers (beta)"
@@ -20543,10 +20973,16 @@ msgid "This is the speed for support."
 msgstr "ความเร็วของส่วนรองรับ"
 
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"สไตล์และรูปทรงของส่วนรองรับ สำหรับการรองรับตามปกติ การฉายส่วนรองรับลงในตารางปกติจะสร้างการรองรับที่มีความเสถียรมากขึ้น (ค่าเริ่มต้น) ในขณะที่เสารองรับที่สบายจะช่วยประหยัดวัสดุและลดการเกิดแผลเป็นของวัตถุ\n"
+"สไตล์และรูปทรงของส่วนรองรับ\n"
+"\n"
+"สำหรับการรองรับตามปกติ การฉายส่วนรองรับลงในตารางปกติจะสร้างการรองรับที่มีความเสถียรมากขึ้น (ค่าเริ่มต้น) ในขณะที่เสารองรับที่สบายจะช่วยประหยัดวัสดุและลดการเกิดแผลเป็นของวัตถุ\n"
+"\n"
 "สำหรับการรองรับแบบต้นไม้ รูปแบบที่เพรียวบางและออร์แกนิกจะผสานกิ่งก้านเข้าด้วยกันอย่างดุดันยิ่งขึ้น และประหยัดวัสดุได้มาก (ค่าเริ่มต้นแบบออร์แกนิก) ในขณะที่รูปแบบไฮบริดจะสร้างโครงสร้างที่คล้ายกันกับการรองรับปกติภายใต้ส่วนยื่นแบนขนาดใหญ่"
 
 msgid "Default (Grid/Organic)"
@@ -20579,9 +21015,11 @@ msgstr "มุมเกณฑ์"
 
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
 "ส่วนรองรับจะถูกสร้างขึ้นสำหรับส่วนยื่นที่มีมุมลาดต่ำกว่าเกณฑ์ ยิ่งค่านี้น้อยลง ระยะยื่นที่สามารถพิมพ์โดยไม่ต้องรองรับก็จะยิ่งชันมากขึ้น\n"
+"\n"
 "หมายเหตุ: หากตั้งค่าเป็น 0 ส่วนรองรับปกติจะใช้ Threshold ทับซ้อนกันแทน ในขณะที่ส่วนรองรับแบบทรีถอยกลับไปเป็นค่าเริ่มต้นที่ 30"
 
 msgid "Threshold overlap"
@@ -20629,16 +21067,6 @@ msgstr "แกนเอียงสายพาน"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "แกนที่ใช้หมุนเมชก่อนการสไลซ์ นี่คือการเอียงของเครื่องพิมพ์สายพาน: การหมุนแบบไอโซเมตริก (ไม่บิดเบี้ยว) ซึ่งยังใช้กำหนดการแสดงผลฐานพิมพ์และการเอียงแรงโน้มถ่วงของส่วนรองรับ และการแปลงกลับของ G-code จะย้อนการหมุนนี้ก่อนการเฉือน/ปรับสเกลและการแมปแกนของระบบพิกัดเครื่อง X คือการเอียงแกนทรีที่ใช้ทั่วไป (สายพานเคลื่อนที่ตามแนว Y)"
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -20844,13 +21272,11 @@ msgid "Activate temperature control"
 msgstr "เปิดใช้งานการควบคุมอุณหภูมิ"
 
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"เปิดใช้งานตัวเลือกนี้สำหรับการควบคุมอุณหภูมิห้องอัตโนมัติ ตัวเลือกนี้จะเปิดใช้งานการส่งคำสั่ง M191 ก่อน \"machine_start_gcode\"\n"
-" ซึ่งจะตั้งอุณหภูมิห้องอบและรอจนกว่าจะถึงอุณหภูมิห้อง นอกจากนี้ ยังส่งคำสั่ง M141 เมื่อสิ้นสุดการพิมพ์เพื่อปิดเครื่องทำความร้อนในห้อง (หากมี)\n"
+"เปิดใช้งานตัวเลือกนี้สำหรับการควบคุมอุณหภูมิห้องอัตโนมัติ ตัวเลือกนี้จะเปิดใช้งานการส่งคำสั่ง M191 ก่อน \"machine_start_gcode\" ซึ่งจะตั้งอุณหภูมิห้องอบและรอจนกว่าจะถึงอุณหภูมิห้อง นอกจากนี้ ยังส่งคำสั่ง M141 เมื่อสิ้นสุดการพิมพ์เพื่อปิดเครื่องทำความร้อนในห้อง (หากมี)\n"
 "\n"
 "ตัวเลือกนี้ขึ้นอยู่กับเฟิร์มแวร์ที่รองรับคำสั่ง M191 และ M141 ไม่ว่าจะผ่านทางมาโครหรือแบบเนทิฟ และโดยปกติจะใช้เมื่อมีการติดตั้งเครื่องทำความร้อนในห้องแบบแอคทีฟ"
 
@@ -20860,25 +21286,31 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "สำหรับวัสดุที่มีอุณหภูมิสูง เช่น ABS, ASA, PC และ PA อุณหภูมิห้องที่สูงขึ้นสามารถช่วยลดหรือลดการบิดงอ และอาจนำไปสู่ความแข็งแรงการยึดเกาะระหว่างเลเยอร์ที่สูงขึ้น อย่างไรก็ตาม ในเวลาเดียวกัน อุณหภูมิห้องที่สูงขึ้นจะลดประสิทธิภาพการกรองอากาศสำหรับ ABS และ ASA\n"
 "\n"
 "สำหรับ PLA, PETG, TPU, PVA และวัสดุที่มีอุณหภูมิต่ำอื่นๆ ควรปิดใช้งานตัวเลือกนี้ (ตั้งค่าเป็น 0) เนื่องจากอุณหภูมิห้องควรต่ำเพื่อหลีกเลี่ยงการอุดตันของชุดดันเส้นที่เกิดจากวัสดุอ่อนตัวเมื่อความร้อนแตก\n"
 "\n"
-"หากเปิดใช้งาน พารามิเตอร์นี้จะตั้งค่าตัวแปร G-code ชื่อ Chamber_temperature ซึ่งสามารถใช้เพื่อส่งอุณหภูมิห้องเพาะเลี้ยงที่ต้องการไปยังมาโครเริ่มการพิมพ์ของคุณ หรือมาโครความร้อนแช่เช่นนี้: PRINT_START (ตัวแปรอื่นๆ) CHAMBER_TEMP=[chamber_temperature] วิธีนี้อาจเป็นประโยชน์หากเครื่องพิมพ์ของคุณไม่รองรับคำสั่ง M141/M191 หรือหากคุณต้องการจัดการกับความร้อนที่แช่อยู่ในมาโครเริ่มการพิมพ์ หากไม่มีการติดตั้งเครื่องทำความร้อนในห้องที่ใช้งานอยู่"
+"หากเปิดใช้งาน พารามิเตอร์นี้จะตั้งค่าตัวแปร G-code ชื่อ Chamber_temperature ซึ่งสามารถใช้เพื่อส่งอุณหภูมิห้องเพาะเลี้ยงที่ต้องการไปยังมาโครเริ่มการพิมพ์ของคุณ หรือมาโครความร้อนแช่เช่นนี้:\n"
+"PRINT_START (ตัวแปรอื่นๆ) CHAMBER_TEMP=[chamber_temperature]\n"
+"วิธีนี้อาจเป็นประโยชน์หากเครื่องพิมพ์ของคุณไม่รองรับคำสั่ง M141/M191 หรือหากคุณต้องการจัดการกับความร้อนที่แช่อยู่ในมาโครเริ่มการพิมพ์ หากไม่มีการติดตั้งเครื่องทำความร้อนในห้องที่ใช้งานอยู่"
 
 # AI Translated
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
-"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this:\n"
+"PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
 "นี่คืออุณหภูมิห้องพิมพ์ที่การพิมพ์ควรเริ่มต้น ขณะที่ห้องพิมพ์ยังคงร้อนขึ้นไปสู่อุณหภูมิห้องพิมพ์ \"Target\" ตัวอย่างเช่น ตั้ง Target เป็น 60 และ Minimal เป็น 50 เพื่อเริ่มพิมพ์เมื่อห้องพิมพ์ถึง 50℃ โดยไม่ต้องรอจนครบ 60℃\n"
 "\n"
-"โดยจะตั้งค่าตัวแปร G-code ชื่อ chamber_minimal_temperature ซึ่งสามารถส่งไปยังมาโครเริ่มพิมพ์หรือมาโคร heat soak ได้ เช่น: PRINT_START (ตัวแปรอื่น) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
+"โดยจะตั้งค่าตัวแปร G-code ชื่อ chamber_minimal_temperature ซึ่งสามารถส่งไปยังมาโครเริ่มพิมพ์หรือมาโคร heat soak ได้ เช่น:\n"
+"PRINT_START (ตัวแปรอื่น) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "ต่างจากอุณหภูมิห้องพิมพ์ \"Target\" ตัวเลือกนี้จะไม่ส่งคำสั่ง M141/M191 ใดๆ แต่จะเปิดเผยค่าให้กับ G-code ที่กำหนดเองของคุณเท่านั้น ไม่ควรเกินอุณหภูมิห้องพิมพ์ \"Target\""
 
@@ -21312,8 +21744,18 @@ msgid "Wall transitioning filter margin"
 msgstr "ขอบตัวกรองการเปลี่ยนผนัง"
 
 # AI Translated
-msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
-msgstr "ป้องกันการเปลี่ยนไปมาระหว่างผนังพิเศษหนึ่งอันและน้อยกว่าหนึ่งอัน ขอบนี้จะขยายช่วงความกว้างของการอัดขึ้นรูปซึ่งเป็นไปตาม [ความกว้างของผนังขั้นต่ำ - ขอบ 2 * ความกว้างของผนังขั้นต่ำ + ขอบ] การเพิ่มระยะขอบนี้จะลดจำนวนการเปลี่ยน ซึ่งจะลดจำนวนการเริ่ม/หยุดการอัดขึ้นรูปและเวลาการเดินหัวเปล่า อย่างไรก็ตาม ความกว้างของการอัดขึ้นรูปที่หลากหลายอาจทำให้เกิดปัญหาการอัดขึ้นรูปน้อยเกินไปหรือมากเกินไปได้ โดยแสดงเป็นเปอร์เซ็นต์ของเส้นผ่านศูนย์กลางของหัวฉีด"
+msgid ""
+"Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin].\n"
+"\n"
+"Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems.\n"
+"\n"
+"It's expressed as a percentage over nozzle diameter."
+msgstr ""
+"ป้องกันการเปลี่ยนไปมาระหว่างผนังพิเศษหนึ่งอันและน้อยกว่าหนึ่งอัน ขอบนี้จะขยายช่วงความกว้างของการอัดขึ้นรูปซึ่งเป็นไปตาม [ความกว้างของผนังขั้นต่ำ - ขอบ 2 * ความกว้างของผนังขั้นต่ำ + ขอบ]\n"
+"\n"
+"การเพิ่มระยะขอบนี้จะลดจำนวนการเปลี่ยน ซึ่งจะลดจำนวนการเริ่ม/หยุดการอัดขึ้นรูปและเวลาการเดินหัวเปล่า อย่างไรก็ตาม ความกว้างของการอัดขึ้นรูปที่หลากหลายอาจทำให้เกิดปัญหาการอัดขึ้นรูปน้อยเกินไปหรือมากเกินไปได้\n"
+"\n"
+"โดยแสดงเป็นเปอร์เซ็นต์ของเส้นผ่านศูนย์กลางของหัวฉีด"
 
 msgid "Wall transitioning threshold angle"
 msgstr "มุมการเปลี่ยนผ่านของผนัง"
@@ -21406,8 +21848,14 @@ msgid "The maximum volumetric speed for ramming before extruder change, where -1
 msgstr "ความเร็วเชิงปริมาตรสูงสุดสำหรับการแรมมิ่งก่อนเปลี่ยนชุดดันเส้น โดย -1 หมายถึงใช้ความเร็วเชิงปริมาตรสูงสุด"
 
 # AI Translated
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "เพื่อป้องกันการซึม อุณหภูมิหัวฉีดจะถูกลดลงระหว่างการแรมมิ่ง หมายเหตุ: จะมีเพียงคำสั่งเย็นตัวและการเปิดพัดลมเท่านั้นที่ถูกทริกเกอร์ ไม่รับประกันว่าจะถึงอุณหภูมิเป้าหมาย 0 หมายถึงปิดใช้งาน"
+msgid ""
+"To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n"
+"\n"
+"Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed."
+msgstr ""
+"เพื่อป้องกันการซึม อุณหภูมิหัวฉีดจะถูกลดลงระหว่างการแรมมิ่ง 0 หมายถึงปิดใช้งาน\n"
+"\n"
+"หมายเหตุ: จะมีเพียงคำสั่งเย็นตัวและการเปิดพัดลมเท่านั้นที่ถูกทริกเกอร์ ไม่รับประกันว่าจะถึงอุณหภูมิเป้าหมาย"
 
 # AI Translated
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
@@ -22018,6 +22466,14 @@ msgstr "เวลาพิมพ์โดยประมาณเมื่อพ
 
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "เวลาพิมพ์โดยประมาณเมื่อพิมพ์ในโหมดปกติ (เช่น ไม่อยู่ในโหมดเงียบ) เช่นเดียวกับเวลาปกติ_print_time"
+
+# AI Translated
+msgid "Used filament types"
+msgstr "ประเภทเส้นพลาสติกที่ใช้แล้ว"
+
+# AI Translated
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr "รายการประเภทเส้นพลาสติกทั้งหมดที่ใช้ระหว่างการพิมพ์ คั่นด้วยขีดล่าง"
 
 msgid "Print time (silent mode)"
 msgstr "เวลาในการพิมพ์ (โหมดเงียบ)"
@@ -23752,6 +24208,10 @@ msgstr ""
 "- วัสดุที่สามารถใช้อุณหภูมิฐานพิมพ์ร้อนร่วมกันได้\n"
 "- เส้นพลาสติกแต่ละยี่ห้อและตระกูลต่างๆ (ยี่ห้อ = Bambu, Family = Basic, Matte)"
 
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "เส้น"
+
 msgid "Pattern"
 msgstr "ลวดลาย"
 
@@ -23886,11 +24346,11 @@ msgstr "ปรับขนาดอัตโนมัติตามหัวฉ
 
 # AI Translated
 msgid ""
-"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
-"โมเดลนี้ออกแบบมาสำหรับหัวฉีดขนาด 0.4 mm และความสูงเลเยอร์ 0.2 mm \n"
+"โมเดลนี้ออกแบบมาสำหรับหัวฉีดขนาด 0.4 mm และความสูงเลเยอร์ 0.2 mm\n"
 "เมื่อเปิดใช้งานตัวเลือกการปรับขนาด (แนะนำ) โมเดลจะปรับขนาดแบบไดนามิกให้ตรงกับเส้นผ่านศูนย์กลางหัวฉีดปัจจุบันและความสูงเลเยอร์ที่เหมาะสม ทำให้การทดสอบทั้งแม่นยำและอ่านค่าได้ง่าย\n"
 "ปิดการปรับขนาดเฉพาะเมื่อคุณต้องการพิมพ์โมเดลอ้างอิงตามขนาดเดิมทุกประการ"
 
@@ -24067,12 +24527,12 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
-" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
 "\n"
 "%s"
 msgstr ""
 "ความเร็วปลายทาง (%.0f mm/s) เกินความเร็วปริมาตรสูงสุดของเส้นพลาสติก (%.1f mm³/s) ซึ่งจำกัดผนังด้านนอกไว้ที่ประมาณ %.0f mm/s ที่ความกว้างเส้นและความสูงเลเยอร์นี้\n"
-" ความเร็วที่สูงกว่านี้จะถูกจำกัดไว้ ดังนั้นบล็อกด้านบนของทาวเวอร์จะไม่พิมพ์ด้วยความเร็วที่ร้องขอ\n"
+"ความเร็วที่สูงกว่านี้จะถูกจำกัดไว้ ดังนั้นบล็อกด้านบนของทาวเวอร์จะไม่พิมพ์ด้วยความเร็วที่ร้องขอ\n"
 "\n"
 "%s"
 
@@ -24704,13 +25164,11 @@ msgstr "คุณได้ป้อนข้อมูลที่ไม่ถู
 
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
+"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "ค่าที่ตั้งไว้ล่วงหน้าของเครื่องพิมพ์ที่คุณสร้างมีการตั้งค่าล่วงหน้าที่มีชื่อเดียวกันอยู่แล้ว คุณต้องการเขียนทับมันหรือไม่?\n"
-"\tใช่: เขียนทับพรีเซ็ตเครื่องพิมพ์ด้วยชื่อเดียวกัน จากนั้นฟิลาเมนต์และพรีเซ็ตกระบวนการที่มีชื่อพรีเซ็ตเดียวกันจะถูกสร้างขึ้นใหม่ \n"
-"และค่าที่ตั้งล่วงหน้าของเส้นพลาสติกและกระบวนการที่ไม่มีชื่อที่ตั้งไว้ล่วงหน้าเหมือนกันจะถูกสงวนไว้\n"
+"\tใช่: เขียนทับพรีเซ็ตเครื่องพิมพ์ด้วยชื่อเดียวกัน จากนั้นฟิลาเมนต์และพรีเซ็ตกระบวนการที่มีชื่อพรีเซ็ตเดียวกันจะถูกสร้างขึ้นใหม่ และค่าที่ตั้งล่วงหน้าของเส้นพลาสติกและกระบวนการที่ไม่มีชื่อที่ตั้งไว้ล่วงหน้าเหมือนกันจะถูกสงวนไว้\n"
 "\tยกเลิก: อย่าสร้างค่าที่ตั้งล่วงหน้า กลับไปที่อินเทอร์เฟซการสร้าง"
 
 msgid "You need to select at least one filament preset."
@@ -24750,10 +25208,10 @@ msgid "The entered nozzle diameter is invalid, please re-enter:\n"
 msgstr "เส้นผ่านศูนย์กลางหัวฉีดที่ป้อนไม่ถูกต้อง โปรดป้อนใหม่:\n"
 
 msgid ""
-"The system preset does not allow creation. \n"
+"The system preset does not allow creation.\n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
-"ระบบที่ตั้งไว้ล่วงหน้าไม่อนุญาตให้สร้าง \n"
+"ระบบที่ตั้งไว้ล่วงหน้าไม่อนุญาตให้สร้าง\n"
 "กรุณากรอกรุ่นเครื่องพิมพ์หรือเส้นผ่านศูนย์กลางหัวฉีดอีกครั้ง"
 
 msgid ""
@@ -24889,17 +25347,17 @@ msgid "Only printer names with user printer presets will be displayed, and each 
 msgstr "เฉพาะชื่อเครื่องพิมพ์ที่มีการตั้งค่าเครื่องพิมพ์ล่วงหน้าของผู้ใช้เท่านั้นที่จะแสดง และการตั้งค่าล่วงหน้าแต่ละรายการที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
 
 msgid ""
-"Only the filament names with user filament presets will be displayed, \n"
+"Only the filament names with user filament presets will be displayed,\n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
-"เฉพาะชื่อเส้นพลาสติกที่มีการตั้งค่าล่วงหน้าของเส้นพลาสติกผู้ใช้เท่านั้นที่จะถูกแสดง \n"
+"เฉพาะชื่อเส้นพลาสติกที่มีการตั้งค่าล่วงหน้าของเส้นพลาสติกผู้ใช้เท่านั้นที่จะถูกแสดง\n"
 "และค่าฟิลาเมนต์ของผู้ใช้ทั้งหมดที่กำหนดไว้ล่วงหน้าในแต่ละชื่อฟิลาเมนต์ที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
 
 msgid ""
-"Only printer names with changed process presets will be displayed, \n"
+"Only printer names with changed process presets will be displayed,\n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
-"เฉพาะชื่อเครื่องพิมพ์ที่มีการตั้งค่าล่วงหน้าของกระบวนการที่เปลี่ยนแปลงเท่านั้นที่จะปรากฏขึ้น \n"
+"เฉพาะชื่อเครื่องพิมพ์ที่มีการตั้งค่าล่วงหน้าของกระบวนการที่เปลี่ยนแปลงเท่านั้นที่จะปรากฏขึ้น\n"
 "และกระบวนการของผู้ใช้ที่ตั้งไว้ล่วงหน้าในชื่อเครื่องพิมพ์แต่ละเครื่องที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
 
 msgid "Please select at least one printer or filament."
@@ -26114,10 +26572,6 @@ msgstr "จำนวนด้านสามเหลี่ยม"
 
 msgid "Calculating, please wait..."
 msgstr "กำลังคำนวณ โปรดรอสักครู่..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "บันทึกการตั้งค่าเหล่านี้เป็นค่าเริ่มต้น"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -30033,10 +30487,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "เส้นทั้งสองนั้นไม่ได้บรรจบกันที่มุม — เลือกเส้นสองเส้นที่บรรจบกัน"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "ขนาดต้องมากกว่าศูนย์"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "ลบมุมมน: รัศมีเกินความยาวของด้านใดด้านหนึ่ง หรือเส้นทั้งสองไม่ได้บรรจบกันที่มุม"
 
@@ -30108,21 +30558,43 @@ msgstr "ป้อนตัวเลข"
 msgid "Not a number"
 msgstr "ไม่ใช่ตัวเลข"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "สร้าง"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "เพิ่มเนื้อวัสดุ"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "ลบ"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "ลบมุมมน / ลบมุมเอียง / มุมถอดแบบ"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "ทำซ้ำ"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "แปลงรูป"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "อ้างอิง"
+
+# AI Translated
+msgctxt "Design"
+msgid "Modify"
+msgstr "ปรับแต่ง"
 
 # AI Translated
 msgctxt "Design"
@@ -30456,6 +30928,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "สี่เหลี่ยมผืนผ้าแบบมุม"
 
+msgctxt "Design"
+msgid "Rectangle"
+msgstr "สี่เหลี่ยมผืนผ้า"
+
 # AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
@@ -30476,6 +30952,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "วงกลมแบบจุดศูนย์กลาง"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "วงกลม"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -30490,6 +30970,11 @@ msgstr "วงกลมแบบ 3 จุด"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "ส่วนโค้งแบบ 3 จุด"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "ส่วนโค้ง"
 
 # AI Translated
 msgctxt "Design"
@@ -30530,6 +31015,11 @@ msgstr "สไปลน์"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "สามเหลี่ยม"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "รูปหลายเหลี่ยม"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -30637,6 +31127,7 @@ msgid "Linear array"
 msgstr "อาร์เรย์เชิงเส้น"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "อาร์เรย์"
 
@@ -30946,6 +31437,46 @@ msgstr "สลับระหว่างการเตรียม/ดูต�
 
 msgid "Collapse/Expand the sidebar"
 msgstr "ยุบ/ขยายแถบด้านข้าง"
+
+# AI Translated
+msgid "Go to the Home tab"
+msgstr "ไปที่แท็บหน้าแรก"
+
+# AI Translated
+msgid "Go to the Design tab"
+msgstr "ไปที่แท็บออกแบบ"
+
+# AI Translated
+msgid "Go to the Prepare tab"
+msgstr "ไปที่แท็บเตรียมพิมพ์"
+
+# AI Translated
+msgid "Go to the Preview tab"
+msgstr "ไปที่แท็บพรีวิว"
+
+# AI Translated
+msgid "Go to the Device tab"
+msgstr "ไปที่แท็บอุปกรณ์"
+
+# AI Translated
+msgid "Go to the Multi-device tab"
+msgstr "ไปที่แท็บหลายอุปกรณ์"
+
+# AI Translated
+msgid "Go to the Project tab"
+msgstr "ไปที่แท็บโปรเจกต์"
+
+# AI Translated
+msgid "Go to the Calibration tab"
+msgstr "ไปที่แท็บการปรับเทียบ"
+
+# AI Translated
+msgid "Switch to the next tab"
+msgstr "สลับไปยังแท็บถัดไป"
+
+# AI Translated
+msgid "Switch to the previous tab"
+msgstr "สลับไปยังแท็บก่อนหน้า"
 
 # AI Translated
 msgid "Reload the device page"
@@ -31931,8 +32462,9 @@ msgstr "บันทึกสีปัจจุบัน"
 msgid "Palettes"
 msgstr "จานสี"
 
+# AI Translated
 msgid "Pick color from screen"
-msgstr ""
+msgstr "เลือกสีจากหน้าจอ"
 
 # AI Translated
 msgid "Search colors"
@@ -33625,10 +34157,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "ตั้งค่ารูปทรงฐานพิมพ์ของเครื่องพิมพ์คุณ"
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "ป้อนตัวเลขไม่ถูกต้อง"
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "เส้นผ่านศูนย์กลางเส้นพลาสติกและหัวฉีด"
 
@@ -33857,6 +34385,71 @@ msgstr "วิกิ->"
 # AI Translated
 msgid "Note:"
 msgstr "หมายเหตุ:"
+
+# AI Translated
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr "• %1%: %2%"
+
+# AI Translated
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr "• %1% - %2%: %3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"การตั้งค่าต่อไปนี้อ้างอิงถึงปลั๊กอินที่ Orca Slicer ไม่สามารถระบุได้บนคอมพิวเตอร์เครื่องนี้:\n"
+"\n"
+"%1%\n"
+"\n"
+"หากบันทึกต่อ พรีเซ็ตจะไม่เก็บการอ้างอิงปลั๊กอินของการตั้งค่าเหล่านี้ไว้ บนคอมพิวเตอร์เครื่องอื่น Orca Slicer จะไม่ทราบว่าควรเสนอปลั๊กอินใด และการตั้งค่าอาจใช้งานไม่ได้ที่นั่น"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"การตั้งค่าต่อไปนี้อ้างอิงถึงปลั๊กอินที่ Orca Slicer ไม่สามารถระบุได้บนคอมพิวเตอร์เครื่องนี้:\n"
+"\n"
+"%1%\n"
+"\n"
+"หากบันทึกต่อ โปรเจกต์จะไม่เก็บการอ้างอิงปลั๊กอินของการตั้งค่าเหล่านี้ไว้ บนคอมพิวเตอร์เครื่องอื่น Orca Slicer จะไม่ทราบว่าควรเสนอปลั๊กอินใด และการตั้งค่าอาจใช้งานไม่ได้ที่นั่น"
+
+# AI Translated
+msgid "Plugin Not Identified"
+msgstr "ไม่สามารถระบุปลั๊กอินได้"
+
+# AI Translated
+msgid "Save anyway"
+msgstr "บันทึกต่อไป"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"พรีเซ็ตที่กำลังบันทึกอ้างอิงถึงปลั๊กอินที่ Orca Slicer ไม่สามารถระบุได้บนคอมพิวเตอร์เครื่องนี้:\n"
+"\n"
+"%1%\n"
+"\n"
+"หากบันทึกต่อ พรีเซ็ตเหล่านี้จะไม่เก็บการอ้างอิงปลั๊กอินของการตั้งค่าเหล่านี้ไว้ บนคอมพิวเตอร์เครื่องอื่น Orca Slicer จะไม่ทราบว่าควรเสนอปลั๊กอินใด และการตั้งค่าอาจใช้งานไม่ได้ที่นั่น"
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -34647,6 +35240,10 @@ msgstr "ทำซ้ำพื้นผิวทั่วบริเวณที
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "เปิด ไทล์ เพื่อเลือกวิธีทำซ้ำพื้นผิว"
+
+# AI Translated
+msgid "Repeat"
+msgstr "ทำซ้ำ"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -36394,6 +36991,10 @@ msgid "Forward"
 msgstr "ไปข้างหน้า"
 
 # AI Translated
+msgid "Tools"
+msgstr "เครื่องมือ"
+
+# AI Translated
 msgid "View Source"
 msgstr "ดูซอร์ส"
 
@@ -36579,6 +37180,7 @@ msgstr[0] ""
 "ปลั๊กอิน \"%s\" กำลังขอลบไฟล์ต่อไปนี้:\n"
 "%s"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -36586,7 +37188,12 @@ msgid ""
 "\n"
 "Approval covers HTTP or HTTPS access and raw network connections to the listed hosts. It does not restrict ports. A URL with a path, query or port is covered only for that exact URL."
 msgstr ""
+"ปลั๊กอิน \"%s\" กำลังขอสิทธิ์เข้าถึงเครือข่ายไปยัง:\n"
+"%s\n"
+"\n"
+"การอนุมัติครอบคลุมการเข้าถึง HTTP หรือ HTTPS และการเชื่อมต่อเครือข่ายโดยตรงไปยังโฮสต์ที่ระบุไว้ และไม่ได้จำกัดพอร์ต URL ที่มีพาธ คิวรี หรือพอร์ต จะครอบคลุมเฉพาะ URL นั้นตรงตามที่ระบุเท่านั้น"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -36594,6 +37201,10 @@ msgid ""
 "\n"
 "Approval covers raw network connections to the listed hosts. It does not restrict ports."
 msgstr ""
+"ปลั๊กอิน \"%s\" กำลังขอสิทธิ์เข้าถึงเครือข่ายไปยัง:\n"
+"%s\n"
+"\n"
+"การอนุมัติครอบคลุมการเชื่อมต่อเครือข่ายโดยตรงไปยังโฮสต์ที่ระบุไว้ และไม่ได้จำกัดพอร์ต"
 
 # AI Translated
 #, c-format, boost-format
