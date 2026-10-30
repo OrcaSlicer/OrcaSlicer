@@ -372,6 +372,10 @@ public:
 	void		create_preset_tab();
     // Builds a dialog-hosted tab over a private preset, without the sidebar chrome.
     void        create_publish_tab(const DynamicPrintConfig &config);
+    // Takes the background and the dark-UI colours of the panel hosting the tab. The host dialog
+    // themes its children when they are built, so a tab it rebuilds later has to do it itself;
+    // a sidebar tab keeps the Tab's own colours.
+    void        adopt_publish_host_theme();
     // Sets the groups' change-accepting flag only. A publish tab's fields stay enabled so an edit
     // reaches the private preset and runs the Tab's own rules; the dialog gates the values.
     void        set_publish_readonly(bool readonly);

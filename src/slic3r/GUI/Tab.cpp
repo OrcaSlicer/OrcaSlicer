@@ -742,7 +742,32 @@ void Tab::create_publish_tab(const DynamicPrintConfig &config)
     set_publish_readonly(false);
     set_publish_fields_enabled(false);
 
+    adopt_publish_host_theme();
+
     m_completed = true;
+}
+
+// The host dialog themes its children once, when it is built; a tab it builds again after that
+// would keep the Tab's own white and paint a white band around its variant switch in dark mode.
+// Take the host's background and run the same recursive pass the dialog applies to its children.
+void Tab::adopt_publish_host_theme()
+{
+    if (!is_publish_host())
+        return;
+
+    const wxColour bg = m_parent != nullptr ? m_parent->GetBackgroundColour() : GetBackgroundColour();
+    SetBackgroundColour(bg);
+    if (m_extruder_sync_box != nullptr)
+        m_extruder_sync_box->SetBackgroundColour(bg);
+    if (m_extruder_switch != nullptr)
+        m_extruder_switch->SetBackgroundColour(bg);
+    if (m_variant_combo != nullptr)
+        m_variant_combo->SetBackgroundColour(bg);
+
+    // The widgets that cache the colour they are built on (the variant switch's scrolled button
+    // row, its buttons, the labels) resolve theirs the way the dialog's own pass resolves them.
+    wxGetApp().UpdateDarkUIWin(this);
+    Refresh();
 }
 
 void Tab::detach_from_tabs_list()

@@ -144,13 +144,36 @@ const std::set<std::string>& publish_material_identity_keys()
 bool is_publish_action(const ConfigOptionDef& def) { return Slic3r::publish_is_action_control(def); }
 
 // The author's hex colour for a filament slot (empty when the slot is out of range); shared by
-// the header chip, the inner-tab chip and the DPI rescale paths.
+// the picker badge, the inner-tab chip and the DPI rescale paths.
 std::string filament_color_hex(const DynamicPrintConfig& full, size_t slot)
 {
     if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
         if (slot < colours->size())
             return colours->get_at(slot);
     return std::string();
+}
+
+// The colour a slot's badge and tab-strip chip show: a staged pick shows the picked preset's own
+// default colour when it declares one, resolved as the sidebar resolves its swatch. An unassigned
+// slot keeps the colour the project already carries, which is what it publishes.
+std::string badge_color_hex(PresetBundle& bundle, const DynamicPrintConfig& full, const std::string& preset_name, size_t slot)
+{
+    if (!preset_name.empty()) {
+        if (const Preset* preset = bundle.filaments.find_preset(preset_name, false, true)) {
+            std::string own = preset->config.opt_string("default_filament_colour", 0u);
+            if (!own.empty())
+                return own;
+        }
+    }
+    return filament_color_hex(full, slot);
+}
+
+// A read-only colour chip, drawn with the same helper as the sidebar's swatch and the tab strip:
+// a static bitmap cannot open the colour editor and never writes the project.
+wxStaticBitmap* make_filament_badge(wxWindow* parent, const std::string& hex, const std::string& label, int size)
+{
+    wxBitmap* chip = get_extruder_color_icon(hex, label, size, size);
+    return chip != nullptr ? new wxStaticBitmap(parent, wxID_ANY, *chip) : nullptr;
 }
 
 PublishMaterialIdentity material_identity(size_t slot, const DynamicPrintConfig& full)
@@ -603,7 +626,8 @@ bool line_option_indexed(const Slic3r::GUI::Line& line, const std::string& base_
 // The sidebar's filament preset combo, made inert: a pick is recorded and handed to the dialog,
 // which stages it, instead of updating the slot's preset, the project colours or anything else the
 // sidebar's own handler does. The colour button and the preset menu the combo creates for the
-// sidebar are hidden, so the picker is only the list and its swatches.
+// sidebar are hidden, so the picker is only the list and its swatches; the slot's colour is shown
+// by the dialog's own read-only badge beside it.
 class PublishFilamentPicker : public PlaterPresetComboBox
 {
 public:
@@ -1347,10 +1371,11 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     category.page->SetBackgroundColour(GetBackgroundColour());
     auto* page_sizer = new wxBoxSizer(wxVERTICAL);
 
-    // The physical slot's colour chip decorates the page header and the inner tab; it carries
-    // the 1-based slot number, mirroring the main GUI's filament swatches. A mixed slot has no
-    // header at all: its page is just the Enable toggle above the (always visible) definition
-    // preview - the identification lives in the tab strip's composition bitmap.
+    // The physical slot's colour chip sits left of its preset picker, where the sidebar draws its
+    // swatch, and the inner tab carries the same chip; both carry the 1-based slot number,
+    // mirroring the main GUI's filament swatches. A mixed slot has no header at all: its page is
+    // just the Enable toggle above the (always visible) definition preview - the identification
+    // lives in the tab strip's composition bitmap.
     std::string hex;
     std::string chip_label;
     if (section == Section::Material && !is_mixed) {
@@ -1368,13 +1393,10 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
                                _L("Publish this mixed filament and enable + Full Publish its component filaments"));
             page_sizer->Add(enable_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
         } else {
-            // Line 1: [chip] [title] [Enable]. The Enable checkbox gates the whole slot: while
-            // it is unchecked nothing below the title is shown and nothing of it is published.
+            // Line 1: [title] [Enable]. The Enable checkbox gates the whole slot: while it is
+            // unchecked nothing below the title is shown and nothing of it is published. The
+            // slot's colour is shown once, beside the preset picker below.
             auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
-            if (wxBitmap* chip = get_extruder_color_icon(hex, chip_label, FromDIP(20), FromDIP(20))) {
-                category.filament_color_chip = new wxStaticBitmap(category.page, wxID_ANY, *chip);
-                header_sizer->Add(category.filament_color_chip, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
-            }
             category.title_label = new wxStaticText(category.page, wxID_ANY, title);
             category.title_label->SetFont(Label::Head_14);
             header_sizer->Add(category.title_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -1386,17 +1408,21 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
             page_sizer->Add(header_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
 
             // Line 2: the "Full Publish" toggle, on its own line below the title (hidden until
-            // the slot is enabled), aligned with the colour chip above it.
+            // the slot is enabled), aligned with the colour badge further down.
             auto* full_sizer    = new wxBoxSizer(wxHORIZONTAL);
             category.full_check = new ::CheckBox(category.page, wxID_ANY);
             add_checkbox_label(category.page, full_sizer, category.full_check, _L("Full Publish"),
                                _L("Embed the entire filament of this slot in the 3MF file"));
             category.full_line_item = page_sizer->Add(full_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
 
-            // Line 3: the slot's filament preset, the sidebar's own picker. Choosing one stages a
+            // Line 3: the slot's filament preset, the sidebar's own picker, with the slot's colour
+            // badge on its left as the sidebar places its swatch. Choosing a preset stages a
             // different preset for this slot; OK assigns it. Hidden until the slot is enabled,
             // like Full Publish.
             auto* picker_sizer = new wxBoxSizer(wxHORIZONTAL);
+            category.filament_color_chip = make_filament_badge(category.page, hex, chip_label, FromDIP(20));
+            if (category.filament_color_chip != nullptr)
+                picker_sizer->Add(category.filament_color_chip, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
             category.filament_picker = new PublishFilamentPicker(
                 category.page, int(source_index),
                 [this, source_index](const std::string& preset_name) { on_filament_picked(source_index, preset_name); });
@@ -1547,6 +1573,9 @@ void PublishSettingsDialog::build_material_tab(Category& category)
     tab->create_publish_tab(seed);
     category.publish_tab = tab;
     category.publish_host->set_publish_tab(tab);
+    // A rebuilt tab is built long after the dialog's theme pass ran, so it takes the host's
+    // background here rather than at the next colour change.
+    tab->adopt_publish_host_theme();
     // The private preset as the tab first shows it (the seed plus the Tab's own initial
     // normalization). commit_publish_edits() diffs the author's edits against this.
     if (tab->m_config != nullptr)
@@ -1650,6 +1679,13 @@ void PublishSettingsDialog::refresh_material_layout()
         m_row_ids.push_back(row.id);
 }
 
+std::string PublishSettingsDialog::staged_badge_color(const Category& category, const DynamicPrintConfig& full) const
+{
+    const bool staged = !category.pending_filament.empty() && category.pending_filament != category.filament;
+    return badge_color_hex(*wxGetApp().preset_bundle, full, staged ? category.pending_filament : std::string(),
+                           category.filament_slot);
+}
+
 void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& preset_name)
 {
     PresetBundle* bundle = wxGetApp().preset_bundle;
@@ -1725,8 +1761,11 @@ void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& p
     owner_info.preset_name     = picked != nullptr ? picked->name : preset_name;
     m_selection.set_owner_info(int(slot), std::move(owner_info));
 
-    // The tab strip and the header show the picked filament beside the slot's colour chip.
-    const wxString title = material_title_for(picked, type);
+    // The tab strip and the header show the picked filament; the badge beside the picker shows
+    // the colour the sidebar's own swatch would carry once the pick is assigned. The tab strip's
+    // chip follows the same colour, so a slot never shows two colours.
+    const std::string badge_hex = staged_badge_color(category, bundle->full_config());
+    const wxString    title     = material_title_for(picked, type);
     category.title       = title;
     if (category.title_label != nullptr)
         category.title_label->SetLabel(title);
@@ -1734,6 +1773,13 @@ void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& p
     const auto          item    = std::find(section.categories.begin(), section.categories.end(), category_index);
     if (item != section.categories.end())
         m_sections[category.group].tabs->SetItemText(static_cast<unsigned int>(item - section.categories.begin()), title);
+    // The badge and the tab strip's chip show one colour for the slot.
+    if (wxBitmap* chip = get_extruder_color_icon(badge_hex, std::to_string(slot + 1), FromDIP(20), FromDIP(20))) {
+        if (category.filament_color_chip != nullptr)
+            category.filament_color_chip->SetBitmap(*chip);
+        if (item != section.categories.end())
+            m_sections[category.group].tabs->SetItemBitmap(static_cast<unsigned int>(item - section.categories.begin()), *chip);
+    }
     for (const size_t r : category.rows)
         m_rows[r].category = title;
 
@@ -3412,10 +3458,12 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
             cat.filament_picker->show_preset(cat.pending_filament);
         }
         if (cat.filament_color_chip != nullptr) {
-            // Mixed pages have no header chip; this only ever fires for physical slots.
-            if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, cat.filament_slot), std::to_string(cat.filament_slot + 1),
+            // Mixed pages have no badge; this only ever fires for physical slots.
+            if (wxBitmap* chip = get_extruder_color_icon(staged_badge_color(cat, full), std::to_string(cat.filament_slot + 1),
                                                          FromDIP(20), FromDIP(20))) {
                 cat.filament_color_chip->SetBitmap(*chip);
+                cat.filament_color_chip->SetMinSize(chip->GetSize());
+                cat.filament_color_chip->InvalidateBestSize();
             }
         }
         cat.scroll->FitInside();
@@ -3441,8 +3489,8 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         const Category& category = m_categories[category_index];
         if (category.section != Section::Material || category.is_mixed)
             continue;
-        if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, category.filament_slot),
-                                                     std::to_string(category.filament_slot + 1), FromDIP(20), FromDIP(20))) {
+        if (wxBitmap* chip = get_extruder_color_icon(staged_badge_color(category, full), std::to_string(category.filament_slot + 1),
+                                                     FromDIP(20), FromDIP(20))) {
             const SectionGroup& section = m_sections[category.group];
             const auto iter             = std::find(section.categories.begin(), section.categories.end(), category_index);
             if (iter != section.categories.end())

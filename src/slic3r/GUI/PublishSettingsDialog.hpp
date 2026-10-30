@@ -139,7 +139,7 @@ private:
         Tab*                publish_tab{nullptr};
         wxStaticText* info{nullptr};
         wxPoint scroll_pos{0, 0};
-        wxStaticBitmap* filament_color_chip{nullptr};
+        wxStaticBitmap* filament_color_chip{nullptr}; // read-only colour badge left of the preset picker
         wxStaticText* title_label{nullptr}; // material title, refreshed on a DPI change
         // "Enable": while unchecked nothing of this slot is exported and everything below the
         // header row is hidden. For physical slots the Full Publish toggle sits on a second
@@ -150,8 +150,9 @@ private:
         // "Full Publish": while checked, the whole slot preset is serialized and its rows are
         // disabled.
         ::CheckBox* full_check{nullptr};
-        // The slot's filament preset picker (the sidebar's own combo), on its own line below Full
-        // Publish and visible only while enabled. Selecting a preset stages it; OK assigns it.
+        // The slot's filament preset picker (the sidebar's own combo), preceded by the slot's
+        // colour badge, on its own line below Full Publish and visible only while enabled.
+        // Selecting a preset stages it; OK assigns it.
         PublishFilamentPicker* filament_picker{nullptr};
         wxSizerItem*           filament_picker_item{nullptr};
         // True for a mixed-color filament slot: no Material/Retraction rows; Enable publishes
@@ -276,6 +277,9 @@ private:
     // Picker callback: stage `preset_name` for the physical slot, rebuild its tab and rows,
     // uncheck them and refresh the payload identity. Nothing of the project changes until OK.
     void on_filament_picked(size_t slot, const std::string& preset_name);
+    // The colour the slot's badge and tab-strip chip show: the staged pick's own colour while a
+    // pick is pending, the project's colour otherwise. `full` is the project's config.
+    std::string staged_badge_color(const Category& category, const Slic3r::DynamicPrintConfig& full) const;
     // Drops a category's rows and re-indexes every other category's rows.
     void remove_category_rows(size_t category_index);
     // Recomputes the file-column layout of every material slot from the staged presets, remaps
