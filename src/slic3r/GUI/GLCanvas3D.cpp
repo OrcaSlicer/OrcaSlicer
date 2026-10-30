@@ -206,6 +206,7 @@ void Slic3r::GUI::GLCanvas3D::load_render_colors()
 namespace Slic3r {
 namespace GUI {
 extern float g_design_bed_alpha;   // 3DBed.cpp
+extern bool  g_design_bed_see_through;   // 3DBed.cpp
 
 static void pan_camera(Camera& camera, const Vec2d& screen_delta, const Vec3d& anchor)
 {
@@ -2873,6 +2874,11 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         // So here it is drawn after the opaque objects, depth-tested against them and not writing depth.
         if (!m_design_canvas)
             render_bed_layers();
+        else if (!g_design_bed_see_through) {   // default: behind every body, never drawn over one
+            glsafe(::glDepthMask(GL_FALSE));
+            render_bed_layers();
+            glsafe(::glDepthMask(GL_TRUE));
+        }
         m_frame_profiler.mark("plates");
         
         //BBS: add outline logic
@@ -2883,7 +2889,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         m_frame_profiler.mark("objects");
         _render_sla_slices();
         _render_selection();
-        if (m_design_canvas) {
+        if (m_design_canvas && g_design_bed_see_through) {
             // translucent: what lies below the bed shows through it, dimmed; what lies above it hides it (depth test)
             g_design_bed_alpha = 0.35f;
             glsafe(::glDepthMask(GL_FALSE));

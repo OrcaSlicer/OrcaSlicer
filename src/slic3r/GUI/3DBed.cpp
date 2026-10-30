@@ -206,6 +206,9 @@ ColorRGBA Bed3D::DEFAULT_MODEL_COLOR_DARK        = { 0.255f, 0.255f, 0.283f, 1.0
 ColorRGBA Bed3D::DEFAULT_SOLID_GRID_COLOR        = { 0.9f, 0.9f, 0.9f, 1.0f };
 // Opacity of the bed's floor while the Design tab draws it as a surface of the scene (GLCanvas3D); 1 everywhere else.
 float g_design_bed_alpha = 1.0f;
+// Design tab option "Bed shows through": off = the bed lies behind every body (never drawn over one); on = it is a translucent surface the
+// part of a body below it is seen through.
+bool  g_design_bed_see_through = false;
 ColorRGBA Bed3D::DEFAULT_TRANSPARENT_GRID_COLOR  = { 0.9f, 0.9f, 0.9f, 0.6f };
 
 ColorRGBA Bed3D::AXIS_X_COLOR = ColorRGBA::X();

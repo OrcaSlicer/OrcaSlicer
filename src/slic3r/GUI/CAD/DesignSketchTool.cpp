@@ -9180,7 +9180,9 @@ void DesignSketchTool::draw_dim_label(const std::string& txt, const Vec2d& plane
                              pos.y + ts.y + 2.0f * st.FramePadding.y),
                       ImGuiWrapper::to_ImU32(ColorRGBA(0.06f, 0.07f, 0.09f, 0.78f)), 4.0f);
     ImGui::SetCursorScreenPos(ImVec2(pos.x + st.FramePadding.x, pos.y));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.96f, 0.98f, 1.f));   // the light theme's text is dark: unreadable on the pill
     imgui->text(txt);
+    ImGui::PopStyleColor();
     imgui->end();
     ImGui::PopStyleVar(3);
     ImGuiWrapper::pop_common_window_style();

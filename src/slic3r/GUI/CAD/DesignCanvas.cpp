@@ -61,6 +61,7 @@ extern wxPopupWindow* wxCurrentPopupWindow;
 
 namespace Slic3r {
 namespace GUI {
+extern bool g_design_bed_see_through;   // 3DBed.cpp
 
 // The Design tab's iso view is the CAD one: a true isometric from the front-right corner, which
 // shows the navigator's Front, Right and Top faces. Camera's own "iso" looks from the front-left
@@ -113,6 +114,7 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
         auto get = [cfg](const char* k, bool def) { const std::string v = cfg->get(k); return v.empty() ? def : v == "1" || v == "true"; };
         m_sketch_tool.set_pick_filter({ get("design_pick_face", true), get("design_pick_edge", true), get("design_pick_vertex", true) });
         m_sketch_tool.set_click_cycle(get("design_click_cycle", false));
+        g_design_bed_see_through = get("design_bed_see_through", false);
     }
     m_sketch_tool.on_commit = [this](const SketchProfile& prof, const SketchPlane& pl) {
         if (m_on_sketch_commit) m_on_sketch_commit(prof, pl);
@@ -1336,7 +1338,12 @@ void DesignCanvas::render_select_panel(float top)
     imgui.begin(_u8L("Select") + "##design_select",
                 ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
     auto box = [&](const std::string& label, bool& v) {
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.f);   // the theme's mark is white on a white frame (light) and black on black (dark)
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.55f, 0.56f, 0.60f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyleColorVec4(ImGuiCol_Text));
         ImGui::Checkbox(label.c_str(), &v);
+        ImGui::PopStyleColor(2);
+        ImGui::PopStyleVar();
         const ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
         m_select_hits.emplace_back(a.x + 10.f * em, 0.5f * (a.y + b.y));   // the box itself, not the label
     };
@@ -1346,12 +1353,20 @@ void DesignCanvas::render_select_panel(float top)
     ImGui::Separator();
     box(_u8L("Click cycles candidates"), cycle);
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", _u8L("Off: clicking the same spot again takes the whole body. On: it steps through everything under the pointer.").c_str());
+    bool see_through = g_design_bed_see_through;
+    box(_u8L("Bed shows through"), see_through);
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", _u8L("Off: the bed lies behind every body. On: it is a translucent surface, and the part of a body below it is seen through it.").c_str());
     imgui.end();
     ImGuiWrapper::pop_common_window_style();
     if (f.face != f0.face || f.edge != f0.edge || f.vertex != f0.vertex) {
         m_sketch_tool.set_pick_filter(f);
         AppConfig* cfg = wxGetApp().app_config;
         cfg->set("design_pick_face", f.face ? "1" : "0"); cfg->set("design_pick_edge", f.edge ? "1" : "0"); cfg->set("design_pick_vertex", f.vertex ? "1" : "0");
+    }
+    if (see_through != g_design_bed_see_through) {
+        g_design_bed_see_through = see_through;
+        wxGetApp().app_config->set("design_bed_see_through", see_through ? "1" : "0");
+        m_canvas->set_as_dirty();
     }
     if (cycle != cycle0) {
         m_sketch_tool.set_click_cycle(cycle);
