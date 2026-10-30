@@ -689,10 +689,10 @@ bool element_equals(const Slic3r::ConfigOption& lhs, const Slic3r::ConfigOption&
 //     whole, and only while `dst` still holds the pre-handling value;
 //   - any other vector is merged element by element, so a write another writer made to a different
 //     element of the shared preset survives.
-// Returns false when nothing was copied: a key `dst` does not own (a dependent key is never added
-// to a preset), different option types, values already in step, or a vector whose width differs
-// from the source's, where the element mapping is unknown and the key is skipped rather than
-// guessed.
+// Returns false when nothing was copied: a key the source no longer holds or `dst` does not own (a
+// dependent key is never added to a preset), a key missing from `before`, different option types,
+// values already in step, or a vector whose width differs from the source's, where the element
+// mapping is unknown and the key is skipped rather than guessed.
 bool copy_option_whole(Slic3r::DynamicPrintConfig& dst, const std::string& key,
                        const Slic3r::DynamicPrintConfig& src, const Slic3r::DynamicPrintConfig& before)
 {
@@ -1952,6 +1952,9 @@ void PublishSettingsDialog::on_filament_color_picked(size_t slot)
     // The colour is project state and no sidebar Tab owns it.
     refresh_published_plater();
     refresh_slot_colour(category_index);
+    // The model publishes a Colour row only while the slot's colour is non-empty: a pick can turn
+    // the slot's dot on or off, so recompute the tabs.
+    refresh_tab_indicators();
 }
 
 void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& preset_name)
@@ -3016,9 +3019,13 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
     DynamicPrintConfig* dependent_target = nullptr;
     Tab*                dependent_tab    = nullptr;
     // The filament tab's edit already refreshed itself through load_key_value(), so it only needs
-    // another pass when a copied key actually changed its preset.
+    // another pass when a copied key actually changed its preset, or when the staged element had to
+    // replace the raw write below.
     bool                dependent_tab_only_on_copy = false;
     bool                dependents_copied          = false;
+    // The selected filament preset took the field's raw value first and then the staged one: the tab
+    // needs a pass to show what the preset now holds.
+    bool                edited_key_restaged        = false;
 
     switch (location.target) {
     case Slic3r::PublishWriteTarget::FilamentPreset: {
@@ -3035,6 +3042,22 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
                 dependent_tab    = filament_tab;
                 dependent_tab_only_on_copy = true;
                 handled = true;
+                // load_key_value() can only take the value the field emitted, while the tab's own
+                // handling may have corrected the edited key itself (a clamp against its paired
+                // value). The staged element is what the preset must hold, so it replaces the raw
+                // write and the tab is refreshed below to show it.
+                const Slic3r::ConfigOption* written        = dependent_target->option(published->key);
+                const Slic3r::ConfigOption* staged         = tab->m_config->option(published->key);
+                const auto*                 written_values = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(written);
+                const auto*                 staged_values  = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(staged);
+                const bool                  restage =
+                    written != nullptr && staged != nullptr &&
+                    (written->is_scalar() ? *written != *staged
+                                          : written_values != nullptr && staged_values != nullptr &&
+                                                written_values->size() == staged_values->size() &&
+                                                index < written_values->size() && !element_equals(*written, *staged, index));
+                if (restage)
+                    edited_key_restaged = copy_option_element_at(*dependent_target, published->key, *tab->m_config, index);
             }
         if (!handled) {
             // Any other slot's preset is its stored copy, which full_config() reads for that slot.
@@ -3080,15 +3103,20 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
 
     if (dependent_target != nullptr)
         for (const std::string& key : dependent_keys) {
-            // The edited key has its own element-wise write above from the field's own value: it is
-            // never read from `before_handling`, which already holds it. A structural key belongs to
-            // the preset's inheritance, not to the value the author edited.
+            // The edited key is written above from the private preset's post-handling element, not
+            // from `before_handling`, which still holds the pre-handling value; a structural key
+            // belongs to the preset's inheritance, not to the value the author edited.
             if (key == published->key || publish_structural_keys().count(key) != 0)
+                continue;
+            // A key the handling removed is not written: the private preset's default-filled config
+            // is not the target's key set, and only the plugin manifest produces such a key today,
+            // which the dialog never exposes.
+            if (tab->m_config->option(key) == nullptr)
                 continue;
             dependents_copied =
                 copy_option_whole(*dependent_target, key, *tab->m_config, before_handling) || dependents_copied;
         }
-    if (dependent_tab != nullptr && (!dependent_tab_only_on_copy || dependents_copied)) {
+    if (dependent_tab != nullptr && (!dependent_tab_only_on_copy || dependents_copied || edited_key_restaged)) {
         // The real preset changed behind the tab: repaint it.
         dependent_tab->update_dirty();
         dependent_tab->reload_config();

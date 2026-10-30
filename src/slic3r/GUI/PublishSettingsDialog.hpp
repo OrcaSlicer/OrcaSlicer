@@ -377,9 +377,11 @@ private:
     void bind_publish_tab(size_t category_index);
     // One edit from a hosted tab: the row the visible field draws, checked and writable, is
     // written to its owner's real preset (or the project config) at once (spec 7.10), with the
-    // other keys the tab's own handling of the edit rewrote. `before_handling` is the tab's private
-    // config as it stood before that handling started (the edited key is already applied in it and
-    // is never read from it), so a dependent write only overwrites a value nobody else changed.
+    // other keys the tab's own handling of the edit rewrote. The value written is the tab's
+    // post-handling one, so a correction the handling makes to the edited key itself sticks.
+    // `before_handling` is the tab's private config as it stood before that handling started (the
+    // edited key is already applied in it and is never read from it), so a dependent write only
+    // overwrites a value nobody else changed.
     void on_publish_edit(size_t category_index, const std::string& opt_id, const boost::any& value,
                          const std::vector<std::string>& dependent_keys,
                          const Slic3r::DynamicPrintConfig& before_handling);
