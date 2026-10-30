@@ -5368,26 +5368,26 @@ msgstr "Active los perímetros o un borde de adherencia para seleccionar el fila
 
 # AI Translated
 msgid "Brim ear radius"
-msgstr "Radio de las orejas de borde"
+msgstr "Radio de las orejas de adherencia"
 
 msgid "Brim width"
 msgstr "Ancho del borde de adherencia"
 
 # AI Translated
 msgid "Set brim width above zero to edit brim ear detection."
-msgstr "Establezca «Ancho del borde de adherencia» en un valor mayor que cero para editar la detección de orejas de borde."
+msgstr "Establezca «Ancho del borde de adherencia» en un valor mayor que cero para editar la detección de orejas de adherencia."
 
 # AI Translated
 msgid "Use painted brim ears or set brim width above zero to edit this setting."
-msgstr "Use orejas de borde pintadas o establezca «Ancho del borde de adherencia» en un valor mayor que cero para editar este ajuste."
+msgstr "Use orejas de adherencia pintadas o establezca «Ancho del borde de adherencia» en un valor mayor que cero para editar este ajuste."
 
 # AI Translated
 msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
-msgstr "Seleccione orejas de borde automáticas en una impresora sin cinta inclinada para usar este ajuste."
+msgstr "Seleccione orejas de adherencia automáticas en una impresora sin cinta inclinada para usar este ajuste."
 
 # AI Translated
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
-msgstr "Seleccione orejas de borde automáticas o pintadas en una impresora sin cinta inclinada para usar este ajuste."
+msgstr "Seleccione orejas de adherencia automáticas o pintadas en una impresora sin cinta inclinada para usar este ajuste."
 
 # AI Translated
 #, no-c-format, no-boost-format
@@ -16302,26 +16302,28 @@ msgstr "Combinar bordes de adherencia"
 msgid "Combine multiple brims into one when they are close to each other. This can improve brim adhesion."
 msgstr "Combina varios bordes en uno solo cuando estén próximos entre sí. Esto puede mejorar la adherencia de los bordes."
 
+# AI Translated
+# Needs human review: Only the term changed: the Brim ears glossary rendering is now «Orejas de adherencia» (brim = borde de adherencia).
 msgid "Brim ears"
-msgstr "Orejas de borde"
+msgstr "Orejas de adherencia"
 
 msgid "Only draw brim over the sharp edges of the model."
 msgstr "Solo dibujar bordes en los bordes afilados del modelo."
 
 msgid "Brim ear max angle"
-msgstr "Ángulo máximo de las Orejas de borde"
+msgstr "Ángulo máximo de las Orejas de adherencia"
 
 msgid ""
 "Maximum angle to let a brim ear appear.\n"
 "If set to 0, no brim will be created.\n"
 "If set to ~180, brim will be created on everything but straight sections."
 msgstr ""
-"Ángulo máxima para el que generar Orejas de borde.\n"
+"Ángulo máxima para el que generar Orejas de adherencia.\n"
 "Si se ajusta a 0, no se creará ningún borde.\n"
 "Si se ajusta a ~180, se creará el borde en todas las secciones menos en las rectas."
 
 msgid "Brim ear detection radius"
-msgstr "Radio de detección de Orejas de borde"
+msgstr "Radio de detección de Orejas de adherencia"
 
 msgid ""
 "The geometry will be decimated before detecting sharp angles. This parameter indicates the minimum length of the deviation for the decimation.\n"
@@ -16332,7 +16334,7 @@ msgstr ""
 
 # AI Translated
 msgid "Brim ears outer only"
-msgstr "Orejas de borde solo en el exterior"
+msgstr "Orejas de adherencia solo en el exterior"
 
 # AI Translated
 msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
@@ -25644,13 +25646,13 @@ msgid "Auto-generate"
 msgstr "Autogenerar"
 
 msgid "Generate brim ears using Max angle and Detection radius"
-msgstr "Genera orejas de borde utilizando el ángulo máximo y el radio de detección"
+msgstr "Genera orejas de adherencia utilizando el ángulo máximo y el radio de detección"
 
 msgid "Add or Select"
 msgstr "Añadir o seleccionar"
 
 msgid "Warning: The brim type is not set to \"painted\", the brim ears will not take effect!"
-msgstr "Advertencia: El tipo de borde no está establecido en \"pintado\", ¡las orejas de borde no tendrán efecto!"
+msgstr "Advertencia: El tipo de borde no está establecido en \"pintado\", ¡las orejas de adherencia no tendrán efecto!"
 
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Establecer el tipo de borde de este objeto a \"pintado\""
@@ -25659,20 +25661,22 @@ msgstr "Establecer el tipo de borde de este objeto a \"pintado\""
 #, c-format, boost-format
 msgid "%d invalid brim ear"
 msgid_plural "%d invalid brim ears"
-msgstr[0] "%d oreja de borde no válida"
-msgstr[1] "%d orejas de borde no válidas"
+msgstr[0] "%d oreja de adherencia no válida"
+msgstr[1] "%d orejas de adherencia no válidas"
 
+# AI Translated
+# Needs human review: Only the term changed: the Brim ears glossary rendering is now «Orejas de adherencia» (brim = borde de adherencia).
 msgid "Brim Ears"
-msgstr "Orejas de borde"
+msgstr "Orejas de adherencia"
 
 msgid "Please select single object."
 msgstr "Por favor, seleccione un solo objeto."
 
 msgid "Entering Brim Ears"
-msgstr "Entrando al mecanismo de orejas de borde"
+msgstr "Entrando al mecanismo de orejas de adherencia"
 
 msgid "Leaving Brim Ears"
-msgstr "Saliendo del mecanismo de orejas de borde"
+msgstr "Saliendo del mecanismo de orejas de adherencia"
 
 msgid "Zoom Out"
 msgstr "Alejar"
@@ -30615,8 +30619,10 @@ msgstr "Gizmo medir"
 msgid "Gizmo assemble"
 msgstr "Gizmo ensamblar"
 
+# AI Translated
+# Needs human review: Only the term changed: the Brim ears glossary rendering is now «Orejas de adherencia» (brim = borde de adherencia).
 msgid "Gizmo brim ears"
-msgstr "Gizmo orejas de borde"
+msgstr "Gizmo orejas de adherencia"
 
 # AI Translated
 msgid "Gizmo texture displacement painting"
