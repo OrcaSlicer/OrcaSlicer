@@ -63,9 +63,20 @@ void StaticBox::SetAccessibleRole(wxAccRole role, WidgetAccessible::ExtraStateGe
         SetAccessible(CreateAccessible());
 }
 
+void StaticBox::SetAccessibleDefaultAction(wxString name, WidgetAccessible::DefaultActionHandler handler)
+{
+    m_a11y_default_action_name = std::move(name);
+    m_a11y_default_action      = std::move(handler);
+    if (GetAccessible())
+        SetAccessible(CreateAccessible());
+}
+
 wxAccessible* StaticBox::CreateAccessible()
 {
-    return new WidgetAccessible(this, m_a11y_role, m_a11y_extra_state);
+    auto* acc = new WidgetAccessible(this, m_a11y_role, m_a11y_extra_state);
+    if (m_a11y_default_action)
+        acc->SetDefaultAction(m_a11y_default_action_name, m_a11y_default_action);
+    return acc;
 }
 #endif // wxUSE_ACCESSIBILITY
 

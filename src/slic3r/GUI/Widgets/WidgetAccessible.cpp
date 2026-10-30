@@ -68,12 +68,52 @@ wxAccStatus WidgetAccessible::GetDescription(int childId, wxString* description)
     return wxACC_OK;
 }
 
+wxAccStatus WidgetAccessible::GetValue(int childId, wxString* strValue)
+{
+    if (childId != wxACC_SELF)
+        return wxACC_NOT_IMPLEMENTED;
+
+    // A button or a tab carries no value. Left to the standard accessible, the value
+    // repeats the label, and NVDA reads a tab as "Prepare Prepare".
+    if (m_role != wxROLE_SYSTEM_PUSHBUTTON && m_role != wxROLE_SYSTEM_PAGETAB)
+        return wxACC_NOT_IMPLEMENTED;
+
+    strValue->clear();
+    return wxACC_OK;
+}
+
 wxAccStatus WidgetAccessible::GetRole(int childId, wxAccRole* role)
 {
     if (childId != wxACC_SELF)
         return wxACC_NOT_IMPLEMENTED;
 
     *role = m_role;
+    return wxACC_OK;
+}
+
+wxAccStatus WidgetAccessible::GetDefaultAction(int childId, wxString* actionName)
+{
+    if (childId != wxACC_SELF || !m_default_action || m_default_action_name.empty())
+        return wxACC_NOT_IMPLEMENTED;
+
+    *actionName = m_default_action_name;
+    return wxACC_OK;
+}
+
+wxAccStatus WidgetAccessible::DoDefaultAction(int childId)
+{
+    if (childId != wxACC_SELF || !m_default_action)
+        return wxACC_NOT_IMPLEMENTED;
+
+    wxWindow* win = GetWindow();
+    if (!win)
+        return wxACC_FAIL;
+    // Assistive technology is not aware of a disabled widget being unclickable, and
+    // this runs in process on the UI thread, straight into the widget's own code.
+    if (!win->IsEnabled())
+        return wxACC_FAIL;
+
+    m_default_action();
     return wxACC_OK;
 }
 

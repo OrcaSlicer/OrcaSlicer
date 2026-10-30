@@ -34,6 +34,10 @@ class WidgetAccessible : public wxWindowAccessible
 {
 public:
     using ExtraStateGetter = std::function<long()>;
+    // Runs the widget's default action - what MSAA's accDoDefaultAction performs.
+    // Windows' UIA proxy builds its ExpandCollapse and Invoke patterns on top of it,
+    // so a widget that reports an expandable state needs one to be operable at all.
+    using DefaultActionHandler = std::function<void()>;
 
     WidgetAccessible(wxWindow* win, wxAccRole role, ExtraStateGetter extra_state = nullptr);
 
@@ -41,13 +45,24 @@ public:
     wxAccStatus GetRole(int childId, wxAccRole* role) override;
     wxAccStatus GetState(int childId, long* state) override;
     wxAccStatus GetDescription(int childId, wxString* description) override;
+    wxAccStatus GetValue(int childId, wxString* strValue) override;
+    wxAccStatus GetDefaultAction(int childId, wxString* actionName) override;
+    wxAccStatus DoDefaultAction(int childId) override;
 
     void SetRole(wxAccRole role) { m_role = role; }
     void SetExtraStateGetter(ExtraStateGetter getter) { m_extra_state = std::move(getter); }
+    // name may be empty, which leaves the action's name to the standard accessible.
+    void SetDefaultAction(wxString name, DefaultActionHandler handler)
+    {
+        m_default_action_name = std::move(name);
+        m_default_action      = std::move(handler);
+    }
 
 private:
-    wxAccRole        m_role;
-    ExtraStateGetter m_extra_state;
+    wxAccRole            m_role;
+    ExtraStateGetter     m_extra_state;
+    wxString             m_default_action_name;
+    DefaultActionHandler m_default_action;
 };
 
 #endif // wxUSE_ACCESSIBILITY

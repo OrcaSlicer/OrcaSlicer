@@ -60,6 +60,11 @@ public:
     // always derived automatically.
 #if wxUSE_ACCESSIBILITY
     void SetAccessibleRole(wxAccRole role, WidgetAccessible::ExtraStateGetter extra_state = nullptr);
+
+    // ORCA: let assistive technology operate this widget, not just read it. name is the
+    // verb MSAA reports for the action (e.g. "Open"); handler runs it in process, on the
+    // UI thread, and must go through the widget's normal code path.
+    void SetAccessibleDefaultAction(wxString name, WidgetAccessible::DefaultActionHandler handler);
 #endif
 
 protected:
@@ -89,8 +94,10 @@ protected:
     ScalableBitmap badge;
 
 #if wxUSE_ACCESSIBILITY
-    wxAccRole                          m_a11y_role = wxROLE_SYSTEM_CLIENT;
-    WidgetAccessible::ExtraStateGetter m_a11y_extra_state;
+    wxAccRole                              m_a11y_role = wxROLE_SYSTEM_CLIENT;
+    WidgetAccessible::ExtraStateGetter     m_a11y_extra_state;
+    wxString                               m_a11y_default_action_name;
+    WidgetAccessible::DefaultActionHandler m_a11y_default_action;
 #endif
 
     DECLARE_EVENT_TABLE()
