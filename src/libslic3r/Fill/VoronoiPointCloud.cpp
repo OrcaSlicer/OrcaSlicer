@@ -120,6 +120,8 @@ bool ActivePointCloud::update(const BoundingBox &bounds, double z, double margin
                               const std::function<double(const std::vector<Vec3d> &)> &radius,
                               const std::function<void(double)> &retire)
 {
+    // TODO: A larger floor margin can lower this bound even as z advances.
+    // Resetting then is conservative: the needed sites may still be retained.
     const double low = z - margin;
     if (m_spacing != spacing || m_bounds.min != bounds.min || m_bounds.max != bounds.max || low < m_low ||
         (m_known.defined && low > m_known.max.z())) {
