@@ -8,14 +8,14 @@
   <link rel="stylesheet" type="text/css" href="./style.css" />
   <script type="text/javascript" src="../../include/i18n.js"></script>
   <script type="text/javascript" src="../js/globalapi.js"></script>
+  <script type="text/javascript" src="./script_editor.js"></script>
   <script type="text/javascript" src="./script_runner.js"></script>
 </head>
 <body onload="OnInit()">
   <div class="runner">
     <header class="source-bar">
-      <button type="button" id="open-file" class="btn" data-i18n="open_file">Open file…</button>
-      <button type="button" id="paste" class="btn" data-i18n="paste">Paste</button>
-      <span id="chip" class="chip" hidden>
+      <button type="button" id="open-file" class="btn" data-i18n="open_script">Open script…</button>
+      <span class="chip">
         <span id="chip-name"></span>
         <span id="chip-edited" class="chip-note" hidden data-i18n="edited">(edited)</span>
       </span>
@@ -23,31 +23,45 @@
 
     <main class="sections">
       <section id="steps-section" class="section is-open">
-        <button type="button" class="section-head" aria-expanded="true" aria-controls="steps-body">
-          <span class="chevron" aria-hidden="true"></span>
-          <span class="section-title" data-i18n="steps">Steps</span>
-          <span id="steps-summary" class="section-summary"></span>
-        </button>
+        <div class="section-row">
+          <button type="button" class="section-head" aria-expanded="true" aria-controls="steps-body">
+            <span class="chevron" aria-hidden="true"></span>
+            <span class="section-title" data-i18n="steps">Steps</span>
+            <span id="steps-summary" class="section-summary"></span>
+          </button>
+        </div>
         <div id="steps-body" class="section-body">
-          <div id="empty" class="empty">
-            <p data-i18n="empty_hint">Open a script file or paste one to see what it will do.</p>
-            <div class="empty-actions">
-              <button type="button" id="empty-open" class="btn primary" data-i18n="open_file">Open file…</button>
-              <button type="button" id="empty-paste" class="btn" data-i18n="paste_script">Paste script</button>
-            </div>
-          </div>
+          <p id="steps-hint" class="steps-hint" data-i18n="steps_hint">Steps appear here as you write them.</p>
           <ol id="steps" class="rail" hidden></ol>
         </div>
       </section>
 
-      <section id="source-section" class="section">
-        <button type="button" class="section-head" aria-expanded="false" aria-controls="source-body">
-          <span class="chevron" aria-hidden="true"></span>
-          <span class="section-title" data-i18n="script_source">Script source</span>
-        </button>
-        <div id="source-body" class="section-body" hidden>
-          <textarea id="source" spellcheck="false" autocomplete="off" data-i18n-aria-label="script_source"
-                    data-i18n-placeholder="source_placeholder" placeholder="Paste a script here"></textarea>
+      <section id="source-section" class="section is-open">
+        <div class="section-row">
+          <button type="button" class="section-head" aria-expanded="true" aria-controls="source-body">
+            <span class="chevron" aria-hidden="true"></span>
+            <span class="section-title" data-i18n="script_source">Script source</span>
+          </button>
+          <div class="section-actions">
+            <span id="save-note" class="save-note" hidden role="status" data-i18n="saved">Saved</span>
+            <button type="button" id="save" class="btn small"></button>
+            <button type="button" id="save-as" class="btn small" hidden data-i18n="save_as">Save as…</button>
+          </div>
+        </div>
+        <div id="source-body" class="section-body">
+          <div id="editor" class="editor">
+            <div class="lines">
+              <div id="gutter" class="gutter" aria-hidden="true"></div>
+              <div class="code">
+                <pre id="highlight" aria-hidden="true"></pre>
+                <textarea id="source" wrap="off" spellcheck="false" autocomplete="off" autocapitalize="off"
+                          aria-autocomplete="list" aria-controls="suggest-list" aria-expanded="false"
+                          data-i18n-aria-label="script_source" data-i18n-placeholder="source_placeholder"
+                          placeholder="Write a script here, or open one."></textarea>
+                <span id="measure" class="measure" aria-hidden="true"></span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -62,6 +76,11 @@
       <button type="button" id="run" class="btn primary" disabled data-i18n="run">Run</button>
       <button type="button" id="close" class="btn" data-i18n="close">Close</button>
     </footer>
+  </div>
+
+  <div id="suggest" class="suggest" hidden>
+    <ul id="suggest-list" role="listbox"></ul>
+    <p id="suggest-detail" class="suggest-detail" hidden></p>
   </div>
 </body>
 </html>

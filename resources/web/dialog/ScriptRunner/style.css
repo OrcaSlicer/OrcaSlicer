@@ -24,6 +24,27 @@
   --sr-ring-soft: rgba(0, 150, 136, 0.1);
   --sr-mono: "Cascadia Code", Consolas, "SF Mono", Menlo, "DejaVu Sans Mono", monospace;
   --sr-dot: 20px;
+  /* The editor's syntax colours, set apart from the status colours so a string never reads as a warning. */
+  --sr-syn-key: #00796b;
+  --sr-syn-string: #8a4b08;
+  --sr-syn-number: #6639ba;
+  --sr-syn-punct: #8a9397;
+  --sr-syn-comment: #7d8589;
+  --sr-gutter: #f6f7f8;
+  --sr-pop-bg: var(--ctx-bg, #ffffff);
+  --sr-pop-border: var(--ctx-border, #cccccc);
+  --sr-pop-shadow: 0 6px 20px rgba(20, 30, 35, 0.16);
+  --sr-selection: rgba(0, 150, 136, 0.22);
+}
+:root[data-orca-theme="dark"] {
+  --sr-syn-key: #4db6ac;
+  --sr-syn-string: #d9a35f;
+  --sr-syn-number: #b79af0;
+  --sr-syn-punct: #7f858b;
+  --sr-syn-comment: #858a90;
+  --sr-gutter: #28282c;
+  --sr-pop-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --sr-selection: rgba(0, 150, 136, 0.35);
 }
 
 * { box-sizing: border-box; }
@@ -101,26 +122,31 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--sr-accen
 .section { display: flex; flex-direction: column; min-height: 0; }
 .section + .section { border-top: 1px solid var(--sr-rule); }
 .section.is-open { flex: 1 1 0; }
-#steps-section.is-open { flex-grow: 3; }
-#source-section.is-open { flex-grow: 2; }
+#steps-section.is-open { flex-grow: 2; }
+#source-section.is-open { flex-grow: 3; }
+/* A section's head row: the fold button fills it, and a section's actions sit at its end, outside it. */
+.section-row { flex: none; display: flex; align-items: center; border-bottom: 1px solid transparent; }
+.section.is-open .section-row { border-bottom-color: var(--sr-rule); }
+.section-row:hover { background: var(--sr-hover); }
 .section-head {
-  flex: none;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
   padding: 7px 12px;
   font: inherit;
   font-weight: 600;
   color: var(--sr-fg);
   background: none;
   border: 0;
-  border-bottom: 1px solid transparent;
   text-align: left;
   cursor: pointer;
 }
-.section.is-open .section-head { border-bottom-color: var(--sr-rule); }
-.section-head:hover { background: var(--sr-hover); }
+.section-actions { flex: none; display: flex; align-items: center; gap: 6px; padding-right: 12px; }
+.save-note { margin-right: 2px; font-size: 12px; color: var(--sr-pass); transition: opacity 0.4s; }
+.save-note.is-fading { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .save-note { transition: none; } }
 .chevron {
   width: 0;
   height: 0;
@@ -130,27 +156,26 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--sr-accen
   transition: transform 120ms ease;
 }
 .section.is-open .chevron { transform: rotate(90deg); }
-.section-summary { margin-left: auto; font-weight: 400; font-size: 12px; color: var(--sr-muted); }
+.section-summary {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--sr-muted);
+}
 .section-summary.is-error { color: var(--sr-fail); }
 .section-body { flex: 1; min-height: 0; overflow: auto; }
 
-/* ---- empty state ---- */
-.empty {
-  height: 100%;
-  min-height: 140px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 24px;
-  text-align: center;
-}
-.empty p { margin: 0; max-width: 34ch; }
-.empty-actions { display: flex; gap: 8px; }
+/* ---- no steps yet ---- */
+.steps-hint { margin: 0; padding: 12px 14px; color: var(--sr-muted); }
 
 /* ---- the step rail ---- */
 .rail { list-style: none; margin: 0; padding: 6px 0 10px; }
+/* The last steps that parsed, kept while the text doesn't, so typing doesn't empty the list. */
+.rail.is-stale { opacity: 0.45; }
 .step {
   position: relative;
   display: grid;
@@ -283,24 +308,105 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--sr-accen
   user-select: text;
 }
 
-/* ---- source ---- */
+/* ---- source editor ----
+ * A textarea over a highlighted copy of its text. The textarea keeps typing, selection, undo and input
+ * methods and draws only the caret and the selection; the copy beneath paints the text. Both sit in one
+ * scroller and the textarea is sized to the copy, so it never scrolls on its own and the two can't
+ * drift apart. */
 #source-body { display: flex; padding: 8px 12px; }
-#source {
+.editor {
   flex: 1;
+  min-width: 0;
   min-height: 80px;
-  resize: none;
-  padding: 6px 8px;
-  font-family: var(--sr-mono);
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--sr-fg);
-  background: var(--sr-bg);
+  overflow: auto;
   border: 1px solid var(--sr-rule);
   border-radius: 4px;
+  background: var(--sr-bg);
+  font-family: var(--sr-mono);
+  font-size: 12px;
+  line-height: 18px;
+}
+.editor:focus-within { border-color: var(--sr-accent); }
+.lines { display: flex; width: max-content; min-width: 100%; min-height: 100%; }
+.gutter {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  flex: none;
+  min-width: 36px;
+  padding: 6px 8px 6px 4px;
+  text-align: right;
+  white-space: pre;
+  color: var(--sr-muted);
+  background: var(--sr-gutter);
+  border-right: 1px solid var(--sr-rule);
+  user-select: none;
+}
+.code { position: relative; flex: 1 0 auto; }
+#highlight, #source, .measure {
+  margin: 0;
+  padding: 6px 8px;
+  border: 0;
+  font: inherit;
+  line-height: inherit;
+  white-space: pre;
   tab-size: 2;
 }
-#source:focus { outline: none; border-color: var(--sr-accent); }
-#source[readonly] { color: var(--sr-muted); }
+#highlight { color: var(--sr-fg); }
+#source {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  resize: none;
+  outline: none;
+  color: transparent;
+  background: transparent;
+  caret-color: var(--sr-fg);
+}
+#source::selection { color: transparent; background: var(--sr-selection); }
+#source::placeholder { color: var(--sr-muted); }
+.editor.is-readonly #highlight { opacity: 0.6; }
+/* While an input method composes, the textarea shows its own text: the copy can't show what is being composed. */
+.editor.is-composing #source { color: var(--sr-fg); }
+.editor.is-composing #highlight { visibility: hidden; }
+.measure { position: absolute; top: 0; left: 0; padding: 0; visibility: hidden; }
+.t-key { color: var(--sr-syn-key); }
+.t-str { color: var(--sr-syn-string); }
+.t-num { color: var(--sr-syn-number); }
+.t-punct { color: var(--sr-syn-punct); }
+.t-com { color: var(--sr-syn-comment); font-style: italic; }
+.t-var { color: var(--sr-accent); background: var(--sr-accent-tint); border-radius: 2px; }
+
+/* ---- suggestions ---- */
+.suggest {
+  position: fixed;
+  z-index: 10;
+  width: 380px;
+  max-width: calc(100vw - 16px);
+  background: var(--sr-pop-bg);
+  border: 1px solid var(--sr-pop-border);
+  border-radius: 6px;
+  box-shadow: var(--sr-pop-shadow);
+  overflow: hidden;
+  font-size: 12px;
+}
+.suggest ul { list-style: none; margin: 0; padding: 4px 0; max-height: 180px; overflow: auto; }
+.suggest li { display: flex; align-items: baseline; gap: 12px; padding: 3px 10px; cursor: default; }
+.suggest li.is-active { background: var(--sr-accent-tint); }
+.s-name { font-family: var(--sr-mono); white-space: nowrap; }
+.s-name b { color: var(--sr-accent); font-weight: 600; }
+.s-detail { margin-left: auto; min-width: 0; color: var(--sr-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggest-detail {
+  margin: 0;
+  padding: 6px 10px 7px;
+  border-top: 1px solid var(--sr-rule);
+  color: var(--sr-muted);
+  font-family: var(--sr-mono);
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
 
 /* ---- footer ---- */
 .foot {

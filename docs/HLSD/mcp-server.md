@@ -2047,9 +2047,17 @@ GUI changes it. wx ignores `OnExit()`'s return value, so `GUI_Run()` returns
 ### Script runner dialog
 
 File › Run Script… and the Speed Dial command `open_script_runner` open `ScriptRunnerDialog`, where a
-person opens or pastes a script, reads its steps and runs it whole or one step at a time. It is a
+person opens or writes a script, reads its steps and runs it whole or one step at a time. It is a
 `WebViewHostDialog` page (`resources/web/dialog/ScriptRunner/`), modeless and one at a time
-(`MainFrame::show_script_runner()`). Opening it starts the service without the endpoint, as
+(`MainFrame::show_script_runner()`). The page's editor starts from a commented draft and suggests the
+script's keys, tool names, a tool's arguments and their allowed values, and `${…}` placeholders; the
+tool part comes from the registry, which the dialog sends once the service is ready, so the
+suggestions match the build. Save writes the text back to the file it was opened from, or asks where
+to put a new script and offers the script's name as the file name. A script saved somewhere new is
+that file's from then on: `${script_dir}` and its output folder follow the file, as for an opened
+one. Closing the dialog, or opening another script, with unsaved edits asks first. The page reports
+every edit to the host, which parses, runs and saves that one copy of the text, so the host can ask
+and save even when the window's close box starts the close. Opening the dialog starts the service without the endpoint, as
 `--mcp-script` does, so a person runs scripts with the server off.
 
 `McpService::start_script_run()` runs the script as a job of `run_script`'s kind but outside the

@@ -26,8 +26,8 @@ struct Script;
 struct ScriptContext;
 } // namespace Mcp
 
-// The Run Script dialog: a person opens or pastes an MCP script (orca_script), reads its steps and
-// runs it, whole or one step at a time, watching each step's outcome. The page
+// The Run Script dialog: a person opens or writes an MCP script (orca_script), saves it, reads its
+// steps and runs it, whole or one step at a time, watching each step's outcome. The page
 // (resources/web/dialog/ScriptRunner) shows; this host parses, describes, words and runs, through the
 // MCP service's script runner without opening its endpoint. Modeless, one at a time
 // (MainFrame::show_script_runner), and invisible to the MCP GUI tools, so a script can't act on it.
@@ -46,7 +46,8 @@ private:
     void handle(const nlohmann::json& payload);
     void send_service_state();
     void open_file();
-    void paste();
+    bool save(bool pick);
+    bool confirm_unsaved();
     void parse(const nlohmann::json& payload);
     void run(const nlohmann::json& payload);
     void refuse(const std::string& message, const std::string& detail = {});
@@ -65,9 +66,13 @@ private:
     std::shared_ptr<std::atomic<bool>> m_alive = std::make_shared<std::atomic<bool>>(true);
     wxTimer                            m_ready_timer;
 
-    // The source: an opened file (empty for pasted text) and the output folder its runs write to.
+    // The source: its text as the page last reported it, whether that differs from what was opened or
+    // saved last (for a new script, from the draft it started as), the file it was opened from or saved
+    // to (empty for a new script), and the output folder a new script's runs write to.
+    std::string                     m_text;
+    bool                            m_edited = false;
     boost::filesystem::path         m_file;
-    mutable boost::filesystem::path m_out_dir;
+    mutable boost::filesystem::path m_draft_out_dir;
     nlohmann::json                  m_jobs = nlohmann::json::object(); // jobs earlier runs saved
 
     std::shared_ptr<Mcp::ScriptRun>       m_run;

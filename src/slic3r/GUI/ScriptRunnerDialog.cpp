@@ -16,13 +16,17 @@
 #include "Mcp/McpService.hpp"
 #include "Mcp/McpTypes.hpp"
 #include "Widgets/WebViewHostDialog.hpp"
+#include "libslic3r/Utils.hpp"
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
 
 #include <wx/base64.h>
-#include <wx/clipbrd.h>
-#include <wx/dataobj.h>
 #include <wx/defs.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
@@ -65,6 +69,19 @@ std::string timestamp()
     std::strftime(buf, sizeof(buf), "%Y%m%d-%H%M%S", std::localtime(&t));
     return buf;
 }
+
+// The file name a new script is first offered under: the script's name, with the characters file
+// systems refuse replaced.
+std::string file_name_for(const std::string& text)
+{
+    std::string err;
+    const auto  script = Mcp::parse_script(text, err);
+    std::string name   = script ? sanitize_filename(script->name) : std::string();
+    boost::trim_if(name, boost::is_any_of(" ."));
+    return (name.empty() ? std::string("script") : name) + ".json";
+}
+
+wxString script_wildcard() { return format_wxstr("%1% (*.json)|*.json", _L("Script files")); }
 
 // A value as a person reads it: a string as its text, anything else as compact JSON.
 std::string value_text(const json& v) { return v.is_string() ? v.get<std::string>() : v.dump(); }
@@ -220,6 +237,27 @@ std::string thumbnail(const std::string& path)
     return "data:image/png;base64," + into_u8(wxBase64Encode(bytes.data(), bytes.size()));
 }
 
+// What the editor suggests for each tool: its name, title and arguments with their types and allowed
+// values. The argument descriptions are written for agents, in English, and stay out.
+json tool_catalog(const Mcp::ToolRegistry& registry)
+{
+    json tools = json::array();
+    for (const Mcp::ToolDef& def : registry.tools()) {
+        json       args       = json::object();
+        const auto properties = def.input_schema.find("properties");
+        if (properties != def.input_schema.end())
+            for (const auto& [name, schema] : properties->items()) {
+                json arg = json::object();
+                for (const char* key : {"type", "enum"})
+                    if (schema.contains(key))
+                        arg[key] = schema[key];
+                args[name] = std::move(arg);
+            }
+        tools.push_back({{"name", def.name}, {"title", _u8L(def.title.c_str())}, {"args", std::move(args)}});
+    }
+    return tools;
+}
+
 } // namespace
 
 ScriptRunnerDialog::ScriptRunnerDialog(wxWindow* parent) : WebViewHostDialog(parent)
@@ -255,16 +293,41 @@ bool ScriptRunnerDialog::running() const { return m_run && m_run->running(); }
 
 nlohmann::json ScriptRunnerDialog::localized_strings() const
 {
+    // Shortcuts as the menus write them (⌘+S, Ctrl+S). The editor's suggestion key is Control+Space on
+    // every platform, which the Mac writes ⌃.
+    const std::string ctrl = shortkey_ctrl_prefix();
+#ifdef __APPLE__
+    const std::string control = u8"\u2303+", enter = "Return";
+#else
+    const std::string control = ctrl, enter = "Enter";
+#endif
     return {
-        {"open_file", _u8L("Open file…")},
-        {"paste", _u8L("Paste")},
-        {"paste_script", _u8L("Paste script")},
+        {"key_suggest", control + "Space"},
+        {"key_run", ctrl + enter},
+        {"key_save", ctrl + "S"},
+        {"key_save_as", ctrl + shortkey_shift_prefix() + "S"},
+        {"open_script", _u8L("Open script…")},
+        {"save", _u8L("Save")},
+        // TRN Saves a new script: the button opens a file dialog.
+        {"save_new", _u8L("Save…")},
+        {"save_as", _u8L("Save as…")},
+        // TRN Shown for a moment after a script is saved.
+        {"saved", _u8L("Saved")},
         {"edited", _u8L("(edited)")},
-        {"pasted_script", _u8L("Pasted script")},
+        // TRN The name a new script starts with, in the editor of the Run Script dialog.
+        {"untitled_script", _u8L("Untitled script")},
         {"steps", _u8L("Steps")},
+        {"steps_hint", _u8L("Steps appear here as you write them.")},
         {"script_source", _u8L("Script source")},
-        {"source_placeholder", _u8L("Paste a script here")},
-        {"empty_hint", _u8L("Open a script file or paste one to see what it will do.")},
+        {"source_placeholder", _u8L("Write a script here, or open one.")},
+        // TRN The first comment line a new script starts with. MCP is the protocol AI agents use to drive OrcaSlicer.
+        {"draft_about", _u8L("A script runs OrcaSlicer's tools in order, the way an AI agent does through MCP.")},
+        // TRN A comment line a new script starts with. "tool", "args" and "expect" are the script's keys and stay in English.
+        {"draft_steps", _u8L("Each step names a \"tool\" and its \"args\"; \"expect\" checks the result before the next step.")},
+        // TRN %s is the placeholder ${out_dir}, written as is in the script.
+        {"draft_out_dir", _u8L("%s is this run's output folder.")},
+        // TRN The first %s is a key such as Ctrl+Space, the second one such as Ctrl+Enter.
+        {"draft_keys", _u8L("%s shows suggestions, %s runs the script.")},
         {"run", _u8L("Run")},
         {"run_again", _u8L("Run again")},
         {"stop", _u8L("Stop")},
@@ -309,8 +372,11 @@ void ScriptRunnerDialog::handle(const nlohmann::json& payload)
             send_service_state();
         else if (command == "open_file")
             open_file();
-        else if (command == "paste")
-            paste();
+        else if (command == "edit") {
+            m_text   = payload.value("text", "");
+            m_edited = payload.value("edited", false);
+        } else if (command == "save")
+            save(payload.value("pick", false));
         else if (command == "parse")
             parse(payload);
         else if (command == "run")
@@ -337,13 +403,17 @@ void ScriptRunnerDialog::send_service_state()
     const bool       ready = s != nullptr && s->ready();
     if (!ready && s != nullptr && !m_ready_timer.IsRunning())
         m_ready_timer.Start(500);
-    call_web_handler({{"command", "service"}, {"ready", ready}});
+    json msg{{"command", "service"}, {"ready", ready}};
+    if (ready)
+        msg["tools"] = tool_catalog(s->registry());
+    call_web_handler(msg);
 }
 
 void ScriptRunnerDialog::open_file()
 {
-    wxFileDialog dialog(this, _L("Open a script"), wxEmptyString, wxEmptyString,
-                        format_wxstr("%1% (*.json)|*.json", _L("Script files")), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (!confirm_unsaved())
+        return;
+    wxFileDialog dialog(this, _L("Open a script"), wxEmptyString, wxEmptyString, script_wildcard(), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     const int result = dialog.ShowModal();
     if (!m_alive->load())
         return;
@@ -359,42 +429,93 @@ void ScriptRunnerDialog::open_file()
     std::ostringstream text;
     text << in.rdbuf();
     m_file = path;
-    m_out_dir.clear();
     m_jobs = json::object();
-    call_web_handler({{"command", "source"}, {"origin", "file"}, {"file_name", Mcp::path_to_utf8(path.filename())}, {"text", text.str()}});
+    call_web_handler({{"command", "source"}, {"file_name", Mcp::path_to_utf8(path.filename())}, {"text", text.str()}});
 }
 
-void ScriptRunnerDialog::paste()
+// Writes the source to its file, or to one the person picks when it has none or `pick` asks for another.
+// False when nothing was written: the person cancelled, or the file can't be written.
+bool ScriptRunnerDialog::save(bool pick)
 {
-    std::string text;
-    if (wxTheClipboard->Open()) {
-        if (wxTheClipboard->IsSupported(wxDF_UNICODETEXT) || wxTheClipboard->IsSupported(wxDF_TEXT)) {
-            wxTextDataObject data;
-            if (wxTheClipboard->GetData(data))
-                text = into_u8(data.GetText());
+    fs::path path = m_file;
+    if (pick || path.empty()) {
+        const wxString name = path.empty() ? from_u8(file_name_for(m_text)) : from_path(path.filename());
+        wxFileDialog   dialog(this, _L("Save the script"), path.empty() ? wxString() : from_path(path.parent_path()), name,
+                              script_wildcard(), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        const int      result = dialog.ShowModal();
+        if (!m_alive->load())
+            return false;
+        restore_z_order();
+        if (result != wxID_OK)
+            return false;
+        path = into_path(dialog.GetPath());
+        // GTK's file dialog doesn't add the filter's extension, so it never asked about the file adding it names.
+        if (!boost::iequals(path.extension().string(), ".json")) {
+            path += ".json";
+            boost::system::error_code ec;
+            if (fs::exists(path, ec)) {
+                MessageDialog confirm(this, wxString::Format(_L("The file %s already exists.\nDo you want to replace it?"), from_path(path)),
+                                      _L("Confirm Save As"), wxYES_NO | wxICON_WARNING);
+                const int answer = confirm.ShowModal();
+                if (!m_alive->load() || answer != wxID_YES)
+                    return false;
+            }
         }
-        wxTheClipboard->Close();
     }
-    if (text.empty()) {
-        call_web_handler({{"command", "error"}, {"message", _u8L("The clipboard holds no text.")}});
-        return;
+    // Written beside the file, then renamed over it. Unlike write_file_atomically() nothing is ever written
+    // in place, so a save that fails (a full disk, a folder that refuses new files) leaves the file as it was.
+    const std::string       target = Mcp::path_to_utf8(path);
+    const std::string       temp   = target + ".saving";
+    boost::nowide::ofstream out(temp.c_str(), std::ios::binary | std::ios::trunc);
+    out << m_text;
+    out.close();
+    const bool written = bool(out);
+    if (!written || rename_file(temp, target)) {
+        boost::system::error_code ec;
+        // Kept when a failed replacement removed the file first (some network mounts): it is the only copy.
+        if (!written || fs::exists(path, ec))
+            boost::nowide::remove(temp.c_str());
+        call_web_handler({{"command", "error"}, {"message", format(_u8L("Can't save %1%."), target)}});
+        return false;
     }
-    m_file.clear();
-    m_out_dir.clear();
-    m_jobs = json::object();
-    call_web_handler({{"command", "source"}, {"origin", "paste"}, {"text", text}});
+    // Saved somewhere new, the script is that file's: ${script_dir} and the output folder follow it.
+    const bool moved = path != m_file;
+    m_file           = path;
+    m_edited         = false;
+    call_web_handler({{"command", "saved"}, {"file_name", Mcp::path_to_utf8(path.filename())}, {"moved", moved}, {"text", m_text}});
+    return true;
 }
 
+// Asks whether to save an edited source before it is closed or replaced. False to keep it: the person
+// cancelled, or chose to save and nothing was saved.
+bool ScriptRunnerDialog::confirm_unsaved()
+{
+    if (!m_edited)
+        return true;
+    const wxString question = m_file.empty() ? _L("Save this script?\nIf you don't, your changes are lost.") :
+                                               // TRN %1% is a script's file name.
+                                               format_wxstr(_L("Save the changes to %1%?\nIf you don't, your changes are lost."), from_path(m_file.filename()));
+    MessageDialog dialog(this, question, _L("Run Script"), wxYES_NO | wxCANCEL | wxICON_QUESTION);
+    dialog.SetButtonLabel(wxID_YES, _L("Save"));
+    dialog.SetButtonLabel(wxID_NO, _L("Don't save"));
+    const int answer = dialog.ShowModal();
+    if (!m_alive->load())
+        return false;
+    return answer == wxID_YES ? save(false) : answer == wxID_NO;
+}
+
+// A file's runs write next to it, into <name>.out; a new script's into one folder of the session's
+// output, named when first needed.
 fs::path ScriptRunnerDialog::out_dir() const
 {
-    if (m_out_dir.empty()) {
-        if (!m_file.empty()) {
-            m_out_dir = m_file.parent_path() / m_file.stem();
-            m_out_dir += ".out";
-        } else
-            m_out_dir = Mcp::output_dir() / ("script-" + timestamp());
+    if (!m_file.empty()) {
+        fs::path dir = m_file.parent_path() / m_file.stem();
+        dir += ".out";
+        return dir;
     }
-    return m_out_dir;
+    if (m_draft_out_dir.empty())
+        m_draft_out_dir = Mcp::output_dir() / ("script-" + timestamp());
+    return m_draft_out_dir;
 }
 
 Mcp::ScriptContext ScriptRunnerDialog::context() const
@@ -446,7 +567,7 @@ void ScriptRunnerDialog::parse(const nlohmann::json& payload)
     try {
         Mcp::McpService* s = service();
         std::string      err;
-        const auto       script = Mcp::parse_script(payload.value("text", ""), err);
+        const auto       script = Mcp::parse_script(m_text, err);
         if (s == nullptr)
             reply["error"] = _u8L("Scripts can't run while OrcaSlicer is starting or closing.");
         else if (!script)
@@ -486,7 +607,7 @@ void ScriptRunnerDialog::run(const nlohmann::json& payload)
         return;
     }
     std::string err;
-    auto        script = Mcp::parse_script(payload.value("text", ""), err);
+    auto        script = Mcp::parse_script(m_text, err);
     if (!script) {
         refuse(_u8L("The script could not run."), err);
         return;
@@ -650,7 +771,7 @@ json ScriptRunnerDialog::step_view(const json& entry) const
 
 json ScriptRunnerDialog::finished_view(const json& result) const
 {
-    json view{{"command", "run_finished"}, {"single", m_single.has_value()}, {"out_dir", Mcp::path_to_utf8(m_out_dir)}};
+    json view{{"command", "run_finished"}, {"single", m_single.has_value()}, {"out_dir", Mcp::path_to_utf8(out_dir())}};
     if (result.contains("error")) {
         view.update({{"passed", false}, {"outcome_kind", "fail"}, {"outcome_text", _u8L("The script could not run.")}, {"error_detail", value_text(result["error"])}});
         return view;
@@ -691,14 +812,21 @@ json ScriptRunnerDialog::finished_view(const json& result) const
 
 void ScriptRunnerDialog::on_close(wxCloseEvent& event)
 {
-    if (running()) {
-        if (event.CanVeto()) {
+    if (event.CanVeto()) {
+        if (running()) {
             MessageDialog dialog(this, _L("A script is running. Stop it and close this window?"), _L("Run Script"), wxYES_NO | wxICON_QUESTION);
             if (dialog.ShowModal() != wxID_YES) {
                 event.Veto();
                 return;
             }
         }
+        // Asked before the run is stopped, so declining keeps the run going as well as the text.
+        if (!confirm_unsaved()) {
+            event.Veto();
+            return;
+        }
+    }
+    if (running()) {
         m_run->stop();
         m_run->detach();
     }

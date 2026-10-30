@@ -10,12 +10,13 @@ const FLAG_LABELS = {
 
 const state = {
   ready: false,
-  origin: "",          // "file" or "paste"
-  fileName: "",
-  loadedText: null,    // the opened file's text, to tell when the source is edited
+  fileName: "",        // the file the script was opened from or saved to; empty for a new script
+  savedText: "",       // the text as opened or last saved (for a new script, its draft), to tell when it's edited
+  name: "",            // the script's name, as last parsed
   parseSeq: 0,
   parseTimer: 0,
   parsed: null,        // the host's last description: {ok, error, name, steps, count_text}
+  steps: [],           // the steps of the last text that parsed, shown while later text doesn't
   stale: false,        // the text has changed since the host described it; Run waits for the new description
   pending: false,      // Run was pressed and the host hasn't started or refused the run yet
   running: false,
@@ -33,6 +34,7 @@ const state = {
 
 const rows = new Map(); // step index -> its <li>
 let ticker = 0;
+let savedTimer = 0;
 
 function $(id) { return document.getElementById(id); }
 
@@ -59,38 +61,127 @@ function scheduleParse(delay) {
   const seq = ++state.parseSeq;
   state.stale = true;
   state.parseTimer = setTimeout(() => {
-    const text = sourceText();
-    if (!text.trim()) {
+    // Asked again once the service is ready (HandleStudio's "service").
+    if (!state.ready) return;
+    if (!sourceText().trim()) {
       onParsed({ seq, ok: false, empty: true });
       return;
     }
-    send("parse", { text, seq });
+    send("parse", { seq });
   }, delay);
 }
 
-function onSource(msg) {
-  state.origin = msg.origin;
-  state.fileName = msg.file_name || "";
-  state.loadedText = msg.origin === "file" ? msg.text : null;
-  $("source").value = msg.text;
-  if (msg.origin === "paste") setSectionOpen("source-section", true);
+// What the editor holds when the dialog opens: a script that runs as it is, with comments on the format.
+function draftScript() {
+  return [
+    "// " + T("draft_about", "A script runs OrcaSlicer's tools in order, the way an AI agent does through MCP."),
+    "// " + T("draft_steps", "Each step names a \"tool\" and its \"args\"; \"expect\" checks the result before the next step."),
+    "// " + T("draft_out_dir", "%s is this run's output folder.", "${out_dir}"),
+    "// " + T("draft_keys", "%s shows suggestions, %s runs the script.", T("key_suggest", "Ctrl+Space"), T("key_run", "Ctrl+Enter")),
+    "{",
+    '  "orca_script": 1,',
+    '  "name": ' + JSON.stringify(T("untitled_script", "Untitled script")) + ",",
+    '  "steps": [',
+    '    {"tool": "wait", "args": {"for": "ready"}},',
+    '    {"tool": "slice", "expect": {"/status": {"eq": "done"}}},',
+    '    {"tool": "screenshot",',
+    '     "args": {"target": "canvas", "save_path": "${out_dir}/preview.png", "overwrite": true}}',
+    "  ]",
+    "}",
+    "",
+  ].join("\n");
+}
+
+// A new source: the dialog's draft or an opened file, unedited, read from the top, with no run of it yet
+// and no steps until the host describes it.
+function setSource(text) {
+  const source = $("source");
+  source.value = text;
+  // As the textarea holds it: its line breaks are LF whatever the file has.
+  state.savedText = source.value;
+  state.outDir = "";
+  state.parsed = null;
+  state.steps = [];
+  state.name = "";
+  source.setSelectionRange(0, 0);
+  $("editor").scrollTop = 0;
+  $("editor").scrollLeft = 0;
+  closeSuggest();
+  refreshEditor();
   resetRun();
+  buildRail();
+  reportEdit();
   scheduleParse(0);
+  render();
+}
+
+function onSource(msg) {
+  state.fileName = msg.file_name;
+  setSource(msg.text);
 }
 
 function onSourceInput() {
-  if (!state.origin) state.origin = "paste";
+  reportEdit();
   scheduleParse(250);
   render();
 }
 
 function renderChip() {
-  const text = sourceText();
-  const shown = state.origin === "file" || text.trim() !== "";
-  $("chip").hidden = !shown;
-  if (!shown) return;
-  $("chip-name").textContent = state.origin === "file" ? state.fileName : T("pasted_script", "Pasted script");
-  $("chip-edited").hidden = !(state.origin === "file" && state.loadedText !== null && text !== state.loadedText);
+  $("chip-name").textContent = state.fileName || state.name || T("untitled_script", "Untitled script");
+  $("chip-edited").hidden = !(state.fileName && edited());
+}
+
+// ---- saving -------------------------------------------------------------------------------------
+
+function edited() { return sourceText() !== state.savedText; }
+
+// The host keeps the text and whether it's edited, to parse, run and save it and to ask before closing or
+// replacing it.
+function reportEdit() { send("edit", { text: sourceText(), edited: edited() }); }
+
+// Save writes an opened or saved script back to its file and asks where to put a new one; Save as
+// (`pick`) asks where to put a copy.
+function save(pick) {
+  const button = pick ? $("save-as") : $("save");
+  if (!button.hidden && !button.disabled) send("save", { pick });
+}
+
+function onSaved(msg) {
+  state.fileName = msg.file_name;
+  state.savedText = msg.text;
+  reportEdit();
+  showSaved();
+  // Saved somewhere new, the script is that file's: its steps are described again with the file's
+  // folders, and the last run's output folder belongs to the script as it was.
+  if (msg.moved) {
+    state.outDir = "";
+    resetRun();
+    scheduleParse(0);
+  }
+  render();
+}
+
+function showSaved() {
+  const note = $("save-note");
+  clearTimeout(savedTimer);
+  note.classList.remove("is-fading");
+  note.hidden = false;
+  savedTimer = setTimeout(() => {
+    note.classList.add("is-fading");
+    savedTimer = setTimeout(() => { note.hidden = true; }, 400);
+  }, 2000);
+}
+
+function renderSave() {
+  const button = $("save");
+  button.textContent = state.fileName ? T("save", "Save") : T("save_new", "Save…");
+  button.disabled = busy() || (!!state.fileName && !edited());
+  $("save-as").hidden = !state.fileName;
+  $("save-as").disabled = busy();
+  if (edited()) {
+    clearTimeout(savedTimer);
+    $("save-note").hidden = true;
+  }
 }
 
 // ---- sections ---------------------------------------------------------------------------------
@@ -115,7 +206,12 @@ function onParsed(msg) {
   state.stale = false;
   state.parsed = msg;
   resetRun();
-  buildRail();
+  // A script that doesn't parse keeps the last steps that did, faded, so typing doesn't empty the list.
+  if (msg.ok || msg.empty) {
+    state.steps = msg.ok ? msg.steps : [];
+    buildRail();
+  }
+  if (msg.ok) state.name = msg.name || "";
   render();
 }
 
@@ -133,8 +229,7 @@ function buildRail() {
   const rail = $("steps");
   rail.textContent = "";
   rows.clear();
-  const steps = state.parsed && state.parsed.ok ? state.parsed.steps : [];
-  for (const step of steps) {
+  for (const step of state.steps) {
     const row = makeRow(step);
     rows.set(step.index, row);
     rail.appendChild(row);
@@ -181,9 +276,7 @@ function makeRow(step) {
   return row;
 }
 
-function stepOf(index) {
-  return state.parsed && state.parsed.ok ? state.parsed.steps.find((s) => s.index === index) : null;
-}
+function stepOf(index) { return state.steps.find((s) => s.index === index); }
 
 function toggleStep(index) {
   if (state.open.has(index)) state.open.delete(index);
@@ -299,7 +392,7 @@ function requestRun(extra) {
   if (!canRun()) return;
   // Frozen at once: the host may ask about unsaved changes first, and the script must not change meanwhile.
   state.pending = true;
-  send("run", Object.assign({ text: sourceText() }, extra));
+  send("run", extra);
   render();
 }
 
@@ -369,17 +462,20 @@ function onRunRefused(msg) {
 // ---- footer and header --------------------------------------------------------------------------
 
 function render() {
-  const text = sourceText();
-  const hasSteps = state.parsed && state.parsed.ok;
-  $("empty").hidden = text.trim() !== "";
-  $("steps").hidden = !hasSteps;
+  const hasRows = rows.size > 0;
+  $("steps").hidden = !hasRows;
+  $("steps").classList.toggle("is-stale", !!(state.parsed && !state.parsed.ok));
+  $("steps-hint").hidden = hasRows;
   renderChip();
+  renderSave();
   rows.forEach((_, index) => renderRow(index));
   renderSummary();
   renderFooter();
 
-  for (const id of ["open-file", "paste", "empty-open", "empty-paste"]) $(id).disabled = busy();
+  $("open-file").disabled = busy();
   $("source").readOnly = busy();
+  $("editor").classList.toggle("is-readonly", busy());
+  if (busy()) closeSuggest();
 }
 
 function runningText() {
@@ -395,8 +491,10 @@ function renderSummary() {
   else if (state.parsed && state.parsed.ok) summary.textContent = state.parsed.count_text || "";
   else if (state.parsed && !state.parsed.empty && state.parsed.error) {
     summary.textContent = state.parsed.error;
-    summary.classList.add("is-error");
+    // Over faded steps the reason stays quiet while the script is being written.
+    summary.classList.toggle("is-error", rows.size === 0);
   } else summary.textContent = "";
+  summary.title = summary.textContent;
 }
 
 function renderFooter() {
@@ -424,11 +522,17 @@ function renderFooter() {
 
 function HandleStudio(msg) {
   switch (msg.command) {
-  case "service":
+  case "service": {
+    const was = state.ready;
     state.ready = !!msg.ready;
+    if (msg.tools) setEditorTools(msg.tools);
+    // A script parsed while the service was starting got only "still starting" back.
+    if (state.ready && !was && !busy()) scheduleParse(0);
     render();
     break;
+  }
   case "source": onSource(msg); break;
+  case "saved": onSaved(msg); break;
   case "parsed": onParsed(msg); break;
   case "run_started": onRunStarted(msg); break;
   case "step_started": onStepStarted(msg); break;
@@ -445,10 +549,12 @@ function HandleStudio(msg) {
 
 function OnInit() {
   TranslatePage();
+  initEditor();
   $("open-file").addEventListener("click", () => send("open_file"));
-  $("empty-open").addEventListener("click", () => send("open_file"));
-  $("paste").addEventListener("click", () => send("paste"));
-  $("empty-paste").addEventListener("click", () => send("paste"));
+  $("save").addEventListener("click", () => save(false));
+  $("save-as").addEventListener("click", () => save(true));
+  $("save").title = T("key_save", "Ctrl+S");
+  $("save-as").title = T("key_save_as", "Ctrl+Shift+S");
   $("run").addEventListener("click", runAll);
   $("stop").addEventListener("click", () => send("stop"));
   $("close").addEventListener("click", () => send("close_page"));
@@ -463,6 +569,13 @@ function OnInit() {
       runAll();
     }
   });
-  render();
+  // Ctrl/Cmd+S saves wherever the focus is, and with Shift saves as.
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      save(e.shiftKey);
+    }
+  });
+  setSource(draftScript());
   send("init");
 }
