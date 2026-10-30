@@ -303,6 +303,8 @@ public:
                            std::vector<Vec2d> sizes = {});     // draw datum/reference planes (u/v extents)
     // Mate connectors, drawn as frames so their verse and polarity are visible (wgsc).
     void set_mate_connectors(std::vector<DesignSketchTool::MateConnectorGlyph> g);
+    void set_snap_markers(std::vector<Vec3d> p, int active) { m_sketch_tool.set_snap_markers(std::move(p), active); request_repaint(); }
+    void set_on_snap_marker_picked(std::function<void(int)> cb) { m_sketch_tool.on_snap_marker_picked = std::move(cb); }
     void set_mate_links(std::vector<std::pair<Vec3d, Vec3d>> l);
     // Draw these (body, face id) faces as selected: the faces the Feature tree's selected feature
     // made (CadDocument::faces_made_by). Empty clears them.

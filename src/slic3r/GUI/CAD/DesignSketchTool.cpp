@@ -5484,6 +5484,23 @@ void DesignSketchTool::clear_extrude_gizmo()
 // ORCA_CAD_GLYPH=A|B selects the treatment while this is being judged on the rig:
 //   A  three short axis arms, no head differentiation  (the Onshape baseline)
 //   B  one-sided Z arrow, filled vs open head          (the proposal)          -- default
+void DesignSketchTool::render_snap_markers()
+{
+    if (m_snap_markers.empty()) return;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const Vec3d right = cam.get_dir_right().normalized();
+    glsafe(::glDisable(GL_DEPTH_TEST));   // a point on a back face is still listed; the cursor decides
+    for (int i = 0; i < int(m_snap_markers.size()); ++i) {
+        const bool hot = i == m_snap_hover, on = i == m_snap_active;
+        const double h = (hot ? 8.5 : 6.0) * upp;
+        const ColorRGBA c = on ? ColorRGBA(0.18f, 0.44f, 0.93f, 1.0f) : hot ? ColorRGBA(1.0f, 0.85f, 0.25f, 1.0f) : ColorRGBA(1.0f, 0.55f, 0.10f, 1.0f);
+        const Vec3d a = m_snap_markers[i] - right * h, b = m_snap_markers[i] + right * h;
+        draw_strokes3d(m_snap_model, { { a, b } }, h + 1.6 * upp, ColorRGBA(0.12f, 0.12f, 0.14f, 1.0f));   // dark outline, so it reads on any face colour
+        draw_strokes3d(m_snap_model, { { a, b } }, h, c);
+    }
+}
+
 void DesignSketchTool::render_mate_connectors()
 {
     if (m_mate_connectors.empty()) return;
@@ -10996,6 +11013,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     if (!m_active) {
         render_datum_planes();
         render_mate_connectors();
+        render_snap_markers();
         render_solid_highlight();
         if (draws_reference_axes()) render_base_pick();   // the canvas drops the bed's triad on the same test
         if (m_dz_active) render_datum_gizmo();
@@ -12184,6 +12202,19 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
     m_last_mouse_x = evt.GetX();
     m_last_mouse_y = evt.GetY();
     m_last_canvas  = &canvas;
+    if (!m_snap_markers.empty() && !m_active) {
+        // the marker nearest the cursor, measured as the distance from the mouse ray to the point, within ~9 px
+        const Linef3 ray = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+        const Vec3d ro = ray.a, rd = (ray.b - ray.a).normalized();
+        const double tol = 9.0 / std::max(wxGetApp().plater()->get_camera().get_zoom(), 1e-6);
+        int best = -1; double bd = tol;
+        for (int i = 0; i < int(m_snap_markers.size()); ++i) {
+            const double d = (m_snap_markers[i] - ro).cross(rd).norm();
+            if (d < bd) { bd = d; best = i; }
+        }
+        if (best != m_snap_hover) { m_snap_hover = best; canvas.set_as_dirty(); }
+        if (evt.LeftDown() && best >= 0 && on_snap_marker_picked) { on_snap_marker_picked(best); return true; }
+    }
     if (evt.LeftDClick()) dp_pick_trace("dclick x=%d y=%d dbp=%d", evt.GetX(), evt.GetY(), int(m_dbp_active));
 
     // Line draw-then-edit: while the length editor is open right after the second click,

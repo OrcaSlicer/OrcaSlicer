@@ -127,6 +127,12 @@ public:
     static std::vector<TopoDS_Edge> edges_of_face(const TopoDS_Face& face);
     // Centre of mass (world) of a face — used to compute the extrude length for "up to face".
     static Vec3d face_centroid_world(const TopoDS_Face& face);
+    // The strategic points of a face, the places a mate connector wants to sit: [0] is always the centroid, then, for EVERY edge of
+    // EVERY wire (outer boundary and holes alike) its end vertices and midpoint, plus the centre of a circular or arc edge and the four
+    // quadrant points of a full circle. So a rectangle gives 9 (centroid, 4 corners, 4 midpoints); a disc 5; a slot its two arc centres,
+    // arc midpoints, line midpoints and corners; a hole adds its own centre and quadrants. Deterministic order, duplicates removed.
+    struct FacePoint { Vec3d p{0, 0, 0}; int kind{0}; };   // kind: 0 centroid, 1 vertex, 2 midpoint, 3 arc/circle centre, 4 quadrant
+    static std::vector<FacePoint> face_snap_points(const TopoDS_Face& face);
     // Outward unit normal of a face at its UV midpoint (orientation-aware) — for the shell gizmo.
     static Vec3d face_normal_world(const TopoDS_Face& face);
     // Sample an edge into a world-space polyline (>=2 pts) for pick-distance + highlight.

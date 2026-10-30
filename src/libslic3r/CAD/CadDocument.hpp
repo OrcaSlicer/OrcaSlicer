@@ -346,6 +346,8 @@ struct CadFeature {
     int          coordsys_face{-1};
     int          coordsys_edge{-1};
     Vec3d        coordsys_x_hint{1, 0, 0};
+    // FaceAndDirection: which of the face's snap points (GeometryEngine::face_snap_points) the frame sits on. -1 = the centroid.
+    int          coordsys_snap{-1};
 
     // Fingerprint of the face this connector was bound to, for drift detection. -1 = not yet
     // recorded (an old recipe, or a connector that has never resolved).
@@ -876,6 +878,9 @@ public:
     // not viable rather than hiding it, so the list must be stable in length and order between
     // calls. Pure query over existing data — records nothing, mutates nothing.
     std::vector<MateOption> mate_options(int cs_a, int cs_b) const;
+    // Connector z axes point OUT of their face, so two face connectors are "aligned" with the parts overlapping; face-to-face contact
+    // needs flip. True when both connectors sit on a face — what a mate offered with no flip control should default to.
+    bool mate_default_flip(int cs_a, int cs_b) const;
 
     int  add_helix(const SketchPlane& plane, double radius, double pitch, double height,
                    bool left_handed, double taper_deg, const std::string& name);

@@ -3788,28 +3788,29 @@ DesignPanel::DesignPanel(wxWindow* parent)
             if (got) { m_axis_pick = AxisPick::None; refresh_axis_labels(); }
             if (got && m_viewport) m_viewport->set_escalate_on_repick(true);
         }
-        // CoordSys tool with a pick armed: face or edge.
-        if (m_active == Tool::CoordSys && m_coordsys_pick != CoordSysPick::None) {
+        // CoordSys tool: a click on a body's FACE is the connector's face (no "Pick Face" button first), and with a pick armed the click
+        // fills that reference. Face, edge and body come from the click itself, not from m_sel_solid_*: those lag the click, which is how
+        // a second connector ended up on the first one's body.
+        if (m_active == Tool::CoordSys && body >= 0 && body < int(m_doc.bodies.size())) {
+            const bool fd = m_coordsys_type && m_coordsys_type->GetSelection() == (int)CoordSysType::FaceAndDirection;
+            const CoordSysPick pk = m_coordsys_pick != CoordSysPick::None ? m_coordsys_pick
+                                  : (fd && face >= 0 ? CoordSysPick::Face : CoordSysPick::None);
             bool got = false;
-            switch (m_coordsys_pick) {
-            case CoordSysPick::Face: if (m_sel_solid_face >= 0) { m_cs_face_body = m_sel_solid_body; m_cs_face = m_sel_solid_face; got = true; } break;
-            case CoordSysPick::Edge: if (m_sel_solid_edge >= 0) { m_cs_face_body = m_sel_solid_body; m_cs_edge = m_sel_solid_edge; got = true; } break;
+            switch (pk) {
+            case CoordSysPick::Face: if (face >= 0) { m_cs_face_body = body; m_cs_face = face; m_cs_snap = -1; got = true; } break;
+            case CoordSysPick::Edge: if (edge >= 0) { m_cs_face_body = body; m_cs_edge = edge; got = true; } break;
             default: break;
             }
             if (got) {
-                // A picked face or edge is only meaningful to FaceAndDirection. Left on the
-                // default Point (world), datum_frame ignores the pick entirely and resolves the
-                // connector to coordsys_point — which is (0,0,0) unless the user typed
-                // otherwise. Two such connectors then share one frame, so a mate between them
-                // computes an IDENTITY transform: the feature commits, the recompute succeeds,
-                // and nothing moves. Picking a face IS the choice of a face-based frame, so make
-                // the type follow the pick rather than asking for it twice.
+                // A picked face or edge is only meaningful to FaceAndDirection; left on the default Point (world) datum_frame ignores
+                // it and two connectors share one frame, so a mate between them is an identity that "succeeds" and moves nothing.
+                // Picking a face IS the choice of a face-based frame, so the type follows the pick.
                 if (m_coordsys_type && m_coordsys_type->GetSelection() != (int)CoordSysType::FaceAndDirection)
                     m_coordsys_type->SetSelection((int)CoordSysType::FaceAndDirection);
                 m_coordsys_pick = CoordSysPick::None;
                 refresh_coordsys_labels();
+                if (m_viewport) m_viewport->set_escalate_on_repick(true);
             }
-            if (got && m_viewport) m_viewport->set_escalate_on_repick(true);
         }
         const int nb = int(m_doc.bodies.size());
         const bool bodytag = nb > 1;
@@ -7366,7 +7367,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             // you just left is worse than none, so it goes as soon as the cursor does.
             if (i < 0 || i >= int(opts.size()) || !opts[i].viable) { drop_ghost(); return; }
             std::string err;
-            mate_ghost = show_mate_ghost(opts[i].kind, cs_a, cs_b, 0.0, 0.0, false, err);
+            mate_ghost = show_mate_ghost(opts[i].kind, cs_a, cs_b, 0.0, 0.0, m_doc.mate_default_flip(cs_a, cs_b), err);
             m_viewport->repaint_now();   // synchronous: the popup owns the loop, a queued repaint is never serviced
         });
 
@@ -7376,7 +7377,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             drop_ghost();         // the real bodies are about to become the ghost's pose
             m_doc.checkpoint();   // undo boundary: committing a mate from the offer
             ++m_feature_counter;
-            int idx = m_doc.add_mate(opts[i].kind, cs_a, cs_b, 0.0, 0.0, false, feature_name(_L("Mate")));
+            int idx = m_doc.add_mate(opts[i].kind, cs_a, cs_b, 0.0, 0.0, m_doc.mate_default_flip(cs_a, cs_b), feature_name(_L("Mate")));
             if (idx < 0) {
                 set_status(StatusKind::Error, _L("Mate rejected"));
                 return;
@@ -7513,6 +7514,7 @@ void DesignPanel::apply_coordsys_refs(CadFeature& f) const
     f.coordsys_body  = m_cs_face_body;
     f.coordsys_face  = m_cs_face;
     f.coordsys_edge  = m_cs_edge;
+    f.coordsys_snap  = m_cs_snap;
     f.coordsys_x_hint = Vec3d(m_cs_hx->GetValue(), m_cs_hy->GetValue(), m_cs_hz->GetValue());
 }
 
@@ -7520,6 +7522,23 @@ void DesignPanel::refresh_coordsys_labels()
 {
     if (m_cs_face_lbl) m_cs_face_lbl->SetLabel(m_cs_face >= 0 ? wxString::Format(_L("Face %d"), m_cs_face) : wxString(_L("(none)")));
     if (m_cs_edge_lbl) m_cs_edge_lbl->SetLabel(m_cs_edge >= 0 ? wxString::Format(_L("Edge %d"), m_cs_edge) : wxString(_L("(none)")));
+    update_cs_snap_markers();
+}
+
+void DesignPanel::update_cs_snap_markers()
+{
+    if (!m_viewport) return;
+    std::vector<Vec3d> pts;
+    if (m_active == Tool::CoordSys && m_cs_face >= 0 && m_cs_face_body >= 0 && m_cs_face_body < int(m_doc.bodies.size())) {
+        const TopoDS_Face fc = GeometryEngine::face_by_index(m_doc.bodies[m_cs_face_body].shape, m_cs_face);
+        for (const auto& q : GeometryEngine::face_snap_points(fc)) pts.push_back(q.p);
+    }
+    m_viewport->set_snap_markers(std::move(pts), m_cs_snap < 0 ? 0 : m_cs_snap);
+    m_viewport->set_on_snap_marker_picked([this](int i) {
+        m_cs_snap = i == 0 ? -1 : i;   // [0] is the centroid, which is what -1 already means
+        refresh_coordsys_labels();
+        refresh_preview();
+    });
 }
 
 void DesignPanel::refresh_cs_body_choice()
@@ -7549,6 +7568,7 @@ void DesignPanel::refresh_cs_body_choice()
 void DesignPanel::reset_coordsys_refs()
 {
     m_cs_face_body = m_cs_face = -1;
+    m_cs_snap = -1;
     m_cs_edge = -1;
     m_coordsys_pick = CoordSysPick::None;
     if (m_viewport) m_viewport->set_escalate_on_repick(true);   // pick abandoned
@@ -10347,7 +10367,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_cs_x->SetValue(f.coordsys_point.x());
         m_cs_y->SetValue(f.coordsys_point.y());
         m_cs_z->SetValue(f.coordsys_point.z());
-        m_cs_face_body = f.coordsys_body; m_cs_face = f.coordsys_face;
+        m_cs_face_body = f.coordsys_body; m_cs_face = f.coordsys_face; m_cs_snap = f.coordsys_snap;
         m_cs_edge = f.coordsys_edge;
         m_cs_hx->SetValue(f.coordsys_x_hint.x());
         m_cs_hy->SetValue(f.coordsys_x_hint.y());
@@ -13335,6 +13355,7 @@ void DesignPanel::open_tool(Tool t)
 void DesignPanel::close_tool()
 {
     m_active = Tool::None;
+    update_cs_snap_markers();
     set_active_tool_btn(nullptr);   // clear the active-tool teal highlight
     // Single revert point for the Transform gizmo: Esc, switching tools, and Cancel all pass
     // through here, so the body is never left displaced by a Transform that wasn't committed.

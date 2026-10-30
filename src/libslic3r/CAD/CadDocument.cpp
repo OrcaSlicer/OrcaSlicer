@@ -1685,6 +1685,15 @@ int CadDocument::add_mate(int kind, int cs_a, int cs_b, double offset, double an
     return append_feature(f);
 }
 
+bool CadDocument::mate_default_flip(int cs_a, int cs_b) const
+{
+    auto on_face = [&](int i) {
+        return i >= 0 && i < int(features.size()) && features[i].type == CadFeatureType::CoordSys
+            && features[i].coordsys_type == CoordSysType::FaceAndDirection && features[i].coordsys_face >= 0;
+    };
+    return on_face(cs_a) && on_face(cs_b);
+}
+
 std::vector<CadDocument::MateOption> CadDocument::mate_options(int cs_a, int cs_b) const
 {
     std::vector<MateOption> out(5);
@@ -2222,6 +2231,10 @@ CadDocument::DatumCoordSys CadDocument::datum_frame(const std::vector<CadBody>& 
         bool have_edge = resolve_edge(f.coordsys_body, f.coordsys_edge, p0, edge_dir);
         if (fc.IsNull()) { ds.error = _u8L("face not found"); break; }
         ds.origin = GeometryEngine::face_centroid_world(fc);
+        if (f.coordsys_snap > 0) {   // a chosen strategic point of the face; 0 and -1 are the centroid
+            const auto pts = GeometryEngine::face_snap_points(fc);
+            if (f.coordsys_snap < int(pts.size())) ds.origin = pts[f.coordsys_snap].p;
+        }
         Vec3d Z = GeometryEngine::face_normal_world(fc);
         // Tentative X: an explicit edge reference wins. Failing that, derive X from the
         // face's OWN first usable edge, so the frame rotates with the body. Reading it from

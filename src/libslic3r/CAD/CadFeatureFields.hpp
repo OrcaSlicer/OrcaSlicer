@@ -101,7 +101,7 @@ template<class V, class F> void cad_fields_datum(V& v, F& f)
     v(f.axis_type); v(f.axis_p1); v(f.axis_p2); v(f.axis_body); v(f.axis_face); v(f.axis_edge);
     v(f.axis_plane_a); v(f.axis_plane_b);
     v(f.coordsys_type); v(f.coordsys_point); v(f.coordsys_body); v(f.coordsys_face); v(f.coordsys_edge);
-    v(f.coordsys_x_hint); v(f.coordsys_face_kind); v(f.coordsys_face_edges);
+    v(f.coordsys_x_hint); v(f.coordsys_face_kind); v(f.coordsys_face_edges); v(f.coordsys_snap);
 }
 template<class V, class F> void cad_fields_boolean_cut_mirror(V& v, F& f)
 {

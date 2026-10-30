@@ -238,6 +238,7 @@ private:
     void arm_coordsys_pick(CoordSysPick target);
     void apply_coordsys_refs(CadFeature& f) const;
     void refresh_coordsys_labels();
+    void update_cs_snap_markers();   // the face's strategic points on screen while the CoordSys card has a face
     void refresh_cs_body_choice();   // fill the CoordSys body chooser from current document
     void reset_coordsys_refs();
     void on_add_surface_extrude();
@@ -1135,6 +1136,7 @@ private:
     ButtonField*         m_cs_pick_edge{nullptr};       CardText* m_cs_edge_lbl{nullptr};
     NumField* m_cs_hx{nullptr};              NumField* m_cs_hy{nullptr};              NumField* m_cs_hz{nullptr};
     int m_cs_face_body{-1}, m_cs_face{-1};
+    int m_cs_snap{-1};   // which strategic point of that face the connector sits on (-1 = the centroid)
     int m_cs_edge_body{-1}, m_cs_edge{-1};
     CoordSysPick m_coordsys_pick{CoordSysPick::None};
 

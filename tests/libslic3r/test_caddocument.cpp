@@ -11386,3 +11386,69 @@ TEST_CASE("a loft can start on a face of a body", "[CadDocument]")
     const double v = 20.0 / 3.0 * (400.0 + 120.0 + 36.0);
     REQUIRE_THAT(double(doc.display_body_meshes[1].volume()), WithinRel(v, 0.02));
 }
+
+TEST_CASE("a mate offered with no flip control puts two faces in contact, not overlapping", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 40, 0, "Base");
+    doc.add_extrude(sk_a, 10.0, false, BooleanMode::New, "EA");
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Pin");
+    doc.add_extrude(sk_b, 20.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    const int top = find_face_by_normal(doc, 0, Vec3d(0, 0, 1));
+    const int bottom = find_face_by_normal(doc, 1, Vec3d(0, 0, -1));
+    REQUIRE(top >= 0);
+    REQUIRE(bottom >= 0);
+    int cs_a = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "A");
+    doc.features[cs_a].coordsys_body = 0; doc.features[cs_a].coordsys_face = top;
+    int cs_b = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "B");
+    doc.features[cs_b].coordsys_body = 1; doc.features[cs_b].coordsys_face = bottom;
+    REQUIRE(doc.recompute());
+
+    REQUIRE(doc.mate_default_flip(cs_a, cs_b));
+    doc.add_mate(0, cs_a, cs_b, 0.0, 0.0, doc.mate_default_flip(cs_a, cs_b), "Mate");
+    REQUIRE(doc.recompute());
+    CHECK(doc.check_interference().empty());
+
+    // point connectors have no face to oppose: no default flip
+    int cs_p = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 0), "P");
+    CHECK_FALSE(doc.mate_default_flip(cs_a, cs_p));
+}
+
+TEST_CASE("a face offers its strategic points, per face type, and a connector can sit on one", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "Block");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    int sk_b = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 4, "Disc");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+
+    const int top_a = find_face_by_normal(doc, 0, Vec3d(0, 0, 1));
+    const TopoDS_Face fa = GeometryEngine::face_by_index(doc.bodies[0].shape, top_a);
+    const auto pa = GeometryEngine::face_snap_points(fa);
+    REQUIRE(pa.size() == 9);                               // centroid + 4 corners + 4 edge midpoints
+    CHECK(pa[0].kind == 0);
+    int vertices = 0, mids = 0;
+    for (const auto& q : pa) { vertices += q.kind == 1; mids += q.kind == 2; }
+    CHECK(vertices == 4);
+    CHECK(mids == 4);
+
+    const int top_b = find_face_by_normal(doc, 1, Vec3d(0, 0, 1));
+    const auto pb = GeometryEngine::face_snap_points(GeometryEngine::face_by_index(doc.bodies[1].shape, top_b));
+    CHECK(pb.size() == 5);                                 // centre + 4 quadrant points; the centre is not listed twice
+
+    // a connector on a chosen point: the frame's origin is that point, not the centroid
+    int cs = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "C");
+    doc.features[cs].coordsys_body = 0; doc.features[cs].coordsys_face = top_a;
+    doc.features[cs].coordsys_snap = 1;
+    REQUIRE(doc.recompute());
+    const auto frames = doc.resolve_datum_coordsys();
+    REQUIRE(frames.size() == 1);
+    REQUIRE(frames[0].error.empty());
+    CHECK_THAT((frames[0].origin - pa[1].p).norm(), WithinAbs(0.0, 1e-6));
+    CHECK((frames[0].origin - pa[0].p).norm() > 1.0);
+}

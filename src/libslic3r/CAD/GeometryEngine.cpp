@@ -944,6 +944,34 @@ Vec3d GeometryEngine::face_centroid_world(const TopoDS_Face& face)
     return Vec3d(c.X(), c.Y(), c.Z());
 }
 
+std::vector<GeometryEngine::FacePoint> GeometryEngine::face_snap_points(const TopoDS_Face& face)
+{
+    std::vector<FacePoint> out;
+    if (face.IsNull()) return out;
+    auto add = [&out](const gp_Pnt& q, int kind) {
+        const Vec3d p(q.X(), q.Y(), q.Z());
+        for (const FacePoint& o : out) if ((o.p - p).squaredNorm() < 1e-10) return;   // 1e-5 mm: the same point seen from two edges
+        out.push_back({p, kind});
+    };
+    const Vec3d cen = face_centroid_world(face);
+    add(gp_Pnt(cen.x(), cen.y(), cen.z()), 0);
+    for (const TopoDS_Edge& e : edges_of_face(face)) {
+        BRepAdaptor_Curve c(e);
+        const double f = c.FirstParameter(), l = c.LastParameter();
+        if (c.GetType() == GeomAbs_Circle) {
+            const gp_Circ ci = c.Circle();
+            add(ci.Location(), 3);
+            if (std::abs((l - f) - 2.0 * M_PI) < 1e-6)
+                for (int k = 0; k < 4; ++k) add(c.Value(f + k * M_PI_2), 4);
+            else { add(c.Value(f), 1); add(c.Value(l), 1); add(c.Value(0.5 * (f + l)), 2); }
+        } else {
+            add(c.Value(f), 1); add(c.Value(l), 1);
+            add(c.Value(0.5 * (f + l)), 2);
+        }
+    }
+    return out;
+}
+
 Vec3d GeometryEngine::face_normal_world(const TopoDS_Face& face)
 {
     BRepAdaptor_Surface surf(face);

@@ -524,6 +524,11 @@ public:
     // separate frames they read as unrelated.
     void set_mate_links(std::vector<std::pair<Vec3d, Vec3d>> l) { m_mate_links = std::move(l); }
     void clear_mate_connectors() { m_mate_connectors.clear(); m_mate_links.clear(); }
+    // Strategic points of the face a connector is being placed on (corners, midpoints, centre, circle centres...): drawn as orange squares,
+    // the one under the cursor lit, and a click on one is handed to on_snap_marker_picked instead of picking the solid behind it.
+    // `active` is the one the connector sits on now (-1 none). Empty list = nothing drawn, nothing intercepted.
+    void set_snap_markers(std::vector<Vec3d> p, int active) { m_snap_markers = std::move(p); m_snap_active = active; m_snap_hover = -1; }
+    std::function<void(int)> on_snap_marker_picked;
 
     // Visual Revolve gizmo. The panel feeds the sketch plane + profile centroid + the world axis
     // (a point on it and its direction) + angle + flip while its Revolve card is open; an
@@ -1553,6 +1558,11 @@ private:
     std::vector<MateConnectorGlyph> m_mate_connectors;
     std::vector<std::pair<Vec3d, Vec3d>> m_mate_links;
     GLModel m_mc_stroke_model;
+    std::vector<Vec3d> m_snap_markers;
+    int m_snap_active{-1};
+    int m_snap_hover{-1};
+    GLModel m_snap_model;
+    void render_snap_markers();
     GLModel m_mc_fill_model;      // the face treatment's shaded facets
     GLModel m_solid_edge_model;
     GLModel m_body_edges_model;
