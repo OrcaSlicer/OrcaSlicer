@@ -66,6 +66,9 @@
 	"filament_flow_ratio": [
 		"0.95"
 	],
+	"filament_max_volumetric_speed": [
+		"17"
+	],
 	"filament_multitool_ramming": [
 		"0"
 	],
@@ -78,8 +81,17 @@
 	"filament_notes": [
 		"PrintaLot PETG, 1.75 mm."
 	],
+	"filament_type": [
+		"PETG"
+	],
 	"filament_vendor": [
 		"PrintaLot"
+	],
+	"nozzle_temperature": [
+		"255"
+	],
+	"nozzle_temperature_initial_layer": [
+		"255"
 	],
 	"nozzle_temperature_range_high": [
 		"270"
