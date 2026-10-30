@@ -713,33 +713,23 @@ void tree_supports_generate_paths(
     ClipperZUtils::ZPaths anchor_candidates;
     for (ExPolygon& expoly : closing_ex(polygons, float(SCALED_EPSILON), float(SCALED_EPSILON + 0.5 * flow.scaled_width()))) {
         std::unique_ptr<ExtrusionEntityCollection> eec;
-        ExPolygons regions_to_draw_inner_wall{expoly};
-
-        // An explicit wall count must produce that many concentric support
-        // walls. The previous implementation only had a special case for one
-        // additional wall, so all configured values above two produced the
-        // same two-wall toolpath. Keep the old area-based one/two-wall choice
-        // for auto (zero), and iteratively inset for explicit values.
-        size_t requested_wall_count = support_params.tree_support_wall_count;
-        if (requested_wall_count == 0)
-            requested_wall_count = expoly.area() > support_params.tree_branch_diameter_double_wall_area_scaled ? 2 : 1;
-
-        if (requested_wall_count > 1) {
-            eec = std::make_unique<ExtrusionEntityCollection>();
-            // The collection is reversed below so walls print from inside out.
-            eec->no_sort = true;
-            for (size_t wall_idx = 1; wall_idx < requested_wall_count; ++wall_idx) {
-                ExPolygons next_level = offset2_ex(regions_to_draw_inner_wall,
-                                                    -1.5 * flow.scaled_width(),
-                                                     0.5 * flow.scaled_width());
-                if (next_level.empty())
-                    break;
-                for (const ExPolygon &wall_region : regions_to_draw_inner_wall)
-                    extrusion_entities_append_paths(eec->entities, draw_perimeters(wall_region, clip_length),
-                        ExtrusionRole::erSupportMaterial, flow.mm3_per_mm(), flow.width(), flow.height(), false);
-                regions_to_draw_inner_wall = std::move(next_level);
+        ExPolygons                                 regions_to_draw_inner_wall{expoly};
+        if (support_params.tree_branch_diameter_double_wall_area_scaled > 0)
+            if (double area = expoly.area(); area > support_params.tree_branch_diameter_double_wall_area_scaled) {
+                BOOST_LOG_TRIVIAL(debug)<< "TreeSupports: double wall area: " << area<< " > " << support_params.tree_branch_diameter_double_wall_area_scaled;
+                eec = std::make_unique<ExtrusionEntityCollection>();
+                // Don't reorder internal / external loops of the same island, always start with the internal loop.
+                eec->no_sort = true;
+                // Make the tree branch stable by adding another perimeter.
+                ExPolygons level2 = offset2_ex({expoly}, -1.5 * flow.scaled_width(), 0.5 * flow.scaled_width());
+                if (level2.size() > 0) {
+                    regions_to_draw_inner_wall = level2;
+                    extrusion_entities_append_paths(eec->entities, draw_perimeters(expoly, clip_length), ExtrusionRole::erSupportMaterial, flow.mm3_per_mm(), flow.width(), flow.height(),
+                            // Disable reversal of the path, always start with the anchor, always print CCW.
+                            false);
+                    expoly = level2.front();
+                }
             }
-        }
         for (ExPolygon &expoly : regions_to_draw_inner_wall)
         {
             // Try to produce one more perimeter to place the seam anchor.

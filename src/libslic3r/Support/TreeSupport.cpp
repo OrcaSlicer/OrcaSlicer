@@ -692,14 +692,7 @@ TreeSupport::TreeSupport(PrintObject& object, const SlicingParameters &slicing_p
     diameter_angle_scale_factor              = std::clamp<double>(m_object_config->tree_support_branch_diameter_angle * M_PI / 180., 0., 0.5 * M_PI - EPSILON);
     is_slim                                  = is_tree_slim(support_type, m_support_params.support_style);
     is_strong = is_tree(support_type) && m_support_params.support_style == smsTreeStrong;
-    // Ensure that the branch cross-section is wide enough to contain every
-    // requested support wall. Without this, offsets beyond the second wall
-    // disappear for the default branch diameter even though the configured
-    // wall count is higher.
-    const coordf_t requested_wall_radius = m_object_config->tree_support_wall_count.value > 0 ?
-        m_object_config->tree_support_wall_count.value * m_support_params.support_extrusion_width : 0.;
-    base_radius = std::max({MIN_BRANCH_RADIUS, m_object_config->tree_support_branch_diameter.value / 2,
-                            requested_wall_radius});
+    base_radius                              = std::max(MIN_BRANCH_RADIUS, m_object_config->tree_support_branch_diameter.value / 2);
     // by default tree support needs no infill, unless it's tree hybrid which contains normal nodes.
     with_infill                              = support_pattern != smpNone && support_pattern != smpDefault;
     m_machine_border.contour = get_bed_shape_with_excluded_area(*m_print_config);
@@ -1982,7 +1975,7 @@ coordf_t TreeSupport::calc_branch_radius(coordf_t base_radius, size_t layers_to_
             radius = base_radius * (layers_to_top + 1) / (tip_layers * 2);
         }
     }
-    radius = std::clamp(radius, MIN_BRANCH_RADIUS, std::max(MAX_BRANCH_RADIUS, base_radius));
+    radius = std::clamp(radius, MIN_BRANCH_RADIUS, MAX_BRANCH_RADIUS);
     return radius;
 }
 
@@ -1998,7 +1991,7 @@ coordf_t TreeSupport::calc_branch_radius(coordf_t base_radius, coordf_t mm_to_to
     {
         radius = mm_to_top;// this is a 45 degree tip
     }
-    radius = std::clamp(radius, MIN_BRANCH_RADIUS, std::max(MAX_BRANCH_RADIUS, base_radius));
+    radius = std::clamp(radius, MIN_BRANCH_RADIUS, MAX_BRANCH_RADIUS);
     // if have interface layers, radius should be larger
     if (m_object_config->support_interface_top_layers.value > 0)
         radius = std::max(radius, base_radius);

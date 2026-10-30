@@ -8001,8 +8001,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("tree_support_wall_count", coInt);
     def->label = L("Support wall loops");
     def->category = L("Support");
-    def->tooltip = L("This setting specifies the number of support wall loops. 0 means auto. Tree branches are enlarged when necessary to fit the requested number of walls.");
+    def->tooltip = L("This setting specifies the count of support walls in the range of [0,2]. 0 means auto.");
     def->min = 0;
+    def->max = 2;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
 

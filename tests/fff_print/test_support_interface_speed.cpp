@@ -207,13 +207,6 @@ TEST_CASE("Model fan override above support works without a speed cap", "[Suppor
     CHECK(g.find(";_ABOVE_SUPPORT_FAN_END") == std::string::npos);
 }
 
-TEST_CASE("Tree support wall loops are not capped at two", "[SupportWallLoops]")
-{
-    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
-    config.set_deserialize_strict("tree_support_wall_count", "5");
-    CHECK(config.opt_int("tree_support_wall_count") == 5);
-}
-
 
 TEST_CASE("Overlapping support limits use the original speed in either order", "[SupportInterfaceSpeed][Regression]")
 {
