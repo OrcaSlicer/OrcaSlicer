@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/Preset.hpp"
@@ -10,6 +11,7 @@
 #include <vector>
 #include <cstddef>
 #include <string>
+#include <utility>
 
 using namespace Slic3r;
 
@@ -55,4 +57,49 @@ TEST_CASE("deep_diff distinguishes absolute and percentage speeds for each varia
     DynamicPrintConfig transferred = reference.config;
     transferred.apply_only(edited.config, diff);
     REQUIRE(*transferred.option("small_perimeter_speed") == *edited.config.option("small_perimeter_speed"));
+}
+
+TEST_CASE("deep_diff reports a serialized list as one option that transfers and reverts whole", "[PresetDiff][Config]")
+{
+    std::vector<std::string> serialized_keys;
+    for (const auto &[key, def] : print_config_def.options)
+        if (def.gui_flags == "serialized")
+            serialized_keys.push_back(key);
+    REQUIRE(std::find(serialized_keys.begin(), serialized_keys.end(), "post_process") != serialized_keys.end());
+
+    using Values = std::vector<std::string>;
+    const auto [saved_values, edited_values] = GENERATE(std::make_pair(Values{}, Values{"a"}),
+                                                        std::make_pair(Values{"b", "c"}, Values{"a"}),
+                                                        std::make_pair(Values{"a", "b"}, Values{"a"}));
+    for (const std::string &key : serialized_keys) {
+        INFO(key);
+        Preset reference(Preset::TYPE_PRINT, "ref");
+        reference.config.set_key_value(key, new ConfigOptionStrings(saved_values));
+        Preset edited = reference;
+        edited.config.option<ConfigOptionStrings>(key)->values = edited_values;
+
+        const std::vector<std::string> expected{key};
+        const auto diff = PresetCollection::dirty_options(&edited, &reference, /*deep_compare=*/true);
+        CHECK(diff == expected);
+        if (diff != expected)
+            continue;
+
+        DynamicPrintConfig transferred = reference.config;
+        transferred.apply_only(edited.config, diff);
+        CHECK(transferred.option<ConfigOptionStrings>(key)->values == edited_values);
+
+        DynamicPrintConfig reverted = edited.config;
+        reverted.apply_only(reference.config, diff);
+        CHECK(reverted.option<ConfigOptionStrings>(key)->values == saved_values);
+    }
+}
+
+TEST_CASE("deep_diff reports a serialized list that only one preset has as one option", "[PresetDiff][Config]")
+{
+    Preset reference(Preset::TYPE_PRINT, "ref");
+    Preset edited(Preset::TYPE_PRINT, "edited");
+    edited.config.set_key_value("post_process", new ConfigOptionStrings({"a", "b"}));
+
+    const auto diff = PresetCollection::dirty_options(&edited, &reference, /*deep_compare=*/true);
+    CHECK(diff == std::vector<std::string>{"post_process"});
 }
