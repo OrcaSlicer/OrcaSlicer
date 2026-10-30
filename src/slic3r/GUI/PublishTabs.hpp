@@ -33,6 +33,7 @@ class PublishTabFilament : public TabFilament
 {
 public:
     explicit PublishTabFilament(ParamsPanel *host);
+    void build() override;
 
 protected:
     PresetCollection *publish_presets() override { return &m_presets_private; }
@@ -61,6 +62,7 @@ class PublishTabPrint : public TabPrint
 {
 public:
     explicit PublishTabPrint(ParamsPanel *host);
+    void build() override;
 
 protected:
     PresetCollection *publish_presets() override { return &m_presets_private; }

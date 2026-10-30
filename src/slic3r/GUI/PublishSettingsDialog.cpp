@@ -138,16 +138,7 @@ const std::set<std::string>& publish_material_identity_keys()
 
 // A control that performs an action (a colour picker, a plugin dialog, a device picker) is not a
 // value published per key: it gets no row and no publish checkbox.
-bool is_publish_action(const ConfigOptionDef& def)
-{
-    switch (def.gui_type) {
-    case ConfigOptionDef::GUIType::color:
-    case ConfigOptionDef::GUIType::plugin_picker:
-    case ConfigOptionDef::GUIType::plugin_config:
-    case ConfigOptionDef::GUIType::printer_agent_select: return true;
-    default: return false;
-    }
-}
+bool is_publish_action(const ConfigOptionDef& def) { return Slic3r::publish_is_action_control(def); }
 
 // The author's hex colour for a filament slot (empty when the slot is out of range); shared by
 // the header chip, the inner-tab chip and the DPI rescale paths.

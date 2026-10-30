@@ -1,5 +1,7 @@
 #include "PublishTabs.hpp"
 
+#include <functional>
+
 #include "OptionsGroup.hpp"
 #include "ParamsPanel.hpp"
 #include "Tab.hpp"
@@ -16,6 +18,30 @@
 
 namespace Slic3r {
 namespace GUI {
+
+namespace {
+
+// Drops the options a predicate rejects, then the groups they leave empty, then hides a page with no
+// group left. The same shape the printer allowlist prune uses.
+void prune_publish_pages(std::vector<PageShp> &pages, const std::function<bool(const std::string &)> &drop)
+{
+    for (const PageShp &page : pages) {
+        for (const ConfigOptionsGroupShp &group : page->m_optgroups)
+            group->remove_option_if(drop);
+        page->m_optgroups.erase(std::remove_if(page->m_optgroups.begin(), page->m_optgroups.end(),
+                                               [](const ConfigOptionsGroupShp &group) { return group->get_lines().empty(); }),
+                                page->m_optgroups.end());
+        page->update_visibility(comDevelop, false);
+    }
+}
+
+bool is_action_option(const std::string &key)
+{
+    const ConfigOptionDef *def = print_config_def.get(key);
+    return def != nullptr && publish_is_action_control(*def);
+}
+
+} // namespace
 
 PublishParamsPanel::PublishParamsPanel(wxWindow *parent)
     : ParamsPanel(parent)
@@ -68,6 +94,14 @@ void PublishParamsPanel::set_publish_tab(Tab *tab)
     m_publish_tab->restore_last_select_item();
 }
 
+void PublishTabFilament::build()
+{
+    TabFilament::build();
+    // A control that performs an action has no value to publish per key: drop it rather than show a
+    // row the dialog cannot check.
+    prune_publish_pages(m_pages, is_action_option);
+}
+
 PublishTabFilament::PublishTabFilament(ParamsPanel *host)
     : TabFilament(host)
     , m_presets_private(Preset::TYPE_FILAMENT, Preset::filament_options(),
@@ -98,7 +132,9 @@ void PublishTabPrinter::build()
     // touching the group's m_options. A page with no group left reports itself hidden, so
     // rebuild_page_tree() drops it from the page strip.
     const std::set<std::string> &allow = publishable_printer_keys();
-    auto is_pruned = [&allow](const std::string &base_key) { return allow.count(base_key) == 0; };
+    auto is_pruned = [&allow](const std::string &base_key) {
+        return allow.count(base_key) == 0 || is_action_option(base_key);
+    };
     for (const PageShp &page : m_pages) {
         for (const ConfigOptionsGroupShp &group : page->m_optgroups)
             group->remove_option_if(is_pruned);
@@ -109,6 +145,12 @@ void PublishTabPrinter::build()
                                 page->m_optgroups.end());
         page->update_visibility(comDevelop, false);
     }
+}
+
+void PublishTabPrint::build()
+{
+    TabPrint::build();
+    prune_publish_pages(m_pages, is_action_option);
 }
 
 PublishTabPrint::PublishTabPrint(ParamsPanel *host)

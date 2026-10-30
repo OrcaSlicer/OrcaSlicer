@@ -58,6 +58,17 @@ bool publish_is_variant_bearing(const std::string &key)
     return filament_options_with_variant.count(publish_base_key(key)) != 0;
 }
 
+bool publish_is_action_control(const ConfigOptionDef &def)
+{
+    switch (def.gui_type) {
+    case ConfigOptionDef::GUIType::color:
+    case ConfigOptionDef::GUIType::plugin_picker:
+    case ConfigOptionDef::GUIType::plugin_config:
+    case ConfigOptionDef::GUIType::printer_agent_select: return true;
+    default: return false;
+    }
+}
+
 std::vector<size_t> publish_filament_columns(const std::vector<int> &self_index, size_t slot)
 {
     std::vector<size_t> columns;

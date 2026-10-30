@@ -24,6 +24,11 @@ int publish_key_index(const std::string &key);
 // The suffix of a "#col" key is ignored, so this answers for a plain base key too.
 bool publish_is_variant_bearing(const std::string &key);
 
+// A control that performs an action rather than holding a value (a colour picker, a plugin dialog
+// or picker, a device picker). It has no value to publish per key, so the dialog drops both its row
+// and its option from the hosted tabs.
+bool publish_is_action_control(const ConfigOptionDef &def);
+
 // Structural keys that are never applied onto the receiver's presets when loading a published
 // 3MF (single source of truth for the denylist); applying them would rewrite the user's preset
 // inheritance/structure. filament_ids is still exported via the identity list (3MF validation
