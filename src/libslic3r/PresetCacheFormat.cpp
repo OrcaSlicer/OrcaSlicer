@@ -63,10 +63,10 @@ static std::string enum_name_of(const ConfigOptionDef& def, int value)
 
 // An option that changed from coEnum to coString still has its value in a cache
 // written before the change: an enum travels by name (see enum_name_of), and that
-// name is exactly the string this build now stores. sparse_infill_pattern is the
-// case this exists for — it became a string so plugins can name their own
-// patterns — and the name is checked against the definition's own enum keys
-// before it is restored, so an option whose name set moved on is still dropped.
+// name is exactly the string this build now stores. The four infill pattern
+// settings are the cases this exists for — they became strings so plugins can name
+// their own patterns — and the name is checked against the definition's own enum
+// keys before it is restored, so an option whose name set moved on is still dropped.
 static bool restores_enum_as_string(uint16_t written_type, const ConfigOptionDef& def)
 {
     return written_type == uint16_t(coEnum) && def.type == coString;

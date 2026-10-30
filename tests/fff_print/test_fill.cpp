@@ -20,6 +20,7 @@
 #include "libslic3r/Model.hpp"
 #include <map>
 #include <memory>
+#include <mutex>
 #include <math.h>
 #include <numeric>
 #include <sstream>
@@ -37,6 +38,8 @@
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Fill/FillAdaptive.hpp"
 #include "libslic3r/Fill/FillGyroid.hpp"
+#include "libslic3r/Fill/InfillFactory.hpp"
+#include "libslic3r/Fill/InfillPurpose.hpp"
 #include "libslic3r/Fill/AdaptiveInfillField.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
@@ -62,31 +65,149 @@ TEST_CASE("Adjusted solid distance", "[Fill]") {
 }
 #endif
 
-TEST_CASE("Plugin infill creation receives the exact capability reference", "[Fill]")
+namespace {
+
+// A native plugin pattern that records the surface purpose each dispatch call carried. It stands in
+// for InfillPluginCapability::generate() without needing the Python plugin layer in this suite.
+class PurposeRecordingFill final : public Fill
 {
-    Slic3r::PluginCapabilityRef received;
-    bool                        called = false;
-    Fill::set_plugin_infill_hooks(
-        nullptr,
-        [&received, &called](const Slic3r::PluginCapabilityRef& ref) -> Fill* {
-            received = ref;
-            called   = true;
-            return nullptr;
-        });
-    // Restore the uninstalled state even if the assertion below fails.
-    struct CallbackReset {
-        ~CallbackReset() { Fill::set_plugin_infill_hooks(nullptr, nullptr); }
-    } reset;
+public:
+    PurposeRecordingFill() = default;
+    PurposeRecordingFill(std::vector<InfillSurfacePurpose>& recorded, std::mutex& mutex)
+        : m_recorded(&recorded), m_mutex(&mutex)
+    {}
 
-    const Slic3r::PluginCapabilityRef reference{"plugin-name", "my-infill-capability", "plugin-uuid"};
-    CHECK_THROWS_AS(Fill::new_from_type(ipPlugin, &reference), Slic3r::SlicingError);
-    CHECK(called);
-    CHECK(received.name == "plugin-name");
-    CHECK(received.capability_name == "my-infill-capability");
-    CHECK(received.uuid == "plugin-uuid");
+    Fill*    clone() const override
+    {
+        auto* copy = new PurposeRecordingFill();
+        copy->m_recorded = m_recorded;
+        copy->m_mutex    = m_mutex;
+        return copy;
+    }
+    bool     is_self_crossing() override { return false; }
 
-    // Without a resolved reference a plugin pattern must never dispatch.
+protected:
+    void _fill_surface_single(const FillParams&                params,
+                              unsigned int /*thickness_layers*/,
+                              const std::pair<float, Point>& /*direction*/,
+                              ExPolygon /*expolygon*/,
+                              Polylines&                     polylines_out) override
+    {
+        if (m_recorded != nullptr && m_mutex != nullptr) {
+            std::lock_guard<std::mutex> lock(*m_mutex);
+            m_recorded->push_back(params.purpose);
+        }
+        polylines_out.clear();
+    }
+
+private:
+    std::vector<InfillSurfacePurpose>* m_recorded = nullptr;
+    std::mutex*                        m_mutex    = nullptr;
+};
+
+// Unregisters the fixture pattern on every exit path, including a failed REQUIRE.
+struct ScopedPluginInfill
+{
+    std::string plugin_key;
+    std::string capability;
+
+    ~ScopedPluginInfill() { InfillFactory::unregister_plugin_infills(plugin_key, capability); }
+};
+
+} // namespace
+
+TEST_CASE("Plugin infill patterns cannot be created from an enum value", "[Fill]")
+{
+    // Plugin patterns are created by InfillFactory from the stable ID selected by the project.
+    // Without that ID the InfillPattern enum carries no identity, so enum construction must fail
+    // rather than guess a provider.
     CHECK_THROWS_AS(Fill::new_from_type(ipPlugin), Slic3r::SlicingError);
+}
+
+TEST_CASE("A plugin pattern selected for a surface dispatches with that surface purpose", "[Fill][InfillPlugin]")
+{
+    const std::string id         = "fff-print-surface-pattern";
+    const std::string plugin_key = "fff-print-surface-plugin";
+    const std::string capability = "FFF Print Surface Infill";
+    ScopedPluginInfill cleanup{plugin_key, capability};
+
+    std::vector<InfillSurfacePurpose> recorded;
+    std::mutex                        mutex;
+    REQUIRE(InfillFactory::register_plugin_infill(
+        id, "Surface Pattern", plugin_key, capability,
+        {InfillSurfacePurpose::InternalSolid, InfillSurfacePurpose::TopSurface,
+         InfillSurfacePurpose::BottomSurface},
+        {},
+        [&recorded, &mutex]() -> std::unique_ptr<Fill> {
+            return std::make_unique<PurposeRecordingFill>(recorded, mutex);
+        }));
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"sparse_infill_pattern", "rectilinear"},
+        {"sparse_infill_density", "15%"},
+        {"top_surface_pattern", id},
+        {"bottom_surface_pattern", id},
+        {"internal_solid_infill_pattern", id},
+        {"top_surface_density", "50%"},
+        {"bottom_surface_density", "100%"},
+        {"top_shell_layers", 2},
+        {"bottom_shell_layers", 2},
+        {"top_shell_thickness", 0},
+        {"bottom_shell_thickness", 0},
+        // Force one middle layer to stInternalSolid, so the internal-solid setting is exercised even
+        // on a flat cube. Disable vertical-shell detection so plain top/bottom shell discovery runs.
+        {"ensure_vertical_shell_thickness", "none"},
+        {"extra_solid_infills", "5"},
+        {"layer_height", 0.4},
+        {"initial_layer_print_height", 0.4},
+        {"plugins", plugin_key + ";;" + capability},
+    });
+
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({Slic3r::Test::cube(20.)}, print, model, config);
+    print.process();
+
+    std::lock_guard<std::mutex> lock(mutex);
+    for (const InfillSurfacePurpose purpose : {InfillSurfacePurpose::InternalSolid,
+                                               InfillSurfacePurpose::TopSurface,
+                                               InfillSurfacePurpose::BottomSurface}) {
+        INFO(static_cast<int>(purpose));
+        CHECK(std::find(recorded.begin(), recorded.end(), purpose) != recorded.end());
+    }
+    // The ID is selected for three solid surfaces only; it must never run as sparse infill.
+    CHECK(std::find(recorded.begin(), recorded.end(), InfillSurfacePurpose::Sparse) == recorded.end());
+}
+
+TEST_CASE("A plugin pattern selected for a surface it does not declare fails the slice", "[Fill][InfillPlugin]")
+{
+    const std::string id         = "fff-print-sparse-only-pattern";
+    const std::string plugin_key = "fff-print-sparse-only-plugin";
+    const std::string capability = "FFF Print Sparse Infill";
+    ScopedPluginInfill cleanup{plugin_key, capability};
+
+    // Declared sparse-only, but stored in the top-surface setting.
+    REQUIRE(InfillFactory::register_plugin_infill(
+        id, "Sparse Only", plugin_key, capability, {InfillSurfacePurpose::Sparse}, {},
+        []() -> std::unique_ptr<Fill> { return std::make_unique<PurposeRecordingFill>(); }));
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"sparse_infill_pattern", "rectilinear"},
+        {"sparse_infill_density", "15%"},
+        {"top_surface_pattern", id},
+        {"top_shell_layers", 2},
+        {"bottom_shell_layers", 2},
+        {"layer_height", 0.4},
+        {"initial_layer_print_height", 0.4},
+        {"plugins", plugin_key + ";;" + capability},
+    });
+
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({Slic3r::Test::cube(20.)}, print, model, config);
+    CHECK_THROWS_AS(print.process(), Slic3r::SlicingError);
 }
 
 TEST_CASE("Pattern path length", "[Fill]") {

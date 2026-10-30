@@ -4,6 +4,7 @@
 #include <math.h>
 #include <limits>
 #include <cstdint>
+#include <memory>
 #include <stdio.h>
 #include <numeric>
 
@@ -28,6 +29,7 @@
 #include <map>
 
 #include "FillBase.hpp"
+#include "InfillFactory.hpp"
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -59,15 +61,14 @@
 
 namespace Slic3r {
 
-static Fill::PluginInfillPrepareFn m_plugin_infill_prepare = nullptr;
-static Fill::PluginInfillFactoryFn m_plugin_infill_factory = nullptr;
-
 //BBS: 0% of sparse_infill_line_width, no anchor at the start of sparse infill
 float Fill::infill_anchor = 400;
 //BBS: 20mm
 float Fill::infill_anchor_max = 20;
 
-Fill* Fill::new_from_type(const InfillPattern type, const PluginCapabilityRef* plugin_ref)
+// Keep enum construction available while static initialization probes use_bridge_flow(). This path
+// builds built-ins directly, so no registry initialization can run during static initialization.
+static Fill* new_from_type_legacy(const InfillPattern type)
 {
     switch (type) {
     case ipConcentric:          return new FillConcentric();
@@ -104,20 +105,31 @@ Fill* Fill::new_from_type(const InfillPattern type, const PluginCapabilityRef* p
     case ipZigZag:              return new FillZigZag();
     case ipCrossZag:            return new FillCrossZag();
     case ipLockedZag:           return new FillLockedZag();
-    case ipPlugin: {
-        // An enum alone carries no plugin identity. The exact project capability reference is
-        // resolved by PrintObject before slicing starts and passed down to this seam; never fall
-        // back to a global name lookup, which could dispatch another plugin's pattern.
-        if (plugin_ref == nullptr || m_plugin_infill_factory == nullptr)
-            throw SlicingError("Plugin infill failed. Check the plugin's diagnostic details.");
-
-        Fill* infill_plugin = m_plugin_infill_factory(*plugin_ref);
-        if (infill_plugin == nullptr)
-            throw SlicingError("Plugin infill failed. Check the plugin's diagnostic details.");
-        return infill_plugin;
-    }
+    case ipPlugin:
+        // Plugin patterns have no InfillPattern implementation. Slicing resolves them through
+        // InfillFactory by the stable pattern ID before any fill worker runs.
+        throw SlicingError("Plugin infill must be created through InfillFactory");
     default: throw Slic3r::InvalidArgument("unknown type");
     }
+}
+
+Fill* Fill::new_from_type(const std::string& id)
+{
+    std::unique_ptr<Fill> fill = InfillFactory::create_infill_by_id(id);
+    if (!fill)
+        throw Slic3r::InvalidArgument("unknown infill pattern id: " + id);
+    return fill.release();
+}
+
+Fill* Fill::new_from_type(const InfillPattern type)
+{
+    if (type != ipPlugin) {
+        const std::string key = InfillFactory::builtin_infill_key(type);
+        if (!key.empty())
+            return new_from_type(key);
+    }
+
+    return new_from_type_legacy(type);
 }
 
 // Force initialization of the Fill::use_bridge_flow() internal static map in a thread safe fashion even on compilers
@@ -130,7 +142,7 @@ bool Fill::use_bridge_flow(const InfillPattern type)
 	if (cached.empty()) {
 		cached.assign(size_t(ipCount), 0);
 		for (size_t i = 0; i < cached.size(); ++ i) {
-			auto *fill = Fill::new_from_type((InfillPattern)i);
+			auto *fill = new_from_type_legacy((InfillPattern)i);
 			cached[i] = fill->use_bridge_flow();
 			delete fill;
 		}
@@ -393,25 +405,6 @@ coord_t Fill::_adjust_solid_spacing(const coord_t width, const coord_t distance)
     if (factor > factor_max)
         distance_new = coord_t(floor((coordf_t(distance) * factor_max + 0.5)));
     return distance_new;
-}
-
-void Fill::set_plugin_infill_hooks(PluginInfillPrepareFn prepare, PluginInfillFactoryFn factory)
-{
-    m_plugin_infill_prepare = std::move(prepare);
-    m_plugin_infill_factory = std::move(factory);
-}
-
-std::map<std::string, PluginCapabilityRef> Fill::prepare_plugin_infills(
-    const std::vector<std::string>& capability_names,
-    const std::vector<PluginCapabilityRef>& manifest_refs)
-{
-    if (capability_names.empty())
-        return {};
-    if (!m_plugin_infill_prepare)
-        // A project referencing plugin infill cannot be sliced without the plugin API. SlicingError
-        // is non-critical: the GUI reports it as a slicing error instead of a fatal crash.
-        throw SlicingError("Plugin infill pattern is unavailable; plugin infill support is not loaded");
-    return m_plugin_infill_prepare(capability_names, manifest_refs);
 }
 
 // Returns orientation of the infill and the reference point of the infill pattern.

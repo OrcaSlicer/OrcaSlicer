@@ -931,8 +931,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     auto is_centered_pattern = [](InfillPattern p) {
         return p == InfillPattern::ipArchimedeanChords || p == InfillPattern::ipOctagramSpiral;
     };
-    bool is_top_centered    = is_centered_pattern(config->option<ConfigOptionEnum<InfillPattern>>("top_surface_pattern")->value);
-    bool is_bottom_centered = is_centered_pattern(config->option<ConfigOptionEnum<InfillPattern>>("bottom_surface_pattern")->value);
+    bool is_top_centered    = is_centered_pattern(infill_pattern_from_key(config->opt_string("top_surface_pattern")));
+    bool is_bottom_centered = is_centered_pattern(infill_pattern_from_key(config->opt_string("bottom_surface_pattern")));
     bool has_centered_surface = (has_top_shell && is_top_centered) || (has_bottom_shell && is_bottom_centered);
 
     // Orca: center of surface pattern
@@ -943,8 +943,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     // Fill order is only meaningful for the center-based surface fill patterns; hide it otherwise.
     auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipSpiralInset || p == ipArchimedeanChords || p == ipOctagramSpiral; };
-    toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(config->opt_enum<InfillPattern>("top_surface_pattern")), -1, _L("Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."));
-    toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(config->opt_enum<InfillPattern>("bottom_surface_pattern")), -1, _L("Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."));
+    toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(infill_pattern_from_key(config->opt_string("top_surface_pattern"))), -1, _L("Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."));
+    toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(infill_pattern_from_key(config->opt_string("bottom_surface_pattern"))), -1, _L("Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."));
 
     const wxString infill_or_shell_reason = _L("Use nonzero sparse infill density or top or bottom shell layers to edit this setting.");
     for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",

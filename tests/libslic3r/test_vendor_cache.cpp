@@ -1892,22 +1892,23 @@ TEST_CASE("a config round-trips through the cache dictionary", "[VendorCache]")
 
 TEST_CASE("an enum option round-trips by name, not by index", "[VendorCache]")
 {
-    // top_surface_pattern is a coEnum; its stored int is an index into an enum
+    // An option that is still a coEnum; its stored int is an index into an enum
     // whose order is not a wire contract. Assert on the NAME, so a reordering
     // of the enum in PrintConfig.cpp cannot make this test pass by accident.
-    const ConfigOptionDef* def = print_config_def.get("top_surface_pattern");
+    const ConfigOptionDef* def = print_config_def.get("ironing_pattern");
     REQUIRE(def != nullptr);
     REQUIRE(def->type == coEnum);
     REQUIRE(def->enum_keys_map != nullptr);
-    const int monotonic = def->enum_keys_map->at("monotonic");
+    REQUIRE_FALSE(def->enum_keys_map->empty());
+    const auto& [name, value] = *def->enum_keys_map->begin();
 
     DynamicPrintConfig in;
-    in.set_key_value("top_surface_pattern", new ConfigOptionEnumGeneric(def->enum_keys_map, monotonic));
+    in.set_key_value("ironing_pattern", new ConfigOptionEnumGeneric(def->enum_keys_map, value));
 
     const DynamicPrintConfig out = roundtrip_config(in);
-    REQUIRE(out.option("top_surface_pattern") != nullptr);
-    CHECK(out.opt_enum<InfillPattern>("top_surface_pattern") == InfillPattern(monotonic));
-    CHECK(out.option("top_surface_pattern")->serialize() == "monotonic");
+    REQUIRE(out.option("ironing_pattern") != nullptr);
+    CHECK(out.opt_enum<InfillPattern>("ironing_pattern") == InfillPattern(value));
+    CHECK(out.option("ironing_pattern")->serialize() == name);
 }
 
 TEST_CASE("a nullable vector enum round-trips by name, nil included", "[VendorCache]")
@@ -2035,6 +2036,18 @@ TEST_CASE("a sparse infill pattern cached as an enum is restored as its string k
     const DynamicPrintConfig out = load_enum_typed_config("sparse_infill_pattern", "gyroid", 0);
     CHECK(out.opt_string("sparse_infill_pattern") == "gyroid");
     CHECK(out.opt_string("printer_model") == "Test Model");
+}
+
+TEST_CASE("surface patterns cached as enums are restored as their string keys", "[VendorCache]")
+{
+    // The three surface pattern settings made the same coEnum -> coString migration as
+    // sparse_infill_pattern, so caches written before it must keep the pattern they stored.
+    for (const char *key : { "top_surface_pattern", "bottom_surface_pattern", "internal_solid_infill_pattern" }) {
+        INFO(key);
+        const DynamicPrintConfig out = load_enum_typed_config(key, "monotonic", 0);
+        CHECK(out.opt_string(key) == "monotonic");
+        CHECK(out.opt_string("printer_model") == "Test Model");
+    }
 }
 
 TEST_CASE("a sparse infill pattern cached without a name falls back instead of guessing one", "[VendorCache]")

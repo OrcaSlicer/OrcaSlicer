@@ -27,6 +27,7 @@
 #include "../Flow.hpp"
 #include "../ExtrusionEntity.hpp"
 #include "FillCornerSmoothing.hpp"
+#include "InfillPurpose.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Point.hpp"
@@ -135,6 +136,11 @@ struct FillParams
     float           infill_lock_depth{0.0};
     float           skin_infill_depth{0.0};
     CenterOfSurfacePattern center_of_surface_pattern{CenterOfSurfacePattern::Each_Surface};
+
+    // Surface category this call fills, set from the setting that selected the pattern. Plugin
+    // dispatch carries it into InfillPluginRequest::purpose so a pattern selected for one surface
+    // cannot silently generate another.
+    InfillSurfacePurpose purpose{InfillSurfacePurpose::Sparse};
 };
 static_assert(IsTriviallyCopyable<FillParams>::value, "FillParams class is not POD (and it should be - see constructor).");
 
@@ -143,6 +149,18 @@ class Fill
 public:
     // Index of the layer.
     size_t      layer_id;
+    // Object identity of the fill creation context: PrintObject::id().id, the same value Python
+    // sees as ctx.object.id(). size_t(-1) when the Fill was not created for a PrintObject layer.
+    size_t      object_id{ size_t(-1) };
+    // Zero-based index in PrintObject::layers() of this Fill's layer. Layer::id() (stored in
+    // layer_id) starts at the raft-layer count, so it is not this index. size_t(-1) when
+    // unavailable.
+    size_t      layer_index{ size_t(-1) };
+    // Index into Layer::regions() of the region whose settings produced the fill. A grouped surface
+    // merging several regions keeps the first (representative) region here; region_ids lists every
+    // region whose surfaces contributed. size_t(-1) when the Fill has no owning region.
+    size_t      region_id{ size_t(-1) };
+    std::vector<size_t> region_ids;
     // Z coordinate of the top print surface, in unscaled coordinates
     coordf_t    z;
     // in unscaled coordinates
@@ -185,30 +203,13 @@ public:
     virtual ~Fill() {}
     virtual Fill* clone() const = 0;
 
-    // Plugin infill is identified by the exact capability reference the project manifest resolved,
-    // never by a bare pattern key: two plugins may serve patterns with the same display name, and
-    // only the reference pins the plugin identity the project was saved with. Built-in patterns
-    // ignore the reference.
-    static Fill* new_from_type(const InfillPattern type, const PluginCapabilityRef* plugin_ref = nullptr);
+    // Create a built-in or plugin fill by its stable config/pattern ID. Plugin callers need no
+    // special path: InfillFactory resolves the ID to the registered creator.
+    static Fill* new_from_type(const std::string& id);
+    // Internal/support-only callers that have an enum rather than a config key use this overload.
+    // Plugin patterns have no enum value; ipPlugin throws.
+    static Fill* new_from_type(const InfillPattern type);
     static bool  use_bridge_flow(const InfillPattern type);
-
-    // Plugin layer seams, installed by PluginHooks. The prepare callback receives every selected
-    // sparse_infill_pattern key (a capability name) and every reference parsed from the project
-    // manifest. PluginCapabilityRef carries no type, so refs for other capability types may legally
-    // share a name; only the plugin layer, which can resolve against the registry with an explicit
-    // Infill type, can tell which ref is the infill provider. The callback waits once for pending
-    // plugin loads and returns exactly one exact project reference per name it could resolve, or
-    // throws SlicingError. It is invoked once per PrintObject before infill enters any worker pool.
-    // The factory then creates the Fill for one already-validated reference on each surface and
-    // never waits.
-    using PluginInfillPrepareFn = std::function<std::map<std::string, PluginCapabilityRef>(
-        const std::vector<std::string>& capability_names,
-        const std::vector<PluginCapabilityRef>& manifest_refs)>;
-    using PluginInfillFactoryFn = std::function<Fill*(const PluginCapabilityRef&)>;
-    static void set_plugin_infill_hooks(PluginInfillPrepareFn prepare, PluginInfillFactoryFn factory);
-    static std::map<std::string, PluginCapabilityRef> prepare_plugin_infills(
-        const std::vector<std::string>& capability_names,
-        const std::vector<PluginCapabilityRef>& manifest_refs);
 
     void         set_bounding_box(const Slic3r::BoundingBox &bbox) { bounding_box = bbox; }
     BoundingBox  extended_object_bounding_box() const;

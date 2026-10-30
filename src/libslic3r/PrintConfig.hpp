@@ -807,28 +807,30 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 
-// Orca: sparse_infill_pattern stores a built-in key or, for a plugin-provided pattern, the infill
-// capability's canonical name (PluginCapabilityInterface::name()) as a raw string -- the same
-// convention slicing_pipeline_plugin uses. The plugin registry needed to confirm that a capability
-// exists is not available in this layer, so any nonempty key that does not name a built-in pattern
-// is treated as plugin-provided (ipPlugin); existence validation is deferred to the plugin API.
+// Orca: each of the four pattern settings (sparse_infill_pattern, internal_solid_infill_pattern,
+// top_surface_pattern, bottom_surface_pattern) stores a built-in key or, for a plugin-provided
+// pattern, a stable pattern ID advertised by an infill capability. The capability name is the
+// provider identity in the project manifest; the pattern ID is the selection value. The plugin
+// registry needed to confirm that a pattern exists is not available in this layer, so any nonempty
+// key that does not name a built-in pattern is treated as plugin-provided (ipPlugin); existence,
+// provider ownership and surface purpose are validated by the infill registry before slicing.
 inline bool is_builtin_infill_pattern_key(const std::string &key)
 {
     const t_config_enum_values &builtin = ConfigOptionEnum<InfillPattern>::get_enum_values();
     return builtin.find(key) != builtin.end();
 }
 
-// True for a nonempty key that names no built-in pattern: a plugin capability name, or a value the
-// deferred plugin registry would have to reject. Validation cannot tell those apart yet.
+// True for a nonempty key that names no built-in pattern: a plugin pattern ID, or a value the
+// infill registry would reject. Validation cannot tell those apart until the plugin layer is up.
 inline bool is_plugin_infill_pattern_key(const std::string &key)
 {
     return !key.empty() && !is_builtin_infill_pattern_key(key);
 }
 
-// Maps a sparse_infill_pattern value to the built-in pattern it names, or ipPlugin when the key is
-// not a built-in pattern. A nonempty non-builtin key is assumed to be a plugin capability name;
-// fill creation fails clearly for ipPlugin instead of guessing a built-in pattern. Callers must not
-// index built-in-only tables with ipPlugin.
+// Maps a pattern setting's value to the built-in pattern it names, or ipPlugin when the key is not
+// a built-in pattern. A nonempty non-builtin key is assumed to be a plugin pattern ID; fill creation
+// fails clearly for ipPlugin instead of guessing a built-in pattern. Callers must not index
+// built-in-only tables with ipPlugin.
 inline InfillPattern infill_pattern_from_key(const std::string &key)
 {
     const t_config_enum_values &builtin = ConfigOptionEnum<InfillPattern>::get_enum_values();
@@ -1494,11 +1496,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<EnsureVerticalShellThickness>,   ensure_vertical_shell_thickness))
     ((ConfigOptionPercent,              top_surface_density))
     ((ConfigOptionPercent,               bottom_surface_density))
-    ((ConfigOptionEnum<InfillPattern>,  top_surface_pattern))
-    ((ConfigOptionEnum<InfillPattern>,  bottom_surface_pattern))
     ((ConfigOptionEnum<SurfaceFillOrder>, top_surface_fill_order))
     ((ConfigOptionEnum<SurfaceFillOrder>, bottom_surface_fill_order))
-    ((ConfigOptionEnum<InfillPattern>, internal_solid_infill_pattern))
+    ((ConfigOptionString,               internal_solid_infill_pattern))
+    ((ConfigOptionString,               top_surface_pattern))
+    ((ConfigOptionString,               bottom_surface_pattern))
     ((ConfigOptionFloatOrPercent,       outer_wall_line_width))
     ((ConfigOptionFloatsNullable,       outer_wall_speed))
     ((ConfigOptionFloat,                infill_direction))

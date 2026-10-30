@@ -8,6 +8,7 @@
 #include "catch2/catch_approx.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PrintConfigConstants.hpp"
+#include "libslic3r/Fill/InfillPurpose.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 
 #include "test_utils.hpp"
@@ -19,6 +20,7 @@
 
 #include <boost/nowide/fstream.hpp>
 #include "libslic3r/Config.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <initializer_list>
 #include <memory>
@@ -1786,6 +1788,94 @@ TEST_CASE("Built-in sparse infill pattern keys map to their built-in patterns", 
     // A typo or a case variant is not silently read as a built-in pattern either.
     CHECK(infill_pattern_from_key("gyroidx") == ipPlugin);
     CHECK(infill_pattern_from_key("Gyroid") == ipPlugin);
+}
+
+TEST_CASE("Every plugin-backed infill pattern setting stores a key and drives one surface purpose", "[Config]")
+{
+    for (const InfillPatternSetting &setting : infill_pattern_settings) {
+        const std::string key(setting.option_key);
+        INFO(key);
+
+        const ConfigOptionDef *def = print_config_def.get(key);
+        REQUIRE(def != nullptr);
+        CHECK(def->type == coString);
+        CHECK(def->plugin_type == "infill");
+        REQUIRE(def->default_value != nullptr);
+        REQUIRE(def->default_value->type() == coString);
+        CHECK(def->enum_values.size() == def->enum_labels.size());
+
+        // The default stays the built-in key it has always been, and that key is one of the
+        // option's own choices.
+        const std::string default_key = static_cast<const ConfigOptionString *>(def->default_value.get())->value;
+        CHECK_FALSE(default_key.empty());
+        CHECK(std::find(def->enum_values.begin(), def->enum_values.end(), default_key) != def->enum_values.end());
+
+        // Every built-in choice resolves to a built-in pattern, so the key list cannot drift from
+        // the InfillPattern enum map.
+        for (const std::string &builtin_key : def->enum_values) {
+            INFO(builtin_key);
+            CHECK_FALSE(is_plugin_infill_pattern_key(builtin_key));
+            CHECK(infill_pattern_from_key(builtin_key) != ipPlugin);
+        }
+
+        CHECK(infill_purpose_for_option(key) == setting.purpose);
+    }
+
+    // Only the four pattern settings are plugin-backed infill settings.
+    CHECK_FALSE(infill_purpose_for_option("ironing_pattern").has_value());
+    CHECK_FALSE(infill_purpose_for_option("support_ironing_pattern").has_value());
+}
+
+TEST_CASE("The four infill pattern settings accept plugin IDs and reject keys they do not offer", "[Config]")
+{
+    FullPrintConfig config;
+
+    for (const InfillPatternSetting &setting : infill_pattern_settings) {
+        const std::string key(setting.option_key);
+        const ConfigOptionDef *def = print_config_def.get(key);
+        REQUIRE(def != nullptr);
+        INFO(key);
+
+        // A stored plugin pattern ID loads unchanged; the registry validates it before slicing.
+        const std::string plugin_key = "vendor-" + key;
+        config.set_key_value(key, new ConfigOptionString(plugin_key));
+        CHECK(validate(config).count(key) == 0);
+        CHECK(config.opt_string(key) == plugin_key);
+
+        // An empty value is not a pattern ID.
+        config.set_key_value(key, new ConfigOptionString(""));
+        CHECK(validate(config).count(key) == 1);
+
+        config.set_key_value(key, def->default_value->clone());
+    }
+
+    // A built-in key from a different option's subset is not accepted either: gyroid is sparse-only.
+    config.set_key_value("top_surface_pattern", new ConfigOptionString("gyroid"));
+    CHECK(validate(config).count("top_surface_pattern") == 1);
+}
+
+TEST_CASE("Plugin pattern IDs round-trip through a saved preset for all four surface settings", "[Config]")
+{
+    ScopedTemporaryFile tmp(".json");
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    for (const InfillPatternSetting &setting : infill_pattern_settings)
+        config.set_key_value(std::string(setting.option_key),
+                             new ConfigOptionString("vendor-pattern-" + std::string(setting.option_key)));
+
+    config.save_to_json(tmp.string(), "test_preset", "User", "1.0.0.0");
+
+    DynamicPrintConfig reloaded = DynamicPrintConfig::full_print_config();
+    ConfigSubstitutionContext substitutions(ForwardCompatibilitySubstitutionRule::Disable);
+    std::map<std::string, std::string> key_values;
+    std::string reason;
+    REQUIRE(reloaded.load_from_json(tmp.string(), substitutions, true, key_values, reason) == 0);
+    CHECK(reason.empty());
+    for (const InfillPatternSetting &setting : infill_pattern_settings) {
+        const std::string key(setting.option_key);
+        INFO(key);
+        CHECK(reloaded.opt_string(key) == "vendor-pattern-" + key);
+    }
 }
 
 TEST_CASE("Default options of enum lists get their definition's keys map", "[Config]")
