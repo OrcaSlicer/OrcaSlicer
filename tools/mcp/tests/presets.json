@@ -1,9 +1,9 @@
 // Saves presets with save_preset, as the tab's Save and the Save preset dialog do, and drops unsaved
 // edits with set_settings reset_all, reading both back with list_presets and get_settings. It also
 // reads presets that are not selected, compares presets, writes one entry of a per-variant value and
-// reads the settings the app adjusts in turn (set_settings changed). It explains settings by key, lists
-// the map of every setting, reads a group in full and finds a setting by the words of its tooltip
-// (explain_settings). It reverts single keys and answers
+// reads the settings the app adjusts in turn (set_settings changed). It reads what settings do from
+// get_settings' meta (description and where) by key, for one group, and by a search over the words of
+// their descriptions, in one scope and in all of them. It reverts single keys and answers
 // the unsaved-changes prompts of a preset switch and a new project, with and without changes, and
 // deletes the presets it made with delete_preset, selected or not. It exports a filament with the Export
 // Preset Bundle dialog to its out_dir and imports it again with a path, and changes a preference in the
@@ -35,24 +35,23 @@
     {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C"}},
     {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1}},
 
-    // ---- What a setting does: explain_settings, not get_settings' meta ----
-    // An advanced setting has its page and wiki link in Simple mode too.
-    {"tool": "explain_settings", "args": {"keys": ["seam_slope_type", "no_such_key"]},
-     "expect": {"/items/0/scope": {"eq": "process"}, "/items/0/tooltip": {"contains": "scarf joint"},
-                "/items/0/where": {"eq": "Quality > Seam"}, "/items/0/wiki": {"contains": "quality_settings_seam"},
-                "/items/0/labels/1": {"eq": "Contour"}, "/unknown_keys/0": {"eq": "no_such_key"}}},
-    // retraction_length's tooltip has every word of the query; settings with "long" or "travel" in their
-    // name match fewer of them.
-    {"tool": "explain_settings", "args": {"query": "ooze during long travel", "scope": "printer"},
-     "expect": {"/items/0/key": {"eq": "retraction_length"}, "/items/0/where": {"eq": "Extruder > Retraction"}}},
-    // The map lists every setting of the scope by page and group; where reads one group in full.
-    {"tool": "explain_settings", "args": {"scope": "process"},
-     "expect": {"/settings/process/Quality > Seam/seam_slope_type": {"eq": "Scarf joint seam (beta)"},
-                "/settings/filament": {"exists": false}}},
-    {"tool": "explain_settings", "args": {"scope": "process", "where": "Quality > Seam"},
-     "expect": {"/items/0/where": {"eq": "Quality > Seam"}, "/items/0/tooltip": {"exists": true}}},
-    {"tool": "get_settings", "args": {"scope": "process", "keys": ["seam_slope_type"]},
-     "expect": {"/items/0/meta/labels/1": {"eq": "Contour"}, "/items/0/meta/tooltip": {"exists": false}}},
+    // ---- What a setting does: get_settings' meta, with its description and its place on the tabs ----
+    // An advanced setting has its page in Simple mode too.
+    {"tool": "get_settings", "args": {"scope": "process", "keys": ["seam_slope_type", "no_such_key"]},
+     "expect": {"/items/0/meta/description": {"contains": "scarf joint"}, "/items/0/meta/where": {"eq": "Quality > Seam"},
+                "/items/0/meta/labels/1": {"eq": "Contour"}, "/unknown_keys/0": {"eq": "no_such_key"}}},
+    // retraction_length's description has every word of the query; settings with "long" or "travel" in
+    // their name match fewer of them. Without a scope the search covers the filament's retraction
+    // overrides too, and each match names its scope.
+    {"tool": "get_settings", "args": {"scope": "printer", "query": "ooze during long travel"},
+     "expect": {"/items/0/key": {"eq": "retraction_length"}, "/items/0/meta/where": {"eq": "Extruder > Retraction"}}},
+    {"tool": "get_settings", "args": {"query": "ooze during long travel"},
+     "expect": {"/items/0/key": {"regex": "retraction_length$"}, "/items/0/scope": {"regex": "^(filament|printer)$"},
+                "/items/0/value": {"exists": true}}},
+    // where lists one group with values and meta.
+    {"tool": "get_settings", "args": {"scope": "process", "where": "Quality > Seam"},
+     "expect": {"/items/0/meta/where": {"eq": "Quality > Seam"}, "/items/0/value": {"exists": true},
+                "/items/0/meta/description": {"exists": true}}},
 
     // ---- A tuned filament saved as a user preset, selected in its slot ----
     // Keys with one value for every extruder variant; a scalar would collapse a per-variant one.

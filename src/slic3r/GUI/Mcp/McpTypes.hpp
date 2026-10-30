@@ -145,4 +145,13 @@ public:
 // string when valid, else a message naming the offending property.
 std::string validate_arguments(const nlohmann::json& schema, const nlohmann::json& args);
 
+// Rewrites, before validation, what agents often send in place of what the schema asks for: an
+// argument under a name the tool does not take but that stands for one it does, which the call leaves
+// out and the value fits (ref for target, key for keys, text for value, action for id or button, object for objects,
+// plate for plates, filter for query, settings for values, target for root), a value written in
+// another JSON form (a number, boolean, array or object as a string, a single item for an array),
+// and a value outside its argument's enum that only one omitted argument's enum takes (set_view's
+// view "front" as camera). Anything that still does not fit is left for validate_arguments to report.
+void normalize_arguments(const nlohmann::json& schema, nlohmann::json& args);
+
 }}} // namespace Slic3r::GUI::Mcp

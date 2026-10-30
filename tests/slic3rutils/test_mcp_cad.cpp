@@ -1203,7 +1203,10 @@ TEST_CASE("query_topology filters by direction, extreme and kind, and pages both
     CHECK(last.at("edges")[0].at("id") == 10);
     CHECK_FALSE(last.contains("next_offset"));
 
-    CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"kinds", {"cone"}}}); }), ContainsSubstring("kinds must be one of planar"));
+    // A face kind may be named by its surface's noun.
+    CHECK(GUI::cad_query_topology(doc, {{"kinds", {"plane"}}}).at("faces_total") ==
+          GUI::cad_query_topology(doc, {{"kinds", {"planar"}}}).at("faces_total"));
+    CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"kinds", {"face"}}}); }), ContainsSubstring("kinds must be one of planar"));
     CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"edge_kinds", "line"}}); }), ContainsSubstring("must be a list"));
     CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"direction", {0, 0, 0}}}); }), ContainsSubstring("must not be zero"));
     CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"direction", {0, 1}}}); }), ContainsSubstring("[x, y, z]"));

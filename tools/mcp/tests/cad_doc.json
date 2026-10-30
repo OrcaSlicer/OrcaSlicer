@@ -1,5 +1,6 @@
 // Reads and edits a Design-tab feature as its card does: a variable bound to an extrude, the
-// binding and the variable removed, then literal edits through set_feature, checked by volume.
+// binding and the variable removed, then literal edits through set_feature, checked by volume, also
+// under the names agents often give its params (index, params, values).
 // Then hands the design off: Commit to Plate, a recommit that replaces the first object (one
 // Prepare undo step), a STEP export read back into a new design, and two bodies committed both ways.
 // Last, the Design history and the tree: undo / redo of an edit and of a rename (its own step),
@@ -47,6 +48,12 @@
      "expect": {"/result/volume": {"ge": 5999.99, "le": 6000.01}}},
     {"tool": "cad_call", "args": {"method": "set_feature", "params": {"feature": 0, "fields": {"width": 30}}},
      "expect": {"/result/changed/width/1": {"eq": 30.0}}},
+    // The names agents often use: index for feature, params or values for fields.
+    {"tool": "cad_call", "args": {"method": "set_feature", "params": {"index": 0, "params": {"width": 20}}},
+     "expect": {"/result/changed/width/1": {"eq": 20.0}}},
+    {"tool": "cad_call", "args": {"method": "set_feature", "params": {"feature": 0, "values": {"width": 30}}},
+     "expect": {"/result/changed/width/1": {"eq": 30.0}}},
+    {"tool": "cad_call", "args": {"method": "describe_feature", "params": {"index": 1}}, "expect": {"/result/params/distance": {"eq": 15.0}}},
     {"tool": "cad_call", "args": {"method": "mass_properties", "params": {"body": 0}},
      "expect": {"/result/volume": {"ge": 8999.99, "le": 9000.01}}},
     {"tool": "cad_call", "args": {"method": "sketch_begin", "params": {"plane": "XY"}}},

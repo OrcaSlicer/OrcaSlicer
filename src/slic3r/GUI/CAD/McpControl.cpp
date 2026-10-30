@@ -2115,10 +2115,10 @@ void check_feature_index(int fi, const CadDocument& doc)
                                  std::to_string(doc.features.size()) + " features");
 }
 
-// The `feature` param: an index into describe_scene's features.
+// The `feature` param (or `index`, as agents often call it): an index into describe_scene's features.
 int feature_arg(const json& params, const CadDocument& doc)
 {
-    const json v = params.is_object() ? params.value("feature", json()) : json();
+    const json v = !params.is_object() ? json() : params.contains("feature") ? params["feature"] : params.value("index", json());
     if (!v.is_number_integer()) throw std::runtime_error("feature must be a feature index (describe_scene's features[].index)");
     check_feature_index(v.get<int>(), doc);
     return v.get<int>();
@@ -2136,9 +2136,11 @@ json action_set_feature(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
     const int    fi  = feature_arg(params, doc);
-    if (!params.contains("fields")) throw std::runtime_error("set_feature needs 'fields', as {\"distance\": 15}");
+    // The card's values go in fields; params and values are what agents often call them.
+    const char* key = params.contains("fields") ? "fields" : params.contains("params") ? "params" : params.contains("values") ? "values" : nullptr;
+    if (key == nullptr) throw std::runtime_error("set_feature needs 'fields', as {\"distance\": 15}");
     CadFeature edited = doc.features[fi];
-    cad_apply_feature_fields(edited, params["fields"]);
+    cad_apply_feature_fields(edited, params[key]);
     const json before = feature_card(doc.features[fi])["params"];
     doc.checkpoint();
     if (!doc.replace_feature(fi, edited)) {
@@ -4789,7 +4791,13 @@ json cad_query_topology(const CadDocument& doc, const json& params)
         const json v = params.value(key, json());
         if (v.is_null()) return out;
         if (!v.is_array()) throw std::runtime_error(std::string(key) + " must be a list of kinds");
-        for (const json& k : v) out.push_back(enum_index(key, k, names));
+        // A face kind by its surface's noun, as agents often name it: plane for planar.
+        static const std::map<std::string, std::string> nouns{
+            {"plane", "planar"}, {"cylinder", "cylindrical"}, {"cone", "conical"}, {"sphere", "spherical"}, {"torus", "toroidal"}};
+        for (const json& k : v) {
+            const auto noun = k.is_string() && std::string(key) == "kinds" ? nouns.find(k.get<std::string>()) : nouns.end();
+            out.push_back(enum_index(key, noun == nouns.end() ? k : json(noun->second), names));
+        }
         return out;
     };
     const std::vector<int> kinds      = kind_list("kinds", kFaceKinds);

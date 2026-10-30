@@ -1,0 +1,55 @@
+// Arguments as agents often write them: names a tool does not take but that stand for one it does
+// (object for objects, action for id, key for keys, plate for plates), values in another JSON form (a
+// lone path for a list, an index as a string), an action by the name inside its id, a camera
+// direction as set_view's view, transform's position, wait with no condition, a gizmo by its toolbar
+// title, legend rows as agents name them, export without a format, and get_settings' whole listing
+// without meta. Run on a live app:
+//   python3 tools/mcp/orca_mcp.py run-script tools/mcp/tests/agent_forms.json --out <dir>
+{
+  "orca_script": 1,
+  "name": "agent argument forms",
+  "vars": {"cube": "${script_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+
+    // ---- A lone path for paths; object and a string index for objects; an action's name for its id ----
+    {"tool": "open_files", "args": {"paths": "${vars.cube}"}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "select", "args": {"object": "1"}},
+    {"tool": "run_action", "args": {"id": "obj_rename", "param": "renamed"}, "expect": {"/ran": {"eq": "orca_command:obj_rename:orca"}}},
+    {"tool": "list_objects", "expect": {"/items/1/name": {"eq": "renamed"}, "/items/0/name": {"ne": "renamed"}}},
+    {"tool": "run_action", "args": {"action": "view_top"}, "expect": {"/ran": {"eq": "orca_command:view_top:orca"}}},
+
+    // ---- A camera direction as view; position for an absolute move; key for keys; wait for idle ----
+    {"tool": "set_view", "args": {"view": "front"}, "expect": {"/camera": {"eq": "front"}}},
+    {"tool": "transform", "args": {"object": 0, "position": [100, 110, 0]}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/offset/0": {"ge": 99.99, "le": 100.01},
+                                        "/items/0/instances/0/offset/1": {"ge": 109.99, "le": 110.01}}},
+    {"tool": "ui_key", "args": {"key": "Escape"}},
+    {"tool": "wait", "args": {}, "expect": {"/satisfied": {"eq": true}}},
+
+    // ---- A gizmo by its toolbar title, in any case; replies name it as get_state does ----
+    {"tool": "select", "args": {"objects": [0]}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Support Painting"}}, "expect": {"/gizmo": {"eq": "FdmSupports"}, "/active": {"eq": true}}},
+    {"tool": "get_state", "expect": {"/gizmo/name": {"eq": "FdmSupports"}}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "support painting"}}, "expect": {"/active": {"eq": false}}},
+
+    // ---- plate for plates, as a string; export's format from the path ----
+    {"tool": "arrange", "args": {"plate": "0"}},
+    {"tool": "slice", "args": {"plate": "0"}, "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+
+    // ---- Legend rows in any case and with _ for a space; hiding rows this print lacks does nothing ----
+    {"tool": "set_view", "args": {"tab": "preview", "legend": {"sparse_infill": false, "Travel": false, "Prime tower": false, "Pauses": false}},
+     "expect": {"/legend/Sparse infill": {"eq": false}, "/legend/travel": {"eq": false}, "/legend/Prime tower": {"exists": false}}},
+    {"tool": "set_view", "args": {"legend": {"Sparse infill": true, "travel": true}}, "expect": {"/legend/Sparse infill": {"eq": true}}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "export", "args": {"path": "${out_dir}/forms.gcode", "overwrite": true}, "expect": {"/export": {"eq": "ok"}}},
+    {"tool": "export", "args": {"path": "${out_dir}/forms.stl", "overwrite": true}},
+
+    // ---- get_settings: a whole preset listing carries values only, named keys their meta ----
+    {"tool": "get_settings", "args": {"scope": "process", "limit": 5}, "expect": {"/items/0/value": {"exists": true}, "/items/0/meta": {"exists": false}}},
+    {"tool": "get_settings", "args": {"scope": "process", "keys": ["wall_loops"]}, "expect": {"/items/0/meta/type": {"exists": true}}}
+  ]
+}

@@ -190,6 +190,16 @@ json apply_vfa_fit(Calib_Params& params, bool auto_adjust, const PresetBundle& b
     }
 }
 
+// export's format for a path given without one, from its extension.
+std::string format_of(const std::string& path)
+{
+    static const std::pair<const char*, const char*> formats[]{{".gcode.3mf", "sliced_3mf"}, {".gcode", "gcode"}, {".3mf", "3mf"}, {".stl", "stl"}};
+    for (const auto& [ext, format] : formats)
+        if (boost::algorithm::iends_with(path, ext))
+            return format;
+    throw ToolFailure("Give format (gcode, sliced_3mf, 3mf or stl), or a path ending in .gcode, .gcode.3mf, .3mf or .stl");
+}
+
 } // namespace
 
 Calib_Params calib_params_from_args(const json& args, const DynamicPrintConfig& printer, std::vector<std::string>& warnings)
@@ -607,6 +617,10 @@ void register_project_tools(McpService& service)
         "Save the project as a .3mf at an absolute path without a dialog; it becomes the project's file.",
         object_schema({{"path", prop("string", "Absolute .3mf path.")}, {"overwrite", prop("boolean", "Replace an existing file.")}}, {"path"}),
         [](const json& args, ToolContext& ctx) {
+            // A project file holds no G-code, so a .gcode.3mf saved here would lack what its name promises.
+            if (boost::algorithm::iends_with(arg_string(args, "path"), ".gcode.3mf"))
+                throw ToolFailure("save_project writes the project without G-code; a .gcode.3mf with the sliced plates is "
+                                  "export {format: \"sliced_3mf\"} (plate \"all\" for every plate)");
             std::string err;
             auto        path = resolve_output_path(arg_string(args, "path"), arg_bool(args, "overwrite", false), err);
             if (!path)
@@ -625,14 +639,15 @@ void register_project_tools(McpService& service)
         "export", L("Export"),
         "Write the project to a file without a dialog. gcode: the current plate's G-code (slice first; runs in the "
         "background and the call completes when the file is written). sliced_3mf: the sliced plate (or all plates) as "
-        ".gcode.3mf. 3mf: the model without slicing data. stl: all objects as one STL. plate selects the plate first.",
-        object_schema({{"format", enum_prop({"gcode", "sliced_3mf", "3mf", "stl"}, "What to write.")},
+        ".gcode.3mf. 3mf: the model without slicing data. stl: all objects as one STL. Without format, the path's "
+        "extension (.gcode, .gcode.3mf, .3mf, .stl) says which. plate selects the plate first.",
+        object_schema({{"format", enum_prop({"gcode", "sliced_3mf", "3mf", "stl"}, "What to write; default from the path's extension.")},
                        {"path", prop("string", "Absolute output path.")},
                        {"plate", {{"type", {"string", "integer"}}, {"description", "\"current\" (default), a plate index, or \"all\" (sliced_3mf only)."}}},
                        {"overwrite", prop("boolean", "Replace an existing file.")}},
-                      {"format", "path"}),
+                      {"path"}),
         [](const json& args, ToolContext& ctx) {
-            const std::string format = arg_string(args, "format");
+            const std::string format = args.contains("format") ? arg_string(args, "format") : format_of(arg_string(args, "path"));
             std::string       err;
             auto              path = resolve_output_path(arg_string(args, "path"), arg_bool(args, "overwrite", false), err);
             if (!path)

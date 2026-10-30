@@ -16,6 +16,7 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoSVG.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
@@ -501,10 +502,20 @@ std::string gizmo_name(int type)
 
 namespace {
 
+// A gizmo by its gizmo_name() or by the English title its toolbar button shows where that differs
+// (Support Painting for FdmSupports), ignoring case.
 GLGizmosManager::EType gizmo_from_name(const std::string& name)
 {
+    static const std::pair<const char*, GLGizmosManager::EType> titles[]{
+        {"lay on face", GLGizmosManager::Flatten},          {"mesh boolean", GLGizmosManager::MeshBoolean},
+        {"support painting", GLGizmosManager::FdmSupports}, {"seam painting", GLGizmosManager::Seam},
+        {"paint-on fuzzy skin", GLGizmosManager::FuzzySkin}, {"emboss", GLGizmosManager::Emboss}};
+    const std::string wanted = lower(name);
+    for (const auto& [title, type] : titles)
+        if (wanted == title)
+            return type;
     for (int t = 0; t < int(GLGizmosManager::Undefined); ++t)
-        if (lower(gizmo_name(GLGizmosManager::EType(t))) == lower(name))
+        if (lower(gizmo_name(GLGizmosManager::EType(t))) == wanted)
             return GLGizmosManager::EType(t);
     return GLGizmosManager::Undefined;
 }
@@ -815,6 +826,18 @@ std::string covered_by(GLCanvas3D& canvas, const wxPoint& pixel, const std::stri
     return imgui_window_description(cover->RootWindow->Name, imgui->recorded_texts(&canvas));
 }
 
+// The camera `canvas` was last drawn with.
+CanvasView canvas_view(GLCanvas3D& canvas)
+{
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    CanvasView    view;
+    view.view       = camera.get_view_matrix();
+    view.projection = camera.get_projection_matrix();
+    view.viewport   = camera.get_viewport();
+    view.scale      = canvas.get_scale();
+    return view;
+}
+
 // The logical pixel of `canvas` showing a point of the model: {object, instance, volume} and either
 // `point` (with `frame` "volume", the part's mesh coordinates, or "world", the scene's) or `spot`.
 // With `check` "surface" a click there must land on that part at that point (see check_surface()).
@@ -844,6 +867,8 @@ wxPoint target_pixel(GLCanvas3D& canvas, const json& target, const std::string& 
     const AABBMesh&   mesh  = shown->mesh_raycaster->get_aabb_mesh();
 
     Vec3d point;
+    if (target.contains("spot") && target.contains("point"))
+        throw ToolFailure("Give the model target point or spot, not both");
     if (target.contains("spot")) {
         const std::string spot = target["spot"].get<std::string>();
         const auto        hit  = spot_point(mesh, world, spot);
@@ -864,13 +889,8 @@ wxPoint target_pixel(GLCanvas3D& canvas, const json& target, const std::string& 
         throw ToolFailure("A model target needs point or spot");
     }
 
-    CanvasView view;
-    const Camera& camera = wxGetApp().plater()->get_camera();
-    view.view            = camera.get_view_matrix();
-    view.projection      = camera.get_projection_matrix();
-    view.viewport        = camera.get_viewport();
-    view.scale           = canvas.get_scale();
-    const auto projected = project_point(view, point);
+    const CanvasView view      = canvas_view(canvas);
+    const auto       projected = project_point(view, point);
     if (!projected)
         throw ToolFailure("The point of " + what + " is off screen; turn or zoom the camera with set_view");
     // Events carry whole logical pixels: the click goes through this one, not the projected point.
@@ -914,6 +934,38 @@ bool selection_is_svg_part(GLCanvas3D& canvas)
         return false;
     const ModelVolume* volume = get_model_volume(*gl_volume, model->objects);
     return volume != nullptr && GLGizmoSVG::is_svg(*volume);
+}
+
+// Whether a press at logical `pixel` lands on a part of the selected instance, the object a painting
+// gizmo paints.
+bool press_hits_selection(GLCanvas3D& canvas, const wxPoint& pixel)
+{
+    const Selection& selection     = canvas.get_selection();
+    const auto [origin, direction] = pixel_ray(canvas_view(canvas), Vec2d(pixel.x, pixel.y));
+    for (const GLVolume* v : canvas.get_volumes().volumes)
+        if (v->object_idx() == selection.get_object_idx() && v->instance_idx() == selection.get_instance_idx() && !v->is_modifier &&
+            v->mesh_raycaster != nullptr) {
+            const Transform3d inverse = v->world_matrix().inverse();
+            if (v->mesh_raycaster->get_aabb_mesh().query_ray_hit(inverse * origin, (inverse.linear() * direction).normalized()).is_hit())
+                return true;
+        }
+    return false;
+}
+
+// The first logical pixel of a stroke from `from` through `stops` that lands on the object being
+// painted, the place to start a stroke whose press misses it.
+std::optional<wxPoint> first_hit_on_stroke(GLCanvas3D& canvas, wxPoint from, const std::vector<wxPoint>& stops)
+{
+    for (const wxPoint& to : stops) {
+        const int n = std::max(std::abs(to.x - from.x), std::abs(to.y - from.y));
+        for (int i = 1; i <= n; ++i) {
+            const wxPoint p(from.x + int(std::lround(double(to.x - from.x) * i / n)), from.y + int(std::lround(double(to.y - from.y) * i / n)));
+            if (press_hits_selection(canvas, p))
+                return p;
+        }
+        from = to;
+    }
+    return std::nullopt;
 }
 
 } // namespace
@@ -2218,6 +2270,9 @@ UiTarget UiInspector::resolve(const json& target)
     }
     if (!target.is_object())
         throw ToolFailure("target must be a ref from ui_snapshot or a locator object");
+    // A ref written the way locators are, {ref: "w12"}.
+    if (target.size() == 1 && target.contains("ref") && target["ref"].is_string())
+        return resolve(target["ref"]);
 
     UiTarget t;
     t.locator = target;
@@ -2272,8 +2327,13 @@ UiTarget UiInspector::resolve(const json& target)
             t.kind  = UiTarget::Kind::Gizmo;
             t.name  = target["gizmo"].get<std::string>();
             t.gizmo = int(gizmo_from_name(t.name));
-            if (t.gizmo == int(GLGizmosManager::Undefined))
-                throw ToolFailure("No gizmo " + t.name);
+            if (t.gizmo == int(GLGizmosManager::Undefined)) {
+                json names = json::array();
+                for (int g = 0; g < int(GLGizmosManager::Undefined); ++g)
+                    names.push_back(gizmo_name(g));
+                throw ToolFailure("No gizmo " + t.name, {{"gizmos", names}});
+            }
+            t.name = gizmo_name(t.gizmo); // replies name it as get_state does
             return t;
         }
         // ImGui item: search the named canvas, or every canvas when none was named.
@@ -2312,6 +2372,11 @@ UiTarget UiInspector::resolve(const json& target)
                 if (any.size() < 30)
                     any.push_back(path);
             }
+            // The object list, the list agents look for most, is hidden until the sidebar's
+            // Global/Objects switch is on Objects.
+            if (any.empty())
+                throw ToolFailure("No shown list has any rows; the Prepare sidebar's object list shows when its Global/Objects "
+                                  "switch, the SwitchButton ui_snapshot labels \"Process\", is on Objects (ui_click it)");
             throw ToolFailure("No shown list has a row " + target["row"].dump() + "; take a ui_snapshot", {{"rows", similar.empty() ? any : similar}});
         }
         if (matches.size() > 1 && index < 0)
@@ -2684,7 +2749,7 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
             throw ToolFailure("A plate icon takes a single left or right click");
         if (canvas.is_layers_editing_enabled())
             throw ToolFailure("Plate icons take no clicks while variable layer height is being edited; close it with "
-                              "ui_click {\"gltoolbar\": \"layersediting\"} first");
+                              "ui_click {\"target\": {\"gltoolbar\": \"layersediting\"}} first");
         if (const auto open = canvas.get_gizmos_manager().get_current_type(); open != GLGizmosManager::Undefined)
             throw ToolFailure("Close the " + gizmo_name(open) + " gizmo first: plate icons take no clicks while it is open");
         Plater&        plater = *wxGetApp().plater();
@@ -3139,6 +3204,18 @@ json UiInspector::mouse(GLCanvas3D& canvas, const json& g, const std::string& ow
             throw ToolFailure("The model point at pixel (" + std::to_string(from.x) + ", " + std::to_string(from.y) + ") is under " + cover +
                               ", which would take the " + (action == "move" ? "pointer" : action == "wheel" ? "wheel" : "click") +
                               "; turn or zoom the camera with set_view, or close it");
+    // A painting gizmo takes a press only on the object it paints. One that misses falls through to the
+    // canvas, which turns or pans the camera as the user's mouse settings say, and the stroke paints nothing.
+    if ((action == "down" || action == "drag") && !design && dynamic_cast<GLGizmoPainterBase*>(canvas.get_gizmos_manager().get_current()) != nullptr &&
+        !press_hits_selection(canvas, from)) {
+        const std::string missed = "The press at pixel (" + std::to_string(from.x) + ", " + std::to_string(from.y) +
+                                   ") misses the object being painted, so it would move the camera instead of painting. ";
+        if (const auto hit = first_hit_on_stroke(canvas, from, stops))
+            throw ToolFailure(missed + "The stroke first reaches the object at pixel (" + std::to_string(hit->x) + ", " +
+                              std::to_string(hit->y) + "): start it there");
+        throw ToolFailure(missed + "Start the stroke on the object (at a model point, or a pixel inside its list_objects {\"screen\": true} "
+                                   "box that shows the object), and turn the camera with set_view camera or orbit");
+    }
     json out{{"action", action}, {"canvas", canvas_name(&canvas)}, {"pixels", pixels}};
 
     // A press an earlier `down` left held: a `move` drags with it and an `up` releases it; any other

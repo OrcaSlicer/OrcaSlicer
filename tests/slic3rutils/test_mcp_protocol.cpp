@@ -284,3 +284,95 @@ TEST_CASE("argument validation covers types, enums, ranges and arrays", "[Mcp]")
     CHECK(validate_arguments(schema, {{"paths", {1}}}).find("paths[0]") != std::string::npos);
     CHECK(validate_arguments(schema, {{"extra", 1}}).find("unknown argument extra") != std::string::npos);
 }
+
+TEST_CASE("argument normalization reads the names agents reach for as the ones a tool takes", "[Mcp]")
+{
+    const json schema = {{"type", "object"},
+                         {"properties",
+                          {{"target", {{"type", {"string", "object"}}}},
+                           {"button", {{"type", "string"}}},
+                           {"objects", {{"type", "array"}, {"items", {{"type", "integer"}}}}}}},
+                         {"additionalProperties", false}};
+    const auto normalized = [&](json args) {
+        normalize_arguments(schema, args);
+        return args;
+    };
+    CHECK(normalized({{"ref", "w12"}}) == json{{"target", "w12"}});
+    // action stands for id or button, whichever the tool takes.
+    CHECK(normalized({{"action", "close"}}) == json{{"button", "close"}});
+    CHECK(normalized({{"object", 2}}) == json{{"objects", {2}}});
+    CHECK(normalized({{"object", "0"}}) == json{{"objects", {0}}});
+    // Given both, the call keeps them and validation names the stray one.
+    const json both = normalized({{"ref", "w12"}, {"target", "w13"}});
+    CHECK(both == json{{"ref", "w12"}, {"target", "w13"}});
+    CHECK(validate_arguments(schema, both).find("unknown argument ref") != std::string::npos);
+    // A tool that takes the name itself keeps it.
+    const json own = {{"type", "object"}, {"properties", {{"text", {{"type", "string"}}}, {"value", {{"type", "string"}}}}}};
+    json       text{{"text", "abc"}};
+    normalize_arguments(own, text);
+    CHECK(text == json{{"text", "abc"}});
+    // Only a value that fits: a click is no button, so the call keeps action for the validator to name.
+    const json clicks = {{"type", "object"},
+                         {"properties", {{"button", {{"type", "string"}, {"enum", {"left", "right", "middle"}}}}}},
+                         {"additionalProperties", false}};
+    json       click{{"action", "click"}};
+    normalize_arguments(clicks, click);
+    CHECK(click == json{{"action", "click"}});
+}
+
+TEST_CASE("argument normalization reads values written in another JSON form", "[Mcp]")
+{
+    const json schema = {{"type", "object"},
+                         {"properties",
+                          {{"n", {{"type", "integer"}}},
+                           {"flag", {{"type", "boolean"}}},
+                           {"plate", {{"type", {"string", "integer"}}}},
+                           {"point", {{"type", "array"}, {"items", {{"type", "number"}}}}},
+                           {"paths", {{"type", "array"}, {"items", {{"type", "string"}}}}},
+                           {"name", {{"type", "string"}}}}},
+                         {"additionalProperties", false}};
+    json args{{"n", "3"}, {"flag", "true"}, {"plate", "1"}, {"point", "[1, 2.5, 3]"}, {"paths", "/a.stl"}, {"name", "7"}};
+    normalize_arguments(schema, args);
+    CHECK(args["n"] == 3);
+    CHECK(args["flag"] == true);
+    CHECK(args["plate"] == 1);
+    CHECK(args["point"] == json{1, 2.5, 3});
+    CHECK(args["paths"] == json{"/a.stl"});
+    // A string where a string goes stays one.
+    CHECK(args["name"] == "7");
+    CHECK(validate_arguments(schema, args).empty());
+
+    json kept{{"plate", "all"}, {"n", "2.5"}};
+    normalize_arguments(schema, kept);
+    CHECK(kept["plate"] == "all");
+    CHECK(validate_arguments(schema, kept).find("n must be of type integer") != std::string::npos);
+}
+
+TEST_CASE("argument normalization moves a value outside its enum to the argument whose enum takes it", "[Mcp]")
+{
+    const json schema = {{"type", "object"},
+                         {"properties",
+                          {{"view", {{"type", "string"}, {"enum", {"3d", "preview"}}}},
+                           {"camera", {{"type", "string"}, {"enum", {"front", "top", "fit"}}}},
+                           {"tab", {{"type", "string"}, {"enum", {"prepare", "preview"}}}}}},
+                         {"additionalProperties", false}};
+    json moved{{"view", "front"}};
+    normalize_arguments(schema, moved);
+    CHECK(moved == json{{"camera", "front"}});
+
+    // Both given: the call names its camera, so view's value is an error, not a second camera.
+    json both{{"view", "front"}, {"camera", "fit"}};
+    normalize_arguments(schema, both);
+    CHECK(both["view"] == "front");
+    CHECK(validate_arguments(schema, both).find("view must be one of") != std::string::npos);
+
+    // A value of its own enum stays, even where another enum also takes it.
+    json own{{"view", "preview"}};
+    normalize_arguments(schema, own);
+    CHECK(own == json{{"view", "preview"}});
+
+    // Taken by no other enum: left for the validator.
+    json unknown{{"view", "sideways"}};
+    normalize_arguments(schema, unknown);
+    CHECK(unknown == json{{"view", "sideways"}});
+}

@@ -138,9 +138,9 @@ diagonal, a tower off the plate), and moves the prime tower with an undo, before
 one inside the project that a saved and reopened project keeps, a detached one, and the overwrite
 rule), and drops unsaved edits with `set_settings {"reset_all": true}`. It reads presets that are not
 selected and compares presets (`get_settings` `preset` and `compare`), writes one entry of a
-per-variant value, and checks `set_settings`' `changed` after the spiral vase dialog. It explains
-settings with `explain_settings`: by key, the map of every setting, a group in full, and by the words
-of a tooltip. It reverts single keys (`null`, `reset_to`), and answers the unsaved-changes prompts:
+per-variant value, and checks `set_settings`' `changed` after the spiral vase dialog. It reads what
+settings do from `get_settings`' meta (`description`, `where`): by key, for one group, and found by
+the words of their descriptions, in one scope and in all three. It reverts single keys (`null`, `reset_to`), and answers the unsaved-changes prompts:
 `select_preset` without `changes` still opens the prompt, `changes` transfers or discards without it,
 and `new_project` keeps modified presets unless `changes` is `"discard"`. It ends by deleting the
 presets it made with `delete_preset`: filaments the tab edits and does not, a base process and its
@@ -262,6 +262,13 @@ left by an earlier script make opening the G-code ask about them. `test_set_view
 what that script cannot: `set_view {view_type}` acts as the legend's combo (a feature type hidden by
 a click on its row shows again on Line Type, and the pick reaches the app config), and the refusals
 of the preview arguments.
+
+`tests/agent_forms.json` calls tools the way agents often write them: a lone path for `paths`,
+`object` for `objects` with the index as a string, an action by the key inside its id, `action` for
+`id`, a camera direction as `set_view`'s `view`, `transform` to a `position`, `key` for `keys`,
+`wait` with no condition, a gizmo by its toolbar title, `plate` for `plates`, legend rows in another
+case or with `_` for a space, and `export` with the format taken from the path. It also checks that a
+preset scope's whole `get_settings` listing leaves meta out.
 
 `test_stdio_bridge.py [--bin PATH]` checks `orca-slicer --mcp-stdio` against the launched instance:
 the handshake, notifications, tool calls in both protocol eras, and errors.

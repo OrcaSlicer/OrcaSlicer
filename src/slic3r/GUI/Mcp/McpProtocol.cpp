@@ -148,7 +148,96 @@ std::string validate_value(const json& schema, const json& value, const std::str
     return {};
 }
 
+// Argument names agents reach for in place of the ones the tools take, each with the names it may
+// stand for, tried in order.
+const std::vector<std::pair<std::string, std::vector<std::string>>>& argument_aliases()
+{
+    static const std::vector<std::pair<std::string, std::vector<std::string>>> aliases{
+        {"ref", {"target"}},       {"target", {"root"}},     {"key", {"keys"}},     {"text", {"value"}},
+        {"action", {"id", "button"}}, {"object", {"objects"}}, {"plate", {"plates"}}, {"filter", {"query"}},
+        {"settings", {"values"}},
+    };
+    return aliases;
+}
+
+bool type_includes(const json& type, const char* name)
+{
+    return type.is_array() ? std::find(type.begin(), type.end(), name) != type.end() : type == name;
+}
+
+// A value in another JSON form than its schema's: a number, boolean, array or object written as a
+// string ("2", "true", "[1, 2]"), a plate index as a string where a name may also go ("0" for
+// "current" | index), or a single item where an array is wanted.
+void coerce_value(const json& schema, json& value)
+{
+    if (!schema.is_object() || !schema.contains("type"))
+        return;
+    const json& type = schema["type"];
+    if (value.is_string()) {
+        json parsed = json::parse(value.get<std::string>(), nullptr, /*allow_exceptions=*/false);
+        if (!parsed.is_discarded() && ((!type_matches(value, type) && type_matches(parsed, type)) ||
+                                       (type_includes(type, "integer") && parsed.is_number_integer()))) {
+            value = std::move(parsed);
+            return;
+        }
+    }
+    if (type == "array" && !value.is_array()) {
+        json item = value;
+        if (schema.contains("items"))
+            coerce_value(schema["items"], item);
+        json wrapped = json::array({std::move(item)});
+        if (validate_value(schema, wrapped, "").empty())
+            value = std::move(wrapped);
+    }
+}
+
 } // namespace
+
+void normalize_arguments(const json& schema, json& args)
+{
+    if (!args.is_object() || !schema.is_object() || !schema.contains("properties"))
+        return;
+    const json& props = schema["properties"];
+    for (const auto& [alias, names] : argument_aliases()) {
+        if (!args.contains(alias) || props.contains(alias))
+            continue;
+        // Only where the value fits: ui_click's action "click" is no button, and its error should name action.
+        for (const std::string& name : names) {
+            if (!props.contains(name) || args.contains(name))
+                continue;
+            json value = args[alias];
+            coerce_value(props[name], value);
+            if (validate_value(props[name], value, name).empty()) {
+                args[name] = std::move(value);
+                args.erase(alias);
+                break;
+            }
+        }
+    }
+    for (auto it = args.begin(); it != args.end(); ++it)
+        if (auto p = props.find(it.key()); p != props.end())
+            coerce_value(*p, it.value());
+    // A value outside its own enum that the enum of one other argument, which the call leaves out,
+    // takes: set_view's view "front" is its camera. The schema keeps each enum to its own values,
+    // as listing them under both names would have agents give a value to the wrong one.
+    std::vector<std::pair<std::string, std::string>> moves;
+    for (const auto& [key, value] : args.items()) {
+        const auto own = props.find(key);
+        if (own == props.end() || !own->contains("enum") || validate_value(*own, value, key).empty())
+            continue;
+        std::vector<std::string> fits;
+        for (const auto& [name, prop] : props.items())
+            if (!args.contains(name) && prop.contains("enum") && validate_value(prop, value, name).empty())
+                fits.push_back(name);
+        if (fits.size() == 1)
+            moves.emplace_back(key, fits.front());
+    }
+    for (const auto& [from, to] : moves)
+        if (!args.contains(to)) {
+            args[to] = std::move(args[from]);
+            args.erase(from);
+        }
+}
 
 // ---- ToolRegistry ------------------------------------------------------------
 
@@ -265,6 +354,7 @@ json McpProtocol::call_tool(const json& params, bool& unknown_tool, std::string&
     json args = params.contains("arguments") && !params["arguments"].is_null() ? params["arguments"] : json::object();
     if (!args.is_object())
         return result_to_json(ToolResult::error("arguments must be an object"));
+    normalize_arguments(def->input_schema, args);
     if (std::string err = validate_arguments(def->input_schema, args); !err.empty())
         return result_to_json(ToolResult::error("Invalid arguments: " + err));
     try {

@@ -10,6 +10,7 @@
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "UiInspector.hpp"
+#include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/ExportPresetBundleDialog.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -22,6 +23,8 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/PresetBundleDialog.hpp"
 #include "slic3r/GUI/WebGuideDialog.hpp"
+
+#include "libslic3r/Point.hpp"
 
 #include <wx/app.h>
 #include <wx/dialog.h>
@@ -548,14 +551,16 @@ void register_ui_tools(McpService& service)
     reg.add(mutate_tool(
         "ui_mouse", L("Mouse gesture on the 3D view"),
         "Synthesize a mouse gesture on a 3D canvas, as a person's would: move, down, up, click, drag (from the start through "
-        "`path` to `to`, `steps` moves per leg; the left button rotates the camera, right or middle pans, on an object it "
-        "moves it, in a painting gizmo it paints) or wheel (delta in notches, positive zooms in or scrolls a panel up). Give "
+        "`path` to `to`, `steps` moves per leg: on an object it moves it, in a painting gizmo it paints from a press on "
+        "the object being painted (one drag whose path zigzags over an area paints all of it), and elsewhere it turns or pans the camera as this install's mouse settings say, so "
+        "turn the camera with set_view camera or orbit instead) or wheel (delta in notches, positive zooms in or scrolls a panel up). Give "
         "the start as `at`, a point of the model, which is projected through the camera and by default checked to land on "
         "that part there (check \"point\" only projects it), or as x/y, logical pixels from the canvas's top left. "
         "Modifiers are pressed as keys for the gesture (shift for Measure's point picking, alt for erasing). A down keeps "
         "its button and modifiers held, so moves drag with it, until an up or another gesture. Grabbers are set through "
         "the gizmo's panel fields or transform, not dragged. A menu a right click opens is listed as popup_menu, or "
-        "popup_item (with click or up) runs one of its items.",
+        "popup_item (with click or up) runs one of its items. camera_moved in the reply says the gesture moved the camera, "
+        "so earlier screenshots and pixels no longer match the view.",
         object_schema({{"action", enum_prop({"move", "down", "up", "click", "drag", "wheel"}, "Default click.")},
                        {"canvas", enum_prop(mouse_canvases, "Default current, the view shown. design takes x/y only.")},
                        {"at", target_schema},
@@ -592,9 +597,16 @@ void register_ui_tools(McpService& service)
                     // The Design view sets up its GL at its first frame, as DesignCanvas guards its own renders.
                     if (canvas == design_canvas() && !canvas->is_initialized())
                         throw ToolFailure("The Design view has not drawn yet");
+                    // A gesture off the model turns, pans or zooms the camera as the user's mouse settings
+                    // say, which leaves earlier screenshots and pixels showing another view.
+                    const Camera&     camera = ui_plater().get_camera();
+                    const Transform3d view   = camera.get_view_matrix();
+                    const double      zoom   = camera.get_zoom();
                     menu.arm();
                     json done = service.inspector().mouse(*canvas, args, owner);
                     menu.mark(canvas->get_wxglcanvas());
+                    if (canvas != design_canvas() && (!camera.get_view_matrix().isApprox(view) || camera.get_zoom() != zoom))
+                        done["camera_moved"] = true;
                     return done;
                 } catch (...) {
                     // A gesture that fails ends a press held from before it, as any other gesture would.
@@ -611,7 +623,8 @@ void register_ui_tools(McpService& service)
         "Do what a file picker inside the open gizmo does, with a path instead of its dialog: svg_change loads another SVG "
         "file into the SVG part being edited, svg_save_as writes that part's SVG to a new file (an existing one only with "
         "overwrite), texture_import imports a height-map image into the texture library and puts it on Texture "
-        "Displacement's active layer. To add an SVG part, use run_action add_primitive_svg with a path.",
+        "Displacement's active layer. To add an SVG part, use run_action add_primitive_svg with a path. Gizmos open with "
+        "ui_click {target: {gizmo: name}}, and their panels take ui_input / ui_click on the ImGui items ui_snapshot lists.",
         object_schema({{"action", enum_prop({"svg_change", "svg_save_as", "texture_import"}, "What to do.")},
                        {"path", prop("string", "Absolute path of the file to read or write.")},
                        {"overwrite", prop("boolean", "svg_save_as: replace an existing file.")}},

@@ -93,11 +93,13 @@ public:
         return m_core.ui().is_shutdown() || m_core.jobs().stop_requested(m_job.empty() ? m_parent : m_job);
     }
 
-    ToolResult call_child(const std::string& tool, const nlohmann::json& args) override
+    ToolResult call_child(const std::string& tool, const nlohmann::json& raw_args) override
     {
         const ToolDef* def = m_core.registry().find(tool);
         if (def == nullptr)
             return ToolResult::error("Unknown tool: " + tool);
+        nlohmann::json args = raw_args;
+        normalize_arguments(def->input_schema, args);
         if (std::string err = validate_arguments(def->input_schema, args); !err.empty())
             return ToolResult::error("Invalid arguments: " + err);
         // An inline caller has no job of its own; its children are rooted at its parent.

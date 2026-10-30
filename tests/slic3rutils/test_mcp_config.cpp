@@ -280,10 +280,17 @@ TEST_CASE("an enum's meta lists the labels the GUI shows, in the order of its va
     CHECK_FALSE(option_meta(*print_config_def.get("wall_loops")).contains("labels"));
 }
 
-TEST_CASE("explain_settings finds settings by their help text, those named by the query first", "[Mcp]")
+TEST_CASE("a setting's meta describes it with its whole tooltip", "[Mcp]")
 {
-    // seam_gap and seam_slope_type have "seam" in their key, wipe_on_loops only in its tooltip, and
-    // only retraction_length's tooltip speaks of ooze during travel.
+    const ConfigOptionDef& def = *print_config_def.get("seam_slope_type");
+    REQUIRE_FALSE(def.tooltip.empty());
+    CHECK(option_meta(def)["description"] == def.tooltip);
+}
+
+TEST_CASE("a settings search finds settings by their description, those named by the query first", "[Mcp]")
+{
+    // seam_gap and seam_slope_type have "seam" in their key, wipe_on_loops only in its description, and
+    // only retraction_length's description speaks of ooze during travel.
     const std::vector<std::string> within{"wipe_on_loops", "retraction_length", "seam_gap", "seam_slope_type"};
     CHECK(rank_settings("seam", within, 10) == std::vector<std::string>{"seam_gap", "seam_slope_type", "wipe_on_loops"});
     CHECK(rank_settings("seam", within, 1) == std::vector<std::string>{"seam_gap"});
@@ -291,23 +298,25 @@ TEST_CASE("explain_settings finds settings by their help text, those named by th
     CHECK(rank_settings("bridge", within, 10).empty());
     // A word matches from the start of a word: "lope" is inside "slope", not the start of one.
     CHECK(rank_settings("lope", within, 10).empty());
+    // A key listed twice is one match.
+    CHECK(rank_settings("seam gap", {"seam_gap", "seam_gap"}, 10) == std::vector<std::string>{"seam_gap"});
 }
 
-TEST_CASE("explain_settings ranks the setting matching more of the query's words first", "[Mcp]")
+TEST_CASE("a settings search ranks the setting matching more of the query's words first", "[Mcp]")
 {
-    // retraction_length's tooltip has all four words; long_retractions_when_cut has "long" in its key and
-    // "during" in its tooltip, two words.
+    // retraction_length's description has all four words; long_retractions_when_cut has "long" in its key
+    // and "during" in its description, two words.
     CHECK(rank_settings("ooze during long travel", {"long_retractions_when_cut", "retraction_length"}, 10) ==
           std::vector<std::string>{"retraction_length", "long_retractions_when_cut"});
 }
 
-TEST_CASE("explain_settings counts a short query word only when the query has no longer one", "[Mcp]")
+TEST_CASE("a settings search counts a short query word only when the query has no longer one", "[Mcp]")
 {
     // z_hop's key splits into "z" and "hop"; seam_gap has no word starting with "z" or "hop".
     const std::vector<std::string> within{"seam_gap", "z_hop"};
     CHECK(rank_settings("z", within, 10) == std::vector<std::string>{"z_hop"});
     CHECK(rank_settings("z hop", within, 10) == std::vector<std::string>{"z_hop"});
-    // "to" would start "toolchange" and many help-text words; with "gap" in the query it counts for nothing.
+    // "to" would start "toolchange" and many description words; with "gap" in the query it counts for nothing.
     CHECK(rank_settings("gap to", within, 10) == std::vector<std::string>{"seam_gap"});
 }
 

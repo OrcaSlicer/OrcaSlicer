@@ -65,11 +65,28 @@ application/json` (415) and the size cap (413). No CORS headers are sent, so bro
 A tool result is one compact JSON text block plus any image blocks; no tool declares an
 `outputSchema`, so no `structuredContent` is sent. Tool failures, invalid arguments included, are
 `isError` results the model can act on; an unknown tool is a JSON-RPC `-32602` error naming close
-matches. `validate_arguments()` checks arguments against the tool's schema first. The server
-`instructions` (under the 4096 characters clients keep) give the workflow `get_state`, act, `wait`,
-`screenshot`, say to prefer typed tools over clicks and never retry a call that returned a job, and
-name `explain_settings` for what a setting does. Clients that defer tools load only their names and the
-instructions at first, so the instructions are how an agent without a skill learns the help text exists.
+matches. `validate_arguments()` checks arguments against the tool's schema first. Before it,
+`normalize_arguments()` reads what agents commonly send in place of the schema's form, for calls and
+script steps alike, so the journal records the schema's form. An argument under a name the tool does
+not take is read as one it does, when the call leaves that one out and the value fits it: `ref` as `target`, `key` as `keys`, `text`
+as `value`, `action` as `id` or `button`, `object` as `objects`, `plate` as `plates`, `filter` as
+`query`, `settings` as `values`, `target` as `root`. A value in another JSON form is converted: a
+number, boolean, array or object written as a string, an index as a string where a name may also go
+(`"0"` for a plate), a single item for an array. A value outside its argument's enum moves to the
+one other argument whose enum takes it, when the call leaves that out: `set_view`'s `view: "front"`
+is its `camera`. Each enum lists only its own values, since listing a camera direction under `view`
+too had agents give it there beside a `camera`. Anything that still does not fit is left for the
+validator to report. The bench's transcripts are where these come from: each was an agent's first
+guess, many times over, and each cost a failed call and a retry.
+
+The server `instructions` (under the 4096 characters clients keep) give the workflow: `get_state`,
+act, then check the result with the reading tools, keeping screenshots for what those do not report.
+They say to prefer typed tools over clicks and never retry a call that returned a job, point to
+`get_settings`' meta and search for what a setting does, say how a gizmo opens and is driven (and that
+`gizmo_file` only stands in for a file picker inside one, since its name draws agents to it for any
+gizmo work), that the camera turns with `set_view` rather than a drag, and which indices are 0-based. Clients that defer tools load only their names and the
+instructions at first, so the instructions are how an agent without a skill learns which tool to
+load.
 
 ## Security, token and discovery
 
@@ -169,7 +186,7 @@ made already.
 
 | Class | Tools | Runs behind a modal or inside another call |
 |---|---|---|
-| `Inspect` | get_state, wait, get_log, list tools, get_settings, explain_settings, screenshot, ui_snapshot, start_recording, stop_recording, encode_recording | yes |
+| `Inspect` | get_state, wait, get_log, list tools, get_settings, screenshot, ui_snapshot, start_recording, stop_recording, encode_recording | yes |
 | `Recover` | dialog_respond, dialog_auto_answer, GUI input aimed at the topmost modal | yes |
 | `Mutate` | everything else | no |
 
@@ -322,26 +339,25 @@ the UI thread.
 | Group | Tool | Purpose |
 |---|---|---|
 | App | `get_state` | version, platform and display backend, ready, tab, mode, project, presets, plates, the Preview's view type, time mode and layer range, objects, slicing, print host uploads, the open gizmo, dialogs, menus closed unseen, notifications, jobs, window |
-| | `wait` | `ready`, `idle`, `dialog`, `no_dialog` or a `job`; `timeout_s` up to 50 |
+| | `wait` | `ready`, `idle`, `dialog`, `no_dialog` or a `job` (default the job given, else `idle`); `timeout_s` up to 50 |
 | | `get_log` | end of the current log file, filtered by minimum level |
 | Speed Dial | `list_actions` | search the action catalog, paged |
-| | `run_action` | run an action by id, with its optional `param`; an error when the action did nothing; waits for a background job it starts (arrange, orient) |
+| | `run_action` | run an action by id (or the name inside it), with its optional `param`; an error when the action did nothing; waits for a background job it starts (arrange, orient) |
 | Project | `open_files` | load models, a project or G-code by absolute path, with no dialog |
 | | `new_project` | start an empty project (`discard_changes` if it has unsaved changes); `changes` keeps or discards modified presets |
 | | `calibrate` | a Calibration menu test with typed parameters and no dialog: a new project with the test model and the preset changes the test needs, printed with filament slot 1; refused while presets are modified unless `changes` keeps or discards them |
-| | `save_project` | save the project as `.3mf` to a path |
-| | `export` | `gcode`, `sliced_3mf`, `3mf` or `stl` to a path; `gcode` is an export operation |
+| | `save_project` | save the project as `.3mf` to a path (a `.gcode.3mf` path is refused: that is `export` `sliced_3mf`) |
+| | `export` | `gcode`, `sliced_3mf`, `3mf` or `stl` to a path, by default the one its extension names; `gcode` is an export operation |
 | Presets | `list_presets` | printer, process or filament presets with flags (system, user, inside the project, the preset inherited from), paged |
 | | `select_preset` | select by name through the selector (filament per slot); `changes` transfers or discards unsaved changes without the prompt |
-| | `get_settings` | values and metadata (enum labels, per-variant entries) of the edited or any saved preset, of an object's or part's overrides with the values they print with, of the project's own settings (plate type, slot colours, flushing volumes, purge mode, prime tower positions, mixed slots), of a plate's (plate type, print sequence, spiral vase, filament orders, name, lock), or of named preferences (read only); `compare` lists only what differs from another preset, the saved one or the parent |
-| | `explain_settings` | what process, filament and printer settings do: a map of every setting by page and group; or in full (tooltip, label, unit, range, enum values and labels, settings tab, page and group, wiki page) by key, by page or group, or found by words matched in keys, labels and tooltips, best match first |
+| | `get_settings` | values and metadata (description, settings page and group, enum labels, per-variant entries) by key, by page or group, or found by words matched in keys, labels and descriptions, of the edited or any saved preset, of an object's or part's overrides with the values they print with, of the project's own settings (plate type, slot colours, flushing volumes, purge mode, prime tower positions, mixed slots), of a plate's (plate type, print sequence, spiral vase, filament orders, name, lock), or of named preferences (read only); `compare` lists only what differs from another preset, the saved one or the parent |
 | | `set_settings` | set values the way the settings tab does, all or none; one entry of a per-variant value; object and part overrides and filaments; the project's and a plate's own settings through their controls' and dialogs' code; `null` takes a preset's key back to its saved or parent value, `reset_all` drops a preset's unsaved changes first; replies with every setting that `changed` |
 | | `save_preset` | save the preset being edited under a name, as a user preset or inside the project |
 | | `delete_preset` | delete a user or project preset, selected or not, as the tab's Delete does (destructive) |
 | Objects | `list_objects` | objects (filament, auto drop, overrides, brim ears, height range modifiers, variable layer height profile), instances (placement, mirrored, bounding box, canvas rectangle on request) and parts (type, filament, placement and bounding box on the bed, scaled and mesh volume, painted facets, text and SVG sources), paged |
 | | `list_plates` | plates with the settings they print with and those they set themselves, objects, name, lock, slice state, prime tower position and layer G-codes, paged |
-| | `select` | select objects, instances or parts, all, or none |
-| | `transform` | translate, rotate, scale or size one instance, relative or absolute, or move it to another plate; or the same for one part (`volume`) |
+| | `select` | select objects, instances or parts (indices checked against what the object has), all, or none |
+| | `transform` | translate, rotate, scale or size one instance, relative or absolute, move it to a `position` or to another plate; or the same for one part (`volume`) |
 | | `add_part` | add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object: a shape at a size or a model file, optionally at a position |
 | | `arrange` | arrange every unlocked plate or one plate, or fill an object's plate with instances or copies, with the Arrange options panel's settings; waits for the job |
 | | `set_layer_ranges` | replace an object's height range modifiers: Z ranges with their own layer height, filament and process settings |
@@ -349,7 +365,7 @@ the UI thread.
 | Slice | `slice` | current, one or all plates, then the Preview tab as after the Slice button; outcome for each plate, and for an `ok` one its time, filament totals with the flush, cost, layers, max Z, filament changes and grams per slot by use |
 | | `cancel` | stop the running slice or G-code export, a pending automatic reslice, or a background job an MCP call started (optionally only a given job), or with `job` a running `encode_recording`; allowed during an operation |
 | | `set_layer_gcode` | add or remove a plate's pauses, custom G-code, custom templates and filament changes on its sliced layers, as the Preview layer slider's menu does |
-| View | `set_view` | tab (Design included), 3D view (Prepare, preview, assemble), camera (the Design view's on the Design tab), preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate, window size |
+| View | `set_view` | tab (Design included), 3D view (Prepare, preview, assemble), camera (a direction also as `view`; the Design view's on the Design tab) and `orbit` around what it looks at by degrees, preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate, window size |
 | | `screenshot` | window, the 3D view shown (the Design view on the Design tab), topmost dialog or one widget: a downscaled image and a full-size PNG |
 | | `get_preview` | a sliced plate's summary, time and grams per feature type, per-layer Z, height, time and grams (paged), grams per object instance, and the Preview's legend state and colour ranges |
 | Recording | `start_recording` | record the main window with its modal dialogs, or the 3D view shown, into an MJPEG `.mkv`, with the current tool call as a caption and the pointer highlighted when asked for, and with `encode` an MP4 of it once stopped |
@@ -359,7 +375,7 @@ the UI thread.
 | | `ui_click` | activate a ref or locator, click a row's cell or a plate icon, or click a point of a 3D canvas or custom-drawn widget; list the menu it opens, or run one of its items |
 | | `ui_input` | set a control's text, value, selection or checked state, or a row's checkbox |
 | | `ui_key` | send a key chord to a target or the focused window, whose panels' key hooks see it first; list or run the menu it opens |
-| | `ui_mouse` | canvas gestures: move, down, up, click, drag, wheel, at pixels or at points of the model (the Design view at pixels); list or run a right click's menu |
+| | `ui_mouse` | canvas gestures: move, down, up, click, drag, wheel, at pixels or at points of the model (the Design view at pixels); list or run a right click's menu; reports when a gesture moved the camera |
 | | `gizmo_file` | what the open gizmo's file pickers do, with a path: SVG change file and save as, texture import |
 | | `dialog_respond` | press a button of the topmost wx dialog |
 | | `dialog_auto_answer` | answer matching modals as they open (native ones unseen), and one already open |
@@ -402,6 +418,10 @@ as a variable layer height, reports it as `layer_height_profile: {points, min_he
 The points themselves stay in the 3MF's `layer_heights_profile.txt`.
 
 ### transform
+
+`position` is where the instance or part goes, as the Move panel shows it, the same move as an
+absolute `translate` whatever `mode` says for rotate and scale; add_part takes the same name for a new
+part's place.
 
 On an instance, `transform` writes the `ModelInstance` directly: a relative rotation composes as
 Euler angles, and a rotation or scale applies to that instance only, where the panel applies it to
@@ -640,32 +660,35 @@ compared from the other side, and both presets have one printer technology. Each
 reports `inherits` and `project: true` for presets kept inside the project.
 
 An enum's meta lists `labels`, the untranslated texts its combo shows, in the order of `values`, so
-a person's wording maps to a value.
+a person's wording maps to a value. A preset scope's whole listing (no `keys`, `query` or `where`) leaves
+meta out unless `include_meta` asks for it: a page of a hundred keys with meta runs to about 50,000
+characters, and an agent that lists everything is scanning values; the keys it then names or searches
+for come with their meta.
 
-What a setting does is `explain_settings`' answer, not `get_settings`': its meta leaves the tooltip
-out, since most reads only check values (a readback after `set_settings`, an object's overrides) and
-would carry help text nobody asked for. `explain_settings` returns the option's whole untranslated
-tooltip with the same meta, the scope it belongs to (the first of process, filament and printer whose
-preset options hold it), `where`, the page and group of its row, and `wiki`, the page the row's help
-link opens. Those two come from the sidebar's settings index (`Search::SettingsIndex`), which the
-settings tabs fill as they build their pages and the Speed Dial reads for its own setting actions; a
-setting with no row on a page has `where` "(no page)" and no `wiki`. A tool of its own, named for the
-question, lets an agent see from the tool list alone that the help text exists.
+What a setting does comes with its value. Meta has `description`, the option's whole untranslated
+tooltip (what it does, when to change it, what it affects), and `where`, the page and group of its
+row on the settings tab. `where` comes from the sidebar's settings index (`Search::SettingsIndex`),
+which the settings tabs fill as they build their pages and the Speed Dial reads for its own setting
+actions; a setting with no row on a page has none, and an object's or part's settings are placed on
+the process tab. The help text sits in `get_settings` rather than in a tool of its own because that is
+where agents look: in the bench, agents read settings with `get_settings` three to five times as often
+as they called a separate explanation tool, and with the tooltips out of the meta they set a draft
+shield without skirt loops and a support threshold measured from the wrong side, mistakes the same
+agents avoided when the tooltip came with the value. The size stays bounded by the rule above: only
+keys that are named, searched for or listed with their group carry meta.
 
-Every setting in full is too much for one reply: about 350,000 characters for the three scopes, about
-200,000 for the process alone, where Claude Code moves any result over 50,000 characters out of the
-conversation into a file. So the whole view is a map instead: called with neither keys, query nor
-`where`, `explain_settings` lists every setting by scope and "Page > Group" with its label, about
-41,000 characters for all three scopes and 21,000 for the process. `where` then returns one group
-(typically a few thousand characters) or a whole page in full; a large page such as Quality runs to
-about 60,000, so the tool steers agents to groups. A tuning task reads the map, the groups it touches,
-then the values with `get_settings`. Its `query` serves an agent that knows what a
-setting should do but not its name (`rank_settings()`). A query word matches a word of a key, label or
-tooltip that starts with it, so "retract" finds "retraction" while "to" does not match inside
-"toolchange"; words under three letters count only when the query has nothing longer, since most help
-texts have them. Settings matching more of the query's words come first, then those matching more of
-them in the key or label. With no weighting by how rare a word is, a generic word such as "reduce"
-counts as much as "stringing", so the tool asks for a few distinctive words.
+`where` lists one group ("Strength > Walls") or a whole page of the scope with values and meta; a
+name the scope has no page or group for is an error that lists them all, which is the map of the
+tabs. `query` serves an agent that knows what a setting should do but not its name
+(`rank_settings()`). A query word matches a word of a key, label or description that starts with it,
+so "retract" finds "retraction" while "to" does not match inside "toolchange"; words under three
+letters count only when the query has nothing longer, since most help texts have them. Settings
+matching more of the query's words come first, then those matching more of them in the key or label.
+With no weighting by how rare a word is, a generic word such as "reduce" counts as much as
+"stringing", so the tool asks for a few distinctive words. A search returns the best 20 unless `limit`
+asks for more. Without a `scope` it looks through the process, filament and printer settings being
+edited, since a question about an effect rarely knows which tab answers it (stringing is retraction on
+the printer tab and its overrides on the filament's), and each match names its `scope`.
 
 Many process, filament and printer values hold one entry per extruder variant (an extruder type and
 nozzle flow type, such as the X1C's "Direct Drive Standard" and "Direct Drive High Flow"), the machine
@@ -776,7 +799,9 @@ tower position.
   volumes dialog's OK split from the dialog, then the button's scene reload and update. The matrix is
   N x N per nozzle (row = from slot, column = to slot) in config order over every slot, as
   `project_config` and the G-code header hold it, not over the physical slots the dialog shows. The
-  values are before the multiplier: the header prints the matrix multiplied by it. Volumes are limited
+  values are before the multiplier: the header prints the matrix multiplied by it, and the dialog
+  shows and edits each entry multiplied by it, so its meta's `description` (the option has no tooltip)
+  says so, since agents otherwise type the dialog's value as the stored one. Volumes are limited
   to `g_max_flush_volume` / multiplier as the dialog limits them; negative volumes and a non-zero
   diagonal are refused. A multiplier is one per nozzle (one value sets all) within the dialog's 0..3.
 - `prime_volume_mode` is what the Purge mode dialog's OK writes, followed by the update it does. It is
@@ -966,7 +991,8 @@ angles in degrees), and `used_by` / `bodies_made`. `used_by` comes from the kern
 visitors, `CadDocument::for_each_feature_ref()` and, for a datum plane, `for_each_datum_ref()`,
 the lists that deleting and moving a feature remap.
 
-`set_feature {feature, fields}` is a card's Confirm in edit mode: one checkpoint, then
+`set_feature {feature, fields}` (also read as `index` and `params` or `values`, the names agents
+reach for, as `describe_feature` reads `index`) is a card's Confirm in edit mode: one checkpoint, then
 `CadDocument::replace_feature()` with a copy whose fields `cad_apply_feature_fields()` checked
 against the same table, so it takes only what the card edits (numbers within the card's range, and
 its choices). A field an expression drives is refused, since the next rebuild would overwrite it,
@@ -1029,7 +1055,8 @@ the ids every other method takes). A face's kind is its OCCT surface type, from
 and axis, a cone's apex, axis into its opening, half angle and the radii the face reaches, a
 sphere's centre and radius, a torus's centre, axis and radii; `internal` marks a bore or a
 countersink. Edges are lines, circles, ellipses, B-splines, Béziers or other. Filters narrow the
-list they apply to: `kinds`, `at_extreme` (the face on one side of the bounding box) and `direction`
+list they apply to: `kinds` (the surface's noun, `plane` or `cylinder`, standing for its kind),
+`at_extreme` (the face on one side of the bounding box) and `direction`
 (a planar face's normal) for faces; `edge_kinds`, `direction` (a line) and `convex` for edges. When
 filters are given, a list none of its filters names is empty, or with `adjacency` holds the
 neighbours of the other list's matches, so `{kinds: ["conical"], adjacency: true}` returns the cones
@@ -1169,8 +1196,11 @@ them into the `AppAction`. The palette keeps `input` for its picker and never pa
 English aliases. It can filter by group, lists settings only when asked, sorts by group and title,
 and returns one page. Each entry has `id`, the English `title` and `group`, `kind`, `description`,
 `param {type, help}`, and `completes: "export"` for exports. Built-in ids look like
-`orca_command:<key>:orca`. `run_action` calls `ActionRegistry::run(id, param, record_stats=false)`,
-so agent runs never reorder the palette. An unknown id returns up to three close ids. An action
+`orca_command:<key>:orca`. `run_action` also takes the key alone (`plate_add`) when only one action
+has it, as agents and the tools' own messages write it. `run_action` calls
+`ActionRegistry::run(id, param, record_stats=false)`, so agent runs never reorder the palette. An
+unknown id returns up to three close ids, scored by edit distance against both the full id and its
+key, a key that contains the request (`delete_all` in `obj_delete_all`) counting as closest. An action
 with `completes_in_background` that gets a path runs as an export operation and completes when the
 file is written.
 
@@ -1303,8 +1333,8 @@ its option key is read from the "parameter name" line of its tooltip, and its la
 option's definition. Failing that, the label to its left on the same row names it, then its
 tooltip.
 
-Input tools take a `target`: a ref, or a locator, which is stable across runs and is what the
-journal stores. A locator is one of:
+Input tools take a `target`: a ref (also read written as `{ref: "w12"}`), or a locator, which is
+stable across runs and is what the journal stores. A locator is one of:
 
 - `{option: "layer_height"}` for a setting field;
 - `{label, class, name, within, index}` for other widgets;
@@ -1445,7 +1475,10 @@ which it matches the last ones, so the plate above an object may be left out; th
 may be left out as in menu paths. Rows are found again by their labels on each use, since models
 delete and rebuild their items; a ref stays alive while its list does and the path still names a
 row, rows with the same labels being told apart by their order. The journal records the row's whole
-path, its `column` and its window's `within`, with `index` when other rows match it.
+path, its `column` and its window's `within`, with `index` when other rows match it. A row that
+matches nothing gets the rows whose label holds it, or the shown ones; when no shown list has any,
+the error says that the object list, the one agents look for most, is hidden until the sidebar's
+Global/Objects switch (a `SwitchButton` the snapshot labels by the "Process" beside it) is on Objects.
 
 A click acts as a person's click on the row's cell (`click_row()`): the cell is the `column` named,
 else the row's first. On a data view, the branches above the row are expanded and the row scrolled
@@ -1554,7 +1587,10 @@ A gizmo is listed per canvas as its toolbar shows it (`GLGizmosManager::is_on_to
 on the Prepare canvas Simplify and SVG too while they can open (Simplify when activable, SVG on a
 selected SVG part). Clicking one does what its icon does (`click_toolbar_icon()`): it opens, or
 closes the open one; Text with no text selected starts a job that creates a text part and opens the
-gizmo, which `ui_click` waits for. `get_state.gizmo` names the open gizmo and its canvas. The
+gizmo, which `ui_click` waits for. A `gizmo` locator takes the name `get_state.gizmo` gives, or
+the English title of its toolbar button where that differs (Support Painting for FdmSupports), in
+any case; the reply uses the first, and an unknown name's error lists them. `get_state.gizmo`
+names the open gizmo and its canvas. The
 assemble view is entered and left with `set_view view` (leaving does what its Return button does;
 entering returns once the canvas has loaded its objects, which waits for its GL surface on Wayland),
 and `select` and `list_objects` act on it while it is shown. Grabbers are not dragged: a gizmo's
@@ -1580,7 +1616,27 @@ paints through them (`SceneRaycaster` raycasts the bed only while the camera loo
 that starts at a model point under an ImGui window (a gizmo panel, a notification, an open popup) is
 refused, naming it, since ImGui would take its events: `imgui_window_at()` repeats ImGui's
 hovered-window search (`FindHoveredWindow()`) on the windows of a frame drawn just before. A pixel
-given as `x`/`y` is the client's to aim and is not checked. Every point of a
+given as `x`/`y` is the client's to aim and is not checked, except in a painting gizmo. A model
+target takes `point` or `spot`, not both.
+
+What a drag does off the model is the user's to choose: Preferences maps each button to rotate, pan
+or nothing (`left_mouse_drag_action`, `middle_mouse_drag_action`, `right_mouse_drag_action`, rotate,
+pan and pan by default), and the touchpad camera style turns the camera with Alt+move and pans with
+Shift+move instead. So the tools never turn the camera with a drag. `set_view` `orbit` moves it around
+what it looks at by degrees, yaw to its right and pitch up, placing it with `Camera::look_at()` from
+its position so the result is the same on every install; it is how an agent looks from between the
+named directions, which the bench showed agents otherwise reach by dragging the canvas edge on the
+assumption that the left button rotates. A painting gizmo (`GLGizmoPainterBase`) takes a press only
+where the cursor hits the object it paints; a press that misses falls through to the canvas and moves
+the camera, and the stroke paints nothing. `ui_mouse` refuses a down or drag that starts there,
+testing the start pixel's ray against the selected instance's parts, so a misaimed stroke fails
+instead of silently turning the view under the screenshot the agent aimed from. The refusal names
+the first pixel along the stroke that lands on the object, so a stroke swept in from outside it is
+retried in one call rather than broken into clicks. Any gesture that
+moves the camera anyway (a drag off the model outside the painters, a wheel) says so with
+`camera_moved` in its reply, compared from the view matrix and zoom before and after.
+
+Every point of a
 gesture is resolved before its first event, and the journal keeps the model points, so a script
 replays at another window size or camera. A gesture's modifiers are pressed as a keyboard does: a
 key-down event each before it and a key-up after, which is what switches Measure and Assembly to
@@ -1891,8 +1947,10 @@ thread, about 15 ms on a plate of 4 million moves.
 the Preview as the same clicks would. Picking a view type therefore shows every feature type again
 when it is Line Type, and is written to the app config as `preview_last_view_type`, which the "Last
 used" preview default restores. Before a slice there is no legend to pick from, and `view_type` only
-sets the type the next toolpaths show. `legend` names rows as `get_preview` lists them and clicks a
-row only when its state differs; the viewer keeps one visibility set, so feature types can be set
+sets the type the next toolpaths show. `legend` names rows as `get_preview` lists them, in any case
+and with `_` or a space between words, and clicks a row only when its state differs. Hiding a row
+the print lacks, a feature type or option some other print has, does nothing, since agents hiding
+everything but one feature name rows from the whole list. The viewer keeps one visibility set, so feature types can be set
 whatever the view type, and are applied after it. Every key, and the time mode, is checked before
 the Preview changes. `time_mode: "silent"` needs a separate silent-mode estimate, which the legend
 offers only when the two estimates read differently (`can_switch_time_mode()`). `layer_z` takes the
@@ -2146,7 +2204,7 @@ ImGui recorder (named items, kinds, values, text, clipping) on frames drawn with
 budget, non-blocking push, finish, abort and failed frames, the video transform, overlays and frame
 repeats, captions and what they hide, the ffmpeg command and listings, the files recordings and
 encodes reserve, and the journal's recording paths; `test_mcp_tools` setting serialization; `test_mcp_config` the object and volume scopes' keys and
-effective values, the names and places `save_preset` accepts, enum labels, `explain_settings`' search,
+effective values, the names and places `save_preset` accepts, enum labels and descriptions, the settings search,
 per-variant entries and their writes, preset comparison, `changed`, which unsaved changes a call discarded, which presets
 `delete_preset` refuses or deletes with a custom printer, the project scope's slot colours,
 flushing multipliers and matrix, and the plate scope's filament orders and layer ranges and

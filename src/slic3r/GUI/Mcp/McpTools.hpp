@@ -134,12 +134,12 @@ nlohmann::json effective_setting(const std::string& key, const DynamicPrintConfi
 // existing preset is, which the dialog does not let a person change.
 bool save_preset_inside_project(const PresetCollection& presets, const std::string& name, const nlohmann::json& args);
 
-// get_settings' meta of an option: label, type, mode, category, unit, range, and for an enum its values
-// with their labels (the untranslated texts the GUI shows), in the same order. The tooltip is left to
-// explain_settings, so reading values does not carry help text nobody asked for.
+// get_settings' meta of an option: label, description (its whole tooltip: what it does, when to change
+// it, what it affects), type, mode, category, unit, range, and for an enum its values with their labels
+// (the untranslated texts the GUI shows), in the same order.
 nlohmann::json option_meta(const ConfigOptionDef& def);
 
-// explain_settings' search: the keys of `within` that `query` describes, best first, at most `limit`.
+// get_settings' search: the keys of `within` that `query` describes, best first, at most `limit`.
 // A query word matches a word of a key (split at _), its label or its tooltip that starts with it, so
 // "retract" finds "retraction". Settings matching more of the query's words come first, then those
 // matching more of them in the key or label, so of two that match alike, the one the query names

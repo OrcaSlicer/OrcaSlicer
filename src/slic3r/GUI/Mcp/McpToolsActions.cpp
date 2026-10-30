@@ -51,6 +51,45 @@ std::size_t edit_distance(const std::string& a, const std::string& b)
     return row[b.size()];
 }
 
+// The name inside a "<source>:<name>:<plugin>" id (view_front in orca_command:view_front:orca), which
+// is what agents and the tools' own messages call an action.
+std::string short_id(const std::string& id)
+{
+    const std::size_t first = id.find(':'), last = id.rfind(':');
+    return first == std::string::npos || first == last ? id : id.substr(first + 1, last - first - 1);
+}
+
+// The action `id` names: its full id, or a name only one action has. Otherwise ToolFailure with the
+// ids closest to it, scored against both forms, a name containing it (delete_all in obj_delete_all)
+// counting as closest.
+const AppAction& find_action(ActionRegistry& actions, std::string& id)
+{
+    if (const AppAction* action = actions.by_id(id))
+        return *action;
+    ActionRegistry::Query q;
+    q.limit = 100000;
+    std::vector<std::string> named;
+    std::vector<std::pair<std::size_t, std::string>> scored;
+    const json all = actions.describe(q);
+    for (const json& a : all["actions"]) {
+        const std::string candidate = a["id"];
+        const std::string name      = short_id(candidate);
+        if (name == id)
+            named.push_back(candidate);
+        const bool contains = id.size() >= 3 && name.find(id) != std::string::npos;
+        scored.emplace_back(contains ? 0 : std::min(edit_distance(id, candidate), edit_distance(id, name)), candidate);
+    }
+    if (named.size() == 1) {
+        id = named.front();
+        return *actions.by_id(id);
+    }
+    std::sort(scored.begin(), scored.end());
+    json similar = json::array();
+    for (std::size_t i = 0; i < scored.size() && similar.size() < 3 && scored[i].first <= id.size() / 3 + 2; ++i)
+        similar.push_back(scored[i].second);
+    throw ToolFailure("Unknown action id " + id + "; search with list_actions", {{"similar", similar}});
+}
+
 const char* level_name(AppActionRunResult::Level level)
 {
     switch (level) {
@@ -122,44 +161,29 @@ void register_action_tools(McpService& service)
 
     reg.add(mutate_tool(
         "run_action", L("Run a Speed Dial action"),
-        "Run one action by the id list_actions returned, with its param when it takes one (a percent, tab id, plate index, "
+        "Run one action by the id list_actions returned (orca_command:view_front:orca, or the name inside it, view_front), "
+        "with its param when it takes one (a percent, tab id, plate index, "
         "or an absolute path - commands with a path parameter skip their file dialog; outputs need {\"path\": ..., "
         "\"overwrite\": true} to replace a file). Actions that open a dialog return blocked_by_dialog; answer it with "
         "dialog_respond, or, for a native one, register dialog_auto_answer before the call. An export_gcode with a path "
         "completes when the file is written; an action that starts a background job (obj_arrange, obj_orient) when the "
         "job ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the "
         "reply (the obj_order_by_* order, the object obj_assemble made).",
-        object_schema({{"id", prop("string", "Action id from list_actions.")},
+        object_schema({{"id", prop("string", "Action id from list_actions, or the name inside it.")},
                        {"param", prop("string", "Parameter, when the action takes one.")}},
                       {"id"}),
         [](const json& args, ToolContext& ctx) {
-            const std::string id    = arg_string(args, "id");
+            std::string       id    = arg_string(args, "id");
             const std::string param = arg_string(args, "param");
             json started = ctx.run_ui([&]() -> json {
-                ActionRegistry& actions = registry_or_fail();
-                const AppAction* action = actions.by_id(id);
-                if (action == nullptr) {
-                    // Suggest the ids closest to the requested one.
-                    ActionRegistry::Query q;
-                    q.limit = 100000;
-                    std::vector<std::pair<std::size_t, std::string>> scored;
-                    const json all = actions.describe(q);
-                    for (const json& a : all["actions"]) {
-                        const std::string candidate = a["id"];
-                        scored.emplace_back(edit_distance(id, candidate), candidate);
-                    }
-                    std::sort(scored.begin(), scored.end());
-                    json similar = json::array();
-                    for (std::size_t i = 0; i < scored.size() && i < 3 && scored[i].first <= id.size() / 3 + 2; ++i)
-                        similar.push_back(scored[i].second);
-                    throw ToolFailure("Unknown action id " + id + "; search with list_actions", {{"similar", similar}});
-                }
+                ActionRegistry&  actions = registry_or_fail();
+                const AppAction& action  = find_action(actions, id);
                 // Without a path the command would ask for one in a native file dialog, which MCP
                 // can't fill in, and export behind it untracked.
-                if (action->completes_in_background && param.empty())
-                    throw ToolFailure("This action needs a path param here: " + action->param_help +
+                if (action.completes_in_background && param.empty())
+                    throw ToolFailure("This action needs a path param here: " + action.param_help +
                                       " (or use the export tool)");
-                const bool background = action->completes_in_background;
+                const bool background = action.completes_in_background;
                 if (background)
                     ctx.begin_operation(); // held from before the export starts
                 Plater*    plater     = wxGetApp().plater();

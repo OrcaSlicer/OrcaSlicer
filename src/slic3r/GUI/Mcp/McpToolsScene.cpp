@@ -103,7 +103,7 @@ GLCanvas3D& require_prepare_scene(Plater& plater)
         throw ToolFailure("Leave the assemble view first (set_view {view: \"3d\"})");
     GLCanvas3D& canvas = object_canvas();
     if (const auto type = canvas.get_gizmos_manager().get_current_type(); type != GLGizmosManager::Undefined)
-        throw ToolFailure("Close the " + gizmo_name(type) + " gizmo first (ui_click {gizmo: \"" + gizmo_name(type) + "\"})");
+        throw ToolFailure("Close the " + gizmo_name(type) + " gizmo first (ui_click {target: {gizmo: \"" + gizmo_name(type) + "\"}})");
     // A canvas hidden while the model changed loads its scene on its next draw; the selection needs
     // it now, as when the Prepare tab is requested while shown (Plater::priv::set_current_panel()).
     if (canvas.is_reload_delayed())
@@ -294,6 +294,8 @@ json transform_instance(Plater& plater, int oi, const json& args)
     std::optional<Vec3d> translate, rotate, scale;
     if (args.contains("translate"))
         translate = to_vec3(args["translate"], "translate");
+    else if (args.contains("position"))
+        translate = to_vec3(args["position"], "position");
     if (args.contains("rotate"))
         rotate = to_vec3(args["rotate"], "rotate") * Geometry::deg2rad(1.0);
     if (args.contains("scale"))
@@ -316,7 +318,7 @@ json transform_instance(Plater& plater, int oi, const json& args)
 
     plater.take_snapshot("Transform object");
     if (translate)
-        inst->set_offset(absolute ? *translate : Vec3d(inst->get_offset() + *translate));
+        inst->set_offset(absolute || args.contains("position") ? *translate : Vec3d(inst->get_offset() + *translate));
     if (rotate) {
         if (absolute)
             inst->set_rotation(*rotate);
@@ -372,6 +374,8 @@ json transform_part(Plater& plater, int oi, const json& args)
     if (args.contains("translate")) {
         const Vec3d t = to_vec3(args["translate"], "translate");
         translate     = absolute ? Vec3d(t - part_position(*object, *volume)) : t;
+    } else if (args.contains("position")) {
+        translate = Vec3d(to_vec3(args["position"], "position") - part_position(*object, *volume));
     }
     if (args.contains("rotate"))
         rotate = to_vec3(args["rotate"], "rotate") * Geometry::deg2rad(1.0);
@@ -935,18 +939,28 @@ void register_scene_tools(McpService& service)
                     if (o < 0 || size_t(o) >= count)
                         throw ToolFailure("object index " + std::to_string(o) + " is out of range");
                 };
+                // An instance or part an object no longer has would select nothing, as quietly as a stale
+                // index from before a merge or a delete.
+                auto check_in = [&](const json& p, bool instance) {
+                    const int o = p.at(0).get<int>(), i = p.at(1).get<int>();
+                    check_obj(o);
+                    const ModelObject& object = *plater.model().objects[size_t(o)];
+                    if (i < 0 || size_t(i) >= (instance ? object.instances.size() : object.volumes.size()))
+                        throw ToolFailure("object " + std::to_string(o) + " has no " + (instance ? "instance " : "part ") +
+                                          std::to_string(i) + " (list_objects lists them)");
+                };
                 for (const json& o : args.value("objects", json::array())) {
                     check_obj(o.get<int>());
                     sel.add_object(unsigned(o.get<int>()), first);
                     first = false;
                 }
                 for (const json& p : args.value("instances", json::array())) {
-                    check_obj(p.at(0).get<int>());
+                    check_in(p, true);
                     sel.add_instance(unsigned(p.at(0).get<int>()), unsigned(p.at(1).get<int>()), first);
                     first = false;
                 }
                 for (const json& p : args.value("volumes", json::array())) {
-                    check_obj(p.at(0).get<int>());
+                    check_in(p, false);
                     sel.add_volume(unsigned(p.at(0).get<int>()), unsigned(p.at(1).get<int>()), 0, first);
                     first = false;
                 }
@@ -960,7 +974,8 @@ void register_scene_tools(McpService& service)
 
     reg.add(mutate_tool(
         "transform", L("Move, rotate or scale an instance or a part"),
-        "Change one instance's placement, or one part's with volume. translate is in mm, rotate in degrees about X/Y/Z, "
+        "Change one instance's placement, or one part's with volume. translate is in mm, position where it goes (mm, as "
+        "the Move panel shows it, whatever mode says), rotate in degrees about X/Y/Z, "
         "scale a factor (one number or [x, y, z]), size [x, y, z] mm along the object's or part's own axes, plate moves "
         "the instance onto that plate at the same place. mode \"relative\" (default) adds to the current placement, "
         "\"absolute\" sets it. An instance is dropped back onto the bed unless drop_to_bed is false. A part moves as the "
@@ -968,10 +983,11 @@ void register_scene_tools(McpService& service)
         "size along its own axes; every instance shows the change, and Auto Drop may lower the object afterwards. One "
         "undo step. Replies with the instance's offset, scale and plate, or the part's size along its own axes and its "
         "list_objects entry (volume_info).",
-        object_schema({{"object", {{"type", "integer"}, {"minimum", 0}}},
+        object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
                        {"instance", {{"type", "integer"}, {"minimum", 0}, {"description", "Default 0."}}},
                        {"volume", {{"type", "integer"}, {"minimum", 0}, {"description", "Transform this part instead of the instance."}}},
                        {"translate", array_prop({{"type", "number"}}, "[x, y, z] mm")},
+                       {"position", array_prop({{"type", "number"}}, "[x, y, z] mm: the position to move to. Not with translate.")},
                        {"rotate", array_prop({{"type", "number"}}, "[x, y, z] degrees; relative only for a part")},
                        {"scale", {{"type", {"number", "array"}}, {"description", "Factor or [x, y, z] factors."}}},
                        {"size", array_prop({{"type", {"number", "null"}}}, "[x, y, z] mm, null keeps an axis; one number and two "
@@ -988,6 +1004,8 @@ void register_scene_tools(McpService& service)
                     throw ToolFailure("object index out of range");
                 if (args.contains("scale") && args.contains("size"))
                     throw ToolFailure("give scale or size, not both");
+                if (args.contains("translate") && args.contains("position"))
+                    throw ToolFailure("give translate or position, not both");
                 return args.contains("volume") ? transform_part(plater, oi, args) : transform_instance(plater, oi, args);
             });
             settle(ctx);
@@ -1003,7 +1021,7 @@ void register_scene_tools(McpService& service)
         "(the instance's scale then reads 1). Refused for an object with several instances: add parts first. A STEP file "
         "may ask for mesh options (blocked_by_dialog). The new part is selected; one undo step. Replies with its index, which is not always the last (parts are ordered by type), "
         "the object's part count and the part's list_objects entry (volume_info).",
-        object_schema({{"object", {{"type", "integer"}, {"minimum", 0}}},
+        object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
                        {"type", enum_prop({"part", "negative", "modifier", "support_blocker", "support_enforcer", "precise_seam"},
                                           "What the new part is.")},
                        {"shape", enum_prop({"cube", "cylinder", "sphere", "cone", "disc", "torus"}, "A primitive shape.")},

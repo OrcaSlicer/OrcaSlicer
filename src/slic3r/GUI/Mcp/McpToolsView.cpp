@@ -12,6 +12,7 @@
 #include "ModalTracker.hpp"
 #include "ScreenCapture.hpp"
 #include "UiInspector.hpp"
+#include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -30,7 +31,9 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/GCodeStatistics.hpp"
+#include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Point.hpp"
 
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -47,6 +50,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -131,6 +135,26 @@ json preview_view(GLCanvas3D& canvas)
     return view;
 }
 
+// A legend key in any case, with _ or a space between words: "Filament changes" is filament_changes,
+// "sparse_infill" is Sparse infill.
+bool same_legend_key(const std::string& given, const std::string& name)
+{
+    const auto fold = [](char c) { return c == '_' ? ' ' : char(std::tolower(static_cast<unsigned char>(c))); };
+    return given.size() == name.size() && std::equal(given.begin(), given.end(), name.begin(), [&fold](char a, char b) { return fold(a) == fold(b); });
+}
+
+// Whether `key` names a legend row some print has, this one or not.
+bool any_legend_row(const std::string& key)
+{
+    for (std::size_t r = 0; r < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++r)
+        if (same_legend_key(key, legend_feature_key(libvgcode::EGCodeExtrusionRole(r))))
+            return true;
+    for (std::size_t o = 0; o < libvgcode::OPTION_TYPES_COUNT; ++o)
+        if (const char* name = legend_option_key(libvgcode::EOptionType(o)); name != nullptr && same_legend_key(key, name))
+            return true;
+    return false;
+}
+
 // set_view's legend argument: each named row shown or hidden as a click on it does, clicked only when its
 // state differs. The rows are the feature types and options the print has, whatever the view type: the
 // viewer keeps one visibility set, though the legend lists feature types only in Line Type. The keys are
@@ -147,15 +171,17 @@ std::function<json()> legend_change(GCodeViewer& viewer, const json& legend)
         const std::string& key = item.key();
         if (!item.value().is_boolean())
             throw ToolFailure("legend \"" + key + "\" must be true (show) or false (hide)");
-        const auto role   = std::find_if(roles.begin(), roles.end(), [&key](libvgcode::EGCodeExtrusionRole r) { return legend_feature_key(r) == key; });
+        const auto role   = std::find_if(roles.begin(), roles.end(), [&key](libvgcode::EGCodeExtrusionRole r) { return same_legend_key(key, legend_feature_key(r)); });
         const auto option = std::find_if(options.begin(), options.end(), [&key](libvgcode::EOptionType o) {
             const char* name = legend_option_key(o);
-            return name != nullptr && key == name;
+            return name != nullptr && same_legend_key(key, name);
         });
         if (role != roles.end())
             role_rows.emplace_back(*role, item.value().get<bool>());
         else if (option != options.end())
             option_rows.emplace_back(*option, item.value().get<bool>());
+        else if (!item.value().get<bool>() && any_legend_row(key))
+            continue; // a row this print lacks shows nothing, so it is hidden already
         else {
             std::string features, keys;
             for (const libvgcode::EGCodeExtrusionRole r : roles)
@@ -182,6 +208,30 @@ std::function<json()> legend_change(GCodeViewer& viewer, const json& legend)
         }
         return done;
     };
+}
+
+// set_view's orbit: the camera moved around the point it looks at, `yaw` degrees to its right
+// (counterclockwise seen from above) and `pitch` degrees up, at the same distance. It is placed from its
+// position rather than turned as a mouse drag turns it, so the result is the same whatever the user's
+// mouse settings and free-camera preference. The elevation stops a degree short of straight up or down,
+// where an upright camera has no up direction. Returns where it ends up, in degrees: elevation above the
+// bed's plane and azimuth (0 on the +X side, -90 in front).
+json orbit_camera(Camera& camera, double yaw, double pitch)
+{
+    const Vec3d  target   = camera.get_target();
+    const Vec3d  offset   = camera.get_position() - target;
+    const double distance = offset.norm();
+    // Seen from straight above or below, the camera's horizontal side is the one the screen's bottom faces.
+    Vec3d flat(offset.x(), offset.y(), 0.);
+    if (flat.norm() < 1e-6 * distance)
+        flat = -camera.get_dir_up();
+    const double limit     = Geometry::deg2rad(89.);
+    const double azimuth   = std::atan2(flat.y(), flat.x()) + Geometry::deg2rad(yaw);
+    const double elevation = std::clamp(std::asin(std::clamp(offset.z() / distance, -1., 1.)) + Geometry::deg2rad(pitch), -limit, limit);
+    const Vec3d  dir(std::cos(elevation) * std::cos(azimuth), std::cos(elevation) * std::sin(azimuth), std::sin(elevation));
+    camera.look_at(target + distance * dir, target, Vec3d::UnitZ());
+    const double azimuth_deg = std::remainder(Geometry::rad2deg(azimuth), 360.);
+    return {{"elevation", std::lround(Geometry::rad2deg(elevation))}, {"azimuth", std::lround(azimuth_deg)}};
 }
 
 } // namespace
@@ -519,7 +569,8 @@ void register_view_tools(McpService& service)
         "set_view", L("Point the view"),
         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (Prepare's, the preview or "
         "the assemble view, which has its own gizmos), the 3D camera (a named direction, the default view, or fit to bed / "
-        "objects / selection), the preview's color scheme (picked as in the legend's combo, which shows every feature type "
+        "objects / selection, then orbit to look from between the named directions; the reply gives the elevation and "
+        "azimuth it ends at), the preview's color scheme (picked as in the legend's combo, which shows every feature type "
         "again), legend rows, time estimate and layers (1-based, or up to a height), and the window size. Only the given "
         "fields change. On the Design tab the camera points its view (default is its Home view; no fit_bed). The reply "
         "echoes them; preview layers as [first, last, count] with z, the heights of first and last.",
@@ -527,6 +578,9 @@ void register_view_tools(McpService& service)
                        {"view", enum_prop({"3d", "preview", "assemble"}, "3D view: Prepare's, the preview, or the assemble view (needs an object; leave it with 3d, as its Return button does).")},
                        {"camera", enum_prop({"iso", "top", "bottom", "front", "rear", "left", "right", "default", "fit_bed", "fit_objects", "fit_selection"},
                                             "Camera direction or fit.")},
+                       {"orbit", array_prop({{"type", "number"}}, "[yaw, pitch] in degrees: move the camera around what it looks at, "
+                                                                 "yaw to its right and pitch up (negative looks from lower), after "
+                                                                 "camera. The same on every install, unlike a mouse drag.")},
                        {"layer", {{"type", "integer"}, {"minimum", 1}, {"description", "Preview: show layers up to this one (1-based)."}}},
                        {"layer_range", array_prop({{"type", "integer"}}, "Preview: [first, last] layers, 1-based.")},
                        {"layer_z", {{"type", "number"}, {"minimum", 0}, {"description", "Preview: show layers up to the first whose top is at or above this height (mm), as the slider places a custom G-code."}}},
@@ -534,7 +588,8 @@ void register_view_tools(McpService& service)
                        {"legend", {{"type", "object"}, {"additionalProperties", {{"type", "boolean"}}},
                                    {"description", "Preview: show (true) or hide (false) legend rows: feature types by name as get_preview lists them "
                                                    "(\"Sparse infill\"), and travel, wipe, retract, unretract, seams, filament_changes, color_changes, "
-                                                   "pauses, custom_gcode. Applied after view_type."}}},
+                                                   "pauses, custom_gcode, in any case and with _ or a space between words. Hiding a row this "
+                                                   "print lacks does nothing. Applied after view_type."}}},
                        {"time_mode", enum_prop({"normal", "silent"}, "Preview: the time estimate the legend and layer times show; silent only when the print has its own.")},
                        {"window_size", array_prop({{"type", "integer"}}, "[width, height] of the main window in pixels.")}}),
         [](const json& args, ToolContext& ctx) {
@@ -708,6 +763,21 @@ void register_view_tools(McpService& service)
                     if (canvas)
                         canvas->set_as_dirty();
                     return cam;
+                });
+            }
+            if (args.contains("orbit")) {
+                if (args["orbit"].size() != 2)
+                    throw ToolFailure("orbit is [yaw, pitch] in degrees");
+                out["orbit"] = ctx.run_ui([&]() -> json {
+#ifdef SLIC3R_CAD
+                    if (wxGetApp().mainframe->shown_design_panel() != nullptr)
+                        throw ToolFailure("orbit turns the Prepare and Preview camera; on the Design tab give camera a direction");
+#endif
+                    Plater& plater = ui_plater();
+                    json    placed = orbit_camera(plater.get_camera(), args["orbit"][0].get<double>(), args["orbit"][1].get<double>());
+                    if (GLCanvas3D* canvas = plater.get_current_canvas3D())
+                        canvas->set_as_dirty();
+                    return placed;
                 });
             }
             if (out.value("view", "") == "assemble")

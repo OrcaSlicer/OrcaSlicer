@@ -219,12 +219,12 @@ void register_app_tools(McpService& service)
         "no running job, nothing slicing or arranging, no gizmo working in the background), \"dialog\" / \"no_dialog\", or "
         "\"job\" with a job id returned by "
         "an earlier call - then the reply is that job's result. Returns {satisfied:false} on timeout; call it again.",
-        object_schema({{"for", enum_prop({"ready", "idle", "dialog", "no_dialog", "job"}, "What to wait for.")},
+        object_schema({{"for", enum_prop({"ready", "idle", "dialog", "no_dialog", "job"}, "What to wait for; default job when job "
+                                                                                          "is given, else idle.")},
                        {"job", prop("string", "Job id, for \"job\".")},
-                       {"timeout_s", {{"type", "number"}, {"minimum", 0}, {"maximum", 50}, {"description", "Default 30."}}}},
-                      {"for"}),
+                       {"timeout_s", {{"type", "number"}, {"minimum", 0}, {"maximum", 50}, {"description", "Default 30."}}}}),
         [&service](const json& args, ToolContext& ctx) {
-            const std::string what    = arg_string(args, "for");
+            const std::string what    = arg_string(args, "for", args.contains("job") ? "job" : "idle");
             const auto        timeout = std::chrono::milliseconds(int(arg_double(args, "timeout_s", 30) * 1000));
             const auto        start   = std::chrono::steady_clock::now();
             if (what == "job") {
