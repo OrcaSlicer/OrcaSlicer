@@ -111,37 +111,30 @@ const t_field& OptionsGroup::build_field(const t_config_option_key& id, const Co
     field->m_on_change   = [this](const std::string& opt_id, const boost::any& value) {
         //! This function will be called from Field.
         //! Call OptionGroup._on_change(...)
-        if (!m_disabled)
-            this->on_change_OG(opt_id, value);
+        this->on_change_OG(opt_id, value);
     };
     field->m_on_kill_focus = [this](const std::string& opt_id) {
         //! This function will be called from Field.
-        if (!m_disabled)
-            this->on_kill_focus(opt_id);
+        this->on_kill_focus(opt_id);
     };
     field->m_parent = parent();
 
     if (edit_custom_gcode && opt.is_code) {
         field->m_fn_edit_value = [this](std::string opt_id) {
-            if (!m_disabled)
-                this->edit_custom_gcode(opt_id);
+            this->edit_custom_gcode(opt_id);
         };
         field->set_edit_tooltip(_L("Edit Custom G-code"));
     }
 
     field->m_back_to_initial_value = [this](std::string opt_id) {
-        if (!m_disabled)
-            this->back_to_initial_value(opt_id);
+        this->back_to_initial_value(opt_id);
     };
     field->m_back_to_sys_value = [this](std::string opt_id) {
-        if (!this->m_disabled)
-            this->back_to_sys_value(opt_id);
+        this->back_to_sys_value(opt_id);
     };
 
     if (auto plugin_field = dynamic_cast<PluginField*>(field.get())) {
         plugin_field->set_selector([this, plugin_field]() -> std::string {
-            if (m_disabled)
-                return {};
             return this->pick_plugin(plugin_field->m_opt);
         });
     }
@@ -198,9 +191,10 @@ void OptionsGroup::remove_option_if(std::function<bool(std::string const&)> cons
         l.undo_to_sys = true;
     }
     // m_options_mode has one entry per line that draws a grid row, not per element of m_lines: a
-    // full_width widget line (and a separator) has none. Rebuild it in the same order append_line()
-    // built it, so removing options cannot desynchronise the two vectors.
-    std::vector<ConfigOptionMode> modes;
+    // full_width widget line (and a separator) has none. Rebuild it, and the option map, in the
+    // order the lines were appended, so removing options cannot leave a pruned key behind in either.
+    std::vector<ConfigOptionMode>         modes;
+    std::map<t_config_option_key, Option> options;
     modes.reserve(m_options_mode.size());
     for (const Line& line : m_lines) {
         if (line.get_options().empty())
@@ -208,10 +202,29 @@ void OptionsGroup::remove_option_if(std::function<bool(std::string const&)> cons
         if (line.full_width && (line.widget != nullptr || !line.get_extra_widgets().empty()))
             continue;
         modes.push_back(line.get_options().front().opt.mode);
+        for (const Option& opt : line.get_options())
+            options.emplace(opt.opt_id, opt);
     }
     m_options_mode = std::move(modes);
+    m_options      = std::move(options);
+    // This erase takes every option-less line, not only the ones pruning emptied: separators and
+    // full-width widget rows go too, so a pruned page loses them as it always has. Keeping them
+    // would also keep a group whose options were all pruned, which the callers drop today.
     m_lines.erase(std::remove_if(m_lines.begin(), m_lines.end(), [](auto& l) { return l.get_options().empty(); }), m_lines.end());
-    // TODO: remove items from g->m_options;
+}
+
+void ConfigOptionsGroup::remove_option_if(std::function<bool(std::string const&)> const& comp)
+{
+    OptionsGroup::remove_option_if(comp);
+    // m_opt_map is filled by get_option() while the lines are created, so it still names the pruned
+    // options. Tab reads it for the dirty/modified flags and builds its option-id map from it, so it
+    // has to drop them as well: m_options now holds exactly the surviving options.
+    for (auto it = m_opt_map.begin(); it != m_opt_map.end();) {
+        if (m_options.count(it->first) != 0)
+            ++it;
+        else
+            it = m_opt_map.erase(it);
+    }
 }
 
 void OptionsGroup::clear_undo_to_sys()
@@ -610,11 +623,6 @@ bool OptionsGroup::activate(std::function<void()> throw_if_canceled /* = [](){}*
         delete p;
         throw;
     }
-
-    // A group marked read-only before its fields existed (a publish tab sets it on create, pages
-    // build lazily) has to disable them now that activate() has built them.
-    if (m_disabled)
-        disable();
 
     return true;
 }

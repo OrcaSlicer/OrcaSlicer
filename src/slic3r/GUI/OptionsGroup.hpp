@@ -252,9 +252,6 @@ public:
 
 	inline void		enable() { for (auto& field : m_fields) field.second->enable(); }
     inline void		disable() { for (auto& field : m_fields) field.second->disable(); }
-	// Stops the group's field edits from reaching its config (the committed-change path) without
-	// changing how the rows paint. For read-only views of a config the caller owns.
-	void			set_readonly(bool readonly) { m_disabled = readonly; }
 	void			set_grid_vgap(int gap) { m_grid_sizer->SetVGap(gap); }
 
     void            clear_fields_except_of(const std::vector<std::string> left_fields);
@@ -274,7 +271,7 @@ public:
 
 	bool				is_activated() { return sizer != nullptr; }
 
-	void remove_option_if(std::function<bool(std::string const &)> const & comp);
+	virtual void remove_option_if(std::function<bool(std::string const &)> const & comp);
 	// Clears the object-config marker remove_option_if() stamps on every surviving line, so a
 	// pruned page draws the saved-value revert icon as an unpruned one does.
 	void clear_undo_to_sys();
@@ -290,7 +287,6 @@ protected:
     /// using types that need to know what it is beyond the public interface
     /// need to cast based on the related ConfigOptionDef.
     t_optionfield_map		m_fields;
-    bool					m_disabled {false};
     wxGridSizer*			m_grid_sizer {nullptr};
 	// "true" if option is created in preset tabs
 	bool					m_use_custom_ctrl{ false };
@@ -346,6 +342,7 @@ public:
 	const wxString& config_category() const throw() { return m_config_category; }
 	int config_type() const throw() override { return m_config_type; }
 	const t_opt_map&   opt_map() const throw() { return m_opt_map; }
+	void		remove_option_if(std::function<bool(std::string const &)> const & comp) override;
 
 	void 		set_config_category_and_type(const wxString &category, int type) { m_config_category = category; m_config_type = type; }
     void        set_config(DynamicPrintConfig* config) {

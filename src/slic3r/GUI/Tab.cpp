@@ -754,7 +754,6 @@ void Tab::create_publish_tab(const DynamicPrintConfig &config, const DynamicPrin
     rebuild_page_tree();
     // Values are visible but not editable: the dialog enables a checked row's fields, whose edits
     // then land in this tab's private preset and run the Tab's own rules.
-    set_publish_readonly(false);
     set_publish_fields_enabled(false);
     // Seed the revert-to-saved icons: the private preset's saved copy is the config this tab opened
     // with, so a row that differs from it shows the Tab's reset icon.
@@ -786,15 +785,6 @@ void Tab::adopt_publish_host_theme()
     // row, its buttons, the labels) resolve theirs the way the dialog's own pass resolves them.
     wxGetApp().UpdateDarkUIWin(this);
     Refresh();
-}
-
-void Tab::set_publish_readonly(bool readonly)
-{
-    // Only the group's change-accepting flag: field events must reach the private preset. The
-    // dialog enables and disables individual fields as its rows are checked.
-    for (const PageShp &page : m_pages)
-        for (const ConfigOptionsGroupShp &group : page->m_optgroups)
-            group->set_readonly(readonly);
 }
 
 void Tab::set_publish_fields_enabled(bool enabled)

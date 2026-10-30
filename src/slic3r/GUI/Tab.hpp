@@ -410,9 +410,6 @@ public:
     // themes its children when they are built, so a tab it rebuilds later has to do it itself;
     // a sidebar tab keeps the Tab's own colours.
     void        adopt_publish_host_theme();
-    // Sets the groups' change-accepting flag only. A publish tab's fields stay enabled so an edit
-    // reaches the private preset and runs the Tab's own rules; the dialog gates the values.
-    void        set_publish_readonly(bool readonly);
     // Enables or disables every field of every page, including the pages built later.
     void        set_publish_fields_enabled(bool enabled);
     // Enables or disables one field (by its "#N"-suffixed opt_id) on every page. A rule that
