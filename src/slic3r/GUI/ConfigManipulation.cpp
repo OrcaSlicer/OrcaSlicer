@@ -1046,6 +1046,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("brim_ears_outer_only", have_auto_brim_ear || have_painted_brim_ear, -1, _L("Select automatic or painted brim ears on a printer without a tilted belt to use this setting."));
 
     // Hide Elephant foot compensation layers if elefant_foot_compensation is not enabled
+    // xgettext:no-c-format, no-boost-format
     toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0 || config->option<ConfigOptionPercent>("elefant_foot_layers_density")->get_abs_value(1.0f) < 1.0f, -1, _L("Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."));
 
     bool have_raft = config->opt_int("raft_layers") > 0 && !is_belt_printer;

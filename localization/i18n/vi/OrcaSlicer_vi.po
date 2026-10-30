@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 11:58-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -2028,18 +2028,18 @@ msgid "Selection 1"
 msgstr "Lựa chọn 1"
 
 msgid ""
-"Select 2 faces on objects and \n"
-" make objects assemble together."
+"Select 2 faces on objects and\n"
+"make objects assemble together."
 msgstr ""
-"Chọn 2 mặt trên vật thể và \n"
-" lắp ráp các vật thể với nhau."
+"Chọn 2 mặt trên vật thể và\n"
+"lắp ráp các vật thể với nhau."
 
 msgid ""
-"Select 2 points or circles on objects and \n"
-" specify distance between them."
+"Select 2 points or circles on objects and\n"
+"specify distance between them."
 msgstr ""
-"Chọn 2 điểm hoặc đường tròn trên vật thể và \n"
-" chỉ định khoảng cách giữa chúng."
+"Chọn 2 điểm hoặc đường tròn trên vật thể và\n"
+"chỉ định khoảng cách giữa chúng."
 
 # AI Translated
 msgid "Selection 2"
@@ -2132,11 +2132,11 @@ msgstr "Cảnh báo: vui lòng chọn đặc trưng điểm hoặc đường tr�
 # AI Translated
 msgid ""
 "It is recommended to assemble objects first,\n"
-"because they are restricted to the bed \n"
+"because they are restricted to the bed\n"
 "and only parts can be lifted."
 msgstr ""
 "Nên lắp ráp các vật thể trước,\n"
-"vì chúng bị giới hạn trên bàn in \n"
+"vì chúng bị giới hạn trên bàn in\n"
 "và chỉ các phần mới có thể được nâng lên."
 
 # AI Translated
@@ -2351,6 +2351,18 @@ msgstr "Mật khẩu không đúng"
 #, c-format, boost-format
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "Kết nối %s thất bại! [SN:%s, code=%s]"
+
+# AI Translated
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr "Hãy kiểm tra xem máy in có ở cùng mạng với máy tính này không và địa chỉ IP của máy in có đúng không."
+
+# AI Translated
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr "Nếu vẫn không kết nối được, hãy thử một phiên bản plug-in mạng khác trong Tùy chọn."
+
+# AI Translated
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr "Chứng chỉ TLS/CA trong 'printer.cer' bị thiếu hoặc bị hỏng cũng có thể gây ra lỗi này."
 
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
@@ -3385,8 +3397,9 @@ msgstr "Tên"
 msgid "All Plates"
 msgstr "Tất cả plate"
 
+# AI Translated
 msgid "Order By"
-msgstr ""
+msgstr "Sắp xếp theo"
 
 # AI Translated
 msgid "Fix All"
@@ -3449,8 +3462,8 @@ msgid "Simplify Model"
 msgstr "Đơn giản hóa model"
 
 # AI Translated
-msgid "Subdivision mesh (Lost color)"
-msgstr "Chia nhỏ lưới (Mất màu)"
+msgid "Subdivision mesh"
+msgstr "Chia nhỏ lưới"
 
 msgid "Center"
 msgstr "Căn giữa"
@@ -3608,6 +3621,25 @@ msgstr "Lỗi!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Không thể lấy dữ liệu model trong file hiện tại."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+# AI Translated
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr "Đường kính trong"
+
+# AI Translated
+msgid "Tube diameter"
+msgstr "Đường kính ống"
 
 # AI Translated
 msgid "Add primitive"
@@ -4567,8 +4599,8 @@ msgid "Successfully sent. Close current page in %s s"
 msgstr "Gửi thành công. Đóng trang hiện tại trong %s s"
 
 # AI Translated
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "Cần lắp Bộ nhớ trước khi gửi đến máy in."
+msgid "Insert storage or free up space before sending to the printer."
+msgstr "Lắp bộ nhớ hoặc giải phóng dung lượng trước khi gửi đến máy in."
 
 # AI Translated
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
@@ -5575,137 +5607,181 @@ msgstr ""
 "Yes - Bật trình tạo wall Arachne\n"
 "No  - Tắt trình tạo wall Arachne và đặt chế độ [Displacement] của Fuzzy Skin"
 
+# AI Translated
 msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
-msgstr ""
+msgstr "Đặt độ dốc tối đa của tốc độ đùn thể tích lớn hơn 0 để dùng tính năng làm mịn tốc độ đùn."
 
+# AI Translated
 msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
-msgstr ""
+msgstr "Khớp cung không khả dụng trên máy in băng chuyền và khi bật làm mịn tốc độ đùn."
 
+# AI Translated
 msgid "Set wall loops above zero to use this setting."
-msgstr ""
+msgstr "Đặt vòng wall lớn hơn 0 để dùng cài đặt này."
 
+# AI Translated
 msgid "This setting is hidden because sparse infill density is zero."
-msgstr ""
+msgstr "Cài đặt này bị ẩn vì mật độ infill thưa bằng 0."
 
+# AI Translated
 msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
-msgstr ""
+msgstr "Neo infill yêu cầu mật độ infill thưa khác 0 và một mẫu khác ngoài Đồng tâm và Xoắn ốc thụt vào."
 
+# AI Translated
 msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
-msgstr ""
+msgstr "Bật kết hợp infill và dùng mật độ infill thưa khác 0 để hiển thị cài đặt này."
 
+# AI Translated
 msgid "Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "Chọn infill Gyroid, TPMS-D hoặc TPMS-FK với mật độ infill thưa lớn hơn 0 và nhỏ hơn 100%."
 
+# AI Translated
 msgid "Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "Bật mật độ thích ứng cho infill Gyroid, TPMS-D hoặc TPMS-FK với mật độ infill thưa lớn hơn 0 và nhỏ hơn 100%."
 
+# AI Translated
 msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
-msgstr ""
+msgstr "Chọn infill Gyroid với mật độ infill thưa khác 0 và tắt mật độ thích ứng để dùng cài đặt này."
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support multiline infill."
-msgstr ""
+msgstr "Mẫu infill thưa đã chọn không hỗ trợ lấp nhiều đường."
 
+# AI Translated
 msgid "The Line infill pattern does not support infill anchors."
-msgstr ""
+msgstr "Mẫu infill Đường không hỗ trợ neo infill."
 
+# AI Translated
 msgid "Select an infill pattern other than Line and set the maximum infill anchor length above zero."
-msgstr ""
+msgstr "Chọn một mẫu infill khác Đường và đặt độ dài tối đa của neo infill lớn hơn 0."
 
+# AI Translated
 msgid "Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Chọn mẫu infill thưa Cross Zag hoặc Locked Zag để dùng cài đặt này."
 
+# AI Translated
 msgid "Select the Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Chọn mẫu infill thưa Locked Zag để dùng cài đặt này."
 
+# AI Translated
 msgid "Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Chọn mẫu infill thưa Zig Zag, Cross Zag hoặc Locked Zag để dùng cài đặt này."
 
+# AI Translated
 msgid "Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."
-msgstr ""
+msgstr "Chọn infill Tổ ong 3D với mật độ infill thưa khác 0 để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable spiral vase mode to use this setting."
-msgstr ""
+msgstr "Bật chế độ bình xoắn ốc để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable spiral vase mode and spiral smoothing to use this setting."
-msgstr ""
+msgstr "Bật chế độ bình xoắn ốc và xoắn ốc mịn để dùng cài đặt này."
 
+# AI Translated
 msgid "This setting requires top shell layers, or more than one bottom shell layer in spiral vase mode."
-msgstr ""
+msgstr "Cài đặt này yêu cầu có lớp vỏ trên, hoặc nhiều hơn một lớp vỏ dưới ở chế độ bình xoắn ốc."
 
+# AI Translated
 msgid "This setting requires a top shell with nonzero top surface density."
-msgstr ""
+msgstr "Cài đặt này yêu cầu vỏ trên có mật độ bề mặt trên khác 0."
 
+# AI Translated
 msgid "Set bottom shell layers above zero to use this setting."
-msgstr ""
+msgstr "Đặt số lớp vỏ dưới lớn hơn 0 để dùng cài đặt này."
 
+# AI Translated
 msgid "Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."
-msgstr ""
+msgstr "Dùng mật độ infill thưa khác 0, cùng mẫu infill và cài đặt lấp nhiều đường có hỗ trợ làm mượt infill."
 
+# AI Translated
 msgid "Set top surface expansion above zero to use this setting."
-msgstr ""
+msgstr "Đặt mở rộng bề mặt trên lớn hơn 0 để dùng cài đặt này."
 
+# AI Translated
 msgid "Use a top or bottom shell with the Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Dùng vỏ trên hoặc vỏ dưới với mẫu bề mặt Dây cung Archimedes hoặc Xoắn ốc bát giác."
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support separated infills."
-msgstr ""
+msgstr "Mẫu infill thưa đã chọn không hỗ trợ infill tách biệt."
 
+# AI Translated
 msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Dùng vỏ trên có mật độ bề mặt khác 0 và mẫu bề mặt Đồng tâm, Xoắn ốc thụt vào, Dây cung Archimedes hoặc Xoắn ốc bát giác."
 
+# AI Translated
 msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Dùng lớp vỏ dưới và mẫu bề mặt Đồng tâm, Xoắn ốc thụt vào, Dây cung Archimedes hoặc Xoắn ốc bát giác."
 
+# AI Translated
 msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
-msgstr ""
+msgstr "Dùng mật độ infill thưa khác 0 hoặc có lớp vỏ trên hoặc dưới để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."
-msgstr ""
+msgstr "Tắt chế độ bình xoắn ốc và đặt số lớp vỏ trên lớn hơn 0 để chỉnh sửa độ dày vỏ trên."
 
+# AI Translated
 msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
-msgstr ""
+msgstr "Tắt chế độ bình xoắn ốc và đặt số lớp vỏ dưới lớn hơn 0 để chỉnh sửa độ dày vỏ dưới."
 
+# AI Translated
 msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
-msgstr ""
+msgstr "Đặt gia tốc in bình thường lớn hơn 0 để chỉnh sửa gia tốc cho từng vai trò đùn."
 
+# AI Translated
 msgid "This setting requires the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "Cài đặt này yêu cầu kiểu G-code Marlin 2."
 
+# AI Translated
 msgid "Jerk settings are unavailable while the printer uses junction deviation."
-msgstr ""
+msgstr "Các cài đặt Jerk không khả dụng khi máy in dùng Junction Deviation."
 
+# AI Translated
 msgid "Set the printer junction deviation limit above zero with the Marlin firmware G-code flavor to edit this setting."
-msgstr ""
+msgstr "Đặt giới hạn Junction Deviation của máy in lớn hơn 0 với kiểu G-code Marlin 2 để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "Set default jerk above zero to edit jerk for individual extrusion roles."
-msgstr ""
+msgstr "Đặt Jerk mặc định lớn hơn 0 để chỉnh sửa Jerk cho từng vai trò đùn."
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero to use this setting."
-msgstr ""
+msgstr "Chọn máy in không phải loại băng chuyền và đặt số vòng viền lớn hơn 0 để dùng cài đặt này."
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero and disable the full-height draft shield to edit skirt height."
-msgstr ""
+msgstr "Chọn máy in không phải loại băng chuyền, đặt số vòng viền lớn hơn 0 và tắt tấm chắn gió toàn chiều cao để chỉnh sửa chiều cao viền."
 
+# AI Translated
 msgid "Skirts are unavailable for belt printers."
-msgstr ""
+msgstr "Viền không khả dụng trên máy in băng chuyền."
 
+# AI Translated
 msgid "Select a brim type other than No brim to use this setting."
-msgstr ""
+msgstr "Chọn loại brim khác Không brim để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable a brim on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "Bật brim trên máy in không có băng chuyền nghiêng để dùng cài đặt này."
 
+# AI Translated
 msgid "Select a brim type with an editable width, or enable a brim on a tilted belt printer."
-msgstr ""
+msgstr "Chọn loại brim có độ rộng chỉnh sửa được, hoặc bật brim trên máy in băng chuyền nghiêng."
 
+# AI Translated
 msgid "This setting requires a belt printer with a tilted slicing plane."
-msgstr ""
+msgstr "Cài đặt này yêu cầu máy in băng chuyền có mặt phẳng slice nghiêng."
 
+# AI Translated
 msgid "Enable a brim on a belt printer with a tilted slicing plane to use this setting."
-msgstr ""
+msgstr "Bật brim trên máy in băng chuyền có mặt phẳng slice nghiêng để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable walls or a brim to select the wall filament."
-msgstr ""
+msgstr "Bật thành hoặc brim để chọn filament cho thành."
 
 # AI Translated
 msgid "Brim ear radius"
@@ -5714,284 +5790,384 @@ msgstr "Bán kính tai brim"
 msgid "Brim width"
 msgstr "Độ rộng brim"
 
+# AI Translated
 msgid "Set brim width above zero to edit brim ear detection."
-msgstr ""
+msgstr "Đặt độ rộng brim lớn hơn 0 để chỉnh sửa phát hiện tai brim."
 
+# AI Translated
+# Needs human review: Glossary cell for Brim ears (Tai brim) is unsettled; check the term.
 msgid "Use painted brim ears or set brim width above zero to edit this setting."
-msgstr ""
+msgstr "Dùng tai brim đã vẽ hoặc đặt độ rộng brim lớn hơn 0 để chỉnh sửa cài đặt này."
 
+# AI Translated
+# Needs human review: Glossary cell for Brim ears (Tai brim) is unsettled; check the term. The brim type dropdown calls this option Mouse ear (Tai chuột).
 msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "Chọn tai brim tự động trên máy in không có băng chuyền nghiêng để dùng cài đặt này."
 
+# AI Translated
+# Needs human review: Glossary cell for Brim ears (Tai brim) is unsettled; check the term. The brim type dropdown calls these options Mouse ear (Tai chuột) and Painted (Đã vẽ).
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "Chọn tai brim tự động hoặc đã vẽ trên máy in không có băng chuyền nghiêng để dùng cài đặt này."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
-msgstr ""
+msgstr "Bật bù chân voi hoặc đặt mật độ các lớp chân voi nhỏ hơn 100% để dùng cài đặt này."
 
+# AI Translated
 msgid "Rafts are unavailable for belt printers."
-msgstr ""
+msgstr "Bè không khả dụng trên máy in băng chuyền."
 
+# AI Translated
 msgid "Enable support to edit this setting."
-msgstr ""
+msgstr "Bật support để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "Enable support or add raft layers to edit this setting."
-msgstr ""
+msgstr "Bật support hoặc thêm lớp bè để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "Select an automatic support type to edit the threshold angle."
-msgstr ""
+msgstr "Chọn một loại support tự động để chỉnh sửa góc ngưỡng."
 
+# AI Translated
 msgid "Select an automatic support type and set the threshold angle to zero to edit threshold overlap."
-msgstr ""
+msgstr "Chọn một loại support tự động và đặt góc ngưỡng bằng 0 để chỉnh sửa chồng lấp ngưỡng."
 
+# AI Translated
 msgid "Threshold overlap is unavailable for tree supports."
-msgstr ""
+msgstr "Chồng lấp ngưỡng không khả dụng với support dạng cây."
 
+# AI Translated
 msgid "Enable tree supports and select a style other than Organic or Default to show this setting."
-msgstr ""
+msgstr "Bật support dạng cây và chọn một kiểu khác ngoài Hữu cơ và Mặc định để hiển thị cài đặt này."
 
+# AI Translated
 msgid "Enable tree supports with the Organic or Default style to show this setting."
-msgstr ""
+msgstr "Bật support dạng cây với kiểu Hữu cơ hoặc Mặc định để hiển thị cài đặt này."
 
+# AI Translated
 msgid "Independent support layer height is unavailable for organic tree supports."
-msgstr ""
+msgstr "Chiều cao lớp support độc lập không khả dụng với support dạng cây hữu cơ."
 
+# AI Translated
 msgid "Enable tree supports and turn off automatic brim width to edit the tree support brim width."
-msgstr ""
+msgstr "Bật support dạng cây và tắt độ rộng vành tự động để chỉnh sửa độ rộng vành support cây."
 
+# AI Translated
 msgid "Enable tree supports to show the maximum bridge length."
-msgstr ""
+msgstr "Bật support dạng cây để hiển thị độ dài cầu tối đa."
 
+# AI Translated
 msgid "Tree supports use maximum bridge length instead of the bridge support setting."
-msgstr ""
+msgstr "Support dạng cây dùng độ dài cầu tối đa thay cho cài đặt không hỗ trợ cầu."
 
+# AI Translated
 msgid "Enable automatic tree supports to show this setting."
-msgstr ""
+msgstr "Bật support dạng cây tự động để hiển thị cài đặt này."
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit this setting."
-msgstr ""
+msgstr "Đặt số lớp giao diện support trên hoặc dưới lớn hơn 0 để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "Enable a raft, or enable supports with top interface layers, to use support ironing."
-msgstr ""
+msgstr "Bật bè, hoặc bật support có lớp giao diện trên, để dùng ủi support."
 
+# AI Translated
 msgid "Enable support ironing with a raft or top support interface layers to show this setting."
-msgstr ""
+msgstr "Bật ủi support cùng với bè hoặc lớp giao diện support trên để hiển thị cài đặt này."
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit interface spacing."
-msgstr ""
+msgstr "Đặt số lớp giao diện support trên hoặc dưới lớn hơn 0 để chỉnh sửa khoảng cách giao diện."
 
+# AI Translated
 msgid "Support ironing requires a solid interface, so interface spacing cannot be edited."
-msgstr ""
+msgstr "Ủi support yêu cầu giao diện đặc, nên không thể chỉnh sửa khoảng cách giao diện."
 
+# AI Translated
 msgid "Enable walls, a skirt or a brim to edit inner wall line width."
-msgstr ""
+msgstr "Bật thành, viền hoặc brim để chỉnh sửa độ rộng đường thành trong."
 
+# AI Translated
 msgid "Enable support, a raft, or a skirt to select the support filament."
-msgstr ""
+msgstr "Bật support, bè hoặc viền để chọn filament cho support."
 
+# AI Translated
 msgid "Add raft layers to show raft contact distance."
-msgstr ""
+msgstr "Thêm lớp bè để hiển thị khoảng cách Z tiếp xúc raft."
 
+# AI Translated
 msgid "Raft contact distance is unavailable when the top support Z distance is zero."
-msgstr ""
+msgstr "Khoảng cách Z tiếp xúc raft không khả dụng khi khoảng cách Z trên của support bằng 0."
 
+# AI Translated
 msgid "Add raft layers to show raft expansion."
-msgstr ""
+msgstr "Thêm lớp bè để hiển thị mở rộng raft."
 
+# AI Translated
 msgid "Slim, Strong and Hybrid tree supports use first layer expansion instead of raft expansion."
-msgstr ""
+msgstr "Support dạng cây kiểu Cây mảnh, Cây mạnh và Cây hybrid dùng mở rộng lớp đầu tiên thay cho mở rộng raft."
 
+# AI Translated
 msgid "Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."
-msgstr ""
+msgstr "Thêm bè hoặc chọn một kiểu support dạng cây khác ngoài Cây mảnh và Cây mạnh để chỉnh sửa mở rộng lớp đầu tiên."
 
+# AI Translated
 msgid "Enable ironing to use this setting."
-msgstr ""
+msgstr "Bật ủi để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable ironing with the Rectilinear pattern to edit ironing angles."
-msgstr ""
+msgstr "Bật ủi với mẫu Thẳng hàng để chỉnh sửa góc ủi."
 
+# AI Translated
 msgid "Enable ironing or support ironing to edit ironing speed."
-msgstr ""
+msgstr "Bật ủi hoặc ủi support để chỉnh sửa tốc độ ủi."
 
+# AI Translated
 msgid "Enable Z contouring to use this setting."
-msgstr ""
+msgstr "Bật xử lý đường bao Z để dùng cài đặt này."
 
+# AI Translated
 msgid "Print order cannot be edited when the print sequence is By object."
-msgstr ""
+msgstr "Không thể chỉnh sửa thứ tự trong lớp khi trình tự in là Theo đối tượng."
 
+# AI Translated
 msgid "This setting is unavailable for Bambu Lab printers."
-msgstr ""
+msgstr "Cài đặt này không khả dụng trên máy in Bambu Lab."
 
+# AI Translated
 msgid "This setting is unavailable in single extruder multimaterial mode."
-msgstr ""
+msgstr "Cài đặt này không khả dụng ở chế độ extruder đơn đa vật liệu."
 
+# AI Translated
 msgid "Enable ooze prevention to use this setting."
-msgstr ""
+msgstr "Bật ngăn chảy nhựa để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable ooze prevention and use a positive number of preheat steps to show this setting."
-msgstr ""
+msgstr "Bật ngăn chảy nhựa và đặt số bước làm nóng trước lớn hơn 0 để hiển thị cài đặt này."
 
+# AI Translated
 msgid "Enable the belt purge tower in the belt printer settings to use this setting."
-msgstr ""
+msgstr "Bật tháp xả băng chuyền trong cài đặt máy in băng chuyền để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer to use this setting."
-msgstr ""
+msgstr "Bật prime tower trên máy in không phải loại băng chuyền để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable the prime tower and tower interface features on a non-belt printer to use this setting."
-msgstr ""
+msgstr "Bật prime tower và các tính năng lớp tiếp xúc của tháp trên máy in không phải loại băng chuyền để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable the prime tower and select wipe tower Type 2 on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Bật prime tower và chọn wipe tower Loại 2 trên máy in không phải Bambu Lab và không phải loại băng chuyền."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer and turn off skipping sparse tower layers to use layer combination."
-msgstr ""
+msgstr "Bật prime tower trên máy in không phải loại băng chuyền và tắt tùy chọn không có lớp thưa để dùng gộp các lớp thưa."
 
+# AI Translated
 msgid "Enable the prime tower with Rib walls on a non-belt printer to use this setting."
-msgstr ""
+msgstr "Bật prime tower với loại thành Gân trên máy in không phải loại băng chuyền để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable a Type 2 prime tower with Cone walls on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Bật prime tower Loại 2 với loại thành Hình nón trên máy in không phải Bambu Lab và không phải loại băng chuyền."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer and choose a wall type other than Rib to edit tower width."
-msgstr ""
+msgstr "Bật prime tower trên máy in không phải loại băng chuyền và chọn loại thành khác Gân để chỉnh sửa độ rộng tháp."
 
+# AI Translated
 msgid "Enable a Type 2 prime tower on a non-Bambu, non-belt printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Bật prime tower Loại 2 trên máy in không phải Bambu Lab và không phải loại băng chuyền, và tắt chế độ extruder đơn đa vật liệu."
 
+# AI Translated
 msgid "Select Cyclic tool change ordering to use this setting."
-msgstr ""
+msgstr "Chọn thứ tự đổi công cụ Tuần hoàn để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Bật prime tower và tắt xả trong prime tower hoặc tắt chế độ extruder đơn đa vật liệu."
 
+# AI Translated
 msgid "Enable the prime tower to use this setting."
-msgstr ""
+msgstr "Bật prime tower để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable avoiding crossing walls to edit the maximum travel detour distance."
-msgstr ""
+msgstr "Bật tránh đi qua thành để chỉnh sửa độ dài vòng tối đa khi di chuyển."
 
+# AI Translated
 msgid "Enable setting other flow ratios to use this setting."
-msgstr ""
+msgstr "Bật đặt các tỷ lệ lưu lượng khác để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable slowing down for overhangs to use this setting."
-msgstr ""
+msgstr "Bật giảm tốc cho phần nhô để dùng cài đặt này."
 
+# AI Translated
 msgid "This setting is available in object settings rather than global print settings."
-msgstr ""
+msgstr "Cài đặt này nằm trong cài đặt của đối tượng, không phải trong cài đặt in toàn cục."
 
+# AI Translated
 msgid "Select a specific support interface filament and use the default support filament to show this setting."
-msgstr ""
+msgstr "Chọn một filament giao diện support cụ thể và dùng filament support mặc định để hiển thị cài đặt này."
 
+# AI Translated
 msgid "Enable fuzzy skin to use this setting."
-msgstr ""
+msgstr "Bật fuzzy skin để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable fuzzy skin with Ripple noise to use this setting."
-msgstr ""
+msgstr "Bật fuzzy skin với nhiễu Ripple để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic or Ripple to edit noise scale."
-msgstr ""
+msgstr "Bật fuzzy skin và chọn loại nhiễu khác ngoài Cổ điển và Ripple để chỉnh sửa kích thước đặc điểm."
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic, Voronoi or Ripple to edit noise octaves."
-msgstr ""
+msgstr "Bật fuzzy skin và chọn loại nhiễu khác ngoài Cổ điển, Voronoi và Ripple để chỉnh sửa octave nhiễu."
 
+# AI Translated
 msgid "Enable fuzzy skin with Perlin or Billow noise to edit persistence."
-msgstr ""
+msgstr "Bật fuzzy skin với nhiễu Perlin hoặc Billow để chỉnh sửa độ bền nhiễu."
 
+# AI Translated
 msgid "Select the Arachne wall generator to use this setting."
-msgstr ""
+msgstr "Chọn trình tạo thành Arachne để dùng cài đặt này."
 
+# AI Translated
 msgid "Thin wall detection is unavailable with the Arachne wall generator."
-msgstr ""
+msgstr "Phát hiện thành mỏng không khả dụng với trình tạo thành Arachne."
 
+# AI Translated
 msgid "Disable role-based wipe speed to edit wipe speed manually."
-msgstr ""
+msgstr "Tắt tốc độ lau dựa trên vai trò để chỉnh sửa tốc độ lau thủ công."
 
+# AI Translated
 msgid "Enable inward wiping to edit inward wipe distance."
-msgstr ""
+msgstr "Bật lau vào trong để chỉnh sửa khoảng cách lau vào trong."
 
+# AI Translated
 msgid "This setting requires the Klipper G-code flavor."
-msgstr ""
+msgstr "Cài đặt này yêu cầu kiểu G-code Klipper."
 
+# AI Translated
 msgid "Enable acceleration to deceleration to edit its factor."
-msgstr ""
+msgstr "Bật accel_to_decel để chỉnh sửa hệ số của nó."
 
+# AI Translated
 msgid "Enable excluding objects with the Klipper G-code flavor to edit the outline tolerance."
-msgstr ""
+msgstr "Bật loại trừ đối tượng với kiểu G-code Klipper để chỉnh sửa dung sai đường viền."
 
+# AI Translated
 msgid "Enable making overhangs printable to use this setting."
-msgstr ""
+msgstr "Bật làm cho phần nhô có thể in để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5."
-msgstr ""
+msgstr "Bật chỉ một thành trên bề mặt trên khi có lớp vỏ trên, hoặc dùng Arachne với độ dài thành tối thiểu lớn hơn 0.5."
 
+# AI Translated
 msgid "Enable converting holes to polyholes to use this setting."
-msgstr ""
+msgstr "Bật chuyển đổi lỗ thành polyhole để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable overhang wall detection to use this setting."
-msgstr ""
+msgstr "Bật phát hiện thành nhô để dùng cài đặt này."
 
+# AI Translated
 msgid "Reverse overhang direction is unavailable in spiral vase mode."
-msgstr ""
+msgstr "Đảo ngược trên lớp chẵn không khả dụng ở chế độ bình xoắn ốc."
 
+# AI Translated
 msgid "Disable spiral vase mode and enable reverse overhang direction to use this setting."
-msgstr ""
+msgstr "Tắt chế độ bình xoắn ốc và bật đảo ngược trên lớp chẵn để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."
-msgstr ""
+msgstr "Bật phát hiện thành nhô và đảo ngược trên lớp chẵn, tắt chế độ bình xoắn ốc, và tắt chỉ đảo ngược chu vi bên trong."
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer."
-msgstr ""
+msgstr "Cài đặt này yêu cầu máy in Bambu Lab."
 
+# AI Translated
 msgid "Enable small area infill flow compensation to edit its model."
-msgstr ""
+msgstr "Bật bù lưu lượng vùng nhỏ để chỉnh sửa model bù lưu lượng."
 
+# AI Translated
 msgid "Scarf seams are unavailable in spiral vase mode and for belt printers."
-msgstr ""
+msgstr "Đường nối khớp vát không khả dụng ở chế độ bình xoắn ốc và trên máy in băng chuyền."
 
+# AI Translated
 msgid "Enable scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "Bật đường nối khớp vát trên máy in không phải loại băng chuyền khi đã tắt chế độ bình xoắn ốc để dùng cài đặt này."
 
+# AI Translated
 msgid "Disable scarfing the entire loop to edit the minimum scarf length."
-msgstr ""
+msgstr "Tắt vát xung quanh toàn bộ thành để chỉnh sửa độ dài vát tối thiểu."
 
+# AI Translated
 msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "Bật khớp vát có điều kiện trên máy in không phải loại băng chuyền khi đã tắt chế độ bình xoắn ốc để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable beam interlocking to use this setting."
-msgstr ""
+msgstr "Bật lồng ghép dầm để dùng cài đặt này."
 
+# AI Translated
 msgid "Disable beam interlocking to edit segmented region interlocking depth."
-msgstr ""
+msgstr "Tắt lồng ghép dầm để chỉnh sửa độ sâu lồng ghép của vùng phân đoạn."
 
+# AI Translated
 msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Chọn mẫu infill thưa Lattice bên để dùng cài đặt này."
 
+# AI Translated
 msgid "Select the Lightning sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Chọn mẫu infill thưa Tia chớp để dùng cài đặt này."
 
+# AI Translated
 msgid "Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."
-msgstr ""
+msgstr "Mẫu xoay infill không khả dụng với infill Khối lập phương thích ứng và Support khối."
 
+# AI Translated
 msgid "Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."
-msgstr ""
+msgstr "Xóa mẫu xoay infill thưa và chọn một mẫu khác ngoài Khối lập phương thích ứng và Support khối để chỉnh sửa hướng infill thưa."
 
+# AI Translated
 msgid "Clear the solid infill rotation template to edit solid infill direction."
-msgstr ""
+msgstr "Xóa mẫu xoay infill đặc để chỉnh sửa hướng infill đặc."
 
+# AI Translated
 msgid "Select the Lateral Honeycomb sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Chọn mẫu infill thưa Tổ ong bên để dùng cài đặt này."
 
+# AI Translated
 msgid "The selected printer does not support wrapping detection."
-msgstr ""
+msgstr "Máy in đã chọn không hỗ trợ phát hiện vón cục."
 
+# AI Translated
+# Needs human review: SLA pad: the pad settings have no translated label in the catalog; check that "đế" fits.
 msgid "Enable the pad to edit this setting."
-msgstr ""
+msgstr "Bật đế để chỉnh sửa cài đặt này."
 
+# AI Translated
+# Needs human review: SLA pad: the pad settings have no translated label in the catalog; check that "đế" fits.
 msgid "Enable the pad around the object to edit this setting."
-msgstr ""
+msgstr "Bật đế quanh vật thể để chỉnh sửa cài đặt này."
 
+# AI Translated
+# Needs human review: SLA pad and object elevation have no translated labels in the catalog; check the terms.
 msgid "Enable support and disable the pad around the object to edit object elevation."
-msgstr ""
+msgstr "Bật support và tắt đế quanh vật thể để chỉnh sửa độ nâng vật thể."
 
 # AI Translated
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
@@ -7090,6 +7266,10 @@ msgstr "Đầu phun trái: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Đầu phun phải: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+# AI Translated
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr "Vị trí hoặc kích thước của một số mô hình vượt quá phạm vi in được của extruder được gán. Vui lòng kiểm tra và điều chỉnh vị trí hoặc kích thước của phần cho vừa phạm vi in được."
+
 msgid "Mirror object"
 msgstr "Lật vật thể"
 
@@ -7354,7 +7534,7 @@ msgstr "Thể tích:"
 msgid "Size:"
 msgstr "Kích thước:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Đã tìm thấy xung đột đường đi G-code tại lớp %d, Z = %.2lfmm. Vui lòng tách các vật thể xung đột ra xa hơn (%s <-> %s)."
 
@@ -7853,8 +8033,9 @@ msgstr "Đặt lại bố cục cửa sổ"
 msgid "Reset to default window layout"
 msgstr "Đặt lại về bố cục cửa sổ mặc định"
 
+# AI Translated
 msgid "Show 3Dconnexion Settings"
-msgstr ""
+msgstr "Hiện cài đặt 3Dconnexion"
 
 msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr "Hiển thị/Ẩn hộp thoại cài đặt thiết bị 3Dconnexion"
@@ -8210,6 +8391,10 @@ msgstr "Tải xuống"
 msgid "Download selected files from printer."
 msgstr "Tải xuống file đã chọn từ máy in."
 
+# AI Translated
+msgid "Select all files in the list for batch management."
+msgstr "Chọn tất cả file trong danh sách để quản lý hàng loạt."
+
 msgid "Batch manage files."
 msgstr "Quản lý file hàng loạt."
 
@@ -8506,10 +8691,10 @@ msgid "Clear"
 msgstr "Xóa"
 
 msgid ""
-"You have completed printing the mall model, \n"
+"You have completed printing the mall model,\n"
 "but synchronizing rating information has failed."
 msgstr ""
-"Bạn đã hoàn thành in model mall, \n"
+"Bạn đã hoàn thành in model mall,\n"
 "nhưng đồng bộ thông tin đánh giá đã thất bại."
 
 msgid "How do you like this printing file?"
@@ -8782,10 +8967,10 @@ msgid "You can select up to 16 images."
 msgstr "Bạn có thể chọn tối đa 16 ảnh."
 
 msgid ""
-"At least one successful print record of this print profile is required \n"
+"At least one successful print record of this print profile is required\n"
 "to give a positive rating (4 or 5 stars)."
 msgstr ""
-"Cần ít nhất một bản ghi in thành công của cấu hình in này \n"
+"Cần ít nhất một bản ghi in thành công của cấu hình in này\n"
 "để đưa ra đánh giá tích cực (4 hoặc 5 sao)."
 
 # AI Translated
@@ -9401,19 +9586,23 @@ msgstr ""
 "Không có khả năng plugin nào khả dụng cho loại này.\n"
 "Hãy bật hoặc cài đặt thêm để sử dụng."
 
+# AI Translated
 msgid "Hidden by the current configuration."
-msgstr ""
+msgstr "Bị ẩn do cấu hình hiện tại."
 
+# AI Translated
 #, boost-format
 msgid "Hidden: %1%"
-msgstr ""
+msgstr "Bị ẩn: %1%"
 
+# AI Translated
 msgid "Disabled by the current configuration."
-msgstr ""
+msgstr "Bị tắt do cấu hình hiện tại."
 
+# AI Translated
 #, boost-format
 msgid "Disabled: %1%"
-msgstr ""
+msgstr "Bị tắt: %1%"
 
 # AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
@@ -9650,8 +9839,9 @@ msgstr "Xem tất cả cài đặt của đối tượng"
 msgid "Material settings"
 msgstr "Cài đặt vật liệu"
 
+# AI Translated
 msgid "The process flow ratio cannot be edited in this panel."
-msgstr ""
+msgstr "Không thể chỉnh sửa tỷ lệ lưu lượng của quy trình trong bảng này."
 
 # AI Translated
 msgid "Each mode names the tool heads that take part and the role each one plays. Click a tool button to cycle its role — hover a color below for what each role does."
@@ -9662,6 +9852,7 @@ msgid "Add Mode"
 msgstr "Thêm chế độ"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "Công cụ"
 
@@ -9678,8 +9869,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "Các đầu công cụ tham gia chế độ và vai trò của từng đầu. Nhấn vào một ô để chuyển vòng vai trò của nó."
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "G-code chạy khi bắt đầu in để đưa máy in vào chế độ này (ví dụ một lệnh gọi SET_PRINT_MODE của Klipper). Phần mềm slice chỉ xuất đường chạy của công cụ Chính (Primary); firmware điều khiển các công cụ còn lại."
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"G-code chạy khi bắt đầu in để đưa máy in vào chế độ này (ví dụ một lệnh gọi SET_PRINT_MODE của Klipper).\n"
+"\n"
+"Phần mềm slice chỉ xuất đường chạy của công cụ Chính (Primary); firmware điều khiển các công cụ còn lại."
 
 # AI Translated
 # Needs human review: Short IDEX/IQEX role tile label for a toolhead taking no part in the mode; check the width and that it reads as inactive (the generic Inactive entry uses 'Chưa kích hoạt').
@@ -9741,8 +9938,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "Tên của chế độ song song này, như hiển thị trong bộ chọn chế độ IDEX/IQEX của plate. Được lưu trong dự án theo tên, nên đổi tên một chế độ mà các plate đang dùng sẽ khiến chúng quay về chế độ Chính. Không được để trống — tên trống sẽ được thay bằng một tên tự tạo."
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "G-code được xuất một lần khi bắt đầu bản in dùng chế độ này, trước G-code bắt đầu máy. Đây là nơi đưa máy in vào chế độ firmware tương ứng — ví dụ một lệnh gọi SET_PRINT_MODE của Klipper hoặc M567 của RepRapFirmware — vì phần mềm slice chỉ xuất đường chạy của công cụ Chính (Primary) và firmware điều khiển các công cụ Sao chép (Copy) / Gương (Mirror). Hỗ trợ trình giữ chỗ; dùng nút chỉnh sửa để duyệt chúng. Để trống nếu chế độ không cần thiết lập firmware."
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"G-code được xuất một lần khi bắt đầu bản in dùng chế độ này, trước G-code bắt đầu máy. Đây là nơi đưa máy in vào chế độ firmware tương ứng — ví dụ một lệnh gọi SET_PRINT_MODE của Klipper hoặc M567 của RepRapFirmware — vì phần mềm slice chỉ xuất đường chạy của công cụ Chính (Primary) và firmware điều khiển các công cụ Sao chép (Copy) / Gương (Mirror).\n"
+"\n"
+"Hỗ trợ trình giữ chỗ; dùng nút chỉnh sửa để duyệt chúng. Để trống nếu chế độ không cần thiết lập firmware."
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -10177,12 +10380,10 @@ msgstr "Đối tượng quá nhỏ"
 
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
+"Instead of considering them as multiple objects, should the file be loaded as a single object with multiple parts?"
 msgstr ""
 "File này chứa nhiều đối tượng được đặt ở nhiều chiều cao.\n"
-"Thay vì coi chúng là nhiều đối tượng, có nên \n"
-"tải file như một đối tượng đơn có nhiều phần?"
+"Thay vì coi chúng là nhiều đối tượng, có nên tải file như một đối tượng đơn có nhiều phần?"
 
 msgid "Multi-part object detected"
 msgstr "Phát hiện đối tượng nhiều phần"
@@ -10756,10 +10957,10 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "Dữ liệu file in bất thường. Vui lòng slice lại"
 
 msgid ""
-"Print By Object: \n"
+"Print By Object:\n"
 "We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
-"In theo đối tượng: \n"
+"In theo đối tượng:\n"
 "Khuyến nghị sử dụng sắp xếp tự động để tránh va chạm khi in."
 
 msgid "Send G-code"
@@ -10796,6 +10997,12 @@ msgstr "Không có filament nào trên máy in. Vui lòng nạp filament vào m�
 # AI Translated
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "Tất cả filament trên máy in đều thuộc loại không xác định. Vui lòng vào màn hình máy in hoặc trang thiết bị của phần mềm để đặt loại filament."
+
+# AI Translated
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr "%s đã được kết nối, nhưng không tìm thấy hệ thống filament nào (AMS, CFS hoặc bộ đa vật liệu khác) trên máy, nên không có filament nào để đồng bộ."
 
 # AI Translated
 msgid "Device Page"
@@ -11131,13 +11338,15 @@ msgstr "Đặt nút cửa sổ ở bên trái"
 msgid "(Requires restart)"
 msgstr "(Cần khởi động lại)"
 
+# AI Translated
 #. TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
 msgid "Render on the discrete GPU"
-msgstr ""
+msgstr "Kết xuất trên GPU rời"
 
+# AI Translated
 #. TRN DRI_PRIME is an environment variable name and must stay as it is.
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
-msgstr ""
+msgstr "Trên máy tính có hai GPU, chạy OrcaSlicer trên GPU rời thay vì GPU điều khiển màn hình. Một số hệ thống Wayland không thể hiển thị khung hình được kết xuất trên GPU còn lại, hoặc hoàn toàn không mở được cửa sổ. Hãy tắt tùy chọn này nếu khung nhìn 3D vẫn trống; nếu OrcaSlicer không còn khởi động được, hãy khởi động nó một lần với DRI_PRIME=0 trong biến môi trường để quay lại đây."
 
 # AI Translated
 msgid "Downloads folder"
@@ -11380,6 +11589,14 @@ msgstr "Tự động tính thể tích xả khi các giá trị đã chọn thay
 
 msgid "Auto arrange plate after cloning"
 msgstr "Tự động sắp xếp bản sau khi nhân bản"
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "Hiện tùy chọn khi thêm hình nguyên thủy"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "Nếu bật, một hộp thoại sẽ hỏi kích thước của hình nguyên thủy trước khi thêm."
 
 # AI Translated
 msgid "Auto slice after changes"
@@ -11683,14 +11900,12 @@ msgstr "Tái sử dụng cảnh 3D khi rảnh"
 
 # AI Translated
 msgid ""
-"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, and reuses the previous frame's scene instead. Reduces GPU load.\n"
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
 msgstr ""
-"Bỏ qua việc vẽ lại cảnh 3D khi chỉ có con trỏ chuột di chuyển trên khung nhìn,\n"
-"và tái sử dụng cảnh của khung hình trước. Giảm tải GPU.\n"
+"Bỏ qua việc vẽ lại cảnh 3D khi chỉ có con trỏ chuột di chuyển trên khung nhìn, và tái sử dụng cảnh của khung hình trước. Giảm tải GPU.\n"
 "Hãy tắt nếu khung nhìn hiển thị nội dung cũ hoặc bị thiếu.\n"
 "\n"
 "Có hiệu lực ngay lập tức."
@@ -11822,9 +12037,11 @@ msgstr "Chế độ ẩn danh"
 # AI Translated
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+"\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
 "Tùy chọn này tắt toàn bộ tính năng cloud, bao gồm cả đồng bộ hồ sơ Orca Cloud. Người dùng muốn làm việc hoàn toàn ngoại tuyến có thể bật tùy chọn này.\n"
+"\n"
 "Lưu ý: Khi Chế độ ẩn danh được bật, hồ sơ người dùng của bạn sẽ không được sao lưu lên Orca Cloud."
 
 # AI Translated
@@ -12164,6 +12381,30 @@ msgid "The selected preset is null!"
 msgstr "Preset đã chọn rỗng!"
 
 # AI Translated
+msgid "Changing one dimension changes the others in proportion."
+msgstr "Thay đổi một kích thước sẽ thay đổi các kích thước còn lại theo tỷ lệ."
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "Lưu các cài đặt này làm mặc định"
+
+# AI Translated
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr "Nếu bật, các kích thước này sẽ được dùng cho hình này từ nay về sau, kể cả khi hộp thoại này không hiển thị."
+
+# AI Translated
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr "Nếu bật, các hình sẽ được thêm với kích thước mặc định mà không hỏi. Có thể bật lại hộp thoại này trong Tùy chọn."
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "Kích thước phải lớn hơn không"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Giá trị số không hợp lệ."
+
+# AI Translated
 msgctxt "Layer range"
 msgid "End"
 msgstr "Kết thúc"
@@ -12343,6 +12584,18 @@ msgstr "Preset \"%1%\" đã tồn tại và không tương thích với máy in 
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Vui lòng lưu ý rằng việc lưu sẽ ghi đè preset này."
+
+# AI Translated
+msgid "control characters are not allowed."
+msgstr "không được phép dùng ký tự điều khiển."
+
+# AI Translated
+msgid "The name is a reserved system name."
+msgstr "Tên này là tên dành riêng của hệ thống."
+
+# AI Translated
+msgid "The name is too long."
+msgstr "Tên quá dài."
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "Tên không thể giống với tên bí danh preset."
@@ -13067,8 +13320,8 @@ msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "Bộ nhớ đang ở trạng thái bất thường hoặc ở chế độ chỉ đọc."
 
 # AI Translated
-msgid "Storage needs to be inserted before printing."
-msgstr "Cần lắp bộ nhớ trước khi in."
+msgid "Insert storage or free up space before printing."
+msgstr "Lắp bộ nhớ hoặc giải phóng dung lượng trước khi in."
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Không thể gửi công việc in đến máy in có firmware cần được cập nhật."
@@ -13154,10 +13407,6 @@ msgstr "Không thể gửi tác vụ in khi đang nâng cấp"
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "Máy in đã chọn không tương thích với preset máy in đã chọn."
 
-# AI Translated
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Cần lắp bộ nhớ trước khi gửi đến máy in."
-
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Máy in cần phải ở cùng LAN với Orca Slicer."
 
@@ -13214,12 +13463,8 @@ msgstr "Nhận báo cáo đăng nhập hết thời gian"
 msgid "Unknown Failure"
 msgstr "Lỗi không xác định"
 
-msgid ""
-"Please Find the Pin Code in Account page on printer screen,\n"
-" and type in the Pin Code below."
-msgstr ""
-"Vui lòng tìm mã Pin trong trang Tài khoản trên màn hình máy in,\n"
-" và nhập mã Pin bên dưới."
+msgid "Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."
+msgstr "Vui lòng tìm mã Pin trong trang Tài khoản trên màn hình máy in, và nhập mã Pin bên dưới."
 
 msgid "Can't find Pin Code?"
 msgstr "Không tìm thấy mã Pin?"
@@ -13387,12 +13632,10 @@ msgstr ""
 # AI Translated
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
-"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
-"and use soluble materials for both support interface and support base."
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height and use soluble materials for both support interface and support base."
 msgstr ""
 "Khi dùng vật liệu hòa tan cho giao diện support, chúng tôi khuyến nghị các cài đặt sau:\n"
-"khoảng cách Z trên bằng 0, khoảng cách giao diện bằng 0, mẫu thẳng xen kẽ, tắt chiều cao lớp support độc lập\n"
-"và dùng vật liệu hòa tan cho cả giao diện support lẫn đế support."
+"khoảng cách Z trên bằng 0, khoảng cách giao diện bằng 0, mẫu thẳng xen kẽ, tắt chiều cao lớp support độc lập và dùng vật liệu hòa tan cho cả giao diện support lẫn đế support."
 
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
 msgstr "Bật tùy chọn này sẽ sửa đổi hình dạng của model. Nếu bản in của bạn yêu cầu kích thước chính xác hoặc là một phần của lắp ráp, quan trọng là phải kiểm tra kỹ xem thay đổi hình học này có ảnh hưởng đến chức năng của bản in hay không."
@@ -13409,15 +13652,12 @@ msgstr "Tính năng thử nghiệm: Rút và cắt filament ở khoảng cách l
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications. Please use with the latest printer firmware."
 msgstr "Tính năng thử nghiệm: Rút và cắt filament ở khoảng cách lớn hơn trong quá trình thay filament để giảm thiểu xả. Mặc dù có thể giảm đáng kể lượng xả, nó cũng có thể làm tăng nguy cơ tắc đầu phun hoặc các vấn đề in khác. Vui lòng sử dụng với firmware máy in mới nhất."
 
-msgid ""
-"When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr ""
-"Khi ghi timelapse không có đầu công cụ, khuyến nghị thêm \"Timelapse Wipe Tower\" \n"
-"bằng cách nhấp chuột phải vào vị trí trống của bàn in và chọn \"Thêm nguyên thủy\"->\"Timelapse Wipe Tower\"."
+msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+msgstr "Khi ghi timelapse không có đầu công cụ, khuyến nghị thêm \"Timelapse Wipe Tower\" bằng cách nhấp chuột phải vào vị trí trống của bàn in và chọn \"Thêm nguyên thủy\"->\"Timelapse Wipe Tower\"."
 
+# AI Translated
 msgid "Setting unavailable"
-msgstr ""
+msgstr "Cài đặt không khả dụng"
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "Một bản sao của preset hệ thống hiện tại sẽ được tạo, bản sao này sẽ được tách khỏi preset hệ thống."
@@ -13587,14 +13827,16 @@ msgstr "Cấu hình plugin"
 msgid "Notes"
 msgstr "Ghi chú"
 
+# AI Translated
 msgid "The selected printer does not support multiple bed types."
-msgstr ""
+msgstr "Máy in đã chọn không hỗ trợ nhiều loại bàn in."
 
 msgid "Frequent"
 msgstr "Thường xuyên"
 
+# AI Translated
 msgid "Custom filament print order is unavailable while the plate contains mixed-color filaments."
-msgstr ""
+msgstr "Thứ tự in filament tùy chỉnh không khả dụng khi plate có filament pha trộn."
 
 #, c-format, boost-format
 msgid ""
@@ -13619,14 +13861,17 @@ msgstr "Ghi đè cài đặt"
 msgid "Retraction when switching material"
 msgstr "Rút khi chuyển vật liệu"
 
+# AI Translated
 msgid "Set the filament retraction length above zero, or use the printer's value, to edit this setting."
-msgstr ""
+msgstr "Đặt độ dài rút của filament lớn hơn 0, hoặc dùng giá trị của máy in, để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "The printer profile must allow filament overrides for long retraction when cutting."
-msgstr ""
+msgstr "Cài đặt sẵn máy in phải cho phép filament ghi đè rút dài khi cắt."
 
+# AI Translated
 msgid "Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."
-msgstr ""
+msgstr "Cho phép rút dài khi cắt trong cài đặt sẵn máy in và bật nó trong cài đặt sẵn filament để dùng cài đặt này."
 
 msgid "Basic information"
 msgstr "Thông tin cơ bản"
@@ -13757,59 +14002,77 @@ msgstr "Máy in tương thích"
 msgid "Compatible process profiles"
 msgstr "Hồ sơ quy trình tương thích"
 
+# AI Translated
 msgid "Enable cooling for overhangs and bridges to edit this setting."
-msgstr ""
+msgstr "Bật làm mát cho phần nhô và cầu để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "Enable slowing down for layer cooling to use this setting."
-msgstr ""
+msgstr "Bật giảm tốc độ in để làm mát lớp nhằm dùng cài đặt này."
 
+# AI Translated
 msgid "Set the number of initial layers without cooling to zero to override the first layer fan speed."
-msgstr ""
+msgstr "Đặt số lớp đầu không làm mát về 0 để ghi đè tốc độ quạt lớp đầu tiên."
 
+# AI Translated
 msgid "Enable the auxiliary fan in the printer profile to use this setting."
-msgstr ""
+msgstr "Bật quạt làm mát phần phụ trong cài đặt sẵn máy in để dùng cài đặt này."
 
+# AI Translated
 msgid "The selected printer does not support air filtration."
-msgstr ""
+msgstr "Máy in đã chọn không hỗ trợ lọc khí."
 
+# AI Translated
 msgid "Activate air filtration to edit this setting."
-msgstr ""
+msgstr "Kích hoạt lọc khí để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "Activate air filtration and enable it during printing to edit the exhaust fan speed."
-msgstr ""
+msgstr "Kích hoạt lọc khí và bật nó trong khi in để chỉnh sửa tốc độ quạt thải."
 
+# AI Translated
 msgid "Activate air filtration and enable it on completion to edit the exhaust fan speed."
-msgstr ""
+msgstr "Kích hoạt lọc khí và bật nó khi hoàn tất để chỉnh sửa tốc độ quạt thải."
 
+# AI Translated
 msgid "Enable pressure advance to use this setting."
-msgstr ""
+msgstr "Bật Pressure Advance để dùng cài đặt này."
 
+# AI Translated
 msgid "Select this bed type or enable support for multiple bed types in the printer profile to show its temperature settings."
-msgstr ""
+msgstr "Chọn loại bàn in này hoặc bật hỗ trợ nhiều loại bàn in trong cài đặt sẵn máy in để hiển thị các cài đặt nhiệt độ của nó."
 
+# AI Translated
 msgid "Enable pressure advance and adaptive pressure advance to use this setting."
-msgstr ""
+msgstr "Bật Pressure Advance và Pressure Advance thích ứng để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable the pellet printer option in the printer profile to use this setting."
-msgstr ""
+msgstr "Bật tùy chọn máy in pellet trong cài đặt sẵn máy in để dùng cài đặt này."
 
+# AI Translated
 msgid "Filament diameter is unavailable for pellet printers."
-msgstr ""
+msgstr "Đường kính filament không khả dụng trên máy in pellet."
 
+# AI Translated
 msgid "The selected printer does not support chamber temperature control."
-msgstr ""
+msgstr "Máy in đã chọn không hỗ trợ điều khiển nhiệt độ buồng."
 
+# AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
-msgstr ""
+msgstr "Đặt các hệ số tốc độ thể tích khác 0 trước khi bật tốc độ thể tích thích ứng."
 
+# AI Translated
 msgid "Enable multitool ramming to edit this setting."
-msgstr ""
+msgstr "Bật ramming đa công cụ để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer with multiple extruders."
-msgstr ""
+msgstr "Cài đặt này yêu cầu máy in Bambu Lab có nhiều extruder."
 
+# AI Translated
 msgid "Use a Bambu Lab printer with multiple extruders and enable long retraction when the extruder changes."
-msgstr ""
+msgstr "Dùng máy in Bambu Lab có nhiều extruder và bật rút dài khi đổi extruder."
 
 msgid "Printable space"
 msgstr "Không gian in"
@@ -13929,12 +14192,10 @@ msgid "Number of extruders of the printer."
 msgstr "Số lượng extruder của máy in."
 
 msgid ""
-"Single Extruder Multi Material is selected,\n"
-"and all extruders must have the same diameter.\n"
+"Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
 msgstr ""
-"Đã chọn đa vật liệu extruder đơn, \n"
-"và tất cả extruder phải có cùng đường kính.\n"
+"Đã chọn đa vật liệu extruder đơn, và tất cả extruder phải có cùng đường kính.\n"
 "Bạn có muốn thay đổi đường kính cho tất cả extruder thành giá trị đường kính đầu phun extruder đầu tiên?"
 
 msgid "Nozzle diameter"
@@ -13976,62 +14237,81 @@ msgstr "Giới hạn chiều cao lớp"
 msgid "Z-Hop"
 msgstr "Z-Hop"
 
+# AI Translated
 msgid "Power loss recovery requires a Bambu Lab printer or the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "Khôi phục sau mất điện yêu cầu máy in Bambu Lab hoặc kiểu G-code Marlin 2."
 
+# AI Translated
 msgid "Build plate tilt is derived from the belt tilt on belt printers."
-msgstr ""
+msgstr "Trên máy in băng chuyền, độ nghiêng bàn in được suy ra từ độ nghiêng băng chuyền."
 
+# AI Translated
 msgid "Enable belt printer mode to use this setting."
-msgstr ""
+msgstr "Bật chế độ máy in băng chuyền để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable belt printer mode and select a belt rotation axis to edit its angle."
-msgstr ""
+msgstr "Bật chế độ máy in băng chuyền và chọn một trục nghiêng băng chuyền để chỉnh sửa góc của nó."
 
+# AI Translated
 msgid "Enable belt printer mode and select Expert or Developer settings visibility to use this setting."
-msgstr ""
+msgstr "Bật chế độ máy in băng chuyền và chọn chế độ hiển thị cài đặt Chuyên gia hoặc Nhà phát triển để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable belt printer mode, select Expert or Developer settings visibility, and decouple the machine frame tilt to edit its angle."
-msgstr ""
+msgstr "Bật chế độ máy in băng chuyền, chọn chế độ hiển thị cài đặt Chuyên gia hoặc Nhà phát triển, và tách riêng độ nghiêng hệ tọa độ máy để chỉnh sửa góc của nó."
 
+# AI Translated
 msgid "Enable support for parallel printheads to edit their count."
-msgstr ""
+msgstr "Bật hỗ trợ đầu in song song để chỉnh sửa số lượng đầu in."
 
+# AI Translated
 msgid "Collision volume mode selection requires multiple extruders."
-msgstr ""
+msgstr "Việc chọn hành vi thể tích va chạm yêu cầu nhiều extruder."
 
+# AI Translated
 msgid "Select a shared collision volume mode or use a single-extruder printer to edit this setting."
-msgstr ""
+msgstr "Chọn hành vi thể tích va chạm dùng chung hoặc dùng máy in một extruder để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "Enable the auxiliary fan to edit its direction."
-msgstr ""
+msgstr "Bật quạt làm mát phần phụ để chỉnh sửa hướng quạt."
 
+# AI Translated
 msgid "Air filtration and the cooling filter are alternative accessories; disable cooling filter support to use air filtration."
-msgstr ""
+msgstr "Lọc khí và bộ lọc làm mát là hai phụ kiện thay thế cho nhau; hãy tắt hỗ trợ bộ lọc làm mát để dùng lọc khí."
 
+# AI Translated
 msgid "Enable cooling filter support in the printer profile to use this setting."
-msgstr ""
+msgstr "Bật hỗ trợ bộ lọc làm mát trong cài đặt sẵn máy in để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable belt printer mode to use the belt purge tower."
-msgstr ""
+msgstr "Bật chế độ máy in băng chuyền để dùng tháp xả băng chuyền."
 
+# AI Translated
 msgid "Wipe tower type selection is unavailable for Bambu Lab printers and belt printers."
-msgstr ""
+msgstr "Lựa chọn loại wipe tower không khả dụng trên máy in Bambu Lab và máy in băng chuyền."
 
+# AI Translated
 msgid "Select wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "Chọn wipe tower Loại 2 trên máy in không phải Bambu Lab để dùng cài đặt này."
 
+# AI Translated
 msgid "Extruder count cannot be edited in single extruder multimaterial mode."
-msgstr ""
+msgstr "Không thể chỉnh sửa số lượng extruder ở chế độ extruder đơn đa vật liệu."
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode to use manual filament changes."
-msgstr ""
+msgstr "Bật chế độ extruder đơn đa vật liệu để dùng thay filament thủ công."
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "Bật chế độ extruder đơn đa vật liệu với wipe tower Loại 2 trên máy in không phải Bambu Lab để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable IDEX/IQEX printer mode to use this setting."
-msgstr ""
+msgstr "Bật chế độ máy in IDEX/IQEX để dùng cài đặt này."
 
 # AI Translated
 msgid "Front-left"
@@ -14049,35 +14329,47 @@ msgstr "Sau-trái"
 msgid "Rear-right"
 msgstr "Sau-phải"
 
+# AI Translated
 msgid "Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Dùng nhiều extruder với wipe tower Loại 2 trên máy in không phải Bambu Lab và tắt chế độ extruder đơn đa vật liệu."
 
+# AI Translated
 msgid "Set retraction length above zero or enable firmware retraction to use this setting."
-msgstr ""
+msgstr "Đặt độ dài rút lớn hơn 0 hoặc bật rút firmware để dùng cài đặt này."
 
+# AI Translated
 msgid "The extruder printable area and height are fixed by the printer profile."
-msgstr ""
+msgstr "Vùng in được và chiều cao in được của extruder do cài đặt sẵn máy in cố định."
 
+# AI Translated
 msgid "This setting is shown for printers with exactly two extruders."
-msgstr ""
+msgstr "Cài đặt này được hiển thị cho máy in có đúng hai extruder."
 
+# AI Translated
 msgid "Select per-extruder collision volumes on a printer with multiple extruders to edit this setting."
-msgstr ""
+msgstr "Chọn thể tích va chạm riêng cho từng extruder trên máy in có nhiều extruder để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "Retraction length is controlled by the firmware while firmware retraction is enabled."
-msgstr ""
+msgstr "Độ dài rút do firmware điều khiển khi rút firmware được bật."
 
+# AI Translated
 msgid "Enable retraction and set Z hop above zero to use this setting."
-msgstr ""
+msgstr "Bật rút và đặt chiều cao Z-hop lớn hơn 0 để dùng cài đặt này."
 
+# AI Translated
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
-msgstr ""
+msgstr "Đặt độ dài rút lớn hơn 0 và tắt rút firmware để chỉnh sửa cài đặt này."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
-msgstr ""
+msgstr "Bật rút và lau, đặt lượng rút sau khi lau nhỏ hơn 100% để chỉnh sửa lượng rút trước khi lau."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
-msgstr ""
+msgstr "Bật rút và lau, đặt lượng rút trước khi lau nhỏ hơn 100% để chỉnh sửa lượng rút sau khi lau."
 
 # AI Translated
 msgid ""
@@ -14092,47 +14384,61 @@ msgstr ""
 msgid "Firmware Retraction"
 msgstr "Rút firmware"
 
+# AI Translated
 msgid "Enable retraction and wiping to edit wipe distance."
-msgstr ""
+msgstr "Bật rút và lau để chỉnh sửa khoảng cách lau."
 
+# AI Translated
 msgid "This setting requires multiple extruders."
-msgstr ""
+msgstr "Cài đặt này yêu cầu nhiều extruder."
 
+# AI Translated
 msgid "Use multiple extruders and set tool change retraction length above zero to edit this setting."
-msgstr ""
+msgstr "Dùng nhiều extruder và đặt độ dài rút khi đổi công cụ lớn hơn 0 để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "Disable firmware retraction and allow long retraction when cutting to use this setting."
-msgstr ""
+msgstr "Tắt rút firmware và cho phép rút dài khi cắt để dùng cài đặt này."
 
+# AI Translated
 msgid "Enable long retraction when cutting to edit the retraction distance."
-msgstr ""
+msgstr "Bật rút dài khi cắt để chỉnh sửa khoảng cách rút."
 
+# AI Translated
 msgid "Select a Z hop type other than Normal to edit travel slope."
-msgstr ""
+msgstr "Chọn loại Z-hop khác Bình thường để chỉnh sửa góc di chuyển."
 
+# AI Translated
 msgid "Travel acceleration limits are unavailable for the Marlin legacy and Klipper G-code flavors."
-msgstr ""
+msgstr "Giới hạn gia tốc di chuyển không khả dụng với kiểu G-code Marlin (cũ) và Klipper."
 
+# AI Translated
 msgid "Jerk limits are unavailable while Marlin uses nonzero junction deviation."
-msgstr ""
+msgstr "Giới hạn Jerk không khả dụng khi Marlin dùng Junction Deviation khác 0."
 
+# AI Translated
 msgid "Emitting machine limits requires the Marlin legacy, Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "Phát giới hạn máy yêu cầu kiểu G-code Marlin (cũ), Marlin 2 hoặc RepRapFirmware."
 
+# AI Translated
 msgid "Enable resonance avoidance to edit its speed range."
-msgstr ""
+msgstr "Bật tránh cộng hưởng để chỉnh sửa dải tốc độ của nó."
 
+# AI Translated
 msgid "This input shaping setting requires the Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "Cài đặt Input Shaping này yêu cầu kiểu G-code Marlin 2 hoặc RepRapFirmware."
 
+# AI Translated
 msgid "Enable emitting machine limits to G-code to emit input shaping settings."
-msgstr ""
+msgstr "Bật phát giới hạn ra G-code để phát các cài đặt Input Shaping."
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code to edit this setting."
-msgstr ""
+msgstr "Bật phát giới hạn máy và Input Shaping ra G-code để chỉnh sửa cài đặt này."
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code with the Marlin firmware G-code flavor to edit separate Y-axis values."
-msgstr ""
+msgstr "Bật phát giới hạn máy và Input Shaping ra G-code với kiểu G-code Marlin 2 để chỉnh sửa riêng các giá trị trục Y."
 
 # AI Translated
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
@@ -14189,8 +14495,9 @@ msgstr ""
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "Bạn có chắc chắn muốn xóa cài đặt sẵn đã chọn không?"
 
+# AI Translated
 msgid "Select \"All\" to edit the compatibility condition instead of using an explicit profile list."
-msgstr ""
+msgstr "Chọn \"Tất cả\" để chỉnh sửa điều kiện tương thích thay vì dùng danh sách hồ sơ cụ thể."
 
 msgid "Select printers"
 msgstr "Chọn máy in"
@@ -14309,8 +14616,9 @@ msgstr "Nhấp để đặt lại giá trị hiện tại và đính kèm với 
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Nhấp để bỏ thay đổi hiện tại và đặt lại về giá trị đã lưu."
 
+# AI Translated
 msgid "Material print speed cannot be edited for the SL1 printer."
-msgstr ""
+msgstr "Không thể chỉnh sửa tốc độ in vật liệu cho máy in SL1."
 
 msgid "Process Settings"
 msgstr "Cài đặt quy trình"
@@ -14397,18 +14705,18 @@ msgstr "Chuyển các tùy chọn đã chọn sang preset mới được chọn.
 
 #, boost-format
 msgid ""
-"Save the selected options to preset \n"
+"Save the selected options to preset\n"
 "\"%1%\"."
 msgstr ""
-"Lưu các tùy chọn đã chọn vào preset \n"
+"Lưu các tùy chọn đã chọn vào preset\n"
 "\"%1%\"."
 
 #, boost-format
 msgid ""
-"Transfer the selected options to the newly selected preset \n"
+"Transfer the selected options to the newly selected preset\n"
 "\"%1%\"."
 msgstr ""
-"Chuyển các tùy chọn đã chọn sang preset mới được chọn \n"
+"Chuyển các tùy chọn đã chọn sang preset mới được chọn\n"
 "\"%1%\"."
 
 #, boost-format
@@ -15304,12 +15612,8 @@ msgstr "Đang kết nối với máy in... Hộp thoại sẽ đóng sau"
 msgid "Connection failed, please double check IP and Access Code"
 msgstr "Kết nối thất bại, vui lòng kiểm tra lại IP và mã truy cập"
 
-msgid ""
-"Connection failed! If your IP and Access Code is correct, \n"
-"please move to step 3 for troubleshooting network issues"
-msgstr ""
-"Kết nối thất bại! Nếu IP và mã truy cập của bạn đúng, \n"
-"vui lòng chuyển sang bước 3 để khắc phục sự cố mạng"
+msgid "Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"
+msgstr "Kết nối thất bại! Nếu IP và mã truy cập của bạn đúng, vui lòng chuyển sang bước 3 để khắc phục sự cố mạng"
 
 # AI Translated
 msgid "Connection failed! Please refer to the wiki page."
@@ -15821,6 +16125,11 @@ msgstr "%1% giao với một thể tích va chạm của extruder %2%."
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% quá gần các đối tượng khác, và có thể gây va chạm."
 
+# AI Translated
+#, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr "%1% được in muộn hơn vị trí của nó trong danh sách đối tượng để tránh va chạm."
+
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% quá cao, và sẽ gây va chạm."
@@ -15873,10 +16182,11 @@ msgstr "Nếu bạn vẫn muốn in, bạn có thể bật tùy chọn trong Tù
 msgid "No extrusions under current settings."
 msgstr "Không có đùn dưới cài đặt hiện tại."
 
+# AI Translated
 #. TRN %1% is the filament number as shown in the filament list, starting from 1.
 #, boost-format
 msgid "The flow ratio of filament %1% must be greater than 0."
-msgstr ""
+msgstr "Tỷ lệ lưu lượng của filament %1% phải lớn hơn 0."
 
 # AI Translated
 msgid "Mixed filaments are not supported in IDEX/IQEX parallel modes. Switch this plate to Primary mode."
@@ -16135,8 +16445,19 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "Tùy chọn thành chính xác sẽ bị bỏ qua cho trình tự thành ngoài-trong hoặc trong-ngoài-trong."
 
 # AI Translated
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "Mô hình Adaptive Pressure Advance của một hoặc nhiều extruder có thể chứa giá trị không hợp lệ."
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr "Pressure Advance thích ứng đã được bật cho một hoặc nhiều extruder, nhưng chưa có số đo nào được nhập vào mô hình Pressure Advance thích ứng của chúng."
+
+# AI Translated
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
+"Mô hình Pressure Advance thích ứng của filament %1% chứa giá trị không hợp lệ.\n"
+"%2%"
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Co ngót filament sẽ không được sử dụng vì co ngót filament của các filament đã dùng khác nhau đáng kể."
@@ -16889,8 +17210,14 @@ msgstr ""
 msgid "Precise wall"
 msgstr "Thành chính xác"
 
-msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr "Cải thiện độ chính xác vỏ bằng cách điều chỉnh khoảng cách thành ngoài. Điều này cũng cải thiện tính nhất quán của lớp. LƯU Ý: Tùy chọn này sẽ bị bỏ qua cho trình tự thành ngoài-trong hoặc trong-ngoài-trong."
+msgid ""
+"Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n"
+"\n"
+"Note: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgstr ""
+"Cải thiện độ chính xác vỏ bằng cách điều chỉnh khoảng cách thành ngoài. Điều này cũng cải thiện tính nhất quán của lớp.\n"
+"\n"
+"LƯU Ý: Tùy chọn này sẽ bị bỏ qua cho trình tự thành ngoài-trong hoặc trong-ngoài-trong."
 
 msgid "Only one wall on top surfaces"
 msgstr "Chỉ một thành trên bề mặt trên"
@@ -16904,9 +17231,11 @@ msgstr "Ngưỡng một thành"
 #, no-c-format, no-boost-format
 msgid ""
 "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+"\n"
 "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
 msgstr ""
 "Nếu một bề mặt trên phải được in và nó được phủ một phần bởi lớp khác, nó sẽ không được coi là lớp trên nơi độ rộng của nó dưới giá trị này. Điều này có thể hữu ích để không để 'một chu vi trên cùng' kích hoạt trên bề mặt chỉ nên được phủ bởi chu vi. Giá trị này có thể là mm hoặc % của độ rộng đùn chu vi.\n"
+"\n"
 "Cảnh báo: Nếu được bật, khuyết điểm có thể được tạo nếu bạn có một số tính năng mỏng trên lớp tiếp theo, như chữ cái. Đặt cài đặt này thành 0 để loại bỏ các khuyết điểm này."
 
 msgid "Only one wall on first layer"
@@ -17004,7 +17333,7 @@ msgid ""
 "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
 "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 "\n"
-"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen.\n"
 "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
 "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
 "\n"
@@ -17019,7 +17348,7 @@ msgstr ""
 "Bật tùy chọn này để giảm tốc độ in ở những vùng mà chu vi có thể đã bị cong vênh lên trên.\n"
 "Ví dụ, sẽ áp dụng thêm mức giảm tốc khi in phần nhô ở các góc nhọn như mũi thân tàu Benchy, giúp giảm hiện tượng cong vênh vốn tích tụ qua nhiều lớp.\n"
 "\n"
-"Thông thường nên bật tùy chọn này, trừ khi hệ thống làm mát của máy in đủ mạnh hoặc tốc độ in đủ chậm để chu vi không bị cong vênh. \n"
+"Thông thường nên bật tùy chọn này, trừ khi hệ thống làm mát của máy in đủ mạnh hoặc tốc độ in đủ chậm để chu vi không bị cong vênh.\n"
 "Nếu in với tốc độ chu vi ngoài cao, tham số này có thể tạo ra khuyết điểm trên thành khi giảm tốc, do biên độ dao động tốc độ in lớn khiến extruder không theo kịp thay đổi lưu lượng được yêu cầu.\n"
 "Nguyên nhân gốc của những khuyết điểm này nhiều khả năng là do PA chưa được tinh chỉnh chuẩn, đặc biệt khi kết hợp với thời gian làm mượt PA lớn.\n"
 "\n"
@@ -17286,8 +17615,12 @@ msgstr "Hồ sơ quy trình mặc định khi chuyển sang hồ sơ máy này."
 msgid "Activate air filtration"
 msgstr "Kích hoạt lọc khí"
 
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "Kích hoạt để lọc khí tốt hơn. Lệnh G-code: M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"Kích hoạt để lọc khí tốt hơn.\n"
+"Lệnh G-code: M106 P3 S(0-255)"
 
 # AI Translated
 msgid "Enable this to override the fan speed set in custom G-code during print."
@@ -17732,14 +18065,26 @@ msgstr "Chiều cao của đầu phun."
 msgid "Bed mesh min"
 msgstr "Lưới bàn in tối thiểu"
 
-msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Tùy chọn này đặt điểm tối thiểu cho vùng lưới bàn in được cho phép. Do độ lệch XY của đầu dò, hầu hết máy in không thể dò toàn bộ bàn. Để đảm bảo điểm dò không ra ngoài vùng bàn, điểm tối thiểu và tối đa của lưới bàn in nên được đặt phù hợp. OrcaSlicer đảm bảo rằng giá trị adaptive_bed_mesh_min/adaptive_bed_mesh_max không vượt quá các điểm tối thiểu/tối đa này. Thông tin này thường có thể được lấy từ nhà sản xuất máy in của bạn. Cài đặt mặc định là (-99999, -99999), có nghĩa là không có giới hạn, do đó cho phép dò trên toàn bộ bàn."
+msgid ""
+"This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Tùy chọn này đặt điểm tối thiểu cho vùng lưới bàn in được cho phép. Do độ lệch XY của đầu dò, hầu hết máy in không thể dò toàn bộ bàn. Để đảm bảo điểm dò không ra ngoài vùng bàn, điểm tối thiểu và tối đa của lưới bàn in nên được đặt phù hợp. OrcaSlicer đảm bảo rằng giá trị adaptive_bed_mesh_min/adaptive_bed_mesh_max không vượt quá các điểm tối thiểu/tối đa này. Thông tin này thường có thể được lấy từ nhà sản xuất máy in của bạn.\n"
+"\n"
+"Cài đặt mặc định là (-99999, -99999), có nghĩa là không có giới hạn, do đó cho phép dò trên toàn bộ bàn."
 
 msgid "Bed mesh max"
 msgstr "Lưới bàn in tối đa"
 
-msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Tùy chọn này đặt điểm tối đa cho vùng lưới bàn in được cho phép. Do độ lệch XY của đầu dò, hầu hết máy in không thể dò toàn bộ bàn. Để đảm bảo điểm dò không ra ngoài vùng bàn, điểm tối thiểu và tối đa của lưới bàn in nên được đặt phù hợp. OrcaSlicer đảm bảo rằng giá trị adaptive_bed_mesh_min/adaptive_bed_mesh_max không vượt quá các điểm tối thiểu/tối đa này. Thông tin này thường có thể được lấy từ nhà sản xuất máy in của bạn. Cài đặt mặc định là (99999, 99999), có nghĩa là không có giới hạn, do đó cho phép dò trên toàn bộ bàn."
+msgid ""
+"This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Tùy chọn này đặt điểm tối đa cho vùng lưới bàn in được cho phép. Do độ lệch XY của đầu dò, hầu hết máy in không thể dò toàn bộ bàn. Để đảm bảo điểm dò không ra ngoài vùng bàn, điểm tối thiểu và tối đa của lưới bàn in nên được đặt phù hợp. OrcaSlicer đảm bảo rằng giá trị adaptive_bed_mesh_min/adaptive_bed_mesh_max không vượt quá các điểm tối thiểu/tối đa này. Thông tin này thường có thể được lấy từ nhà sản xuất máy in của bạn.\n"
+"\n"
+"Cài đặt mặc định là (99999, 99999), có nghĩa là không có giới hạn, do đó cho phép dò trên toàn bộ bàn."
 
 msgid "Probe point distance"
 msgstr "Khoảng cách điểm dò"
@@ -17864,13 +18209,11 @@ msgstr "Pressure Advance tĩnh cho cầu"
 
 # AI Translated
 msgid ""
-"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
-"equivalent walls (using adaptive settings if enabled).\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Giá trị Pressure Advance tĩnh cho cầu. Đặt 0 để áp dụng cùng Pressure Advance như \n"
-"các thành tương đương (dùng cài đặt thích ứng nếu được bật).\n"
+"Giá trị Pressure Advance tĩnh cho cầu. Đặt 0 để áp dụng cùng Pressure Advance như các thành tương đương (dùng cài đặt thích ứng nếu được bật).\n"
 "\n"
 "Giá trị PA thấp hơn khi in cầu giúp giảm hiện tượng thiếu đùn nhẹ ngay sau cầu. Hiện tượng này do áp suất trong đầu phun giảm khi in trong không khí, và PA thấp hơn giúp bù lại điều đó."
 
@@ -19049,8 +19392,12 @@ msgstr "Vị trí đối tượng tốt nhất"
 msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "Vị trí sắp xếp tự động tốt nhất trong phạm vi [0,1] theo hình dạng bàn in."
 
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "Bật tùy chọn này nếu máy có quạt làm mát phần phụ. Lệnh G-code : M106 P2 S(0-255)."
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"Bật tùy chọn này nếu máy có quạt làm mát phần phụ.\n"
+"Lệnh G-code : M106 P2 S(0-255)."
 
 # AI Translated
 msgid "Fan direction"
@@ -19162,8 +19509,14 @@ msgid "Skip G-code config block"
 msgstr "Bỏ qua khối cấu hình G-code"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "Không ghi CONFIG_BLOCK (các cặp khóa/giá trị cấu hình của phần mềm slice) vào tệp G-code. Điều này có thể hữu ích với các máy in có firmware bị treo khi phân tích những dòng chú thích này (ví dụ Anycubic go-klipper). Lưu ý: tệp G-code sẽ không còn chứa các thiết lập slice, nên việc nhập lại tệp vào OrcaSlicer sẽ không khôi phục được cấu hình."
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"Không ghi CONFIG_BLOCK (các cặp khóa/giá trị cấu hình của phần mềm slice) vào tệp G-code. Điều này có thể hữu ích với các máy in có firmware bị treo khi phân tích những dòng chú thích này (ví dụ Anycubic go-klipper).\n"
+"\n"
+"Lưu ý: tệp G-code sẽ không còn chứa các thiết lập slice, nên việc nhập lại tệp vào OrcaSlicer sẽ không khôi phục được cấu hình."
 
 msgid "Pellet Modded Printer"
 msgstr "Máy in Pellet đã chỉnh sửa"
@@ -19180,8 +19533,14 @@ msgstr "Bật tùy chọn này nếu bạn muốn sử dụng nhiều loại bà
 msgid "Label objects"
 msgstr "Gắn nhãn đối tượng"
 
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "Bật điều này để thêm chú thích vào G-code gắn nhãn chuyển động in với đối tượng nào chúng thuộc về, hữu ích cho plugin CancelObject Octoprint. Cài đặt này KHÔNG tương thích với thiết lập Đa vật liệu extruder đơn  và Lau vào đối tượng / Lau vào Infill."
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"Bật điều này để thêm chú thích vào G-code gắn nhãn chuyển động in với đối tượng nào chúng thuộc về, hữu ích cho plugin CancelObject Octoprint.\n"
+"\n"
+"Cài đặt này KHÔNG tương thích với thiết lập Đa vật liệu extruder đơn  và Lau vào đối tượng / Lau vào Infill."
 
 msgid "Exclude objects"
 msgstr "Loại trừ đối tượng"
@@ -19200,14 +19559,28 @@ msgstr "Độ lệch tối đa của đường viền vật thể được ghi v
 msgid "Verbose G-code"
 msgstr "G-code chi tiết"
 
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "Bật điều này để có file G-code có chú thích, với mỗi dòng được giải thích bằng văn bản mô tả. Nếu bạn in từ thẻ SD, trọng lượng bổ sung của file có thể làm cho firmware của bạn chậm lại."
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"Bật điều này để có file G-code có chú thích, với mỗi dòng được giải thích bằng văn bản mô tả.\n"
+"\n"
+"Nếu bạn in từ thẻ SD, trọng lượng bổ sung của file có thể làm cho firmware của bạn chậm lại."
 
+# AI Translated
 msgid "High precision G-code (experimental)"
-msgstr ""
+msgstr "G-code độ chính xác cao (thử nghiệm)"
 
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+# AI Translated
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
 msgstr ""
+"Ghi X, Y, Z, I và J với 4 chữ số thập phân thay vì 3, và E với 6 chữ số thay vì 5, để giảm sai số làm tròn trong G-code. Khi dùng khoảng cách E tương đối, sai số làm tròn của mỗi lệnh di chuyển còn được chuyển sang lệnh tiếp theo. Support được gỡ bỏ sau khi in nên vẫn giữ độ chính xác tiêu chuẩn. Tùy chọn này có thể giúp việc đùn ổn định hơn với đầu phun nhỏ (ví dụ 0.2 mm) và lớp mỏng (ví dụ 0.08 mm trở xuống), khi mỗi lần di chuyển chỉ đùn ra rất ít vật liệu nên sai số làm tròn ảnh hưởng nhiều nhất. Hiệu quả phụ thuộc nhiều vào mức độ tinh chỉnh của các cài đặt còn lại và có thể khó nhận thấy nếu hồ sơ in chưa được hiệu chỉnh tốt.\n"
+"\n"
+"File G-code sẽ lớn hơn khoảng 10 phần trăm, điều này có thể làm chậm các máy in phân tích G-code chậm."
 
 msgid "Infill combination"
 msgstr "Kết hợp infill"
@@ -19224,14 +19597,34 @@ msgstr "Tham số này thêm một sự dịch chuyển nhỏ vào mỗi lớp i
 msgid "Sparse infill rotation template"
 msgstr "Mẫu xoay infill thưa"
 
-msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr "Xoay hướng infill thưa mỗi lớp bằng cách sử dụng mẫu góc. Nhập độ ngăn cách bằng dấu phẩy (ví dụ: '0,30,60,90'). Góc được áp dụng theo thứ tự theo lớp và lặp lại khi danh sách kết thúc. Cú pháp nâng cao được hỗ trợ: '+5' xoay +5° mỗi lớp; '+5#5' xoay +5° mỗi 5 lớp. Xem Wiki để biết chi tiết. Khi mẫu được đặt, cài đặt hướng infill tiêu chuẩn bị bỏ qua. Lưu ý: một số mẫu infill (ví dụ: Gyroid) tự điều khiển xoay; sử dụng cẩn thận."
+msgid ""
+"Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends.\n"
+"\n"
+"Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n"
+"\n"
+"When a template is set, the standard infill direction setting is ignored.\n"
+"\n"
+"Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+msgstr ""
+"Xoay hướng infill thưa mỗi lớp bằng cách sử dụng mẫu góc. Nhập độ ngăn cách bằng dấu phẩy (ví dụ: '0,30,60,90'). Góc được áp dụng theo thứ tự theo lớp và lặp lại khi danh sách kết thúc.\n"
+"\n"
+"Cú pháp nâng cao được hỗ trợ: '+5' xoay +5° mỗi lớp; '+5#5' xoay +5° mỗi 5 lớp. Xem Wiki để biết chi tiết.\n"
+"\n"
+"Khi mẫu được đặt, cài đặt hướng infill tiêu chuẩn bị bỏ qua.\n"
+"\n"
+"Lưu ý: một số mẫu infill (ví dụ: Gyroid) tự điều khiển xoay; sử dụng cẩn thận."
 
 msgid "Solid infill rotation template"
 msgstr "Mẫu xoay infill đặc"
 
-msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr "Tham số này thêm xoay hướng infill đặc vào mỗi lớp theo mẫu được chỉ định. Mẫu là danh sách ngăn cách bằng dấu phẩy của các góc tính bằng độ, ví dụ '0,90'. Góc đầu tiên được áp dụng cho lớp đầu tiên, góc thứ hai cho lớp thứ hai, v.v. Nếu có nhiều lớp hơn góc, các góc sẽ được lặp lại. Lưu ý rằng không phải tất cả mẫu infill đặc đều hỗ trợ xoay."
+msgid ""
+"This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated.\n"
+"\n"
+"Note that not all solid infill patterns support rotation."
+msgstr ""
+"Tham số này thêm xoay hướng infill đặc vào mỗi lớp theo mẫu được chỉ định. Mẫu là danh sách ngăn cách bằng dấu phẩy của các góc tính bằng độ, ví dụ '0,90'. Góc đầu tiên được áp dụng cho lớp đầu tiên, góc thứ hai cho lớp thứ hai, v.v. Nếu có nhiều lớp hơn góc, các góc sẽ được lặp lại.\n"
+"\n"
+"Lưu ý rằng không phải tất cả mẫu infill đặc đều hỗ trợ xoay."
 
 msgid "Skeleton infill density"
 msgstr "Mật độ infill khung"
@@ -19978,10 +20371,12 @@ msgstr "Tốc độ tối thiểu cho quạt làm mát phần."
 
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "Tốc độ của quạt làm mát phần phụ. Quạt phụ sẽ chạy ở tốc độ này trong khi in ngoại trừ vài lớp đầu tiên được xác định bởi các lớp không làm mát.\n"
-"Vui lòng bật auxiliary_fan trong cài đặt máy in để sử dụng tính năng này. Lệnh G-code : M106 P2 S(0-255)"
+"Vui lòng bật auxiliary_fan trong cài đặt máy in để sử dụng tính năng này.\n"
+"Lệnh G-code : M106 P2 S(0-255)"
 
 # AI Translated
 msgid "For the first"
@@ -20073,8 +20468,14 @@ msgid "Reduce infill retraction"
 msgstr "Giảm rút infill"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "Không rút khi di chuyển ở vùng infill hoàn toàn. Điều đó có nghĩa là chảy nhựa không thể nhìn thấy. Điều này có thể giảm số lần rút cho model phức tạp và tiết kiệm thời gian in, nhưng làm cho slice và tạo G-code chậm hơn. Lưu ý rằng Z-hop cũng không được thực hiện ở những vùng bỏ qua việc rút."
+msgid ""
+"Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n"
+"\n"
+"Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr ""
+"Không rút khi di chuyển ở vùng infill hoàn toàn. Điều đó có nghĩa là chảy nhựa không thể nhìn thấy. Điều này có thể giảm số lần rút cho model phức tạp và tiết kiệm thời gian in, nhưng làm cho slice và tạo G-code chậm hơn.\n"
+"\n"
+"Lưu ý rằng Z-hop cũng không được thực hiện ở những vùng bỏ qua việc rút."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Tùy chọn này sẽ giảm nhiệt độ của các extruder không hoạt động để ngăn chảy nhựa."
@@ -20526,8 +20927,14 @@ msgstr "Tùy chọn này xác định ngưỡng phần nhô cho ứng dụng đ�
 msgid "Scarf joint speed"
 msgstr "Tốc độ khớp vát"
 
-msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Tùy chọn này đặt tốc độ in cho khớp vát. Khuyến nghị in khớp vát ở tốc độ chậm (ít hơn 100 mm/s). Cũng nên bật 'Làm mịn tốc độ đùn' nếu tốc độ đặt khác đáng kể so với tốc độ của thành ngoài hoặc trong. Nếu tốc độ được chỉ định ở đây cao hơn tốc độ của thành ngoài hoặc trong, máy in sẽ mặc định là tốc độ chậm hơn trong hai tốc độ. Khi được chỉ định dưới dạng phần trăm (ví dụ: 80%), tốc độ được tính dựa trên tốc độ thành ngoài hoặc trong tương ứng. Giá trị mặc định được đặt thành 100%."
+msgid ""
+"This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
+"\n"
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+msgstr ""
+"Tùy chọn này đặt tốc độ in cho khớp vát. Khuyến nghị in khớp vát ở tốc độ chậm (ít hơn 100 mm/s). Cũng nên bật 'Làm mịn tốc độ đùn' nếu tốc độ đặt khác đáng kể so với tốc độ của thành ngoài hoặc trong.\n"
+"\n"
+"Nếu tốc độ được chỉ định ở đây cao hơn tốc độ của thành ngoài hoặc trong, máy in sẽ mặc định là tốc độ chậm hơn trong hai tốc độ. Khi được chỉ định dưới dạng phần trăm (ví dụ: 80%), tốc độ được tính dựa trên tốc độ thành ngoài hoặc trong tương ứng. Giá trị mặc định được đặt thành 100%."
 
 msgid "Scarf joint flow ratio"
 msgstr "Tỷ lệ lưu lượng khớp vát"
@@ -20775,8 +21182,14 @@ msgstr "Tỷ lệ lưu lượng kết thúc xoắn ốc"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Đặt tỷ lệ lưu lượng kết thúc trong khi kết thúc xoắn ốc. Thông thường xoắn ốc chuyển đổi tỷ lệ tỷ lệ lưu lượng từ 100% đến 0% trong vòng cuối cùng có thể  trong một số trường hợp dẫn đến đùn thiếu ở cuối xoắn ốc."
 
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "Nếu chế độ mịn hoặc truyền thống được chọn, video timelapse sẽ được tạo cho mỗi bản in. Sau mỗi lớp được in, ảnh chụp nhanh được chụp bằng camera buồng. Tất cả các ảnh chụp nhanh này được soạn thành video timelapse khi in hoàn thành. Nếu chế độ mịn được chọn, đầu công cụ sẽ di chuyển đến máng dư thừa sau mỗi lớp được in và sau đó chụp ảnh nhanh. Vì filament nóng chảy có thể rò rỉ từ đầu phun trong quá trình chụp ảnh nhanh, prime tower là cần thiết cho chế độ mịn để lau đầu phun."
+msgid ""
+"If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n"
+"\n"
+"If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+msgstr ""
+"Nếu chế độ mịn hoặc truyền thống được chọn, video timelapse sẽ được tạo cho mỗi bản in. Sau mỗi lớp được in, ảnh chụp nhanh được chụp bằng camera buồng. Tất cả các ảnh chụp nhanh này được soạn thành video timelapse khi in hoàn thành.\n"
+"\n"
+"Nếu chế độ mịn được chọn, đầu công cụ sẽ di chuyển đến máng dư thừa sau mỗi lớp được in và sau đó chụp ảnh nhanh. Vì filament nóng chảy có thể rò rỉ từ đầu phun trong quá trình chụp ảnh nhanh, prime tower là cần thiết cho chế độ mịn để lau đầu phun."
 
 msgid "Traditional"
 msgstr "Truyền thống"
@@ -20990,16 +21403,28 @@ msgid "Tool change on wipe tower"
 msgstr "Đổi công cụ trên wipe tower"
 
 # AI Translated
-msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
-msgstr "Buộc đầu công cụ di chuyển đến wipe tower trước khi phát lệnh đổi công cụ (Tx). Chỉ liên quan đến máy in nhiều extruder (nhiều đầu công cụ) dùng wipe tower Loại 2. Theo mặc định, Orca bỏ qua bước di chuyển này trên máy nhiều đầu công cụ vì firmware tự xử lý việc đổi đầu, điều này có thể khiến lệnh Tx được phát ra ngay phía trên phần đang in. Hãy bật tùy chọn này nếu bạn muốn việc đổi công cụ luôn diễn ra phía trên wipe tower."
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+msgstr ""
+"Buộc đầu công cụ di chuyển đến wipe tower trước khi phát lệnh đổi công cụ (Tx).\n"
+"\n"
+"Chỉ liên quan đến máy in nhiều extruder (nhiều đầu công cụ) dùng wipe tower Loại 2. Theo mặc định, Orca bỏ qua bước di chuyển này trên máy nhiều đầu công cụ vì firmware tự xử lý việc đổi đầu, điều này có thể khiến lệnh Tx được phát ra ngay phía trên phần đang in. Hãy bật tùy chọn này nếu bạn muốn việc đổi công cụ luôn diễn ra phía trên wipe tower."
 
 # AI Translated
 msgid "Wait for temperature on wipe tower"
 msgstr "Chờ nhiệt độ tại wipe tower"
 
 # AI Translated
-msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr "Lấy công cụ mới mà không chờ nó đạt nhiệt độ in, di chuyển đến wipe tower và chờ nhiệt độ tại đó, ngay trước khi xả. Nhựa chảy ra trong lúc gia nhiệt sẽ rơi lên wipe tower thay vì lên mô hình, và quãng di chuyển diễn ra đồng thời với quá trình gia nhiệt. Chỉ áp dụng cho máy in nhiều extruder (nhiều đầu công cụ) dùng wipe tower loại 2. Firmware hoặc macro đổi công cụ không được tự chờ nhiệt độ. Khi tắt, lệnh chờ nhiệt độ sẽ được phát ngay sau lệnh đổi công cụ."
+msgid ""
+"Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating.\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
+"Lấy công cụ mới mà không chờ nó đạt nhiệt độ in, di chuyển đến wipe tower và chờ nhiệt độ tại đó, ngay trước khi xả. Nhựa chảy ra trong lúc gia nhiệt sẽ rơi lên wipe tower thay vì lên mô hình, và quãng di chuyển diễn ra đồng thời với quá trình gia nhiệt.\n"
+"\n"
+"Chỉ áp dụng cho máy in nhiều extruder (nhiều đầu công cụ) dùng wipe tower loại 2. Firmware hoặc macro đổi công cụ không được tự chờ nhiệt độ. Khi tắt, lệnh chờ nhiệt độ sẽ được phát ngay sau lệnh đổi công cụ."
 
 msgid "No sparse layers (beta)"
 msgstr "Không có lớp thưa (beta)"
@@ -21297,10 +21722,16 @@ msgid "This is the speed for support."
 msgstr "Tốc độ của support."
 
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"Kiểu dáng và hình dạng của support. Đối với support thông thường, chiếu support vào lưới đều sẽ tạo support ổn định hơn (mặc định), trong khi tháp support khít sẽ tiết kiệm vật liệu và giảm vết sẹo đối tượng.\n"
+"Kiểu dáng và hình dạng của support.\n"
+"\n"
+"Đối với support thông thường, chiếu support vào lưới đều sẽ tạo support ổn định hơn (mặc định), trong khi tháp support khít sẽ tiết kiệm vật liệu và giảm vết sẹo đối tượng.\n"
+"\n"
 "Đối với support cây, kiểu mảnh và hữu cơ sẽ hợp nhất nhánh tích cực hơn và tiết kiệm nhiều vật liệu (mặc định hữu cơ), trong khi kiểu hybrid sẽ tạo cấu trúc tương tự support thông thường dưới phần nhô phẳng lớn."
 
 msgid "Default (Grid/Organic)"
@@ -21332,9 +21763,11 @@ msgstr "Góc ngưỡng"
 
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
 "Hỗ trợ sẽ được tạo cho các phần nhô có góc dốc thấp hơn ngưỡng.Giá trị này càng nhỏ, phần nhô có thể in không cần hỗ trợ càng dốc.\n"
+"\n"
 "Lưu ý: Nếu đặt thành 0, hỗ trợ thường sẽ dùng Chồng lấp ngưỡng thay thế, còn hỗ trợ dạng cây sẽ quay về giá trị mặc định là 30."
 
 msgid "Threshold overlap"
@@ -21382,16 +21815,6 @@ msgstr "Trục nghiêng băng chuyền"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Trục mà lưới được xoay quanh trước khi slice. Đây là độ nghiêng của máy in băng chuyền: một phép xoay đẳng cự (không biến dạng), đồng thời điều khiển việc hiển thị bàn in và độ nghiêng trọng lực cho support, và được phép biến đổi ngược G-code đảo lại trước bước trượt/co giãn và ánh xạ lại của hệ tọa độ máy. X là độ nghiêng giàn trục thông thường (băng chuyền chạy dọc theo Y)."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -21597,13 +22020,11 @@ msgid "Activate temperature control"
 msgstr "Kích hoạt điều khiển nhiệt độ"
 
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"Bật tùy chọn này để điều khiển nhiệt độ buồng tự động. Tùy chọn này kích hoạt việc phát lệnh M191 trước \"machine_start_gcode\"\n"
-" để đặt nhiệt độ buồng và chờ cho đến khi đạt được. Ngoài ra, nó phát lệnh M141 ở cuối bản in để tắt bộ sưởi buồng, nếu có.\n"
+"Bật tùy chọn này để điều khiển nhiệt độ buồng tự động. Tùy chọn này kích hoạt việc phát lệnh M191 trước \"machine_start_gcode\" để đặt nhiệt độ buồng và chờ cho đến khi đạt được. Ngoài ra, nó phát lệnh M141 ở cuối bản in để tắt bộ sưởi buồng, nếu có.\n"
 "\n"
 "Tùy chọn này dựa vào firmware hỗ trợ lệnh M191 và M141 thông qua macro hoặc gốc và thường được sử dụng khi bộ sưởi buồng hoạt động được cài đặt."
 
@@ -21612,25 +22033,31 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "Đối với vật liệu nhiệt độ cao như ABS, ASA, PC và PA, nhiệt độ buồng cao hơn có thể giúp ngăn chặn hoặc giảm cong vênh và có khả năng dẫn đến độ bền liên kết giữa các lớp cao hơn. Tuy nhiên, đồng thời, nhiệt độ buồng cao hơn sẽ giảm hiệu quả lọc không khí cho ABS và ASA.\n"
 "\n"
 "Đối với PLA, PETG, TPU, PVA và các vật liệu nhiệt độ thấp khác, tùy chọn này nên được tắt (đặt thành 0) vì nhiệt độ buồng nên thấp để tránh tắc extruder do vật liệu làm mềm ở heat break.\n"
 "\n"
-"Nếu được bật, tham số này cũng đặt biến G-code có tên chamber_temperature, có thể được sử dụng để truyền nhiệt độ buồng mong muốn cho macro bắt đầu in của bạn, hoặc macro ngâm nhiệt như thế này: PRINT_START (các biến khác) CHAMBER_TEMP=[chamber_temperature]. Điều này có thể hữu ích nếu máy in của bạn không hỗ trợ lệnh M141/M191, hoặc nếu bạn muốn xử lý ngâm nhiệt trong macro bắt đầu in nếu không có bộ sưởi buồng hoạt động được cài đặt."
+"Nếu được bật, tham số này cũng đặt biến G-code có tên chamber_temperature, có thể được sử dụng để truyền nhiệt độ buồng mong muốn cho macro bắt đầu in của bạn, hoặc macro ngâm nhiệt như thế này:\n"
+"PRINT_START (các biến khác) CHAMBER_TEMP=[chamber_temperature]\n"
+"Điều này có thể hữu ích nếu máy in của bạn không hỗ trợ lệnh M141/M191, hoặc nếu bạn muốn xử lý ngâm nhiệt trong macro bắt đầu in nếu không có bộ sưởi buồng hoạt động được cài đặt."
 
 # AI Translated
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
-"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this:\n"
+"PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
 "Đây là nhiệt độ buồng mà tại đó quá trình in sẽ bắt đầu, trong khi buồng vẫn tiếp tục gia nhiệt tới nhiệt độ buồng \"Mục tiêu\". Ví dụ, đặt Mục tiêu là 60 và Tối thiểu là 50 để bắt đầu in ngay khi buồng đạt 50℃, không phải chờ đủ 60℃.\n"
 "\n"
-"Nó đặt một biến G-code tên là chamber_minimal_temperature, có thể truyền vào macro bắt đầu in hoặc macro ngâm nhiệt của bạn, ví dụ: PRINT_START (các biến khác) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"Nó đặt một biến G-code tên là chamber_minimal_temperature, có thể truyền vào macro bắt đầu in hoặc macro ngâm nhiệt của bạn, ví dụ:\n"
+"PRINT_START (các biến khác) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Khác với nhiệt độ buồng \"Mục tiêu\", tùy chọn này không phát ra bất kỳ lệnh M141/M191 nào; nó chỉ cung cấp giá trị cho G-code tùy chỉnh của bạn. Nó không được vượt quá nhiệt độ buồng \"Mục tiêu\"."
 
@@ -22067,8 +22494,18 @@ msgstr "Khi chuyển đổi giữa số lượng thành khác nhau khi phần tr
 msgid "Wall transitioning filter margin"
 msgstr "Lề lọc chuyển đổi thành"
 
-msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
-msgstr "Ngăn chuyển đổi qua lại giữa một thành bổ sung và một ít hơn. Lề này mở rộng phạm vi độ rộng đùn sau đó thành [Độ rộng thành tối thiểu - lề, 2 * Độ rộng thành tối thiểu + lề]. Tăng lề này giảm số lượng chuyển đổi, giảm số lần bắt đầu/dừng đùn và thời gian di chuyển. Tuy nhiên, sự thay đổi độ rộng đùn lớn có thể dẫn đến vấn đề đùn thiếu hoặc dư. Nó được biểu thị dưới dạng phần trăm trên đường kính đầu phun."
+msgid ""
+"Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin].\n"
+"\n"
+"Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems.\n"
+"\n"
+"It's expressed as a percentage over nozzle diameter."
+msgstr ""
+"Ngăn chuyển đổi qua lại giữa một thành bổ sung và một ít hơn. Lề này mở rộng phạm vi độ rộng đùn sau đó thành [Độ rộng thành tối thiểu - lề, 2 * Độ rộng thành tối thiểu + lề].\n"
+"\n"
+"Tăng lề này giảm số lượng chuyển đổi, giảm số lần bắt đầu/dừng đùn và thời gian di chuyển. Tuy nhiên, sự thay đổi độ rộng đùn lớn có thể dẫn đến vấn đề đùn thiếu hoặc dư.\n"
+"\n"
+"Nó được biểu thị dưới dạng phần trăm trên đường kính đầu phun."
 
 msgid "Wall transitioning threshold angle"
 msgstr "Góc ngưỡng chuyển đổi thành"
@@ -22162,8 +22599,14 @@ msgid "The maximum volumetric speed for ramming before extruder change, where -1
 msgstr "Tốc độ thể tích tối đa khi ramming trước lúc đổi extruder, trong đó -1 nghĩa là dùng tốc độ thể tích tối đa."
 
 # AI Translated
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "Để tránh chảy nhựa, nhiệt độ đầu phun sẽ được hạ xuống trong lúc ramming. Lưu ý: chỉ có lệnh hạ nhiệt và kích hoạt quạt được phát ra, không đảm bảo đạt được nhiệt độ mục tiêu. 0 nghĩa là tắt."
+msgid ""
+"To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n"
+"\n"
+"Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed."
+msgstr ""
+"Để tránh chảy nhựa, nhiệt độ đầu phun sẽ được hạ xuống trong lúc ramming. 0 nghĩa là tắt.\n"
+"\n"
+"Lưu ý: chỉ có lệnh hạ nhiệt và kích hoạt quạt được phát ra, không đảm bảo đạt được nhiệt độ mục tiêu."
 
 # AI Translated
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
@@ -22778,6 +23221,14 @@ msgstr "Thời gian in ước tính khi in ở chế độ thường (tức là 
 # AI Translated
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "Thời gian in ước tính khi in ở chế độ thường (tức là không ở chế độ yên tĩnh). Giống với normal_print_time."
+
+# AI Translated
+msgid "Used filament types"
+msgstr "Các loại filament đã dùng"
+
+# AI Translated
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr "Danh sách tất cả loại filament được dùng trong bản in, phân tách bằng dấu gạch dưới."
 
 # AI Translated
 msgid "Print time (silent mode)"
@@ -24521,6 +24972,10 @@ msgstr ""
 "- Vật liệu có thể chia sẻ cùng nhiệt độ bàn nóng\n"
 "- Thương hiệu và họ filament khác nhau (Thương hiệu = Bambu, Họ = Cơ bản, Mờ)"
 
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "Đường"
+
 msgid "Pattern"
 msgstr "Mẫu"
 
@@ -24661,11 +25116,11 @@ msgstr "Tự động chia tỷ lệ theo đầu phun"
 
 # AI Translated
 msgid ""
-"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
-"Mô hình này được thiết kế cho đầu phun 0.4 mm với chiều cao lớp 0.2 mm. \n"
+"Mô hình này được thiết kế cho đầu phun 0.4 mm với chiều cao lớp 0.2 mm.\n"
 "Khi bật tùy chọn chia tỷ lệ (khuyến nghị), mô hình sẽ tự động thay đổi kích thước cho khớp với đường kính đầu phun hiện tại và một chiều cao lớp phù hợp, giúp bài kiểm tra vừa chính xác vừa dễ đọc.\n"
 "Chỉ tắt chia tỷ lệ nếu bạn muốn in mô hình tham chiếu đúng nguyên trạng."
 
@@ -24844,12 +25299,12 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
-" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
 "\n"
 "%s"
 msgstr ""
 "Tốc độ kết thúc (%.0f mm/s) vượt quá tốc độ thể tích tối đa của filament (%.1f mm³/s), khiến thành ngoài bị giới hạn ở khoảng %.0f mm/s với độ rộng đường và chiều cao lớp hiện tại.\n"
-" Các tốc độ cao hơn mức này sẽ bị cắt bớt, nên những khối phía trên của tháp sẽ không in ở tốc độ yêu cầu.\n"
+"Các tốc độ cao hơn mức này sẽ bị cắt bớt, nên những khối phía trên của tháp sẽ không in ở tốc độ yêu cầu.\n"
 "\n"
 "%s"
 
@@ -25525,13 +25980,11 @@ msgstr "Bạn đã nhập ký tự không được phép trong phần vùng có 
 
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
+"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "Cài đặt sẵn máy in bạn đã tạo đã có cài đặt sẵn với cùng tên. Bạn có muốn ghi đè nó không?\n"
-"\tCó: Ghi đè cài đặt sẵn máy in với cùng tên, và cài đặt sẵn filament và quy trình với cùng tên cài đặt sẵn sẽ được tạo lại \n"
-"và cài đặt sẵn filament và quy trình không có cùng tên cài đặt sẵn sẽ được giữ lại.\n"
+"\tCó: Ghi đè cài đặt sẵn máy in với cùng tên, và cài đặt sẵn filament và quy trình với cùng tên cài đặt sẵn sẽ được tạo lại và cài đặt sẵn filament và quy trình không có cùng tên cài đặt sẵn sẽ được giữ lại.\n"
 "\tHủy: Không tạo cài đặt sẵn, quay lại giao diện tạo."
 
 msgid "You need to select at least one filament preset."
@@ -25573,10 +26026,10 @@ msgstr "Đường kính đầu phun đã nhập không hợp lệ, vui lòng nh�
 
 # AI Translated
 msgid ""
-"The system preset does not allow creation. \n"
+"The system preset does not allow creation.\n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
-"Cài đặt sẵn hệ thống không cho phép tạo mới. \n"
+"Cài đặt sẵn hệ thống không cho phép tạo mới.\n"
 "Vui lòng nhập lại mẫu máy in hoặc đường kính đầu phun."
 
 # AI Translated
@@ -25714,17 +26167,17 @@ msgid "Only printer names with user printer presets will be displayed, and each 
 msgstr "Chỉ tên máy in có cài đặt sẵn máy in người dùng sẽ được hiển thị, và mỗi cài đặt sẵn bạn chọn sẽ được xuất dưới dạng zip."
 
 msgid ""
-"Only the filament names with user filament presets will be displayed, \n"
+"Only the filament names with user filament presets will be displayed,\n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
-"Chỉ tên filament có cài đặt sẵn filament người dùng sẽ được hiển thị, \n"
+"Chỉ tên filament có cài đặt sẵn filament người dùng sẽ được hiển thị,\n"
 "và tất cả cài đặt sẵn filament người dùng trong mỗi tên filament bạn chọn sẽ được xuất dưới dạng zip."
 
 msgid ""
-"Only printer names with changed process presets will be displayed, \n"
+"Only printer names with changed process presets will be displayed,\n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
-"Chỉ tên máy in có cài đặt sẵn quy trình đã thay đổi sẽ được hiển thị, \n"
+"Chỉ tên máy in có cài đặt sẵn quy trình đã thay đổi sẽ được hiển thị,\n"
 "và tất cả cài đặt sẵn quy trình người dùng trong mỗi tên máy in bạn chọn sẽ được xuất dưới dạng zip."
 
 msgid "Please select at least one printer or filament."
@@ -27063,10 +27516,6 @@ msgstr "Số mặt tam giác"
 # AI Translated
 msgid "Calculating, please wait..."
 msgstr "Đang tính toán, vui lòng đợi..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "Lưu các cài đặt này làm mặc định"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -31013,10 +31462,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Hai đường thẳng đó không gặp nhau tại một góc — hãy chọn hai đường thẳng có gặp nhau"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "Kích thước phải lớn hơn không"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Bo tròn: bán kính vượt quá độ dài một cạnh của góc, hoặc hai đường thẳng không gặp nhau tại một góc"
 
@@ -31088,21 +31533,43 @@ msgstr "Nhập một số"
 msgid "Not a number"
 msgstr "Không phải là số"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "Tạo"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "Thêm vật liệu"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "Xóa"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "Bo tròn / vát cạnh / thoát khuôn"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "Lặp lại"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "Biến đổi"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "Tham chiếu"
+
+# AI Translated
+msgctxt "Design"
+msgid "Modify"
+msgstr "Sửa đổi"
 
 # AI Translated
 msgctxt "Design"
@@ -31436,6 +31903,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "Hình chữ nhật theo góc"
 
+msgctxt "Design"
+msgid "Rectangle"
+msgstr "Hình chữ nhật"
+
 # AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
@@ -31456,6 +31927,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "Đường tròn theo tâm"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "Hình tròn"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -31470,6 +31945,11 @@ msgstr "Đường tròn 3 điểm"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "Cung 3 điểm"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "Cung"
 
 # AI Translated
 msgctxt "Design"
@@ -31510,6 +31990,11 @@ msgstr "Spline"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "Tam giác"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "Đa giác"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -31617,6 +32102,7 @@ msgid "Linear array"
 msgstr "Mảng tuyến tính"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "Mảng"
 
@@ -31927,6 +32413,46 @@ msgstr "Chuyển đổi giữa Chuẩn bị/Xem trước"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Thu gọn/Mở rộng thanh bên"
+
+# AI Translated
+msgid "Go to the Home tab"
+msgstr "Chuyển đến tab Trang chủ"
+
+# AI Translated
+msgid "Go to the Design tab"
+msgstr "Chuyển đến tab Thiết kế"
+
+# AI Translated
+msgid "Go to the Prepare tab"
+msgstr "Chuyển đến tab Chuẩn bị"
+
+# AI Translated
+msgid "Go to the Preview tab"
+msgstr "Chuyển đến tab Xem trước"
+
+# AI Translated
+msgid "Go to the Device tab"
+msgstr "Chuyển đến tab Thiết bị"
+
+# AI Translated
+msgid "Go to the Multi-device tab"
+msgstr "Chuyển đến tab Nhiều thiết bị"
+
+# AI Translated
+msgid "Go to the Project tab"
+msgstr "Chuyển đến tab Dự án"
+
+# AI Translated
+msgid "Go to the Calibration tab"
+msgstr "Chuyển đến tab Hiệu chỉnh"
+
+# AI Translated
+msgid "Switch to the next tab"
+msgstr "Chuyển sang tab tiếp theo"
+
+# AI Translated
+msgid "Switch to the previous tab"
+msgstr "Chuyển sang tab trước"
 
 # AI Translated
 msgid "Reload the device page"
@@ -32912,8 +33438,9 @@ msgstr "Lưu màu hiện tại"
 msgid "Palettes"
 msgstr "Bảng màu"
 
+# AI Translated
 msgid "Pick color from screen"
-msgstr ""
+msgstr "Chọn màu từ màn hình"
 
 # AI Translated
 msgid "Search colors"
@@ -34606,10 +35133,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Đặt hình dạng bàn in của máy in."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Giá trị số không hợp lệ."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Đường kính filament và đầu phun"
 
@@ -34838,6 +35361,71 @@ msgstr "Wiki->"
 # AI Translated
 msgid "Note:"
 msgstr "Lưu ý:"
+
+# AI Translated
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr "• %1%: %2%"
+
+# AI Translated
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr "• %1% — %2%: %3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Các cài đặt sau tham chiếu đến plugin mà Orca Slicer không nhận dạng được trên máy tính này:\n"
+"\n"
+"%1%\n"
+"\n"
+"Nếu vẫn lưu, cài đặt sẵn sẽ không giữ tham chiếu plugin cho các cài đặt này. Trên máy tính khác, Orca Slicer sẽ không biết cần đề xuất plugin nào, và các cài đặt có thể không hoạt động ở đó."
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Các cài đặt sau tham chiếu đến plugin mà Orca Slicer không nhận dạng được trên máy tính này:\n"
+"\n"
+"%1%\n"
+"\n"
+"Nếu vẫn lưu, dự án sẽ không giữ tham chiếu plugin cho các cài đặt này. Trên máy tính khác, Orca Slicer sẽ không biết cần đề xuất plugin nào, và các cài đặt có thể không hoạt động ở đó."
+
+# AI Translated
+msgid "Plugin Not Identified"
+msgstr "Không nhận dạng được plugin"
+
+# AI Translated
+msgid "Save anyway"
+msgstr "Vẫn lưu"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Các cài đặt sẵn đang được lưu tham chiếu đến plugin mà Orca Slicer không nhận dạng được trên máy tính này:\n"
+"\n"
+"%1%\n"
+"\n"
+"Nếu vẫn lưu, các cài đặt sẵn sẽ không giữ tham chiếu plugin cho các cài đặt này. Trên máy tính khác, Orca Slicer sẽ không biết cần đề xuất plugin nào, và các cài đặt có thể không hoạt động ở đó."
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -35628,6 +36216,10 @@ msgstr "Lặp lại kết cấu trên khắp vùng đã vẽ. Tắt thì đặt 
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "Bật Xếp ô để chọn cách kết cấu lặp lại."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Lặp lại"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -37374,6 +37966,10 @@ msgid "Forward"
 msgstr "Tiến"
 
 # AI Translated
+msgid "Tools"
+msgstr "Công cụ"
+
+# AI Translated
 msgid "View Source"
 msgstr "Xem mã nguồn"
 
@@ -37559,6 +38155,7 @@ msgstr[0] ""
 "Plugin \"%s\" đang yêu cầu xóa file sau:\n"
 "%s"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -37566,7 +38163,12 @@ msgid ""
 "\n"
 "Approval covers HTTP or HTTPS access and raw network connections to the listed hosts. It does not restrict ports. A URL with a path, query or port is covered only for that exact URL."
 msgstr ""
+"Plugin \"%s\" đang yêu cầu truy cập mạng đến:\n"
+"%s\n"
+"\n"
+"Quyền được cấp áp dụng cho truy cập HTTP hoặc HTTPS và các kết nối mạng thô đến các máy chủ được liệt kê. Quyền này không giới hạn cổng. Với URL có đường dẫn, truy vấn hoặc cổng, quyền chỉ áp dụng cho đúng URL đó."
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -37574,6 +38176,10 @@ msgid ""
 "\n"
 "Approval covers raw network connections to the listed hosts. It does not restrict ports."
 msgstr ""
+"Plugin \"%s\" đang yêu cầu truy cập mạng đến:\n"
+"%s\n"
+"\n"
+"Quyền được cấp áp dụng cho các kết nối mạng thô đến các máy chủ được liệt kê. Quyền này không giới hạn cổng."
 
 # AI Translated
 #, c-format, boost-format
