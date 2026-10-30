@@ -12,21 +12,9 @@
 		"Direct Drive Standard",
 		"Direct Drive High Flow"
 	],
-	"filament_flush_temp_fast": [
-		"0",
-		"0"
-	],
 	"filament_max_volumetric_speed": [
 		"1",
 		"1"
-	],
-	"filament_preheat_temperature_delta": [
-		"10",
-		"10"
-	],
-	"filament_retract_length_nc": [
-		"14",
-		"14"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"

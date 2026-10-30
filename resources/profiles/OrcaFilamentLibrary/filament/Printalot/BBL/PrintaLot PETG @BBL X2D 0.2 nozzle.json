@@ -26,18 +26,6 @@
 		"1",
 		"1"
 	],
-	"filament_preheat_temperature_delta": [
-		"10",
-		"10",
-		"10",
-		"10"
-	],
-	"filament_retract_length_nc": [
-		"14",
-		"14",
-		"14",
-		"14"
-	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"
 	],

@@ -69,15 +69,6 @@
 	"filament_max_volumetric_speed": [
 		"17"
 	],
-	"filament_multitool_ramming": [
-		"0"
-	],
-	"filament_multitool_ramming_flow": [
-		"10"
-	],
-	"filament_multitool_ramming_volume": [
-		"10"
-	],
 	"filament_notes": [
 		"PrintaLot PETG, 1.75 mm."
 	],
@@ -104,8 +95,5 @@
 	],
 	"slow_down_layer_time": [
 		"12"
-	],
-	"volumetric_speed_coefficients": [
-		"0 0 0 0 0 0"
 	]
 }

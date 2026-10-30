@@ -19,11 +19,6 @@
 		"Direct Drive High Flow",
 		"Direct Drive E3D High Flow"
 	],
-	"filament_flush_temp_fast": [
-		"0",
-		"0",
-		"0"
-	],
 	"filament_max_volumetric_speed": [
 		"17",
 		"17",

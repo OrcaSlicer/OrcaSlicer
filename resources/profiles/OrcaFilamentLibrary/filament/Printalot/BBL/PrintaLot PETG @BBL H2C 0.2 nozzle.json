@@ -18,10 +18,6 @@
 		"Direct Drive Standard",
 		"Direct Drive High Flow"
 	],
-	"filament_flush_temp_fast": [
-		"0",
-		"0"
-	],
 	"filament_max_volumetric_speed": [
 		"1",
 		"1"
