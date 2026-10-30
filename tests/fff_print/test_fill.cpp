@@ -1382,7 +1382,7 @@ TEST_CASE("Gyroid infill of an object matches the infill of a larger object with
     // Marching squares simplifies rings that start elsewhere in each object.
     const double tolerance = optimized ? SPARSE_INFILL_RESOLUTION + 0.01 : 0.01;
     // Half a z period of the waves, through both switches between horizontal and vertical waves.
-    const double wave_distance = spacing * multiline / (density * FillTpms::GyroidDensityAdjust);
+    const double wave_distance = spacing * multiline * FillTpms::GyroidPeriodFactor / (2. * M_PI * density);
     for (int step = 0; step <= 8; ++step) {
         const double z = wave_distance * M_PI * step / 8.;
         CAPTURE(z);

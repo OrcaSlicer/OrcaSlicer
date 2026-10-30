@@ -482,10 +482,9 @@ struct FillTpms::Surface
 {
     InfillPattern type;
     float (*equation)(float x, float y, float z);
-    // Radians per mm of single lines one spacing apart at full density, calibrated so the same density prints the same
-    // line length; 2 PI over the period factor of TPMS-FK and the surfaces calibrated against it. The density is capped
-    // at max_density.
-    double density_adjust;
+    // Period at full density in line spacings, calibrated so that a density prints that share of the volume. The period
+    // scales with the multiline count over the density, which is capped at max_density.
+    double period_factor;
     float  max_density;
     // Cells smaller than Fischer-Koch's, traced on a grid of up to a 32nd of their period instead of TpmsGridCell.
     bool small_cells;
@@ -496,17 +495,17 @@ struct FillTpms::Surface
     Polylines (*parametric)(const TpmsLayer &layer);
 };
 
-// Each calibration but Gyroid's makes a cube of infill alone weigh its density; see docs/HLSD/tpms-infill.md.
+// Each period factor but Gyroid's makes a cube of infill alone weigh its density; see docs/HLSD/tpms-infill.md.
 static const FillTpms::Surface surfaces[] = {
-    {ipGyroid, gyroid, FillTpms::GyroidDensityAdjust, 1.f, false, true, gyroid_waves},
-    {ipTpmsD, schwarz_d, 2.081, 1.f, false, true, tpms_d_waves},
-    {ipTpmsFK, fischer_koch, 2. * PI / 4.225, 0.9f, true, false, nullptr},
-    {ipTpmsP, schwarz_p, 2. * PI / 1.840, 0.9f, true, false, tpms_p_rings},
-    {ipTpmsIWP, schoen_iwp, 2. * PI / 2.731, 0.9f, true, false, nullptr},
-    {ipTpmsNeovius, neovius, 2. * PI / 2.660, 0.9f, true, false, nullptr},
-    {ipTpmsFRD, schoen_frd, 2. * PI / 3.680, 0.9f, true, false, nullptr},
-    {ipTpmsLidinoid, lidinoid, 2. * PI / 4.828, 0.9f, true, false, nullptr},
-    {ipTpmsSplitP, split_p, 2. * PI / 3.965, 0.9f, true, false, nullptr},
+    {ipGyroid, gyroid, FillTpms::GyroidPeriodFactor, 1.f, false, true, gyroid_waves},
+    {ipTpmsD, schwarz_d, 3.019, 1.f, false, true, tpms_d_waves},
+    {ipTpmsFK, fischer_koch, 4.225, 0.9f, true, false, nullptr},
+    {ipTpmsP, schwarz_p, 1.840, 0.9f, true, false, tpms_p_rings},
+    {ipTpmsIWP, schoen_iwp, 2.731, 0.9f, true, false, nullptr},
+    {ipTpmsNeovius, neovius, 2.660, 0.9f, true, false, nullptr},
+    {ipTpmsFRD, schoen_frd, 3.680, 0.9f, true, false, nullptr},
+    {ipTpmsLidinoid, lidinoid, 4.828, 0.9f, true, false, nullptr},
+    {ipTpmsSplitP, split_p, 3.965, 0.9f, true, false, nullptr},
 };
 
 FillTpms::FillTpms(InfillPattern pattern)
@@ -535,9 +534,11 @@ void FillTpms::_fill_surface_single(const FillParams&              params,
     if (std::abs(infill_angle) >= EPSILON)
         expolygon.rotate(-infill_angle);
 
+    // Radians per spacing of single lines at full density.
+    const double density_adjust = 2. * PI / surface.period_factor;
     // Radians per mm of the regular pattern at a density.
-    auto frequency = [&params, &surface, this](double density) {
-        return std::min(density, double(surface.max_density)) * surface.density_adjust / (params.multiline * this->spacing);
+    auto frequency = [&params, &surface, density_adjust, this](double density) {
+        return std::min(density, double(surface.max_density)) * density_adjust / (params.multiline * this->spacing);
     };
     const BoundingBox bbox = expolygon.contour.bounding_box();
     // Enlarge the bounding box by the multi-line width to avoid artifacts at the edges.
@@ -548,7 +549,7 @@ void FillTpms::_fill_surface_single(const FillParams&              params,
         polylines = make_adaptive_tpms({tpms, frequency(params.density), frequency(params.adaptive_infill_interior_density), params.adaptive_infill_gradient},
                                        *this->adaptive_infill_field, margin_bbox, this->z, params.layer_height, this->spacing, infill_angle);
     } else {
-        const double density_adjusted = std::max(0., double(std::min(params.density, surface.max_density)) * surface.density_adjust / params.multiline);
+        const double density_adjusted = std::max(0., double(std::min(params.density, surface.max_density)) * density_adjust / params.multiline);
         const double layer_frequency  = frequency(params.density);
         // Fill.cpp sets gyroid_optimized for Gyroid only.
         if (surface.parametric != nullptr && tpms.regular_layers() && !params.gyroid_optimized) {

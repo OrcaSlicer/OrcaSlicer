@@ -839,7 +839,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("infill_combination_max_layer_height", have_combined_infill, -1, _L("Enable infill combination and use nonzero sparse infill density to show this setting."));
 
     // Infill patterns that support multiline infill.
-    bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipTpmsP || pattern == ipTpmsIWP || pattern == ipTpmsNeovius || pattern == ipTpmsFRD || pattern == ipTpmsLidinoid || pattern == ipTpmsSplitP || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
+    bool          have_multiline_infill_pattern = is_tpms_infill_pattern(pattern) || pattern == ipGrid || pattern == ipRectilinear || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
                                                   pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic|| pattern == ipTriangles || pattern == ipQuarterCubic|| pattern == ipArchimedeanChords || pattern == ipHilbertCurve || pattern == ipOctagramSpiral;
 
     // The sparse infill density is the surface density of the adaptive infill; at 100% the infill is solid.

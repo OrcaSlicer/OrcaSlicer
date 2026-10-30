@@ -7,6 +7,7 @@
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r {
 class Point;
@@ -28,8 +29,8 @@ public:
     // speed in default configuration (degrees)
     static constexpr float CorrectionAngle = -45.;
 
-    // Density adjustment of Gyroid to have a good %of weight.
-    static constexpr double GyroidDensityAdjust = 2.44;
+    // Period factor of Gyroid, from the density adjustment of 2.44 it is calibrated with.
+    static constexpr double GyroidPeriodFactor = 2. * PI / 2.44;
 
     struct Surface;
 
