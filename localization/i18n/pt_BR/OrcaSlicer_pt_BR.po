@@ -903,7 +903,7 @@ msgid ""
 msgstr ""
 "Clique para virar o plano de corte\n"
 "Arraste para mover o plano de corte\n"
-"clique o botão direito em uma peça para atribuí-la ao outro lado"
+"Clique o botão direito em uma peça para atribuí-la ao outro lado"
 
 msgid "Move cut plane"
 msgstr "Mover plano de corte"
@@ -8905,7 +8905,7 @@ msgstr "A taxa de fluxo do processo não pode ser editada neste painel."
 
 # AI Translated
 msgid "Each mode names the tool heads that take part and the role each one plays. Click a tool button to cycle its role — hover a color below for what each role does."
-msgstr "Cada modo indica as cabeçotes que participam e a função de cada um. Clique no botão de uma ferramenta para alternar sua função — passe o mouse sobre uma cor abaixo para ver o que cada função faz."
+msgstr "Cada modo indica os cabeçotes que participam e a função de cada um. Clique no botão de uma ferramenta para alternar sua função — passe o mouse sobre uma cor abaixo para ver o que cada função faz."
 
 msgid "Add Mode"
 msgstr "Adicionar Modo"
@@ -8923,7 +8923,7 @@ msgstr "Como o modo é identificado no seletor de modo IDEX/IQEX da placa. Obrig
 
 # AI Translated
 msgid "Which tool heads take part in the mode and what role each one plays. Click a tile to cycle its role."
-msgstr "Quais cabeçotes de impressão participam do modo e qual função cada uma desempenha. Clique em um bloco para alternar sua função."
+msgstr "Quais cabeçotes de impressão participam do modo e qual função cada um desempenha. Clique em um bloco para alternar sua função."
 
 # AI Translated
 msgid ""
@@ -9481,7 +9481,7 @@ msgid "Cannot slice: an object overlaps an area reserved for IDEX/IQEX parallel 
 msgstr "Não é possível fatiar: um objeto sobrepõe uma área reservada para a impressão paralela IDEX/IQEX (uma zona secundária ou uma faixa reservada do carro dentro da zona principal)."
 
 msgid "Cannot slice: the prime tower overlaps an area reserved for IDEX/IQEX parallel printing (a secondary zone, or a carriage clearance strip inside the primary zone)."
-msgstr "Não é possível fatiar: a torre de purga sobrepõe uma área reservada para a impressão paralela IDEX/IQEX (uma zona secundária ou uma faixa rteservada do carro dentro da zona principal)."
+msgstr "Não é possível fatiar: a torre de purga sobrepõe uma área reservada para a impressão paralela IDEX/IQEX (uma zona secundária ou uma faixa reservada do carro dentro da zona principal)."
 
 msgid "Another export job is running."
 msgstr "Outro trabalho de exportação está em execução."
@@ -10041,7 +10041,7 @@ msgid ""
 "Add an extruder in the Machine tab so this head has a filament slot."
 msgstr ""
 "T%1% — nenhum filamento direcionado\n"
-"Adicione uma extrusora na aba Máquina para que esto cabeçote tenha um espaço de filamento."
+"Adicione uma extrusora na aba Máquina para que este cabeçote tenha um espaço de filamento."
 
 #. TRN IDEX/IQEX ghost tooltip. %1% is the number of the physical print head, %2% the filament it prints.
 #, boost-format
@@ -14453,7 +14453,7 @@ msgstr "O modo IDEX/IQEX ativo não define uma ferramenta principal, então a im
 
 # AI Translated
 msgid "Multi-color in this mode isn't a parallel-print scenario — all of the active tools sit on a single gantry, so there's no second gantry being copied or mirrored to. Switch the plate to Primary mode for multi-color printing on a single gantry, or define an IDEX/IQEX mode that includes tools on a second gantry."
-msgstr "A impressão multicolorida neste modo não é um cenário de impressão paralela — todas as ferramentas ativas estão em uma única ponte, então não há uma segunda ponte para o qual copiar ou espelhar. Mude a placa para o modo Principal para impressão multicolorida em uma única ponte ou defina um modo IDEX/IQEX que inclua ferramentas em uma segunda ponte."
+msgstr "A impressão multicolorida neste modo não é um cenário de impressão paralela — todas as ferramentas ativas estão em uma única ponte, então não há uma segunda ponte para a qual copiar ou espelhar. Mude a placa para o modo Principal para impressão multicolorida em uma única ponte ou defina um modo IDEX/IQEX que inclua ferramentas em uma segunda ponte."
 
 # AI Translated
 msgid "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the primary's gantry — without one, the mode doesn't declare a within-gantry multicolor partner. Either reduce the print to a single filament, switch to Primary mode, or open the printer settings IDEX/IQEX Modes editor and mark a tool on the primary's gantry as Span."
@@ -16535,7 +16535,7 @@ msgid ""
 "Right click to reset value to system default."
 msgstr ""
 "Cor padrão do filamento.\n"
-"clique o botão direito para redefinir o valor para o padrão do sistema."
+"Clique o botão direito para redefinir o valor para o padrão do sistema."
 
 msgid "Filament notes"
 msgstr "Observações do filamento"
@@ -36325,7 +36325,7 @@ msgid ""
 "Did you know that you can reduce the number of triangles in a mesh using the Simplify mesh feature? Right-click the model and select Simplify model."
 msgstr ""
 "Simplificar Modelo\n"
-"Você sabia que pode reduzir o número de triângulos em uma malha usando a função Simplificar malha? clique o botão direito no modelo e selecione Simplificar modelo."
+"Você sabia que pode reduzir o número de triângulos em uma malha usando a função Simplificar malha? Clique o botão direito no modelo e selecione Simplificar modelo."
 
 #: resources/data/hints.ini: [hint:Slicing Parameter Table]
 msgid ""
