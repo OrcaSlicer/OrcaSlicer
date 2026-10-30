@@ -8,20 +8,34 @@
 // As in test_plugin_lifecycle.cpp, each Catch2 test case runs in its own process
 // (catch_discover_tests), so the PluginManager and interpreter come up at most once per test.
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <pybind11/cast.h>
+#include <pybind11/gil.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 
 #include <chrono>
 #include <fstream>
+#include <ios>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Fill/InfillFactory.hpp"
+#include "libslic3r/Fill/InfillPurpose.hpp"
 #include "libslic3r/Flow.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp"
@@ -172,7 +186,7 @@ TEST_CASE("The infill request mirrors every FillParams value as an owned snapsho
     params.locked_zag                       = true;
     params.infill_lock_depth                = 4321.f;
     params.skin_infill_depth                = 210.f;
-    params.center_of_surface_pattern        = CenterOfSurfacePattern::EachModel;
+    params.center_of_surface_pattern        = CenterOfSurfacePattern::Each_Model;
     params.purpose                          = InfillSurfacePurpose::TopSurface;
 
     const std::pair<float, Point> direction{ 1.5f, Point(11, 22) };
@@ -235,7 +249,7 @@ TEST_CASE("The infill request mirrors every FillParams value as an owned snapsho
     CHECK(request.locked_zag == true);
     CHECK_THAT(request.infill_lock_depth, WithinAbs(4321.0, 1e-6));
     CHECK_THAT(request.skin_infill_depth, WithinAbs(210.0, 1e-6));
-    CHECK(request.center_of_surface_pattern == CenterOfSurfacePattern::EachModel);
+    CHECK(request.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model);
     // The setting that selected the pattern is explicit in the request, never inferred.
     CHECK(request.purpose == InfillSurfacePurpose::TopSurface);
 }

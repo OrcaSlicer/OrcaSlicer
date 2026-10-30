@@ -1,5 +1,6 @@
 #include "InfillFactory.hpp"
 
+#include "Fill/InfillPurpose.hpp"
 #include "FillBase.hpp"
 #include "Fill3DHoneycomb.hpp"
 #include "FillAdaptive.hpp"

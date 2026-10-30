@@ -26,6 +26,7 @@
 #include <tbb/parallel_for.h>
 
 #include "AABBTreeLines.hpp"
+#include "Fill/InfillPurpose.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/BoundingBox.hpp"

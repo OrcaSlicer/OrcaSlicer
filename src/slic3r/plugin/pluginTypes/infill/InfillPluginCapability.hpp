@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <libslic3r/libslic3r.h>
+#include <libslic3r/ExtrusionEntity.hpp>
 #include <memory>
 #include <string>
 #include <utility>

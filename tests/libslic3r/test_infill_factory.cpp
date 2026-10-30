@@ -1,8 +1,11 @@
 #include <catch2/catch_all.hpp>
 
+#include <libslic3r/PrintConfig.hpp>
+#include <libslic3r/Fill/InfillPurpose.hpp>
 #include <memory>
 #include <string>
 
+#include "catch2/catch_test_macros.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Fill/InfillFactory.hpp"
 

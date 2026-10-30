@@ -2,13 +2,17 @@
 
 #include "InfillPluginCapability.hpp"
 
+#include "pybind11/cast.h"
 #include "slic3r/plugin/PyPluginTrampoline.hpp"
 
+#include <libslic3r/Polyline.hpp>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
 #include <atomic>
+#include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <slic3r/plugin/PythonInterpreter.hpp>
 #include <stdexcept>
 #include <string>
 #include <vector>

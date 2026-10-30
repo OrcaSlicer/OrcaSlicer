@@ -6,6 +6,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "catch2/catch_approx.hpp"
+#include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PrintConfigConstants.hpp"
 #include "libslic3r/Fill/InfillPurpose.hpp"
@@ -1800,7 +1801,7 @@ TEST_CASE("Every plugin-backed infill pattern setting stores a key and drives on
         REQUIRE(def != nullptr);
         CHECK(def->type == coString);
         CHECK(def->plugin_type == "infill");
-        REQUIRE(def->default_value != nullptr);
+        REQUIRE(def->default_value.get() != nullptr);
         REQUIRE(def->default_value->type() == coString);
         CHECK(def->enum_values.size() == def->enum_labels.size());
 
@@ -1836,21 +1837,28 @@ TEST_CASE("The four infill pattern settings accept plugin IDs and reject keys th
         REQUIRE(def != nullptr);
         INFO(key);
 
+        // A static config stores its options as members, so the value is set through the option the
+        // key resolves to. The default is restored below, so the next setting starts from a clean value.
+        ConfigOptionString *pattern_option = config.option<ConfigOptionString>(key);
+        REQUIRE(pattern_option != nullptr);
+
         // A stored plugin pattern ID loads unchanged; the registry validates it before slicing.
         const std::string plugin_key = "vendor-" + key;
-        config.set_key_value(key, new ConfigOptionString(plugin_key));
+        pattern_option->value = plugin_key;
         CHECK(validate(config).count(key) == 0);
-        CHECK(config.opt_string(key) == plugin_key);
+        CHECK(pattern_option->value == plugin_key);
 
         // An empty value is not a pattern ID.
-        config.set_key_value(key, new ConfigOptionString(""));
+        pattern_option->value.clear();
         CHECK(validate(config).count(key) == 1);
 
-        config.set_key_value(key, def->default_value->clone());
+        pattern_option->set(def->default_value.get());
     }
 
     // A built-in key from a different option's subset is not accepted either: gyroid is sparse-only.
-    config.set_key_value("top_surface_pattern", new ConfigOptionString("gyroid"));
+    ConfigOptionString *top_surface_pattern = config.option<ConfigOptionString>("top_surface_pattern");
+    REQUIRE(top_surface_pattern != nullptr);
+    top_surface_pattern->value = "gyroid";
     CHECK(validate(config).count("top_surface_pattern") == 1);
 }
 

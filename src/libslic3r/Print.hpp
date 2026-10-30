@@ -2,6 +2,7 @@
 #define slic3r_Print_hpp_
 
 #include "Config.hpp"
+#include "Fill/InfillPurpose.hpp"
 #include "Model.hpp"
 #include "Polygon.hpp"
 #include "Fill/FillBase.hpp"

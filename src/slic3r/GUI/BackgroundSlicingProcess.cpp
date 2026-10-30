@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <functional>
 #include <libslic3r/Exception.hpp>
+#include <libslic3r/Model.hpp>
 #include <utility>
 #include <string>
 #include <vector>

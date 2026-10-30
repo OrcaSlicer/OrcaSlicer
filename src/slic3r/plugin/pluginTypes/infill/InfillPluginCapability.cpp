@@ -10,7 +10,16 @@
 #include "libslic3r/libslic3r.h"
 #include "slic3r/plugin/PluginManager.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <libslic3r/Polyline.hpp>
+#include <libslic3r/Point.hpp>
+#include <libslic3r/Flow.hpp>
+#include <cstdint>
+#include <libslic3r/Fill/FillBase.hpp>
+#include <libslic3r/ExPolygon.hpp>
+#include <libslic3r/Fill/InfillPurpose.hpp>
+#include <libslic3r/ExtrusionEntity.hpp>
 #include <pybind11/cast.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -20,6 +29,7 @@
 #include <cstddef>
 #include <exception>
 #include <memory>
+#include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <utility>
 #include <vector>

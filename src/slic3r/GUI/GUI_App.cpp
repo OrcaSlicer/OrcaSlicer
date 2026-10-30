@@ -82,6 +82,7 @@
 #include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/PrinterWebView.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include <slic3r/GUI/Field.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <vector>

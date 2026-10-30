@@ -36,7 +36,10 @@
 #include <functional>
 #include <cstring>
 #include "libslic3r/Color.hpp"
+#include <memory>
 #include <regex>
+#include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <slic3r/plugin/PluginDescriptor.hpp>
 #include <string>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/Widgets/DropDown.hpp"

@@ -16,6 +16,7 @@
 #include "libslic3r/Line.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include <libslic3r/Exception.hpp>
 #include <limits>
 #include "libslic3r/Model.hpp"
 #include <map>
