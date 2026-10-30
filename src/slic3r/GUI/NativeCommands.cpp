@@ -785,7 +785,7 @@ std::vector<NativeCommand> build_command_catalog()
     });
 
     // ---- Screenshots and recordings ---- (the MCP screenshot and recording tools' defaults, for the person)
-    add_with_icon("take_screenshot", L("Take Screenshot"), L("Commands"), "monitor_recording_off", [](const std::string&) {
+    add_with_icon("take_screenshot", L("Take Screenshot"), L("Commands"), "screenshot", [](const std::string&) {
         MainFrame* mf = wxGetApp().mainframe;
         if (mf == nullptr)
             return AppActionRunResult{};
@@ -801,8 +801,8 @@ std::vector<NativeCommand> build_command_catalog()
         notify_saved(_L("Screenshot saved"), path);
         return AppActionRunResult{AppActionRunResult::Level::Success, {}, true, path_reply(path)};
     });
-    add_with_icon("start_recording", L("Start Recording"), L("Commands"), "monitor_recording_on", start_recording);
-    add_with_icon("stop_recording", L("Stop Recording"), L("Commands"), "video_state_off", [](const std::string&) {
+    add_with_icon("start_recording", L("Start Recording"), L("Commands"), "recording_start", start_recording);
+    add_with_icon("stop_recording", L("Stop Recording"), L("Commands"), "recording_stop", [](const std::string&) {
         Mcp::McpService*     service = wxGetApp().mcp_service();
         const nlohmann::json state   = service != nullptr && service->started() ? service->recorder().state() : nlohmann::json();
         if (state.is_null() || state.value("ending", false))
