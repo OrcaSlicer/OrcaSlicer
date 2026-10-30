@@ -2481,7 +2481,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
     if (opt_key == "sparse_infill_rotate_template") {
         // Orca: show warning dialog if rotate template for solid infill if not support
-        const auto _sparse_infill_pattern = m_config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value;
+        const auto _sparse_infill_pattern = infill_pattern_from_key(m_config->opt_string("sparse_infill_pattern"));
         bool       is_safe_to_rotate      = _sparse_infill_pattern == ipRectilinear || _sparse_infill_pattern == ipLine ||
                                  _sparse_infill_pattern == ipZigZag || _sparse_infill_pattern == ipCrossZag ||
                                  _sparse_infill_pattern == ipLockedZag;

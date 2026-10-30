@@ -524,10 +524,7 @@ std::string PluginConfig::capability_type_label(PluginCapabilityType type)
     switch (type) {
     case PluginCapabilityType::PrinterConnection: return _u8L("Printer connection");
     case PluginCapabilityType::Pages: return _u8L("Pages");
-    case PluginCapabilityType::Analysis: return _u8L("Analysis");
-    case PluginCapabilityType::Importer: return _u8L("Importer");
-    case PluginCapabilityType::Exporter: return _u8L("Exporter");
-    case PluginCapabilityType::Visualization: return _u8L("Visualization");
+    case PluginCapabilityType::Infill: return _u8L("Infill");
     case PluginCapabilityType::Script: return _u8L("Script");
     case PluginCapabilityType::SlicingPipeline: return _u8L("Slicing Pipeline");
     case PluginCapabilityType::ResourceTexture: return _u8L("Resource Texture");

@@ -100,18 +100,18 @@ TEST_CASE("PluginConfig isolates same-name capabilities by type", "[PluginConfig
 {
     ScopedDataDir data_dir_guard("plugin-config-type-isolation");
     const PluginCapabilityId script = capability_id(PluginCapabilityType::Script, "shared", "plugin_a");
-    const PluginCapabilityId importer = capability_id(PluginCapabilityType::Importer, "shared", "plugin_a");
+    const PluginCapabilityId infill = capability_id(PluginCapabilityType::Infill, "shared", "plugin_a");
 
     PluginConfig config;
     REQUIRE(config.store_capability_config(script, json{{"value", "script"}}));
-    REQUIRE(config.store_capability_config(importer, json{{"value", "importer"}}));
+    REQUIRE(config.store_capability_config(infill, json{{"value", "infill"}}));
     CHECK(config.get_config(script)->config == json{{"value", "script"}});
-    CHECK(config.get_config(importer)->config == json{{"value", "importer"}});
+    CHECK(config.get_config(infill)->config == json{{"value", "infill"}});
 
     PluginConfig reloaded;
     reloaded.load();
     CHECK(reloaded.get_config(script)->config == json{{"value", "script"}});
-    CHECK(reloaded.get_config(importer)->config == json{{"value", "importer"}});
+    CHECK(reloaded.get_config(infill)->config == json{{"value", "infill"}});
 }
 
 TEST_CASE("PluginConfig serializes the documented on-disk schema", "[PluginConfig]")

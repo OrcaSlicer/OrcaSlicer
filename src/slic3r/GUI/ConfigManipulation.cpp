@@ -762,7 +762,8 @@ void ConfigManipulation::apply_null_fff_config(DynamicPrintConfig *config, std::
         else if (k == "detect_overhang_wall")
             config->set_key_value(k, new ConfigOptionBool(false));
         else if (k == "sparse_infill_pattern")
-            config->set_key_value(k, new ConfigOptionEnum<InfillPattern>(ipGrid));
+            // The setting stores the pattern key, not an enum value.
+            config->set_key_value(k, new ConfigOptionString(ConfigOptionEnum<InfillPattern>(ipGrid).serialize()));
     }
 }
 
@@ -826,7 +827,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         "minimum_sparse_infill_area", "sparse_infill_filament_id","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
         toggle_line(el, have_infill, -1, _L("This setting is hidden because sparse infill density is zero."));
 
-    InfillPattern pattern = config->opt_enum<InfillPattern>("sparse_infill_pattern");
+    // The sparse infill pattern is stored as a raw key so that plugin-provided patterns can be saved;
+    // the built-in keys map back to InfillPattern for the visibility rules below.
+    const InfillPattern pattern = infill_pattern_from_key(config->opt_string("sparse_infill_pattern"));
 
     // Orca: the concentric patterns follow the surface outline instead of crossing it, so there is
     // nothing for an infill anchor to attach to. Hide the anchor settings for them.
@@ -866,7 +869,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
             apply(config, &new_conf);
         }
         // Hide infill anchor max if sparse_infill_pattern is not line or if sparse_infill_pattern is line but infill_anchor_max is 0.
-        bool infill_anchor = config->opt_enum<InfillPattern>("sparse_infill_pattern") != ipLine;
+        bool infill_anchor = pattern != ipLine;
         toggle_field("infill_anchor_max", infill_anchor, -1, _L("The Line infill pattern does not support infill anchors."));
 
         // Only allow configuration of open anchors if the anchoring is enabled.
@@ -875,19 +878,19 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     }
 
     //cross zag
-    bool is_cross_zag = config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value == InfillPattern::ipCrossZag;
-    bool is_locked_zig = config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value == InfillPattern::ipLockedZag;
+    bool is_cross_zag  = pattern == InfillPattern::ipCrossZag;
+    bool is_locked_zig = pattern == InfillPattern::ipLockedZag;
 
     toggle_line("infill_shift_step", is_cross_zag || is_locked_zig, -1, _L("Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."));
     
     for (auto el : { "skeleton_infill_density", "skin_infill_density", "infill_lock_depth", "skin_infill_depth","skin_infill_line_width", "skeleton_infill_line_width" })
         toggle_line(el, is_locked_zig, -1, _L("Select the Locked Zag sparse infill pattern to use this setting."));
 
-    bool is_zig_zag = config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value == InfillPattern::ipZigZag;
+    bool is_zig_zag = pattern == InfillPattern::ipZigZag;
 
     toggle_line("symmetric_infill_y_axis", is_zig_zag || is_cross_zag || is_locked_zig, -1, _L("Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."));
 
-    bool is_3Dhoneycomb = config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value == InfillPattern::ip3DHoneycomb;
+    bool is_3Dhoneycomb = pattern == InfillPattern::ip3DHoneycomb;
     toggle_line("infill_complete_top", have_infill && is_3Dhoneycomb, -1, _L("Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."));
 
     bool has_spiral_vase         = config->opt_bool("spiral_mode");
@@ -924,8 +927,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     auto is_centered_pattern = [](InfillPattern p) {
         return p == InfillPattern::ipArchimedeanChords || p == InfillPattern::ipOctagramSpiral;
     };
-    bool is_top_centered    = is_centered_pattern(config->option<ConfigOptionEnum<InfillPattern>>("top_surface_pattern")->value);
-    bool is_bottom_centered = is_centered_pattern(config->option<ConfigOptionEnum<InfillPattern>>("bottom_surface_pattern")->value);
+    bool is_top_centered    = is_centered_pattern(infill_pattern_from_key(config->opt_string("top_surface_pattern")));
+    bool is_bottom_centered = is_centered_pattern(infill_pattern_from_key(config->opt_string("bottom_surface_pattern")));
     bool has_centered_surface = (has_top_shell && is_top_centered) || (has_bottom_shell && is_bottom_centered);
 
     // Orca: center of surface pattern
@@ -936,8 +939,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     // Fill order is only meaningful for the center-based surface fill patterns; hide it otherwise.
     auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipSpiralInset || p == ipArchimedeanChords || p == ipOctagramSpiral; };
-    toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(config->opt_enum<InfillPattern>("top_surface_pattern")), -1, _L("Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."));
-    toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(config->opt_enum<InfillPattern>("bottom_surface_pattern")), -1, _L("Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."));
+    toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(infill_pattern_from_key(config->opt_string("top_surface_pattern"))), -1, _L("Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."));
+    toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(infill_pattern_from_key(config->opt_string("bottom_surface_pattern"))), -1, _L("Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."));
 
     const wxString infill_or_shell_reason = _L("Use nonzero sparse infill density or top or bottom shell layers to edit this setting.");
     for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
@@ -1344,11 +1347,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("interlocking_depth", use_beam_interlocking, -1, beam_interlocking_reason);
     toggle_line("interlocking_boundary_avoidance", use_beam_interlocking, -1, beam_interlocking_reason);
 
-    bool lattice_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralLattice;
+    bool lattice_options = pattern == InfillPattern::ipLateralLattice;
     for (auto el : { "lateral_lattice_angle_1", "lateral_lattice_angle_2"})
         toggle_line(el, lattice_options, -1, _L("Select the Lateral Lattice sparse infill pattern to use this setting."));
 
-    bool lightning_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLightning;
+    bool lightning_options = pattern == InfillPattern::ipLightning;
     for (auto el : { "lightning_overhang_angle", "lightning_prune_angle", "lightning_straightening_angle" })
         toggle_line(el, lightning_options, -1, _L("Select the Lightning sparse infill pattern to use this setting."));
         
@@ -1360,7 +1363,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("infill_direction", config->opt_string("sparse_infill_rotate_template") == "" && !FillAdaptive, -1, _L("Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."));
     toggle_field("solid_infill_direction", config->opt_string("solid_infill_rotate_template") == "", -1, _L("Clear the solid infill rotation template to edit solid infill direction."));
     
-    toggle_line("infill_overhang_angle", config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralHoneycomb, -1, _L("Select the Lateral Honeycomb sparse infill pattern to use this setting."));
+    toggle_line("infill_overhang_angle", pattern == InfillPattern::ipLateralHoneycomb, -1, _L("Select the Lateral Honeycomb sparse infill pattern to use this setting."));
 
     std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
     toggle_line("enable_wrapping_detection", DevPrinterConfigUtil::support_wrapping_detection(printer_type), -1, _L("The selected printer does not support wrapping detection."));

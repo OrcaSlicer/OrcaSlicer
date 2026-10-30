@@ -14,6 +14,7 @@
 #include "format.hpp"
 
 #include "GCode/Thumbnails.hpp"
+#include "Fill/InfillPurpose.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -2546,7 +2547,12 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<EnsureVerticalShellThickness>(EnsureVerticalShellThickness::evstAll));
     
-    auto def_top_fill_pattern = def = this->add("top_surface_pattern", coEnum);
+    // One of the four plugin-backed pattern settings. The value is a built-in key (the enum_values
+    // below) or a plugin pattern ID; see sparse_infill_pattern for the same contract. Each of the
+    // four offers its own built-in subset, and plugin rows are filtered by the surface purpose the
+    // option drives (InfillSurfacePurpose).
+    auto def_top_fill_pattern = def = this->add("top_surface_pattern", coString);
+    def->plugin_type = "infill";
     def->label = L("Top surface pattern");
     def->category = L("Strength");
     def->tooltip = L("This is the line pattern for top surface infill.");
@@ -2569,7 +2575,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
-    def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonicLine));
+    def->set_default_value(new ConfigOptionString("monotonicline"));
 
     def = this->add("top_surface_density", coPercent);
     def->label = L("Top surface density");
@@ -2624,14 +2630,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<TopSurfaceExpansionDirection>(TopSurfaceExpansionDirection::InwardAndOutward));
 
-    def = this->add("bottom_surface_pattern", coEnum);
+    def = this->add("bottom_surface_pattern", coString);
+    def->plugin_type = "infill";
     def->label = L("Bottom surface pattern");
     def->category = L("Strength");
     def->tooltip = L("This is the line pattern of bottom surface infill, not including bridge infill.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values = def_top_fill_pattern->enum_values;
     def->enum_labels = def_top_fill_pattern->enum_labels;
-    def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonic));
+    def->set_default_value(new ConfigOptionString("monotonic"));
 
     def           = this->add("bottom_surface_density", coPercent);
     def->label    = L("Bottom surface density");
@@ -2678,14 +2685,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SurfaceFillOrder>(SurfaceFillOrder::Default));
 
-	def                = this->add("internal_solid_infill_pattern", coEnum);
+	def                = this->add("internal_solid_infill_pattern", coString);
+    def->plugin_type   = "infill";
     def->label         = L("Internal solid infill pattern");
     def->category      = L("Strength");
     def->tooltip       = L("Line pattern of internal solid infill. if the detect narrow internal solid infill be enabled, the concentric pattern will be used for the small area.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values   = def_top_fill_pattern->enum_values;
     def->enum_labels   = def_top_fill_pattern->enum_labels;
-    def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonic));
+    def->set_default_value(new ConfigOptionString("monotonic"));
     
     def = this->add("outer_wall_line_width", coFloatOrPercent);
     def->label = L("Outer wall");
@@ -3805,7 +3813,15 @@ void PrintConfigDef::init_fff_params()
                         "density and above. Only applies when Sparse infill pattern is set to Gyroid.");
     def->set_default_value(new ConfigOptionBool(false));
 
-    def = this->add("sparse_infill_pattern", coEnum);
+    // A free-form string rather than coEnum so that plugins can name their own patterns while the
+    // built-in keys below stay byte-identical in saved presets and projects. One of the four
+    // plugin-backed pattern settings; see InfillSurfacePurpose for the purpose each drives. A
+    // plugin-provided value is the stable pattern ID advertised by an infill capability;
+    // plugin_type lets the manifest resolver turn it into the owning capability's full plugin
+    // reference. enum_values/enum_labels still describe the built-in choices for the GUI;
+    // enum_keys_map lets the GUI resolve them back to InfillPattern. See infill_pattern_from_key().
+    def = this->add("sparse_infill_pattern", coString);
+    def->plugin_type = "infill";
     def->label = L("Sparse infill pattern");
     def->category = L("Strength");
     def->tooltip = L("This is the line pattern for internal sparse infill.");
@@ -3862,7 +3878,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
-    def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
+    def->set_default_value(new ConfigOptionString("crosshatch"));
 
     def = this->add("sparse_infill_smooth_factor", coPercent);
     def->label = L("Sparse infill smooth factor");
@@ -12530,24 +12546,17 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         error_message.emplace("gcode_flavor", _u8L("invalid value ") + cfg.gcode_flavor.serialize());
     }
 
-    // --fill-pattern
-    if (! print_config_def.get("sparse_infill_pattern")->has_enum_value(cfg.sparse_infill_pattern.serialize())) {
-        error_message.emplace("sparse_infill_pattern", _u8L("invalid value ") + cfg.sparse_infill_pattern.serialize());
-    }
-
-    // --top-fill-pattern
-    if (! print_config_def.get("top_surface_pattern")->has_enum_value(cfg.top_surface_pattern.serialize())) {
-        error_message.emplace("top_surface_pattern", _u8L("invalid value ") + cfg.top_surface_pattern.serialize());
-    }
-
-    // --bottom-fill-pattern
-    if (! print_config_def.get("bottom_surface_pattern")->has_enum_value(cfg.bottom_surface_pattern.serialize())) {
-        error_message.emplace("bottom_surface_pattern", _u8L("invalid value ") + cfg.bottom_surface_pattern.serialize());
-    }
-
-    // --soild-fill-pattern
-    if (!print_config_def.get("internal_solid_infill_pattern")->has_enum_value(cfg.internal_solid_infill_pattern.serialize())) {
-        error_message.emplace("internal_solid_infill_pattern", _u8L("invalid value ") + cfg.internal_solid_infill_pattern.serialize());
+    // --infill-pattern options
+    // Each of the four plugin-backed pattern settings stores a built-in key or a raw plugin
+    // pattern ID, with no reserved identifier syntax. Accept any nonempty value that does not name
+    // one of the option's built-in keys as a plugin pattern ID; the infill registry confirms
+    // existence, provider ownership and surface purpose before slicing. Empty values, and built-in
+    // keys the option does not offer, are rejected.
+    for (const InfillPatternSetting &setting : infill_pattern_settings) {
+        const std::string option_key(setting.option_key);
+        const std::string value      = cfg.option<ConfigOptionString>(option_key)->value;
+        if (! print_config_def.get(option_key)->has_enum_value(value) && ! is_plugin_infill_pattern_key(value))
+            error_message.emplace(option_key, _u8L("invalid value ") + value);
     }
 
     // --skirt-height

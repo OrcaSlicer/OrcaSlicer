@@ -2,9 +2,11 @@
 #define slic3r_Print_hpp_
 
 #include "Config.hpp"
+#include "Fill/InfillPurpose.hpp"
 #include "Model.hpp"
 #include "Polygon.hpp"
 #include "Fill/FillBase.hpp"
+#include "Fill/InfillFactory.hpp"
 #include "Polyline.hpp"
 #include "ExtrusionEntity.hpp"
 #include "Geometry.hpp"
@@ -577,6 +579,11 @@ public:
 private:
     void make_perimeters();
     void prepare_infill();
+    // Match every selected plugin pattern ID against its registry owner and the project manifest,
+    // then pin the exact entry for the rest of the job. Called before fill surfaces are prepared,
+    // so every worker sees the same validated provider. A missing, disabled, unloaded, or
+    // differently owned provider fails the slice here.
+    void prepare_plugin_infills();
     void infill();
     void ironing();
     bool need_z_contouring() const;
@@ -708,6 +715,16 @@ private:
     std::vector<BoundingBox>                m_separated_body_bboxes;
     FillLightning::GeneratorPtr m_lightning_generator;
     AdaptiveInfillFields m_adaptive_infill_fields;
+    // Exact plugin pattern selections validated once per prepare_infill(). Each Selection pins the
+    // registry entry and its provider lease for the whole job, so a disable or unload cannot redirect
+    // later fill creation to another provider or tear down the provider's Python module. Keyed by
+    // the canonical pattern value; the purposes are the surface settings that selected it.
+    struct PinnedInfill
+    {
+        InfillFactory::Selection                selection;
+        std::vector<InfillSurfacePurpose>       purposes;
+    };
+    std::map<std::string, PinnedInfill> m_plugin_infill_selections;
 
     std::vector < VolumeSlices >            firstLayerObjSliceByVolume;
     std::vector<groupedVolumeSlices>        firstLayerObjSliceByGroups;

@@ -4,6 +4,7 @@
 #include <math.h>
 #include <limits>
 #include <cstdint>
+#include <memory>
 #include <stdio.h>
 #include <numeric>
 
@@ -25,7 +26,10 @@
 #include "../libslic3r.h"
 #include "../VariableWidth.hpp"
 
+#include <map>
+
 #include "FillBase.hpp"
+#include "InfillFactory.hpp"
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -62,13 +66,15 @@ float Fill::infill_anchor = 400;
 //BBS: 20mm
 float Fill::infill_anchor_max = 20;
 
-Fill* Fill::new_from_type(const InfillPattern type)
+// Keep enum construction available while static initialization probes use_bridge_flow(). This path
+// builds built-ins directly, so no registry initialization can run during static initialization.
+static Fill* new_from_type_legacy(const InfillPattern type)
 {
     switch (type) {
     case ipConcentric:          return new FillConcentric();
-    case ipSpiralInset:    return new FillSpiralInset();
+    case ipSpiralInset:         return new FillSpiralInset();
     case ipHoneycomb:           return new FillHoneycomb();
-    case ipLateralHoneycomb:         return new FillLateralHoneycomb();
+    case ipLateralHoneycomb:    return new FillLateralHoneycomb();
     case ip3DHoneycomb:         return new Fill3DHoneycomb();
     case ipGyroid:              return new FillGyroid();
     case ipTpmsD:               return new FillTpmsD();//from creality print
@@ -79,7 +85,7 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipMonotonic:           return new FillMonotonic();
     case ipLine:                return new FillLine();
     case ipGrid:                return new FillGrid();
-    case ipLateralLattice:           return new FillLateralLattice();
+    case ipLateralLattice:      return new FillLateralLattice();
     case ipTriangles:           return new FillTriangles();
     case ipStars:               return new FillStars();
     case ipCubic:               return new FillCubic();
@@ -99,15 +105,31 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipZigZag:              return new FillZigZag();
     case ipCrossZag:            return new FillCrossZag();
     case ipLockedZag:           return new FillLockedZag();
+    case ipPlugin:
+        // Plugin patterns have no InfillPattern implementation. Slicing resolves them through
+        // InfillFactory by the stable pattern ID before any fill worker runs.
+        throw SlicingError("Plugin infill must be created through InfillFactory");
     default: throw Slic3r::InvalidArgument("unknown type");
     }
 }
 
-Fill* Fill::new_from_type(const std::string &type)
+Fill* Fill::new_from_type(const std::string& id)
 {
-    const t_config_enum_values &enum_keys_map = ConfigOptionEnum<InfillPattern>::get_enum_values();
-    t_config_enum_values::const_iterator it = enum_keys_map.find(type);
-    return (it == enum_keys_map.end()) ? nullptr : new_from_type(InfillPattern(it->second));
+    std::unique_ptr<Fill> fill = InfillFactory::create_infill_by_id(id);
+    if (!fill)
+        throw Slic3r::InvalidArgument("unknown infill pattern id: " + id);
+    return fill.release();
+}
+
+Fill* Fill::new_from_type(const InfillPattern type)
+{
+    if (type != ipPlugin) {
+        const std::string key = InfillFactory::builtin_infill_key(type);
+        if (!key.empty())
+            return new_from_type(key);
+    }
+
+    return new_from_type_legacy(type);
 }
 
 // Force initialization of the Fill::use_bridge_flow() internal static map in a thread safe fashion even on compilers
@@ -120,12 +142,16 @@ bool Fill::use_bridge_flow(const InfillPattern type)
 	if (cached.empty()) {
 		cached.assign(size_t(ipCount), 0);
 		for (size_t i = 0; i < cached.size(); ++ i) {
-			auto *fill = Fill::new_from_type((InfillPattern)i);
+			auto *fill = new_from_type_legacy((InfillPattern)i);
 			cached[i] = fill->use_bridge_flow();
 			delete fill;
 		}
 	}
-	return cached[type] != 0;
+	// ipPlugin is not a built-in filler and the cache is sized by ipCount. Range-check so an
+	// unknown or plugin pattern cannot read past it; no bridge-flow override applies to them.
+	if (type < 0 || type >= ipCount)
+		return false;
+	return cached[size_t(type)] != 0;
 }
 
 Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)

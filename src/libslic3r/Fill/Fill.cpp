@@ -16,6 +16,7 @@
 #include <utility>
 
 #include "../ClipperUtils.hpp"
+#include "../Exception.hpp"
 #include "../Geometry.hpp"
 #include "../Layer.hpp"
 #include "../Print.hpp"
@@ -25,12 +26,14 @@
 #include <tbb/parallel_for.h>
 
 #include "AABBTreeLines.hpp"
+#include "Fill/InfillPurpose.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "ExtrusionEntity.hpp"
 #include "Fill.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
+#include "InfillFactory.hpp"
 #include "FillAdaptive.hpp"
 #include "FillRectilinear.hpp"
 #include "FillLightning.hpp"
@@ -257,6 +260,12 @@ struct SurfaceFillParams
     unsigned int 	extruder = 0;
 	// Infill pattern, adjusted for the density etc.
     InfillPattern  	pattern = InfillPattern(0);
+    // Exact canonical key for the selected pattern value. Empty only for internal-only patterns
+    // (and for the narrow-region reroute), so equality keeps different plugin patterns distinct.
+    std::string     pattern_key;
+    // Surface category this fill represents. Part of the grouping key so the same plugin ID chosen
+    // for two different surfaces is never generated as one group.
+    InfillSurfacePurpose purpose = InfillSurfacePurpose::Sparse;
 
     // FillBase
     // in unscaled coordinates
@@ -337,6 +346,8 @@ struct SurfaceFillParams
 
 		RETURN_COMPARE_NON_EQUAL(extruder);
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, pattern);
+		RETURN_COMPARE_NON_EQUAL(pattern_key);
+		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, purpose);
 		RETURN_COMPARE_NON_EQUAL(spacing);
 		RETURN_COMPARE_NON_EQUAL(overlap);
 		RETURN_COMPARE_NON_EQUAL(angle);
@@ -374,6 +385,8 @@ struct SurfaceFillParams
 	bool operator==(const SurfaceFillParams &rhs) const {
 		return  this->extruder 			      == rhs.extruder                &&
 				this->pattern 			      == rhs.pattern                 &&
+				this->pattern_key 		      == rhs.pattern_key             &&
+				this->purpose 			      == rhs.purpose                 &&
 				this->spacing 			      == rhs.spacing                 &&
 				this->overlap 			      == rhs.overlap                 &&
 				this->angle   			      == rhs.angle                   &&
@@ -416,6 +429,46 @@ struct SurfaceFill {
     ExPolygons          no_overlap_expolygons;
 };
 
+// Create the filler for one grouped surface. Every pattern with a canonical config key is created
+// through the infill registry by that single stable ID, including plugin patterns. The InfillPattern
+// overload of Fill::new_from_type() remains only for internal patterns that have no config key.
+// A plugin ID that was selected by the project must resolve: a missing entry means the provider was
+// unloaded or disabled after preflight, so fail instead of silently falling back to a built-in.
+static std::unique_ptr<Fill> make_filler(const SurfaceFill& surface_fill)
+{
+    if (!surface_fill.params.pattern_key.empty()) {
+        try {
+            return std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern_key));
+        } catch (const InvalidArgument&) {
+            if (surface_fill.params.pattern == ipPlugin)
+                throw SlicingError("Plugin infill failed. Check the plugin's diagnostic details.");
+            throw;
+        }
+    }
+
+    if (surface_fill.params.pattern == ipPlugin)
+        throw SlicingError("Plugin infill failed. Check the plugin's diagnostic details.");
+
+    return std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
+}
+
+// Attach the creation context a plugin request reports as object identity, object-relative layer
+// index and region selection. Both the normal fill path and the anchoring path use this helper so
+// the two conventions cannot drift: layer_index counts from the object's first layer, while
+// Layer::id() starts at the raft-layer count. The caller still sets layer_id, because the anchoring
+// path deliberately stores an object-relative id there while the normal path stores Layer::id().
+static void set_fill_context(Fill &fill, const Layer &layer, const SurfaceFill &surface_fill)
+{
+    fill.object_id   = layer.object()->id().id;
+    const size_t first_layer_id = layer.object()->get_layer(0)->id();
+    fill.layer_index = layer.id() >= first_layer_id ? layer.id() - first_layer_id : size_t(-1);
+    fill.region_id   = surface_fill.region_id;
+    fill.region_ids  = surface_fill.region_id_group;
+    // A grouped fill always records its representative region. Keep the invariant for synthetic
+    // SurfaceFills that were created without a group so plugins can rely on region_ids[0].
+    if (fill.region_ids.empty() && fill.region_id != size_t(-1))
+        fill.region_ids.push_back(fill.region_id);
+}
 
 // Detect narrow infill regions
 // Based on the anti-vibration algorithm from PrusaSlicer:
@@ -943,7 +996,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 		        FlowRole extrusion_role = surface.is_top() ? frTopSolidInfill : (surface.is_solid() ? frSolidInfill : frInfill);
 		        bool     is_bridge 	    = layer.id() > 0 && surface.is_bridge();
 		        params.extruder 	 = layerm.region().extruder(extrusion_role);
-		        params.pattern 		 = region_config.sparse_infill_pattern.value;
+		        params.pattern 		 = infill_pattern_from_key(region_config.sparse_infill_pattern.value);
+                params.pattern_key   = region_config.sparse_infill_pattern.value;
+                params.purpose       = InfillSurfacePurpose::Sparse;
 		        params.density       = float(region_config.sparse_infill_density);
                 params.lateral_lattice_angle_1 = region_config.lateral_lattice_angle_1;
                 params.lateral_lattice_angle_2 = region_config.lateral_lattice_angle_2;
@@ -964,21 +1019,30 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 if (surface.is_solid()) {
                     if (surface.is_external() && !is_bridge) {
                         if (surface.is_top()) {
-                            params.pattern = region_config.top_surface_pattern.value;
+                            params.pattern = infill_pattern_from_key(region_config.top_surface_pattern.value);
+                            params.pattern_key = region_config.top_surface_pattern.value;
+                            params.purpose = InfillSurfacePurpose::TopSurface;
                             params.density = float(region_config.top_surface_density);
                             if (params.density <= 0.0f) continue;
                         } else { // Surface is bottom
-                            params.pattern = region_config.bottom_surface_pattern.value;
+                            params.pattern = infill_pattern_from_key(region_config.bottom_surface_pattern.value);
+                            params.pattern_key = region_config.bottom_surface_pattern.value;
+                            params.purpose = InfillSurfacePurpose::BottomSurface;
                             params.density = float(region_config.bottom_surface_density);
                         }
                     } else if (surface.is_solid_infill()) {
-                        params.pattern = region_config.internal_solid_infill_pattern.value;
+                        params.pattern = infill_pattern_from_key(region_config.internal_solid_infill_pattern.value);
+                        params.pattern_key = region_config.internal_solid_infill_pattern.value;
+                        params.purpose = InfillSurfacePurpose::InternalSolid;
                         params.density = 100.f;
                     } else {
-                        if (region_config.top_surface_pattern == ipMonotonic || region_config.top_surface_pattern == ipMonotonicLine)
+                        const InfillPattern top_pattern = infill_pattern_from_key(region_config.top_surface_pattern.value);
+                        if (top_pattern == ipMonotonic || top_pattern == ipMonotonicLine)
                             params.pattern = ipMonotonic;
                         else
                             params.pattern = ipRectilinear;
+                        params.pattern_key = InfillFactory::builtin_infill_key(params.pattern);
+                        params.purpose = InfillSurfacePurpose::InternalSolid;
                         params.density = 100.f;
                     }
                 } else if (params.density <= 0)
@@ -1237,11 +1301,15 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 	        if (internal_solid_fill == nullptr) {
 	        	// Produce another solid fill.
 		        params.extruder 	 = layerm.region().extruder(frSolidInfill);
-                const auto top_pattern = layerm.region().config().top_surface_pattern;
+                const auto top_pattern = infill_pattern_from_key(layerm.region().config().top_surface_pattern.value);
                 if(top_pattern == ipMonotonic || top_pattern == ipMonotonicLine)
                     params.pattern = top_pattern;
                 else
                     params.pattern 		 = ipRectilinear;
+                params.pattern_key = InfillFactory::builtin_infill_key(params.pattern);
+                // This fill is emitted as internal solid infill even when its pattern was chosen
+                // from the top-surface setting, so it is never dispatched as a plugin top surface.
+                params.purpose = InfillSurfacePurpose::InternalSolid;
 	            params.density 		 = 100.f;
 		        params.extrusion_role = erSolidInfill;
 		        const PrintRegionConfig &region_config = layerm.region().config();
@@ -1280,11 +1348,13 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 			} else if (normal_infill.empty()) {
 				// BBS: all expolygons are narrow, directly change the fill pattern
 				surface_fills[i].params.pattern = ipConcentricInternal;
+				surface_fills[i].params.pattern_key.clear();
 			}
 			else {
 				// BBS: some expolygons are narrow, spilit surface_fills[i] and rearrange the expolygons
 				params = surface_fills[i].params;
 				params.pattern = ipConcentricInternal;
+				params.pattern_key.clear();
 				surface_fills.emplace_back(params);
 				surface_fills.back().region_id = surface_fills[i].region_id;
 				surface_fills.back().surface.surface_type = stInternalSolid;
@@ -1372,10 +1442,12 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
     for (SurfaceFill &surface_fill : surface_fills) {
-        // Create the filler object.
-        std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
+        // The pattern key selects the exact provider the project referenced; preflight already
+        // checked that identity and pinned it for the duration of this job.
+        std::unique_ptr<Fill> f = make_filler(surface_fill);
         f->set_bounding_box(bbox);
         f->layer_id = this->id();
+        set_fill_context(*f, *this, surface_fill);
         {
             const auto &rcfg = m_regions[surface_fill.region_id]->region().config();
             f->dont_alternate_fill_direction = rcfg.zaa_enabled && rcfg.zaa_dont_alternate_fill_direction;
@@ -1447,6 +1519,7 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
         auto &region_config = layerm->region().config();
         params.config               = &region_config;
         params.pattern              = surface_fill.params.pattern;
+        params.purpose              = surface_fill.params.purpose;
         params.fill_order           = surface_fill.params.fill_order;
 
         // Orca: Checking the filling of a centered surface by drawing for each model parts
@@ -1574,6 +1647,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
 
         switch (surface_fill.params.pattern) {
         case ipCount: continue; break;
+        case ipPlugin: break;
         case ipSupportBase: continue; break;
         case ipConcentricInternal: continue; break;
         case ipLightning:
@@ -1605,10 +1679,12 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
 		case ipLockedZag: break;
         }
 
-        // Create the filler object.
-        std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
+        // Create the filler object from the selected pattern ID. Identity was enforced when the
+        // print pinned that ID, before any fill worker started.
+        std::unique_ptr<Fill> f = make_filler(surface_fill);
         f->set_bounding_box(bbox);
         f->layer_id = this->id() - this->object()->get_layer(0)->id(); // We need to subtract raft layers.
+        set_fill_context(*f, *this, surface_fill);
         {
             const auto &rcfg = m_regions[surface_fill.region_id]->region().config();
             f->dont_alternate_fill_direction = rcfg.zaa_enabled && rcfg.zaa_dont_alternate_fill_direction;
@@ -1665,6 +1741,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         // Without the sparse extrusion role, the filler uses each surface's bounds
         // instead of the object's bounds, so bridge anchors shift away from printed infill.
         params.extrusion_role            = surface_fill.params.extrusion_role;
+        params.purpose                   = surface_fill.params.purpose;
 
         for (ExPolygon &expoly : surface_fill.expolygons) {
             // Orca: Match the per-body box and octree of make_fills() before generating physical anchors.

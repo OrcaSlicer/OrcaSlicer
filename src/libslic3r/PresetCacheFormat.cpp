@@ -61,6 +61,17 @@ static std::string enum_name_of(const ConfigOptionDef& def, int value)
     return {};
 }
 
+// An option that changed from coEnum to coString still has its value in a cache
+// written before the change: an enum travels by name (see enum_name_of), and that
+// name is exactly the string this build now stores. The four infill pattern
+// settings are the cases this exists for — they became strings so plugins can name
+// their own patterns — and the name is checked against the definition's own enum
+// keys before it is restored, so an option whose name set moved on is still dropped.
+static bool restores_enum_as_string(uint16_t written_type, const ConfigOptionDef& def)
+{
+    return written_type == uint16_t(coEnum) && def.type == coString;
+}
+
 void CacheDictionary::collect(const DynamicPrintConfig& config)
 {
     for (auto it = config.cbegin(); it != config.cend(); ++ it) {
@@ -119,7 +130,8 @@ void CacheDictionary::load(cereal::BinaryInputArchive& ar)
     m_defs.resize(m_keys.size());
     for (size_t i = 0; i < m_keys.size(); ++ i) {
         const ConfigOptionDef* def = print_config_def.get(m_keys[i]);
-        m_defs[i] = (def != nullptr && uint16_t(def->type) == m_types[i]) ? def : nullptr;
+        m_defs[i] = (def != nullptr && (uint16_t(def->type) == m_types[i] || restores_enum_as_string(m_types[i], *def)))
+                        ? def : nullptr;
     }
 }
 
@@ -147,10 +159,15 @@ static void load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType ty
     ar(cnt);
     if (type == coEnum && cnt != 1)
         throw std::runtime_error("preset cache: a scalar enum carrying more than one value");
+    // A cached enum this build holds as a string (see restores_enum_as_string):
+    // the name the writer recorded is the string to store, not an int to map
+    // back through this build's enum.
+    const bool as_string = def != nullptr && type == coEnum && def->type == coString;
     // Every element is read whatever happens, so the stream stays in sync and
     // whatever follows this option still loads.
     bool usable = def != nullptr && config != nullptr;
     std::vector<int> values;
+    std::vector<std::string> names;
     values.reserve(cnt);
     for (uint32_t i = 0; i < cnt; ++ i) {
         uint16_t idx = 0;
@@ -162,7 +179,13 @@ static void load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType ty
             // definition carried no enum_keys_map. It travels verbatim.
             int32_t raw = 0;
             ar(raw);
-            values.push_back(int(raw));
+            // ...except into a string, which has nothing to spell. Naming the
+            // int from today's enum could restore a different value, so it is
+            // dropped instead.
+            if (as_string)
+                usable = false;
+            else
+                values.push_back(int(raw));
             continue;
         }
         if (! usable)
@@ -171,16 +194,23 @@ static void load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType ty
             usable = false;       // this build no longer maps this option's names
             continue;
         }
-        const auto it = def->enum_keys_map->find(dict.enum_name_at(idx));
+        const std::string& name = dict.enum_name_at(idx);
+        const auto it = def->enum_keys_map->find(name);
         if (it == def->enum_keys_map->end()) {
             usable = false;       // a value this build dropped: the option goes with it
             continue;
         }
-        values.push_back(it->second);
+        if (as_string)
+            names.push_back(name);
+        else
+            values.push_back(it->second);
     }
     if (! usable)
         return;
-    if (type == coEnum) {
+    if (as_string) {
+        // A scalar enum carries exactly one value, checked above.
+        config->set_key_value(def->opt_key, new ConfigOptionString(names.front()));
+    } else if (type == coEnum) {
         config->set_key_value(def->opt_key, new ConfigOptionEnumGeneric(def->enum_keys_map, values.front()));
     } else {
         auto* opt = def->nullable ? static_cast<ConfigOptionInts*>(new ConfigOptionEnumsGenericNullable(def->enum_keys_map))

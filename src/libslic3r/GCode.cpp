@@ -9168,17 +9168,19 @@ bool GCode::_needSAFC(const ExtrusionPath &path)
     if (!m_small_area_infill_flow_compensator || !m_config.small_area_infill_flow_compensation.value)
         return false;
 
-    static const InfillPattern supported_patterns[] = {
-        InfillPattern::ipRectilinear,
-        InfillPattern::ipAlignedRectilinear,
-        InfillPattern::ipMonotonic,
-        InfillPattern::ipMonotonicLine,
+    // The stored pattern key is the same string saved in the preset, so compare keys instead of
+    // mapping each selected pattern through the enum on every path.
+    static const char* const supported_patterns[] = {
+        "rectilinear",
+        "alignedrectilinear",
+        "monotonic",
+        "monotonicline",
     };
 
-    return std::any_of(std::begin(supported_patterns), std::end(supported_patterns), [&](const InfillPattern pattern) {
-        return (this->on_first_layer() && this->config().bottom_surface_pattern == pattern) ||
-               (path.role() == erSolidInfill && this->config().internal_solid_infill_pattern == pattern) ||
-               (path.role() == erTopSolidInfill && this->config().top_surface_pattern == pattern);
+    return std::any_of(std::begin(supported_patterns), std::end(supported_patterns), [&](const char* pattern) {
+        return (this->on_first_layer() && this->config().bottom_surface_pattern.value == pattern) ||
+               (path.role() == erSolidInfill && this->config().internal_solid_infill_pattern.value == pattern) ||
+               (path.role() == erTopSolidInfill && this->config().top_surface_pattern.value == pattern);
     });
 }
 
@@ -10753,8 +10755,8 @@ std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType li
         (the extruder might be already retracted fully or partially). We call these
         methods even if we performed wipe, since this will ensure the entire retraction
         length is honored in case wipe path was too short.  */
-    if ((!this->on_first_layer()  || this->config().bottom_surface_pattern != InfillPattern::ipHilbertCurve) &&
-	    (role != erTopSolidInfill || this->config().top_surface_pattern    != InfillPattern::ipHilbertCurve))
+    if ((!this->on_first_layer()  || this->config().bottom_surface_pattern.value != "hilbertcurve") &&
+	    (role != erTopSolidInfill || this->config().top_surface_pattern.value    != "hilbertcurve"))
         gcode += toolchange ? m_writer.retract_for_toolchange() : m_writer.retract();
 
     gcode += m_writer.reset_e();

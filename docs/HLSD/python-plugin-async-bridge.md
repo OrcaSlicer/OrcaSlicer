@@ -233,7 +233,7 @@ self-cancelled plugin still records its failure.
 | --- | --- | --- |
 | Script | `def execute` and `async def execute` both run on the per-invocation worker | The runtime owns the worker and, for a coroutine, a per-invocation loop; nothing about a Script invocation borrows C++ state. |
 | SlicingPipeline | Synchronous only | `execute(ctx)` borrows `Print`/`PrintObject` for the callback's duration, and the UI thread can be blocked on the slicing worker. `PluginHooks.cpp` rejects an async override: `cap->execute()` casts its Python result to `ExecutionResult`, and a coroutine object cannot be cast, so it surfaces as a `SlicingError` rather than being scheduled. |
-| PrinterConnection, Pages, Analysis, Importer, Exporter, Visualization, ResourceTexture | Unchanged | Not part of this bridge; they keep their existing synchronous contract. |
+| PrinterConnection, Pages, Infill, ResourceTexture | Unchanged | Not part of this bridge; they keep their existing synchronous contract. |
 
 ## Deadlock constraints
 

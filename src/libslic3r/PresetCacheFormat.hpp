@@ -62,7 +62,8 @@ public:
     // ---- reading ----
 
     // The definition an index resolves to in THIS build, or nullptr where the
-    // key is unknown here or is now defined with a different type. A nullptr
+    // key is unknown here or has an unsupported type change. Supported cache
+    // migrations may resolve a definition despite a type change. A nullptr
     // entry's value is still read — using type_at(idx), the type the writer
     // recorded — and then dropped, which is what a JSON profile gets for an
     // option this build no longer has.

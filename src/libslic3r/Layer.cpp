@@ -439,7 +439,7 @@ coordf_t Layer::get_sparse_infill_max_void_area()
         Flow flow = layerm->flow(frInfill);
         const PrintRegionConfig &config = layerm->region().config();
         float density = config.sparse_infill_density;
-        InfillPattern pattern = config.sparse_infill_pattern;
+        InfillPattern pattern = infill_pattern_from_key(config.sparse_infill_pattern.value);
         if (density == 0.)
             return -1;
         // Orca: the adaptive TPMS infill is as sparse as its interior density.

@@ -2900,6 +2900,8 @@ public:
     // map is omitted from the derived manifest; unresolved_plugin_capabilities() reports those
     // values. No-op without a resolver.
     void update_plugin_manifest();
+    // Include plugin-backed settings stored in model object/volume overrides.
+    void update_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs);
 
     // The plugin-backed option values the registered resolver cannot map to a plugin reference --
     // exactly the values save_to_json()/update_plugin_manifest() omit from the manifest. GUI save
@@ -2916,6 +2918,11 @@ public:
 private:
     // Set a configuration value from a string.
     bool set_deserialize_raw(const t_config_option_key& opt_key_src, const std::string& value, ConfigSubstitutionContext& substitutions, bool append);
+    // Append the de-duplicated "name;uuid;capability" plugin references derived from this config's
+    // plugin-backed options to refs, preserving insertion order and dropping values that do not
+    // resolve. Serialization, update_plugin_manifest and the additional_configs overload all share
+    // it, so object/volume overrides contribute to the same manifest. Requires a resolver.
+    void append_plugin_refs(std::vector<std::string>& refs) const;
     // Collect the de-duplicated "name;uuid;capability" plugin references derived from this config's
     // plugin-backed options via the resolver. Shared by save_to_json (serializes them into the JSON
     // manifest) and update_plugin_manifest (writes them back into the "plugins" option). Order is
@@ -2923,7 +2930,9 @@ private:
     // (CLI/headless).
     std::vector<std::string> collect_plugin_manifest() const;
     // Calls fn(opt_key, plugin_type, capability_name) for every non-empty capability name held by a
-    // plugin-backed option of this config, in key order. A single walk feeds both the serializer
+    // plugin-backed option of this config, in key order. A built-in value of an "infill" option names
+    // a built-in pattern rather than a plugin capability, so it is skipped: it has no reference to
+    // derive and must not be reported as unresolved. A single walk feeds both the serializer
     // (collect_plugin_manifest) and unresolved_plugin_capabilities, so they cannot disagree on which
     // values resolve.
     void for_each_plugin_capability(const std::function<void(const std::string& opt_key, const std::string& plugin_type, const std::string& capability_name)>& fn) const;

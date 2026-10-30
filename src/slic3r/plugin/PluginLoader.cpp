@@ -9,7 +9,9 @@
 #include "PluginFsUtils.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
+#include "pluginTypes/infill/InfillPluginCapability.hpp"
 #include "pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"
@@ -33,6 +35,8 @@
 #include <functional>
 #include <system_error>
 
+#include <pybind11/pybind11.h>
+
 #include <algorithm>
 #include <chrono>
 #include <exception>
@@ -43,6 +47,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+
+namespace py = pybind11;
 
 namespace Slic3r::plugin_loader {
 namespace {
@@ -368,6 +374,85 @@ bool load(const PluginDescriptor&                          descriptor,
                     instance->set_audit_plugin_key(descriptor.plugin_key);
                     instance->set_resolved_identity(found.name, type);
                     instance->set_enabled(enabled);
+
+                    // An infill capability advertises one or more stable pattern IDs. Resolve and
+                    // cache those descriptors here, under the GIL, so selection, preset resolution
+                    // and UI never need to call back into Python. The capability name is the
+                    // provider identity in the project manifest; the pattern IDs are the values
+                    // stored in the infill pattern settings.
+                    if (type == PluginCapabilityType::Infill) {
+                        if (found.name.empty()) {
+                            materialization_error = _u8L("Plugin infill capability has an empty name");
+                            break;
+                        }
+
+                        auto* infill = dynamic_cast<InfillPluginCapability*>(instance.get());
+                        if (infill == nullptr) {
+                            materialization_error = "Plugin capability materialized as Infill without an infill implementation";
+                            break;
+                        }
+
+                        std::vector<InfillPluginPattern> patterns;
+                        try {
+                            patterns = infill->patterns();
+                        } catch (py::error_already_set& err) {
+                            log_python_exception_keep(err);
+                            materialization_error = GUI::format(
+                                _u8L("Plugin infill capability '%1%' failed to declare its patterns: %2%"),
+                                found.name, err.what());
+                            break;
+                        } catch (const std::exception& ex) {
+                            materialization_error = GUI::format(
+                                _u8L("Plugin infill capability '%1%' failed to declare its patterns: %2%"),
+                                found.name, ex.what());
+                            break;
+                        }
+
+                        if (patterns.empty()) {
+                            materialization_error = GUI::format(
+                                _u8L("Plugin infill capability '%1%' declares no patterns"), found.name);
+                            break;
+                        }
+
+                        std::unordered_set<std::string> pattern_ids;
+                        for (InfillPluginPattern& pattern : patterns) {
+                            if (pattern.id.empty()) {
+                                materialization_error = GUI::format(
+                                    _u8L("Plugin infill capability '%1%' declares a pattern with an empty ID"),
+                                    found.name);
+                                break;
+                            }
+                            if (pattern.id.find(';') != std::string::npos) {
+                                materialization_error = GUI::format(
+                                    _u8L("Plugin infill pattern ID '%1%' must not contain ';'"), pattern.id);
+                                break;
+                            }
+                            if (is_builtin_infill_pattern_key(pattern.id)) {
+                                // TRN %1% is the built-in sparse_infill_pattern key the pattern ID collides with.
+                                materialization_error = GUI::format(
+                                    _u8L("Plugin infill pattern '%1%' collides with a built-in sparse infill pattern"),
+                                    pattern.id);
+                                break;
+                            }
+                            if (!pattern_ids.insert(pattern.id).second) {
+                                materialization_error = GUI::format(
+                                    _u8L("Plugin infill capability '%1%' declares duplicate pattern '%2%'"),
+                                    found.name, pattern.id);
+                                break;
+                            }
+                            if (pattern.supported_surfaces.empty()) {
+                                materialization_error = GUI::format(
+                                    _u8L("Plugin infill pattern '%1%' declares no supported surfaces"), pattern.id);
+                                break;
+                            }
+                            if (pattern.display_name.empty())
+                                pattern.display_name = pattern.id;
+                        }
+                        if (!materialization_error.empty())
+                            break;
+
+                        infill->set_resolved_patterns(std::move(patterns));
+                    }
 
                     // Cache has_config_ui() once, under this same GIL, so the GUI can pick the
                     // capability's custom UI vs. the host JSON editor without touching Python. It is

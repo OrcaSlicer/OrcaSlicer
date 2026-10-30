@@ -32,6 +32,8 @@
 #include "Utils.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/Fill.hpp"
+#include "Fill/InfillFactory.hpp"
+#include "Fill/InfillPurpose.hpp"
 #include "Fill/FillLightning.hpp"
 #include "Fill/AdaptiveInfillField.hpp"
 #include "format.hpp"
@@ -42,6 +44,7 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include <map>
 #include <Shiny/ShinyMacros.h>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -624,11 +627,206 @@ void PrintObject::make_perimeters()
     this->set_done(posPerimeters);
 }
 
+void PrintObject::prepare_plugin_infills()
+{
+    // Collect every plugin pattern ID selected by any region, with the surface purposes of the
+    // settings that selected it. One ID may be selected by several purposes; it still gets one pin.
+    std::map<std::string, std::vector<InfillSurfacePurpose>> selected;
+    for (const PrintRegion &region : this->all_regions()) {
+        const PrintRegionConfig &config = region.config();
+        for (const InfillPatternSetting &setting : infill_pattern_settings) {
+            const std::string key = config.option<ConfigOptionString>(std::string(setting.option_key))->value;
+            if (!is_plugin_infill_pattern_key(key))
+                continue;
+            std::vector<InfillSurfacePurpose> &purposes = selected[key];
+            if (std::find(purposes.begin(), purposes.end(), setting.purpose) == purposes.end())
+                purposes.push_back(setting.purpose);
+        }
+    }
+    if (selected.empty()) {
+        m_plugin_infill_selections.clear();
+        return;
+    }
+
+    // infill() revalidates after prepare_infill() already pinned this same set. Reuse those pins
+    // instead of dropping and reacquiring them: a concurrent unload waiting on the lease must not
+    // observe a moment with no pins and force teardown before the fill workers start.
+    if (m_plugin_infill_selections.size() == selected.size() &&
+        std::all_of(selected.begin(), selected.end(),
+                    [this](const auto &selection) {
+                        const auto it = m_plugin_infill_selections.find(selection.first);
+                        return it != m_plugin_infill_selections.end() &&
+                               it->second.purposes == selection.second;
+                    }))
+        return;
+
+    // A pin is a provider lifecycle lease. Nothing consumes pins from a preflight that failed, so
+    // release them on every exceptional path instead of keeping the provider alive until the next
+    // attempt.
+    ScopeGuard release_pins_on_failure([this]() { m_plugin_infill_selections.clear(); });
+    m_plugin_infill_selections.clear();
+
+    // Every reference the project manifest stores. A plugin-backed option keeps only the bare
+    // pattern ID, so the full identity has to be recovered from the manifest and matched against
+    // the registry's owning capability.
+    std::vector<PluginCapabilityRef> manifest_refs;
+    if (const auto *manifest = m_print->full_print_config().option<ConfigOptionStrings>("plugins"))
+        for (const std::string &entry : manifest->values)
+            if (auto ref = parse_capability_ref(entry))
+                manifest_refs.emplace_back(std::move(*ref));
+
+    const auto plugin_key_of = [](const PluginCapabilityRef &ref) {
+        return ref.uuid.empty() ? ref.name : ref.uuid;
+    };
+
+    // Failure-time diagnostic dump, never emitted on a successful slice. The preflight compares
+    // three configuration layers (print-wide config, region/object/volume overrides, project
+    // manifest) against the registry's advertised identities, so a failure records all of them to
+    // tell a missing manifest reference apart from an override that selected the pattern.
+    const auto log_preflight_failure = [this, &manifest_refs, &selected, &plugin_key_of](
+        const char *branch, const std::string &key, const InfillInfo *info, const std::string &selection_error) {
+        const auto purpose_name = [](InfillSurfacePurpose purpose) -> const char * {
+            switch (purpose) {
+                case InfillSurfacePurpose::Sparse:        return "sparse";
+                case InfillSurfacePurpose::InternalSolid: return "internal_solid";
+                case InfillSurfacePurpose::TopSurface:    return "top";
+                case InfillSurfacePurpose::BottomSurface: return "bottom";
+            }
+            return "unknown";
+        };
+        const auto purposes_text = [&purpose_name](const std::vector<InfillSurfacePurpose> &purposes) {
+            std::string text;
+            for (const InfillSurfacePurpose purpose : purposes) {
+                if (!text.empty())
+                    text += ",";
+                text += purpose_name(purpose);
+            }
+            return text;
+        };
+
+        BOOST_LOG_TRIVIAL(error) << "Plugin infill preflight failed (" << branch << ") for pattern '" << key
+                                 << "' on object " << this->id().id << ", print regions " << this->num_printing_regions();
+
+        for (const auto &[selected_key, purposes] : selected)
+            BOOST_LOG_TRIVIAL(error) << "  selected plugin pattern '" << selected_key << "' purposes ["
+                                     << purposes_text(purposes) << "]";
+
+        const DynamicPrintConfig &full = m_print->full_print_config();
+        for (const PrintRegion &region : this->all_regions()) {
+            const PrintRegionConfig &config = region.config();
+            for (const InfillPatternSetting &setting : infill_pattern_settings) {
+                const ConfigOptionString *region_value = config.option<ConfigOptionString>(std::string(setting.option_key));
+                const std::string value = region_value ? region_value->value : std::string();
+                if (!is_plugin_infill_pattern_key(value))
+                    continue;
+                const ConfigOptionString *print_value = full.option<ConfigOptionString>(std::string(setting.option_key));
+                const std::string print_text = print_value ? print_value->value : std::string("<absent>");
+                BOOST_LOG_TRIVIAL(error) << "  region " << region.print_object_region_id() << " " << setting.option_key
+                                         << " = '" << value << "' purpose " << purpose_name(setting.purpose)
+                                         << ", print value '" << print_text << "', differs "
+                                         << (print_text != value ? "yes" : "no");
+            }
+        }
+
+        const ConfigOptionStrings *manifest = full.option<ConfigOptionStrings>("plugins");
+        BOOST_LOG_TRIVIAL(error) << "  manifest plugins option " << (manifest ? "present" : "absent")
+                                 << ", entries " << (manifest ? manifest->values.size() : 0);
+        if (manifest)
+            for (const std::string &entry : manifest->values)
+                BOOST_LOG_TRIVIAL(error) << "    manifest entry '" << entry << "'";
+        BOOST_LOG_TRIVIAL(error) << "  parsed manifest refs " << manifest_refs.size();
+        for (const PluginCapabilityRef &ref : manifest_refs)
+            BOOST_LOG_TRIVIAL(error) << "    ref key '" << plugin_key_of(ref) << "' capability '" << ref.capability_name
+                                     << "' name '" << ref.name << "' uuid '" << ref.uuid << "'";
+
+        BOOST_LOG_TRIVIAL(error) << "  provider registry plugin patterns:";
+        bool any_plugin_pattern = false;
+        for (const InfillInfo &registered : InfillFactory::get_registered_infills()) {
+            if (!registered.is_plugin())
+                continue;
+            any_plugin_pattern = true;
+            BOOST_LOG_TRIVIAL(error) << "    '" << registered.id << "' owner '" << registered.plugin_key << "/"
+                                     << registered.capability_name << "' purposes ["
+                                     << purposes_text(registered.supported_surfaces) << "]";
+        }
+        if (!any_plugin_pattern)
+            BOOST_LOG_TRIVIAL(error) << "    none";
+        if (info)
+            BOOST_LOG_TRIVIAL(error) << "  resolved identity for '" << key << "': '" << info->plugin_key << "/"
+                                     << info->capability_name << "' purposes ["
+                                     << purposes_text(info->supported_surfaces) << "]"
+                                     << (info->is_plugin() ? "" : " (not plugin-provided)");
+        else
+            BOOST_LOG_TRIVIAL(error) << "  resolved identity for '" << key << "': none (not registered or retired)";
+        if (!selection_error.empty())
+            BOOST_LOG_TRIVIAL(error) << "  selection error: " << selection_error;
+    };
+
+    for (const auto &[key, purposes] : selected) {
+        const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill(key);
+        if (!info || !info->is_plugin()) {
+            BOOST_LOG_TRIVIAL(error) << "No loaded infill provider provides plugin pattern '" << key << "'";
+            log_preflight_failure("no_provider", key, info.get(), std::string());
+            throw SlicingError(L("Plugin infill is unavailable. Check the plugin's diagnostic details."));
+        }
+
+        // The selected ID must belong to a capability the project actually references. This is the
+        // exact-identity check: a loaded provider with the same pattern ID but a different plugin or
+        // capability must never satisfy the project.
+        const bool referenced = std::any_of(manifest_refs.begin(), manifest_refs.end(),
+            [&info, &plugin_key_of](const PluginCapabilityRef &ref) {
+                return ref.capability_name == info->capability_name &&
+                       plugin_key_of(ref) == info->plugin_key;
+            });
+        if (!referenced) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin pattern '" << key << "' is owned by '"
+                                     << info->plugin_key << '/' << info->capability_name
+                                     << "', which is not referenced by the project manifest";
+            log_preflight_failure("manifest_identity_mismatch", key, info.get(), std::string());
+            throw SlicingError(L("Plugin infill is unavailable. Check the plugin's diagnostic details."));
+        }
+
+        // A project may be saved with a pattern in a setting the provider did not advertise (an
+        // older manifest, or a descriptor change). Refuse the slice instead of dispatching the
+        // pattern for a surface it was not written for.
+        for (const InfillSurfacePurpose purpose : purposes) {
+            if (!info->supports_surface(purpose)) {
+                BOOST_LOG_TRIVIAL(error) << "Plugin pattern '" << key << "' does not support surface purpose "
+                                         << static_cast<int>(purpose) << " selected by the project";
+                log_preflight_failure("unsupported_purpose", key, info.get(), std::string());
+                throw SlicingError(L("Plugin infill is unavailable. Check the plugin's diagnostic details."));
+            }
+        }
+
+        std::string error;
+        InfillFactory::Selection selection =
+            InfillFactory::select_infill(key, info->plugin_key, info->capability_name, purposes, error);
+        if (!selection) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin pattern '" << key << "' could not be selected: " << error;
+            log_preflight_failure("factory_selection_failed", key, info.get(), error);
+            throw SlicingError(L("Plugin infill is unavailable. Check the plugin's diagnostic details."));
+        }
+        m_plugin_infill_selections.emplace(key, PinnedInfill{std::move(selection), purposes});
+    }
+
+    release_pins_on_failure.reset();
+}
+
 void PrintObject::prepare_infill()
 {
     if (! this->set_started(posPrepareInfill))
         return;
     m_print->set_status(25, L("Generating infill regions"));
+
+    // Resolve plugin infill before any fill work: bridge_over_infill() below and infill() both create
+    // plugin Fills, enter worker pools, and neither may block on a plugin load per surface.
+    this->prepare_plugin_infills();
+    // infill() is the only consumer of these pins after prepare_infill() itself finishes. If
+    // preparing this object fails or is cancelled before that, release them so the aborted slice
+    // does not keep a provider leased.
+    ScopeGuard release_selections_on_failure([this]() { m_plugin_infill_selections.clear(); });
+    m_print->throw_if_canceled();
+
     if (m_typed_slices) {
         // To improve robustness of detect_surfaces_type() when reslicing (working with typed slices), see GH issue #7442.
         // The preceding step (perimeter generator) only modifies extra_perimeters and the extra perimeters are only used by discover_vertical_shells()
@@ -747,7 +945,7 @@ void PrintObject::prepare_infill()
     for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
         const PrintRegionConfig &rc = this->printing_region(i).config();
         if (rc.separated_infills || rc.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model ||
-            (rc.sparse_infill_density > 0 && is_octree_infill_pattern(rc.sparse_infill_pattern))) {
+            (rc.sparse_infill_density > 0 && is_octree_infill_pattern(infill_pattern_from_key(rc.sparse_infill_pattern.value)))) {
             needs_separated_components = true;
             break;
         }
@@ -808,6 +1006,7 @@ void PrintObject::prepare_infill()
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
     this->set_done(posPrepareInfill);
+    release_selections_on_failure.reset();
 }
 
 void PrintObject::infill()
@@ -816,6 +1015,13 @@ void PrintObject::infill()
     this->prepare_infill();
 
     if (this->set_started(posInfill)) {
+        // prepare_infill() pins selections when it actually runs. If only posInfill was
+        // invalidated, it may skip its own body, so revalidate here before any fill is created.
+        this->prepare_plugin_infills();
+        // Release on cancellation/failure inside the fill phase as well: the pins are only needed
+        // while Fills are being created.
+        ScopeGuard release_selections_on_failure([this]() { m_plugin_infill_selections.clear(); });
+
         m_print->set_status(35, L("Generating infill toolpath"));
 
         BOOST_LOG_TRIVIAL(debug) << "Filling layers in parallel - start";
@@ -834,7 +1040,12 @@ void PrintObject::infill()
         ### $_->fill_surfaces->clear for map @{$_->regions}, @{$object->layers};
         */
         this->set_done(posInfill);
+        release_selections_on_failure.reset();
     }
+
+    // Fill creation is the last consumer of these pins. Release them so a later plugin
+    // unload/reload is not blocked by a completed print object that merely remains cached.
+    m_plugin_infill_selections.clear();
 }
 
 void PrintObject::ironing()
@@ -1178,7 +1389,8 @@ FillAdaptive::RegionOctrees PrintObject::prepare_adaptive_infill_data(
     octrees.region_set.assign(line_spacing.size(), -1);
     for (size_t region_id = 0; region_id < line_spacing.size(); ++ region_id)
         if (line_spacing[region_id] > 0.) {
-            const std::pair<double, bool> spacing(line_spacing[region_id], this->printing_region(region_id).config().sparse_infill_pattern == ipSupportCubic);
+            const std::pair<double, bool> spacing(line_spacing[region_id],
+                infill_pattern_from_key(this->printing_region(region_id).config().sparse_infill_pattern.value) == ipSupportCubic);
             const auto                    it = std::find(spacings.begin(), spacings.end(), spacing);
             octrees.region_set[region_id]    = int(it - spacings.begin());
             if (it == spacings.end())
@@ -1263,7 +1475,7 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
 {
     bool has_lightning_infill = false;
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id)
-        if (const PrintRegionConfig& config = this->printing_region(region_id).config(); config.sparse_infill_density > 0 && config.sparse_infill_pattern == ipLightning) {
+        if (const PrintRegionConfig& config = this->printing_region(region_id).config(); config.sparse_infill_density > 0 && infill_pattern_from_key(config.sparse_infill_pattern.value) == ipLightning) {
             has_lightning_infill = true;
             break;
         }
@@ -1277,7 +1489,7 @@ AdaptiveInfillFields PrintObject::prepare_adaptive_infill_fields() const
     std::array<bool, size_t(AdaptiveInfillMode::Count)> modes{};
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id)
         if (const PrintRegionConfig &config = this->printing_region(region_id).config();
-            config.sparse_infill_density > 0 && config.sparse_infill_density < 100 && is_adaptive_infill_pattern(config.sparse_infill_pattern))
+            config.sparse_infill_density > 0 && config.sparse_infill_density < 100 && is_adaptive_infill_pattern(infill_pattern_from_key(config.sparse_infill_pattern.value)))
             modes[size_t(config.adaptive_infill_mode.value)] = true;
     modes[size_t(AdaptiveInfillMode::Disabled)] = false;
     if (std::find(modes.begin(), modes.end(), true) == modes.end() || m_layers.empty())
@@ -3113,7 +3325,7 @@ void PrintObject::bridge_over_infill()
     // Detect use of lightning infill. Moved earlier in the function to pass to the gather and filter surfaces threads.
     bool has_lightning_infill = false;
     for (size_t i = 0; i < this->num_printing_regions(); i++) {
-        if (this->printing_region(i).config().sparse_infill_pattern == ipLightning) {
+        if (infill_pattern_from_key(this->printing_region(i).config().sparse_infill_pattern.value) == ipLightning) {
             has_lightning_infill = true;
             break;
         }
@@ -3278,7 +3490,7 @@ void PrintObject::bridge_over_infill()
                 if (lower_layer == nullptr)
                     continue;
                 for (const LayerRegion *region : lower_layer->regions()) {
-                    if (region->region().config().sparse_infill_pattern == ipLightning
+                    if (infill_pattern_from_key(region->region().config().sparse_infill_pattern.value) == ipLightning
                         && ! region->fill_surfaces.filter_by_type(stInternal).empty()) {
                         needs_lightning_expansion[lidx] = 1;
                         break;
@@ -3825,7 +4037,7 @@ void PrintObject::bridge_over_infill()
                     expansion_area.insert(expansion_area.end(), internal_polys.begin(), internal_polys.end());
                     Polygons fill_polys = to_polygons(region->fill_expolygons);
                     total_fill_area.insert(total_fill_area.end(), fill_polys.begin(), fill_polys.end());
-                    if (region->region().config().sparse_infill_pattern == ipLightning) {
+                    if (infill_pattern_from_key(region->region().config().sparse_infill_pattern.value) == ipLightning) {
                         Polygons l = to_polygons(region->fill_surfaces.filter_by_type(stInternal));
                         lightning_area.insert(lightning_area.end(), l.begin(), l.end());
                     }
@@ -3863,8 +4075,10 @@ void PrintObject::bridge_over_infill()
                 };
                 for (const CandidateSurface &candidate : surfaces_by_layer[lidx]) {
                     const auto &region_config = candidate.region->region().config();
-                    const bool turning_pattern = region_config.sparse_infill_pattern == ipHilbertCurve ||
-                                                 region_config.sparse_infill_pattern == ipOctagramSpiral;
+                    const InfillPattern sparse_infill_pattern =
+                        infill_pattern_from_key(region_config.sparse_infill_pattern.value);
+                    const bool turning_pattern = sparse_infill_pattern == ipHilbertCurve ||
+                                                 sparse_infill_pattern == ipOctagramSpiral;
                     const Flow &flow              = candidate.region->bridging_flow(frSolidInfill, true);
                     const Polygons expanded_polys = expand(candidate.new_polys, flow.scaled_spacing());
                     // deep_infill_area and internal_unsupported_area cover the whole layer; only their part under
@@ -4972,8 +5186,9 @@ void PrintObject::combine_infill()
         // Support internal solid infill when sparse_infill_density is 100%
         const bool          use_solid_infill = fabs(region.config().sparse_infill_density.value - 100.) < EPSILON;
         const SurfaceType   surface_type     = use_solid_infill ? stInternalSolid : stInternal;
-        const InfillPattern infill_pattern   = use_solid_infill ? region.config().internal_solid_infill_pattern :
-                                                                  region.config().sparse_infill_pattern;
+        const InfillPattern infill_pattern   = infill_pattern_from_key(
+            use_solid_infill ? region.config().internal_solid_infill_pattern.value
+                             : region.config().sparse_infill_pattern.value);
 
         // Limit the number of combined layers to the maximum height allowed by this regions' nozzle.
         //FIXME limit the layer height to max_layer_height

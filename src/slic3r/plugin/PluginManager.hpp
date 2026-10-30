@@ -179,6 +179,18 @@ public:
                                                                      PluginCapabilityType type = PluginCapabilityType::Unknown,
                                                                      bool only_enabled         = true) const;
 
+    // Record a runtime capability failure in the plugin's existing error store. The diagnostic is
+    // deliberately verbose (plugin, capability, exception) and persists until the plugin is
+    // reloaded or unloaded; there is no clear-on-success path. The optional refresh callback is
+    // invoked after the store is updated and must not be called with the registry lock held.
+    bool report_plugin_diagnostic(const std::string& plugin_key, std::string error);
+    // Narrow GUI refresh hook: called with the plugin key after report_plugin_diagnostic() stores a
+    // diagnostic. It is the only notification a runtime plugin failure emits.
+    void subscribe_on_runtime_error_callback(PluginLifecycleCompleteFn fn);
+    // Generic, user-facing message for a plugin infill failure. The actionable detail lives in the
+    // plugin's diagnostic store, not in this string.
+    static std::string plugin_infill_failure_message();
+
     bool get_install_state(const std::string& plugin_key, PluginInstallState& install_state);
 
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});
@@ -287,6 +299,17 @@ private:
     void cancel_and_wait_for_capabilities(
         const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities);
 
+    // Publish or retract one loaded plugin's infill patterns from its current enable state. Holds
+    // m_infill_publication_mutex across reading that state and touching the registry, so a pass
+    // that observed an older state cannot republish a pattern whose capability is now disabled or
+    // unloaded.
+    void sync_infill_patterns_for_plugin(const std::string& plugin_key);
+    // Caller holds m_infill_publication_mutex.
+    void sync_infill_patterns_for_plugin_locked(const std::string& plugin_key);
+    // Caller holds m_infill_publication_mutex.
+    void retract_infill_patterns_locked(
+        const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities);
+
     // Snapshot subscribers under m_mutex so they can be invoked without holding it.
     std::vector<PluginLifecycleCompleteFn> copy_callbacks(CallbackType type) const;
     std::vector<CapabilityLifecycleFn> copy_capability_callbacks(CallbackType type) const;
@@ -332,8 +355,16 @@ private:
     // Serialize sidecar snapshots so concurrent capability toggles cannot write stale state out of order.
     mutable std::mutex m_install_state_mutex;
 
+    // Publication gate for plugin infill pattern IDs. Lock order: this mutex, then m_mutex, then the
+    // InfillFactory registry lock. Load/enable publishes under it, and unload detaches and retracts
+    // under it, so the last operation to run always reflects the live capability state.
+    std::mutex m_infill_publication_mutex;
+
     std::map<CallbackType, std::vector<PluginLifecycleCompleteFn>> m_callbacks;
     std::map<CallbackType, std::vector<CapabilityLifecycleFn>> m_capability_callbacks;
+    // Narrow runtime-error subscribers; see report_plugin_diagnostic(). Copied and invoked outside
+    // the registry lock, so a GUI refresh may safely query the manager.
+    std::vector<PluginLifecycleCompleteFn> m_runtime_error_callbacks;
 
     bool m_discovery_complete    = false;
     bool m_discovery_in_progress = false;

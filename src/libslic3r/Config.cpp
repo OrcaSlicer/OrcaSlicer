@@ -1644,25 +1644,28 @@ void ConfigBase::for_each_plugin_capability(const std::function<void(const std::
         if (opt_def == nullptr || opt == nullptr || !opt_def->is_plugin_backed())
             continue;
 
+        // An infill option also accepts the option's own built-in patterns, which are not
+        // capabilities: they have no plugin reference to derive and must not be reported as
+        // unresolved. Same built-in test as the infill-pattern validation in validate().
+        const auto is_capability_value = [opt_def](const std::string& value) {
+            return !value.empty() && !(opt_def->plugin_type == "infill" && opt_def->has_enum_value(value));
+        };
+
         // Scalar options carry a single capability name; vector options carry a list. Same
         // scalar/vector dispatch as PluginResolver::find_option_for_capability.
         if (const auto* scalar_option = dynamic_cast<const ConfigOptionString*>(opt)) {
-            if (!scalar_option->value.empty())
+            if (is_capability_value(scalar_option->value))
                 fn(opt_key, opt_def->plugin_type, scalar_option->value);
         } else if (const auto* vector_option = dynamic_cast<const ConfigOptionVectorBase*>(opt)) {
             for (const std::string& capability_name : vector_option->vserialize())
-                if (!capability_name.empty())
+                if (is_capability_value(capability_name))
                     fn(opt_key, opt_def->plugin_type, capability_name);
         }
     }
 }
 
-std::vector<std::string> ConfigBase::collect_plugin_manifest() const
+void ConfigBase::append_plugin_refs(std::vector<std::string>& refs) const
 {
-    std::vector<std::string> refs;
-    if (!resolve_capability_fn)
-        return refs;
-
     // Resolve each capability value and append its full reference, dropping duplicates (preserving
     // insertion order). A value that resolves nowhere has no reference to write, so it is skipped;
     // unresolved_plugin_capabilities() reports those values so a GUI save can prompt.
@@ -1671,6 +1674,15 @@ std::vector<std::string> ConfigBase::collect_plugin_manifest() const
         if (!ref.empty() && std::find(refs.begin(), refs.end(), ref) == refs.end())
             refs.emplace_back(std::move(ref));
     });
+}
+
+std::vector<std::string> ConfigBase::collect_plugin_manifest() const
+{
+    std::vector<std::string> refs;
+    if (!resolve_capability_fn)
+        return refs;
+
+    this->append_plugin_refs(refs);
     return refs;
 }
 
@@ -1706,6 +1718,22 @@ void ConfigBase::update_plugin_manifest()
         return;
     if (auto* manifest = this->option<ConfigOptionStrings>("plugins", true))
         manifest->values = this->collect_plugin_manifest();
+}
+
+void ConfigBase::update_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs)
+{
+    if (!resolve_capability_fn)
+        return;
+
+    std::vector<std::string> refs = this->collect_plugin_manifest();
+    // Model object/volume overrides carry their own plugin-backed settings, so they feed the same
+    // resolved manifest, de-duplicated against the references collected above.
+    for (const ConfigBase* config : additional_configs)
+        if (config != nullptr)
+            config->append_plugin_refs(refs);
+
+    if (auto* manifest = this->option<ConfigOptionStrings>("plugins", true))
+        manifest->values = std::move(refs);
 }
 
 DynamicConfig::DynamicConfig(const ConfigBase& rhs, const t_config_option_keys& keys)
