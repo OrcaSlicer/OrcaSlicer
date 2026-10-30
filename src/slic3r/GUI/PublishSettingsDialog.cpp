@@ -1036,17 +1036,26 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
 // are floored at the 530x530 base and capped at hard DIP limits - deliberately not the whole
 // display - with one last-resort clamp so the dialog can never open larger than the screen.
 // Also owns the resize floor: the window cannot be resized below what the tabs need, so
-// shrinking never re-hides a filament tab.
+// shrinking never re-hides a filament tab. The cap wins over the tab width: a project whose
+// strip needs more than the cap cannot show every tab at once, and relayout hides the
+// overflowing ones rather than growing the dialog past the cap.
 void PublishSettingsDialog::fit_to_content()
 {
     static const wxSize BASE{530, 530}; // base size in DIP, the minimum the dialog can shrink to
     static const wxSize CAP{1300, 850}; // hard cap in DIP, the maximum the dialog can grow to
+    // TabCtrl separates its buttons with proportional stretch spacers, which collapse to zero
+    // when the strip is sized to its bare width - the indicator dot on a dirty slot's tab would
+    // sit flush against the next slot's colour chip. Reserve this much per tab item as slack.
+    static const int TAB_SLACK_DIP = 10;
 
-    int strip = m_outer_tabs->GetFullSize();
+    const int slack  = FromDIP(TAB_SLACK_DIP);
+    auto strip_width = [slack](const TabCtrl* tabs) { return tabs->GetFullSize() + slack * int(tabs->GetCount()); };
+
+    int strip = strip_width(m_outer_tabs);
     for (const SectionGroup& section : m_sections) {
-        strip = std::max(strip, section.tabs->GetFullSize());
+        strip = std::max(strip, strip_width(section.tabs));
         if (section.mixed_tabs != nullptr)
-            strip = std::max(strip, section.mixed_tabs->GetFullSize());
+            strip = std::max(strip, strip_width(section.mixed_tabs));
     }
 
     // Minimum width: whatever keeps every tab visible (never below the base). strip is device
