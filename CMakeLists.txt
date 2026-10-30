@@ -130,13 +130,13 @@ set(ORCA_BUNDLED_UV_EXECUTABLE "" CACHE FILEPATH "Path to a uv executable to bun
 # be reproducible and the download verified. To upgrade, bump ORCA_UV_VERSION
 # and refresh every hash below from the release's .sha256 assets, e.g.:
 #   curl -sL https://github.com/astral-sh/uv/releases/download/<ver>/uv-<triple>.tar.gz.sha256
-set(ORCA_UV_VERSION "0.11.21")
-set(ORCA_UV_SHA256_aarch64-apple-darwin      "1f921d491ba5ffeea774eb04d6681ecee379101341cbb1500394993b541bf3f4")
-set(ORCA_UV_SHA256_x86_64-apple-darwin       "f3c8e5708a84b920c18b691214d54d2b0da6b984789caae95d47c95120cb7765")
-set(ORCA_UV_SHA256_aarch64-unknown-linux-gnu "88e800834007cc5efd4675f166eb2a51e7e3ad19876d85fa8805a6fb5c922397")
-set(ORCA_UV_SHA256_x86_64-unknown-linux-gnu  "8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050")
-set(ORCA_UV_SHA256_aarch64-pc-windows-msvc   "74e443f8004022dde57a1bd0d10c097830f9ea8feb4ec927db52cd5d805c2f48")
-set(ORCA_UV_SHA256_x86_64-pc-windows-msvc    "ace861f360c6de2babedc1607d0f454b6b09a820dbc8182dc15af927e4df9589")
+set(ORCA_UV_VERSION "0.11.33")
+set(ORCA_UV_SHA256_aarch64-apple-darwin      "d75e3d2bfc203d17388edaabd3aa37958edbcbfc36219e3ee0d31bb080b4baa2")
+set(ORCA_UV_SHA256_x86_64-apple-darwin       "f1b919f740bd6be1d014ff58c4271b0779a32198adfb19ad9c5d1c4d9b2b4301")
+set(ORCA_UV_SHA256_aarch64-unknown-linux-gnu "9ed88a9a42de3102f9704d021ab186fdf8a69a7ad9a1d3f3486ac6b1e55d6141")
+set(ORCA_UV_SHA256_x86_64-unknown-linux-gnu  "aa9fca823c03289fb6e3460b3dc864f3ea895cafaf9b99247701a67b17d1b018")
+set(ORCA_UV_SHA256_aarch64-pc-windows-msvc   "6eb261d3ad61b35e2a6cfd997b296b908ff74d6199717eca81c3c73e1df7fbc7")
+set(ORCA_UV_SHA256_x86_64-pc-windows-msvc    "c253ce868ad48d29327b661452ce184c9e333e6d6f5bc8d6fcfbf4dd52b83442")
 
 # Version-scoped cache dir so a version bump invalidates the cached binary.
 set(ORCA_UV_DOWNLOAD_DIR "${CMAKE_BINARY_DIR}/.uv/${ORCA_UV_VERSION}")
@@ -1168,37 +1168,37 @@ function(orcaslicer_copy_sos target config postfix output_sos)
 
     file(COPY ${CMAKE_PREFIX_PATH}/lib/libavformat.so
             ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61
-            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61.1.100
+            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61.7.103
             ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
             ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61
-            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61.3.100
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61.19.101
             ${CMAKE_PREFIX_PATH}/lib/libavutil.so
             ${CMAKE_PREFIX_PATH}/lib/libavutil.so.59
-            ${CMAKE_PREFIX_PATH}/lib/libavutil.so.59.8.100
+            ${CMAKE_PREFIX_PATH}/lib/libavutil.so.59.39.100
             ${CMAKE_PREFIX_PATH}/lib/libswscale.so
             ${CMAKE_PREFIX_PATH}/lib/libswscale.so.8
-            ${CMAKE_PREFIX_PATH}/lib/libswscale.so.8.1.100
+            ${CMAKE_PREFIX_PATH}/lib/libswscale.so.8.3.100
             ${CMAKE_PREFIX_PATH}/lib/libswresample.so
             ${CMAKE_PREFIX_PATH}/lib/libswresample.so.5
-            ${CMAKE_PREFIX_PATH}/lib/libswresample.so.5.1.100
+            ${CMAKE_PREFIX_PATH}/lib/libswresample.so.5.3.100
          DESTINATION ${_out_dir})
 
     set(${output_sos}
         ${_out_dir}/libavformat.so
         ${_out_dir}/libavformat.so.61
-        ${_out_dir}/libavformat.so.61.1.100
+        ${_out_dir}/libavformat.so.61.7.103
         ${_out_dir}/libavcodec.so
         ${_out_dir}/libavcodec.so.61
-        ${_out_dir}/libavcodec.so.61.3.100
+        ${_out_dir}/libavcodec.so.61.19.101
         ${_out_dir}/libavutil.so
         ${_out_dir}/libavutil.so.59
-        ${_out_dir}/libavutil.so.59.8.100
+        ${_out_dir}/libavutil.so.59.39.100
         ${_out_dir}/libswscale.so
         ${_out_dir}/libswscale.so.8
-        ${_out_dir}/libswscale.so.8.1.100
+        ${_out_dir}/libswscale.so.8.3.100
         ${_out_dir}/libswresample.so
         ${_out_dir}/libswresample.so.5
-        ${_out_dir}/libswresample.so.5.1.100
+        ${_out_dir}/libswresample.so.5.3.100
         PARENT_SCOPE
     )
 endfunction()
@@ -1325,15 +1325,15 @@ endif ()
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(LIBRARY_FILES
     ${LIBDIR_BIN}/libavformat.so.61
-    ${LIBDIR_BIN}/libavformat.so.61.1.100
+    ${LIBDIR_BIN}/libavformat.so.61.7.103
     ${LIBDIR_BIN}/libavcodec.so.61
-    ${LIBDIR_BIN}/libavcodec.so.61.3.100
+    ${LIBDIR_BIN}/libavcodec.so.61.19.101
     ${LIBDIR_BIN}/libavutil.so.59
-    ${LIBDIR_BIN}/libavutil.so.59.8.100
+    ${LIBDIR_BIN}/libavutil.so.59.39.100
     ${LIBDIR_BIN}/libswresample.so.5
-    ${LIBDIR_BIN}/libswresample.so.5.1.100
+    ${LIBDIR_BIN}/libswresample.so.5.3.100
     ${LIBDIR_BIN}/libswscale.so.8
-    ${LIBDIR_BIN}/libswscale.so.8.1.100
+    ${LIBDIR_BIN}/libswscale.so.8.3.100
     )
     install(FILES ${LIBRARY_FILES} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 endif ()

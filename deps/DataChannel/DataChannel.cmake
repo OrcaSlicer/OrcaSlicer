@@ -15,7 +15,7 @@ if (FLATPAK)
 else()
     set(_datachannel_source
         GIT_REPOSITORY https://github.com/paullouisageneau/libdatachannel.git
-        GIT_TAG v0.24.5
+        GIT_TAG v0.24.6
         GIT_SHALLOW ON
         GIT_SUBMODULES_RECURSE ON
     )
