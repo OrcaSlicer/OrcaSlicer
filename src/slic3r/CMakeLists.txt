@@ -199,6 +199,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoMeshBoolean.hpp
     GUI/Gizmos/GLGizmoMmuSegmentation.cpp
     GUI/Gizmos/GLGizmoMmuSegmentation.hpp
+    GUI/Gizmos/OrcaMultiScaleAutoPainter.cpp
     GUI/Gizmos/GLGizmoMove.cpp
     GUI/Gizmos/GLGizmoMove.hpp
     GUI/Gizmos/GLGizmoPainterBase.cpp
@@ -937,6 +938,7 @@ else ()
     add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES})
 endif ()
 target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_definitions(libslic3r_gui PRIVATE ORCASLICER_BUILD)
 
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)
