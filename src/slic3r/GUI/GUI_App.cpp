@@ -4501,8 +4501,10 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
     }
 
-    // If machine doesn't exist, create it first
-    if (!existing) {
+    // If machine doesn't exist, create it first. The Orca agent never connects, so an entry saved
+    // under it holds no binding; re-insert it for the active agent, whose machine list can't see
+    // it otherwise. Entries bound by any other agent stay with that agent.
+    if (!existing || (existing->printer_agent_id == ORCA_PRINTER_AGENT_ID && agent_id != ORCA_PRINTER_AGENT_ID)) {
         BBLocalMachine machine;
         machine.dev_id = dev_id;
         // We use dev_id as dev_ip to store the address (host:port)
@@ -4517,7 +4519,7 @@ void GUI_App::select_machine(const std::string& agent_id)
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to create machine dev_id=" << dev_id;
             return;
         }
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created new machine dev_id=" << dev_id;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created or adopted machine dev_id=" << dev_id;
     } else if (agent_id == MOONRAKER_PRINTER_AGENT_ID && existing->printer_agent_id == agent_id &&
                (!existing->has_access_right() || existing->get_access_code() != access_code)) {
         existing->set_access_code(access_code);
