@@ -2180,9 +2180,9 @@ Tab::SettingRowState Tab::setting_row_state(const std::string &opt_id) const
 // update the preset selection boxes (the dirty flags)
 // If value is saved before calling this function, put saved_value = true,
 // and value can be some random value because in this case it will not been used
-void Tab::load_key_value(const std::string& opt_key, const boost::any& value, bool saved_value /*= false*/)
+void Tab::load_key_value(const std::string& opt_key, const boost::any& value, bool saved_value /*= false*/, int opt_index /*= 0*/)
 {
-    if (!saved_value) change_opt_value(*m_config, opt_key, value);
+    if (!saved_value) change_opt_value(*m_config, opt_key, value, opt_index);
     if (m_publish_host) {
         // A publish tab stages the value in its private preset: refresh its own rows and marks,
         // and leave the app's presets, dependent tabs and the Plater out of it.
@@ -2330,6 +2330,9 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         // update()/update_visibility() rewrote the lines: re-apply the host's filter.
         if (m_on_rules_applied)
             m_on_rules_applied();
+        // The host applies the edit to the real preset or project at once (spec 7.10).
+        if (m_on_publish_edit)
+            m_on_publish_edit(opt_key, value);
         return;
     }
 

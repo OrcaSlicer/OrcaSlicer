@@ -349,6 +349,10 @@ public:
     // Called after the Tab rewrites its lines' visibility, so a hosted dialog can re-apply its own
     // filter; null by default.
     std::function<void()> m_on_rules_applied;
+    // Called after a publish tab's own handling of an edit, with the field's opt_id (which carries
+    // its "#N") and the new value, so the host dialog can apply it to the real preset or project;
+    // null by default.
+    std::function<void(const std::string &opt_id, const boost::any &value)> m_on_publish_edit;
 
 public:
 	// BBS
@@ -592,7 +596,9 @@ protected:
 	void			create_line_with_widget(ConfigOptionsGroup* optgroup, const std::string& opt_key, const std::string& path, widget_t widget);
 	wxSizer*		compatible_widget_create(wxWindow* parent, PresetDependencies &deps);
 	void 			compatible_widget_reload(PresetDependencies &deps);
-	void			load_key_value(const std::string& opt_key, const boost::any& value, bool saved_value = false);
+	// Writes `value` into this tab's preset and refreshes the app through the tab. `opt_index` is
+	// the element a vector option is written to; a scalar option ignores it.
+	void			load_key_value(const std::string& opt_key, const boost::any& value, bool saved_value = false, int opt_index = 0);
 	// Commit one option whose new value already sits in m_config through the same path a field edit
 	// runs (throwing field, otherwise the owning group's on_change_OG()). Reloads the option's page
 	// so a built field reports the committed value, but performs no tab-wide refresh. Returns true

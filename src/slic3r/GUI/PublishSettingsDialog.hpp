@@ -17,9 +17,11 @@
 #include <wx/colour.h>
 #include <wx/scrolwin.h>
 #include <wx/menu.h>
+#include <wx/timer.h>
 #include <utility>
 #include <vector>
 #include <string>
+#include <boost/any.hpp>
 
 class TabCtrl;
 class wxBitmapButton;
@@ -140,8 +142,8 @@ private:
         Tab*                publish_tab{nullptr};
         wxStaticText* info{nullptr};
         wxPoint scroll_pos{0, 0};
-        // The slot's colour swatch, a button in the sidebar's style: a click stages a colour for
-        // the slot, shown on the badge and the tab strip and written by OK only.
+        // The slot's colour swatch, a button in the sidebar's style: a click writes the colour
+        // to the project at once, and the badge and the tab strip show it.
         wxBitmapButton* filament_color_chip{nullptr};
         wxStaticText* title_label{nullptr}; // material title, refreshed on a DPI change
         // "Enable": while unchecked nothing of this slot is exported and everything below the
@@ -155,7 +157,7 @@ private:
         ::CheckBox* full_check{nullptr};
         // The slot's filament preset picker (the sidebar's own combo), preceded by the slot's
         // colour badge, on its own line below Full Publish and visible only while enabled.
-        // Selecting a preset stages it; OK assigns it.
+        // Selecting a preset assigns it to the slot at once.
         PublishFilamentPicker* filament_picker{nullptr};
         wxSizerItem*           filament_picker_item{nullptr};
         // True for a mixed-color filament slot: no Material/Retraction rows; Enable publishes
@@ -169,21 +171,19 @@ private:
         // The Q1 notice: this printer needs a variant the filament does not define.
         wxStaticText* variant_notice{nullptr};
 
-        // The private preset's config as the hosted tab was first created (the seed plus the Tab's
-        // own initial normalization). commit_publish_edits() diffs the tab's edits against it.
-        Slic3r::DynamicPrintConfig seed;
         // Material identity, only for Section::Material categories.
         std::string filament_type;
         std::string filament_vendor;
         std::string filament_id;
         // The author's 0-based filament slot this material section represents.
         size_t filament_slot{0};
-        // The slot's preset as the project uses it, and the one the picker staged. They differ
-        // only between a pick and OK; Cancel leaves `filament` in place.
+        // The slot's preset as the project uses it, and the one the picker last picked. A pick is
+        // assigned to the slot at once; `pending_filament` only names the preset the page was
+        // rebuilt from.
         std::string filament;
         std::string pending_filament;
-        // An explicit colour pick from the badge: the slot colour the badge shows and OK writes,
-        // overriding the staged preset's declared colour until another preset is picked.
+        // The colour last picked on the badge: it is written to the project at once and kept here
+        // as the value the badge and the payload identity show, until another preset is picked.
         std::vector<std::string> pending_colours;
         bool                     pending_gradient{false};
         std::vector<size_t> rows; // flattened rows of this category
@@ -278,30 +278,28 @@ private:
                               const PublishMaterialIdentity& identity = PublishMaterialIdentity(),
                               bool is_mixed                          = false);
     // Creates the slot's private Filament tab from `pending_filament` and hands it to the
-    // category's host (spec 7.4.2). Used once at build and again whenever the picker stages
+    // category's host (spec 7.4.2). Used once at build and again whenever the picker assigns
     // another preset; the previous tab is destroyed by the caller.
     void build_material_tab(Category& category);
-    // Picker callback: stage `preset_name` for the physical slot, rebuild its tab and rows,
-    // uncheck them and refresh the payload identity. Nothing of the project changes until OK.
+    // Picker callback: assign `preset_name` to the physical slot at once, write the slot colour
+    // its preset declares, rebuild the slot's tab and rows from it and refresh the sidebar.
     void on_filament_picked(size_t slot, const std::string& preset_name);
-    // Badge callback: open the sidebar's colour picker on the slot's colour and stage the
-    // choice for the badge, the tab strip and the payload. Nothing of the project changes until OK.
+    // Badge callback: open the sidebar's colour picker on the slot's colour and write the choice
+    // to the project's slot colour at once.
     void on_filament_color_picked(size_t slot);
-    // Repaints the slot's badge and tab-strip chip from its staged/declared colour and carries
-    // that colour into the payload identity.
+    // Repaints the slot's badge and tab-strip chip from the colour the project carries (or the
+    // colour last picked on the badge) and carries that colour into the payload identity.
     void refresh_slot_colour(size_t category_index);
     // The page of a physical slot, or nullptr.
     Category* material_category(size_t slot);
-    // The colour the slot's badge and tab-strip chip show: the staged pick's own colour while a
-    // pick is pending, the project's colour otherwise. `full` is the project's config.
+    // The colour the slot's badge and tab-strip chip show: the colour last picked on the badge
+    // while it is set, the project's colour otherwise. `full` is the project's config.
     std::string staged_badge_color(const Category& category, const Slic3r::DynamicPrintConfig& full) const;
     // Drops a category's rows and re-indexes every other category's rows.
     void remove_category_rows(size_t category_index);
-    // Recomputes the file-column layout of every material slot from the staged presets, remaps
-    // the rows' "#col" keys and keeps the selection state on the remapped ids.
+    // Recomputes the file-column layout of every material slot from the project's assigned
+    // presets, remaps the rows' "#col" keys and keeps the selection state on the remapped ids.
     void refresh_material_layout();
-    // The uncompacted full config the project would have if every staged preset were assigned.
-    Slic3r::DynamicPrintConfig staged_full_config(bool apply_extruder) const;
     // Appends one row drawn by the hosted tab's own Line.
     size_t add_tab_row(Row row, size_t category_index);
     // Builds a physical slot's rows from its hosted Filament tab's lines, and attaches the publish
@@ -342,9 +340,19 @@ private:
     void apply_line_field_gating(size_t row_index);
     // Applies the gating of every row of the category to the tab's fields.
     void apply_row_field_gating(size_t category_index);
-    // Writes every checked row's edited value into the project's preset (or project config). Runs on
-    // OK only, so Cancel leaves the app's presets untouched.
-    void commit_publish_edits();
+    // Wires a hosted tab's callbacks to this dialog: repaint its rows on a variant or page change
+    // and forward each edit to the real preset or project.
+    void bind_publish_tab(size_t category_index);
+    // One edit from a hosted tab: the row the visible field draws, checked and writable, is
+    // written to its owner's real preset (or the project config) at once (spec 7.10).
+    void on_publish_edit(size_t category_index, const std::string& opt_id, const boost::any& value);
+    // The row of `category_index` whose published option `opt_id` names and whose column the tab
+    // currently shows, or size_t(-1) when the field is not a published row.
+    size_t row_for_edit(size_t category_index, const std::string& opt_id) const;
+    // Coalesces the plater's re-read of the config: a burst of edits refreshes it once, after a
+    // short idle, instead of once per keystroke.
+    void schedule_live_refresh();
+    void flush_live_refresh();
     // The non-structural filament keys of a slot's preset, for a "Full Publish" entry.
     std::vector<std::string> full_keys_for_slot() const;
     void save_scroll_position(Category& category);
@@ -380,6 +388,10 @@ private:
     ScalableBitmap m_search;
     ScalableBitmap m_menu;
     bool m_legacy_process_selection{false};
+
+    // The coalesced plater refresh: every edit wants the plater to re-read the config, but typing
+    // would otherwise refresh once per keystroke. One refresh runs after this timer expires.
+    wxTimer m_live_refresh_timer;
 
     std::vector<Row> m_rows;
     std::vector<Category> m_categories;
