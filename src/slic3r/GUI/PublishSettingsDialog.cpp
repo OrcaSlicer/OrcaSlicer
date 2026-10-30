@@ -1811,9 +1811,24 @@ void PublishSettingsDialog::on_filament_color_picked(size_t slot)
     category->pending_colours  = picked.colors;
     category->pending_gradient = picked.gradient;
     if (write_project_slot_colour(bundle->project_config, slot, picked.colors, picked.gradient)) {
-        // A colour change invalidates the AMS colour cache and the flush volumes, which the
-        // sidebar signals with this event from the same handler that writes the colour.
         if (Plater* plater = wxGetApp().plater()) {
+            // The sidebar's own colour handler pushes the changed keys immediately: the plater's
+            // diff repaints the object list and the scene, and the slot's combo repaints its
+            // swatch. Without both, the dialog's chips move but the main GUI keeps the old colour
+            // until some later config event.
+            DynamicPrintConfig colour_cfg;
+            for (const char* key : { "filament_colour", "filament_multi_colour", "filament_colour_type" })
+                if (const ConfigOption* opt = bundle->project_config.option(key))
+                    colour_cfg.set_key_value(key, opt->clone());
+            if (!colour_cfg.keys().empty())
+                plater->on_config_change(colour_cfg);
+
+            Sidebar& sidebar = plater->sidebar();
+            std::vector<PlaterPresetComboBox*>& combos = sidebar.combos_filament();
+            if (slot < combos.size() && combos[slot] != nullptr)
+                combos[slot]->update();
+
+            // A colour change invalidates the AMS colour cache and the flush volumes.
             auto* evt = new wxCommandEvent(EVT_FILAMENT_COLOR_CHANGED);
             evt->SetInt(int(slot));
             wxQueueEvent(plater, evt);
