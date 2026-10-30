@@ -1203,6 +1203,11 @@ void PublishSettingsDialog::build_option_model()
     // No filter is active at startup: every row matches until the user types.
     for (Row& row : m_rows)
         row.matches_filter = true;
+    // The hosted tabs built and enabled their fields while the pages activated, before the row
+    // hooks existed. Gate every row once now, so an unchecked row starts read-only instead of
+    // staying enabled until the first extruder or variant switch.
+    for (size_t c = 0; c < m_categories.size(); ++c)
+        apply_row_field_gating(c);
     // Rows are drawn when their page is first shown, so opening stays close to today's cost
     // even with several variants per slot.
     apply_visibility();
