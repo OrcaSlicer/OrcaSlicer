@@ -1169,6 +1169,9 @@ private:
     uint64_t m_hl_generation{0};    // ...on this topology
     std::vector<std::pair<int, int>> m_hl_faces;
     bool     m_hl_pending{false};
+    // The feature that made the face picked in the viewport (found off the UI thread after the pick), shown as a tinted row in the
+    // feature list. Valid for the (body, face) and topology generation it was found for.
+    void     find_pick_owner();
     void     request_feature_highlight();
     void     update_feature_highlight();
     // The faces feature `f` made, found again when the cached ones are another row's or topology's.

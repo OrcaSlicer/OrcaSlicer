@@ -376,6 +376,10 @@ void draw_rows(DesignRowList* list, float em, SidebarCtx& cx)
         const float acts_w = cell * float(r.actions.size());
         const ImVec2 p0 = ImGui::GetCursorScreenPos();
         const bool selected = selectable && i == sel;
+        if (i == list->owner && !selected) {   // the picked face's feature: tint the row, bring it into view once
+            ImGui::GetWindowDrawList()->AddRectFilled(p0, ImVec2(p0.x + avail, p0.y + row_h), ImGui::GetColorU32(ImVec4(0.20f, 0.60f, 0.65f, 0.45f)));
+            if (!ImGui::IsRectVisible(p0, ImVec2(p0.x + avail, p0.y + row_h))) ImGui::SetScrollHereY(0.5f);
+        }
         ImGui::Selectable("##row", selected, ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_AllowItemOverlap, ImVec2(std::max(avail - acts_w, 20.f * em), row_h));
         const bool hovered = ImGui::IsItemHovered();
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {

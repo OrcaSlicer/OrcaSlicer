@@ -135,6 +135,7 @@ void DesignTreeOverlay::render(ImGuiWrapper& imgui, float scale, float inset_lef
     ImGui::Separator();
 
     const int n = int(view.rows.size());
+    if (view.owner < 0) m_owner_shown = -1;
     // While the bar is being dragged it only PREVIEWS the new position; the model is rebuilt once,
     // on release (rebuilding on every mouse move also disturbed the drag itself).
     const int eff_rollback = m_dragging ? m_drag_rollback : view.rollback;
@@ -191,6 +192,12 @@ void DesignTreeOverlay::render(ImGuiWrapper& imgui, float scale, float inset_lef
                 m_rename_row = -1;
             }
         } else {
+            if (i == view.owner && !selected) {   // the picked face's feature: tint the row and bring it into view
+                const ImVec2 p = ImGui::GetCursorScreenPos();
+                ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + ImGui::GetContentRegionAvail().x, p.y + ImGui::GetTextLineHeightWithSpacing()),
+                                                          ImGui::GetColorU32(ImVec4(0.20f, 0.60f, 0.65f, 0.45f)));
+                if (m_owner_shown != i) { ImGui::SetScrollHereY(0.5f); m_owner_shown = i; }
+            }
             if (tint) ImGui::PushStyleColor(ImGuiCol_Text, *tint);
             if (ImGui::Selectable(r.label.c_str(), selected, ImGuiSelectableFlags_AllowDoubleClick)) {
                 const ImGuiIO& io = ImGui::GetIO();   // Ctrl toggles a row in the selection, Shift extends it from the primary one

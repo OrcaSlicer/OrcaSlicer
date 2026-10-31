@@ -30,6 +30,7 @@ struct TreeRowView {
 struct TreeView {
     std::vector<TreeRowView> rows;
     int  selected{-1};
+    int  owner{-1};                  // the feature that made the face picked in the viewport: its row is tinted, not selected
     std::vector<int> selected_set;   // every selected row (Ctrl toggles, Shift extends); `selected` is the primary
     bool can_paste{false};           // the feature clipboard holds something
     int  rollback{-1};        // history is rolled back to this row; -1 = at the end
@@ -72,6 +73,7 @@ private:
     bool        m_dragging{false};
     float       m_last_inset_top{-1.f};
     float       m_row_x{0.f};
+    int         m_owner_shown{-1};   // the owner row already scrolled into view
     int         m_drag_src{-1};   // the row being dragged this frame
     std::vector<float> m_row_mid;      // screen y of each row centre, from the previous frame (the bar drag reads it)
 };

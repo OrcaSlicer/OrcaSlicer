@@ -3616,6 +3616,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_sel_solid_edge = (level == 3) ? edge : -1;
         m_sel_solid_edges = (level == 3) ? m_viewport->selected_solid_edges() : std::vector<int>();
         m_sel_solid_vertex = (level == 4);
+        if (m_tree) m_tree->owner = -1;
+        if (level == 2 && m_active == Tool::None && face >= 0) CallAfter([this] { find_pick_owner(); });
         // A card whose input is a FACE takes the face under the click even at the whole-body level: the first click on a body selects the
         // whole body and leaves m_sel_solid_face at -1, so the pick silently failed until a second click cycled to the face (the same
         // bug the Plane, CoordSys and Axis tools had). The label and ghost below read m_sel_solid_face.
@@ -8372,6 +8374,29 @@ void DesignPanel::update_feature_highlight()
     m_viewport->set_highlight_faces(wanted ? feature_faces(sel) : std::vector<std::pair<int, int>>{});
 }
 
+// Which feature made the face picked in the viewport: the latest body-making feature whose faces_made_by holds it. Walks back from the end
+// (a fillet or chamfer is usually near it); each step replays the history, so it runs off the UI thread.
+// ponytail: O(features^2) replay in the worst case; a single forward pass in CadDocument would fix it if long histories feel slow.
+void DesignPanel::find_pick_owner()
+{
+    const int body = m_sel_solid_body, face = m_sel_solid_face;
+    if (body < 0 || face < 0 || s_doc_worker_busy.load() > 0) return;
+    int owner = -1;
+    run_off_ui_thread(this, _L("Finding the feature of the face…"), [this, body, face, &owner] {
+        try {
+            for (int f = int(m_doc.features.size()) - 1; f >= 0 && owner < 0; --f) {
+                const CadFeature& feat = m_doc.features[size_t(f)];
+                if (!feat.enabled || !CadDocument::produces_body(feat.type)) continue;
+                for (const auto& bf : m_doc.faces_made_by(f))
+                    if (bf.first == body && bf.second == face) { owner = f; break; }
+            }
+        } catch (...) { owner = -1; }
+    });
+    if (m_sel_solid_body != body || m_sel_solid_face != face) return;   // the pick moved on meanwhile
+    if (m_tree) m_tree->owner = owner;
+    if (m_viewport) m_viewport->Refresh();
+}
+
 const std::vector<std::pair<int, int>>& DesignPanel::feature_faces(int f)
 {
     if (f < 0 || f >= int(m_doc.features.size())) {
@@ -8671,6 +8696,7 @@ void DesignPanel::drop_selection()
 void DesignPanel::drop_solid_pick()
 {
     m_sel_solid_body = m_sel_solid_face = m_sel_solid_edge = -1;
+    if (m_tree) m_tree->owner = -1;
     m_sel_solid_edges.clear();
     m_sel_solid_vertex = false;
     m_pick_face = m_pick_face_body = -1;
@@ -12571,6 +12597,7 @@ TreeView DesignPanel::build_tree_view() const
     v.selected    = m_tree ? m_tree->selection() : -1;
     if (v.selected == wxNOT_FOUND) v.selected = -1;
     v.selected_set.assign(m_tree_multi.begin(), m_tree_multi.end());
+    if (m_tree && m_tree->owner < int(m_doc.features.size())) v.owner = m_tree->owner;
     v.can_paste   = !m_feature_clip.empty();
     v.rollback    = m_doc.rollback_index;
     v.show_origin = m_show_origin;

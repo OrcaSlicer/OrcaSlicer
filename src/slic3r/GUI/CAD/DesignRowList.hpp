@@ -47,7 +47,9 @@ public:
     explicit DesignRowList(int max_visible, bool selectable = true) : m_max_visible(max_visible), m_selectable(selectable) {}
 
     // Replace every row. Clears the selection without notifying; the owner re-selects the row it keeps, which notifies.
-    void set_rows(std::vector<Row> rows) { m_rows = std::move(rows); m_sel = -1; }
+    void set_rows(std::vector<Row> rows) { m_rows = std::move(rows); m_sel = -1; owner = -1; }
+    // The row whose feature made the face picked in the viewport: drawn tinted, never selected. Cleared by set_rows and any selection.
+    int  owner{-1};
     int  selection() const { return m_sel; }
     const std::vector<Row>& rows() const { return m_rows; }
     unsigned GetItemCount() const { return unsigned(m_rows.size()); }
@@ -59,6 +61,7 @@ public:
         if (row < 0 || row >= int(m_rows.size())) row = -1;
         if (row == m_sel) return;
         m_sel = row;
+        owner = -1;
         if (on_select) on_select();
     }
     void unselect() { select(-1); }
