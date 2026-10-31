@@ -52,6 +52,8 @@ std::pair<bool, std::string> GLShadersManager::init()
     valid &= append_shader("flat", { prefix + "flat.vs", prefix + "flat.fs" });
     // basic shader with plane clipping, used to render volumes in picking pass
     valid &= append_shader("flat_clip", { prefix + "flat_clip.vs", prefix + "flat_clip.fs" });
+    // depth-only pass of a cut body whose cut faces cast, used by the G-code preview's solid model
+    valid &= append_shader("cut_caster", { prefix + "cut_caster.vs", prefix + "cut_caster.fs" });
     // basic shader for textures, used to render textures
     valid &= append_shader("flat_texture", { prefix + "flat_texture.vs", prefix + "flat_texture.fs" });
     // used to apply post-processing antialiasing in screen space
