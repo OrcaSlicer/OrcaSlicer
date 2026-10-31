@@ -5353,6 +5353,16 @@ Preset *PresetBundle::get_similar_printer_preset(std::string printer_model, std:
     return printer_presets.begin()->second;
 }
 
+void PresetBundle::install_slot_filaments(AppConfig &config)
+{
+    // User presets have no vendor, so the filaments section never hides them.
+    for (const std::string &name : filament_presets)
+        if (Preset *preset = filaments.find_preset(name, false, true); preset != nullptr && preset->is_system) {
+            preset->is_visible = true;
+            config.set(AppConfig::SECTION_FILAMENTS, preset->name, "true");
+        }
+}
+
 //BBS: check whether this is the only edited filament
 bool PresetBundle::is_the_only_edited_filament(unsigned int filament_index)
 {
