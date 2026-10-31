@@ -39,6 +39,7 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoUtils.hpp"
 #include "libslic3r/Point.hpp"
 #include <math.h>
@@ -1149,6 +1150,7 @@ GCodeViewer::GCodeViewer()
 GCodeViewer::~GCodeViewer()
 {
     reset();
+    release_caster_depth();
     if (m_moves_slider) {
         delete m_moves_slider;
         m_moves_slider = nullptr;
@@ -2492,25 +2494,121 @@ void GCodeViewer::render_shadow_casters(const Transform3d& light_view_matrix, co
 }
 
 // The solid casts as the toolpaths it stands in for would: the shells, cut at the same heights,
-// drawn depth-only into the shadow map the canvas has bound. The caps cast nothing of their own,
-// since from the light an open body's far wall closes its outline.
+// drawn depth-only into the shadow map the canvas has bound. The cut faces cast too: an open
+// body's far wall closes its outline from the light, but not its depth, and the end band's lines
+// would throw their shadow through the hollow onto the flank. So a back face that a ray reached
+// through a cut is drawn at the depth of that cut, by the shader; a back face reached through a
+// wall facing the light keeps out of the way, which takes the front faces drawn on their own
+// first, into a depth texture of the viewer's, for the shader to look up.
 void GCodeViewer::render_solid_model_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix)
 {
     const std::optional<std::array<float, 2>> z_range = solid_model_z_range();
-    GLShaderProgram* shader = wxGetApp().get_shader("flat_clip");
-    if (m_shells.volumes.empty() || !z_range.has_value() || shader == nullptr)
+    GLShaderProgram* wall_shader = wxGetApp().get_shader("flat_clip");
+    GLShaderProgram* cut_shader = wxGetApp().get_shader("cut_caster");
+    if (m_shells.volumes.empty() || !z_range.has_value() || wall_shader == nullptr || cut_shader == nullptr)
         return;
-    shader->start_using();
-    shader->set_uniform("projection_matrix", light_projection_matrix);
-    shader->set_uniform("clipping_plane", ClippingPlane::ClipsNothing().get_data());
-    shader->set_uniform("z_range", *z_range);
-    for (GLVolume* volume : m_shells.volumes.volumes) {
-        const Transform3d world_matrix = volume->world_matrix();
-        shader->set_uniform("volume_world_matrix", world_matrix);
-        shader->set_uniform("view_model_matrix", light_view_matrix * world_matrix);
-        volume->render();
+
+    auto draw_shells = [&](GLShaderProgram* shader) {
+        shader->start_using();
+        shader->set_uniform("projection_matrix", light_projection_matrix);
+        shader->set_uniform("clipping_plane", ClippingPlane::ClipsNothing().get_data());
+        shader->set_uniform("z_range", *z_range);
+        for (GLVolume* volume : m_shells.volumes.volumes) {
+            const Transform3d world_matrix = volume->world_matrix();
+            shader->set_uniform("volume_world_matrix", world_matrix);
+            shader->set_uniform("view_model_matrix", light_view_matrix * world_matrix);
+            volume->render();
+        }
+        shader->stop_using();
+    };
+
+    GLint viewport[4] = { 0, 0, 0, 0 };
+    glsafe(::glGetIntegerv(GL_VIEWPORT, viewport));
+    GLint map_fbo = 0;
+    glsafe(::glGetIntegerv(GL_FRAMEBUFFER_BINDING, &map_fbo));
+    if (!init_caster_depth(viewport[2], viewport[3])) {
+        // without a texture of its own the body casts open, as before
+        draw_shells(wall_shader);
+        return;
     }
-    shader->stop_using();
+
+    // The walls facing the light, on their own, for the back faces to look up. A volume's render
+    // sets the cull face to the back faces itself, so only the enable is this pass's.
+    glsafe(::glEnable(GL_CULL_FACE));
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_caster_fbo));
+    glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
+    draw_shells(wall_shader);
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(map_fbo)));
+    // Both faces into the map, as the canvas draws the casters: the shader leaves a front face at
+    // its own depth and moves a back face reached through a cut to the depth of that cut.
+    glsafe(::glDisable(GL_CULL_FACE));
+    // bound on a unit of its own, with the volumes' own bindings left to unit 0
+    glsafe(::glActiveTexture(GL_TEXTURE6));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, m_caster_depth));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
+    cut_shader->start_using();
+    cut_shader->set_uniform("front_depth", 6);
+    cut_shader->set_uniform("map_size", std::array<float, 2>{ static_cast<float>(viewport[2]), static_cast<float>(viewport[3]) });
+    cut_shader->set_uniform("light_view_projection", Transform3d(light_projection_matrix * light_view_matrix));
+    // the light looks down its own z axis
+    cut_shader->set_uniform("to_light", Vec3f(light_view_matrix.linear().row(2).transpose().cast<float>()));
+    cut_shader->stop_using();
+    draw_shells(cut_shader);
+    glsafe(::glActiveTexture(GL_TEXTURE6));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
+}
+
+// The depth texture the caster pass draws the shells' front faces into, the size of the shadow
+// map it is drawn alongside.
+bool GCodeViewer::init_caster_depth(int width, int height)
+{
+    if (OpenGLManager::get_framebuffers_type() != OpenGLManager::EFramebufferType::Arb || width <= 0 || height <= 0)
+        return false;
+    if (m_caster_depth != 0 && m_caster_width == width && m_caster_height == height)
+        return true;
+    if (m_caster_depth == 0) {
+        glsafe(::glGenTextures(1, &m_caster_depth));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_caster_depth));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    }
+    else
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_caster_depth));
+    glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    m_caster_width = width;
+    m_caster_height = height;
+
+    GLint bound_fbo = 0;
+    glsafe(::glGetIntegerv(GL_FRAMEBUFFER_BINDING, &bound_fbo));
+    if (m_caster_fbo == 0)
+        glsafe(::glGenFramebuffers(1, &m_caster_fbo));
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_caster_fbo));
+    glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_caster_depth, 0));
+    glsafe(::glDrawBuffer(GL_NONE));
+    glsafe(::glReadBuffer(GL_NONE));
+    const bool complete = ::glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(bound_fbo)));
+    if (!complete)
+        release_caster_depth();
+    return complete;
+}
+
+void GCodeViewer::release_caster_depth()
+{
+    if (m_caster_fbo != 0) {
+        glsafe(::glDeleteFramebuffers(1, &m_caster_fbo));
+        m_caster_fbo = 0;
+    }
+    if (m_caster_depth != 0) {
+        glsafe(::glDeleteTextures(1, &m_caster_depth));
+        m_caster_depth = 0;
+    }
+    m_caster_width = 0;
+    m_caster_height = 0;
 }
 
 void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view_projection, float intensity, float texel_size)

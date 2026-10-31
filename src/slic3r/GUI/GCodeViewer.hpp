@@ -365,6 +365,7 @@ private:
     std::optional<std::array<float, 2>> solid_model_z_range() const;
     void render_solid_model(int canvas_width, int canvas_height);
     void render_solid_model_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix);
+    void release_caster_depth();
     // ORCA: realistic view. The shadow map and light the canvas last passed on, which the solid
     // model samples through its own shader as the toolpaths do through theirs.
     struct ShadowMap
@@ -376,6 +377,13 @@ private:
     };
     ShadowMap m_shadow_map;
     Vec3d     m_light_top_dir{ Vec3d::Zero() };
+    // the shells' front faces from the light, for the caster pass to tell a back face reached
+    // through a cut from one reached through a wall; see render_solid_model_casters()
+    unsigned int m_caster_fbo{ 0 };
+    unsigned int m_caster_depth{ 0 };
+    int          m_caster_width{ 0 };
+    int          m_caster_height{ 0 };
+    bool init_caster_depth(int width, int height);
     // The solid model's colours in the current view, sampled from the toolpaths when the view
     // colours them by something other than the filament; see update_solid_model_colors()
     struct SolidModelColors
