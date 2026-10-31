@@ -126,6 +126,11 @@ public:
     static int safe_array_int(const nlohmann::json& arr, int idx);
 
 protected:
+    // AFC owns the slots of any printer it runs on, so agents that read their vendor's own slots try
+    // it first. True when AFC lanes were read and reported.
+    bool fetch_afc_filament_info();
+    bool afc_active() const { return m_filament_dialect == MoonrakerFilamentDialect::Dialect::afc_lane_data; }
+
     struct MoonrakerDeviceInfo
     {
         std::string dev_id;
