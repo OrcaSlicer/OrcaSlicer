@@ -1,6 +1,7 @@
 #ifndef slic3r_FillBase_hpp_
 #define slic3r_FillBase_hpp_
 
+#include <array>
 #include <assert.h>
 #include <map>
 #include <cstddef>
@@ -92,6 +93,14 @@ struct FillParams
 
     // For Gyroid: when true, use the parameterized "optimized" variant.
     bool        gyroid_optimized { false };
+
+    // Stretch of the cells of the sparse infill along the axes of the pattern.
+    std::array<double, 3> sparse_infill_scale { 1., 1., 1. };
+    // Turn of the cells around the X axis of the pattern, in radians.
+    double      sparse_infill_rotation_x { 0. };
+    // Set by Fill::fill_surface for a layer it draws stretched back, which multiline_fill stretches to space the lines:
+    // the angle of the axes of the pattern and the scales along them.
+    std::array<double, 3> layer_stretch { 0., 1., 1. };
 
     // For TPMS: grade the density from the surface to the interior of the object. Density fraction.
     AdaptiveInfillMode     adaptive_infill_mode { AdaptiveInfillMode::Disabled };
@@ -244,6 +253,12 @@ protected:
     virtual float _layer_angle(size_t idx) const { return fixed_angle ? 0.f : (idx & 1) ? float(M_PI/2.) : 0.f; }
 
     virtual std::pair<float, Point> _infill_direction(const Surface *surface) const;
+    // Angle of the axes of the pattern that the sparse infill scale and rotation follow: the axes of the bed at the
+    // default infill direction of 45 degrees, turning with it.
+    double pattern_axes_angle() const { return (this->angle == FLT_MAX ? 0. : double(this->angle)) - 0.25 * M_PI; }
+    // Orca: the pattern stretches its cells by the sparse infill scale itself, instead of Fill::fill_surface stretching
+    // its layers.
+    virtual bool scales_its_cells() const { return false; }
     
     // Orca: Dedicated function to calculate gap fill lines for the provided surface, according to the print object parameters
     // and append them to the out ExtrusionEntityCollection.

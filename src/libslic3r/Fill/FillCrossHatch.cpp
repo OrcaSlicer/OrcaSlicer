@@ -208,7 +208,7 @@ void FillCrossHatch ::_fill_surface_single(
     if (params.density < 0.3)
         repeat_ratio = std::clamp(1.0 - std::exp(-5 * params.density), 0.2, 1.0);
 
-    Polylines polylines = generate_infill_layers(scale_(this->z), repeat_ratio, line_spacing, bb.size()(0), bb.size()(1));
+    Polylines polylines = generate_infill_layers(scale_(this->z / params.sparse_infill_scale[2]), repeat_ratio, line_spacing, bb.size()(0), bb.size()(1));
 
     // shift the pattern to the actual space
     for (Polyline &pl : polylines) { pl.translate(bb.min); }

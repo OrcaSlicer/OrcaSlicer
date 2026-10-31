@@ -456,6 +456,12 @@ coordf_t Layer::get_sparse_infill_max_void_area()
             case ipGyroid:
             case ipTpmsD:
             case ipTpmsFK:
+            case ipTpmsP:
+            case ipTpmsIWP:
+            case ipTpmsNeovius:
+            case ipTpmsFRD:
+            case ipTpmsLidinoid:
+            case ipTpmsSplitP:
             case ipAlignedRectilinear:
             case ipOctagramSpiral:
             case ipHilbertCurve:

@@ -12,6 +12,7 @@
 #include <fstream>
 #include <ios>
 #include <string>
+#include <vector>
 
 using namespace Slic3r;
 
@@ -226,6 +227,16 @@ TEST_CASE("AppConfig Speed Dial recent count defaults, clamps and parses", "[App
         config.set(SETTING_SPEED_DIAL_RECENT_COUNT, "abc");
         REQUIRE(config.get_speed_dial_recent_count() == SPEED_DIAL_RECENT_COUNT_DEFAULT);
     }
+}
+
+TEST_CASE("Favorite sparse infill patterns start empty and keep their order", "[AppConfig]")
+{
+    AppConfig config;
+    CHECK(config.get_favorite_sparse_infill_patterns().empty());
+    config.set_favorite_sparse_infill_patterns({"gyroid", "tpmsd", "lightning"});
+    CHECK(config.get_favorite_sparse_infill_patterns() == std::vector<std::string>{"gyroid", "tpmsd", "lightning"});
+    config.set_favorite_sparse_infill_patterns({});
+    CHECK(config.get_favorite_sparse_infill_patterns().empty());
 }
 
 TEST_CASE("peek_bool reads an app boolean from a saved configuration without loading it", "[AppConfig]")

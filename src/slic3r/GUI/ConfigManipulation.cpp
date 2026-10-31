@@ -821,7 +821,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament_id uses the same logic as in Print::extruders()
-    for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
+    for (auto el : { "sparse_infill_pattern_group", "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
                      "infill_complete_top",
         "minimum_sparse_infill_area", "sparse_infill_filament_id","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
         toggle_line(el, have_infill, -1, _L("This setting is hidden because sparse infill density is zero."));
@@ -839,15 +839,21 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("infill_combination_max_layer_height", have_combined_infill, -1, _L("Enable infill combination and use nonzero sparse infill density to show this setting."));
 
     // Infill patterns that support multiline infill.
-    bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
+    bool          have_multiline_infill_pattern = is_tpms_infill_pattern(pattern) || pattern == ipGrid || pattern == ipRectilinear || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
                                                   pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic|| pattern == ipTriangles || pattern == ipQuarterCubic|| pattern == ipArchimedeanChords || pattern == ipHilbertCurve || pattern == ipOctagramSpiral;
 
     // The sparse infill density is the surface density of the adaptive infill; at 100% the infill is solid.
     bool have_adaptive_infill_pattern = have_infill && config->option<ConfigOptionPercent>("sparse_infill_density")->value < 100 &&
                             is_adaptive_infill_pattern(pattern);
-    toggle_line("adaptive_infill_mode", have_adaptive_infill_pattern, -1, _L("Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."));
+    const wxString scale_reason = _L("Select a sparse infill pattern that supports this setting, with nonzero sparse infill density.");
+    for (auto el : {"sparse_infill_scale_x", "sparse_infill_scale_y"})
+        toggle_line(el, have_infill && is_xy_scaled_infill_pattern(pattern), -1, scale_reason);
+    toggle_line("sparse_infill_scale_z", have_infill && is_z_scaled_infill_pattern(pattern), -1, scale_reason);
+    toggle_line("sparse_infill_rotation_x", have_infill && is_x_rotated_infill_pattern(pattern), -1, scale_reason);
+
+    toggle_line("adaptive_infill_mode", have_adaptive_infill_pattern, -1, _L("Select Gyroid or a TPMS sparse infill pattern with sparse infill density greater than zero and less than 100%."));
     bool have_adaptive_infill = have_adaptive_infill_pattern && config->opt_enum<AdaptiveInfillMode>("adaptive_infill_mode") != AdaptiveInfillMode::Disabled;
-    const wxString adaptive_density_reason = _L("Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%.");
+    const wxString adaptive_density_reason = _L("Enable adaptive density for Gyroid or a TPMS sparse infill pattern with sparse infill density greater than zero and less than 100%.");
     toggle_line("adaptive_infill_interior_density", have_adaptive_infill, -1, adaptive_density_reason);
     toggle_line("adaptive_infill_gradient", have_adaptive_infill, -1, adaptive_density_reason);
 

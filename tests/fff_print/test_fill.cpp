@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <initializer_list>
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Surface.hpp"
@@ -36,8 +37,9 @@
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Fill/FillAdaptive.hpp"
-#include "libslic3r/Fill/FillGyroid.hpp"
+#include "libslic3r/Fill/FillTpms.hpp"
 #include "libslic3r/Fill/AdaptiveInfillField.hpp"
+#include "libslic3r/Fill/TpmsField.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/IntersectionPoints.hpp"
@@ -1380,7 +1382,7 @@ TEST_CASE("Gyroid infill of an object matches the infill of a larger object with
     // Marching squares simplifies rings that start elsewhere in each object.
     const double tolerance = optimized ? SPARSE_INFILL_RESOLUTION + 0.01 : 0.01;
     // Half a z period of the waves, through both switches between horizontal and vertical waves.
-    const double wave_distance = spacing * multiline / (density * FillGyroid::DensityAdjust);
+    const double wave_distance = spacing * multiline * FillTpms::GyroidPeriodFactor / (2. * M_PI * density);
     for (int step = 0; step <= 8; ++step) {
         const double z = wave_distance * M_PI * step / 8.;
         CAPTURE(z);
@@ -1913,7 +1915,7 @@ static double unmatched_between_prints(const Print &a, const Print &b, Extrusion
 
 TEST_CASE("Separated infill centers the sparse infill of each body on itself", "[Fill][Regression]")
 {
-    const std::string pattern = GENERATE("line", "zigzag", "crosszag", "honeycomb", "3dhoneycomb", "crosshatch", "tpmsd", "tpmsfk", "gyroid");
+    const std::string pattern = GENERATE("line", "zigzag", "crosszag", "honeycomb", "3dhoneycomb", "crosshatch", "tpmsd", "tpmsfk", "tpmsp", "tpmsiwp", "gyroid");
     const bool separated = GENERATE(false, true);
     CAPTURE(pattern, separated);
     auto config = DynamicPrintConfig::full_print_config();
@@ -2069,6 +2071,8 @@ TEST_CASE("Adaptive TPMS infill thins out from the surface to the interior densi
     // where the patterns blend.
     const auto row = GENERATE(table<std::string, std::string, double>({{"tpmsd", "lobes", 0.5},
                                                                         {"tpmsfk", "lobes", 0.5},
+                                                                        {"tpmsp", "lobes", 0.5},
+                                                                        {"tpmsiwp", "lobes", 0.5},
                                                                         {"gyroid", "lobes", 0.5},
                                                                         {"gyroid", "stepped_shells", 0.6},
                                                                         {"tpmsfk", "smooth_blend", 0.6},
@@ -2102,6 +2106,39 @@ TEST_CASE("Adaptive TPMS infill thins out from the surface to the interior densi
     REQUIRE(shell_uniform > 0.);
     CHECK(sparse_infill_length(adaptive, 25., 35., core) < max_core * core_uniform);
     CHECK(sparse_infill_length(adaptive, 25., 35., shell) > 0.75 * shell_uniform);
+}
+
+// Volume of the sparse infill of the first object over the layers with print_z in [z_min, z_max] inside a square of
+// half size half centered on the origin, over the volume of the square.
+static double sparse_infill_density(const Print &print, coordf_t z_min, coordf_t z_max, double half)
+{
+    const Polygons square = centered_square(half);
+    double         infill = 0., volume = 0.;
+    for (const Layer *layer : print.objects().front()->layers())
+        if (layer->print_z >= z_min && layer->print_z <= z_max) {
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                    if (entity->role() == erInternalInfill) {
+                        Polylines polylines;
+                        entity->collect_polylines(polylines);
+                        infill += entity->total_volume() / unscale<double>(entity->length()) *
+                                  unscale<double>(total_length(intersection_pl(polylines, square)));
+                    }
+            volume += 4. * half * half * layer->height;
+        }
+    return infill / volume;
+}
+
+TEST_CASE("TPMS infill patterns print the volume of their density", "[Fill]")
+{
+    // Each pattern's calibration makes its sparse infill print the volume of the density, away from the walls. Gyroid's
+    // older calibration prints less.
+    const std::string pattern = GENERATE("tpmsd", "tpmsfk", "tpmsp", "tpmsiwp", "tpmsneovius", "tpmsfrd", "tpmslidinoid", "tpmssplitp");
+    CAPTURE(pattern);
+    Print print;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(40)}, print,
+                                        {{"sparse_infill_pattern", pattern}, {"sparse_infill_density", "25%"}, {"layer_height", 0.2}});
+    CHECK(sparse_infill_density(print, 5., 35., 15.) == Catch::Approx(0.25).epsilon(0.05));
 }
 
 TEST_CASE("Adaptive TPMS infill of a tall object is sparsest at its middle height", "[Fill]")
@@ -2249,7 +2286,7 @@ TEST_CASE("Adaptive TPMS settings leave the infill unchanged when they do not ap
 {
     // Adaptive density turned off, or turned on for a pattern that is no TPMS.
     const auto [pattern, adaptive] = GENERATE(
-        table<std::string, std::string>({{"tpmsd", "disabled"}, {"tpmsfk", "disabled"}, {"gyroid", "disabled"}, {"grid", "lobes"}, {"grid", "stepped_shells"}, {"grid", "smooth_blend"}, {"grid", "distance_warp"}, {"grid", "normal_z"}}));
+        table<std::string, std::string>({{"tpmsd", "disabled"}, {"tpmsfk", "disabled"}, {"tpmsp", "disabled"}, {"tpmsiwp", "disabled"}, {"gyroid", "disabled"}, {"grid", "lobes"}, {"grid", "stepped_shells"}, {"grid", "smooth_blend"}, {"grid", "distance_warp"}, {"grid", "normal_z"}}));
     CAPTURE(pattern, adaptive);
     Print reference, tuned;
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, reference,
@@ -2285,7 +2322,7 @@ TEST_CASE("Adaptive gyroid infill ignores the Z-buckling optimization", "[Fill]"
 
 TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger region of the same object", "[Fill]")
 {
-    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK);
+    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP, ipTpmsIWP);
     CAPTURE(pattern);
     // An 80 x 80 x 40 mm box around both regions, which share its radial field.
     const ExPolygons box{ExPolygon(Points{Point::new_scale(60., 20.), Point::new_scale(140., 20.), Point::new_scale(140., 100.),
@@ -2344,7 +2381,7 @@ TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger regio
 
 TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBridge]")
 {
-    const std::string pattern = GENERATE("tpmsd", "tpmsfk", "gyroid");
+    const std::string pattern = GENERATE("tpmsd", "tpmsfk", "tpmsp", "tpmsiwp", "gyroid");
     CAPTURE(pattern);
     Print print;
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(30)}, print,
@@ -2374,6 +2411,273 @@ TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBrid
         for (const Point &point : path.equally_spaced_points(scale_(0.25)))
             max_distance = std::max(max_distance, printed_tree.distance_from_lines<false>(point));
     CHECK(unscale<double>(max_distance) <= 0.012);
+}
+
+TEST_CASE("The sparse infill scale and rotation leave the infill of other patterns unchanged", "[Fill]")
+{
+    Print reference, tuned;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, reference,
+                                        {{"sparse_infill_pattern", "rectilinear"}, {"sparse_infill_density", "20%"}, {"layer_height", 0.2}});
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, tuned,
+                                        {{"sparse_infill_pattern", "rectilinear"},
+                                         {"sparse_infill_scale_x", 2.},
+                                         {"sparse_infill_scale_y", 0.5},
+                                         {"sparse_infill_scale_z", 3.},
+                                         {"sparse_infill_rotation_x", 30.},
+                                         {"sparse_infill_density", "20%"},
+                                         {"layer_height", 0.2}});
+    const SparseInfillShape expected = sparse_infill_shape(reference);
+    REQUIRE(expected.path_count > 0);
+    CHECK(sparse_infill_shape(tuned).sequence == expected.sequence);
+}
+
+// A square of size mm centered on the origin.
+static ExPolygon tpms_square(double size = 60.)
+{
+    const double half = 0.5 * size;
+    return ExPolygon(Points{Point::new_scale(-half, -half), Point::new_scale(half, -half), Point::new_scale(half, half), Point::new_scale(-half, half)});
+}
+
+// Sparse infill of the square at z by a TPMS filler, at the default infill direction, which aligns the axes of the
+// pattern with the bed.
+static Polylines tpms_fill(InfillPattern pattern, double z, const Vec3d &scale, double rotation_x = 0., double size = 60.)
+{
+    std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+    filler->spacing = 0.45;
+    filler->angle   = float(M_PI / 4.);
+    filler->z       = z;
+    FillParams params;
+    params.density         = 0.2f;
+    params.layer_height    = 0.2;
+    params.dont_adjust     = true;
+    params.sparse_infill_scale      = {scale.x(), scale.y(), scale.z()};
+    params.sparse_infill_rotation_x = rotation_x;
+    Surface surface(stInternal, tpms_square(size));
+    return filler->fill_surface(&surface, params);
+}
+
+// Farthest distance in mm from the lines of from inside clip to the lines of to.
+static double farthest_inside(const Polylines &from, const Polylines &to, const Polygons &clip)
+{
+    const AABBTreeLines::LinesDistancer<Line> tree(to_lines(to));
+    double distance = 0.;
+    for (const Polyline &path : intersection_pl(from, clip))
+        for (const Point &point : path.equally_spaced_points(scale_(0.2)))
+            distance = std::max(distance, tree.distance_from_lines<false>(point));
+    return unscale<double>(distance);
+}
+
+TEST_CASE("The sparse infill Z scale stretches the TPMS cells along Z", "[Fill]")
+{
+    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP, ipTpmsIWP, ipTpmsNeovius, ipTpmsFRD, ipTpmsLidinoid, ipTpmsSplitP);
+    CAPTURE(pattern);
+    // Cells twice as tall repeat the layers of the regular cells at twice the height.
+    for (const double z : {3.7, 5.1, 12.3}) {
+        CAPTURE(z);
+        const Polylines regular = tpms_fill(pattern, z, Vec3d::Ones());
+        REQUIRE_FALSE(regular.empty());
+        CHECK(tpms_fill(pattern, 2. * z, Vec3d(1., 1., 2.)) == regular);
+    }
+}
+
+TEST_CASE("The sparse infill Z scale stretches the patterns that change with the height", "[Fill]")
+{
+    const InfillPattern pattern = GENERATE(ipCubic, ipQuarterCubic, ipCrossHatch, ip3DHoneycomb);
+    CAPTURE(pattern);
+    // Cells twice as tall repeat the layers of the regular cells at twice the height, in layers twice as thick.
+    auto fill = [pattern](double z, double layer_height, double scale_z) {
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        filler->spacing = 0.45;
+        filler->angle   = float(M_PI / 4.);
+        filler->z       = z;
+        filler->set_bounding_box(get_extents(tpms_square()));
+        FillParams params;
+        params.density             = 0.2f;
+        params.layer_height        = layer_height;
+        params.dont_adjust         = true;
+        params.sparse_infill_scale = {1., 1., scale_z};
+        Surface surface(stInternal, tpms_square());
+        return filler->fill_surface(&surface, params);
+    };
+    // Cubic stretches its planes, within rounding. Cross Hatch repeats one layer over a range of heights, so only some
+    // layers change.
+    const Polygons square  = to_polygons(tpms_square());
+    bool           changed = false;
+    for (const double z : {3.7, 5.1, 12.3}) {
+        CAPTURE(z);
+        const Polylines regular = fill(z, 0.2, 1.);
+        const Polylines taller  = fill(2. * z, 0.4, 2.);
+        REQUIRE_FALSE(regular.empty());
+        CHECK(farthest_inside(taller, regular, square) < 0.001);
+        CHECK(farthest_inside(regular, taller, square) < 0.001);
+        changed |= farthest_inside(fill(z, 0.2, 2.), regular, square) > 0.01;
+    }
+    CHECK(changed);
+}
+
+TEST_CASE("The sparse infill X and Y scales stretch the TPMS cells across the layers", "[Fill]")
+{
+    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP, ipTpmsIWP, ipTpmsNeovius, ipTpmsFRD, ipTpmsLidinoid, ipTpmsSplitP);
+    CAPTURE(pattern);
+    // Cells twice as wide magnify every layer twice, which covers the same area with half the lines. Away from the
+    // connections along the boundary, over a square of many cells, as the layers of some types vary a lot.
+    const Polygons inner = shrink(to_polygons(tpms_square(120.)), scale_(3.));
+    double regular = 0., stretched = 0.;
+    for (const double z : {3.7, 5.1, 12.3, 20.9}) {
+        regular += unscale<double>(total_length(intersection_pl(tpms_fill(pattern, z, Vec3d::Ones(), 0., 120.), inner)));
+        stretched += unscale<double>(total_length(intersection_pl(tpms_fill(pattern, z, Vec3d(2., 2., 1.), 0., 120.), inner)));
+    }
+    REQUIRE(regular > 0.);
+    CHECK_THAT(stretched / regular, Catch::Matchers::WithinAbs(0.5, 0.05));
+}
+
+// Sparse infill of a square of size mm centered on the origin at z by a filler of any pattern, at the default infill
+// direction, which aligns the axes of the pattern with the bed.
+static Polylines scaled_fill(InfillPattern pattern, double z, const std::array<double, 3> &scale, double rotation_x = 0., double size = 60.,
+                             int multiline = 1)
+{
+    std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+    filler->spacing = 0.45;
+    filler->angle   = float(M_PI / 4.);
+    filler->z       = z;
+    filler->set_bounding_box(get_extents(tpms_square(size)));
+    FillParams params;
+    params.pattern                  = pattern;
+    params.density                  = 0.2f;
+    params.layer_height             = 0.2;
+    params.dont_adjust              = true;
+    params.multiline                = multiline;
+    params.sparse_infill_scale      = scale;
+    params.sparse_infill_rotation_x = rotation_x;
+    Surface surface(stInternal, tpms_square(size));
+    return filler->fill_surface(&surface, params);
+}
+
+TEST_CASE("The sparse infill X and Y scales stretch the cells of the line and cell patterns", "[Fill]")
+{
+    const InfillPattern pattern = GENERATE(ipCubic, ipQuarterCubic, ipGrid, ipTriangles, ipStars, ipLateralLattice, ipLateralHoneycomb,
+                                           ipHoneycomb, ip3DHoneycomb, ipCrossHatch, ipHilbertCurve);
+    const int multiline = GENERATE(1, 2);
+    CAPTURE(pattern, multiline);
+    // Cells twice as large across the layers cover the same area with half the lines, away from the boundary.
+    const Polygons inner = shrink(to_polygons(tpms_square(120.)), scale_(3.));
+    double regular = 0., stretched = 0.;
+    for (const double z : {3.7, 5.1, 12.3, 20.9}) {
+        regular += unscale<double>(total_length(intersection_pl(scaled_fill(pattern, z, {1., 1., 1.}, 0., 120., multiline), inner)));
+        stretched += unscale<double>(total_length(intersection_pl(scaled_fill(pattern, z, {2., 2., 1.}, 0., 120., multiline), inner)));
+    }
+    REQUIRE(regular > 0.);
+    // 2D Honeycomb drops the multiline lines that overlap, fewer once its cells are larger.
+    CHECK_THAT(stretched / regular, Catch::Matchers::WithinAbs(0.5, pattern == ipLateralHoneycomb && multiline > 1 ? 0.07 : 0.05));
+}
+
+TEST_CASE("The sparse infill X rotation and scales turn and stretch the planes of Cubic", "[Fill]")
+{
+    const auto [scale_y, rotation_x] = GENERATE(table<double, double>({{1., 0.}, {1.5, 0.5}, {1., 1.2}}));
+    CAPTURE(scale_y, rotation_x);
+    // The three families of planes of the cube, with the normals of their lines 90 degrees after the infill direction
+    // of 45 degrees, rising by sqrt(1/2) per unit of height, and 0.45 / (0.2 / 3) mm apart.
+    const double spacing = 0.45 / (0.2 / 3.);
+    const Vec3d  normals[] = {Vec3d(std::cos(0.75 * M_PI), std::sin(0.75 * M_PI), std::sqrt(0.5)),
+                              Vec3d(std::cos(0.75 * M_PI + M_PI / 3.), std::sin(0.75 * M_PI + M_PI / 3.), -std::sqrt(0.5)),
+                              Vec3d(std::cos(0.75 * M_PI + 2. * M_PI / 3.), std::sin(0.75 * M_PI + 2. * M_PI / 3.), std::sqrt(0.5))};
+    const Polygons inner = shrink(to_polygons(tpms_square()), scale_(3.));
+    for (const double z : {3.7, 5.1}) {
+        CAPTURE(z);
+        const Polylines lines = scaled_fill(ipCubic, z, {1., scale_y, 1.}, rotation_x);
+        REQUIRE_FALSE(lines.empty());
+        // Every point of the lines away from the boundary is on a plane of the cells, turned back and unstretched.
+        double farthest = 0.;
+        for (const Polyline &line : intersection_pl(lines, inner))
+            for (const Point &point : line.equally_spaced_points(scale_(0.5))) {
+                const double x = unscale<double>(point.x()), y = unscale<double>(point.y());
+                const Vec3d  cell(x, (std::cos(rotation_x) * y + std::sin(rotation_x) * z) / scale_y,
+                                 std::cos(rotation_x) * z - std::sin(rotation_x) * y);
+                double nearest = std::numeric_limits<double>::max();
+                for (const Vec3d &normal : normals) {
+                    const double level = normal.dot(cell) / spacing;
+                    nearest = std::min(nearest, std::abs(level - std::round(level)) * spacing);
+                }
+                farthest = std::max(farthest, nearest);
+            }
+        CHECK(farthest < 0.01);
+    }
+}
+
+TEST_CASE("Multiline infill spaces the lines of a layer drawn stretched back as they print", "[Fill]")
+{
+    // A layer drawn at half its height across: the two lines of a line are half a spacing from it once stretched.
+    for (const double stretch : {1., 2.}) {
+        CAPTURE(stretch);
+        Polylines polylines{Polyline(Point::new_scale(0., 0.), Point::new_scale(10., 0.))};
+        FillParams params;
+        params.multiline     = 2;
+        params.layer_stretch = {0., 1., stretch};
+        multiline_fill(polylines, params, 0.4f);
+        REQUIRE_FALSE(polylines.empty());
+        for (const Polyline &polyline : polylines)
+            for (const Point &point : polyline.points)
+                if (point.x() > scale_(1.) && point.x() < scale_(9.))
+                    CHECK_THAT(std::abs(unscale<double>(point.y())) * stretch, Catch::Matchers::WithinAbs(0.2, 0.001));
+    }
+}
+
+TEST_CASE("The sparse infill X rotation turns the stretched TPMS cells around X by the right-hand rule", "[Fill]")
+{
+    float (*gyroid)(float, float, float) = [](float x, float y, float z) {
+        return std::sin(x) * std::cos(y) + std::sin(y) * std::cos(z) + std::sin(z) * std::cos(x);
+    };
+    const Vec3d scale(1., 2., 0.5);
+    for (const double angle : {0.3, -0.7, 0.5 * M_PI}) {
+        CAPTURE(angle);
+        const TpmsEquation tpms(gyroid, scale, angle);
+        for (const Vec3d &p : {Vec3d(0.4, 1.3, -2.1), Vec3d(-3.2, 0.7, 5.5), Vec3d(2.2, -4.1, 0.9)}) {
+            // The point p of the regular cells, stretched, then turned.
+            const Vec3d stretched = p.cwiseProduct(scale);
+            const Vec3d turned(stretched.x(), std::cos(angle) * stretched.y() - std::sin(angle) * stretched.z(),
+                               std::sin(angle) * stretched.y() + std::cos(angle) * stretched.z());
+            CHECK_THAT(tpms(turned.x(), turned.y(), turned.z()), Catch::Matchers::WithinAbs(gyroid(float(p.x()), float(p.y()), float(p.z())), 1e-5));
+        }
+    }
+}
+
+TEST_CASE("TPMS-D and TPMS-P traced on the sampling grid follow their parametric lines", "[Fill]")
+{
+    // The parametric waves of TPMS-D are within 0.1 mm of the surface, the rings of TPMS-P within its trace tolerance.
+    const auto [pattern, tolerance] = GENERATE(table<InfillPattern, double>({{ipTpmsD, 0.15}, {ipTpmsP, 0.05}}));
+    CAPTURE(pattern);
+    // A turn too small to move the lines makes the filler trace the implicit equation instead.
+    const Polygons inner = shrink(to_polygons(tpms_square()), scale_(3.));
+    // Layers of TPMS-P with its rings around (0, 0), around (PI, PI), and nearly touching at the saddles.
+    for (const double z : {3.7, 5.4, 12.3, 4.2}) {
+        CAPTURE(z);
+        const Polylines parametric = tpms_fill(pattern, z, Vec3d::Ones());
+        const Polylines traced     = tpms_fill(pattern, z, Vec3d::Ones(), 1e-9);
+        REQUIRE_FALSE(parametric.empty());
+        CHECK(farthest_inside(parametric, traced, inner) < tolerance);
+        CHECK(farthest_inside(traced, parametric, inner) < tolerance);
+    }
+}
+
+TEST_CASE("A sparse infill X rotation of 90 degrees mirrors the layers of TPMS-D", "[Fill]")
+{
+    // Turned by 90 degrees, every layer is the regular one mirrored across x = 0: D(x, z, -y) = D(-x, y, z).
+    const Polygons inner     = shrink(to_polygons(tpms_square()), scale_(3.));
+    const double   tolerance = 0.15;
+    for (const double z : {3.7, 5.4, 12.3}) {
+        CAPTURE(z);
+        const Polylines regular = tpms_fill(ipTpmsD, z, Vec3d::Ones());
+        Polylines       mirrored = regular;
+        for (Polyline &polyline : mirrored)
+            for (Point &point : polyline.points)
+                point.x() = -point.x();
+        const Polylines turned = tpms_fill(ipTpmsD, z, Vec3d::Ones(), 0.5 * M_PI);
+        REQUIRE_FALSE(turned.empty());
+        // Some layers are nearly symmetric themselves.
+        CHECK(farthest_inside(turned, regular, inner) > 2. * tolerance);
+        CHECK(farthest_inside(mirrored, turned, inner) < tolerance);
+        CHECK(farthest_inside(turned, mirrored, inner) < tolerance);
+    }
 }
 
 TEST_CASE("Infill lines whose ends are next to each other join into one path", "[Fill]")
