@@ -102,7 +102,7 @@ jobs:
 
   build_linux:
     # TEMPORARILY DISABLED: Windows-only testing for build-performance matrix
-    if: ${{ false }}
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -148,7 +148,7 @@ jobs:
     secrets: inherit
   build_macos_arch:
     # TEMPORARILY DISABLED: Windows-only testing for build-performance matrix
-    if: ${{ false }}
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -162,7 +162,7 @@ jobs:
     secrets: inherit
   build_macos_universal:
     # TEMPORARILY DISABLED: Windows-only testing for build-performance matrix
-    if: ${{ false }}
+    if: false
     name: Build macOS Universal
     uses: ./.github/workflows/build_orca.yml
     with:
@@ -173,7 +173,7 @@ jobs:
   # One test job per built arch, on the runner that built it.
   unit_tests_linux_x86_64:
     # TEMPORARILY DISABLED: Windows-only testing
-    if: ${{ false }}
+    if: false
     name: Linux x86_64
     uses: ./.github/workflows/unit_tests.yml
     with:
@@ -181,7 +181,7 @@ jobs:
       artifact: ${{ github.sha }}-tests-linux-x86_64
   unit_tests_linux_aarch64:
     # TEMPORARILY DISABLED: Windows-only testing
-    if: ${{ false }}
+    if: false
     name: Linux aarch64
     uses: ./.github/workflows/unit_tests.yml
     with:
@@ -230,7 +230,7 @@ jobs:
       test-dir: build-arm64/tests
   unit_tests_macos_arm64:
     # TEMPORARILY DISABLED: Windows-only testing
-    if: ${{ false }}
+    if: false
     name: macOS arm64
     uses: ./.github/workflows/unit_tests.yml
     with:
@@ -246,7 +246,7 @@ jobs:
   # covers src/engine PRs with the PR-built binary.
   slice_check_linux:
     # TEMPORARILY DISABLED: Windows-only testing
-    if: ${{ false }}
+    if: false
     name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
     # Follows whichever Linux leg built the validator.
     runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04-arm' }}
@@ -330,7 +330,7 @@ jobs:
           retention-days: 7
   flatpak:
     # TEMPORARILY DISABLED: Windows-only testing for build-performance matrix
-    if: ${{ false }}
+    if: false
     name: "Flatpak"
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
@@ -567,7 +567,7 @@ jobs:
       run: rm -rf .flatpak-builder/build
   unit_tests_flatpak_x86_64:
     # TEMPORARILY DISABLED: Windows-only testing
-    if: ${{ false }}
+    if: false
     name: Flatpak x86_64
     uses: ./.github/workflows/unit_tests_flatpak.yml
     with:
@@ -575,7 +575,7 @@ jobs:
       artifact: ${{ github.sha }}-flatpak-tests-x86_64
   unit_tests_flatpak_aarch64:
     # TEMPORARILY DISABLED: Windows-only testing
-    if: ${{ false }}
+    if: false
     name: Flatpak aarch64
     uses: ./.github/workflows/unit_tests_flatpak.yml
     with:
