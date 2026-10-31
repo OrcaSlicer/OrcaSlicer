@@ -72,6 +72,7 @@
 #include "slic3r/GUI/HMS.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
 
@@ -1536,14 +1537,17 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
     m_input_top_sizer->Add(cafile_input_sizer, 0, wxTOP | wxEXPAND, FromDIP(4));
     m_input_top_sizer->Add(m_cafile_hint, 0, wxTOP | wxEXPAND, FromDIP(4));
 
-    if (!Http::ca_file_supported()) {
+    // Bambu printers check certificates in the network plug-in, not through curl, and keep their
+    // CA per device (set_machine_obj, workerThreadFunc), not in the printer preset.
+    const bool bbl_agent = is_bbl_agent();
+    if (!bbl_agent && !Http::ca_file_supported()) {
         m_input_cafile->Disable();
         m_button_cafile->Disable();
         m_cafile_hint->SetLabel(_L("This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."));
         m_cafile_hint->Wrap(FromDIP(352));
     }
 
-    if (wxGetApp().preset_bundle) {
+    if (!bbl_agent && wxGetApp().preset_bundle) {
         const auto& config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
         if (config.has("printhost_cafile"))
             m_input_cafile->SetValue(from_u8(config.opt_string("printhost_cafile")));
@@ -1815,6 +1819,8 @@ void InputIpAddressDialog::set_machine_obj(MachineObject* obj)
     m_input_ip->GetTextCtrl()->ChangeValue(m_obj->get_dev_ip());
     m_input_access_code->GetTextCtrl()->ChangeValue(m_obj->get_access_code());
     m_input_printer_name->GetTextCtrl()->ChangeValue(m_obj->get_dev_name());
+    if (is_bbl_agent())
+        m_input_cafile->ChangeValue(from_u8(m_obj->get_ca_file()));
 
     std::string img_str = DevPrinterConfigUtil::get_printer_connect_help_img(m_obj->printer_type);
     if (img_str.empty()) { img_str = "input_access_code_x1"; }
@@ -1928,12 +1934,23 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
         config.opt_string("print_host") = str_ip;
         if (!port.empty())
             config.opt_string("printhost_port") = port;
-        if (Http::ca_file_supported())
+        if (!is_bbl_agent() && Http::ca_file_supported())
             config.opt_string("printhost_cafile") = m_input_cafile->GetValue().ToStdString();
     }
+    std::string str_ca_file = is_bbl_agent() ? into_u8(m_input_cafile->GetValue().Strip(wxString::both)) : std::string();
 
     token_.reset(this, nop_deleter);
-    m_thread = new boost::thread(boost::bind(&InputIpAddressDialog::workerThreadFunc, this, str_ip, str_access_code, str_sn, str_model_id, str_name));
+    m_thread = new boost::thread(boost::bind(&InputIpAddressDialog::workerThreadFunc, this, str_ip, str_access_code, str_sn, str_model_id, str_name, str_ca_file));
+}
+
+bool InputIpAddressDialog::is_bbl_agent() const
+{
+    std::string agent_id;
+    if (m_obj)
+        agent_id = m_obj->printer_agent_id;
+    else if (DeviceManager* dev = wxGetApp().getDeviceManager())
+        agent_id = dev->get_current_printer_agent_id();
+    return agent_id.empty() || agent_id == BBL_PRINTER_AGENT_ID;
 }
 
 void InputIpAddressDialog::on_send_retry()
@@ -1952,6 +1969,8 @@ void InputIpAddressDialog::on_send_retry()
 
     // check support function
     if (!m_obj) return;
+    if (is_bbl_agent())
+        m_obj->set_ca_file(into_u8(m_input_cafile->GetValue().Strip(wxString::both)));
     if (!m_obj->is_support_send_to_sdcard) {
         wxString input_str = wxString::Format("%s|%s", ip, str_access_code);
         auto     event     = wxCommandEvent(EVT_ENTER_IP_ADDRESS);
@@ -2033,7 +2052,7 @@ void InputIpAddressDialog::post_update_test_msg(std::weak_ptr<InputIpAddressDial
     wxPostEvent(this, event);
 }
 
-void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_access_code, std::string sn, std::string model_id, std::string name)
+void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_access_code, std::string sn, std::string model_id, std::string name, std::string ca_file)
 {
     std::weak_ptr<InputIpAddressDialog> w = std::weak_ptr<InputIpAddressDialog>(token_);
 
@@ -2090,7 +2109,7 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
     }
     if (w.expired()) return;
 
-    CallAfter([this, detectData, str_ip, str_access_code, w]() {
+    CallAfter([this, detectData, str_ip, str_access_code, ca_file, w]() {
         DeviceManager* dev = wxGetApp().getDeviceManager();
         BBLocalMachine machine;
         machine.dev_name = detectData.dev_name;
@@ -2105,6 +2124,7 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
         if (w.expired()) return;
 
         if (m_obj) {
+            m_obj->set_ca_file(ca_file, false); // saved together with the access code below
             m_obj->set_access_code(str_access_code);
             wxGetApp().getDeviceManager()->set_selected_machine(m_obj->get_dev_id());
         }

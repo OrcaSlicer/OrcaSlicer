@@ -579,6 +579,15 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
     }
 }
 
+void MachineObject::set_ca_file(std::string path, bool only_refresh)
+{
+    ca_file = std::move(path);
+    if (only_refresh && is_lan_mode_printer() && has_access_right()) {
+        if (AppConfig* config = m_manager ? m_manager->get_app_config() : GUI::wxGetApp().app_config)
+            DeviceManager::update_local_machine(*this, config);
+    }
+}
+
 std::string MachineObject::get_show_printer_type() const
 {
     std::string printer_type = this->printer_type;
@@ -2695,13 +2704,17 @@ int MachineObject::connect()
 
     // This strips out the http/https prefix
     std::string host = Http::get_host_from_url(input, &port);
-    std::string ca_file;
+    // A Bambu printer's CA is chosen per device in the connect dialog. Never take it from the
+    // selected preset: it may belong to another printer, or come from an imported profile.
+    const bool  is_bbl  = printer_agent_id == BBL_PRINTER_AGENT_ID || printer_agent_id.empty();
+    std::string ca_file = is_bbl ? get_ca_file() : std::string();
 
     if (wxTheApp && GUI::wxGetApp().preset_bundle) {
         const auto& config = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
         if (port.empty())
             port = config.opt_string("printhost_port");
-        ca_file = config.opt_string("printhost_cafile");
+        if (!is_bbl)
+            ca_file = config.opt_string("printhost_cafile");
 
         // Refresh credentials from the matching preset for connections that bypass GUI_App::select_machine().
         const std::string print_host = config.opt_string("print_host");
