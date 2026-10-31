@@ -839,6 +839,9 @@ private:
 
     // used to show layers times on the layers slider when pre-gcode view is active
     std::vector<float> m_gcode_layers_times_cache;
+    // cumulative filament length (mm) and weight (g) to reach each layer, used in the layers slider tooltip
+    std::vector<double> m_gcode_layers_filament_cache;
+    std::vector<double> m_gcode_layers_filament_g_cache;
 
 public:
     OrientSettings& get_orient_settings()
@@ -1250,6 +1253,10 @@ public:
     std::vector<float> get_gcode_layers_times() const { return m_gcode_viewer.get_layers_times(); }
     const std::vector<float>& get_gcode_layers_times_cache() const { return m_gcode_layers_times_cache; }
     void reset_gcode_layers_times_cache() { m_gcode_layers_times_cache.clear(); }
+    const std::vector<double>& get_gcode_layers_filament_cache() const { return m_gcode_layers_filament_cache; }
+    void reset_gcode_layers_filament_cache() { m_gcode_layers_filament_cache.clear(); }
+    const std::vector<double>& get_gcode_layers_filament_g_cache() const { return m_gcode_layers_filament_g_cache; }
+    void reset_gcode_layers_filament_g_cache() { m_gcode_layers_filament_g_cache.clear(); }
     void set_volumes_z_range(const std::array<double, 2>& range) { m_volumes.set_range(range[0] - 1e-6, range[1] + 1e-6); }
     size_t get_gcode_extruders_count() { return m_gcode_viewer.get_extruders_count(); }
 

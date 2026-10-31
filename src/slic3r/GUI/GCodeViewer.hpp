@@ -421,6 +421,10 @@ public:
         return ret;
     }
     std::vector<float> get_layers_times() const { return m_viewer.get_layers_estimated_times(); }
+    // Returns cumulative filament length (mm) and weight (g) to reach each layer, using the first extruder's properties.
+    std::vector<double> get_layers_filament_mm() const;
+    std::vector<double> get_layers_filament_g() const;
+    std::vector<float> get_filament_diameters() const { return m_filament_diameters; }
 
     const std::array<size_t,2> &get_layers_z_range() const { return m_viewer.get_layers_view_range(); }
     const GCodeProcessorResult::ObjectMass&              get_plate_mass() const { return m_plate_mass; }

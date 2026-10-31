@@ -189,6 +189,7 @@ public:
 
     float get_travels_estimated_time() const { return m_travels_time[static_cast<size_t>(m_settings.time_mode)]; }
     std::vector<float> get_layers_estimated_times() const { return m_layers.get_times(m_settings.time_mode); }
+    std::vector<double> get_layers_extrusion_volumes() const { return m_layers.get_extrusion_volumes(); }
 
     size_t get_tool_colors_count() const { return m_tool_colors.size(); }
     const PaletteWithAlpha& get_tool_colors() const { return m_tool_colors; }
