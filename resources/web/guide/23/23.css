@@ -24,7 +24,7 @@
 	height: 100%;
 	display: flex;
 	align-items: center;
-	color: #000;
+	color: var(--dimmed-color);
 }
 
 /* SYSTEM FILAMENTS PAGE */

@@ -92,9 +92,9 @@ function OnInit() {
   OrcaWatchThemeForFrame("configCustom");
 
   document.addEventListener("click", (event) => {
-    if (!event.target.closest(".ctx"))
+    if (!event.target.closest(".ContextMenu"))
       HideContextMenu();
-    if (!event.target.closest(".explore-dropdown"))
+    if (!event.target.closest(".SplitButton"))
       HideExploreMenu();
   });
   document.addEventListener("keydown", (event) => {
@@ -254,7 +254,7 @@ function OnExploreMenuButtonKeyDown(event) {
 
   event.preventDefault();
   ShowExploreMenu();
-  exploreMenu?.querySelector(".explore-menu-item")?.focus();
+  exploreMenu?.querySelector(".SplitButtonMenuItem")?.focus();
 }
 
 function OnExploreMenuClick(event) {
@@ -606,12 +606,16 @@ function SourceLabel(source) {
   }
 }
 
+function SourceColor(source) {
+  return { mine: "teal", subscribed: "blue", orphaned: "orange" }[source] || "neutral";
+}
+
 // Shared source pill, used both after the row name and in the info panel.
 function SourceBadge(source) {
   const normalized = String(source || "").toLowerCase();
   const variant = (normalized === "mine" || normalized === "subscribed" || normalized === "orphaned") ? normalized : "local";
   const badge = document.createElement("span");
-  badge.className = `plugin-source-badge source-${variant}`;
+  badge.className = `GlassBox glassbox-${SourceColor(variant)} source-${variant}`;
   badge.textContent = SourceLabel(source);
   return badge;
 }
@@ -621,7 +625,7 @@ function CheckCell(row, plugin) {
   checkCell.className = "check-cell";
   const isLoading = IsPluginLoading(plugin);
   const checkboxLabel = document.createElement("label");
-  checkboxLabel.className = "plugin-checkbox";
+  checkboxLabel.className = "CheckBoxContainer";
   if (isLoading)
     checkboxLabel.classList.add("loading");
   if (!plugin.can_toggle)
@@ -631,7 +635,7 @@ function CheckCell(row, plugin) {
     checkboxLabel.classList.add("mixed");
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
-  checkbox.className = "plugin-checkbox-input";
+  checkbox.className = "CheckBoxCtrl";
   checkbox.checked = IsPluginChecked(plugin);
   checkbox.indeterminate = hasMixedCapabilityState;
   checkbox.disabled = isLoading || !plugin.can_toggle;
@@ -641,7 +645,7 @@ function CheckCell(row, plugin) {
     checkbox.setAttribute("aria-label", T("mixed_capabilities", "Some plugin capabilities are enabled"));
   }
   const checkboxMark = document.createElement("span");
-  checkboxMark.className = "plugin-checkbox-mark";
+  checkboxMark.className = "CheckBoxStr";
   checkboxLabel.appendChild(checkbox);
   checkboxLabel.appendChild(checkboxMark);
   checkCell.appendChild(checkboxLabel);
@@ -660,7 +664,7 @@ function LabelCell(plugin, isExpanded = false, capabilityCount = 0, nameRanges =
   if (canExpand) {
     const expandButton = document.createElement("button");
     expandButton.type = "button";
-    expandButton.className = "plugin-expand-btn";
+    expandButton.className = "plugin-expand-btn ButtonTypeIcon ButtonStyleClear";
     const labelName = pluginLabelText || "plugin";
     expandButton.setAttribute("aria-label", isExpanded
       ? T("collapse_named", "Collapse %s capabilities", labelName)
@@ -670,18 +674,15 @@ function LabelCell(plugin, isExpanded = false, capabilityCount = 0, nameRanges =
       ? T("collapse", "Collapse capabilities")
       : T("expand", "Expand capabilities");
     const icon = document.createElement("span");
-    icon.className = "plugin-expand-icon";
+    icon.className = "plugin-expand-icon icon16";
     expandButton.appendChild(icon);
     labelCell.appendChild(expandButton);
   } else {
     const spacer = document.createElement("span");
-    spacer.className = "plugin-expand-spacer";
+    spacer.className = "ButtonTypeIcon"; // empty block without icon to align labels
     spacer.setAttribute("aria-hidden", "true");
     labelCell.appendChild(spacer);
   }
-
-  const nameWrap = document.createElement("span");
-  nameWrap.className = "plugin-name-wrap";
 
   const labelElement = document.createElement(hasCloudLink ? "a" : "span");
   ApplyHighlight(labelElement, pluginLabelText, nameRanges);
@@ -690,34 +691,42 @@ function LabelCell(plugin, isExpanded = false, capabilityCount = 0, nameRanges =
   if (hasCloudLink) {
     labelElement.href = "#";
     labelElement.classList.add("plugin-cloud-link");
+    labelElement.classList.add("HyperLink");
     labelElement.title = T("open_in_browser", "Open this plugin in your browser");
   }
 
-  nameWrap.appendChild(labelElement);
+  labelCell.appendChild(labelElement);
+
   if (canExpand) {
+    const spacer = document.createElement("span");
+    spacer.className = "StretchSpacer";
+    labelCell.appendChild(spacer);
+
     const countBadge = document.createElement("span");
-    countBadge.className = "plugin-capability-count";
+    countBadge.className = "GlassBox glassbox-blue plugin-counter";
     countBadge.textContent = String(capabilityCount);
     countBadge.title = T("capability_count", "Capabilities: %s", capabilityCount);
-    nameWrap.appendChild(countBadge);
+    labelCell.appendChild(countBadge);
   }
-  labelCell.appendChild(nameWrap);
 
   return labelCell;
 }
 
 function SourceCell(plugin) {
+  const container = document.createElement("span"); // FIX container requiered otherwise control spans to all cell
+
   const cell = document.createElement("span");
   const normalized = String(plugin.source || "").toLowerCase();
   const variant = (normalized === "mine" || normalized === "subscribed" || normalized === "orphaned") ? normalized : "local";
-  cell.className = `source-cell source-${variant}`;
+  cell.className = `GlassBox glassbox-${SourceColor(variant)} ExpandHorizontally source-${variant}`;
 
   const sourceLabel = document.createElement("span");
   sourceLabel.className = "source-label";
   sourceLabel.textContent = SourceLabel(plugin.source);
   cell.appendChild(sourceLabel);
 
-  return cell;
+  container.appendChild(cell);
+  return container;
 }
 
 function RenderCapabilityTree(plugin, capabilities, capRanges = null) {
@@ -770,7 +779,7 @@ function RenderCapabilityRow(plugin, capability, isLast, capRanges = null) {
   if (CapabilityCanRun(plugin, capability)) {
     const runButton = document.createElement("button");
     runButton.type = "button";
-    runButton.className = "capability-run-btn script-run-btn";
+    runButton.className = "plugin-run-btn ButtonTypeIcon ButtonStyleClear";
     runButton.title = T("run_named", 'Run "%s"', capabilityName);
     runButton.setAttribute("aria-label", runButton.title);
     const runIcon = document.createElement("span");
@@ -797,10 +806,10 @@ function CapabilityCheckCell(plugin, capability) {
     return checkCell;
 
   const checkboxLabel = document.createElement("label");
-  checkboxLabel.className = "plugin-checkbox";
+  checkboxLabel.className = "CheckBoxContainer";
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
-  checkbox.className = "plugin-checkbox-input capability-checkbox-input";
+  checkbox.className = "CheckBoxCtrl capability-checkbox-input";
   checkbox.checked = capability?.enabled === true;
   checkbox.dataset.pluginKey = String(plugin?.plugin_key || "");
   checkbox.dataset.capabilityToggle = "true";
@@ -808,7 +817,7 @@ function CapabilityCheckCell(plugin, capability) {
   checkbox.dataset.capabilityType = capabilityType;
   checkbox.setAttribute("aria-label", T("enable_named", "Enable %s", capabilityName));
   const checkboxMark = document.createElement("span");
-  checkboxMark.className = "plugin-checkbox-mark";
+  checkboxMark.className = "CheckBoxLabel";
   checkboxLabel.appendChild(checkbox);
   checkboxLabel.appendChild(checkboxMark);
   checkCell.appendChild(checkboxLabel);
@@ -844,7 +853,10 @@ function UpdateStatusBadge(plugin) {
     return null;
 
   const badge = document.createElement("span");
-  badge.className = "version-update-badge";
+  const inner = document.createElement("span");
+  inner.classList.add("icon16");
+  badge.appendChild(inner);
+  badge.className = "version-update-badge ButtonTypeIcon";
   if (updateStatus === "unauthorized") {
     badge.classList.add("is-warning");
     badge.title = T("unauthorized", "Unauthorized for updates");
@@ -857,17 +869,26 @@ function UpdateStatusBadge(plugin) {
   return badge;
 }
 
+function StatusColor(status) {
+  return { activated: "green", loading: "orange", error: "red", runtimeerror: "red" }[status] || "inactive";
+}
+
 function StatusCell(plugin) {
+  const container = document.createElement("span"); // requiered otherwise control spans to all cell
+
   const cell = document.createElement("span");
-  cell.className = "status-cell";
-  cell.classList.add(`status-${GetStatus(plugin).toLowerCase()}`);
+
+  const status = GetStatus(plugin).toLowerCase();
+  cell.className = `GlassBox ExpandHorizontally glassbox-${StatusColor(status)} status-${status}`;
 
   const statusLabel = document.createElement("span");
   statusLabel.className = "status-label";
   statusLabel.textContent = StatusLabel(plugin);
   cell.appendChild(statusLabel);
 
-  return cell;
+  container.appendChild(cell);
+
+  return container;
 }
 
 function RenderDetails() {
@@ -969,7 +990,7 @@ function RenderConfig(plugin) {
     const typeKey = String(capability.type_key || "");
     const item = document.createElement("button");
     item.type = "button";
-    item.className = "config-cap";
+    item.className = "SideTabBtn";
     item.dataset.capabilityName = name;
     item.dataset.capabilityType = typeKey;
     item.setAttribute("role", "option");
@@ -979,12 +1000,12 @@ function RenderConfig(plugin) {
     item.setAttribute("aria-selected", isSelected ? "true" : "false");
 
     const label = document.createElement("span");
-    label.className = "config-cap-name";
+    label.className = "SideTabLabel";
     label.textContent = name;
     item.appendChild(label);
 
     const type = document.createElement("span");
-    type.className = "config-cap-type";
+    type.className = "SideTabDesc";
     type.textContent = String(capability.type || "");
     item.appendChild(type);
 
@@ -993,7 +1014,7 @@ function RenderConfig(plugin) {
 }
 
 function OnConfigSidebarClick(event) {
-  const item = event.target.closest(".config-cap");
+  const item = event.target.closest(".SideTabBtn");
   if (!item)
     return;
 
@@ -1106,7 +1127,8 @@ function SetConfigValidation(message) {
   const save = document.getElementById("configSaveBtn");
   if (node) {
     node.textContent = message;
-    node.classList.toggle("invalid", message !== "");
+    node.classList.toggle("error-text", message !== "");
+    node.hidden = message == ""; // hide control if its empty to prevent unnecessary spacing
   }
   // Invalid JSON is never saved: Save is the only way to persist. The native side re-validates.
   if (save)
@@ -1241,7 +1263,7 @@ function RenderDescription(plugin) {
   if (isCloud && String(plugin?.sharing_token || "")) {
     const link = document.createElement("a");
     link.href = "#";
-    link.className = "plugin-cloud-link";
+    link.className = "plugin-cloud-link HyperLink";
     link.title = T("open_in_browser", "Open this plugin in your browser");
     link.addEventListener("click", (event) => {
       event.preventDefault();
@@ -1297,7 +1319,7 @@ function SetText(id, text) {
 }
 
 function ApplyDetailUpdateBadge(node, plugin) {
-  node.className = "version-update-badge";
+  node.className = "version-update-badge ButtonTypeIcon";
 
   // "update_available" is already the actionable Update button, so the badge only warns about
   // unauthorized.
@@ -1381,20 +1403,21 @@ function RenderDetailSummary(container, plugin) {
     return;
   }
 
+  const status = GetStatus(plugin).toLowerCase();
   const statusChip = document.createElement("span");
-  statusChip.className = `detail-status-chip status-${GetStatus(plugin).toLowerCase()}`;
+  statusChip.className = `GlassBox glassbox-${StatusColor(status)} status-${status}`;
   statusChip.textContent = StatusLabel(plugin);
   container.appendChild(statusChip);
 
   const message = document.createElement("div");
   const errorText = GetErrorText(plugin);
-  message.className = errorText ? "detail-description detail-error-text" : "detail-description";
+  message.className = "detail-description" + (errorText ? " error-text" : "");
   message.textContent = errorText || StatusDescription(plugin);
   container.appendChild(message);
 
   if (plugin.orphaned === true) {
     const warning = document.createElement("div");
-    warning.className = "detail-description detail-warning-text";
+    warning.className = "detail-description warning-text";
     warning.textContent = T("orphaned_note", "Orphaned: This plugin is no longer subscribed or available in OrcaCloud. The local copy remains installed and can still be used.");
     container.appendChild(warning);
   }
@@ -1409,7 +1432,7 @@ function RenderDetailSummary(container, plugin) {
 
   if (updateStatus === "unauthorized") {
     const note = document.createElement("div");
-    note.className = "detail-description detail-note-text is-warning";
+    note.className = "detail-description detail-note-text warning-text";
     note.textContent = T("unauthorized_note", "Cloud updates are unavailable because this plugin is unauthorized for updates.");
     container.appendChild(note);
   }
@@ -1458,10 +1481,10 @@ function OnPluginListClick(event) {
   }
 
   const checkbox = event.target.closest("input[type='checkbox']");
-  if (checkbox || event.target.closest(".plugin-checkbox"))
+  if (checkbox || event.target.closest(".CheckBoxContainer"))
     return;
 
-  if (event.target.closest(".capability-run-btn"))
+  if (event.target.closest(".plugin-run-btn"))
     return;
 
   const block = event.target.closest(".plugin-block");
@@ -1560,7 +1583,7 @@ function ShowContextMenu(x, y) {
   actions.forEach((action) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = action.danger ? "ctx-item danger" : "ctx-item";
+    button.className = "ContextMenuItem" + (action.danger ? " alert" : "");
     button.dataset.action = String(action.id || "");
     button.textContent = String(action.label || action.id || "");
     button.disabled = action.enabled === false;

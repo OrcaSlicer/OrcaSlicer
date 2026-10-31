@@ -20,9 +20,9 @@ body
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	background-color: #F4F4F4;	
+	background-color: var(--bg-color-secondary);	
 	font-size: 14px;	
-	color: #595959;	
+	color: var(--fg-color-label);	
 	line-height: 24px;
 }
 
@@ -36,6 +36,9 @@ body
 	display: flex;
 }
 
+@media (prefers-color-scheme: dark) { 
+	#EmptyArea img { content:url(./img/null2.png);}
+}
 
 #WholeArea
 {
@@ -44,26 +47,6 @@ body
 	position: relative;
 	overflow-y: hidden;
 	display: none;
-}
-
-.ZScrol::-webkit-scrollbar {/*滚动条整体样式*/
-    width: 8px;     /*高宽分别对应横竖滚动条的尺寸*/
-    height: 8px;
-	padding: 2px;
-}
-
-.ZScrol::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
-    border-radius: 6px;
-    -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-	box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-    background-color: #AAAAAA;
-}
-
-.ZScrol::-webkit-scrollbar-track {/*滚动条里面轨道*/
-        -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-	    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-        border-radius: 10px;
-        background: #EDEDED;
 }
 
 
@@ -83,12 +66,12 @@ body
 {
 	font-size: 16px;
 	font-weight: 700;
-	color: black;	
+	color: var(--fg-color-text );
 }
 
 .Text_Value
 {
-	color: black;
+	color: var(--fg-color-text );
 }
 
 .Text_Bold
@@ -98,7 +81,7 @@ body
 
 .Text_TitleBoard
 {
-	border-bottom: 1px solid #DDDDDD;
+	border-bottom: 1px solid var(--border-color);
 	padding: 16px  0px;
 }
 
@@ -132,12 +115,12 @@ body
 
 .Block_BKGA
 {
-	background-color: white;
+	background-color: var(--bg-color-sidebar);
 }
 
 .Block_BKGB
 {
-	background-color: #F4F4F4;
+	background-color: var(--bg-color-secondary);
 }
 
 /*---Swiper---*/
@@ -160,7 +143,7 @@ body
 
 .LeftProcessBar
 {
-	border-left: 2px solid #DDDDDD;
+	border-left: 2px solid var(--border-color);
 	height: 40px;
 	display: flex;
 	align-items: center;
@@ -185,12 +168,12 @@ body
 
 .ProcessBarSelected
 {
-	border-left-color:#009688;
+	border-left-color: var(--main-color-fixed);
 }
 
 .ProcessBarSelected span
 {
-	color:#009688;
+	color: var(--main-color-fixed);
 }
 
 #Info_ProcessBar.ProcessBarSelected img
@@ -222,7 +205,7 @@ body
 
 .InfoBlock
 {
-	background-color: white;
+	background-color: var(--bg-color-sidebar);
 	padding: 20px 40px;
 }
 
@@ -283,7 +266,7 @@ body
 
 .File_Board
 {
-	background-color: #F4F4F4;
+	background-color: var(--bg-color-secondary);
 	padding: 12px 15px;	
 }
 
@@ -301,7 +284,7 @@ body
 .FileItem
 {
 	width:406px;
-	background-color: white;
+	background-color: var(--bg-color-sidebar);
 	display: flex;
 	align-items: center;
 	padding: 12px 15px;

@@ -398,30 +398,5 @@ function CheckCssLinkExist( LinkPath )
 
 /*------Dark Mode------*/
 
-function SwitchDarkMode( DarkCssPath )
-{		
-	ExecuteDarkMode( DarkCssPath );
-    setInterval("ExecuteDarkMode('"+DarkCssPath+"')",1000);	
-}
-
-function ExecuteDarkMode( DarkCssPath )
-{
-    let nMode=0;
-	let bDarkMode=navigator.userAgent.match(  RegExp('dark','i') );	
-	if( bDarkMode!=null )
-		nMode=1;
-	
-	let nNow=CheckCssLinkExist(DarkCssPath);
-	if( nMode==0 )
-	{
-		if(nNow>0)
-			RemoveCssLink(DarkCssPath);
-	}
-	else
-	{
-		if(nNow==0)
-			AddCssLink(DarkCssPath);
-	}	
-}
-
-SwitchDarkMode( "./css/dark.css" );
+// SwitchDarkMode() is gone. It polled the user agent and toggled dark.css to match the app theme.
+// Pages now follow the WebView color scheme through global.css (prefers-color-scheme).
