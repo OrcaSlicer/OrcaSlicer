@@ -180,7 +180,10 @@ so the caller waits for it to finish, through shutdown too; the closure ends whe
 unwinds out of it. `ToolContext::observe_ui()` runs a closure under the inspect guard whatever the
 tool's class: operations poll their progress with it, and `settle()`, the round trip a tool makes
 after a change so queued events are handled, uses it and ignores a refusal, since the change is
-made already.
+made already. On Wayland a 3D view that a change shows, such as by a tab switch, gets its GL surface
+from the map event GTK handles when its main loop next runs, and the next call's closure can run
+before that, finding the view not on screen. So `settle()` also waits, up to a second, until every
+shown canvas has its surface.
 
 `GuardClass` decides what may run when:
 

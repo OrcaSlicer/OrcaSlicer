@@ -1,10 +1,14 @@
 #include "McpTools.hpp"
 
 #include "McpTypes.hpp"
+#include "UiInspector.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
 #include <wx/app.h>
+#include <wx/glcanvas.h>
+#include <wx/window.h>
 
 #include <algorithm>
 #include <chrono>
@@ -69,12 +73,33 @@ ToolDef mutate_tool(std::string name, std::string title, std::string description
     return d;
 }
 
+namespace {
+
+// Whether a 3D view is shown but can't draw yet. On Wayland a canvas gets its GL surface from the
+// map event GTK handles once the main loop runs again, after the closures queued with the change
+// that showed it, such as a tab switch. wxGLCanvas's IsShownOnScreen() needs that surface; the
+// base class's only needs the windows shown. UI thread.
+bool canvas_being_mapped()
+{
+    for (GLCanvas3D* canvas : ui_canvases())
+        if (const wxGLCanvas* glc = canvas->get_wxglcanvas();
+            glc != nullptr && glc->wxWindowBase::IsShownOnScreen() && !glc->IsShownOnScreen())
+            return true;
+    return false;
+}
+
+} // namespace
+
 void settle(ToolContext& ctx)
 {
     // Only a sync point: the change is made already, so a refusal here (a dialog it opened, a UI
-    // rebuild it caused) neither undoes it nor fails the call.
+    // rebuild it caused) neither undoes it nor fails the call. Nor does a 3D view that never gets its
+    // surface: it only fails the calls that draw in it, so the wait for it is short. The map event
+    // comes within a main-loop pass or two, hence the short interval.
     try {
-        ctx.observe_ui([] { return json(); });
+        poll_ui(
+            ctx, [] { return canvas_being_mapped() ? json() : json(true); }, std::chrono::seconds(1), "3D views to get their GL surface",
+            std::chrono::milliseconds(10));
     } catch (const ToolFailure&) {
     }
 }
@@ -127,7 +152,11 @@ json page(const json& items, const json& args, std::size_t default_limit)
     return result;
 }
 
-json poll_ui(ToolContext& ctx, const std::function<json()>& poll, std::chrono::milliseconds timeout, const std::string& what)
+json poll_ui(ToolContext& ctx,
+             const std::function<json()>& poll,
+             std::chrono::milliseconds timeout,
+             const std::string& what,
+             std::chrono::milliseconds interval)
 {
     const auto end = std::chrono::steady_clock::now() + timeout;
     for (;;) {
@@ -138,7 +167,7 @@ json poll_ui(ToolContext& ctx, const std::function<json()>& poll, std::chrono::m
             throw ToolFailure("Cancelled: OrcaSlicer is closing or the script was stopped");
         if (std::chrono::steady_clock::now() >= end)
             throw ToolFailure("Timed out waiting for " + what);
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(interval);
     }
 }
 
