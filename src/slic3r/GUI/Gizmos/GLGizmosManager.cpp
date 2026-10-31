@@ -1486,7 +1486,6 @@ bool GLGizmosManager::activate_gizmo(EType type)
         // it is deactivation of gizmo
         if (m_restore_realistic_view_after_paint && wxGetApp().app_config != nullptr) {
             wxGetApp().app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, true);
-            wxGetApp().app_config->save();
             m_restore_realistic_view_after_paint = false;
         }
         m_current = Undefined;
@@ -1498,12 +1497,13 @@ bool GLGizmosManager::activate_gizmo(EType type)
     if (!new_gizmo.is_activable()) return false;
 
     if (type == Seam || type == FdmSupports || type == FuzzySkin) {
-        if (wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE)) {
+        if (!m_restore_realistic_view_after_paint && wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE)) {
             m_restore_realistic_view_after_paint = true;
             wxGetApp().app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
-            wxGetApp().app_config->save();
         }
-    } else {
+    } else if (m_restore_realistic_view_after_paint) {
+        if (wxGetApp().app_config != nullptr)
+            wxGetApp().app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, true);
         m_restore_realistic_view_after_paint = false;
     }
 
