@@ -134,6 +134,7 @@
 #include <cstdlib>
 #include <mutex>
 #include <regex>
+#include <future>
 #include <system_error>
 #include <thread>
 #include <string_view>
@@ -279,6 +280,7 @@
 #ifdef __WXMSW__
 #include <dbt.h>
 #include <shlobj.h>
+#include <wx/graphics.h> // required for gdiplus_warmup
 
 #ifdef __WINDOWS__
 #ifdef _MSW_DARK_MODE
@@ -3716,6 +3718,15 @@ bool GUI_App::on_init_inner()
             // If there are substitutions in system profiles, then a "reconfigure" event shall be triggered, which will force
             // installation of a compatible system preset, thus nullifying the system preset substitutions.
             if (scrn) { scrn->SetText(_L("Loading printer & filament profiles") + dots, 30); wxYield(); }
+#ifdef __WXMSW__
+            // The first GDI+ font makes GDI+ load all installed fonts (~200-250ms) which the first wxGCDC used to pay for. 
+            // Do it on a worker while load_presets() runs. Nothing draws on the UI thread until the worker is joined
+            // The future returned by std::async waits for the worker in its destructor, also when load_presets() throws.
+            auto gdiplus_warmup = std::async(std::launch::async, [face = wxNORMAL_FONT->GetFaceName()] {
+                if (wxGraphicsRenderer* renderer = wxGraphicsRenderer::GetGDIPlusRenderer())
+                    renderer->CreateFont(12., face, wxFONTFLAG_DEFAULT, wxColour(0, 0, 0));
+            });
+#endif
             init_params->preset_substitutions = preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSystemSilent);
         }
         catch (const std::exception& ex) {
