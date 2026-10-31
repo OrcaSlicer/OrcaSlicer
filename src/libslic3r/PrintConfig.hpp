@@ -65,6 +65,12 @@ enum GCodeFlavor : unsigned char {
     gcfNoExtrusion
 };
 
+enum class CoolingPolicy : unsigned char { 
+    Default, 
+    AlwaysOff, 
+    AlwaysOn, 
+    Count 
+};
 // How a filament is used across the model. Part of the multi-nozzle grouping data; not yet
 // read by the shipping slicer — the nozzle-centric FilamentGroup engine consumes it.
 enum FilamentUsageType {
@@ -797,6 +803,7 @@ extern std::vector<std::string> save_extruder_nozzle_stats_to_string(const std::
 
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PrinterTechnology)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(GCodeFlavor)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(CoolingPolicy)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TopSurfaceExpansionDirection)
@@ -1784,6 +1791,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                high_precision_gcode))
     ((ConfigOptionBool,                bbl_bed_temperature_gcode))
     ((ConfigOptionEnum<GCodeFlavor>,   gcode_flavor))
+    ((ConfigOptionEnumsGeneric,        cooling_policy))
     ((ConfigOptionBool,                gcode_skip_config_block))
     ((ConfigOptionFloat,               time_cost)) 
     ((ConfigOptionString,              layer_change_gcode))
@@ -2038,6 +2046,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPoints,             extruder_offset))
     ((ConfigOptionBools,              reduce_fan_stop_start_freq))
     ((ConfigOptionBools,              dont_slow_down_outer_wall))
+    ((ConfigOptionBools,              fan_always_off))
     ((ConfigOptionFloats,             fan_cooling_layer_time))
     ((ConfigOptionBools,              activate_air_filtration))
     ((ConfigOptionBools,              activate_air_filtration_during_print))
