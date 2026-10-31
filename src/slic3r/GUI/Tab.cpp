@@ -3099,6 +3099,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("min_length_factor", "quality_settings_wall_generator#minimum-wall-length");
         optgroup->append_single_option_line("wall_maximum_resolution", "quality_settings_wall_generator#maximum-wall-resolution");
         optgroup->append_single_option_line("wall_maximum_deviation", "quality_settings_wall_generator#maximum-wall-deviation");
+        optgroup->append_single_option_line("wall_width_tolerance", "quality_settings_wall_generator#wall-width-tolerance");
 
         optgroup = page->new_optgroup(L("Walls and surfaces"), L"param_wall_surface");
         optgroup->append_single_option_line("wall_sequence", "quality_settings_wall_and_surfaces#walls-printing-order");

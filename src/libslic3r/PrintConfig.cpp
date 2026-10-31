@@ -8731,6 +8731,22 @@ void PrintConfigDef::init_fff_params()
     def->max = 0.05f;
     def->set_default_value(new ConfigOptionFloat(0.025f));
 
+    def = this->add("wall_width_tolerance", coPercent);
+    def->label = L("Wall width tolerance");
+    def->category = L("Quality");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Arachne varies wall line widths continuously, and every change of width starts a new G-code path, so walls "
+                     "become many short straight moves that arc fitting cannot join. Consecutive stretches whose widths stay within "
+                     "this percentage of the line width are printed as one path at their average width instead, which extrudes the "
+                     "same volume and lets arc fitting work along them. Larger values give longer arcs and smaller G-code, at the "
+                     "cost of local width differing from Arachne's by up to this much.\n\n"
+                     "0 starts a new path at every change of width, as before.");
+    def->sidetext = "%";
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 10;
+    def->set_default_value(new ConfigOptionPercent(0));
+
     def = this->add("initial_layer_min_bead_width", coPercent);
     def->label = L("First layer minimum wall width");
     def->category = L("Quality");

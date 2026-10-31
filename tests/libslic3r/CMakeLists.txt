@@ -99,6 +99,7 @@ if (SLIC3R_CAD)
         test_sketchprofile.cpp
         test_sketchimport.cpp
         test_sketchinference.cpp
+        test_variable_width.cpp
         test_slvs_constraints.cpp)
 endif ()
 

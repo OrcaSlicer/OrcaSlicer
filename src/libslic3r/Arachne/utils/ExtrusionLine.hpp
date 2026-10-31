@@ -293,8 +293,10 @@ using VariableWidthLines = std::vector<ExtrusionLine>; //<! The ExtrusionLines g
 
 namespace Slic3r {
 
-void extrusion_paths_append(ExtrusionPaths &dst, const ClipperZUtils::ZPaths &extrusion_paths, const ExtrusionRole role, const Flow &flow);
-void extrusion_paths_append(ExtrusionPaths &dst, const Arachne::ExtrusionLine &extrusion, const ExtrusionRole role, const Flow &flow);
+// ORCA: a width_band over 0 joins consecutive segments whose widths stay within it into one path at their mean width
+// (thick_polyline_to_multi_path_banded()), so arc fitting gets long runs; 0 starts a new path at every change of width.
+void extrusion_paths_append(ExtrusionPaths &dst, const ClipperZUtils::ZPaths &extrusion_paths, const ExtrusionRole role, const Flow &flow, float width_band = 0.f);
+void extrusion_paths_append(ExtrusionPaths &dst, const Arachne::ExtrusionLine &extrusion, const ExtrusionRole role, const Flow &flow, float width_band = 0.f);
 
 } // namespace Slic3r
 
