@@ -3699,7 +3699,8 @@ void TabPrint::update()
             toggle_options();
         // update() could be called during undo/redo execution
         // Update of objectList can cause a crash in this case (because m_objects doesn't match ObjectList)
-        if (m_type != Preset::TYPE_MODEL && !wxGetApp().plater()->inside_snapshot_capture())
+        // Before the main window is shown no object can be selected, and the refresh would only lay out the sidebar.
+        if (m_type != Preset::TYPE_MODEL && !wxGetApp().plater()->inside_snapshot_capture() && wxGetApp().mainframe->IsShown())
             wxGetApp().obj_list()->update_and_show_object_settings_item();
 
         wxGetApp().mainframe->on_config_changed(m_config);

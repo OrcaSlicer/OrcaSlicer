@@ -191,6 +191,8 @@
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "I18N.hpp"
+#include "Lazy.hpp"
 #include "Shortcuts.hpp"
 #include "GUI_ObjectList.hpp"
 #ifdef __WXGTK__
@@ -3801,7 +3803,7 @@ void Sidebar::remove_unused_filament_combos(const size_t current_extruder_count)
     }
 }
 
-void Sidebar::update_all_preset_comboboxes()
+void Sidebar::update_all_preset_comboboxes(bool update_filament_combos)
 {
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
     const auto print_tech = preset_bundle.printers.get_edited_preset().printer_technology();
@@ -3914,7 +3916,7 @@ void Sidebar::update_all_preset_comboboxes()
     //p->combo_printer->update();
     // Update the filament choosers to only contain the compatible presets, update the color preview,
     // update the dirty flags.
-    if (print_tech == ptFFF) {
+    if (print_tech == ptFFF && update_filament_combos) {
         for (PlaterPresetComboBox* cb : p->combos_filament)
             cb->update();
     }
@@ -3957,8 +3959,11 @@ void Sidebar::update_presets(Preset::Type preset_type)
 
         }
 
-        for (size_t i = 0; i < filament_cnt; i++)
-            p->combos_filament[i]->update();
+        // Preset change must still refill the combos. Refill not needed before the mainframe shown.
+        // load_current_presets() loads the printer tab right after this and refills them anyway
+        if (wxGetApp().mainframe == nullptr || wxGetApp().mainframe->IsShown())
+            for (size_t i = 0; i < filament_cnt; i++)
+                p->combos_filament[i]->update();
 
         update_dynamic_filament_list();
         break;
@@ -4337,7 +4342,10 @@ void Sidebar::update_mixed_filament_list()
     auto* plater = dynamic_cast<Plater*>(GetParent());
     if (!plater) return;
 
-    wxWindowUpdateLocker noUpdates(this);
+    // Freezing walks every child of the sidebar, a few ms each time; a hidden sidebar has nothing to repaint.
+    wxWindowUpdateLocker noUpdates;
+    if (IsShownOnScreen())
+        noUpdates.Lock(this);
 
     const wxColour mc_bg     = StateColor::darkModeColorFor(*wxWHITE);
     const wxColour mc_border = StateColor::darkModeColorFor(wxColour("#DBDBDB")); // same color with filament combo box border
@@ -5738,7 +5746,9 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
     if (choices.size() == 1 || num_physical == 1)
         choices[0]->GetDropDown().Invalidate();
 
-    wxWindowUpdateLocker noUpdates_scrolled_panel(this);
+    wxWindowUpdateLocker noUpdates_scrolled_panel;
+    if (IsShownOnScreen())
+        noUpdates_scrolled_panel.Lock(this);
 
     size_t i = choices.size();
     while (i < num_physical)
@@ -5749,8 +5759,12 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
         choices.push_back(choice);
 
         // initialize selection
-        choice->update();
-        choice->SetSelection(last_selection);
+        // While the main frame is still being created the list is left empty:
+        // load_current_presets() fills every filament combo once the window is built.
+        if (wxGetApp().mainframe != nullptr) {
+            choice->update();
+            choice->SetSelection(last_selection);
+        }
         ++i;
     }
 
@@ -7270,11 +7284,12 @@ struct Plater::priv
     AssembleView* assemble_view { nullptr };
     // Docked/resizable 2D pane showing GLGizmoTextureDisplacement's LSCM unwrap of a painted
     // patch; a sibling AUI pane alongside "sidebar"/"main", not part of the view3D/preview/
-    // assemble_view sizer - see its registration below and Plater::get_uv_editor_canvas(). The
-    // pane hosts the panel (toolbar + canvas + status line); uv_editor_canvas is its inner canvas,
-    // cached so the gizmo can reach it directly.
-    UVEditorPanel*  uv_editor_panel { nullptr };
-    UVEditorCanvas* uv_editor_canvas { nullptr };
+    // assemble_view sizer - see make_uv_editor() and Plater::get_uv_editor_canvas(). The
+    // pane hosts the panel (toolbar + canvas + status line). Built by the first
+    // show_uv_editor(true), never prebuilt.
+    Lazy<UVEditorPanel> uv_editor{ "uv_editor", -1, [this] { return make_uv_editor(); } };
+    // Builds the pane hidden and adds it to m_aui_mgr at its saved place.
+    UVEditorPanel* make_uv_editor();
     bool first_enter_assemble{ true };
     std::unique_ptr<NotificationManager> notification_manager;
 
@@ -7291,7 +7306,8 @@ struct Plater::priv
     // UIThreadWorker can be used as a replacement for BoostThreadWorker if
     // no additional worker threads are desired (useful for debugging or profiling)
     PlaterWorker<BoostThreadWorker> m_worker;
-    SLAImportDialog *               m_sla_import_dlg;
+    // Built on the first import, never prebuilt.
+    Lazy<SLAImportDialog>           m_sla_import_dlg{ "sla_import_dialog", -1, [this] { return new SLAImportDialog{ q }; } };
 
     int                         m_job_prepare_state;
 
@@ -7874,7 +7890,6 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     , sidebar(new Sidebar(q))
     , notification_manager(std::make_unique<NotificationManager>(q))
     , m_worker{q, std::make_unique<NotificationProgressIndicator>(notification_manager.get()), "ui_worker"}
-    , m_sla_import_dlg{new SLAImportDialog{q}}
     , m_job_prepare_state(Job::JobPrepareState::PREPARE_STATE_DEFAULT)
     , delayed_scene_refresh(false)
     , collapse_toolbar(GLToolbar::Normal, "Collapse")
@@ -7967,24 +7982,13 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     // Orca: Make sidebar dockable
     m_aui_mgr.AddPane(sidebar, AuiMgr::sidebar_pane_info());
 
-    // UV editor pane for GLGizmoTextureDisplacement's LSCM unwrap preview - a resizable/dockable
-    // sibling of "sidebar"/"main" like everything else registered on this same AUI manager, not a
-    // change to the view3D/preview/assemble_view sizer above. Hidden by default: only relevant
-    // while that gizmo is active with a layer using the "Unwrap (LSCM)" projection method (see
-    // Plater::show_uv_editor()), so it stays out of the way of everyone else's window layout.
-    uv_editor_panel  = new UVEditorPanel(q);
-    uv_editor_canvas = uv_editor_panel->canvas();
-    m_aui_mgr.AddPane(uv_editor_panel, wxAuiPaneInfo()
-                                            .Name("uv_editor")
-                                            .Caption(_L("UV Editor"))
-                                            .Right()
-                                            .Hide()
-                                            .BestSize(wxSize(40 * wxGetApp().em_unit(), 40 * wxGetApp().em_unit())));
+    // The UV editor pane is added by make_uv_editor().
     // Closing the pane with its own X has to reach the gizmo, or its next update would simply show the pane again.
     q->Bind(wxEVT_AUI_PANE_CLOSE, [this](wxAuiManagerEvent &evt) {
         evt.Skip();
-        if (evt.GetPane() != nullptr && evt.GetPane()->window == uv_editor_panel && uv_editor_canvas != nullptr)
-            uv_editor_canvas->run_command(UVEditorCanvas::Command::PaneClosed);
+        UVEditorPanel* panel = uv_editor.get();
+        if (panel != nullptr && evt.GetPane() != nullptr && evt.GetPane()->window == panel)
+            panel->canvas()->run_command(UVEditorCanvas::Command::PaneClosed);
     });
 
     auto* panel_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -8019,20 +8023,14 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
 #ifdef __WXGTK__
             layout = sanitize_window_layout_for_wayland(layout, &removed_floating_state);
 #endif
-
+            // Panes that don't exist yet (uv_editor, dock panes) are skipped here;
+            // make_uv_editor() and add_dock_pane() read their entries from the saved layout when they are built.
             if (!m_aui_mgr.LoadPerspective(layout, false)) {
                 BOOST_LOG_TRIVIAL(warning) << "Failed to restore saved window layout";
                 m_aui_mgr.LoadPerspective(m_default_window_layout, false);
             } else if (removed_floating_state) {
                 BOOST_LOG_TRIVIAL(info) << "Removed floating AUI state from saved window layout for Wayland";
             }
-
-            // The UV editor is a transient, gizmo-driven pane (see show_uv_editor()); a saved layout
-            // from a session that happened to close with it open would otherwise restore it visible on
-            // startup, with nothing painted in it. Force it hidden here so it only ever appears when the
-            // texture-displacement gizmo asks for it.
-            if (wxAuiPaneInfo &uv_pane = m_aui_mgr.GetPane("uv_editor"); uv_pane.IsOk())
-                uv_pane.Hide();
 
             sidebar_layout.is_collapsed = !sidebar.IsShown();
         }
@@ -10922,6 +10920,12 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
             sidebar.Show();
         }
         auto layout = m_aui_mgr.SavePerspective();
+        // The UV editor pane is only built when first used; keep its saved place from an earlier session.
+        if (!uv_editor.built()) {
+            const std::string kept = aui_pane_layout_entry(wxGetApp().app_config->get("window_layout"), "uv_editor");
+            if (!kept.empty())
+                layout += wxString::FromUTF8(kept) + "|";
+        }
         wxGetApp().app_config->set("window_layout", layout.utf8_string());
     }
 }
@@ -13872,6 +13876,34 @@ void Plater::priv::on_action_print_plate_from_sdcard(SimpleEvent&)
 
     //BBS
     open_machine_select_dialog(0, PrintFromType::FROM_SDCARD_VIEW);
+}
+
+UVEditorPanel* Plater::priv::make_uv_editor()
+{
+    auto* panel = new UVEditorPanel(q);
+    // AddPane() leaves the window's visibility alone; the next m_aui_mgr.Update() shows it with the pane.
+    panel->Hide();
+#ifdef _MSW_DARK_MODE
+    // Built after MainFrame gave the window its dark colours, so it needs its own.
+    wxGetApp().UpdateDarkUIWin(panel);
+#endif
+    wxAuiPaneInfo pane = wxAuiPaneInfo()
+                             .Name("uv_editor")
+                             .Right()
+                             .BestSize(wxSize(40 * wxGetApp().em_unit(), 40 * wxGetApp().em_unit()));
+    // The window layout was restored before this pane existed, so take its saved place from there.
+    if (const std::string saved = aui_pane_layout_entry(wxGetApp().app_config->get("window_layout"), "uv_editor"); !saved.empty()) {
+        wxString entry = wxString::FromUTF8(saved);
+#ifdef __WXGTK__
+        entry = sanitize_window_layout_for_wayland(entry);
+#endif
+        m_aui_mgr.LoadPaneInfo(entry, pane);
+    }
+    // After LoadPaneInfo(), which also restores the caption saved in another UI language, and
+    // hidden even if the layout was saved with it open: only the gizmo shows it.
+    pane.Caption(_L("UV Editor")).Hide();
+    m_aui_mgr.AddPane(panel, pane);
+    return panel;
 }
 
 void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
@@ -18134,9 +18166,12 @@ void Plater::import_zip_archive()
 void Plater::import_sl1_archive()
 {
     auto &w = get_ui_job_worker();
-    if (w.is_idle() && p->m_sla_import_dlg->ShowModal() == wxID_OK) {
+    if (!w.is_idle())
+        return;
+    SLAImportDialog* dlg = p->m_sla_import_dlg.ensure();
+    if (dlg->ShowModal() == wxID_OK) {
         p->take_snapshot(_u8L("Import SLA archive"));
-        replace_job(w, std::make_unique<SLAImportJob>(p->m_sla_import_dlg));
+        replace_job(w, std::make_unique<SLAImportJob>(dlg));
     }
 }
 
@@ -21577,6 +21612,8 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
     bool bed_shape_changed = false;
     bool exclusion_preview_changed = false;
     bool imex_changed = false;
+    bool filament_colour_changed = false;
+    bool filament_list_changed = false;
     //bool print_sequence_changed = false;
     t_config_option_keys diff_keys = p->config->diff(config);
 
@@ -21589,20 +21626,15 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
     }
 
     for (auto opt_key : diff_keys) {
+        // The filament lists are refreshed once after the loop, as these keys usually change together.
         if (opt_key == "filament_colour") {
             update_scheduled = true; // update should be scheduled (for update 3DScene) #2738
-
-            if (update_filament_colors_in_full_config()) {
-                p->sidebar->update_mixed_filament_list();
-                p->partplate_list.invalidate_exclusion_volume_previews();
-                p->sidebar->obj_list()->update_filament_colors();
-                p->sidebar->update_dynamic_filament_list();
-                continue;
-            }
+            filament_colour_changed = true;
+            exclusion_preview_changed = true;
+            continue;
         }
         if (opt_key == "filament_type") {
-            update_filament_colors_in_full_config();
-            p->sidebar->update_mixed_filament_list();
+            filament_list_changed = true;
             continue;
         }
         // The mixed-filament type check folds filament_is_support into the component type
@@ -21610,7 +21642,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
         // refresh the list even though filament_type itself did not change.
         if (opt_key == "filament_is_support") {
             p->config->set_key_value(opt_key, config.option(opt_key)->clone());
-            p->sidebar->update_mixed_filament_list();
+            filament_list_changed = true;
             continue;
         }
         if (opt_key == "material_colour") {
@@ -21700,6 +21732,15 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
         // Orca: the center of mass markers weigh the parts by it.
         else if (opt_key == "filament_density" && wxGetApp().show_center_of_mass())
             p->view3D->get_canvas3d()->set_as_dirty();
+    }
+
+    if (filament_colour_changed || filament_list_changed) {
+        update_filament_colors_in_full_config();
+        p->sidebar->update_mixed_filament_list();
+        if (filament_colour_changed) {
+            p->sidebar->obj_list()->update_filament_colors();
+            p->sidebar->update_dynamic_filament_list();
+        }
     }
 
     if (bed_shape_changed) {
@@ -22169,24 +22210,30 @@ GLCanvas3D* Plater::get_assmeble_canvas3D()
 
 UVEditorCanvas* Plater::get_uv_editor_canvas()
 {
-    return p->uv_editor_canvas;
+    UVEditorPanel* panel = p->uv_editor.get();
+    return panel != nullptr ? panel->canvas() : nullptr;
 }
 
 void Plater::show_uv_editor(bool show)
 {
-    if (p->uv_editor_panel == nullptr)
-        return;
-    const wxAuiPaneInfo &pane = p->m_aui_mgr.GetPane(p->uv_editor_panel);
-    if (!pane.IsOk() || pane.IsShown() == show)
-        return;
+    if (!p->uv_editor.built()) {
+        // Built below on the first show; nothing to hide before that.
+        if (!show)
+            return;
+    } else {
+        const wxAuiPaneInfo &pane = p->m_aui_mgr.GetPane(p->uv_editor.get());
+        if (!pane.IsOk() || pane.IsShown() == show)
+            return;
+    }
 
     // Deferred, because GLGizmoTextureDisplacement calls this from its ImGui panel - that is, from
     // the middle of the 3D canvas's GL frame. Showing an AUI pane re-lays out the window and
     // delivers the resulting size/paint events synchronously, and the UV canvas painting itself
     // makes its own surface current in the app's *shared* GL context, which mid-frame is the one
     // the 3D canvas is drawing into. Doing the layout once the frame is over avoids that entirely.
+    // Building the pane creates a wxGLCanvas, so it waits here too.
     CallAfter([this, show]() {
-        wxAuiPaneInfo &deferred_pane = p->m_aui_mgr.GetPane(p->uv_editor_panel);
+        wxAuiPaneInfo &deferred_pane = p->m_aui_mgr.GetPane(p->uv_editor.ensure());
         if (!deferred_pane.IsOk() || deferred_pane.IsShown() == show)
             return;
         deferred_pane.Show(show);
