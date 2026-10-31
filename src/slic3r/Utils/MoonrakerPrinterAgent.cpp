@@ -73,6 +73,7 @@
 #include <mutex>
 #include <memory>
 #include <sstream>
+#include <cstddef>
 #include <regex>
 #include <set>
 #include <thread>
@@ -530,6 +531,79 @@ bool MoonrakerPrinterAgent::print_uploaded_file(const PrintParams& /*params*/, c
 {
     // Start print via gcode script (simpler than JSON-RPC); quoted so spaces and apostrophes stay part of the name
     return send_gcode_sync(device_info.dev_id, "SDCARD_PRINT_FILE FILENAME=\"" + filename + "\"");
+}
+
+std::map<int, int> MoonrakerPrinterAgent::parse_tool_mapping(const std::string& ams_mapping, int tool_count)
+{
+    // The dialog's array is indexed by filament and holds the tray each filament was matched to,
+    // or -1 when it is unused. Moonraker agents report one tray per tool, so a tray id is a tool.
+    std::map<int, int> tool_map;
+    const auto         mapping = nlohmann::json::parse(ams_mapping, nullptr, false);
+    if (!mapping.is_array())
+        return tool_map;
+    for (size_t filament = 0; filament < mapping.size(); ++filament) {
+        if (!mapping[filament].is_number_integer())
+            continue;
+        const int tool = mapping[filament].get<int>();
+        if (tool >= 0 && tool < tool_count)
+            tool_map[int(filament)] = tool;
+    }
+    return tool_map;
+}
+
+bool MoonrakerPrinterAgent::call_jsonrpc_ws(const std::string& method, const nlohmann::json& params, nlohmann::json& result, std::string& error) const
+{
+    WsEndpoint endpoint;
+    if (!parse_ws_endpoint(device_info.base_url, endpoint) || endpoint.secure) {
+        error = "unsupported websocket endpoint for " + device_info.base_url;
+        return false;
+    }
+
+    try {
+        net::io_context   ioc;
+        tcp::resolver     resolver{ioc};
+        beast::tcp_stream stream{ioc};
+        stream.expires_after(std::chrono::seconds(10));
+        stream.connect(resolver.resolve(endpoint.host, endpoint.port));
+
+        websocket::stream<beast::tcp_stream> ws{std::move(stream)};
+        const std::string api_key = device_info.api_key;
+        ws.set_option(websocket::stream_base::decorator([&api_key](websocket::request_type& req) {
+            req.set(http::field::user_agent, "OrcaSlicer");
+            if (!api_key.empty())
+                req.set("X-Api-Key", api_key);
+        }));
+        std::string host_header = endpoint.host;
+        if (endpoint.port != "80")
+            host_header += ":" + endpoint.port;
+        ws.handshake(host_header, endpoint.target);
+        ws.text(true);
+
+        constexpr int request_id = 1;
+        nlohmann::json request{{"jsonrpc", "2.0"}, {"method", method}, {"params", params}, {"id", request_id}};
+        ws.write(net::buffer(request.dump()));
+
+        // Moonraker interleaves status notifications; read until our reply arrives.
+        for (;;) {
+            beast::get_lowest_layer(ws).expires_after(std::chrono::seconds(30));
+            beast::flat_buffer buffer;
+            ws.read(buffer);
+            auto reply = nlohmann::json::parse(beast::buffers_to_string(buffer.data()), nullptr, false);
+            if (!reply.is_object() || reply.value("id", -1) != request_id)
+                continue;
+            result = reply.contains("result") ? reply["result"] : reply.value("error", nlohmann::json::object());
+            beast::error_code ec;
+            ws.close(websocket::close_code::normal, ec);
+            if (reply.contains("error")) {
+                error = reply["error"].value("message", "JSON-RPC error");
+                return false;
+            }
+            return true;
+        }
+    } catch (const std::exception& e) {
+        error = e.what();
+        return false;
+    }
 }
 
 bool MoonrakerPrinterAgent::accepts_3mf() const
@@ -2181,7 +2255,14 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
         if (homed.find('Z') != std::string::npos)
             home_flag |= 4; // bit 2
     }
-    payload["print"]["home_flag"] = home_flag;
+    // Bit 16 and support_flow_calibration both set the printer's flow-calibration capability, so
+    // they have to agree or one push clears what the other set.
+    const bool flow_calibration = supports_flow_calibration();
+    if (flow_calibration)
+        home_flag |= 1 << 16;
+    payload["print"]["home_flag"]                = home_flag;
+    payload["print"]["support_flow_calibration"] = flow_calibration;
+    payload["print"]["support_timelapse"]        = supports_timelapse();
 
     // Moonraker doesn't provide temperature ranges via API - use hardcoded defaults
     payload["print"]["nozzle_temp_range"] = {100, 370}; // Typical Klipper range

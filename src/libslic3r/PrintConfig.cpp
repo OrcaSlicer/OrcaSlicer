@@ -154,6 +154,14 @@ double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, 
     return config.nozzle_diameter.get_at(extruder - 1);
 }
 
+bool filament_count_follows_extruders(const DynamicPrintConfig& printer_config)
+{
+    // A missing key keeps the option's default: SEMM on, remapping off.
+    const auto* semm  = printer_config.option<ConfigOptionBool>("single_extruder_multi_material");
+    const auto* remap = printer_config.option<ConfigOptionBool>("filament_tool_mapping");
+    return semm != nullptr && !semm->value && !(remap != nullptr && remap->value);
+}
+
 
 // Orca: input shaping values types by flavor
 std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)
@@ -7015,6 +7023,14 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Use single nozzle to print multi filament.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("filament_tool_mapping", coBool);
+    def->label = L("Map filaments to tools when printing");
+    def->tooltip = L("For tool changers whose firmware maps the tool numbers in the G-code to physical tools when the "
+                     "print is sent. The project may then hold more filaments than the printer has tools; each "
+                     "filament is assigned to a tool in the print dialog.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
     // IDEX/IQEX (independent X extruder) — parallel printing support for IDEX/IQEX printers.
     // Every key in this group is read at slice time from m_config, and the two per-plate process

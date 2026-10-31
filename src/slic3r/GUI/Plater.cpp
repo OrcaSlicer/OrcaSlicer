@@ -3738,9 +3738,9 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
 
     PlaterPresetComboBox* combobox = (*combo);
     edit_btn->Bind(wxEVT_BUTTON, [this, edit_btn, combobox, filament_idx](wxCommandEvent) {
-        bool single_or_bbl     = should_show_SEMM_buttons();
+        bool editable          = can_edit_filament_list();
         bool is_multi_material = p->combos_filament.size() > 1;
-        if(single_or_bbl && is_multi_material) {
+        if(editable && is_multi_material) {
            // MULTI MATERIAL Show menu
             auto menu = p->plater->filament_action_menu(filament_idx);
             wxPoint pt { 0, edit_btn->GetSize().GetHeight() + FromDIP(2) };
@@ -6580,21 +6580,30 @@ bool Sidebar::should_show_SEMM_buttons()
     return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
 }
 
+// Orca: the filament list can be resized by hand unless every filament is pinned to its own
+// nozzle. Differs from should_show_SEMM_buttons() for a tool changer that maps filaments to tools at print time:
+// it gets add/delete/merge, but no flushing volumes since each filament keeps its own nozzle.
+bool Sidebar::can_edit_filament_list()
+{
+    PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
+    return preset_bundle.is_bbl_vendor() || !filament_count_follows_extruders(preset_bundle.printers.get_edited_preset().config);
+}
+
 void Sidebar::show_SEMM_buttons()
 {
     // ORCA
     if (!p || p->combos_filament.empty() || !p->m_bpButton_add_filament || !p->m_bpButton_del_filament || !p->m_flushing_volume_btn)
         return;
-    
-    bool is_multi_material = p->combos_filament.size() > 1;
-    bool single_or_bbl     = should_show_SEMM_buttons();
-    bool is_single = single_or_bbl && !is_multi_material; // SINGLE EXTRUDER / BBL WITH 1 MATERIAL
-    bool is_multi  = single_or_bbl && is_multi_material;  // MULTI MATERIAL WITH SINGLE EXTRUDER
-    bool is_fixed  = !is_single && !is_multi;             // MULTI EXTRUDER / TOOLCHANGER / IDEX WITH FIXED MATERIAL
 
-    p->m_bpButton_add_filament->Show(single_or_bbl);
+    bool is_multi_material = p->combos_filament.size() > 1;
+    bool editable  = can_edit_filament_list();
+    bool is_single = editable && !is_multi_material; // SINGLE EXTRUDER / BBL / MAPPING TOOLCHANGER WITH 1 MATERIAL
+    bool is_multi  = editable && is_multi_material;  // MULTI MATERIAL WITH SINGLE EXTRUDER OR MAPPING TOOLCHANGER
+    bool is_fixed  = !is_single && !is_multi;        // MULTI EXTRUDER / TOOLCHANGER / IDEX WITH FIXED MATERIAL
+
+    p->m_bpButton_add_filament->Show(editable);
     p->m_bpButton_del_filament->Show(is_multi);
-    p->m_flushing_volume_btn->Show(  is_multi);
+    p->m_flushing_volume_btn->Show(is_multi && should_show_SEMM_buttons());
 
     if (is_multi) {
         for (auto &c : p->combos_filament)
