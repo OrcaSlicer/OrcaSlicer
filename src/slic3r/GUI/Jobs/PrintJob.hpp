@@ -91,6 +91,9 @@ public:
     bool        cloud_print_only { false };
     bool        has_sdcard { false };
     bool        could_emmc_print { false };
+    // could_emmc_print says the printer is able to print from its internal storage; this one says
+    // whether to do so. It defaults to true so other callers keep their behavior.
+    bool        use_emmc_storage { true };
     bool        task_use_ams { true };
 
     DevStorage::SdcardState sdcard_state = DevStorage::SdcardState::NO_SDCARD;        
