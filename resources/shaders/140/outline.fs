@@ -1,0 +1,197 @@
+#version 140
+
+const float INF = 1e9;
+
+uniform sampler2D mask_tex;
+uniform sampler2D depth_tex;
+uniform sampler2D edges_tex;
+// false draws the ring around the selection, true the lines along its inner edges.
+uniform bool inner;
+// The stencil keeps the ring off the samples of the selection, without it the ring stays off covered pixels.
+uniform bool use_stencil;
+uniform float ring_width;
+uniform int ring_reach;
+uniform float ring_sigma;
+// Half the width of an inner line.
+uniform float line_width;
+uniform int line_reach;
+uniform float line_opacity;
+uniform vec3 outline_color;
+// The projection on view z: window depth is (x * z + y) / (z * z + w), remapped from [-1, 1].
+uniform vec4 depth_coef;
+// View space size of a pixel at view depth z: x * -z + y.
+uniform vec2 pixel_size_coef;
+
+out vec4 out_color;
+
+ivec2 tex_size;
+
+vec2 unpack2(float c)
+{
+    float v = floor(c * 65535.0 + 0.5);
+    float hi = floor(v / 256.0);
+    return vec2(hi, v - hi * 256.0);
+}
+
+vec4 fetch_mask(ivec2 p)
+{
+    return texelFetch(mask_tex, clamp(p, ivec2(0), tex_size - 1), 0);
+}
+
+float fetch_depth(ivec2 p)
+{
+    return texelFetch(depth_tex, clamp(p, ivec2(0), tex_size - 1), 0).r;
+}
+
+vec4 fetch_edges(ivec2 p)
+{
+    return texelFetch(edges_tex, clamp(p, ivec2(0), tex_size - 1), 0);
+}
+
+bool covered(vec4 m)
+{
+    return m.g > 0.0;
+}
+
+// Strength and crossing of an inner edge written by outline_edges.fs.
+vec2 unpack_edge(float c)
+{
+    float v = floor(c * 255.0 + 0.5);
+    float s = floor(v / 16.0);
+    return vec2(s, v - s * 16.0) / 15.0;
+}
+
+float view_z(float depth)
+{
+    float ndc = depth * 2.0 - 1.0;
+    return (depth_coef.y - ndc * depth_coef.w) / (ndc * depth_coef.z - depth_coef.x);
+}
+
+float window_depth(float z)
+{
+    return 0.5 * (depth_coef.x * z + depth_coef.y) / (depth_coef.z * z + depth_coef.w) + 0.5;
+}
+
+// One sided, so that the slope does not span an edge. Uncovered texels keep the cleared depth of 1.
+float depth_slope(float d, float before, float after)
+{
+    float s = INF;
+    if (before < 1.0) s = abs(d - before);
+    if (after < 1.0) s = min(s, abs(after - d));
+    return s < INF ? s : 0.0;
+}
+
+// The depth of the selection at p, moved forward by its spread over the pixel, so that it passes on every sample.
+float surface_depth(ivec2 p)
+{
+    float d = fetch_depth(p);
+    float sx = depth_slope(d, fetch_depth(p - ivec2(1, 0)), fetch_depth(p + ivec2(1, 0)));
+    float sy = depth_slope(d, fetch_depth(p - ivec2(0, 1)), fetch_depth(p + ivec2(0, 1)));
+    return d - 0.5 * (sx + sy) - 1e-6;
+}
+
+// x beyond which a standard normal has p of its mass, for p up to 0.5 (Abramowitz and Stegun 26.2.23).
+float normal_tail_inverse(float p)
+{
+    float t = sqrt(-2.0 * log(p));
+    return t - (2.515517 + t * (0.802853 + t * 0.010328)) / (1.0 + t * (1.432788 + t * (0.189269 + t * 0.001308)));
+}
+
+void render_ring(ivec2 p)
+{
+    vec4 m = fetch_mask(p);
+    float alpha = 1.0;
+    float depth;
+    if (covered(m)) {
+        if (!use_stencil)
+            discard;
+        depth = surface_depth(p);
+    }
+    else {
+        // The nearest covered texel from the nearest one of each row, and the gaussian coverage around p.
+        float best = INF;
+        ivec2 t = p;
+        float coverage = 0.0;
+        float weights = 0.0;
+        for (int j = -ring_reach; j <= ring_reach; ++j) {
+            vec4 e = fetch_edges(p + ivec2(0, j));
+            float w = exp(-float(j * j) / (2.0 * ring_sigma * ring_sigma));
+            weights += w;
+            coverage += w * e.a;
+            float v = floor(e.b * 255.0 + 0.5);
+            if (v > 0.0) {
+                float h = v - 16.0;
+                float d2 = h * h + float(j * j);
+                if (d2 < best) {
+                    best = d2;
+                    t = p + ivec2(int(h), j);
+                }
+            }
+        }
+        if (best >= INF)
+            discard;
+        m = fetch_mask(t);
+        // The coverage of a straight silhouette at dist is the normal tail beyond dist / sigma. Corners and thin
+        // parts fall off faster, so it is kept within half a texel of the midpoint to the nearest covered texel.
+        coverage /= weights;
+        float centers = sqrt(best) - 0.5;
+        float dist = coverage < 0.5 ? ring_sigma * normal_tail_inverse(max(coverage, 1e-6)) : 0.0;
+        dist = clamp(dist, centers - 0.5, centers + 0.5);
+        alpha = clamp(ring_width + 0.5 - dist, 0.0, 1.0);
+        if (alpha <= 0.0)
+            discard;
+        // Brought forward with the distance, so that it shows over what the selection stands on.
+        float z = view_z(fetch_depth(t));
+        depth = window_depth(z + 3.0 * (dist + 2.0) * dot(pixel_size_coef, vec2(-z, 1.0)));
+    }
+    out_color = vec4(outline_color, alpha);
+    gl_FragDepth = depth;
+}
+
+void render_lines(ivec2 p)
+{
+    vec4 m = fetch_mask(p);
+    if (!covered(m))
+        discard;
+
+    // The nearest crossing along the row and along the column. For a straight line at distance d they lie at
+    // dx = d / |cos| and dy = d / |sin|, so 1 / d^2 = 1 / dx^2 + 1 / dy^2.
+    float dx = INF;
+    float sx = 0.0;
+    for (int i = -line_reach - 1; i <= line_reach; ++i) {
+        vec2 e = unpack_edge(fetch_edges(p + ivec2(i, 0)).r);
+        float d = abs(float(i) + e.y);
+        if (e.x > 0.0 && d < dx) {
+            dx = d;
+            sx = e.x;
+        }
+    }
+    float dy = INF;
+    float sy = 0.0;
+    for (int j = -line_reach - 1; j <= line_reach; ++j) {
+        vec2 e = unpack_edge(fetch_edges(p + ivec2(0, j)).g);
+        float d = abs(float(j) + e.y);
+        if (e.x > 0.0 && d < dy) {
+            dy = d;
+            sy = e.x;
+        }
+    }
+    if (dx >= INF && dy >= INF)
+        discard;
+    float d = (dx < INF && dy < INF) ? dx * dy * inversesqrt(max(dx * dx + dy * dy, 1e-8)) : min(dx, dy);
+    float alpha = line_opacity * max(sx, sy) * clamp(line_width + 0.5 - d, 0.0, 1.0);
+    if (alpha <= 0.0)
+        discard;
+    out_color = vec4(outline_color, alpha);
+    gl_FragDepth = surface_depth(p);
+}
+
+void main()
+{
+    tex_size = textureSize(mask_tex, 0);
+    ivec2 p = ivec2(gl_FragCoord.xy);
+    if (inner)
+        render_lines(p);
+    else
+        render_ring(p);
+}

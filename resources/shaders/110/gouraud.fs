@@ -35,10 +35,6 @@ uniform vec4 uniform_color_clip_plane_1;
 uniform vec4 uniform_color_clip_plane_2;
 uniform SlopeDetection slope;
 
-//BBS: add outline_color
-uniform bool is_outline;
-uniform sampler2D depth_tex;
-uniform vec2 screen_size;
 
 
 #ifdef ENABLE_ENVIRONMENT_MAP
@@ -53,8 +49,6 @@ uniform PrintVolumeDetection print_volume;
 uniform vec3 extruder_printable_heights;
 const float ONE_OVER_EPSILON = 1e4;
 
-uniform float z_far;
-uniform float z_near;
 
 // Depth-based shadow map (object-on-object and self shadows). shadow_intensity == 0 disables it.
 uniform sampler2D shadow_map;
@@ -78,71 +72,6 @@ varying vec2 intensity;
 varying vec4 world_pos;
 varying float world_normal_z;
 varying vec3 eye_normal;
-
-vec3 getBackfaceColor(vec3 fill) {
-    float brightness = 0.2126 * fill.r + 0.7152 * fill.g + 0.0722 * fill.b;
-    return (brightness > 0.75) ? vec3(0.11, 0.165, 0.208) : vec3(0.988, 0.988, 0.988);
-}
-
-// Silhouette edge detection & rendering algorithem by leoneruggiero
-// https://www.shadertoy.com/view/DslXz2
-#define INFLATE 1
-
-float GetTolerance(float d, float k)
-{
-    // -------------------------------------------
-    // Find a tolerance for depth that is constant
-    // in view space (k in view space).
-    //
-    // tol = k*ddx(ZtoDepth(z))
-    // -------------------------------------------
-    
-    float A=-   (z_far+z_near)/(z_far-z_near);
-    float B=-2.0*z_far*z_near /(z_far-z_near);
-    
-    d = d*2.0-1.0;
-    
-    return -k*(d+A)*(d+A)/B;   
-}
-
-float DetectSilho(vec2 fragCoord, vec2 dir)
-{
-    // -------------------------------------------
-    //   x0 ___ x1----o 
-    //          :\    : 
-    //       r0 : \   : r1
-    //          :  \  : 
-    //          o---x2 ___ x3
-    //
-    // r0 and r1 are the differences between actual
-    // and expected (as if x0..3 where on the same
-    // plane) depth values.
-    // -------------------------------------------
-    
-    float x0 = abs(texture2D(depth_tex, (fragCoord + dir*-2.0) / screen_size).r);
-    float x1 = abs(texture2D(depth_tex, (fragCoord + dir*-1.0) / screen_size).r);
-    float x2 = abs(texture2D(depth_tex, (fragCoord + dir* 0.0) / screen_size).r);
-    float x3 = abs(texture2D(depth_tex, (fragCoord + dir* 1.0) / screen_size).r);
-    
-    float d0 = (x1-x0);
-    float d1 = (x2-x3);
-    
-    float r0 = x1 + d0 - x2;
-    float r1 = x2 + d1 - x1;
-    
-    float tol = GetTolerance(x2, 0.04);
-    
-    return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
-
-}
-
-float DetectSilho(vec2 fragCoord)
-{
-    return max(
-        DetectSilho(fragCoord, vec2(1,0)), // Horizontal
-        DetectSilho(fragCoord, vec2(0,1))  // Vertical
-        );
-}
 
 // Returns a lighting multiplier in [1 - shadow_intensity, 1]: < 1 where the fragment is
 // occluded from the light in the shadow map. 3x3 PCF softens the edges.
@@ -225,25 +154,10 @@ void main()
     }
     float shade = shadow_shade();
 
-    //BBS: add outline_color
-    if (is_outline) {
-        color = vec4((vec3(intensity.y) + color.rgb * intensity.x) * shade, color.a);
-        vec2 fragCoord = gl_FragCoord.xy;
-        float s = DetectSilho(fragCoord);
-        // Makes silhouettes thicker.
-        for(int i=1;i<=INFLATE; i++)
-        {
-           s = max(s, DetectSilho(fragCoord.xy + vec2(i, 0)));
-           s = max(s, DetectSilho(fragCoord.xy + vec2(0, i)));
-        }
-        if (s < 0.01)
-            discard;
-        gl_FragColor = vec4(mix(color.rgb, getBackfaceColor(color.rgb), s), color.a);
-    }
 #ifdef ENABLE_ENVIRONMENT_MAP
-    else if (use_environment_tex)
+    if (use_environment_tex)
         gl_FragColor = vec4((0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + 0.8 * color.rgb * intensity.x) * shade, color.a);
-#endif
     else
+#endif
         gl_FragColor = vec4((vec3(intensity.y) + color.rgb * intensity.x) * shade, color.a);
 }
