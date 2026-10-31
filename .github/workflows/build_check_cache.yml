@@ -52,7 +52,7 @@ jobs:
       wait-since: ${{ steps.wait_check.outputs.wait-since }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           lfs: 'false'
           # The wait check compares the merge commit with its first parent.
