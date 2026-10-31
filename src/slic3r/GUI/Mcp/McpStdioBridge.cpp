@@ -260,6 +260,9 @@ bool launch_app(const std::string& exe, const std::string& datadir)
             return false;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    // The app stays this process's child, so reap it whenever it exits: an app quit while the bridge
+    // still runs would otherwise stay a zombie until the bridge exits.
+    std::thread([pid] { waitpid(pid, nullptr, 0); }).detach();
     return true;
 #endif
 }
