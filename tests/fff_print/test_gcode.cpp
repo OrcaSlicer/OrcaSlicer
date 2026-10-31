@@ -32,6 +32,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <cstddef>
+#include <exception>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -105,6 +107,68 @@ TEST_CASE("Klipper object labels name each copy without the characters Klipper c
     }
 }
 
+TEST_CASE("x_after_toolchange and position placeholders use machine coordinates on non-first plates", "[GCode]")
+{
+    const DynamicPrintConfig config = Test::multifilament_config(2, {
+        {"gcode_flavor",                   "marlin"},
+        {"single_extruder_multi_material", "1"},
+        {"enable_prime_tower",             "0"},
+        {"gcode_skip_config_block",        "1"},
+        {"change_filament_gcode",
+            "{if previous_extruder != -1}\n;TC_PLACEHOLDER X[x_after_toolchange] Y[y_after_toolchange]\n{endif}\n"},
+        {"printable_area",                 "0x0,250x0,250x210,0x210"},
+        {"printable_height",               "180"}
+    });
+
+    Print print;
+    Model model;
+
+    Test::init_print(
+        std::vector<TriangleMesh>{Test::cube(20.), Test::cube(20.)},
+        print, model, config, nullptr, false);
+
+    REQUIRE(model.objects.size() >= 2);
+    REQUIRE(!model.objects[0]->volumes.empty());
+    REQUIRE(!model.objects[1]->volumes.empty());
+
+    model.objects[0]->volumes.front()->config.set_key_value("extruder", new ConfigOptionInt(1));
+    model.objects[1]->volumes.front()->config.set_key_value("extruder", new ConfigOptionInt(2));
+
+    constexpr double plate_offset_x = 350.0;
+    model.objects[0]->instances.front()->set_offset(Vec3d(plate_offset_x + 30.0, 30.0, 0.0));
+    model.objects[1]->instances.front()->set_offset(Vec3d(plate_offset_x + 80.0, 30.0, 0.0));
+
+    print.apply(model, config);
+
+    print.set_plate_index(1);
+    print.set_plate_origin(Vec3d(plate_offset_x, 0.0, 0.0));
+
+    const std::string gcode = Test::gcode(print);
+
+    const std::string marker                 = ";TC_PLACEHOLDER X";
+    const std::string::size_type marker_pos  = gcode.find(marker);
+    REQUIRE(marker_pos != std::string::npos);
+
+    const std::string::size_type x_start = marker_pos + marker.length();
+    const std::string::size_type x_end   = gcode.find(" Y", x_start);
+    REQUIRE(x_end != std::string::npos);
+
+    const std::string x_token = gcode.substr(x_start, x_end - x_start);
+    INFO("x_after_toolchange token: '" << x_token << "'");
+    REQUIRE(x_token != "[x_after_toolchange]");
+
+    double x_val = 0.0;
+    try {
+        x_val = std::stod(x_token);
+    } catch (const std::exception &e) {
+        FAIL("x_after_toolchange is not numeric: '" + x_token + "' error: " + e.what());
+    }
+
+    constexpr double bed_width = 250.0;
+    INFO("x_after_toolchange = " << x_val << " (must be in [0, " << bed_width << "])");
+    CHECK(x_val >= 0.0);
+    CHECK(x_val <  bed_width);
+}
 // The outline written to EXCLUDE_OBJECT_DEFINE is simplified with exclude_object_tolerance. A larger value must
 // leave fewer points, which keeps the exclude-object array small on printers that stall while parsing it.
 TEST_CASE("A larger exclude object tolerance writes fewer outline points", "[GCode]")

@@ -4613,15 +4613,8 @@ int Print::get_hrc_by_nozzle_type(const NozzleType&type)
         boost::nowide::ifstream in(file_path.string());
         //std::ifstream in(file_path.string());
         json j;
-        try {
-            j = json::parse(in);
-            in.close();
-            for (const auto& elem : j["nozzle_hrc"].items())
-                nozzle_type_to_hrc[elem.key()] = elem.value();
-        }
-        catch (const json::parse_error& err) {
-            in.close();
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << file_path.string() << " got a nlohmann::detail::parse_error, reason = " << err.what();
+        if (!in.is_open()) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": nozzle_info.json not found at: " << file_path.string();
             nozzle_type_to_hrc = {
                 {"hardened_steel",55},
                 {"stainless_steel",20},
@@ -4629,6 +4622,22 @@ int Print::get_hrc_by_nozzle_type(const NozzleType&type)
                 {"brass",2},
                 {"undefine",0}
             };
+        } else {
+            try {
+                j = json::parse(in);
+                in.close();
+                for (const auto& elem : j["nozzle_hrc"].items())
+                    nozzle_type_to_hrc[elem.key()] = elem.value();
+            } catch (const json::parse_error& err) {
+                in.close();
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << file_path.string()
+                                         << " got a nlohmann::detail::parse_error, reason = " << err.what();
+                nozzle_type_to_hrc = {{"hardened_steel", 55},
+                                      {"stainless_steel", 20},
+                                      {"tungsten_carbide", 85},
+                                      {"brass", 2},
+                                      {"undefine", 0}};
+            }
         }
     }
     auto iter = nozzle_type_to_hrc.find(NozzleTypeEumnToStr[type]);
