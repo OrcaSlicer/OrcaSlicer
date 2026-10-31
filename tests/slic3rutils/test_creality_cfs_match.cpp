@@ -235,3 +235,72 @@ TEST_CASE("A third party spool matches its preset inside the printer vendor's bu
     // carries Creality's profile too but adds a brand word the spool never claimed.
     CHECK(match(with_third_party, "Creality", "", "PLA") == "PLA-GENERIC");
 }
+
+namespace {
+
+// A /printer/objects/query?box reply holding `box`.
+std::string box_reply(const std::string& box)
+{
+    return R"({"result":{"status":{"box":)" + box + "}}}";
+}
+
+} // namespace
+
+TEST_CASE("Loading a K1 box slot homes, heats, selects the slot across the box chain and turns the nozzle off", "[CFS][Creality]")
+{
+    // Four slots per box, so slot C of the second box (both counted from 0 here) is T6.
+    const std::string gcode = CrealityPrintAgent::change_filament_gcode(true, 1, 2, 240);
+    CHECK(gcode.find("IF_NEED_HOME") != std::string::npos);
+    CHECK(gcode.find("M109 S240") != std::string::npos);
+    CHECK(gcode.find("T6") != std::string::npos);
+    CHECK(gcode.find("IF_NEED_HOME") < gcode.find("T6"));
+    CHECK(gcode.find("M109") < gcode.find("T6"));
+    CHECK(gcode.find("M104 S0") > gcode.find("T6"));
+    CHECK(gcode.find("M104 S0") != std::string::npos);
+}
+
+TEST_CASE("Unloading the K1 box hands the filament back to the box and turns the nozzle off", "[CFS][Creality]")
+{
+    const std::string gcode = CrealityPrintAgent::change_filament_gcode(false, 0, 255, 210);
+    CHECK(gcode.find("M109 S210") != std::string::npos);
+    CHECK(gcode.find("BOX_QUIT_MATERIAL") != std::string::npos);
+    CHECK(gcode.find("\nT") == std::string::npos); // no tool change line
+    CHECK(gcode.find("M104 S0") > gcode.find("BOX_QUIT_MATERIAL")); // nothing left in the nozzle to keep hot
+}
+
+TEST_CASE("A K1 box filament change with no known temperature uses the box's default", "[CFS][Creality]")
+{
+    CHECK(CrealityPrintAgent::change_filament_gcode(true, 0, 0, -1).find("M109 S220") != std::string::npos);
+}
+
+TEST_CASE("Refreshing a K1 box slot addresses the box from 1 and the slot as a bit", "[CFS][Creality]")
+{
+    CHECK(CrealityPrintAgent::refresh_slot_gcode(0, 0) == "BOX_INFO_REFRESH ADDR=1 NUM=1");
+    CHECK(CrealityPrintAgent::refresh_slot_gcode(1, 3) == "BOX_INFO_REFRESH ADDR=2 NUM=8");
+}
+
+TEST_CASE("A K1 box names the slot in the toolhead across the box chain", "[CFS][Creality]")
+{
+    // Each connected box reports its own feeding slot; slot C of box 2 is index 6.
+    const std::string response = box_reply(R"({"same_material":[],
+        "T1":{"state":"connect","filament":"None"},
+        "T2":{"state":"connect","filament":"C"},
+        "T3":{"state":"None","filament":"None"}})");
+    const auto loaded = CrealityPrintAgent::parse_loaded_slot(response);
+    REQUIRE(loaded.has_value());
+    CHECK(*loaded == 6);
+}
+
+TEST_CASE("A K1 box with nothing in the toolhead reports no loaded slot", "[CFS][Creality]")
+{
+    const auto loaded = CrealityPrintAgent::parse_loaded_slot(
+        box_reply(R"({"same_material":[],"T1":{"state":"connect","filament":"None"}})"));
+    REQUIRE(loaded.has_value());
+    CHECK(*loaded == -1);
+}
+
+TEST_CASE("A reply without a connected K1 box leaves the loaded slot unknown", "[CFS][Creality]")
+{
+    CHECK_FALSE(CrealityPrintAgent::parse_loaded_slot(box_reply(R"({"same_material":[]})")).has_value());
+    CHECK_FALSE(CrealityPrintAgent::parse_loaded_slot("").has_value());
+}

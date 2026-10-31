@@ -1,10 +1,14 @@
 #include "CrealityPrintAgent.hpp"
 #include "CrealityPrint.hpp"
 #include "MoonrakerPrinterAgent.hpp"
+#include "bambu_networking.hpp"
 #include "IPrinterAgent.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include "slic3r/GUI/DeviceCore/DevManager.h"
 
 #include <boost/log/trivial.hpp>
 #include "libslic3r/Config.hpp"
@@ -14,6 +18,7 @@
 #include <algorithm>
 #include <cctype>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -292,6 +297,44 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
     return true;
 }
 
+// Each connected box reports under its own "T<n>" key which of its slots feeds the toolhead,
+// as the slot's letter, or "None":
+//   { "result": { "status": { "box": { "T1": { "state": "connect", "filament": "A" } } } } }
+std::optional<int> CrealityPrintAgent::parse_loaded_slot(const std::string& response)
+{
+    const json resp = json::parse(response, nullptr, false);
+    if (resp.is_discarded() || !resp.contains("result") || !resp["result"].contains("status")
+        || !resp["result"]["status"].contains("box"))
+        return std::nullopt;
+
+    const auto&        box = resp["result"]["status"]["box"];
+    std::optional<int> loaded;
+    for (int box_num = 1; box_num <= 4; ++box_num) {
+        const std::string key = "T" + std::to_string(box_num);
+        if (!box.contains(key) || !box[key].is_object() || box[key].value("state", "") != "connect")
+            continue;
+        loaded = loaded.value_or(-1);
+        const std::string filament = box[key].value("filament", "");
+        if (filament.size() == 1 && filament[0] >= 'A' && filament[0] <= 'D')
+            return (box_num - 1) * 4 + (filament[0] - 'A');
+    }
+    return loaded;
+}
+
+void CrealityPrintAgent::report_loaded_slot(int loaded_slot)
+{
+    auto*          dev_manager = GUI::wxGetApp().getDeviceManager();
+    MachineObject* obj         = dev_manager ? dev_manager->get_my_machine(device_info.dev_id) : nullptr;
+    if (obj)
+        ExtderSystemParser::ParseLoadedSlot(loaded_slot, obj->GetExtderSystem());
+}
+
+void CrealityPrintAgent::on_printer_connected(const std::string& dev_id)
+{
+    // The device page shows the slots, and Load and Unload need them, without a sync from the sidebar.
+    fetch_filament_info_on_main(dev_id);
+}
+
 bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     if (device_info.dev_ip.empty()) {
@@ -312,12 +355,24 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
 
     CrealityPrint host(&cfg);
 
+    // Only a K1-family `box` object is known to take the commands Load, Unload and the slot refresh
+    // send, and it alone names the slot feeding the toolhead, whichever way the slots are read.
+    const std::optional<int> loaded_slot = host.is_k1_family_board() ? parse_loaded_slot(query_box_object()) : std::nullopt;
+    can_command_box                      = loaded_slot.has_value();
+
+    const auto defer_to_base = [&] {
+        const bool synced = MoonrakerPrinterAgent::fetch_filament_info(dev_id);
+        if (synced && loaded_slot)
+            report_loaded_slot(*loaded_slot);
+        return synced;
+    };
+
     // Defer to base if this isn't a K-series board with CFS firmware support.
     if (!host.supports_multi_color_print()) {
         BOOST_LOG_TRIVIAL(info)
             << "CrealityPrintAgent: " << host.model_name()
             << " is not CFS-capable, deferring to base Moonraker agent";
-        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+        return defer_to_base();
     }
 
     BOOST_LOG_TRIVIAL(info)
@@ -332,7 +387,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
         BOOST_LOG_TRIVIAL(warning)
             << "CrealityPrintAgent: CFS query failed (" << parse_err << "), "
             << "falling back to base agent";
-        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+        return defer_to_base();
     }
 
     if (box_count == 0) {
@@ -341,7 +396,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
         // Moonraker exposes.
         BOOST_LOG_TRIVIAL(info)
             << "CrealityPrintAgent: no active CFS boxes, deferring to base agent";
-        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+        return defer_to_base();
     }
 
     BOOST_LOG_TRIVIAL(info)
@@ -387,7 +442,80 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
     }
 
     build_ams_payload(box_count, max_slots - 1, trays);
+    if (loaded_slot)
+        report_loaded_slot(*loaded_slot);
     return true;
+}
+
+std::string CrealityPrintAgent::change_filament_gcode(bool load, int ams_id, int slot_id, int nozzle_temp)
+{
+    // The box's own Tn_extrude_temp in the stock K1 box.cfg, used when the device page knows no
+    // temperature for the filaments involved.
+    constexpr int default_temp = 220;
+    const int     temp         = nozzle_temp > 0 ? nozzle_temp : default_temp;
+
+    // Both cut the filament at a fixed position, so the toolhead has to be homed. T<n> then cuts
+    // what is loaded, feeds slot n and flushes it; BOX_QUIT_MATERIAL cuts and pulls the filament
+    // back into its box. Slot n counts four per box across the chain. The nozzle goes off at the
+    // end, as it does after the printer's own feed: it would otherwise stay hot until the printer
+    // idles out.
+    std::string gcode = "IF_NEED_HOME\nM109 S" + std::to_string(temp) + "\n";
+    gcode += load ? "T" + std::to_string(ams_id * 4 + slot_id) : std::string("BOX_QUIT_MATERIAL");
+    return gcode + "\nM104 S0";
+}
+
+std::string CrealityPrintAgent::refresh_slot_gcode(int ams_id, int slot_id)
+{
+    // ADDR counts boxes from 1; NUM is a bit mask of the slots, A being 1.
+    return "BOX_INFO_REFRESH ADDR=" + std::to_string(ams_id + 1) + " NUM=" + std::to_string(1 << slot_id);
+}
+
+int CrealityPrintAgent::send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag)
+{
+    const json j = json::parse(json_str, nullptr, false);
+    if (!can_command_box || j.is_discarded() || !j.contains("print") || j["print"].value("command", "") != "ams_change_filament")
+        return MoonrakerPrinterAgent::send_message_to_printer(std::move(dev_id), std::move(json_str), qos, flag);
+
+    const auto& cmd     = j["print"];
+    const int   ams_id  = cmd.value("ams_id", -1);
+    const int   slot_id = cmd.value("slot_id", -1);
+    // An unload marks itself with slot 255; the external spool and other virtual trays sit above
+    // the 16 boxes' ids and have no box to load them.
+    const bool  load    = slot_id != 255;
+    if (load && (ams_id < 0 || ams_id >= 16 || slot_id < 0 || slot_id > 3))
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+
+    const int         temp  = std::max(cmd.value("curr_temp", -1), cmd.value("tar_temp", -1));
+    const std::string gcode = change_filament_gcode(load, ams_id, slot_id, temp);
+    BOOST_LOG_TRIVIAL(info) << "CrealityPrintAgent: " << (load ? "loading" : "unloading") << " the CFS: " << gcode;
+
+    // Heating, cutting and flushing take minutes; the slots are read back once the box is done.
+    send_gcode_async(dev_id, gcode, [this, dev_id](bool success) {
+        if (!success)
+            BOOST_LOG_TRIVIAL(warning) << "CrealityPrintAgent: the CFS did not finish changing filament";
+        fetch_filament_info_on_main(dev_id);
+    }, 600);
+    return BAMBU_NETWORK_SUCCESS;
+}
+
+int CrealityPrintAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode)
+{
+    // The device page's older form names no box and counts the slot across every box.
+    if (ams_id < 0 && slot_id >= 0) {
+        ams_id  = slot_id / 4;
+        slot_id = slot_id % 4;
+    }
+    if (!can_command_box || ams_id < 0 || slot_id < 0 || slot_id > 3)
+        return MoonrakerPrinterAgent::command_ams_refresh_rfid(std::move(dev_id), ams_id, slot_id, sequence_id, lan_mode);
+
+    const std::string gcode = refresh_slot_gcode(ams_id, slot_id);
+    BOOST_LOG_TRIVIAL(info) << "CrealityPrintAgent: reading a CFS tag: " << gcode;
+    send_gcode_async(dev_id, gcode, [this, dev_id](bool success) {
+        if (!success)
+            BOOST_LOG_TRIVIAL(warning) << "CrealityPrintAgent: the CFS did not read the slot's tag again";
+        fetch_filament_info_on_main(dev_id);
+    }, 120);
+    return BAMBU_NETWORK_SUCCESS;
 }
 
 } // namespace Slic3r
