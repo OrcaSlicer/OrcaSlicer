@@ -353,6 +353,30 @@ TEST_CASE("Arrange keeps a selection on the bed and clear of a fixed part", "[Ar
     require_no_overlap(items);
 }
 
+TEST_CASE("Arrange aligns only the arranged items when told to ignore the fixed ones", "[Arrange]")
+{
+    ArrangePolygons fixed = squares(1, 40.);
+    fixed.front().translation = {scaled(190.), scaled(20.)};
+    ArrangePolygons items  = squares(2, 30.);
+    ArrangeParams   params = quiet_params(scaled(2.));
+    params.align_center       = Vec2d(0.3, 0.7);
+    params.align_movable_only = true;
+
+    arrange(items, fixed, bed(250, 250), params);
+
+    BoundingBox pile;
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        pile.merge(ap.transformed_poly().contour.bounding_box());
+    }
+    // The fixed part lies far from the target, so it must not pull the pile away from it.
+    const Point expected(scaled(250. * 0.3), scaled(250. * 0.7));
+    REQUIRE(std::abs(pile.center().x() - expected.x()) <= scaled(0.5));
+    REQUIRE(std::abs(pile.center().y() - expected.y()) <= scaled(0.5));
+    items.insert(items.end(), fixed.begin(), fixed.end());
+    require_no_overlap(items);
+}
+
 // A belt printer starts its parts at the leading end of the belt (best_object_pos 0.5, 0.05).
 // Centring a pile on a point that close to the edge pushed everything longer than the room
 // around it off the bed: four 90 mm parts on a 95 x 500 mm belt ended with one across the

@@ -34,7 +34,7 @@ enum class Shortcut : uint8_t {
     // Objects
     AddInstance, RemoveInstance, TogglePrintable, ToggleAutoDrop,
     // Placement
-    Arrange, ArrangePlate, Orient, OrientPlate,
+    Arrange, ArrangePlate, ArrangeSelection, Orient, OrientPlate,
     MoveSelectionLeft, MoveSelectionRight, MoveSelectionUp, MoveSelectionDown, RotateSelectionLeft, RotateSelectionRight,
     // Gizmos
     GizmoMove, GizmoRotate, GizmoScale, GizmoFlatten, GizmoCut, GizmoMeshBoolean, GizmoFdmSupports, GizmoSeam, GizmoFuzzySkin,

@@ -375,6 +375,7 @@ void fill_config(PConf& pcfg, const ArrangeParams &params) {
         pcfg.alignment = PConf::Alignment::CENTER;
     }else
         pcfg.alignment = PConf::Alignment::DONT_ALIGN;
+    pcfg.align_movable_only = params.align_movable_only;
 
 
     // Try 4 angles (45 degree step) and find the one with min cost

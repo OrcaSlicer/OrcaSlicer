@@ -291,6 +291,19 @@ TEST_CASE("Lookups are scoped to the context of the key press", "[Shortcuts]")
     CHECK(registry.lookup(ShortcutContext::Painting, c) == Shortcut::PaintToolCircle);
 }
 
+TEST_CASE("Arrange variants are told apart by their modifier", "[Shortcuts]")
+{
+    ShortcutRegistry registry;
+    const KeyChord   a{ 'A' };
+    const KeyChord   shift_a{ 'A', wxMOD_SHIFT };
+    const KeyChord   alt_a{ 'A', wxMOD_ALT };
+
+    CHECK(registry.lookup(ShortcutContext::Plater, a) == Shortcut::Arrange);
+    CHECK(registry.lookup(ShortcutContext::Plater, shift_a) == Shortcut::ArrangePlate);
+    CHECK(registry.lookup(ShortcutContext::Plater, alt_a) == Shortcut::ArrangeSelection);
+    CHECK_FALSE(registry.lookup(ShortcutContext::Preview, alt_a).has_value());
+}
+
 TEST_CASE("Tab shortcuts: jump-to-tab is unbound by default, Ctrl+Tab cycles", "[Shortcuts]")
 {
     ShortcutRegistry registry;
