@@ -676,6 +676,12 @@ static t_config_enum_values s_keys_map_ToolChangeOrderingType {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ToolChangeOrderingType)
 
+static const t_config_enum_values s_keys_map_CoolingSlowdownLogicType = {
+    { "uniform_cooling",    cslUniformCooling },
+    { "consistent_surface", cslConsistentSurface }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(CoolingSlowdownLogicType)
+
 static const t_config_enum_values s_keys_map_ZHopType = {
     { "Auto Lift",          zhtAuto },
     { "Normal Lift",        zhtNormal },
@@ -2326,6 +2332,21 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->set_default_value(new ConfigOptionFloatsNullable{10000.0});
 
+    // Ported from BambuStudio PR #9141 (a Prusa feature). Disabled by default, so existing profiles slice as before.
+    def = this->add("travel_short_distance_acceleration", coFloats);
+    def->label = L("Short travel");
+    def->category = L("Speed");
+    def->tooltip = L("Acceleration of short travel moves that follow an outer wall or an overhang wall, those shorter than "
+                     "the \"Travel distance threshold\". Lower values reduce ringing and vertical fine artifacts on the outer "
+                     "surface without slowing down the long travels.\n"
+                     "Set to 0 to disable: these travels then use the outer wall acceleration (the bridge acceleration "
+                     "after an overhang wall).");
+    def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{250.0});
+
     def = this->add("initial_layer_travel_acceleration", coFloatsOrPercents);
     def->label = L("First layer travel");
     def->tooltip = L("Travel acceleration of first layer.\nThe percentage value is relative to Travel Acceleration.");
@@ -3040,6 +3061,34 @@ void PrintConfigDef::init_fff_params()
                      "2. To avoid changes in external wall speed which may create slight wall artifacts that appear like Z banding\n"
                      "3. To avoid printing at speeds which cause VFAs (fine artifacts) on the external walls");
     def->set_default_value(new ConfigOptionBools { false });
+
+    def = this->add("cooling_slowdown_logic", coEnums);
+    def->label = L("Cooling slowdown logic");
+    def->tooltip = L("How the layer is slowed down to reach the minimum layer time.\n"
+                     "Uniform cooling: slow down all extrusions of the layer, external perimeters included.\n"
+                     "Consistent surface: slow down all the other extrusions first and keep the outer wall and the first inner wall "
+                     "at their speed, so the visible surface stays uniform. These walls are slowed down only if the minimum "
+                     "layer time cannot be reached otherwise.");
+    def->enum_keys_map = &ConfigOptionEnum<CoolingSlowdownLogicType>::get_enum_values();
+    def->enum_values.push_back("uniform_cooling");
+    def->enum_values.push_back("consistent_surface");
+    def->enum_labels.push_back(L("Uniform cooling"));
+    def->enum_labels.push_back(L("Consistent surface"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnumsGeneric{ CoolingSlowdownLogicType::cslUniformCooling });
+
+    def = this->add("cooling_perimeter_transition_distance", coFloats);
+    def->label = L("Perimeter transition distance");
+    def->tooltip = L("Length, in millimeters, of the end of the slowed-down extrusions of a layer that keeps its original "
+                     "print speed. The speed is thus restored before the external perimeters, which reduces the "
+                     "quality issues at the transition from slowed-down to fast printing.\n"
+                     "Only applies when the Consistent surface slowdown logic is selected. Recommended value: 5-10 mm. "
+                     "Set to 0 to disable.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 50;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{ 10. });
 
     def = this->add("fan_cooling_layer_time", coFloats);
     def->label = L("Layer time");
@@ -10127,6 +10176,7 @@ std::set<std::string> print_options_with_variant = {
     "default_acceleration",
     "bridge_acceleration",
     "travel_acceleration",
+    "travel_short_distance_acceleration",
     "initial_layer_travel_acceleration",
     "initial_layer_acceleration",
     "outer_wall_acceleration",

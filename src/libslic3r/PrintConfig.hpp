@@ -588,6 +588,12 @@ enum ZHopType {
     zhtCount
 };
 
+// Strategy used when a layer has to be slowed down to reach the minimum layer time.
+enum CoolingSlowdownLogicType {
+    cslUniformCooling = 0,
+    cslConsistentSurface
+};
+
 enum RetractLiftEnforceType {
     rletAllSurfaces = 0,
     rletTopOnly,
@@ -830,6 +836,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AuthorizationType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(CoolingSlowdownLogicType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ArcFittingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
@@ -1417,6 +1424,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsNullable,           initial_layer_acceleration))
     ((ConfigOptionFloatsOrPercentsNullable, bridge_acceleration))
     ((ConfigOptionFloatsNullable,           travel_acceleration))
+    ((ConfigOptionFloatsNullable,           travel_short_distance_acceleration))
     ((ConfigOptionFloatsOrPercentsNullable, sparse_infill_acceleration))
     ((ConfigOptionFloatsOrPercentsNullable, internal_solid_infill_acceleration))
 
@@ -2038,6 +2046,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPoints,             extruder_offset))
     ((ConfigOptionBools,              reduce_fan_stop_start_freq))
     ((ConfigOptionBools,              dont_slow_down_outer_wall))
+    ((ConfigOptionEnumsGeneric,       cooling_slowdown_logic))
+    ((ConfigOptionFloats,             cooling_perimeter_transition_distance))
     ((ConfigOptionFloats,             fan_cooling_layer_time))
     ((ConfigOptionBools,              activate_air_filtration))
     ((ConfigOptionBools,              activate_air_filtration_during_print))
