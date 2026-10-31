@@ -2721,7 +2721,11 @@ void PerimeterGenerator::process_arachne()
                            apply_precise_outer_wall? -float(ext_perimeter_width - ext_perimeter_spacing )
                                                      : -float(ext_perimeter_width / 2. - ext_perimeter_spacing / 2.));
         
-            Arachne::WallToolPathsParams input_params = Arachne::make_paths_params(this->layer_id, *object_config, *print_config);
+            // Arachne shares one threshold set across the requested walls. Keep thin features
+            // printable by either wall tool, without including an unprinted inner wall tool.
+            const double nozzle_diameter = loop_number > 0 ? std::min(ext_perimeter_flow.nozzle_diameter(), perimeter_flow.nozzle_diameter()) :
+                                                             ext_perimeter_flow.nozzle_diameter();
+            Arachne::WallToolPathsParams input_params = Arachne::make_paths_params(this->layer_id, *object_config, nozzle_diameter);
             // Set params is_top_or_bottom_layer for adjusting short-wall removal sensitivity.
             input_params.is_top_or_bottom_layer = (is_bottom_layer || is_topmost_layer) ? true : false;
 
@@ -3191,10 +3195,11 @@ bool PerimeterGeneratorLoop::is_internal_contour() const
 // ambiguity resolves low: it may keep a sliver that was never printed, but it never drops one that was.
 ExPolygons PerimeterGenerator::printable_slices(const ExPolygons &slices) const
 {
-    double min_width = *std::min_element(print_config->nozzle_diameter.values.begin(),
-                                         print_config->nozzle_diameter.values.end()) / 3.;
+    const double min_nozzle_diameter = *std::min_element(print_config->nozzle_diameter.values.begin(),
+                                                        print_config->nozzle_diameter.values.end());
+    double min_width = min_nozzle_diameter / 3.;
     if (object_config->wall_generator.value == PerimeterGeneratorType::Arachne) {
-        const double min_feature_size = Arachne::make_paths_params(layer_id, *object_config, *print_config).min_feature_size;
+        const double min_feature_size = Arachne::make_paths_params(layer_id, *object_config, min_nozzle_diameter).min_feature_size;
         // Spiral vase can put a classic layer under an Arachne one, so there both limits apply.
         min_width = print_config->spiral_mode ? std::min(min_width, min_feature_size) : min_feature_size;
     }
