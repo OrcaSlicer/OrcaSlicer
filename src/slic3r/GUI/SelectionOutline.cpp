@@ -173,8 +173,8 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
     const bool use_stencil = m_stencil_bits > 0;
     if (use_stencil) {
         glsafe(::glEnable(GL_STENCIL_TEST));
-        glsafe(::glStencilMask(0x00));
-        glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
+        glsafe(::glStencilMask(DrawnBit));
+        glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
     }
     shader->start_using();
     shader->set_uniform("mask_tex", 0);
@@ -192,13 +192,13 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
     shader->set_uniform("depth_coef", std::array<float, 4>{ float(projection(2, 2)), float(projection(2, 3)),
                                                             float(projection(3, 2)), float(projection(3, 3)) });
     shader->set_uniform("pixel_size_coef", pixel_size_coef);
-    // The ring off the samples of the selection, the lines on them.
+    // The ring off the samples of the selection, the lines on them, both marking DrawnBit where they draw.
     if (use_stencil)
-        glsafe(::glStencilFunc(GL_NOTEQUAL, StencilBit, StencilBit));
+        glsafe(::glStencilFunc(GL_NOTEQUAL, StencilBit | DrawnBit, StencilBit));
     shader->set_uniform("inner", false);
     quad.render();
     if (use_stencil)
-        glsafe(::glStencilFunc(GL_EQUAL, StencilBit, StencilBit));
+        glsafe(::glStencilFunc(GL_EQUAL, StencilBit | DrawnBit, StencilBit));
     shader->set_uniform("inner", true);
     quad.render();
     shader->stop_using();
@@ -206,6 +206,7 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
     if (use_stencil) {
         glsafe(::glDisable(GL_STENCIL_TEST));
         glsafe(::glStencilMask(0xFF));
+        glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
     }
     glsafe(::glDisable(GL_SCISSOR_TEST));
     glsafe(::glDepthFunc(GL_LESS));

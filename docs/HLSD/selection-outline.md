@@ -79,6 +79,11 @@ of that depth over the pixel, so that the selection passes the test on every sam
 depth of the nearest covered texel, brought forward with its distance from the silhouette, so that it
 also shows over the plate the object stands on, which lies in front of the silhouette right below it.
 
+The outline sets `SelectionOutline::DrawnBit` of the stencil wherever it draws, and the screen space
+ambient occlusion pass of the realistic view, which runs after it, leaves those samples as they are. The
+outline lies on top of the surfaces, so their occlusion would only darken it, unevenly, in the creases it
+marks.
+
 ## Colors and sizes
 
 The outline is white. Its lines have a width on the model, 0.35 mm for the ring and 0.18 mm for the inner

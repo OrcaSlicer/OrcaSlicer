@@ -19,6 +19,8 @@ class SelectionOutline
 public:
     // Set in the stencil where the outlined volumes are drawn.
     static constexpr unsigned int StencilBit = 0x80;
+    // Set in the stencil where the outline is drawn, which the occlusion pass leaves as it is.
+    static constexpr unsigned int DrawnBit = 0x40;
 
     // Over the bound framebuffer, whose stencil and depth hold the scene the volumes were drawn into.
     void render(const std::vector<GLVolume*>& volumes, const Camera& camera, const std::array<float, 2>& z_range,

@@ -8833,7 +8833,13 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
     glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
     glsafe(::glActiveTexture(GL_TEXTURE1));
     glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_depth_texture_id));
+    // The selection outline sits on top of the surfaces, so it is not shaded by their occlusion.
+    glsafe(::glEnable(GL_STENCIL_TEST));
+    glsafe(::glStencilMask(0x00));
+    glsafe(::glStencilFunc(GL_NOTEQUAL, SelectionOutline::DrawnBit, SelectionOutline::DrawnBit));
     m_background.render();
+    glsafe(::glDisable(GL_STENCIL_TEST));
+    glsafe(::glStencilMask(0xFF));
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
     glsafe(::glActiveTexture(GL_TEXTURE0));
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
