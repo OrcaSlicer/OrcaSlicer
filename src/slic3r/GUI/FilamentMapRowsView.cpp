@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <vector>
 #include <string>
+#include <libslic3r/FilamentCompaction.hpp>
 #include <libslic3r/FilamentInventory.hpp>
 #include <functional>
 #include <wx/event.h>
@@ -402,6 +403,21 @@ std::optional<std::vector<int>> collect_device_map_table_for_send(wxWindow* pare
     if (dlg.ShowModal() != wxID_OK)
         return std::nullopt;
     return dlg.GetFilamentMaps();
+}
+
+std::vector<int> device_wire_filament_map(const FilamentCompaction& compaction, const std::vector<int>& filaments_1based,
+                                          const std::vector<int>& map_1based)
+{
+    if (compaction.slot_of_tool.empty())
+        return map_1based;
+    int tool_count = 0;
+    for (int filament : filaments_1based)
+        tool_count = std::max(tool_count, compaction.tool_of_slot(filament - 1) + 1);
+    std::vector<int> out(size_t(tool_count), 0);
+    for (size_t tool = 0; tool < out.size(); ++tool)
+        if (size_t(compaction.slot_of_tool[tool]) < map_1based.size())
+            out[tool] = map_1based[compaction.slot_of_tool[tool]];
+    return out;
 }
 
 }} // namespace Slic3r::GUI

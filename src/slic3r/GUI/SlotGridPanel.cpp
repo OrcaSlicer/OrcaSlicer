@@ -33,7 +33,9 @@
 
 #include "libslic3r/FilamentInventory.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 
+#include "AmsMappingPopup.hpp" // EVT_SET_FINISH_MAPPING
 #include "DragDropPanel.hpp" // Hex2Color
 #include "FilamentInventoryStore.hpp"
 #include "GUI_App.hpp"
@@ -461,6 +463,36 @@ void SlotPickPopup::PopupBelow(wxWindow* anchor)
         if (!IsShown())
             Popup();
     });
+}
+
+void SlotPickPopup::PopupForFilament(wxWindow* owner, wxWindow* anchor, int filament_id, int current_slot)
+{
+    if (IsShown())
+        return;
+    FilamentInventories       store;
+    const FilamentInventory&  inventory = load_active_printer_inventory(store);
+    std::vector<SlotGridSlot> rows      = slot_grid_rows(inventory, wxGetApp().preset_bundle->filaments);
+    for (size_t i = 0; i < rows.size(); ++i) {
+        // Slot i == global tray i (build_ams_payload).
+        rows[i].disabled = rows[i].empty;
+        rows[i].checked  = int(i) == current_slot;
+    }
+    const std::vector<PhysicalFilament> slots = inventory.slots;
+    Rebuild(rows, [owner, filament_id, slots](size_t i) {
+        if (i >= slots.size())
+            return;
+        // The inventory stores "#RRGGBB", not the AMS wire's RRGGBBAA.
+        const wxColour col = colour_or(slots[i].color, wxColour(0xCE, 0xCE, 0xCE));
+        // Same payload as the AMS popup (on_set_finish_mapping): "r|g|b|a|label|filament|ams_id|slot_id".
+        const int      virtual_tool = slots[i].virtual_tool >= 0 ? slots[i].virtual_tool : (int) i;
+        const wxString label        = wxString::Format("T%d", virtual_tool + 1);
+        wxCommandEvent evt(EVT_SET_FINISH_MAPPING);
+        evt.SetInt((int) i);
+        evt.SetString(wxString::Format("%d|%d|%d|%d|%s|%d|%d|%d", col.Red(), col.Green(), col.Blue(), col.Alpha(), label,
+                                       filament_id, (int) i, 0));
+        wxPostEvent(owner, evt);
+    });
+    PopupBelow(anchor);
 }
 
 SlotPickDialog::SlotPickDialog(wxWindow* parent, const std::vector<SlotGridSlot>& slots, size_t extruder_count, int current)
