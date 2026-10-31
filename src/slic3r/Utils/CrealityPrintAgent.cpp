@@ -303,6 +303,8 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
             << "CrealityPrintAgent::fetch_filament_info: no device IP, falling back to base agent";
         return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
     }
+    if (fetch_afc_filament_info())
+        return true;
 
     // Build a CrealityPrint helper so we can use its model detection + WS helpers
     // (added in upstream PR #13291).
