@@ -392,11 +392,15 @@ private:
         bool valid{ false };
         libvgcode::EViewType view_type{ libvgcode::EViewType::COUNT };
         libvgcode::Interval  whole_layers{ 0, 0 };
-        // unset where the view colours by filament, or no vertex of the role was found
-        std::optional<ColorRGBA> body;
-        std::optional<ColorRGBA> tower;
-        // the objects' bottom and top caps
-        std::array<std::optional<ColorRGBA>, 2> caps;
+        // one per shell volume, from the toolpaths within its own footprint
+        struct Body
+        {
+            // unset where the view colours by filament, or no vertex of the role was found there
+            std::optional<ColorRGBA> body;
+            // the bottom and top caps
+            std::array<std::optional<ColorRGBA>, 2> caps;
+        };
+        std::vector<Body> bodies;
     };
     SolidModelColors m_solid_model_colors;
     void update_solid_model_colors(const libvgcode::Interval& whole_layers);

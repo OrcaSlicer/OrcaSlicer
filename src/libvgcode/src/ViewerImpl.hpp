@@ -197,7 +197,7 @@ public:
     std::optional<float> get_vertex_value(const PathVertex& vertex) const;
     // how many layers of an interval find_extrusion_vertex() samples
     static constexpr std::size_t VERTEX_SAMPLE_LAYERS = 8;
-    size_t find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role) const;
+    size_t find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role, const XYBox& box) const;
 
     size_t get_extrusion_roles_count() const { return m_extrusion_roles.get_roles_count(); }
     std::vector<EGCodeExtrusionRole> get_extrusion_roles() const { return m_extrusion_roles.get_roles(); }

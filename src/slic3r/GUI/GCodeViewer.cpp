@@ -3723,14 +3723,15 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
         GLVolume* volume = m_shells.volumes.volumes[k];
         own_colors.push_back(volume->color);
+        const std::optional<ColorRGBA>& body = colors.bodies[k].body;
         if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr) {
-            if (colors.tower.has_value()) {
+            if (body.has_value()) {
                 own_tower_colors[k] = tower->colors();
-                tower->colors().assign(own_tower_colors[k].size(), *colors.tower);
+                tower->colors().assign(own_tower_colors[k].size(), *body);
             }
         }
-        else if (colors.body.has_value())
-            volume->color = *colors.body;
+        else if (body.has_value())
+            volume->color = *body;
         volume->color.a(1.0f);
         volume->set_render_color();
     }
@@ -3796,7 +3797,8 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
             init_cap(caps[1], z_top, { -FLT_MAX, z_top });
 
         glsafe(::glEnable(GL_STENCIL_TEST));
-        for (GLVolume* volume : m_shells.volumes.volumes) {
+        for (size_t n = 0; n < m_shells.volumes.volumes.size(); ++n) {
+            GLVolume* volume = m_shells.volumes.volumes[n];
             const auto* tower = dynamic_cast<const GLWipeTowerVolume*>(volume);
             const Transform3d world_matrix = volume->world_matrix();
             for (size_t k = 0; k < 2; ++k) {
@@ -3829,12 +3831,10 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
                 glsafe(::glStencilMask(0x00));
 
                 ColorRGBA inside = volume->color;
-                if (tower != nullptr) {
-                    if (!tower->colors().empty())
-                        inside = tower->colors().front();
-                }
-                else if (colors.caps[k].has_value())
-                    inside = *colors.caps[k];
+                if (tower != nullptr && !tower->colors().empty())
+                    inside = tower->colors().front();
+                if (const std::optional<ColorRGBA>& cap = colors.bodies[n].caps[k]; cap.has_value())
+                    inside = *cap;
                 inside = ColorRGBA(0.55f * inside.r(), 0.55f * inside.g(), 0.55f * inside.b(), 1.0f);
                 cap_shader->start_using();
                 cap_shader->set_uniform("view_model_matrix", camera.get_view_matrix());
@@ -3861,51 +3861,63 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
 }
 
 // The solid stands in for the toolpaths, so it takes their colours in the view that colours them
-// by something other than the filament: the body the outer wall's, each cap the infill's of the
-// layer it is cut under, sparse if the layer has any, else solid, and the tower its own role's.
-// The views that colour by filament leave every body its own colour. The body and the tower are
-// sampled over the layers the solid stands for and each cap in its own layer, each colour that of
-// the vertex the viewer picks to represent the role there, so a view that grades the toolpaths,
-// by speed or fan, shows the solid in the grade most of that role was printed at. The body and
-// the tower are sampled once, as the drag begins, and held while a slider drag moves the span:
+// by something other than the filament: each body the outer wall's, each cap the infill's of the
+// layer it is cut under, sparse if the layer has any, else solid, and the tower its own role's,
+// each from the toolpaths within the body's own footprint, so that objects printed at different
+// grades keep their own. The views that colour by filament leave every body its own colour. The
+// bodies are sampled over the layers the solid stands for and each cap in its own layer, each
+// colour that of the vertex the viewer picks to represent the role there, so a view that grades
+// the toolpaths, by speed or fan, shows the solid in the grade most of that role was printed at.
+// The bodies are sampled once, as the drag begins, and held while a slider drag moves the span:
 // sampled again at every step, the grade would flip with the layers the sample happens to fall
 // on. Each cap follows its own layer.
 void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_layers)
 {
     SolidModelColors& colors = m_solid_model_colors;
     const libvgcode::EViewType view_type = m_viewer.get_view_type();
-    const bool held = colors.valid && colors.view_type == view_type;
+    const std::vector<GLVolume*>& volumes = m_shells.volumes.volumes;
+    const bool held = colors.valid && colors.view_type == view_type && colors.bodies.size() == volumes.size();
     if (held && colors.whole_layers == whole_layers)
         return;
     if (!held) {
         colors = SolidModelColors();
         colors.valid = true;
         colors.view_type = view_type;
+        colors.bodies.resize(volumes.size());
     }
     colors.whole_layers = whole_layers;
     if (view_type == libvgcode::EViewType::Summary || view_type == libvgcode::EViewType::ColorPrint || view_type == libvgcode::EViewType::Tool)
         return;
 
     using Role = libvgcode::EGCodeExtrusionRole;
-    auto sample = [this](const libvgcode::Interval& layers, std::initializer_list<Role> roles) -> std::optional<ColorRGBA> {
+    auto sample = [this](const libvgcode::Interval& layers, std::initializer_list<Role> roles, const libvgcode::XYBox& box) -> std::optional<ColorRGBA> {
         for (Role role : roles) {
-            const size_t id = m_viewer.find_extrusion_vertex(layers, role);
+            const size_t id = m_viewer.find_extrusion_vertex(layers, role, box);
             if (id < m_viewer.get_vertices_count())
                 return libvgcode::convert(m_viewer.get_vertex_color(m_viewer.get_vertex_at(id)));
         }
         return std::nullopt;
     };
     const std::initializer_list<Role> walls = { Role::ExternalPerimeter, Role::Perimeter, Role::OverhangPerimeter };
+    const std::initializer_list<Role> tower_role = { Role::WipeTower };
     const std::initializer_list<Role> infill = { Role::InternalInfill, Role::SolidInfill, Role::TopSolidInfill, Role::BottomSurface,
                                                  Role::BridgeInfill, Role::InternalBridgeInfill, Role::Ironing };
-    if (!held) {
-        colors.body = sample(whole_layers, walls);
-        colors.tower = sample(whole_layers, { Role::WipeTower });
-    }
-    for (size_t k = 0; k < 2; ++k) {
-        colors.caps[k] = sample({ whole_layers[k], whole_layers[k] }, infill);
-        if (!colors.caps[k].has_value())
-            colors.caps[k] = colors.body;
+    for (size_t n = 0; n < volumes.size(); ++n) {
+        const GLVolume* volume = volumes[n];
+        const bool tower = dynamic_cast<const GLWipeTowerVolume*>(volume) != nullptr;
+        // the walls' centrelines lie within the outline, pushed out by a compensation at most
+        const BoundingBoxf3& footprint = volume->transformed_bounding_box();
+        const float margin = 1.0f;
+        const libvgcode::XYBox box{ { static_cast<float>(footprint.min.x()) - margin, static_cast<float>(footprint.min.y()) - margin },
+                                    { static_cast<float>(footprint.max.x()) + margin, static_cast<float>(footprint.max.y()) + margin } };
+        SolidModelColors::Body& body = colors.bodies[n];
+        if (!held)
+            body.body = sample(whole_layers, tower ? tower_role : walls, box);
+        for (size_t k = 0; k < 2; ++k) {
+            body.caps[k] = tower ? std::nullopt : sample({ whole_layers[k], whole_layers[k] }, infill, box);
+            if (!body.caps[k].has_value())
+                body.caps[k] = body.body;
+        }
     }
 }
 
