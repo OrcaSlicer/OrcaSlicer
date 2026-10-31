@@ -41,6 +41,9 @@
 #include <boost/filesystem/file_status.hpp>   // no_perms, owner_all
 #include <boost/nowide/fstream.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <array>
+#include <map>
+#include <cmath>
 #include <algorithm>
 #include <functional>
 #include <initializer_list>
@@ -745,6 +748,273 @@ TEST_CASE("Volumes sharing a mesh keep their own texture displacement paint", "[
     REQUIRE(model.objects.size() == 2);
     CHECK(texture_paint(*model.objects[0]->volumes.front()) == texture_paint(*first));
     CHECK(texture_paint(*model.objects[1]->volumes.front()) == texture_paint(*second));
+}
+
+// A UV channel for `volume`: three corners per triangle, each different, with values past the unit square and
+// digits a short format would round.
+static void give_texture_uv(ModelVolume& volume, float seed = 0.f)
+{
+    volume.texture_uv.clear();
+    for (size_t i = 0; i < volume.mesh().its.indices.size(); ++i)
+        for (size_t corner = 0; corner < 3; ++corner)
+            volume.texture_uv.emplace_back(seed + 0.123456789f * float(i) - 0.5f + 0.01f * float(corner),
+                                           seed + 1.75f - 0.0314159265f * float(i * 3 + corner));
+    REQUIRE(volume.has_texture_uv());
+}
+
+static void check_same_texture_uv(const ModelVolume& loaded, const ModelVolume& source)
+{
+    REQUIRE(loaded.has_texture_uv());
+    REQUIRE(loaded.texture_uv.size() == source.texture_uv.size());
+    for (size_t i = 0; i < source.texture_uv.size(); ++i) {
+        CHECK_THAT(loaded.texture_uv[i].x(), Catch::Matchers::WithinAbs(source.texture_uv[i].x(), 1e-6));
+        CHECK_THAT(loaded.texture_uv[i].y(), Catch::Matchers::WithinAbs(source.texture_uv[i].y(), 1e-6));
+    }
+}
+
+TEST_CASE("A part's UV channel survives a project round trip", "[3mf]")
+{
+    // A single model file, and one file per object (read by a separate importer).
+    const SaveStrategy strategy = GENERATE(SaveStrategy::Zip64 | SaveStrategy::Silence,
+                                           SaveStrategy::Zip64 | SaveStrategy::Silence | SaveStrategy::SplitModel);
+    INFO("save strategy " << int(strategy));
+
+    Model        source;
+    ModelObject* object = source.add_object();
+    ModelVolume* volume = object->add_volume(make_cube(10., 10., 10.));
+    object->add_instance();
+    give_texture_uv(*volume);
+
+    ScopedTemporaryFile temp(".3mf");
+    store_project(source, temp.string(), strategy);
+
+    ScopedTemporaryDir backup_dir("orca_texuv_dst");
+    Model              model;
+    REQUIRE(load_project(temp.string(), model, backup_dir));
+    REQUIRE(model.objects.size() == 1);
+    REQUIRE(model.objects.front()->volumes.size() == 1);
+    check_same_texture_uv(*model.objects.front()->volumes.front(), *volume);
+}
+
+TEST_CASE("Only the part that has a UV channel gets one back", "[3mf]")
+{
+    Model        source;
+    ModelObject* object = source.add_object();
+    ModelVolume* with   = object->add_volume(make_cube(10., 10., 10.));
+    ModelVolume* without = object->add_volume(make_cube(5., 5., 5.));
+    object->add_instance();
+    give_texture_uv(*with);
+    REQUIRE_FALSE(without->has_texture_uv());
+
+    ScopedTemporaryFile temp(".3mf");
+    store_project(source, temp.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+
+    ScopedTemporaryDir backup_dir("orca_texuv_dst");
+    Model              model;
+    REQUIRE(load_project(temp.string(), model, backup_dir));
+    REQUIRE(model.objects.size() == 1);
+    REQUIRE(model.objects.front()->volumes.size() == 2);
+    check_same_texture_uv(*model.objects.front()->volumes[0], *with);
+    CHECK_FALSE(model.objects.front()->volumes[1]->has_texture_uv());
+    CHECK(model.objects.front()->volumes[1]->texture_uv.empty());
+}
+
+TEST_CASE("A project without UV channels loads as before", "[3mf]")
+{
+    Model        source;
+    ModelObject* object = source.add_object();
+    object->add_volume(make_cube(10., 10., 10.));
+    object->add_instance();
+
+    ScopedTemporaryFile temp(".3mf");
+    store_project(source, temp.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+    // Nothing is written for a part without a channel.
+    CHECK_FALSE(replace_in_3mf_entry(temp.string(), ".model", " texture_uv=\"", " texture_uv=\""));
+
+    ScopedTemporaryDir backup_dir("orca_texuv_dst");
+    Model              model;
+    REQUIRE(load_project(temp.string(), model, backup_dir));
+    REQUIRE(model.objects.size() == 1);
+    CHECK_FALSE(model.objects.front()->volumes.front()->has_texture_uv());
+    CHECK(model.objects.front()->volumes.front()->mesh().its.indices.size() == 12);
+}
+
+TEST_CASE("A UV channel follows its corners when the reader flips a mesh", "[3mf]")
+{
+    // A mesh with inside-out facets has a negative volume, which the importer turns right side out by swapping
+    // the last two corners of every triangle. The channel's corners have to swap with them.
+    Model        source;
+    ModelObject* object = source.add_object();
+    TriangleMesh mesh   = make_cube(10., 10., 10.);
+    mesh.flip_triangles();
+    REQUIRE(mesh.volume() < 0);
+    ModelVolume* volume = object->add_volume(std::move(mesh));
+    object->add_instance();
+    give_texture_uv(*volume);
+
+    // Each corner of each triangle: its position (with the triangle's centre, as a vertex is shared by several
+    // triangles) and the UV the part gave it.
+    using Key = std::array<long, 6>;
+    const auto key_of = [](const ModelVolume& v, size_t triangle, size_t corner) {
+        const indexed_triangle_set& its = v.mesh().its;
+        Vec3f centre = Vec3f::Zero();
+        for (int k = 0; k < 3; ++k)
+            centre += its.vertices[size_t(its.indices[triangle][k])] / 3.f;
+        const Vec3f p = its.vertices[size_t(its.indices[triangle][int(corner)])];
+        return Key{ std::lround(centre.x() * 100.f), std::lround(centre.y() * 100.f), std::lround(centre.z() * 100.f),
+                    std::lround(p.x() * 100.f), std::lround(p.y() * 100.f), std::lround(p.z() * 100.f) };
+    };
+    std::map<Key, Vec2f> expected;
+    for (size_t t = 0; t < volume->mesh().its.indices.size(); ++t)
+        for (size_t c = 0; c < 3; ++c)
+            expected[key_of(*volume, t, c)] = volume->texture_uv[t * 3 + c];
+    REQUIRE(expected.size() == 12 * 3);
+
+    for (const SaveStrategy strategy : { SaveStrategy::Zip64 | SaveStrategy::Silence,
+                                         SaveStrategy::Zip64 | SaveStrategy::Silence | SaveStrategy::SplitModel }) {
+        INFO("save strategy " << int(strategy));
+        ScopedTemporaryFile temp(".3mf");
+        store_project(source, temp.string(), strategy);
+
+        ScopedTemporaryDir backup_dir("orca_texuv_dst");
+        Model              model;
+        REQUIRE(load_project(temp.string(), model, backup_dir));
+        REQUIRE(model.objects.size() == 1);
+        const ModelVolume& loaded = *model.objects.front()->volumes.front();
+        REQUIRE(loaded.has_texture_uv());
+        REQUIRE(loaded.mesh().its.indices.size() == 12);
+        CHECK(its_volume(loaded.mesh().its) > 0); // the reader did flip it
+        for (size_t t = 0; t < 12; ++t)
+            for (size_t c = 0; c < 3; ++c) {
+                const auto found = expected.find(key_of(loaded, t, c));
+                REQUIRE(found != expected.end());
+                CHECK_THAT(loaded.texture_uv[t * 3 + c].x(), Catch::Matchers::WithinAbs(found->second.x(), 1e-6));
+                CHECK_THAT(loaded.texture_uv[t * 3 + c].y(), Catch::Matchers::WithinAbs(found->second.y(), 1e-6));
+            }
+    }
+}
+
+TEST_CASE("A channel that is missing on some triangles is dropped, not guessed", "[3mf][Regression]")
+{
+    Model        source;
+    ModelObject* object = source.add_object();
+    ModelVolume* volume = object->add_volume(make_cube(10., 10., 10.));
+    object->add_instance();
+    give_texture_uv(*volume);
+
+    ScopedTemporaryFile temp(".3mf");
+    store_project(source, temp.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+    // The first triangle's attribute is spelled differently, so a reader that knows the name never sees it.
+    REQUIRE(replace_in_3mf_entry(temp.string(), ".model", " texture_uv=\"", " texture_uw=\""));
+
+    ScopedTemporaryDir backup_dir("orca_texuv_dst");
+    Model              model;
+    bool               loaded = false;
+    REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
+    REQUIRE(loaded);
+    REQUIRE(model.objects.size() == 1);
+    CHECK_FALSE(model.objects.front()->volumes.front()->has_texture_uv());
+    CHECK(model.objects.front()->volumes.front()->mesh().its.indices.size() == 12);
+}
+
+TEST_CASE("A malformed UV value drops the channel and still loads", "[3mf][Regression]")
+{
+    const std::string bad = GENERATE(std::string("1 2 3"), std::string("a b c d e f"), std::string("nan 0 0 0 0 0"), std::string("0 0 0 0 0 0 0"));
+    INFO("value " << bad);
+
+    Model        source;
+    ModelObject* object = source.add_object();
+    ModelVolume* volume = object->add_volume(make_cube(10., 10., 10.));
+    object->add_instance();
+    give_texture_uv(*volume);
+
+    ScopedTemporaryFile temp(".3mf");
+    store_project(source, temp.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+    // Replace the whole value of the first triangle's attribute.
+    bool replaced = false;
+    rewrite_3mf_entries(temp.string(), [&](std::string& name, std::string& data) {
+        const size_t at = boost::algorithm::ends_with(name, ".model") ? data.find(" texture_uv=\"") : std::string::npos;
+        if (replaced || at == std::string::npos)
+            return false;
+        const size_t value_begin = at + std::string(" texture_uv=\"").size();
+        data.replace(value_begin, data.find('"', value_begin) - value_begin, bad);
+        return replaced = true;
+    });
+    REQUIRE(replaced);
+
+    ScopedTemporaryDir backup_dir("orca_texuv_dst");
+    Model              model;
+    bool               loaded = false;
+    REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
+    REQUIRE(loaded);
+    REQUIRE(model.objects.size() == 1);
+    CHECK_FALSE(model.objects.front()->volumes.front()->has_texture_uv());
+}
+
+TEST_CASE("Volumes sharing a mesh keep their own UV channel", "[3mf]")
+{
+    Model        source;
+    ModelObject* first_object = source.add_object();
+    ModelVolume* first        = first_object->add_volume(make_cube(10., 10., 10.));
+    first_object->add_instance();
+    ModelVolume* second = source.add_object(*first_object)->volumes.front();
+    ModelVolume* third  = source.add_object(*first_object)->volumes.front();
+    REQUIRE(second->mesh_ptr() == first->mesh_ptr());
+    give_texture_uv(*first, 0.f);
+    give_texture_uv(*second, 3.f);
+    third->reset_texture_uv(); // shares the mesh, has no channel
+
+    // What a project save from the app uses: one file per object, an identical mesh written once.
+    ScopedTemporaryFile temp(".3mf");
+    store_project(source, temp.string(),
+                  SaveStrategy::Zip64 | SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::ShareMesh);
+
+    ScopedTemporaryDir backup_dir("orca_texuv_dst");
+    Model              model;
+    REQUIRE(load_project(temp.string(), model, backup_dir));
+    REQUIRE(model.objects.size() == 3);
+    check_same_texture_uv(*model.objects[0]->volumes.front(), *first);
+    check_same_texture_uv(*model.objects[1]->volumes.front(), *second);
+    CHECK_FALSE(model.objects[2]->volumes.front()->has_texture_uv());
+}
+
+TEST_CASE("Volumes sharing an inside-out mesh keep their equal UV channel", "[3mf]")
+{
+    Model        source;
+    ModelObject* first_object = source.add_object();
+    TriangleMesh mesh         = make_cube(10., 10., 10.);
+    mesh.flip_triangles();
+    REQUIRE(mesh.volume() < 0);
+    ModelVolume* first = first_object->add_volume(std::move(mesh));
+    first_object->add_instance();
+    ModelVolume* second = source.add_object(*first_object)->volumes.front();
+    REQUIRE(second->mesh_ptr() == first->mesh_ptr());
+    give_texture_uv(*first);
+    second->texture_uv = first->texture_uv; // equal, so the exporter writes the mesh once
+
+    ScopedTemporaryFile temp(".3mf");
+    store_project(source, temp.string(),
+                  SaveStrategy::Zip64 | SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::ShareMesh);
+
+    ScopedTemporaryDir backup_dir("orca_texuv_dst");
+    Model              model;
+    REQUIRE(load_project(temp.string(), model, backup_dir));
+    REQUIRE(model.objects.size() == 2);
+    const ModelVolume& a = *model.objects[0]->volumes.front();
+    const ModelVolume& b = *model.objects[1]->volumes.front();
+    REQUIRE(a.has_texture_uv());
+    REQUIRE(b.has_texture_uv());
+    CHECK(its_volume(a.mesh().its) > 0); // flipped on load
+    // The loaded meshes have the same triangles, so the same corners carry the same coordinates.
+    REQUIRE(a.texture_uv.size() == b.texture_uv.size());
+    for (size_t i = 0; i < a.texture_uv.size(); ++i)
+        CHECK(a.texture_uv[i] == b.texture_uv[i]);
+    // Triangle t's corners 1 and 2 were swapped with the mesh's: corner 0 is still the source's.
+    for (size_t t = 0; t < 12; ++t) {
+        CHECK_THAT(a.texture_uv[t * 3].x(), Catch::Matchers::WithinAbs(first->texture_uv[t * 3].x(), 1e-6));
+        CHECK_THAT(a.texture_uv[t * 3 + 1].y(), Catch::Matchers::WithinAbs(first->texture_uv[t * 3 + 2].y(), 1e-6));
+        CHECK_THAT(a.texture_uv[t * 3 + 2].y(), Catch::Matchers::WithinAbs(first->texture_uv[t * 3 + 1].y(), 1e-6));
+    }
 }
 
 TEST_CASE("A texture displacement layer never loads its image from outside the project", "[3mf]")

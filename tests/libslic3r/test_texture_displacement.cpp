@@ -3109,6 +3109,21 @@ TEST_CASE("Texture displacement layers survive a JSON round trip", "[TextureDisp
     CHECK(read_options.panel_mode == options.panel_mode);
 }
 
+TEST_CASE("Texture displacement JSON keeps a model UV layer's projection", "[TextureDisplacement]")
+{
+    TextureDisplacementLayer layer;
+    layer.slot              = 0;
+    layer.projection_method = TextureProjectionMethod::ModelUV;
+
+    const std::string json = texture_displacement_layers_to_json({layer}, TextureDisplacementOptions());
+
+    std::vector<TextureDisplacementLayer> read_layers;
+    TextureDisplacementOptions            read_options;
+    REQUIRE(texture_displacement_layers_from_json(json, read_layers, read_options));
+    REQUIRE(read_layers.size() == 1);
+    CHECK(read_layers.front().projection_method == TextureProjectionMethod::ModelUV);
+}
+
 TEST_CASE("Texture displacement JSON keeps defaults for keys it does not carry", "[TextureDisplacement]")
 {
     // What a build that knew fewer fields would have written: one layer, almost nothing set.
