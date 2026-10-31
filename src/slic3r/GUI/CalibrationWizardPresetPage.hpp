@@ -55,7 +55,8 @@ public:
     void msw_rescale();
 
     void set_cali_stage(CaliPresetStage stage, float value);
-    void get_cali_stage(CaliPresetStage& stage, float& value);
+    // Returns false when the fine-calibration flow ratio shown in the text box is not valid.
+    bool get_cali_stage(CaliPresetStage& stage, float& value);
 
     void set_flow_ratio_value(float flow_ratio);
     void set_parent(CalibrationPresetPage* parent) { m_stage_panel_parent = parent; }
@@ -67,7 +68,7 @@ protected:
     wxRadioButton* m_fine_radioBox;
     TextInput *    flow_ratio_input;
     wxPanel*       input_panel;
-    float m_flow_ratio_value;
+    float m_flow_ratio_value { 1.0f };
     CalibrationPresetPage* m_stage_panel_parent;
 };
 
@@ -233,7 +234,8 @@ public:
         float& nozzle_dia,
         BedType& plate_type);
 
-    void get_cali_stage(CaliPresetStage& stage, float& value);
+    // Returns false when the fine-calibration flow ratio shown in the text box is not valid.
+    bool get_cali_stage(CaliPresetStage& stage, float& value);
 
     std::shared_ptr<ProgressIndicator> get_sending_progress_bar() {
         return m_sending_panel->get_sending_progress_bar();

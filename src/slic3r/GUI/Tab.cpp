@@ -5399,6 +5399,16 @@ void TabFilament::on_value_change(const std::string& opt_key, const boost::any& 
         }
     }
 
+    // A flow ratio of 0 or less extrudes nothing and makes the flow ratio calibrations fail.
+    // The field accepts 0, so say why it is not usable.
+    if (opt_key.substr(0, opt_key.find('#')) == "filament_flow_ratio") {
+        if (const double *flow_ratio = boost::any_cast<double>(&value); flow_ratio && !std::isnan(*flow_ratio) && *flow_ratio <= 0.) {
+            MessageDialog msg_dlg(nullptr, _L("A flow ratio of 0 or less extrudes no material. The recommended range is 0.95 to 1.05."),
+                                  wxEmptyString, wxICON_WARNING | wxOK);
+            msg_dlg.ShowModal();
+        }
+    }
+
     Tab::on_value_change(opt_key, value);
 }
 

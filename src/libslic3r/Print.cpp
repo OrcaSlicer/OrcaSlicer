@@ -1997,6 +1997,26 @@ std::string Print::slicing_errors_message(const SlicingErrors &errors) const
     return message;
 }
 
+// Key of the first option that holds nan or inf, or an empty string. The nullable variants are skipped,
+// they use nan to mean "not set".
+static std::string find_non_finite_option(const ConfigBase &config)
+{
+    for (const std::string &key : config.keys()) {
+        const ConfigOption *opt = config.option(key);
+        if (const auto *single = dynamic_cast<const ConfigOptionFloat *>(opt)) {
+            if (!std::isfinite(single->value))
+                return key;
+        } else if (const auto *floats = dynamic_cast<const ConfigOptionFloats *>(opt)) {
+            if (std::any_of(floats->values.begin(), floats->values.end(), [](double v) { return !std::isfinite(v); }))
+                return key;
+        } else if (const auto *percents = dynamic_cast<const ConfigOptionFloatsOrPercents *>(opt)) {
+            if (std::any_of(percents->values.begin(), percents->values.end(), [](const FloatOrPercent &v) { return !std::isfinite(v.value); }))
+                return key;
+        }
+    }
+    return {};
+}
+
 StringObjectException Print::validate(std::vector<StringObjectException> *warnings, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons) const
 {
     auto add_warning = [warnings](StringObjectException w) {
@@ -2036,6 +2056,27 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             err.opt_key = "filament_flow_ratio";
             return err;
         }
+    }
+
+    // A nan or inf here (for example from a flow ratio of 0 in a calibration) would make slicing fail
+    // with no message, so say which setting it is.
+    {
+        auto invalid_value = [](const std::string &key, const ObjectBase *object) {
+            StringObjectException e;
+            e.string  = (boost::format(L("The setting \"%1%\" has an invalid value (nan or inf). Check this setting and the flow ratio of the filament.")) % key).str();
+            e.opt_key = key;
+            e.object  = object;
+            return e;
+        };
+        if (std::string key = find_non_finite_option(m_config); !key.empty())
+            return invalid_value(key, nullptr);
+        for (const PrintObject *print_object : m_objects)
+            if (std::string key = find_non_finite_option(print_object->config()); !key.empty())
+                return invalid_value(key, print_object->model_object());
+        // Per-region settings such as the flow ratios of the walls and surfaces live in the regions
+        for (size_t idx = 0; idx < this->num_print_regions(); ++idx)
+            if (std::string key = find_non_finite_option(this->get_print_region(idx).config()); !key.empty())
+                return invalid_value(key, nullptr);
     }
 
     // IDEX/IQEX: block multi-color in non-primary parallel modes when the active
