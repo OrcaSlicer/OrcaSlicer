@@ -1,7 +1,9 @@
 #include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include "libslic3r/FilamentGroupUtils.hpp"
@@ -22,6 +24,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -215,6 +218,144 @@ TEST_CASE("Grouping context spans the filament count with mis-sized config array
         auto result = ToolOrdering::get_recommended_filament_maps(layer_filaments, &print, FilamentMapMode::fmmAutoForFlush, {}, {});
         REQUIRE(result.get_extruder_map(false).size() == 4);
     }
+}
+
+namespace {
+// A filament the printer reports loaded, in the form Plater hands to Print::set_extruder_filament_info.
+DynamicPrintConfig loaded_filament(const std::string &colour, const std::string &type, const std::string &tray_name,
+                                   const std::string &filament_id = "")
+{
+    DynamicPrintConfig tray;
+    tray.set_key_value("filament_colour", new ConfigOptionStrings{colour});
+    tray.set_key_value("filament_type", new ConfigOptionStrings{type});
+    tray.set_key_value("tray_name", new ConfigOptionStrings{tray_name});
+    tray.set_key_value("filament_is_support", new ConfigOptionBools{false});
+    tray.set_key_value("filament_id", new ConfigOptionStrings{filament_id});
+    return tray;
+}
+
+// A two-extruder Bambu printer whose master is the second extruder, as on the H2D (one nozzle on
+// each extruder) and the H2C (six on the second), printing PLA in the given colours. A change
+// between two of them flushes extruder_flush[e] on extruder e.
+DynamicPrintConfig master_second_extruder_config(int second_extruder_nozzles, const std::vector<std::string> &colours,
+                                                 const std::vector<double> &extruder_flush = {100., 100.})
+{
+    const size_t n = colours.size();
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.4, 0.4};
+    config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count", true)->values = {1, second_extruder_nozzles};
+    config.option<ConfigOptionStrings>("extruder_nozzle_stats", true)->values = {"Standard#1", "Standard#" + std::to_string(second_extruder_nozzles)};
+    config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = {etDirectDrive, etDirectDrive};
+    config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = {nvtStandard, nvtStandard};
+    config.option<ConfigOptionStrings>("extruder_ams_count", true)->values = {"1#0|4#1", "1#0|4#1"};
+    config.option<ConfigOptionInt>("master_extruder_id", true)->value = 2;
+    config.option<ConfigOptionFloat>("machine_load_filament_time", true)->value = 29.;
+    config.option<ConfigOptionFloat>("machine_unload_filament_time", true)->value = 29.;
+
+    config.option<ConfigOptionStrings>("filament_colour", true)->values = colours;
+    config.option<ConfigOptionStrings>("filament_type", true)->values = std::vector<std::string>(n, "PLA");
+    config.option<ConfigOptionBools>("filament_is_support", true)->values = std::vector<unsigned char>(n, 0);
+    config.option<ConfigOptionFloats>("filament_diameter", true)->values = std::vector<double>(n, 1.75);
+    config.option<ConfigOptionInts>("filament_map", true)->values = std::vector<int>(n, 2);
+    // One n x n matrix per extruder.
+    std::vector<double> flush;
+    for (int extruder = 0; extruder < 2; ++extruder)
+        for (size_t from = 0; from < n; ++from)
+            for (size_t to = 0; to < n; ++to)
+                flush.push_back(from == to ? 0. : extruder_flush[extruder]);
+    config.option<ConfigOptionFloats>("flush_volumes_matrix", true)->values = flush;
+    config.option<ConfigOptionFloats>("flush_multiplier", true)->values = {1., 1.};
+    return config;
+}
+} // namespace
+
+TEST_CASE("Filament-saving grouping puts a filament on the extruder the printer has it loaded in", "[ToolOrdering]")
+{
+    Model model;
+    model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
+    Print print;
+    print.apply(model, master_second_extruder_config(1, {"#F98C36"}));
+    print.is_BBL_printer() = true;
+    // Only the first (non-master) extruder holds the printed PLA.
+    print.set_extruder_filament_info({{loaded_filament("#F98C36", "PLA", "A1"), loaded_filament("#BCBCBC", "PETG", "A2")},
+                                      {loaded_filament("#F95D73", "PETG", "Ext")}});
+
+    auto result = ToolOrdering::get_recommended_filament_maps({{0}, {0}, {0}}, &print, FilamentMapMode::fmmAutoForFlush, {}, {});
+
+    REQUIRE(result.get_extruder_id(0) == 0);
+}
+
+TEST_CASE("Filament-saving grouping keeps a lone filament on the master extruder when the printer reports none", "[ToolOrdering]")
+{
+    Model model;
+    model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
+    Print print;
+    print.apply(model, master_second_extruder_config(1, {"#F98C36"}));
+    print.is_BBL_printer() = true;
+
+    auto result = ToolOrdering::get_recommended_filament_maps({{0}, {0}, {0}}, &print, FilamentMapMode::fmmAutoForFlush, {}, {});
+
+    REQUIRE(result.get_extruder_id(0) == 1);
+}
+
+TEST_CASE("Filament-saving grouping prefers the master extruder when the printer's filaments match no grouping better", "[ToolOrdering]")
+{
+    // Three PLAs in turn, flushing far less on the first extruder: the least-flush grouping puts two
+    // of them there, and the master preference swaps the groups. The printer holds only PETG, so
+    // neither grouping matches it better and the swap stands.
+    Model model;
+    model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
+    Print print;
+    print.apply(model, master_second_extruder_config(1, {"#FFFFFF", "#000000", "#808080"}, {10., 100.}));
+    print.is_BBL_printer() = true;
+    print.set_extruder_filament_info({{loaded_filament("#FF0000", "PETG", "A1")}, {loaded_filament("#F95D73", "PETG", "Ext")}});
+
+    auto result = ToolOrdering::get_recommended_filament_maps({{0}, {1}, {2}, {0}, {1}, {2}}, &print, FilamentMapMode::fmmAutoForFlush, {}, {});
+
+    int on_master = 0;
+    for (int f = 0; f < 3; ++f)
+        on_master += result.get_extruder_id(f) == 1;
+    REQUIRE(on_master == 2);
+}
+
+TEST_CASE("Convenience-mode grouping puts a filament where the printer holds its sub-type", "[ToolOrdering][H2C]")
+{
+    // Both extruders hold white PLA; only the second one's is the project filament's sub-type. One
+    // nozzle on the second extruder runs the two-extruder match; six run the multi-nozzle one.
+    const int second_extruder_nozzles = GENERATE(1, 6);
+    DynamicPrintConfig config = master_second_extruder_config(second_extruder_nozzles, {"#FFFFFF"});
+    config.option<ConfigOptionStrings>("filament_ids", true)->values = {"GFA00"};
+    Model model;
+    model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
+    Print print;
+    print.apply(model, config);
+    print.is_BBL_printer() = true;
+    print.set_extruder_filament_info({{loaded_filament("#FFFFFF", "PLA", "A1", "GFL99")},
+                                      {loaded_filament("#FFFFFF", "PLA", "A1", "GFA00")}});
+
+    auto result = ToolOrdering::get_recommended_filament_maps({{0}, {0}, {0}}, &print, FilamentMapMode::fmmAutoForMatch, {}, {});
+
+    INFO("Nozzles on the second extruder: " << second_extruder_nozzles);
+    REQUIRE(result.get_extruder_id(0) == 1);
+}
+
+TEST_CASE("Filament-saving grouping on a multi-nozzle printer keeps filaments on the extruder the printer has them loaded in", "[ToolOrdering][H2C]")
+{
+    // On the H2C layout the master preference would move both filaments to the master's first two
+    // nozzles, so choosing between that and the printer's match resolves nozzle ids past one per
+    // extruder.
+    Model model;
+    model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
+    Print print;
+    print.apply(model, master_second_extruder_config(6, {"#F98C36", "#FFFFFF"}));
+    print.is_BBL_printer() = true;
+    print.set_extruder_filament_info({{loaded_filament("#F98C36", "PLA", "A1"), loaded_filament("#FFFFFF", "PLA", "A2")},
+                                      {loaded_filament("#F95D73", "PETG", "Ext")}});
+
+    auto result = ToolOrdering::get_recommended_filament_maps({{0}, {1}, {0}}, &print, FilamentMapMode::fmmAutoForFlush, {}, {});
+
+    REQUIRE(result.get_extruder_id(0) == 0);
+    REQUIRE(result.get_extruder_id(1) == 0);
 }
 
 TEST_CASE("H2C dynamic selector: per-layer nozzle ids reach the g-code surface", "[ToolOrdering][H2C][Dynamic]")

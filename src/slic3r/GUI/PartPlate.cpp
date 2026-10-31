@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/lexical_cast.hpp>
 #include <cstddef>
 #include <algorithm>
 #include "libslic3r/Color.hpp"
@@ -8547,7 +8548,7 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
                 std::replace(s.begin(), s.end(), ',', ' ');
                 std::istringstream iss(s);
                 std::string tok;
-                while (iss >> tok) { try { out.push_back(std::stod(tok)); } catch (...) {} }
+                while (iss >> tok) { try { out.push_back(boost::lexical_cast<double>(tok)); } catch (...) {} }
                 return out;
             };
 

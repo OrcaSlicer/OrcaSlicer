@@ -4861,7 +4861,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::istringstream(used_for_object) >> std::boolalpha >> filament_info.used_for_object;
             std::istringstream(used_for_support) >> std::boolalpha >> filament_info.used_for_support;
             filament_info.group_id = parse_int_list(group_id);
-            filament_info.nozzle_diameter = atof(nozzle_diameter.c_str());
+            filament_info.nozzle_diameter = string_to_double_decimal_point(nozzle_diameter);
             filament_info.nozzle_volume_type = volume_type;
             m_curr_plater->slice_filaments_info.push_back(filament_info);
         }

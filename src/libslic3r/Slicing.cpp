@@ -145,9 +145,10 @@ SlicingParameters SlicingParameters::create_from_config(
         params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, 0));
         params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, 0));
     } else {
+        // Orca: object_extruders are 0-based, the extruder the limits are read from is 1-based like support_filament.
         for (unsigned int extruder_id : object_extruders) {
-            params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, extruder_id));
-            params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, extruder_id));
+            params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, extruder_id + 1));
+            params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, extruder_id + 1));
         }
     }
 

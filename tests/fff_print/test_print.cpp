@@ -932,6 +932,38 @@ TEST_CASE("Plate name reaches the G-code once G-code export is invalidated", "[P
     CHECK(regenerated.find("; Plate First") == std::string::npos);
 }
 
+// The background thread drops its own export when an in-place edit of the file fails. The print's cancel
+// callback stops that thread and waits for it, so the invalidation must not call it.
+TEST_CASE("An export the background thread invalidates is written again without re-slicing", "[Print]")
+{
+    // Declared before the print, whose destructor calls the cancel callback too.
+    bool cancel_called = false;
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model);
+    print.set_status_silent();
+    print.set_cancel_callback([&cancel_called]() { cancel_called = true; });
+
+    ScopedTemporaryFile output(".gcode");
+    print.process();
+    print.export_gcode(output.string(), nullptr, nullptr);
+    REQUIRE(print.finished());
+    // What a post-processing script that failed half way leaves in the file.
+    std::ofstream(output.string(), std::ios::app) << "; half edited\n";
+
+    print.invalidate_gcode_export_from_worker();
+    CHECK_FALSE(print.finished());
+    CHECK_FALSE(cancel_called);
+    CHECK(print.objects().front()->is_step_done(posSlice));
+
+    print.process();
+    print.export_gcode(output.string(), nullptr, nullptr);
+    CHECK(print.finished());
+    std::ifstream in(output.string(), std::ios::binary);
+    const std::string gcode((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    CHECK(gcode.find("; half edited") == std::string::npos);
+}
+
 // The layer change G-code runs before its layer prints, so the layer mass it gets is the previous layer's.
 TEST_CASE("Layer change G-code gets the previous layer's mass under both placeholder names", "[Print]")
 {
@@ -2222,4 +2254,61 @@ TEST_CASE("Changing G-code precision invalidates only G-code export", "[Print][R
     CHECK(print.is_step_done(psSkirtBrim));
     CHECK(print.objects().front()->is_step_done(posSlice));
     CHECK(print.objects().front()->is_step_done(posPerimeters));
+}
+
+namespace {
+
+// The slicing parameters of an object printed with one filament, on a printer whose first extruder
+// allows layers up to 0.32 mm and the second one up to 0.28 mm. The layers are 0.2 mm, within both.
+SlicingParameters slicing_parameters_on_filament(unsigned int filament)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "nozzle_diameter",  "0.4,0.4" },
+        { "min_layer_height", "0.08,0.08" },
+        { "max_layer_height", "0.32,0.28" },
+        { "layer_height",     0.2 },
+        { "enable_support",   0 },
+        { "raft_layers",      0 },
+    });
+    PrintConfig       print_config;
+    PrintObjectConfig object_config;
+    print_config.apply(config, true);
+    object_config.apply(config, true);
+    // The extruders of an object are 0-based.
+    return SlicingParameters::create_from_config(print_config, object_config, 20., { filament - 1 }, Vec3d(1., 1., 1.));
+}
+
+} // namespace
+
+TEST_CASE("An object takes the layer height limits of the extruder of its own filament", "[Print]")
+{
+    CHECK_THAT(slicing_parameters_on_filament(1).max_layer_height, Catch::Matchers::WithinAbs(0.32, EPSILON));
+    CHECK_THAT(slicing_parameters_on_filament(2).max_layer_height, Catch::Matchers::WithinAbs(0.28, EPSILON));
+}
+
+// The limits only bound a variable layer height, so with fixed 0.2 mm layers both objects share every layer.
+TEST_CASE("Objects on extruders with different layer height limits can share a prime tower", "[Print]")
+{
+    DynamicPrintConfig config = multifilament_config(3);
+    config.set_num_extruders(3);
+    config.set_deserialize_strict({
+        { "nozzle_diameter",    "0.4,0.4,0.4" },
+        { "min_layer_height",   "0.08,0.08,0.08" },
+        { "max_layer_height",   "0.32,0.28,0.28" },
+        { "layer_height",       0.2 },
+        { "enable_prime_tower", 1 },
+        { "wipe_tower_x",       150 }, // the default Y is off the default bed
+        { "wipe_tower_y",       20 },
+        { "layer_change_gcode", "G92 E0\n" }, // validate() relative-E reset
+    });
+    size_flush_to_nozzles(config);
+    const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides { { { "extruder", 1 } }, { { "extruder", 3 } } };
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{ cube(20), cube(20) }, print, model, config, &overrides);
+    const StringObjectException error = print.validate();
+    INFO(error.string);
+    CHECK(error.string.empty());
 }

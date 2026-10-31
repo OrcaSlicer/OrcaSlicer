@@ -2004,7 +2004,7 @@ static std::map<int, std::vector<DevNozzle>> deserialize_nozzle_config(const std
             boost::split(values, part, boost::is_any_of(","));
             if (values.size() == 2) {
                 DevNozzle nozzle;
-                nozzle.m_diameter = std::stof(values[0]);
+                nozzle.m_diameter = string_to_double_decimal_point(values[0]);
                 nozzle.m_nozzle_flow = static_cast<NozzleFlowType>(std::stoi(values[1]));
                 nozzles.push_back(nozzle);
             }
@@ -2410,7 +2410,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     std::vector<NozzleVolumeType> target_types(extruder_nums, NozzleVolumeType::nvtStandard);
     for (size_t index = 0; index < extruder_nums; ++index) {
         int extruder_id = extruder_map[index];
-        nozzle_diameters[extruder_id] = nozzle_option ? atof(nozzle_option->diameter.c_str()) : obj->GetExtderSystem()->GetNozzleDiameter(index);
+        nozzle_diameters[extruder_id] = nozzle_option ? string_to_double_decimal_point(nozzle_option->diameter) : obj->GetExtderSystem()->GetNozzleDiameter(index);
         NozzleVolumeType target_type = NozzleVolumeType::nvtStandard;
         std::optional<NozzleVolumeType> select_type;
         if (nozzle_option && nozzle_option->extruder_nozzle_stats.count(index)) {
@@ -6466,6 +6466,8 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     // For full sync, preset selection/list update may rebuild combo widgets.
     // For color-only, keep current presets untouched and refresh colors only.
     if (!sync_color_only) {
+        // Keep the printer's filaments in their slots after a restart, ticked or not.
+        wxGetApp().preset_bundle->install_slot_filaments(*wxGetApp().app_config);
         wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(wxGetApp().preset_bundle->filament_presets[0]);
         wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
         update_dynamic_filament_list();
@@ -13438,8 +13440,12 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     }
 
     //BBS: set the current plater's slice result to valid
-    if (!this->background_process.empty())
-        this->background_process.get_current_plate()->update_slice_result_valid_state(evt.success());
+    // A failed export or upload keeps a complete FFF slice valid, so Print and Export can be run again.
+    if (!this->background_process.empty()) {
+        const bool slice_valid = evt.success() ||
+                                 (evt.export_failed() && printer_technology == ptFFF && this->background_process.finished());
+        this->background_process.get_current_plate()->update_slice_result_valid_state(slice_valid);
+    }
 
     //BBS: update the action button according to the current plate's status
     bool ready_to_slice = !this->partplate_list.get_curr_plate()->is_slice_result_valid();
