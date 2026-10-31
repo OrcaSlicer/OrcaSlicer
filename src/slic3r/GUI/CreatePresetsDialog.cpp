@@ -853,6 +853,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_vendor_item()
 
     wxBoxSizer *vendor_sizer   = new wxBoxSizer(wxHORIZONTAL);
     m_filament_vendor_combobox = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, NAME_OPTION_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
+    m_filament_vendor_combobox->EnableTypeToFilter();
     m_filament_vendor_combobox->SetLabel(_L("Select Vendor"));
     m_filament_vendor_combobox->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
     m_filament_vendor_combobox->Set(choices);
@@ -937,6 +938,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_type_item()
 
     wxBoxSizer *comboBoxSizer = new wxBoxSizer(wxVERTICAL);
     m_filament_type_combobox  = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, NAME_OPTION_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
+    m_filament_type_combobox->EnableTypeToFilter();
     m_filament_type_combobox->SetLabel(_L("Select Type"));
     m_filament_type_combobox->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
     m_filament_type_combobox->Set(filament_type);
@@ -1011,6 +1013,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_filament_preset_item()
     comboBoxSizer->Add(create_radio_item(m_create_type.base_filament, this, wxEmptyString, m_create_type_btns), 0, wxEXPAND | wxALL, 0);
 
     m_filament_preset_combobox = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, FILAMENT_PRESET_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
+    m_filament_preset_combobox->EnableTypeToFilter();
     m_filament_preset_combobox->SetLabel(_L("Select Filament Preset"));
     m_filament_preset_combobox->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
 
@@ -5012,6 +5015,7 @@ wxBoxSizer *CreatePresetForPrinterDialog::create_selected_filament_preset_sizer(
     wxStaticText *printer_text                 = new wxStaticText(this, wxID_ANY, _L("Copy preset from filament"), wxDefaultPosition, wxDefaultSize);
     select_filament_preset_sizer->Add(printer_text, 0, wxEXPAND | wxALL, 0);
     m_selected_filament = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, PRINTER_PRESET_MODEL_SIZE, 0, nullptr, wxCB_READONLY);
+    m_selected_filament->EnableTypeToFilter();
     select_filament_preset_sizer->Add(m_selected_filament, 0, wxEXPAND | wxTOP, FromDIP(5));
 
     m_selected_printer->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {
