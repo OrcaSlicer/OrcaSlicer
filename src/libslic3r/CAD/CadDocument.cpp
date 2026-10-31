@@ -3374,7 +3374,15 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         } else {
             throw std::runtime_error(_u8L("sweep path must be a sketch, 3D sketch or helix"));
         }
-        TopoDS_Wire profile = build_sketch_wire(sk, true);
+        // The profile is the sketch, ONE closed loop of it, or a face of the target body: entry 0 of the loft_profile_loops / _faces
+        // (the same fields, the same rule as a loft section; loft_profile_wire reads them through a one-entry view of this feature).
+        TopoDS_Wire profile;
+        if (loft_profile_is_face(f, 0) || (!f.loft_profile_loops.empty() && !f.loft_profile_loops[0].empty())) {
+            CadFeature one = f;
+            one.loft_profile_refs = { f.sketch_ref };
+            profile = loft_profile_wire(one, 0, true, context);
+        } else
+            profile = build_sketch_wire(sk, true);
         TopoDS_Shape tool   = SketchEngine::make_sweep(profile, path);
         combine_into(f.mode, result, have_body, tool);
         break;

@@ -11387,6 +11387,47 @@ TEST_CASE("a loft can start on a face of a body", "[CadDocument]")
     REQUIRE_THAT(double(doc.display_body_meshes[1].volume()), WithinRel(v, 0.02));
 }
 
+TEST_CASE("a sweep profile can be one closed loop of a sketch or a face of a body", "[CadDocument][sweep]")
+{
+    SECTION("one chosen loop of a two-circle sketch") {
+        CadDocument doc;
+        SketchEntity c0, c1;
+        c0.type = c1.type = SketchEntity::Type::Circle;
+        c0.center = Vec2d(-20, 0); c1.center = Vec2d(20, 0);
+        c0.radius = c1.radius = 5.0;
+        const int prof = doc.add_sketch_entities({c0, c1}, SketchPlane::XY(), "Profile");
+        SketchEntity line; line.type = SketchEntity::Type::Line; line.p0 = Vec2d(20, 0); line.p1 = Vec2d(20, 100);
+        const int path = doc.add_sketch_entities({line}, SketchPlane::XZ(), "Path");
+        REQUIRE(CadDocument::sketch_closed_loops(doc.features[prof]).size() == 2);
+        const int sw = doc.add_sweep(prof, path, BooleanMode::New, "Sweep1");
+        doc.features[sw].loft_profile_loops = { { 1 } };
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        REQUIRE(doc.bodies.size() == 1);
+        CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(M_PI * 25.0 * 100.0, 0.01));
+    }
+    SECTION("the top face of a block") {
+        CadDocument doc;
+        SketchProfile base;
+        base.points = {{-10,-10},{10,-10},{10,10},{-10,10}};
+        base.closed = true;
+        const int sb = doc.add_sketch_profile(base, SketchPlane::XY(), "Base");
+        doc.add_extrude(sb, 10.0, false, BooleanMode::New, "Block");
+        REQUIRE(doc.recompute());
+        const int top = find_face_by_normal(doc, 0, Vec3d(0, 0, 1));
+        REQUIRE(top >= 0);
+        SketchEntity line; line.type = SketchEntity::Type::Line; line.p0 = Vec2d(0, 10); line.p1 = Vec2d(0, 40);
+        const int path = doc.add_sketch_entities({line}, SketchPlane::XZ(), "Path");
+        const int sw = doc.add_sweep(-1, path, BooleanMode::New, "FaceSweep");
+        doc.features[sw].loft_profile_faces = { top };
+        doc.features[sw].target_body = 0;
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        REQUIRE(doc.bodies.size() == 2);
+        CHECK_THAT(doc.body_mass_properties(1).volume, Catch::Matchers::WithinRel(20.0 * 20.0 * 30.0, 0.01));
+    }
+}
+
 TEST_CASE("a mate offered with no flip control puts two faces in contact, not overlapping", "[CadDocument][mate]")
 {
     CadDocument doc;

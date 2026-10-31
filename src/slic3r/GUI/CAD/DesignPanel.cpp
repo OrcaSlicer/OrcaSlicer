@@ -776,6 +776,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
              [this] {
                 m_sweep_profile_ref = resolve_extrude_sketch();
                 m_sweep_path_ref    = -1;   // fresh sweep: default the picker to the first sketch
+                m_sweep_profile_loop.clear(); m_sweep_profile_face = m_sweep_profile_face_body = -1;
                 if (m_sweep_profile_ref < 0) {
                     set_status(StatusKind::Warning, _L("Create a profile sketch to sweep first"));
                     open_tool(Tool::Sweep);   // the card opens and says what it still needs
@@ -3609,6 +3610,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_sel_solid_edge = (level == 3) ? edge : -1;
         m_sel_solid_edges = (level == 3) ? m_viewport->selected_solid_edges() : std::vector<int>();
         m_sel_solid_vertex = (level == 4);
+        // A card whose input is a FACE takes the face under the click even at the whole-body level: the first click on a body selects the
+        // whole body and leaves m_sel_solid_face at -1, so the pick silently failed until a second click cycled to the face (the same
+        // bug the Plane, CoordSys and Axis tools had). The label and ghost below read m_sel_solid_face.
+        if (level == 1 && face >= 0 && (m_active == Tool::Thicken || m_active == Tool::Shell || m_active == Tool::Draft
+                                        || m_active == Tool::DeleteFace || m_active == Tool::Project))
+            m_sel_solid_face = face;
         // Keep the hit face even at whole-body level: the cycle's first click means "this body",
         // but the user pointed AT a face and a sketch should be able to use it. 3a2.
         m_pick_face_body = (level >= 1) ? body : -1;
@@ -3755,6 +3762,19 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 if (m_thread_height && cf.height > 1e-6) m_thread_height->SetValue(cf.height);
                 refresh_preview();
             }
+        }
+        // Sweep card open: a click on a body's FACE makes its outer boundary the profile (nothing else in this card takes a face click).
+        // Face and body come from the click itself, as in the Plane tool: the first click on a body leaves m_sel_solid_face at -1.
+        if (m_active == Tool::Sweep && face >= 0 && body >= 0 && body < int(m_doc.bodies.size())) {
+            m_sweep_profile_face = face; m_sweep_profile_face_body = body;
+            m_sweep_profile_loop.clear();
+            m_sweep_profile_ref = -1;
+            m_sweep_path_ref    = -1;
+            fill_sweep_paths();
+            m_armed_slot = nullptr;
+            sync_slots();
+            refresh_preview();
+            set_status(StatusKind::Info, _L("Face is the sweep profile — click the path sketch"));
         }
         // Plane tool: a click on a body's FACE is Face A (a plane is most often made from a face, so it must not need the "Pick face A"
         // button first), and with a pick armed the click fills that reference. The face and edge under the cursor come from the click
@@ -5508,8 +5528,9 @@ void DesignPanel::on_add_revolve()
 
 void DesignPanel::on_add_sweep()
 {
-    if (m_sweep_profile_ref < 0 || m_sweep_profile_ref >= int(m_doc.features.size())) {
-        set_status(_L("Pick a profile sketch to sweep first"));
+    const bool face_profile = m_sweep_profile_face >= 0;
+    if (!face_profile && (m_sweep_profile_ref < 0 || m_sweep_profile_ref >= int(m_doc.features.size()))) {
+        set_status(_L("Pick a profile to sweep first: a sketch, or a face of a body"));
         return;
     }
     const int sel = m_sweep_path->GetSelection();
@@ -5525,8 +5546,12 @@ void DesignPanel::on_add_sweep()
         return;
     }
     m_feature_counter++;
-    m_doc.add_sweep(m_sweep_profile_ref, path_ref, mode,
-                    feature_name(_L("Sweep")));
+    const int sw = m_doc.add_sweep(face_profile ? -1 : m_sweep_profile_ref, path_ref, mode,
+                                   feature_name(_L("Sweep")));
+    if (sw >= 0 && sw < int(m_doc.features.size())) {
+        if (face_profile) { m_doc.features[sw].loft_profile_faces = { m_sweep_profile_face }; m_doc.features[sw].target_body = m_sweep_profile_face_body; }
+        else if (!m_sweep_profile_loop.empty()) m_doc.features[sw].loft_profile_loops = { m_sweep_profile_loop };
+    }
 
     if (!recompute_guarded(_L("Rebuilding model…")))
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
@@ -10296,6 +10321,9 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         break;
     case CadFeatureType::Sweep:
         m_sweep_profile_ref = f.sketch_ref;
+        m_sweep_profile_loop = f.loft_profile_loops.empty() ? std::vector<int>() : f.loft_profile_loops[0];
+        m_sweep_profile_face = (!f.loft_profile_faces.empty() && f.loft_profile_faces[0] >= 0) ? f.loft_profile_faces[0] : -1;
+        m_sweep_profile_face_body = m_sweep_profile_face >= 0 ? f.target_body : -1;
         m_sweep_path_ref    = f.sweep_path_ref;   // show_tool pre-selects this in the picker
         m_sweep_mode->SetSelection(static_cast<int>(f.mode));
         break;
@@ -11031,7 +11059,9 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         break;
     case Tool::Sweep: {
         f.type           = CadFeatureType::Sweep;
-        f.sketch_ref     = m_sweep_profile_ref;
+        f.sketch_ref     = m_sweep_profile_face >= 0 ? -1 : m_sweep_profile_ref;
+        if (m_sweep_profile_face >= 0) { f.loft_profile_faces = { m_sweep_profile_face }; f.target_body = m_sweep_profile_face_body; }
+        else if (!m_sweep_profile_loop.empty())  f.loft_profile_loops = { m_sweep_profile_loop };
         const int sel    = m_sweep_path ? m_sweep_path->GetSelection() : wxNOT_FOUND;
         f.sweep_path_ref = (sel != wxNOT_FOUND)
             ? int(reinterpret_cast<intptr_t>(m_sweep_path->GetClientData(sel))) : -1;
@@ -11274,6 +11304,7 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         && m_active != Tool::ThickenSurface)
         f.target_body = (m_active == Tool::Extrude && m_sel_solid_body < 0) ? m_extrude_auto_body
                                                                            : m_sel_solid_body;
+    if (m_active == Tool::Sweep && m_sweep_profile_face >= 0) f.target_body = m_sweep_profile_face_body;   // the body the profile face is on
     return f;
 }
 
@@ -11405,7 +11436,7 @@ bool DesignPanel::mcp_card_open(const std::string& card)
     else if (card == "sweep" || card == "surface_extrude" || card == "surface_fill") {   // one-sketch tools: the ribbon verbs' setup
         const int sk = resolve_extrude_sketch();
         if (sk < 0) return false;
-        if (card == "sweep") { m_sweep_profile_ref = sk; m_sweep_path_ref = -1; open_tool(Tool::Sweep); }
+        if (card == "sweep") { m_sweep_profile_ref = sk; m_sweep_path_ref = -1; m_sweep_profile_loop.clear(); m_sweep_profile_face = m_sweep_profile_face_body = -1; open_tool(Tool::Sweep); }
         else if (card == "surface_extrude") { m_surf_extrude_sketch_ref = sk; open_tool(Tool::SurfaceExtrude); }
         else { m_surf_fill_sketch_ref = sk; open_tool(Tool::SurfaceFill); }
     }
@@ -11760,7 +11791,9 @@ void DesignPanel::sync_slots()
     if (m_active == Tool::SurfaceExtrude && m_surf_extrude_sketch_label != nullptr) m_surf_extrude_sketch_label->SetLabel(sketch_label(m_surf_extrude_sketch_ref));
     if (m_active == Tool::SurfaceFill && m_surf_fill_sketch_label != nullptr)       m_surf_fill_sketch_label->SetLabel(sketch_label(m_surf_fill_sketch_ref));
     if (m_active == Tool::Sweep && m_sweep_profile_slot != nullptr) {
-        m_sweep_profile_slot->SetLabel(sketch_name(m_sweep_profile_ref));
+        m_sweep_profile_slot->SetLabel(m_sweep_profile_face >= 0 ? wxString::Format(_L("Face %d"), m_sweep_profile_face)
+                                       : m_sweep_profile_loop.empty() ? sketch_name(m_sweep_profile_ref)
+                                       : sketch_name(m_sweep_profile_ref) + _L(" (one shape)"));
         m_sweep_profile_slot->SetActive(m_armed_slot == m_sweep_profile_slot);
     }
     if (rv.prof == nullptr) { if (m_active != Tool::Sweep) m_armed_slot = nullptr; return; }
@@ -11790,7 +11823,28 @@ bool DesignPanel::sketch_take_pick(int feat, int entity)
     }
     if (m_active == Tool::Sweep) {
         if (m_armed_slot != m_sweep_profile_slot) return false;   // otherwise the click names the path (the handler below)
+        // A sketch with several closed shapes: the click names ONE (the stroke it hit, or the region it landed in), as in a loft.
+        std::vector<int> loop;
+        const auto loops = CadDocument::sketch_closed_loops(m_doc.features[feat]);
+        if (loops.size() > 1) {
+            const std::vector<SketchEntity> inside = entity < 0 ? m_viewport->selected_loop_entities() : std::vector<SketchEntity>{};
+            const auto& ents = m_doc.features[feat].entities;
+            const auto same = [](const SketchEntity& a, const SketchEntity& b) {
+                return a.type == b.type && a.p0 == b.p0 && a.p1 == b.p1 && a.center == b.center && a.radius == b.radius;
+            };
+            for (const auto& l : loops) {
+                for (int id : l)
+                    if (id == entity || (!inside.empty() && id >= 0 && id < int(ents.size()) && same(ents[size_t(id)], inside.front()))) { loop = l; break; }
+                if (!loop.empty()) break;
+            }
+            if (loop.empty()) {
+                set_status(StatusKind::Warning, _L("This sketch has several closed shapes: click the outline or the inside of the one to sweep"));
+                return true;
+            }
+        }
         m_sweep_profile_ref = feat;
+        m_sweep_profile_loop = loop;
+        m_sweep_profile_face = m_sweep_profile_face_body = -1;
         m_sweep_path_ref    = -1;
         fill_sweep_paths();
         m_armed_slot = nullptr;
@@ -13607,7 +13661,7 @@ wxString DesignPanel::missing_reference_text(Tool t) const
     case Tool::SurfaceExtrude:  if (!sketch_ok(m_surf_extrude_sketch_ref)) return need_sketch; break;
     case Tool::SurfaceFill:     if (!sketch_ok(m_surf_fill_sketch_ref)) return need_sketch; break;
     case Tool::Sweep:
-        if (!sketch_ok(m_sweep_profile_ref)) return _L("Select the profile sketch to sweep");
+        if (m_sweep_profile_face < 0 && !sketch_ok(m_sweep_profile_ref)) return _L("Select the profile to sweep: a sketch, or a face of a body");
         if (!chosen(m_sweep_path)) return _L("Select the path: click a second sketch in the viewport, or choose it in the list");
         break;
     case Tool::Loft:
