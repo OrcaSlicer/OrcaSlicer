@@ -449,6 +449,7 @@ class DiffPresetDialog : public DPIDialog, public LazyInstance<DiffPresetDialog>
     wxStaticText*           m_bottom_info_line  { nullptr };
     wxCheckBox*             m_show_all_presets  { nullptr };
     wxCheckBox*             m_use_for_transfer  { nullptr };
+    Button*                 m_copy_differences_btn { nullptr };
     wxBoxSizer*             m_buttons           { nullptr };
     wxBoxSizer*             m_edit_sizer        { nullptr };
 
@@ -458,6 +459,7 @@ class DiffPresetDialog : public DPIDialog, public LazyInstance<DiffPresetDialog>
     std::unique_ptr<PresetBundle>   m_preset_bundle_right;
 
     void create_buttons();
+    void create_copy_button();
     void create_edit_sizer();
     void complete_dialog_creation();
     void create_presets_sizer();
@@ -470,6 +472,14 @@ class DiffPresetDialog : public DPIDialog, public LazyInstance<DiffPresetDialog>
     void update_bundles_from_app();
     void update_controls_visibility(Preset::Type type = Preset::TYPE_INVALID);
     void update_compatibility(const std::string& preset_name, Preset::Type type, PresetBundle* preset_bundle);
+
+    // The differences shown in the tree as Markdown: one table per compared pair of presets,
+    // with a row per setting and a column per preset.
+    void begin_diff_export_table(Preset::Type type, const wxString& left_name, const wxString& right_name);
+    void append_diff_export_row(const wxString& option_name, const wxString& left_value, const wxString& right_value);
+    void copy_differences_to_clipboard() const;
+    std::string m_diff_export_text;
+    std::string m_diff_export_head; // table header, written with the first row so a table is never empty
          
     void button_event(Action act);
 
