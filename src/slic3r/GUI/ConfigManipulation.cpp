@@ -1152,7 +1152,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_rectilinear_ironing = (config->opt_enum<InfillPattern>("ironing_pattern") == InfillPattern::ipRectilinear);
     for (auto el : {"ironing_angle", "ironing_angle_fixed"})
         toggle_field(el, has_ironing && has_rectilinear_ironing, -1, _L("Enable ironing with the Rectilinear pattern to edit ironing angles."));
-    
+    for (auto el : { "ironing_retract", "ironing_unretract_extra"})
+        toggle_line(el,  has_ironing && config->opt<ConfigOptionPercent>("ironing_flow")->value == 0);
     toggle_line("ironing_speed", has_ironing || has_support_ironing, -1, _L("Enable ironing or support ironing to edit ironing speed."));
 
     bool has_zaa = config->opt_bool("zaa_enabled");
