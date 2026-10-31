@@ -191,6 +191,7 @@
 
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
+#include "Event.hpp"
 #include "3DScene.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
@@ -3365,12 +3366,15 @@ bool GUI_App::on_init_inner()
 #ifdef _MSW_DARK_MODE
 
 #ifndef __WINDOWS__
+    // These platforms have no colour theme setting and always follow the system theme. Earlier versions stored the
+    // system theme here, which would now force it.
     // The label colours and the dark mode flag were set above from the saved mode. When the system theme
     // differs from it, refresh them, or dialogs that map their colours stay in the old mode for this session.
     const bool saved_dark_mode = dark_mode();
-    wxSystemAppearance app = wxSystemSettings::GetAppearance();
-    GUI::wxGetApp().app_config->set("dark_color_mode", app.IsDark() ? "1" : "0");
-    GUI::wxGetApp().app_config->save();
+    if (app_config->get("dark_color_mode") != "0") {
+        app_config->set("dark_color_mode", "0");
+        app_config->save();
+    }
     if (dark_mode() != saved_dark_mode) {
         init_label_colours();
         Update_dark_mode_flag();
@@ -4525,14 +4529,14 @@ bool GUI_App::dark_mode()
     // proper dark mode was first introduced.
     return wxPlatformInfo::Get().CheckOSVersion(10, 14) && mac_dark_mode();
 #else
-    // When the user has explicitly chosen a mode, honour it directly.
-    // Falling through to check_dark_mode() for an explicit "0" would query
+    // When the user has explicitly chosen a mode, honour it directly: "1" forces dark and "2" forces light.
+    // Falling through to check_dark_mode() for an explicit light mode would query
     // wxSystemSettings::GetAppearance().IsDark(), which is contaminated by
     // wxWidgets 3.3's MSWEnableDarkMode(DarkMode_Auto) and can return true
-    // even though the user asked for light mode.
+    // even though the user asked for light mode. Anything else follows the system theme.
     const auto &val = wxGetApp().app_config->get("dark_color_mode");
     if (val == "1") return true;
-    if (val == "0") return false;
+    if (val == "2") return false;
     return check_dark_mode();
 #endif
 #else
@@ -4749,6 +4753,28 @@ void GUI_App::Update_dark_mode_flag()
 {
     m_is_dark_mode = dark_mode();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": switch the current dark mode status to %1% ")%m_is_dark_mode;
+}
+
+bool GUI_App::refresh_system_theme()
+{
+    const bool old_dark_mode = m_is_dark_mode;
+    Update_dark_mode_flag();
+    if (m_is_dark_mode == old_dark_mode)
+        return false;
+    apply_dark_mode_change();
+    return true;
+}
+
+void GUI_App::apply_dark_mode_change()
+{
+    // Same sequence as the Preferences colour theme selector: recolour the native chrome and the custom UI,
+    // then notify the 3D canvases and gizmos.
+    force_colors_update();
+    update_ui_from_settings();
+    if (Plater* pl = plater()) {
+        SimpleEvent evt(EVT_GLCANVAS_COLOR_MODE_CHANGED);
+        wxPostEvent(pl, evt);
+    }
 }
 
 void GUI_App::UpdateDlgDarkUI(wxDialog* dlg)
