@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <initializer_list>
+#include <string>
+#include <vector>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
@@ -10,10 +12,14 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Layer.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "test_helpers.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Print.hpp"
 
@@ -197,4 +203,142 @@ TEST_CASE("Tree support toolpaths do not depend on the MST tie order", "[TreeSup
         { "tree_support_branch_angle",    40 },
         { "support_line_width",           0.4 },
     });
+}
+
+namespace {
+
+// What is printed in one support base area.
+struct BaseAreaPaths
+{
+    // Paths cross the inside of the area, away from its walls.
+    bool infilled = false;
+    // Paths run along most of the outline of the area.
+    bool walled = false;
+};
+
+void collect_base_polylines(const ExtrusionEntity &entity, Polylines &out, bool &other_roles)
+{
+    if (entity.is_collection()) {
+        for (const ExtrusionEntity *child : static_cast<const ExtrusionEntityCollection &>(entity).entities)
+            collect_base_polylines(*child, out, other_roles);
+    } else if (entity.role() == erSupportMaterial) {
+        entity.collect_polylines(out);
+    } else {
+        other_roles = true;
+    }
+}
+
+// The base areas of the support layers but the first, which is a flange with a sheath of its own. The
+// paths are measured against the areas rather than told apart by kind, since the walls of hollow
+// branches are printed as paths clipped at their seam, just like infill.
+std::vector<BaseAreaPaths> base_areas(const Slic3r::Print &print)
+{
+    const float                width = float(scale_(0.4));
+    std::vector<BaseAreaPaths> out;
+    const auto                &layers = print.objects().front()->support_layers();
+    for (size_t layer_idx = 1; layer_idx < layers.size(); ++ layer_idx) {
+        const SupportLayer &layer = *layers[layer_idx];
+        Polylines           paths;
+        bool                other_roles = false;
+        collect_base_polylines(layer.support_fills, paths, other_roles);
+        // Organic supports keep only the islands, which take in the interfaces of the layers that have any.
+        if (paths.empty() || (layer.base_areas.empty() && other_roles))
+            continue;
+        for (const ExPolygon &area : layer.base_areas.empty() ? layer.support_islands : layer.base_areas) {
+            const double outline = unscaled(area.contour.length());
+            if (outline < 3.)
+                continue;
+            BaseAreaPaths paths_in_area;
+            paths_in_area.infilled = total_length(intersection_pl(paths, offset_ex(area, -3.f * width))) > scale_(2.);
+            const ExPolygons band  = diff_ex(ExPolygons{ area }, offset_ex(area, -width));
+            paths_in_area.walled   = unscaled(total_length(intersection_pl(paths, band))) > 0.75 * outline;
+            out.emplace_back(paths_in_area);
+        }
+    }
+    return out;
+}
+
+size_t count_areas(const std::vector<BaseAreaPaths> &areas, bool infilled)
+{
+    return std::count_if(areas.begin(), areas.end(), [infilled](const BaseAreaPaths &paths) {
+        return paths.walled && paths.infilled == infilled;
+    });
+}
+
+// A tall support trunk, merged from many branches, under a wide plate.
+TriangleMesh trunk_mesh()
+{
+    TriangleMesh column = make_cube(6, 6, 40);
+    TriangleMesh plate  = make_cube(40, 40, 3);
+    column.translate(17.f, 17.f, 0.f);
+    plate.translate(0.f, 0.f, 39.f);
+    TriangleMesh mesh = column;
+    mesh.merge(plate);
+    return mesh;
+}
+
+std::vector<BaseAreaPaths> trunk_base_areas(const char *style, const char *pattern, int wall_count)
+{
+    Slic3r::Print print;
+    slice_with_tree_support(trunk_mesh(), print, style, 30, 1, 0, {
+        { "support_base_pattern",    pattern },
+        { "tree_support_wall_count", wall_count },
+    });
+    return base_areas(print);
+}
+
+} // namespace
+
+// Support wall loops is auto (-1) unless set, and a value of -1 is kept as it is when loaded.
+TEST_CASE("Tree support wall loops default to auto", "[TreeSupport]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    CHECK(config.opt_int("tree_support_wall_count") == -1);
+    config.set_deserialize_strict({ { "tree_support_wall_count", 0 } });
+    config.set_deserialize_strict({ { "tree_support_wall_count", "-1" } });
+    CHECK(config.opt_int("tree_support_wall_count") == -1);
+}
+
+// With Support wall loops at -1 (auto), a support area that gets infill keeps a wall around it.
+// Without one, the infill lines of each layer stand on those below as separate plates with nothing
+// tying them together, and a tall support folds over.
+TEST_CASE("Tree support infill keeps a wall around it when the wall count is auto", "[TreeSupport]")
+{
+    const char *style   = GENERATE("tree_slim", "tree_strong", "tree_hybrid", "organic");
+    const char *pattern = GENERATE("rectilinear", "default");
+    CAPTURE(style, pattern);
+
+    size_t infilled = 0;
+    for (const BaseAreaPaths &paths : trunk_base_areas(style, pattern, -1))
+        if (paths.infilled) {
+            ++ infilled;
+            CHECK(paths.walled);
+        }
+    // Default leaves tree branches and trunks hollow; only the normal support of Tree Hybrid gets infill with it.
+    if (std::string(pattern) == "rectilinear" || std::string(style) == "tree_hybrid")
+        REQUIRE(infilled > 0);
+}
+
+// With Support wall loops at 0, support thick enough may still be printed as infill alone, as auto did
+// before -1 was added.
+TEST_CASE("Tree support infill may go without a wall when the wall count is 0", "[TreeSupport]")
+{
+    const char *style = GENERATE("tree_slim", "tree_strong");
+    CAPTURE(style);
+
+    const std::vector<BaseAreaPaths> areas = trunk_base_areas(style, "rectilinear", 0);
+    CHECK(std::any_of(areas.begin(), areas.end(), [](const BaseAreaPaths &paths) { return paths.infilled && ! paths.walled; }));
+}
+
+// Default and Hollow print no infill in tree branches or trunks, so saved projects slice as before.
+TEST_CASE("Tree support stays hollow with the Default and Hollow base patterns", "[TreeSupport]")
+{
+    const char *style      = GENERATE("tree_slim", "tree_strong", "organic");
+    const char *pattern    = GENERATE("default", "hollow");
+    const int   wall_count = GENERATE(-1, 0);
+    CAPTURE(style, pattern, wall_count);
+
+    const std::vector<BaseAreaPaths> areas = trunk_base_areas(style, pattern, wall_count);
+    CHECK(count_areas(areas, false) > 0);
+    CHECK(std::none_of(areas.begin(), areas.end(), [](const BaseAreaPaths &paths) { return paths.infilled; }));
 }
