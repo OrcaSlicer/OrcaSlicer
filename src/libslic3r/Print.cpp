@@ -431,7 +431,10 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "use_3mf"
     };
 
-    static std::unordered_set<std::string> steps_ignore;
+    static std::unordered_set<std::string> steps_ignore = {
+        // Which plugins the printer preset uses: no influence on slicing.
+        "printer_plugins",
+    };
     static const std::unordered_set<std::string> steps_exclusion_geometry = {
         "bed_exclude_area",
         "bed_exclude_volumes",

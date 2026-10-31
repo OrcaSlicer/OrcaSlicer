@@ -2554,9 +2554,9 @@ public:
     std::string                         gui_flags;
     // Capability type of a plugin-backed option, e.g. "slicing-pipeline" / "printer-connection"
     // (empty for ordinary options). GUIType::plugin_picker filters the plugin list by it, and it
-    // resolves the option's "plugins" manifest reference; see is_plugin_backed().
+    // resolves the option's manifest reference; see is_plugin_backed().
     std::string                         plugin_type;
-    // Whether this option holds plugin capability name(s) that feed the "plugins" manifest -- true
+    // Whether this option holds plugin capability name(s) that feed the plugin manifest -- true
     // iff it declares a plugin_type. Setting plugin_type is the only step needed to add one.
     bool is_plugin_backed() const { return !plugin_type.empty(); }
     // Label of the GUI input field.
@@ -2726,10 +2726,10 @@ public:
 
 
 // A plugin-backed option value that the registered capability resolver cannot map to a plugin
-// reference, i.e. a capability whose plugin is not available here. save_to_json() and
-// update_plugin_manifest() cannot derive a reference for such a value and omit it, so a GUI save
-// entry point queries this first and lets the user decide before writing a preset that loses the
-// reference. See ConfigBase::unresolved_plugin_capabilities().
+// reference, i.e. a capability whose plugin is not available here, and that the manifest holds no
+// entry for either. save_to_json() and update_plugin_manifest() cannot derive a reference for such a
+// value and omit it, so a GUI save entry point queries this first and lets the user decide before
+// writing a preset that loses the reference. See ConfigBase::unresolved_plugin_capabilities().
 struct UnresolvedPluginCapability
 {
     // Option holding the capability name, e.g. "printer_agent".
@@ -2892,21 +2892,25 @@ public:
     // replace_invalid_utf8 is set, which writes U+FFFD instead (for callers such as stdout with no handler).
     void save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8 = false) const;
 
-    // Rebuild the in-memory "plugins" manifest (the "name;uuid;capability" references the plugin
+    // Rebuild the in-memory plugin manifest (the "name;uuid;capability" references the plugin
     // dispatchers consume) from the plugin-backed options via the registered resolver. save_to_json()
     // derives the same manifest, but only when a preset is written to disk; a config assembled in
     // memory for the backend (PresetBundle::full_config -> Print::apply) must refresh it here or a
     // picked-but-unsaved plugin never resolves at slice/export time. A capability the resolver cannot
-    // map is omitted from the derived manifest; unresolved_plugin_capabilities() reports those
-    // values. No-op without a resolver.
+    // map keeps its existing manifest entry; one with no entry is omitted, and
+    // unresolved_plugin_capabilities() reports it. No-op without a resolver.
     void update_plugin_manifest();
 
-    // The plugin-backed option values the registered resolver cannot map to a plugin reference --
-    // exactly the values save_to_json()/update_plugin_manifest() omit from the manifest. GUI save
+    // The plugin-backed option values for which save_to_json()/update_plugin_manifest() would write no
+    // reference -- the resolver cannot map them and the manifest holds no entry for them. GUI save
     // entry points call this before writing a preset so the user can be warned that the reference
     // will be lost. Returns empty without a resolver (CLI/headless), where the manifest is left as
     // loaded and nothing is lost.
     std::vector<UnresolvedPluginCapability> unresolved_plugin_capabilities() const;
+
+    // The key holding this config's plugin manifest: "printer_plugins" for a printer preset config,
+    // "plugins" for every other config. The single definition of that rule.
+    std::string plugin_manifest_key() const;
 
 	// Set all the nullable values to nils.
     void null_nullables();
@@ -2917,11 +2921,14 @@ private:
     // Set a configuration value from a string.
     bool set_deserialize_raw(const t_config_option_key& opt_key_src, const std::string& value, ConfigSubstitutionContext& substitutions, bool append);
     // Collect the de-duplicated "name;uuid;capability" plugin references derived from this config's
-    // plugin-backed options via the resolver. Shared by save_to_json (serializes them into the JSON
-    // manifest) and update_plugin_manifest (writes them back into the "plugins" option). Order is
-    // preserved and values that do not resolve are dropped; returns empty without a resolver
+    // plugin-backed options via plugin_reference. Shared by save_to_json (serializes them into the JSON
+    // manifest) and update_plugin_manifest (writes them back into the manifest option). Order is
+    // preserved and values with no reference are dropped; returns empty without a resolver
     // (CLI/headless).
     std::vector<std::string> collect_plugin_manifest() const;
+    // The reference for one capability value: the resolver's, else the entry the manifest already
+    // holds for it. Empty when neither has one.
+    std::string plugin_reference(const std::string& capability_name, const std::string& plugin_type) const;
     // Calls fn(opt_key, plugin_type, capability_name) for every non-empty capability name held by a
     // plugin-backed option of this config, in key order. A single walk feeds both the serializer
     // (collect_plugin_manifest) and unresolved_plugin_capabilities, so they cannot disagree on which
