@@ -1913,6 +1913,68 @@ TEST_CASE("Adaptive pressure advance predicts the same values after layers only 
     CHECK(pressure_advance_sequence(slice_with("0,0,0,1"), 1) == expected);
 }
 
+TEST_CASE("RepRapFirmware pressure advance goes to the drive of the extruder printing, adaptive changes included", "[MultiFilament]")
+{
+    // walls on extruder 1 and infill on extruder 2, so every layer switches extruders partway through
+    DynamicPrintConfig config = two_extruder_pressure_advance_config("1,2", "1,1,1,1", 1, 2);
+    config.set_deserialize_strict({ { "gcode_flavor", "reprapfirmware" } });
+    const std::string gcode = slice({ cube(20) }, config);
+
+    std::set<int> drives;
+    int tool = -1;
+    std::istringstream stream(gcode);
+    for (std::string line; std::getline(stream, line);) {
+        if (line.size() > 1 && line[0] == 'T' && std::isdigit((unsigned char) line[1]))
+            tool = std::stoi(line.substr(1));
+        else if (line.rfind("M572 D", 0) == 0) {
+            INFO(line);
+            // filament_map puts tool N on extruder N + 1, which is drive N
+            CHECK(std::stoi(line.substr(6)) == tool);
+            drives.insert(std::stoi(line.substr(6)));
+        }
+    }
+    CHECK(drives == std::set<int>{ 0, 1 });
+}
+
+TEST_CASE("RepRapFirmware pressure advance on a single-nozzle multi-material printer stays on drive 0", "[MultiFilament]")
+{
+    // walls in filament 1 and infill in filament 2, both through the one nozzle, so every layer changes tool
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "gcode_flavor",                   "reprapfirmware" },
+        { "single_extruder_multi_material", 1 },
+        { "enable_pressure_advance",        "1,1" },
+        { "pressure_advance",               "0.021,0.043" },
+        { "adaptive_pressure_advance",      "1,1" },
+        { "outer_wall_filament_id",         1 },
+        { "inner_wall_filament_id",         1 },
+        { "sparse_infill_filament_id",      2 },
+        { "internal_solid_filament_id",     2 },
+        { "top_surface_filament_id",        2 },
+        { "bottom_surface_filament_id",     2 },
+        { "enable_prime_tower",             0 },
+        { "skirt_loops",                    0 },
+        { "brim_type",                      "no_brim" },
+    });
+    config.option<ConfigOptionStrings>("adaptive_pressure_advance_model")->values = {
+        constant_pressure_advance_model("0.012"), constant_pressure_advance_model("0.056") };
+    const std::string gcode = slice({ cube(20) }, config);
+
+    int  tool = -1;
+    bool set_after_t1 = false;
+    std::istringstream stream(gcode);
+    for (std::string line; std::getline(stream, line);) {
+        if (line.size() > 1 && line[0] == 'T' && std::isdigit((unsigned char) line[1]))
+            tool = std::stoi(line.substr(1));
+        else if (line.rfind("M572 ", 0) == 0) {
+            INFO(line);
+            CHECK(line.rfind("M572 D0 ", 0) == 0);
+            set_after_t1 |= tool == 1;
+        }
+    }
+    // the second filament's pressure advance is set, and still on drive 0
+    CHECK(set_after_t1);
+}
+
 TEST_CASE("Adaptive pressure advance on an unused extruder variant leaves the G-code unchanged", "[MultiFilament]")
 {
     const std::string adaptive = GENERATE("0,1,0,0", "0,0,1,0");
