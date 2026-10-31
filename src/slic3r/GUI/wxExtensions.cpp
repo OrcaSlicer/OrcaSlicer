@@ -21,6 +21,7 @@
 #include <wx/colour.h>
 #include <wx/dialog.h>
 #include <wx/anybutton.h>
+#include <wx/control.h>
 #include <wx/object.h>
 #include <wx/popupwin.h>
 #include <wx/panel.h>
@@ -536,9 +537,12 @@ wxBitmap* get_default_extruder_color_icon(bool thin_icon/* = false*/)
     auto win = (wxWindow*)Slic3r::GUI::wxGetApp().mainframe;
     wxClientDC cdc(win);
     wxMemoryDC dc(&cdc);
-    dc.SetFont(::Label::Body_12);
+    const wxString label = _L("default");
+    wxFont font = win->GetFont();
+    font.SetPointSize(lround(font.GetPointSize() * win->GetDPIScaleFactor()));
+    dc.SetFont(font);
+    const wxString display_label = wxControl::Ellipsize(label, dc, wxELLIPSIZE_END, icon_width);
 
-    wxString label = _L("default");
     std::string bitmap_key = std::string("default_color") + "-h" + std::to_string(icon_height) + "-w" + std::to_string(icon_width)
         + "-i" + label.ToStdString();
 
@@ -554,9 +558,9 @@ wxBitmap* get_default_extruder_color_icon(bool thin_icon/* = false*/)
         dc.Clear();
         dc.SetBrush(wxBrush(clr));
         dc.SetPen(*wxGREY_PEN);
-        auto size = dc.GetTextExtent(wxString(label));
+        auto size = dc.GetTextExtent(display_label);
         dc.SetTextForeground(clr.GetLuminance() < 0.51 ? *wxWHITE : *wxBLACK);
-        dc.DrawText(label, (icon_width - size.x) / 2, (icon_height - size.y) / 2);
+        dc.DrawText(display_label, (icon_width - size.x) / 2, (icon_height - size.y) / 2);
         dc.SelectObject(wxNullBitmap);
     }
 
