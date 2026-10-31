@@ -197,12 +197,12 @@ static void append_path_point(ThickPolyline& path, const Point& point)
 // Chain the loops of one surface into as few continuous spirals as its shape allows. The loops arrive
 // ordered outside in, depth first, each paired with its outline in loop_outlines; every decision here
 // is made on those outlines, so the two kinds of loop take exactly the same route.
-template<class LoopType, class PathType>
+template<class LoopType, class PathType, class LoopAllocator = std::allocator<const LoopType*>>
 static std::vector<PathType> generate_spiral_insets(const FillParams&                   params,
-                                                         const std::vector<const LoopType*>& loops,
-                                                         const Polygons&                     loop_outlines,
-                                                         const coord_t                       distance,
-                                                         const ExPolygon&                    original_expoly)
+                                                    const std::vector<const LoopType*, LoopAllocator>& loops,
+                                                    const Polygons&                     loop_outlines,
+                                                    const coord_t                       distance,
+                                                    const ExPolygon&                    original_expoly)
 {
     std::vector<PathType> output;
     PathType              spiral;
@@ -332,14 +332,7 @@ void FillSpiralInset::_fill_surface_single(const FillParams& params,
 
     // Orders the loops outside in, depth first, which is the order the chaining below expects.
     loops = union_pt_chained_outside_in(loops);
-
-    std::vector<const Polygon*> loop_refs;
-    loop_refs.reserve(loops.size());
-    for (const Polygon& loop : loops)
-        loop_refs.emplace_back(&loop);
-
-    Polylines spiral_result = generate_spiral_insets<Polygon, Polyline>(params, loop_refs, loops, distance, expolygon);
-
+    Polylines spiral_result = generate_spiral_insets<Polygon, Polyline>(params, to_polygon_ptrs(loops), loops, distance, expolygon);
     append(polylines_out, spiral_result);
 }
 

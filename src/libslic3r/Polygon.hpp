@@ -287,6 +287,15 @@ inline Polygons to_polygons(VecOfPoints &&paths)
     return out;
 }
 
+inline ConstPolygonPtrs to_polygon_ptrs(const Polygons &src)
+{
+    ConstPolygonPtrs out;
+    out.reserve(src.size());
+    for (const Polygon &poly : src)
+        out.emplace_back(&poly);
+    return out;
+}
+
 // Do polygons match? If they match, they must have the same topology,
 // however their contours may be rotated.
 bool polygons_match(const Polygon &l, const Polygon &r);
