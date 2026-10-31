@@ -31,9 +31,9 @@
 <!-- ORCA column browser -->
 <div class="cbr-browser-container">
 	<span class="A11yOnly" id="ColumnSearchText" role="status"></span>
-	<div class="cbr-column">
-		<!-- ORCA hidden column headings: the visible titles are placeholders -->
-		<h2 class="A11yOnly" data-i18n="printers">Printers</h2>
+	<div class="cbr-column" role="group" aria-labelledby="PrintersHeading">
+		<!-- ORCA hidden column headings: the visible titles are placeholders. Each names its column's group, so Tab into a column says which -->
+		<h2 class="A11yOnly" id="PrintersHeading" data-i18n="printers">Printers</h2>
 		<div class="cbr-column-title-container">
 			<div class="search-icon"></div>
 			<input type="text" class="cbr-search-bar" placeholder=" " aria-labelledby="MachineSearchLabel"/>
@@ -48,8 +48,8 @@
 		</div>
 	</div>
 
-	<div class="cbr-column">
-		<h2 class="A11yOnly" data-i18n="filament_types">Filament types</h2>
+	<div class="cbr-column" role="group" aria-labelledby="FilatypesHeading">
+		<h2 class="A11yOnly" id="FilatypesHeading" data-i18n="filament_types">Filament types</h2>
 		<div class="cbr-column-title-container">
 			<div class="search-icon"></div>
 			<input type="text" class="cbr-search-bar" placeholder=" " aria-labelledby="FilatypeSearchLabel"/>
@@ -64,8 +64,8 @@
 		</div>
 	</div>
 
-	<div class="cbr-column">
-		<h2 class="A11yOnly" data-i18n="vendors">Vendors</h2>
+	<div class="cbr-column" role="group" aria-labelledby="VendorsHeading">
+		<h2 class="A11yOnly" id="VendorsHeading" data-i18n="vendors">Vendors</h2>
 		<div class="cbr-column-title-container">
 			<div class="search-icon"></div>
 			<input type="text" class="cbr-search-bar" placeholder=" " aria-labelledby="VendorSearchLabel"/>
@@ -80,8 +80,8 @@
 		</div>
 	</div>
 
-	<div class="cbr-column">
-		<h2 class="A11yOnly" data-i18n="filaments">Filaments</h2>
+	<div class="cbr-column" role="group" aria-labelledby="FilamentsHeading">
+		<h2 class="A11yOnly" id="FilamentsHeading" data-i18n="filaments">Filaments</h2>
 		<div class="cbr-column-title-container">
 			<div class="cbr-filter-box">
 				<div class="filter-icon"></div>

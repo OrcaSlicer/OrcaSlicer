@@ -25,12 +25,12 @@
     <div id="FeatureText">
 		<div><a class="TextS1" data-i18n="stealth_mode_desc">This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.</a></div>
 			<br/>
-			<div><a class="TextS2" data-i18n="stealth_mode_note">Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud.</a></div>
+			<div><a class="TextS2" id="StealthModeNote" data-i18n="stealth_mode_note">Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud.</a></div>
     </div>
 	
 	
-	<!-- ORCA use label tag to allow checkbox to toggle when user clicked to text -->
-	<label id="CheckArea"><input id="StealthMode" onClick="SendStealthModeCheck()" type="checkbox"><a class="TextS1" data-i18n="enable_stealth_mode">Enable Stealth Mode.</a></label>
+	<!-- ORCA use label tag to allow checkbox to toggle when user clicked to text; the note is its description, so Tab to it reads the warning -->
+	<label id="CheckArea"><input id="StealthMode" onClick="SendStealthModeCheck()" type="checkbox" aria-describedby="StealthModeNote"><a class="TextS1" data-i18n="enable_stealth_mode">Enable Stealth Mode.</a></label>
 	<div id="RestartText"></div>
 	
 </div>
