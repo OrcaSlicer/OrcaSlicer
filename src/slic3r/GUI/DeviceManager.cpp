@@ -1200,12 +1200,14 @@ void MachineObject::parse_home_flag(int flag)
         m_fila_system->GetAmsSystemSetting().SetAutoRefillEnabled(((flag >> 10) & 0x1) != 0);
     }
 
-    is_support_flow_calibration = ((flag >> 15) & 0x1) != 0;
-    if (this->is_series_o()) { is_support_flow_calibration = false; } // todo: Temp modification due to incorrect machine push message for H2D
+    if (!((is_support_flow_calibration || is_support_pa_calibration) && this->is_series_n())) { // modification: Protect A1/A1 mini legacy firmware capability reporting. If either capability is already reported as supported, preserve it; otherwise, fall back to home_flag bits for newer firmware.
+        is_support_flow_calibration = ((flag >> 15) & 0x1) != 0;
+        if (this->is_series_o()) { is_support_flow_calibration = false; } // todo: Temp modification due to incorrect machine push message for H2D
 
-    is_support_pa_calibration = ((flag >> 16) & 0x1) != 0;
-    if (this->is_series_p()) { is_support_pa_calibration = false; } // todo: Temp modification due to incorrect machine push message for P
-
+        is_support_pa_calibration = ((flag >> 16) & 0x1) != 0;
+        if (this->is_series_p()) { is_support_pa_calibration = false; } // todo: Temp modification due to incorrect machine push message for P
+    }
+        
     if (time(nullptr) - xcam_prompt_sound_hold_start > HOLD_TIME_3SEC) {
         xcam_allow_prompt_sound = ((flag >> 17) & 0x1) != 0;
     }
