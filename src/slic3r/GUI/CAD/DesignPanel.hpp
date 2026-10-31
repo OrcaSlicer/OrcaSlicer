@@ -766,6 +766,7 @@ private:
     ChoiceField*         m_sweep_path{nullptr};       // path Sketch picker (feature index in client data)
     ChoiceField*         m_sweep_mode{nullptr};       // New/Add/Cut/Intersect
     int               m_sweep_profile_ref{-1};
+    void              init_sweep_picks(int selected_sketch);   // a fresh Sweep: what the selected sketch is (profile or path)
     // The profile is the whole sketch (both empty / -1), ONE closed loop of it (the entity ids), or a face of a body (its outer boundary).
     std::vector<int>  m_sweep_profile_loop;
     int               m_sweep_profile_face{-1}, m_sweep_profile_face_body{-1};

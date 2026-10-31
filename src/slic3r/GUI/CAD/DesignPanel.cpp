@@ -774,11 +774,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
              }, SHIFT('R')},
             {"design_sweep", _L("Sweep"), _L("Sweep a profile along a path"),
              [this] {
-                m_sweep_profile_ref = resolve_extrude_sketch();
-                m_sweep_path_ref    = -1;   // fresh sweep: default the picker to the first sketch
-                m_sweep_profile_loop.clear(); m_sweep_profile_face = m_sweep_profile_face_body = -1;
+                init_sweep_picks(resolve_extrude_sketch());
                 if (m_sweep_profile_ref < 0) {
-                    set_status(StatusKind::Warning, _L("Create a profile sketch to sweep first"));
+                    set_status(StatusKind::Warning, _L("Create a profile sketch to sweep first, or click a face of a body as the profile"));
                     open_tool(Tool::Sweep);   // the card opens and says what it still needs
                     return;
                 }
@@ -3528,6 +3526,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // combo. The picker excludes the profile, so pointing at the profile correctly does
         // nothing. e1p item 6; same shape as the Boolean and Mirror fixes.
         if (m_active == Tool::Sweep && m_sweep_path != nullptr) {
+            // An open curve that is the profile cannot be one: pointing at it makes it the path (the list below leaves the profile out).
+            if (feat == m_sweep_profile_ref && CadDocument::sketch_closed_loops(m_doc.features[feat]).empty()) {
+                m_sweep_profile_ref = -1;
+                m_sweep_profile_loop.clear();
+                m_sweep_path_ref = feat;
+                fill_sweep_paths();
+                sync_slots();
+            }
             for (unsigned i = 0; i < m_sweep_path->GetCount(); ++i) {
                 if (int(reinterpret_cast<intptr_t>(m_sweep_path->GetClientData(i))) != feat) continue;
                 m_sweep_path->SetSelection(i);
@@ -11436,7 +11442,7 @@ bool DesignPanel::mcp_card_open(const std::string& card)
     else if (card == "sweep" || card == "surface_extrude" || card == "surface_fill") {   // one-sketch tools: the ribbon verbs' setup
         const int sk = resolve_extrude_sketch();
         if (sk < 0) return false;
-        if (card == "sweep") { m_sweep_profile_ref = sk; m_sweep_path_ref = -1; m_sweep_profile_loop.clear(); m_sweep_profile_face = m_sweep_profile_face_body = -1; open_tool(Tool::Sweep); }
+        if (card == "sweep") { init_sweep_picks(sk); open_tool(Tool::Sweep); }
         else if (card == "surface_extrude") { m_surf_extrude_sketch_ref = sk; open_tool(Tool::SurfaceExtrude); }
         else { m_surf_fill_sketch_ref = sk; open_tool(Tool::SurfaceFill); }
     }
@@ -11747,6 +11753,24 @@ template<class C> void DesignPanel::read_revolve_axis(C* combo, const std::vecto
 }
 
 
+void DesignPanel::init_sweep_picks(int sk)
+{
+    m_sweep_profile_ref = sk;
+    m_sweep_path_ref    = -1;   // fresh sweep: default the picker to the first sketch
+    m_sweep_profile_loop.clear(); m_sweep_profile_face = m_sweep_profile_face_body = -1;
+    // The selected sketch is an open curve: it cannot be a profile, it is the PATH (the path list leaves out the profile, so left as
+    // the profile it could never be chosen). The profile is then the latest closed sketch, or a face clicked later.
+    if (sk >= 0 && CadDocument::sketch_closed_loops(m_doc.features[sk]).empty()) {
+        m_sweep_path_ref    = sk;
+        m_sweep_profile_ref = -1;
+        for (int i = int(m_doc.features.size()) - 1; i >= 0; --i)
+            if (i != sk && m_doc.features[i].type == CadFeatureType::Sketch && !CadDocument::sketch_closed_loops(m_doc.features[i]).empty()) {
+                m_sweep_profile_ref = i;
+                break;
+            }
+    }
+}
+
 void DesignPanel::fill_sweep_paths()
 {
     // Every Sketch feature except the profile itself; the feature index rides in the entry's client data. Pre-select the stored
@@ -11755,8 +11779,8 @@ void DesignPanel::fill_sweep_paths()
     int sel_idx = wxNOT_FOUND;
     for (int i = 0; i < int(m_doc.features.size()); ++i) {
         const CadFeature& sf = m_doc.features[i];
-        // A 3D sketch is a path too (its curve is what a Sweep follows); it has no profile role.
-        if ((sf.type != CadFeatureType::Sketch && sf.type != CadFeatureType::Sketch3D) || i == m_sweep_profile_ref) continue;
+        // A 3D sketch or a helix is a path too (the curve is what a Sweep follows); neither has a profile role.
+        if ((sf.type != CadFeatureType::Sketch && sf.type != CadFeatureType::Sketch3D && sf.type != CadFeatureType::Helix) || i == m_sweep_profile_ref) continue;
         const int pos = combo_append_index(m_sweep_path, wxString::FromUTF8(sf.name), i);
         if (i == m_sweep_path_ref) sel_idx = pos;
     }
