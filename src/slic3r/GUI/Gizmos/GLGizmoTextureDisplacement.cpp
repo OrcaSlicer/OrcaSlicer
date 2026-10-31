@@ -421,18 +421,21 @@ std::unique_ptr<GLTexture> upload_height_thumbnail(const DecodedHeightTexture &d
             const int x0 = x * decoded.width / w, x1 = std::max(x0 + 1, (x + 1) * decoded.width / w);
             const int y0 = y * decoded.height / h, y1 = std::max(y0 + 1, (y + 1) * decoded.height / h);
             unsigned int sum[3] = { 0, 0, 0 };
+            unsigned int sum_a  = 0;
             unsigned int n      = 0;
             for (int sy = y0; sy < y1 && sy < decoded.height; ++sy)
                 for (int sx = x0; sx < x1 && sx < decoded.width; ++sx, ++n) {
                     const size_t si = size_t(sy) * size_t(decoded.width) + size_t(sx);
                     for (int c = 0; c < 3; ++c)
                         sum[c] += color ? decoded.rgb[si * 3 + size_t(c)] : decoded.pixels[si];
+                    if (decoded.has_alpha())
+                        sum_a += decoded.alpha[si];
                 }
 
             const size_t di = (size_t(y) * size_t(w) + size_t(x)) * 4;
             for (int c = 0; c < 3; ++c)
                 rgba[di + size_t(c)] = (n > 0) ? static_cast<unsigned char>(sum[c] / n) : 0;
-            rgba[di + 3] = 255;
+            rgba[di + 3] = (decoded.has_alpha() && n > 0) ? static_cast<unsigned char>(sum_a / n) : 255;
         }
 
     auto texture = std::make_unique<GLTexture>();
@@ -469,10 +472,18 @@ std::unique_ptr<GLTexture> upload_color_texture(const DecodedHeightTexture &deco
                     for (int c = 0; c < 3; ++c)
                         sum[c] += decoded.rgb[si + size_t(c)];
                 }
+            // Coverage rides in the fourth channel, box-filtered with the colour, so the shader can
+            // leave the surface alone where the picture is not there (see the colour path in
+            // texture_displacement_shaded.fs).
+            unsigned int sum_a = 0;
+            if (decoded.has_alpha())
+                for (int sy = y0; sy < y1 && sy < decoded.height; ++sy)
+                    for (int sx = x0; sx < x1 && sx < decoded.width; ++sx)
+                        sum_a += decoded.alpha[size_t(sy) * size_t(decoded.width) + size_t(sx)];
             const size_t di = (size_t(y) * size_t(w) + size_t(x)) * 4;
             for (int c = 0; c < 3; ++c)
                 rgba[di + size_t(c)] = (n > 0) ? static_cast<unsigned char>(sum[size_t(c)] / n) : 0;
-            rgba[di + 3] = 255;
+            rgba[di + 3] = (decoded.has_alpha() && n > 0) ? static_cast<unsigned char>(sum_a / n) : 255;
         }
 
     auto texture = std::make_unique<GLTexture>();
@@ -848,6 +859,11 @@ bool GLGizmoTextureDisplacement::on_mouse(const wxMouseEvent &mouse_event)
 {
     if (m_seam_edit_mode)
         return on_mouse_seam(mouse_event);
+    // The background dropper takes the next click wherever it lands, the model included, so it comes
+    // before both the handle and the paint.
+    if (m_adjust_bg_picking && mouse_event.LeftDown() &&
+        pick_background_at(Vec2d(mouse_event.GetX(), mouse_event.GetY())))
+        return true;
     if (m_adjust_texture_mode)
         return on_mouse_adjust_texture(mouse_event);
 
@@ -1762,6 +1778,14 @@ void GLGizmoTextureDisplacement::render_shaded_preview_mesh()
         shader->set_uniform("color_tex", 1);
         glsafe(::glActiveTexture(GL_TEXTURE1));
         glsafe(::glBindTexture(GL_TEXTURE_2D, (GLuint) color_tex->get_id()));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap));
+#if !SLIC3R_OPENGL_ES
+        if (wrap == GL_CLAMP_TO_BORDER) {
+            static const GLfloat border[4] = { 0.f, 0.f, 0.f, 0.f };
+            glsafe(::glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border));
+        }
+#endif // !SLIC3R_OPENGL_ES
         glsafe(::glActiveTexture(GL_TEXTURE0));
     }
     // The live UV-editor island drag rides this 2x3 affine (identity except mid-drag); only the flagged
@@ -4017,6 +4041,7 @@ void GLGizmoTextureDisplacement::ensure_panel_icons()
     // a monochrome ("normal", grey in the current theme) and an original-colour variant.
     static const std::vector<std::string> names = {
         "texture_displacement_brush.svg", "texture_displacement_face.svg", "texture_displacement_connected_area.svg",
+        "texture_displacement_pipette.svg", // the image-adjustment panel's background dropper
         "texture_displacement_real_preview.svg", "texture_displacement_fast_preview.svg",
         "texture_displacement_checker.svg", "texture_displacement_distortion.svg",
         "texture_displacement_wireframe.svg", "texture_displacement_cross.svg",
@@ -4319,8 +4344,9 @@ void GLGizmoTextureDisplacement::set_layer_texture(TextureDisplacementLayer &lay
     }
 
     Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Change texture displacement texture"), UndoRedo::SnapshotType::GizmoAction);
-    layer.name = entry.name;
-    layer.path = entry.path;
+    layer.name           = entry.name;
+    layer.path           = entry.path;
+    layer.preview_adjust = TextureAdjustments{};
     // Handing over the library's own buffer (rather than a copy) is what lets decode_height_texture()
     // - whose cache is keyed by exactly this pointer - hit straight away instead of re-decoding
     // the PNG the first time the layer is previewed or baked.
@@ -4329,6 +4355,7 @@ void GLGizmoTextureDisplacement::set_layer_texture(TextureDisplacementLayer &lay
     if (entry.source == TextureSource::User)
         touch_user_texture(entry.path);
 
+    invalidate_adjust_textures();
     rebuild_preview();
     m_parent.set_as_dirty();
 }
@@ -4844,16 +4871,79 @@ void GLGizmoTextureDisplacement::open_image_adjust(const TextureDisplacementLaye
     if (layer.empty() || layer.slot < 0)
         return;
 
-    close_image_adjust(); // reverts and clears any previous panel
+    close_image_adjust(false); // closes any previous panel while keeping its adjustments
 
     if (!load_image_adjust_source(layer))
         return;
 
-    m_adjust           = TextureAdjustments{};
-    m_adjust_applied   = TextureAdjustments{};
-    m_adjust_slot      = layer.slot;
+    m_adjust               = layer.preview_adjust;
+    m_adjust_applied       = layer.preview_adjust;
+    m_adjust_initial       = layer.preview_adjust;
+    m_adjust_preview_shown = TextureAdjustments{};
+    m_adjust_preview_valid = false;
+    m_adjust_bg_picking    = false;
+    m_adjust_slot          = layer.slot;
     const ModelVolume *mv = texture_volume();
     m_adjust_volume_id = mv != nullptr ? mv->id().id : 0;
+}
+
+bool GLGizmoTextureDisplacement::pick_background_at(const Vec2d &mouse_pos)
+{
+    ModelVolume *mv = texture_volume();
+    ModelObject *mo = m_c->selection_info()->model_object();
+    if (mv == nullptr || mo == nullptr || m_adjust_slot < 0)
+        return false;
+    TextureDisplacementLayer *layer = nullptr;
+    for (TextureDisplacementLayer &l : mv->texture_displacement_layers)
+        if (l.slot == m_adjust_slot)
+            layer = &l;
+    if (layer == nullptr || layer->empty())
+        return false;
+
+    const int idx = texture_volume_raycaster_index();
+    if (idx < 0)
+        return false;
+    const Selection  &selection = m_parent.get_selection();
+    const Transform3d trafo = mo->instances[selection.get_instance_idx()]->get_transformation().get_matrix() * mv->get_matrix();
+    const Camera     &camera = wxGetApp().plater()->get_camera();
+
+    Vec3f hit = Vec3f::Zero(), normal = Vec3f::Zero();
+    if (!m_c->raycaster()->raycasters()[size_t(idx)]->unproject_on_mesh(
+            mouse_pos, trafo, camera, hit, normal,
+            m_c->object_clipper()->get_clipping_plane()))
+        return false;
+
+    // The picture's own colour at that point, read through the projection the bake uses, rather
+    // than the pixel on screen: the screen pixel carries the lighting and the filament the colour
+    // was already quantized to, so keying on it would remove the wrong thing.
+    //
+    // Read after the tonal and spatial adjustments, but before `bg_remove`: the key is applied at
+    // the end of the adjustment chain, against colours the earlier passes have already moved, so
+    // it has to be stated in those terms - the same reason the panel's dropper reads the adjusted
+    // preview.
+    const indexed_triangle_set &base = mv->mesh().its;
+    const indexed_triangle_set  patch =
+        extract_painted_patch(base, mv->texture_displacement_facet(layer->slot).get_data());
+    Vec3f center = Vec3f::Zero(), axis = Vec3f::UnitZ(), average_normal = Vec3f::UnitZ();
+    if (!patch.indices.empty())
+        texture_displacement_patch_frame(patch, texture_displacement_vertex_normals(base), center, axis,
+                                         average_normal);
+
+    TextureDisplacementLayer unkeyed = *layer;
+    unkeyed.preview_adjust           = m_adjust;
+    unkeyed.preview_adjust.bg_remove = false;
+    const DecodedHeightTexture tex   = decode_height_texture(unkeyed);
+    Vec3f rgb;
+    if (!sample_layer_color(tex, unkeyed, hit, normal, rgb, center, axis))
+        return false;
+
+    for (int c = 0; c < 3; ++c)
+        m_adjust.bg_color[c] = std::clamp(rgb[c], 0.f, 1.f);
+    m_adjust.bg_from_corners = false;
+    m_adjust.bg_remove       = true;
+    m_adjust_bg_picking      = false;
+    m_parent.set_as_dirty();
+    return true;
 }
 
 void GLGizmoTextureDisplacement::invalidate_adjust_textures()
@@ -4867,27 +4957,27 @@ void GLGizmoTextureDisplacement::invalidate_adjust_textures()
     m_thumbnail_source.fill({});
     m_color_tex_source.reset();
     m_height_tex_source.reset();
+    m_mix_ranking.reset();
+    m_palette_cache.clear();
 }
 
-void GLGizmoTextureDisplacement::close_image_adjust()
+void GLGizmoTextureDisplacement::close_image_adjust(bool revert)
 {
-    // Revert the layer's live adjustment. Every exit that reaches here is a discard: a commit resets
-    // preview_adjust itself, before pointing the layer at the file that already carries the edit, so this
-    // cannot undo a committed adjustment.
+    // When `revert` is true (Cancel), restore the layer's live adjustment to what it had when the panel
+    // opened. Closing the panel via the window close button, Apply, or gizmo shutdown leaves `preview_adjust`
+    // in place so the adjusted image (including background removal) stays active for preview and Bake.
     //
     // Found by the id recorded when the panel opened rather than through texture_volume(), which answers
-    // for the *current* selection. One of the ways to get here is the selection having moved on, and
-    // reverting the newly selected object's layer instead would both miss the adjustment that is still
-    // live on the original volume and clear one the user never touched.
+    // for the *current* selection.
     bool reverted = false;
-    if (m_adjust_slot >= 0 && m_adjust_volume_id != 0)
+    if (revert && m_adjust_slot >= 0 && m_adjust_volume_id != 0)
         for (ModelObject *mo : wxGetApp().model().objects) {
             for (ModelVolume *mv : mo->volumes) {
                 if (mv->id().id != m_adjust_volume_id)
                     continue;
                 for (TextureDisplacementLayer &l : mv->texture_displacement_layers)
-                    if (l.slot == m_adjust_slot && !l.preview_adjust.identity()) {
-                        l.preview_adjust = TextureAdjustments{};
+                    if (l.slot == m_adjust_slot && l.preview_adjust != m_adjust_initial) {
+                        l.preview_adjust = m_adjust_initial;
                         reverted         = true;
                     }
             }
@@ -4906,6 +4996,8 @@ void GLGizmoTextureDisplacement::close_image_adjust()
     m_adjust_slot           = -1;
     m_adjust                = TextureAdjustments{};
     m_adjust_applied        = TextureAdjustments{};
+    m_adjust_initial        = TextureAdjustments{};
+    m_adjust_bg_picking     = false;
     m_adjust_source         = DecodedHeightTexture{};
     m_adjust_preview_source = DecodedHeightTexture{};
     m_adjust_source_image   = nullptr;
@@ -5000,8 +5092,17 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
     ModelVolume *mv = texture_volume();
     // A different volume is selected than the one this panel was opened on. Slots are numbered per
     // volume, so looking m_adjust_slot up here would find an unrelated layer rather than nothing.
+    // However, prepare_mesh() assigns a new ObjectID to the same volume after subdividing/remeshing;
+    // if the current volume still carries the exact same slot and source image, follow its new id.
+    if (mv != nullptr && mv->id().id != m_adjust_volume_id) {
+        for (const TextureDisplacementLayer &l : mv->texture_displacement_layers)
+            if (l.slot == m_adjust_slot && l.image_data.get() == m_adjust_source_image) {
+                m_adjust_volume_id = mv->id().id;
+                break;
+            }
+    }
     if (mv == nullptr || mv->id().id != m_adjust_volume_id) {
-        close_image_adjust();
+        close_image_adjust(false);
         return;
     }
 
@@ -5011,7 +5112,7 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
             layer = &l;
     if (layer == nullptr) {
         // The layer went away under the panel (removed, or merged away by an undo).
-        close_image_adjust();
+        close_image_adjust(false);
         return;
     }
 
@@ -5021,7 +5122,7 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
     // the new image (decode_height_texture() reads layer.image_data, which changed), so re-reading here is
     // also what keeps the panel's photo and the model showing the same thing.
     if (layer->image_data.get() != m_adjust_source_image && !load_image_adjust_source(*layer)) {
-        close_image_adjust(); // the new image cannot be decoded; nothing left to adjust
+        close_image_adjust(false); // the new image cannot be decoded; nothing left to adjust
         return;
     }
 
@@ -5039,7 +5140,7 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
                       ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
         ImGui::End();
         if (!keep_open)
-            close_image_adjust();
+            close_image_adjust(false);
         return;
     }
 
@@ -5048,17 +5149,41 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
     update_image_adjust_preview();
 
     // The photo itself, at the image's own aspect so a non-square texture is not stretched.
-    const float aspect = m_adjust_source.height > 0 ? float(m_adjust_source.width) / float(m_adjust_source.height) : 1.f;
-    const float img_h  = std::round(img_w / std::max(0.05f, aspect));
+    const bool   has_color = m_adjust_source.has_color();
+    const float  aspect    = m_adjust_source.height > 0 ? float(m_adjust_source.width) / float(m_adjust_source.height) : 1.f;
+    const float  img_h     = std::round(img_w / std::max(0.05f, aspect));
+    const ImVec2 box_min   = ImGui::GetCursorScreenPos();
     if (m_adjust_preview_valid && m_adjust_preview_tex)
         ImGui::Image((ImTextureID) (intptr_t) m_adjust_preview_tex->get_id(), ImVec2(img_w, img_h));
     else
         ImGui::Dummy(ImVec2(img_w, img_h));
+    if (m_adjust_bg_picking && has_color) {
+        if (ImGui::IsItemHovered())
+            m_imgui->tooltip(_u8L("Click the background, here or on the model."), ImGui::GetFontSize() * 20.f);
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !m_adjust_preview_source.empty()) {
+            const ImVec2 rel((ImGui::GetIO().MousePos.x - box_min.x) / img_w,
+                             (ImGui::GetIO().MousePos.y - box_min.y) / img_h);
+            TextureAdjustments unkeyed = m_adjust;
+            unkeyed.bg_remove          = false;
+            const DecodedHeightTexture tex = apply_texture_adjustments(m_adjust_preview_source, unkeyed);
+            if (tex.has_color()) {
+                const int    px = std::clamp(int(rel.x * float(tex.width)), 0, tex.width - 1);
+                const int    py = std::clamp(int(rel.y * float(tex.height)), 0, tex.height - 1);
+                const size_t i  = (size_t(py) * size_t(tex.width) + size_t(px)) * 3;
+                for (int c = 0; c < 3; ++c)
+                    m_adjust.bg_color[c] = float(tex.rgb[i + size_t(c)]) / 255.f;
+                m_adjust.bg_from_corners = false;
+                m_adjust.bg_remove       = true;
+            }
+            m_adjust_bg_picking = false;
+        }
+    }
 
-    // The label column is sized off the widest of the five labels, so the tracks line up whatever the
+    // The label column is sized off the widest of the labels, so the tracks line up whatever the
     // translation does to their lengths.
     float label_w = 0.f;
-    for (const wxString &l : { _L("Brightness"), _L("Contrast"), _L("Sharpness"), _L("Blur"), _L("Hue") })
+    for (const wxString &l : { _L("Brightness"), _L("Contrast"), _L("Sharpness"), _L("Blur"), _L("Hue"),
+                               _L("Color"), _L("Tolerance") })
         label_w = std::max(label_w, ImGui::CalcTextSize(into_u8(l).c_str()).x);
     label_w += m_imgui->scaled(1.2f);
     // An explicit track width rather than a fill-to-the-right one: this window is AlwaysAutoResize, so its
@@ -5093,16 +5218,125 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
              "the image, and is the one to reach for first."));
     // Grey has no hue to turn, and the shipped library is grayscale - so on most textures this is a
     // slider that would visibly do nothing. Disabled with the reason given, rather than hidden.
-    const bool has_color = m_adjust_source.has_color();
     row("##adj_hue", _L("Hue"), &m_adjust.hue_deg, -180.f, 180.f, "%.0f°", has_color, {});
     if (!has_color) {
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + img_w);
-        ImGui::TextDisabled("%s", _u8L("This texture is grayscale, so it has no hue to shift.").c_str());
+        ImGui::TextDisabled("%s", _u8L("This texture is grayscale, so it has no hue to shift or background color to remove.").c_str());
         ImGui::PopTextWrapPos();
     }
 
-    if (m_imgui->button(_L("Reset")))
-        m_adjust = TextureAdjustments{};
+    ImGui::Separator();
+    m_imgui->disabled_begin(!has_color);
+    if (m_imgui->bbl_checkbox(_L("Remove background"), m_adjust.bg_remove) && !m_adjust.bg_remove)
+        m_adjust_bg_picking = false;
+    if (has_color && ImGui::IsItemHovered())
+        m_imgui->tooltip(_u8L("Leaves the background unprinted, so the object's own color shows through instead of "
+                              "a slab of white behind a logo. A picture that is already transparent needs none of "
+                              "this: those parts are left out either way."),
+                         ImGui::GetFontSize() * 20.f);
+    if (m_adjust.bg_remove && has_color) {
+        // Which colour is being removed, shown rather than described: the swatch is also a
+        // picker, and the dropper beside it takes the colour from the preview above or the model.
+        const ImGuiStyle &style     = ImGui::GetStyle();
+        const float       frame_h   = ImGui::GetFrameHeight();
+        const float       icon_sm   = std::round(frame_h * 1.05f);
+        const float       gap_s     = std::round(m_imgui->scaled(0.4f));
+        const ImVec4      orca      = ImGuiWrapper::COL_ORCA;
+        const ImVec4      col_frame = ImGui::GetStyleColorVec4(ImGuiCol_Separator);
+
+        const float x0 = ImGui::GetCursorPosX();
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(_L("Color"));
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
+        float shown_bg[3] = { m_adjust.bg_color[0], m_adjust.bg_color[1], m_adjust.bg_color[2] };
+        if (m_adjust.bg_from_corners && m_adjust_preview_source.has_color() &&
+            m_adjust_preview_source.width > 1 && m_adjust_preview_source.height > 1) {
+            // Nothing has been picked, so show what the corners actually gave: the same median
+            // the bake will key on, not a placeholder white.
+            TextureAdjustments unkeyed = m_adjust;
+            unkeyed.bg_remove          = false;
+            const DecodedHeightTexture tex = apply_texture_adjustments(m_adjust_preview_source, unkeyed);
+            const size_t n = size_t(tex.width) * size_t(tex.height);
+            const size_t corner[4] = { 0, size_t(tex.width) - 1,
+                                       (size_t(tex.height) - 1) * size_t(tex.width), n - 1 };
+            for (int c = 0; c < 3; ++c) {
+                std::array<float, 4> v{};
+                for (int i = 0; i < 4; ++i)
+                    v[size_t(i)] = float(tex.rgb[corner[i] * 3 + size_t(c)]);
+                std::sort(v.begin(), v.end());
+                shown_bg[c] = 0.5f * (v[1] + v[2]) / 255.f;
+            }
+        }
+        const std::string corners_label = _u8L("Corners");
+        const float       corners_w     = m_adjust.bg_from_corners ?
+                                              0.f :
+                                              ImGui::CalcTextSize(corners_label.c_str()).x +
+                                                  2.f * (style.FramePadding.x + style.FrameBorderSize) + gap_s;
+        ImGui::SetNextItemWidth(std::max(m_imgui->scaled(2.f), slider_w - icon_sm - gap_s - corners_w));
+        if (ImGui::ColorEdit3("##bg_color", shown_bg,
+                              ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel)) {
+            for (int c = 0; c < 3; ++c)
+                m_adjust.bg_color[c] = shown_bg[c];
+            m_adjust.bg_from_corners = false;
+        }
+        if (ImGui::IsItemHovered())
+            m_imgui->tooltip(m_adjust.bg_from_corners ?
+                                 _u8L("Taken from the four corners of the picture, which is right for a logo on a "
+                                      "plain card. Click to choose a color yourself instead.") :
+                                 _u8L("The color being removed. Click to change it."),
+                             ImGui::GetFontSize() * 20.f);
+        ImGui::SameLine(0.f, gap_s);
+        {
+            ensure_panel_icons();
+            const auto  it      = m_panel_icon_map.find("texture_displacement_pipette.svg");
+            const float pad     = std::max(1.f, std::round(icon_sm * 0.14f));
+            const int   variant = m_adjust_bg_picking ? 1 : 0;
+            bool        clicked = false;
+            ImGui::PushID(930);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+            ImGui::PushStyleColor(ImGuiCol_Button,
+                                  m_adjust_bg_picking ? ImVec4(orca.x, orca.y, orca.z, 0.22f) : ImVec4(0.f, 0.f, 0.f, 0.f));
+            if (it != m_panel_icon_map.end() && int(it->second.size()) > variant &&
+                it->second[size_t(variant)]->is_valid()) {
+                const IconManager::Icon &ic = *it->second[size_t(variant)];
+                clicked = m_imgui->image_button((ImTextureID) (intptr_t) ic.tex_id,
+                                                ImVec2(icon_sm - 2.f * pad, icon_sm - 2.f * pad), ic.tl, ic.br, int(pad));
+            } else {
+                clicked = ImGui::Button(_L("Pick the color").ToUTF8().data(), ImVec2(0.f, icon_sm));
+            }
+            ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(),
+                                                ImGui::GetColorU32(m_adjust_bg_picking ? orca : col_frame),
+                                                style.FrameRounding);
+            ImGui::PopStyleColor();
+            ImGui::PopStyleVar();
+            ImGui::PopID();
+            if (ImGui::IsItemHovered())
+                m_imgui->tooltip(_u8L("Pick the color - then click the background, either in the preview above or on "
+                                      "the model itself."),
+                                 ImGui::GetFontSize() * 20.f);
+            if (clicked)
+                m_adjust_bg_picking = !m_adjust_bg_picking;
+        }
+        if (!m_adjust.bg_from_corners) {
+            ImGui::SameLine(0.f, gap_s);
+            if (m_imgui->button(corners_label))
+                m_adjust.bg_from_corners = true;
+            if (ImGui::IsItemHovered())
+                m_imgui->tooltip(_u8L("Back to taking the color from the picture's four corners."),
+                                 ImGui::GetFontSize() * 20.f);
+        }
+
+        row("##bg_tol", _L("Tolerance"), &m_adjust.bg_tolerance, 0.01f, 0.6f, "%.2f", true,
+            _u8L("How different from that color still counts as background. Raise it when a shadow or a gradient is "
+                 "left behind; lower it when it starts eating the picture."));
+    }
+    m_imgui->disabled_end();
+
+    if (m_imgui->button(_L("Reset"))) {
+        m_adjust            = TextureAdjustments{};
+        m_adjust_bg_picking = false;
+    }
 
     // Hand the sliders to the layer, which is what puts the adjusted image in front of the displacement:
     // decode_height_texture() applies preview_adjust, so the relief, the colour and the thumbnails all
@@ -5129,17 +5363,21 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
     m_imgui->text_wrapped(_u8L("The model updates when you release a slider. Save as copy writes the "
                                "adjusted image to your texture library and points this layer at it."), img_w);
 
-    const bool cancel = m_imgui->button(_L("Cancel"));
+    const bool apply = m_imgui->button(_L("Apply"));
     ImGui::SameLine();
     // Nothing to save until a slider has actually moved.
     m_imgui->disabled_begin(m_adjust.identity());
     const bool as_copy = m_imgui->button(_L("Save as copy"));
     m_imgui->disabled_end();
+    ImGui::SameLine();
+    const bool cancel = m_imgui->button(_L("Cancel"));
 
     ImGui::End();
 
-    if (cancel || !keep_open)
-        close_image_adjust();
+    if (cancel)
+        close_image_adjust(true);
+    else if (apply || !keep_open)
+        close_image_adjust(false);
     else if (as_copy)
         commit_image_adjust(*layer);
 }
@@ -5733,15 +5971,19 @@ const std::vector<GLGizmoTextureDisplacement::PaletteEntry> &GLGizmoTextureDispl
     // The images themselves rather than their addresses, so a freed and reallocated image can never
     // pass for the old one. Whether one has colour, and whether its colours are flat, follows from it.
     std::vector<std::shared_ptr<std::vector<unsigned char>>> images;
+    std::vector<TextureAdjustments>                          adjusts;
     if (mv != nullptr)
         for (const TextureDisplacementLayer &layer : mv->texture_displacement_layers)
-            if (layer.color_enabled && !layer.empty())
+            if (layer.color_enabled && !layer.empty()) {
                 images.push_back(layer.image_data);
+                adjusts.push_back(layer.preview_adjust);
+            }
 
-    const bool ranking_stale = filaments != m_palette_filaments || images != m_palette_images;
+    const bool ranking_stale = filaments != m_palette_filaments || images != m_palette_images || adjusts != m_palette_adjusts;
     if (ranking_stale) {
         m_palette_filaments = std::move(filaments);
         m_palette_images    = std::move(images);
+        m_palette_adjusts   = std::move(adjusts);
         m_mix_ranking.reset();
     }
     if (mixing && !m_mix_ranking)
@@ -5845,6 +6087,8 @@ std::vector<GLGizmoTextureDisplacement::MixTarget> GLGizmoTextureDisplacement::m
             const size_t i = start + size_t((uint64_t(uint32_t(state >> 32)) * uint64_t(stride)) >> 32);
             if (i >= npx)
                 break;
+            if (tex.has_alpha() && tex.alpha[i] < 128)
+                continue;
             const uint8_t *px  = &tex.rgb[i * 3];
             Bin           &bin = bins[size_t(px[0] >> 4) * 256 + size_t(px[1] >> 4) * 16 + size_t(px[2] >> 4)];
             bin.r += px[0];

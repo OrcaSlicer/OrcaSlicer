@@ -116,6 +116,20 @@ float DecodedHeightTexture::sample(const Vec2f &uv, bool tile_enabled, TextureTi
     return top * (1.f - ty) + bottom * ty;
 }
 
+float DecodedHeightTexture::sample_alpha(const Vec2f &uv, bool tile_enabled, TextureTileMethod tile_method) const
+{
+    TexelTap tap;
+    if (!has_alpha())
+        return 1.f; // no coverage plane means the picture is everywhere, which is the usual case
+    if (!texel_tap(uv, tile_enabled, tile_method, tap))
+        return 0.f;
+
+    auto at = [this](int x, int y) { return float(alpha[size_t(y) * size_t(width) + size_t(x)]) / 255.f; };
+    const float top    = at(tap.x0, tap.y0) * (1.f - tap.tx) + at(tap.x1, tap.y0) * tap.tx;
+    const float bottom = at(tap.x0, tap.y1) * (1.f - tap.tx) + at(tap.x1, tap.y1) * tap.tx;
+    return top * (1.f - tap.ty) + bottom * tap.ty;
+}
+
 Vec3f DecodedHeightTexture::sample_color(const Vec2f &uv, bool tile_enabled, TextureTileMethod tile_method) const
 {
     TexelTap tap;
@@ -335,6 +349,10 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
             result.height = h;
             result.pixels.resize(size_t(w) * size_t(h));
             result.rgb.resize(size_t(w) * size_t(h) * 3);
+            // A fourth channel is coverage, and it is the only thing that can say "the picture is
+            // not here" as opposed to "the picture is black here". Kept only when the source has it.
+            if (bpp >= 4)
+                result.alpha.resize(size_t(w) * size_t(h));
             // decode_colored_png() hands its buffer back bottom-up - it is shared with the CLI's
             // plate-thumbnail loader, which expects that - while this type, and decode_png()'s
             // grayscale path above, are top-to-bottom. Reverse the rows on the way in so a colour
@@ -348,6 +366,8 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
                     result.rgb[dst * 3 + 1] = g;
                     result.rgb[dst * 3 + 2] = b;
                     result.pixels[dst] = uint8_t(std::lround(0.299 * r + 0.587 * g + 0.114 * b));
+                    if (bpp >= 4)
+                        result.alpha[dst] = src[3];
                 }
         }
 
@@ -488,6 +508,47 @@ void adjust_channel_spatial(std::vector<uint8_t> &channel, int width, int height
     });
 }
 
+// Keys one colour out, so a logo on a white card prints as the logo and the object's own colour
+// shows through the rest.
+//
+// The corners are the default because a background that does not reach all four of them is not a
+// background, and that makes the common case one click; the median of the four is taken so a single
+// stray corner cannot decide it. The panel's dropper and swatch override it when the picture needs
+// something else keyed out.
+void remove_background(DecodedHeightTexture &tex, const TextureAdjustments &adj)
+{
+    if (!tex.has_color() || !adj.bg_remove || tex.width < 2 || tex.height < 2)
+        return;
+    const size_t n = size_t(tex.width) * size_t(tex.height);
+    float key[3];
+    if (adj.bg_from_corners) {
+        const size_t corner[4] = { 0, size_t(tex.width) - 1, (size_t(tex.height) - 1) * size_t(tex.width),
+                                   n - 1 };
+        for (int c = 0; c < 3; ++c) {
+            std::array<float, 4> v{};
+            for (int i = 0; i < 4; ++i)
+                v[size_t(i)] = float(tex.rgb[corner[i] * 3 + size_t(c)]);
+            std::sort(v.begin(), v.end());
+            key[c] = 0.5f * (v[1] + v[2]);
+        }
+    } else {
+        for (int c = 0; c < 3; ++c)
+            key[c] = std::clamp(adj.bg_color[c], 0.f, 1.f) * 255.f;
+    }
+    // Euclidean in 0..255 RGB, against a tolerance scaled to the diagonal of that cube, so the
+    // slider reads as "how different from the background still counts as background".
+    const float limit = std::clamp(adj.bg_tolerance, 0.f, 1.f) * 441.67f;
+    if (!tex.has_alpha())
+        tex.alpha.assign(n, 255);
+    for (size_t i = 0; i < n; ++i) {
+        const float dr = float(tex.rgb[i * 3]) - key[0];
+        const float dg = float(tex.rgb[i * 3 + 1]) - key[1];
+        const float db = float(tex.rgb[i * 3 + 2]) - key[2];
+        if (std::sqrt(dr * dr + dg * dg + db * db) <= limit)
+            tex.alpha[i] = 0;
+    }
+}
+
 struct TextureDetailCache
 {
     std::mutex mutex;
@@ -513,6 +574,7 @@ DecodedHeightTexture downscale_height_texture(const DecodedHeightTexture &src, i
     const int  w     = std::max(1, src.width / scale);
     const int  h     = std::max(1, src.height / scale);
     const bool color = src.has_color();
+    const bool alpha = src.has_alpha();
 
     DecodedHeightTexture out;
     out.width  = w;
@@ -520,6 +582,8 @@ DecodedHeightTexture downscale_height_texture(const DecodedHeightTexture &src, i
     out.pixels.resize(size_t(w) * size_t(h));
     if (color)
         out.rgb.resize(size_t(w) * size_t(h) * 3);
+    if (alpha)
+        out.alpha.resize(size_t(w) * size_t(h));
 
     tbb::parallel_for(tbb::blocked_range<int>(0, h), [&](const tbb::blocked_range<int> &r) {
         for (int y = r.begin(); y < r.end(); ++y)
@@ -528,17 +592,21 @@ DecodedHeightTexture downscale_height_texture(const DecodedHeightTexture &src, i
                 // when rounding would otherwise collapse it.
                 const int x0 = x * src.width / w, x1 = std::max(x0 + 1, (x + 1) * src.width / w);
                 const int y0 = y * src.height / h, y1 = std::max(y0 + 1, (y + 1) * src.height / h);
-                uint32_t  sum_h = 0, sum_c[3] = { 0, 0, 0 }, n = 0;
+                uint32_t  sum_h = 0, sum_a = 0, sum_c[3] = { 0, 0, 0 }, n = 0;
                 for (int sy = y0; sy < y1 && sy < src.height; ++sy)
                     for (int sx = x0; sx < x1 && sx < src.width; ++sx, ++n) {
                         const size_t si = size_t(sy) * size_t(src.width) + size_t(sx);
                         sum_h += src.pixels[si];
+                        if (alpha)
+                            sum_a += src.alpha[si];
                         if (color)
                             for (int c = 0; c < 3; ++c)
                                 sum_c[c] += src.rgb[si * 3 + size_t(c)];
                     }
                 const size_t di = size_t(y) * size_t(w) + size_t(x);
                 out.pixels[di]  = n > 0 ? uint8_t(sum_h / n) : 0;
+                if (alpha)
+                    out.alpha[di] = n > 0 ? uint8_t(sum_a / n) : 255;
                 if (color)
                     for (int c = 0; c < 3; ++c)
                         out.rgb[di * 3 + size_t(c)] = n > 0 ? uint8_t(sum_c[c] / n) : 0;
@@ -637,6 +705,9 @@ DecodedHeightTexture apply_texture_adjustments(const DecodedHeightTexture &src, 
             out.pixels[i] = uint8_t(std::lround(0.299 * out.rgb[i * 3] + 0.587 * out.rgb[i * 3 + 1] +
                                                 0.114 * out.rgb[i * 3 + 2]));
     });
+    // Key out the background after the tonal and spatial passes so the key reads the colours the user is
+    // actually looking at, and after `out.pixels` so relief displacement is untouched.
+    remove_background(out, adj);
     return out;
 }
 
@@ -2289,8 +2360,15 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
     const bool        normalized_uv = layer.projection_method == TextureProjectionMethod::ModelUV &&
                                       lscm_uv != nullptr;
     const UVTransform xf(layer, aspect, normalized_uv);
+    auto sample_uv = [&](const Vec2f &uv) {
+        const float h = texture.sample(uv, layer.tile_enabled, layer.tile_method);
+        if (!texture.has_alpha())
+            return h;
+        const float a = texture.sample_alpha(uv, layer.tile_enabled, layer.tile_method);
+        return layer.midlevel + a * (h - layer.midlevel);
+    };
     auto sample_at = [&](const Vec2f &planar) {
-        return texture.sample(xf(planar), layer.tile_enabled, layer.tile_method);
+        return sample_uv(xf(planar));
     };
 
     // A precomputed per-patch uv - the LSCM solve, or the model's own channel - wins over the layer's
@@ -2313,8 +2391,8 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
             // the user just aligned. A point behind the projector has no uv at all -> no height.
             Vec2f uv;
             if (!project_uv_projective(layer.view_project_matrix, position, uv))
-                return 0.f;
-            return texture.sample(uv, layer.tile_enabled, layer.tile_method);
+                return texture.has_alpha() ? layer.midlevel : 0.f;
+            return sample_uv(uv);
         }
         // Flat projection onto the captured projector plane. Single-valued per point, so unlike
         // blended triplanar it is one sample, and it is what "project from view" places. The
@@ -2369,10 +2447,14 @@ bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDispla
     // Outside a non-tiled placement there is no texture at all - the same hard edge sample() gives the
     // height. Checked explicitly because sample_color() reports it as black, which is a real colour.
     auto covered = [&](const Vec2f &planar) {
-        if (layer.tile_enabled)
-            return true;
         const Vec2f uv = xf(planar);
-        return uv.x() >= 0.f && uv.x() < 1.f && uv.y() >= 0.f && uv.y() < 1.f;
+        if (!layer.tile_enabled && !(uv.x() >= 0.f && uv.x() < 1.f && uv.y() >= 0.f && uv.y() < 1.f))
+            return false;
+        // Where the picture is transparent there is no colour to print, which is the same answer as
+        // being outside the placement - not black, which is a colour. Half coverage counts as
+        // covered: a triangle prints in one filament either way, so the only useful question is
+        // which side of the edge it falls on.
+        return texture.sample_alpha(uv, layer.tile_enabled, layer.tile_method) >= 0.5f;
     };
 
     if (lscm_uv != nullptr) {
@@ -2407,6 +2489,8 @@ bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDispla
             if (!project_uv_projective(layer.view_project_matrix, position, uv))
                 return false;
             if (!layer.tile_enabled && (uv.x() < 0.f || uv.x() >= 1.f || uv.y() < 0.f || uv.y() >= 1.f))
+                return false;
+            if (texture.sample_alpha(uv, layer.tile_enabled, layer.tile_method) < 0.5f)
                 return false;
             out = texture.sample_color(uv, layer.tile_enabled, layer.tile_method);
             return true;
