@@ -23536,6 +23536,14 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
         p->partplate_list.update_plates();
         update();
         p->partplate_list.select_plate(0);
+        if (ret == 0) {
+            // Reordering already set the current index, so select_plate() cannot
+            // report the changed plate selection to plugin observers.
+            LifecycleEventContext ctx;
+            ctx.name = p->partplate_list.get_curr_plate()->get_plate_name();
+            ctx.index = p->partplate_list.get_curr_plate_index();
+            fire_lifecycle_event(LifecycleEvent::PlateSelected, ctx);
+        }
     }
     else if (action == (int)PartPlate::PLATE_IMEX_MODE_ID)
     {

@@ -49,6 +49,7 @@ class PrintJob : public Job
     bool                m_lifecycle_started{ false };
     bool                m_lifecycle_finished{ false };
     bool                m_lifecycle_success{ false };
+    int                 m_lifecycle_plate_index{ -1 };
     int                 m_print_job_completed_id = 0;
     wxString            m_completed_evt_data;
     std::function<void()> m_enter_ip_address_fun_fail{ nullptr };

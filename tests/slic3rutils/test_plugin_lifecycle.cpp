@@ -14,6 +14,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "plugin_test_utils.hpp"
 #include "test_utils.hpp"
 
@@ -223,6 +224,23 @@ PluginDescriptor descriptor_of(PluginManager& manager, const std::string& plugin
 }
 
 } // namespace
+
+TEST_CASE("Print job plate context identifies only resolved local project plates", "[PluginLifecycle][LifecycleEvents]")
+{
+    const auto [print_type, transport_index, local_project, expected_index] =
+        GENERATE(Catch::Generators::table<const char*, int, bool, int>({
+            {"from_normal", 1, true, 0},
+            {"from_normal", 3, true, 2},
+            {"from_normal", 0, true, -1},
+            {"from_normal", -1, true, -1},
+            {"from_sdcard_view", 3, true, -1},
+            {"", 3, true, -1},
+            {"unknown", 3, true, -1},
+            {"from_normal", 3, false, -1},
+        }));
+    CAPTURE(print_type, transport_index, local_project);
+    CHECK(print_job_plate_index(print_type, transport_index, local_project) == expected_index);
+}
 
 TEST_CASE("Lifecycle hook shutdown drains concurrent dispatch", "[PluginLifecycle][LifecycleEvents]")
 {
