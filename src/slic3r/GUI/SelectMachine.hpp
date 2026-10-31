@@ -14,6 +14,7 @@
 #include <memory>
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "slic3r/GUI/Jobs/PrintJob.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
@@ -333,6 +334,7 @@ private:
     std::string                         m_print_info;
     wxString                            m_current_project_name;
     PrintDialogStatus                   m_print_status { PrintStatusInit };
+    bool                                m_connect_failed {false};
     wxColour                            m_colour_def_color{wxColour(255, 255, 255)};
     wxColour                            m_colour_bold_color{wxColour(38, 46, 48)};
     StateColor                          m_btn_bg_enable;
@@ -646,6 +648,9 @@ private:
 
     // enbale or disable external change assist
     bool is_enable_external_change_assist(std::vector<FilamentInfo>& ams_mapping_result);
+
+    // Create a callback which updates the printer selection status message
+    ConnectResultHandler create_connect_result_handler();
 };
 
 class PrinterInfoBox : public StaticBox
