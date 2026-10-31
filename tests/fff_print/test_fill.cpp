@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include "libslic3r/Config.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Surface.hpp"
@@ -23,6 +24,7 @@
 #include <math.h>
 #include <numeric>
 #include <sstream>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -1750,11 +1752,12 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
 }
 
-TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][InternalBridge][Regression]")
+TEST_CASE("Sparse infill anchors match the printed infill", "[Fill][InternalBridge][Regression]")
 {
-    // Orca: Compare generated anchors with actual extrusion across plane-path patterns,
-    // smoothing, multiline and rotations; an origin shift must not pass as valid support.
-    const std::string pattern = GENERATE("hilbertcurve", "octagramspiral", "archimedeanchords");
+    // Compare anchoring queries with extrusion across patterns, smoothing,
+    // multiline and rotations; an origin shift must not count as support.
+    const std::string pattern = GENERATE("hilbertcurve", "octagramspiral", "archimedeanchords", "voronoi");
+    const bool raft = pattern == "voronoi" ? GENERATE(false, true) : false;
     const std::string smoothing = GENERATE("0%", "100%");
     const int multiline = GENERATE(1, 2);
     const bool rotated = GENERATE(false, true);
@@ -1763,6 +1766,8 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
 
     auto config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"raft_layers", raft ? 2 : 0},
+                                   {"enable_support", raft},
                                    {"sparse_infill_density", "15%"},
                                    {"sparse_infill_smooth_factor", smoothing},
                                    {"fill_multiline", multiline},
@@ -2504,4 +2509,117 @@ TEST_CASE("Monotonic line top surfaces print their gap fill next to their lines 
     }
     REQUIRE(gap_fills > 0);
     CHECK(gap_fills_before_a_line > 0);
+}
+
+TEST_CASE("Voronoi produces sparse infill G-code with variable layer heights", "[Fill][Voronoi][Regression]")
+{
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", "voronoi"}, {"sparse_infill_density", "20%"},
+        {"layer_height", 0.2}, {"initial_layer_print_height", 0.2}, {"top_shell_layers", 0},
+        {"bottom_shell_layers", 0}, {"top_shell_thickness", 0}, {"bottom_shell_thickness", 0}});
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({make_cube(20., 20., 4.)}, print, model, config);
+    model.objects.front()->layer_height_profile.set(std::vector<double>{0., 0.2, 1., 0.12, 2., 0.28, 4., 0.2});
+    print.apply(model, config);
+    print.process();
+    const auto &layers = print.objects().front()->layers();
+    REQUIRE(layers.size() > 2);
+    REQUIRE(std::any_of(layers.begin() + 1, layers.end(), [&](const Layer *layer) {
+        return std::abs(layer->height - layers.front()->height) > EPSILON;
+    }));
+    const std::string gcode = Slic3r::Test::gcode(print);
+    REQUIRE(gcode.find("Sparse infill") != std::string::npos);
+}
+
+TEST_CASE("Native modifiers retain separate Voronoi regions with their own nominal spacing", "[Fill][Voronoi][Regression]")
+{
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", "voronoi"}, {"sparse_infill_density", "15%"},
+        {"top_shell_layers", 0}, {"bottom_shell_layers", 0}, {"top_shell_thickness", 0}, {"bottom_shell_thickness", 0}});
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({make_cube(20., 20., 4.)}, print, model, config);
+    auto *modifier = model.objects.front()->add_volume(make_cube(10., 20., 4.), ModelVolumeType::PARAMETER_MODIFIER, false);
+    modifier->config.set_key_value("sparse_infill_density", new ConfigOptionPercent(30.));
+    print.apply(model, config);
+    print.process();
+    const PrintObject &object = *print.objects().front();
+    const Layer &layer = *object.get_layer(int(object.layer_count() / 2));
+    std::set<int> densities;
+    for (const LayerRegion *region : layer.regions()) {
+        if (region->fills.empty()) continue;
+        const auto &print_region = region->region();
+        densities.insert(int(print_region.config().sparse_infill_density.value));
+        REQUIRE(object.voronoi_site_spacing(print_region) > 0.);
+    }
+    REQUIRE(densities.count(15) == 1);
+    REQUIRE(densities.count(30) == 1);
+}
+
+TEST_CASE("Perimeter-only modifiers do not split Voronoi infill at their boundary", "[Fill][Voronoi][Regression]")
+{
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", "voronoi"}, {"sparse_infill_density", "25%"},
+        {"top_shell_layers", 0}, {"bottom_shell_layers", 0}, {"top_shell_thickness", 0}, {"bottom_shell_thickness", 0},
+        {"wipe_before_external_loop", false}});
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({make_cube(20., 20., 4.)}, print, model, config);
+    auto *modifier = model.objects.front()->add_volume(make_cube(10., 20., 4.), ModelVolumeType::PARAMETER_MODIFIER, false);
+    // A wipe setting creates separate print regions without adding walls
+    // at the modifier boundary.
+    modifier->config.set_key_value("wipe_before_external_loop", new ConfigOptionBool(true));
+    print.apply(model, config);
+    print.process();
+    const PrintObject &object = *print.objects().front();
+    REQUIRE(object.num_printing_regions() == 2);
+    REQUIRE(Layer::is_perimeter_compatible(print, object.printing_region(0), object.printing_region(1)));
+    // Transform the modifier boundary into the object's slicing frame.
+    const Vec3d lower = object.trafo_sliced() * Vec3d(10., 4., 0.);
+    const Vec3d upper = object.trafo_sliced() * Vec3d(10., 16., 0.);
+    const coord_t boundary_x = scale_(lower.x());
+    const coord_t minimum_y = scale_(lower.y());
+    const coord_t maximum_y = scale_(upper.y());
+    size_t crossings = 0;
+    for (size_t i = object.layer_count() / 3; i < 2 * object.layer_count() / 3; ++i) {
+        const Layer &layer = *object.get_layer(int(i));
+        for (const LayerRegion *region : layer.regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities) {
+                if (entity->role() != erInternalInfill) continue;
+                Polylines paths;
+                entity->collect_polylines(paths);
+                for (const Line &line : to_lines(paths))
+                    if (std::min(line.a.x(), line.b.x()) < boundary_x - SCALED_EPSILON &&
+                        std::max(line.a.x(), line.b.x()) > boundary_x + SCALED_EPSILON &&
+                        std::min(line.a.y(), line.b.y()) > minimum_y &&
+                        std::max(line.a.y(), line.b.y()) < maximum_y) ++crossings;
+            }
+    }
+    REQUIRE(crossings > 0);
+}
+
+TEST_CASE("Voronoi density is unaffected by Locked Zag skin and skeleton settings", "[Fill][Voronoi][Regression]")
+{
+    const auto paths = [](double sparse, double skin) {
+        auto config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"sparse_infill_pattern", "voronoi"}, {"sparse_infill_density", sparse},
+            {"skin_infill_density", skin}, {"skeleton_infill_density", skin},
+            {"top_shell_layers", 0}, {"bottom_shell_layers", 0}, {"top_shell_thickness", 0}, {"bottom_shell_thickness", 0},
+            {"layer_height", 0.2}, {"initial_layer_print_height", 0.2}});
+        Print print;
+        Model model;
+        Slic3r::Test::init_print({make_cube(12., 12., 1.)}, print, model, config);
+        print.process();
+        Polylines result;
+        for (const Layer *layer : print.objects().front()->layers())
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->fills.entities)
+                    entity->collect_polylines(result);
+        return result;
+    };
+    const Polylines reference = paths(15., 10.);
+    REQUIRE_FALSE(reference.empty());
+    REQUIRE(paths(15., 80.) == reference);
+    REQUIRE(paths(30., 10.) != reference);
 }
