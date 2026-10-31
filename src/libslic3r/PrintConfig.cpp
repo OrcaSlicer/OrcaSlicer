@@ -4113,6 +4113,45 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
 
+    def = this->add("automatic_height_slowdown", coBool);
+    def->label = L("Slow down by model height");
+    def->category = L("Speed");
+    def->tooltip = L("Gradually change the speed of each object as it gets taller. The speed starts at the start speed on the first layer after "
+                     "the layers that are not affected and reaches the end speed on the last layer of the object. Acceleration and the travel "
+                     "moves to the printed paths are slowed down the same way, but never sped up. Support, skirt and brim are not changed. "
+                     "Volumetric speed limits and the printer's speed limits still apply.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("height_slowdown_initial_layers", coInt);
+    def->label = L("Layers not affected");
+    def->tooltip = L("Number of layers at the start of each object that keep their normal speed. The change starts on the layer after them.");
+    def->sidetext = L("layers"); // ORCA add side text
+    def->min = 0;
+    def->max = 1000;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(3));
+
+    def = this->add("height_slowdown_start_speed", coPercent);
+    def->label = L("Start speed");
+    def->tooltip = L("Speed on the first layer that is affected, as a percentage of the normal speed. Values above 100% speed up; "
+                     "the speed is still limited by the volumetric speed of the filament and the printer's speed limits.");
+    def->sidetext = "%";
+    def->min = 10;
+    def->max = 200;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(120));
+
+    def = this->add("height_slowdown_end_speed", coPercent);
+    def->label = L("End speed");
+    def->tooltip = L("Speed on the last layer of the object, as a percentage of the normal speed. The speed changes linearly between "
+                     "the start speed and this.");
+    def->sidetext = "%";
+    def->min = 10;
+    def->max = 200;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(50));
+
     def = this->add("nozzle_temperature_initial_layer", coInts);
     def->label = L("First layer");
     def->full_label = L("First layer nozzle temperature");
