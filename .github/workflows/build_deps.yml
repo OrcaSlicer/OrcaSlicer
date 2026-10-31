@@ -4,6 +4,9 @@ on:
       cache-key:
         required: true
         type: string
+      cache-prefix:
+        required: true
+        type: string
       cache-path:
         required: true
         type: string
@@ -20,12 +23,22 @@ on:
         required: false
         type: string
         default: msvc
+      preset:
+        required: false
+        type: string
+      flags:
+        required: false
+        type: string
       build-deps-only:
         required: false
         type: boolean
       force-build:
         required: false
         type: boolean
+      script:
+        required: false
+        type: string
+        default: ps1
 
 jobs:
   build_deps:
@@ -42,11 +55,35 @@ jobs:
         with:
           lfs: 'false'
 
+      # A reused self-hosted workspace keeps .git/info/sparse-checkout from an earlier
+      # job, so the checkout above only materialises those paths. Clear it and expand
+      # the working tree, or build_win.ps1's dot-sourced steps are missing.
+      - name: Disable stale sparse-checkout
+        continue-on-error: true
+        run: git sparse-checkout disable
+
+      # actions/cache archives with `tar -z`, which shells out to gzip, and the runner
+      # service PATH has none. Copying gzip alone keeps Git's usr/bin off PATH: that
+      # directory also holds a cygwin perl, which OpenSSL's Configure rejects.
+      - name: Put gzip on PATH for the cache archive
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $src = Join-Path $env:ProgramFiles 'Git\usr\bin'
+          $dst = Join-Path $env:RUNNER_TEMP 'cache-gzip'
+          New-Item -ItemType Directory -Path $dst -Force | Out-Null
+          foreach ($f in 'gzip.exe', 'msys-2.0.dll') {
+            $p = Join-Path $src $f
+            if (Test-Path $p) { Copy-Item $p $dst -Force }
+          }
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $dst
+
       - name: load cached deps
         uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
+          restore-keys: ${{ inputs.cache-prefix }}
 
       - uses: lukka/get-cmake@latest
         with:
@@ -66,7 +103,7 @@ jobs:
       - name: Get the date on Windows
         if: runner.os == 'Windows'
         run: echo "date=$(Get-Date -Format 'yyyyMMdd')" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
-        shell: pwsh
+        shell: powershell
 
 
       - name: Install MSYS2 (clangarm64) with GMP/MPFR and LLVM tools
@@ -118,15 +155,49 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}
         run: |
-            if (-not "${{ vars.SELF_HOSTED }}") {
-              choco install strawberryperl
-            }
+            Write-Host "Workspace path: ${{ github.workspace }}"
+            Get-ChildItem ${{ github.workspace }} | Format-Table
+            # Strawberry Perl is required by OpenSSL's Configure. Git for Windows
+            # ships a cygwin perl that shadows Strawberry Perl on PATH, so we
+            # explicitly prepend Strawberry's bins after installing. Chocolatey
+            # has permission issues on this self-hosted runner, so download the
+            # portable zip directly and extract to the runner temp dir (C: is
+            # not writable on this runner).
+            $spUrl = "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54221_64bit/strawberry-perl-5.42.2.1-64bit-portable.zip"
+            $spZip = "$env:TEMP\strawberry-perl.zip"
+            Invoke-WebRequest -Uri $spUrl -OutFile $spZip -TimeoutSec 300
+            $spDest = Join-Path $env:RUNNER_TEMP 'Strawberry'
+            Expand-Archive -Path $spZip -DestinationPath $spDest -Force
+            Remove-Item $spZip -Force
+            Add-Content -LiteralPath $env:GITHUB_PATH -Value (Join-Path $spDest 'perl\bin')
+            Add-Content -LiteralPath $env:GITHUB_PATH -Value (Join-Path $spDest 'c\bin')
+            # NASM for OpenSSL SIMD (warning only if missing, but nice to have)
+            choco install nasm -y 2>$null | Out-Null
+            # Prepend Strawberry Perl to PATH for THIS step so build_win.ps1 finds
+            # it before Git for Windows' cygwin perl (which shadows it).
+            $env:PATH = (Join-Path $spDest 'perl\bin') + ';' + (Join-Path $spDest 'c\bin') + ';' + $env:PATH
             # cache-path is the install directory inside the deps build directory.
             $deps = (Split-Path "${{ github.workspace }}/${{ inputs.cache-path }}").Replace('\', '/')
-            # -l compiles with Visual Studio's clang-cl and -x builds with Ninja; --msvc --msbuild is cl under the Visual Studio generator.
-            $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
-            .\build_win.bat -d --arch ${{ inputs.arch }} --deps-dir $deps @flags
-        shell: pwsh
+            # Use flags from matrix if provided, otherwise fall back to compiler-based logic
+            $flags = @("${{ inputs.flags }}" -split '\s+' | Where-Object { $_ })
+            if (-not $flags) {
+              $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
+            }
+            # Use build_win.ps1 by default; build_win.bat for baseline comparison
+            if ("${{ inputs.script }}" -eq "bat") {
+              $batArgs = @("-d", "--arch", "${{ inputs.arch }}", "--deps-dir", $deps) + $flags
+              & "${{ github.workspace }}\build_win.bat" @batArgs
+            } else {
+              $useClangCl = $flags -contains "-l"
+              $useNinja   = $flags -contains "-x"
+              $useMsvc    = $flags -contains "--msvc"
+              $useMsbuild = $flags -contains "--msbuild"
+              $useCache   = if ($flags -contains "--ccache") { "ccache" } else { $null }
+              # Bind the switch directly: splatting a string binds it positionally and breaks
+              # parameter binding on build_win.ps1.
+              & "${{ github.workspace }}\build_win.ps1" -Deps -Arch ${{ inputs.arch }} -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild -Cache:$useCache
+            }
+        shell: powershell
 
       - name: Build on Mac ${{ inputs.arch }}
         if: runner.os == 'macOS'
@@ -154,29 +225,14 @@ jobs:
             tar -czvf OrcaSlicer_dep_ubuntu_$(date +"%Y%m%d").tar.gz destdir
 
 
-      # Upload Artifacts
-      # - name: Upload Mac ${{ inputs.arch }} artifacts
-      #   if: runner.os == 'macOS'
-      #   uses: actions/upload-artifact@v6
-      #   with:
-      #     name: OrcaSlicer_dep_mac_${{ env.date }}
-      #     path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep*.tar.gz
-
-      # - name: Upload Windows artifacts
-      #   if: runner.os == 'Windows'
-      #   uses: actions/upload-artifact@v6
-      #   with:
-      #     name: OrcaSlicer_dep_win64_${{ env.date }}
-      #     path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep*.zip
-
-      # - name: Upload Ubuntu artifacts
-      #   if: runner.os == 'Linux' && !env.ACT
-      #   env:
-      #     ubuntu-ver: '2404'
-      #   uses: actions/upload-artifact@v6
-      #   with:
-      #     name: OrcaSlicer_dep_ubuntu_${{ env.ubuntu-ver }}_${{ env.date }}
-      #     path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep_ubuntu_*.tar.gz
+      # Upload Windows deps artifact
+      - name: Upload Windows deps artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v6
+        with:
+          name: OrcaSlicer_dep_win_${{ inputs.arch }}_${{ env.date }}
+          # cache-path already points at OrcaSlicer_dep; appending it again matched nothing.
+          path: ${{ github.workspace }}/${{ inputs.cache-path }}/**
 
   build_orca:
     name: Build OrcaSlicer
@@ -185,8 +241,12 @@ jobs:
     uses: ./.github/workflows/build_orca.yml
     with:
       cache-key: ${{ inputs.cache-key }}
+      cache-prefix: ${{ inputs.cache-prefix }}
       cache-path: ${{ inputs.cache-path }}
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
       compiler: ${{ inputs.compiler }}
+      preset: ${{ inputs.preset }}
+      flags: ${{ inputs.flags }}
+      script: ${{ inputs.script }}
     secrets: inherit

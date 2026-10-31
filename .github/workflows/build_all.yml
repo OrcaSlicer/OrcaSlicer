@@ -119,14 +119,17 @@ jobs:
       build-deps-only: ${{ inputs.build-deps-only || false }}
     secrets: inherit
   build_windows:
-    name: Build Windows ${{ matrix.arch }}
+    name: Build Windows ${{ matrix.arch }} (${{ matrix.preset }})${{ matrix.script == 'bat' && ' (baseline - current main)' || matrix.preset == 'x64-clang-cache' && ' (top candidate - ps1)' || ' (candidate - ps1)' }}
     strategy:
       fail-fast: false
       # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
+      # Each config runs twice: once with build_win.bat (baseline) and once with
+      # build_win.ps1 (candidate) for perf comparison.
       matrix:
+        # TEMPORARY: Single entry for debugging. Restore full matrix after fix.
         include: ${{ fromJSON(vars.SELF_HOSTED
-          && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
-          || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-vs2026-arm","compiler":"clang"}]') }}
+          && '[{"arch":"x64","os":"orca-win-server","compiler":"msvc","preset":"x64-msvc","flags":"--msvc --ninja","script":"ps1"}]'
+          || '[{"arch":"x64","os":"windows-latest","compiler":"msvc","preset":"x64-msvc","flags":"--msvc --ninja","script":"ps1"}]') }}
     needs: check_build_script
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
@@ -135,6 +138,9 @@ jobs:
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
       compiler: ${{ matrix.compiler }}
+      preset: ${{ matrix.preset }}
+      flags: ${{ matrix.flags }}
+      script: ${{ matrix.script }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
@@ -181,14 +187,38 @@ jobs:
     with:
       os: ubuntu-24.04-arm
       artifact: ${{ github.sha }}-tests-linux-aarch64
-  unit_tests_windows_x64:
-    name: Windows x64
+  unit_tests_windows_x64_clang_cache:
+    name: Windows x64 (clang-cl + ccache + unity)
     needs: build_windows
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
-      artifact: ${{ github.sha }}-tests-windows-x64
+      artifact: ${{ github.sha }}-tests-windows-x64-x64-clang-cache
+  unit_tests_windows_x64_clang:
+    name: Windows x64 (clang-cl + Ninja)
+    needs: build_windows
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+      artifact: ${{ github.sha }}-tests-windows-x64-x64-clang
+  unit_tests_windows_x64_msvc:
+    name: Windows x64 (MSVC + Ninja)
+    needs: build_windows
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+      artifact: ${{ github.sha }}-tests-windows-x64-x64-msvc
+  unit_tests_windows_x64_msbuild:
+    name: Windows x64 (MSVC + MSBuild)
+    needs: build_windows
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+      artifact: ${{ github.sha }}-tests-windows-x64-x64-msbuild
   unit_tests_windows_arm64:
     name: Windows arm64
     needs: build_windows
@@ -196,7 +226,7 @@ jobs:
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: windows-11-vs2026-arm
-      artifact: ${{ github.sha }}-tests-windows-arm64
+      artifact: ${{ github.sha }}-tests-windows-arm64-arm64-clang
       test-dir: build-arm64/tests
   unit_tests_macos_arm64:
     name: macOS arm64
@@ -235,7 +265,7 @@ jobs:
           ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
   publish_test_results:
     name: Publish Test Results
-    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, unit_tests_flatpak_x86_64, unit_tests_flatpak_aarch64]
+    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64_clang_cache, unit_tests_windows_x64_clang, unit_tests_windows_x64_msvc, unit_tests_windows_x64_msbuild, unit_tests_windows_arm64, unit_tests_macos_arm64, unit_tests_flatpak_x86_64, unit_tests_flatpak_aarch64]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -257,6 +287,47 @@ jobs:
         with:
           name: test-results-*
           failOnError: false
+  pr_full_test_observability:
+    name: PR Full Test + Observability
+    needs: [unit_tests_windows_x64_clang_cache]
+    if: github.event_name == 'pull_request' && !cancelled()
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: 'false'
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ github.sha }}-tests-windows-x64-x64-clang-cache
+          path: build-artifact
+      - name: Unpack and run full suite
+        timeout-minutes: 60
+        shell: powershell
+        run: |
+          tar -xvf build-artifact/build_tests.tar -C .
+          echo "::group::Full ctest execution"
+          ctest --test-dir .\build\tests -C Release --output-on-failure -j 8
+          echo "::endgroup::"
+      - name: Build timing summary
+        shell: powershell
+        run: |
+          $summary = @"
+          ## PR Observability Report
+          - Build preset: x64-clang (clang-cl + Ninja + Unity)
+          - Tests: full suite executed
+          - Job duration: manual review
+          "@
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summary
+      - name: Upload logs and artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-observability-${{ github.run_id }}
+          path: |
+            build-artifact/**
+            ctest_results.xml
+          retention-days: 7
   flatpak:
     name: "Flatpak"
     container:
