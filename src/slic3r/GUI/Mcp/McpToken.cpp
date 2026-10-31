@@ -17,8 +17,8 @@
 #include <windows.h>
 #else
 #include <cerrno>
-#include <csignal>
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #endif

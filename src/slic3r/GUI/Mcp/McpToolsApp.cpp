@@ -34,6 +34,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/fstream.hpp>
 
+#include <wx/defs.h>
 #include <wx/gdicmn.h>
 #include <wx/vector.h>
 

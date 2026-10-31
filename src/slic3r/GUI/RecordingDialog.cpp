@@ -2,10 +2,12 @@
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "GUI_Utils.hpp"
 #include "I18N.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
 #include "Mcp/McpPaths.hpp"
+#include "Mcp/RecordingSettings.hpp"
 #include "Mcp/VideoEncode.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/ComboBox.hpp"
@@ -30,12 +32,15 @@
 #include <wx/graphics.h>
 #include <wx/panel.h>
 #include <wx/pen.h>
+#include <wx/peninfobase.h>
 #include <wx/sizer.h>
 #include <wx/spinbutt.h>
+#include <wx/spinctrl.h>
 #include <wx/stdpaths.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/tglbtn.h>
+#include <wx/toplevel.h>
 
 #include <algorithm>
 #include <cstddef>

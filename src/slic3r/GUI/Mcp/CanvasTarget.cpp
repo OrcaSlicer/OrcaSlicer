@@ -2,12 +2,19 @@
 
 #include "libslic3r/AABBMesh.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
+
+#include <Eigen/Core>
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
