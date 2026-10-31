@@ -3129,6 +3129,9 @@ msgstr ""
 msgid "Click the icon to toggle printable properties of the object"
 msgstr ""
 
+msgid "Click the icon to edit variable layer height"
+msgstr ""
+
 msgid "Click the icon to edit support painting of the object"
 msgstr ""
 
