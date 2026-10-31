@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 11:58-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1969,17 +1969,17 @@ msgid "Selection 1"
 msgstr "Kijelölés 1"
 
 msgid ""
-"Select 2 faces on objects and \n"
-" make objects assemble together."
+"Select 2 faces on objects and\n"
+"make objects assemble together."
 msgstr ""
-"Válassz ki 2 felületet az objektumokon, \n"
+"Válassz ki 2 felületet az objektumokon,\n"
 "és illeszd össze az objektumokat."
 
 msgid ""
-"Select 2 points or circles on objects and \n"
-" specify distance between them."
+"Select 2 points or circles on objects and\n"
+"specify distance between them."
 msgstr ""
-"Válassz ki 2 pontot vagy kört az objektumokon, \n"
+"Válassz ki 2 pontot vagy kört az objektumokon,\n"
 "és add meg köztük a távolságot."
 
 # AI Translated
@@ -2069,11 +2069,11 @@ msgstr "Figyelmeztetés: válaszd a pont vagy kör jellemzőt."
 # AI Translated
 msgid ""
 "It is recommended to assemble objects first,\n"
-"because they are restricted to the bed \n"
+"because they are restricted to the bed\n"
 "and only parts can be lifted."
 msgstr ""
 "Javasolt először összeállítani az objektumokat,\n"
-"mert azok az asztalhoz vannak kötve, \n"
+"mert azok az asztalhoz vannak kötve,\n"
 "és csak a tárgyak emelhetők meg."
 
 msgid "Face and face assembly"
@@ -2270,6 +2270,18 @@ msgstr "Helytelen jelszó"
 #, c-format, boost-format
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "A következőhöz való csatlakozás sikertelen: %s! [SN:%s, code=%s]"
+
+# AI Translated
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr "Ellenőrizd, hogy a nyomtató ugyanazon a hálózaton van-e, mint ez a számítógép, és hogy helyes-e az IP-címe."
+
+# AI Translated
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr "Ha a csatlakozás továbbra is sikertelen, próbálj ki egy másik hálózati bővítmény verziót a Beállításokban."
+
+# AI Translated
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr "Ezt a hibát a 'printer.cer' fájlban lévő hiányzó vagy sérült TLS/CA-tanúsítvány is okozhatja."
 
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
@@ -3256,8 +3268,9 @@ msgstr "Név"
 msgid "All Plates"
 msgstr "Összes tálca"
 
+# AI Translated
 msgid "Order By"
-msgstr ""
+msgstr "Rendezés"
 
 # AI Translated
 msgid "Fix All"
@@ -3311,8 +3324,9 @@ msgstr "Klónozás"
 msgid "Simplify Model"
 msgstr "Modell egyszerűsítése"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "Háló felosztása (Elveszett szín)"
+# AI Translated
+msgid "Subdivision mesh"
+msgstr "Háló felosztása"
 
 msgid "Center"
 msgstr "Közép"
@@ -3470,6 +3484,25 @@ msgstr "Hiba!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Nem sikerült beolvasni a modelladatokat az aktuális fájlból."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+# AI Translated
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr "Belső átmérő"
+
+# AI Translated
+msgid "Tube diameter"
+msgstr "Csőátmérő"
 
 # AI Translated
 msgid "Add primitive"
@@ -4394,8 +4427,9 @@ msgstr "G-code fájl küldése SD-kártyára"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Sikeresen elküldve. Az oldal bezárul %s mp-en belül"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "A nyomtatóra küldés előtt be kell helyezni egy tárolót."
+# AI Translated
+msgid "Insert storage or free up space before sending to the printer."
+msgstr "A nyomtatóra küldés előtt helyezz be egy tárolót, vagy szabadíts fel helyet."
 
 # AI Translated
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
@@ -5359,137 +5393,181 @@ msgstr ""
 "Igen - Engedélyezd az Arachne falgenerátort\n"
 "Nem - Tiltsd le az Arachne falgenerátort, majd állítsd a barázdált felületet [Eltolás] módra"
 
+# AI Translated
 msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
-msgstr ""
+msgstr "Az extrudálási sebesség simításához állítsd az „Extrudálási sebesség simítása” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
-msgstr ""
+msgstr "Az íves illesztés nem érhető el szalagos nyomtatókon, illetve ha az extrudálási sebesség simítása be van kapcsolva."
 
+# AI Translated
 msgid "Set wall loops above zero to use this setting."
-msgstr ""
+msgstr "A beállítás használatához állítsd a „Falak száma” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "This setting is hidden because sparse infill density is zero."
-msgstr ""
+msgstr "Ez a beállítás rejtett, mert a „Kitöltés sűrűsége” értéke nulla."
 
+# AI Translated
 msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
-msgstr ""
+msgstr "A kitöltőhorgonyokhoz nullánál nagyobb „Kitöltés sűrűsége” érték, valamint a „Koncentrikus” és a „Spirális behúzás” mintázattól eltérő kitöltési mintázat szükséges."
 
+# AI Translated
 msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
-msgstr ""
+msgstr "A beállítás megjelenítéséhez kapcsold be a „Kitöltés összevonása” lehetőséget, és állítsd a „Kitöltés sűrűsége” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "Válaszd a „Gyroid”, „TPMS-D” vagy „TPMS-FK” kitöltési mintázatot, és a „Kitöltés sűrűsége” legyen nagyobb, mint 0, de kisebb, mint 100%."
 
+# AI Translated
 msgid "Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "Kapcsold be az „Adaptív sűrűség (kísérleti)” beállítást „Gyroid”, „TPMS-D” vagy „TPMS-FK” kitöltési mintázattal, és a „Kitöltés sűrűsége” legyen nagyobb, mint 0, de kisebb, mint 100%."
 
+# AI Translated
 msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd a „Gyroid” kitöltési mintázatot nullánál nagyobb „Kitöltés sűrűsége” értékkel, és kapcsold ki az „Adaptív sűrűség (kísérleti)” beállítást."
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support multiline infill."
-msgstr ""
+msgstr "A kiválasztott kitöltési mintázat nem támogatja a többvonalas kitöltést."
 
+# AI Translated
 msgid "The Line infill pattern does not support infill anchors."
-msgstr ""
+msgstr "A „Vonal” kitöltési mintázat nem támogatja a kitöltőhorgonyokat."
 
+# AI Translated
 msgid "Select an infill pattern other than Line and set the maximum infill anchor length above zero."
-msgstr ""
+msgstr "Válassz a „Vonal” mintázattól eltérő kitöltési mintázatot, és állítsd „A kitöltőhorgony maximális hossza” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd a „Kereszt cikkcakk” vagy a „Rögzített cikkcakk” kitöltési mintázatot."
 
+# AI Translated
 msgid "Select the Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd a „Rögzített cikkcakk” kitöltési mintázatot."
 
+# AI Translated
 msgid "Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd a „Cikkcakk”, a „Kereszt cikkcakk” vagy a „Rögzített cikkcakk” kitöltési mintázatot."
 
+# AI Translated
 msgid "Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd a „3D-méhsejt” kitöltési mintázatot nullánál nagyobb „Kitöltés sűrűsége” értékkel."
 
+# AI Translated
 msgid "Enable spiral vase mode to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Spirál (váza)” módot."
 
+# AI Translated
 msgid "Enable spiral vase mode and spiral smoothing to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Spirál (váza)” módot és a „Sima spirál” lehetőséget."
 
+# AI Translated
 msgid "This setting requires top shell layers, or more than one bottom shell layer in spiral vase mode."
-msgstr ""
+msgstr "Ehhez a beállításhoz felső héjrétegek szükségesek, vagy „Spirál (váza)” módban egynél több alsó héjréteg."
 
+# AI Translated
 msgid "This setting requires a top shell with nonzero top surface density."
-msgstr ""
+msgstr "Ehhez a beállításhoz felső héj szükséges, nullánál nagyobb „Felső felületi sűrűség” értékkel."
 
+# AI Translated
 msgid "Set bottom shell layers above zero to use this setting."
-msgstr ""
+msgstr "A beállítás használatához állítsd az „Alsó héj rétegek” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."
-msgstr ""
+msgstr "Állítsd a „Kitöltés sűrűsége” értékét nullánál nagyobbra, és válassz olyan kitöltési mintázatot és „Többvonalas kitöltés” beállítást, amely támogatja a kitöltés simítását."
 
+# AI Translated
 msgid "Set top surface expansion above zero to use this setting."
-msgstr ""
+msgstr "A beállítás használatához állítsd a „Felső felület kiterjesztése” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Use a top or bottom shell with the Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Használj felső vagy alsó héjat „Archimédeszi vonalak” vagy „Nyolcágú spirál” felületi mintázattal."
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support separated infills."
-msgstr ""
+msgstr "A kiválasztott kitöltési mintázat nem támogatja a különálló kitöltéseket."
 
+# AI Translated
 msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Használj nullánál nagyobb felületi sűrűségű felső héjat „Koncentrikus”, „Spirális behúzás”, „Archimédeszi vonalak” vagy „Nyolcágú spirál” felületi mintázattal."
 
+# AI Translated
 msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Használj alsó héjrétegeket „Koncentrikus”, „Spirális behúzás”, „Archimédeszi vonalak” vagy „Nyolcágú spirál” felületi mintázattal."
 
+# AI Translated
 msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez állítsd a „Kitöltés sűrűsége” értékét nullánál nagyobbra, vagy használj felső vagy alsó héjrétegeket."
 
+# AI Translated
 msgid "Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."
-msgstr ""
+msgstr "A „Felső héj vastagság” szerkesztéséhez kapcsold ki a „Spirál (váza)” módot, és állítsd a „Felső héj rétegek” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
-msgstr ""
+msgstr "Az „Alsó héj vastagság” szerkesztéséhez kapcsold ki a „Spirál (váza)” módot, és állítsd az „Alsó héj rétegek” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
-msgstr ""
+msgstr "Az egyes extrudálási szerepek gyorsulásának szerkesztéséhez állítsd az alapértelmezett gyorsulást nullánál nagyobbra."
 
+# AI Translated
 msgid "This setting requires the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "Ehhez a beállításhoz „Marlin 2” G-code változat szükséges."
 
+# AI Translated
 msgid "Jerk settings are unavailable while the printer uses junction deviation."
-msgstr ""
+msgstr "A rántásbeállítások nem érhetők el, amíg a nyomtató csomóponti eltérést használ."
 
+# AI Translated
 msgid "Set the printer junction deviation limit above zero with the Marlin firmware G-code flavor to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez „Marlin 2” G-code változat mellett állítsd a nyomtató „Maximális csomóponti eltérés” korlátját nullánál nagyobbra."
 
+# AI Translated
 msgid "Set default jerk above zero to edit jerk for individual extrusion roles."
-msgstr ""
+msgstr "Az egyes extrudálási szerepek rántásának szerkesztéséhez állítsd az alapértelmezett rántást nullánál nagyobbra."
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero to use this setting."
-msgstr ""
+msgstr "A beállítás használatához nem szalagos nyomtató szükséges, és a „Szoknya hurkok száma” legyen nullánál nagyobb."
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero and disable the full-height draft shield to edit skirt height."
-msgstr ""
+msgstr "A „Szoknya magassága” szerkesztéséhez nem szalagos nyomtató szükséges, a „Szoknya hurkok száma” legyen nullánál nagyobb, és kapcsold ki a teljes magasságú huzatvédőt."
 
+# AI Translated
 msgid "Skirts are unavailable for belt printers."
-msgstr ""
+msgstr "A szoknya szalagos nyomtatókon nem érhető el."
 
+# AI Translated
 msgid "Select a brim type other than No brim to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válassz a „Nincs perem” értéktől eltérő peremtípust."
 
+# AI Translated
 msgid "Enable a brim on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a peremet egy döntött szalag nélküli nyomtatón."
 
+# AI Translated
 msgid "Select a brim type with an editable width, or enable a brim on a tilted belt printer."
-msgstr ""
+msgstr "Válassz szerkeszthető szélességű peremtípust, vagy kapcsold be a peremet egy döntött szalagos nyomtatón."
 
+# AI Translated
 msgid "This setting requires a belt printer with a tilted slicing plane."
-msgstr ""
+msgstr "Ehhez a beállításhoz döntött szeletelési síkú szalagos nyomtató szükséges."
 
+# AI Translated
 msgid "Enable a brim on a belt printer with a tilted slicing plane to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a peremet egy döntött szeletelési síkú szalagos nyomtatón."
 
+# AI Translated
 msgid "Enable walls or a brim to select the wall filament."
-msgstr ""
+msgstr "A fal filamentjének kiválasztásához használj falakat vagy peremet."
 
 # AI Translated
 msgid "Brim ear radius"
@@ -5498,284 +5576,381 @@ msgstr "Peremfül sugara"
 msgid "Brim width"
 msgstr "Perem szélessége"
 
+# AI Translated
 msgid "Set brim width above zero to edit brim ear detection."
-msgstr ""
+msgstr "A peremfül-észlelés szerkesztéséhez állítsd a „Perem szélessége” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Use painted brim ears or set brim width above zero to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez használj festett peremfüleket, vagy állítsd a „Perem szélessége” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd az automatikus peremfüleket egy döntött szalag nélküli nyomtatón."
 
+# AI Translated
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd az automatikus vagy a festett peremfüleket egy döntött szalag nélküli nyomtatón."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be az elefántláb-kompenzációt, vagy állítsd „Az elefántláb rétegek sűrűsége” értékét 100% alá."
 
+# AI Translated
 msgid "Rafts are unavailable for belt printers."
-msgstr ""
+msgstr "A tutaj szalagos nyomtatókon nem érhető el."
 
+# AI Translated
 msgid "Enable support to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez kapcsold be a „Támasz engedélyezése” lehetőséget."
 
+# AI Translated
 msgid "Enable support or add raft layers to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez kapcsold be a „Támasz engedélyezése” lehetőséget, vagy adj hozzá tutajrétegeket."
 
+# AI Translated
 msgid "Select an automatic support type to edit the threshold angle."
-msgstr ""
+msgstr "A „Dőlésszög küszöbértéke” szerkesztéséhez válassz automatikus támasztípust."
 
+# AI Translated
 msgid "Select an automatic support type and set the threshold angle to zero to edit threshold overlap."
-msgstr ""
+msgstr "Az „Átfedési küszöbérték” szerkesztéséhez válassz automatikus támasztípust, és állítsd a „Dőlésszög küszöbértéke” értékét nullára."
 
+# AI Translated
 msgid "Threshold overlap is unavailable for tree supports."
-msgstr ""
+msgstr "Az „Átfedési küszöbérték” fatámaszoknál nem érhető el."
 
+# AI Translated
 msgid "Enable tree supports and select a style other than Organic or Default to show this setting."
-msgstr ""
+msgstr "A beállítás megjelenítéséhez kapcsold be a fatámaszokat, és válassz az „Organikus” és az „Alapértelmezett” stílustól eltérő stílust."
 
+# AI Translated
 msgid "Enable tree supports with the Organic or Default style to show this setting."
-msgstr ""
+msgstr "A beállítás megjelenítéséhez kapcsold be a fatámaszokat „Organikus” vagy „Alapértelmezett” stílussal."
 
+# AI Translated
 msgid "Independent support layer height is unavailable for organic tree supports."
-msgstr ""
+msgstr "A „Független támasz rétegmagassága” organikus fatámaszoknál nem érhető el."
 
+# AI Translated
 msgid "Enable tree supports and turn off automatic brim width to edit the tree support brim width."
-msgstr ""
+msgstr "A „Fatámasz peremszélessége” szerkesztéséhez kapcsold be a fatámaszokat, és kapcsold ki az „Automatikus peremszélesség” lehetőséget."
 
+# AI Translated
 msgid "Enable tree supports to show the maximum bridge length."
-msgstr ""
+msgstr "A „Maximum áthidalás hossza” megjelenítéséhez kapcsold be a fatámaszokat."
 
+# AI Translated
 msgid "Tree supports use maximum bridge length instead of the bridge support setting."
-msgstr ""
+msgstr "A fatámaszok a „Ne támassza alá az áthidalásokat” beállítás helyett a „Maximum áthidalás hossza” értéket használják."
 
+# AI Translated
 msgid "Enable automatic tree supports to show this setting."
-msgstr ""
+msgstr "A beállítás megjelenítéséhez kapcsold be az automatikus fatámaszokat."
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez állítsd a „Felső érintkező rétegek” vagy az „Alsó érintkező rétegek” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Enable a raft, or enable supports with top interface layers, to use support ironing."
-msgstr ""
+msgstr "A „Támaszérintkező felület vasalása” használatához kapcsold be a tutajt, vagy kapcsold be a támaszt felső érintkező rétegekkel."
 
+# AI Translated
 msgid "Enable support ironing with a raft or top support interface layers to show this setting."
-msgstr ""
+msgstr "A beállítás megjelenítéséhez kapcsold be a „Támaszérintkező felület vasalása” lehetőséget tutajjal vagy felső támasz érintkező rétegekkel."
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit interface spacing."
-msgstr ""
+msgstr "A támasz érintkező felület térközének szerkesztéséhez állítsd a „Felső érintkező rétegek” vagy az „Alsó érintkező rétegek” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Support ironing requires a solid interface, so interface spacing cannot be edited."
-msgstr ""
+msgstr "A támasz érintkező felületének vasalásához tömör érintkező felület szükséges, ezért az érintkező felület térköze nem szerkeszthető."
 
+# AI Translated
 msgid "Enable walls, a skirt or a brim to edit inner wall line width."
-msgstr ""
+msgstr "A belső fal vonalszélességének szerkesztéséhez használj falakat, szoknyát vagy peremet."
 
+# AI Translated
 msgid "Enable support, a raft, or a skirt to select the support filament."
-msgstr ""
+msgstr "A támasz filamentjének kiválasztásához használj támaszt, tutajt vagy szoknyát."
 
+# AI Translated
 msgid "Add raft layers to show raft contact distance."
-msgstr ""
+msgstr "A „Tutaj érintkezési Z-távolság” megjelenítéséhez adj hozzá tutajrétegeket."
 
+# AI Translated
 msgid "Raft contact distance is unavailable when the top support Z distance is zero."
-msgstr ""
+msgstr "A „Tutaj érintkezési Z-távolság” nem érhető el, ha a támasz felső Z-távolsága nulla."
 
+# AI Translated
 msgid "Add raft layers to show raft expansion."
-msgstr ""
+msgstr "A „Tutaj kibővítése” megjelenítéséhez adj hozzá tutajrétegeket."
 
+# AI Translated
 msgid "Slim, Strong and Hybrid tree supports use first layer expansion instead of raft expansion."
-msgstr ""
+msgstr "A „Karcsú fa”, „Erős fa” és „Hibrid fa” stílusú fatámaszok a „Tutaj kibővítése” helyett az „Első réteg kiterjesztése” értéket használják."
 
+# AI Translated
 msgid "Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."
-msgstr ""
+msgstr "Az „Első réteg kiterjesztése” szerkesztéséhez adj hozzá tutajt, vagy válassz a „Karcsú fa” és az „Erős fa” stílustól eltérő fatámasz-stílust."
 
+# AI Translated
 msgid "Enable ironing to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a vasalást."
 
+# AI Translated
 msgid "Enable ironing with the Rectilinear pattern to edit ironing angles."
-msgstr ""
+msgstr "A vasalási szögek szerkesztéséhez kapcsold be a vasalást „Vonalak” mintázattal."
 
+# AI Translated
 msgid "Enable ironing or support ironing to edit ironing speed."
-msgstr ""
+msgstr "A „Vasalás sebessége” szerkesztéséhez kapcsold be a vasalást vagy a „Támaszérintkező felület vasalása” lehetőséget."
 
+# AI Translated
 msgid "Enable Z contouring to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a Z kontúrozást."
 
+# AI Translated
 msgid "Print order cannot be edited when the print sequence is By object."
-msgstr ""
+msgstr "A „Rétegen belüli sorrend” nem szerkeszthető, ha a „Nyomtatás sorrendje” értéke „Tárgyanként”."
 
+# AI Translated
 msgid "This setting is unavailable for Bambu Lab printers."
-msgstr ""
+msgstr "Ez a beállítás Bambu Lab nyomtatókon nem érhető el."
 
+# AI Translated
 msgid "This setting is unavailable in single extruder multimaterial mode."
-msgstr ""
+msgstr "Ez a beállítás „Egyextruder Többanyag” módban nem érhető el."
 
+# AI Translated
 msgid "Enable ooze prevention to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a szivárgás megelőzést."
 
+# AI Translated
 msgid "Enable ooze prevention and use a positive number of preheat steps to show this setting."
-msgstr ""
+msgstr "A beállítás megjelenítéséhez kapcsold be a szivárgás megelőzést, és állítsd az „Előmelegítési lépések” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Enable the belt purge tower in the belt printer settings to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a szalagos törlőtornyot a szalagos nyomtató beállításaiban."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a törlőtornyot egy nem szalagos nyomtatón."
 
+# AI Translated
 msgid "Enable the prime tower and tower interface features on a non-belt printer to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a törlőtornyot és a „Toronyérintkező felületi funkciók engedélyezése” lehetőséget egy nem szalagos nyomtatón."
 
+# AI Translated
 msgid "Enable the prime tower and select wipe tower Type 2 on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Kapcsold be a törlőtornyot, és válaszd a „2. típus” törlőtorony-típust egy nem Bambu Lab és nem szalagos nyomtatón."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer and turn off skipping sparse tower layers to use layer combination."
-msgstr ""
+msgstr "A „Ritka rétegek összevonása” használatához kapcsold be a törlőtornyot egy nem szalagos nyomtatón, és kapcsold ki a „Nincsenek ritka rétegek (béta)” lehetőséget."
 
+# AI Translated
 msgid "Enable the prime tower with Rib walls on a non-belt printer to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a törlőtornyot „Borda” faltípussal egy nem szalagos nyomtatón."
 
+# AI Translated
 msgid "Enable a Type 2 prime tower with Cone walls on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Kapcsold be a „2. típus” törlőtornyot „Kúp” faltípussal egy nem Bambu Lab és nem szalagos nyomtatón."
 
+# AI Translated
 msgid "Enable the prime tower on a non-belt printer and choose a wall type other than Rib to edit tower width."
-msgstr ""
+msgstr "A torony szélességének szerkesztéséhez kapcsold be a törlőtornyot egy nem szalagos nyomtatón, és válassz a „Borda” típustól eltérő faltípust."
 
+# AI Translated
 msgid "Enable a Type 2 prime tower on a non-Bambu, non-belt printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Kapcsold be a „2. típus” törlőtornyot egy nem Bambu Lab és nem szalagos nyomtatón, és kapcsold ki az „Egyextruder Többanyag” módot."
 
+# AI Translated
 msgid "Select Cyclic tool change ordering to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd a „Ciklikus” értéket a „Szerszámcserék sorrendje” beállításnál."
 
+# AI Translated
 msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Kapcsold be a törlőtornyot, és kapcsold ki vagy az „Öblítés a törlőtoronyban” lehetőséget, vagy az „Egyextruder Többanyag” módot."
 
+# AI Translated
 msgid "Enable the prime tower to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a törlőtornyot."
 
+# AI Translated
 msgid "Enable avoiding crossing walls to edit the maximum travel detour distance."
-msgstr ""
+msgstr "A kitérő maximális hosszának szerkesztéséhez kapcsold be a „Kerülje a falak keresztezését” lehetőséget."
 
+# AI Translated
 msgid "Enable setting other flow ratios to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be az „Egyéb anyagáramlások beállítása” lehetőséget."
 
+# AI Translated
 msgid "Enable slowing down for overhangs to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Lassítás túlnyúlásoknál” lehetőséget."
 
+# AI Translated
 msgid "This setting is available in object settings rather than global print settings."
-msgstr ""
+msgstr "Ez a beállítás nem a globális nyomtatási beállításokban, hanem az objektumbeállításokban érhető el."
 
+# AI Translated
 msgid "Select a specific support interface filament and use the default support filament to show this setting."
-msgstr ""
+msgstr "A beállítás megjelenítéséhez válassz egy konkrét filamentet a „Támasz/tutaj érintkező felülete” beállításnál, a „Támasz/tutaj alap” beállításnál pedig hagyd meg az alapértelmezettet."
 
+# AI Translated
 msgid "Enable fuzzy skin to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a barázdált felületet."
 
+# AI Translated
 msgid "Enable fuzzy skin with Ripple noise to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a barázdált felületet „Fodrozódás” zajtípussal."
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic or Ripple to edit noise scale."
-msgstr ""
+msgstr "A mintázatméret szerkesztéséhez kapcsold be a barázdált felületet, és válassz a „Klasszikus” és a „Fodrozódás” típustól eltérő zajtípust."
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic, Voronoi or Ripple to edit noise octaves."
-msgstr ""
+msgstr "A zaj oktávjainak szerkesztéséhez kapcsold be a barázdált felületet, és válassz a „Klasszikus”, a „Voronoi” és a „Fodrozódás” típustól eltérő zajtípust."
 
+# AI Translated
 msgid "Enable fuzzy skin with Perlin or Billow noise to edit persistence."
-msgstr ""
+msgstr "A perzisztencia szerkesztéséhez kapcsold be a barázdált felületet „Perlin” vagy „Billow” zajtípussal."
 
+# AI Translated
 msgid "Select the Arachne wall generator to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd az „Arachne” falgenerátort."
 
+# AI Translated
 msgid "Thin wall detection is unavailable with the Arachne wall generator."
-msgstr ""
+msgstr "A „Vékony falak felismerése” az „Arachne” falgenerátorral nem érhető el."
 
+# AI Translated
 msgid "Disable role-based wipe speed to edit wipe speed manually."
-msgstr ""
+msgstr "A „Törlés sebessége” kézi szerkesztéséhez kapcsold ki a „Szerepalapú törlési sebesség” lehetőséget."
 
+# AI Translated
 msgid "Enable inward wiping to edit inward wipe distance."
-msgstr ""
+msgstr "A „Törlés befelé távolsága” szerkesztéséhez kapcsold be a „Törlés befelé” lehetőséget."
 
+# AI Translated
 msgid "This setting requires the Klipper G-code flavor."
-msgstr ""
+msgstr "Ehhez a beállításhoz „Klipper” G-code változat szükséges."
 
+# AI Translated
 msgid "Enable acceleration to deceleration to edit its factor."
-msgstr ""
+msgstr "A tényező szerkesztéséhez kapcsold be az „accel_to_decel engedélyezése” lehetőséget."
 
+# AI Translated
 msgid "Enable excluding objects with the Klipper G-code flavor to edit the outline tolerance."
-msgstr ""
+msgstr "A „Körvonal tűrése” szerkesztéséhez „Klipper” G-code változat mellett kapcsold be a „Tárgyak kizárása” lehetőséget."
 
+# AI Translated
 msgid "Enable making overhangs printable to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Túlnyúlások nyomtathatóvá tétele” lehetőséget."
 
+# AI Translated
 msgid "Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5."
-msgstr ""
+msgstr "Kapcsold be a „Csak egy fal a felső felületeken” lehetőséget felső héjrétegekkel, vagy használd az „Arachne” falgenerátort 0,5-nél nagyobb „Minimális falhossz” értékkel."
 
+# AI Translated
 msgid "Enable converting holes to polyholes to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Lyukak sokszögesítése” lehetőséget."
 
+# AI Translated
 msgid "Enable overhang wall detection to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Túlnyúló falak felismerése” lehetőséget."
 
+# AI Translated
 msgid "Reverse overhang direction is unavailable in spiral vase mode."
-msgstr ""
+msgstr "„Spirál (váza)” módban a „Megfordítás páros rétegeken” nem érhető el."
 
+# AI Translated
 msgid "Disable spiral vase mode and enable reverse overhang direction to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold ki a „Spirál (váza)” módot, és kapcsold be a „Megfordítás páros rétegeken” lehetőséget."
 
+# AI Translated
 msgid "Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."
-msgstr ""
+msgstr "Kapcsold be a „Túlnyúló falak felismerése” és a „Megfordítás páros rétegeken” lehetőséget, kapcsold ki a „Spirál (váza)” módot, valamint a „Csak a belső kerületek megfordítása” lehetőséget."
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer."
-msgstr ""
+msgstr "Ehhez a beállításhoz Bambu Lab nyomtató szükséges."
 
+# AI Translated
 msgid "Enable small area infill flow compensation to edit its model."
-msgstr ""
+msgstr "Az „Áramláskompenzációs modell” szerkesztéséhez kapcsold be a „Kis területű áramláskompenzáció (béta)” lehetőséget."
 
+# AI Translated
 msgid "Scarf seams are unavailable in spiral vase mode and for belt printers."
-msgstr ""
+msgstr "Az átlapolt varratok „Spirál (váza)” módban és szalagos nyomtatókon nem érhetők el."
 
+# AI Translated
 msgid "Enable scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be az átlapolt varratot egy nem szalagos nyomtatón, kikapcsolt „Spirál (váza)” móddal."
 
+# AI Translated
 msgid "Disable scarfing the entire loop to edit the minimum scarf length."
-msgstr ""
+msgstr "Az „Átlapolás hossza” szerkesztéséhez kapcsold ki az „Átlapolás a teljes fal mentén” lehetőséget."
 
+# AI Translated
 msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Feltételes átlapolt illesztés” lehetőséget egy nem szalagos nyomtatón, kikapcsolt „Spirál (váza)” móddal."
 
+# AI Translated
 msgid "Enable beam interlocking to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Gerendaszerű kapcsolódás használata” lehetőséget."
 
+# AI Translated
 msgid "Disable beam interlocking to edit segmented region interlocking depth."
-msgstr ""
+msgstr "A „Szegmentált régió összekapcsolódási mélysége” szerkesztéséhez kapcsold ki a „Gerendaszerű kapcsolódás használata” lehetőséget."
 
+# AI Translated
 msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd az „Oldalsó rács” kitöltési mintázatot."
 
+# AI Translated
 msgid "Select the Lightning sparse infill pattern to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd a „Villám” kitöltési mintázatot."
 
+# AI Translated
 msgid "Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."
-msgstr ""
+msgstr "A kitöltés forgatási sablonjai „Adaptív kocka” és „Támasz kocka” kitöltésnél nem érhetők el."
 
+# AI Translated
 msgid "Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."
-msgstr ""
+msgstr "A „Kitöltés iránya” szerkesztéséhez töröld a „Kitöltés forgatási sablonja” tartalmát, és válassz az „Adaptív kocka” és a „Támasz kocka” mintázattól eltérő mintázatot."
 
+# AI Translated
 msgid "Clear the solid infill rotation template to edit solid infill direction."
-msgstr ""
+msgstr "A „Tömör kitöltés iránya” szerkesztéséhez töröld a „Tömör kitöltés forgatási sablonja” tartalmát."
 
+# AI Translated
 msgid "Select the Lateral Honeycomb sparse infill pattern to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd az „Oldalsó méhsejt” kitöltési mintázatot."
 
+# AI Translated
 msgid "The selected printer does not support wrapping detection."
-msgstr ""
+msgstr "A kiválasztott nyomtató nem támogatja a csomósodásészlelést."
 
+# AI Translated
+# Needs human review: SLA pad: no SLA labels in the hu catalog, check that 'talp' is the right term.
 msgid "Enable the pad to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez kapcsold be a talpat."
 
+# AI Translated
+# Needs human review: SLA pad around object: check that 'talp' is the right term.
 msgid "Enable the pad around the object to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez kapcsold be a tárgy körüli talpat."
 
+# AI Translated
+# Needs human review: SLA pad and object elevation: check the terms 'talp' and 'tárgy megemelése'.
 msgid "Enable support and disable the pad around the object to edit object elevation."
-msgstr ""
+msgstr "A tárgy megemelésének szerkesztéséhez kapcsold be a támaszt, és kapcsold ki a tárgy körüli talpat."
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "A spirál mód csak akkor működik, ha a falhurkok száma 1, a támasz és a szondázásos csomósodásészlelés ki van kapcsolva, a felső héjrétegek száma 0, a kitöltés sűrűsége 0, a Timelapse típusa pedig hagyományos."
@@ -6792,6 +6967,10 @@ msgstr "Bal fúvóka: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Jobb fúvóka: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+# AI Translated
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr "Egyes modellek pozíciója vagy mérete meghaladja a hozzárendelt extruder nyomtatható tartományát. Ellenőrizd és állítsd be az alkatrész pozícióját vagy méretét, hogy beleférjen a nyomtatható tartományba."
+
 msgid "Mirror object"
 msgstr "Objektum tükrözése"
 
@@ -7048,7 +7227,7 @@ msgid "Size:"
 msgstr "Méret:"
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "G-code útvonalütközés található a(z) %d. rétegen, Z = %.2lfmm. Helyezd távolabb egymástól az ütköző objektumokat (%s <-> %s)."
 
@@ -7538,8 +7717,9 @@ msgstr "Ablakelrendezés visszaállítása"
 msgid "Reset to default window layout"
 msgstr "Visszaállítás az alapértelmezett ablakelrendezésre"
 
+# AI Translated
 msgid "Show 3Dconnexion Settings"
-msgstr ""
+msgstr "3Dconnexion beállítások megjelenítése"
 
 msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr "3Dconnexion-eszközbeállítások párbeszédablak megjelenítése/elrejtése"
@@ -7889,6 +8069,10 @@ msgstr "Letöltés"
 msgid "Download selected files from printer."
 msgstr "Kiválasztott fájlok letöltése a nyomtatóról."
 
+# AI Translated
+msgid "Select all files in the list for batch management."
+msgstr "A lista összes fájljának kijelölése kötegelt kezeléshez."
+
 msgid "Batch manage files."
 msgstr "Fájlok kötegelt kezelése."
 
@@ -8164,10 +8348,10 @@ msgstr "Törlés"
 
 # AI Translated
 msgid ""
-"You have completed printing the mall model, \n"
+"You have completed printing the mall model,\n"
 "but synchronizing rating information has failed."
 msgstr ""
-"Befejezted a Mall modell nyomtatását, \n"
+"Befejezted a Mall modell nyomtatását,\n"
 "de az értékelési információk szinkronizálása sikertelen."
 
 msgid "How do you like this printing file?"
@@ -8427,7 +8611,7 @@ msgid "You can select up to 16 images."
 msgstr "Legfeljebb 16 képet választhatsz ki."
 
 msgid ""
-"At least one successful print record of this print profile is required \n"
+"At least one successful print record of this print profile is required\n"
 "to give a positive rating (4 or 5 stars)."
 msgstr ""
 "Ehhez a nyomtatási profilhoz legalább egy sikeres nyomtatási előzmény szükséges,\n"
@@ -9040,19 +9224,23 @@ msgstr ""
 "Ehhez a típushoz nem érhető el bővítményképesség.\n"
 "A használathoz engedélyezz vagy telepíts néhányat."
 
+# AI Translated
 msgid "Hidden by the current configuration."
-msgstr ""
+msgstr "Az aktuális konfiguráció miatt rejtett."
 
+# AI Translated
 #, boost-format
 msgid "Hidden: %1%"
-msgstr ""
+msgstr "Rejtett: %1%"
 
+# AI Translated
 msgid "Disabled by the current configuration."
-msgstr ""
+msgstr "Az aktuális konfiguráció miatt letiltva."
 
+# AI Translated
 #, boost-format
 msgid "Disabled: %1%"
-msgstr ""
+msgstr "Letiltva: %1%"
 
 # AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
@@ -9268,8 +9456,9 @@ msgstr "Az összes objektum beállításainak megtekintése"
 msgid "Material settings"
 msgstr "Anyagbeállítások"
 
+# AI Translated
 msgid "The process flow ratio cannot be edited in this panel."
-msgstr ""
+msgstr "A folyamat „Anyagáramlás” értéke ebben a panelen nem szerkeszthető."
 
 # AI Translated
 msgid "Each mode names the tool heads that take part and the role each one plays. Click a tool button to cycle its role — hover a color below for what each role does."
@@ -9280,6 +9469,7 @@ msgid "Add Mode"
 msgstr "Mód hozzáadása"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "Eszközök"
 
@@ -9296,8 +9486,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "Mely szerszámfejek vesznek részt a módban, és mi az egyes fejek szerepe. Kattints egy csempére a szerepe váltásához."
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "A nyomtatás kezdetén futtatott G-code, amely ebbe a módba állítja a nyomtatót (például egy Klipper SET_PRINT_MODE hívás). A szeletelő csak az elsődleges (Primary) szerszám útvonalait állítja elő; a többit a firmware vezérli."
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"A nyomtatás kezdetén futtatott G-code, amely ebbe a módba állítja a nyomtatót (például egy Klipper SET_PRINT_MODE hívás).\n"
+"\n"
+"A szeletelő csak az elsődleges (Primary) szerszám útvonalait állítja elő; a többit a firmware vezérli."
 
 # AI Translated
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -9358,8 +9554,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "A párhuzamos mód neve, ahogy a tálca IDEX/IQEX módválasztójában megjelenik. A projekt név szerint tárolja, ezért ha átnevezel egy tálcák által már használt módot, azok visszaállnak elsődleges (Primary) módra. Nem lehet üres — az üres név helyére egy generált név kerül."
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "Az ezt a módot használó nyomtatás elején egyszer kiírt G-code, a gép kezdő G-code-ja előtt. Itt kell a nyomtatót a megfelelő firmware-módba állítani — például egy Klipper SET_PRINT_MODE hívással vagy egy RepRapFirmware M567 paranccsal —, mivel a szeletelő csak az elsődleges (Primary) szerszám útvonalait állítja elő, a másolat (Copy) és tükör (Mirror) szerszámokat pedig a firmware vezérli. Helyőrzők használhatók; a szerkesztés gombbal böngészheted őket. Hagyd üresen, ha a mód nem igényel firmware-beállítást."
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"Az ezt a módot használó nyomtatás elején egyszer kiírt G-code, a gép kezdő G-code-ja előtt. Itt kell a nyomtatót a megfelelő firmware-módba állítani — például egy Klipper SET_PRINT_MODE hívással vagy egy RepRapFirmware M567 paranccsal —, mivel a szeletelő csak az elsődleges (Primary) szerszám útvonalait állítja elő, a másolat (Copy) és tükör (Mirror) szerszámokat pedig a firmware vezérli.\n"
+"\n"
+"Helyőrzők használhatók; a szerkesztés gombbal böngészheted őket. Hagyd üresen, ha a mód nem igényel firmware-beállítást."
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -9780,12 +9982,10 @@ msgstr "Objektum túl kicsi"
 # AI Translated
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
+"Instead of considering them as multiple objects, should the file be loaded as a single object with multiple parts?"
 msgstr ""
 "Ez a fájl több objektumot is tartalmaz különböző magasságban.\n"
-"Szeretnéd több objektum helyett \n"
-"égyetlen, több részből álló objektumként betölteni?"
+"Szeretnéd több objektum helyett égyetlen, több részből álló objektumként betölteni?"
 
 msgid "Multi-part object detected"
 msgstr "Több részből álló objektum észlelve"
@@ -10343,10 +10543,10 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "Rendellenes nyomtatási fájladatok. Kérlek, szeleteld újra"
 
 msgid ""
-"Print By Object: \n"
+"Print By Object:\n"
 "We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
-"Nyomtatás tárgyanként: \n"
+"Nyomtatás tárgyanként:\n"
 "Javasoljuk, hogy használd az automatikus elrendezést az ütközések elkerülése érdekében."
 
 # AI Translated
@@ -10379,6 +10579,12 @@ msgstr "Nincsenek filamentek a nyomtatón. Először töltsd be a filamenteketa 
 
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "A nyomtatón lévő filamentek mind ismeretlen típusúak. Állítsd be a filamenttípust a nyomtató kijelzőjén vagy a szoftver Eszköz oldalán."
+
+# AI Translated
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr "A(z) %s csatlakoztatva van, de nem található rajta filamentrendszer (AMS, CFS vagy más többanyagú egység), így nincs szinkronizálható filament."
 
 msgid "Device Page"
 msgstr "Eszköz oldal"
@@ -10688,13 +10894,15 @@ msgstr "Használd a bal oldalon lévő ablakgombokat"
 msgid "(Requires restart)"
 msgstr "(Újraindítást igényel)"
 
+# AI Translated
 #. TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
 msgid "Render on the discrete GPU"
-msgstr ""
+msgstr "Renderelés a dedikált GPU-n"
 
+# AI Translated
 #. TRN DRI_PRIME is an environment variable name and must stay as it is.
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
-msgstr ""
+msgstr "Két GPU-val rendelkező számítógépen az OrcaSlicer a kijelzőt meghajtó GPU helyett a dedikált GPU-n fut. Egyes Wayland-rendszerek nem tudják megjeleníteni a másik GPU-n renderelt képkockákat, vagy egyáltalán nem nyitják meg az ablakot. Kapcsold ki, ha a 3D nézet üres marad; ha az OrcaSlicer már el sem indul, indítsd el egyszer DRI_PRIME=0 környezeti változóval, hogy visszajuss ide."
 
 msgid "Downloads folder"
 msgstr "Letöltések mappa"
@@ -10914,6 +11122,14 @@ msgstr "Öblítési mennyiségek automatikus számítása, ha a kiválasztott é
 
 msgid "Auto arrange plate after cloning"
 msgstr "Tálca automatikus elrendezése klónozás után"
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "Beállítások megjelenítése primitív hozzáadásakor"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "Ha be van kapcsolva, egy párbeszédablak bekéri a primitív alakzat méreteit a hozzáadása előtt."
 
 msgid "Auto slice after changes"
 msgstr "Automatikus szeletelés módosítások után"
@@ -11192,14 +11408,12 @@ msgstr "3D jelenet újrahasznosítása tétlen állapotban"
 
 # AI Translated
 msgid ""
-"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, and reuses the previous frame's scene instead. Reduces GPU load.\n"
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
 msgstr ""
-"Kihagyja a 3D jelenet újrarajzolását, ha csak az egérmutató mozog a nézetablak felett,\n"
-"és helyette az előző képkocka jelenetét használja újra. Csökkenti a GPU terhelését.\n"
+"Kihagyja a 3D jelenet újrarajzolását, ha csak az egérmutató mozog a nézetablak felett, és helyette az előző képkocka jelenetét használja újra. Csökkenti a GPU terhelését.\n"
 "Kapcsold ki, ha a nézetablak elavult vagy hiányos tartalmat mutat.\n"
 "\n"
 "Azonnal érvénybe lép."
@@ -11328,9 +11542,11 @@ msgstr "Lopakodó mód"
 # AI Translated
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+"\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
 "Ez kikapcsolja az összes felhőfunkciót, beleértve az Orca Cloud profilszinkronizálást is. Azok a felhasználók kapcsolhatják be, akik teljesen offline szeretnének dolgozni.\n"
+"\n"
 "Megjegyzés: ha a lopakodó mód be van kapcsolva, a felhasználói profiljaidról nem készül biztonsági mentés az Orca Cloudba."
 
 # AI Translated
@@ -11646,6 +11862,30 @@ msgid "The selected preset is null!"
 msgstr "A kiválasztott beállítás nulla!"
 
 # AI Translated
+msgid "Changing one dimension changes the others in proportion."
+msgstr "Egy méret módosítása arányosan módosítja a többit."
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "Beállítások mentése alapértelmezettként"
+
+# AI Translated
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr "Ha be van kapcsolva, mostantól ezek a méretek lesznek használva ennél az alakzatnál, akkor is, ha ez a párbeszédablak nem jelenik meg."
+
+# AI Translated
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr "Ha be van kapcsolva, az alakzatok kérdés nélkül, az alapértelmezett méretükkel kerülnek hozzáadásra. A párbeszédablak a Beállításokban kapcsolható vissza."
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "A méretnek nagyobbnak kell lennie nullánál"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Érvénytelen számérték."
+
+# AI Translated
 msgctxt "Layer range"
 msgid "End"
 msgstr "Vége"
@@ -11828,6 +12068,18 @@ msgstr "A(z) \"%1%\" már létezik és nem kompatibilis a jelenlegi nyomtatóval
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Figyelem, a mentési művelet lecseréli ezt a beállítást"
+
+# AI Translated
+msgid "control characters are not allowed."
+msgstr "vezérlőkarakterek nem megengedettek."
+
+# AI Translated
+msgid "The name is a reserved system name."
+msgstr "A név egy foglalt rendszernév."
+
+# AI Translated
+msgid "The name is too long."
+msgstr "A név túl hosszú."
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "A név nem lehet azonos egy beállítás alias névvel."
@@ -12518,8 +12770,9 @@ msgstr "LAN-on történő nyomtatás előtt be kell helyezni a tárolót."
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "A tároló rendellenes állapotban van vagy csak olvasható módban van."
 
-msgid "Storage needs to be inserted before printing."
-msgstr "Nyomtatás előtt be kell helyezni a tárolót."
+# AI Translated
+msgid "Insert storage or free up space before printing."
+msgstr "Nyomtatás előtt helyezz be egy tárolót, vagy szabadíts fel helyet."
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Nem küldhetsz nyomtatási feladatot a nyomtatóra, mert annak firmware-jét frissíteni kell."
@@ -12592,9 +12845,6 @@ msgstr "Nem küldhető nyomtatási feladat a nyomtatóra, amikor frissítés van
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "A nyomtató nem kompatibilis a kiválasztott nyomtatóbeállításokkal."
 
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Nyomtatóra küldés előtt be kell helyezni a tárolót."
-
 # AI Translated
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "A nyomtatónak ugyanazon a helyi hálózaton (LAN) kell lennie, mint az Orca Slicernek."
@@ -12649,12 +12899,8 @@ msgstr "Bejelentkezési jelentés fogadása időtúllépés miatt sikertelen"
 msgid "Unknown Failure"
 msgstr "Ismeretlen hiba"
 
-msgid ""
-"Please Find the Pin Code in Account page on printer screen,\n"
-" and type in the Pin Code below."
-msgstr ""
-"Keresd meg a PIN-kódot a nyomtató képernyőjén az Account oldalon,\n"
-" és írd be lentebb a PIN-kódot."
+msgid "Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."
+msgstr "Keresd meg a PIN-kódot a nyomtató képernyőjén az Account oldalon, és írd be lentebb a PIN-kódot."
 
 msgid "Can't find Pin Code?"
 msgstr "Nem találod a PIN-kódot?"
@@ -12817,12 +13063,10 @@ msgstr ""
 
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
-"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
-"and use soluble materials for both support interface and support base."
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height and use soluble materials for both support interface and support base."
 msgstr ""
 "Ha oldható anyagot használsz a támasz érintkező felületéhez, a következő beállításokat javasoljuk:\n"
-"0 felső Z-távolság, 0 érintkező felület térköz, váltakozó egyenes vonalú mintázat, a független támaszréteg-magasság kikapcsolása,\n"
-"és oldható anyag használata mind a támasz érintkező felületéhez, mind a támaszalaphoz."
+"0 felső Z-távolság, 0 érintkező felület térköz, váltakozó egyenes vonalú mintázat, a független támaszréteg-magasság kikapcsolása, és oldható anyag használata mind a támasz érintkező felületéhez, mind a támaszalaphoz."
 
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
 msgstr "Ennek az opciónak az engedélyezése módosítja a modell alakját. Ha a nyomtatásod pontos méreteket igényel, vagy egy összeállítás része, fontos ellenőrizni, hogy ez a geometriai változás befolyásolja-e a nyomtatás működését."
@@ -12839,15 +13083,12 @@ msgstr "Kísérleti funkció: Filamentcsere közben nagyobb távolságon törté
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications. Please use with the latest printer firmware."
 msgstr "Kísérleti funkció: Filamentcsere közben nagyobb távolságon történő visszahúzás és elvágás az öblítés minimalizálása érdekében. Bár ez jelentősen csökkentheti az öblítés mértékét, növelheti a fúvóka eltömődésének vagy más nyomtatási problémák kockázatát. Kérlek, csak a legfrissebb nyomtatófirmware-rel használd."
 
-msgid ""
-"When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr ""
-"Ha nyomtatófej nélküli Timelapse-felvételt készítesz, érdemes hozzáadni egy „Timelapse törlőtornyot”.\n"
-"Kattints jobb gombbal az asztal egy üres részére, majd válaszd a „Primitív hozzáadása” -> „Timelapse törlőtorony” lehetőséget."
+msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+msgstr "Ha nyomtatófej nélküli Timelapse-felvételt készítesz, érdemes hozzáadni egy „Timelapse törlőtornyot”. Kattints jobb gombbal az asztal egy üres részére, majd válaszd a „Primitív hozzáadása” -> „Timelapse törlőtorony” lehetőséget."
 
+# AI Translated
 msgid "Setting unavailable"
-msgstr ""
+msgstr "A beállítás nem érhető el"
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "Létrejön az aktuális rendszer-előbeállítás másolata, amely leválik a rendszer-előbeállításról."
@@ -13018,14 +13259,16 @@ msgstr "Bővítmény konfigurációja"
 msgid "Notes"
 msgstr "Megjegyzések"
 
+# AI Translated
 msgid "The selected printer does not support multiple bed types."
-msgstr ""
+msgstr "A kiválasztott nyomtató nem támogatja a több asztaltípust."
 
 msgid "Frequent"
 msgstr "Gyakori"
 
+# AI Translated
 msgid "Custom filament print order is unavailable while the plate contains mixed-color filaments."
-msgstr ""
+msgstr "Az egyéni filament-nyomtatási sorrend nem érhető el, amíg a tálcán kevert színű filamentek vannak."
 
 #, c-format, boost-format
 msgid ""
@@ -13053,14 +13296,17 @@ msgstr "Beállítások felülbírálása"
 msgid "Retraction when switching material"
 msgstr "Visszahúzás anyagváltáskor"
 
+# AI Translated
 msgid "Set the filament retraction length above zero, or use the printer's value, to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez állítsd a filament visszahúzási hosszát nullánál nagyobbra, vagy használd a nyomtató értékét."
 
+# AI Translated
 msgid "The printer profile must allow filament overrides for long retraction when cutting."
-msgstr ""
+msgstr "A nyomtatóprofilnak engedélyeznie kell a vágáskori hosszú visszahúzás filamentenkénti felülbírálását."
 
+# AI Translated
 msgid "Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."
-msgstr ""
+msgstr "A beállítás használatához engedélyezd a vágáskori hosszú visszahúzást a nyomtatóprofilban, és kapcsold be a filamentprofilban."
 
 msgid "Basic information"
 msgstr "Alapinformációk"
@@ -13195,59 +13441,77 @@ msgstr "Kompatibilis nyomtatók"
 msgid "Compatible process profiles"
 msgstr "Kompatibilis folyamatprofilok"
 
+# AI Translated
 msgid "Enable cooling for overhangs and bridges to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez kapcsold be a „Hűtés kényszerítése túlnyúlásokhoz és hidakhoz” lehetőséget."
 
+# AI Translated
 msgid "Enable slowing down for layer cooling to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Nyomtatás lelassítása a jobb hűtés érdekében” lehetőséget."
 
+# AI Translated
 msgid "Set the number of initial layers without cooling to zero to override the first layer fan speed."
-msgstr ""
+msgstr "Az „Első réteg ventilátorsebessége” felülbírálásához állítsd a „Nincs hűtés az első” értékét nullára."
 
+# AI Translated
 msgid "Enable the auxiliary fan in the printer profile to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Kiegészítő tárgyhűtő ventilátor” lehetőséget a nyomtatóprofilban."
 
+# AI Translated
 msgid "The selected printer does not support air filtration."
-msgstr ""
+msgstr "A kiválasztott nyomtató nem támogatja a légszűrést."
 
+# AI Translated
 msgid "Activate air filtration to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez kapcsold be a „Légszűrés aktiválása” lehetőséget."
 
+# AI Translated
 msgid "Activate air filtration and enable it during printing to edit the exhaust fan speed."
-msgstr ""
+msgstr "Az elszívóventilátor fordulatszámának szerkesztéséhez kapcsold be a „Légszűrés aktiválása” és a „Nyomtatás közben” lehetőséget."
 
+# AI Translated
 msgid "Activate air filtration and enable it on completion to edit the exhaust fan speed."
-msgstr ""
+msgstr "Az elszívóventilátor fordulatszámának szerkesztéséhez kapcsold be a „Légszűrés aktiválása” és a „Befejezéskor” lehetőséget."
 
+# AI Translated
 msgid "Enable pressure advance to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Pressure Advance engedélyezése” lehetőséget."
 
+# AI Translated
 msgid "Select this bed type or enable support for multiple bed types in the printer profile to show its temperature settings."
-msgstr ""
+msgstr "Az asztaltípus hőmérséklet-beállításainak megjelenítéséhez válaszd ezt az asztaltípust, vagy kapcsold be a „Több asztaltípus támogatása” lehetőséget a nyomtatóprofilban."
 
+# AI Translated
 msgid "Enable pressure advance and adaptive pressure advance to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Pressure Advance engedélyezése” és az „Adaptív Pressure Advance engedélyezése (béta)” lehetőséget."
 
+# AI Translated
 msgid "Enable the pellet printer option in the printer profile to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a „Granulátumos módosított nyomtató” lehetőséget a nyomtatóprofilban."
 
+# AI Translated
 msgid "Filament diameter is unavailable for pellet printers."
-msgstr ""
+msgstr "A filament átmérője granulátumos nyomtatóknál nem érhető el."
 
+# AI Translated
 msgid "The selected printer does not support chamber temperature control."
-msgstr ""
+msgstr "A kiválasztott nyomtató nem támogatja a kamrahőmérséklet-szabályozást."
 
+# AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
-msgstr ""
+msgstr "Az „Adaptív volumetrikus sebesség” bekapcsolása előtt adj meg nullától eltérő volumetrikus sebességi együtthatókat."
 
+# AI Translated
 msgid "Enable multitool ramming to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez kapcsold be a „Tömörítés engedélyezése több szerszámos beállításokhoz” lehetőséget."
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer with multiple extruders."
-msgstr ""
+msgstr "Ehhez a beállításhoz több extruderes Bambu Lab nyomtató szükséges."
 
+# AI Translated
 msgid "Use a Bambu Lab printer with multiple extruders and enable long retraction when the extruder changes."
-msgstr ""
+msgstr "Használj több extruderes Bambu Lab nyomtatót, és kapcsold be a „Hosszú visszahúzás extruderváltáskor” lehetőséget."
 
 msgid "Printable space"
 msgstr "Nyomtatási terület"
@@ -13373,12 +13637,10 @@ msgid "Number of extruders of the printer."
 msgstr "A nyomtató Extrudereinek száma."
 
 msgid ""
-"Single Extruder Multi Material is selected,\n"
-"and all extruders must have the same diameter.\n"
+"Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
 msgstr ""
-"Az egyextruderes többanyagú mód van kiválasztva,\n"
-"ezért minden extrudernek azonos átmérőjűnek kell lennie.\n"
+"Az egyextruderes többanyagú mód van kiválasztva, ezért minden extrudernek azonos átmérőjűnek kell lennie.\n"
 "Át szeretnéd állítani az összes extruder átmérőjét az első extruder fúvókaátmérőjére?"
 
 msgid "Nozzle diameter"
@@ -13419,62 +13681,81 @@ msgstr "Rétegmagasság limitek"
 msgid "Z-Hop"
 msgstr "Z-emelés"
 
+# AI Translated
 msgid "Power loss recovery requires a Bambu Lab printer or the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "Az „Áramkimaradás utáni helyreállítás” Bambu Lab nyomtatót vagy „Marlin 2” G-code változatot igényel."
 
+# AI Translated
 msgid "Build plate tilt is derived from the belt tilt on belt printers."
-msgstr ""
+msgstr "Szalagos nyomtatókon az asztal dőlése a szalag dőléséből adódik."
 
+# AI Translated
 msgid "Enable belt printer mode to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a szalagos nyomtató módot."
 
+# AI Translated
 msgid "Enable belt printer mode and select a belt rotation axis to edit its angle."
-msgstr ""
+msgstr "A „Szalag dőlésszöge” szerkesztéséhez kapcsold be a szalagos nyomtató módot, és válaszd ki a szalag dőlési tengelyét."
 
+# AI Translated
 msgid "Enable belt printer mode and select Expert or Developer settings visibility to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a szalagos nyomtató módot, és válaszd a „Szakértő” vagy a „Fejlesztői” beállítási módot."
 
+# AI Translated
 msgid "Enable belt printer mode, select Expert or Developer settings visibility, and decouple the machine frame tilt to edit its angle."
-msgstr ""
+msgstr "A „Gépi koordináta-rendszer dőlésszöge” szerkesztéséhez kapcsold be a szalagos nyomtató módot, válaszd a „Szakértő” vagy a „Fejlesztői” beállítási módot, és kapcsold be a „Gépi koordináta-rendszer dőlésének leválasztása” lehetőséget."
 
+# AI Translated
 msgid "Enable support for parallel printheads to edit their count."
-msgstr ""
+msgstr "A „Párhuzamos nyomtatófejek száma” szerkesztéséhez kapcsold be a „Párhuzamos nyomtatófejek támogatása” lehetőséget."
 
+# AI Translated
 msgid "Collision volume mode selection requires multiple extruders."
-msgstr ""
+msgstr "Az „Ütközési térfogatok működése” kiválasztásához több extruder szükséges."
 
+# AI Translated
 msgid "Select a shared collision volume mode or use a single-extruder printer to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez válassz közös ütközési térfogat módot, vagy használj egyextruderes nyomtatót."
 
+# AI Translated
 msgid "Enable the auxiliary fan to edit its direction."
-msgstr ""
+msgstr "A „Ventilátor iránya” szerkesztéséhez kapcsold be a „Kiegészítő tárgyhűtő ventilátor” lehetőséget."
 
+# AI Translated
 msgid "Air filtration and the cooling filter are alternative accessories; disable cooling filter support to use air filtration."
-msgstr ""
+msgstr "A légszűrés és a hűtőszűrő egymás helyett használható tartozékok; a légszűrés használatához kapcsold ki a hűtőszűrő támogatását."
 
+# AI Translated
 msgid "Enable cooling filter support in the printer profile to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a hűtőszűrő támogatását a nyomtatóprofilban."
 
+# AI Translated
 msgid "Enable belt printer mode to use the belt purge tower."
-msgstr ""
+msgstr "A szalagos törlőtorony használatához kapcsold be a szalagos nyomtató módot."
 
+# AI Translated
 msgid "Wipe tower type selection is unavailable for Bambu Lab printers and belt printers."
-msgstr ""
+msgstr "A törlőtorony típusának kiválasztása Bambu Lab nyomtatókon és szalagos nyomtatókon nem érhető el."
 
+# AI Translated
 msgid "Select wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "A beállítás használatához válaszd a „2. típus” törlőtorony-típust egy nem Bambu Lab nyomtatón."
 
+# AI Translated
 msgid "Extruder count cannot be edited in single extruder multimaterial mode."
-msgstr ""
+msgstr "Az extruderek száma „Egyextruder Többanyag” módban nem szerkeszthető."
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode to use manual filament changes."
-msgstr ""
+msgstr "A „Kézi filamentcsere” használatához kapcsold be az „Egyextruder Többanyag” módot."
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be az „Egyextruder Többanyag” módot „2. típus” törlőtoronnyal egy nem Bambu Lab nyomtatón."
 
+# AI Translated
 msgid "Enable IDEX/IQEX printer mode to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be az „IDEX/IQEX nyomtató” lehetőséget."
 
 # AI Translated
 msgid "Front-left"
@@ -13492,35 +13773,47 @@ msgstr "Bal hátsó"
 msgid "Rear-right"
 msgstr "Jobb hátsó"
 
+# AI Translated
 msgid "Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Használj több extrudert „2. típus” törlőtoronnyal egy nem Bambu Lab nyomtatón, és kapcsold ki az „Egyextruder Többanyag” módot."
 
+# AI Translated
 msgid "Set retraction length above zero or enable firmware retraction to use this setting."
-msgstr ""
+msgstr "A beállítás használatához állítsd a visszahúzás hosszát nullánál nagyobbra, vagy kapcsold be a „Firmware-ben megadott visszahúzás használata” lehetőséget."
 
+# AI Translated
 msgid "The extruder printable area and height are fixed by the printer profile."
-msgstr ""
+msgstr "Az extruder nyomtatható területét és magasságát a nyomtatóprofil rögzíti."
 
+# AI Translated
 msgid "This setting is shown for printers with exactly two extruders."
-msgstr ""
+msgstr "Ez a beállítás a pontosan két extruderes nyomtatóknál jelenik meg."
 
+# AI Translated
 msgid "Select per-extruder collision volumes on a printer with multiple extruders to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez válaszd az „Egyedi extrudereként” értéket az „Ütközési térfogatok működése” beállításnál egy több extruderes nyomtatón."
 
+# AI Translated
 msgid "Retraction length is controlled by the firmware while firmware retraction is enabled."
-msgstr ""
+msgstr "Amíg a „Firmware-ben megadott visszahúzás használata” be van kapcsolva, a visszahúzás hosszát a firmware szabályozza."
 
+# AI Translated
 msgid "Enable retraction and set Z hop above zero to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold be a visszahúzást, és állítsd a „Z-emelés magassága” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez állítsd a visszahúzás hosszát nullánál nagyobbra, és kapcsold ki a „Firmware-ben megadott visszahúzás használata” lehetőséget."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
-msgstr ""
+msgstr "A „Visszahúzott mennyiség törlés előtt” szerkesztéséhez kapcsold be a visszahúzást és a „Törlés visszahúzás közben” lehetőséget, valamint állítsd a „Visszahúzás mértéke törlés után” értékét 100% alá."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
-msgstr ""
+msgstr "A „Visszahúzás mértéke törlés után” szerkesztéséhez kapcsold be a visszahúzást és a „Törlés visszahúzás közben” lehetőséget, valamint állítsd a „Visszahúzott mennyiség törlés előtt” értékét 100% alá."
 
 # AI Translated
 msgid ""
@@ -13535,47 +13828,61 @@ msgstr ""
 msgid "Firmware Retraction"
 msgstr "Firmware-ben megadott visszahúzás"
 
+# AI Translated
 msgid "Enable retraction and wiping to edit wipe distance."
-msgstr ""
+msgstr "A „Törlési távolság” szerkesztéséhez kapcsold be a visszahúzást és a „Törlés visszahúzás közben” lehetőséget."
 
+# AI Translated
 msgid "This setting requires multiple extruders."
-msgstr ""
+msgstr "Ehhez a beállításhoz több extruder szükséges."
 
+# AI Translated
 msgid "Use multiple extruders and set tool change retraction length above zero to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez használj több extrudert, és állítsd a „Visszahúzás hossza (Eszközváltás)” értékét nullánál nagyobbra."
 
+# AI Translated
 msgid "Disable firmware retraction and allow long retraction when cutting to use this setting."
-msgstr ""
+msgstr "A beállítás használatához kapcsold ki a „Firmware-ben megadott visszahúzás használata” lehetőséget, és engedélyezd a vágáskori hosszú visszahúzást."
 
+# AI Translated
 msgid "Enable long retraction when cutting to edit the retraction distance."
-msgstr ""
+msgstr "A „Visszahúzási távolság vágáskor” szerkesztéséhez kapcsold be a „Hosszú visszahúzás vágáskor (béta)” lehetőséget."
 
+# AI Translated
 msgid "Select a Z hop type other than Normal to edit travel slope."
-msgstr ""
+msgstr "A „Mozgási szög” szerkesztéséhez válassz a „Normál” típustól eltérő Z-emelés típust."
 
+# AI Translated
 msgid "Travel acceleration limits are unavailable for the Marlin legacy and Klipper G-code flavors."
-msgstr ""
+msgstr "A mozgási gyorsulási korlátok a „Marlin (régi)” és a „Klipper” G-code változatnál nem érhetők el."
 
+# AI Translated
 msgid "Jerk limits are unavailable while Marlin uses nonzero junction deviation."
-msgstr ""
+msgstr "A rántáskorlátok nem érhetők el, amíg a Marlin nullától eltérő csomóponti eltérést használ."
 
+# AI Translated
 msgid "Emitting machine limits requires the Marlin legacy, Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "A „Korlátok kiírása a G-code-ba” „Marlin (régi)”, „Marlin 2” vagy „RepRapFirmware” G-code változatot igényel."
 
+# AI Translated
 msgid "Enable resonance avoidance to edit its speed range."
-msgstr ""
+msgstr "A sebességtartomány szerkesztéséhez kapcsold be a „Rezonancia elkerülése” lehetőséget."
 
+# AI Translated
 msgid "This input shaping setting requires the Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "Ez a rezgéskompenzációs beállítás „Marlin 2” vagy „RepRapFirmware” G-code változatot igényel."
 
+# AI Translated
 msgid "Enable emitting machine limits to G-code to emit input shaping settings."
-msgstr ""
+msgstr "A rezgéskompenzációs beállítások kiírásához kapcsold be a „Korlátok kiírása a G-code-ba” lehetőséget."
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code to edit this setting."
-msgstr ""
+msgstr "A beállítás szerkesztéséhez kapcsold be a „Korlátok kiírása a G-code-ba” és a „Rezgéskompenzáció kibocsájtás” lehetőséget."
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code with the Marlin firmware G-code flavor to edit separate Y-axis values."
-msgstr ""
+msgstr "A külön Y tengelyes értékek szerkesztéséhez „Marlin 2” G-code változat mellett kapcsold be a „Korlátok kiírása a G-code-ba” és a „Rezgéskompenzáció kibocsájtás” lehetőséget."
 
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
 msgstr "Más extrudertípussal vagy eltérő extruderszámmal rendelkező nyomtatóra váltáskor az extruderhez vagy többfúvókás működéshez kapcsolódó paramétermódosítások elvesznek vagy visszaállnak."
@@ -13634,8 +13941,9 @@ msgstr ""
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "Biztosan törlöd a kiválasztott beállítást?"
 
+# AI Translated
 msgid "Select \"All\" to edit the compatibility condition instead of using an explicit profile list."
-msgstr ""
+msgstr "Jelöld be az „Összes” lehetőséget, hogy explicit profillista helyett a kompatibilitási feltételt szerkeszthesd."
 
 msgid "Select printers"
 msgstr "Nyomtatók kiválasztása"
@@ -13747,8 +14055,9 @@ msgstr "Kattints ide az érték visszaállításához és a globális érték ha
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Kattints a gombra az aktuális módosítás elvetéséhez és a mentett értékre való visszaállításhoz."
 
+# AI Translated
 msgid "Material print speed cannot be edited for the SL1 printer."
-msgstr ""
+msgstr "Az anyag nyomtatási sebessége SL1 nyomtatónál nem szerkeszthető."
 
 msgid "Process Settings"
 msgstr "Folyamatbeállítások"
@@ -13831,7 +14140,7 @@ msgstr "Kiválasztott opciók átmásolása az újonnan kiválasztott beállít�
 
 #, boost-format
 msgid ""
-"Save the selected options to preset \n"
+"Save the selected options to preset\n"
 "\"%1%\"."
 msgstr ""
 "A kiválasztott beállítások mentése előbeállításba\n"
@@ -13839,7 +14148,7 @@ msgstr ""
 
 #, boost-format
 msgid ""
-"Transfer the selected options to the newly selected preset \n"
+"Transfer the selected options to the newly selected preset\n"
 "\"%1%\"."
 msgstr ""
 "Kiválasztott opciók átmásolása az újonnan kiválasztott beállításba\n"
@@ -14689,12 +14998,8 @@ msgstr "Kapcsolódás a nyomtatóhoz... A párbeszédablak később bezárul"
 msgid "Connection failed, please double check IP and Access Code"
 msgstr "Sikertelen kapcsolódás, kérlek, ellenőrizd az IP-t és a hozzáférési kódot"
 
-msgid ""
-"Connection failed! If your IP and Access Code is correct, \n"
-"please move to step 3 for troubleshooting network issues"
-msgstr ""
-"Sikertelen kapcsolódás! Ha az IP-cím és a hozzáférési kód helyes,\n"
-"folytasd a 3. lépéssel a hálózati problémák elhárításához"
+msgid "Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"
+msgstr "Sikertelen kapcsolódás! Ha az IP-cím és a hozzáférési kód helyes, folytasd a 3. lépéssel a hálózati problémák elhárításához"
 
 msgid "Connection failed! Please refer to the wiki page."
 msgstr "A csatlakozás sikertelen. Kérlek, nézd meg a wiki oldalt."
@@ -15201,6 +15506,11 @@ msgstr "A(z) %1% metszi a(z) %2%. extruder ütközési térfogatát."
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% túl közel van más tárgyakhoz, a nyomtatás során előfordulhatnak ütközések."
 
+# AI Translated
+#, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr "A(z) %1% az ütközés elkerülése érdekében az objektumlistában elfoglalt helyénél később kerül nyomtatásra."
+
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% túl magas, a nyomtatás során előfordulhatnak ütközések."
@@ -15250,10 +15560,11 @@ msgstr "Ha továbbra is szeretnél nyomtatni, engedélyezheted az opciót itt: B
 msgid "No extrusions under current settings."
 msgstr "A jelenlegi beállításokkal nincsenek extrudálások."
 
+# AI Translated
 #. TRN %1% is the filament number as shown in the filament list, starting from 1.
 #, boost-format
 msgid "The flow ratio of filament %1% must be greater than 0."
-msgstr ""
+msgstr "A(z) %1% filament anyagáramlásának 0-nál nagyobbnak kell lennie."
 
 # AI Translated
 msgid "Mixed filaments are not supported in IDEX/IQEX parallel modes. Switch this plate to Primary mode."
@@ -15509,8 +15820,19 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "A szeletelő figyelmen kívül hagyja a pontos fal beállítást Külső/Belső vagy Belső/Külső/Belső falsorrendnél."
 
 # AI Translated
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "Egy vagy több extruder adaptív Pressure Advance modellje érvénytelen értékeket tartalmazhat."
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr "Egy vagy több extrudernél be van kapcsolva az adaptív Pressure Advance, de az adaptív Pressure Advance modelljükben nincsenek megadva mérések."
+
+# AI Translated
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
+"A(z) %1% filament adaptív Pressure Advance modellje érvénytelen értékeket tartalmaz.\n"
+"%2%"
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "A filament zsugorodása nem lesz figyelembe véve, mert a használt filamentekhez megadott zsugorodási értékek nem egyeznek."
@@ -16243,8 +16565,14 @@ msgstr ""
 msgid "Precise wall"
 msgstr "Pontos fal"
 
-msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr "A külső fal térközének finomhangolásával javítja a héj pontosságát és a rétegek egyenletességét. MEGJEGYZÉS: a szeletelő figyelmen kívül hagyja ezt a beállítást Külső/Belső vagy Belső/Külső/Belső falsorrendnél."
+msgid ""
+"Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n"
+"\n"
+"Note: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgstr ""
+"A külső fal térközének finomhangolásával javítja a héj pontosságát és a rétegek egyenletességét.\n"
+"\n"
+"Megjegyzés: a szeletelő figyelmen kívül hagyja ezt a beállítást Külső/Belső vagy Belső/Külső/Belső falsorrendnél."
 
 msgid "Only one wall on top surfaces"
 msgstr "Csak egy fal a felső felületeken"
@@ -16258,9 +16586,11 @@ msgstr "Egyfalas küszöbérték"
 #, no-c-format, no-boost-format
 msgid ""
 "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+"\n"
 "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
 msgstr ""
 "Ha egy felső felületet ki kell nyomtatni, de azt részben egy másik réteg fedi, akkor nem lesz felső rétegként kezelve, ha a szélessége ez alatt az érték alatt van. Ez hasznos lehet, hogy az \"egy kerület felül\" ne aktiválódjon olyan felületen, amelyet csak kerületeknek kell lefedniük. Ez az érték mm-ben vagy a kerület extrudálási szélességének százalékában adható meg.\n"
+"\n"
 "Figyelmeztetés: Ha engedélyezve van, hibák keletkezhetnek, ha a következő rétegen vékony részletek vannak, például betűk. Az ilyen hibák eltávolításához állítsd ezt a beállítást 0-ra."
 
 msgid "Only one wall on first layer"
@@ -16358,7 +16688,7 @@ msgid ""
 "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
 "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 "\n"
-"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen.\n"
 "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
 "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
 "\n"
@@ -16373,7 +16703,7 @@ msgstr ""
 "Kapcsold be ezt a lehetőséget, hogy lassabban nyomtasson azokon a területeken, ahol a falak felfelé kunkorodhattak.\n"
 "Például további lassítás lép életbe éles sarkokon lévő túlnyúlások nyomtatásakor, mint amilyen a Benchy hajótestének eleje, csökkentve a több rétegen át felhalmozódó kunkorodást.\n"
 "\n"
-"Általában javasolt bekapcsolva hagyni, hacsak a nyomtató hűtése nem elég erős, vagy a nyomtatási sebesség nem elég alacsony ahhoz, hogy a falak kunkorodása ne forduljon elő. \n"
+"Általában javasolt bekapcsolva hagyni, hacsak a nyomtató hűtése nem elég erős, vagy a nyomtatási sebesség nem elég alacsony ahhoz, hogy a falak kunkorodása ne forduljon elő.\n"
 "Nagy külső falsebességgel nyomtatva ez a paraméter falhibákat okozhat a lassítás során, mivel a nyomtatási sebességek nagy szórása miatt az extruder nem tudja követni a kért anyagáramlás-változást.\n"
 "Ezeknek a hibáknak az oka legtöbbször a kissé pontatlan PA-hangolás, különösen ha nagy PA simítási idővel párosul.\n"
 "\n"
@@ -16635,8 +16965,12 @@ msgid "Activate air filtration"
 msgstr "Légszűrés aktiválása"
 
 # AI Translated
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "Aktiváld a jobb légszűrés érdekében. G-code parancs: M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"Aktiváld a jobb légszűrés érdekében.\n"
+"G-code parancs: M106 P3 S(0-255)"
 
 # AI Translated
 msgid "Enable this to override the fan speed set in custom G-code during print."
@@ -17084,14 +17418,26 @@ msgstr "A fúvókacsúcs magassága."
 msgid "Bed mesh min"
 msgstr "Asztalháló minimuma"
 
-msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Ez az opció a megengedett asztalháló-terület minimális pontját állítja be. A szonda XY-eltolása miatt a legtöbb nyomtató nem képes a teljes asztalt bemérni. Annak biztosítására, hogy a szondapont ne kerüljön az asztal területén kívülre, az asztalháló minimum és maximum pontjait megfelelően kell beállítani. Az OrcaSlicer biztosítja, hogy az adaptive_bed_mesh_min és adaptive_bed_mesh_max értékek ne lépjék túl ezeket a minimum/maximum pontokat. Ez az információ általában a nyomtató gyártójától szerezhető be. Az alapértelmezett érték (-99999, -99999), ami azt jelenti, hogy nincsenek korlátok, így a teljes asztal bemérése engedélyezett."
+msgid ""
+"This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Ez az opció a megengedett asztalháló-terület minimális pontját állítja be. A szonda XY-eltolása miatt a legtöbb nyomtató nem képes a teljes asztalt bemérni. Annak biztosítására, hogy a szondapont ne kerüljön az asztal területén kívülre, az asztalháló minimum és maximum pontjait megfelelően kell beállítani. Az OrcaSlicer biztosítja, hogy az adaptive_bed_mesh_min és adaptive_bed_mesh_max értékek ne lépjék túl ezeket a minimum/maximum pontokat. Ez az információ általában a nyomtató gyártójától szerezhető be.\n"
+"\n"
+"Az alapértelmezett érték (-99999, -99999), ami azt jelenti, hogy nincsenek korlátok, így a teljes asztal bemérése engedélyezett."
 
 msgid "Bed mesh max"
 msgstr "Asztalháló maximuma"
 
-msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Ez az opció a megengedett asztalháló-terület maximális pontját állítja be. A szonda XY-eltolása miatt a legtöbb nyomtató nem képes a teljes asztalt bemérni. Annak biztosítására, hogy a szondapont ne kerüljön az asztal területén kívülre, az asztalháló minimum és maximum pontjait megfelelően kell beállítani. Az OrcaSlicer biztosítja, hogy az adaptive_bed_mesh_min és adaptive_bed_mesh_max értékek ne lépjék túl ezeket a minimum/maximum pontokat. Ez az információ általában a nyomtató gyártójától szerezhető be. Az alapértelmezett érték (99999, 99999), ami azt jelenti, hogy nincsenek korlátok, így a teljes asztal bemérése engedélyezett."
+msgid ""
+"This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Ez az opció a megengedett asztalháló-terület maximális pontját állítja be. A szonda XY-eltolása miatt a legtöbb nyomtató nem képes a teljes asztalt bemérni. Annak biztosítására, hogy a szondapont ne kerüljön az asztal területén kívülre, az asztalháló minimum és maximum pontjait megfelelően kell beállítani. Az OrcaSlicer biztosítja, hogy az adaptive_bed_mesh_min és adaptive_bed_mesh_max értékek ne lépjék túl ezeket a minimum/maximum pontokat. Ez az információ általában a nyomtató gyártójától szerezhető be.\n"
+"\n"
+"Az alapértelmezett érték (99999, 99999), ami azt jelenti, hogy nincsenek korlátok, így a teljes asztal bemérése engedélyezett."
 
 msgid "Probe point distance"
 msgstr "Szondázási pontok távolsága"
@@ -17217,13 +17563,11 @@ msgstr "Statikus Pressure Advance áthidalásokhoz"
 
 # AI Translated
 msgid ""
-"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
-"equivalent walls (using adaptive settings if enabled).\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Statikus Pressure Advance értéke áthidalásokhoz. Állítsd 0-ra, hogy ugyanaz a Pressure Advance érvényesüljön, mint \n"
-"az egyenértékű falaknál (adaptív beállításokkal, ha azok engedélyezve vannak).\n"
+"Statikus Pressure Advance értéke áthidalásokhoz. Állítsd 0-ra, hogy ugyanaz a Pressure Advance érvényesüljön, mint az egyenértékű falaknál (adaptív beállításokkal, ha azok engedélyezve vannak).\n"
 "\n"
 "Az alacsonyabb PA-érték az áthidalások nyomtatásakor csökkenti a közvetlenül az áthidalás után jelentkező enyhe alulextrudálás láthatóságát. Ezt a fúvókában fellépő nyomásesés okozza, amikor a levegőben nyomtat, és az alacsonyabb PA segít ezt ellensúlyozni."
 
@@ -18353,8 +18697,12 @@ msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "A legjobb automatikus elrendezés tartománya [0,1] az asztal alakja szerint."
 
 # AI Translated
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "Engedélyezd ezt az opciót, ha a gép rendelkezik kiegészítő tárgyhűtő ventilátorral. G-code parancs: M106 P2 S(0-255)."
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"Engedélyezd ezt az opciót, ha a gép rendelkezik kiegészítő tárgyhűtő ventilátorral.\n"
+"G-code parancs: M106 P2 S(0-255)."
 
 # AI Translated
 msgid "Fan direction"
@@ -18467,8 +18815,14 @@ msgid "Skip G-code config block"
 msgstr "G-code konfigurációs blokk kihagyása"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "Nem írja a CONFIG_BLOCK blokkot (a szeletelő beállításainak kulcs/érték párjait) a G-code fájlba. Ez segíthet azoknál a nyomtatóknál, amelyek firmware-e összeomlik ezeknek a megjegyzéssoroknak a feldolgozásakor (pl. Anycubic go-klipper). Megjegyzés: a G-code fájl így már nem tartalmazza a szeletelő beállításait, ezért az OrcaSlicerbe való visszaimportálás nem állítja vissza a konfigurációt."
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"Nem írja a CONFIG_BLOCK blokkot (a szeletelő beállításainak kulcs/érték párjait) a G-code fájlba. Ez segíthet azoknál a nyomtatóknál, amelyek firmware-e összeomlik ezeknek a megjegyzéssoroknak a feldolgozásakor (pl. Anycubic go-klipper).\n"
+"\n"
+"Megjegyzés: a G-code fájl így már nem tartalmazza a szeletelő beállításait, ezért az OrcaSlicerbe való visszaimportálás nem állítja vissza a konfigurációt."
 
 msgid "Pellet Modded Printer"
 msgstr "Granulátumos módosított nyomtató"
@@ -18486,8 +18840,14 @@ msgid "Label objects"
 msgstr "Objektumok címkézése"
 
 # AI Translated
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "Engedélyezd ezt, hogy a G-code-ba olyan megjegyzések kerüljenek, amelyek megjelölik, hogy az egyes nyomtatási mozgások melyik objektumhoz tartoznak. Ez hasznos az Octoprint CancelObject bővítményhez. Ez a beállítás NEM kompatibilis az Egyextruderes többanyagú beállítással és az Objektumba törlés / Kitöltésbe törlés funkcióval."
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"Engedélyezd ezt, hogy a G-code-ba olyan megjegyzések kerüljenek, amelyek megjelölik, hogy az egyes nyomtatási mozgások melyik objektumhoz tartoznak. Ez hasznos az Octoprint CancelObject bővítményhez.\n"
+"\n"
+"Ez a beállítás NEM kompatibilis az Egyextruderes többanyagú beállítással és az Objektumba törlés / Kitöltésbe törlés funkcióval."
 
 msgid "Exclude objects"
 msgstr "Tárgyak kizárása"
@@ -18509,14 +18869,28 @@ msgid "Verbose G-code"
 msgstr "Bővebb G-code"
 
 # AI Translated
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "Ha engedélyezi ezt a funkciót, akkor egy kommentezett G-code fájlt kap, amelynek minden egyes sorát egy leíró szöveg magyarázza. Ha SD-kártyáról nyomtat, a fájl nagyobb mérete miatt a nyomtató vezérlő szoftvere lelassulhat."
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"Ha engedélyezi ezt a funkciót, akkor egy kommentezett G-code fájlt kap, amelynek minden egyes sorát egy leíró szöveg magyarázza.\n"
+"\n"
+"Ha SD-kártyáról nyomtat, a fájl nagyobb mérete miatt a nyomtató vezérlő szoftvere lelassulhat."
 
+# AI Translated
 msgid "High precision G-code (experimental)"
-msgstr ""
+msgstr "Nagy pontosságú G-code (kísérleti)"
 
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+# AI Translated
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
 msgstr ""
+"Az X, Y, Z, I és J értékeket 3 helyett 4, az E értéket 5 helyett 6 tizedesjeggyel írja ki, hogy csökkentse a kerekítési hibákat a G-code-ban. Relatív E távolságok esetén minden mozgás kerekítési hibája a következő mozgásba is átkerül. A támaszokat nyomtatás után eltávolítod, ezért azok a szokásos pontossággal készülnek. Ez segíthet stabilizálni az extrudálást kis fúvókáknál (pl. 0,2 mm) és vékony rétegeknél (pl. 0,08 mm vagy kevesebb), ahol minden mozgás olyan kevés anyagot extrudál, hogy a kerekítési hibák itt számítanak a legtöbbet. A hatás erősen függ attól, hogy a többi beállítás mennyire jól van hangolva, és nehezen észrevehető lehet, ha a nyomtatási profil nincs jól kalibrálva.\n"
+"\n"
+"A G-code fájl körülbelül 10 százalékkal nagyobb lesz, ami lelassíthatja azokat a nyomtatókat, amelyek lassan dolgozzák fel a G-code-ot."
 
 msgid "Infill combination"
 msgstr "Kitöltés összevonása"
@@ -18533,14 +18907,34 @@ msgstr "Ez a paraméter enyhe eltolást ad a kitöltéshez minden rétegen, hogy
 msgid "Sparse infill rotation template"
 msgstr "Kitöltés forgatási sablonja"
 
-msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr "A kitöltés irányát rétegenként forgatja egy szögsablon alapján. Adj meg vesszővel elválasztott fokértékeket (pl. '0,30,60,90'). A szögeket rétegenként, sorban alkalmazza, majd a lista végén elölről kezdi. A haladó szintaxis is használható: a '+5' minden rétegen +5°-kal forgat; a '+5#5' minden 5 rétegenként +5°-kal forgat. A részletekért lásd a Wikit. Ha megadsz egy sablont, a normál kitöltési irány beállítását figyelmen kívül hagyja. Megjegyzés: egyes kitöltési minták (pl. Gyroid) maguk kezelik a forgatást; körültekintően használd."
+msgid ""
+"Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends.\n"
+"\n"
+"Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n"
+"\n"
+"When a template is set, the standard infill direction setting is ignored.\n"
+"\n"
+"Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+msgstr ""
+"A kitöltés irányát rétegenként forgatja egy szögsablon alapján. Adj meg vesszővel elválasztott fokértékeket (pl. '0,30,60,90'). A szögeket rétegenként, sorban alkalmazza, majd a lista végén elölről kezdi.\n"
+"\n"
+"A haladó szintaxis is használható: a '+5' minden rétegen +5°-kal forgat; a '+5#5' minden 5 rétegenként +5°-kal forgat. A részletekért lásd a Wikit.\n"
+"\n"
+"Ha megadsz egy sablont, a normál kitöltési irány beállítását figyelmen kívül hagyja.\n"
+"\n"
+"Megjegyzés: egyes kitöltési minták (pl. Gyroid) maguk kezelik a forgatást; körültekintően használd."
 
 msgid "Solid infill rotation template"
 msgstr "Tömör kitöltés forgatási sablonja"
 
-msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr "Ez a paraméter a tömör kitöltés irányának forgatását adja hozzá minden réteghez a megadott sablon szerint. A sablon fokokban megadott, vesszővel elválasztott szöglista, például '0,90'. Az első szög az első rétegre, a második a másodikra és így tovább vonatkozik. Ha több réteg van, mint szög, a szögek ismétlődnek. Vedd figyelembe, hogy nem minden tömör kitöltési minta támogatja a forgatást."
+msgid ""
+"This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated.\n"
+"\n"
+"Note that not all solid infill patterns support rotation."
+msgstr ""
+"Ez a paraméter a tömör kitöltés irányának forgatását adja hozzá minden réteghez a megadott sablon szerint. A sablon fokokban megadott, vesszővel elválasztott szöglista, például '0,90'. Az első szög az első rétegre, a második a másodikra és így tovább vonatkozik. Ha több réteg van, mint szög, a szögek ismétlődnek.\n"
+"\n"
+"Vedd figyelembe, hogy nem minden tömör kitöltési minta támogatja a forgatást."
 
 msgid "Skeleton infill density"
 msgstr "Vázkitöltés sűrűsége"
@@ -19263,10 +19657,12 @@ msgstr "Tárgyhűtő ventilátor minimum fordulatszáma"
 # AI Translated
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "A kiegészítő tárgyhűtő ventilátor sebessége. A kiegészítő ventilátor ezen a sebességen működik nyomtatás közben, kivéve az első néhány réteget, amelyet a hűtés nélküli rétegek határoznak meg.\n"
-"A funkció használatához engedélyezd az auxiliary_fan opciót a nyomtatóbeállításokban. G-code parancs: M106 P2 S(0-255)"
+"A funkció használatához engedélyezd az auxiliary_fan opciót a nyomtatóbeállításokban.\n"
+"G-code parancs: M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "Az első"
@@ -19356,8 +19752,14 @@ msgid "Reduce infill retraction"
 msgstr "Csökkentett visszahúzás kitöltésnél"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "Nem történik visszahúzás, amikor a fej csak kitöltés felett halad el, mert az itt történő szivárgás egyébként sem látható. Ez az opció lerövidítheti a nyomtatási időt a visszahúzások csökkentésével komplex modelleknél, de egyúttal lassabbá teszi a szeletelést és a G-code generálást. Vedd figyelembe, hogy a Z-emelés sem történik meg azokon a területeken, ahol a visszahúzás ki van hagyva."
+msgid ""
+"Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n"
+"\n"
+"Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr ""
+"Nem történik visszahúzás, amikor a fej csak kitöltés felett halad el, mert az itt történő szivárgás egyébként sem látható. Ez az opció lerövidítheti a nyomtatási időt a visszahúzások csökkentésével komplex modelleknél, de egyúttal lassabbá teszi a szeletelést és a G-code generálást.\n"
+"\n"
+"Vedd figyelembe, hogy a Z-emelés sem történik meg azokon a területeken, ahol a visszahúzás ki van hagyva."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Ez az opció csökkenti az inaktív extruderek hőmérsékletét a szivárgás megelőzése érdekében."
@@ -19805,8 +20207,14 @@ msgstr "Ez a beállítás határozza meg az átlapolt varratok túlnyúlási kü
 msgid "Scarf joint speed"
 msgstr "Átlapolt varrat sebessége"
 
-msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Ez az opció beállítja az átlapolt varratok nyomtatási sebességét. Ajánlott az átlapolt varratokat alacsony sebességgel nyomtatni (100 mm/s alatt). Az is javasolt, hogy kapcsold be az \"Extrudálási sebesség simítását\", ha az itt megadott sebesség jelentősen eltér a külső vagy belső fal sebességétől. Ha az itt megadott sebesség nagyobb, mint a külső vagy belső fal sebessége, a nyomtató a kettő közül a lassabbat fogja használni. Ha százalékban van megadva (pl. 80%), a sebesség a megfelelő külső vagy belső fali sebesség alapján lesz kiszámítva. Az alapértelmezett érték 100%."
+msgid ""
+"This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
+"\n"
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+msgstr ""
+"Ez az opció beállítja az átlapolt varratok nyomtatási sebességét. Ajánlott az átlapolt varratokat alacsony sebességgel nyomtatni (100 mm/s alatt). Az is javasolt, hogy kapcsold be az \"Extrudálási sebesség simítását\", ha az itt megadott sebesség jelentősen eltér a külső vagy belső fal sebességétől.\n"
+"\n"
+"Ha az itt megadott sebesség nagyobb, mint a külső vagy belső fal sebessége, a nyomtató a kettő közül a lassabbat fogja használni. Ha százalékban van megadva (pl. 80%), a sebesség a megfelelő külső vagy belső fali sebesség alapján lesz kiszámítva. Az alapértelmezett érték 100%."
 
 msgid "Scarf joint flow ratio"
 msgstr "Átlapolt varrat anyagáramlása"
@@ -20055,8 +20463,14 @@ msgstr "Spirál befejező anyagáramlása"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Beállítja az anyagáramlás befejező értékét a spirál lezárásakor. Normál esetben a spirál lezárása az utolsó hurok alatt 100%-ról 0%-ra csökkenti az anyagáramlást, ami egyes esetekben alulextrudálást okozhat a spirál végén."
 
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "Sima vagy hagyományos módban minden nyomtatásról Timelapse-videó készül. Az egyes rétegek után a beépített kamera fényképet készít, majd a nyomtatás végén a szoftver videóvá fűzi össze a képeket. Sima módban a szerszámfej minden réteg után a kidobónyíláshoz mozog, mielőtt a kamera elkészíti a képet. Mivel eközben olvadt filament szivároghat a fúvókából, a fúvóka megtisztításához törlőtorony szükséges."
+msgid ""
+"If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n"
+"\n"
+"If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+msgstr ""
+"Sima vagy hagyományos módban minden nyomtatásról Timelapse-videó készül. Az egyes rétegek után a beépített kamera fényképet készít, majd a nyomtatás végén a szoftver videóvá fűzi össze a képeket.\n"
+"\n"
+"Sima módban a szerszámfej minden réteg után a kidobónyíláshoz mozog, mielőtt a kamera elkészíti a képet. Mivel eközben olvadt filament szivároghat a fúvókából, a fúvóka megtisztításához törlőtorony szükséges."
 
 msgid "Traditional"
 msgstr "Hagyományos"
@@ -20271,16 +20685,28 @@ msgstr "Filament tömörítés engedélyezése"
 msgid "Tool change on wipe tower"
 msgstr "Szerszámcsere a törlőtoronyban"
 
-msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
-msgstr "A szerszámcsere parancs (Tx) kiadása előtt a törlőtoronyhoz mozgatja a szerszámfejet. Csak a 2-es típusú törlőtornyot használó többextruderes (több szerszámfejes) nyomtatóknál van jelentősége. Az Orca alapértelmezés szerint kihagyja ezt a mozgást a több szerszámfejes gépeknél, mert a fejcserét a firmware kezeli. Emiatt azonban előfordulhat, hogy a Tx parancsot a nyomtatott tárgy felett adja ki. Kapcsold be ezt a beállítást, ha azt szeretnéd, hogy a szerszámcsere mindig a törlőtorony felett történjen."
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+msgstr ""
+"A szerszámcsere parancs (Tx) kiadása előtt a törlőtoronyhoz mozgatja a szerszámfejet.\n"
+"\n"
+"Csak a 2-es típusú törlőtornyot használó többextruderes (több szerszámfejes) nyomtatóknál van jelentősége. Az Orca alapértelmezés szerint kihagyja ezt a mozgást a több szerszámfejes gépeknél, mert a fejcserét a firmware kezeli. Emiatt azonban előfordulhat, hogy a Tx parancsot a nyomtatott tárgy felett adja ki. Kapcsold be ezt a beállítást, ha azt szeretnéd, hogy a szerszámcsere mindig a törlőtorony felett történjen."
 
 # AI Translated
 msgid "Wait for temperature on wipe tower"
 msgstr "Várakozás a hőmérsékletre a törlőtornyon"
 
 # AI Translated
-msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr "Felveszi az új szerszámot anélkül, hogy megvárná a nyomtatási hőmérséklet elérését, a törlőtoronyhoz áll, és ott várja meg a hőmérsékletet, közvetlenül az öblítés előtt. A felfűtés közben kiszivárgó anyag a toronyra kerül a modell helyett, a mozgás pedig átfedésben van a fűtéssel. Csak több extruderes (több szerszámfejes) nyomtatóknál releváns, amelyek 2-es típusú törlőtornyot használnak. A firmware vagy a szerszámváltó makró nem várhat magától a hőmérsékletre. Ha ki van kapcsolva, a hőmérsékletre várakozás közvetlenül a szerszámváltó parancs után kerül kiadásra."
+msgid ""
+"Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating.\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
+"Felveszi az új szerszámot anélkül, hogy megvárná a nyomtatási hőmérséklet elérését, a törlőtoronyhoz áll, és ott várja meg a hőmérsékletet, közvetlenül az öblítés előtt. A felfűtés közben kiszivárgó anyag a toronyra kerül a modell helyett, a mozgás pedig átfedésben van a fűtéssel.\n"
+"\n"
+"Csak több extruderes (több szerszámfejes) nyomtatóknál releváns, amelyek 2-es típusú törlőtornyot használnak. A firmware vagy a szerszámváltó makró nem várhat magától a hőmérsékletre. Ha ki van kapcsolva, a hőmérsékletre várakozás közvetlenül a szerszámváltó parancs után kerül kiadásra."
 
 msgid "No sparse layers (beta)"
 msgstr "Nincsenek ritka rétegek (béta)"
@@ -20576,10 +21002,16 @@ msgid "This is the speed for support."
 msgstr "Támaszok sebessége"
 
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"A támasz stílusa és alakja. Normál támasznál a támaszok szabályos rácsba vetítése stabilabb támaszokat eredményez (alapértelmezett), míg a szoros támasztornyok anyagot takarítanak meg és csökkentik az objektum sérülését.\n"
+"A támasz stílusa és alakja.\n"
+"\n"
+"Normál támasznál a támaszok szabályos rácsba vetítése stabilabb támaszokat eredményez (alapértelmezett), míg a szoros támasztornyok anyagot takarítanak meg és csökkentik az objektum sérülését.\n"
+"\n"
 "Fa támasznál a karcsú és organikus stílus agresszívebben vonja össze az ágakat és sok anyagot takarít meg (az organikus az alapértelmezett), míg a hibrid stílus nagy, lapos túlnyúlások alatt a normál támaszhoz hasonló szerkezetet hoz létre."
 
 msgid "Default (Grid/Organic)"
@@ -20611,9 +21043,11 @@ msgstr "Dőlésszög küszöbértéke"
 
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
 "Azokhoz a túlnyúlásokhoz készül támasz, amelyek dőlésszöge a küszöbérték alatt van. Minél kisebb ez az érték, annál meredekebb túlnyúlás nyomtatható támasz nélkül.\n"
+"\n"
 "Megjegyzés: 0 értéknél a normál támaszok helyette az átfedési küszöbértéket használják, a fatámaszok pedig visszaállnak az alapértelmezett 30-as értékre."
 
 msgid "Threshold overlap"
@@ -20661,16 +21095,6 @@ msgstr "Szalag dőlési tengelye"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Az a tengely, amely körül a háló szeletelés előtt elfordul. Ez a szalagos nyomtató dőlése: izometrikus (torzításmentes) forgatás, amely az asztal megjelenítését és a támaszok gravitációs dőlését is meghatározza, és amelyet a G-code visszatranszformáció megfordít a gépi koordináta-rendszerbe történő nyírás/skálázás és tengelyleképezés előtt. Jellemzően X a portál dőlési tengelye (a szalag Y irányban halad)."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -20876,13 +21300,11 @@ msgid "Activate temperature control"
 msgstr "Hőmérséklet-szabályozás aktiválása"
 
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"Engedélyezd ezt az opciót az automatikus kamrahőmérséklet-szabályozáshoz. Ez az opció egy M191 parancs kiadását aktiválja a \"machine_start_gcode\" előtt,\n"
-"amely beállítja a kamra hőmérsékletét, és megvárja, amíg az eléri a kívánt értéket. Ezenfelül a nyomtatás végén kiad egy M141 parancsot is a kamrafűtés kikapcsolására, ha van ilyen.\n"
+"Engedélyezd ezt az opciót az automatikus kamrahőmérséklet-szabályozáshoz. Ez az opció egy M191 parancs kiadását aktiválja a \"machine_start_gcode\" előtt, amely beállítja a kamra hőmérsékletét, és megvárja, amíg az eléri a kívánt értéket. Ezenfelül a nyomtatás végén kiad egy M141 parancsot is a kamrafűtés kikapcsolására, ha van ilyen.\n"
 "\n"
 "Ez az opció feltételezi, hogy a firmware makrókon keresztül vagy natívan támogatja az M191 és M141 parancsokat, és általában akkor használják, ha létezik aktív kamrafűtő."
 
@@ -20891,25 +21313,31 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "Magas hőmérsékletű anyagoknál, például ABS, ASA, PC és PA esetén a magasabb kamrahőmérséklet segíthet mérsékelni vagy csökkenteni a kunkorodást és növelheti a rétegek közötti kötés szilárdságát. Ugyanakkor a magasabb kamrahőmérséklet csökkenti a levegőszűrés hatékonyságát ABS és ASA esetén.\n"
 "\n"
 "PLA, PETG, TPU, PVA és más alacsony hőmérsékletű anyagok esetén ezt az opciót ki kell kapcsolni (0-ra kell állítani), mert a kamrahőmérsékletnek alacsonynak kell maradnia, hogy elkerülhető legyen az extruder eltömődése, amit a hőhatárolónál fellépő anyaglágyulás okozhat.\n"
 "\n"
-"Bekapcsolva ez a paraméter egy chamber_temperature nevű G-code változót is beállít, amely felhasználható a kívánt kamrahőmérséklet átadására a nyomtatásindító makrónak, vagy egy ilyen hőkiegyenlítő makrónak: PRINT_START (egyéb változók) CHAMBER_TEMP=[chamber_temperature]. Ez akkor lehet hasznos, ha a nyomtatód nem támogatja az M141/M191 parancsokat, vagy ha az aktív kamrafűtés hiányában a hőkiegyenlítést a nyomtatásindító makróban szeretnéd kezelni."
+"Bekapcsolva ez a paraméter egy chamber_temperature nevű G-code változót is beállít, amely felhasználható a kívánt kamrahőmérséklet átadására a nyomtatásindító makrónak, vagy egy ilyen hőkiegyenlítő makrónak:\n"
+"PRINT_START (egyéb változók) CHAMBER_TEMP=[chamber_temperature]\n"
+"Ez akkor lehet hasznos, ha a nyomtatód nem támogatja az M141/M191 parancsokat, vagy ha az aktív kamrafűtés hiányában a hőkiegyenlítést a nyomtatásindító makróban szeretnéd kezelni."
 
 # AI Translated
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
-"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this:\n"
+"PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
 "Ez az a kamrahőmérséklet, amelynél a nyomtatásnak el kell indulnia, miközben a kamra tovább melegszik a \"Cél\" kamrahőmérséklet felé. Például állítsd a Célt 60-ra, a Minimálisat pedig 50-re, hogy a nyomtatás elinduljon, amint a kamra eléri az 50℃-ot, anélkül hogy megvárnád a teljes 60℃-ot.\n"
 "\n"
-"Ez beállít egy chamber_minimal_temperature nevű G-code változót, amely átadható a nyomtatásindító makrónak vagy egy átmelegítő makrónak, például így: PRINT_START (egyéb változók) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"Ez beállít egy chamber_minimal_temperature nevű G-code változót, amely átadható a nyomtatásindító makrónak vagy egy átmelegítő makrónak, például így:\n"
+"PRINT_START (egyéb változók) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "A \"Cél\" kamrahőmérséklettel ellentétben ez a beállítás nem küld M141/M191 parancsokat; csak elérhetővé teszi az értéket az egyedi G-code-od számára. Nem haladhatja meg a \"Cél\" kamrahőmérsékletet."
 
@@ -21341,8 +21769,18 @@ msgstr "A különböző vastagságú falak közötti átmenetkor, ahogy a tárgy
 msgid "Wall transitioning filter margin"
 msgstr "Falátmenet szűrésének értéke"
 
-msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
-msgstr "Megakadályozza az oda-vissza átmenetet egy extra és eggyel kevesebb fal között. Ez a toleranciaérték megnöveli a soron következő extrudálás szélességét [Minimális falszélesség - tolerancia, 2 * Minimális falszélesség + tolerancia]. Az érték növelése csökkenti az átmenetek számát, ami csökkenti az extrudálások számát és a nyomtatási időt. Azonban a túl nagy eltérések az extrudálás szélességében alul- vagy túlextrudáláshoz vezethetnek. A fúvóka átmérőjének százalékában van kifejezve"
+msgid ""
+"Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin].\n"
+"\n"
+"Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems.\n"
+"\n"
+"It's expressed as a percentage over nozzle diameter."
+msgstr ""
+"Megakadályozza az oda-vissza átmenetet egy extra és eggyel kevesebb fal között. Ez a toleranciaérték megnöveli a soron következő extrudálás szélességét [Minimális falszélesség - tolerancia, 2 * Minimális falszélesség + tolerancia].\n"
+"\n"
+"Az érték növelése csökkenti az átmenetek számát, ami csökkenti az extrudálások számát és a nyomtatási időt. Azonban a túl nagy eltérések az extrudálás szélességében alul- vagy túlextrudáláshoz vezethetnek.\n"
+"\n"
+"A fúvóka átmérőjének százalékában van kifejezve"
 
 msgid "Wall transitioning threshold angle"
 msgstr "Falátmenet szögének küszöbértéke"
@@ -21424,8 +21862,14 @@ msgstr "A szivárgás elkerülése érdekében a fúvóka lehűl betolás közbe
 msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
 msgstr "Az extruderváltás előtti betolás maximális áramlási sebessége, ahol -1 a maximális sebesség használatát jelenti."
 
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "A szivárgás megakadályozása érdekében a fúvóka a betolás során lehűl. Megjegyzés: csak a hűtési parancs és a ventilátor bekapcsolása kerül elküldésre, a célhőmérséklet elérése nem garantált. A 0 letiltást jelent."
+msgid ""
+"To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n"
+"\n"
+"Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed."
+msgstr ""
+"A szivárgás megakadályozása érdekében a fúvóka a betolás során lehűl. A 0 letiltást jelent.\n"
+"\n"
+"Megjegyzés: csak a hűtési parancs és a ventilátor bekapcsolása kerül elküldésre, a célhőmérséklet elérése nem garantált."
 
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
 msgstr "A fejegységváltás előtti betolás maximális anyagáramlása; a -1 a maximális sebesség használatát jelenti."
@@ -22039,6 +22483,14 @@ msgstr "Becsült nyomtatási idő normál módban történő nyomtatás esetén 
 
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "Becsült nyomtatási idő normál módban történő nyomtatás esetén (azaz nem csendes módban). Ugyanaz, mint a normal_print_time."
+
+# AI Translated
+msgid "Used filament types"
+msgstr "Használt filamenttípusok"
+
+# AI Translated
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr "A nyomtatás során használt összes filamenttípus aláhúzásjellel elválasztott listája."
 
 msgid "Print time (silent mode)"
 msgstr "Nyomtatási idő (csendes mód)"
@@ -23762,6 +24214,10 @@ msgstr ""
 "- Anyagok megegyező asztalhőmérséklettel\n"
 "- Különböző márkájú és típusú filamentek (Márka = Bambu, Típus = Basic, Matte stb.)"
 
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "Vonal"
+
 msgid "Pattern"
 msgstr "Mintázat"
 
@@ -23896,11 +24352,11 @@ msgstr "Automatikus méretezés a fúvókához"
 
 # AI Translated
 msgid ""
-"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
-"Ez a modell 0,4 mm-es fúvókához és 0,2 mm-es rétegmagassághoz készült. \n"
+"Ez a modell 0,4 mm-es fúvókához és 0,2 mm-es rétegmagassághoz készült.\n"
 "Ha a méretezési opció be van kapcsolva (ajánlott), a modell dinamikusan átméreteződik az aktuális fúvókaátmérőhöz és egy megfelelő rétegmagassághoz, így a teszt pontos és jól leolvasható lesz.\n"
 "Csak akkor kapcsold ki a méretezést, ha a referenciamodellt pontosan az eredeti formájában szeretnéd kinyomtatni."
 
@@ -24077,12 +24533,12 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
-" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
 "\n"
 "%s"
 msgstr ""
 "A végsebesség (%.0f mm/s) meghaladja a filament maximális volumetrikus sebességét (%.1f mm³/s), ami a külső falat ennél a vonalszélességnél és rétegmagasságnál körülbelül %.0f mm/s értékre korlátozza.\n"
-" Az ennél nagyobb sebességek le lesznek vágva, így a torony felső blokkjai nem a kért sebességgel nyomtatódnak.\n"
+"Az ennél nagyobb sebességek le lesznek vágva, így a torony felső blokkjai nem a kért sebességgel nyomtatódnak.\n"
 "\n"
 "%s"
 
@@ -24738,13 +25194,11 @@ msgstr "Tiltott karakter került be az első oldalon a nyomtatási terület rés
 # AI Translated
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
+"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "A létrehozott nyomtatóbeállítással azonos nevű beállítás már létezik. Felül szeretnéd írni?\n"
-"\tIgen: felülírja az azonos nevű nyomtatóbeállítást, és az azonos nevű filament- és folyamatbeállítások újra létrejönnek, \n"
-"azok a filament- és folyamatbeállítások pedig megmaradnak, amelyek neve eltér.\n"
+"\tIgen: felülírja az azonos nevű nyomtatóbeállítást, és az azonos nevű filament- és folyamatbeállítások újra létrejönnek, azok a filament- és folyamatbeállítások pedig megmaradnak, amelyek neve eltér.\n"
 "\tMégse: ne hozzon létre beállítást; visszatérés a létrehozási felületre."
 
 msgid "You need to select at least one filament preset."
@@ -24784,10 +25238,10 @@ msgid "The entered nozzle diameter is invalid, please re-enter:\n"
 msgstr "A megadott fúvókaátmérő érvénytelen, add meg újra:\n"
 
 msgid ""
-"The system preset does not allow creation. \n"
+"The system preset does not allow creation.\n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
-"A rendszerbeállítás nem teszi lehetővé a létrehozást. \n"
+"A rendszerbeállítás nem teszi lehetővé a létrehozást.\n"
 "Add meg újra a nyomtatómodellt vagy a fúvókaátmérőt."
 
 msgid ""
@@ -24926,14 +25380,14 @@ msgid "Only printer names with user printer presets will be displayed, and each 
 msgstr "Csak azok a nyomtatónevek jelennek meg, amelyekhez tartoznak felhasználói beállítások. A kiválasztott beállítások ZIP fájlként kerülnek exportálásra."
 
 msgid ""
-"Only the filament names with user filament presets will be displayed, \n"
+"Only the filament names with user filament presets will be displayed,\n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Csak azok a filamentnevek jelennek meg, amelyekhez tartoznak felhasználói filamentbeállítások,\n"
 "és a kiválasztott filamentnevekhez tartozó összes felhasználói filamentbeállítás ZIP-fájlként lesz exportálva."
 
 msgid ""
-"Only printer names with changed process presets will be displayed, \n"
+"Only printer names with changed process presets will be displayed,\n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Csak azok a nyomtatónevek jelennek meg, amelyekhez módosított folyamatbeállítások tartoznak,\n"
@@ -26207,10 +26661,6 @@ msgstr "Háromszögfelületek száma"
 
 msgid "Calculating, please wait..."
 msgstr "Számítás folyamatban, kérlek, várj..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "Beállítások mentése alapértelmezettként"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -30179,10 +30629,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Ez a két vonal nem találkozik egy sarokban — válassz két olyan vonalat, amelyek találkoznak"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "A méretnek nagyobbnak kell lennie nullánál"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Lekerekítés: a sugár túlnyúlik az egyik szár végén, vagy a két vonal nem találkozik egy sarokban"
 
@@ -30256,21 +30702,43 @@ msgstr "Adj meg egy számot"
 msgid "Not a number"
 msgstr "Nem szám"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "Létrehoz"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "Anyag hozzáadása"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "Eltávolítás"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "Lekerekítés / letörés / ferdeség"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "Ismétlés"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "Transzformálás"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "Referencia"
+
+# AI Translated
+msgctxt "Design"
+msgid "Modify"
+msgstr "Módosítás"
 
 # AI Translated
 msgctxt "Design"
@@ -30606,6 +31074,11 @@ msgstr "Sarokpontos téglalap"
 
 # AI Translated
 msgctxt "Design"
+msgid "Rectangle"
+msgstr "Téglalap"
+
+# AI Translated
+msgctxt "Design"
 msgid "Center rectangle"
 msgstr "Középpontos téglalap"
 
@@ -30624,6 +31097,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "Középpontos kör"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "Kör"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -30638,6 +31115,11 @@ msgstr "Hárompontos kör"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "Hárompontos ív"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "Ív"
 
 # AI Translated
 msgctxt "Design"
@@ -30678,6 +31160,11 @@ msgstr "Spline"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "Háromszög"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "Sokszög"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -30785,6 +31272,7 @@ msgid "Linear array"
 msgstr "Lineáris sokszorozás"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "Sokszorozás"
 
@@ -31094,6 +31582,46 @@ msgstr "Váltás előkészítés/előnézet között"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Az oldalsáv összecsukása/kinyitása"
+
+# AI Translated
+msgid "Go to the Home tab"
+msgstr "Ugrás a Kezdőlap fülre"
+
+# AI Translated
+msgid "Go to the Design tab"
+msgstr "Ugrás a Tervezés fülre"
+
+# AI Translated
+msgid "Go to the Prepare tab"
+msgstr "Ugrás az Előkészítés fülre"
+
+# AI Translated
+msgid "Go to the Preview tab"
+msgstr "Ugrás az Előnézet fülre"
+
+# AI Translated
+msgid "Go to the Device tab"
+msgstr "Ugrás a Nyomtató fülre"
+
+# AI Translated
+msgid "Go to the Multi-device tab"
+msgstr "Ugrás a Több eszköz fülre"
+
+# AI Translated
+msgid "Go to the Project tab"
+msgstr "Ugrás a Projekt fülre"
+
+# AI Translated
+msgid "Go to the Calibration tab"
+msgstr "Ugrás a Kalibrálás fülre"
+
+# AI Translated
+msgid "Switch to the next tab"
+msgstr "Váltás a következő fülre"
+
+# AI Translated
+msgid "Switch to the previous tab"
+msgstr "Váltás az előző fülre"
 
 # AI Translated
 msgid "Reload the device page"
@@ -32083,8 +32611,9 @@ msgstr "Jelenlegi szín mentése"
 msgid "Palettes"
 msgstr "Paletták"
 
+# AI Translated
 msgid "Pick color from screen"
-msgstr ""
+msgstr "Szín kiválasztása a képernyőről"
 
 # AI Translated
 msgid "Search colors"
@@ -33779,10 +34308,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Állítsd be a nyomtatód asztalának alakját."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Érvénytelen számérték."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Filament- és fúvókaátmérők"
 
@@ -34012,6 +34537,73 @@ msgstr "Wiki->"
 # AI Translated
 msgid "Note:"
 msgstr "Megjegyzés:"
+
+# AI Translated
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr "• %1%: %2%"
+
+# AI Translated
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr "• %1% – %2%: %3%"
+
+# AI Translated
+# Needs human review: 'Beállítás' renders both the preset (glossary) and the settings it holds; check the sentence reads unambiguously.
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Az alábbi beállítások olyan bővítményekre hivatkoznak, amelyeket az Orca Slicer nem tud azonosítani ezen a számítógépen:\n"
+"\n"
+"%1%\n"
+"\n"
+"Ha mégis mented, a mentett beállítás nem őrzi meg ezeknek a beállításoknak a bővítményhivatkozásait. Egy másik számítógépen az Orca Slicer nem fogja tudni, mely bővítményeket ajánlja fel, és előfordulhat, hogy a beállítások ott nem működnek."
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Az alábbi beállítások olyan bővítményekre hivatkoznak, amelyeket az Orca Slicer nem tud azonosítani ezen a számítógépen:\n"
+"\n"
+"%1%\n"
+"\n"
+"Ha mégis mented, a projekt nem őrzi meg ezeknek a beállításoknak a bővítményhivatkozásait. Egy másik számítógépen az Orca Slicer nem fogja tudni, mely bővítményeket ajánlja fel, és előfordulhat, hogy a beállítások ott nem működnek."
+
+# AI Translated
+msgid "Plugin Not Identified"
+msgstr "Azonosítatlan bővítmény"
+
+# AI Translated
+msgid "Save anyway"
+msgstr "Mentés mindenképp"
+
+# AI Translated
+# Needs human review: 'Beállítás' renders both the presets (glossary) and the settings they hold; check the sentence reads unambiguously.
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"A mentendő beállítások olyan bővítményekre hivatkoznak, amelyeket az Orca Slicer nem tud azonosítani ezen a számítógépen:\n"
+"\n"
+"%1%\n"
+"\n"
+"Ha mégis mented őket, nem őrzik meg a felsorolt beállítások bővítményhivatkozásait. Egy másik számítógépen az Orca Slicer nem fogja tudni, mely bővítményeket ajánlja fel, és előfordulhat, hogy a beállítások ott nem működnek."
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -34809,6 +35401,10 @@ msgstr "Ismétli a textúrát a befestett területen. Kikapcsolva egyetlen péld
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "Kapcsold be a Csempézést, hogy megadhasd, hogyan ismétlődjön a textúra."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Ismétlés"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -36569,6 +37165,10 @@ msgid "Forward"
 msgstr "Előre"
 
 # AI Translated
+msgid "Tools"
+msgstr "Eszközök"
+
+# AI Translated
 msgid "View Source"
 msgstr "Forrás megtekintése"
 
@@ -36766,6 +37366,7 @@ msgstr[1] ""
 "A(z) \"%s\" bővítmény a következő fájlok törlését kéri:\n"
 "%s"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -36773,7 +37374,12 @@ msgid ""
 "\n"
 "Approval covers HTTP or HTTPS access and raw network connections to the listed hosts. It does not restrict ports. A URL with a path, query or port is covered only for that exact URL."
 msgstr ""
+"A(z) \"%s\" bővítmény hálózati hozzáférést kér a következő címekhez:\n"
+"%s\n"
+"\n"
+"A jóváhagyás a felsorolt gazdagépekhez való HTTP- vagy HTTPS-hozzáférésre és nyers hálózati kapcsolatokra vonatkozik. A portokat nem korlátozza. Az elérési utat, lekérdezést vagy portot tartalmazó URL-re csak pontosan az adott URL esetén vonatkozik."
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -36781,6 +37387,10 @@ msgid ""
 "\n"
 "Approval covers raw network connections to the listed hosts. It does not restrict ports."
 msgstr ""
+"A(z) \"%s\" bővítmény hálózati hozzáférést kér a következő címekhez:\n"
+"%s\n"
+"\n"
+"A jóváhagyás a felsorolt gazdagépekhez való nyers hálózati kapcsolatokra vonatkozik. A portokat nem korlátozza."
 
 # AI Translated
 #, c-format, boost-format
