@@ -95,11 +95,13 @@ struct CoolingLine
         // Belt printers: extrusions within the first-layer band above the belt.
         TYPE_BELT_BAND_START           = 1 << 21,
         TYPE_BELT_BAND_END             = 1 << 22,
+        TYPE_ABOVE_SUPPORT_FAN_START    = 1 << 23,
+        TYPE_ABOVE_SUPPORT_FAN_END      = 1 << 24,
     };
 
     CoolingLine(unsigned int type, size_t  line_start, size_t  line_end) :
         type(type), line_start(line_start), line_end(line_end),
-        length(0.f), feedrate(0.f), time(0.f), time_max(0.f), slowdown(false) {}
+        length(0.f), feedrate(0.f), time(0.f), time_max(0.f), slowdown(false), above_support_blend(0) {}
 
     bool adjustable(bool slowdown_external_perimeters) const {
         return (this->type & TYPE_ADJUSTABLE) &&
@@ -126,6 +128,7 @@ struct CoolingLine
     float   time_max;
     // If marked with the "slowdown" flag, the line has been slowed down.
     bool    slowdown;
+    int     above_support_blend;
 };
 
 // Calculate the required per extruder time stretches.
@@ -551,6 +554,17 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             line.type = CoolingLine::TYPE_SUPPORT_INTERFACE_FAN_START;
         } else if (boost::starts_with(sline, ";_SUPP_INTERFACE_FAN_END")) {
             line.type = CoolingLine::TYPE_SUPPORT_INTERFACE_FAN_END;
+        } else if (boost::starts_with(sline, ";_ABOVE_SUPPORT_FAN_START")) {
+            line.type = CoolingLine::TYPE_ABOVE_SUPPORT_FAN_START;
+            const size_t blend_pos = sline.find(" B");
+            if (blend_pos != std::string_view::npos) {
+                int blend = 0;
+                const auto parsed = std::from_chars(sline.data() + blend_pos + 2, sline.data() + sline.size(), blend);
+                if (parsed.ec == std::errc())
+                    line.above_support_blend = std::clamp(blend, 0, 100);
+            }
+        } else if (boost::starts_with(sline, ";_ABOVE_SUPPORT_FAN_END")) {
+            line.type = CoolingLine::TYPE_ABOVE_SUPPORT_FAN_END;
         } else if (boost::starts_with(sline, ";_IRONING_FAN_START")) { // ORCA: Add support for ironing fan speed control
             line.type = CoolingLine::TYPE_IRONING_FAN_START;
         } else if (boost::starts_with(sline, ";_IRONING_FAN_END")) { // ORCA: Add support for ironing fan speed control
@@ -755,12 +769,15 @@ std::string CoolingBuffer::apply_layer_cooldown(
     int  internal_bridge_fan_speed   = 0; // ORCA: Add support for separate internal bridge fan speed control
     bool supp_interface_fan_control= false;
     int  supp_interface_fan_speed = 0;
+    bool above_support_fan_control = false;
+    int  above_support_fan_speed = 0;
     bool ironing_fan_control= false; // ORCA: Add support for ironing fan speed control
     int  ironing_fan_speed   = 0; // ORCA: Add support for ironing fan speed control
     auto change_extruder_set_fan = [ this, layer_id, layer_time, &new_gcode, part_cooling_fan_min_pwm,
         &overhang_fan_control, &overhang_fan_speed,
         &internal_bridge_fan_control, &internal_bridge_fan_speed,
         &supp_interface_fan_control, &supp_interface_fan_speed,
+        &above_support_fan_control, &above_support_fan_speed,
         &ironing_fan_control, &ironing_fan_speed
     ](bool immediately_apply) {
 #define EXTRUDER_CONFIG(OPT) m_config.OPT.get_at(m_current_extruder)
@@ -800,6 +817,7 @@ std::string CoolingBuffer::apply_layer_cooldown(
             internal_bridge_fan_control = false;
             supp_interface_fan_speed    = initial_layer_fan_speed;
             supp_interface_fan_control  = false;
+            above_support_fan_control = false;
             ironing_fan_speed           = initial_layer_fan_speed;
             ironing_fan_control         = false;
             // additional_fan_speed_new is left at its configured value (auxiliary fan is independent of the
@@ -820,6 +838,8 @@ std::string CoolingBuffer::apply_layer_cooldown(
                     fan_speed_new = int(floor(t * fan_min_speed + (1. - t) * fan_max_speed) + 0.5);
                 }
             //}
+            above_support_fan_speed = EXTRUDER_CONFIG(first_layer_above_support_fan_speed);
+            above_support_fan_control = above_support_fan_speed >= 0;
             overhang_fan_speed   = EXTRUDER_CONFIG(overhang_fan_speed);
             if (int(layer_id) >= close_fan_the_first_x_layers && int(layer_id) + 1 < full_fan_speed_layer) {
                 if (has_initial_layer_override && close_fan_the_first_x_layers == 0 && full_fan_speed_layer > 1) {
@@ -835,11 +855,15 @@ std::string CoolingBuffer::apply_layer_cooldown(
                     const float t      = float(int(layer_id)) / denom;
                     fan_speed_new      = std::clamp(int(anchor + t * (float(fan_speed_new) - anchor) + 0.5f), 0, 255);
                     overhang_fan_speed = std::clamp(int(anchor + t * (float(overhang_fan_speed) - anchor) + 0.5f), 0, 255);
+                    if (above_support_fan_control)
+                        above_support_fan_speed = std::clamp(int(anchor + t * (float(above_support_fan_speed) - anchor) + 0.5f), 0, 100);
                 } else {
                     // Ramp up the fan speed from close_fan_the_first_x_layers to full_fan_speed_layer.
                     float factor = float(int(layer_id + 1) - close_fan_the_first_x_layers) / float(full_fan_speed_layer - close_fan_the_first_x_layers);
                     fan_speed_new    = std::clamp(int(float(fan_speed_new) * factor + 0.5f), 0, 255);
                     overhang_fan_speed = std::clamp(int(float(overhang_fan_speed) * factor + 0.5f), 0, 255);
+                    if (above_support_fan_control)
+                        above_support_fan_speed = std::clamp(int(float(above_support_fan_speed) * factor + 0.5f), 0, 100);
                 }
             }
             supp_interface_fan_speed = EXTRUDER_CONFIG(support_material_interface_fan_speed);
@@ -868,6 +892,8 @@ std::string CoolingBuffer::apply_layer_cooldown(
             additional_fan_speed_new = 0;
             supp_interface_fan_control = false; 
             supp_interface_fan_speed   = 0;
+            above_support_fan_control = false;
+            above_support_fan_speed = 0;
             internal_bridge_fan_control = false; // ORCA: Add support for separate internal bridge fan speed control
             internal_bridge_fan_speed = 0; // ORCA: Add support for separate internal bridge fan speed control
             ironing_fan_control = false; // ORCA: Add support for ironing fan speed control
@@ -899,11 +925,13 @@ std::string CoolingBuffer::apply_layer_cooldown(
     std::unordered_map<int, bool> fan_speed_change_requests = {{CoolingLine::TYPE_OVERHANG_FAN_START, false},
                                                                {CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START, false}, // ORCA: Add support for separate internal bridge fan speed control
                                                                {CoolingLine::TYPE_SUPPORT_INTERFACE_FAN_START, false},
+                                                               {CoolingLine::TYPE_ABOVE_SUPPORT_FAN_START, false},
                                                                {CoolingLine::TYPE_IRONING_FAN_START, false}, // ORCA: Add support for ironing fan speed control
                                                                {CoolingLine::TYPE_FORCE_RESUME_FAN, false}};
     // Belt printers: a band still open from the previous layer has to take the fan back from
     // the layer-level speed issued just above.
     bool need_set_fan = m_belt_band_active;
+    int above_support_blend = 0;
 
     for (const CoolingLine *line : lines) {
         const char *line_start  = gcode.c_str() + line->line_start;
@@ -952,6 +980,19 @@ std::string CoolingBuffer::apply_layer_cooldown(
                 fan_speed_change_requests[CoolingLine::TYPE_SUPPORT_INTERFACE_FAN_START] = false;
             }
             need_set_fan = true;
+        } else if (line->type & CoolingLine::TYPE_ABOVE_SUPPORT_FAN_START) {
+            const bool blend_changed = above_support_blend != line->above_support_blend;
+            above_support_blend = line->above_support_blend;
+            if (above_support_fan_control &&
+                (!fan_speed_change_requests[CoolingLine::TYPE_ABOVE_SUPPORT_FAN_START] || blend_changed)) {
+                fan_speed_change_requests[CoolingLine::TYPE_ABOVE_SUPPORT_FAN_START] = true;
+                need_set_fan = true;
+            }
+        } else if (line->type & CoolingLine::TYPE_ABOVE_SUPPORT_FAN_END) {
+            if (fan_speed_change_requests[CoolingLine::TYPE_ABOVE_SUPPORT_FAN_START]) {
+                fan_speed_change_requests[CoolingLine::TYPE_ABOVE_SUPPORT_FAN_START] = false;
+                need_set_fan = true;
+            }
         } else if (line->type & CoolingLine::TYPE_IRONING_FAN_START) {
             if (ironing_fan_control && !fan_speed_change_requests[CoolingLine::TYPE_IRONING_FAN_START]) {
                 fan_speed_change_requests[CoolingLine::TYPE_IRONING_FAN_START] = true;
@@ -1078,6 +1119,12 @@ std::string CoolingBuffer::apply_layer_cooldown(
                 // layers of a flat bed do. Leaving the band falls through to the branches below.
                 set_fan(0);
                 fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] = false;
+            } else if (fan_speed_change_requests[CoolingLine::TYPE_ABOVE_SUPPORT_FAN_START]) {
+                int speed = int(std::lround(above_support_fan_speed + 0.01 * above_support_blend * (m_fan_speed - above_support_fan_speed)));
+                // Above-support cooling must not suppress an active overhang request.
+                if (fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START])
+                    speed = std::max(speed, overhang_fan_speed);
+                set_fan(speed);
             } else if (fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START]){
                 set_fan(overhang_fan_speed);
             } else if (fan_speed_change_requests[CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START]){ // ORCA: Add support for separate internal bridge fan speed control

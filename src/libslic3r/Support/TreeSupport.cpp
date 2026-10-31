@@ -1731,6 +1731,8 @@ void TreeSupport::generate_toolpaths()
                                                             m_object_config->support_interface_pattern == smipRectilinear);
                         Flow interface_base_flow = interface_as_base ? support_flow : interface_flow;
                         ExtrusionRole interface_role = interface_as_base ? erSupportMaterial : erSupportMaterialInterface;
+                        if (!interface_as_base)
+                            ts_layer->top_interface_polygons.push_back(poly);
                         // generate a perimeter first to support interface better
                         ExtrusionEntityCollection* temp_support_fills = new ExtrusionEntityCollection();
                         make_perimeter_and_infill(temp_support_fills->entities, poly, 1, interface_base_flow, interface_role,
@@ -1759,6 +1761,8 @@ void TreeSupport::generate_toolpaths()
                     } else if (area_group.type == SupportLayer::RoofType) {
                         // roof_areas
                         bool interface_as_base = area_group.interface_as_base;
+                        if (!interface_as_base)
+                            append(ts_layer->top_interface_polygons, polys);
                         fill_params.density       = interface_density;
                         filler_interface->spacing = interface_flow.spacing();
 

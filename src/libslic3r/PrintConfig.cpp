@@ -4152,6 +4152,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts { -1 });
 
+    def = this->add("first_layer_above_support_fan_speed", coInts);
+    def->label = L("First layer above support fan speed");
+    def->tooltip = L("Part cooling fan speed for model extrusions directly above a top support interface. "
+                     "Only the portions above the interface are affected. Additional slow layers blend this value back to normal cooling. Set to -1 to use normal cooling. "
+                     "The first-layer no-cooling setting still takes precedence.");
+    def->sidetext = "%";
+    def->min = -1;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInts{ -1 });
+
     def = this->add("support_material_interface_fan_speed", coInts);
     def->label = L("Support interface fan speed");
     def->tooltip = L("This part cooling fan speed is applied when printing support interfaces. Setting this parameter to a higher than regular speed "
@@ -7529,6 +7540,38 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.5));
+
+    def = this->add("first_layer_above_support_speed", coFloatOrPercent);
+    def->label = L("First layer above support speed");
+    def->category = L("Speed");
+    def->tooltip = L("Maximum speed of model extrusions directly above a top support interface. "
+                     "Only the portions above the interface are slowed down. Set to 0 to disable. "
+                     "A percentage is relative to the otherwise applicable extrusion speed. "
+                     "Slower speeds and volumetric flow limits are preserved. Rafts are excluded.");
+    def->sidetext = L("mm/s or %");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(0, false));
+
+    def = this->add("slow_layers_above_support", coInt);
+    def->label = L("Slow layers above support");
+    def->category = L("Speed");
+    def->tooltip = L("Number of model layers affected above a top support interface. The first layer uses the configured speed and fan speed. "
+                     "Following layers are linearly blended back to their normal print speed and cooling. A value of 1 affects only the first layer.");
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(1));
+
+    def = this->add("slow_area_above_support_expansion", coFloat);
+    def->label = L("Slow area above support expansion");
+    def->category = L("Speed");
+    def->tooltip = L("Expands the slowed model area horizontally beyond the top support interface. "
+                     "The expansion applies to speed and fan control on every slow layer above support. "
+                     "Set to 0 to use the exact support-interface footprint.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
 
     def = this->add("support_interface_speed", coFloats);
     def->label = L("Support interface");
