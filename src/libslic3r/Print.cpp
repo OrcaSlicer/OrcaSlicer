@@ -308,6 +308,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "nozzle_height",
         "extruder_colour",
         "filament_flow_ratio",
+        "filament_max_external_volumetric_speed",
         "reduce_fan_stop_start_freq",
         "dont_slow_down_outer_wall",
         "fan_cooling_layer_time",
@@ -579,6 +580,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "travel_speed"
             || opt_key == "travel_speed_z"
             || opt_key == "initial_layer_speed"
+            || opt_key == "enable_volumetric_speeds"
+            || opt_key == "initial_layer_volumetric_flow"
+            || opt_key == "initial_layer_infill_volumetric_flow"
             || opt_key == "initial_layer_travel_speed"
             || opt_key == "initial_layer_travel_acceleration"
             || opt_key == "initial_layer_travel_jerk"
