@@ -5443,7 +5443,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 wxGetApp().plater()->select_plate_by_hover_id(hover_idx);
                 //wxGetApp().plater()->get_partplate_list().select_plate_view();
                 //deselect all the objects
-                if (m_gizmos.get_current_type() != GLGizmosManager::MeshBoolean && m_hover_volume_idxs.empty())
+                if (m_gizmos.get_current_type() != GLGizmosManager::MeshBoolean && m_gizmos.get_current_type() != GLGizmosManager::PathCut && m_hover_volume_idxs.empty())
                     deselect_all();
         }
         else if (evt.RightUp() && !is_layers_editing_enabled()) {

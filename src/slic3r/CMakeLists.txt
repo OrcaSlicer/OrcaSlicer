@@ -197,6 +197,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoMeasure.hpp
     GUI/Gizmos/GLGizmoMeshBoolean.cpp
     GUI/Gizmos/GLGizmoMeshBoolean.hpp
+    GUI/Gizmos/GLGizmoPathCut.cpp
+    GUI/Gizmos/GLGizmoPathCut.hpp
     GUI/Gizmos/GLGizmoMmuSegmentation.cpp
     GUI/Gizmos/GLGizmoMmuSegmentation.hpp
     GUI/Gizmos/GLGizmoMove.cpp
