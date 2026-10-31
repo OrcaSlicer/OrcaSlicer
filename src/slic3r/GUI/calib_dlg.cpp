@@ -24,6 +24,8 @@
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/wxExtensions.hpp"
 #include <wx/dcgraph.h>
+#include <wx/dcmemory.h>
+#include <wx/image.h>
 #include "MainFrame.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include <string>
@@ -63,6 +65,83 @@ int GetTextMax(wxWindow* parent, const std::vector<wxString>& labels)
     for (wxString label : labels)
         text_size.IncTo(parent->GetTextExtent(label));
     return text_size.x + parent->FromDIP(10);
+}
+
+void add_test_description(wxWindow* parent, wxSizer* sizer, const wxString& text)
+{
+    auto label = new wxStaticText(parent, wxID_ANY, text);
+    label->SetFont(Label::Body_14);
+    label->Wrap(parent->FromDIP(380));
+    sizer->Add(label, 0, wxLEFT | wxRIGHT | wxTOP | wxEXPAND, parent->FromDIP(10));
+}
+
+double image_drawn_rows_centre_y(const wxImage& img, bool use_alpha)
+{
+    int top = -1, bottom = -1;
+    for (int y = 0; y < img.GetHeight(); ++y) {
+        for (int x = 0; x < img.GetWidth(); ++x) {
+            const bool drawn = use_alpha ? img.GetAlpha(x, y) > 32 : img.GetRed(x, y) < 128;
+            if (!drawn)
+                continue;
+            if (top < 0)
+                top = y;
+            bottom = y;
+            break;
+        }
+    }
+    return top < 0 ? -1.0 : (top + bottom) / 2.0;
+}
+
+int label_text_to_icon_offset_y(wxWindow* parent, const wxFont& font, const wxString& label,
+                   const wxString& icon_name, int icon_size)
+{
+    wxCoord w = 0, h = 0;
+    {
+        wxMemoryDC dc;
+        dc.SetFont(font);
+        dc.GetTextExtent(label, &w, &h);
+    }
+    if (w <= 0 || h <= 0)
+        return 0;
+
+    wxBitmap probe(w, h, 32);
+    {
+        wxMemoryDC dc(probe);
+        dc.SetBackground(*wxWHITE_BRUSH);
+        dc.Clear();
+        dc.SetFont(font);
+        dc.SetTextForeground(*wxBLACK);
+        dc.DrawText(label, 0, 0);
+    }
+
+    const ScalableBitmap icon(parent, icon_name.ToStdString(), icon_size);
+    if (!icon.bmp().IsOk())
+        return 0;
+
+    const wxImage icon_img = icon.bmp().ConvertToImage();
+    const wxImage text_img = probe.ConvertToImage();
+    if (!text_img.IsOk() || !icon_img.IsOk())
+        return 0;
+
+    const double text_centre = image_drawn_rows_centre_y(text_img, text_img.HasAlpha());
+    const double icon_centre = image_drawn_rows_centre_y(icon_img, icon_img.HasAlpha());
+    if (text_centre < 0 || icon_centre < 0)
+        return 0;
+
+    return static_cast<int>(std::lround((h - icon_img.GetHeight()) / 2.0 + icon_centre - text_centre));
+}
+
+void add_wiki_button(wxWindow* parent, wxSizer* sizer, const wxString& url)
+{
+    auto btn = new Button(parent, _L("wiki"), "toolbar_wiki", 0, 15);
+    btn->SetToolTip(_L("Wiki Guide") + "\n" + url);
+    btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
+    btn->SetMinSize(parent->FromDIP(wxSize(-1, 32)));
+    btn->SetLabelOffsetY(label_text_to_icon_offset_y(parent, btn->GetFont(), btn->GetLabel(),
+                                                     "toolbar_wiki", 15));
+    btn->SetCanFocus(false);
+    btn->Bind(wxEVT_LEFT_DOWN, [url](auto& e) { wxLaunchDefaultBrowser(url); });
+    sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, parent->FromDIP(10));
 }
 
 CheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
@@ -139,7 +218,7 @@ bool is_belt_printer_selected()
     return false;
 }
 
-}
+} // namespace
 
 PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     : DPIDialog(parent, id, _L("PA Calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
@@ -150,6 +229,8 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+
+    add_test_description(this, v_sizer, _L("Tunes how far the nozzle moves ahead of its own pressure."));
 
     // Extruder type Radio Group
     auto labeled_box_type = new LabeledStaticBox(this, _L("Extruder type"));
@@ -253,14 +334,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
-    auto wiki_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
-    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
-    wiki_btn->SetCanFocus(false);
-    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
-
-    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+    add_wiki_button(this, bottom_sizer, "https://www.orcaslicer.com/wiki/pressure_advance_calib");
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -442,11 +516,17 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
+    add_test_description(this, v_sizer,
+                         _L("Finds the best nozzle temperature for this filament. Compare the print against the good and bad examples in "
+                            "the calibration guide."));
+
     // Method Radio Group
     auto labeled_box_method = new LabeledStaticBox(this, _L("Filament type"));
-    auto method_box = new wxStaticBoxSizer(labeled_box_method, wxHORIZONTAL);
+    auto method_box         = new wxStaticBoxSizer(labeled_box_method, wxHORIZONTAL);
 
-	m_rbFilamentType = new RadioGroup(this, { _L("PLA"), _L("ABS/ASA"), _L("PETG"), _L("PCTG"), _L("TPU"), _L("PA-CF"), _L("PET-CF"), _L("Custom") }, wxVERTICAL, 2);
+    m_rbFilamentType = new RadioGroup(this,
+                                      {_L("PLA"), _L("ABS/ASA"), _L("PETG"), _L("PCTG"), _L("TPU"), _L("PA-CF"), _L("PET-CF"), _L("Custom")},
+                                      wxVERTICAL, 2);
     method_box->Add(m_rbFilamentType, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(method_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
@@ -515,14 +595,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
-    auto wiki_url = "https://www.orcaslicer.com/wiki/temp_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
-    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
-    wiki_btn->SetCanFocus(false);
-    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
-
-    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+    add_wiki_button(this, bottom_sizer, "https://www.orcaslicer.com/wiki/temp_calib");
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -660,9 +733,7 @@ void Temp_Calibration_Dlg::on_filament_type_changed(wxCommandEvent& event) {
 void Temp_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
     this->Refresh();
     Fit();
-
 }
-
 
 // MaxVolumetricSpeed_Test_Dlg
 //
@@ -676,6 +747,8 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+
+    add_test_description(this, v_sizer, _L("Finds the sweet spot between clogging and under-extrusion. Not meant to be an exact limit: lowering the result by 10-20% is recommended."));
 
     // Settings
     wxString start_vol_str = _L("Start volumetric speed: ");
@@ -726,14 +799,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
-    auto wiki_url = "https://www.orcaslicer.com/wiki/volumetric_speed_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
-    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
-    wiki_btn->SetCanFocus(false);
-    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
-
-    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+    add_wiki_button(this, bottom_sizer, "https://www.orcaslicer.com/wiki/volumetric_speed_calib");
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -766,15 +832,12 @@ void MaxVolumetricSpeed_Test_Dlg::on_start(wxCommandEvent& event) {
     m_params.mode = CalibMode::Calib_Vol_speed_Tower;
     m_plater->calib_max_vol_speed(m_params);
     EndModal(wxID_OK);
-
 }
 
 void MaxVolumetricSpeed_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
     this->Refresh();
     Fit();
-
 }
-
 
 // VFA_Test_Dlg
 //
@@ -789,6 +852,8 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+
+    add_test_description(this, v_sizer, _L("Measures vertical fine artifacts left by high-speed moves."));
 
     // Settings
     wxString start_str    = _L("Start speed: ");
@@ -857,14 +922,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
-    auto wiki_url = "https://www.orcaslicer.com/wiki/vfa_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
-    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
-    wiki_btn->SetCanFocus(false);
-    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
-
-    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+    add_wiki_button(this, bottom_sizer, "https://www.orcaslicer.com/wiki/vfa_calib");
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1037,8 +1095,6 @@ void VFA_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect)
     Fit();
 }
 
-
-
 // Retraction_Test_Dlg
 //
 
@@ -1051,6 +1107,8 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+
+    add_test_description(this, v_sizer, _L("Default value is usually fine. Finds the shortest retraction that still stops ooze during travel."));
 
     // Settings
     wxString start_length_str = _L("Start retraction length: ");
@@ -1103,14 +1161,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
-    auto wiki_url = "https://www.orcaslicer.com/wiki/retraction_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
-    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
-    wiki_btn->SetCanFocus(false);
-    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
-
-    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+    add_wiki_button(this, bottom_sizer, "https://www.orcaslicer.com/wiki/retraction_calib");
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1143,13 +1194,11 @@ void Retraction_Test_Dlg::on_start(wxCommandEvent& event) {
     m_params.mode = CalibMode::Calib_Retraction_tower;
     m_plater->calib_retraction(m_params);
     EndModal(wxID_OK);
-
 }
 
 void Retraction_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
     this->Refresh();
     Fit();
-
 }
 
 // Input_Shaping_Freq_Test_Dlg
@@ -1170,6 +1219,8 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+
+    add_test_description(this, v_sizer, _L("Finds the machine's resonant frequency so input shaping can cancel ringing."));
 
     // Model selection
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
@@ -1290,14 +1341,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
-    auto wiki_url = "https://www.orcaslicer.com/wiki/input_shaping_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
-    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
-    wiki_btn->SetCanFocus(false);
-    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
-
-    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+    add_wiki_button(this, bottom_sizer, "https://www.orcaslicer.com/wiki/input_shaping_calib");
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1364,10 +1408,10 @@ void Input_Shaping_Freq_Test_Dlg::on_start(wxCommandEvent& event) {
     }
 
     m_params.mode = CalibMode::Calib_Input_shaping_freq;
-    
+
     // Set model type based on selection
     m_params.test_model = m_rbModel->GetSelection() == 0 ? 0 : 1; // 0 = Ringing Tower, 1 = Fast Tower
-    
+
     m_plater->calib_input_shaping_freq(m_params);
     EndModal(wxID_OK);
 }
@@ -1395,6 +1439,8 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+
+    add_test_description(this, v_sizer, _L("Tunes how hard that ringing gets cancelled."));
 
     // Model selection
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
@@ -1496,14 +1542,7 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
-    auto wiki_url = "https://www.orcaslicer.com/wiki/input_shaping_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
-    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
-    wiki_btn->SetCanFocus(false);
-    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
-
-    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+    add_wiki_button(this, bottom_sizer, "https://www.orcaslicer.com/wiki/input_shaping_calib");
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1590,6 +1629,8 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+
+    add_test_description(this, v_sizer, _L("Measures speed lost at sharp direction changes. Most printers don't need it because their firmware already limits it."));
 
     // Model selection
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
@@ -1699,14 +1740,7 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
-    auto wiki_url = "https://www.orcaslicer.com/wiki/cornering_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
-    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
-    wiki_btn->SetCanFocus(false);
-    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
-
-    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+    add_wiki_button(this, bottom_sizer, "https://www.orcaslicer.com/wiki/cornering_calib");
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
@@ -1784,6 +1818,8 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
+    add_test_description(this, v_sizer, _L("Measures how much material really lands on the build plate."));
+
     // Type selection
     auto labeled_box_type = new LabeledStaticBox(this, _L("Calibration Test Type"));
     auto type_box = new wxStaticBoxSizer(labeled_box_type, wxVERTICAL);
@@ -1811,7 +1847,7 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
 
     // ORCA: Use ComboBox with icons instead of RadioGroup
     m_rbPattern = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, ti_size, 0, nullptr, wxCB_READONLY);
-    
+
     boost::filesystem::path image_path(Slic3r::resources_dir());
     image_path /= "images";
 
@@ -1845,14 +1881,7 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
 
     auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
-    auto wiki_url = "https://www.orcaslicer.com/wiki/flow_ratio_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
-    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
-    wiki_btn->SetCanFocus(false);
-    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
-
-    bottom_sizer->Add(wiki_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+    add_wiki_button(this, bottom_sizer, "https://www.orcaslicer.com/wiki/flow_ratio_calib");
     bottom_sizer->AddStretchSpacer();
     bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     v_sizer->Add(bottom_sizer, 0, wxEXPAND);
