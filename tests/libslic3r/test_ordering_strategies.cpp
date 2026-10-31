@@ -356,6 +356,30 @@ TEST_CASE("Default ordering tours up to ten points along the shortest cycle", "[
     }
 }
 
+TEST_CASE("tsp_open_cycle_near starts at the closest point and drops its longer edge", "[TSPPostProcessing]") {
+    // A line: the cycle a, b, c closes with the long edge c -> a.
+    const Points centers = { Point::new_scale(0., 0.), Point::new_scale(10., 0.), Point::new_scale(20., 0.) };
+    std::vector<size_t> path = { 0, 1, 2 };
+    tsp_open_cycle_near(path, centers, Point::new_scale(21., 1.));
+    CHECK(path == std::vector<size_t>{ 2, 1, 0 });
+    tsp_open_cycle_near(path, centers, Point::new_scale(-1., 1.));
+    CHECK(path == std::vector<size_t>{ 0, 1, 2 });
+}
+
+TEST_CASE("tsp_open_cycle_near keeps the cycle and leaves out the longer edge at the start", "[TSPPostProcessing]") {
+    for (unsigned seed = 1; seed <= 10; ++seed) {
+        const Points centers = random_centers(seed, 20);
+        const std::vector<size_t> cycle = chain_points_with_postprocessing(centers, nullptr);
+        std::vector<size_t> path = cycle;
+        tsp_open_cycle_near(path, centers, centers[seed]);
+        REQUIRE(is_permutation(path, centers.size()));
+        CHECK(path.front() == size_t(seed));
+        CHECK(euclidean_path_length(path, centers) <= euclidean_path_length(cycle, centers) + SCALED_EPSILON);
+        const Vec2d start = centers[path.front()].cast<double>();
+        CHECK((centers[path[1]].cast<double>() - start).norm() <= (centers[path.back()].cast<double>() - start).norm());
+    }
+}
+
 TEST_CASE("Default ordering of many points is never longer than the greedy cycle", "[TSPPostProcessing]") {
     for (unsigned seed = 1; seed <= 10; ++seed) {
         const Points centers = random_centers(seed, 150);
