@@ -1974,7 +1974,7 @@ mutex, so a stalled disk never holds up the UI thread. Two detached encoder thre
 offset) that the pixels and every overlay position share, the overlays, and JPEG through libjpeg
 directly (`encode_jpeg()`, whose libjpeg error handler longjmps back into a frame holding only C
 structs). They use nothing of wx, so a thread still running at exit touches nothing wx has torn
-down. Frames are written in capture order through a reorder map; a failed encode is a skip, and a
+down. Frames are written in capture order through a reorder map; a failed encode is a skip (`failed`), and a
 dropped frame has no sequence number, so the order never waits on a hole. `MkvWriter` writes the
 Matroska file: one `V_MJPEG` track, SimpleBlocks with millisecond timestamps in Clusters of 5 s, and
 the Segment, Cluster sizes and Duration written as unknown and patched on close, so a file never

@@ -713,6 +713,7 @@ json McpRecorder::report(Recording& rec) const
              {"frames", r.accepted},
              {"written", r.written},
              {"dropped", r.dropped},
+             {"failed", r.failed},
              {"skipped", rec.skipped.load()},
              {"width", rec.video_w},
              {"height", rec.video_h},

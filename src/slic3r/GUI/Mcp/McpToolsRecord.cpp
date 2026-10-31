@@ -213,7 +213,8 @@ void register_record_tools(McpService& service)
 
     reg.add(record_tool("stop_recording", L("Stop the recording"),
                         "Stop the running recording and return its file once it is written: seconds, frames captured and "
-                        "written, frames dropped when encoding fell behind or skipped when the window could not be captured, "
+                        "written, frames dropped when encoding fell behind, failed when they could not be encoded, or "
+                        "skipped when the window could not be captured, "
                         "the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, its script ended, a "
                         "write error) is reported once by the next stop_recording. For a recording started with encode, it then "
                         "starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns "
