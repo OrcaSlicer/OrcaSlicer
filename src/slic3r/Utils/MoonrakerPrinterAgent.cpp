@@ -881,8 +881,9 @@ bool MoonrakerPrinterAgent::fetch_creality_cfs_data(std::vector<AmsTrayData>& tr
         data.tray_type = slot.material_type;
         data.tray_color = slot.color;
         data.has_filament = true;
-        data.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(data.tray_type)
-                                    : map_filament_type_to_generic_id(data.tray_type);
+        data.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(data.tray_type) : std::string();
+        if (data.tray_info_idx.empty())
+            data.tray_info_idx = map_filament_type_to_generic_id(data.tray_type);
         max_lane_index = std::max(max_lane_index, data.slot_index);
         trays.push_back(std::move(data));
     }
@@ -1042,10 +1043,10 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         // counts: Happy Hare writes Spoolman's numeric filament record id under the same key.
         tray.tray_info_idx = safe_json_string(lane_obj, "filament_id");
         auto* bundle = GUI::wxGetApp().preset_bundle;
+        if (tray.tray_info_idx.empty() && bundle)
+            tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
         if (tray.tray_info_idx.empty())
-            tray.tray_info_idx = bundle
-                ? bundle->filaments.filament_id_by_type(tray.tray_type)
-                : map_filament_type_to_generic_id(tray.tray_type);
+            tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, lane_index);
         trays.push_back(tray);
@@ -1171,9 +1172,9 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
         tray.has_filament = true;
 
         auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        tray.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(tray.tray_type) : std::string();
+        if (tray.tray_info_idx.empty())
+            tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, gate_idx);
         trays.push_back(tray);
