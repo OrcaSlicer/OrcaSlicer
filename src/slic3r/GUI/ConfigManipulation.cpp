@@ -912,12 +912,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("bottom_layer_direction", has_bottom_shell, -1, bottom_shell_reason);
 
     toggle_line("top_surface_expansion", has_top_shell, -1, top_shell_reason);
-    toggle_line("top_surface_expansion_margin", has_top_shell, -1, top_shell_reason);
-    bool has_top_surface_expansion = config->opt_float("top_surface_expansion") > 0;
-    const wxString top_surface_expansion_reason = _L("Set top surface expansion above zero to use this setting.");
-    toggle_field("top_surface_expansion_margin", has_top_surface_expansion, -1, top_surface_expansion_reason);
-    toggle_line("top_surface_expansion_direction", has_top_shell, -1, top_shell_reason);
-    toggle_field("top_surface_expansion_direction", has_top_surface_expansion, -1, top_surface_expansion_reason);
+    //toggle_line("top_surface_expansion_margin", has_top_shell, -1, top_shell_reason);
+    //bool has_top_surface_expansion = config->opt_float("top_surface_expansion") > 0;
+    //const wxString top_surface_expansion_reason = _L("Set top surface expansion above zero to use this setting.");
+    //toggle_field("top_surface_expansion_margin", has_top_surface_expansion, -1, top_surface_expansion_reason);
+    //toggle_line("top_surface_expansion_direction", has_top_shell, -1, top_shell_reason);
+    //toggle_field("top_surface_expansion_direction", has_top_surface_expansion, -1, top_surface_expansion_reason);
 
     // Orca: Archimedean Chords and Octagram Spiral are the centered surface patterns that the
     // pattern-centering feature acts on.
@@ -1292,8 +1292,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Orca: the one-wall options act on top/bottom surfaces, which exist only with a shell. An unfilled surface
     // (0% surface density) is still a surface, so these are gated on the layer counts alone.
     toggle_line("only_one_wall_first_layer", has_bottom_shell, -1, bottom_shell_reason);
-    toggle_line("only_one_wall_top", has_top_shell_layers, -1, top_shell_layers_reason);
-    toggle_line("min_width_top_surface", (has_top_shell_layers && config->opt_bool("only_one_wall_top")) || ((config->opt_float("min_length_factor") > 0.5f) && have_arachne), -1, _L("Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5.")); // 0.5 is default value
+    toggle_line("top_one_wall_type", has_top_shell_layers, -1, top_shell_layers_reason);
+    bool has_one_wall = has_top_shell_layers && have_perimeters && config->opt_enum<TopOneWallType>("top_one_wall_type") != TopOneWallType::None;
+    toggle_line("min_width_top_surface", has_one_wall || ((config->opt_float("min_length_factor") > 0.5f) && have_arachne), -1, _L("Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5.")); // 0.5 is default value
 
     for (auto el : { "hole_to_polyhole_threshold", "hole_to_polyhole_twisted", "hole_to_polyhole_max_edges" })
         toggle_line(el, config->opt_bool("hole_to_polyhole"), -1, _L("Enable converting holes to polyholes to use this setting."));

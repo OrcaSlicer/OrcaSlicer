@@ -793,6 +793,11 @@ void PrintObject::prepare_infill()
     this->combine_infill();
     m_print->throw_if_canceled();
 
+    // defines the first continuous layer under the top surface
+    // ensures reliable anchoring of the perimeters if they are attached to a sparse infill
+    this->discover_sub_top_surfaces();
+    m_print->throw_if_canceled();
+
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
         for (const Layer *layer : m_layers) {
@@ -1498,6 +1503,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "alternate_extra_wall"
             || opt_key == "top_one_wall_type"
             || opt_key == "min_width_top_surface"
+            // || opt_key == "top_surface_inset"
             || opt_key == "only_one_wall_first_layer"
             || opt_key == "extra_perimeters_on_overhangs"
             || opt_key == "detect_overhang_wall"
@@ -1663,8 +1669,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_combination_max_layer_height"
             || opt_key == "bottom_shell_thickness"
             || opt_key == "top_shell_thickness"
-            || opt_key == "top_surface_expansion_margin"
-            || opt_key == "top_surface_expansion_direction"
+            //|| opt_key == "top_surface_expansion_margin"
+            //|| opt_key == "top_surface_expansion_direction"
             || opt_key == "minimum_sparse_infill_area"
             || opt_key == "sparse_infill_filament_id"
             || opt_key == "internal_solid_filament_id"
@@ -1745,15 +1751,15 @@ bool PrintObject::invalidate_state_by_config_options(
             assert(old_density && new_density);
             if (is_approx(old_density->value, 0.) || is_approx(new_density->value, 0.))
                 steps.emplace_back(posPerimeters);
-            steps.emplace_back(posInfill);
+            steps.emplace_back(posPrepareInfill);
         } else if (opt_key == "top_surface_expansion") {
-            // ORCA: without the expansion the top fill never reaches the space freed by only_one_wall_top, so the
+            // ORCA: without the expansion the top fill never reaches the space freed by top_one_wall_type, so the
             // walls over top surfaces are kept. Only crossing zero matters; posPerimeters cascades to posPrepareInfill.
-            const auto *old_expansion = old_config.option<ConfigOptionFloat>(opt_key);
-            const auto *new_expansion = new_config.option<ConfigOptionFloat>(opt_key);
+            const auto* old_expansion = old_config.option<ConfigOptionFloatOrPercent>(opt_key);
+            const auto* new_expansion = new_config.option<ConfigOptionFloatOrPercent>(opt_key);
             assert(old_expansion && new_expansion);
-            if (old_expansion->value <= 0. || new_expansion->value <= 0.)
-                steps.emplace_back(posPerimeters);
+            //if (old_expansion->value <= 0. || new_expansion->value <= 0.)
+            steps.emplace_back(posPerimeters);
             steps.emplace_back(posPrepareInfill);
         } else if (opt_key == "internal_solid_infill_line_width") {
             // This value is used for calculating perimeter - infill overlap, thus perimeters need to be recalculated.
@@ -2116,24 +2122,24 @@ void PrintObject::detect_surfaces_type()
                     // surface at all, leaving a partially filled layer - is never allowed. The original top is
                     // unioned back in and bottom surfaces are never claimed, so this can only add area.
                     const PrintRegionConfig &region_config  = layerm->region().config();
-                    const double             top_expansion  = region_config.top_surface_expansion.value;
+                    const double             top_expansion  = region_config.top_surface_expansion.get_abs_value(double(layerm->flow(frPerimeter).width()));
                     // Nothing to expand without a top fill: a 0% top surface density leaves the top layer with
                     // walls only, and zero top shell layers retypes it as internal in prepare_fill_surfaces().
-                    if (top_expansion > 0. && region_config.top_shell_layers.value > 0 &&
+                    if (region_config.top_shell_layers.value > 0 && // top_expansion > 0. && 
                         region_config.top_surface_density.value > 0. && ! top.empty()) {
                         const double     d = scale_(top_expansion);
                         const ExPolygons T = union_ex(to_expolygons(top));
-                        // Walls are laid out on spacing, not width; and only_one_wall_top leaves a single wall over
+                        
+                        // Walls are laid out on spacing, not width; and top_one_wall_type leaves a single wall over
                         // a top surface, which is exactly the situation handled here.
-                        const int    wall_loops = region_config.only_one_wall_top.value ? std::min(region_config.wall_loops.value, 1)
-                                                                                        : region_config.wall_loops.value;
+                        const int wall_loops    = region_config.top_one_wall_type.value != TopOneWallType::None ?
+                                                      std::min(region_config.wall_loops.value, 1) : region_config.wall_loops.value;
                         const double wall_band  = wall_loops <= 0 ? 0. :
                             double(layerm->flow(frExternalPerimeter).scaled_width()) +
                             double(layerm->flow(frPerimeter).scaled_spacing()) * double(wall_loops - 1);
-                        const double margin     = scale_(region_config.top_surface_expansion_margin.value);
+                        
                         // minimum real top to act on: ignore anything thinner than ~2 top-infill lines
                         const float  min_top    = float(layerm->flow(frTopSolidInfill).scaled_width());
-                        const auto   direction  = region_config.top_surface_expansion_direction.value;
 
                         ExPolygons grown;
                         for (const ExPolygon &island : union_ex(layerm_slices_surfaces)) {
@@ -2141,31 +2147,16 @@ void PrintObject::detect_surfaces_type()
                             // region (the island minus the wall band), not the raw slice: a section whose exposed top
                             // is just the walls themselves is then skipped instead of being flooded inward. Clip the
                             // layer's tops to the island first, to keep the boolean ops proportional to the island.
-                            const ExPolygons infill_region = wall_band > 0. ? offset_ex(island, -float(wall_band)) : ExPolygons{ island };
-                            const ExPolygons island_top    = intersection_ex(
-                                ClipperUtils::clip_clipper_polygons_with_subject_bbox(T, get_extents(island).inflated(SCALED_EPSILON)),
-                                infill_region);
-                            if (opening_ex(island_top, min_top).empty())
+                            const ExPolygons infill_region = wall_band > 0. ? offset_ex(island, -float(wall_band)) : ExPolygons{island};
+                            const ExPolygons island_top    = intersection_ex(ClipperUtils::clip_clipper_polygons_with_subject_bbox(T, get_extents(island).inflated(SCALED_EPSILON)), infill_region);
+                            if (opening_ex(island_top, min_top / 2.).empty())
                                 continue; // no real top infill in this section - never expand into it
-
+                            
                             // Grow, then keep only what the configured direction allows, using the top's own filled
                             // outline (same outer edge, holes closed) to tell the two apart.
-                            ExPolygons expanded = offset_ex(island_top, float(d), jtMiter, 2.);
-                            if (direction != TopSurfaceExpansionDirection::InwardAndOutward) {
-                                ExPolygons outline;
-                                outline.reserve(island_top.size());
-                                for (const ExPolygon &ex : island_top)
-                                    outline.emplace_back(ex.contour);
-                                outline = union_ex(outline);
-                                expanded = direction == TopSurfaceExpansionDirection::Inward ?
-                                    intersection_ex(expanded, outline) :              // only growth into the holes
-                                    diff_ex(expanded, diff_ex(outline, island_top));  // only growth past the outer edge
-                            }
-                            // hold the expansion clear of the walls by the configured margin
-                            const ExPolygons allowed = margin > 0. ? offset_ex(infill_region, -float(margin)) : infill_region;
-                            append(grown, intersection_ex(expanded, allowed));
+                            ExPolygons expanded = offset_ex(island_top, d, jtMiter, 2.);
+                            append(grown, intersection_ex(expanded, infill_region));
                         }
-
                         ExPolygons new_top = diff_ex(union_ex(T, grown), to_expolygons(bottom));
                         top.clear();
                         surfaces_append(top, std::move(new_top), stTop);
@@ -5079,6 +5070,107 @@ void PrintObject::combine_infill()
                 }
             }
         }
+    }
+}
+
+// A top island that an erosion of this radius wipes out is too narrow to justify a sub-top band
+// underneath it. Eroding rather than measuring the area also rejects long thin slivers, whose area
+// can be large while no part of them is wide enough to matter.
+static constexpr double SUB_TOP_MIN_TOP_EROSION_MM = 1.5;
+
+void PrintObject::discover_sub_top_surfaces()
+{
+    BOOST_LOG_TRIVIAL(trace) << "discover_sub_top_surfaces()";
+    if (m_layers.size() < 2)
+        return;
+
+    auto process_layer = [this](size_t idx_layer) {
+        m_print->throw_if_canceled();
+        const Layer *upper = m_layers[idx_layer + 1];
+        Layer       *layer = m_layers[idx_layer];
+
+        ExPolygons top_mask;
+        for (const LayerRegion *upper_region : upper->regions())
+            for (const Surface &s : upper_region->fill_surfaces.surfaces)
+                if (s.surface_type == stTop)
+                    top_mask.emplace_back(s.expolygon);
+        if (top_mask.empty())
+            return;
+
+        const auto    erosion    = float(scale_(SUB_TOP_MIN_TOP_EROSION_MM));
+        const coord_t min_extent = coord_t(scale_(2. * SUB_TOP_MIN_TOP_EROSION_MM));
+        ExPolygons    large_tops;
+        for (ExPolygon &top : union_ex(top_mask)) {
+            // An island narrower than the erosion diameter cannot survive it, and its extents are a
+            // linear scan against a boolean, so check them before paying for the offset.
+            const Point extents = get_extents(top).size();
+            if (extents.x() < min_extent || extents.y() < min_extent)
+                continue;
+            if (! offset_ex(top, - erosion).empty())
+                large_tops.emplace_back(std::move(top));
+        }
+        if (large_tops.empty())
+            return;
+        top_mask = std::move(large_tops);
+
+        // The vertex cull below runs once per island of every region, and it walks the points of
+        // every mask polygon. Caching the extents here lets a polygon whose box misses the island
+        // be dropped without touching its points at all.
+        std::vector<BoundingBox> top_extents;
+        top_extents.reserve(top_mask.size());
+        for (const ExPolygon &top : top_mask)
+            top_extents.emplace_back(get_extents(top));
+
+        for (LayerRegion *layerm : layer->m_regions) {
+            const float min_width = float(layerm->flow(frSolidInfill).scaled_spacing());
+            ExPolygons crop_mask = layerm->fill_no_overlap_expolygons;
+            // A claimed island keeps its geometry and every other field, only its type changes, so
+            // retype in place rather than rebuilding the collection.
+
+            Surfaces new_surfaces;
+            for (Surface &surface : layerm->fill_surfaces.surfaces) {
+                //if (surface.surface_type != stInternalSolid)
+                //    continue;
+                // Trim the mask to the island first, so one island does not have to face the whole
+                // layer's top geometry. Opening then drops what only grazes the mask: an island is
+                // claimed on real overlap, not on a shared edge.
+                const BoundingBox island_bbox = get_extents(surface.expolygon).inflated(SCALED_EPSILON);
+                Polygons          local_mask;
+                for (size_t i = 0; i < top_mask.size(); ++ i)
+                    if (top_extents[i].overlap(island_bbox))
+                        append(local_mask, ClipperUtils::clip_clipper_polygons_with_subject_bbox(top_mask[i], island_bbox));
+                if (! local_mask.empty() && ! opening_ex(intersection_ex(surface.expolygon, local_mask, ApplySafetyOffset::Yes), 0.5f * min_width).empty()) {
+                    int number_of_walls = layerm->m_region->config().wall_loops; // number of internal walls, clamped to a minimum of 0 as a safety precaution
+                    float offset_distance = (layerm->flow(frPerimeter).scaled_width()) * number_of_walls; // shrink down by number of external walls * width of them, effectively filtering out 2x internal perimeter wide bridges
+                    ExPolygons walls_solid = offset_ex(local_mask, offset_distance);
+                    SurfaceType type       = surface.surface_type;
+                    ExPolygons cropped     = intersection_ex(surface.expolygon, local_mask);
+                    surface.expolygon.clear();
+                    surfaces_append(new_surfaces, cropped, type);
+                    if (layerm->m_region->config().top_surface_density.value < 100) {
+                        surfaces_append(new_surfaces, intersection_ex(local_mask, crop_mask, ApplySafetyOffset::Yes), stInternalSolid); // stSubTop
+                        surfaces_append(new_surfaces, intersection_ex(diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), crop_mask, ApplySafetyOffset::Yes), stInternalBridge);
+                    } else
+                        surfaces_append(new_surfaces, intersection_ex(walls_solid, crop_mask, ApplySafetyOffset::Yes), stInternalSolid);
+                }
+            }
+            layerm->fill_surfaces.append(new_surfaces);
+        }
+    };
+
+    // A layer reads the tops of the layer above and retypes its own fill surfaces, so neighbours
+    // must not run together. Splitting the sweep by parity keeps every pair of concurrent layers
+    // two apart, which leaves the read and write sets disjoint.
+    const size_t num_to_process = m_layers.size() - 1;
+    for (size_t parity = 0; parity < 2; ++ parity) {
+        if (num_to_process <= parity)
+            continue;
+        const size_t count = (num_to_process - parity + 1) / 2;
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, count),
+            [&process_layer, parity](const tbb::blocked_range<size_t> &range) {
+                for (size_t k = range.begin(); k < range.end(); ++ k)
+                    process_layer(parity + 2 * k);
+            });
     }
 }
 

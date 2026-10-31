@@ -300,12 +300,12 @@ static t_config_enum_values s_keys_map_FuzzySkinMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FuzzySkinMode)
 
-static t_config_enum_values s_keys_map_TopSurfaceExpansionDirection {
-    { "inward_and_outward", int(TopSurfaceExpansionDirection::InwardAndOutward) },
-    { "inward",             int(TopSurfaceExpansionDirection::Inward) },
-    { "outward",            int(TopSurfaceExpansionDirection::Outward) }
-};
-CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(TopSurfaceExpansionDirection)
+//static t_config_enum_values s_keys_map_TopSurfaceExpansionDirection {
+//    { "inward_and_outward", int(TopSurfaceExpansionDirection::InwardAndOutward) },
+//    { "inward",             int(TopSurfaceExpansionDirection::Inward) },
+//    { "outward",            int(TopSurfaceExpansionDirection::Outward) }
+//};
+//CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(TopSurfaceExpansionDirection)
 
 static t_config_enum_values s_keys_map_InfillPattern {
     { "monotonic", ipMonotonic },
@@ -347,6 +347,14 @@ static t_config_enum_values s_keys_map_IroningType {
     { "solid",          int(IroningType::AllSolid) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(IroningType)
+
+// BBS:
+static t_config_enum_values s_keys_map_TopOneWallType{
+    {"not apply", int(TopOneWallType::None)},
+    {"topmost", int(TopOneWallType::Topmost)},
+    {"all top", int(TopOneWallType::Alltop)
+}};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(TopOneWallType)
 
 //BBS
 static t_config_enum_values s_keys_map_WallInfillOrder {
@@ -1867,11 +1875,18 @@ void PrintConfigDef::init_fff_params()
                        "will be ignored for outer-inner or inner-outer-inner wall sequences.");
     def->set_default_value(new ConfigOptionBool{true});
 
-    def = this->add("only_one_wall_top", coBool);
+    def = this->add("top_one_wall_type", coEnum);
     def->label = L("Only one wall on top surfaces");
-    def->category = L("Quality");
-    def->tooltip = L("Use only one wall on flat top surfaces, to give more space to the top infill pattern.");
-    def->set_default_value(new ConfigOptionBool(false));
+    def->tooltip = L("Use only one wall on flat top surface, to give more space to the top infill pattern. Could be applied on topmost "
+                     "surface or all top surface.");
+    def->enum_keys_map = &ConfigOptionEnum<TopOneWallType>::get_enum_values();
+    def->enum_values.push_back("not apply");
+    def->enum_values.push_back("topmost");
+    def->enum_values.push_back("all top");
+    def->enum_labels.push_back(L("Not apply"));
+    def->enum_labels.push_back(L("Topmost surface"));
+    def->enum_labels.push_back(L("Top surfaces"));
+    def->set_default_value(new ConfigOptionEnum<TopOneWallType>(TopOneWallType::None));
 
     // the tooltip is copied from SuperStudio
     def = this->add("min_width_top_surface", coFloatOrPercent);
@@ -1888,6 +1903,18 @@ void PrintConfigDef::init_fff_params()
     def->max_literal = 15;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(300, true));
+
+    //def           = this->add("top_surface_inset", coPercent);
+    //def->label    = L("Top surface inset");
+    //def->category = L("Quality");
+    //def->tooltip  = L("The inset amount of the top surface pattern under the wall. \n"
+    //                  "Specify 0% to make the pattern completely visible. \n"
+    //                  "The 100% value will be place the pattern side under for the external perimeter." );
+    //def->sidetext = "%";
+    //def->min      = 0;
+    //def->max      = 100;
+    //def->mode     = comAdvanced;
+    //def->set_default_value(new ConfigOptionPercent(100));
 
     def = this->add("only_one_wall_first_layer", coBool);
     def->label = L("Only one wall on first layer");
@@ -2583,46 +2610,48 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->set_default_value(new ConfigOptionPercent(100));
 
-    def = this->add("top_surface_expansion", coFloat);
+    def = this->add("top_surface_expansion", coFloatOrPercent);
     def->label = L("Top surface expansion");
     def->category = L("Strength");
     def->tooltip = L("Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
                      "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane. "
                      "Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top. "
                      "The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection.");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm or %");
+    def->ratio_over  = "outer_wall_line_width";
     def->min = 0;
+    def->max_literal = 100;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0));
+    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
 
-    def = this->add("top_surface_expansion_margin", coFloat);
-    def->label = L("Top expansion wall margin");
-    def->category = L("Strength");
-    def->tooltip = L("Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
-                     "This can cause contraction marks (such as the hull line) on the outer walls.\n"
-                     "By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark.");
-    def->sidetext = L("mm");
-    def->min = 0;
-    def->max = 10;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0));
+    //def = this->add("top_surface_expansion_margin", coFloat);
+    //def->label = L("Top expansion wall margin");
+    //def->category = L("Strength");
+    //def->tooltip = L("Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+    //                 "This can cause contraction marks (such as the hull line) on the outer walls.\n"
+    //                 "By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark.");
+    //def->sidetext = L("mm");
+    //def->min = 0;
+    //def->max = 10;
+    //def->mode = comAdvanced;
+    //def->set_default_value(new ConfigOptionFloat(0));
 
-    def = this->add("top_surface_expansion_direction", coEnum);
-    def->label = L("Top expansion direction");
-    def->category = L("Strength");
-    def->tooltip = L("Direction in which the top surface expansion grows.\n"
-                     " - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
-                     " - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
-                     " - Inward and Outward does both.");
-    def->enum_keys_map = &ConfigOptionEnum<TopSurfaceExpansionDirection>::get_enum_values();
-    def->enum_values.push_back("inward_and_outward");
-    def->enum_values.push_back("inward");
-    def->enum_values.push_back("outward");
-    def->enum_labels.push_back(L("Inward and Outward"));
-    def->enum_labels.push_back(L("Inward"));
-    def->enum_labels.push_back(L("Outward"));
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<TopSurfaceExpansionDirection>(TopSurfaceExpansionDirection::InwardAndOutward));
+    //def = this->add("top_surface_expansion_direction", coEnum);
+    //def->label = L("Top expansion direction");
+    //def->category = L("Strength");
+    //def->tooltip = L("Direction in which the top surface expansion grows.\n"
+    //                 " - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+    //                 " - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+    //                 " - Inward and Outward does both.");
+    //def->enum_keys_map = &ConfigOptionEnum<TopSurfaceExpansionDirection>::get_enum_values();
+    //def->enum_values.push_back("inward_and_outward");
+    //def->enum_values.push_back("inward");
+    //def->enum_values.push_back("outward");
+    //def->enum_labels.push_back(L("Inward and Outward"));
+    //def->enum_labels.push_back(L("Inward"));
+    //def->enum_labels.push_back(L("Outward"));
+    //def->mode = comAdvanced;
+    //def->set_default_value(new ConfigOptionEnum<TopSurfaceExpansionDirection>(TopSurfaceExpansionDirection::InwardAndOutward));
 
     def = this->add("bottom_surface_pattern", coEnum);
     def->label = L("Bottom surface pattern");
@@ -9913,9 +9942,11 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "chamber_temperature";
     } else if (opt_key == "thumbnail_size") {
         opt_key = "thumbnails";
-    } else if (opt_key == "top_one_wall_type" && value != "none") {
-        opt_key = "only_one_wall_top";
-        value = "1";
+    } else if (opt_key == "top_surface_expansion" && value == "0") {
+        value = "100%";
+    } else if (opt_key == "only_one_wall_top") {
+        opt_key = "top_one_wall_type";
+        value   = (value == "0" || value == "false") ? "not apply" : "all top";
     } else if (opt_key == "initial_layer_flow_ratio") {
         opt_key = "bottom_solid_infill_flow_ratio";
     } else if (opt_key == "ironing_direction") {
