@@ -384,6 +384,12 @@ public:
 public:
     static bool IsBBL_Filament(std::string tag_uid);
 
+    // Whether a tray's reported filament level is a real reading. A Bambu printer only estimates
+    // it for a spool whose RFID tag gives the spool's weight; a printer driven by another agent
+    // measures the spool itself, so its level holds for any filament (the Creality CFS reports a
+    // percentage per slot).
+    static bool IsRemainReliable(const MachineObject* obj, const std::string& tag_uid);
+
 private:
     MachineObject* m_owner;
 

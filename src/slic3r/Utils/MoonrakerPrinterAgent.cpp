@@ -14,6 +14,7 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "../GUI/DeviceCore/DevStorage.h"
@@ -344,6 +345,7 @@ int MoonrakerPrinterAgent::connect_printer(const PrinterConnectionParams& params
         status_cache = nlohmann::json::object();
     }
     has_storage.store(false);
+    reports_filament_level.store(false);
     ws_last_emit_ms.store(0);
     ws_last_dispatch_ms.store(0);
     last_print_state.clear();
@@ -605,7 +607,8 @@ int MoonrakerPrinterAgent::set_queue_on_main_fn(QueueOnMainFn fn)
     return BAMBU_NETWORK_SUCCESS;
 }
 
-void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays)
+void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays,
+                                              DevAmsType ams_type)
 {
 
     // Look up MachineObject via DeviceManager
@@ -631,7 +634,11 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
 
         nlohmann::json ams_unit = nlohmann::json::object();
         ams_unit["id"] = std::to_string(ams_id);
-        ams_unit["info"] = "0002";  // treat as AMS_LITE 
+        ams_unit["info"] = "000" + std::to_string(static_cast<int>(ams_type)); // low nibble: AMS model, extruder 0
+        // An AMS draws its humidity level, which otherwise defaults to the driest one with no reading behind it
+        if (ams_type == DevAmsType::AMS) {
+            ams_unit["humidity"] = "-1";
+        }
         if (const std::string name = ams_unit_name(ams_id); !name.empty()) {
             ams_unit["display_name"] = name;
         }
@@ -686,6 +693,12 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 if (tray->tray_info_idx.empty()) {
                     tray_json["tray_slot_placeholder"] = "1";
                 }
+
+                // Leaving the key out makes the parser store -1, which the AMS views
+                // read as "level unknown". Writing 0 would claim an empty spool.
+                if (tray->remain >= 0) {
+                    tray_json["remain"] = tray->remain;
+                }
             } else {
                 tray_json["tray_info_idx"] = "";
                 tray_json["tray_type"] = "";
@@ -708,6 +721,12 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     ams_json["ams"] = ams_array;
     ams_json["ams_exist_bits"] = ams_exist_ss.str();
     ams_json["tray_exist_bits"] = tray_exist_ss.str();
+
+    // Gates every remaining-filament display in the AMS views. Only claim the printer
+    // measures a level when at least one slot actually reported one.
+    const bool has_level = std::any_of(trays.begin(), trays.end(), [](const AmsTrayData& t) { return t.remain >= 0; });
+    ams_json["calibrate_remain_flag"] = has_level;
+    reports_filament_level.store(has_level);
 
     // Wrap in the expected structure for ParseV1_0
     nlohmann::json print_json = nlohmann::json::object();
@@ -2171,7 +2190,7 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
     payload["print"]["print_error"]         = 0;
 
     // Map homed axes to bit field: X=bit0, Y=bit1, Z=bit2
-    // WARNING: Apart from the storage state below, this clears the support flags (bit 3+)
+    // WARNING: Apart from the storage state and the filament level below, this clears the support flags (bit 3+)
     // Bit 3 = 220V voltage, bit 4 = auto recovery, etc.
     // This is acceptable for Moonraker (no AMS, different feature set)
     // Every push sets the storage state twice, from "sdcard" and then from home_flag bits 8-9,
@@ -2179,6 +2198,9 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
     const bool storage = has_storage.load();
     payload["print"]["sdcard"] = storage;
     int home_flag = (storage ? DevStorage::HAS_SDCARD_NORMAL : DevStorage::NO_SDCARD) << 8;
+    // Every push also sets the filament level display from bit 7, so it has to stay on here.
+    if (reports_filament_level.load())
+        home_flag |= 1 << 7;
     if (status_cache.contains("toolhead") && status_cache["toolhead"].contains("homed_axes")) {
         std::string homed = status_cache["toolhead"]["homed_axes"].get<std::string>();
         if (homed.find('X') != std::string::npos)
