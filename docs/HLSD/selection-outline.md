@@ -60,7 +60,7 @@ The crossing is placed between the texel centers, in this order of preference:
 The lines pass takes the nearest crossing along the row of the pixel and the nearest along its column.
 For a straight line at distance d, they lie at d / |cos| and d / |sin| of its normal, so
 1 / d² = 1 / dx² + 1 / dy², which gives the distance at any angle without knowing it. The line is drawn
-with an anti-aliased edge at its half width.
+with a smooth edge around its half width.
 
 ## Ring
 
@@ -81,8 +81,11 @@ also shows over the plate the object stands on, which lies in front of the silho
 
 ## Colors and sizes
 
-The outline is white. The ring is 2.5
-pixels wide and the inner lines 1.2 pixels, at 75% opacity, scaled by the canvas scale.
+The outline is white. Its lines have a width on the model, 0.35 mm for the ring and 0.18 mm for the inner
+lines, so they grow as the camera closes in, kept between 2.5 and 5 pixels for the ring and 1.2 and 2.4 for
+the inner lines, scaled by the canvas scale. An inner line that would be thinner than 1.2 pixels fades
+instead, down to 40%, so that a far selection does not turn into lines. Inner lines are drawn at 75%
+opacity. Both have a smooth edge 1.2 pixels wide.
 
 ## Requirements
 

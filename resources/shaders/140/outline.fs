@@ -9,11 +9,12 @@ uniform sampler2D edges_tex;
 uniform bool inner;
 // The stencil keeps the ring off the samples of the selection, without it the ring stays off covered pixels.
 uniform bool use_stencil;
-uniform float ring_width;
+// Widths in pixels: x at least, y at most, z the width on the model in view space units.
+uniform vec3 ring_width;
 uniform int ring_reach;
 uniform float ring_sigma;
-// Half the width of an inner line.
-uniform float line_width;
+// Half the width of an inner line, as ring_width.
+uniform vec3 line_width;
 uniform int line_reach;
 uniform float line_opacity;
 uniform vec3 outline_color;
@@ -59,6 +60,23 @@ vec2 unpack_edge(float c)
     float v = floor(c * 255.0 + 0.5);
     float s = floor(v / 16.0);
     return vec2(s, v - s * 16.0) / 15.0;
+}
+
+float pixel_size(float z)
+{
+    return dot(pixel_size_coef, vec2(-z, 1.0));
+}
+
+// Thicker as the camera closes in, within a range of pixels.
+float width_at(vec3 width, float z)
+{
+    return clamp(width.z / pixel_size(z), width.x, width.y);
+}
+
+// A smooth edge 1.2 pixels wide around width.
+float edge_alpha(float width, float d)
+{
+    return 1.0 - smoothstep(width - 0.6, width + 0.6, d);
 }
 
 float view_z(float depth)
@@ -137,12 +155,12 @@ void render_ring(ivec2 p)
         float centers = sqrt(best) - 0.5;
         float dist = coverage < 0.5 ? ring_sigma * normal_tail_inverse(max(coverage, 1e-6)) : 0.0;
         dist = clamp(dist, centers - 0.5, centers + 0.5);
-        alpha = clamp(ring_width + 0.5 - dist, 0.0, 1.0);
+        float z = view_z(fetch_depth(t));
+        alpha = edge_alpha(width_at(ring_width, z), dist);
         if (alpha <= 0.0)
             discard;
         // Brought forward with the distance, so that it shows over what the selection stands on.
-        float z = view_z(fetch_depth(t));
-        depth = window_depth(z + 3.0 * (dist + 2.0) * dot(pixel_size_coef, vec2(-z, 1.0)));
+        depth = window_depth(z + 3.0 * (dist + 2.0) * pixel_size(z));
     }
     out_color = vec4(outline_color, alpha);
     gl_FragDepth = depth;
@@ -179,7 +197,10 @@ void render_lines(ivec2 p)
     if (dx >= INF && dy >= INF)
         discard;
     float d = (dx < INF && dy < INF) ? dx * dy * inversesqrt(max(dx * dx + dy * dy, 1e-8)) : min(dx, dy);
-    float alpha = line_opacity * max(sx, sy) * clamp(line_width + 0.5 - d, 0.0, 1.0);
+    // A line thinner on screen than the narrowest drawn fades instead, so that a far selection is not all lines.
+    float z = view_z(fetch_depth(p));
+    float fade = clamp(line_width.z / (pixel_size(z) * line_width.x), 0.4, 1.0);
+    float alpha = line_opacity * fade * max(sx, sy) * edge_alpha(width_at(line_width, z), d);
     if (alpha <= 0.0)
         discard;
     out_color = vec4(outline_color, alpha);

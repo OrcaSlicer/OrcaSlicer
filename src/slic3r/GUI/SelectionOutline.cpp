@@ -15,6 +15,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cfloat>
 #include <cmath>
 #include <cstddef>
@@ -24,9 +25,11 @@
 namespace Slic3r {
 namespace GUI {
 
-// Widths in pixels at a scale of 1.
-static constexpr float RING_WIDTH      = 2.5f;
-static constexpr float LINE_HALF_WIDTH = 0.6f;
+// Widths on the model in mm, kept between two widths in pixels at a scale of 1.
+static constexpr float                RING_WIDTH_MM      = 0.35f;
+static constexpr std::array<float, 2> RING_WIDTH_PX      = { 2.5f, 5.0f };
+static constexpr float                LINE_HALF_WIDTH_MM = 0.09f;
+static constexpr std::array<float, 2> LINE_HALF_WIDTH_PX = { 0.6f, 1.2f };
 static constexpr float LINE_OPACITY    = 0.75f;
 // The farthest the outline shaders search.
 static constexpr int MAX_REACH = 15;
@@ -55,8 +58,9 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
     const Transform3d& view_matrix       = camera.get_view_matrix();
     const Transform3d& projection_matrix = camera.get_projection_matrix();
     const Matrix4d&    projection        = projection_matrix.matrix();
-    const float ring_width = RING_WIDTH * scale;
-    const float line_width = LINE_HALF_WIDTH * scale;
+    // The passes reach as far as the widest lines.
+    const float ring_width = RING_WIDTH_PX[1] * scale;
+    const float line_width = LINE_HALF_WIDTH_PX[1] * scale;
     // Wide enough to place the silhouette between texels at the outer edge of the ring.
     const float ring_sigma = 0.5f * (ring_width + 0.5f);
     const int   ring_reach = std::min(MAX_REACH, int(std::ceil(ring_width + 1.5f)));
@@ -178,10 +182,10 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
     shader->set_uniform("edges_tex", 2);
     shader->set_uniform("tex_size", Vec2f(float(width), float(height)));
     shader->set_uniform("use_stencil", use_stencil);
-    shader->set_uniform("ring_width", ring_width);
+    shader->set_uniform("ring_width", std::array<float, 3>{ RING_WIDTH_PX[0] * scale, ring_width, RING_WIDTH_MM });
     shader->set_uniform("ring_reach", ring_reach);
     shader->set_uniform("ring_sigma", ring_sigma);
-    shader->set_uniform("line_width", line_width);
+    shader->set_uniform("line_width", std::array<float, 3>{ LINE_HALF_WIDTH_PX[0] * scale, line_width, LINE_HALF_WIDTH_MM });
     shader->set_uniform("line_reach", line_reach);
     shader->set_uniform("line_opacity", LINE_OPACITY);
     shader->set_uniform("outline_color", OUTLINE_COLOR);
