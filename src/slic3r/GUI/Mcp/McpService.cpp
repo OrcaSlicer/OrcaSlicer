@@ -11,6 +11,7 @@
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "UiInspector.hpp"
+#include "WebPages.hpp"
 #include "McpPaths.hpp"
 #include "McpScript.hpp"
 #include "McpScriptRun.hpp"
@@ -149,8 +150,9 @@ const char* kInstructions =
     "Preview layers are 1-based.\n"
     "- A call that takes long or opens a dialog returns {status:\"running\"|\"blocked_by_dialog\", job}. It keeps "
     "running: never retry it. Answer dialogs with dialog_respond (see get_state.dialogs), then wait {for:\"job\"}. "
-    "A dialog marked native: true (a file or folder picker, a message box) can't be answered; register "
-    "dialog_auto_answer before the step that opens one.\n"
+    "A native message box (native: true) is answered with dialog_respond by one of the buttons listed for it; a file or "
+    "folder picker, or a native dialog whose buttons list is empty (any on macOS), can't be: register dialog_auto_answer "
+    "before the step that opens one.\n"
     "- While an operation (slice, export, arrange or another background job) runs, other changes are refused; use wait "
     "or cancel.\n"
     "- Paths are absolute. Outputs never overwrite an existing file unless overwrite is true.\n"
@@ -189,8 +191,9 @@ GuardState McpService::guards_on_ui() const
     g.closing   = m_stopping || wxTheApp == nullptr || wxGetApp().is_closing();
     g.suspended = m_suspended;
     if (m_modals) {
-        g.dialogs = m_modals->snapshot();
-        g.modal   = !g.dialogs.empty();
+        g.dialogs    = m_modals->snapshot();
+        g.modal      = !g.dialogs.empty();
+        g.top_dialog = m_modals->serial(m_modals->top());
     }
     return g;
 }
@@ -212,6 +215,8 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
                                                 [this](const std::string& tool, bool running) { m_inspector->ui_activity(tool, running); });
         m_core       = std::make_unique<McpCore>(m_registry, *m_invoker, m_jobs, &m_journal, CoreTiming{}, ui_job_worker_hooks(),
                                                  m_recorder.get());
+        m_web_presses = std::make_shared<WebPresses>();
+        m_modals->set_before_press([this] { release_web_presses(m_web_presses, nullptr); });
         register_tools();
         m_inspector->capture_menus(true);
         if (ImGuiWrapper* imgui = wxGetApp().imgui())
@@ -356,6 +361,7 @@ void McpService::stop()
     }
     if (m_inspector) {
         m_inspector->release_held(nullptr);
+        release_web_presses(m_web_presses, nullptr);
         m_inspector->capture_menus(false);
     }
     SyntheticInput::clear();
@@ -426,8 +432,10 @@ void McpService::end_script_scope(const std::string& job, bool wait_recording)
     // Found again on the UI thread: the service may be gone by the time the closure runs.
     if (m_dispatcher && !m_stopping)
         m_dispatcher->post([job] {
-            if (McpService* service = wxGetApp().mcp_service(); service != nullptr && service->m_inspector)
+            if (McpService* service = wxGetApp().mcp_service(); service != nullptr && service->m_inspector) {
                 service->m_inspector->release_held(&job);
+                release_web_presses(service->m_web_presses, &job);
+            }
         });
 }
 
@@ -452,10 +460,11 @@ void McpService::stop_serving()
     // A client's recording ends with its endpoint; a script's carries on until its script ends.
     if (m_recorder)
         m_recorder->end_owned_by({}, "endpoint_closed", false);
-    // So does a press a client's ui_mouse left held.
+    // So does a press a client's ui_mouse left held, on a widget or a page.
     if (m_inspector) {
         const std::string client;
         m_inspector->release_held(&client);
+        release_web_presses(m_web_presses, &client);
     }
     {
         // A client's rules end with its endpoint; a person using the app afterwards must not have

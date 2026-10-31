@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <set>
@@ -88,6 +89,12 @@ public:
     // the latest in the closure that starts it; throws ToolFailure when another operation already runs.
     // No-op for inline calls.
     virtual void begin_operation() = 0;
+    // Says the call works in the open modal dialog whose serial is `dialog` (ModalTracker::serial()):
+    // while that dialog is the topmost, a call outliving its soft budget is still running, not
+    // blocked on a dialog. The web page paths of the GUI input tools say it once their page is in the
+    // topmost dialog, since a page can take longer than a widget to answer. Any thread; no-op for
+    // inline calls.
+    virtual void works_in_dialog(std::uint64_t /*dialog*/) {}
 };
 
 using ToolHandler = std::function<ToolResult(const nlohmann::json& args, ToolContext& ctx)>;

@@ -30,6 +30,7 @@ struct GuardState
     bool           suspended = false; // the main frame is being recreated (language change)
     bool           modal     = false; // a modal dialog or an ImGui modal popup is open
     nlohmann::json dialogs   = nlohmann::json::array();
+    std::uint64_t  top_dialog = 0;    // the topmost modal dialog's serial (ModalTracker::serial()), 0 for none
 };
 
 // Runs closures on the UI thread for tool handlers, which run on other threads. A closure re-checks

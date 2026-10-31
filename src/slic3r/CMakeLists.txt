@@ -211,6 +211,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/VideoEncode.hpp
     GUI/Mcp/VideoOverlay.cpp
     GUI/Mcp/VideoOverlay.hpp
+    GUI/Mcp/WebPages.cpp
+    GUI/Mcp/WebPages.hpp
     GUI/PluginsConfigDialog.cpp
     GUI/PluginsConfigDialog.hpp
     GUI/ProcessRunner.cpp

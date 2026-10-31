@@ -1,9 +1,9 @@
-// Scripts in the web views of modal dialogs, which webview_eval runs in only for the preset bundle
-// dialogs and the setup wizard: by default and by locator, and the bundle dialog closed from its
-// page's own button, which replies closed. Run it on a fresh datadir set up with the default printer:
+// Scripts in the web views of modal dialogs, which webview_eval runs in whenever the dialog is the
+// topmost: by default and by locator, and the bundle dialog closed from its page's own button, which
+// replies closed. Run it on a fresh datadir set up with the default printer:
 //   tools/mcp/orca_mcp.py run-script tools/mcp/tests/webview_modal.json --out /tmp/webview_modal
-// The refusals (the Flushing volumes dialog, a web view behind a modal) are in
-// tools/mcp/test_webview_modal.py.
+// The refusals (a web view behind a modal, a dialog under the topmost) are in
+// tools/mcp/test_webview_modal.py; the same dialogs driven through the GUI tools are in web_dialogs.json.
 {
   "orca_script": 1,
   "name": "web views in modal dialogs",

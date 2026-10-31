@@ -3,6 +3,9 @@
 
 #include <wx/event.h>
 
+#include <functional>
+#include <string>
+
 namespace Slic3r {
 namespace GUI {
 
@@ -11,6 +14,9 @@ extern bool mac_dark_mode();
 extern double mac_max_scaling_factor();
 extern void set_miniaturizable(void * window);
 void WKWebView_evaluateJavaScript(void * web, wxString const & script, void (*callback)(wxString const &));
+// Evaluates `script`, whose value is a string, and hands it to `done` on the main thread:
+// done(true, value), or done(false, why). The completion holds `done` alone, never the web view.
+void WKWebView_evaluateJavaScriptForResult(void * web, wxString const & script, std::function<void(bool, const std::string&)> done);
 void WKWebView_setTransparentBackground(void * web);
 void WKWebView_force_display(void * web);
 void set_tag_when_enter_full_screen(bool isfullscreen);

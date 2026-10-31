@@ -241,9 +241,27 @@ job), the plate menu from a right click, and move to front.
 
 `tests/webview_modal.json` runs scripts in the web views of modal dialogs, the preset bundle dialog
 and the setup wizard, by default and by locator, and closes the bundle dialog from its page's own
-button. `test_webview_modal.py` checks what that script cannot: scripts are refused in the Flushing
-volumes dialog and in the Home tab's web view behind a modal, and a page that closes its dialog
-replies `closed` at once.
+button. `test_webview_modal.py` checks what that script cannot: scripts are refused in the Home tab's
+web view behind a modal and in a dialog under the topmost, the Flushing volumes dialog's page takes
+them as any topmost dialog's does, and a page that closes its dialog replies `closed` at once.
+
+Web pages are driven like widgets: `ui_snapshot` lists each shown page's elements under its web view
+with `d` refs, and `ui_click`, `ui_input`, `ui_key`, `ui_mouse` and `dialog_respond` act on them, by
+ref or by `{web: "Next", kind, css, within, index}`. `tests/web_dialogs.json` drives Orca's own web
+dialogs that way alone: the preset bundle dialog, the colour picker behind a filament swatch (its hex
+field, and a drag on its spectrum) and the setup wizard's first steps. `test_web_ui.py` covers every
+kind of page control, action and what it changed on its page, refusal, locator, timeout and close on
+the pages of a fixture plugin, in a modal dialog, a modeless window, a dock panel and the Plugins
+dialog's configuration frame, a token in a page's URL shown redacted, and the native permission prompt
+the plugin's thread opens, answered with `dialog_respond` and with a rule registered while it is open
+(skipped on macOS, where only a rule registered before can answer one). Side-load the plugin into the
+datadir first:
+
+```bash
+tools/mcp/test_web_ui.py --install /tmp/orca-mcp-test
+tools/mcp/orca_mcp.py launch --datadir /tmp/orca-mcp-test
+tools/mcp/test_web_ui.py
+```
 
 `test_script_runner_hidden.py` opens the Run Script dialog and checks that the GUI tools don't see
 it: `ui_snapshot` lists no window for it, `webview_eval` without a target behaves as before it

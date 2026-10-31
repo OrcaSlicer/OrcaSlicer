@@ -91,7 +91,7 @@ std::string format_snapshot(const std::vector<UiNode>& nodes, std::size_t omitte
         out += "\n";
     }
     if (omitted > 0)
-        out += "... " + std::to_string(omitted) + " more nodes; narrow with root, query or a larger max_nodes\n";
+        out += "... " + std::to_string(omitted) + " more nodes; narrow with root, query or a larger max_nodes (max_web_nodes for web pages)\n";
     return out;
 }
 

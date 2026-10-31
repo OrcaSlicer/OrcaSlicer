@@ -16,12 +16,14 @@
 #include <cstddef>
 #include <deque>
 #include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 class wxBookCtrlBase;
+class wxWebView;
 class wxEventLoopBase;
 class wxIdleEvent;
 class wxMenu;
@@ -45,7 +47,7 @@ class McpService;
 // What a ref or locator points at.
 struct UiTarget
 {
-    enum class Kind { Window, MenuItem, ToolbarItem, Gizmo, ImGuiItem, Row, PlateIcon };
+    enum class Kind { Window, MenuItem, ToolbarItem, Gizmo, ImGuiItem, Row, PlateIcon, WebElement };
     Kind                kind = Kind::Window;
     wxWeakRef<wxWindow> window;        // Window: the window; others: the frame or GL canvas window
     GLCanvas3D*         canvas = nullptr;
@@ -67,6 +69,12 @@ struct UiTarget
     std::string              column;
     // PlateIcon of the Prepare view's `canvas`: the plate and the icon's picking action (plate_icon_action()).
     int                      plate = -1, plate_action = -1;
+    // WebElement of the page in the web view `window`: the page agent's key for it (a number, or
+    // "<frame key>/<frame document>/<key>" inside a plugin configuration frame), the page's document
+    // token, what the snapshot listed it as, and the title of its window for locators (empty for the
+    // main window). The page tells whether the element is still there.
+    nlohmann::json           web_key;
+    std::string              web_doc, web_kind, web_label, web_within;
     nlohmann::json      locator;
 };
 
@@ -93,6 +101,13 @@ struct SnapshotOptions
     bool        include_menus = true;
     bool        visible_only  = true;
     std::string query;
+    // Web pages: their elements are listed under their web view, with a budget of their own so a
+    // large page never crowds the widgets out. `pages` holds what the tool read from each page
+    // (UiInspector::snapshot_pages() names them) before the walk: the agent's snapshot, or {note}
+    // for a page that was not read.
+    bool                                      include_web   = true;
+    int                                       max_web_nodes = 300;
+    std::map<const wxWindow*, nlohmann::json> pages;
 };
 
 struct ClickOptions
@@ -119,6 +134,13 @@ public:
 
     // {tree, nodes, omitted}
     nlohmann::json snapshot(const SnapshotOptions& options);
+    // The web views a snapshot with `options` walks whose pages it lists: shown ones under its
+    // roots, and while a modal dialog is open only those in the topmost one. `behind` gets the
+    // others under the roots, which are listed without their pages.
+    std::vector<wxWebView*> snapshot_pages(const SnapshotOptions& options, std::vector<wxWebView*>* behind = nullptr);
+    // The shown web views in snapshot order, in the top-level window titled `within` when it is not
+    // empty: where a web locator looks.
+    std::vector<wxWebView*> web_views(const std::string& within);
     // A ref ("w12") or a locator object. Throws ToolFailure.
     UiTarget resolve(const nlohmann::json& target);
     // The locator that finds `target` again in another session, with "index" when it alone would
@@ -177,6 +199,11 @@ public:
 
 private:
     void walk(wxWindow* window, int depth, std::vector<UiNode>& nodes, std::size_t& omitted, const SnapshotOptions& options);
+    void add_page(wxWebView& web, int depth, std::vector<UiNode>& nodes, std::size_t& omitted, const SnapshotOptions& options);
+    // The roots a snapshot walks, each window followed by its popups.
+    std::vector<wxWindow*> snapshot_roots(const SnapshotOptions& options);
+    // Page nodes in the snapshot being taken, which count against max_web_nodes, not max_nodes.
+    std::size_t m_web_nodes = 0;
     void add_menus(wxMenu* menu, const std::string& path, wxWindow* frame, int depth, std::vector<UiNode>& nodes, std::size_t& omitted,
                    const SnapshotOptions& options);
     void add_canvas_items(GLCanvas3D& canvas, int depth, std::vector<UiNode>& nodes, std::size_t& omitted, const SnapshotOptions& options);
@@ -248,6 +275,12 @@ private:
 wxWindow* owning_window(wxWindow* w);
 // `w` is, or is inside, a top-level window named kHiddenFromAutomation.
 bool hidden_from_automation(const wxWindow* w);
+// "No modal dialog is open", naming the shown windows that don't block (the Plugins dialog) and how
+// to reach them, since an agent sees them as dialogs too. UI thread only.
+std::string no_modal_dialog(McpService& service);
+// What a locator's `within` names `w`'s window by: its top-level window's title, empty for the main
+// window, whose title follows the project name.
+std::string within_of(wxWindow* w);
 // The shown popups that opened from `top` or from its widgets, which ui_snapshot lists after it.
 std::vector<wxWindow*> popups_of(wxWindow* top);
 

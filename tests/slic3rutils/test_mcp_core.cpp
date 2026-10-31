@@ -449,6 +449,33 @@ TEST_CASE("blocked_by_dialog is reported after the soft budget when the probe se
     CHECK(result->data["closed"] == true);
 }
 
+TEST_CASE("a call working in the topmost dialog is blocked only by another dialog on top", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("page_call", GuardClass::Recover, [&](const json&, ToolContext& ctx) {
+        ctx.works_in_dialog(7);
+        std::this_thread::sleep_for(400ms);
+        return ToolResult::ok({{"done", true}});
+    }));
+    h.start();
+    auto top = [&](std::uint64_t serial, json dialogs) {
+        std::lock_guard<std::mutex> lock(h.guards_mutex);
+        h.guards.modal      = true;
+        h.guards.dialogs    = std::move(dialogs);
+        h.guards.top_dialog = serial;
+    };
+
+    // Its own dialog on top: past the soft budget it is still running, and its result comes back.
+    top(7, json::array({{{"title", "Web dialog"}}}));
+    CHECK(h.call("page_call").data["done"] == true);
+
+    // Another dialog on top, at any depth (here the same one: its own closed and another opened).
+    top(8, json::array({{{"title", "Another"}}}));
+    const ToolResult blocked = h.call("page_call");
+    CHECK(blocked.data["status"] == "blocked_by_dialog");
+    REQUIRE(h.jobs.wait(blocked.data["job"], 3000ms).has_value());
+}
+
 TEST_CASE("blocked_by_dialog is reported from the snapshot when a native dialog holds the UI thread", "[Mcp]")
 {
     std::atomic<bool> release{false};
@@ -543,6 +570,35 @@ TEST_CASE("a native dialog that the probe sees gets the native note", "[Mcp]")
     const std::string note = envelope.data.value("note", "");
     CHECK(note.find("only a person") != std::string::npos);
     CHECK(note.find("tools that need the UI thread fail") == std::string::npos);
+    CHECK(h.jobs.wait(envelope.data["job"], 3000ms).has_value());
+}
+
+TEST_CASE("a native message box with buttons gets the dialog_respond note", "[Mcp]")
+{
+    // As ModalTracker describes a message box whose buttons can be pressed (Windows, Linux).
+    const json box = json::array({{{"title", "Plugin permission request"},
+                                   {"message", "Plugin \"Fixture\" is requesting permission to create a thread."},
+                                   {"native", true},
+                                   {"buttons", json::array({{{"id", 5103}, {"label", "Yes"}}, {{"id", 5104}, {"label", "No"}}})}}});
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         releaser{release};
+    h.registry.add(tool("ask", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.modal_loop(release, box);
+            return json();
+        });
+        return ToolResult::ok();
+    }));
+    h.start();
+
+    const ToolResult envelope = h.call("ask");
+    release                   = true;
+    REQUIRE(envelope.data["status"] == "blocked_by_dialog");
+    CHECK(envelope.data["dialogs"] == box);
+    const std::string note = envelope.data.value("note", "");
+    CHECK(note.find("dialog_respond") != std::string::npos);
+    CHECK(note.find("only a person") == std::string::npos);
     CHECK(h.jobs.wait(envelope.data["job"], 3000ms).has_value());
 }
 

@@ -1,0 +1,54 @@
+// Orca's own web dialogs driven through the GUI tools alone, as an agent drives any dialog: the preset
+// bundle dialog closed by its page's own button; the colour picker a filament swatch's "+ More Colors"
+// opens, its hex field set and its spectrum (a canvas that captures the pointer) dragged, and the
+// colour it returns read back from the native dialog under it; the setup wizard's first steps (a
+// region, Next to the printer page, a printer card). Run it on a fresh datadir set up with the default
+// printer:
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/web_dialogs.json --out /tmp/web_dialogs
+{
+  "orca_script": 1,
+  "name": "web dialogs through the GUI tools",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "set_view", "args": {"window_size": [1920, 1200], "tab": "prepare"}},
+
+    // ---- The preset bundle dialog, closed by its page's own button ----
+    {"tool": "run_action", "args": {"id": "orca_command:preset_bundle:orca"}, "await": false, "save_as": "bundle"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "ui_snapshot", "args": {"root": "dialog"}, "expect": {"/nodes": {"gt": 2}}},
+    {"tool": "ui_click", "args": {"target": {"css": "#close_btn", "within": "Preset Bundle"}}, "expect": {"/closed": {"eq": true}}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.bundle}"}},
+    {"tool": "get_state", "expect": {"/dialogs": {"empty": true}}},
+
+    // ---- The colour picker over the filament picker ----
+    {"tool": "ui_click", "args": {"target": {"label": "1", "class": "wxBitmapButton"}}, "await": false, "save_as": "swatch"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"label": "+ More Colors", "within": "Select Filament"}}, "await": false, "save_as": "more"},
+    {"tool": "ui_input", "args": {"target": {"web": "Hex color", "within": "Color Picker"}, "value": "FF0000"},
+     "expect": {"/value": {"eq": "FF0000FF"}}},
+    {"tool": "ui_snapshot", "args": {"root": "dialog", "query": "FF0000FF"}, "expect": {"/nodes": {"ge": 1}}},
+    {"tool": "ui_mouse", "args": {"target": {"css": "#spectrum", "within": "Color Picker"}, "action": "drag", "x": 20, "y": 20,
+                                  "to": [200, 100], "steps": 6},
+     "expect": {"/done": {"eq": "drag"}}},
+    {"tool": "ui_snapshot", "args": {"root": "dialog", "query": "FF0000FF"}, "expect": {"/nodes": {"eq": 0}}},
+    {"tool": "ui_click", "args": {"target": {"web": "OK", "within": "Color Picker"}},
+     "expect": {"/closed": {"eq": true}, "/dialogs/0/title": {"eq": "Select Filament"}}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.more}"}},
+    {"tool": "ui_snapshot", "args": {"root": "dialog", "query": "#26A69A"}, "expect": {"/nodes": {"eq": 0}}},
+    {"tool": "dialog_respond", "args": {"dialog": {"title": "Select Filament"}, "button": "cancel"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.swatch}"}},
+    {"tool": "get_state", "expect": {"/dialogs": {"empty": true}}},
+
+    // ---- The setup wizard's first steps ----
+    {"tool": "run_action", "args": {"id": "orca_command:help_setup_wizard:orca"}, "await": false, "save_as": "wizard"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 30}, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"web": "Europe", "within": "Setup Wizard"}}, "expect": {"/checked": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"web": "Next", "within": "Setup Wizard"}},
+     "expect": {"/navigated": {"eq": true}, "/url": {"contains": "/guide/21/"}}},
+    {"tool": "ui_click", "args": {"target": {"web": "Nozzle 0.4 Marlin", "kind": "button", "within": "Setup Wizard"}},
+     "expect": {"/checked": {"eq": true}}},
+    {"tool": "dialog_respond", "args": {"dialog": {"title": "Setup Wizard"}, "button": "close"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.wizard}"}},
+    {"tool": "get_state", "expect": {"/dialogs": {"empty": true}}}
+  ]
+}

@@ -4,12 +4,11 @@
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_webview_modal.py
 
-Scripts run in the web view of the topmost modal dialog only when it is the setup wizard or a preset
-bundle dialog: the Flushing volumes dialog is refused by name, so is the Home tab's web view behind a
-modal and the bundle dialog's own web view once the export bundle dialog is above it; the export
-dialog, topmost, takes scripts. A page that closes its dialog replies closed at once, not after the
-timeout. Without a modal, the Home tab's web view still takes scripts. Exits 0 when every check
-passes.
+Scripts run in the web view of the topmost modal dialog, whichever dialog it is (the preset bundle
+dialog, the export bundle dialog above it, the Flushing volumes dialog); the Home tab's web view
+behind a modal is refused, so is the bundle dialog's own web view once the export bundle dialog is
+above it. A page that closes its dialog replies closed at once, not after the timeout. Without a
+modal, the Home tab's web view still takes scripts. Exits 0 when every check passes.
 """
 
 import os
@@ -71,6 +70,11 @@ def main():
     # ---- A bundle dialog under the export bundle dialog ----
     client.call("webview_eval", script="SendWXMessage(JSON.stringify({command: 'export_page'}))")
     check("the export bundle dialog opens above it", wait_dialogs(2), dialogs())
+    # Its web view shows about:blank until its first navigation starts.
+    for _ in range(50):
+        if "ExportPresetDialog" in client.call_with_text("ui_snapshot", root="dialog", query="webview")[1][0]:
+            break
+        time.sleep(0.1)
     message = refusal(script="1", target={"class": "webview", "within": "Preset Bundle"})
     check("the dialog under the topmost is refused", "is under" in message, message)
     url = client.call("webview_eval", script="1")["url"]
@@ -87,13 +91,16 @@ def main():
     client.await_job(bundle)
     check("no dialog is left", wait_dialogs(0), dialogs())
 
-    # ---- The Flushing volumes dialog is not on the list ----
+    # ---- The Flushing volumes dialog takes scripts as any topmost dialog does ----
     client.call("set_view", tab="prepare")
     client.call("ui_click", target={"label": "Add one filament"})
     flush = client.call("ui_click", target={"label": "Flushing volumes"})
     check("the Flushing volumes dialog opens", wait_dialogs(1), dialogs())
-    message = refusal(script="document.title")
-    check("its page is refused", "only in the setup wizard and the preset bundle dialogs" in message, message)
+    try:
+        title = client.call("webview_eval", script="typeof document.title")["result"]
+    except orca_mcp.McpError as e:
+        title = str(e)
+    check("its page takes a script", title == "string", title)
     client.call("dialog_respond", button="close")
     client.await_job(flush)
     check("no dialog is left at the end", wait_dialogs(0), dialogs())

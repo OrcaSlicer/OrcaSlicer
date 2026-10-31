@@ -214,8 +214,9 @@ never retries a mutating call, and every envelope tells the model not to either.
 request thread posts a probe closure, which runs inside a wx dialog's loop and returns the
 `ModalTracker` snapshot as JSON; no `wxDialog*` crosses threads. With a modal open, the reply is
 `{status: "blocked_by_dialog", job, dialogs}`. Its note says how to answer the topmost dialog:
-`dialog_respond` for a wx dialog, a person for one marked `native: true`, which `dialog_respond` can't
-press.
+`dialog_respond` for a wx dialog or a native message box whose buttons are listed, a person for any
+other dialog marked `native: true` (a picker, or any native dialog on macOS), which `dialog_respond`
+can't press.
 
 On macOS a file picker, folder picker or message box pauses wx's pending events while it is open
 (`wxCFEventLoopPauseIdleEvents` in its `ShowModal()`), and `CallAfter` closures with them, so behind
@@ -225,8 +226,8 @@ native, the reply is `blocked_by_dialog` with those dialogs and a note that tool
 thread fail until the dialog closes. Otherwise the request keeps waiting. A `run_ui()` call that times
 out with a native dialog on top fails naming it, instead of reporting a busy UI thread. The dispatcher
 stays `CallAfter`: running closures some other way inside the Cocoa modal session would bypass wx's
-pause and re-enter the app while the dialog is up, and native dialogs can only be answered ahead
-anyway.
+pause and re-enter the app while the dialog is up, so on macOS native dialogs are answered ahead.
+On Windows and Linux a native dialog's own loop runs wx's pending events, so the calls go on.
 
 **Blocking slots.** A request that may block (an inline call, or a job call within its budget)
 first takes one of 32 slots. Without one, a job call returns its `running` envelope at once and an
@@ -377,9 +378,9 @@ the UI thread.
 | | `ui_key` | send a key chord to a target or the focused window, whose panels' key hooks see it first; list or run the menu it opens |
 | | `ui_mouse` | canvas gestures: move, down, up, click, drag, wheel, at pixels or at points of the model (the Design view at pixels); list or run a right click's menu; reports when a gesture moved the camera |
 | | `gizmo_file` | what the open gizmo's file pickers do, with a path: SVG change file and save as, texture import |
-| | `dialog_respond` | press a button of the topmost wx dialog |
-| | `dialog_auto_answer` | answer matching modals as they open (native ones unseen), and one already open |
-| | `webview_eval` | run JavaScript in a web view, the setup wizard's and preset bundle dialogs' included while they are modal, and return the result |
+| | `dialog_respond` | press a button of the topmost wx dialog or native message box, or of its page for a web dialog |
+| | `dialog_auto_answer` | answer matching modals as they open (native ones unseen, web ones on their page), and one already open |
+| | `webview_eval` | run JavaScript in a web view (the topmost dialog's while a modal is open), with a page element as `el`, and return the result |
 | Scripts | `run_script` | run a script file or inline script, with results per step |
 | | `export_script` | write the session journal as a script that can be replayed; calls whose job is still running are left out and listed |
 | CAD | `cad_call` | a method of the Design tab: sketches, features, reads and measurements, feature and body edits, undo, commit to plate; `describe_tools` lists them (CAD builds, Design tab enabled) |
@@ -1326,7 +1327,8 @@ operation (see Worker jobs). Describe the tool in English, including what the re
 `ui_snapshot` (`UiInspector`) returns a compact text tree of the shown top-level windows, each
 followed by the popups that opened from it, the rows of their lists, the menus, the GL toolbar items
 and gizmos, and each canvas's last-frame ImGui items, capped by `max_nodes` and filtered by `query`.
-The tree is a second text block of the result. Refs (`w`, `m`, `t`, `z`, `g`, `r`, `p` plus a number) are
+The tree is a second text block of the result, and each shown web page's elements are listed under
+its web view (see Web pages below). Refs (`w`, `m`, `t`, `z`, `g`, `r`, `p`, `d` plus a number) are
 never reused and carry the UI generation and a liveness check, so a
 ref to a destroyed or rebuilt widget is reported stale. A field is named by the setting it edits:
 its option key is read from the "parameter name" line of its tooltip, and its label comes from the
@@ -1344,7 +1346,9 @@ stable across runs and is what the journal stores. A locator is one of:
 - `{row: "Plate 1>Cube>Cylinder", column, within, index}` for a row of a list, tree, table or
   drop-down list (see Rows and popups below);
 - `{plate_icon: "lock", plate: 0}` for a plate or one of its icons in the Prepare view (see Plate
-  icons below).
+  icons below);
+- `{web: "Next", kind, css, within, index}` for an element of a web page, by its label, kind or a CSS
+  selector (see Web pages below).
 
 `select` selects objects, instances and parts, after which `run_action` runs the object operations
 the catalog has (delete, split, mirror, center, drop, instances, arrange, orient, change type, rename,
@@ -1651,39 +1655,223 @@ title is often empty. Colour and font choosers are not classified as native, bec
 wx dialogs that `dialog_respond` ends; on macOS and Windows they are OS choosers, best answered ahead
 with a `dialog_auto_answer` rule. `dialog_respond` presses the
 topmost wx dialog's button, so the dialog's own handler runs, or ends the dialog with that id when
-no such button exists. A native dialog can only be answered ahead with a `dialog_auto_answer` rule:
-a regex over title and message, and a button. `Enter()` then returns that button's id without
+no such button exists. On Windows and Linux it also presses an open native message box: the tracker
+lists the buttons wx gives the box for its style (Yes and No or OK, and Cancel; not Help, which on
+Windows shows help without closing the box), and a press goes to the OS's box by message
+(`press_dialog_button()`). On Windows that is a `WM_COMMAND` to a message box, or a `TDM_CLICK_BUTTON`
+to the task dialog wx shows where Windows has one, found among the UI thread's windows by class and
+caption, the active one first; on GTK, `gtk_dialog_response()` on the dialog's widget. The box closes once its own loop runs
+again, which `dialog_respond` waits up to 1 s for, so its reply says `closed`. This is how a plugin's
+permission prompt is answered. On macOS a message box lists no
+buttons, since no call reaches one (above). A picker, and on macOS any native dialog, can only be
+answered ahead with a `dialog_auto_answer` rule: a regex searched in the title and message joined by a newline, and also in the title alone for a
+dialog with no message (so `^Title$` matches a web dialog), and a button. `Enter()` then returns that button's id without
 showing the dialog, and logs it; a file or folder picker can only be cancelled, since any other
 answer would return without a path. A wx dialog that matches a rule opens, and the tracker presses
 the button once the dialog's modal loop runs (`press_dialog_button()`, queued on the dialog), as
 `dialog_respond` does: its buttons do the dialog's work in their handlers (`UnsavedChangesDialog`'s
 Transfer and Discard, `CloneDialog`'s Fill), which a returned id would skip. A modal opened above it
 before then leaves it to `dialog_respond`. A new rule also answers a
-matching wx dialog that is already open. A prompt posted around the same time, such as the restore
+matching dialog that is already open, as `dialog_respond` would, a message box included where it can
+be pressed. A prompt posted around the same time, such as the restore
 prompt after startup, is handled whether it opens before or after the rule. A script's rules end
 with the script, a client's call replaces its earlier rules, and `get_state` lists the rules in
 force.
 
-`webview_eval` runs JavaScript with `RunScriptAsync`, as a recover call. While a modal dialog is open
-it runs only in a web view of the topmost one, and only when that dialog is the setup wizard
-(`GuideFrame`) or a preset bundle dialog (`PresetBundleDialog`, `ExportPresetBundleDialog`), checked
-by class: their pages have no typed route. Sign-in dialogs are never on that list, so no client reads
-or fills a sign-in page, and neither are the flushing volumes and colour picker dialogs, whose values
-`set_settings`'s project scope writes through the same apply code. A web view in a dialog under the
-topmost one is refused, and any other gets a mutate call's checks. Without a target the web view of
-the topmost dialog is used, else the only shown one. These dialogs have no wx buttons, so
-`dialog_respond` only ends them: a page's work is committed through the page's own button. A web
-view's locator names it by kind (`class: "webview"`), since its class differs per platform (WebKit,
-WebView2). The result arrives as an event on the UI thread, in a `ScriptSink` that only the UI thread
-creates and deletes, along with its weak reference to the web view. The job thread waits for the
-result, up to `timeout_s` (default 10), without the UI; a JSON result comes back parsed. A page
-closes its dialog with a message (`window.wx.postMessage`) the dialog answers by ending its modal
-loop, which destroys the web view, while wx's script callback keeps a plain pointer to it. So the
-script runs wrapped: messages the page posts while it runs are held and sent, in order, once it has
-returned, and a script whose held messages closed its dialog replies its value with `closed: true`
-once the dialog has left the modal stack. The sink also watches the web view's destruction, so a
-dialog that goes away before the result by another route replies `closed: true` with a null result
-instead of timing out.
+A dialog that hosts a web view is described with `web: true`; its controls are on its page, which
+`ui_snapshot root=dialog` lists and the input tools drive like any widget (see Web pages below). Its
+message is empty, so a rule matches it by title. Its page is the one its shown web view holds; a web
+view the dialog keeps hidden has no page to press on. `dialog_respond` looks a name or label up as a
+wx button label first, then among the page's buttons and links, waiting up to 3 s for one to show
+(each ask expires with those 3 s, so the page never presses one later), and clicks it there, hit
+tested as a click is, so the page's own handler runs (`{pressed: true, web: true}`). With no such
+button, `cancel` and `close` end the dialog as for any other, also when the page could not be asked
+(busy for the 3 s, or its agent failing), while `ok`, `yes`, `no`, `apply` and ids need a wx button
+with that id and are refused otherwise, listing the page's buttons, so a page's commit is never
+skipped. A rule for a web dialog whose button names none of its shown wx buttons, by label,
+standard name or id (`native_dialog_button()`), starts a web answer
+(`start_web_answer()`): a UI-thread timer that every 250 ms, while the dialog is the topmost and the
+rule in force, asks the page to press the button and stops at the first press. Its 10 s limit counts
+only time a complete document is shown and restarts when the document changes, so a dialog's
+bootstrap page replaced by its content is waited out; past it, or after 2 s with no web view shown,
+`cancel` and `close` end the dialog natively and any other answer gives up, logged.
+
+`webview_eval` runs JavaScript in a page through its agent, as a recover call: in a web view of the
+topmost modal dialog whatever the dialog, in one under it never, and elsewhere with a mutate call's
+checks. Without a target the topmost dialog's web view is used, else the only shown one; a web view's
+locator names it by kind (`class: "webview"`), since its class differs per platform, and a page
+element's ref or locator runs the script in its page with the element bound to `el`. The job thread
+waits up to `timeout_s` (default 10) without the UI; a JSON result comes back parsed, and the script
+reports `closed`, `navigated` and `dialogs` as the input tools do. The agent runs the script through
+`eval`, which a page whose Content-Security-Policy forbids it may refuse ("…forbids eval"), where the
+port holds injected scripts to the page's policy (WebView2 does not); the agent itself is installed
+as inline code, so the input tools work on such a page either way.
+
+### Web pages
+
+Every web view of OrcaSlicer — its web dialogs (setup wizard, preset bundles, colour picker, flushing
+volumes, Plugins), sign-in pages, the Home tab, and plugins' dialogs, windows, pages and dock panels —
+is read and driven through the page agent, `resources/web/mcp/page_agent.js` (`WebPages.hpp`). No host
+loads it. A call sends a light script asking `window.__orcaMcp` for the request; a page without the
+agent, or with another version of it (a hash of its source), answers `{code: "install"}`, and the
+request goes again with the source in front: inline as code, so a page whose CSP forbids `eval` takes
+it, and as text for the frames it relays to. So every web view on every port is reached without a
+change to its host, and a plugin's pages, which share one dialog, stylesheet and bridge script, need
+nothing of their own. The agent is installed as a non-enumerable property, out of the page's own
+enumeration of `window`.
+
+Scripts go through `WebView::RunScriptAsync()`, whose completion holds only the callback: WebView2's
+`ExecuteScript` handler, WKWebView's `evaluateJavaScript` block, WebKitGTK's `run_javascript`
+callback. wx's own `RunScriptAsync()` keeps a plain pointer to the web view in its callback on every
+port, and a page may close its dialog, destroying the web view, at any time. `PageCalls` start calls
+on the UI thread and wait for them on the job thread, a destruction watcher ending the wait for a
+web view that goes. Job and request threads hold a web view as a `WebHandle`, a number only the UI
+thread maps back to it, never as a `wxWeakRef`: making or dropping one edits the window's list of
+refs, which the UI thread edits at the same time.
+
+What a page lists, after Playwright's accessibility snapshot: each element with a role as a kind
+(button, link, text, checkbox, radio, choice with its options, slider, spin, tab, heading, row,
+canvas, frame, file), its accessible name (ARIA, its label element, `alt`, `title`, its text), value,
+id as name, written as the CSS selector that finds it (`#save`) so it is not taken for the `name`
+attribute, state (checked, expanded, disabled, focused, required) and place; text outside them,
+merged per block, as label lines that act through their block, so a click on text with a handler the
+walk can't see is possible. Pages built from `div`s are read by what makes an element clickable:
+an `onclick` attribute or jQuery handler, a pointer cursor, `tabindex`, a `btn`/`button` class name;
+a `selected`/`checked` class word of its own or a camel-case one's end (`is-selected`,
+`RegionSelected`, never `unselected` or `NotSelected`) gives a state. A field with no name of its own in a table cell, such as an entry of
+the flushing volumes matrix, is named by its row's and its column's headers, `row / column`. Hidden
+subtrees are left out, and so are off-canvas ones (entirely left of the page, as a closed sidebar
+is) unless a scroller scrolled to the right holds them, which scrolls them back when acted on. A visually
+hidden checkbox is listed as its label, and open shadow roots and same-origin frames are walked. A
+`d` ref names its element by a key stable within the document and by the document's token, which a
+navigation or reload changes, so a ref from before is stale ("the page changed"). Page lines have
+their own budget, `max_web_nodes` (default 300), so a large page never pushes widgets listed after it
+out of `max_nodes`. With a modal dialog open only the topmost dialog's pages are read, since no input
+reaches the others, which get the note `behind a modal dialog`. `ui_snapshot` waits up to 2 s for a
+page still loading, then reads every page at once, for up to 3 s together.
+
+A locator `{web, kind, css, within, index}` matches the label exactly, else case aside, else as a
+part of it (a card listed by all of its text); a text line only when no element matches. `css` is
+matched through shadow roots and frames. Without `within`, a locator looks in the topmost dialog's
+pages while a modal shows one, else in every shown page; `index` picks among the matches of all of
+them. It waits up to 3 s for a match, since pages fill in after they load and a dialog's page loads
+after the click that opened it has returned. A match while another candidate page has not answered
+is refused, since that page may hold more matches and neither uniqueness nor `index` is then known;
+`within` or a ref narrows the search. The journal records the page's own locator for the
+element acted on (its id, else its label and kind, else a CSS path), with `within` and an `index`
+among the matches of every candidate page and its configuration frames, as a replay searches them
+(`journal_index()`); with no `index` when one of them was not heard from (silent, failing the search
+or unable to run the agent) or the action took the element away, so a replay that finds several asks
+for one rather than taking another. A screenshot of a page element is journalled as one of its web view, which it
+captures. A web view's own ref is no page element: `ui_click` and `ui_input` refuse it, pointing to
+the page's elements, and `ui_key` sends to its page's focused element.
+
+An action runs synchronously in one task of the page. The element is scrolled into view and hit
+tested: one covered at its centre is refused naming what covers it, a disabled one and a file input
+are refused. A click sends what a person's does — pointer and mouse over, down (focusing the element),
+up, then `click` — so the browser's default actions follow: a label reaches its control, a link
+navigates, a submit button submits its form with itself as the submitter. `ui_input` sets a value
+through the element's own setter and sends `input` and `change`, which framework-controlled fields
+follow; a choice is picked by its option's text, a checkbox through a click, editable text through
+`insertText`. Keys go as `keydown`, `keypress`, the default action (text, Enter submitting the form
+implicitly, Tab moving focus in the page's composed focus order through open shadow roots, their
+slots and same-origin frames, past controls the browser has disabled (`:disabled`, so a disabled
+fieldset's first legend keeps its controls), arrows in a radio group, Left/Right by a character or,
+on a selection, to its start or end) and `keyup`; Ctrl is Command on macOS, as for widgets. A disabled
+target is refused, and a read-only field takes no text. In editable content where the editing
+command is unavailable or refuses (WebKit), the text goes in, or a character goes, at the selection
+as the command would. `ui_mouse` gestures send pointer events from a synthetic pointer whose capture
+the agent emulates while it is pressed, as a canvas that captures the pointer (the colour picker's
+spectrum) needs; a `down`'s button and modifiers stay pressed through later moves until its `up`, or
+until any other gesture, click, `dialog_respond` or auto-answer press, a widget's included and even
+one the tool then refuses, releases them where they were pressed. A move or an `up` keeps a press only on the agent
+that holds it: a page's own, or one of its configuration frames', which are told apart, so an `up`
+on a frame's page ends a press in the frame. Each agent has one synthetic pointer, which every
+client's gestures share, as they share the widgets' one. The tools keep each press on record
+(`WebPresses`), by web view, document and agent, from before its `down` is sent, as a down whose
+reply never comes may still have pressed, until that agent confirms the release (a frame's through
+its page's relay). One too busy to take it is asked again by the next gesture; the late request is
+past its deadline and not run. Each press has its own id, which the page keeps with the press, and a
+release names the press it ends, so it never ends a later press of the same agent or takes one off
+record; a press whose down is not sent yet is neither
+released nor ended by an up, either of which could overtake it; once sent, the page runs it before
+anything sent after it. An up that fails or times out ends nothing: past its deadline the page does
+not run it. The releases are asked all at once and get one second together, so a page that doesn't
+answer holds up none of the others, and the call still names the dialog it works in before the
+soft budget, past which an open dialog would read as what it waits on. Like the widgets' held
+press, a page's belongs to the client or the script that made it: a script's ends with the script,
+a client's when the endpoint closes, every one when the service stops, and a client's down sent
+after the endpoint closed is refused. These releases, and an auto-answer rule's before it presses a
+button, are made on the UI thread without waiting (`release_web_presses()`) and with no deadline,
+so a page busy then releases once free: a page's own confirmed release drops its record, and a
+frame's, which its page forwards, is confirmed by the next gesture.
+Keys and input leave a press held, as a person can type while holding the mouse. Only a press is
+hit tested, so a drag split across calls may move
+and end outside the element. Typed text goes in by code point, a character outside the BMP as one
+key, and a delete takes a surrogate pair whole, also with the caret between its halves; arrows leave
+a read-only number field as it is. Coordinates map between logical and CSS pixels by the device pixel ratio and the content
+scale factor.
+
+A page closes its dialog by a message to the host (`window.wx`, `chrome.webview`, a WebKit message
+handler), which ends the modal loop and destroys the web view. So while an action or a script runs,
+the page's messages are held, even through a reference to the channel kept from before, and posted in
+order once it has returned. The tool then waits up to 1 s for the page to have posted them, lets wx
+run their events, and looks for 300 ms at what followed: the web view destroyed or its dialog off the
+modal stack (`closed: true`, with `dialogs` listing any still open under it, as the filament picker
+is under the colour picker it opened), another modal (`dialogs`), or a change of page (`navigated:
+true` and `url`). A change of page is told by the web view's URL, by the page's own URL before and
+after the action (a fragment change, which WebView2 reports no URL for on a page set as HTML), and,
+once the 300 ms have passed, by asking the page for its document's token, which a reload or a form
+posted to the same URL changes; not by `IsBusy()`, which WebView2 also reports while a page only
+works. Failing those, the reply's `page` says what the action changed on its page: the page outlines
+itself before the action, a line per element (with its value, state and the notes `ui_snapshot`
+gives it, such as a select's options) and per run of text, under an id the tool gives the action,
+and is asked afterwards which lines it lists now that it did not (`added`) and which it no longer
+lists (`removed`), counted as a multiset so an element rebuilt as it was, or text that moved, is no
+change. Each configuration frame outlines and compares its own page through the relay: the page sends
+it the outline request before the action runs, and the frame, whose page changes only by a message
+or by loading another document, takes it before any message the action sends it. A frame that does
+not answer, fails, or has loaded another document since is not compared, and `partial: true` says so;
+then `changed` is given only when a line was found. Otherwise `changed: false` says the page lists
+what it did before, which tells a click whose page ignored it (a validation it failed) from one that
+worked, and `posted` how many messages the page itself sent the host meanwhile, to its plugin's
+handler say. An outline is dropped once compared, and a page keeps at most 16, none past a minute. A
+change that comes later is the next snapshot's to show.
+
+A URL a reply shows (`navigated`'s, `webview_eval`'s, a web view's value in `ui_snapshot`) reads
+`REDACTED` for the user info of its authority and for the value of each query or fragment parameter
+one of whose name's words names a credential (`token`, `key`, `secret`, `password`, `auth`, `session`,
+`signature`, `code` and the like; `redact_url()`), after OpenTelemetry's rule for URLs in telemetry.
+A plugin's page may keep a secret in its URL, as a bridge token in the fragment, and a reply lands in
+the agent's transcript. Words, not substrings, so `keyword` or `design` stay as they are. Navigation
+is still told by the URLs as they are.
+
+A request carries a deadline 100 ms before the tool stops waiting (`timeout_s`, 1 to 120, default
+10), in the page's clock. A page busy past it refuses the request when it gets to it, and nothing was
+done; a request that got no answer has an unknown outcome, said as such. A web call working in the
+topmost dialog tells the job layer which dialog that is (`ToolContext::works_in_dialog()`, with the
+dialog's serial: `ModalTracker` numbers each dialog as it opens and never reuses a number), so a page
+slower than the soft budget is reported running, not `blocked_by_dialog`, while that dialog is the
+topmost (`GuardState::top_dialog`), and blocked once any other is, above it or in its place.
+
+A plugin's configuration UI is in a sandboxed `srcdoc` frame of the Plugins dialog, whose content the
+page can't read. The frame's bridge (`resources/web/dialog/js/plugin-config-ui.js`) relays: the
+agent posts the request with its source to the frame, which runs a copy of the agent and answers by
+message. A call is repeated, in the same round, until every relayed frame has answered or a second
+has passed; the last repeat says so, and a frame still silent then is listed as not answering. The
+frame's elements are keyed `<frame>/<document>/<element>`.
+
+The agent targets Safari 15 (the oldest macOS the build allows) and WebKitGTK 2.36: ES2017 syntax,
+and feature detection with fallbacks for `requestSubmit` (the form's constraint validation runs
+first, as an implicit submission's does), `PointerEvent`, `inert`, `insertText`, `CSS.escape` and
+`InputEvent`.
+
+Limits: a web view in a popup window is not read, which in Orca is the setting tooltip's help
+(`MarkdownTip`, a transient popup); a dialog whose web view is hidden is answered as a wx dialog; a
+page element's screenshot captures its whole web view, not a crop of the element; points in a frame
+that a CSS transform or zoom scales are where the untransformed frame would put them; a page button
+whose handler outlasts `dialog_respond`'s 3 s may still be running when `cancel` or `close` ends the
+dialog natively; cross-origin frames other than plugin configuration UIs are listed but not read.
 
 ## Screenshots
 
@@ -2208,6 +2396,10 @@ windows, plate icon names and bed picking ids, an upload's percentage while its 
 the `send_gcode` command's catalog entry;
 `test_imgui_wrapper` the
 ImGui recorder (named items, kinds, values, text, clipping) on frames drawn without OpenGL;
+`test_mcp_web` a page's lines and their window pixels, web locators, chords as DOM keys per
+platform, the page deadline, the request and install scripts, auto-answer matching and standard
+button names, the journal's index across pages and frames, and (with a display) the web flag of a
+dialog's description, a web dialog rule's wx buttons and web view handles;
 `test_mcp_recording` the Matroska file (read back closed and unclosed), the sink's order, memory
 budget, non-blocking push, finish, abort and failed frames, the video transform, overlays and frame
 repeats, captions and what they hide, the ffmpeg command and listings, the files recordings and
@@ -2237,8 +2429,12 @@ rows, checklist rows, the object settings table and the print button's popup,
 `tools/mcp/tests/recording.json` a recording with clicks, a dialog and a slice, stopped and encoded,
 and one a script ends, `tools/mcp/tests/plate_icons.json` plate icons (lock, settings, arrange, the plate menu, move to
 front), `tools/mcp/tests/webview_modal.json` scripts in the preset bundle dialog and the setup
-wizard, `tools/mcp/test_webview_modal.py` the dialogs scripts are refused in and a page that closes
-its dialog, `tools/mcp/test_set_view_preview.py` the
+wizard, `tools/mcp/test_webview_modal.py` the web views scripts are refused in and a page that
+closes its dialog, `tools/mcp/tests/web_dialogs.json` the preset bundle dialog, the colour picker
+(hex field and spectrum) and the setup wizard's first steps through the GUI tools alone,
+`tools/mcp/test_web_ui.py` every page control kind, action, refusal, locator, timeout and close of
+the MCP web fixture plugin's dialog, window, dock panel and configuration UI (side-loaded with
+`--install DATADIR`), `tools/mcp/test_set_view_preview.py` the
 legend combo's semantics of `set_view {view_type}` and its preview refusals,
 `tools/mcp/test_export_running_job.py` an export during and after a job that outlived its reply,
 `tools/mcp/test_send_gcode.py` `send_gcode` and `get_state.uploads` against a stub print host that

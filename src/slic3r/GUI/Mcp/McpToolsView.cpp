@@ -342,8 +342,8 @@ void register_view_tools(McpService& service)
         "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels; on the "
         "Design tab its view), "
         "\"dialog\" (the topmost modal dialog), or a widget's ref from ui_snapshot (a window that is not modal, or just "
-        "that widget). The result says when parts may differ from the screen (approximate). Point the view first with "
-        "set_view.",
+        "that widget; a page element's ref captures its whole web view). The result says when parts may differ from the "
+        "screen (approximate). Point the view first with set_view.",
         object_schema({{"target", {{"type", json::array({"string", "object"})},
                                     {"description", "window (default), canvas, dialog, or a widget's ref or locator from ui_snapshot."}}},
                        {"max_dim", {{"type", "integer"}, {"minimum", 256}, {"maximum", 2000}, {"description", "Long edge of the returned image."}}},
@@ -389,15 +389,27 @@ void register_view_tools(McpService& service)
                     } else if (target == "dialog") {
                         wxDialog* top = service.modals().top();
                         if (top == nullptr)
-                            throw ToolFailure("No modal dialog is open");
+                            throw ToolFailure(no_modal_dialog(service));
                         cap = capture_window(*top, err);
                     } else if (target != "window") {
                         // A widget: its top-level window, cropped to the widget unless it is that window.
                         const UiTarget t = service.inspector().resolve(target_arg);
                         locator          = service.inspector().locator_for(t);
+                        // A page element is captured as its web view.
                         wxWindow*      w = t.window.get();
-                        if (t.kind != UiTarget::Kind::Window || w == nullptr)
+                        if ((t.kind != UiTarget::Kind::Window && t.kind != UiTarget::Kind::WebElement) || w == nullptr)
                             throw ToolFailure("target must be window, canvas, dialog or the ref of a widget");
+                        if (t.kind == UiTarget::Kind::WebElement) {
+                            // A replay captures the same web view, by its own locator: a page element's
+                            // has none the screenshot's target takes.
+                            UiTarget view;
+                            view.kind    = UiTarget::Kind::Window;
+                            view.window  = w;
+                            view.locator = {{"class", "webview"}};
+                            if (const std::string within = within_of(w); !within.empty())
+                                view.locator["within"] = within;
+                            locator = service.inspector().locator_for(view);
+                        }
                         if (t.page >= 0) {
                             // A tab: its page, which only the selected tab shows.
                             auto* book = dynamic_cast<wxBookCtrlBase*>(w);

@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <functional>
@@ -124,6 +125,12 @@ public:
             return;
         if (const std::string other = m_core.jobs().begin_operation(m_job); !other.empty())
             throw ToolFailure(busy_message(other), {{"job", other}});
+    }
+
+    void works_in_dialog(std::uint64_t dialog) override
+    {
+        if (!m_job.empty())
+            m_core.set_dialog_of(m_job, dialog);
     }
 
 private:
@@ -257,6 +264,7 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
             if (seq != 0)
                 m_journal->job_ended(seq, result);
             m_jobs.finish(job, std::move(result));
+            set_dialog_of(job, 0);
             leave();
         }).detach();
     } catch (const std::system_error& e) {
@@ -273,10 +281,16 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     };
     const std::string running_note = "The call is still running and will finish on its own; do not retry it. "
                                      "Use wait {for:\"job\", job:\"" + job + "\"} for its result.";
-    // dialog_respond can't press a native dialog's buttons, so its note asks for a person instead.
+    // dialog_respond presses a native message box by the buttons ModalTracker lists for it, but not a
+    // picker, nor a dialog while it holds the UI thread (macOS), so their note asks for a person.
     auto blocked = [&](nlohmann::json dialogs, bool ui_held) {
         std::string note;
-        if (topmost_dialog_is_native(dialogs)) {
+        const bool  native    = topmost_dialog_is_native(dialogs);
+        const bool  pressable = native && !ui_held && !dialogs.back().value("buttons", nlohmann::json::array()).empty();
+        if (pressable) {
+            note = "The call is waiting on a native message box and continues after it closes; do not retry it. Answer it "
+                   "with dialog_respond and one of its buttons, then wait {for:\"job\", job:\"" + job + "\"}.";
+        } else if (native) {
             note = "The call is waiting on a native dialog, which only a person can answer (dialog_respond can't); do not retry it. ";
             if (ui_held)
                 note += "Until it closes, tools that need the UI thread fail. ";
@@ -304,12 +318,14 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
             return finish(ToolResult::error("OrcaSlicer is shutting down"));
         if (std::chrono::steady_clock::now() >= deadline)
             break;
-        // Past the soft budget: if a modal dialog is open, the job is almost certainly waiting on it.
+        // Past the soft budget: if a modal dialog is open, the job is almost certainly waiting on it,
+        // unless the call works in that very dialog and it is still the topmost.
         const auto p = m_ui.probe(m_timing.probe_timeout);
         // A stop makes the probe return nothing, which must not read as a held UI thread.
         if (m_ui.is_shutdown())
             return finish(ToolResult::error("OrcaSlicer is shutting down"));
-        if (p && p->guards.modal) {
+        const std::uint64_t own = dialog_of(job);
+        if (p && p->guards.modal && (own == 0 || p->guards.top_dialog != own)) {
             // A dialog can close between the probe and here; a finished job wins.
             if (auto r = m_jobs.wait(job, std::chrono::milliseconds(0)))
                 return finish(std::move(*r));
@@ -377,6 +393,22 @@ bool McpCore::cancel_worker(const std::string& job)
     if (m_worker.cancel)
         m_worker.cancel();
     return true;
+}
+
+void McpCore::set_dialog_of(const std::string& job, std::uint64_t dialog)
+{
+    std::lock_guard<std::mutex> lock(m_dialogs_mutex);
+    if (dialog == 0)
+        m_dialogs_of.erase(job);
+    else
+        m_dialogs_of[job] = dialog;
+}
+
+std::uint64_t McpCore::dialog_of(const std::string& job) const
+{
+    std::lock_guard<std::mutex> lock(m_dialogs_mutex);
+    const auto it = m_dialogs_of.find(job);
+    return it == m_dialogs_of.end() ? 0 : it->second;
 }
 
 ToolResult McpCore::await_worker(const std::string& job, const std::string& tool, ToolResult result)

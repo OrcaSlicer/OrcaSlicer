@@ -35,6 +35,7 @@ class McpProtocol;
 class McpRecorder;
 class ModalTracker;
 class UiInspector;
+class WebPresses;
 struct AutoAnswerRule;
 struct RequestGate;
 
@@ -98,6 +99,9 @@ public:
     ModalTracker& modals() { return *m_modals; }
     // Refs from ui_snapshot live here, so they survive between calls. UI thread only.
     UiInspector&  inspector() { return *m_inspector; }
+    // The presses ui_mouse downs left on pages, the web counterpart of the inspector's held press.
+    // Any thread.
+    WebPresses&   web_presses() { return *m_web_presses; }
     // start_recording and its kin; also told about every call, for the captions.
     McpRecorder&  recorder() { return *m_recorder; }
 
@@ -189,6 +193,8 @@ private:
     std::unique_ptr<McpHttpServer> m_http;
     std::shared_ptr<RequestGate>   m_gate;
     std::unique_ptr<UiInspector>   m_inspector;
+    // Shared with the page calls that release its presses, whose replies may come after the service.
+    std::shared_ptr<WebPresses>    m_web_presses;
 
     mutable std::mutex                      m_rules_mutex;
     std::map<std::string, std::vector<int>> m_script_rule_layers; // running script job -> layers

@@ -9,8 +9,10 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <set>
 #include <string>
@@ -101,8 +103,11 @@ public:
     // UI thread. When `job` holds the UI job worker, asks its job to stop and returns true. The call
     // keeps admission until the worker is idle, then fails as cancelled.
     bool cancel_worker(const std::string& job);
+    // The serial of the dialog `job`'s call works in (ToolContext::works_in_dialog); 0 forgets it.
+    void set_dialog_of(const std::string& job, std::uint64_t dialog);
 
 private:
+    std::uint64_t dialog_of(const std::string& job) const;
     ToolResult run(const ToolDef& def, const nlohmann::json& args, const std::string& parent);
     // On `job`'s thread once its handler returned: when it holds the UI job worker, waits until the
     // worker is idle, cancelling the job after CoreTiming::worker_timeout, and then lets it go. The
@@ -122,6 +127,9 @@ private:
     mutable std::mutex m_worker_mutex;
     std::string        m_worker_job;
     bool               m_worker_cancelled = false;
+
+    mutable std::mutex                   m_dialogs_mutex;
+    std::map<std::string, std::uint64_t> m_dialogs_of;
 
     // Requests that may block (a job within its reply budget, or wait) hold a slot, so the number of
     // blocked request threads stays below the connection limit and recovery calls always get through.

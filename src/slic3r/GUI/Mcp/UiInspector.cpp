@@ -43,6 +43,7 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "UiRefs.hpp"
+#include "WebPages.hpp"
 #ifdef SLIC3R_CAD
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
@@ -200,7 +201,7 @@ wxTextEntry* text_entry(wxWindow* w)
 std::string value_of(wxWindow* w)
 {
     if (auto* web = dynamic_cast<wxWebView*>(w))
-        return into_u8(web->GetCurrentURL());
+        return redact_url(into_u8(web->GetCurrentURL()));
     if (auto* spin = dynamic_cast<::SpinInput*>(w))
         return std::to_string(spin->GetValue());
     if (auto* spin = dynamic_cast<wxSpinCtrl*>(w))
@@ -483,6 +484,18 @@ bool is_native_control(wxWindow* w)
 }
 
 } // namespace
+
+std::string no_modal_dialog(McpService& service)
+{
+    std::string open;
+    for (wxTopLevelWindow* tlw : top_level_windows(service))
+        if (tlw != wxGetApp().mainframe && dynamic_cast<wxDialog*>(tlw) != nullptr)
+            open += (open.empty() ? "\"" : ", \"") + label_of(tlw) + "\"";
+    if (open.empty())
+        return "No modal dialog is open";
+    return "No modal dialog is open. Open without blocking the app: " + open + ". ui_snapshot lists such a window; with its ref as "
+           "root it reads that window alone, and the window's own close button or ui_key Escape with its ref as target closes it";
+}
 
 // Stable English gizmo names for refs and locators: the names Orca uses for the gizmos it names,
 // and the enum's own for the rest.
@@ -1094,6 +1107,12 @@ bool hidden_from_automation(const wxWindow* w)
 {
     const wxWindow* top = owning_window(const_cast<wxWindow*>(w));
     return top != nullptr && top->GetName() == kHiddenFromAutomation;
+}
+
+std::string within_of(wxWindow* w)
+{
+    wxWindow* top = owning_window(w);
+    return top != nullptr && top != wxGetApp().mainframe ? label_of(top) : std::string();
 }
 
 std::vector<wxWindow*> popups_of(wxWindow* top)
@@ -1748,10 +1767,13 @@ bool UiInspector::push(UiNode node, UiTarget target, std::vector<UiNode>& nodes,
             lower(node.option).find(q) == std::string::npos)
             return false;
     }
-    if (int(nodes.size()) >= o.max_nodes) {
+    const bool web = target.kind == UiTarget::Kind::WebElement;
+    if (web ? int(m_web_nodes) >= o.max_web_nodes : int(nodes.size() - m_web_nodes) >= o.max_nodes) {
         ++omitted;
         return false;
     }
+    if (web)
+        ++m_web_nodes;
     const uint64_t generation = m_service.ui_generation();
     std::function<bool()> alive;
     char                  kind = 'w';
@@ -1816,6 +1838,12 @@ bool UiInspector::push(UiNode node, UiTarget target, std::vector<UiNode>& nodes,
         };
         break;
     }
+    case UiTarget::Kind::WebElement: {
+        // The page says whether the element is still there when the ref is used.
+        kind  = 'd';
+        alive = [weak = target.window] { return weak.get() != nullptr && weak->IsShownOnScreen(); };
+        break;
+    }
     }
     node.ref = m_refs.add(kind, generation, std::move(target), std::move(alive));
     nodes.push_back(std::move(node));
@@ -1839,7 +1867,7 @@ void UiInspector::add_menus(wxMenu* menu, const std::string& path, wxWindow* fra
             node.checked = item->IsChecked() ? 1 : 0;
         if (item->IsSubMenu()) {
             // Submenus are listed for structure; their items carry the refs.
-            if (o.query.empty() && int(nodes.size()) < o.max_nodes) {
+            if (o.query.empty() && int(nodes.size() - m_web_nodes) < o.max_nodes) {
                 node.ref = "-";
                 nodes.push_back(node);
             }
@@ -1989,7 +2017,7 @@ void UiInspector::add_imgui_items(GLCanvas3D& canvas, int depth, std::vector<UiN
             if (lower(node.label).find(q) == std::string::npos && lower(node.kind) != q)
                 return;
         }
-        if (int(nodes.size()) >= o.max_nodes) {
+        if (int(nodes.size() - m_web_nodes) >= o.max_nodes) {
             ++omitted;
             return;
         }
@@ -2117,6 +2145,13 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
         if (list)
             if (const std::vector<std::string> columns = list_columns(w); columns.size() > 1)
                 node.note = "columns: " + joined(columns, " | ");
+        if (kind == "webview")
+            if (auto page = o.pages.find(w); page != o.pages.end()) {
+                if (page->second.contains("note"))
+                    node.note = page->second["note"].get<std::string>();
+                else if (page->second.value("ready", std::string("complete")) != "complete")
+                    node.note = "loading";
+            }
         const wxPoint pos  = top || popup ? w->GetScreenPosition() : client_pos_in_tlw(w);
         const wxSize  size = w->GetSize();
         node.x = pos.x, node.y = pos.y, node.w = size.x, node.h = size.y;
@@ -2140,7 +2175,7 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
     }
     if (top && w == wxGetApp().mainframe && o.include_menus)
         for (const auto& [label_text, menu] : main_menus()) {
-            if (o.query.empty() && int(nodes.size()) < o.max_nodes) {
+            if (o.query.empty() && int(nodes.size() - m_web_nodes) < o.max_nodes) {
                 UiNode m;
                 m.ref   = "-";
                 m.kind  = "menu";
@@ -2190,6 +2225,8 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
             t.row_twin = r.twin;
             push(std::move(row), std::move(t), nodes, omitted, o);
         }
+    if (auto* web = dynamic_cast<wxWebView*>(w); web != nullptr && interesting)
+        add_page(*web, child_depth, nodes, omitted, o);
     // Web views and canvases are listed by their own means; Orca's composite inputs are one
     // control to the agent, not their inner text field and buttons; a table's inner windows are its
     // rows.
@@ -2201,10 +2238,32 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
             walk(child, child_depth, nodes, omitted, o);
 }
 
-json UiInspector::snapshot(const SnapshotOptions& o)
+// A page's elements as the tool read them before the walk (SnapshotOptions::pages), under its web
+// view; refs to them carry the page's document, which the page checks at use.
+void UiInspector::add_page(wxWebView& web, int depth, std::vector<UiNode>& nodes, std::size_t& omitted, const SnapshotOptions& o)
 {
-    std::vector<UiNode> nodes;
-    std::size_t         omitted = 0;
+    const auto it = o.pages.find(&web);
+    if (it == o.pages.end() || !it->second.contains("nodes"))
+        return;
+    const json&       page   = it->second;
+    const std::string doc    = page.value("doc", std::string());
+    const std::string within = within_of(&web);
+    for (PageNode& p : page_nodes(page, depth, client_pos_in_tlw(&web), page_scale(&web, page.value("dpr", 1.0)))) {
+        UiTarget t;
+        t.kind       = UiTarget::Kind::WebElement;
+        t.window     = &web;
+        t.web_key    = std::move(p.key);
+        t.web_doc    = doc;
+        t.web_kind   = p.node.kind;
+        t.web_label  = p.node.label;
+        t.web_within = within;
+        push(std::move(p.node), std::move(t), nodes, omitted, o);
+    }
+    omitted += page.value("omitted", std::size_t(0));
+}
+
+std::vector<wxWindow*> UiInspector::snapshot_roots(const SnapshotOptions& o)
+{
     std::vector<wxWindow*> roots;
     // A window, then the popups that opened from it, before any window above it.
     auto with_popups = [&roots](wxWindow* top) {
@@ -2216,7 +2275,7 @@ json UiInspector::snapshot(const SnapshotOptions& o)
         if (wxDialog* d = m_service.modals().top())
             with_popups(d);
         else
-            throw ToolFailure("No modal dialog is open");
+            throw ToolFailure(no_modal_dialog(m_service));
     } else if (o.root == "main") {
         if (wxGetApp().mainframe == nullptr)
             throw ToolFailure("The main window is not up yet");
@@ -2234,7 +2293,60 @@ json UiInspector::snapshot(const SnapshotOptions& o)
             throw ToolFailure("root must be all, main, dialog, popup or the ref of a window");
         roots.push_back(t.window.get());
     }
-    for (wxWindow* root : roots)
+    return roots;
+}
+
+std::vector<wxWebView*> UiInspector::snapshot_pages(const SnapshotOptions& o, std::vector<wxWebView*>* behind)
+{
+    std::vector<wxWebView*> out;
+    wxDialog*               top = m_service.modals().top();
+    std::function<void(wxWindow*)> visit = [&](wxWindow* w) {
+        if (!w->IsShownOnScreen() || hidden_from_automation(w))
+            return;
+        if (auto* web = dynamic_cast<wxWebView*>(w)) {
+            // A page under a modal dialog takes no input, so it is not read.
+            if (top == nullptr || owning_window(web) == top)
+                out.push_back(web);
+            else if (behind != nullptr)
+                behind->push_back(web);
+            return;
+        }
+        for (wxWindow* child : w->GetChildren())
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && dynamic_cast<wxPopupWindow*>(child) == nullptr)
+                visit(child);
+    };
+    if (o.include_web)
+        for (wxWindow* root : snapshot_roots(o))
+            visit(root);
+    return out;
+}
+
+std::vector<wxWebView*> UiInspector::web_views(const std::string& within)
+{
+    std::vector<wxWebView*> out;
+    std::function<void(wxWindow*)> visit = [&](wxWindow* w) {
+        if (!w->IsShownOnScreen())
+            return;
+        if (auto* web = dynamic_cast<wxWebView*>(w)) {
+            out.push_back(web);
+            return;
+        }
+        for (wxWindow* child : w->GetChildren())
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr)
+                visit(child);
+    };
+    for (wxTopLevelWindow* tlw : top_level_windows(m_service))
+        if (within.empty() || label_of(tlw) == within)
+            visit(tlw);
+    return out;
+}
+
+json UiInspector::snapshot(const SnapshotOptions& o)
+{
+    std::vector<UiNode> nodes;
+    std::size_t         omitted = 0;
+    m_web_nodes                 = 0;
+    for (wxWindow* root : snapshot_roots(o))
         walk(root, 0, nodes, omitted, o);
     json out{{"tree", format_snapshot(nodes, omitted)}, {"nodes", nodes.size()}};
     if (omitted > 0)
@@ -2273,6 +2385,9 @@ UiTarget UiInspector::resolve(const json& target)
     // A ref written the way locators are, {ref: "w12"}.
     if (target.size() == 1 && target.contains("ref") && target["ref"].is_string())
         return resolve(target["ref"]);
+    if (is_web_locator(target))
+        throw ToolFailure("A {css} or {web} locator names an element of a web page, which ui_click, ui_input, ui_key, ui_mouse and "
+                          "webview_eval take; here give a widget's ref or locator");
 
     UiTarget t;
     t.locator = target;
@@ -2525,6 +2640,9 @@ std::vector<std::pair<wxBookCtrlBase*, int>> UiInspector::match_tabs(const json&
 
 json UiInspector::locator_for(const UiTarget& t)
 {
+    // A page element's locator comes from its page, which the tool asks (see McpToolsUi.cpp).
+    if (t.kind == UiTarget::Kind::WebElement)
+        return t.locator;
     json loc = t.locator;
     if (loc.is_object()) // a row's is built below
         loc.erase("index");
@@ -2649,6 +2767,8 @@ bool UiInspector::place_row(const UiTarget& t)
 json UiInspector::click(const UiTarget& t, const ClickOptions& o)
 {
     switch (t.kind) {
+    case UiTarget::Kind::WebElement:
+        throw ToolFailure("A page element is clicked through its page, not as a widget");
     case UiTarget::Kind::MenuItem: {
         wxMenu*     owner = nullptr;
         wxMenuItem* item  = find_menu_item(t.menu_id, nullptr, &owner);
@@ -2856,6 +2976,8 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
 
 json UiInspector::input(const UiTarget& t, const json& value, bool submit)
 {
+    if (t.kind == UiTarget::Kind::WebElement)
+        throw ToolFailure("A page element is set through its page, not as a widget");
     if (t.kind == UiTarget::Kind::ImGuiItem)
         return imgui_input(t, value, submit);
     if (t.kind == UiTarget::Kind::Row) {
@@ -3082,6 +3204,8 @@ wxWindow* UiInspector::key_target(const UiTarget* t) const
 
 json UiInspector::key(const UiTarget* t, const std::string& chord_text, const std::string& text)
 {
+    if (t != nullptr && t->kind == UiTarget::Kind::WebElement)
+        throw ToolFailure("Keys reach a page element through its page, not as a widget");
     wxWindow* target = key_target(t);
     if (target == nullptr)
         throw ToolFailure("No window to send keys to");

@@ -35,6 +35,7 @@ add_executable(${_TEST_NAME}_tests
     test_mcp_token.cpp
     test_mcp_tools.cpp
     test_mcp_ui.cpp
+    test_mcp_web.cpp
     test_mcp_results.cpp
     test_prebuild_queue.cpp
     test_staged_build.cpp
