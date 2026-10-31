@@ -33,6 +33,7 @@ public:
     PrintHostPostUploadActions         get_post_upload_actions() const override;
     bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
     bool supports_multi_color_print() const;
+    bool is_k1_family_board() const;
 
     // Single source of truth for the CFS-capable model table, shared with
     // LAN discovery (CrealityHostDiscovery). Model is the /info "model"

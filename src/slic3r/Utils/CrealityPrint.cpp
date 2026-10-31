@@ -360,6 +360,12 @@ bool CrealityPrint::supports_multi_color_print() const
     return model_supports_multi_color(m_model);
 }
 
+bool CrealityPrint::is_k1_family_board() const
+{
+    query_model();
+    return is_k1_family(m_model);
+}
+
 std::string CrealityPrint::model_name() const
 {
     query_model();
