@@ -10,6 +10,7 @@
 #include <wx/dialog.h>
 #include <wx/panel.h>
 
+#include "libslic3r/FilamentCompaction.hpp"
 #include "libslic3r/FilamentInventory.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include <cstddef>
@@ -100,6 +101,11 @@ private:
 // Orca: send-time mapping proposed from the inventory alone, ignoring stored maps.
 // std::nullopt means the user cancelled and the send must abort.
 std::optional<std::vector<int>> collect_device_map_table_for_send(wxWindow* parent, const std::vector<int>& plate_filaments, const wxString& title);
+
+// Orca: re-keys per-project-slot picks onto the g-code's emitted tool numbers, using the
+// compaction the plate was sliced with. Only tools up to the highest one the plate prints are keyed.
+std::vector<int> device_wire_filament_map(const FilamentCompaction& compaction, const std::vector<int>& filaments_1based,
+                                          const std::vector<int>& map_1based);
 
 }} // namespace Slic3r::GUI
 

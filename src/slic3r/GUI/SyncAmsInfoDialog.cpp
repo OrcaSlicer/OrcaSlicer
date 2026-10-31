@@ -2117,34 +2117,11 @@ void SyncAmsInfoDialog::open_slot_picker(wxWindow *anchor, int filament_id)
 {
     if (!m_slot_picker)
         m_slot_picker = new SlotPickPopup(this);
-    if (m_slot_picker->IsShown())
-        return;
-
-    FilamentInventories      store;
-    const FilamentInventory &inventory = load_active_printer_inventory(store);
-    std::vector<SlotGridSlot> rows     = slot_grid_rows(inventory, wxGetApp().preset_bundle->filaments);
-    for (size_t i = 0; i < rows.size(); ++i) {
-        // Slot i == global tray i (build_ams_payload).
-        rows[i].disabled = rows[i].empty;
-        for (const FilamentInfo &f : m_ams_mapping_result)
-            if (f.id == filament_id && f.tray_id == (int) i)
-                rows[i].checked = true;
-    }
-    const std::vector<PhysicalFilament> slots = inventory.slots;
-    m_slot_picker->Rebuild(rows, [this, filament_id, slots](size_t i) {
-        if (i >= slots.size()) return;
-        // The inventory stores "#RRGGBB", not the AMS wire's RRGGBBAA.
-        const wxColour col = colour_or(slots[i].color, wxColour(0xCE, 0xCE, 0xCE));
-        // Same payload as the AMS popup (on_set_finish_mapping): "r|g|b|a|label|filament|ams_id|slot_id".
-        const int      virtual_tool = slots[i].virtual_tool >= 0 ? slots[i].virtual_tool : (int) i;
-        const wxString label        = wxString::Format("T%d", virtual_tool + 1);
-        wxCommandEvent evt(EVT_SET_FINISH_MAPPING);
-        evt.SetInt((int) i);
-        evt.SetString(wxString::Format("%d|%d|%d|%d|%s|%d|%d|%d", col.Red(), col.Green(), col.Blue(), col.Alpha(), label,
-                                       filament_id, (int) i, 0));
-        wxPostEvent(this, evt);
-    });
-    m_slot_picker->PopupBelow(anchor);
+    int current_slot = -1;
+    for (const FilamentInfo &f : m_ams_mapping_result)
+        if (f.id == filament_id)
+            current_slot = f.tray_id;
+    m_slot_picker->PopupForFilament(this, anchor, filament_id, current_slot);
 }
 
 void SyncAmsInfoDialog::on_set_finish_mapping(wxCommandEvent &evt)

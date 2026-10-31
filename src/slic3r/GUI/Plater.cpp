@@ -294,6 +294,7 @@
 #include "PhysicalPrinterDialog.hpp"
 #include "PrintHostDialogs.hpp"
 #include "DevicePrintOptionsDialog.hpp"
+#include "FilamentMapRowsView.hpp" // device_wire_filament_map
 #include "PlateSettingsDialog.hpp"
 #include "DailyTips.hpp"
 #include "CreatePresetsDialog.hpp"
@@ -21167,22 +21168,6 @@ void Plater::reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &
     this->p->background_process.set_task(task);
     // and let the background processing start.
     this->p->restart_background_process(state | priv::UPDATE_BACKGROUND_PROCESS_FORCE_RESTART);
-}
-// Orca: re-keys per-project-slot picks onto the g-code's emitted tool numbers, using the
-// compaction the plate was sliced with. Only tools up to the highest one the plate prints are keyed.
-static std::vector<int> device_wire_filament_map(const FilamentCompaction& compaction, const std::vector<int>& filaments_1based,
-                                                 const std::vector<int>& map_1based)
-{
-    if (compaction.slot_of_tool.empty())
-        return map_1based;
-    int tool_count = 0;
-    for (int filament : filaments_1based)
-        tool_count = std::max(tool_count, compaction.tool_of_slot(filament - 1) + 1);
-    std::vector<int> out(size_t(tool_count), 0);
-    for (size_t tool = 0; tool < out.size(); ++tool)
-        if (size_t(compaction.slot_of_tool[tool]) < map_1based.size())
-            out[tool] = map_1based[compaction.slot_of_tool[tool]];
-    return out;
 }
 
 // Orca: per-filament arrays are per project filament; nozzle_diameter and used_physical_tools
