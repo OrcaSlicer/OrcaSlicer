@@ -174,6 +174,8 @@ const std::string GCodeProcessor::VFlush_End_Tag  = " VFLUSH_END";
 
 //Orca: External device purge tag
 const std::string GCodeProcessor::External_Purge_Tag = " EXTERNAL_PURGE";
+const std::string GCodeProcessor::Toolchange_Prime_Start_Tag = " TOOLCHANGE_PRIME_START";
+const std::string GCodeProcessor::Toolchange_Prime_End_Tag = " TOOLCHANGE_PRIME_END";
 
 // SKIPPABLE region tags. SKIPTYPE carries a trailing "<type>" payload so it is matched with
 // starts_with; START/END are whole-line tags.
@@ -979,6 +981,9 @@ public:
     {}
 #endif // NDEBUG
 
+    // estimated print time (normal mode) at the last processed move
+    float get_normal_time() const { return m_times[Normal]; }
+
         // return: number of internal G1 lines (from G2/G3 splitting) processed
         unsigned int update(const std::string& line, size_t lines_counter, size_t g1_lines_counter)
     {
@@ -1424,6 +1429,95 @@ void GCodeProcessor::run_post_process()
         return processed;
     };
 
+    // Tool change priming: size the prime in each block between Toolchange_Prime_Start_Tag and Toolchange_Prime_End_Tag
+    // by how long the new tool sat parked: the minimum length after a short park, the maximum once the nozzle has cooled
+    // down on standby. Below the skip time the prime is dropped. Lines marked "restore retraction" are never changed:
+    // the writer counts the tool's retraction as restored by the block.
+    std::vector<float> tool_parked_since;
+    // Estimated time of the last pause or filament change. Its real length is unknown, so a tool parked across it gets a full prime.
+    float last_pause_time       = -1.0f;
+    bool  in_toolchange_prime   = false;
+    bool  skip_toolchange_prime = false;
+    float toolchange_prime_scale = 1.0f;
+    // return: true if the line was a prime move commented out because the prime was skipped
+    auto process_toolchange_prime = [&](std::string& gcode_line) {
+        if (!in_toolchange_prime &&
+            (boost::starts_with(gcode_line, ";" + reserved_tag(ETags::Pause_Print)) ||
+             boost::starts_with(gcode_line, ";" + reserved_tag(ETags::Color_Change)) ||
+             boost::starts_with(gcode_line, ";" + reserved_tag(ETags::Manual_Tool_Change)) ||
+             GCodeReader::GCodeLine::cmd_is(gcode_line, "M600") || GCodeReader::GCodeLine::cmd_is(gcode_line, "M0") ||
+             GCodeReader::GCodeLine::cmd_is(gcode_line, "M1") || GCodeReader::GCodeLine::cmd_is(gcode_line, "M25") ||
+             GCodeReader::GCodeLine::cmd_is(gcode_line, "PAUSE"))) {
+            last_pause_time = export_line.get_normal_time();
+            return false;
+        }
+        if (boost::starts_with(gcode_line, ";" + Toolchange_Prime_Start_Tag)) {
+            int   next = -1, prev = -1;
+            float max_length = 0.0f;
+            const bool first_use = gcode_line.find(" FIRST") != std::string::npos;
+            std::sscanf(gcode_line.c_str() + 1 + Toolchange_Prime_Start_Tag.size(), " T%d P%d L%f", &next, &prev, &max_length);
+            const float now = export_line.get_normal_time();
+            if (prev >= 0) {
+                if (tool_parked_since.size() <= size_t(prev))
+                    tool_parked_since.resize(prev + 1, -1.0f);
+                tool_parked_since[prev] = now;
+            }
+            float idle = std::numeric_limits<float>::max();
+            bool  after_pause = false;
+            if (!first_use && next >= 0 && size_t(next) < tool_parked_since.size() && tool_parked_since[next] >= 0.0f) {
+                after_pause = last_pause_time >= tool_parked_since[next];
+                idle        = after_pause ? std::numeric_limits<float>::max() : now - tool_parked_since[next];
+            }
+            // A step, not a ramp: a nozzle that has cooled on standby needs the full prime, a hot one only the minimum.
+            const float min_length = std::clamp(m_toolchange_prime_length_min, 0.0f, max_length);
+            const float length     = idle >= m_toolchange_prime_idle_time ? max_length : min_length;
+            in_toolchange_prime    = true;
+            skip_toolchange_prime  = !first_use && idle < m_toolchange_prime_skip_time;
+            toolchange_prime_scale = max_length > 0.0f ? length / max_length : 1.0f;
+            char buf[96];
+            if (skip_toolchange_prime)
+                std::snprintf(buf, sizeof(buf), " (idle %.0fs, prime skipped)", idle);
+            else if (after_pause)
+                std::snprintf(buf, sizeof(buf), " (after pause, %.2fmm)", length);
+            else if (idle == std::numeric_limits<float>::max())
+                std::snprintf(buf, sizeof(buf), " (first use, %.2fmm)", length);
+            else
+                std::snprintf(buf, sizeof(buf), " (idle %.0fs, %.2fmm)", idle, length);
+            gcode_line.insert(gcode_line.find_last_not_of("\r\n") + 1, buf);
+            return false;
+        }
+        if (!in_toolchange_prime)
+            return false;
+        if (boost::starts_with(gcode_line, ";" + Toolchange_Prime_End_Tag)) {
+            in_toolchange_prime = false;
+            return false;
+        }
+        // Only the prime itself is sized: positive (relative) extrusions, not retractions or restoring the retraction.
+        if (!(GCodeReader::GCodeLine::cmd_is(gcode_line, "G0") || GCodeReader::GCodeLine::cmd_is(gcode_line, "G1")) ||
+            gcode_line.find("restore retraction") != std::string::npos)
+            return false;
+        const size_t comment = gcode_line.find(';');
+        for (size_t pos = 2; pos < std::min(comment, gcode_line.size()); ++pos) {
+            if ((gcode_line[pos] != 'E' && gcode_line[pos] != 'e') || !std::isspace((unsigned char) gcode_line[pos - 1]))
+                continue;
+            char* end = nullptr;
+            const double e = std::strtod(gcode_line.c_str() + pos + 1, &end);
+            if (e <= 0.0)
+                return false;
+            if (skip_toolchange_prime) {
+                gcode_line.insert(0, "; ");
+                return true;
+            }
+            if (toolchange_prime_scale < 1.0f) {
+                char buf[32];
+                std::snprintf(buf, sizeof(buf), "%.5f", e * toolchange_prime_scale);
+                gcode_line.replace(pos + 1, end - (gcode_line.c_str() + pos + 1), buf);
+            }
+            return false;
+        }
+        return false;
+    };
+
     // check for temporary lines
     auto is_temporary_decoration = [](const std::string_view gcode_line) {
         // remove trailing '\n'
@@ -1833,6 +1927,7 @@ void GCodeProcessor::run_post_process()
                     // executes nothing; pure data construction, so the output is untouched regardless.
                     if (m_enable_pre_heating)
                         build_usage_blocks(gcode_line, line_id);
+                    const bool skipped_prime_move = process_toolchange_prime(gcode_line);
                     // replace placeholder lines
                     bool processed = process_placeholders(gcode_line);
                     if (processed)
@@ -1842,7 +1937,7 @@ void GCodeProcessor::run_post_process()
                     if (!gcode_line.empty())
                         process_inline_placeholders(gcode_line);
                     if (!processed && !is_temporary_decoration(gcode_line)) {
-                        if (GCodeReader::GCodeLine::cmd_is(gcode_line, "G0") || GCodeReader::GCodeLine::cmd_is(gcode_line, "G1")) {
+                        if (skipped_prime_move || GCodeReader::GCodeLine::cmd_is(gcode_line, "G0") || GCodeReader::GCodeLine::cmd_is(gcode_line, "G1")) {
                             export_line.append_line(gcode_line);
                             // add lines M73 where needed
                             process_line_move(g1_lines_counter++);
@@ -3142,6 +3237,9 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     // sanity check
     if(m_preheat_steps < 1)
         m_preheat_steps = 1;
+    m_toolchange_prime_length_min = config.toolchange_prime_length_min;
+    m_toolchange_prime_idle_time = config.toolchange_prime_idle_time;
+    m_toolchange_prime_skip_time = config.toolchange_prime_skip_time;
     m_result.backtrace_enabled = config.ooze_prevention && m_preheat_time > 0 && (m_is_XL_printer || (!m_single_extruder_multi_material && filament_count > 1));
 
     assert(config.nozzle_volume.size() == config.nozzle_diameter.size());
@@ -3829,6 +3927,9 @@ void GCodeProcessor::reset()
     m_g29_time_added = false;
     m_preheat_time = 0.f;
     m_preheat_steps = 1;
+    m_toolchange_prime_length_min = 0.f;
+    m_toolchange_prime_idle_time = 0.f;
+    m_toolchange_prime_skip_time = 0.f;
 }
 
 static inline const char* skip_whitespaces(const char *begin, const char *end) {

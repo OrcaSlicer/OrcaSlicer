@@ -11359,6 +11359,53 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     if (m_ooze_prevention.enable && !defer_temp_wait)
         gcode += m_ooze_prevention.post_toolchange(*this);
 
+    // Prime the new tool off the bed (e.g. into a purge bucket) instead of on a prime tower.
+    // The block is wrapped in tags so GCodeProcessor can size or skip it by the tool's estimated idle time,
+    // unless a printer macro times the parks itself.
+    const std::string& toolchange_prime_gcode = m_config.toolchange_prime_gcode.value;
+    if (m_config.toolchange_prime_enable && !toolchange_prime_gcode.empty() && !m_config.enable_prime_tower && !m_config.single_extruder_multi_material &&
+        old_filament_id >= 0 && old_filament_id != int(new_filament_id)) {
+        if (m_toolchange_primed_extruders.size() <= std::max<size_t>(new_filament_id, old_filament_id))
+            m_toolchange_primed_extruders.resize(std::max<size_t>(new_filament_id, old_filament_id) + 1, false);
+        // The tool being parked has been printing (the start G-code primed the first one), so it is no longer a first use.
+        m_toolchange_primed_extruders[old_filament_id] = true;
+        const bool  first_use    = !m_toolchange_primed_extruders[new_filament_id];
+        const float prime_length = float(std::max(m_config.toolchange_prime_length_min.value, m_config.toolchange_prime_length_max.value));
+        m_toolchange_primed_extruders[new_filament_id] = true;
+
+        DynamicConfig prime_config;
+        prime_config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
+        prime_config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
+        prime_config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
+        prime_config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
+        prime_config.set_key_value("next_extruder", new ConfigOptionInt((int) new_filament_id));
+        prime_config.set_key_value("new_filament_temp", new ConfigOptionInt(new_filament_temp));
+        prime_config.set_key_value("prime_length", new ConfigOptionFloat(prime_length));
+        prime_config.set_key_value("prime_speed", new ConfigOptionFloat(float(new_filament_e_feedrate)));
+        prime_config.set_key_value("prime_first_use", new ConfigOptionBool(first_use));
+        prime_config.set_key_value("retract_restore_length", new ConfigOptionFloat(m_writer.extruder() ? m_writer.extruder()->retracted() : 0.));
+        std::string prime_gcode = placeholder_parser_process("toolchange_prime_gcode", toolchange_prime_gcode, new_filament_id, &prime_config);
+        check_add_eol(prime_gcode);
+
+        if (m_config.toolchange_prime_on_printer) {
+            gcode += prime_gcode;
+        } else {
+            char tag[128];
+            std::snprintf(tag, sizeof(tag), ";%s T%u P%d L%.3f%s\n", GCodeProcessor::Toolchange_Prime_Start_Tag.c_str(), new_filament_id,
+                          old_filament_id, prime_length, first_use ? " FIRST" : "");
+            gcode += tag;
+            gcode += prime_gcode;
+            gcode += ";" + GCodeProcessor::Toolchange_Prime_End_Tag + "\n";
+        }
+        // A block that restores the tool\'s retraction in the purge chute (a line marked "restore retraction") leaves the
+        // nozzle full, so the writer must not unretract it again on the part.
+        if (m_writer.extruder() && prime_gcode.find("restore retraction") != std::string::npos)
+            m_writer.extruder()->set_retracted(0., 0.);
+        // The prime G-code moves the extruder and the nozzle behind the writer's back.
+        gcode += m_writer.reset_e(true);
+        m_writer.set_current_position_clear(false);
+    }
+
     // See the note on the single-extruder path above: -1 outside IMEX parallel modes.
     gcode += set_filament_pressure_advance(new_filament_id,
         imex_pem_tool_for((int) new_filament_id, m_imex_parallel_mode, m_config.physical_extruder_map));
