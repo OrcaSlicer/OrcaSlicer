@@ -4051,6 +4051,7 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     m_overlay_dirty |= imgui_requires_extra_frame;
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     m_dirty |= GLTexture::Compressor::has_compressed_texture_to_refresh();
+    m_overlay_dirty |= wxGetApp().imgui()->has_font_atlas_ready();
 
     if (!m_dirty && !m_overlay_dirty)
         return;

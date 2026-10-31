@@ -3748,6 +3748,9 @@ bool GUI_App::on_init_inner()
     }
     BOOST_LOG_TRIVIAL(info) << "create the main window";
     mainframe = new MainFrame();
+    // Build the 3D scene's fonts while the rest of the window is set up.
+    plater_->canvas3D()->set_imgui_scaling();
+    m_imgui->prepare_fonts();
     // The first render can happen as soon as the frame is shown, before the queued
     // new_project() sets the same view.
     plater_->get_camera().select_view("topfront");
