@@ -291,6 +291,7 @@ public:
     // Process a template through the placeholder parser, collect error messages to be reported
     // inside the generated string and after the G-code export finishes.
     std::string     placeholder_parser_process(const std::string &name, const std::string &templ, unsigned int current_filament_id, const DynamicConfig *config_override = nullptr);
+    void     check_gcode_pos_valid(const std::string &name, const std::string &gcode, unsigned int current_filament_id, const DynamicConfig *config_override = nullptr);
     bool            enable_cooling_markers() const { return m_enable_cooling_markers; }
     std::string     extrusion_role_to_string_for_parser(const ExtrusionRole &);
 
@@ -352,6 +353,15 @@ public:
             return index;
         }
     };
+
+    struct GCodePositionLimits
+    {
+        Slic3r::Vec2d m_curr_pos;
+        Slic3r::Polygons m_extruder_movable_areas;
+        Slic3r::Vec2ds m_extruder_offsets;
+    };
+    void make_gcode_position_limits(const Print* print);
+    std::optional<GCodePositionLimits> m_position_limits;
 
     // Object and support extrusions of the same PrintObject at the same print_z.
     // public, so that it could be accessed by free helper functions from GCode.cpp

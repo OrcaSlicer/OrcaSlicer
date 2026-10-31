@@ -14079,6 +14079,9 @@ msgstr ""
 msgid "Extruder printable area"
 msgstr ""
 
+msgid "Extruder movable area"
+msgstr ""
+
 msgid "Support parallel printheads"
 msgstr ""
 
