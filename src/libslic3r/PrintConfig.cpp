@@ -602,6 +602,16 @@ static const t_config_enum_values s_keys_map_OverhangFanThreshold = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(OverhangFanThreshold)
 
+static const t_config_enum_values s_keys_map_OverhangThresholdParticipatingCooling = {
+    { "0%",         Overhang_threshold_participating_cooling_none },
+    { "10%",        Overhang_threshold_participating_cooling_1_4  },
+    { "25%",        Overhang_threshold_participating_cooling_2_4  },
+    { "50%",        Overhang_threshold_participating_cooling_3_4  },
+    { "75%",        Overhang_threshold_participating_cooling_4_4  },
+    { "100%",       Overhang_threshold_participating_cooling_bridge }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(OverhangThresholdParticipatingCooling)
+
 // BBS
 static const t_config_enum_values s_keys_map_BedType = {
     { "Default Plate",      btDefault },
@@ -1624,6 +1634,29 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.emplace_back("75%");
     def->enum_labels.emplace_back("95%");
     def->set_default_value(new ConfigOptionEnumsGeneric{ (int)Overhang_threshold_bridge });
+
+    def = this->add("overhang_threshold_participating_cooling", coEnums);
+    def->label = L("Overhang threshold for slowing down");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Decides which overhangs take part in slowing down for layer cooling. Overhangs steeper than this threshold, "
+                     "and all bridges, keep their speed and are not slowed down. "
+                     "This threshold is expressed as a percentage, indicating the portion of each line's width that is unsupported by the layer "
+                     "beneath it. 100% lets every extrusion take part, which is the regular behavior.");
+    def->enum_keys_map = &ConfigOptionEnum<OverhangThresholdParticipatingCooling>::get_enum_values();
+    def->mode = comAdvanced;
+    def->enum_values.emplace_back("0%");
+    def->enum_values.emplace_back("10%");
+    def->enum_values.emplace_back("25%");
+    def->enum_values.emplace_back("50%");
+    def->enum_values.emplace_back("75%");
+    def->enum_values.emplace_back("100%");
+    def->enum_labels.emplace_back("0%");
+    def->enum_labels.emplace_back("10%");
+    def->enum_labels.emplace_back("25%");
+    def->enum_labels.emplace_back("50%");
+    def->enum_labels.emplace_back("75%");
+    def->enum_labels.emplace_back("100%");
+    def->set_default_value(new ConfigOptionEnumsGeneric{ (int)Overhang_threshold_participating_cooling_bridge });
 
     def = this->add("bridge_angle", coFloat);
     def->label = L("External bridge infill direction");
@@ -9852,6 +9885,9 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         }
     } else if (opt_key == "overhang_fan_threshold" && value == "5%") {
         value = "10%";
+    } else if (opt_key == "overhang_threshold_participating_cooling" && value == "95%") {
+        // Profiles imported from BambuStudio name the highest level "95%", which is "100%" here.
+        value = "100%";
     } else if( opt_key == "wall_infill_order" ) {
         if (value == "inner wall/outer wall/infill" || value == "infill/inner wall/outer wall") {
             opt_key = "wall_sequence";

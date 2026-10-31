@@ -1,10 +1,14 @@
 #include <catch2/catch_all.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "test_helpers.hpp"
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdlib>
+#include <limits>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -157,4 +161,65 @@ TEST_CASE("Overhang fan transitions do not depend on overhang speed", "[Cooling]
                         [](const auto &command) { return command.second.find("S255") != std::string::npos; }));
     REQUIRE(with_speed_feedrates != without_speed_feedrates);
     CHECK(with_speed_fan == without_speed_fan);
+}
+
+namespace {
+// The lowest feedrate (mm/min) used for an extrusion of the given feature. The cooling pass drops repeated F words,
+// so the last F seen is tracked.
+double lowest_feedrate_of_feature(const std::string &gcode, const std::string &feature)
+{
+    double lowest      = std::numeric_limits<double>::max();
+    double current_f   = 0.;
+    bool   in_feature  = false;
+    std::istringstream input(gcode);
+    std::string line;
+    while (std::getline(input, line)) {
+        if (line.rfind(";TYPE:", 0) == 0) {
+            in_feature = line == ";TYPE:" + feature;
+            continue;
+        }
+        if (line.rfind("G1 ", 0) != 0)
+            continue;
+        const size_t f_pos = line.find(" F");
+        if (f_pos != std::string::npos)
+            current_f = std::atof(line.c_str() + f_pos + 2);
+        if (in_feature && line.find(" E") != std::string::npos && current_f > 0.)
+            lowest = std::min(lowest, current_f);
+    }
+    return lowest;
+}
+
+std::string slice_overhang_cooling(OverhangThresholdParticipatingCooling threshold)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "slow_down_for_layer_cooling", true },
+        // Far above any layer time, so every layer that can be slowed down is slowed to the minimum speed.
+        { "slow_down_layer_time",        "1000" },
+        { "slow_down_min_speed",         "10" },
+        { "enable_overhang_speed",       false },
+        { "detect_overhang_wall",        true },
+    });
+    config.set_key_value("overhang_threshold_participating_cooling", new ConfigOptionEnumsGeneric{ threshold });
+    return slice({ make_sphere(20., PI / 24.) }, config);
+}
+} // namespace
+
+// An overhang wall or a bridge left out of slowing down keeps its own speed, while the walls that take part are slowed.
+TEST_CASE("Overhangs above the cooling participation threshold are not slowed down", "[Cooling]")
+{
+    const std::string everything  = slice_overhang_cooling(Overhang_threshold_participating_cooling_bridge);
+    const std::string supported   = slice_overhang_cooling(Overhang_threshold_participating_cooling_none);
+
+    const double overhang_slowed   = lowest_feedrate_of_feature(everything, "Overhang wall");
+    const double overhang_unslowed = lowest_feedrate_of_feature(supported, "Overhang wall");
+    REQUIRE(overhang_slowed < std::numeric_limits<double>::max());
+    REQUIRE(overhang_unslowed < std::numeric_limits<double>::max());
+    CHECK(overhang_unslowed > overhang_slowed);
+
+    // The walls that are fully supported take part either way.
+    const double outer_slowed = lowest_feedrate_of_feature(everything, "Outer wall");
+    const double outer_slowed_too = lowest_feedrate_of_feature(supported, "Outer wall");
+    REQUIRE(outer_slowed < std::numeric_limits<double>::max());
+    CHECK_THAT(outer_slowed_too, Catch::Matchers::WithinAbs(outer_slowed, 1.));
 }
