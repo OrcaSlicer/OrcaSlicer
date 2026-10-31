@@ -903,7 +903,7 @@ void PrintObject::slice()
     m_belt_min_z              = 0.;
     m_belt_global_z_offset    = 0.;
     this->clear_layers();
-    m_layers = new_layers(this, generate_object_layers(m_slicing_params, layer_height_profile, m_config.precise_z_height.value));
+    m_layers = new_layers(this, generate_object_layers(m_slicing_params, layer_height_profile, this->precise_z_height()));
     this->slice_volumes();
     m_print->throw_if_canceled();
 
