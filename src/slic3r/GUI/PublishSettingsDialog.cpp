@@ -3,7 +3,13 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
+#include "ColorPickerDialog.hpp"
 #include "I18N.hpp"
+#include "OptionStateRegistry.hpp"
+#include "OptionsGroup.hpp"
+#include "Field.hpp"
+#include "PresetComboBoxes.hpp"
+#include "PublishTabs.hpp"
 #include "Tab.hpp"
 #include "ConfigValueFormatter.hpp"
 #include "FilamentBitmapUtils.hpp"
@@ -12,17 +18,20 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/DialogButtons.hpp"
-#include "Widgets/StaticLine.hpp"
 #include "Widgets/StateColor.hpp"
-#include "Widgets/SwitchButton.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PublishSelection.hpp"
 #include "libslic3r/PublishSettings.hpp"
 #include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Model.hpp"
 
 #include <boost/algorithm/string/trim.hpp>
+#include <wx/anybutton.h>
+#include <cstddef>
+#include <map>
 #include <wx/colour.h>
 #include <string>
 #include "libslic3r/Config.hpp"
@@ -54,10 +63,11 @@
 #include <set>
 #include <algorithm>
 #include <cmath>
-#include <cstring>
+#include <functional>
 #include <memory>
 #include <numeric>
-#include <tuple>
+#include <optional>
+#include <sstream>
 #include <utility>
 
 namespace Slic3r { namespace GUI {
@@ -70,8 +80,7 @@ wxStaticText* add_checkbox_label(wxWindow* parent,
                                  wxBoxSizer* sizer,
                                  ::CheckBox* check,
                                  const wxString& label,
-                                 const wxString& tooltip,
-                                 int label_width = 0)
+                                 const wxString& tooltip)
 {
     check->SetToolTip(tooltip);
     sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, parent->FromDIP(2));
@@ -79,11 +88,6 @@ wxStaticText* add_checkbox_label(wxWindow* parent,
     auto* text = new wxStaticText(parent, wxID_ANY, label);
     text->SetFont(Label::Body_14);
     text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
-    if (label_width > 0) {
-        text->SetMinSize(wxSize(label_width, -1));
-        text->SetMaxSize(wxSize(label_width, -1));
-        text->Wrap(label_width);
-    }
     text->SetToolTip(tooltip);
     text->SetCursor(wxCURSOR_HAND);
     const auto toggle = [check]() {
@@ -120,14 +124,114 @@ enum {
 constexpr long s_tab_style = wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS |
                              wxTR_FULL_ROW_HIGHLIGHT;
 
+// Keys the file always carries whole for every slot. Publishing one per key would rewrite the
+// receiver's identity instead of gating it; a publishing slot's colour and type travel with its
+// entry regardless.
+const std::set<std::string>& publish_material_identity_keys()
+{
+    static const std::set<std::string> keys = {
+        "filament_colour", "filament_type", "filament_vendor", "filament_ids",
+        "filament_self_index", "filament_extruder_variant", "filament_diameter",
+    };
+    return keys;
+}
+
+// Whether `key` exists in `config` and, when `index` addresses a vector entry, that entry exists:
+// the way the export path masks a slot or file column before keying a row by it.
+bool option_index_in_range(const DynamicPrintConfig& config, const std::string& key, int index)
+{
+    const ConfigOption* opt = config.option(key);
+    if (opt == nullptr)
+        return false;
+    if (index < 0)
+        return true;
+    const auto* values = dynamic_cast<const ConfigOptionVectorBase*>(opt);
+    return values == nullptr || size_t(index) < values->size();
+}
+
 // The author's hex colour for a filament slot (empty when the slot is out of range); shared by
-// the header chip, the inner-tab chip and the DPI rescale paths.
+// the picker badge, the inner-tab chip and the DPI rescale paths.
 std::string filament_color_hex(const DynamicPrintConfig& full, size_t slot)
 {
     if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
         if (slot < colours->size())
             return colours->get_at(slot);
     return std::string();
+}
+
+// The slot's colour swatch, drawn with the same helper as the sidebar's swatch and the tab strip,
+// as a button in the sidebar's colour-button style so it opens the same colour picker. The badge
+// itself never writes the project; its click handler does.
+wxBitmapButton* make_filament_badge(wxWindow* parent, const std::string& hex, const std::string& label, int size)
+{
+    wxBitmap* chip = get_extruder_color_icon(hex, label, size, size);
+    if (chip == nullptr)
+        return nullptr;
+    auto* button = new wxBitmapButton(parent, wxID_ANY, *chip, wxDefaultPosition, wxSize(size, size),
+                                      wxBU_EXACTFIT | wxBU_AUTODRAW | wxBORDER_NONE);
+    button->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    button->SetToolTip(_L("Click to select filament color"));
+#ifdef __WXGTK__
+    RemoveButtonBorder(button);
+#endif
+    return button;
+}
+
+// The read-only colour value beside a slot's Color row: the same swatch helper as the badge and
+// the sidebar, without the click handler that would make it a control.
+wxStaticBitmap* make_color_value_chip(wxWindow* parent, const std::string& hex, const std::string& label, int size)
+{
+    wxBitmap* chip = get_extruder_color_icon(hex, label, size, size);
+    if (chip == nullptr)
+        return nullptr;
+    return new wxStaticBitmap(parent, wxID_ANY, *chip);
+}
+
+// The slot colour the shared picker opens on: the primary colour plus its stored multi-colour
+// spelling, as the sidebar's combo reads it before showing the same dialog.
+FilamentColorPickerValue slot_colour_value(const DynamicPrintConfig& project, size_t slot)
+{
+    FilamentColorPickerValue value;
+    if (const auto* primary = project.opt<ConfigOptionStrings>("filament_colour"))
+        if (slot < primary->values.size())
+            value.primary = primary->values[slot];
+    if (const auto* multi = project.opt<ConfigOptionStrings>("filament_multi_colour"))
+        if (slot < multi->values.size()) {
+            std::istringstream stream(multi->values[slot]);
+            for (std::string colour; stream >> colour;)
+                value.colors.push_back(std::move(colour));
+        }
+    if (value.colors.empty() && !value.primary.empty())
+        value.colors.push_back(value.primary);
+    if (const auto* types = project.opt<ConfigOptionStrings>("filament_colour_type"))
+        if (slot < types->values.size())
+            value.gradient = value.colors.size() > 1 && types->values[slot] == "0";
+    return value;
+}
+
+// Mirrors PlaterPresetComboBox::sync_colour_config for one slot: the primary colour, its
+// multi-colour spelling and the colour type that goes with it.
+bool write_project_slot_colour(DynamicPrintConfig& project, size_t slot, const std::vector<std::string>& colours, bool gradient)
+{
+    if (colours.empty())
+        return false;
+    auto* primary = project.opt<ConfigOptionStrings>("filament_colour");
+    auto* multi   = project.opt<ConfigOptionStrings>("filament_multi_colour");
+    auto* type    = project.opt<ConfigOptionStrings>("filament_colour_type");
+    if (primary == nullptr || multi == nullptr || type == nullptr)
+        return false;
+    for (ConfigOptionStrings* values : { primary, multi, type })
+        if (values->values.size() <= slot)
+            values->values.resize(slot + 1);
+    std::string joined;
+    for (const std::string& hex : colours)
+        joined += hex + " ";
+    if (!joined.empty())
+        joined.pop_back();
+    primary->values[slot] = colours.front();
+    multi->values[slot]   = joined;
+    type->values[slot]    = gradient ? "0" : "1";
+    return true;
 }
 
 PublishMaterialIdentity material_identity(size_t slot, const DynamicPrintConfig& full)
@@ -156,32 +260,30 @@ std::string material_display_name(const std::string& preset_name)
     return bare.empty() ? preset_name : bare;
 }
 
+// Section title for a filament preset: the name the sidebar shows, then the filament type, then
+// the generic "Material".
+wxString material_title_for(const Preset* preset, const std::string& type)
+{
+    if (preset != nullptr && !preset->name.empty()) {
+        // Display the name the sidebar does: the alias (already bare-name + variant-tail stripped
+        // for root filament presets).
+        const std::string& display = preset->alias.empty() ? get_preset_bare_name(preset->name) : preset->alias;
+        return from_u8(material_display_name(display));
+    }
+    if (!type.empty())
+        return from_u8(type);
+    return _L("Material");
+}
+
 // Section title for a filament slot: the resolved preset name, then the filament type, then
 // the generic "Material".
 wxString material_title(size_t slot, const PresetBundle* bundle, const DynamicPrintConfig& full)
 {
-    if (slot < bundle->filament_presets.size()) {
-        const Preset* preset = bundle->filaments.find_preset(bundle->filament_presets[slot]);
-        if (preset != nullptr && !preset->name.empty()) {
-            // Display the name the sidebar does: the alias (already bare-name + variant-tail
-            // stripped for root filament presets).
-            const std::string& display = preset->alias.empty() ? get_preset_bare_name(preset->name) : preset->alias;
-            return from_u8(material_display_name(display));
-        }
-    }
     const PublishMaterialIdentity identity = material_identity(slot, full);
-    if (!identity.type.empty())
-        return from_u8(identity.type);
-    return _L("Material");
-}
-
-// The component slots of a mixed filament ("1,2,3"), 1-based, or empty when out of range.
-std::vector<unsigned int> mixed_slot_components(const DynamicPrintConfig& full, size_t slot)
-{
-    const auto* comp_opt = full.opt<ConfigOptionStrings>("filament_mixed_components");
-    if (comp_opt == nullptr || slot >= comp_opt->size())
-        return {};
-    return parse_mixed_components(comp_opt->values[slot]);
+    const Preset* preset = slot < bundle->filament_presets.size() ?
+                               bundle->filaments.find_preset(bundle->filament_presets[slot]) :
+                               nullptr;
+    return material_title_for(preset, identity.type);
 }
 
 // Human-readable label of a mixed filament, mirroring the sidebar's mixed filament rows: the
@@ -189,7 +291,7 @@ std::vector<unsigned int> mixed_slot_components(const DynamicPrintConfig& full, 
 // e.g. "1 (60%) + 2 (40%)". Used as the slot's tab/header title in place of a preset name.
 wxString mixed_filament_label(const DynamicPrintConfig& full, size_t slot)
 {
-    const std::vector<unsigned int> comps = mixed_slot_components(full, slot);
+    const std::vector<unsigned int> comps = Slic3r::publish_mixed_components(full, slot);
     if (comps.empty())
         return _L("Mixed filament");
     const auto* grad_opt   = full.opt<ConfigOptionBools>("filament_mixed_gradient");
@@ -249,7 +351,7 @@ wxBitmap mixed_filament_chip_bitmap(const DynamicPrintConfig& full, size_t slot,
             icon = get_extruder_color_icon(std::vector<std::string>(), true, label, swatch_sz, swatch_sz, &ramp);
         } else {
             std::vector<std::string> hexes;
-            for (const unsigned int comp : mixed_slot_components(full, slot)) {
+            for (const unsigned int comp : Slic3r::publish_mixed_components(full, slot)) {
                 std::string hex = filament_color_hex(full, size_t(comp) - 1);
                 if (hex.empty())
                     hex = "#D9D9D9";
@@ -280,7 +382,7 @@ wxBitmap mixed_filament_chip_bitmap(const DynamicPrintConfig& full, size_t slot,
 // reason draw_mixed_gradient_plot renders into an opaque buffer (FilamentBitmapUtils.cpp).
 wxBitmap mixed_filament_tab_bitmap(const DynamicPrintConfig& full, size_t slot, int swatch_sz, const wxColour& tab_bg)
 {
-    const std::vector<unsigned int> comps = mixed_slot_components(full, slot);
+    const std::vector<unsigned int> comps = Slic3r::publish_mixed_components(full, slot);
     if (comps.empty())
         return wxNullBitmap;
     const auto* grad_opt   = full.opt<ConfigOptionBools>("filament_mixed_gradient");
@@ -525,9 +627,185 @@ void add_sentence_with_chips(wxWindow* parent, wxSizer* row, const wxString& sen
         add_chip(i);
 }
 
+// Copies `src`'s element `index` into `dst`'s element `index`. A scalar option is copied whole.
+// Returns false when either side cannot address that element.
+bool copy_option_element_at(Slic3r::DynamicPrintConfig& dst, const std::string& key,
+                            const Slic3r::DynamicPrintConfig& src, size_t index)
+{
+    const Slic3r::ConfigOption* from = src.option(key);
+    Slic3r::ConfigOption*       to   = dst.option(key, true);
+    if (from == nullptr || to == nullptr || from->type() != to->type())
+        return false;
+    if (to->is_scalar()) {
+        to->set(from);
+        return true;
+    }
+    auto*       dst_values = dynamic_cast<Slic3r::ConfigOptionVectorBase*>(to);
+    const auto* src_values = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(from);
+    if (dst_values == nullptr || src_values == nullptr || index >= src_values->size())
+        return false;
+    dst_values->set_at(src_values, index, index);
+    return true;
+}
+
+// Whether `lhs`'s element `index` equals `rhs`'s. The vector base has no per-element getter, so a
+// copy of `lhs` with that one element replaced by `rhs`'s is compared whole.
+bool element_equals(const Slic3r::ConfigOption& lhs, const Slic3r::ConfigOption& rhs, size_t index)
+{
+    std::unique_ptr<Slic3r::ConfigOption> probe(lhs.clone());
+    auto* probe_values = dynamic_cast<Slic3r::ConfigOptionVectorBase*>(probe.get());
+    if (probe_values == nullptr)
+        return false;
+    probe_values->set_at(&rhs, index, index);
+    return *probe == lhs;
+}
+
+// Copies `src`'s value for `key` into `dst`, leaving alone what another writer already changed:
+// several slots can share one filament preset, and a dependent write must not revert a value the
+// preset no longer holds from before the Tab's handling of the edit (`before`).
+//   - a scalar, or an option edited as one list ("post_process", "printable_area", ...), is copied
+//     whole, and only while `dst` still holds the pre-handling value;
+//   - any other vector is merged element by element, so a write another writer made to a different
+//     element of the shared preset survives.
+// Returns false when nothing was copied: a key the source no longer holds or `dst` does not own (a
+// dependent key is never added to a preset), a key missing from `before`, different option types,
+// values already in step, or a vector whose width differs from the source's, where the element
+// mapping is unknown and the key is skipped rather than guessed.
+bool copy_option_whole(Slic3r::DynamicPrintConfig& dst, const std::string& key,
+                       const Slic3r::DynamicPrintConfig& src, const Slic3r::DynamicPrintConfig& before)
+{
+    const Slic3r::ConfigOption* from = src.option(key);
+    Slic3r::ConfigOption*       to   = dst.option(key, false);
+    const Slic3r::ConfigOption* was  = before.option(key);
+    if (from == nullptr || to == nullptr || was == nullptr)
+        return false;
+    if (from->type() != to->type() || was->type() != to->type())
+        return false;
+
+    if (!to->is_vector() || Slic3r::is_edited_as_whole_list(src.def(), key)) {
+        if (*from == *to || *to != *was)
+            return false;
+        to->set(from);
+        return true;
+    }
+
+    const auto* from_values = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(from);
+    const auto* was_values  = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(was);
+    auto*       to_values   = dynamic_cast<Slic3r::ConfigOptionVectorBase*>(to);
+    if (from_values == nullptr || was_values == nullptr || to_values == nullptr ||
+        from_values->size() != to_values->size() || was_values->size() != to_values->size())
+        return false;
+
+    bool copied = false;
+    for (size_t i = 0; i < to_values->size(); ++i) {
+        // Only the elements this handling changed, and only where nobody else got there first.
+        if (element_equals(*from, *was, i) || !element_equals(*to, *was, i))
+            continue;
+        to_values->set_at(from, i, i);
+        copied = true;
+    }
+    return copied;
+}
+
+// Whether the Line draws this option through an indexed field ("base#N"), the way per-variant rows
+// are built. Such a field edits the element the tab's switch resolves; an unindexed field always
+// edits index 0.
+bool line_option_indexed(const Slic3r::GUI::Line& line, const std::string& base_key)
+{
+    for (const Slic3r::GUI::Option& option : line.get_options())
+        if (Slic3r::publish_base_key(option.opt_id) == base_key)
+            return Slic3r::publish_key_index(option.opt_id) >= 0;
+    return false;
+}
+
 } // namespace
 
-// Warning shown on OK when an enabled mixed-filament slot relies on a filament that would ship
+// The sidebar's filament preset combo, made inert: a pick is recorded and handed to the dialog,
+// which assigns it to the slot live, instead of updating the slot's preset, the project colours or
+// anything else the sidebar's own handler does. The colour button and the preset menu the combo
+// creates for the sidebar are hidden, so the picker is only the list and its swatches; the slot's
+// colour is shown by the dialog's own badge beside it.
+class PublishFilamentPicker : public PlaterPresetComboBox
+{
+public:
+    PublishFilamentPicker(wxWindow* parent, int filament_idx, std::function<void(const std::string&)> on_pick)
+        : PlaterPresetComboBox(parent, Preset::TYPE_FILAMENT)
+        , m_on_pick(std::move(on_pick))
+    {
+        set_filament_idx(filament_idx);
+        if (clr_picker != nullptr)
+            clr_picker->Hide();
+        if (edit_btn != nullptr)
+            edit_btn->Hide();
+    }
+
+    // The item's preset is the dialog's to read, not the bundle's to switch to.
+    void OnSelect(wxCommandEvent& evt) override
+    {
+        const int item = evt.GetSelection();
+        if (item < 0)
+            return;
+        const Marker marker = reinterpret_cast<Marker>(GetClientData(item));
+        if (marker >= LABEL_ITEM_DISABLED && marker < LABEL_ITEM_MAX) {
+            SetSelection(m_last_selected); // a group label or a wizard entry
+            return;
+        }
+        m_last_selected = item;
+        SetSelection(item);
+        if (m_on_pick == nullptr)
+            return;
+        // The sidebar resolves an item the same way: its stored internal name first, then the
+        // alias of the shown text.
+        const std::string preset_name = item_preset_name(item);
+        if (!preset_name.empty())
+            m_on_pick(preset_name);
+    }
+
+    // Shows `preset_name` again after the combo refreshed its list from the bundle.
+    void show_preset(const std::string& preset_name)
+    {
+        if (preset_name.empty())
+            return;
+        // An AMS item carries no stored preset name (add_ams_filaments does not set an alias), so
+        // its displayed text is resolved the way the pick's own callback resolves it.
+        int fallback = -1;
+        for (int item = 0; item < GetCount(); ++item) {
+            const Marker marker = reinterpret_cast<Marker>(GetClientData(item));
+            if (marker >= LABEL_ITEM_DISABLED && marker < LABEL_ITEM_MAX)
+                continue;
+            if (item_preset_name(item) != preset_name)
+                continue;
+            // The AMS item carries the swatch the pick was made from, so it wins over the plain
+            // preset item of the same name.
+            if (GetFlag(item) == int(FilamentAMSType::FROM_AMS)) {
+                m_last_selected = item;
+                SetSelection(item);
+                return;
+            }
+            if (fallback < 0)
+                fallback = item;
+        }
+        if (fallback >= 0) {
+            m_last_selected = fallback;
+            SetSelection(fallback);
+        }
+    }
+
+private:
+    // The preset an item names: its stored internal name first, then the alias of the shown text.
+    std::string item_preset_name(int item) const
+    {
+        const wxString stored = GetItemAlias(item);
+        if (!stored.empty())
+            return Preset::remove_suffix_modified(stored.ToUTF8().data());
+        return wxGetApp().preset_bundle->get_preset_name_by_alias(
+            Preset::TYPE_FILAMENT, Preset::remove_suffix_modified(GetString(item).ToUTF8().data()));
+    }
+
+    std::function<void(const std::string&)> m_on_pick;
+};
+
+// Warning shown on OK when a publishing mixed-filament slot relies on a filament that would ship
 // without its material. One row per unmet dependency, each a single translated sentence whose
 // two placeholders are the mixed slot's and the component filament's colour chips. "Cancel" is
 // the safe choice and keeps the dialog open; "Publish anyway" continues.
@@ -571,18 +849,15 @@ public:
                                             wxString::Format(_L("Filament %d"), int(issue.component_slot) + 1));
 
             auto* row = new wxWrapSizer(wxHORIZONTAL);
-            add_sentence_with_chips(this, row,
-                                    issue.reason == MixedDependencyIssue::Reason::Disabled ?
-                                        _L("%1% needs %2%, which is not enabled.") :
-                                        _L("%1% needs %2%, whose material will not be published."),
+            // A component either publishes its material (checkbox or Full Publish) or does not;
+            // the same sentence serves both, so no reason branch is needed.
+            add_sentence_with_chips(this, row, _L("%1% needs %2%, whose material will not be published."),
                                     {mix_chip, comp_chip});
             content->Add(row, 0, wxEXPAND | wxLEFT, FromDIP(10));
             content->AddSpacer(FromDIP(6));
         }
 
-        auto* hint = new wxStaticText(
-            this, wxID_ANY,
-            _L("To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."));
+        auto* hint = new wxStaticText(this, wxID_ANY, _L("To publish a mixed filament, publish every filament it uses."));
         hint->SetFont(Label::Body_12);
         hint->Wrap(FromDIP(380));
         content->Add(hint, 0, wxEXPAND | wxTOP, FromDIP(4));
@@ -599,7 +874,7 @@ public:
 PublishSettingsDialog::MixedVisualSpec PublishSettingsDialog::make_mixed_visual_spec(const DynamicPrintConfig& full, size_t slot)
 {
     MixedVisualSpec spec;
-    const std::vector<unsigned int> comps = mixed_slot_components(full, slot);
+    const std::vector<unsigned int> comps = Slic3r::publish_mixed_components(full, slot);
     if (comps.empty())
         return spec;
 
@@ -746,16 +1021,19 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         // Publish is always allowed: no settings selected means no settings override. Warn only
-        // when an enabled mixed filament would ship without the material of one of its
+        // when a publishing mixed filament would ship without the material of one of its
         // components; "Publish anyway" accepts that and publishes anyway.
-        if (const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(); !issues.empty()) {
+        if (const std::vector<MixedDependencyIssue> issues = Slic3r::unpublished_mixed_components(m_selection, m_snapshot, m_row_ids);
+            !issues.empty()) {
             const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
             MixedFilamentWarningDialog warn(this, full, issues);
             if (warn.ShowModal() != wxID_OK)
                 return; // Cancel: dismiss the warning and stay in this dialog
         }
+        // Every edit reached the project as it was made.
         EndModal(wxID_OK);
     });
+    // Cancel closes without restoring anything: the edits are the project's now.
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
 
     // Guide links, bottom-left, sharing the footer row with the OK/Cancel buttons (pushed right).
@@ -803,17 +1081,26 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
 // are floored at the 530x530 base and capped at hard DIP limits - deliberately not the whole
 // display - with one last-resort clamp so the dialog can never open larger than the screen.
 // Also owns the resize floor: the window cannot be resized below what the tabs need, so
-// shrinking never re-hides a filament tab.
+// shrinking never re-hides a filament tab. The cap wins over the tab width: a project whose
+// strip needs more than the cap cannot show every tab at once, and relayout hides the
+// overflowing ones rather than growing the dialog past the cap.
 void PublishSettingsDialog::fit_to_content()
 {
-    static const wxSize BASE{530, 530}; // base size in DIP, the minimum the dialog can shrink to
+    static const wxSize BASE{850, 650}; // base size in DIP, the minimum the dialog can shrink to
     static const wxSize CAP{1300, 850}; // hard cap in DIP, the maximum the dialog can grow to
+    // TabCtrl separates its buttons with proportional stretch spacers, which collapse to zero
+    // when the strip is sized to its bare width - the selection dot on a tab would sit flush
+    // against the next slot's colour chip. Reserve this much per tab item as slack.
+    static const int TAB_SLACK_DIP = 10;
 
-    int strip = m_outer_tabs->GetFullSize();
+    const int slack  = FromDIP(TAB_SLACK_DIP);
+    auto strip_width = [slack](const TabCtrl* tabs) { return tabs->GetFullSize() + slack * int(tabs->GetCount()); };
+
+    int strip = strip_width(m_outer_tabs);
     for (const SectionGroup& section : m_sections) {
-        strip = std::max(strip, (section.page_tabs != nullptr ? section.page_tabs : section.tabs)->GetFullSize());
+        strip = std::max(strip, strip_width(section.tabs));
         if (section.mixed_tabs != nullptr)
-            strip = std::max(strip, section.mixed_tabs->GetFullSize());
+            strip = std::max(strip, strip_width(section.mixed_tabs));
     }
 
     // Minimum width: whatever keeps every tab visible (never below the base). strip is device
@@ -833,17 +1120,24 @@ void PublishSettingsDialog::fit_to_content()
     SetSize(std::min(w, max_w), std::min(h, max_h));
 }
 
-PublishSettingsDialog::~PublishSettingsDialog() {}
+PublishSettingsDialog::~PublishSettingsDialog()
+{
+    // The hosted tabs outlive this dialog's members, so drop the callbacks that capture it.
+    for (Category& category : m_categories) {
+        if (category.publish_tab == nullptr)
+            continue;
+        category.publish_tab->m_on_variant_changed = nullptr;
+        category.publish_tab->m_on_rules_applied   = nullptr;
+        category.publish_tab->m_on_publish_edit    = nullptr;
+    }
+    // The hosted lines' toggles capture this dialog too; every row of one line shares it.
+    for (Row& row : m_rows)
+        if (row.tab_line != nullptr && row.tab_line->row_toggle)
+            row.tab_line->row_toggle->on_change = nullptr;
+}
 
 void PublishSettingsDialog::build_option_model()
 {
-    // Structural / non-publishable keys, shared with the published-3MF overlay path.
-    const std::set<std::string>& denylist = publish_structural_keys();
-    // Base keys already added in the print section (dedup across pages/optgroups). The printer
-    // section keeps its own printer_added set keyed by the full per-extruder "#N" opt_id, so
-    // every extruder gets its own row (see Phase 1 below).
-    std::set<std::string> added;
-
     PresetBundle* bundle    = wxGetApp().preset_bundle;
     DynamicPrintConfig full = bundle->full_config();
     // Per-extruder rows (printer and process) index the uncompacted variant columns (as the Tabs do);
@@ -863,281 +1157,180 @@ void PublishSettingsDialog::build_option_model()
         section_group_for(kind);
     bind_tab_events();
 
-    // Shared per-option label/value computation; returns false when the option must be skipped
-    // (denylisted / unknown / empty label). value is the stringified value; unit the translated
-    // sidetext (may be empty).
-    auto option_text = [&denylist](const DynamicPrintConfig& cfg, const std::string& opt_id, const std::string& pure_key, wxString& label,
-                                   wxString& value, wxString& unit) -> bool {
-        if (denylist.count(pure_key) > 0)
-            return false;
-        const ConfigOptionDef* def = print_config_def.get(pure_key);
-        if (def == nullptr)
-            return false;
-        label = _(def->full_label.empty() ? def->label : def->full_label);
-        if (label.IsEmpty())
-            return false;
-        value = get_string_value(opt_id, cfg);
-        unit  = _(def->sidetext);
-        if (unit == "%" && value.EndsWith("%"))
-            unit.clear();
-        return true;
-    };
+    m_snapshot = uncompacted;
 
-    // --- Phase 1: printer per-extruder retraction settings (first, mirroring the sidebar's
-    // Printer group), from the printer tab's "Extruder" page. One inner tab per extruder (named
-    // as on the printer tab's switch, e.g. "Left Extruder"/"Right Extruder" via
-    // Tab::translate_category), each holding that extruder's Retraction and Z-Hop rows with
-    // per-extruder "#N" values.
-    {
+    // --- Phase 1: the printer settings, drawn by one dialog-hosted Printer tab over a preset
+    // seeded from the edited printer preset (spec 7.4). Its own extruder switch selects the
+    // variant, and its pages are pruned to the published-3MF allowlist, so the rows below are the
+    // sidebar's Retraction and Z-Hop groups.
+    if (bundle->printers.get_edited_preset().printer_technology() == ptFFF) {
         size_t g = section_group_for(Section::Printer);
-        std::set<std::string> printer_added;
-        for (Tab* tab : wxGetApp().tabs_list) {
-            // The page's controls edit the extruder chosen on the printer tab's switch, so its
-            // option list is read once per extruder.
-            auto*       printer_tab = dynamic_cast<TabPrinter*>(tab);
-            const Page* page        = printer_tab ? printer_tab->extruder_page() : nullptr;
-            if (page == nullptr)
-                continue;
-            const size_t extruders_count = printer_tab->m_extruders_count;
-            for (size_t extruder_idx = 0; extruder_idx < extruders_count; ++extruder_idx) {
-                const wxString page_title = Tab::translate_category(extruders_count > 1 ? wxString::Format("Extruder %d", int(extruder_idx + 1)) : wxString("Extruder"), tab->m_type);
-                // Retraction and Z-Hop values are stored per variant column, not per extruder.
-                const int variant_index = printer_tab->extruder_variant_index(int(extruder_idx));
-                for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
-                    // Allowlist on the untranslated optgroup title; the "Retraction when
-                    // switching material" group is intentionally skipped.
-                    if (optgroup->title != "Retraction" && optgroup->title != "Z-Hop")
-                        continue;
-                    const wxString subcategory = _(optgroup->title);
-                    for (const auto& opt : optgroup->opt_map()) {
-                        const std::string& pure_key = opt.second.first;
-                        // Rows are keyed by the full per-extruder "#N" opt_id so each extruder
-                        // tab publishes its own value; GetPublishedKeys() emits the checked rows
-                        // as-is.
-                        const std::string opt_id = pure_key + "#" + std::to_string(variant_index);
-                        if (!printer_added.insert(opt_id).second)
-                            continue;
-                        wxString label, value, unit;
-                        if (!option_text(uncompacted, opt_id, pure_key, label, value, unit))
-                            continue;
-                        size_t cat_index = category_index_for(page_title, Section::Printer, g, extruder_idx, PublishMaterialIdentity(), false, true);
-                        size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon);
-                        add_row_ui(opt_id, label, value, unit, cat_index, sub_index);
-                    }
-                }
-            }
-        }
+        const size_t category_index = category_index_for(_L("Printer"), Section::Printer, g, 0);
+        add_printer_tab_rows(category_index);
+        bind_publish_tab(category_index);
     }
 
-    // --- Phase 2: per-material sections synthesized from the filament tab's "Setting
-    // Overrides" page, under the Filament group.
+    // --- Phase 2: per-material sections, one per used slot, each drawing the sidebar's own
+    // Filament tab (spec 7.4) over a preset seeded from that slot (Task 14).
     {
-        size_t g          = section_group_for(Section::Material);
-        Tab* filament_tab = nullptr;
-        for (Tab* tab : wxGetApp().tabs_list)
-            if (tab->m_type == Preset::TYPE_FILAMENT) {
-                filament_tab = tab;
-                break;
-            }
-        if (filament_tab != nullptr) {
-            const Page* overrides_page = nullptr;
-            for (const PageShp& page : filament_tab->m_pages)
-                if (page->title() == "Setting Overrides") {
-                    overrides_page = page.get();
-                    break;
-                }
+        size_t g = section_group_for(Section::Material);
 
-            if (overrides_page != nullptr) {
-                // Mixed-color slots are virtual: they carry no per-key Material/Retraction
-                // settings; their "Enable" toggle always embeds the mix definition (components,
-                // ratios, gradient). Detect them via the project-level flag.
-                const ConfigOptionBools* is_mixed_opt = full.opt<ConfigOptionBools>("filament_is_mixed");
-                // Only the slots the project actually uses: base/MMU-painted volume extruders,
-                // support/wall/infill overrides and custom-gcode tool changes, plus the physical
-                // components of any in-use mixed slot. Unused slots get no section at all (and are
-                // therefore never published). One section per used slot, disambiguated by its
-                // colour chip and slot identity while showing the bare name.
-                const std::set<size_t> used_slots = project_used_filament_slots(*bundle, full, wxGetApp().plater()->model());
-                for (size_t slot = 0; slot < bundle->filament_presets.size(); ++slot) {
-                    if (used_slots.find(slot) == used_slots.end())
-                        continue;
-                    const bool is_mixed = is_mixed_opt != nullptr && slot < is_mixed_opt->size() && is_mixed_opt->values[slot];
-                    const PublishMaterialIdentity identity = material_identity(slot, full);
-                    // A mixed slot's title is its component composition (e.g. "1 (60%) + 2
-                    // (40%)"), not the cloned preset's name shown in the main GUI.
-                    const wxString title        = is_mixed ? mixed_filament_label(full, slot) : material_title(slot, bundle, full);
-                    const size_t category_index = category_index_for(title, Section::Material, g, slot, identity, is_mixed);
-
-                    if (is_mixed) {
-                        // A mixed slot publishes as one unit (its definition); nothing to select
-                        // per-key. Its component filaments are auto-enabled + Full Published when
-                        // "Enable" is checked (see on_enable_toggle). Its page still shows what
-                        // would be published: a ratio bar, or the gradient graph.
-                        add_mixed_visual(category_index, make_mixed_visual_spec(full, slot));
-                        continue;
-                    }
-
-                    // Material requirement rows: an optional filament colour and/or a
-                    // vendor-agnostic material type for this slot, in their own optgroup so they
-                    // stay visually separated from the setting rows.
-                    {
-                        const size_t req_sub = subcategory_index_for(category_index, _L("Material"), "custom-gcode_filament");
-                        add_row_ui("filament_colour", _L("Color"), from_u8(filament_color_hex(full, slot)), wxString(), category_index,
-                                   req_sub, RowKind::Color);
-                        std::string type;
-                        if (const auto* types = full.opt<ConfigOptionStrings>("filament_type"))
-                            if (slot < types->size())
-                                type = types->get_at(slot);
-                        add_row_ui("filament_type", _L("Type"), from_u8(normalize_filament_type(type)), wxString(), category_index, req_sub,
-                                   RowKind::Type);
-                    }
-
-                    // A material section must not repeat a key; the same key may appear in other
-                    // material sections - that is intended.
-                    std::set<std::string> material_added;
-
-                    for (const ConfigOptionsGroupShp& optgroup : overrides_page->m_optgroups) {
-                        // Allowlist on the untranslated optgroup title; "Ironing" is skipped.
-                        if (optgroup->title != "Retraction" && optgroup->title != "Retraction when switching material")
-                            continue;
-                        for (const auto& opt : optgroup->opt_map()) {
-                            // Row keys are base keys; the load side applies them positionally.
-                            const std::string& opt_id = opt.first;
-                            std::string base          = publish_base_key(opt_id);
-                            if (!material_added.insert(base).second)
-                                continue;
-                            // Show the value of this slot; fall back to slot 0 if out of range.
-                            std::string value_opt_id = base + "#" + std::to_string(slot);
-                            if (const ConfigOption* opt_cfg = full.option(base))
-                                if (const auto* vec = dynamic_cast<const ConfigOptionVectorBase*>(opt_cfg))
-                                    if (vec->size() > 0 && slot >= vec->size())
-                                        value_opt_id = base + "#0";
-                            wxString label, value, unit;
-                            if (!option_text(full, value_opt_id, base, label, value, unit))
-                                continue;
-                            size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon);
-                            add_row_ui(base, label, value, unit, category_index, sub_index);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // --- Phase 3: process (print) settings; grouping matches the process tab. Per-extruder settings
-    // (print_options_with_variant) get one tab per extruder, as the Printer section does, with a row
-    // per extruder column ("key#N"); the other settings stay on the page tabs.
-    {
-        size_t g = section_group_for(Section::Print);
-
-        // One tab per extruder entry of the Process tab's switch (a single "Extruder" tab for one extruder).
-        struct ExtruderEntry
-        {
-            size_t category{0};
-            int    variant{-1};
-        };
-        std::vector<ExtruderEntry> extruder_entries;
-        if (auto* print_tab = dynamic_cast<TabPrint*>(wxGetApp().get_tab(Preset::TYPE_PRINT))) {
-            std::vector<std::pair<wxString, int>> entries; // tab title, variant column
-            const int extruder_count = bundle->get_printer_extruder_count();
-            const bool variant_tabs  = extruder_count >= 2;
-            if (variant_tabs) {
-                const std::vector<wxString> titles = print_tab->generate_extruder_options();
-                for (size_t i = 0; i < titles.size(); ++i) {
-                    int                  extruder_id = 0;
-                    NozzleVolumeType     nozzle_type = NozzleVolumeType::nvtStandard;
-                    print_tab->parse_extruder_selection(int(i), extruder_id, nozzle_type);
-                    entries.emplace_back(titles[i], print_tab->extruder_variant_index(extruder_id, nozzle_type));
-                }
-            } else if (extruder_count == 1) {
-                entries.emplace_back(Tab::translate_category(wxString("Extruder"), Preset::TYPE_PRINT),
-                                     print_tab->extruder_variant_index(0, print_tab->get_actual_nozzle_volume_type(0)));
-            }
-            for (const auto& [title, variant] : entries) {
-                if (variant < 0)
-                    continue;
-                extruder_entries.push_back(
-                    {category_index_for(title, Section::Print, g, extruder_entries.size(), PublishMaterialIdentity(), false, variant_tabs), variant});
-            }
-        }
-
-        std::set<std::string> extruder_added; // "key#N" rows already added
-        for (Tab* tab : wxGetApp().tabs_list) {
-            if (tab->m_type != Preset::TYPE_PRINT)
+        // Mixed-color slots are virtual: they carry no per-key Material/Retraction
+        // settings; their publish checkbox embeds the mix definition (components, ratios,
+        // gradient). Detect them via the project-level flag.
+        const ConfigOptionBools* is_mixed_opt = full.opt<ConfigOptionBools>("filament_is_mixed");
+        // Only the slots the project actually uses: base/MMU-painted volume extruders,
+        // support/wall/infill overrides and custom-gcode tool changes, plus the physical
+        // components of any in-use mixed slot. Unused slots get no section at all (and are
+        // therefore never published). One section per used slot, disambiguated by its
+        // colour chip and slot identity while showing the bare name.
+        const std::set<size_t> used_slots = project_used_filament_slots(*bundle, full, wxGetApp().plater()->model());
+        for (size_t slot = 0; slot < bundle->filament_presets.size(); ++slot) {
+            if (used_slots.find(slot) == used_slots.end())
                 continue;
-            size_t page_index = 0;
-            for (const PageShp& page : tab->m_pages) {
-                const wxString category = Tab::translate_category(page->title(), tab->m_type);
-                // Created with the page's first row, so a page holding only per-extruder settings gets no tab.
-                size_t category_index = size_t(-1);
+            const bool is_mixed = is_mixed_opt != nullptr && slot < is_mixed_opt->size() && is_mixed_opt->values[slot];
+            const PublishMaterialIdentity identity = material_identity(slot, full);
+            // A mixed slot's title is its component composition (e.g. "1 (60%) + 2
+            // (40%)"), not the cloned preset's name shown in the main GUI.
+            const wxString title        = is_mixed ? mixed_filament_label(full, slot) : material_title(slot, bundle, full);
+            const size_t category_index = category_index_for(title, Section::Material, g, slot, identity, is_mixed);
 
-                for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
-                    for (const auto& opt : optgroup->opt_map()) {
-                        // opt_map() key is the opt_id (may carry "#N"); the value is
-                        // (pure_opt_key, opt_index).
-                        const std::string& opt_id   = opt.first;
-                        const std::string& pure_key = opt.second.first;
-                        if (!extruder_entries.empty() && opt.second.second >= 0 && print_options_with_variant.count(pure_key) != 0) {
-                            for (const ExtruderEntry& entry : extruder_entries) {
-                                const std::string row_key = pure_key + "#" + std::to_string(entry.variant);
-                                if (!extruder_added.insert(row_key).second)
-                                    continue;
-                                wxString label, value, unit;
-                                if (!option_text(uncompacted, row_key, pure_key, label, value, unit))
-                                    continue;
-                                size_t sub_index = subcategory_index_for(entry.category, _(optgroup->title), optgroup->icon);
-                                add_row_ui(row_key, label, value, unit, entry.category, sub_index);
-                            }
-                            continue;
-                        }
-                        // A key may appear in more than one page/group; keep the first.
-                        if (!added.insert(pure_key).second)
-                            continue;
-                        wxString label, value, unit;
-                        if (!option_text(full, opt_id, pure_key, label, value, unit))
-                            continue;
-                        if (category_index == size_t(-1))
-                            category_index = category_index_for(category, Section::Print, g, page_index);
-                        size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon);
-                        add_row_ui(opt_id, label, value, unit, category_index, sub_index);
-                    }
-                }
-                ++page_index;
+            // The owner's identity and whole-preset keys travel with every entry.
+            Slic3r::PublishOwnerInfo owner_info;
+            owner_info.mixed            = is_mixed;
+            owner_info.filament_type    = identity.type;
+            owner_info.filament_vendor  = identity.vendor;
+            owner_info.filament_id      = identity.id;
+            owner_info.full_keys        = full_keys_for_slot();
+            owner_info.colour           = filament_color_hex(full, slot);
+            if (const Preset* preset = bundle->filaments.find_preset(bundle->filament_presets[slot], false, true)) {
+                owner_info.setting_id  = preset->setting_id;
+                owner_info.preset_name = preset->name;
             }
+            m_categories[category_index].pending_filament = bundle->filament_presets[slot];
+            m_selection.set_owner_info(int(slot), std::move(owner_info));
+            // Nothing is published until the author selects something: the Color/Type rows start
+            // off and the mixed slot's checkbox does too.
+            m_selection.set_owner_published(int(slot), false);
+            m_selection.set_full_publish(int(slot), false);
+            if (m_categories[category_index].owner_check != nullptr)
+                m_categories[category_index].owner_check->SetValue(false);
+
+            if (is_mixed) {
+                // A mixed slot publishes as one unit (its definition); nothing to select
+                // per-key. Its component filaments are auto-published + Full Published when
+                // its checkbox is checked (see on_owner_toggle). Its page still shows what
+                // would be published: a ratio bar, or the gradient graph.
+                add_mixed_visual(category_index, make_mixed_visual_spec(full, slot));
+                continue;
+            }
+
+            // The column this slot prints with, and the file columns its preset defines.
+            const Slic3r::PublishResolvedColumn resolved = publish_resolved_column(uncompacted, slot);
+            const std::vector<size_t>           slot_columns = publish_filament_columns(uncompacted, slot);
+            m_categories[category_index].column  = resolved.file_column.has_value() ? int(*resolved.file_column) : -1;
+            m_categories[category_index].columns = slot_columns;
+            // Q1: a slot whose printer variant its filament does not define publishes the
+            // values it prints with, and the owner is told before they publish.
+            if (const std::string notice = publish_variant_notice(uncompacted, slot); !notice.empty()) {
+                if (wxStaticText* label = m_categories[category_index].variant_notice; label != nullptr) {
+                    label->SetLabel(from_u8(notice));
+                    label->Wrap(FromDIP(460));
+                    label->Show();
+                }
+            }
+
+            // The slot's settings, straight off its hosted tab's lines. Colour and type are not
+            // key rows: the header's Color and Type rows publish them.
+            add_material_tab_rows(category_index);
+            add_owner_flag_rows(category_index);
+            bind_publish_tab(category_index);
         }
     }
 
-    // Pre-check the dirty (modified) settings and mark them bold (per-slot match, across all
-    // sections; collect_dirty_settings_keys unions the prints, printers and filaments).
-    // Dirty keys carry a "#N" per-extruder/per-slot suffix (deep_diff), so the base key alone
-    // cannot distinguish which extruder/filament slot changed: match the row's exact key, and
-    // for material rows (base key + per-slot value) the base key plus the section's slot.
-    std::set<std::string> dirty_keys;
-    for (const std::string& key : collect_dirty_settings_keys(*wxGetApp().preset_bundle))
-        dirty_keys.insert(key);
-    for (Row& row : m_rows) {
-        // The Color/Type requirement rows are not "dirty overrides": never auto-checked.
-        if (row.kind != RowKind::Setting)
+    // --- Phase 3: the process settings, drawn by one dialog-hosted Process tab over a preset
+    // seeded from the edited print preset (spec 7.4). The tab's own extruder switch and page strip
+    // are the navigation, and its page set is kept whole.
+    {
+        size_t       g              = section_group_for(Section::Print);
+        const size_t category_index = category_index_for(_L("Process"), Section::Print, g, 0);
+        add_print_tab_rows(category_index);
+        bind_publish_tab(category_index);
+    }
+
+    // Pre-check the dirty (modified) settings. Printer and process dirty keys already carry the
+    // column of their own preset, which is the file column, so an exact match is right for them.
+    // A filament preset's dirty keys carry its *local* variant index, and several slots routinely
+    // share one preset: publish_dirty_material_keys resolves them to each sharing slot's own
+    // "base#file_column" (spec 7.5).
+    const std::vector<std::string> dirty = collect_dirty_settings_keys(*bundle);
+    std::vector<bool>              slot_is_mixed(bundle->filament_presets.size(), false);
+    if (const auto* mixed_flags = full.opt<ConfigOptionBools>("filament_is_mixed"))
+        for (size_t slot = 0; slot < slot_is_mixed.size() && slot < mixed_flags->values.size(); ++slot)
+            slot_is_mixed[slot] = mixed_flags->values[slot];
+    const std::vector<std::string> dirty_material =
+        publish_dirty_material_keys(uncompacted, bundle->filament_presets, slot_is_mixed,
+                                    bundle->filaments.get_selected_preset_name(), dirty);
+    const std::set<std::string> dirty_keys(dirty.begin(), dirty.end());
+    const std::set<std::string> dirty_material_keys(dirty_material.begin(), dirty_material.end());
+    for (size_t r = 0; r < m_rows.size(); ++r) {
+        Row& row = m_rows[r];
+        // Only key rows are "dirty overrides": the Color/Type flag rows carry no key to look up.
+        if (row.id.kind != Slic3r::PublishRowKind::Key)
             continue;
-        bool dirty = dirty_keys.count(row.key) != 0;
-        if (!dirty && row.section == Section::Material)
-            dirty = dirty_keys.count(publish_base_key(row.key) + "#" + std::to_string(m_categories[row.inner_index].filament_slot)) != 0;
-        row.dirty = dirty;
-        if (row.dirty) {
-            row.check->SetValue(true);
-            set_row_bold(row, true);
+        // A row is one publish unit, so any of its keys being modified marks the whole row.
+        const bool material = row.id.section == Slic3r::PublishSection::Material;
+        bool       row_dirty = false;
+        for (const std::string& key : row.id.keys) {
+            if (!material) {
+                row_dirty = dirty_keys.count(key) != 0;
+            } else if (dirty_material_keys.count(key) != 0) {
+                // A per-slot key rides on every column's row of a mixed line: only the column this
+                // slot prints with counts, so a dirty per-slot value never pre-checks another
+                // variant. A "base#file_column" key names its own row.
+                row_dirty = publish_key_index(key) >= 0 || row.id.column < 0 ||
+                            row.id.column == m_categories[row.inner_index].column;
+            }
+            if (row_dirty)
+                break;
         }
+        // A print/printer row with no column suffix covers the whole setting, so any index of it
+        // counts as a match; a material row's dirty keys are already per-slot publish keys.
+        const std::string& row_key = row.id.keys.front();
+        if (!row_dirty && !material && row.id.column < 0 && row_key.find('#') == std::string::npos) {
+            const std::string prefix = row_key + "#";
+            row_dirty = std::any_of(dirty_keys.begin(), dirty_keys.end(), [&prefix](const std::string& key) {
+                return key.compare(0, prefix.size(), prefix) == 0;
+            });
+        }
+        // The tab indicators are refreshed once below, after the whole pass.
+        if (row_dirty)
+            set_row_checked(r, true, false);
     }
+    // A page may already have been built while the model was still being assembled, so paint the
+    // markers once more now that every row knows whether it is dirty.
+    apply_row_label_colours();
 
-    // Wire the "Enable" checkboxes: toggling one reveals/hides the slot's settings below the
-    // header (and, for a mixed slot, auto-selects its components). Bind by index so the lambda
-    // stays valid even if the vector is reallocated later.
-    for (size_t c = 0; c < m_categories.size(); ++c)
-        if (m_categories[c].enable_check != nullptr)
-            m_categories[c].enable_check->Bind(wxEVT_TOGGLEBUTTON, [this, c](wxCommandEvent& event) {
-                on_enable_toggle(c);
+    // Wire the header's Color/Type checkboxes (physical slots) and the mixed slots' publish
+    // checkboxes. Bind by index so the lambda stays valid even if the vector is reallocated.
+    for (size_t c = 0; c < m_categories.size(); ++c) {
+        Category& cat = m_categories[c];
+        if (cat.owner_check != nullptr)
+            cat.owner_check->Bind(wxEVT_TOGGLEBUTTON, [this, c](wxCommandEvent& event) {
+                on_owner_toggle(c);
                 event.Skip();
             });
+        if (cat.color_check != nullptr)
+            cat.color_check->Bind(wxEVT_TOGGLEBUTTON, [this, c](wxCommandEvent& event) {
+                on_owner_flag_toggle(c, Slic3r::PublishRowKind::Color);
+                event.Skip();
+            });
+        if (cat.type_check != nullptr)
+            cat.type_check->Bind(wxEVT_TOGGLEBUTTON, [this, c](wxCommandEvent& event) {
+                on_owner_flag_toggle(c, Slic3r::PublishRowKind::Type);
+                event.Skip();
+            });
+    }
 
     // Wire the "Full Publish" checkboxes (physical slots): toggling one disables/enables the
     // material's rows.
@@ -1151,6 +1344,13 @@ void PublishSettingsDialog::build_option_model()
     // No filter is active at startup: every row matches until the user types.
     for (Row& row : m_rows)
         row.matches_filter = true;
+    // The hosted tabs built and enabled their fields while the pages activated, before the row
+    // hooks existed. Gate every row once now, so an unchecked row starts read-only instead of
+    // staying enabled until the first extruder or variant switch.
+    for (size_t c = 0; c < m_categories.size(); ++c)
+        apply_row_field_gating(c);
+    // Rows are drawn when their page is first shown, so opening stays close to today's cost
+    // even with several variants per slot.
     apply_visibility();
 
     for (Category& category : m_categories) {
@@ -1160,10 +1360,6 @@ void PublishSettingsDialog::build_option_model()
     for (SectionGroup& section : m_sections)
         if (!section.categories.empty())
             section.tabs->SelectItem(0);
-    // Orca: several extruders are shown on the same switch as the printer tab's Extruder page.
-    for (size_t s = 0; s < m_sections.size(); ++s)
-        if (m_sections[s].variant_inners.size() > 1)
-            setup_variant_switch(s);
     if (!m_sections.empty()) {
         m_outer_tabs->SelectItem(0);
         show_outer_page(0);
@@ -1203,15 +1399,10 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
     section.tabs->SetFont(Label::Body_14);
     section.tabs->SetBackgroundColour(GetBackgroundColour());
     page_sizer->Add(section.tabs, 0, wxEXPAND);
-    // Process: the full strip stays hidden as the selection model; the page tabs are shown below the
-    // extruder switch instead.
-    if (kind == Section::Print) {
-        section.page_tabs = new TabCtrl(section.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, s_tab_style);
-        section.page_tabs->SetFont(Label::Body_14);
-        section.page_tabs->SetBackgroundColour(GetBackgroundColour());
-        page_sizer->Add(section.page_tabs, 0, wxEXPAND);
+    // Printer and Process: one hosted page each, so the strip is the selection model only and the
+    // tab's own pages and extruder switch are the visible navigation.
+    if (kind != Section::Material)
         section.tabs->Hide();
-    }
     // Mixed-color filament slots get a second tab strip below the physical filament tabs; only
     // the Material section has them.
     if (kind == Section::Material) {
@@ -1246,8 +1437,7 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
                                                  size_t group,
                                                  size_t source_index,
                                                  const PublishMaterialIdentity& identity,
-                                                 bool is_mixed,
-                                                 bool is_variant)
+                                                 bool is_mixed)
 {
     // Dedup across both tab rows (physical + mixed); mixed slots are never duplicated anyway.
     auto match = [&](const Category& existing) {
@@ -1276,10 +1466,11 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     category.page->SetBackgroundColour(GetBackgroundColour());
     auto* page_sizer = new wxBoxSizer(wxVERTICAL);
 
-    // The physical slot's colour chip decorates the page header and the inner tab; it carries
-    // the 1-based slot number, mirroring the main GUI's filament swatches. A mixed slot has no
-    // header at all: its page is just the Enable toggle above the (always visible) definition
-    // preview - the identification lives in the tab strip's composition bitmap.
+    // The physical slot's colour chip sits left of its preset picker, where the sidebar draws its
+    // swatch, and the inner tab carries the same chip; both carry the 1-based slot number,
+    // mirroring the main GUI's filament swatches. A mixed slot has no header at all: its page is
+    // just its publish checkbox above the (always visible) definition preview - the identification
+    // lives in the tab strip's composition bitmap.
     std::string hex;
     std::string chip_label;
     if (section == Section::Material && !is_mixed) {
@@ -1290,42 +1481,107 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
 
     if (section == Section::Material) {
         if (is_mixed) {
-            // No chip/title: the lone "Enable" checkbox tops the page.
-            auto* enable_sizer    = new wxBoxSizer(wxHORIZONTAL);
-            category.enable_check = new ::CheckBox(category.page, wxID_ANY);
-            category.enable_label = add_checkbox_label(category.page, enable_sizer, category.enable_check, _L("Enable"),
-                                                       _L("Publish this mixed filament and enable + Full Publish its component filaments"));
-            page_sizer->Add(enable_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
+            // No chip/title: the lone publish checkbox tops the page.
+            auto* owner_sizer    = new wxBoxSizer(wxHORIZONTAL);
+            category.owner_check = new ::CheckBox(category.page, wxID_ANY);
+            add_checkbox_label(category.page, owner_sizer, category.owner_check, _L("Enable"),
+                               _L("Publish this mixed filament and enable + Full Publish its component filaments"));
+            page_sizer->Add(owner_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
         } else {
-            // Line 1: [chip] [title] [Enable]. The Enable checkbox gates the whole slot: while
-            // it is unchecked nothing below the title is shown and nothing of it is published.
-            auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
-            if (wxBitmap* chip = get_extruder_color_icon(hex, chip_label, FromDIP(20), FromDIP(20))) {
-                category.filament_color_chip = new wxStaticBitmap(category.page, wxID_ANY, *chip);
-                header_sizer->Add(category.filament_color_chip, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+            // Line 1: the slot's colour badge, then the sidebar's own filament picker. Selecting a
+            // preset assigns it to this slot at once; clicking the badge writes the slot's colour
+            // at once.
+            auto* picker_sizer = new wxBoxSizer(wxHORIZONTAL);
+            category.filament_color_chip = make_filament_badge(category.page, hex, chip_label, FromDIP(20));
+            if (category.filament_color_chip != nullptr) {
+                category.filament_color_chip->Bind(wxEVT_BUTTON,
+                                                   [this, source_index](wxCommandEvent&) { on_filament_color_picked(source_index); });
+                picker_sizer->Add(category.filament_color_chip, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(4));
             }
-            category.title_label = new wxStaticText(category.page, wxID_ANY, title);
-            category.title_label->SetFont(Label::Head_14);
-            header_sizer->Add(category.title_label, 0, wxALIGN_CENTER_VERTICAL);
-            auto* enable_sizer    = new wxBoxSizer(wxHORIZONTAL);
-            category.enable_check = new ::CheckBox(category.page, wxID_ANY);
-            category.enable_label = add_checkbox_label(category.page, enable_sizer, category.enable_check, _L("Enable"),
-                                                       _L("Publish this filament slot in the 3MF file"));
-            header_sizer->Add(enable_sizer, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
-            page_sizer->Add(header_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
+            category.filament_picker = new PublishFilamentPicker(
+                category.page, int(source_index),
+                [this, source_index](const std::string& preset_name) { on_filament_picked(source_index, preset_name); });
+            picker_sizer->Add(category.filament_picker, 1, wxEXPAND);
+            category.filament_picker->update();
+            category.filament_picker_item =
+                page_sizer->Add(picker_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
 
-            // Line 2: the "Full Publish" toggle, on its own line below the title (hidden until
-            // the slot is enabled), aligned with the colour chip above it.
+            // Lines 2 and 3: the slot's two publish flags, each with its own checkbox and a
+            // read-only value that follows the slot. "Color" shows the colour the slot prints
+            // with; "Type" shows its normalised material type. Both start off.
+            auto* color_sizer = new wxBoxSizer(wxHORIZONTAL);
+            category.color_check = new ::CheckBox(category.page, wxID_ANY);
+            category.color_label =
+                add_checkbox_label(category.page, color_sizer, category.color_check, _L_CONTEXT("Color", "Publish"),
+                                   _L("Publish this filament slot's color in the 3MF file"));
+            category.color_value = make_color_value_chip(category.page, hex, chip_label, FromDIP(16));
+            if (category.color_value != nullptr)
+                color_sizer->Add(category.color_value, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
+            page_sizer->Add(color_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
+
+            auto* type_sizer    = new wxBoxSizer(wxHORIZONTAL);
+            category.type_check = new ::CheckBox(category.page, wxID_ANY);
+            category.type_label =
+                add_checkbox_label(category.page, type_sizer, category.type_check, _L_CONTEXT("Type", "Publish"),
+                                   _L("Publish this filament slot's material type in the 3MF file"));
+            category.type_value = new wxStaticText(category.page, wxID_ANY, from_u8(normalize_filament_type(category.filament_type)));
+            category.type_value->SetFont(Label::Body_13);
+            category.type_value->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+            type_sizer->Add(category.type_value, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
+            page_sizer->Add(type_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
+
+            // Line 4: the "Full Publish" toggle, after the material controls it disables.
             auto* full_sizer    = new wxBoxSizer(wxHORIZONTAL);
             category.full_check = new ::CheckBox(category.page, wxID_ANY);
-            category.full_label = add_checkbox_label(category.page, full_sizer, category.full_check, _L("Full Publish"),
-                                                     _L("Embed the entire filament of this slot in the 3MF file"));
+            add_checkbox_label(category.page, full_sizer, category.full_check, _L("Full Publish"),
+                               _L("Embed the entire filament of this slot in the 3MF file"));
             category.full_line_item = page_sizer->Add(full_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
         }
     }
 
-    category.scroll = new wxScrolledWindow(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    category.scroll->SetScrollRate(0, FromDIP(20));
+    if (section == Section::Material && !is_mixed) {
+        // The Q1 notice, filled once the slot's resolved column is known.
+        category.variant_notice = new wxStaticText(category.page, wxID_ANY, wxEmptyString);
+        category.variant_notice->SetFont(Label::Body_13);
+        category.variant_notice->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#C0392B")));
+        category.variant_notice->Hide();
+        page_sizer->Add(category.variant_notice, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
+
+        // The slot's settings are the sidebar's own Filament tab, over a private preset seeded
+        // from this slot (spec 7.4). Its own pages and variant switch are the navigation.
+        auto* host = new PublishParamsPanel(category.page);
+        category.publish_host = host;
+        build_material_tab(category);
+        page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
+    } else if (section == Section::Printer) {
+        // The printer settings are the sidebar's own Printer tab, over a private preset seeded
+        // from the edited printer preset (spec 7.4). Its own extruder switch selects the variant,
+        // and its pages are pruned to the publish allowlist.
+        auto* host = new PublishParamsPanel(category.page);
+        auto* tab  = new PublishTabPrinter(host);
+        const DynamicPrintConfig seed  = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        const DynamicPrintConfig saved = wxGetApp().preset_bundle->printers.get_selected_preset().config;
+        tab->create_publish_tab(seed, saved);
+        host->set_publish_tab(tab);
+        category.publish_host = host;
+        category.publish_tab  = tab;
+        page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
+    } else if (section == Section::Print) {
+        // The process settings are the sidebar's own Process tab, over a private preset seeded
+        // from the edited print preset (spec 7.4). Its own extruder switch and page strip are the
+        // navigation; its page set is kept whole.
+        auto* host = new PublishParamsPanel(category.page);
+        auto* tab  = new PublishTabPrint(host);
+        const DynamicPrintConfig seed  = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        const DynamicPrintConfig saved = wxGetApp().preset_bundle->prints.get_selected_preset().config;
+        tab->create_publish_tab(seed, saved);
+        host->set_publish_tab(tab);
+        category.publish_host = host;
+        category.publish_tab  = tab;
+        page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
+    }
+    category.scroll = new wxScrolledWindow(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxHSCROLL);
+    category.scroll->SetScrollRate(FromDIP(20), FromDIP(20));
     category.scroll->SetBackgroundColour(GetBackgroundColour());
     category.list_sizer = new wxBoxSizer(wxVERTICAL);
     category.scroll->SetSizer(category.list_sizer);
@@ -1335,11 +1591,12 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     category.info->SetFont(Label::Body_13);
     category.list_sizer->Add(category.info, 1, wxALIGN_CENTER_HORIZONTAL | wxALL, FromDIP(10));
     category.info->Hide();
-    page_sizer->Add(category.scroll, 1, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(4));
-    // A material slot starts disabled: its rows (and its Full Publish line) stay hidden until
-    // "Enable" is checked.
-    if (section == Section::Material)
-        category.scroll->Hide();
+    // A hosted page's scroll holds no setting rows: it only reports an empty filter, so it takes
+    // no height. A mixed slot's scroll keeps the room for its hint.
+    if (category.publish_host != nullptr)
+        page_sizer->Add(category.scroll, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(4));
+    else
+        page_sizer->Add(category.scroll, 1, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(4));
     category.page->SetSizer(page_sizer);
     category.page->Hide();
 
@@ -1348,11 +1605,8 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     // Mixed slots live in a second tab row below the physical filament tabs.
     if (is_mixed)
         m_sections[group].mixed_categories.push_back(category_index);
-    else {
+    else
         m_sections[group].categories.push_back(category_index);
-        if (is_variant)
-            m_sections[group].variant_inners.push_back(m_sections[group].categories.size() - 1);
-    }
     if (section == Section::Material) {
         TabCtrl* target = is_mixed ? m_sections[group].mixed_tabs : m_sections[group].tabs;
         if (is_mixed) {
@@ -1372,10 +1626,6 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         }
     } else {
         m_sections[group].tabs->AppendItem(title);
-        if (section == Section::Print && !is_variant && m_sections[group].page_tabs != nullptr) {
-            m_sections[group].page_tabs->AppendItem(title);
-            m_sections[group].page_inners.push_back(m_sections[group].categories.size() - 1);
-        }
     }
     m_sections[group].page_host_sizer->Add(m_categories[category_index].page, 1, wxEXPAND);
     if (is_mixed) {
@@ -1388,126 +1638,1571 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     return category_index;
 }
 
-size_t PublishSettingsDialog::subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon)
+void PublishSettingsDialog::build_material_tab(Category& category)
 {
-    Category& category = m_categories[category_index];
-    for (size_t i = 0; i < category.subs.size(); ++i)
-        if (category.subs[i].title == title)
-            return i;
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (category.publish_host == nullptr || bundle == nullptr)
+        return;
 
-    Subcategory sub;
-    sub.title = title;
-    if (!title.IsEmpty()) {
-        sub.header = new ::StaticLine(category.scroll, false, title, icon);
-        sub.header->SetFont(Label::Head_14);
-        sub.header->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
-        auto* wrap = new wxBoxSizer(wxVERTICAL);
-        wrap->Add(sub.header, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(6));
-        sub.item = category.list_sizer->Add(wrap, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+    const size_t slot = category.filament_slot;
+    const std::string preset_name = !category.pending_filament.empty() ? category.pending_filament :
+                                    (slot < bundle->filament_presets.size() ? bundle->filament_presets[slot] : std::string());
+    const Preset* slot_preset = preset_name.empty() ? nullptr : bundle->filaments.find_preset(preset_name, false, true);
+    DynamicPrintConfig seed;
+    DynamicPrintConfig saved;
+    if (!preset_name.empty() && preset_name == bundle->filaments.get_selected_preset_name()) {
+        // The slot uses the preset the sidebar edits: its working copy is the current values and
+        // the collection's selected preset is the saved baseline.
+        seed  = bundle->filaments.get_edited_preset().config;
+        saved = bundle->filaments.get_selected_preset().config;
+    } else if (slot_preset != nullptr) {
+        seed = saved = slot_preset->config;
     }
-    category.subs.push_back(std::move(sub));
-    return category.subs.size() - 1;
+    if (seed.empty())
+        seed = bundle->filaments.get_edited_preset().config;
+    // A filament preset carries no filament_colour (it is not in Preset::filament_options): the
+    // slot's colour is project state, so seed it for the Tab's own rules. The type is the picked
+    // preset's own value, which is what the tab edits and the payload carries.
+    const DynamicPrintConfig full = bundle->full_config();
+    auto full_value = [&full, slot](const char* key) {
+        if (const auto* values = full.opt<ConfigOptionStrings>(key))
+            if (slot < values->size())
+                return values->get_at(slot);
+        return std::string();
+    };
+    std::string type;
+    if (const auto* types = seed.opt<ConfigOptionStrings>("filament_type"); types != nullptr && !types->values.empty())
+        type = types->values.front();
+    seed.set_key_value("filament_colour", new ConfigOptionStrings{full_value("filament_colour")});
+    seed.set_key_value("filament_type", new ConfigOptionStrings{type.empty() ? full_value("filament_type") : type});
+
+    auto* tab = new PublishTabFilament(category.publish_host);
+    tab->create_publish_tab(seed, saved);
+    category.publish_tab = tab;
+    category.publish_host->set_publish_tab(tab);
+    // A rebuilt tab is built long after the dialog's theme pass ran, so it takes the host's
+    // background here rather than at the next colour change.
+    tab->adopt_publish_host_theme();
 }
 
-void PublishSettingsDialog::add_row_ui(const std::string& key,
-                                       const wxString& label,
-                                       const wxString& value,
-                                       const wxString& unit,
-                                       size_t category_index,
-                                       size_t subcategory_index,
-                                       RowKind kind)
+void PublishSettingsDialog::remove_category_rows(size_t category_index)
 {
     Category& category = m_categories[category_index];
-    Row row;
-    row.key                = key;
-    row.label              = label;
-    row.value              = value;
-    row.unit               = unit;
-    row.kind               = kind;
-    row.category           = category.title;
-    row.subcategory        = category.subs[subcategory_index].title;
-    row.section            = category.section;
-    row.section_title      = m_sections[category.group].title;
-    row.outer_index        = category.group;
-    row.inner_index        = category_index;
-    const size_t row_index = m_rows.size();
-    m_rows.push_back(std::move(row));
-    Row& current  = m_rows[row_index];
-    current.check = new ::CheckBox(category.scroll, wxID_ANY);
-    current.check->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& event) {
-        refresh_tab_indicators();
-        event.Skip();
-    });
-    auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
-    current.check_label = add_checkbox_label(category.scroll, row_sizer, current.check, label + ":", wxEmptyString,
-                                             24 * wxGetApp().em_unit());
-    // The value is read-only text (incl. the Type row: the published type is the slot's
-    // normalized type, not author-editable).
-    current.value_label = new wxStaticText(category.scroll, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-    current.value_label->SetFont(Label::Body_14);
-    current.value_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
-    current.value_label->SetToolTip(unit.IsEmpty() ? value : value + " " + unit);
-    if (kind == RowKind::Color && !value.IsEmpty()) {
-        // The colour swatch carries this slot's 1-based number, like the main GUI swatches.
-        const std::string chip_label = std::to_string(category.filament_slot + 1);
-        if (wxBitmap* chip = get_extruder_color_icon(value.ToStdString(), chip_label, FromDIP(20), FromDIP(20))) {
-            current.color_chip = new wxStaticBitmap(category.scroll, wxID_ANY, *chip);
-            row_sizer->Add(current.color_chip, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+    std::vector<size_t> rows = category.rows;
+    std::sort(rows.begin(), rows.end());
+    for (auto it = rows.rbegin(); it != rows.rend(); ++it) {
+        m_rows.erase(m_rows.begin() + std::ptrdiff_t(*it));
+        m_row_ids.erase(m_row_ids.begin() + std::ptrdiff_t(*it));
+    }
+    // Every index-based view of the rows moved with them; rebuild them from the rows' own owner.
+    for (size_t c = 0; c < m_categories.size(); ++c) {
+        std::vector<size_t>& index_rows = m_categories[c].rows;
+        index_rows.clear();
+        for (size_t r = 0; r < m_rows.size(); ++r)
+            if (m_rows[r].inner_index == c)
+                index_rows.push_back(r);
+    }
+}
+
+void PublishSettingsDialog::refresh_material_layout()
+{
+    // The project's own slot presets are the truth: a pick is assigned when it is made.
+    m_snapshot = wxGetApp().preset_bundle->full_config(/*apply_extruder=*/false);
+
+    // The selection is keyed by the row id, so a slot's remap must not read a state another slot
+    // already rewrote: every row's state is read before any id moves.
+    struct RowState
+    {
+        Slic3r::PublishRowId id;
+        bool                 checked{false};
+        bool                 enabled{true};
+    };
+    std::vector<RowState> states;
+    states.reserve(m_rows.size());
+    for (const Row& row : m_rows)
+        states.push_back({ row.id, m_selection.checked(row.id), m_selection.enabled(row.id) });
+    std::vector<bool> dropped(m_rows.size(), false);
+
+    for (size_t c = 0; c < m_categories.size(); ++c) {
+        Category& category = m_categories[c];
+        if (category.section != Section::Material || category.is_mixed)
+            continue;
+        const std::vector<size_t>           columns  = publish_filament_columns(m_snapshot, category.filament_slot);
+        const Slic3r::PublishResolvedColumn resolved = publish_resolved_column(m_snapshot, category.filament_slot);
+        const std::vector<size_t>           previous = category.columns;
+        category.columns                             = columns;
+        category.column = resolved.file_column.has_value() ? int(*resolved.file_column) : -1;
+        if (previous == columns)
+            continue;
+
+        // An assigned preset with another variant count moved the file columns this slot's rows
+        // name: follow the same local variant to its new column.
+        auto remap = [&previous, &columns](int file_column) {
+            if (file_column < 0)
+                return file_column;
+            const auto found = std::find(previous.begin(), previous.end(), size_t(file_column));
+            if (found == previous.end())
+                return file_column;
+            const size_t local = size_t(found - previous.begin());
+            return local < columns.size() ? int(columns[local]) : -1;
+        };
+
+        for (const size_t r : category.rows) {
+            Row&            row    = m_rows[r];
+            const RowState& before = states[r];
+            // A Color/Type row carries no config key, so the slot's column layout never moves it.
+            if (row.id.kind != Slic3r::PublishRowKind::Key)
+                continue;
+            row.id.column          = remap(before.id.column);
+            row.id.keys.clear();
+            bool lost = row.id.column < 0 && before.id.column >= 0;
+            for (const std::string& key : before.id.keys) {
+                const int index = publish_key_index(key);
+                if (index < 0) {
+                    row.id.keys.push_back(key);
+                    continue;
+                }
+                const int mapped = remap(index);
+                if (mapped < 0) {
+                    lost = true;
+                    continue;
+                }
+                row.id.keys.push_back(publish_base_key(key) + "#" + std::to_string(mapped));
+            }
+            for (RowOption& option : row.options)
+                if (option.index >= 0 && Slic3r::publish_is_variant_bearing(option.key))
+                    option.index = remap(option.index);
+            // A row the new layout cannot place is gone: keep it out rather than leave its old
+            // "base#col" keys on a row that no longer names a column.
+            if (lost || row.id.keys.empty()) {
+                dropped[r] = true;
+                continue;
+            }
+            m_selection.set_checked(row.id, before.checked);
+            m_selection.set_enabled(row.id, before.enabled);
         }
     }
-    row_sizer->Add(current.value_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
-    if (!unit.IsEmpty()) {
-        current.unit_label = new wxStaticText(category.scroll, wxID_ANY, unit);
-        current.unit_label->SetFont(Label::Body_14);
-        current.unit_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
-        row_sizer->Add(current.unit_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+
+    if (std::find(dropped.begin(), dropped.end(), true) != dropped.end()) {
+        std::vector<Row> kept;
+        kept.reserve(m_rows.size());
+        for (size_t r = 0; r < m_rows.size(); ++r)
+            if (!dropped[r])
+                kept.push_back(std::move(m_rows[r]));
+        m_rows = std::move(kept);
+        // Every index-based view of the rows moved with them; rebuild them from the rows' own owner.
+        for (Category& category : m_categories)
+            category.rows.clear();
+        for (size_t r = 0; r < m_rows.size(); ++r)
+            m_categories[m_rows[r].inner_index].rows.push_back(r);
     }
-    current.item = category.list_sizer->Add(row_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+
+    m_row_ids.clear();
+    m_row_ids.reserve(m_rows.size());
+    for (const Row& row : m_rows)
+        m_row_ids.push_back(row.id);
+    sync_all_row_widgets();
+}
+
+std::string PublishSettingsDialog::staged_badge_color(const Category& category, const DynamicPrintConfig& full) const
+{
+    // The colour last picked on the badge; it is in the project too, so the badge and the payload
+    // identity show the same colour the file will carry.
+    if (!category.pending_colours.empty())
+        return category.pending_colours.front();
+    return filament_color_hex(full, category.filament_slot);
+}
+
+bool PublishSettingsDialog::material_category_matches(const Category& cat, bool mixed, size_t slot)
+{
+    return cat.section == Section::Material && cat.is_mixed == mixed && (slot == size_t(-1) || cat.filament_slot == slot);
+}
+
+PublishSettingsDialog::Category* PublishSettingsDialog::material_category(size_t slot)
+{
+    for (size_t c = 0; c < m_categories.size(); ++c) {
+        Category& candidate = m_categories[c];
+        if (material_category_matches(candidate, false, slot))
+            return &candidate;
+    }
+    return nullptr;
+}
+
+int PublishSettingsDialog::section_item_index(size_t category_index) const
+{
+    const Category&     category = m_categories[category_index];
+    const SectionGroup& section  = m_sections[category.group];
+    const auto          item     = std::find(section.categories.begin(), section.categories.end(), category_index);
+    return item == section.categories.end() ? -1 : int(item - section.categories.begin());
+}
+
+Slic3r::PublishOwnerInfo PublishSettingsDialog::owner_info_for(size_t slot) const
+{
+    const auto registered = m_selection.owners().find(int(slot));
+    return registered != m_selection.owners().end() ? registered->second : Slic3r::PublishOwnerInfo();
+}
+
+void PublishSettingsDialog::refresh_slot_colour(size_t category_index)
+{
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+    Category&          category = m_categories[category_index];
+    const std::string hex      = staged_badge_color(category, bundle->full_config());
+    const std::string label    = std::to_string(category.filament_slot + 1);
+
+    // The badge and the tab strip's chip show one colour for the slot; the Color row's read-only
+    // value shows the same colour.
+    if (category.filament_color_chip != nullptr) {
+        if (wxBitmap* chip = get_extruder_color_icon(hex, label, FromDIP(20), FromDIP(20))) {
+            category.filament_color_chip->SetBitmap(*chip);
+            category.filament_color_chip->SetMinSize(chip->GetSize());
+            category.filament_color_chip->InvalidateBestSize();
+        }
+    }
+    if (category.color_value != nullptr) {
+        if (wxBitmap* chip = get_extruder_color_icon(hex, label, FromDIP(16), FromDIP(16))) {
+            category.color_value->SetBitmap(*chip);
+            category.color_value->SetMinSize(chip->GetSize());
+            category.color_value->InvalidateBestSize();
+        }
+    }
+    const int item = section_item_index(category_index);
+    if (item >= 0)
+        if (wxBitmap* chip = get_extruder_color_icon(hex, label, FromDIP(20), FromDIP(20)))
+            m_sections[category.group].tabs->SetItemBitmap(static_cast<unsigned int>(item), *chip);
+
+    // The payload's identity colour is the colour the badge shows.
+    Slic3r::PublishOwnerInfo info = owner_info_for(category.filament_slot);
+    info.colour = hex;
+    m_selection.set_owner_info(int(category.filament_slot), std::move(info));
+}
+
+void PublishSettingsDialog::on_filament_color_picked(size_t slot)
+{
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    Category*     category = bundle != nullptr ? material_category(slot) : nullptr;
+    if (category == nullptr)
+        return;
+
+    // The sidebar's own colour picker, over the colour the badge shows now.
+    FilamentColorPickerValue value;
+    if (!category->pending_colours.empty()) {
+        value.colors   = category->pending_colours;
+        value.gradient = category->pending_gradient;
+        value.primary  = category->pending_colours.front();
+    } else {
+        value = slot_colour_value(bundle->project_config, slot);
+        // A picked preset's own colour is what the badge shows, so the picker opens on it.
+        const std::string badge_hex = staged_badge_color(*category, bundle->full_config());
+        if (!badge_hex.empty() && badge_hex != value.primary) {
+            value.colors.assign(1, badge_hex);
+            value.primary  = badge_hex;
+            value.gradient = false;
+        }
+    }
+    const ColorSelection initial = filament_color_picker_initial(value);
+    // Parented to the dialog and anchored at the badge, as the sidebar opens it from its combo.
+    ColorPickerDialog dialog(this, initial, { true, true }, !filament_color_picker_selection(value),
+                             category->filament_color_chip);
+    if (dialog.ShowModal() != wxID_OK || !dialog.selection().has_value() ||
+        !filament_color_picker_changed(initial, dialog.selection()))
+        return;
+    const FilamentColorPickerValue picked = filament_color_picker_result(*dialog.selection());
+    if (picked.colors.empty())
+        return;
+
+    const size_t category_index = size_t(category - m_categories.data());
+    // The colour is project state, and the project carries it now; the badged value stays beside the
+    // picker as the value the badge and the payload identity show.
+    category->pending_colours  = picked.colors;
+    category->pending_gradient = picked.gradient;
+    if (write_project_slot_colour(bundle->project_config, slot, picked.colors, picked.gradient)) {
+        if (Plater* plater = wxGetApp().plater()) {
+            // The sidebar's own colour handler pushes the changed keys immediately: the plater's
+            // diff repaints the object list and the scene, and the slot's combo repaints its
+            // swatch. Without both, the dialog's chips move but the main GUI keeps the old colour
+            // until some later config event.
+
+            Sidebar& sidebar = plater->sidebar();
+            std::vector<PlaterPresetComboBox*>& combos = sidebar.combos_filament();
+            if (slot < combos.size() && combos[slot] != nullptr)
+                combos[slot]->update();
+
+            // A colour change invalidates the AMS colour cache and the flush volumes.
+            auto* evt = new wxCommandEvent(EVT_FILAMENT_COLOR_CHANGED);
+            evt->SetInt(int(slot));
+            wxQueueEvent(plater, evt);
+        }
+    }
+    // Every mixed slot renders its components' colours, so a colour edit rebuilds their tab
+    // compositions and definition previews, not just the edited slot's badge.
+    refresh_mixed_tab_bitmaps();
+    refresh_mixed_visuals();
+    // The colour is project state and no sidebar Tab owns it.
+    refresh_published_plater();
+    refresh_slot_colour(category_index);
+    // The model publishes a Colour row only while the slot's colour is non-empty: a pick can turn
+    // the slot's dot on or off, so recompute the tabs.
+    refresh_tab_indicators();
+}
+
+void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& preset_name)
+{
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr || preset_name.empty())
+        return;
+    Category* category = material_category(slot);
+    if (category == nullptr)
+        return;
+    // A name no preset answers is not a pick: keep the slot as it is rather than fall back to the
+    // first visible preset the rebuilt tab would seed from.
+    const Preset* found = bundle->filaments.find_preset(preset_name, false, true);
+    if (found == nullptr) {
+        if (category->filament_picker != nullptr)
+            category->filament_picker->show_preset(category->pending_filament);
+        return;
+    }
+    if (preset_name == category->pending_filament)
+        return;
+    // Selecting the picked preset below can rebuild the collection, so the page keeps its own copy
+    // of the preset it draws.
+    const Preset picked_copy = *found;
+    const Preset* picked     = &picked_copy;
+
+    const size_t category_index = size_t(category - m_categories.data());
+    // The old preset's rows describe another filament: drop them and uncheck what replaces them.
+    // Full Publish is kept as the author set it, so an auto-published component stays recorded.
+    remove_category_rows(category_index);
+    category = &m_categories[category_index];
+    // The picked preset becomes the slot's preset now: the project is the truth, and the page and
+    // the badge are rebuilt from it. Another preset's declared colour replaces an explicit pick.
+    const bool was_support = is_support_filament(int(slot));
+    bundle->set_filament_preset(slot, preset_name);
+    // A one-slot project exports through full_fff_config's edited-preset branch, which the slot
+    // list cannot reach: select the picked preset as the sidebar's own pick does, or the export
+    // carries the previous filament.
+    if (bundle->filament_presets.size() <= 1) {
+        if (Tab* filament_tab = wxGetApp().get_tab(Preset::TYPE_FILAMENT))
+            filament_tab->select_preset(preset_name);
+    }
+    category->pending_filament = preset_name;
+    category->pending_colours.clear();
+    category->pending_gradient = false;
+
+    // The picked preset declares the slot's colour when the badge holds no explicit pick.
+    bool recoloured = false;
+    if (const std::string colour = picked->config.opt_string("default_filament_colour", 0u); !colour.empty())
+        recoloured = write_project_slot_colour(bundle->project_config, slot, {colour}, false);
+
+    // The variant columns of every slot follow the assigned presets, this one's included.
+    refresh_material_layout();
+
+    // Swap the slot's tab for one built from the picked preset, on the same host.
+    if (Tab* old_tab = category->publish_tab) {
+        old_tab->m_on_variant_changed = nullptr;
+        old_tab->m_on_rules_applied   = nullptr;
+        old_tab->m_on_publish_edit    = nullptr;
+        category->publish_host->set_publish_tab(nullptr);
+        old_tab->Destroy();
+        category->publish_tab = nullptr;
+    }
+    build_material_tab(*category);
+    add_material_tab_rows(category_index);
+    add_owner_flag_rows(category_index);
+    bind_publish_tab(category_index);
+
+    // The payload's identity is the picked preset's, not the assigned one's.
+    auto preset_value = [picked](const char* key) {
+        const auto* values = picked->config.opt<ConfigOptionStrings>(key);
+        return values != nullptr && !values->values.empty() ? values->values.front() : std::string();
+    };
+    const std::string type   = preset_value("filament_type");
+    const std::string vendor = preset_value("filament_vendor");
+    category->filament_type   = type;
+    category->filament_vendor = vendor;
+    category->filament_id     = picked->filament_id;
+    // The Type row's read-only value follows the picked filament.
+    if (category->type_value != nullptr)
+        category->type_value->SetLabel(from_u8(normalize_filament_type(type)));
+
+    Slic3r::PublishOwnerInfo owner_info = owner_info_for(slot);
+    owner_info.filament_type   = category->filament_type;
+    owner_info.filament_vendor = category->filament_vendor;
+    owner_info.filament_id     = category->filament_id;
+    owner_info.setting_id      = picked->setting_id;
+    owner_info.preset_name     = picked->name;
+    m_selection.set_owner_info(int(slot), std::move(owner_info));
+
+    const wxString title = material_title_for(picked, type);
+    category->title      = title;
+    const int item       = section_item_index(category_index);
+    if (item >= 0)
+        m_sections[category->group].tabs->SetItemText(static_cast<unsigned int>(item), title);
+    // The tab strip and the header show the picked filament; the badge beside the picker shows the
+    // picked preset's declared colour, and the tab strip's chip follows it, so a slot never shows
+    // two colours.
+    refresh_slot_colour(category_index);
+    // The picked preset may declare another colour, which the mixed slots draw from.
+    refresh_mixed_tab_bitmaps();
+    refresh_mixed_visuals();
+    for (const size_t r : category->rows)
+        m_rows[r].category = title;
+
+    // Q1: the picked preset may not define the variant the printer needs.
+    if (category->variant_notice != nullptr) {
+        const std::string notice = publish_variant_notice(m_snapshot, slot);
+        category->variant_notice->SetLabel(from_u8(notice));
+        if (!notice.empty())
+            category->variant_notice->Wrap(FromDIP(460));
+        category->variant_notice->Show(!notice.empty());
+    }
+
+    // Every replacement row starts unchecked: the old checks named another preset. Full Publish
+    // stays as the owner set it, and keeps the rows unchecked-out.
+    const bool full = m_selection.full_publish(int(slot));
+    for (const size_t r : category->rows) {
+        // The tab indicators are refreshed once at the end of the rebuild.
+        set_row_checked(r, false, false);
+        set_row_enabled(r, !full);
+    }
+    sync_owner_flag_widgets(category_index);
+
+    // Filter and gating run the same rules as on any other row set.
+    if (m_filter_mode != FilterMode::Text || !m_filter_ctrl->GetValue().IsEmpty())
+        refresh_filter(m_filter_ctrl->GetValue().Lower());
+    else {
+        for (const size_t r : category->rows)
+            m_rows[r].matches_filter = true;
+        apply_visibility();
+    }
+    apply_row_label_colours();
+    apply_row_field_gating(category_index);
+    if (category->page != nullptr)
+        category->page->GetSizer()->Layout();
+    refresh_tab_indicators();
+
+    // The sidebar's own slot assignment, run live: export the selection, rebuild the dynamic
+    // filament list, then update the slot's combo and the dependent UI.
+    bundle->export_selections(*wxGetApp().app_config);
+    if (Plater* plater = wxGetApp().plater()) {
+        Sidebar& sidebar = plater->sidebar();
+        sidebar.update_dynamic_filament_list();
+        // Fetch the combo after update_dynamic_filament_list(), which may rebuild the vector.
+        std::vector<PlaterPresetComboBox*>& combos = sidebar.combos_filament();
+        if (slot < combos.size() && combos[slot] != nullptr)
+            combos[slot]->update();
+        plater->on_filament_change(slot);
+        // Assigning (or leaving) a support filament changes which filaments the flush rules cover,
+        // so the normal flow recalculates the volumes.
+        if ((is_support_filament(int(slot)) != was_support) &&
+            wxGetApp().app_config->get("auto_calculate_flush") == "all")
+            sidebar.auto_calc_flushing_volumes(int(slot));
+        // A pick always refreshes the plater; the slot's colour changed with it.
+        if (recoloured) {
+            auto* evt = new wxCommandEvent(EVT_FILAMENT_COLOR_CHANGED);
+            evt->SetInt(int(slot));
+            wxQueueEvent(plater, evt);
+        }
+        refresh_published_plater();
+    }
+}
+
+void PublishSettingsDialog::set_row_unit_from_options(Row& row) const
+{
+    const RowOption& first = row.options.front();
+    if (const ConfigOptionDef* def = print_config_def.get(first.key)) {
+        row.unit = _(def->sidetext);
+        if (row.unit == "%" && row.value.EndsWith("%"))
+            row.unit.clear();
+    }
+}
+
+size_t PublishSettingsDialog::add_tab_row(Row row, size_t category_index)
+{
+    Category& category = m_categories[category_index];
+    row.category       = category.title;
+    row.inner_index    = category_index;
+    const size_t row_index = m_rows.size();
+    m_rows.push_back(std::move(row));
+    m_row_ids.push_back(m_rows.back().id);
     category.rows.push_back(row_index);
-    category.subs[subcategory_index].rows.push_back(row_index);
+    return row_index;
+}
+
+void PublishSettingsDialog::add_material_tab_rows(size_t category_index)
+{
+    Category& category = m_categories[category_index];
+    Tab*      tab      = category.publish_tab;
+    if (tab == nullptr)
+        return;
+
+    const std::set<std::string>& denylist = publish_structural_keys();
+    const std::set<std::string>& identity = publish_material_identity_keys();
+    const int                    slot     = int(category.filament_slot);
+    // One publish key per slot: a variant key is "base#file_column", a per-slot key the plain base.
+    std::set<std::string> variant_added;
+    std::set<std::string> slot_added;
+
+    // The tab's page set is the publish one already: PublishTabFilament::build dropped the action
+    // controls and the Dependencies/Notes pages before this walks it.
+    for (const PageShp& page : tab->m_pages) {
+        for (const ConfigOptionsGroupShp& group : page->m_optgroups) {
+            bool touched = false;
+            for (const Line& src : group->get_lines()) {
+                if (src.is_separator() || src.get_options().empty())
+                    continue;
+
+                // Every option of one Line is one selection unit, drawn by the Line itself. A
+                // variant-bearing option exists once per file column; the others once per slot.
+                std::vector<std::string> variant_options;
+                std::vector<RowOption>   slot_options;
+                for (const Option& option : src.get_options()) {
+                    const std::string base = publish_base_key(option.opt_id);
+                    if (denylist.count(base) != 0 || identity.count(base) != 0 ||
+                        Slic3r::publish_is_action_control(option.opt))
+                        continue;
+                    // Without a variant layout the key stays slot-indexed, as the legacy export
+                    // path masks it.
+                    if (publish_is_variant_bearing(base) && !category.columns.empty()) {
+                        if (std::find(variant_options.begin(), variant_options.end(), base) == variant_options.end())
+                            variant_options.push_back(base);
+                        continue;
+                    }
+                    if (!option_index_in_range(m_snapshot, base, slot))
+                        continue;
+                    if (std::none_of(slot_options.begin(), slot_options.end(),
+                                     [&base](const RowOption& o) { return o.key == base; }))
+                        slot_options.push_back({base, slot});
+                }
+                if (variant_options.empty() && slot_options.empty())
+                    continue;
+
+                auto fill_row = [&src, &group, slot](Row& row) {
+                    row.label       = src.label;
+                    row.subcategory = _(group->title); // filter text only
+                    row.id.owner    = slot;
+                    row.id.section  = Slic3r::PublishSection::Material;
+                    row.id.kind     = Slic3r::PublishRowKind::Key;
+                };
+                auto add_values = [this](Row& row) {
+                    // The first publish key names the row in the filter. A per-slot key has no
+                    // "#N" suffix, so read the value at the row's own index instead of the
+                    // vector's first entry.
+                    const RowOption& first = row.options.front();
+                    std::string      key   = row.id.keys.front();
+                    if (key.find('#') == std::string::npos && first.index >= 0)
+                        key += "#" + std::to_string(first.index);
+                    row.value = get_string_value(key, m_snapshot);
+                    set_row_unit_from_options(row);
+                };
+
+                // A variant-bearing line becomes one row per file column of the slot; a per-slot
+                // option in the same line rides along on every column's row.
+                std::vector<Row> rows;
+                if (!variant_options.empty()) {
+                    for (const size_t column : category.columns) {
+                        Row                      row;
+                        std::vector<std::string> keys;
+                        fill_row(row);
+                        row.id.column = int(column);
+                        bool ok = true;
+                        for (const std::string& base : variant_options) {
+                            const std::string key = base + "#" + std::to_string(column);
+                            if (variant_added.count(key) != 0)
+                                continue;
+                            if (!option_index_in_range(m_snapshot, base, int(column))) {
+                                ok = false;
+                                break;
+                            }
+                            keys.push_back(key);
+                            row.options.push_back({base, int(column)});
+                        }
+                        if (!ok || row.options.empty())
+                            continue;
+                        variant_added.insert(keys.begin(), keys.end());
+                        row.id.keys = std::move(keys);
+                        for (const RowOption& option : slot_options) {
+                            row.options.push_back(option);
+                            row.id.keys.push_back(option.key);
+                        }
+                        add_values(row);
+                        rows.push_back(std::move(row));
+                    }
+                    // Every variant key of this line was already taken by an earlier line: the
+                    // line still owns its per-slot options, which would otherwise vanish. Emit
+                    // them once, at slot level.
+                    if (rows.empty() && !slot_options.empty()) {
+                        Row row;
+                        fill_row(row);
+                        row.id.column = -1;
+                        for (const RowOption& option : slot_options) {
+                            if (!slot_added.insert(option.key).second)
+                                continue;
+                            row.options.push_back(option);
+                            row.id.keys.push_back(option.key);
+                        }
+                        if (!row.options.empty()) {
+                            add_values(row);
+                            rows.push_back(std::move(row));
+                        }
+                    }
+                } else {
+                    Row row;
+                    fill_row(row);
+                    row.id.column = -1;
+                    for (const RowOption& option : slot_options) {
+                        if (!slot_added.insert(option.key).second)
+                            continue;
+                        row.options.push_back(option);
+                        row.id.keys.push_back(option.key);
+                    }
+                    if (row.options.empty())
+                        continue;
+                    add_values(row);
+                    rows.push_back(std::move(row));
+                }
+                if (rows.empty())
+                    continue;
+
+                // The checkbox the Tab's own line carries, once per line: it draws the row of the
+                // column the tab's switch currently selects. Use the line being walked, not a
+                // fresh lookup by key: a key can bind another line of this group, or none after a
+                // per-slot key was masked. The vector is not appended during the walk.
+                Line* line = const_cast<Line*>(&src);
+                if (!line->row_toggle)
+                    line->row_toggle = RowToggle();
+                line->row_toggle->on_change = [this, category_index, line](bool checked) {
+                    if (const size_t r = tab_row_for_line(category_index, line); r != size_t(-1))
+                        set_row_checked(r, checked);
+                };
+                // A row keyed by a variant column, in a section showing several columns, draws the
+                // per-extruder icon: its option ids carry no '#' the tab could detect it from.
+                line->multi_extruder = rows.front().id.column >= 0 && category.columns.size() > 1;
+                touched = true;
+
+                for (Row& row : rows) {
+                    row.page_title = page->title();
+                    row.tab_line   = line;
+                    add_tab_row(std::move(row), category_index);
+                }
+            }
+            // The toggles added a column to the group's rows: re-align the value and unit columns.
+            if (touched)
+                group->msw_rescale();
+        }
+    }
+}
+
+void PublishSettingsDialog::add_owner_flag_rows(size_t category_index)
+{
+    if (category_index >= m_categories.size())
+        return;
+    Category& category = m_categories[category_index];
+    if (category.section != Section::Material || category.is_mixed)
+        return;
+    for (const Slic3r::PublishRowKind kind :
+         { Slic3r::PublishRowKind::Color, Slic3r::PublishRowKind::Type }) {
+        Row row;
+        row.label          = kind == Slic3r::PublishRowKind::Color ? _L_CONTEXT("Color", "Publish") :
+                                                                     _L_CONTEXT("Type", "Publish");
+        row.id.owner       = int(category.filament_slot);
+        row.id.section     = Slic3r::PublishSection::Material;
+        row.id.kind        = kind;
+        row.matches_filter = true;
+        add_tab_row(std::move(row), category_index);
+    }
+    sync_owner_flag_widgets(category_index);
+}
+
+size_t PublishSettingsDialog::owner_flag_row(size_t category_index, Slic3r::PublishRowKind kind) const
+{
+    if (category_index >= m_categories.size())
+        return size_t(-1);
+    for (const size_t r : m_categories[category_index].rows)
+        if (m_rows[r].id.section == Slic3r::PublishSection::Material && m_rows[r].id.kind == kind)
+            return r;
+    return size_t(-1);
+}
+
+void PublishSettingsDialog::on_owner_flag_toggle(size_t category_index, Slic3r::PublishRowKind kind)
+{
+    if (category_index >= m_categories.size())
+        return;
+    Category&    category = m_categories[category_index];
+    ::CheckBox*  box      = kind == Slic3r::PublishRowKind::Color ? category.color_check : category.type_check;
+    const size_t row      = owner_flag_row(category_index, kind);
+    if (box == nullptr || row == size_t(-1))
+        return;
+    // The tab indicators are painted once below, not inside the row update.
+    set_row_checked(row, box->GetValue(), false);
+    refresh_tab_indicators();
+}
+
+void PublishSettingsDialog::sync_owner_flag_widgets(size_t category_index)
+{
+    if (category_index >= m_categories.size())
+        return;
+    Category&  category = m_categories[category_index];
+    const bool full     = category.section == Section::Material &&
+                      m_selection.full_publish(int(category.filament_slot));
+    auto sync = [&](::CheckBox* box, wxStaticText* label, Slic3r::PublishRowKind kind) {
+        if (box == nullptr)
+            return;
+        const size_t row = owner_flag_row(category_index, kind);
+        box->SetValue(row != size_t(-1) && m_selection.checked(m_rows[row].id));
+        // Full Publish ships both flags itself, so neither is the author's to toggle.
+        box->Enable(!full);
+        box->Refresh();
+        // The label is the checkbox's sibling, not its child: dim it too, or a disabled row keeps
+        // its normal colour and still looks clickable.
+        if (label != nullptr) {
+            label->SetForegroundColour(StateColor::darkModeColorFor(wxColour(full ? "#6B6B6B" : "#363636")));
+            label->SetCursor(full ? wxCURSOR_ARROW : wxCURSOR_HAND);
+            label->Refresh();
+        }
+    };
+    sync(category.color_check, category.color_label, Slic3r::PublishRowKind::Color);
+    sync(category.type_check, category.type_label, Slic3r::PublishRowKind::Type);
+}
+
+void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
+{
+    Category&     category = m_categories[category_index];
+    Tab*          tab      = category.publish_tab;
+    PresetBundle* bundle   = wxGetApp().preset_bundle;
+    if (tab == nullptr || bundle == nullptr)
+        return;
+
+    const DynamicPrintConfig& printer_config = bundle->printers.get_edited_preset().config;
+
+    // The columns the tab's extruder switch can show, from the same rule the export side reads.
+    // Retraction and Z-Hop values are stored per variant column, not per extruder, so an extruder
+    // whose column this printer preset does not define contributes none.
+    std::vector<size_t> columns;
+    for (size_t extruder = 0; extruder < size_t(bundle->get_printer_extruder_count()); ++extruder)
+        for (const Slic3r::PublishExtruderEntry& entry :
+             publish_extruder_rule(printer_config, printer_config, bundle->project_config, extruder,
+                                   /*split_hybrid=*/false, "printer_extruder_id", "printer_extruder_variant"))
+            if (std::find(columns.begin(), columns.end(), entry.column) == columns.end())
+                columns.push_back(entry.column);
+    if (columns.empty())
+        return; // no column this preset defines: nothing to key a row by
+    category.column = int(columns.front());
+
+    const std::set<std::string>& allow    = publishable_printer_keys();
+    const std::set<std::string>& denylist = publish_structural_keys();
+    std::set<std::string>        added; // "base#column" rows already added
+
+    for (const PageShp& page : tab->m_pages) {
+        for (const ConfigOptionsGroupShp& group : page->m_optgroups) {
+            bool touched = false;
+            for (const Line& src : group->get_lines()) {
+                if (src.is_separator() || src.get_options().empty())
+                    continue;
+
+                // Every option of one Line is one selection unit; each exists once per column.
+                std::vector<RowOption> options;
+                for (const Option& option : src.get_options()) {
+                    const std::string base = publish_base_key(option.opt_id);
+                    if (allow.count(base) == 0 || denylist.count(base) != 0 ||
+                        Slic3r::publish_is_action_control(option.opt))
+                        continue;
+                    if (std::none_of(options.begin(), options.end(), [&base](const RowOption& o) { return o.key == base; }))
+                        options.push_back({base, -1});
+                }
+                if (options.empty())
+                    continue;
+
+                Line*        line      = const_cast<Line*>(&src);
+                const size_t first_row = m_rows.size();
+                for (const size_t column : columns) {
+                    Row row;
+                    row.label       = src.label;
+                    row.subcategory = _(group->title); // filter text only
+                    row.id.owner    = -1;
+                    row.id.column   = int(column);
+                    row.id.section  = Slic3r::PublishSection::Printer;
+                    row.id.kind     = Slic3r::PublishRowKind::Key;
+
+                    bool                     row_ok = true;
+                    std::vector<std::string> keys;
+                    for (const RowOption& option : options) {
+                        const std::string key = option.key + "#" + std::to_string(column);
+                        if (added.count(key) != 0 || !option_index_in_range(m_snapshot, option.key, int(column))) {
+                            row_ok = false;
+                            break;
+                        }
+                        keys.push_back(key);
+                        row.options.push_back({option.key, int(column)});
+                    }
+                    if (!row_ok || row.options.empty())
+                        continue;
+                    added.insert(keys.begin(), keys.end());
+                    row.id.keys = std::move(keys);
+
+                    // The first option's value and unit name the row in the filter.
+                    const RowOption& first = row.options.front();
+                    row.value = get_string_value(first.key + "#" + std::to_string(first.index), m_snapshot);
+                    set_row_unit_from_options(row);
+                    row.page_title = page->title();
+                    row.tab_line   = line;
+                    add_tab_row(std::move(row), category_index);
+                }
+                // Only a line that produced at least one row gets a checkbox: a line whose every
+                // column failed would otherwise toggle nothing.
+                if (m_rows.size() > first_row) {
+                    if (!line->row_toggle)
+                        line->row_toggle = RowToggle();
+                    line->row_toggle->on_change = [this, category_index, line](bool checked) {
+                        if (const size_t r = tab_row_for_line(category_index, line); r != size_t(-1))
+                            set_row_checked(r, checked);
+                    };
+                    // Every row is keyed by a column here; with several the switch shows one at a
+                    // time, which is what the per-extruder icon marks.
+                    line->multi_extruder = columns.size() > 1;
+                    touched = true;
+                }
+            }
+            // The toggles added a column to the group's rows: re-align the value and unit columns.
+            if (touched)
+                group->msw_rescale();
+        }
+    }
+}
+
+void PublishSettingsDialog::add_print_tab_rows(size_t category_index)
+{
+    Category&     category = m_categories[category_index];
+    Tab*          tab      = category.publish_tab;
+    PresetBundle* bundle   = wxGetApp().preset_bundle;
+    if (tab == nullptr || bundle == nullptr)
+        return;
+
+    // The columns the Process tab's extruder switch can show, from the same rule the export side
+    // reads. The switch is populated only when several extruders run different hardware, and a
+    // hybrid extruder then shows one entry per sub-nozzle type; otherwise there is one page.
+    const bool                split_hybrid   = bundle->get_printer_extruder_count() >= 2 && bundle->support_different_extruders();
+    const DynamicPrintConfig& print_config   = bundle->prints.get_edited_preset().config;
+    const DynamicPrintConfig& printer_config = bundle->printers.get_edited_preset().config;
+    const int                 extruders      = split_hybrid ? bundle->get_printer_extruder_count() : 1;
+    std::vector<size_t>       columns;
+    for (int extruder = 0; extruder < extruders; ++extruder)
+        for (const Slic3r::PublishExtruderEntry& entry :
+             publish_extruder_rule(print_config, printer_config, bundle->project_config, size_t(extruder), split_hybrid,
+                                   "print_extruder_id", "print_extruder_variant"))
+            if (std::find(columns.begin(), columns.end(), entry.column) == columns.end())
+                columns.push_back(entry.column);
+    if (!columns.empty())
+        category.column = int(columns.front());
+
+    const std::set<std::string>& denylist = publish_structural_keys();
+    std::set<std::string>        variant_added; // "base#column" rows already added
+    std::set<std::string>        added;         // plain rows already added, by base key
+
+    for (const PageShp& page : tab->m_pages) {
+        // The page title is the row's filter category.
+        const wxString page_title = Tab::translate_category(page->title(), tab->type());
+        for (const ConfigOptionsGroupShp& group : page->m_optgroups) {
+            bool touched = false;
+            for (const Line& src : group->get_lines()) {
+                if (src.is_separator() || src.get_options().empty())
+                    continue;
+
+                // A line made only of per-variant settings is shown once per extruder column, as
+                // the sidebar's extruder switch shows it; every other line publishes its keys whole.
+                std::vector<RowOption> options; // key, its own line index (-1 without a '#N')
+                bool                   per_variant = !columns.empty();
+                for (const Option& option : src.get_options()) {
+                    const std::string     base = publish_base_key(option.opt_id);
+                    const ConfigOptionDef* def  = print_config_def.get(base);
+                    // Unknown, structural or action options carry no publish checkbox, and a row
+                    // needs a label to filter on.
+                    if (def == nullptr || denylist.count(base) != 0 || Slic3r::publish_is_action_control(option.opt))
+                        continue;
+                    if (_(def->full_label.empty() ? def->label : def->full_label).IsEmpty())
+                        continue;
+                    if (std::none_of(options.begin(), options.end(), [&base](const RowOption& o) { return o.key == base; }))
+                        options.push_back({base, publish_key_index(option.opt_id)});
+                    per_variant = per_variant && print_options_with_variant.count(base) != 0;
+                }
+                if (options.empty())
+                    continue;
+
+                Line* line = const_cast<Line*>(&src);
+
+                std::vector<Row> rows;
+                if (per_variant) {
+                    for (const size_t column : columns) {
+                        Row                      row;
+                        bool                     row_ok = true;
+                        std::vector<std::string> keys;
+                        for (const RowOption& option : options) {
+                            const std::string key = option.key + "#" + std::to_string(column);
+                            if (variant_added.count(key) != 0 ||
+                                !option_index_in_range(m_snapshot, option.key, int(column))) {
+                                row_ok = false;
+                                break;
+                            }
+                            keys.push_back(key);
+                            row.options.push_back({option.key, int(column)});
+                        }
+                        if (!row_ok || row.options.empty())
+                            continue;
+                        variant_added.insert(keys.begin(), keys.end());
+                        row.id.keys    = std::move(keys);
+                        row.id.column  = int(column);
+                        rows.push_back(std::move(row));
+                    }
+                } else {
+                    Row                      row;
+                    bool                     row_ok = true;
+                    std::vector<std::string> keys;
+                    for (const RowOption& option : options) {
+                        // A per-variant option inside a mixed line keeps the key its line gave it,
+                        // so the payload names the same setting it always did.
+                        const std::string key = option.key + (option.index >= 0 ? "#" + std::to_string(option.index) : "");
+                        if (!added.insert(option.key).second ||
+                            !option_index_in_range(m_snapshot, option.key, option.index)) {
+                            row_ok = false;
+                            break;
+                        }
+                        keys.push_back(key);
+                        row.options.push_back(option);
+                    }
+                    if (row_ok && !row.options.empty()) {
+                        row.id.keys   = std::move(keys);
+                        row.id.column = -1;
+                        rows.push_back(std::move(row));
+                    }
+                }
+                if (rows.empty())
+                    continue;
+
+                // Only a line that produced at least one row gets a checkbox: a line whose every
+                // column failed would otherwise toggle nothing.
+                if (!line->row_toggle)
+                    line->row_toggle = RowToggle();
+                line->row_toggle->on_change = [this, category_index, line](bool checked) {
+                    if (const size_t r = tab_row_for_line(category_index, line); r != size_t(-1))
+                        set_row_checked(r, checked);
+                };
+                // Only a line keyed by a variant column, in a section showing several, marks the
+                // rows as per-extruder; a plain row publishes one setting whatever the switch shows.
+                line->multi_extruder = per_variant && columns.size() > 1;
+                touched = true;
+
+                for (Row& row : rows) {
+                    row.label       = src.label;
+                    row.subcategory = _(group->title); // filter text only
+                    row.id.owner    = -1;
+                    row.id.section  = Slic3r::PublishSection::Process;
+                    row.id.kind     = Slic3r::PublishRowKind::Key;
+
+                    // The first option's value and unit name the row in the filter.
+                    row.value = get_string_value(row.id.keys.front(), m_snapshot);
+                    set_row_unit_from_options(row);
+                    row.page_title           = page->title();
+                    row.tab_line             = line;
+                    const size_t added_index = add_tab_row(std::move(row), category_index);
+                    m_rows[added_index].category = page_title;
+                }
+            }
+            // The toggles added a column to the group's rows: re-align the value and unit columns.
+            if (touched)
+                group->msw_rescale();
+        }
+    }
+}
+
+bool PublishSettingsDialog::tab_line_visible(const Tab& tab, const Row& row) const
+{
+    // A Tab hides a line through toggle_line(), which records the reason per option key: a row is
+    // visible only while none of its options is hidden.
+    const OptionStateRegistry& registry = tab.option_state_registry();
+    return std::none_of(row.options.begin(), row.options.end(),
+                        [&registry](const RowOption& option) { return registry.hidden_reason(option.key) != nullptr; });
+}
+
+size_t PublishSettingsDialog::tab_row_for_line(size_t category_index, const Line* line) const
+{
+    for (const size_t r : m_categories[category_index].rows)
+        if (m_rows[r].tab_line == line && row_on_selected_variant(r))
+            return r;
+    return size_t(-1);
+}
+
+Line* PublishSettingsDialog::row_line(size_t row_index) const
+{
+    return m_rows[row_index].tab_line;
+}
+
+int PublishSettingsDialog::tab_active_column(Tab* tab) const
+{
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (tab == nullptr || bundle == nullptr)
+        return -1;
+
+    // The tab's switch remembers the column switch_excluder() resolved on its last successful
+    // switch; that is the column whose row its Line draws.
+    if (const int resolved = tab->last_resolved_column(); resolved >= 0)
+        return resolved;
+
+    // The tab has no switch, or never resolved a column: derive it from the rule. The switch
+    // names the extruder (and, for a hybrid, the sub-nozzle type) it shows; the rule then names
+    // that entry's column. Without a switch there is one extruder, and the rule's single entry is
+    // its column.
+    int              extruder  = 0;
+    NozzleVolumeType nozzle    = NozzleVolumeType::nvtStandard;
+    const int        selection = tab->switch_selection();
+    if (selection >= 0)
+        tab->parse_extruder_selection(selection, extruder, nozzle);
+
+    const bool                process        = tab->type() == Preset::TYPE_PRINT;
+    // The Process tab's switch lists a hybrid extruder as two tags (Standard, then High Flow);
+    // the Printer tab keeps one tag per extruder and reads the Standard column.
+    const bool                split_hybrid   = process && bundle->get_printer_extruder_count() >= 2 && bundle->support_different_extruders();
+    const DynamicPrintConfig& target         = process ? bundle->prints.get_edited_preset().config :
+                                                         bundle->printers.get_edited_preset().config;
+    const DynamicPrintConfig& printer_config = bundle->printers.get_edited_preset().config;
+    const std::vector<Slic3r::PublishExtruderEntry> entries =
+        publish_extruder_rule(target, printer_config, bundle->project_config, size_t(extruder), split_hybrid,
+                              process ? "print_extruder_id" : "printer_extruder_id",
+                              process ? "print_extruder_variant" : "printer_extruder_variant");
+    if (entries.empty())
+        return -1;
+    if (split_hybrid)
+        for (const Slic3r::PublishExtruderEntry& entry : entries)
+            if (entry.nozzle_type == int(nozzle))
+                return int(entry.column);
+    return int(entries.front().column);
+}
+
+bool PublishSettingsDialog::row_on_selected_variant(size_t row_index) const
+{
+    const Row& row = m_rows[row_index];
+    if (row.id.column < 0 || row.inner_index >= m_categories.size())
+        return true; // slot-level rows belong to every variant
+    const Category& category = m_categories[row.inner_index];
+    // The hosted Printer and Process tabs show one extruder entry at a time: the switch decides
+    // which column's row the shared Line draws.
+    if (row.id.section == Slic3r::PublishSection::Printer || row.id.section == Slic3r::PublishSection::Process) {
+        if (category.publish_tab == nullptr)
+            return true;
+        // The tab's switch remembers the column switch_excluder() last resolved; a tab with no
+        // switch falls back to the column the page started on.
+        const int column = tab_active_column(category.publish_tab);
+        return row.id.column == (column >= 0 ? column : category.column);
+    }
+    if (row.id.section != Slic3r::PublishSection::Material)
+        return true;
+    // The tab's switch selects the local variant; keys carry the file column it maps to.
+    if (category.publish_tab != nullptr) {
+        if (const std::optional<size_t> column =
+                publish_filament_local_to_file(m_snapshot, category.filament_slot, category.publish_tab->active_variant_index());
+            column.has_value())
+            return row.id.column == int(*column);
+    }
+    return row.id.column == category.column;
+}
+
+bool PublishSettingsDialog::apply_row_label_colour(size_t row_index)
+{
+    const Row& row = m_rows[row_index];
+    if (row.tab_line == nullptr || row.options.empty())
+        return false;
+    // The Tab draws and colours the row. Only the row the tab's switch shows paints the Line they
+    // all share.
+    if (row.inner_index >= m_categories.size() || !row_on_selected_variant(row_index))
+        return false;
+    const Tab* tab = m_categories[row.inner_index].publish_tab;
+    if (tab == nullptr)
+        return false;
+    // The Tab owns the dirty state: ask it whether the line it drew is modified, so the row's
+    // label follows the same saved/preset comparison as its revert icon, including after a live
+    // edit in this dialog. A widget-only row is compared against the saved config by the Tab.
+    const bool modified = tab->publish_line_is_modified(*row.tab_line);
+    const wxColour* colour = modified ? &tab->modified_label_colour() : &tab->default_text_colour();
+    row.tab_line->set_label_colour(colour);
+    // The label is drawn from the first option's field colour when the line has a field. Paint the
+    // fields the Line actually owns: a row's column index is a file column, not the "#N" id the tab
+    // gave the field (the switch re-targets one built field).
+    if (modified)
+        for (const Option& option : row.tab_line->get_options())
+            if (Field* field = tab->get_field(option.opt_id))
+                field->set_label_colour(colour);
+    return modified;
+}
+
+void PublishSettingsDialog::apply_row_label_colours()
+{
+    for (Category& category : m_categories)
+        category.modified = false;
+    for (size_t r = 0; r < m_rows.size(); ++r)
+        if (apply_row_label_colour(r) && m_rows[r].inner_index < m_categories.size())
+            m_categories[m_rows[r].inner_index].modified = true;
+    refresh_tab_label_colours();
+    // A page switch or a rule change can hide pages and shift the strip's items: re-place the
+    // selection dots against the inventory that is drawn now.
+    refresh_tab_indicators();
+}
+
+void PublishSettingsDialog::refresh_tab_label_colours()
+{
+    const wxColour* default_clr  = &wxGetApp().get_label_clr_default();
+    const wxColour* modified_clr = &wxGetApp().get_label_clr_modified();
+    // The sidebar's page-tab colours: a modified tab takes the modified colour outright, a clean
+    // one keeps the muted unselected colour and the theme's text colour when selected.
+    auto item_colour = [](const Tab* tab, bool modified, const wxColour& tab_default, const wxColour& tab_modified) {
+        const wxColour& clr = modified ? (tab != nullptr ? tab->modified_label_colour() : tab_modified)
+                                       : (tab != nullptr ? tab->default_text_colour() : tab_default);
+        return modified ? StateColor(clr)
+                        : StateColor(std::make_pair(0x6B6B6C, int(StateColor::NotChecked)),
+                                     std::make_pair(clr, int(StateColor::Normal)));
+    };
+
+    for (size_t s = 0; s < m_sections.size(); ++s) {
+        SectionGroup& section = m_sections[s];
+        bool          any     = false;
+        auto colour_items     = [&](const std::vector<size_t>& items, TabCtrl* tabs) {
+            for (size_t i = 0; i < items.size(); ++i) {
+                const Category& cat = m_categories[items[i]];
+                tabs->SetItemTextColour(static_cast<unsigned int>(i),
+                                        item_colour(cat.publish_tab, cat.modified, *default_clr, *modified_clr));
+                any = any || cat.modified;
+            }
+        };
+        colour_items(section.categories, section.tabs);
+        if (section.mixed_tabs != nullptr)
+            colour_items(section.mixed_categories, section.mixed_tabs);
+        m_outer_tabs->SetItemTextColour(static_cast<unsigned int>(s),
+                                        item_colour(nullptr, any, *default_clr, *modified_clr));
+    }
+}
+
+void PublishSettingsDialog::sync_row_widgets(size_t row_index)
+{
+    // One Line carries one checkbox and draws the row of the variant the tab shows, so only that
+    // row's state may reach it.
+    if (!row_on_selected_variant(row_index))
+        return;
+    Line* line = row_line(row_index);
+    if (line == nullptr || !line->row_toggle)
+        return;
+    const Row& row            = m_rows[row_index];
+    line->row_toggle->checked = m_selection.checked(row.id);
+    line->row_toggle->enabled = m_selection.enabled(row.id);
+}
+
+void PublishSettingsDialog::sync_all_row_widgets()
+{
+    for (size_t r = 0; r < m_rows.size(); ++r)
+        sync_row_widgets(r);
+}
+
+void PublishSettingsDialog::set_row_checked(size_t row_index, bool checked, bool refresh)
+{
+    Row& row = m_rows[row_index];
+    m_selection.set_checked(row.id, checked);
+    sync_row_widgets(row_index);
+    // A checkbox click changes whether the category publishes anything: move its tab's dot now.
+    // A bulk loop defers this to one pass at its end, which is O(rows) instead of O(rows^2).
+    if (refresh)
+        refresh_tab_indicators();
+    // The row's value is editable exactly while it is checked and writable. A row of another
+    // column than the one the tab shows does not draw its line, so it leaves it alone.
+    apply_line_field_gating(row_index);
+}
+
+void PublishSettingsDialog::set_row_enabled(size_t row_index, bool enabled)
+{
+    Row& row = m_rows[row_index];
+    m_selection.set_enabled(row.id, enabled);
+    sync_row_widgets(row_index);
+}
+
+Slic3r::PublishWriteLocation PublishSettingsDialog::write_location_for(size_t row_index) const
+{
+    const Row& row = m_rows[row_index];
+    if (row.tab_line == nullptr || row.inner_index >= m_categories.size())
+        return Slic3r::PublishWriteLocation();
+    const Category& category = m_categories[row.inner_index];
+    if (category.publish_tab == nullptr || category.publish_tab->m_config == nullptr)
+        return Slic3r::PublishWriteLocation();
+    const bool full = row.id.section == Slic3r::PublishSection::Material &&
+                      m_selection.full_publish(int(category.filament_slot));
+    return Slic3r::publish_write_location(row.id, m_snapshot, *category.publish_tab->m_config, full);
+}
+
+bool PublishSettingsDialog::row_writable(size_t row_index) const
+{
+    return write_location_for(row_index).target != Slic3r::PublishWriteTarget::None;
+}
+
+void PublishSettingsDialog::apply_line_field_gating(size_t row_index)
+{
+    const Row& row = m_rows[row_index];
+    if (row.tab_line == nullptr || row.inner_index >= m_categories.size())
+        return;
+    if (!row_on_selected_variant(row_index))
+        return; // the line draws another column's row just now
+    Tab* tab = m_categories[row.inner_index].publish_tab;
+    if (tab == nullptr)
+        return;
+    const bool editable = m_selection.checked(row.id) && row_writable(row_index);
+    // Only the options this row publishes: a line may also carry a value the dialog does not publish,
+    // and that one must stay inert.
+    for (const RowOption& published : row.options)
+        for (const Option& option : row.tab_line->get_options())
+            if (Slic3r::publish_base_key(option.opt_id) == published.key)
+                tab->set_publish_field_enabled(option.opt_id, editable);
+}
+
+void PublishSettingsDialog::apply_row_field_gating(size_t category_index)
+{
+    if (category_index >= m_categories.size())
+        return;
+    const Category& category = m_categories[category_index];
+    Tab*           tab       = category.publish_tab;
+    if (tab == nullptr)
+        return;
+    // A Full Publish slot copies its preset whole: no field of it is edited.
+    if (category.section == Section::Material && m_selection.full_publish(int(category.filament_slot))) {
+        tab->set_publish_fields_enabled(false);
+        return;
+    }
+    for (const size_t r : category.rows)
+        apply_line_field_gating(r);
+}
+
+void PublishSettingsDialog::bind_publish_tab(size_t category_index)
+{
+    if (category_index >= m_categories.size())
+        return;
+    Tab* tab = m_categories[category_index].publish_tab;
+    if (tab == nullptr)
+        return;
+    // The switch decides which column's row a checkbox paints; the tab handles its own switch
+    // first (values, greying), then this repaints the publish controls.
+    tab->m_on_variant_changed = [this, category_index](int) {
+        sync_all_row_widgets();
+        apply_row_field_gating(category_index);
+        apply_visibility();
+        apply_row_label_colours();
+    };
+    // The tab rewrites its lines' visibility and its label colours on a page switch; re-apply the
+    // filter and the dirty markers on top.
+    tab->m_on_rules_applied = [this, category_index] {
+        apply_row_field_gating(category_index);
+        apply_visibility();
+        apply_row_label_colours();
+    };
+    // Every edit reaches the project at once, through the row it is drawn by (spec 7.10).
+    tab->m_on_publish_edit = [this, category_index](const std::string& opt_id, const boost::any& value,
+                                                    const std::vector<std::string>& dependent_keys,
+                                                    const DynamicPrintConfig& before_handling) {
+        on_publish_edit(category_index, opt_id, value, dependent_keys, before_handling);
+    };
+}
+
+void PublishSettingsDialog::refresh_published_plater()
+{
+    Plater* plater = wxGetApp().plater();
+    if (plater == nullptr)
+        return;
+    // The project's dirty state follows the presets; the plater re-reads the whole config so the
+    // scene, the slice and the mixed-filament list agree with what the dialog wrote. A printer or
+    // process write, and a write to the selected filament preset, already refresh through their
+    // real Tab; this runs only for the writes that bypass a Tab.
+    plater->update_project_dirty_from_presets();
+    plater->on_config_change(wxGetApp().preset_bundle->full_config());
+}
+
+size_t PublishSettingsDialog::row_for_edit(size_t category_index, const std::string& opt_id,
+                                           const RowOption** out_option) const
+{
+    if (category_index >= m_categories.size())
+        return size_t(-1);
+    const std::string base = Slic3r::publish_base_key(opt_id);
+    // One Line may draw the rows of several variant columns: only the row of the column the tab
+    // shows is the one the edited field belongs to.
+    for (const size_t r : m_categories[category_index].rows) {
+        const Row& row = m_rows[r];
+        if (row.tab_line == nullptr || !row_on_selected_variant(r))
+            continue;
+        const auto owns = std::any_of(row.tab_line->get_options().begin(), row.tab_line->get_options().end(),
+                                      [&base](const Option& option) {
+                                          return Slic3r::publish_base_key(option.opt_id) == base;
+                                      });
+        if (!owns)
+            continue;
+        for (const RowOption& option : row.options)
+            if (option.key == base) {
+                if (out_option != nullptr)
+                    *out_option = &option;
+                return r;
+            }
+    }
+    return size_t(-1);
+}
+
+void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::string& opt_id, const boost::any& value,
+                                            const std::vector<std::string>& dependent_keys,
+                                            const DynamicPrintConfig& before_handling)
+{
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr || category_index >= m_categories.size())
+        return;
+    Category& category = m_categories[category_index];
+    Tab*      tab      = category.publish_tab;
+    if (tab == nullptr || tab->m_config == nullptr)
+        return;
+
+    const RowOption* published = nullptr;
+    const size_t     row_index = row_for_edit(category_index, opt_id, &published);
+    if (row_index == size_t(-1))
+        return; // a line value the dialog publishes no row for
+
+    const Row& row = m_rows[row_index];
+    // The gate: a field is editable only while its row is checked and writable. A programmatic
+    // population of a disabled field must never reach the project; it is ignored, not asserted:
+    // a stray event in a debug build must not abort the app.
+    if (!m_selection.checked(row.id))
+        return;
+
+    const Slic3r::PublishWriteLocation location = write_location_for(row_index);
+    if (location.target == Slic3r::PublishWriteTarget::None)
+        return;
+
+    bool plater_refresh = false;
+    // The element the tab's own field edits: an indexed line addresses the resolved variant, an
+    // unindexed one always element 0. A material key is written at the row's local variant index;
+    // a printer or process key at the column it names. The private preset and the real one are
+    // seeded from the same config, so their indices match. A project key names its slot instead,
+    // which the returned location carries.
+    const bool   indexed = row.tab_line != nullptr && line_option_indexed(*row.tab_line, published->key);
+    size_t       index   = 0;
+    if (location.target == Slic3r::PublishWriteTarget::FilamentPreset)
+        index = indexed ? location.option_index : size_t(0);
+    else if (location.target != Slic3r::PublishWriteTarget::Project)
+        index = published->index >= 0 ? size_t(published->index)
+                                      : (indexed ? location.option_index : size_t(0));
+
+    // The preset the edited key lands in, and the real tab that paints it. The keys the hosted
+    // tab's own handling rewrote alongside the edit are copied into the same preset afterwards:
+    // they never leave the tab's preset, so the write location above covers them too.
+    DynamicPrintConfig* dependent_target = nullptr;
+    Tab*                dependent_tab    = nullptr;
+    // The filament tab's edit already refreshed itself through load_key_value(), so it only needs
+    // another pass when a copied key actually changed its preset, or when the staged element had to
+    // replace the raw write below.
+    bool                dependent_tab_only_on_copy = false;
+    bool                dependents_copied          = false;
+    // The selected filament preset took the field's raw value first and then the staged one: the tab
+    // needs a pass to show what the preset now holds.
+    bool                edited_key_restaged        = false;
+
+    switch (location.target) {
+    case Slic3r::PublishWriteTarget::FilamentPreset: {
+        if (location.owner < 0 || size_t(location.owner) >= bundle->filament_presets.size())
+            break;
+        const std::string& name = bundle->filament_presets[size_t(location.owner)];
+        bool handled = false;
+        // The preset the sidebar's Filament tab shows goes through the Tab, so its dirty state,
+        // validators and undo see the edit exactly as a sidebar edit.
+        if (name == bundle->filaments.get_selected_preset_name())
+            if (Tab* filament_tab = wxGetApp().get_tab(Preset::TYPE_FILAMENT)) {
+                filament_tab->load_key_value(published->key, value, false, int(index));
+                dependent_target = &bundle->filaments.get_edited_preset().config;
+                dependent_tab    = filament_tab;
+                dependent_tab_only_on_copy = true;
+                handled = true;
+                // load_key_value() can only take the value the field emitted, while the tab's own
+                // handling may have corrected the edited key itself (a clamp against its paired
+                // value). The staged element is what the preset must hold, so it replaces the raw
+                // write and the tab is refreshed below to show it.
+                const Slic3r::ConfigOption* written        = dependent_target->option(published->key);
+                const Slic3r::ConfigOption* staged         = tab->m_config->option(published->key);
+                const auto*                 written_values = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(written);
+                const auto*                 staged_values  = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(staged);
+                const bool                  restage =
+                    written != nullptr && staged != nullptr &&
+                    (written->is_scalar() ? *written != *staged
+                                          : written_values != nullptr && staged_values != nullptr &&
+                                                written_values->size() == staged_values->size() &&
+                                                index < written_values->size() && !element_equals(*written, *staged, index));
+                if (restage)
+                    edited_key_restaged = copy_option_element_at(*dependent_target, published->key, *tab->m_config, index);
+            }
+        if (!handled) {
+            // Any other slot's preset is its stored copy, which full_config() reads for that slot.
+            // It is written without being selected: the sidebar tab shows the value when that
+            // preset is selected.
+            Preset* target = bundle->filaments.find_preset(name, false);
+            if (target == nullptr ||
+                !copy_option_element_at(target->config, published->key, *tab->m_config, index))
+                break;
+            target->set_dirty(true);
+            dependent_target = &target->config;
+            // No Tab was refreshed for this preset: the scene re-reads the project itself.
+            plater_refresh = true;
+        }
+        break;
+    }
+    case Slic3r::PublishWriteTarget::PrinterPreset:
+        if (!copy_option_element_at(bundle->printers.get_edited_preset().config, published->key, *tab->m_config, index))
+            break;
+        dependent_target = &bundle->printers.get_edited_preset().config;
+        dependent_tab    = wxGetApp().get_tab(Preset::TYPE_PRINTER);
+        break;
+    case Slic3r::PublishWriteTarget::ProcessPreset:
+        if (!copy_option_element_at(bundle->prints.get_edited_preset().config, published->key, *tab->m_config, index))
+            break;
+        dependent_target = &bundle->prints.get_edited_preset().config;
+        dependent_tab    = wxGetApp().get_tab(Preset::TYPE_PRINT);
+        break;
+    case Slic3r::PublishWriteTarget::Project: {
+        // No dialog row carries a mixed project key today (a mixed slot shows only its definition
+        // visual); this is the forward path. The edit is the field's own value, and the project
+        // array holds it at the author slot, which the tab's private filament preset cannot address.
+        const Slic3r::ConfigOption* option = bundle->project_config.option(published->key, true);
+        if (option == nullptr || option->is_scalar())
+            break;
+        change_opt_value(bundle->project_config, published->key, value, int(location.option_index));
+        plater_refresh = true;
+        break;
+    }
+    case Slic3r::PublishWriteTarget::None:
+        return;
+    }
+
+    if (dependent_target != nullptr)
+        for (const std::string& key : dependent_keys) {
+            // The edited key is written above from the private preset's post-handling element, not
+            // from `before_handling`, which still holds the pre-handling value; a structural key
+            // belongs to the preset's inheritance, not to the value the author edited.
+            if (key == published->key || publish_structural_keys().count(key) != 0)
+                continue;
+            // A key the handling removed is not written: the private preset's default-filled config
+            // is not the target's key set, and only the plugin manifest produces such a key today,
+            // which the dialog never exposes.
+            if (tab->m_config->option(key) == nullptr)
+                continue;
+            dependents_copied =
+                copy_option_whole(*dependent_target, key, *tab->m_config, before_handling) || dependents_copied;
+        }
+    if (dependent_tab != nullptr && (!dependent_tab_only_on_copy || dependents_copied || edited_key_restaged)) {
+        // The real preset changed behind the tab: repaint it.
+        dependent_tab->update_dirty();
+        dependent_tab->reload_config();
+        dependent_tab->update();
+    }
+
+    if (plater_refresh)
+        refresh_published_plater();
 }
 
 void PublishSettingsDialog::on_full_toggle(size_t category_index)
 {
     Category& cat   = m_categories[category_index];
     const bool full = cat.full_check->GetValue();
-    for (size_t r : cat.rows) {
-        m_rows[r].check->Enable(!full);
-        m_rows[r].check_label->Enable(!full);
+    m_selection.set_full_publish(int(cat.filament_slot), full);
+    // Turning Full Publish off makes the slot the author's: an auto-publish the dialog recorded for
+    // it must not be withdrawn again later by unchecking a mix.
+    if (!full)
+        m_auto_full_slots.erase(cat.filament_slot);
+    for (size_t r : cat.rows)
+        set_row_enabled(r, !full);
+    // Full Publish serializes the preset whole and publishes colour and type itself, so the
+    // Color/Type checkboxes have no effect while it is on; they come back when Full is off.
+    sync_owner_flag_widgets(category_index);
+    // Full Publish serializes the preset whole, so no row value is editable; unchecking it restores
+    // the per-row gating.
+    if (cat.publish_tab != nullptr) {
+        if (full)
+            cat.publish_tab->set_publish_fields_enabled(false);
+        else
+            apply_row_field_gating(category_index);
     }
+    // The row toggles changed state; repaint the hosted rows so the greyed toggles show at once.
+    apply_visibility();
     refresh_tab_indicators();
 }
 
-void PublishSettingsDialog::on_enable_toggle(size_t category_index)
+void PublishSettingsDialog::on_owner_toggle(size_t category_index)
 {
-    Category& cat      = m_categories[category_index];
-    const bool enabled = cat.enable_check->GetValue();
+    if (category_index >= m_categories.size())
+        return;
+    Category& cat = m_categories[category_index];
+    // Only a mixed slot has an owner checkbox: its definition publishes as a whole.
+    if (cat.owner_check == nullptr)
+        return;
+    const bool published = cat.owner_check->GetValue();
+    m_selection.set_owner_published(int(cat.filament_slot), published);
 
-    // A published mixed filament needs its component filaments published too: mark the slots it
-    // uses as "Enable"d and Full Published so the mix's physical components always ship their
-    // identities.
-    if (cat.is_mixed && enabled) {
+    if (cat.is_mixed && published) {
+        // A published mixed filament needs its component filaments published too: Full Publish their
+        // slots so the mix's physical components always ship their identities. That also satisfies
+        // the mixed dependency, which accepts a component's Type row or its Full Publish.
         const DynamicPrintConfig full              = wxGetApp().preset_bundle->full_config();
-        const std::vector<unsigned int> components = mixed_slot_components(full, cat.filament_slot);
+        const std::vector<unsigned int> components = Slic3r::publish_mixed_components(full, cat.filament_slot);
         for (const unsigned int component : components) {
             // Components are 1-based physical filament indices.
             const size_t component_slot = size_t(component) - 1;
             for (size_t c = 0; c < m_categories.size(); ++c) {
                 Category& comp_cat = m_categories[c];
-                if (comp_cat.section != Section::Material || comp_cat.is_mixed || comp_cat.filament_slot != component_slot)
+                if (!material_category_matches(comp_cat, false, component_slot))
                     continue;
-                if (comp_cat.enable_check != nullptr)
-                    comp_cat.enable_check->SetValue(true);
-                if (comp_cat.full_check != nullptr)
+                if (comp_cat.full_check != nullptr) {
+                    // Only the ones this dialog publishes are recorded: a component the author
+                    // Full-Published by hand must survive the mix being unchecked.
+                    if (!comp_cat.full_check->GetValue())
+                        m_auto_full_slots.insert(component_slot);
                     comp_cat.full_check->SetValue(true);
+                    m_selection.set_full_publish(int(component_slot), true);
+                }
+                on_full_toggle(c);
+            }
+        }
+    } else if (cat.is_mixed) {
+        // Unchecking the mix takes back the component Full Publishes it set, so its components do
+        // not keep publishing on their own. A component slot stays published while another live mix
+        // names it; the record itself is dialog-wide because mixes share components.
+        const DynamicPrintConfig        full       = wxGetApp().preset_bundle->full_config();
+        const std::vector<unsigned int> components = Slic3r::publish_mixed_components(full, cat.filament_slot);
+        // Clearing a slot below erases its entry, so walk a copy of the record.
+        const std::set<size_t> recorded = m_auto_full_slots;
+        for (const size_t slot : recorded) {
+            if (std::find(components.begin(), components.end(), unsigned(slot + 1)) == components.end())
+                continue; // not a component of the mix being unchecked
+            bool needed_by_other_mix = false;
+            for (const Category& other : m_categories) {
+                if (&other == &cat || !other.is_mixed || other.section != Section::Material || other.owner_check == nullptr ||
+                    !other.owner_check->GetValue())
+                    continue;
+                const std::vector<unsigned int> others = Slic3r::publish_mixed_components(full, other.filament_slot);
+                if (std::find(others.begin(), others.end(), unsigned(slot + 1)) != others.end()) {
+                    needed_by_other_mix = true;
+                    break;
+                }
+            }
+            if (needed_by_other_mix)
+                continue; // its entry stays: the other mix still needs the slot published
+            for (size_t c = 0; c < m_categories.size(); ++c) {
+                Category& comp_cat = m_categories[c];
+                if (!material_category_matches(comp_cat, false, slot) || comp_cat.full_check == nullptr ||
+                    !comp_cat.full_check->GetValue())
+                    continue;
+                comp_cat.full_check->SetValue(false);
                 on_full_toggle(c);
             }
         }
     }
 
-    // Reveal/hide everything below the slot's header (rows, info, Full Publish line) and refresh
-    // the visibility of the auto-selected component slots.
+    // A mixed slot's hint follows its checkbox; a physical slot's tab stays shown either way.
+    // Refresh the visibility of the auto-selected component slots too.
     apply_visibility();
+    apply_row_field_gating(category_index);
     if (cat.page != nullptr)
         cat.page->GetSizer()->Layout();
     refresh_tab_indicators();
@@ -1522,6 +3217,7 @@ void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedV
         return;
 
     auto* viz = new wxPanel(category.page, wxID_ANY);
+    category.mixed_visual = viz;
     viz->SetBackgroundStyle(wxBG_STYLE_PAINT);
     // Theme colours and DIP metrics are resolved inside the paint handler so dark-mode toggles
     // and DPI changes are picked up on the next repaint without any explicit listener. The
@@ -1650,8 +3346,8 @@ void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedV
     const wxSize viz_sz(FromDIP(viz_w), FromDIP(viz_h));
     viz->SetMinSize(viz_sz);
     viz->SetMaxSize(viz_sz);
-    // Parented to the page right above the scroll area, so it is always shown with the tab:
-    // the "Enable" toggle keeps gating only the rows/info below, never this preview.
+    // Parented to the page right above the scroll area, so it is always shown with the tab: the
+    // publish checkbox never hides this preview.
     wxSizer* page_sizer = category.page->GetSizer();
     int scroll_idx      = -1;
     for (size_t i = 0; i < page_sizer->GetChildren().size(); ++i)
@@ -1665,10 +3361,25 @@ void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedV
         page_sizer->Insert(scroll_idx, viz, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
 }
 
-void PublishSettingsDialog::set_row_bold(Row& row, bool bold)
+void PublishSettingsDialog::refresh_mixed_visuals()
 {
-    // Rebase on the dialog's body font so clearing bold restores the exact original font.
-    row.check_label->SetFont(bold ? Label::Body_13.Bold() : Label::Body_13);
+    // A component's colour is project state, so editing it changes the mix each mixed slot renders.
+    // The preview bakes the colours into its paint spec, so the panel is rebuilt rather than
+    // repainted.
+    const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+    for (size_t c = 0; c < m_categories.size(); ++c) {
+        Category& category = m_categories[c];
+        if (!category.is_mixed || category.page == nullptr)
+            continue;
+        if (category.mixed_visual != nullptr) {
+            if (wxSizer* sizer = category.page->GetSizer())
+                sizer->Detach(category.mixed_visual);
+            category.mixed_visual->Destroy();
+            category.mixed_visual = nullptr;
+        }
+        add_mixed_visual(c, make_mixed_visual_spec(full, category.filament_slot));
+        category.page->Layout();
+    }
 }
 
 void PublishSettingsDialog::save_scroll_position(Category& category)
@@ -1694,113 +3405,40 @@ void PublishSettingsDialog::show_outer_page(size_t section_index)
     section.page->Show();
     // Restore whichever tab row (physical or mixed) was active.
     if (section.selected_inner >= 0)
-        show_inner_page(section_index, section.selected_inner);
+        show_category_page(section_index, false, section.selected_inner);
     else if (section.selected_mixed >= 0)
-        show_mixed_page(section_index, section.selected_mixed);
+        show_category_page(section_index, true, section.selected_mixed);
     m_outer_host_sizer->Layout();
 }
 
-// Position of `value` in `positions`, or -1.
-static int position_of(const std::vector<size_t>& positions, int value)
-{
-    for (size_t i = 0; i < positions.size(); ++i)
-        if (static_cast<int>(positions[i]) == value)
-            return static_cast<int>(i);
-    return -1;
-}
-
-void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_index)
+void PublishSettingsDialog::show_category_page(size_t section_index, bool mixed, int index)
 {
     if (section_index >= m_sections.size())
         return;
     SectionGroup& section = m_sections[section_index];
-    if (inner_index < 0 || inner_index >= static_cast<int>(section.categories.size()))
+    std::vector<size_t>& items       = mixed ? section.mixed_categories : section.categories;
+    std::vector<size_t>& other_items = mixed ? section.categories : section.mixed_categories;
+    int&                 selected    = mixed ? section.selected_mixed : section.selected_inner;
+    int&                 other       = mixed ? section.selected_inner : section.selected_mixed;
+    TabCtrl*             other_tabs  = mixed ? section.tabs : section.mixed_tabs;
+    if (index < 0 || index >= static_cast<int>(items.size()))
         return;
-    if (section.selected_inner >= 0 && section.selected_inner < static_cast<int>(section.categories.size())) {
-        save_scroll_position(m_categories[section.categories[section.selected_inner]]);
-        m_categories[section.categories[section.selected_inner]].page->Hide();
+    if (selected >= 0 && selected < static_cast<int>(items.size())) {
+        save_scroll_position(m_categories[items[selected]]);
+        m_categories[items[selected]].page->Hide();
     }
-    if (section.selected_mixed >= 0 && section.selected_mixed < static_cast<int>(section.mixed_categories.size())) {
-        save_scroll_position(m_categories[section.mixed_categories[section.selected_mixed]]);
-        m_categories[section.mixed_categories[section.selected_mixed]].page->Hide();
-        section.selected_mixed = -1;
+    if (other >= 0 && other < static_cast<int>(other_items.size())) {
+        save_scroll_position(m_categories[other_items[other]]);
+        m_categories[other_items[other]].page->Hide();
+        other = -1;
     }
-    section.selected_inner = inner_index;
-    // An extruder page selects its switch option; a page tab leaves the switch with no selection.
-    if (section.variant_switch != nullptr) {
-        if (const int pos = position_of(section.variant_inners, inner_index); pos >= 0)
-            section.variant_switch->SetSelection(pos); // fires its event, which ignores the shown page
-        else
-            section.variant_switch->Unselect();
-    }
-    if (section.page_tabs != nullptr) {
-        if (const int pos = position_of(section.page_inners, inner_index); pos >= 0)
-            section.page_tabs->SelectItem(pos);
-        else
-            section.page_tabs->Unselect();
-    }
-    Category& category     = m_categories[section.categories[inner_index]];
+    selected           = index;
+    Category& category = m_categories[items[index]];
     category.page->Show();
     category.scroll->FitInside();
     category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
-    if (section.mixed_tabs != nullptr)
-        section.mixed_tabs->Unselect();
-    section.page_host_sizer->Layout();
-}
-
-void PublishSettingsDialog::setup_variant_switch(size_t section_index)
-{
-    SectionGroup& section = m_sections[section_index];
-    std::vector<wxString> titles;
-    for (size_t inner : section.variant_inners)
-        titles.push_back(m_categories[section.categories[inner]].title);
-
-    section.variant_switch = new MultiSwitchButton(section.page);
-    section.variant_switch->SetFitToOptions();
-    section.variant_switch->SetOptions(titles);
-    if (const int pos = position_of(section.variant_inners, section.selected_inner); pos >= 0)
-        section.variant_switch->SetSelection(pos);
-    section.variant_switch->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this, section_index](wxCommandEvent& evt) {
-        evt.Skip();
-        // The hidden tab strip stays the selection model; its event shows the page.
-        SectionGroup& sec = m_sections[section_index];
-        if (evt.GetInt() < 0 || evt.GetInt() >= static_cast<int>(sec.variant_inners.size()))
-            return;
-        const int inner = static_cast<int>(sec.variant_inners[evt.GetInt()]);
-        if (inner != sec.selected_inner)
-            sec.tabs->SelectItem(inner);
-    });
-
-    // The switch takes the place of the printer's tab strip, centered like on the printer tab. On the
-    // Process section it sits below the page tabs.
-    wxSizer* page_sizer = section.page->GetSizer();
-    page_sizer->Insert(section.page_tabs != nullptr ? 2 : 1, section.variant_switch, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(4));
-    section.tabs->Hide();
-    section.page->Layout();
-}
-
-void PublishSettingsDialog::show_mixed_page(size_t section_index, int mixed_index)
-{
-    if (section_index >= m_sections.size())
-        return;
-    SectionGroup& section = m_sections[section_index];
-    if (mixed_index < 0 || mixed_index >= static_cast<int>(section.mixed_categories.size()))
-        return;
-    if (section.selected_mixed >= 0 && section.selected_mixed < static_cast<int>(section.mixed_categories.size())) {
-        save_scroll_position(m_categories[section.mixed_categories[section.selected_mixed]]);
-        m_categories[section.mixed_categories[section.selected_mixed]].page->Hide();
-    }
-    if (section.selected_inner >= 0 && section.selected_inner < static_cast<int>(section.categories.size())) {
-        save_scroll_position(m_categories[section.categories[section.selected_inner]]);
-        m_categories[section.categories[section.selected_inner]].page->Hide();
-        section.selected_inner = -1;
-    }
-    section.selected_mixed = mixed_index;
-    Category& category     = m_categories[section.mixed_categories[mixed_index]];
-    category.page->Show();
-    category.scroll->FitInside();
-    category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
-    section.tabs->Unselect();
+    if (other_tabs != nullptr)
+        other_tabs->Unselect();
     section.page_host_sizer->Layout();
 }
 
@@ -1815,18 +3453,7 @@ void PublishSettingsDialog::on_inner_tab_changed(size_t section_index, wxCommand
 {
     const int selection = event.GetInt();
     if (section_index < m_sections.size() && selection >= 0 && selection < static_cast<int>(m_sections[section_index].categories.size()))
-        show_inner_page(section_index, selection);
-}
-
-void PublishSettingsDialog::on_page_tab_changed(size_t section_index, wxCommandEvent& event)
-{
-    SectionGroup& section = m_sections[section_index];
-    const int selection   = event.GetInt();
-    if (selection < 0 || selection >= static_cast<int>(section.page_inners.size()))
-        return;
-    const int inner = static_cast<int>(section.page_inners[selection]);
-    if (inner != section.selected_inner)
-        section.tabs->SelectItem(inner);
+        show_category_page(section_index, false, selection);
 }
 
 void PublishSettingsDialog::on_mixed_tab_changed(size_t section_index, wxCommandEvent& event)
@@ -1834,7 +3461,7 @@ void PublishSettingsDialog::on_mixed_tab_changed(size_t section_index, wxCommand
     const int selection = event.GetInt();
     if (section_index < m_sections.size() && selection >= 0 &&
         selection < static_cast<int>(m_sections[section_index].mixed_categories.size()))
-        show_mixed_page(section_index, selection);
+        show_category_page(section_index, true, selection);
 }
 
 void PublishSettingsDialog::bind_tab_events()
@@ -1843,9 +3470,6 @@ void PublishSettingsDialog::bind_tab_events()
     for (size_t section_index = 0; section_index < m_sections.size(); ++section_index) {
         m_sections[section_index].tabs->Bind(wxEVT_TAB_SEL_CHANGED,
                                              [this, section_index](wxCommandEvent& event) { on_inner_tab_changed(section_index, event); });
-        if (m_sections[section_index].page_tabs != nullptr)
-            m_sections[section_index].page_tabs->Bind(wxEVT_TAB_SEL_CHANGED,
-                                                      [this, section_index](wxCommandEvent& event) { on_page_tab_changed(section_index, event); });
         if (m_sections[section_index].mixed_tabs != nullptr)
             m_sections[section_index].mixed_tabs->Bind(wxEVT_TAB_SEL_CHANGED, [this, section_index](wxCommandEvent& event) {
                 on_mixed_tab_changed(section_index, event);
@@ -1880,11 +3504,12 @@ void PublishSettingsDialog::refresh_filter(const wxString& filter)
     // Row matches are computed first; page and optgroup visibility is applied below.
     if (pseudo) {
         for (Row& row : m_rows)
-            row.matches_filter = row.check->IsEnabled() && row.check->GetValue() == want_checked;
+            row.matches_filter = m_selection.enabled(row.id) && m_selection.checked(row.id) == want_checked;
     } else {
         const bool clear = filter.IsEmpty();
         for (Row& row : m_rows) {
-            row.matches_filter = clear || (row.section_title + " " + row.category + " " + row.subcategory + " " + row.label + " " +
+            const wxString& section_title = m_sections[m_categories[row.inner_index].group].title;
+            row.matches_filter = clear || (section_title + " " + row.category + " " + row.subcategory + " " + row.label + " " +
                                            row.value + " " + row.unit)
                                               .Lower()
                                               .Contains(filter);
@@ -1898,8 +3523,11 @@ void PublishSettingsDialog::refresh_filter(const wxString& filter)
         for (size_t inner = 0; inner < m_sections[s].categories.size(); ++inner) {
             Category& category = m_categories[m_sections[s].categories[inner]];
             bool has_match     = false;
+            // The header's Color/Type rows are always shown, so they never count as a matching
+            // setting in the list.
             for (size_t r : category.rows)
-                has_match = has_match || m_rows[r].matches_filter;
+                if (m_rows[r].id.kind == Slic3r::PublishRowKind::Key)
+                    has_match = has_match || m_rows[r].matches_filter;
             category.info->Show(!has_match);
             if (!has_match)
                 // A mixed slot has no selectable rows: always explain it is published whole.
@@ -1913,7 +3541,7 @@ void PublishSettingsDialog::refresh_filter(const wxString& filter)
                 active_has_match = has_match;
         }
         // Mixed slots have no rows: they can never match a filter, so they always fall back to
-        // their explanatory hint (shown once the slot is enabled).
+        // their explanatory hint.
         for (size_t mixed : m_sections[s].mixed_categories) {
             Category& category = m_categories[mixed];
             category.info->Show(true);
@@ -1927,7 +3555,7 @@ void PublishSettingsDialog::refresh_filter(const wxString& filter)
             show_outer_page(first_outer);
         }
         m_sections[first_outer].tabs->SelectItem(first_inner);
-        show_inner_page(first_outer, first_inner);
+        show_category_page(first_outer, false, first_inner);
     }
 
     apply_visibility();
@@ -1945,62 +3573,130 @@ void PublishSettingsDialog::apply_visibility()
 {
     Freeze();
     for (Category& category : m_categories) {
-        // A disabled material slot hides everything below its header (rows, info and the Full
-        // Publish line); enable it first to reveal its settings.
-        const bool enabled = category.section != Section::Material ||
-                             (category.enable_check != nullptr && category.enable_check->GetValue());
+        // A physical slot's tab is always shown: its rows stay read-only until checked. A mixed
+        // slot's hint follows its publish checkbox.
+        const bool shown = category.section != Section::Material || !category.is_mixed ||
+                           (category.owner_check != nullptr && category.owner_check->GetValue());
+        if (category.publish_host != nullptr)
+            category.publish_host->Show(shown);
         if (category.scroll != nullptr)
-            category.scroll->Show(enabled);
+            category.scroll->Show(shown);
         if (category.full_line_item != nullptr)
-            category.full_line_item->Show(enabled);
+            category.full_line_item->Show(shown);
+        if (category.filament_picker_item != nullptr)
+            category.filament_picker_item->Show(shown);
         bool category_any = false;
         for (size_t r : category.rows)
-            category_any = category_any || m_rows[r].matches_filter;
-        category.info->Show(enabled && !category_any);
-        for (Subcategory& sub : category.subs) {
-            bool sub_any = false;
-            for (size_t r : sub.rows)
-                sub_any = sub_any || m_rows[r].matches_filter;
-            if (sub.header != nullptr)
-                sub.item->Show(enabled && sub_any);
-            for (size_t r : sub.rows)
-                m_rows[r].item->Show(enabled && m_rows[r].matches_filter);
+            if (m_rows[r].id.kind == Slic3r::PublishRowKind::Key)
+                category_any = category_any || m_rows[r].matches_filter;
+        category.info->Show(shown && !category_any);
+        // A hosted slot's rows hide and show through the tab's own lines: the row of the column
+        // the switch shows owns its line's visibility, on top of the Tab's own hide rule.
+        bool tab_rows = false;
+        // The lines that show a row on the selected variant. A line with none of them belongs to
+        // another column and must be hidden, or the column shown before would stay drawn.
+        std::set<const Line*> drawn_lines;
+        for (size_t r : category.rows) {
+            Row& row = m_rows[r];
+            if (row.tab_line == nullptr || category.publish_tab == nullptr)
+                continue;
+            tab_rows = true;
+            // Read the tab's own rule now rather than a cached copy: the filter must never make a
+            // row the Tab hid reappear.
+            if (row_on_selected_variant(r)) {
+                row.tab_line->toggle_visible = row.matches_filter && tab_line_visible(*category.publish_tab, row);
+                drawn_lines.insert(row.tab_line);
+            }
+        }
+        if (tab_rows) {
+            // A line with no row on the shown variant belongs to another column: hide it, so the
+            // column switched away from cannot stay drawn and editable.
+            for (size_t r : category.rows)
+                if (Line* line = m_rows[r].tab_line; line != nullptr && drawn_lines.count(line) == 0)
+                    line->toggle_visible = false;
+            for (const PageShp& page : category.publish_tab->m_pages)
+                for (const ConfigOptionsGroupShp& group : page->m_optgroups) {
+                    // Re-run the group's own show/hide against the lines' toggle_visible, as the
+                    // Tab does after its own rules.
+                    group->update_visibility(comDevelop);
+                    group->refresh();
+                }
+            // The same relayout the Tab runs after it changes a line's visibility.
+            if (wxScrolledWindow* page_view = category.publish_tab->m_page_view) {
+                page_view->Layout();
+                if (wxWindow* view_host = page_view->GetParent())
+                    view_host->Layout();
+            }
+            if (category.publish_host != nullptr)
+                category.publish_host->Layout();
         }
         category.list_sizer->Layout();
-        category.scroll->FitInside();
+        if (category.scroll != nullptr)
+            category.scroll->FitInside();
     }
     Thaw();
 }
 
 void PublishSettingsDialog::select_all(bool value)
 {
-    // "All" skips disabled (gated) rows; "None" leaves a gated row's preserved value.
-    for (Row& row : m_rows)
-        if (row.check->IsEnabled())
-            row.check->SetValue(value);
-    // "All" also enables every material slot (so its rows/Full Publish become visible and the
-    // selection is actually exported); "None" disables them all again.
-    for (Category& cat : m_categories)
-        if (cat.section == Section::Material && cat.enable_check != nullptr)
-            cat.enable_check->SetValue(value);
-    // CheckBox::SetValue does not emit wxEVT_TOGGLEBUTTON, so re-run the enable handlers to
-    // propagate mixed-slot components and refresh visibility as if the user had clicked.
+    // "None" first tears down what gates the rows: Full Publish disables every row of its slot, and
+    // a mixed slot's definition auto-Full-Publishes its components. Turning both off through their
+    // own handlers re-enables and re-gates those rows first, so the loop below can then uncheck
+    // every row by id without a disabled row keeping the value it had.
+    if (!value)
+        for (size_t c = 0; c < m_categories.size(); ++c) {
+            Category& cat = m_categories[c];
+            if (cat.section != Section::Material)
+                continue;
+            if (cat.full_check != nullptr && cat.full_check->GetValue()) {
+                cat.full_check->SetValue(false);
+                on_full_toggle(c);
+            }
+            if (cat.owner_check != nullptr && cat.owner_check->GetValue()) {
+                cat.owner_check->SetValue(false);
+                on_owner_toggle(c);
+            }
+        }
+
+    // "All" skips disabled (gated) rows and rows of a variant that is not shown; "None" unchecks
+    // every row, whatever its enabled or visible state, now that nothing gates it. The indicators
+    // are refreshed once at the end.
+    for (size_t r = 0; r < m_rows.size(); ++r)
+        if (!value || (m_selection.enabled(m_rows[r].id) && row_on_selected_variant(r)))
+            set_row_checked(r, value, false);
+    // "All" also publishes every mixed slot's definition. A physical slot needs nothing extra: its
+    // Color/Type rows were ticked with the others.
+    if (value)
+        for (size_t c = 0; c < m_categories.size(); ++c) {
+            Category& cat = m_categories[c];
+            if (cat.section != Section::Material || cat.owner_check == nullptr)
+                continue;
+            if (!cat.owner_check->GetValue())
+                cat.owner_check->SetValue(true);
+            // CheckBox::SetValue does not emit wxEVT_TOGGLEBUTTON, so re-run the owner handler to
+            // propagate mixed-slot components and refresh visibility as if the user had clicked.
+            on_owner_toggle(c);
+        }
+    // The header's Color/Type checkboxes are views over the rows toggled above.
     for (size_t c = 0; c < m_categories.size(); ++c)
         if (m_categories[c].section == Section::Material)
-            on_enable_toggle(c);
+            sync_owner_flag_widgets(c);
     apply_visibility();
     refresh_tab_indicators();
 }
 
-bool PublishSettingsDialog::row_is_visible(const Row& row) const
+bool PublishSettingsDialog::row_is_visible(size_t row_index) const
 {
+    const Row& row = m_rows[row_index];
     if (m_selected_outer < 0 || m_selected_outer >= static_cast<int>(m_sections.size()) ||
-        row.outer_index != static_cast<size_t>(m_selected_outer) || m_sections[m_selected_outer].selected_inner < 0 ||
+        m_categories[row.inner_index].group != static_cast<size_t>(m_selected_outer) ||
+        m_sections[m_selected_outer].selected_inner < 0 ||
         m_sections[m_selected_outer].selected_inner >= static_cast<int>(m_sections[m_selected_outer].categories.size()) ||
         row.inner_index != m_sections[m_selected_outer].categories[m_sections[m_selected_outer].selected_inner] || !row.matches_filter ||
-        !row.check->IsEnabled())
+        !m_selection.enabled(row.id) || !row_on_selected_variant(row_index))
         return false;
-    return row.item->IsShown();
+    const Line* line = row_line(row_index);
+    return line != nullptr && line->toggle_visible;
 }
 
 void PublishSettingsDialog::select_visible(bool value)
@@ -2010,10 +3706,10 @@ void PublishSettingsDialog::select_visible(bool value)
     const bool clear_pseudo = (m_filter_mode == FilterMode::UnselectedOnly && !value) ||
                               (m_filter_mode == FilterMode::SelectedOnly && value);
 
-    // Toggle the rows visible under the *current* filter.
-    for (Row& row : m_rows)
-        if (row_is_visible(row))
-            row.check->SetValue(value);
+    // Toggle the rows visible under the *current* filter; the indicators are refreshed once below.
+    for (size_t r = 0; r < m_rows.size(); ++r)
+        if (row_is_visible(r))
+            set_row_checked(r, value, false);
 
     if (clear_pseudo) {
         // Note: SetValue() may fire wxEVT_TEXT on some platforms, re-entering apply_filter() -
@@ -2029,8 +3725,8 @@ void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
     bool filtering  = !m_filter_ctrl->GetValue().IsEmpty() || m_filter_mode != FilterMode::Text;
     bool list_empty = true;
     if (m_selected_outer >= 0) {
-        for (const Row& row : m_rows)
-            if (row_is_visible(row)) {
+        for (size_t r = 0; r < m_rows.size(); ++r)
+            if (row_is_visible(r)) {
                 list_empty = false;
                 break;
             }
@@ -2087,30 +3783,42 @@ void PublishSettingsDialog::apply_selection(const std::vector<std::string>& publ
 {
     // The supplied selection is authoritative: clear the dirty-default pre-check first so a
     // dirty key the user deselected stays off, then re-select exactly what the selection names.
-    for (Row& row : m_rows)
-        if (row.check != nullptr)
-            row.check->SetValue(false);
+    // The indicators are refreshed once at the end, not per row.
+    for (size_t r = 0; r < m_rows.size(); ++r)
+        set_row_checked(r, false, false);
     for (Category& cat : m_categories) {
         if (cat.section != Section::Material)
             continue;
-        if (cat.enable_check != nullptr)
-            cat.enable_check->SetValue(false);
+        if (cat.owner_check != nullptr)
+            cat.owner_check->SetValue(false);
         if (cat.full_check != nullptr)
             cat.full_check->SetValue(false);
+        m_selection.set_owner_published(int(cat.filament_slot), false);
+        m_selection.set_full_publish(int(cat.filament_slot), false);
     }
+    // Every Full Publish is gone, so no component is the dialog's auto-publish any more: a later
+    // uncheck must not clear what the author turns on from here.
+    m_auto_full_slots.clear();
 
-    // Print / printer rows: match by exact row key (the full "#N" opt_id where present). A process
-    // "key#N" from a file without the per-extruder process layout carries the whole vector, so it
-    // selects that setting on every extruder.
+    // Print / printer rows: match by exact publish key (the full "#N" opt_id where present). A
+    // process "key#N" from a file without the per-extruder process layout carries the whole
+    // vector, so it selects that setting on every extruder.
     for (const std::string& key : published_keys) {
         const std::string base_key = publish_base_key(key);
         const bool legacy_process  = m_legacy_process_selection && key != base_key && print_options_with_variant.count(base_key) != 0;
-        for (Row& row : m_rows) {
-            if ((row.section != Section::Print && row.section != Section::Printer) || row.check == nullptr)
+        for (size_t r = 0; r < m_rows.size(); ++r) {
+            const Row& row = m_rows[r];
+            if (row.id.section == Slic3r::PublishSection::Material || row.id.kind != Slic3r::PublishRowKind::Key)
                 continue;
-            const bool match = legacy_process ? (row.section == Section::Print && publish_base_key(row.key) == base_key) : row.key == key;
+            const bool match = legacy_process ?
+                                   (row.id.section == Slic3r::PublishSection::Process &&
+                                    std::any_of(row.id.keys.begin(), row.id.keys.end(), [&base_key](const std::string& k) {
+                                        return publish_base_key(k) == base_key;
+                                    }))
+                                 : std::any_of(row.id.keys.begin(), row.id.keys.end(),
+                                               [&key](const std::string& k) { return k == key; });
             if (match)
-                row.check->SetValue(true);
+                set_row_checked(r, true, false);
         }
     }
 
@@ -2127,7 +3835,7 @@ void PublishSettingsDialog::apply_selection(const std::vector<std::string>& publ
         size_t cat_idx = size_t(-1);
         for (size_t c = 0; c < m_categories.size(); ++c) {
             const Category& cat = m_categories[c];
-            if (cat.section != Section::Material || cat.is_mixed != entry_mixed || cat.filament_slot != size_t(entry.slot))
+            if (!material_category_matches(cat, entry_mixed, size_t(entry.slot)))
                 continue;
             cat_idx = c;
             break;
@@ -2135,39 +3843,71 @@ void PublishSettingsDialog::apply_selection(const std::vector<std::string>& publ
         if (cat_idx == size_t(-1))
             continue; // slot not present in the receiver (out of range / skipped)
         Category& cat = m_categories[cat_idx];
-        if (cat.enable_check != nullptr) {
-            cat.enable_check->SetValue(true);
-            on_enable_toggle(cat_idx);
+        // A mixed entry exists only while the mix was published, so its presence alone publishes
+        // it. A physical entry's colour and type flags name the rows that published them; a
+        // partial entry with neither ships its keys only.
+        if (entry_mixed) {
+            if (cat.owner_check != nullptr)
+                cat.owner_check->SetValue(true);
+            m_selection.set_owner_published(int(cat.filament_slot), true);
+        } else {
+            auto tick_flag = [&](Slic3r::PublishRowKind kind) {
+                const size_t row = owner_flag_row(cat_idx, kind);
+                if (row != size_t(-1))
+                    set_row_checked(row, true, false);
+            };
+            if (entry.publish_color)
+                tick_flag(Slic3r::PublishRowKind::Color);
+            if (entry.publish_type)
+                tick_flag(Slic3r::PublishRowKind::Type);
         }
         if (entry.full && cat.full_check != nullptr) {
             cat.full_check->SetValue(true);
             on_full_toggle(cat_idx);
         } else {
-            // Setting rows are keyed by the base key.
-            for (const std::string& key : entry.keys) {
-                const std::string base = publish_base_key(key);
+            // "key#col" names the row it was written from. A plain key from a file written before
+            // the keys carried their column maps to the column this slot prints with (spec 7.5).
+            const Slic3r::PublishResolvedColumn resolved = publish_resolved_column(m_snapshot, cat.filament_slot);
+            const int                           column   = resolved.file_column.has_value() ? int(*resolved.file_column) : -1;
+            auto has_key = [&](const Row& row, const std::string& needle) {
+                return std::any_of(row.id.keys.begin(), row.id.keys.end(),
+                                   [&needle](const std::string& k) { return k == needle; });
+            };
+            auto check_first = [&](auto&& match) {
                 for (const size_t r : cat.rows) {
-                    Row& row = m_rows[r];
-                    if (row.kind == RowKind::Setting && row.key == base) {
-                        row.check->SetValue(true);
-                        break;
+                    const Row& row = m_rows[r];
+                    if (row.id.kind == Slic3r::PublishRowKind::Key && match(row)) {
+                        set_row_checked(r, true, false);
+                        return true;
                     }
                 }
+                return false;
+            };
+            for (const std::string& key : entry.keys) {
+                const std::string base = publish_base_key(key);
+                // A key that names a column must find that column; never seed another variant.
+                if (publish_key_index(key) >= 0) {
+                    check_first([&](const Row& row) { return has_key(row, key); });
+                    continue;
+                }
+                if (check_first([&](const Row& row) { return row.id.column == column && has_key(row, base); }))
+                    continue;
+                // A per-slot key has its own row, with no column.
+                if (check_first([&](const Row& row) { return row.id.column < 0 && has_key(row, base); }))
+                    continue;
+                // A variant-bearing key from such a file: the row carries "base#resolved_column".
+                if (column >= 0)
+                    check_first([&](const Row& row) { return has_key(row, base + "#" + std::to_string(column)); });
             }
-            if (entry.publish_type && !entry.publish_type_value.empty())
-                for (const size_t r : cat.rows)
-                    if (m_rows[r].kind == RowKind::Type && m_rows[r].check != nullptr) {
-                        m_rows[r].check->SetValue(true);
-                        break;
-                    }
-            if (entry.publish_color && !entry.color.empty())
-                for (const size_t r : cat.rows)
-                    if (m_rows[r].kind == RowKind::Color && m_rows[r].check != nullptr) {
-                        m_rows[r].check->SetValue(true);
-                        break;
-                    }
+            // The Color/Type rows were seeded from the entry's flags above; the key rows seed
+            // independently of them.
         }
     }
+
+    // The header's flag checkboxes are views over the seeded rows.
+    for (size_t c = 0; c < m_categories.size(); ++c)
+        if (m_categories[c].section == Section::Material)
+            sync_owner_flag_widgets(c);
 
     apply_visibility();
     refresh_tab_indicators();
@@ -2175,164 +3915,28 @@ void PublishSettingsDialog::apply_selection(const std::vector<std::string>& publ
 
 std::vector<std::string> PublishSettingsDialog::GetPublishedKeys() const
 {
-    std::vector<std::string> out;
     // Process and printer sections both travel through published_keys (the load-side overlay
     // applies process keys to the prints edited preset and the allowlisted printer keys to the
-    // printers edited preset); material keys use a separate API. Printer rows carry the full
-    // per-extruder "#N" opt_id (built in Phase 1), so a checked row publishes exactly that
-    // extruder's value - per-extruder selection is independent.
-    for (const Row& row : m_rows) {
-        if ((row.section != Section::Print && row.section != Section::Printer) || !row.check->GetValue())
-            continue;
-        out.push_back(row.key);
-    }
-    return out;
-}
-
-std::vector<MixedDependencyIssue> PublishSettingsDialog::unpublished_mixed_components() const
-{
-    std::vector<MixedDependencyIssue> out;
-    for (const Category& cat : m_categories) {
-        if (!cat.is_mixed || cat.section != Section::Material)
-            continue;
-        // Only enabled mixed slots depend on their components being published.
-        if (cat.enable_check == nullptr || !cat.enable_check->GetValue())
-            continue;
-        const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
-        // Components are 1-based physical filament indices.
-        for (const unsigned int component : mixed_slot_components(full, cat.filament_slot)) {
-            const size_t component_slot = size_t(component) - 1;
-            // Find the component slot's material category (one exists per physical slot).
-            const Category* comp_cat = nullptr;
-            for (const Category& other : m_categories) {
-                if (other.section == Section::Material && !other.is_mixed && other.filament_slot == component_slot) {
-                    comp_cat = &other;
-                    break;
-                }
-            }
-            if (comp_cat == nullptr || comp_cat->enable_check == nullptr)
-                continue;
-            // Missing when the component's "Enable" is off, or it is enabled with neither
-            // "Full Publish" nor the "Type" requirement row checked. Colour never counts:
-            // the receiver renders the mix from its own components' colours.
-            if (!comp_cat->enable_check->GetValue()) {
-                out.push_back({cat.filament_slot, component_slot, MixedDependencyIssue::Reason::Disabled});
-                continue;
-            }
-            if (comp_cat->full_check != nullptr && comp_cat->full_check->GetValue())
-                continue;
-            bool type_checked = false;
-            for (const size_t r : comp_cat->rows) {
-                const Row& row = m_rows[r];
-                if (row.kind == RowKind::Type && row.check->GetValue()) {
-                    type_checked = true;
-                    break;
-                }
-            }
-            if (!type_checked)
-                out.push_back({cat.filament_slot, component_slot, MixedDependencyIssue::Reason::MaterialNotPublished});
-        }
-    }
-    // Deterministic order for the warning rows: by mixed slot, then component slot. The same
-    // (mix, component) pair cannot repeat: each mix's components come from a config list.
-    std::sort(out.begin(), out.end(), [](const MixedDependencyIssue& a, const MixedDependencyIssue& b) {
-        return std::tie(a.mixed_slot, a.component_slot) < std::tie(b.mixed_slot, b.component_slot);
-    });
-    return out;
+    // printers edited preset); material keys use a separate API. Each row's keys are already
+    // publish-ready ("key" or "key#col"), so a checked row publishes exactly that column's value.
+    return m_selection.published_keys(m_row_ids);
 }
 
 std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedMaterialKeys() const
 {
-    std::vector<Slic3r::PublishedMaterialEntry> out;
-    for (const Category& cat : m_categories) {
-        if (cat.section != Section::Material)
-            continue;
-        // A slot that is not "Enable"d publishes nothing at all.
-        if (cat.enable_check != nullptr && !cat.enable_check->GetValue())
-            continue;
-        Slic3r::PublishedMaterialEntry entry;
-        entry.filament_type   = cat.filament_type;
-        entry.filament_vendor = cat.filament_vendor;
-        entry.filament_id     = cat.filament_id;
-        entry.slot            = static_cast<int>(cat.filament_slot);
-        // The author's preset id distinguishes exact variants that share filament_id
-        // ("Generic PLA" vs "Generic PLA Matte"), so the receiver can match precisely; the
-        // preset name is the most direct identity and is matched first on load.
-        PresetBundle* bundle = wxGetApp().preset_bundle;
-        if (bundle != nullptr && cat.filament_slot < bundle->filament_presets.size()) {
-            if (const Preset* preset = bundle->filaments.find_preset(bundle->filament_presets[cat.filament_slot], false, true)) {
-                entry.setting_id  = preset->setting_id;
-                entry.preset_name = preset->name;
-            }
-        }
-        // A mixed slot publishes as one unit: its definition (components, ratios, gradient)
-        // always travels (its Enable implies this), and the component filaments are enabled +
-        // Full Published by on_enable_toggle into their own entries.
-        if (cat.is_mixed) {
-            Slic3r::PublishedMaterialEntry mixed_entry;
-            mixed_entry.filament_type   = cat.filament_type;
-            mixed_entry.filament_vendor = cat.filament_vendor;
-            mixed_entry.filament_id     = cat.filament_id;
-            mixed_entry.slot            = static_cast<int>(cat.filament_slot);
-            // The mix's own colour (blended) is a property of the definition, not a
-            // requirement row; carry it so the receiver renders the swatch.
-            const DynamicPrintConfig full_cfg = wxGetApp().preset_bundle->full_config();
-            const std::string mix_color       = filament_color_hex(full_cfg, cat.filament_slot);
-            if (!mix_color.empty()) {
-                mixed_entry.publish_color = true;
-                mixed_entry.color         = mix_color;
-            }
-            for (const std::string& key : publish_mixed_keys())
-                mixed_entry.keys.emplace_back(key);
-            out.push_back(std::move(mixed_entry));
-            continue;
-        }
-        // "Full Publish": the whole filament preset is embedded; type and colour are implicitly
-        // published, and the per-key rows are disabled / their state ignored.
-        if (cat.full_check != nullptr && cat.full_check->GetValue()) {
-            entry.full               = true;
-            entry.full_keys          = full_keys_for_slot();
-            entry.publish_type       = true;
-            entry.publish_type_value = normalize_filament_type(cat.filament_type);
-            for (size_t r : cat.rows) {
-                const Row& row = m_rows[r];
-                if (row.kind == RowKind::Color && !row.value.IsEmpty()) {
-                    entry.publish_color = true;
-                    entry.color         = row.value.ToStdString();
-                }
-            }
-            out.push_back(std::move(entry));
-            continue;
-        }
-        for (size_t r : cat.rows) {
-            const Row& row = m_rows[r];
-            if (!row.check->GetValue())
-                continue;
-            if (row.kind == RowKind::Color) {
-                entry.publish_color = true;
-                entry.color         = row.value.ToStdString();
-            } else if (row.kind == RowKind::Type) {
-                entry.publish_type       = true;
-                entry.publish_type_value = row.value.ToStdString();
-            } else {
-                entry.keys.push_back(row.key);
-            }
-        }
-        // Nothing checked at all -> nothing to write.
-        if (!entry.keys.empty() || entry.publish_type || entry.publish_color)
-            out.push_back(std::move(entry));
-    }
-    return out;
+    // Publishing owners only, in slot order; the model owns the Full Publish and per-key rules.
+    return m_selection.material_entries(m_row_ids);
 }
 
 bool PublishSettingsDialog::category_has_selection(const Category& cat) const
 {
-    // A material slot publishes (or not) as a whole, gated by "Enable".
+    // A material slot publishes under the model's rule: a mixed slot through its checkbox, a
+    // physical slot when a checked row carries a key or a non-empty colour/type, or Full Publish.
     if (cat.section == Section::Material)
-        return cat.enable_check != nullptr && cat.enable_check->GetValue();
+        return m_selection.owner_publishes(int(cat.filament_slot), m_row_ids);
     // Print/Printer categories have no gate: any checked row counts.
     for (const size_t r : cat.rows)
-        if (m_rows[r].check->GetValue())
+        if (m_selection.checked(m_rows[r].id))
             return true;
     return false;
 }
@@ -2341,35 +3945,43 @@ void PublishSettingsDialog::refresh_tab_indicators()
 {
     for (size_t s = 0; s < m_sections.size(); ++s) {
         SectionGroup& section = m_sections[s];
-        bool any              = false;
-        for (size_t i = 0; i < section.categories.size(); ++i) {
-            const bool on = category_has_selection(m_categories[section.categories[i]]);
-            section.tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
-            any = any || on;
-        }
-        // The switch has no indicator dot; mark its option text instead.
-        if (section.variant_switch != nullptr)
-            for (size_t p = 0; p < section.variant_inners.size(); ++p) {
-                const Category& category = m_categories[section.categories[section.variant_inners[p]]];
-                const bool      on       = category_has_selection(category);
-                const wxString  text     = on ? category.title + wxString(" ") + wxString(wxUniChar(0x2022)) : category.title;
-                if (section.variant_switch->GetOptionText(static_cast<unsigned int>(p)) != text) {
-                    section.variant_switch->SetOptionText(static_cast<unsigned int>(p), text);
-                    section.page->Layout();
-                }
-            }
-        if (section.page_tabs != nullptr)
-            for (size_t j = 0; j < section.page_inners.size(); ++j)
-                section.page_tabs->SetItemIndicator(static_cast<unsigned int>(j),
-                                                    category_has_selection(m_categories[section.categories[section.page_inners[j]]]));
-        if (section.mixed_tabs != nullptr)
-            for (size_t i = 0; i < section.mixed_categories.size(); ++i) {
-                const bool on = category_has_selection(m_categories[section.mixed_categories[i]]);
-                section.mixed_tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
+        bool          any     = false;
+        auto mark_items       = [&](const std::vector<size_t>& items, TabCtrl* tabs, bool page_dots) {
+            for (size_t i = 0; i < items.size(); ++i) {
+                const size_t c  = items[i];
+                const bool   on = category_has_selection(m_categories[c]);
+                tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
+                if (page_dots)
+                    refresh_page_indicators(c);
                 any = any || on;
             }
+        };
+        mark_items(section.categories, section.tabs, true);
+        if (section.mixed_tabs != nullptr)
+            mark_items(section.mixed_categories, section.mixed_tabs, false);
         m_outer_tabs->SetItemIndicator(static_cast<unsigned int>(s), any);
     }
+}
+
+void PublishSettingsDialog::refresh_page_indicators(size_t category_index)
+{
+    if (category_index >= m_categories.size())
+        return;
+    const Category& category = m_categories[category_index];
+    Tab*            tab      = category.publish_tab;
+    if (tab == nullptr)
+        return;
+    // One dot per page: it publishes something when any row drawn on that page is checked, of
+    // whichever variant column. Pages without rows are not visited, so they stay off.
+    std::map<wxString, bool> pages;
+    for (const size_t r : category.rows) {
+        const Row& row = m_rows[r];
+        if (row.page_title.empty())
+            continue;
+        pages[row.page_title] = pages[row.page_title] || m_selection.checked(row.id);
+    }
+    for (const auto& [title, on] : pages)
+        tab->set_publish_page_indicator(title, on);
 }
 
 std::vector<std::string> PublishSettingsDialog::full_keys_for_slot() const
@@ -2396,20 +4008,28 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
     m_menu_button->SetBitmap(m_menu.bmp());
     m_outer_tabs->Rescale();
 
-    const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
-
-    for (Category& cat : m_categories) {
+    for (size_t category_index = 0; category_index < m_categories.size(); ++category_index) {
+        Category& cat = m_categories[category_index];
         if (cat.full_check != nullptr)
             cat.full_check->Refresh();
-        if (cat.enable_check != nullptr)
-            cat.enable_check->Refresh();
-        if (cat.title_label != nullptr)
-            cat.title_label->Refresh();
-        if (cat.filament_color_chip != nullptr) {
-            // Mixed pages have no header chip; this only ever fires for physical slots.
-            if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, cat.filament_slot), std::to_string(cat.filament_slot + 1),
-                                                         FromDIP(20), FromDIP(20))) {
-                cat.filament_color_chip->SetBitmap(*chip);
+        if (cat.owner_check != nullptr)
+            cat.owner_check->Refresh();
+        if (cat.filament_picker != nullptr) {
+            // The combo rebuilds its list from the bundle on a rescale, which can lose the slot's
+            // current name: put it back on top.
+            cat.filament_picker->msw_rescale();
+            cat.filament_picker->show_preset(cat.pending_filament);
+        }
+        // The badge, the Color row's value chip and the tab strip's chip: mixed pages have none,
+        // so this only ever fires for physical slots.
+        if (cat.section == Section::Material && !cat.is_mixed)
+            refresh_slot_colour(category_index);
+        if (cat.variant_notice != nullptr && cat.variant_notice->IsShown()) {
+            // A wrapped label keeps the old width's line breaks; set the text again from the
+            // project and wrap it at the new DIP width.
+            if (const std::string notice = publish_variant_notice(m_snapshot, cat.filament_slot); !notice.empty()) {
+                cat.variant_notice->SetLabel(from_u8(notice));
+                cat.variant_notice->Wrap(FromDIP(460));
             }
         }
         cat.scroll->FitInside();
@@ -2422,38 +4042,18 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         if (section.icon_bmp.bmp().IsOk())
             m_outer_tabs->SetItemBitmap(s, section.icon_bmp.bmp());
         section.tabs->Rescale();
-        if (section.page_tabs != nullptr)
-            section.page_tabs->Rescale();
         if (section.mixed_tabs != nullptr)
             section.mixed_tabs->Rescale();
-        if (section.variant_switch != nullptr)
-            section.variant_switch->Rescale();
     }
 
-    // Refresh the per-row Color chips at the new DPI (they carry the slot number too).
-    for (Row& row : m_rows) {
-        if (row.color_chip != nullptr && !row.value.IsEmpty()) {
-            const std::string chip_label = (row.inner_index < m_categories.size()) ?
-                                               std::to_string(m_categories[row.inner_index].filament_slot + 1) :
-                                               "";
-            if (wxBitmap* chip = get_extruder_color_icon(row.value.ToStdString(), chip_label, FromDIP(20), FromDIP(20)))
-                row.color_chip->SetBitmap(*chip);
-        }
-    }
+    // Rescale the hosted tabs with the same entry point the sidebar's Page uses.
+    for (Category& category : m_categories)
+        if (category.publish_tab != nullptr)
+            category.publish_tab->msw_rescale();
 
-    for (size_t category_index = 0; category_index < m_categories.size(); ++category_index) {
-        const Category& category = m_categories[category_index];
-        if (category.section != Section::Material || category.is_mixed)
-            continue;
-        if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, category.filament_slot),
-                                                     std::to_string(category.filament_slot + 1), FromDIP(20), FromDIP(20))) {
-            const SectionGroup& section = m_sections[category.group];
-            const auto iter             = std::find(section.categories.begin(), section.categories.end(), category_index);
-            if (iter != section.categories.end())
-                m_sections[category.group].tabs->SetItemBitmap(static_cast<unsigned int>(iter - section.categories.begin()), *chip);
-        }
-    }
     refresh_mixed_tab_bitmaps();
+    // The mixed previews bake DIP sizes when they are built, so a DPI change rebuilds them.
+    refresh_mixed_visuals();
 
     fit_to_content(); // tab buttons' min widths grew with the DPI: re-fit (incl. resize floor)
     Refresh();
@@ -2482,6 +4082,27 @@ void PublishSettingsDialog::on_sys_color_changed()
     // The mixed-tab compositions bake the tab strip's background colour: rebuild them when the
     // theme changes (on_dpi_changed covers rescales).
     refresh_mixed_tab_bitmaps();
+    // Re-apply the theme to every hosted tab. The colour pass resets the label colours, so the
+    // modified marker goes back on afterwards, as the Tab does.
+    for (Category& category : m_categories) {
+        if (category.publish_tab != nullptr)
+            category.publish_tab->sys_color_changed();
+        if (category.filament_picker != nullptr) {
+            category.filament_picker->sys_color_changed();
+            category.filament_picker->show_preset(category.pending_filament);
+        }
+        if (category.filament_color_chip != nullptr) {
+            // The badge is a button: its background is the theme's, resolved again here.
+            category.filament_color_chip->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+            category.filament_color_chip->Refresh();
+        }
+    }
+    apply_row_label_colours();
+    // A flag row resolves its label colours at sync time, so the theme pass has to re-run it or an
+    // open dialog keeps the previous theme's normal and dimmed label colours.
+    for (size_t c = 0; c < m_categories.size(); ++c)
+        if (material_category_matches(m_categories[c], false))
+            sync_owner_flag_widgets(c);
     Refresh();
 }
 

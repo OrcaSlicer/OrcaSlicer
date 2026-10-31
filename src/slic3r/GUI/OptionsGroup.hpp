@@ -14,6 +14,7 @@
 
 #include <map>
 #include <functional>
+#include <optional>
 #include <wx/string.h>
 
 #include "libslic3r/Config.hpp"
@@ -55,6 +56,15 @@ struct Option {
 		opt(_opt), opt_id(id) {}
 };
 
+// Opt-in toggle drawn at the start of the row, in the left-hand column the settings Tabs do not use.
+// Null on every sidebar Tab row, so tab painting and hit testing are unchanged.
+struct RowToggle
+{
+    bool                      checked{false};
+    bool                      enabled{true};
+    std::function<void(bool)> on_change;
+};
+
 /// Represents option lines
 class Line : public UndoValueUIManager
 {
@@ -66,6 +76,10 @@ public:
 	std::string	label_path;
     bool        undo_to_sys{false}; // BBS: object config
     bool        toggle_visible{true}; // BBS: hide some line
+    std::optional<RowToggle> row_toggle;
+    // Draws the per-extruder icon left of the label, for a caller that keys every row by a column
+    // and so cannot be detected from the option ids the way the Tab does it.
+    bool        multi_extruder{false};
 
     size_t		full_width {0};
     widget_t	widget {nullptr};
@@ -155,6 +169,9 @@ public:
     const bool staticbox{true};
     bool split_multi_line{false};
     bool option_label_at_right{false};
+    // Options registered through get_option / append_line are indexed in the Speed Dial search.
+    // Set to false to keep the group's options out of that index.
+    bool index_in_search{true};
     // BBS: new layout
     wxWindow *     stb{ nullptr };
     const wxString  icon;
@@ -254,7 +271,10 @@ public:
 
 	bool				is_activated() { return sizer != nullptr; }
 
-	void remove_option_if(std::function<bool(std::string const &)> const & comp);
+	virtual void remove_option_if(std::function<bool(std::string const &)> const & comp);
+	// Clears the object-config marker remove_option_if() stamps on every surviving line, so a
+	// pruned page draws the saved-value revert icon as an unpruned one does.
+	void clear_undo_to_sys();
 protected:
 	std::map<t_config_option_key, Option>	m_options;
     wxWindow*				m_parent {nullptr};
@@ -267,7 +287,6 @@ protected:
     /// using types that need to know what it is beyond the public interface
     /// need to cast based on the related ConfigOptionDef.
     t_optionfield_map		m_fields;
-    bool					m_disabled {false};
     wxGridSizer*			m_grid_sizer {nullptr};
 	// "true" if option is created in preset tabs
 	bool					m_use_custom_ctrl{ false };
@@ -323,6 +342,7 @@ public:
 	const wxString& config_category() const throw() { return m_config_category; }
 	int config_type() const throw() override { return m_config_type; }
 	const t_opt_map&   opt_map() const throw() { return m_opt_map; }
+	void		remove_option_if(std::function<bool(std::string const &)> const & comp) override;
 
 	void 		set_config_category_and_type(const wxString &category, int type) { m_config_category = category; m_config_type = type; }
     void        set_config(DynamicPrintConfig* config) {

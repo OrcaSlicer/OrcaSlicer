@@ -39,6 +39,7 @@
 #include <map>
 #include <vector>
 #include <memory>
+#include <optional>
 
 //#include "BedShapeDialog.hpp"
 #include "wxExtensions.hpp"
@@ -165,17 +166,17 @@ protected:
 	TabPresetComboBox*	m_presets_choice { nullptr };
 
 	//BBS: GUI refactor
-	wxPanel*			m_top_panel;
-	wxBoxSizer* m_main_sizer;
-	wxBoxSizer* m_top_sizer;
+	wxPanel*			m_top_panel {nullptr};
+	wxBoxSizer* m_main_sizer {nullptr};
+	wxBoxSizer* m_top_sizer {nullptr};
 	wxBoxSizer* m_top_left_sizer;
 	wxGridSizer* m_top_right_sizer;
 	wxBoxSizer* m_select_sizer;
 	wxBoxSizer* m_tree_sizer;
 
 	ScalableButton*		m_btn_compare_preset;
-	ScalableButton*		m_btn_save_preset;
-	ScalableButton*		m_btn_delete_preset;
+	ScalableButton*		m_btn_save_preset {nullptr};
+	ScalableButton*		m_btn_delete_preset {nullptr};
 	//ScalableButton*		m_btn_edit_ph_printer {nullptr};
 	//ScalableButton*		m_btn_hide_incompatible_presets;
 	//wxBoxSizer*			m_hsizer;
@@ -208,12 +209,12 @@ protected:
 	// just be used for edit filament dialog
     bool m_just_edit{false};
 
-	ScalableButton*			m_undo_btn;
-	ScalableButton*			m_undo_to_sys_btn;
+	ScalableButton*			m_undo_btn {nullptr};
+	ScalableButton*			m_undo_to_sys_btn {nullptr};
 	//ScalableButton*			m_question_btn;
-	ScalableButton*			m_btn_search;
-    StaticBox *				m_search_item;
-    TextInput *				m_search_input;
+	ScalableButton*			m_btn_search {nullptr};
+    StaticBox *				m_search_item {nullptr};
+    TextInput *				m_search_input {nullptr};
 
 	// Cached bitmaps.
 	// A "flag" icon to be displayned next to the preset name in the Tab's combo box.
@@ -282,6 +283,18 @@ protected:
     int                 m_em_unit;
     // To avoid actions with no-completed Tab
     bool                m_completed { false };
+    // A publish tab renders a private preset outside the sidebar: no Speed Dial, no app state.
+    bool                m_publish_host { false };
+    // The field state a page starts from when it is built after the dialog gated its rows.
+    bool                m_publish_fields_enabled { true };
+    // The private preset's config as it stood before the Tab's own handling of this edit started:
+    // the field has already written the edited key, which is therefore never read from here. It
+    // tells the host which other keys that handling rewrote and what they held before. A derived
+    // on_value_change opens it before its own writes and the base reuses it; it is dropped once the
+    // edit is handled.
+    std::optional<DynamicPrintConfig> m_publish_handling_before;
+    // The variant column switch_excluder() last resolved; -1 until one resolves.
+    int                 m_last_resolved_column { -1 };
     ConfigOptionMode    m_mode = comAdvanced; // to correct first Tab update_visibility() set mode to Advanced
 
 	struct Highlighter
@@ -307,6 +320,22 @@ protected:
 	bool				m_page_switch_planned = false;
 
     bool				m_is_timelapse_wipe_tower_already_prompted = false;
+
+    // Captures the private preset's config before the Tab's own handling of an edit and drops it
+    // when that handling returns, however it returns.
+    class PublishHandlingSnapshot
+    {
+    public:
+        explicit PublishHandlingSnapshot(Tab &tab);
+        ~PublishHandlingSnapshot();
+        PublishHandlingSnapshot(const PublishHandlingSnapshot &) = delete;
+        PublishHandlingSnapshot &operator=(const PublishHandlingSnapshot &) = delete;
+
+    private:
+        Tab &m_tab;
+        // True when this guard opened the snapshot and is the one that has to drop it.
+        bool m_owner { false };
+    };
 
 public:
 	PresetBundle*		m_preset_bundle;
@@ -338,10 +367,24 @@ public:
     // its Extruder and Motion ability pages edit.
     bool            m_extruder_switch_variants = false;
     std::vector<NozzleVolumeType> m_actual_nozzle_volumes;
+    // Called with the switch selection after the extruder/variant switch's own handling; null by default.
+    std::function<void(int)> m_on_variant_changed;
+    // Called after the Tab rewrites its lines' visibility, so a hosted dialog can re-apply its own
+    // filter; null by default.
+    std::function<void()> m_on_rules_applied;
+    // Called after a publish tab's own handling of an edit, with the field's opt_id (which carries
+    // its "#N"), the new value, the other keys that handling rewrote (a paired option, a
+    // validator's correction) and the private config as it stood before that handling started, so
+    // the host dialog can apply them to the real preset or project. The edited key is already in
+    // that config and is never read from it; null by default.
+    std::function<void(const std::string &opt_id, const boost::any &value,
+                       const std::vector<std::string> &dependent_keys,
+                       const DynamicPrintConfig &before_handling)> m_on_publish_edit;
 
 public:
 	// BBS
-	Tab(ParamsPanel* parent, const wxString& title, Preset::Type type);
+	// A dialog-hosted tab is not part of the app's tab list; it passes register_in_app = false.
+	Tab(ParamsPanel* parent, const wxString& title, Preset::Type type, bool register_in_app = true);
 
     ~Tab() {}
 
@@ -351,9 +394,35 @@ public:
     Preset::Type type()  const { return m_type; }
     // The tab is already constructed.
     bool 		completed() const { return m_completed; }
+    // A publish tab is hosted by the publish dialog, not by the sidebar.
+    bool        is_publish_host() const { return m_publish_host; }
+    // The colours the Tab paints a setting's label with; a hosted dialog's row shares them.
+    const wxColour& modified_label_colour() const { return m_modified_label_clr; }
+    const wxColour& default_text_colour() const { return m_default_text_clr; }
 	virtual bool supports_printer_technology(const PrinterTechnology tech) const = 0;
 
 	void		create_preset_tab();
+    // Builds a dialog-hosted tab over a private preset, without the sidebar chrome.
+    // `saved` is the real preset's saved config: the tab's baseline for the revert icon, so a
+    // value edited in the sidebar before the dialog opened still shows as modified.
+    void        create_publish_tab(const DynamicPrintConfig &config, const DynamicPrintConfig &saved = DynamicPrintConfig());
+    // Takes the background and the dark-UI colours of the panel hosting the tab. The host dialog
+    // themes its children when they are built, so a tab it rebuilds later has to do it itself;
+    // a sidebar tab keeps the Tab's own colours.
+    void        adopt_publish_host_theme();
+    // Enables or disables every field of every page, including the pages built later.
+    void        set_publish_fields_enabled(bool enabled);
+    // Enables or disables one field (by its "#N"-suffixed opt_id) on every page. A rule that
+    // disabled the option wins over `enabled`.
+    void        set_publish_field_enabled(const std::string &opt_id, bool enabled);
+    // Whether `line` differs from the tab's saved preset, as its revert icon paints it. A Field on
+    // the active page carries the flag from the last decorate() pass; a field of another page is
+    // compared against the saved config directly, and a widget-only row likewise has no Field to
+    // read. Used by a hosting dialog to mark its rows.
+    bool        publish_line_is_modified(const Line &line) const;
+    // Sets the selection dot on the page tab for `page_title` (Page::title(), not the translated
+    // label). A page the tree does not show is ignored.
+    void        set_publish_page_indicator(const wxString &page_title, bool on);
     void        add_scaled_button(wxWindow* parent, ScalableButton** btn, const std::string& icon_name,
                                   const wxString& label = wxEmptyString,
                                   long style = wxBU_EXACTFIT | wxNO_BORDER);
@@ -400,6 +469,14 @@ public:
     // Whether the variant switch (m_extruder_switch / m_variant_combo) is enabled: on the printer tab for
     // any multi-extruder printer, on the other tabs when it switches nozzle variants.
     bool        variant_switch_active() const;
+    // The variant the variant switch shows, 0 without one.
+    virtual unsigned int active_variant_index() const { return 0; }
+    // The raw index of the extruder/variant switch (m_extruder_switch, or m_variant_combo on a
+    // filament tab), or -1 when the tab has no switch.
+    int switch_selection() const;
+    // The variant column switch_excluder() last resolved for the switch, or -1 when the tab has no
+    // switch or never resolved one.
+    int last_resolved_column() const;
     // Orca: whether `page` is the printer tab's single "Extruder" page, which edits the extruder selected on the switch.
     bool        is_printer_extruder_page(const Page* page) const { return m_type == Preset::TYPE_PRINTER && page && page->title() == "Extruder"; }
     // Shows the variant switch row on pages with options that follow it.
@@ -543,10 +620,17 @@ public:
     NozzleVolumeType       get_actual_nozzle_volume_type(int extruder_id);
 
 protected:
+	// The collection a publish tab renders; nullptr means the app's collection for this type.
+	virtual PresetCollection* publish_presets() { return nullptr; }
+	// The page strip and the extruder/variant switch row, shared by both construction paths.
+	void			create_page_tree();
+	void			create_variant_switch();
 	void			create_line_with_widget(ConfigOptionsGroup* optgroup, const std::string& opt_key, const std::string& path, widget_t widget);
 	wxSizer*		compatible_widget_create(wxWindow* parent, PresetDependencies &deps);
 	void 			compatible_widget_reload(PresetDependencies &deps);
-	void			load_key_value(const std::string& opt_key, const boost::any& value, bool saved_value = false);
+	// Writes `value` into this tab's preset and refreshes the app through the tab. `opt_index` is
+	// the element a vector option is written to; a scalar option ignores it.
+	void			load_key_value(const std::string& opt_key, const boost::any& value, bool saved_value = false, int opt_index = 0);
 	// Commit one option whose new value already sits in m_config through the same path a field edit
 	// runs (throwing field, otherwise the owning group's on_change_OG()). Reloads the option's page
 	// so a built field reports the committed value, but performs no tab-wide refresh. Returns true
@@ -563,6 +647,8 @@ protected:
 	void			update_preset_description_line();
 	void			update_frequently_changed_parameters();
 	void			set_tooltips_text();
+    // Re-applies a hosted dialog's own row filter after the Tab rewrote its lines' visibility.
+    void            notify_rules_applied();
     void			filter_diff_option(std::vector<std::string> &options);
 
     ConfigManipulation m_config_manipulation;
@@ -580,8 +666,8 @@ class TabPrint : public Tab
 {
 public:
 	//BBS: GUI refactor
-	TabPrint(ParamsPanel* parent, Preset::Type type = Preset::TYPE_PRINT) :
-        Tab(parent, _(L("Process")), type) {}
+	TabPrint(ParamsPanel* parent, Preset::Type type = Preset::TYPE_PRINT, bool register_in_app = true) :
+        Tab(parent, _(L("Process")), type, register_in_app) {}
 	~TabPrint() {}
 
 	void		build() override;
@@ -706,8 +792,8 @@ private:
 
 public:
 	//BBS: GUI refactor
-	TabFilament(ParamsPanel* parent) :
-		Tab(parent, _(L("Filament")), Slic3r::Preset::TYPE_FILAMENT) {}
+	TabFilament(ParamsPanel* parent, bool register_in_app = true) :
+		Tab(parent, _(L("Filament")), Slic3r::Preset::TYPE_FILAMENT, register_in_app) {}
 	~TabFilament() {}
 
 	void		build() override;
@@ -720,6 +806,9 @@ public:
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
 
 	void		on_value_change(const std::string& opt_key, const boost::any& value) override;
+
+    // The variant the variant switch shows, 0 without one.
+    unsigned int active_variant_index() const override { return selected_variant_index(); }
 
     const std::string&	get_custom_gcode(const t_config_option_key& opt_key) override;
     void				set_custom_gcode(const t_config_option_key& opt_key, const std::string& value) override;
@@ -758,8 +847,8 @@ public:
     PrinterTechnology               m_printer_technology = ptFFF;
 
 	//BBS: GUI refactor
-    TabPrinter(ParamsPanel* parent) :
-        Tab(parent, _L("Machine"), Slic3r::Preset::TYPE_PRINTER) {}
+    TabPrinter(ParamsPanel* parent, bool register_in_app = true) :
+        Tab(parent, _L("Machine"), Slic3r::Preset::TYPE_PRINTER, register_in_app) {}
 	~TabPrinter() {}
 
 	void		build() override;
@@ -814,8 +903,8 @@ class TabSLAMaterial : public Tab
 {
 public:
 	//BBS: GUI refactor
-    TabSLAMaterial(ParamsPanel* parent) :
-		Tab(parent, _(_devL("Material Settings")), Slic3r::Preset::TYPE_SLA_MATERIAL) {}
+    TabSLAMaterial(ParamsPanel* parent, bool register_in_app = true) :
+		Tab(parent, _(_devL("Material Settings")), Slic3r::Preset::TYPE_SLA_MATERIAL, register_in_app) {}
     ~TabSLAMaterial() {}
 
 	void		build() override;
@@ -829,8 +918,8 @@ class TabSLAPrint : public Tab
 {
 public:
 	//BBS: GUI refactor
-    TabSLAPrint(ParamsPanel* parent) :
-        Tab(parent, _(L("Process Settings")), Slic3r::Preset::TYPE_SLA_PRINT) {}
+    TabSLAPrint(ParamsPanel* parent, bool register_in_app = true) :
+        Tab(parent, _(L("Process Settings")), Slic3r::Preset::TYPE_SLA_PRINT, register_in_app) {}
     ~TabSLAPrint() {}
 
 	ogStaticText* m_support_object_elevation_description_line = nullptr;

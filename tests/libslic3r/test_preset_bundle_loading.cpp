@@ -3109,6 +3109,41 @@ TEST_CASE("Published 3MF applies positional material keys onto the receiver's ma
     CHECK(pub.skipped_keys.empty());
 }
 
+// An enabled slot with no key rows publishes its identity only: its colour and type. On load the
+// type gate passes, the author's colour reaches the slot, and no key is written or reported.
+TEST_CASE("Published 3MF applies an identity-only material entry", "[Preset][Bundle][Published]")
+{
+    PresetBundle bundle;
+    Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+    pla.filament_id = "GFL99";
+    pla.config.opt_string("filament_type", 0u)   = "PLA";
+    pla.config.opt_string("filament_vendor", 0u) = "Generic";
+    pla.config.opt<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.5 };
+    bundle.filament_presets = { "My PLA" };
+
+    PublishedMaterialEntry entry;
+    entry.slot               = 0;
+    entry.publish_type       = true;
+    entry.publish_type_value = "PLA";
+    entry.publish_color      = true;
+    entry.color              = "#00FF00";
+
+    PublishedConfig pub;
+    pub.published     = true;
+    pub.material_keys = { entry };
+    DynamicPrintConfig config = published_pla_file_config();
+    Preset::normalize(config);
+    bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+    // The slot keeps its own material: nothing was replaced and no key was skipped.
+    CHECK(bundle.filament_presets[0] == "My PLA");
+    CHECK(pub.material_replacements.empty());
+    CHECK(pub.skipped_keys.empty());
+    check_double_vector(bundle.filaments.find_preset("My PLA", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.5 });
+    // The published colour is the slot's colour.
+    CHECK(bundle.project_config.opt_string("filament_colour", 0u) == "#00FF00");
+}
+
 // A "full publish" slot serializes the whole filament. On load the slot always receives a
 // standalone detached copy of the author's material - created even when the receiver's own
 // material matches the published type - and no receiver library preset is ever mutated.
