@@ -3777,16 +3777,22 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 refresh_preview();
             }
         }
-        // Axis tool with a pick armed: face or edge.
-        if (m_active == Tool::Axis && m_axis_pick != AxisPick::None) {
+        // Axis tool: a click on a body's FACE is the axis' face (no "Pick Face" button first); with a pick armed the click fills that
+        // reference. Body, face and edge come from the click itself, not from m_sel_solid_*: the first click on a body selects the whole
+        // body and leaves those at -1, so the pick silently failed (same as the Plane and CoordSys tools).
+        if (m_active == Tool::Axis && body >= 0 && body < int(m_doc.bodies.size())) {
+            const AxisPick pk = m_axis_pick != AxisPick::None ? m_axis_pick : (face >= 0 ? AxisPick::Face : AxisPick::None);
             bool got = false;
-            switch (m_axis_pick) {
-            case AxisPick::Face: if (m_sel_solid_face >= 0) { m_ax_face_body = m_sel_solid_body; m_ax_face = m_sel_solid_face; got = true; } break;
-            case AxisPick::Edge: if (m_sel_solid_edge >= 0) { m_ax_face_body = m_sel_solid_body; m_ax_edge = m_sel_solid_edge; got = true; } break;
+            switch (pk) {
+            case AxisPick::Face: if (face >= 0) { m_ax_face_body = body; m_ax_face = face; got = true; } break;
+            case AxisPick::Edge: if (edge >= 0) { m_ax_face_body = body; m_ax_edge = edge; got = true; } break;
             default: break;
             }
-            if (got) { m_axis_pick = AxisPick::None; refresh_axis_labels(); }
-            if (got && m_viewport) m_viewport->set_escalate_on_repick(true);
+            if (got) {
+                m_axis_pick = AxisPick::None;
+                refresh_axis_labels();
+                if (m_viewport) m_viewport->set_escalate_on_repick(true);
+            }
         }
         // CoordSys tool: a click on a body's FACE is the connector's face (no "Pick Face" button first), and with a pick armed the click
         // fills that reference. Face, edge and body come from the click itself, not from m_sel_solid_*: those lag the click, which is how
