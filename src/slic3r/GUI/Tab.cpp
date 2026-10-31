@@ -4951,7 +4951,12 @@ void TabFilament::build()
         //};
         //optgroup->append_line(line);
         optgroup = page->new_optgroup(L("Cooling for specific layer"), L"param_cooling_specific_layer");
-        optgroup->append_single_option_line("close_fan_the_first_x_layers", "material_cooling#no-cooling-for-the-first");
+        line = { L("Initial layer fan"), L("Set the part cooling fan speed for the first few layers. "
+                                           "Set to 0 to keep the fan off for better bed adhesion.") };
+        line.label_path = "material_cooling#no-cooling-for-the-first";
+        line.append_option(optgroup->get_option("close_fan_the_first_x_layers"));
+        line.append_option(optgroup->get_option("first_x_layer_part_fan_speed"));
+        optgroup->append_line(line);
         // ORCA: explicit override for the part cooling fan on layer 0; also anchors the ramp when "Full fan speed at layer" is set.
         optgroup->append_single_option_line("initial_layer_fan_speed", "material_cooling#first-layer-fan-speed");
         optgroup->append_single_option_line("full_fan_speed_layer", "material_cooling#full-fan-speed-at-layer");
@@ -4981,6 +4986,13 @@ void TabFilament::build()
 
         optgroup = page->new_optgroup(L("Auxiliary part cooling fan"), L"param_cooling_aux_fan");
         optgroup->append_single_option_line("additional_cooling_fan_speed", "material_cooling#auxiliary-part-cooling-fan", 0);
+        optgroup->append_single_option_line("additional_cooling_fan_linear_ramp", "material_cooling#auxiliary-part-cooling-fan");
+        line = { L("For the first"), L("Set special auxiliary cooling fan for the first certain layers.") };
+        line.label_path = "material_cooling#auxiliary-part-cooling-fan";
+        line.append_option(optgroup->get_option("close_additional_fan_first_x_layers"));
+        line.append_option(optgroup->get_option("first_x_layer_fan_speed"));
+        optgroup->append_line(line);
+        optgroup->append_single_option_line("additional_fan_full_speed_layer", "material_cooling#auxiliary-part-cooling-fan");
 
         optgroup = page->new_optgroup(L("Exhaust fan"),L"param_cooling_exhaust");
 
@@ -5191,6 +5203,8 @@ void TabFilament::toggle_options()
         // override branch.
         const int close_fan_first_n = m_config->opt_int("close_fan_the_first_x_layers", 0);
         const bool initial_layer_fan_speed_enabled = close_fan_first_n <= 0;
+        // The fan speed of the first layers only applies when there are first layers.
+        toggle_option("first_x_layer_part_fan_speed", close_fan_first_n > 0);
         toggle_line("initial_layer_fan_speed", initial_layer_fan_speed_enabled, -1,
             _L("Set the number of initial layers without cooling to zero to override the first layer fan speed."));
         if (!initial_layer_fan_speed_enabled) {
@@ -5210,6 +5224,12 @@ void TabFilament::toggle_options()
 
         toggle_line("additional_cooling_fan_speed", printer_cfg.opt_bool("auxiliary_fan"), 256 + variant_index,
             _L("Enable the auxiliary fan in the printer profile to use this setting."));
+        toggle_line("additional_cooling_fan_linear_ramp", printer_cfg.opt_bool("auxiliary_fan"), -1,
+            _L("Enable the auxiliary fan in the printer profile to use this setting."));
+        const bool aux_ramp_enabled = printer_cfg.opt_bool("auxiliary_fan") && m_config->opt_bool("additional_cooling_fan_linear_ramp", 0);
+        toggle_line("close_additional_fan_first_x_layers", aux_ramp_enabled);
+        toggle_line("first_x_layer_fan_speed", aux_ramp_enabled);
+        toggle_line("additional_fan_full_speed_layer", aux_ramp_enabled);
 
         bool support_air_filtration = printer_cfg.opt_bool("support_air_filtration");
         for (auto el : {"activate_air_filtration", "during_print_exhaust_fan_speed", "complete_print_exhaust_fan_speed"})
