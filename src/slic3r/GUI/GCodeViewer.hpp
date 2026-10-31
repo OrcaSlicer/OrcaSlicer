@@ -428,7 +428,8 @@ mutable bool m_no_render_path { false };
     float m_belt_angle_deg = 0.f;
 
     libvgcode::Viewer m_viewer;
-    // ORCA: section view, as the viewer has it. What it cuts away casts no shadow.
+    // ORCA: section view, as the viewer has it: kept where the dot with it is positive, a zero
+    // normal when off. The solid model is cut by it too, and what it cuts away casts no shadow.
     std::array<float, 4> m_clipping_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
     bool m_loaded_as_preview{ false };
 

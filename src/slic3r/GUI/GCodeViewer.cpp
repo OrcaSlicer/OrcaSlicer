@@ -2511,7 +2511,8 @@ void GCodeViewer::render_solid_model_casters(const Transform3d& light_view_matri
     auto draw_shells = [&](GLShaderProgram* shader) {
         shader->start_using();
         shader->set_uniform("projection_matrix", light_projection_matrix);
-        shader->set_uniform("clipping_plane", ClippingPlane::ClipsNothing().get_data());
+        // cut by the section view as the camera sees it, so what it cuts away casts nothing
+        shader->set_uniform("clipping_plane", m_clipping_plane);
         shader->set_uniform("z_range", *z_range);
         for (GLVolume* volume : m_shells.volumes.volumes) {
             const Transform3d world_matrix = volume->world_matrix();
@@ -2927,11 +2928,9 @@ void GCodeViewer::update_layers_slider_mode()
 void GCodeViewer::set_interacting(bool interacting)
 {
     // With the mode off nothing changes while dragging. The solid model needs shells to stand in
-    // for the toolpaths and a single height to cut them at, and it would cover what a section view
-    // cuts the toolpaths open to show.
-    const bool sectioned = m_clipping_plane[0] != 0.0f || m_clipping_plane[1] != 0.0f || m_clipping_plane[2] != 0.0f;
+    // for the toolpaths and a single height to cut them at.
     const bool usable = m_reduced_detail_mode != libvgcode::EReducedDetailMode::Off &&
-                        (!solid_model_enabled() || (!m_shells.volumes.empty() && m_layers_z_rising && !sectioned));
+                        (!solid_model_enabled() || (!m_shells.volumes.empty() && m_layers_z_rising));
     // sampled afresh as each drag begins: the legend may have recoloured the toolpaths, and the
     // sliders may have moved the span, since the last one
     if (interacting && !m_viewer.is_reduced_detail())
@@ -3749,8 +3748,9 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
         volume->set_render_color();
     }
     m_shells.volumes.set_z_range(z_bottom, z_top);
-    // gouraud also clips by this plane, which nothing else sets on the shells
-    m_shells.volumes.set_clipping_plane(ClippingPlane::ClipsNothing().get_data());
+    // the section view cuts the solid as it cuts the toolpaths; nothing else sets a plane on the shells
+    const bool sectioned = m_clipping_plane[0] != 0.0f || m_clipping_plane[1] != 0.0f || m_clipping_plane[2] != 0.0f;
+    m_shells.volumes.set_clipping_plane({ m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2], m_clipping_plane[3] });
 
     shader->start_using();
     // The realistic view's shadow map, bound by the canvas for the toolpaths, shades the solid
@@ -3771,51 +3771,85 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     // The cut faces, one cap of one body at a time. A pixel looks into a body through a cut where,
     // with the depth test off and the body cut at that cap alone, its back faces outnumber its
     // front faces: zero where the ray misses the body or crosses it whole, one where it leaves
-    // through the opening, which is where the cap plane lies inside the body. Counted with both
+    // through the opening, which is where the cap plane lies inside the body. Counted with two
     // cuts at once the body is an open tube, and a ray through both openings would count as
     // closed, one in through a wall and out through the other opening as open. There a quad in
     // the cut plane, in the colour of the infill it is cut under darkened, or the body's own,
     // stands in for the material, so that a sparse layer on the cut shows a solid inside between
-    // its lines rather than whatever lies further down.
-    GLShaderProgram* cap_shader = wxGetApp().get_shader("flat");
+    // its lines rather than whatever lies further down. The section view's plane is one more
+    // cut: its cap is counted on the body cut by it alone and drawn between the heights of the
+    // other two, and theirs are drawn on its kept side.
+    GLShaderProgram* cap_shader = wxGetApp().get_shader("flat_clip");
     if (cap_shader != nullptr) {
         struct Cap
         {
             GLModel quad;
-            // the body as the count sees it: cut at this cap, whole at the other end
+            // the body as the count sees it: cut at this cap alone
             std::array<float, 2> count_z_range{ -FLT_MAX, FLT_MAX };
+            std::array<float, 4> count_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
+            // the quad, cut by the other caps
+            std::array<float, 2> quad_z_range{ -FLT_MAX, FLT_MAX };
+            std::array<float, 4> quad_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
+            // which of the sampled cap colours it takes, none for the body's own
+            std::optional<size_t> color_index;
         };
-        auto init_cap = [this](Cap& cap, float z, const std::array<float, 2>& count_z_range) {
-            const float margin = 1.0f;
-            const Vec3f min(static_cast<float>(m_paths_bounding_box.min.x()) - margin, static_cast<float>(m_paths_bounding_box.min.y()) - margin, z);
-            const Vec3f max(static_cast<float>(m_paths_bounding_box.max.x()) + margin, static_cast<float>(m_paths_bounding_box.max.y()) + margin, z);
+        auto init_quad = [](Cap& cap, const Vec3f& center, const Vec3f& u, const Vec3f& v) {
             GLModel::Geometry data;
             data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
             data.reserve_vertices(4);
             data.reserve_indices(6);
-            data.add_vertex(min);
-            data.add_vertex(Vec3f(max.x(), min.y(), min.z()));
-            data.add_vertex(max);
-            data.add_vertex(Vec3f(min.x(), max.y(), min.z()));
+            data.add_vertex(Vec3f(center - u - v));
+            data.add_vertex(Vec3f(center + u - v));
+            data.add_vertex(Vec3f(center + u + v));
+            data.add_vertex(Vec3f(center - u + v));
             data.add_triangle(0, 1, 2);
             data.add_triangle(0, 2, 3);
             cap.quad.init_from(std::move(data));
-            cap.count_z_range = count_z_range;
         };
-        // the bottom cap, then the top one, as the colours are indexed
-        std::array<Cap, 2> caps;
-        if (layers[0] > 0)
-            init_cap(caps[0], z_bottom, { z_bottom, FLT_MAX });
-        if (z_top > -FLT_MAX)
-            init_cap(caps[1], z_top, { -FLT_MAX, z_top });
+        const Vec3f box_min = m_paths_bounding_box.min.cast<float>();
+        const Vec3f box_max = m_paths_bounding_box.max.cast<float>();
+        const Vec3f box_center = 0.5f * (box_min + box_max);
+        const float margin = 1.0f;
+        const Vec3f half_x(0.5f * (box_max.x() - box_min.x()) + margin, 0.0f, 0.0f);
+        const Vec3f half_y(0.0f, 0.5f * (box_max.y() - box_min.y()) + margin, 0.0f);
+        // the bottom cap, then the top one, as the colours are indexed, then the section view's
+        std::array<Cap, 3> caps;
+        if (layers[0] > 0) {
+            Cap& cap = caps[0];
+            init_quad(cap, Vec3f(box_center.x(), box_center.y(), z_bottom), half_x, half_y);
+            cap.count_z_range = { z_bottom, FLT_MAX };
+            cap.quad_plane = m_clipping_plane;
+            cap.color_index = 0;
+        }
+        if (z_top > -FLT_MAX) {
+            Cap& cap = caps[1];
+            init_quad(cap, Vec3f(box_center.x(), box_center.y(), z_top), half_x, half_y);
+            cap.count_z_range = { -FLT_MAX, z_top };
+            cap.quad_plane = m_clipping_plane;
+            cap.color_index = 1;
+        }
+        if (sectioned) {
+            Cap& cap = caps[2];
+            const Vec3f normal(m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2]);
+            const Vec3f on_plane = box_center - (normal.dot(box_center) + m_clipping_plane[3]) * normal;
+            // the in-plane axes, turned from the unit axis the normal leans on least
+            const Vec3f leaning = normal.cwiseAbs();
+            const Vec3f axis = (leaning.x() <= leaning.y() && leaning.x() <= leaning.z()) ? Vec3f::UnitX() :
+                               (leaning.y() <= leaning.z()) ? Vec3f::UnitY() : Vec3f::UnitZ();
+            const Vec3f u = normal.cross(axis).normalized();
+            const Vec3f v = normal.cross(u);
+            const float reach = 0.5f * (box_max - box_min).norm() + margin;
+            init_quad(cap, on_plane, reach * u, reach * v);
+            cap.count_plane = m_clipping_plane;
+            cap.quad_z_range = { z_bottom, z_top };
+        }
 
         glsafe(::glEnable(GL_STENCIL_TEST));
         for (size_t n = 0; n < m_shells.volumes.volumes.size(); ++n) {
             GLVolume* volume = m_shells.volumes.volumes[n];
             const auto* tower = dynamic_cast<const GLWipeTowerVolume*>(volume);
             const Transform3d world_matrix = volume->world_matrix();
-            for (size_t k = 0; k < 2; ++k) {
-                Cap& cap = caps[k];
+            for (Cap& cap : caps) {
                 if (!cap.quad.is_initialized())
                     continue;
                 glsafe(::glStencilMask(0xFF));
@@ -3830,6 +3864,7 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
                 // collection's render would build the full preset config and sort every volume, per body.
                 shader->start_using();
                 shader->set_uniform("z_range", cap.count_z_range);
+                shader->set_uniform("clipping_plane", cap.count_plane);
                 shader->set_uniform("volume_world_matrix", world_matrix);
                 shader->set_uniform("view_model_matrix", camera.get_view_matrix() * world_matrix);
                 glsafe(::glDisable(GL_CULL_FACE));
@@ -3846,12 +3881,17 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
                 ColorRGBA inside = volume->color;
                 if (tower != nullptr && !tower->colors().empty())
                     inside = tower->colors().front();
-                if (const std::optional<ColorRGBA>& cap = colors.bodies[n].caps[k]; cap.has_value())
-                    inside = shade(*cap);
+                if (cap.color_index.has_value()) {
+                    if (const std::optional<ColorRGBA>& sampled = colors.bodies[n].caps[*cap.color_index]; sampled.has_value())
+                        inside = shade(*sampled);
+                }
                 inside = ColorRGBA(0.55f * inside.r(), 0.55f * inside.g(), 0.55f * inside.b(), 1.0f);
                 cap_shader->start_using();
                 cap_shader->set_uniform("view_model_matrix", camera.get_view_matrix());
                 cap_shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+                cap_shader->set_uniform("volume_world_matrix", Transform3d::Identity());
+                cap_shader->set_uniform("z_range", cap.quad_z_range);
+                cap_shader->set_uniform("clipping_plane", cap.quad_plane);
                 glsafe(::glDisable(GL_CULL_FACE));
                 cap.quad.set_color(inside);
                 cap.quad.render();
