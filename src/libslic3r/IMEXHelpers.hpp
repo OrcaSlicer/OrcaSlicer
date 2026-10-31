@@ -102,7 +102,7 @@ std::vector<std::string> imex_plate_mode_choices(const ConfigBase& cfg);
 //
 //   * PHYSICAL extruder index — identifies a hardware carriage / hotend.
 //     Source: `imex_mode_active_tools` ("0:P,1:C,2:M") and `printer_extruder_id`.
-//     Use for: user-facing labels (shown as "T0", "T1"...), per-firmware tool
+//     Use for: user-facing labels (shown 1-based as "T1", "T2"...), per-firmware tool
 //     qualifiers (Klipper EXTRUDER=extruderN, RRF M572 D<N>, Marlin T<N>), and
 //     anything that addresses hardware.
 //

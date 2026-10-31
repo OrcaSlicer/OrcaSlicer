@@ -13719,8 +13719,8 @@ static std::vector<wxString> collect_imex_warnings(PartPlate* plate)
                     _L("Bed temperature conflict: T%d (%s) sets the bed to %d℃ \u2014 "
                        "T%d (%s) requires %d℃. The primary tool controls the bed; "
                        "secondary tools print at whatever temperature it sets."),
-                    primary_tool, primary_display_type, primary_bed_temp,
-                    tool_idx, secondary_display_type, secondary_bed_temp));
+                    primary_tool + 1, primary_display_type, primary_bed_temp,
+                    tool_idx + 1, secondary_display_type, secondary_bed_temp));
             }
         }
 
@@ -13730,8 +13730,8 @@ static std::vector<wxString> collect_imex_warnings(PartPlate* plate)
             warnings.push_back(wxString::Format(
                 _L("Filament type mismatch: T%d uses %s and T%d uses %s. "
                    "These materials have incompatible requirements and are not designed to print together."),
-                primary_tool, primary_display_type,
-                tool_idx, secondary_display_type));
+                primary_tool + 1, primary_display_type,
+                tool_idx + 1, secondary_display_type));
         }
     }
 
@@ -24177,7 +24177,7 @@ Plater::ImexGhostTooltip Plater::format_imex_ghost_tooltip(int physical_head) co
 
     const PartPlate* plate = p->partplate_list.get_curr_plate();
     if (!plate) {
-        t.label = Slic3r::format(_u8L("T%1% -> (no plate)"), physical_head);
+        t.label = Slic3r::format(_u8L("T%1% -> (no plate)"), physical_head + 1);
         return t;
     }
 
@@ -24189,7 +24189,7 @@ Plater::ImexGhostTooltip Plater::format_imex_ghost_tooltip(int physical_head) co
         // extruder count is understated relative to the filament palette (user added a
         // filament without extending printer_extruder_id in the Machine tab).
         // TRN IDEX/IQEX ghost tooltip. %1% is the number of the physical print head.
-        t.label = Slic3r::format(_u8L("T%1% — no filament routed\nAdd an extruder in the Machine tab so this head has a filament slot."), physical_head);
+        t.label = Slic3r::format(_u8L("T%1% — no filament routed\nAdd an extruder in the Machine tab so this head has a filament slot."), physical_head + 1);
         return t;
     }
     t.filament_slot_1based = logical + 1;
@@ -24198,7 +24198,7 @@ Plater::ImexGhostTooltip Plater::format_imex_ghost_tooltip(int physical_head) co
     t.swatch = plate->get_imex_head_filament_color(physical_head, pem, map);
     t.swatch.a(1.0f);  // tooltip swatch opaque
     // TRN IDEX/IQEX ghost tooltip. %1% is the number of the physical print head, %2% the filament it prints.
-    t.label  = Slic3r::format(_u8L("T%1% -> filament %2%"), physical_head, t.filament_slot_1based);
+    t.label  = Slic3r::format(_u8L("T%1% -> filament %2%"), physical_head + 1, t.filament_slot_1based);
     return t;
 }
 

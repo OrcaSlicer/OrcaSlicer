@@ -1468,8 +1468,8 @@ TEST_CASE("An IMEX plate whose filament never routes to the Primary tool is bloc
     const StringObjectException err = print.validate(&warnings);
 
     REQUIRE_FALSE(err.string.empty());
-    CHECK(err.string.find("T0") != std::string::npos);   // the declared primary
-    CHECK(err.string.find("T2") != std::string::npos);   // where the filament actually lives
+    CHECK(err.string.find("T1") != std::string::npos);   // the declared primary
+    CHECK(err.string.find("T3") != std::string::npos);   // where the filament actually lives
 }
 
 // A mixed filament is blended at the nozzle by its component toolheads, which a parallel
