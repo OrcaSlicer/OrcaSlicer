@@ -657,6 +657,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/StaticLine.hpp
     GUI/Widgets/StepCtrl.cpp
     GUI/Widgets/StepCtrl.hpp
+    GUI/Widgets/WidgetAccessible.cpp
+    GUI/Widgets/WidgetAccessible.hpp
     GUI/Widgets/SwitchButton.cpp
     GUI/Widgets/SwitchButton.hpp
     GUI/Widgets/TabCtrl.cpp

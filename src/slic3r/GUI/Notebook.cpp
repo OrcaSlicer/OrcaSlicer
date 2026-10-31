@@ -5,6 +5,7 @@
 #include "GUI_App.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
+#include "Widgets/WidgetAccessible.hpp"
 
 //BBS set font size
 
@@ -170,6 +171,18 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
 {
     Button * btn = new Button(this, text, bmp_name, wxNO_BORDER);
     btn->SetCornerRadius(0);
+    btn->SetName(text); // ORCA: accessible name announced by screen readers when the button is focused
+#if wxUSE_ACCESSIBILITY
+    // ORCA: this Button is a tab, not a plain pushbutton - override Button's default
+    // role. Which tab is current is this control's business, not the button's:
+    // Button::IsSelected() is an unrelated flag that nothing here ever writes.
+    btn->SetAccessibleRole(wxROLE_SYSTEM_PAGETAB, [this, btn] {
+        long state = wxACC_STATE_SYSTEM_SELECTABLE;
+        if (GetSelectedPageButton() == btn)
+            state |= wxACC_STATE_SYSTEM_SELECTED;
+        return state;
+    });
+#endif
 
     if (bmp_name.empty() && bmp.IsOk())
         btn->SetIcon(bmp);
@@ -283,6 +296,18 @@ wxString ButtonsListCtrl::GetPageLabel(size_t n) const
 }
 
 // ORCA
+wxWindow* ButtonsListCtrl::GetPageButton(size_t n) const
+{
+    return n < m_pageButtons.size() ? m_pageButtons[n] : nullptr;
+}
+
+// ORCA
+wxWindow* ButtonsListCtrl::GetSelectedPageButton() const
+{
+    return m_selection < 0 ? nullptr : GetPageButton(static_cast<size_t>(m_selection));
+}
+
+// ORCA
 void ButtonsListCtrl::SetOverflowButton(wxWindow* button)
 {
     if (m_overflow_button == button)
@@ -299,6 +324,45 @@ void ButtonsListCtrl::SetOverflowButton(wxWindow* button)
 
     m_sizer->Layout();
 }
+
+#if wxUSE_ACCESSIBILITY
+namespace {
+// ORCA: the tab strip is the selection container for its tab buttons, so it is the
+// one asked which of them is current (IAccessible::get_accSelection, which the UIA
+// proxy turns into the Selection pattern's selected item). Answering only from the
+// tabs' own state would leave that unanswered, and a container of pagetabs that
+// reports no selection at all is what makes some screen readers fall back to
+// guessing.
+class ButtonsListCtrlAccessible : public WidgetAccessible
+{
+public:
+    explicit ButtonsListCtrlAccessible(ButtonsListCtrl* ctrl)
+        : WidgetAccessible(ctrl, wxROLE_SYSTEM_PAGETABLIST)
+    {}
+
+#if wxUSE_VARIANT
+    wxAccStatus GetSelections(wxVariant* selections) override
+    {
+        auto* ctrl = static_cast<ButtonsListCtrl*>(GetWindow());
+        wxWindow* btn = ctrl ? ctrl->GetSelectedPageButton() : nullptr;
+        wxAccessible* btn_acc = btn ? btn->GetOrCreateAccessible() : nullptr;
+        if (!btn_acc)
+            return wxACC_NOT_IMPLEMENTED;
+
+        // wx passes a single selected child on as a "void*" variant holding its
+        // wxAccessible (see wxIAccessible::get_accSelection).
+        *selections = wxVariant(static_cast<void*>(btn_acc));
+        return wxACC_OK;
+    }
+#endif // wxUSE_VARIANT
+};
+} // namespace
+
+wxAccessible* ButtonsListCtrl::CreateAccessible()
+{
+    return new ButtonsListCtrlAccessible(this);
+}
+#endif
 
 //#endif // _WIN32
 

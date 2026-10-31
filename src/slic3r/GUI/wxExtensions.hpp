@@ -278,6 +278,16 @@ public:
     void    msw_rescale();
     void    UpdateDarkUI() { msw_rescale(); };
 
+protected:
+#if wxUSE_ACCESSIBILITY
+    // ORCA: wxButton's own accessible object reads only GetLabel() for its
+    // name and ignores SetName() entirely, so an icon-only button (empty
+    // label, as most toolbar buttons are) reports no accessible name even
+    // if one is set. Route through WidgetAccessible instead, which also
+    // falls back to the tooltip text - already set on most of these buttons.
+    wxAccessible* CreateAccessible() override;
+#endif
+
 private:
     wxWindow*       m_parent { nullptr };
     std::string     m_current_icon_name;

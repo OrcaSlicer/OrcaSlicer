@@ -118,12 +118,6 @@ public:
     // accessibility layer to trigger the button from a screen reader.
     void Click();
 
-#if wxUSE_ACCESSIBILITY
-    // Return the accessible object that exposes this button's accessible name, role
-    // and state to screen readers. See ButtonAccessible in Button.cpp.
-    wxAccessible* CreateAccessible() override;
-#endif
-
 protected:
 #ifdef __WIN32__
     WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
