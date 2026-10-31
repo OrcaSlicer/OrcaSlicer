@@ -833,6 +833,9 @@ protected:
     unsigned int                        m_layer_count;
     // Progress bar indicator. Increments from -1 up to layer_count.
     int                                 m_layer_index;
+    // Orca: layers of the object being printed in sequential mode, for Klipper's SET_PRINT_STATS_INFO
+    unsigned int                        m_object_layer_count{0};
+    unsigned int                        m_object_layer_index{0};
     // Current layer processed. In sequential printing mode, only a single copy will be printed.
     // In non-sequential mode, all its copies will be printed.
     const Layer*                        m_layer;
