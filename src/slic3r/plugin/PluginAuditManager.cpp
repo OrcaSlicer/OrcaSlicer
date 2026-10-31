@@ -647,8 +647,10 @@ std::vector<std::string> PluginAuditManager::default_denied_path_keywords()
     // resources_dir()/cert/..., which would become reachable the moment resources_dir() is
     // granted as a read-only allowed root). Match as whole path components, not substrings, so
     // imports such as numpy/__config__.py and stdlib configparser.py remain usable. Inside
-    // data_dir() they match below that root only; see is_denied_path_keyword().
-    return {"secret", "secrets", "cert", "certs", "certificate", "certificates", "conf", "config"};
+    // data_dir() they match below that root only; see is_denied_path_keyword(). The WebView
+    // browser profiles are host-managed storage and must not be reachable through the broad
+    // data_dir() grant given to plugins (see Widgets/WebView.cpp:87-105).
+    return {"secret", "secrets", "cert", "certs", "certificate", "certificates", "conf", "config", "web_profiles"};
 }
 
 static bool has_denied_config_extension(std::string name)

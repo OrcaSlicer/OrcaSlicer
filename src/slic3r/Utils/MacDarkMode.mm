@@ -102,6 +102,30 @@ void WKWebView_setTransparentBackground(void * web)
     [webView registerForDraggedTypes: @[NSFilenamesPboardType]];
 }
 
+// Give a WKWebViewConfiguration the in-memory website data store of its profile, so the views of
+// one profile share that store's cookies and storage without any of it reaching the disk or the
+// default store. Views share a session only through a common store, and
+// +nonPersistentDataStore makes a new one on every call, so one store is kept per profile for the
+// process lifetime. Used to isolate plugin web views.
+void WKWebViewConfiguration_setSharedNonPersistentDataStore(void * configuration, const wxString & profile)
+{
+    static NSMutableDictionary<NSString *, WKWebsiteDataStore *> * stores = nil;
+    if (stores == nil)
+        stores = [[NSMutableDictionary alloc] init];
+
+    wxCFStringRef key_ref(profile);
+    NSString * key = key_ref.AsNSString();
+    WKWebsiteDataStore * store = [stores objectForKey:key];
+    if (store == nil) {
+        store = [WKWebsiteDataStore nonPersistentDataStore];
+        [stores setObject:store forKey:key];
+    }
+
+    WKWebViewConfiguration * config = (WKWebViewConfiguration*)configuration;
+    if (config)
+        config.websiteDataStore = store;
+}
+
 // Force a WKWebView to re-lay-out and repaint. Needed for chrome-less popups: the window is
 // transparent, so a WKWebView whose layer has no pending frame leaves the whole window invisible
 // until the user generates input (scroll/arrow). setNeedsDisplay alone does not always reach the
