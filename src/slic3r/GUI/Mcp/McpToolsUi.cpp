@@ -1172,16 +1172,22 @@ void register_ui_tools(McpService& service)
             PopupCapture menu(service, ctx, arg_string(args, "popup_item"));
             // A list's rows get their places a frame after they change (on GTK; a dialog's tree rebuilt
             // by a preset choice), so a row is scrolled to first and given up to 1 s to take its place.
+            bool placed = false;
             for (int i = 0; i < 20; ++i) {
-                const bool placed = ctx.run_ui([&] {
-                                         UiTarget t = service.inspector().resolve(args["target"]);
-                                         guard_target(service, target_window(t));
-                                         return json(service.inspector().place_row(t));
-                                     }).get<bool>();
+                placed = ctx.run_ui([&] {
+                                UiTarget t = service.inspector().resolve(args["target"]);
+                                guard_target(service, target_window(t));
+                                return json(service.inspector().place_row(t));
+                            })
+                             .get<bool>();
                 if (placed)
                     break;
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
             }
+            // Without frames the row never takes its place, and the click would blame the window's size.
+            if (!placed)
+                if (const std::string undrawn = undrawn_window(ctx); !undrawn.empty())
+                    throw ToolFailure("The row can't be scrolled into the list's view: " + undrawn);
             json out = ctx.run_ui([&] {
                 UiTarget t = service.inspector().resolve(args["target"]);
                 locator    = service.inspector().locator_for(t);

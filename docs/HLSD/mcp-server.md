@@ -185,6 +185,14 @@ from the map event GTK handles when its main loop next runs, and the next call's
 before that, finding the view not on screen. So `settle()` also waits, up to a second, until every
 shown canvas has its surface.
 
+A window the compositor isn't drawing, as while the display is off, gets no frames: GTK lays a window
+out and paints it only in a frame, and after each frame it shows it waits for the compositor's
+go-ahead, which doesn't come. Waits on the UI then time out, a list can't scroll to a row and the 3D
+views capture blank, none of it for the reason the call would give. `undrawn_window()` asks the main
+window's frame clock for a frame and waits up to half a second for it to run, so only a call that
+failed asks it: a `poll_ui()` timeout, a blank canvas capture and a row `ui_click` can't place say the
+window isn't being drawn when it isn't.
+
 `GuardClass` decides what may run when:
 
 | Class | Tools | Runs behind a modal or inside another call |
@@ -1917,9 +1925,10 @@ corners Windows 11 rounds read black. A window Windows Graphics Capture cannot r
 
 On every platform, a canvas that can't be captured keeps whatever the window capture drew, and the
 result is approximate. A canvas frame that reads back black (`is_blank()`, a stray pixel aside) has
-not been drawn yet. This happens on Wayland for a moment after the canvas is first shown, and while
-GNOME's overview hides an XWayland window. Such a capture is taken again every 300 ms for up to 3 s,
-then returned as approximate, saying so. The composite takes the canvases of `ui_canvases()`,
+not been drawn yet. This happens on Wayland for a moment after the canvas is first shown, while
+GNOME's overview hides an XWayland window, and while the display is off. Such a capture is taken
+again every 300 ms for up to 3 s, then returned as approximate, saying so, and saying the window isn't
+being drawn when `undrawn_window()` finds it isn't. The composite takes the canvases of `ui_canvases()`,
 the Design view included; an OpenGL view outside them has no frame capture, and a window capture
 says it is left out. Minimized and hidden windows fail. X11 reads only the on-screen part of a window (`XGetImage` fails
 for the rest), which leaves the remainder black. X11 keeps no backing store, so a part

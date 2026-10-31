@@ -270,13 +270,19 @@ nlohmann::json page(const nlohmann::json& items, const nlohmann::json& args, std
 // the project revision when it started.
 ToolResult await_gcode_export(ToolContext& ctx, uint64_t before, uint64_t after, uint64_t revision, const std::string& rejection);
 
-// Polls `poll` on the UI thread every `interval` until it returns a non-null value or `timeout`
+// Polls `poll` on the UI thread every 200 ms until it returns a non-null value or `timeout`
 // passes; throws ToolFailure on timeout or cancellation.
 nlohmann::json poll_ui(ToolContext& ctx,
                        const std::function<nlohmann::json()>& poll,
                        std::chrono::milliseconds timeout,
-                       const std::string& what,
-                       std::chrono::milliseconds interval = std::chrono::milliseconds(200));
+                       const std::string& what);
+
+// Why the UI can't change when OrcaSlicer's window is not being drawn, or empty when it is drawn or
+// can't tell. A compositor stops drawing a window while the display is off, and GTK then neither lays
+// it out nor paints it: waits for the UI time out, lists can't scroll to a row and the 3D views capture
+// blank. Asks for a frame and waits up to half a second for it, so only for a call that failed. Tool
+// thread.
+std::string undrawn_window(ToolContext& ctx);
 
 // ---- scene -----------------------------------------------------------------------------------
 

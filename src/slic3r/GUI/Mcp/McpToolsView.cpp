@@ -465,9 +465,10 @@ void register_view_tools(McpService& service)
                 std::this_thread::sleep_for(std::chrono::milliseconds(300));
             }
             if (blank) {
-                info["approximate"] = true;
-                info["note"] = info.value("note", std::string()) + (info.contains("note") ? "; " : "") +
-                               "the 3D view came back blank, as if not drawn yet";
+                const std::string undrawn = undrawn_window(ctx);
+                info["approximate"]       = true;
+                info["note"] = info.value("note", std::string()) + (info.contains("note") ? "; " : "") + "the 3D view came back blank" +
+                               (undrawn.empty() ? ", as if not drawn yet" : ": " + undrawn);
             }
             if (target_arg.is_string() && !locator.is_null()) {
                 // A replay needs the locator; refs mean nothing in another session.

@@ -4,6 +4,7 @@
 #include "UiInspector.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
 #include <wx/app.h>
@@ -13,12 +14,17 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <initializer_list>
 #include <string>
 #include <thread>
 #include <utility>
 #include <vector>
+
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
@@ -88,6 +94,31 @@ bool canvas_being_mapped()
     return false;
 }
 
+// Polls `poll` on the UI thread every `interval` until it returns a non-null value, which it returns,
+// or until `timeout` passes or the call is cancelled, when it returns null.
+json poll_until(ToolContext& ctx, const std::function<json()>& poll, std::chrono::milliseconds timeout, std::chrono::milliseconds interval)
+{
+    const auto end = std::chrono::steady_clock::now() + timeout;
+    for (;;) {
+        json v = ctx.observe_ui(poll);
+        if (!v.is_null() || ctx.cancelled() || std::chrono::steady_clock::now() >= end)
+            return v;
+        std::this_thread::sleep_for(interval);
+    }
+}
+
+#ifdef __WXGTK__
+// The main window's frame clock, or null while the window is hidden or minimized, so not meant to be
+// drawn. UI thread.
+GdkFrameClock* main_frame_clock()
+{
+    MainFrame* frame = wxTheApp != nullptr ? wxGetApp().mainframe : nullptr;
+    if (frame == nullptr || !frame->IsShownOnScreen() || frame->IsIconized())
+        return nullptr;
+    return gtk_widget_get_frame_clock(frame->GetHandle());
+}
+#endif
+
 } // namespace
 
 void settle(ToolContext& ctx)
@@ -97,11 +128,42 @@ void settle(ToolContext& ctx)
     // surface: it only fails the calls that draw in it, so the wait for it is short. The map event
     // comes within a main-loop pass or two, hence the short interval.
     try {
-        poll_ui(
-            ctx, [] { return canvas_being_mapped() ? json() : json(true); }, std::chrono::seconds(1), "3D views to get their GL surface",
-            std::chrono::milliseconds(10));
+        poll_until(ctx, [] { return canvas_being_mapped() ? json() : json(true); }, std::chrono::seconds(1), std::chrono::milliseconds(10));
     } catch (const ToolFailure&) {
     }
+}
+
+std::string undrawn_window([[maybe_unused]] ToolContext& ctx)
+{
+#ifdef __WXGTK__
+    // GTK waits for the compositor's go-ahead after each frame it shows, so a frame asked for runs
+    // within a refresh or two while the window is drawn and never while it isn't.
+    try {
+        const json before = ctx.observe_ui([] {
+            GdkFrameClock* clock = main_frame_clock();
+            if (clock == nullptr)
+                return json();
+            gdk_frame_clock_request_phase(clock, GDK_FRAME_CLOCK_PHASE_PAINT);
+            return json(gdk_frame_clock_get_frame_counter(clock));
+        });
+        if (before.is_null())
+            return {};
+        const json ran = poll_until(
+            ctx,
+            [counter = before.get<std::int64_t>()] {
+                GdkFrameClock* clock = main_frame_clock();
+                return clock == nullptr || gdk_frame_clock_get_frame_counter(clock) != counter ? json(true) : json();
+            },
+            std::chrono::milliseconds(500), std::chrono::milliseconds(20));
+        if (!ran.is_null() || ctx.cancelled())
+            return {};
+    } catch (const ToolFailure&) {
+        return {};
+    }
+    return "OrcaSlicer's window is not being drawn, as while the display is off; turn the display on and try again";
+#else
+    return {};
+#endif
 }
 
 Plater& ui_plater()
@@ -152,23 +214,15 @@ json page(const json& items, const json& args, std::size_t default_limit)
     return result;
 }
 
-json poll_ui(ToolContext& ctx,
-             const std::function<json()>& poll,
-             std::chrono::milliseconds timeout,
-             const std::string& what,
-             std::chrono::milliseconds interval)
+json poll_ui(ToolContext& ctx, const std::function<json()>& poll, std::chrono::milliseconds timeout, const std::string& what)
 {
-    const auto end = std::chrono::steady_clock::now() + timeout;
-    for (;;) {
-        json v = ctx.observe_ui(poll);
-        if (!v.is_null())
-            return v;
-        if (ctx.cancelled())
-            throw ToolFailure("Cancelled: OrcaSlicer is closing or the script was stopped");
-        if (std::chrono::steady_clock::now() >= end)
-            throw ToolFailure("Timed out waiting for " + what);
-        std::this_thread::sleep_for(interval);
-    }
+    json v = poll_until(ctx, poll, timeout, std::chrono::milliseconds(200));
+    if (!v.is_null())
+        return v;
+    if (ctx.cancelled())
+        throw ToolFailure("Cancelled: OrcaSlicer is closing or the script was stopped");
+    const std::string undrawn = undrawn_window(ctx);
+    throw ToolFailure("Timed out waiting for " + what + (undrawn.empty() ? "" : ": " + undrawn));
 }
 
 }}} // namespace Slic3r::GUI::Mcp
