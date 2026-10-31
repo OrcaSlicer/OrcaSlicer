@@ -10815,7 +10815,7 @@ void Plater::priv::delete_all_objects_from_model()
     object_list_changed();
 
     //BBS
-    model.calib_pa_pattern.reset();
+    model.calib_pa_batch.reset();
     model.plates_custom_gcodes.clear();
 }
 
@@ -10908,7 +10908,7 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
         wxGetApp().load_current_presets(false, false);
 
     //BBS
-    model.calib_pa_pattern.reset();
+    model.calib_pa_batch.reset();
     model.plates_custom_gcodes.clear();
 
     // BBS
@@ -16057,7 +16057,7 @@ SLAPrint&       Plater::sla_print()         { return p->sla_print; }
 
 int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_name, bool reload_presets)
 {
-    model().calib_pa_pattern.reset(nullptr);
+    model().calib_pa_batch.reset(nullptr);
     model().plates_custom_gcodes.clear();
 
     bool transfer_preset_changes = false;
@@ -16150,7 +16150,7 @@ LoadType determine_load_type(std::string filename, std::string override_setting 
 void Plater::load_project(wxString const& filename2,
     wxString const& originfile)
 {
-    model().calib_pa_pattern.reset(nullptr);
+    model().calib_pa_batch.reset(nullptr);
     model().plates_custom_gcodes.clear();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "filename is: " << filename2 << "and originfile is: " << originfile;
@@ -16875,10 +16875,8 @@ void Plater::calib_pa(const Calib_Params& params)
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     switch (params.mode) {
         case CalibMode::Calib_PA_Line:
-            add_model(false, Slic3r::resources_dir() + "/calib/pressure_advance/pressure_advance_test.drc");
-            break;
         case CalibMode::Calib_PA_Pattern:
-            _calib_pa_pattern(params);
+            _calib_pa_batch(params);
             break;
         case CalibMode::Calib_PA_Tower:
             _calib_pa_tower(params);
@@ -16888,7 +16886,7 @@ void Plater::calib_pa(const Calib_Params& params)
     p->background_process.fff_print()->set_calib_params(params);
 }
 
-void Plater::_calib_pa_pattern(const Calib_Params& params)
+void Plater::_calib_pa_batch(const Calib_Params& params)
 {
     std::vector<double> speeds{params.speeds};
     std::vector<double> accels{params.accelerations};
@@ -16972,10 +16970,14 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
     // Orca: Set the outer wall speed to the optimal speed for the test, cap it with max volumetric speed
     if (speeds.empty()) {
         // TODO: per-variant cap
+        const double line_width   = params.mode == CalibMode::Calib_PA_Line ?
+                                        (nozzle_diameter < 0.51 ? nozzle_diameter * 1.5 : nozzle_diameter * 1.05) :
+                                        print_config.get_abs_value("line_width", nozzle_diameter);
+        const double layer_height = params.mode == CalibMode::Calib_PA_Line ?
+                                        print_config.option<ConfigOptionFloat>("initial_layer_print_height")->value :
+                                        print_config.get_abs_value("layer_height");
         double speed = CalibPressureAdvance::find_optimal_PA_speed(
-            wxGetApp().preset_bundle->full_config(),
-            print_config.get_abs_value("line_width", nozzle_diameter),
-            print_config.get_abs_value("layer_height"), 0, 0);
+            wxGetApp().preset_bundle->full_config(), line_width, layer_height, 0, 0);
         set_config_values<double, ConfigOptionFloatsNullable>(&print_config, "outer_wall_speed", speed);
 
         speeds.assign({speed});
@@ -17004,25 +17006,23 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
     sidebar().obj_list()->load_generic_subobject("Cube", ModelVolumeType::INVALID, false);
     auto *cube = model().objects[0];
 
-    CalibPressureAdvancePattern pa_pattern(
-        params,
-        full_config,
-        is_bbl_machine,
-        *cube,
-        cur_plate->get_origin()
-    );
+    std::unique_ptr<CalibPressureAdvanceBatch> pa_batch;
+    if (params.mode == CalibMode::Calib_PA_Line)
+        pa_batch = std::make_unique<CalibPressureAdvanceLine>(params, full_config, is_bbl_machine, *cube, cur_plate->get_origin());
+    else
+        pa_batch = std::make_unique<CalibPressureAdvancePattern>(params, full_config, is_bbl_machine, *cube, cur_plate->get_origin());
 
-    /* Having PA pattern configured, we could make a set of polygons resembling N test patterns.
-     * We'll arrange this set of polygons, so we would know position of each test pattern and
+    /* Having the PA batch generator configured, we can make a set of polygons resembling N tests.
+     * We'll arrange this set of polygons, so we know the position of each test and
      * could position test cubes later on
      *
      * We'll take advantage of already existing cube: scale it up to test pattern size to use
      * as a reference for objects arrangement. Polygon is slightly oversized to add spaces between patterns.
      * That arrangement will be used to place 'handle cubes' for each test. */
     auto cube_bb = cube->raw_bounding_box();
-    cube->scale((pa_pattern.print_size_x() + 4) / cube_bb.size().x(),
-                (pa_pattern.print_size_y() + 4) / cube_bb.size().y(),
-                pa_pattern.max_layer_z() / cube_bb.size().z());
+    cube->scale((pa_batch->print_size_x() + 4) / cube_bb.size().x(),
+                (pa_batch->print_size_y() + 4) / cube_bb.size().y(),
+                pa_batch->max_layer_z() / cube_bb.size().z());
 
     arrangement::ArrangePolygons arranged_items;
     {
@@ -17041,9 +17041,9 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
 
     /* scale cube back to the size of test pattern 'handle' */
     cube_bb = cube->raw_bounding_box();
-    cube->scale(pa_pattern.handle_xy_size() / cube_bb.size().x(),
-                pa_pattern.handle_xy_size() / cube_bb.size().y(),
-                pa_pattern.max_layer_z() / cube_bb.size().z());
+    cube->scale(pa_batch->handle_xy_size() / cube_bb.size().x(),
+                pa_batch->handle_xy_size() / cube_bb.size().y(),
+                pa_batch->max_layer_z() / cube_bb.size().z());
 
     /* Set speed and acceleration on per-object basis and arrange anchor object on the plates.
      * Test gcode will be genecated during plate slicing */
@@ -17056,7 +17056,7 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
         /* make an own copy of anchor cube for each test */
         auto obj = test_idx == 0 ? cube : model().add_object(*cube);
         auto obj_idx = std::distance(model().objects.begin(), std::find(model().objects.begin(), model().objects.end(), obj));
-        obj->name.assign(std::string("pa_pattern_") + std::to_string(int(tspd)) + std::string("_") + std::to_string(int(tacc)));
+        obj->name.assign(std::string(pa_batch->object_name_prefix()) + std::to_string(int(tspd)) + std::string("_") + std::to_string(int(tacc)));
 
         auto &obj_config = obj->config;
         if (speeds.size() > 1)
@@ -17075,7 +17075,7 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
         const Vec3d obj_offset{unscale<double>(ai.translation(X)),
                                unscale<double>(ai.translation(Y)),
                                0};
-        obj->instances[0]->set_offset(cur_plate->get_origin() + obj_offset + pa_pattern.handle_pos_offset());
+        obj->instances[0]->set_offset(cur_plate->get_origin() + obj_offset + pa_batch->handle_pos_offset());
         obj->ensure_on_bed();
 
         if (obj_idx == 0)
@@ -17084,13 +17084,13 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
             sidebar().obj_list()->add_object_to_list(obj_idx);
     }
 
-    model().calib_pa_pattern = std::make_unique<CalibPressureAdvancePattern>(pa_pattern);
+    model().calib_pa_batch = std::move(pa_batch);
     changed_objects(object_idxs);
 }
 
-void Plater::_calib_pa_pattern_gen_gcode()
+void Plater::_calib_pa_batch_gen_gcode()
 {
-    if (!model().calib_pa_pattern)
+    if (!model().calib_pa_batch)
         return;
 
     auto cur_plate = get_partplate_list().get_curr_plate();
@@ -17102,17 +17102,33 @@ void Plater::_calib_pa_pattern_gen_gcode()
      * all the g-codes will be merged into a single one on per-layer basis */
     std::vector<CustomGCode::Info> mgc;
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    const bool is_line = p->background_process.fff_print()->calib_mode() == CalibMode::Calib_PA_Line;
+    bool height_changed = false;
 
     /* iterate over all cubes on current plate and generate gcode for them */
     for (auto obj : cur_plate->get_objects_on_this_plate()) {
-        auto gcode = model().calib_pa_pattern->generate_custom_gcodes(
+        auto gcode = model().calib_pa_batch->generate_custom_gcodes(
                                 preset_bundle->full_config(),
                                 preset_bundle->is_bbl_vendor(),
                                 *obj,
                                 cur_plate->get_origin()
         );
+        if (is_line) {
+            const double height = obj->raw_bounding_box().size().z();
+            const double target_height = model().calib_pa_batch->max_layer_z();
+            if (std::abs(height - target_height) > EPSILON) {
+                for (ModelInstance* instance : obj->instances)
+                    instance->set_scaling_factor(Z, instance->get_scaling_factor(Z) * target_height / height);
+                obj->invalidate_bounding_box();
+                obj->ensure_on_bed();
+                height_changed = true;
+            }
+        }
         mgc.emplace_back(gcode);
     }
+
+    if (height_changed)
+        p->view3D->reload_scene(false);
 
     // move first item into model custom gcode
     auto &pcgc = model().plates_custom_gcodes[get_partplate_list().get_curr_plate_index()];
@@ -20856,9 +20872,9 @@ void Plater::reslice()
         return;
     }
 
-    // Orca: regenerate CalibPressureAdvancePattern custom G-code to apply changes
-    if (model().calib_pa_pattern) {
-        _calib_pa_pattern_gen_gcode();
+    // Orca: regenerate PA batch custom G-code to apply changes
+    if (model().calib_pa_batch) {
+        _calib_pa_batch_gen_gcode();
     }
 
     if (printer_technology() == ptSLA) {

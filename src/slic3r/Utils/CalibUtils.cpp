@@ -12,6 +12,7 @@
 #include "libslic3r/Utils.hpp"
 
 #include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/Jobs/BoostThreadWorker.hpp"
 #include "slic3r/GUI/Jobs/PlaterWorker.hpp"
 #include "../GUI/MsgDialog.hpp"
@@ -889,7 +890,7 @@ void CalibUtils::calib_pa_pattern(const CalibInfo &calib_info, Model& model)
     pa_pattern.set_start_offset(offset);
 
     model.plates_custom_gcodes[0] = pa_pattern.generate_custom_gcodes(full_config, true, *object, plate_origin);
-    model.calib_pa_pattern = std::make_unique<CalibPressureAdvancePattern>(pa_pattern);
+    model.calib_pa_batch = std::make_unique<CalibPressureAdvancePattern>(pa_pattern);
 }
 
 void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &calib_infos, DynamicPrintConfig &full_config, Model &model)
@@ -1127,13 +1128,10 @@ bool CalibUtils::calib_generic_PA(const CalibInfo &calib_info, wxString &error_m
         return false;
 
     Model model;
-    std::string input_file;
     if (params.mode == CalibMode::Calib_PA_Line)
-        input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pressure_advance_test.drc";
-    else if (params.mode == CalibMode::Calib_PA_Pattern)
-        input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pa_pattern.3mf";
-
-    read_model_from_file(input_file, model);
+        model.add_object("pa_line", "", make_cube(1, 1, 1))->add_instance();
+    else
+        read_model_from_file(Slic3r::resources_dir() + "/calib/pressure_advance/pa_pattern.3mf", model);
 
     if (params.mode == CalibMode::Calib_PA_Pattern)
         calib_pa_pattern(calib_info, model);
@@ -1155,6 +1153,44 @@ bool CalibUtils::calib_generic_PA(const CalibInfo &calib_info, wxString &error_m
     full_config.set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
 
     init_multi_extruder_params_for_cali(full_config, calib_info);
+
+    if (params.mode == CalibMode::Calib_PA_Line) {
+        full_config.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByLayer));
+        // The generator addresses the single calibration filament at slot zero. Resolve its
+        // selected nozzle/filament variants without changing the configuration used for slicing.
+        DynamicPrintConfig line_config = full_config;
+        const int nozzle = full_config.option<ConfigOptionInts>("filament_map")->get_at(0) - 1;
+        for (const std::string& key : full_config.keys()) {
+            const bool nozzle_option = printer_extruder_options.count(key) != 0;
+            if (!nozzle_option && !print_options_with_variant.count(key) && !filament_options_with_variant.count(key) &&
+                !printer_options_with_variant_1.count(key) && !printer_options_with_variant_2.count(key))
+                continue;
+            const auto* source = static_cast<const ConfigOptionVectorBase*>(full_config.option(key));
+            if (source->empty())
+                continue;
+            const int index = nozzle_option ? nozzle :
+                get_index_for_extruder_parameter(full_config, key, calib_info.extruder_id,
+                                                 calib_info.extruder_type, calib_info.nozzle_volume_type);
+            const int stride = printer_options_with_variant_2.count(key) ? 2 : 1;
+            auto* option = static_cast<ConfigOptionVectorBase*>(line_config.option(key));
+            for (int i = 0; i < stride; ++i)
+                option->set_at(source, i, index + i);
+        }
+        auto* object = model.objects.front();
+        auto line = std::make_unique<CalibPressureAdvanceLine>(params, line_config, true, *object, Vec3d::Zero());
+        const int index = get_index_for_extruder_parameter(full_config, "outer_wall_speed", calib_info.extruder_id,
+                                                           calib_info.extruder_type, calib_info.nozzle_volume_type);
+        const double speed = CalibPressureAdvance::find_optimal_PA_speed(line_config, line->line_width(),
+            line_config.option<ConfigOptionFloat>("initial_layer_print_height")->value, 0, 0);
+        full_config.option<ConfigOptionFloatsNullable>("outer_wall_speed")->values[index] = speed;
+        line_config.option<ConfigOptionFloatsNullable>("outer_wall_speed")->values[0] = speed;
+        object->scale(line->handle_xy_size(), line->handle_xy_size(), line->max_layer_z());
+        const Vec2d bed_center = get_extents(full_config.option<ConfigOptionPoints>("printable_area")->values).center();
+        object->instances.front()->set_offset(Vec3d(bed_center.x(), bed_center.y(), 0) + line->handle_pos_offset());
+        object->ensure_on_bed();
+        model.plates_custom_gcodes[0] = line->generate_custom_gcodes(line_config, true, *object, Vec3d::Zero());
+        model.calib_pa_batch = std::move(line);
+    }
 
     if (!process_and_store_3mf(&model, full_config, params, error_message))
         return false;
@@ -1634,10 +1670,7 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
     plate_size[2] = print_height;
 
     if (params.mode == CalibMode::Calib_PA_Line) {
-        double space_y       = 3.5;
-        int    max_line_nums = int(plate_size[1] - 10) / space_y;
-        int    count         = std::llround(std::ceil((params.end - params.start) / params.step)) + 1;
-        if (count > max_line_nums) {
+        if (model->calib_pa_batch->print_size_x() > current_width || model->calib_pa_batch->print_size_y() > current_depth) {
             error_message = _L("Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small");
             return false;
         }
@@ -1645,13 +1678,14 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
 
     if (params.mode == CalibMode::Calib_PA_Pattern) {
         ModelInstance *instance = model->objects[0]->instances[0];
-        Vec3d offset = model->calib_pa_pattern->get_start_offset() +
-                       Vec3d(model->calib_pa_pattern->handle_xy_size() / 2, -model->calib_pa_pattern->handle_xy_size() / 2 - model->calib_pa_pattern->handle_spacing(), 0);
+        Vec3d offset = model->calib_pa_batch->get_start_offset() +
+                       Vec3d(model->calib_pa_batch->handle_xy_size() / 2, -model->calib_pa_batch->handle_xy_size() / 2 - model->calib_pa_batch->handle_spacing(), 0);
         instance->set_offset(offset);
     }
     else if (model->objects.size() == 1) {
         ModelInstance *instance = model->objects[0]->instances[0];
-        instance->set_offset(instance->get_offset() + Vec3d(current_width / 2, current_depth / 2, 0));
+        if (params.mode != CalibMode::Calib_PA_Line)
+            instance->set_offset(instance->get_offset() + Vec3d(current_width / 2, current_depth / 2, 0));
     } else {
         BoundingBoxf3 bbox = model->bounding_box_exact();
         Vec3d bbox_center = bbox.center();
