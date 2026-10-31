@@ -30,6 +30,7 @@
 #include "GUI_Utils.hpp"
 #include "Event.hpp"
 #include "IdleScheduler.hpp"
+#include "MSWHiddenChildParking.hpp"
 
 
 #include <boost/property_tree/ptree_fwd.hpp>
@@ -332,6 +333,7 @@ protected:
 
 #ifdef __WXMSW__
     WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
+    MSWHiddenChildParking m_hidden_child_parking;
 #endif
 
 public:
