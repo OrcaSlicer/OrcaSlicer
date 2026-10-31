@@ -9,6 +9,7 @@
 #define VGCODE_ENABLE_COG_AND_TOOL_MARKERS 0
 
 #include <array>
+#include <limits>
 #include <vector>
 #include <cstdint>
 
@@ -38,6 +39,15 @@ static constexpr float MAX_WIPES_RADIUS_MM = 1.0f;
 // Used for positions, displacements and so on.
 //
 using Vec3 = std::array<float, 3>;
+
+// A rectangle of the XY plane, by its corners; the default takes in everything.
+struct XYBox
+{
+    std::array<float, 2> min{ std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest() };
+    std::array<float, 2> max{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+
+    bool contains(const Vec3& p) const { return min[0] <= p[0] && p[0] <= max[0] && min[1] <= p[1] && p[1] <= max[1]; }
+};
 // ORCA: the per vertex data uploaded as GL_RGBA32F, see extract_pos_and_or_hwa().
 using Vec4 = std::array<float, 4>;
 

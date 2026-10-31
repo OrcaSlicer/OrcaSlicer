@@ -1867,26 +1867,21 @@ std::optional<float> ViewerImpl::get_vertex_value(const PathVertex& v) const
 // VERTEX_SAMPLE_LAYERS layers spread evenly over the interval, so that neither the ramp a wall
 // starts on nor one odd layer sets the colour; any other view takes the first extrusion found.
 // A layer's vertices lie between its first and last ids, with those of other layers among them
-// in a print by object.
-size_t ViewerImpl::find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role) const
+// in a print by object. Only the extrusions that end inside the box count, so that one object's
+// walls can be told from another's on the same layers.
+size_t ViewerImpl::find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role, const XYBox& box) const
 {
     std::vector<std::pair<float, float>> samples;
     std::vector<size_t> ids;
     const size_t count = (layers[1] >= layers[0]) ? layers[1] - layers[0] + 1 : 0;
     const size_t steps = std::min(count, VERTEX_SAMPLE_LAYERS);
+    const auto value_of = [this](const PathVertex& v) { return get_vertex_value(v); };
     for (size_t step = 0; step < steps; ++step) {
         const size_t layer_id = layers[0] + ((steps > 1) ? step * (count - 1) / (steps - 1) : 0);
-        const Interval range = m_layers.get_layer_vertex_range(layer_id);
-        for (size_t i = range[0]; i <= range[1] && i < m_vertices.size(); ++i) {
-            const PathVertex& v = m_vertices[i];
-            if (v.layer_id != layer_id || !v.is_extrusion() || v.role != role)
-                continue;
-            const std::optional<float> value = get_vertex_value(v);
-            if (!value.has_value())
-                return i;
-            samples.emplace_back(*value, (i > 0) ? length(v.position - m_vertices[i - 1].position) : 0.0f);
-            ids.push_back(i);
-        }
+        const std::optional<size_t> first = collect_role_samples(m_vertices, m_layers.get_layer_vertex_range(layer_id),
+            static_cast<uint32_t>(layer_id), role, box, value_of, samples, ids);
+        if (first.has_value())
+            return *first;
     }
     return samples.empty() ? m_vertices.size() : ids[weighted_median_index(samples)];
 }

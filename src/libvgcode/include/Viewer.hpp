@@ -409,8 +409,9 @@ public:
     // layers in the current view, or get_vertices_count() if they have none. Where the view
     // grades by a value, it is the length-weighted median of that value over the role's
     // extrusions in up to eight layers spread over the interval; elsewhere the first one.
+    // Only the extrusions that end inside the box, in the XY plane, are considered.
     //
-    size_t find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role) const;
+    size_t find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role, const XYBox& box = XYBox()) const;
     //
     // Return the count of detected extrusion roles
     //
