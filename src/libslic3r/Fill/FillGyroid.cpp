@@ -31,7 +31,7 @@ static float gyroid(float x, float y, float z)
 
 // ---------------------------------------------------------------------------
 // Marching-squares scalar field for the optimized gyroid branch.
-// Modeled after FillTpmsFK.cpp's ScalarField.
+// Modeled after FillTpms.cpp's ScalarField.
 //
 // The gyroid scalar field is the standard implicit equation
 //     F(x,y,z) = sin(fx*x)cos(fy*y) + sin(fy*y)cos(fz*z) + sin(fz*z)cos(fx*x)
