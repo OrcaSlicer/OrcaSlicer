@@ -7,6 +7,8 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/calib.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
@@ -163,6 +165,62 @@ TEST_CASE("The filament flow ratio scales the extruded length once", "[GCode]")
     const double full = extruded_length(1.);
     REQUIRE(full > 0.);
     CHECK_THAT(extruded_length(0.9) / full, Catch::Matchers::WithinRel(0.9, 1e-3));
+}
+
+TEST_CASE("Retract after outer wall retracts on a travel shorter than the threshold", "[GCode]")
+{
+    const bool enabled = GENERATE(false, true);
+    CAPTURE(enabled);
+    // Inner-outer-inner order puts a short travel between the outer wall and the next inner wall;
+    // the 5 mm threshold alone would skip its retraction.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor", "marlin2" },
+        { "layer_height", "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        { "wall_loops", "3" },
+        { "wall_sequence", "inner-outer-inner wall" },
+        { "top_shell_layers", "0" },
+        { "bottom_shell_layers", "0" },
+        { "sparse_infill_density", "0%" },
+        { "retraction_length", "0.8" },
+        { "retraction_minimum_travel", "5" },
+        { "retract_when_changing_layer", "0" },
+        { "wipe", "0" },
+        { "z_hop", "0" },
+        { "gcode_comments", "1" },
+        { "machine_start_gcode", "" },
+        { "machine_end_gcode", "" },
+        { "retract_after_outer_wall", enabled ? "1" : "0" },
+    });
+    const std::string output = Test::slice({ make_cube(10., 10., 1.) }, config);
+
+    const std::string &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    ExtrusionRole role = erNone;
+    bool after_outer_wall = false;
+    double retraction = 0.;
+    size_t transitions = 0;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(role_tag) == 0)
+            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+        if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            if (role == erExternalPerimeter) {
+                after_outer_wall = true;
+                retraction = 0.;
+            } else if (after_outer_wall) {
+                REQUIRE(role == erPerimeter);
+                ++transitions;
+                CHECK_THAT(retraction, Catch::Matchers::WithinAbs(enabled ? 0.8 : 0., 0.00005));
+                after_outer_wall = false;
+            }
+        } else if (after_outer_wall && line.retracting(self)) {
+            retraction -= line.dist_E(self);
+        }
+    });
+    // The 1 mm cube has five 0.2 mm layers, each with one outer wall followed by an inner wall.
+    REQUIRE(transitions == 5);
 }
 
 // Firmwares read the compatibility header lines (Anycubic's GoKlipper heats the bed with

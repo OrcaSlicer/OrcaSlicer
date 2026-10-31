@@ -6708,6 +6708,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("retract_after_outer_wall", coBool);
+    def->label = L("Retract after outer wall");
+    def->category = L("Quality");
+    def->tooltip = L("Always retract when the nozzle leaves an outer wall, even if the travel is shorter than the "
+                     "travel distance threshold.\n\n"
+                     "Without a retraction, a very short travel, for example to gap infill inside a thin wall, can drag "
+                     "the end of the outer wall inward and leave a visible dent at the seam.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("wipe_speed", coFloatOrPercent);
     def->label = L("Wipe speed");
     def->category = L("Speed");
