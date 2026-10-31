@@ -1003,9 +1003,18 @@ void ViewerImpl::reset()
 #else
     m_enabled_segments_count = 0;
     m_enabled_options_count = 0;
+    m_enabled_segments_reduced_count = 0;
+    m_enabled_segments_reduced_translucent_count = 0;
+    m_enabled_options_reduced_count = 0;
+    m_enabled_segments_reduced_tex_size = 0;
+    m_enabled_options_reduced_tex_size = 0;
 
     m_settings_used_for_ranges = std::nullopt;
 
+    delete_textures(m_enabled_options_reduced_tex_id);
+    delete_buffers(m_enabled_options_reduced_buf_id);
+    delete_textures(m_enabled_segments_reduced_tex_id);
+    delete_buffers(m_enabled_segments_reduced_buf_id);
     delete_textures(m_enabled_options_tex_id);
     delete_buffers(m_enabled_options_buf_id);
     delete_textures(m_enabled_segments_tex_id);
@@ -1220,6 +1229,7 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
 
     if (!m_layers.empty())
         m_layers.set_view_range(0, static_cast<uint32_t>(m_layers.count()) - 1);
+    m_layers.set_closed_layers(gcode_data.layers_closed);
 
     std::sort(m_options.begin(), m_options.end());
     m_options.erase(std::unique(m_options.begin(), m_options.end()), m_options.end());
@@ -1286,6 +1296,17 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
         glsafe(glGenTextures(1, &m_enabled_options_tex_id));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_options_tex_id));
 
+        // create (but do not fill) the reduced counterparts of the two buffers above
+        glsafe(glGenBuffers(1, &m_enabled_segments_reduced_buf_id));
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_segments_reduced_buf_id));
+        glsafe(glGenTextures(1, &m_enabled_segments_reduced_tex_id));
+        glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_segments_reduced_tex_id));
+
+        glsafe(glGenBuffers(1, &m_enabled_options_reduced_buf_id));
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_options_reduced_buf_id));
+        glsafe(glGenTextures(1, &m_enabled_options_reduced_tex_id));
+        glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_options_reduced_tex_id));
+
         glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, old_bound_texture));
 #endif // ENABLE_OPENGL_ES
@@ -1297,6 +1318,25 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     update_enabled_entities();
 }
 
+#ifndef ENABLE_OPENGL_ES
+// the roles that lie under a skin or between walls, never seen from outside the print
+static bool is_hidden_in_shell(EGCodeExtrusionRole role)
+{
+    return role == EGCodeExtrusionRole::InternalInfill ||
+           role == EGCodeExtrusionRole::SolidInfill ||
+           role == EGCodeExtrusionRole::InternalBridgeInfill ||
+           role == EGCodeExtrusionRole::GapFill;
+}
+
+// the roles no solid stands in for while only the end layers are drawn
+static bool is_support(EGCodeExtrusionRole role)
+{
+    return role == EGCodeExtrusionRole::SupportMaterial ||
+           role == EGCodeExtrusionRole::SupportMaterialInterface ||
+           role == EGCodeExtrusionRole::SupportTransition;
+}
+#endif // ENABLE_OPENGL_ES
+
 void ViewerImpl::update_enabled_entities()
 {
     if (m_vertices.empty())
@@ -1304,6 +1344,18 @@ void ViewerImpl::update_enabled_entities()
 
     std::vector<uint32_t> enabled_segments;
     std::vector<uint32_t> enabled_options;
+#ifndef ENABLE_OPENGL_ES
+    // the reduced set is filled by the same walk, so switching to it costs no rebuild. Whatever the
+    // mode leaves out, the layers at the bottom and top of the visible range are kept whole: they
+    // are the surfaces the range cuts open
+    const EReducedDetailMode reduced_mode = m_settings.reduced_detail_mode;
+    const bool build_reduced = reduced_mode != EReducedDetailMode::Off;
+    const bool hide_infill = m_settings.reduced_detail_hide_infill;
+    std::vector<uint32_t> enabled_segments_reduced;
+    std::vector<uint32_t> enabled_options_reduced;
+    const Interval& layers_range = m_layers.get_view_range();
+    const Interval whole_layers = build_reduced ? get_reduced_detail_whole_layers() : Interval{ 0, 0 };
+#endif // ENABLE_OPENGL_ES
     Interval range = m_view_range.get_visible();
 
     // when top layer only visualization is enabled, we need to render
@@ -1351,6 +1403,25 @@ void ViewerImpl::update_enabled_entities()
             enabled_options.push_back(static_cast<uint32_t>(i));
         else
             enabled_segments.push_back(static_cast<uint32_t>(i));
+
+#ifndef ENABLE_OPENGL_ES
+        if (build_reduced) {
+            const bool end_layer = (v.layer_id >= layers_range[0] && v.layer_id <= whole_layers[0]) ||
+                                   (v.layer_id >= whole_layers[1] && v.layer_id <= layers_range[1]);
+            if (end_layer)
+                (v.is_option() ? enabled_options_reduced : enabled_segments_reduced).push_back(static_cast<uint32_t>(i));
+            else if (reduced_mode == EReducedDetailMode::EndLayersOnly) {
+                if (v.is_extrusion() && is_support(v.role))
+                    enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
+            }
+            else if (reduced_mode == EReducedDetailMode::ShellOnly) {
+                if (v.is_option())
+                    enabled_options_reduced.push_back(static_cast<uint32_t>(i));
+                else if (!v.is_extrusion() || !hide_infill || !is_hidden_in_shell(v.role))
+                    enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
+            }
+        }
+#endif // ENABLE_OPENGL_ES
     }
 
     // ORCA: so that each pass of render() draws only its own segments, in print order
@@ -1361,10 +1432,15 @@ void ViewerImpl::update_enabled_entities()
         m_enabled_translucent_segments_count += m_texture_data.get_enabled_translucent_segments_count(i);
     m_texture_data.set_enabled_options(enabled_options);
 #else
+    m_enabled_segments_reduced_translucent_count = 0;
     if (m_has_translucent_colors) {
         const auto is_opaque = [this](uint32_t id) { return m_vertices_colors[id][3] == 255; };
         const auto translucent_begin = std::stable_partition(enabled_segments.begin(), enabled_segments.end(), is_opaque);
         m_enabled_translucent_segments_count = static_cast<size_t>(std::distance(translucent_begin, enabled_segments.end()));
+        if (build_reduced) {
+            const auto reduced_translucent_begin = std::stable_partition(enabled_segments_reduced.begin(), enabled_segments_reduced.end(), is_opaque);
+            m_enabled_segments_reduced_translucent_count = static_cast<size_t>(std::distance(reduced_translucent_begin, enabled_segments_reduced.end()));
+        }
     }
 
     m_enabled_segments_count = enabled_segments.size();
@@ -1388,6 +1464,23 @@ void ViewerImpl::update_enabled_entities()
         glsafe(glBufferData(GL_TEXTURE_BUFFER, enabled_options.size() * sizeof(uint32_t), enabled_options.data(), GL_STATIC_DRAW));
     else
         glsafe(glBufferData(GL_TEXTURE_BUFFER, 0, nullptr, GL_STATIC_DRAW));
+
+    m_enabled_segments_reduced_count = enabled_segments_reduced.size();
+    m_enabled_options_reduced_count = enabled_options_reduced.size();
+    m_enabled_segments_reduced_tex_size = enabled_segments_reduced.size() * sizeof(uint32_t);
+    m_enabled_options_reduced_tex_size = enabled_options_reduced.size() * sizeof(uint32_t);
+
+    // uploaded even when nothing was built, so that the last reduced set is released as soon as
+    // the preference is switched off
+    assert(m_enabled_segments_reduced_buf_id > 0);
+    glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_segments_reduced_buf_id));
+    glsafe(glBufferData(GL_TEXTURE_BUFFER, m_enabled_segments_reduced_tex_size,
+                        enabled_segments_reduced.empty() ? nullptr : enabled_segments_reduced.data(), GL_STATIC_DRAW));
+
+    assert(m_enabled_options_reduced_buf_id > 0);
+    glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_options_reduced_buf_id));
+    glsafe(glBufferData(GL_TEXTURE_BUFFER, m_enabled_options_reduced_tex_size,
+                        enabled_options_reduced.empty() ? nullptr : enabled_options_reduced.data(), GL_STATIC_DRAW));
 
     glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
 #endif // ENABLE_OPENGL_ES
@@ -1607,6 +1700,23 @@ void ViewerImpl::set_dim_previous_layers_brightness(float value)
     m_settings.dim_previous_layers_brightness = value;
 }
 
+// Both decide which vertices land in the reduced set, so the sets are rebuilt.
+void ViewerImpl::set_reduced_detail_mode(EReducedDetailMode mode)
+{
+    if (m_settings.reduced_detail_mode == mode)
+        return;
+    m_settings.reduced_detail_mode = mode;
+    m_settings.update_enabled_entities = true;
+}
+
+void ViewerImpl::set_reduced_detail_hide_infill(bool value)
+{
+    if (m_settings.reduced_detail_hide_infill == value)
+        return;
+    m_settings.reduced_detail_hide_infill = value;
+    m_settings.update_enabled_entities = true;
+}
+
 std::vector<ETimeMode> ViewerImpl::get_time_modes() const
 {
     std::vector<ETimeMode> ret;
@@ -1729,6 +1839,51 @@ float ViewerImpl::get_estimated_time_at(size_t id) const
     for (size_t i = first; i <= id; ++i)
         time += m_vertices[i].times[mode];
     return time;
+}
+
+std::optional<float> ViewerImpl::get_vertex_value(const PathVertex& v) const
+{
+    switch (m_settings.view_type)
+    {
+    case EViewType::Height:                   return v.height;
+    case EViewType::Width:                    return v.width;
+    case EViewType::Speed:                    return v.feedrate;
+    case EViewType::ActualSpeed:              return v.actual_feedrate;
+    case EViewType::FanSpeed:                 return v.fan_speed;
+    case EViewType::Temperature:              return v.temperature;
+    case EViewType::PressureAdvance:          return v.pressure_advance;
+    case EViewType::Acceleration:             return v.acceleration;
+    case EViewType::Jerk:                     return v.jerk;
+    case EViewType::VolumetricFlowRate:       return v.volumetric_rate();
+    case EViewType::ActualVolumetricFlowRate: return v.actual_volumetric_rate();
+    case EViewType::LayerTimeLinear:
+    case EViewType::LayerTimeLogarithmic:     return m_layers.get_layer_time(m_settings.time_mode, static_cast<size_t>(v.layer_id));
+    default:                                  return std::nullopt;
+    }
+}
+
+// The extrusion of the role that stands for the layers, or the vertex count. A view that grades
+// by a value takes the length-weighted median of it over the role's extrusions in up to
+// VERTEX_SAMPLE_LAYERS layers spread evenly over the interval, so that neither the ramp a wall
+// starts on nor one odd layer sets the colour; any other view takes the first extrusion found.
+// A layer's vertices lie between its first and last ids, with those of other layers among them
+// in a print by object. Only the extrusions that end inside the box count, so that one object's
+// walls can be told from another's on the same layers.
+size_t ViewerImpl::find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role, const XYBox& box) const
+{
+    std::vector<std::pair<float, float>> samples;
+    std::vector<size_t> ids;
+    const size_t count = (layers[1] >= layers[0]) ? layers[1] - layers[0] + 1 : 0;
+    const size_t steps = std::min(count, VERTEX_SAMPLE_LAYERS);
+    const auto value_of = [this](const PathVertex& v) { return get_vertex_value(v); };
+    for (size_t step = 0; step < steps; ++step) {
+        const size_t layer_id = layers[0] + ((steps > 1) ? step * (count - 1) / (steps - 1) : 0);
+        const std::optional<size_t> first = collect_role_samples(m_vertices, m_layers.get_layer_vertex_range(layer_id),
+            static_cast<uint32_t>(layer_id), role, box, value_of, samples, ids);
+        if (first.has_value())
+            return *first;
+    }
+    return samples.empty() ? m_vertices.size() : ids[weighted_median_index(samples)];
 }
 
 Color ViewerImpl::get_vertex_color(const PathVertex& v) const
@@ -1999,6 +2154,8 @@ size_t ViewerImpl::get_used_gpu_memory() const
     ret += m_colors_tex_size;
     ret += m_enabled_segments_tex_size;
     ret += m_enabled_options_tex_size;
+    ret += m_enabled_segments_reduced_tex_size;
+    ret += m_enabled_options_reduced_tex_size;
     ret += m_translucent_targets.size_in_bytes();
 #endif // ENABLE_OPENGL_ES
     return ret;
@@ -2233,7 +2390,8 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
 #ifdef ENABLE_OPENGL_ES
     if (m_texture_data.get_enabled_segments_count() == 0)
 #else
-    if (m_enabled_segments_count == 0)
+    const ActiveSet segments = active_segments();
+    if (segments.count == 0)
 #endif // ENABLE_OPENGL_ES
         return;
 
@@ -2366,10 +2524,10 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA8, m_colors_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE3));
-    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_segments_tex_id));
-    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_segments_buf_id));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, segments.tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, segments.buf_id));
 
-    draw(m_enabled_segments_count, m_enabled_translucent_segments_count);
+    draw(segments.count, segments.translucent_count);
 #endif // ENABLE_OPENGL_ES
 
     if (curr_cull_face)
@@ -2404,7 +2562,8 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
 #ifdef ENABLE_OPENGL_ES
     if (m_texture_data.get_enabled_options_count() == 0)
 #else
-    if (m_enabled_options_count == 0)
+    const ActiveSet options = active_options();
+    if (options.count == 0)
 #endif // ENABLE_OPENGL_ES
         return;
 
@@ -2464,10 +2623,10 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA8, m_colors_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE3));
-    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_options_tex_id));
-    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_options_buf_id));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, options.tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, options.buf_id));
 
-    m_option_template.render(m_enabled_options_count);
+    m_option_template.render(options.count);
 #endif // ENABLE_OPENGL_ES
 
     if (!curr_cull_face)
@@ -2568,7 +2727,11 @@ size_t ViewerImpl::TranslucentTargets::size_in_bytes() const
 void ViewerImpl::render_translucent(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
 {
     apply_pending_updates();
+#ifdef ENABLE_OPENGL_ES
     if (m_enabled_translucent_segments_count == 0)
+#else
+    if (active_segments().translucent_count == 0)
+#endif // ENABLE_OPENGL_ES
         return;
 
     const Mat4x4 inv_view_matrix = inverse(view_matrix);

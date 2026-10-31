@@ -39,6 +39,7 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoUtils.hpp"
 #include "libslic3r/Point.hpp"
 #include <math.h>
@@ -59,6 +60,8 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libvgcode/include/GCodeInputData.hpp"
 #include "libvgcode/include/ColorRange.hpp"
+#include <cfloat>
+#include <initializer_list>
 #include <optional>
 #include "libslic3r_version.h"
 #include <wx/busycursor.h>
@@ -1147,6 +1150,7 @@ GCodeViewer::GCodeViewer()
 GCodeViewer::~GCodeViewer()
 {
     reset();
+    release_caster_depth();
     if (m_moves_slider) {
         delete m_moves_slider;
         m_moves_slider = nullptr;
@@ -1374,6 +1378,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     const bool required_top_layer_only = get_app_config()->get_bool("seq_top_layer_only");
     if (current_top_layer_only != required_top_layer_only)
         m_viewer.toggle_top_layer_only_view_range();
+
+    read_reduced_detail_preferences();
 
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
@@ -1644,6 +1650,20 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             m_belt_layer_zs.clear();
     }
 
+    // The solid model is cut at the heights of the layer range's ends, which bound the range only
+    // if the layers never drop: printed object by object, the heights start over with each object.
+    // Two layers may share a height, as layers of objects with different layer heights can.
+    m_layers_z_rising = true;
+    float prev_z = 0.0f;
+    for (size_t i = 0; i < m_viewer.get_layers_count() && m_layers_z_rising; ++i) {
+        const float z = m_viewer.get_layer_z(i);
+        // a layer with no extrusion has no height
+        if (z == 0.0f)
+            continue;
+        m_layers_z_rising = z >= prev_z;
+        prev_z = z;
+    }
+
 // #if !VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 //     const size_t vertices_count = m_viewer.get_vertices_count();
 //     m_cog.reset();
@@ -1736,6 +1756,10 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 
     // BBS: data for rendering color arrangement recommendation
     m_nozzle_nums = print.config().option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    // the shell drag mode hides the infill only where the profile covers it: with no top or bottom
+    // shell, or no walls, the infill is the surface. Per-object settings are not consulted.
+    const PrintRegionConfig& region = print.default_region_config();
+    m_viewer.set_reduced_detail_hide_infill(region.top_shell_layers.value > 0 && region.bottom_shell_layers.value > 0 && region.wall_loops.value > 0);
     // Orca hack: Hide filament group for non-bbl printers
     if (!print.is_BBL_printer()) m_nozzle_nums = 1;
     std::vector<int>         filament_maps = print.get_filament_maps();
@@ -1912,6 +1936,7 @@ void GCodeViewer::reset_shell()
 {
     m_shells.volumes.clear();
     m_shells.print_id = -1;
+    m_shells.with_wipe_tower = false;
     m_shell_bounding_box = BoundingBoxf3();
 }
 
@@ -2172,6 +2197,10 @@ void GCodeViewer::render_scene(int canvas_width, int canvas_height)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
     render_shells(canvas_width, canvas_height);
+    // while dragging in the solid model mode, the objects stand in for their toolpaths, cut to the
+    // visible layer range; the toolpath set then holds only the range's bottom and top layers
+    if (m_viewer.is_reduced_detail() && solid_model_enabled())
+        render_solid_model(canvas_width, canvas_height);
 
     if (m_viewer.get_extrusion_roles_count() == 0)
         return;
@@ -2422,6 +2451,9 @@ size_t GCodeViewer::shadow_casters_signature() const
                           m_paths_bounding_box.max.x(), m_paths_bounding_box.max.y(), m_paths_bounding_box.max.z() })
         boost::hash_combine(hash, value);
     boost::hash_combine(hash, m_viewer.is_top_layer_only_view_range());
+    // the casters are drawn from the reduced set while dragging, with the solid model in its mode
+    boost::hash_combine(hash, m_viewer.is_reduced_detail());
+    boost::hash_combine(hash, static_cast<int>(m_reduced_detail_mode));
     for (size_t i = 0; i < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++i)
         boost::hash_combine(hash, m_viewer.is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole(i)));
     boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Travels));
@@ -2440,10 +2472,132 @@ void GCodeViewer::render_shadow_casters(const Transform3d& light_view_matrix, co
         libvgcode::convert(static_cast<Matrix4f>(light_view_matrix.matrix().cast<float>())),
         libvgcode::convert(static_cast<Matrix4f>(light_projection_matrix.matrix().cast<float>())),
         libvgcode::convert(static_cast<Vec3f>(light_position.cast<float>())));
+    if (m_viewer.is_reduced_detail() && solid_model_enabled())
+        render_solid_model_casters(light_view_matrix, light_projection_matrix);
+}
+
+// The solid casts as the toolpaths it stands in for would: the shells, cut at the same heights,
+// drawn depth-only into the shadow map the canvas has bound. The cut faces cast too: an open
+// body's far wall closes its outline from the light, but not its depth, and the end band's lines
+// would throw their shadow through the hollow onto the flank. So a back face that a ray reached
+// through a cut is drawn at the depth of that cut, by the shader; a back face reached through a
+// wall facing the light keeps out of the way, which takes the front faces drawn on their own
+// first, into a depth texture of the viewer's, for the shader to look up.
+void GCodeViewer::render_solid_model_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix)
+{
+    const std::optional<std::array<float, 2>> z_range = solid_model_z_range();
+    GLShaderProgram* wall_shader = wxGetApp().get_shader("flat_clip");
+    GLShaderProgram* cut_shader = wxGetApp().get_shader("cut_caster");
+    if (m_shells.volumes.empty() || !z_range.has_value() || wall_shader == nullptr || cut_shader == nullptr)
+        return;
+
+    auto draw_shells = [&](GLShaderProgram* shader) {
+        shader->start_using();
+        shader->set_uniform("projection_matrix", light_projection_matrix);
+        // cut by the section view as the camera sees it, so what it cuts away casts nothing
+        shader->set_uniform("clipping_plane", m_clipping_plane);
+        shader->set_uniform("z_range", *z_range);
+        for (GLVolume* volume : m_shells.volumes.volumes) {
+            const Transform3d world_matrix = volume->world_matrix();
+            shader->set_uniform("volume_world_matrix", world_matrix);
+            shader->set_uniform("view_model_matrix", light_view_matrix * world_matrix);
+            volume->render();
+        }
+        shader->stop_using();
+    };
+
+    GLint viewport[4] = { 0, 0, 0, 0 };
+    glsafe(::glGetIntegerv(GL_VIEWPORT, viewport));
+    GLint map_fbo = 0;
+    glsafe(::glGetIntegerv(GL_FRAMEBUFFER_BINDING, &map_fbo));
+    if (!init_caster_depth(viewport[2], viewport[3])) {
+        // without a texture of its own the body casts open, as before
+        draw_shells(wall_shader);
+        return;
+    }
+
+    // The walls facing the light, on their own, for the back faces to look up. A volume's render
+    // sets the cull face to the back faces itself, so only the enable is this pass's.
+    glsafe(::glEnable(GL_CULL_FACE));
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_caster_fbo));
+    glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
+    draw_shells(wall_shader);
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(map_fbo)));
+    // Both faces into the map, as the canvas draws the casters: the shader leaves a front face at
+    // its own depth and moves a back face reached through a cut to the depth of that cut.
+    glsafe(::glDisable(GL_CULL_FACE));
+    // bound on a unit of its own, with the volumes' own bindings left to unit 0
+    glsafe(::glActiveTexture(GL_TEXTURE6));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, m_caster_depth));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
+    cut_shader->start_using();
+    cut_shader->set_uniform("front_depth", 6);
+    cut_shader->set_uniform("map_size", std::array<float, 2>{ static_cast<float>(viewport[2]), static_cast<float>(viewport[3]) });
+    cut_shader->set_uniform("light_view_projection", Transform3d(light_projection_matrix * light_view_matrix));
+    // the light looks down its own z axis
+    cut_shader->set_uniform("to_light", Vec3f(light_view_matrix.linear().row(2).transpose().cast<float>()));
+    cut_shader->stop_using();
+    draw_shells(cut_shader);
+    glsafe(::glActiveTexture(GL_TEXTURE6));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
+}
+
+// The depth texture the caster pass draws the shells' front faces into, the size of the shadow
+// map it is drawn alongside.
+bool GCodeViewer::init_caster_depth(int width, int height)
+{
+    if (OpenGLManager::get_framebuffers_type() != OpenGLManager::EFramebufferType::Arb || width <= 0 || height <= 0)
+        return false;
+    if (m_caster_depth != 0 && m_caster_width == width && m_caster_height == height)
+        return true;
+    if (m_caster_depth == 0) {
+        glsafe(::glGenTextures(1, &m_caster_depth));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_caster_depth));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    }
+    else
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_caster_depth));
+    glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    m_caster_width = width;
+    m_caster_height = height;
+
+    GLint bound_fbo = 0;
+    glsafe(::glGetIntegerv(GL_FRAMEBUFFER_BINDING, &bound_fbo));
+    if (m_caster_fbo == 0)
+        glsafe(::glGenFramebuffers(1, &m_caster_fbo));
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_caster_fbo));
+    glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_caster_depth, 0));
+    glsafe(::glDrawBuffer(GL_NONE));
+    glsafe(::glReadBuffer(GL_NONE));
+    const bool complete = ::glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(bound_fbo)));
+    if (!complete)
+        release_caster_depth();
+    return complete;
+}
+
+void GCodeViewer::release_caster_depth()
+{
+    if (m_caster_fbo != 0) {
+        glsafe(::glDeleteFramebuffers(1, &m_caster_fbo));
+        m_caster_fbo = 0;
+    }
+    if (m_caster_depth != 0) {
+        glsafe(::glDeleteTextures(1, &m_caster_depth));
+        m_caster_depth = 0;
+    }
+    m_caster_width = 0;
+    m_caster_height = 0;
 }
 
 void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view_projection, float intensity, float texel_size)
 {
+    m_shadow_map = { texture_unit, light_view_projection, intensity, texel_size };
     m_viewer.set_shadow_map(texture_unit,
         libvgcode::convert(static_cast<Matrix4f>(light_view_projection.matrix().cast<float>())),
         intensity, texel_size);
@@ -2451,6 +2605,7 @@ void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view
 
 void GCodeViewer::set_light_top_dir(const Vec3d& direction)
 {
+    m_light_top_dir = direction;
     m_viewer.set_light_top_dir(libvgcode::convert(static_cast<Vec3f>(direction.cast<float>())));
 }
 
@@ -2751,6 +2906,50 @@ void GCodeViewer::update_layers_slider_mode()
     }
 
     // TODO m_layers_slider->SetModeAndOnlyExtruder(one_extruder_printed_model, only_extruder);
+}
+
+void GCodeViewer::set_interacting(bool interacting)
+{
+    // With the mode off nothing changes while dragging. The solid model needs shells to stand in
+    // for the toolpaths and a single height to cut them at.
+    const bool usable = m_reduced_detail_mode != libvgcode::EReducedDetailMode::Off &&
+                        (!solid_model_enabled() || (!m_shells.volumes.empty() && m_layers_z_rising));
+    // sampled afresh as each drag begins: the legend may have recoloured the toolpaths, and the
+    // sliders may have moved the span, since the last one
+    if (interacting && !m_viewer.is_reduced_detail())
+        m_solid_model_colors.valid = false;
+    m_viewer.set_reduced_detail(interacting && usable);
+}
+
+void GCodeViewer::read_reduced_detail_preferences()
+{
+    m_reduced_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_reduced_detail_mode"));
+    m_viewer.set_reduced_detail_mode(m_reduced_detail_mode);
+}
+
+void GCodeViewer::set_reduced_detail_mode(const std::string& mode)
+{
+    const bool was_solid = solid_model_enabled();
+    m_reduced_detail_mode = reduced_detail_mode_from_string(mode);
+    m_viewer.set_reduced_detail_mode(m_reduced_detail_mode);
+
+    // Only the prime tower comes and goes with the solid model: a full reload would drop the shells
+    // whenever the print has moved on since they were loaded, leaving the solid model nothing to draw.
+    if (was_solid == solid_model_enabled() || m_shells.print_id == -1 || wxGetApp().plater() == nullptr)
+        return;
+    // the shells are loaded from the current plate's print, which is not the plater's own
+    const Print& print = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
+    if (static_cast<int>(print.id().id) == m_shells.print_id)
+        update_shell_wipe_tower(print, m_gl_data_initialized);
+}
+
+libvgcode::EReducedDetailMode GCodeViewer::reduced_detail_mode_from_string(const std::string& mode)
+{
+    if (mode == "solid")
+        return libvgcode::EReducedDetailMode::EndLayersOnly;
+    if (mode == "shell")
+        return libvgcode::EReducedDetailMode::ShellOnly;
+    return libvgcode::EReducedDetailMode::Off;
 }
 
 void GCodeViewer::set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range)
@@ -3077,7 +3276,11 @@ void GCodeViewer::export_toolpaths_to_obj(const char* filename) const
 void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_previewing)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": initialized=%1%, force_previewing=%2%")%initialized %force_previewing;
+    // the shells can load before the first G-code does, so the preferences are read here as well
+    read_reduced_detail_preferences();
     if ((print.id().id == m_shells.print_id)&&(print.get_modified_count() == m_shells.print_modify_count)) {
+        // the prime tower comes and goes on its own, without reloading the objects
+        update_shell_wipe_tower(print, initialized);
         //BBS: update force previewing logic
         if (force_previewing)
             m_shells.previewing = force_previewing;
@@ -3186,6 +3389,7 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
     m_shells.print_id = print.id().id;
     m_shells.print_modify_count = print.get_modified_count();
     m_shells.previewing = true;
+    update_shell_wipe_tower(print, initialized);
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": shell loaded, id change to %1%, modify_count %2%, object count %3%, glvolume count %4%")
         % m_shells.print_id % m_shells.print_modify_count % object_count %m_shells.volumes.volumes.size();
 }
@@ -3207,6 +3411,40 @@ void GCodeViewer::render_translucent_toolpaths(int canvas_width, int canvas_heig
                                 libvgcode::convert(static_cast<Matrix4f>(camera.get_projection_matrix().matrix().cast<float>())));
     glsafe(::glEnable(GL_DEPTH_TEST));
     render_markers(canvas_width, canvas_height);
+}
+
+// The prime tower as it was sliced, so that the solid model shows what the print shows. It keeps its
+// opaque colour, so it never appears among the translucent shells, and stays out of their bounding box.
+void GCodeViewer::update_shell_wipe_tower(const Print& print, bool initialized)
+{
+    const bool with_wipe_tower = solid_model_enabled() && print.is_step_done(psWipeTower) && print.wipe_tower_data().wipe_tower_mesh_data;
+    if (with_wipe_tower == m_shells.with_wipe_tower)
+        return;
+    m_shells.with_wipe_tower = with_wipe_tower;
+    GLVolumePtrs& volumes = m_shells.volumes.volumes;
+    if (!with_wipe_tower) {
+        volumes.erase(std::remove_if(volumes.begin(), volumes.end(), [](GLVolume* volume) {
+            if (!volume->is_wipe_tower)
+                return false;
+            delete volume;
+            return true;
+        }), volumes.end());
+        return;
+    }
+    const PrintConfig& config = print.config();
+    const int plate_idx = print.get_plate_index();
+    const Vec3d plate_origin = print.get_plate_origin();
+    const float x = static_cast<float>(config.wipe_tower_x.get_at(plate_idx) + plate_origin.x());
+    const float y = static_cast<float>(config.wipe_tower_y.get_at(plate_idx) + plate_origin.y());
+    const size_t first_new = volumes.size();
+    m_shells.volumes.load_real_wipe_tower_preview(1000 + plate_idx, x, y, print.wipe_tower_data().wipe_tower_mesh_data->real_wipe_tower_mesh,
+                                                  print.wipe_tower_data().wipe_tower_mesh_data->real_brim_mesh, true,
+                                                  static_cast<float>(config.wipe_tower_rotation_angle), false, initialized);
+    for (size_t i = first_new; i < volumes.size(); ++i) {
+        volumes[i]->zoom_to_volumes = false;
+        volumes[i]->force_native_color = true;
+        volumes[i]->set_render_color();
+    }
 }
 
 void GCodeViewer::render_toolpaths()
@@ -3414,6 +3652,309 @@ void GCodeViewer::render_shells(int canvas_width, int canvas_height)
     shader->stop_using();
 
     glsafe(::glDepthMask(GL_TRUE));
+}
+
+// The sliced objects and the prime tower drawn opaque, in their filament colours, cut to the
+// visible layer range by the shader's z range. The toolpaths of the range's bottom and top layers
+// are drawn afterwards and cap the cut.
+// The layers at the range's ends are drawn as toolpaths, so the solid runs from the top of the
+// bottom ones to the bottom of the top ones. A face of the model in either plane would otherwise
+// fight the toolpaths for the same pixels and flicker while dragging.
+// The layer heights are the toolpaths', which the printer's z offset is already taken out of, so
+// they are in the shells' frame as they are.
+// A layer with no extrusion has no height of its own; the nearest one below stands in for it.
+std::optional<std::array<float, 2>> GCodeViewer::solid_model_z_range() const
+{
+    auto layer_top = [this](size_t id) {
+        float z = m_viewer.get_layer_z(id);
+        while (z == 0.0f && id > 0)
+            z = m_viewer.get_layer_z(--id);
+        return z;
+    };
+    const libvgcode::Interval whole = m_viewer.get_reduced_detail_whole_layers();
+    const float z_top = (whole[1] > 0) ? layer_top(whole[1] - 1) - 0.001f : -FLT_MAX;
+    const float z_bottom = layer_top(whole[0]) + 0.001f;
+    // the toolpaths cover the whole range
+    if (z_top <= z_bottom)
+        return std::nullopt;
+    return std::array<float, 2>{ z_bottom, z_top };
+}
+
+void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
+{
+    if (m_shells.volumes.empty())
+        return;
+    // gouraud_light has no z range, so it could not cut the model
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud");
+    if (shader == nullptr)
+        return;
+    const std::optional<std::array<float, 2>> z_range = solid_model_z_range();
+    if (!z_range.has_value())
+        return;
+    const auto [z_bottom, z_top] = *z_range;
+    const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
+    const libvgcode::Interval whole = m_viewer.get_reduced_detail_whole_layers();
+
+    // the volumes wear the solid's colours for the frame, over their own filament colours
+    update_solid_model_colors(whole);
+    const SolidModelColors& colors = m_solid_model_colors;
+    // The layers the solid stands for are never the ones a slider thumb lights, so the solid
+    // wears what the toolpath shader gives the rest of the print: dimmed to the preference's
+    // brightness while the viewer dims the layers around the inspected ones, dark grey while the
+    // moves slider is short of the top layer's end; see libvgcode::ViewerImpl::set_layer_colors().
+    const bool top_layer_only = m_viewer.is_top_layer_only_view_range();
+    const bool moves_short = m_viewer.get_view_full_range()[1] != m_viewer.get_view_visible_range()[1];
+    const bool inspecting = layers[0] > 0 || layers[1] + 1 < m_viewer.get_layers_count() || moves_short;
+    const bool dimmed = top_layer_only && inspecting && m_viewer.is_dim_previous_layers();
+    const bool greyed = !dimmed && top_layer_only && moves_short;
+    auto shade = [dimmed, greyed, brightness = m_viewer.get_dim_previous_layers_brightness()](const ColorRGBA& color) {
+        if (greyed)
+            return ColorRGBA(64.0f / 255.0f, 64.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+        if (dimmed)
+            return ColorRGBA(brightness * color.r(), brightness * color.g(), brightness * color.b(), 1.0f);
+        return ColorRGBA(color.r(), color.g(), color.b(), 1.0f);
+    };
+    std::vector<ColorRGBA> own_colors;
+    own_colors.reserve(m_shells.volumes.volumes.size());
+    // the tower draws itself in its own colours and leaves the volume's at the default; one list per volume
+    std::vector<std::vector<ColorRGBA>> own_tower_colors(m_shells.volumes.volumes.size());
+    for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
+        GLVolume* volume = m_shells.volumes.volumes[k];
+        own_colors.push_back(volume->color);
+        const std::optional<ColorRGBA>& body = colors.bodies[k].body;
+        if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr) {
+            own_tower_colors[k] = tower->colors();
+            for (ColorRGBA& color : tower->colors())
+                color = shade(body.value_or(color));
+        }
+        volume->color = shade(body.value_or(volume->color));
+        volume->set_render_color();
+    }
+    m_shells.volumes.set_z_range(z_bottom, z_top);
+    // the section view cuts the solid as it cuts the toolpaths; nothing else sets a plane on the shells
+    const bool sectioned = m_clipping_plane[0] != 0.0f || m_clipping_plane[1] != 0.0f || m_clipping_plane[2] != 0.0f;
+    m_shells.volumes.set_clipping_plane({ m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2], m_clipping_plane[3] });
+
+    shader->start_using();
+    // The realistic view's shadow map, bound by the canvas for the toolpaths, shades the solid
+    // too, under the same light; both are off when the map is not there. The 3D view leaves its
+    // own settings on the shared program, so each is set here.
+    shader->set_uniform("shadow_map", m_shadow_map.texture_unit);
+    shader->set_uniform("shadow_light_vp", m_shadow_map.light_view_projection);
+    shader->set_uniform("shadow_map_texel", m_shadow_map.texel_size);
+    shader->set_uniform("shadow_intensity", m_shadow_map.intensity);
+    shader->set_uniform("use_static_light", true);
+    shader->set_uniform("static_light_dir", m_light_top_dir);
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    shader->set_uniform("z_far", camera.get_far_z());
+    shader->set_uniform("z_near", camera.get_near_z());
+    m_shells.volumes.render(GLVolumeCollection::ERenderType::Opaque, false, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height});
+    shader->stop_using();
+
+    // The cut faces, one cap of one body at a time. A pixel looks into a body through a cut where,
+    // with the depth test off and the body cut at that cap alone, its back faces outnumber its
+    // front faces: zero where the ray misses the body or crosses it whole, one where it leaves
+    // through the opening, which is where the cap plane lies inside the body. Counted with two
+    // cuts at once the body is an open tube, and a ray through both openings would count as
+    // closed, one in through a wall and out through the other opening as open. There a quad in
+    // the cut plane, in the colour of the infill it is cut under darkened, or the body's own,
+    // stands in for the material, so that a sparse layer on the cut shows a solid inside between
+    // its lines rather than whatever lies further down. The section view's plane is one more
+    // cut: its cap is counted on the body cut by it alone and drawn between the heights of the
+    // other two, and theirs are drawn on its kept side.
+    GLShaderProgram* cap_shader = wxGetApp().get_shader("flat_clip");
+    if (cap_shader != nullptr) {
+        struct Cap
+        {
+            GLModel quad;
+            // the body as the count sees it: cut at this cap alone
+            std::array<float, 2> count_z_range{ -FLT_MAX, FLT_MAX };
+            std::array<float, 4> count_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
+            // the quad, cut by the other caps
+            std::array<float, 2> quad_z_range{ -FLT_MAX, FLT_MAX };
+            std::array<float, 4> quad_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
+            // which of the sampled cap colours it takes, none for the body's own
+            std::optional<size_t> color_index;
+        };
+        auto init_quad = [](Cap& cap, const Vec3f& center, const Vec3f& u, const Vec3f& v) {
+            GLModel::Geometry data;
+            data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+            data.reserve_vertices(4);
+            data.reserve_indices(6);
+            data.add_vertex(Vec3f(center - u - v));
+            data.add_vertex(Vec3f(center + u - v));
+            data.add_vertex(Vec3f(center + u + v));
+            data.add_vertex(Vec3f(center - u + v));
+            data.add_triangle(0, 1, 2);
+            data.add_triangle(0, 2, 3);
+            cap.quad.init_from(std::move(data));
+        };
+        const Vec3f box_min = m_paths_bounding_box.min.cast<float>();
+        const Vec3f box_max = m_paths_bounding_box.max.cast<float>();
+        const Vec3f box_center = 0.5f * (box_min + box_max);
+        const float margin = 1.0f;
+        const Vec3f half_x(0.5f * (box_max.x() - box_min.x()) + margin, 0.0f, 0.0f);
+        const Vec3f half_y(0.0f, 0.5f * (box_max.y() - box_min.y()) + margin, 0.0f);
+        // the bottom cap, then the top one, as the colours are indexed, then the section view's
+        std::array<Cap, 3> caps;
+        if (layers[0] > 0) {
+            Cap& cap = caps[0];
+            init_quad(cap, Vec3f(box_center.x(), box_center.y(), z_bottom), half_x, half_y);
+            cap.count_z_range = { z_bottom, FLT_MAX };
+            cap.quad_plane = m_clipping_plane;
+            cap.color_index = 0;
+        }
+        if (z_top > -FLT_MAX) {
+            Cap& cap = caps[1];
+            init_quad(cap, Vec3f(box_center.x(), box_center.y(), z_top), half_x, half_y);
+            cap.count_z_range = { -FLT_MAX, z_top };
+            cap.quad_plane = m_clipping_plane;
+            cap.color_index = 1;
+        }
+        if (sectioned) {
+            Cap& cap = caps[2];
+            const Vec3f normal(m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2]);
+            const Vec3f on_plane = box_center - (normal.dot(box_center) + m_clipping_plane[3]) * normal;
+            // the in-plane axes, turned from the unit axis the normal leans on least
+            const Vec3f leaning = normal.cwiseAbs();
+            const Vec3f axis = (leaning.x() <= leaning.y() && leaning.x() <= leaning.z()) ? Vec3f::UnitX() :
+                               (leaning.y() <= leaning.z()) ? Vec3f::UnitY() : Vec3f::UnitZ();
+            const Vec3f u = normal.cross(axis).normalized();
+            const Vec3f v = normal.cross(u);
+            const float reach = 0.5f * (box_max - box_min).norm() + margin;
+            init_quad(cap, on_plane, reach * u, reach * v);
+            cap.count_plane = m_clipping_plane;
+            cap.quad_z_range = { z_bottom, z_top };
+        }
+
+        glsafe(::glEnable(GL_STENCIL_TEST));
+        for (size_t n = 0; n < m_shells.volumes.volumes.size(); ++n) {
+            GLVolume* volume = m_shells.volumes.volumes[n];
+            const auto* tower = dynamic_cast<const GLWipeTowerVolume*>(volume);
+            const Transform3d world_matrix = volume->world_matrix();
+            for (Cap& cap : caps) {
+                if (!cap.quad.is_initialized())
+                    continue;
+                glsafe(::glStencilMask(0xFF));
+                glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
+                glsafe(::glStencilFunc(GL_ALWAYS, 0, 0xFF));
+                glsafe(::glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_DECR_WRAP));
+                glsafe(::glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_INCR_WRAP));
+                glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
+                glsafe(::glDepthMask(GL_FALSE));
+                glsafe(::glDisable(GL_DEPTH_TEST));
+                // The body is drawn directly, on the uniforms the pass above left on the program: the
+                // collection's render would build the full preset config and sort every volume, per body.
+                shader->start_using();
+                shader->set_uniform("z_range", cap.count_z_range);
+                shader->set_uniform("clipping_plane", cap.count_plane);
+                shader->set_uniform("volume_world_matrix", world_matrix);
+                shader->set_uniform("view_model_matrix", camera.get_view_matrix() * world_matrix);
+                glsafe(::glDisable(GL_CULL_FACE));
+                volume->render();
+                glsafe(::glEnable(GL_CULL_FACE));
+                shader->stop_using();
+                glsafe(::glEnable(GL_DEPTH_TEST));
+                glsafe(::glDepthMask(GL_TRUE));
+                glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+                glsafe(::glStencilFunc(GL_NOTEQUAL, 0, 0xFF));
+                glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
+                glsafe(::glStencilMask(0x00));
+
+                ColorRGBA inside = volume->color;
+                if (tower != nullptr && !tower->colors().empty())
+                    inside = tower->colors().front();
+                if (cap.color_index.has_value()) {
+                    if (const std::optional<ColorRGBA>& sampled = colors.bodies[n].caps[*cap.color_index]; sampled.has_value())
+                        inside = shade(*sampled);
+                }
+                inside = ColorRGBA(0.55f * inside.r(), 0.55f * inside.g(), 0.55f * inside.b(), 1.0f);
+                cap_shader->start_using();
+                cap_shader->set_uniform("view_model_matrix", camera.get_view_matrix());
+                cap_shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+                cap_shader->set_uniform("volume_world_matrix", Transform3d::Identity());
+                cap_shader->set_uniform("z_range", cap.quad_z_range);
+                cap_shader->set_uniform("clipping_plane", cap.quad_plane);
+                glsafe(::glDisable(GL_CULL_FACE));
+                cap.quad.set_color(inside);
+                cap.quad.render();
+                glsafe(::glEnable(GL_CULL_FACE));
+                cap_shader->stop_using();
+            }
+        }
+        glsafe(::glStencilMask(0xFF));
+        glsafe(::glDisable(GL_STENCIL_TEST));
+    }
+
+    m_shells.volumes.set_z_range(-FLT_MAX, FLT_MAX);
+    for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
+        GLVolume* volume = m_shells.volumes.volumes[k];
+        if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr)
+            tower->colors() = own_tower_colors[k];
+        volume->color = own_colors[k];
+        volume->set_render_color();
+    }
+}
+
+// The solid stands in for the toolpaths, so it takes their colours in the view that colours them
+// by something other than the filament: each body the outer wall's, each cap the infill's of the
+// layer it is cut under, sparse if the layer has any, else solid, and the tower its own role's,
+// each from the toolpaths within the body's own footprint, so that objects printed at different
+// grades keep their own. The views that colour by filament leave every body its own colour. The
+// bodies are sampled over the layers the solid stands for and each cap in its own layer, each
+// colour that of the vertex the viewer picks to represent the role there, so a view that grades
+// the toolpaths, by speed or fan, shows the solid in the grade most of that role was printed at.
+// The bodies are sampled once, as the drag begins, and held while a slider drag moves the span:
+// sampled again at every step, the grade would flip with the layers the sample happens to fall
+// on. Each cap follows its own layer.
+void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_layers)
+{
+    SolidModelColors& colors = m_solid_model_colors;
+    const libvgcode::EViewType view_type = m_viewer.get_view_type();
+    const std::vector<GLVolume*>& volumes = m_shells.volumes.volumes;
+    const bool held = colors.valid && colors.view_type == view_type && colors.bodies.size() == volumes.size();
+    if (held && colors.whole_layers == whole_layers)
+        return;
+    if (!held) {
+        colors = SolidModelColors();
+        colors.valid = true;
+        colors.view_type = view_type;
+        colors.bodies.resize(volumes.size());
+    }
+    colors.whole_layers = whole_layers;
+    if (view_type == libvgcode::EViewType::Summary || view_type == libvgcode::EViewType::ColorPrint || view_type == libvgcode::EViewType::Tool)
+        return;
+
+    using Role = libvgcode::EGCodeExtrusionRole;
+    auto sample = [this](const libvgcode::Interval& layers, std::initializer_list<Role> roles, const libvgcode::XYBox& box) -> std::optional<ColorRGBA> {
+        for (Role role : roles) {
+            const size_t id = m_viewer.find_extrusion_vertex(layers, role, box);
+            if (id < m_viewer.get_vertices_count())
+                return libvgcode::convert(m_viewer.get_vertex_color(m_viewer.get_vertex_at(id)));
+        }
+        return std::nullopt;
+    };
+    const std::initializer_list<Role> walls = { Role::ExternalPerimeter, Role::Perimeter, Role::OverhangPerimeter };
+    const std::initializer_list<Role> tower_role = { Role::WipeTower };
+    const std::initializer_list<Role> infill = { Role::InternalInfill, Role::SolidInfill, Role::TopSolidInfill, Role::BottomSurface,
+                                                 Role::BridgeInfill, Role::InternalBridgeInfill, Role::Ironing };
+    for (size_t n = 0; n < volumes.size(); ++n) {
+        const GLVolume* volume = volumes[n];
+        const bool tower = dynamic_cast<const GLWipeTowerVolume*>(volume) != nullptr;
+        // the walls' centrelines lie within the outline, pushed out by a compensation at most
+        const BoundingBoxf3& footprint = volume->transformed_bounding_box();
+        const float margin = 1.0f;
+        const libvgcode::XYBox box{ { static_cast<float>(footprint.min.x()) - margin, static_cast<float>(footprint.min.y()) - margin },
+                                    { static_cast<float>(footprint.max.x()) + margin, static_cast<float>(footprint.max.y()) + margin } };
+        SolidModelColors::Body& body = colors.bodies[n];
+        if (!held)
+            body.body = sample(whole_layers, tower ? tower_role : walls, box);
+        for (size_t k = 0; k < 2; ++k) {
+            body.caps[k] = tower ? std::nullopt : sample({ whole_layers[k], whole_layers[k] }, infill, box);
+            if (!body.caps[k].has_value())
+                body.caps[k] = body.body;
+        }
+    }
 }
 
 //BBS

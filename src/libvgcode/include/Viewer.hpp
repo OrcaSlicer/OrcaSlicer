@@ -143,6 +143,21 @@ public:
     float get_dim_previous_layers_brightness() const;
     void set_dim_previous_layers_brightness(float value);
     //
+    // The reduced set drawn while the user drags: what the mode keeps, and always the layers at the
+    // bottom and top of the visible range. While a mode is set it is built alongside the full set,
+    // so set_reduced_detail() rebuilds nothing. Ignored on the OpenGL ES path.
+    //
+    void set_reduced_detail_mode(EReducedDetailMode mode);
+    // Whether the shell mode hides the infill roles; off for a profile that leaves them on the
+    // surface, with no top or bottom shell or no walls.
+    void set_reduced_detail_hide_infill(bool value);
+    void set_reduced_detail(bool value);
+    bool is_reduced_detail() const;
+    // The layers the reduced set draws whole at the ends of the visible layer range: every layer of
+    // the range up to [0], and from [1] on. Each end reaches the nearest layer with infill, so that
+    // a solid cut between the two shows its cap under infill, as the print shows its inside.
+    Interval get_reduced_detail_whole_layers() const;
+    //
     // Translucent filaments (ORCA)
     // Whether the filament colors keep their opacity, or are all drawn opaque.
     //
@@ -389,6 +404,14 @@ public:
     // Return the color used to render the given vertex with the current settings.
     //
     Color get_vertex_color(const PathVertex& vertex) const;
+    //
+    // Return the index of the extrusion vertex of the given role that stands for the given
+    // layers in the current view, or get_vertices_count() if they have none. Where the view
+    // grades by a value, it is the length-weighted median of that value over the role's
+    // extrusions in up to eight layers spread over the interval; elsewhere the first one.
+    // Only the extrusions that end inside the box, in the XY plane, are considered.
+    //
+    size_t find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role, const XYBox& box = XYBox()) const;
     //
     // Return the count of detected extrusion roles
     //

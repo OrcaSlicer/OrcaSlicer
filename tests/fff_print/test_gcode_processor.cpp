@@ -12,6 +12,7 @@
 #include <fstream>
 #include <initializer_list>
 #include <string>
+#include <vector>
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -165,4 +166,49 @@ TEST_CASE("Non-belt start G-code moves keep the first-layer Z in the processor",
     // first-layer height.
     CHECK_THAT(result.moves[first_extrude].position.z(),     WithinAbs(50., 1e-3));
     CHECK_THAT(result.moves[first_extrude - 1].position.z(), WithinAbs(0.3, 1e-3));
+}
+
+TEST_CASE("Object labels of every style give the moves their object id", "[GCodeProcessor]")
+{
+    // the label styles do not depend on the printer kind, and the static flag is whatever the
+    // test before left it
+    struct BBLPrinterGuard {
+        bool prev = GCodeProcessor::s_IsBBLPrinter;
+        BBLPrinterGuard()  { GCodeProcessor::s_IsBBLPrinter = false; }
+        ~BBLPrinterGuard() { GCodeProcessor::s_IsBBLPrinter = prev; }
+    } bbl_guard;
+
+    const std::string gcode =
+        "G90\nG21\nM83\n"
+        ";TYPE:Custom\n"
+        "G1 Z0.2 F12000\n"
+        ";TYPE:Outer wall\n"
+        "G1 X1 Y0 E0.05 F1800\n"
+        "; printing object part: v2.stl id:3 copy 0\n"
+        "G1 X2 Y0 E0.05\n"
+        "; stop printing object part: v2.stl id:3 copy 0\n"
+        "G1 X3 Y0 E0.05\n"
+        "; printing object other.stl id:4 copy 1\n"
+        "; start printing object, unique label id: 12\n"
+        "G1 X4 Y0 E0.05\n"
+        "; stop printing object, unique label id: 12\n"
+        "G1 X5 Y0 E0.05\n";
+
+    GCodeProcessor processor;
+    FullPrintConfig config;
+    config.initial_layer_print_height.value = 0.2;
+    processor.apply_config(config);
+    processor.process_buffer(gcode);
+    const GCodeProcessorResult &result = processor.get_result();
+
+    std::vector<int> ids;
+    for (const GCodeProcessorResult::MoveVertex &move : result.moves)
+        if (move.type == EMoveType::Extrude)
+            ids.push_back(move.object_label_id);
+    REQUIRE(ids.size() == 5);
+    CHECK(ids[0] == -1);
+    CHECK(ids[1] == 3);
+    CHECK(ids[2] == -1);
+    CHECK(ids[3] == 12);
+    CHECK(ids[4] == -1);
 }
