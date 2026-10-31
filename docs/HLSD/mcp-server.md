@@ -2211,7 +2211,8 @@ steps call tools as its children (`ToolContext::call_child()`), so steps are not
 script's `wait {for: "idle"}` doesn't wait for the script. Every string is substituted recursively
 with `${script_dir}`, `${out_dir}`, `${env:NAME}`, `${vars.NAME}` and `${jobs.NAME}`; a string that
 is just one placeholder becomes the referenced JSON value. A step that returns a job is awaited,
-up to `timeout_s` (default 120), before its `expect` is checked. `"await": false` returns the job
+up to `timeout_s` (default 120), before its `expect` is checked; a wait that times out with a dialog
+open names the topmost one, since a step can't answer a dialog it opened. `"await": false` returns the job
 at once and stores it under `save_as`, so later steps can answer a dialog it opened and then
 `wait` for it. `expect` maps JSON pointers into the result to matchers (`eq ne gt ge lt le contains
 regex exists empty`). A failed step or expectation stops the run unless the step is `optional`.

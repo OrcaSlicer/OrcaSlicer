@@ -394,8 +394,18 @@ json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host
                 else if (stopping())
                     result = ToolResult::error("cancelled", {{"job", job}});
                 else {
-                    result = ToolResult::error("timed out after " + std::to_string(step.timeout_s) + " s waiting for job " + job,
-                                               {{"job", job}});
+                    std::string message = "timed out after " + std::to_string(step.timeout_s) + " s waiting for job " + job;
+                    json details{{"job", job}};
+                    // A job a dialog holds up waits for someone to answer it, which the step itself can't
+                    // while it waits; the dialog is named, as nothing else in the result says so.
+                    if (const json dialogs = host.open_dialogs ? host.open_dialogs() : json::array();
+                        dialogs.is_array() && !dialogs.empty()) {
+                        message += " with the dialog \"" + dialogs.back().value("title", std::string()) +
+                                   "\" open: a step can't answer a dialog it opens, so register a dialog_auto_answer rule for it "
+                                   "before the step, or give the step \"await\": false and answer the dialog in the steps after it";
+                        details["dialogs"] = dialogs;
+                    }
+                    result = ToolResult::error(message, std::move(details));
                     reason = {{"kind", "timeout"}, {"seconds", step.timeout_s}};
                 }
             } else {

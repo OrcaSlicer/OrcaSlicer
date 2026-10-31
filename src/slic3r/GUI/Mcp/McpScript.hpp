@@ -84,6 +84,8 @@ struct ScriptHost
     std::function<bool()>                                                                       cancelled;
     std::function<void(std::size_t index)>                                                      step_started;
     std::function<void(const nlohmann::json& entry)>                                            step_finished;
+    // The open modal dialogs, topmost last, as get_state lists them. Optional.
+    std::function<nlohmann::json()>                                                             open_dialogs;
 };
 
 // Runs the steps in order and returns {passed, failed_step?, steps:[{index, tool, args, ok,

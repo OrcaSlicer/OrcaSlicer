@@ -305,6 +305,26 @@ TEST_CASE("a stop during a job wait is a cancel, not a timeout", "[Mcp]")
     CHECK(out["steps"][0]["reason"] == json{{"kind", "timeout"}, {"seconds", 120}});
 }
 
+TEST_CASE("a job wait that times out names the dialog left open", "[Mcp]")
+{
+    FakeHost f;
+    f.tools["opens"] = [](const json&) { return ToolResult::ok({{"status", "blocked_by_dialog"}, {"job", "j1"}}); };
+    const Script s   = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "opens"}]})");
+
+    const json dialogs = json::array({{{"title", "Uniform scale"}, {"native", false}}, {{"title", "Preferences"}, {"native", false}}});
+    ScriptHost host    = f.host();
+    host.open_dialogs  = [&dialogs] { return dialogs; };
+    ScriptContext ctx;
+    const json out          = run_script(s, ctx, host);
+    const json& step        = out["steps"][0];
+    const std::string error = step["error"].get<std::string>();
+    CHECK(step["reason"]["kind"] == "timeout");
+    // The topmost dialog, the last one listed, is the one named.
+    CHECK(error.find("\"Preferences\"") != std::string::npos);
+    CHECK(error.find("dialog_auto_answer") != std::string::npos);
+    CHECK(step["details"]["dialogs"] == dialogs);
+}
+
 TEST_CASE("a failed expectation carries its parts", "[Mcp]")
 {
     FakeHost f;

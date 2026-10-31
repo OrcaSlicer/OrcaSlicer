@@ -89,6 +89,7 @@ json run_script_job(McpService& service, ToolContext& ctx, const Script& script,
     host.cancelled     = stopped;
     host.step_started  = options.step_started;
     host.step_finished = options.step_finished;
+    host.open_dialogs  = [&service] { return service.ui().open_dialogs(); };
 
     json result = run_script(script, sctx, host, options.only_step);
     // A recording the script started ends with it, its file closed before the result is written; one still
