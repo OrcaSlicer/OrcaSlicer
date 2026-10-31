@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="max-age=7200" />
-<title>引导_P1</title>
+<title data-i18n="stealth_mode">Stealth Mode</title>
 <link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />		
@@ -12,12 +12,13 @@
 <script type="text/javascript" src="../js/json2.js"></script>	
 <script type="text/javascript" src="../../include/i18n.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
+<script type="text/javascript" src="../../include/a11y.js"></script>
 <script type="text/javascript" src="../js/common.js"></script>
 <script type="text/javascript" src="4orca.js"></script>	
 </head>
-<body onLoad="OnInit()">
+<body class="PlainButtons" onLoad="OnInit()">
 <div id="Title">
-	<div data-i18n="stealth_mode">Stealth Mode</div>
+	<h1 data-i18n="stealth_mode">Stealth Mode</h1>
 </div>
 <div id="Content">
 
@@ -34,8 +35,8 @@
 	
 </div>
 <div id="AcceptArea">
-	<div class="ButtonStyleRegular ButtonTypeChoice" id="PreBtn" onclick="window.history.back()" data-i18n="back">Back</div>
-	<div class="ButtonStyleConfirm ButtonTypeChoice" id="GotoNetPluginBtn" onclick="GotoNetPluginPage()" data-i18n="next">Next</div>	
+	<button type="button" class="ButtonStyleRegular ButtonTypeChoice" id="PreBtn" onclick="window.history.back()" data-i18n="back">Back</button>
+	<button type="button" class="ButtonStyleConfirm ButtonTypeChoice" id="GotoNetPluginBtn" onclick="GotoNetPluginPage()" data-i18n="next">Next</button>
 </div>	
 </body>
 </html>

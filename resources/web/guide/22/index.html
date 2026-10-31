@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="max-age=0" />
-<title>引导_P21</title>
+<title data-i18n="filament_selection">Filament Selection</title>
 <link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
 <link rel="stylesheet" type="text/css" href="../22/common.css" /> <!-- ORCA use common sources for setup guide and standalone dialog -->
@@ -14,84 +14,94 @@
 <script type="text/javascript" src="../js/json2.js"></script>	
 <script type="text/javascript" src="../../include/i18n.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
+<script type="text/javascript" src="../../include/a11y.js"></script>
 <script type="text/javascript" src="../js/common.js"></script>
 <script type="text/javascript" src="../22/common.js"></script> <!-- ORCA use common sources for setup guide and standalone dialog -->
 <script type="text/javascript" src="./22.js"></script>	
 </head>
-<body onLoad="OnInit()">
+<body class="PlainButtons" onLoad="OnInit()">
 <div id="Title">
-	<div data-i18n="filament_selection">Filament Selection</div>
+	<h1 data-i18n="filament_selection">Filament Selection</h1>
 </div>
 <div id="Content" class="ZScrol">
 <!-- ORCA column browser -->
 <div class="cbr-browser-container">
+	<span class="A11yOnly" id="ColumnSearchText" role="status"></span>
 	<div class="cbr-column">
+		<!-- ORCA hidden column headings: the visible titles are placeholders -->
+		<h2 class="A11yOnly" data-i18n="printers">Printers</h2>
 		<div class="cbr-column-title-container">
 			<div class="search-icon"></div>
-			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="1"/>
-			<span class="cbr-search-placeholder" data-i18n="printer">Printer</span>
-			<div class="clear-icon"></div>
+			<input type="text" class="cbr-search-bar" placeholder=" " aria-labelledby="MachineSearchLabel"/>
+			<span class="cbr-search-placeholder" id="MachineSearchLabel" aria-hidden="true" data-i18n="printer">Printer</span>
+			<div class="clear-icon" aria-hidden="true"></div>
 		</div>
 		<div class="cbr-content thin-scroll" id="MachineList">
 			<div class="CValues">
-				<label><input type="checkbox" mode="all" onClick="ChooseAllMachine()"  /><span data-i18n="all">All</span></label>
+				<label><input type="checkbox" mode="all" onClick="ChooseAllMachine()" checked /><span data-i18n="all">All</span></label>
 			</div>
 			<div class="cbr-no-items" data-i18n="no_items">No items</div>
 		</div>
 	</div>
 
 	<div class="cbr-column">
+		<h2 class="A11yOnly" data-i18n="filament_types">Filament types</h2>
 		<div class="cbr-column-title-container">
 			<div class="search-icon"></div>
-			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="2"/>
-			<span class="cbr-search-placeholder" data-i18n="filament_type">Filament type</span>
-			<div class="clear-icon"></div>
+			<input type="text" class="cbr-search-bar" placeholder=" " aria-labelledby="FilatypeSearchLabel"/>
+			<span class="cbr-search-placeholder" id="FilatypeSearchLabel" aria-hidden="true" data-i18n="filament_type">Filament type</span>
+			<div class="clear-icon" aria-hidden="true"></div>
 		</div>
 		<div class="cbr-content thin-scroll" id="FilatypeList">
 			<div class="CValues">
-				<label><input type="checkbox" onClick="ChooseAllFilament()" /><span data-i18n="all">All</span></label>	
+				<label><input type="checkbox" onClick="ChooseAllFilament()" checked /><span data-i18n="all">All</span></label>
 			</div>
 			<div class="cbr-no-items" data-i18n="no_items">No items</div>
 		</div>
 	</div>
 
 	<div class="cbr-column">
+		<h2 class="A11yOnly" data-i18n="vendors">Vendors</h2>
 		<div class="cbr-column-title-container">
 			<div class="search-icon"></div>
-			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="3"/>
-			<span class="cbr-search-placeholder" data-i18n="vendor">Vendor</span>
-			<div class="clear-icon"></div>
+			<input type="text" class="cbr-search-bar" placeholder=" " aria-labelledby="VendorSearchLabel"/>
+			<span class="cbr-search-placeholder" id="VendorSearchLabel" aria-hidden="true" data-i18n="vendor">Vendor</span>
+			<div class="clear-icon" aria-hidden="true"></div>
 		</div>
 		<div class="cbr-content thin-scroll" id="VendorList">
 			<div class="CValues">
-				<label><input type="checkbox" onClick="ChooseAllVendor()" /><span data-i18n="all">All</span></label>
+				<label><input type="checkbox" onClick="ChooseAllVendor()" checked /><span data-i18n="all">All</span></label>
 			</div>
 			<div class="cbr-no-items" data-i18n="no_items">No items</div>
 		</div>
 	</div>
 
 	<div class="cbr-column">
+		<h2 class="A11yOnly" data-i18n="filaments">Filaments</h2>
 		<div class="cbr-column-title-container">
 			<div class="cbr-filter-box">
 				<div class="filter-icon"></div>
-				<input type="text" class="cbr-filter-bar" placeholder=" " tabindex="4"/>
-				<span class="cbr-filter-placeholder" data-i18n="filter_items">Filter items</span>
-				<div class="clear-icon"></div>
+				<input type="text" class="cbr-filter-bar" placeholder=" " aria-labelledby="FilterLabel"/>
+				<span class="cbr-filter-placeholder" id="FilterLabel" aria-hidden="true" data-i18n="filter_items">Filter items</span>
+				<div class="clear-icon" aria-hidden="true"></div>
 			</div>
 			<div class="ComboBox NoLabel">
 				<div class="arrow-icon"></div>
-				<select id="filter-tags">
-					<option value="0" disabled selected hidden></option>
+				<select id="filter-tags" aria-label="Filter by state" data-i18n-aria-label="filter_by_state">
+					<option value="0" selected data-i18n="state_all">All</option>
 					<option value="1" data-i18n="checked">Checked</option>
 					<option value="2" data-i18n="unchecked">Unchecked</option>
 				</select>
 			</div>
-			<div class="list-item-count"></div>
-			<div class="cbr-filter-btns">
-				<span class="cbr-filter-mode-filter" data-i18n="select_filtered">Select filtered</span>
-				<span class="cbr-filter-mode-visible" data-i18n="select_visible">Select visible</span>
-				<div class="ButtonStyleConfirm ButtonTypeWindow" onClick="SelectAllFilament(1)" data-i18n="all">All</div>
-				<div class="ButtonStyleRegular ButtonTypeWindow" onClick="SelectAllFilament(0)" data-i18n="clear_all">Clear all</div>
+			<!-- ORCA "13 / 289 [16]" reads as bare numbers, so a hidden twin says what they count, and announces each change (SortUI() makes them statuses once filled) -->
+			<div class="list-item-count" aria-hidden="true"></div>
+			<span class="A11yOnly" id="FilamentCountText"></span>
+			<span class="A11yOnly" id="FilamentShownText"></span>
+			<div class="cbr-filter-btns" role="group" aria-labelledby="FilterModeVisible">
+				<span class="cbr-filter-mode-filter" id="FilterModeFilter" data-i18n="select_filtered">Select filtered</span>
+				<span class="cbr-filter-mode-visible" id="FilterModeVisible" data-i18n="select_visible">Select visible</span>
+				<button type="button" class="ButtonStyleConfirm ButtonTypeWindow" onClick="SelectAllFilament(1)" data-i18n="all">All</button>
+				<button type="button" class="ButtonStyleRegular ButtonTypeWindow" onClick="SelectAllFilament(0)" data-i18n="clear_all">Clear all</button>
 			</div>	
 		</div>
 		<div class="cbr-content thin-scroll" id="ItemBlockArea">
@@ -103,23 +113,21 @@
 
 </div>
 <div id="AcceptArea">
-	<div class="ButtonStyleRegular ButtonTypeChoice" id="PreBtn" onclick="ReturnPreviewPage()" data-i18n="back">Back</div>
-	<div class="ButtonStyleRegular ButtonTypeChoice" id="AcceptBtn" onclick="FinishGuide()" data-i18n="finish">Finish</div>
-	<div class="ButtonStyleConfirm ButtonTypeChoice" id="GotoNetPluginBtn" onclick="GotoNetPluginPage()" data-i18n="next">Next</div>	
+	<button type="button" class="ButtonStyleRegular ButtonTypeChoice" id="PreBtn" onclick="ReturnPreviewPage()" data-i18n="back">Back</button>
+	<button type="button" class="ButtonStyleRegular ButtonTypeChoice" id="AcceptBtn" onclick="FinishGuide()" data-i18n="finish">Finish</button>
+	<button type="button" class="ButtonStyleConfirm ButtonTypeChoice" id="GotoNetPluginBtn" onclick="GotoNetPluginPage()" data-i18n="next">Next</button>
 </div>
-<div id="NoticeMask">
-</div>
-	<div id="NoticeBody">
+	<dialog id="NoticeBody" role="alertdialog" aria-labelledby="NoticeBar" aria-describedby="NoticeText NoticeText2">
 	<div id="NoticeBar" data-i18n="error">Error</div>
 	<div id="NoticeContent">
 	<div id="NoticeText" data-i18n="filament_required">At least one filament must be selected.</div>
-	<div id="NoticeText" data-i18n="use_default_filament">Do you want to use the default filament?</div>
+	<div id="NoticeText2" data-i18n="use_default_filament">Do you want to use the default filament?</div>
 	<div id="NoticeBtns">
-		<div class="ButtonStyleConfirm ButtonTypeChoice" onClick="ChooseDefaultFilament()" data-i18n="yes">Yes</div>
-		<div class="ButtonStyleRegular ButtonTypeChoice" onClick="ShowNotice(0)" data-i18n="no">No</div>
+		<button type="button" class="ButtonStyleConfirm ButtonTypeChoice" onClick="ChooseDefaultFilament()" data-i18n="yes">Yes</button>
+		<button type="button" class="ButtonStyleRegular ButtonTypeChoice" onClick="ShowNotice(0)" data-i18n="no">No</button>
 	</div>
 	</div>
-	</div>
+	</dialog>
 
 </body>
 <script>

@@ -7,7 +7,7 @@ function OnInit()
 	//HandleStudio(strInput);
 	
 	TranslatePage();
-	
+
 	RequestProfile();
 }
 
@@ -45,9 +45,10 @@ function HandleRegionlList(  pItem )
 function ChooseRegion( strRegion )
 {
 	m_Region=strRegion;
-	
+
 	$('.RegionItem').removeClass('RegionSelected');
 	$(".RegionItem[region='"+strRegion+"']").addClass('RegionSelected');
+	SetCheckedState($(".RegionItem[region='"+strRegion+"'] input"), true);
 }
 
 function GotoPolicyPage()
