@@ -905,7 +905,24 @@ std::string CoolingBuffer::apply_layer_cooldown(
     // the layer-level speed issued just above.
     bool need_set_fan = m_belt_band_active;
 
-    for (const CoolingLine *line : lines) {
+    // ORCA: Whether an overhang fan region starts within the next `window` seconds of printing, counting from line
+    // `from`. The search stops at anything that makes the fan state restart: the end of a fan region, a tool change
+    // or a forced resume, so the fan never switches on only to be switched off again before the overhang.
+    const auto overhang_fan_starts_within = [&lines](size_t from, float window) {
+        float elapsed = 0.f;
+        for (size_t i = from; i < lines.size() && elapsed < window; ++ i) {
+            const CoolingLine &next = *lines[i];
+            if (next.type & CoolingLine::TYPE_OVERHANG_FAN_START)
+                return true;
+            if (next.type & (CoolingLine::TYPE_OVERHANG_FAN_END | CoolingLine::TYPE_SET_TOOL | CoolingLine::TYPE_FORCE_RESUME_FAN))
+                return false;
+            elapsed += next.time;
+        }
+        return false;
+    };
+
+    for (size_t line_idx = 0; line_idx < lines.size(); ++ line_idx) {
+        const CoolingLine *line = lines[line_idx];
         const char *line_start  = gcode.c_str() + line->line_start;
         const char *line_end    = gcode.c_str() + line->line_end;
         if (line_start > pos)
@@ -1061,6 +1078,20 @@ std::string CoolingBuffer::apply_layer_cooldown(
             }
         } else {
             new_gcode.append(line_start, line_end - line_start);
+        }
+
+        // ORCA: Start the overhang fan ahead of the overhang by the "Pre start fan time", as the fan needs time to
+        // reach its speed. Fans of the other roles keep their priority, so they are not overridden early.
+        if (overhang_fan_control && !m_belt_band_active &&
+            !fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START] &&
+            !fan_speed_change_requests[CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START] &&
+            !fan_speed_change_requests[CoolingLine::TYPE_SUPPORT_INTERFACE_FAN_START] &&
+            !fan_speed_change_requests[CoolingLine::TYPE_IRONING_FAN_START]) {
+            const float pre_start_fan_time = m_config.pre_start_fan_time.get_at(m_current_extruder);
+            if (pre_start_fan_time > 0.f && overhang_fan_starts_within(line_idx + 1, pre_start_fan_time)) {
+                fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START] = true;
+                need_set_fan = true;
+            }
         }
 
         if (need_set_fan) {
