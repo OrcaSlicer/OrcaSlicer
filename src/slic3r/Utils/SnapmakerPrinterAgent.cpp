@@ -209,6 +209,8 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
                                                << filament_id;
                 } else {
                     tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+                    if (tray.tray_info_idx.empty())
+                        tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
                 }
             } else {
                 tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
