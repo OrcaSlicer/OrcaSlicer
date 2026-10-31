@@ -368,6 +368,7 @@ class GLCanvas3D
             Point start_position_2D{ Invalid_2D_Point };
             Vec3d start_position_3D{ Invalid_3D_Point };
             int move_volume_idx{ -1 };
+            int alt_remove_volume_idx{ -1 };
             bool move_requires_threshold{ false };
             Point move_start_threshold_position_2D{ Invalid_2D_Point };
             // Orca: Keep the world-space point selected at the start of a mouse pan.
@@ -1651,6 +1652,9 @@ private:
 
     bool is_flushing_matrix_error();
     bool _is_any_volume_outside() const;
+
+    // refreshes the gizmos and notifies listeners after m_selection has changed
+    void _on_selection_changed();
 
     // updates the selection from the content of m_hover_volume_idxs
     void _update_selection_from_hover();

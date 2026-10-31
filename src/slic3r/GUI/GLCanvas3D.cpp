@@ -5129,15 +5129,18 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
                         if (already_selected && ctrl_down)
                             m_selection.remove(volume_idx);
-                        else if (alt_down && m_gizmos.is_allow_multi_select_parts_or_objects() && m_selection.get_mode() == Selection::Volume &&
+                        // ORCA no Volume mode check: selecting every part switches the selection to Instance mode
+                        else if (alt_down && m_gizmos.is_allow_multi_select_parts_or_objects() &&
                                  m_selection.get_object_idx() == m_volumes.volumes[volume_idx]->object_idx() &&
                                  m_selection.get_instance_idx() == m_volumes.volumes[volume_idx]->instance_idx()) {
-                            // Alt+click on another part of the selected parts' instance adds it, and on a selected
-                            // part removes it, unless it is the only one.
+                            // ORCA Alt+click adds a part of the selected instance, or removes an already selected one
                             if (!already_selected)
                                 m_selection.add_volumes(Selection::Volume, {(unsigned int) volume_idx}, false);
-                            else if (curr_idxs.size() > 1)
-                                m_selection.remove_volumes(Selection::Volume, {(unsigned int) volume_idx});
+                            else {
+                                m_mouse.drag.alt_remove_volume_idx = volume_idx;
+                                m_mouse.drag.move_requires_threshold = true;
+                                m_mouse.drag.move_start_threshold_position_2D = pos;
+                            }
                         }
                         else if (alt_down) {
                             // Select just the clicked part, also when an object is selected.
@@ -5161,16 +5164,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                         }
 
                         // propagate event through callback
-                        if (curr_idxs != m_selection.get_volume_idxs()) {
-                            if (m_selection.is_empty())
-                                m_gizmos.reset_all_states();
-                            else
-                                m_gizmos.refresh_on_off_state();
-
-                            m_gizmos.update_data();
-                            post_event(SimpleEvent(EVT_GLCANVAS_OBJECT_SELECT));
-                            m_dirty = true;
-                        }
+                        if (curr_idxs != m_selection.get_volume_idxs())
+                            _on_selection_changed();
                     }
                 }
 
@@ -5413,6 +5408,14 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             // Let the plater know that the dragging finished, so a delayed refresh
             // of the scene with the background processing data should be performed.
             post_event(SimpleEvent(EVT_GLCANVAS_MOUSE_DRAGGING_FINISHED));
+        }
+        else if (evt.LeftUp() && !m_mouse.ignore_left_up && !m_mouse.dragging && m_mouse.drag.alt_remove_volume_idx != -1) {
+            // ORCA Alt+click removes the part on release, so that Alt+drag still moves the selection
+            const int volume_idx = m_mouse.drag.alt_remove_volume_idx;
+            if (volume_idx < (int) m_volumes.volumes.size() && m_selection.contains_volume(volume_idx)) {
+                m_selection.remove_volumes(Selection::Volume, {(unsigned int) volume_idx});
+                _on_selection_changed();
+            }
         }
         else if (evt.LeftUp() && m_picking_enabled && m_rectangle_selection.is_dragging() && m_layers_editing.state != LayersEditing::Editing) {
             //BBS: don't use alt as de-select
@@ -6329,6 +6332,7 @@ void GLCanvas3D::mouse_up_cleanup()
     m_moving = false;
     m_camera_movement = false;
     m_mouse.drag.move_volume_idx = -1;
+    m_mouse.drag.alt_remove_volume_idx = -1;
     m_mouse.set_start_position_3D_as_invalid();
     m_mouse.set_start_position_2D_as_invalid();
     m_mouse.dragging = false;
@@ -12737,6 +12741,18 @@ bool GLCanvas3D::_is_any_volume_outside() const
     }
 
     return false;
+}
+
+void GLCanvas3D::_on_selection_changed()
+{
+    if (m_selection.is_empty())
+        m_gizmos.reset_all_states();
+    else
+        m_gizmos.refresh_on_off_state();
+
+    m_gizmos.update_data();
+    post_event(SimpleEvent(EVT_GLCANVAS_OBJECT_SELECT));
+    m_dirty = true;
 }
 
 void GLCanvas3D::_update_selection_from_hover()
