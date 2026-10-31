@@ -9042,6 +9042,72 @@ TEST_CASE("A disabled filament override is saved and reloaded column by column",
     CHECK(loaded->config.opt_serialize("filament_flow_ratio") == "1,1.1");
 }
 
+TEST_CASE("A printer preset saved against its parent keeps its plugin manifest under printer_plugins", "[Preset][Bundle][plugins]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+    ConfigBase::set_resolve_capability_fn([](const std::string& name, const std::string& type) {
+        return name.empty() ? std::string() : name + ";;" + type;
+    });
+
+    Preset &parent = add_inmemory_preset(bundle.printers, "Parent Printer @System");
+
+    // The manifest in memory is stale (it matches the parent's), so only the plugin-backed option is in the diff.
+    const fs::path file = data_dir.tmp.path() / PRESET_PRINTER_NAME / "Child Printer.json";
+    Preset         child(Preset::TYPE_PRINTER, "Child Printer");
+    child.file    = file.string();
+    child.version = *Semver::parse("1.0.0");
+    child.config  = parent.config;
+    child.config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = parent.name;
+    child.config.option<ConfigOptionString>("printer_agent", true)->value       = "agent";
+    const bool saved_ok = child.save(&parent.config);
+    ConfigBase::set_resolve_capability_fn(nullptr);
+    REQUIRE(saved_ok);
+
+    // "plugins" would be dropped as a key printer presets do not have.
+    DynamicPrintConfig                 saved;
+    std::map<std::string, std::string> key_values;
+    std::string                        reason;
+    saved.load_from_json(file.string(), ForwardCompatibilitySubstitutionRule::EnableSilent, key_values, reason);
+    REQUIRE(reason.empty());
+    CHECK(saved.option("plugins") == nullptr);
+    REQUIRE(saved.option<ConfigOptionStrings>("printer_plugins") != nullptr);
+    CHECK(saved.option<ConfigOptionStrings>("printer_plugins")->values == std::vector<std::string>{"agent;;printer-connection"});
+}
+
+TEST_CASE("save_current_preset runs the before-save hook on the config it stores", "[Preset][Bundle]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+    // Gives the collection its folder, where the saved preset is written.
+    fs::create_directories(data_dir.tmp.path() / PRESET_PRINTER_NAME);
+    PresetsConfigSubstitutions substitutions;
+    bundle.printers.load_presets(data_dir.tmp.path().string(), PRESET_PRINTER_NAME, substitutions,
+                                 ForwardCompatibilitySubstitutionRule::EnableSilent);
+    add_inmemory_preset(bundle.printers, "Parent Printer");
+    REQUIRE(bundle.printers.select_preset_by_name("Parent Printer", true));
+
+    std::string selected_name;
+    PresetCollection::set_before_save_fn([&selected_name](Preset::Type type, DynamicPrintConfig& config, const DynamicPrintConfig& selected) {
+        if (type == Preset::TYPE_PRINTER)
+            config.option<ConfigOptionStrings>("printer_asset_plugins", true)->values = {"derived"};
+        selected_name = selected.opt_string("printer_settings_id");
+    });
+    bundle.printers.get_edited_preset().config.option<ConfigOptionString>("printer_settings_id", true)->value = "Parent Printer";
+    bundle.printers.get_selected_preset().config.option<ConfigOptionString>("printer_settings_id", true)->value = "Parent Printer";
+    bundle.printers.save_current_preset("Child Printer");
+    PresetCollection::set_before_save_fn(nullptr);
+
+    const Preset* saved = bundle.printers.find_preset("Child Printer");
+    REQUIRE(saved != nullptr);
+    CHECK(saved->config.option<ConfigOptionStrings>("printer_asset_plugins")->values == std::vector<std::string>{"derived"});
+    // The saved preset is selected again, so the edited copy carries the derived value and is not dirty.
+    CHECK(bundle.printers.get_edited_preset().config.option<ConfigOptionStrings>("printer_asset_plugins")->values ==
+          std::vector<std::string>{"derived"});
+    CHECK_FALSE(bundle.printers.current_is_dirty());
+    CHECK(selected_name == "Parent Printer");
+}
+
 TEST_CASE("The cloud diff force-emits a disabled override only where the cloud would fill a value in", "[Preset][Bundle]")
 {
     PresetBundle bundle;

@@ -3,11 +3,13 @@
 #include "PluginManager.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginInterface.hpp"
+#include "host/PluginPrinterAssets.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
+#include "libslic3r/Preset.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r_version.h"
 #include "slic3r/GUI/I18N.hpp"
@@ -140,11 +142,23 @@ void install_slicing_pipeline_hook()
         });
 }
 
+// Every printer preset save names the asset packs its bed files come from, whichever dialog saves
+// it: the bed files may have changed through a transfer, or been reverted by an unticked row. The
+// saved preset's manifest names packs that are not loaded here.
+void install_printer_asset_save_hook()
+{
+    PresetCollection::set_before_save_fn([](Preset::Type type, DynamicPrintConfig& config, const DynamicPrintConfig& selected) {
+        if (type == Preset::TYPE_PRINTER)
+            update_printer_asset_plugins(config, selected.option<ConfigOptionStrings>("printer_plugins"));
+    });
+}
+
 } // namespace
 
 void install()
 {
     install_capability_resolver();
+    install_printer_asset_save_hook();
     install_slicing_pipeline_hook();
     install_lifecycle_event_hook();
 }
@@ -152,6 +166,7 @@ void install()
 void uninstall()
 {
     ConfigBase::set_resolve_capability_fn(nullptr);
+    PresetCollection::set_before_save_fn(nullptr);
     Print::set_slicing_pipeline_hook_fn(nullptr);
     set_lifecycle_hook_fn(nullptr);
 }

@@ -10,6 +10,7 @@
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
 #include "pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
+#include "pluginTypes/resourcePrinterAsset/ResourcePrinterAssetPluginCapability.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"
@@ -410,6 +411,32 @@ bool load(const PluginDescriptor&                          descriptor,
                                 << "': get_texture_dir() failed (" << ex.what()
                                 << "); the capability will provide no textures";
                             resource_texture->set_texture_dir({});
+                        }
+                    }
+
+                    // ResourcePrinterAsset capabilities resolve their asset folder the same way: validated once
+                    // here, and a fault only costs the pack its files.
+                    if (auto* printer_bed = dynamic_cast<ResourcePrinterAssetPluginCapability*>(instance.get())) {
+                        try {
+                            const std::string bed_dir = printer_bed->get_asset_dir();
+                            std::string       bed_error;
+                            if (!bed_dir.empty())
+                                collect_printer_asset_files(bed_dir, descriptor.plugin_root, bed_error);
+                            if (bed_dir.empty() || !bed_error.empty()) {
+                                if (!bed_error.empty())
+                                    BOOST_LOG_TRIVIAL(warning)
+                                        << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
+                                        << "': asset directory rejected (" << bed_error
+                                        << "); the capability will provide no printer assets";
+                                printer_bed->set_asset_dir({});
+                            } else {
+                                printer_bed->set_asset_dir(bed_dir);
+                            }
+                        } catch (const std::exception& ex) {
+                            BOOST_LOG_TRIVIAL(warning)
+                                << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
+                                << "': get_asset_dir() failed (" << ex.what() << "); the capability will provide no printer assets";
+                            printer_bed->set_asset_dir({});
                         }
                     }
 

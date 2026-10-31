@@ -26,6 +26,7 @@
 #include "pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp"
 #include "pluginTypes/pages/PagesPluginCapability.hpp"
 #include "pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
+#include "pluginTypes/resourcePrinterAsset/ResourcePrinterAssetPluginCapability.hpp"
 #include "pluginTypes/script/ScriptPluginCapability.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
 #include <pybind11/pytypes.h>
@@ -381,6 +382,7 @@ void bind_python_api(pybind11::module_& m)
         .value("Script", PluginCapabilityType::Script)
         .value("SlicingPipeline", PluginCapabilityType::SlicingPipeline)
         .value("ResourceTexture", PluginCapabilityType::ResourceTexture)
+        .value("ResourcePrinterAsset", PluginCapabilityType::ResourcePrinterAsset)
         .value("Unknown", PluginCapabilityType::Unknown)
         .export_values();
 
@@ -535,6 +537,7 @@ void bind_python_api(pybind11::module_& m)
     ScriptPluginCapability::RegisterBindings(m);
     SlicingPipelinePluginCapability::RegisterBindings(m);
     ResourceTexturePluginCapability::RegisterBindings(m);
+    ResourcePrinterAssetPluginCapability::RegisterBindings(m);
     PluginHost::RegisterBindings(m);
     BOOST_LOG_TRIVIAL(debug) << "Registered ScriptPluginCapability Python bindings";
 

@@ -263,6 +263,7 @@
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/plugin/host/PluginPages.hpp"
+#include "slic3r/plugin/host/PluginPrinterAssets.hpp"
 #include "slic3r/plugin/host/PluginResourceTextures.hpp"
 #include <wx/defs.h>
 #include "slic3r/GUI/Widgets/WebView.hpp"
@@ -3159,37 +3160,54 @@ void GUI_App::init_plugin_gui_wiring()
     plugin_mgr.subscribe_on_unload_callback([refresh_missing_plugin_notifications](const std::string&) { refresh_missing_plugin_notifications(); });
     plugin_mgr.subscribe_on_capability_unload_callback(
         [refresh_missing_plugin_notifications](const PluginCapabilityId&) { refresh_missing_plugin_notifications(); });
-    plugin_mgr.subscribe_on_load_callback([](const std::string& plugin_key) {
+    // A printer asset pack came or went: redraw the bed, which may refer to it. Callbacks can fire on worker
+    // threads, so the redraw runs on the UI thread.
+    auto refresh_bed_for_asset_packs = [](bool packs_changed) {
+        if (!packs_changed || wxTheApp == nullptr || wxGetApp().is_closing())
+            return;
+        wxGetApp().CallAfter([]() {
+            if (!wxGetApp().is_closing() && wxGetApp().plater() != nullptr)
+                wxGetApp().plater()->set_bed_shape();
+        });
+    };
+    plugin_mgr.subscribe_on_load_callback([refresh_bed_for_asset_packs](const std::string& plugin_key) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;
         PluginResourceTextures::instance().on_plugin_register(plugin_key);
         Slic3r::GUI::bump_texture_library_generation();
+        refresh_bed_for_asset_packs(PluginPrinterAssets::instance().on_plugin_register(plugin_key));
     });
-    plugin_mgr.subscribe_on_unload_callback([](const std::string& plugin_key) {
+    plugin_mgr.subscribe_on_unload_callback([refresh_bed_for_asset_packs](const std::string& plugin_key) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;
         PluginResourceTextures::instance().on_plugin_deregister(plugin_key);
         Slic3r::GUI::bump_texture_library_generation();
+        refresh_bed_for_asset_packs(PluginPrinterAssets::instance().on_plugin_deregister(plugin_key));
     });
-    plugin_mgr.subscribe_on_capability_load_callback([](const PluginCapabilityId& capability) {
-        if (capability.type != PluginCapabilityType::ResourceTexture)
-            return;
+    plugin_mgr.subscribe_on_capability_load_callback([refresh_bed_for_asset_packs](const PluginCapabilityId& capability) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;
-        PluginResourceTextures::instance().on_cap_register(capability);
-        Slic3r::GUI::bump_texture_library_generation();
+        if (capability.type == PluginCapabilityType::ResourceTexture) {
+            PluginResourceTextures::instance().on_cap_register(capability);
+            Slic3r::GUI::bump_texture_library_generation();
+        } else if (capability.type == PluginCapabilityType::ResourcePrinterAsset) {
+            refresh_bed_for_asset_packs(PluginPrinterAssets::instance().on_cap_register(capability));
+        }
     });
-    plugin_mgr.subscribe_on_capability_unload_callback([](const PluginCapabilityId& capability) {
-        if (capability.type != PluginCapabilityType::ResourceTexture)
-            return;
+    plugin_mgr.subscribe_on_capability_unload_callback([refresh_bed_for_asset_packs](const PluginCapabilityId& capability) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;
-        PluginResourceTextures::instance().on_cap_deregister(capability);
-        Slic3r::GUI::bump_texture_library_generation();
+        if (capability.type == PluginCapabilityType::ResourceTexture) {
+            PluginResourceTextures::instance().on_cap_deregister(capability);
+            Slic3r::GUI::bump_texture_library_generation();
+        } else if (capability.type == PluginCapabilityType::ResourcePrinterAsset) {
+            refresh_bed_for_asset_packs(PluginPrinterAssets::instance().on_cap_deregister(capability));
+        }
     });
     // Packs already loaded before this wiring, or in tests where no callback fires.
     PluginResourceTextures::instance().initial_sweep();
     Slic3r::GUI::bump_texture_library_generation();
+    PluginPrinterAssets::instance().initial_sweep();
 }
 
 bool GUI_App::on_init_inner()
