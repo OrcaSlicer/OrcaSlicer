@@ -561,6 +561,40 @@ TEST_CASE("Print: {first_object_name} is not replaced by the saved-project file 
     CHECK(resolved_output_name(model, "{first_object_name}", "SavedProject") == "WidgetPart.gcode");
 }
 
+TEST_CASE("{printing_filament_types} lists the filament types really printed", "[Print]")
+{
+    // Two filaments of different types. The start G-code uses the placeholder too: it has to
+    // resolve there as well as in the file name.
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "filament_type", "ABS;PLA" },
+        { "enable_prime_tower", 0 },
+        { "filename_format", "{printing_filament_types}-{filament_type[initial_tool]}" },
+        { "machine_start_gcode", "; printing types: {printing_filament_types}" },
+    });
+
+    SECTION("only the filament the object is printed with, not filament 1") {
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", 2 } } };
+        Print print;
+        Model model;
+        init_print({ cube(20) }, print, model, config, &overrides);
+        const std::string gcode = Slic3r::Test::gcode(print);
+
+        CHECK(gcode.find("; printing types: PLA\n") != std::string::npos);
+        CHECK(print.output_filename() == "PLA-PLA.gcode");
+    }
+
+    SECTION("every type printed, joined with an underscore") {
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", 1 } }, { { "extruder", 2 } } };
+        Print print;
+        Model model;
+        init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+        const std::string gcode = Slic3r::Test::gcode(print);
+
+        CHECK(gcode.find("; printing types: ABS_PLA\n") != std::string::npos);
+        CHECK(print.output_filename() == "ABS_PLA-ABS.gcode");
+    }
+}
+
 TEST_CASE("Print::validate stacks independent warnings", "[Print][validate]")
 {
     // Two unrelated checks (region precise-wall + machine acceleration) must each
@@ -2188,4 +2222,61 @@ TEST_CASE("Changing G-code precision invalidates only G-code export", "[Print][R
     CHECK(print.is_step_done(psSkirtBrim));
     CHECK(print.objects().front()->is_step_done(posSlice));
     CHECK(print.objects().front()->is_step_done(posPerimeters));
+}
+
+namespace {
+
+// The slicing parameters of an object printed with one filament, on a printer whose first extruder
+// allows layers up to 0.32 mm and the second one up to 0.28 mm. The layers are 0.2 mm, within both.
+SlicingParameters slicing_parameters_on_filament(unsigned int filament)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "nozzle_diameter",  "0.4,0.4" },
+        { "min_layer_height", "0.08,0.08" },
+        { "max_layer_height", "0.32,0.28" },
+        { "layer_height",     0.2 },
+        { "enable_support",   0 },
+        { "raft_layers",      0 },
+    });
+    PrintConfig       print_config;
+    PrintObjectConfig object_config;
+    print_config.apply(config, true);
+    object_config.apply(config, true);
+    // The extruders of an object are 0-based.
+    return SlicingParameters::create_from_config(print_config, object_config, 20., { filament - 1 }, Vec3d(1., 1., 1.));
+}
+
+} // namespace
+
+TEST_CASE("An object takes the layer height limits of the extruder of its own filament", "[Print]")
+{
+    CHECK_THAT(slicing_parameters_on_filament(1).max_layer_height, Catch::Matchers::WithinAbs(0.32, EPSILON));
+    CHECK_THAT(slicing_parameters_on_filament(2).max_layer_height, Catch::Matchers::WithinAbs(0.28, EPSILON));
+}
+
+// The limits only bound a variable layer height, so with fixed 0.2 mm layers both objects share every layer.
+TEST_CASE("Objects on extruders with different layer height limits can share a prime tower", "[Print]")
+{
+    DynamicPrintConfig config = multifilament_config(3);
+    config.set_num_extruders(3);
+    config.set_deserialize_strict({
+        { "nozzle_diameter",    "0.4,0.4,0.4" },
+        { "min_layer_height",   "0.08,0.08,0.08" },
+        { "max_layer_height",   "0.32,0.28,0.28" },
+        { "layer_height",       0.2 },
+        { "enable_prime_tower", 1 },
+        { "wipe_tower_x",       150 }, // the default Y is off the default bed
+        { "wipe_tower_y",       20 },
+        { "layer_change_gcode", "G92 E0\n" }, // validate() relative-E reset
+    });
+    size_flush_to_nozzles(config);
+    const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides { { { "extruder", 1 } }, { { "extruder", 3 } } };
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{ cube(20), cube(20) }, print, model, config, &overrides);
+    const StringObjectException error = print.validate();
+    INFO(error.string);
+    CHECK(error.string.empty());
 }

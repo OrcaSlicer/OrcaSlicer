@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/lexical_cast.hpp>
 #include <cstddef>
 #include <algorithm>
 #include "libslic3r/Color.hpp"
@@ -472,7 +473,7 @@ std::string PartPlate::get_effective_imex_mode() const
     std::string mode = get_imex_mode();
     if (mode != kImexPrimaryMode)
         return mode;
-    // wxGetApp() is not available headless -- see build_imex_cache_key, which guards on the
+    // wxGetApp() is not available headless -- see refresh_imex_layout_key, which guards on the
     // same thing. Nothing calls this from the CLI today; this keeps that from being fatal.
     if (!m_plater)
         return mode;
@@ -492,16 +493,14 @@ void PartPlate::set_imex_mode(const std::string& mode)
         m_config.set_key_value("imex_parallel_mode", new ConfigOptionString(mode));
     }
     update_slice_result_valid_state(false);
-    m_imex_zones_mode_cache = "\x01"; // force zone rebuild
-    m_imex_ghost_cache_key = "\x01";  // force ghost rebuild
+    m_imex_layout_key.reset(); // force zone and ghost rebuild
 }
 
 void PartPlate::reset_imex_mode()
 {
     m_config.erase("imex_parallel_mode");
     update_slice_result_valid_state(false);
-    m_imex_zones_mode_cache = "\x01";
-    m_imex_ghost_cache_key  = "\x01";
+    m_imex_layout_key.reset();
 }
 
 std::map<int,int> PartPlate::get_imex_head_filament_map() const
@@ -678,7 +677,6 @@ void PartPlate::calc_imex_zones()
     m_imex_margin_overlay.clear();
     m_imex_primary_zone_box = std::nullopt;
     m_imex_head_zone_centers.clear();
-    m_imex_primary_head = -1;
 
     if (!wxGetApp().preset_bundle)
         return;
@@ -695,7 +693,6 @@ void PartPlate::calc_imex_zones()
     const ImexZoneLayout layout = compute_imex_zone_layout(printer_cfg, get_imex_mode(),
                                                            process_mode, get_extents(m_shape));
 
-    m_imex_primary_head         = layout.primary_head;
     m_imex_head_zone_centers    = layout.head_zone_centers;
     m_imex_primary_zone_box     = layout.primary_zone_box;
     m_imex_secondary_zone_boxes = layout.secondary_zone_boxes;
@@ -737,62 +734,32 @@ void PartPlate::calc_imex_zones()
         push_zone_fill(m_imex_margin_overlay, b.min.x(), b.max.x(), b.min.y(), b.max.y());
 }
 
-// Build a cache key from the current IDEX/IQEX config options, or "" if IDEX/IQEX is off.
-// Reads per-plate mode from m_config first, falling back to the process preset.
-//
-// Inputs that contribute to the key (any change must invalidate the IMEX zone cache):
-//   - active_mode (per-plate or process-preset fallback)
-//   - imex_tools_per_gantry, imex_gantry_count                  (grid shape)
-//   - imex_tool_layout                                          (which corner tool 0 occupies)
-//   - imex_nozzle_clearance_x, imex_nozzle_clearance_y          (zone widths / collision strips)
-//   - imex_carriage_margin                                       (zone shrink)
-//   - the active mode's tool roster and its Primary head        (same name, different roster)
-//   - imex_firmware_managed_zones                               (suppresses ghost generation)
-//
-// IMPORTANT: if you add a printer config option that affects zone geometry, ghost transforms,
-// or collision strips, it MUST be incorporated here — otherwise ghost meshes and zone overlays
-// will go stale silently after a config change. Float values are scaled by 10 before integer
-// cast so 0.1 mm steps invalidate the cache; if you add a float option needing finer precision,
-// adjust the scale.
-std::string PartPlate::build_imex_cache_key() const
+void PartPlate::refresh_imex_layout_key()
 {
     // CLI / headless slice: no GUI_App is initialized, so `wxGetApp()` returns
     // memory that segfaults on member access. `m_plater` is set only by the GUI
-    // construction path; treat its absence as "no IMEX state to compute" and
-    // return an empty key. Same guard pattern used by calc_imex_ghosts.
-    if (!m_plater || !wxGetApp().preset_bundle)
-        return "";
-    const DynamicPrintConfig& printer_cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-    auto* is_imex_opt = printer_cfg.option<ConfigOptionBool>("is_imex");
-    if (!is_imex_opt || !is_imex_opt->value)
-        return "";
-    std::string active_mode = get_effective_imex_mode();
-    // Mode NAME alone is not printer identity: two presets can define the same mode
-    // name with different tool rosters/primary, and imex_firmware_managed_zones
-    // suppresses ghost generation entirely. Both shape the baked zone/ghost set, so
-    // key them directly (previously caught only incidentally, via the ghost key's
-    // since-removed pem entry).
-    std::string active_tools;
-    int         primary_phys = -1;
-    resolve_active_mode_tools(active_tools, primary_phys); // empty on failure — keyed as such
-    // imex_tool_layout decides which physical corner tool 0 occupies (flip_x / flip_y inside
-    // compute_imex_zone_layout), so every zone rectangle, collision strip and ghost offset moves
-    // when it changes while every other keyed field stays put. Without it the key is identical
-    // across a layout change and the baked zones go stale; that this currently appears to work is
-    // incidental -- some other path happens to rebuild -- not something to rely on.
-    // Geometry values go through imex_cfg_* so the key is built from the same numbers
-    // compute_imex_zone_layout() lays out with; a literal here could key on a value the layout
-    // never used.
-    return active_mode
-         + "|" + std::to_string(imex_cfg_int(printer_cfg, "imex_tools_per_gantry"))
-         + "x" + std::to_string(imex_cfg_int(printer_cfg, "imex_gantry_count"))
-         + "|ly" + std::to_string((int)imex_cfg_enum<ImexToolLayout>(printer_cfg, "imex_tool_layout"))
-         + "|cw" + std::to_string((int)(imex_cfg_float(printer_cfg, "imex_nozzle_clearance_x") * 10))
-         + "|ch" + std::to_string((int)(imex_cfg_float(printer_cfg, "imex_nozzle_clearance_y") * 10))
-         + "|mg" + std::to_string((int)(imex_cfg_float(printer_cfg, "imex_carriage_margin") * 10))
-         + "|t" + active_tools
-         + "|p" + std::to_string(primary_phys)
-         + "|fw" + (imex_cfg_bool(printer_cfg, "imex_firmware_managed_zones") ? "1" : "0");
+    // construction path; treat its absence as "IMEX off". Same guard pattern used
+    // by calc_imex_ghosts.
+    const DynamicPrintConfig* printer_cfg = nullptr;
+    if (m_plater && wxGetApp().preset_bundle) {
+        const DynamicPrintConfig& cfg     = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        const auto*               is_imex = cfg.option<ConfigOptionBool>("is_imex");
+        if (is_imex != nullptr && is_imex->value)
+            printer_cfg = &cfg;
+    }
+    // With IMEX off the key ignores the mode, so don't resolve it.
+    if (!update_imex_layout_key(m_imex_layout_key, printer_cfg, printer_cfg != nullptr ? get_effective_imex_mode() : std::string()))
+        return;
+
+    ++m_imex_layout_key_version;
+    m_imex_zones_stale = true;
+    m_imex_active_mode = {};
+    if (m_imex_layout_key->s.imex && m_imex_layout_key->mode != kImexPrimaryMode) {
+        // A mode missing from the table, or past the end of a short imex_mode_active_tools, gets
+        // empty tools, which declare no Primary, so the mode stays unresolved.
+        m_imex_active_mode.tools   = find_imex_mode(*printer_cfg, m_imex_layout_key->mode).active_tools;
+        m_imex_active_mode.primary = imex_primary_tool_for_mode(m_imex_active_mode.tools);
+    }
 }
 
 // Reposition the IMEX mode icon without requiring a full set_shape() rebuild.
@@ -824,66 +791,36 @@ void PartPlate::refresh_imex_icon()
 }
 
 // Ensure zone geometry (secondary boxes, collision strips, visual meshes) is up to date.
-// Called before any collision check AND before rendering so both paths share the same data.
 void PartPlate::ensure_imex_zones()
 {
     // CLI / headless slice: no GUI_App, no plater, no IMEX state to track. Bail out
     // before touching `wxGetApp()` (which segfaults without a GUI_App) — placement
     // checks reach this from the headless 3MF-load path through `check_outside`.
     if (!m_plater) return;
-    std::string cache_key = build_imex_cache_key();
-    if (cache_key != m_imex_zones_mode_cache) {
-        m_imex_zones_mode_cache = cache_key;
-        calc_imex_zones();
-    }
+    refresh_imex_layout_key();
+    rebuild_stale_imex_zones();
 }
 
-std::string PartPlate::build_imex_ghost_cache_key() const
+void PartPlate::rebuild_stale_imex_zones()
 {
-    // Ghost shape depends on: mode topology (same inputs as zone key) + set of
-    // objects on plate + each primary instance's transform. Filament routing and
-    // colors are deliberately NOT keyed: ghost RGB is restamped live every frame
-    // by update_imex_ghost_colors, so color-only changes never need a mesh rebuild.
-    std::string k = build_imex_cache_key();
-    if (k.empty()) return "";  // ghost-off when zones-off
-
-    k += "|obj";
-    for (const auto& oi : obj_to_instance_set)
-        k += std::to_string(oi.first) + "." + std::to_string(oi.second) + ",";
-    return k;
+    if (!m_plater || !m_imex_zones_stale) return;
+    m_imex_zones_stale = false;
+    calc_imex_zones();
 }
 
 void PartPlate::ensure_imex_ghosts()
 {
-    std::string key = build_imex_ghost_cache_key();
-    if (key != m_imex_ghost_cache_key) {
-        m_imex_ghost_cache_key = key;
-        calc_imex_ghosts();
-    }
-}
-
-bool PartPlate::resolve_active_mode_tools(std::string& out_tools_str, int& out_primary_phys) const
-{
-    if (!wxGetApp().preset_bundle) return false;
-    const DynamicPrintConfig& printer_cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-    auto* is_imex_opt = printer_cfg.option<ConfigOptionBool>("is_imex");
-    if (!is_imex_opt || !is_imex_opt->value) return false;
-
-    const std::string active_mode = get_effective_imex_mode();
-    if (active_mode == kImexPrimaryMode) return false;
-
-    const ImexMode mode = find_imex_mode(printer_cfg, active_mode);
-    if (!mode.found()) return false;
-
-    // Also the ragged case: a tools array too short to reach this row hands back an empty
-    // string, which has no declared primary, which is the same "no zones here" answer the
-    // explicit bounds check used to give.
-    const int primary_phys = imex_primary_tool_for_mode(mode.active_tools);
-    if (primary_phys < 0) return false;
-
-    out_tools_str    = mode.active_tools;
-    out_primary_phys = primary_phys;
-    return true;
+    // Ghost meshes depend on: mode topology (the layout key) + set of objects on
+    // plate. Instance transforms are applied live by update_imex_ghost_transforms.
+    // Filament routing and colors are deliberately NOT keyed: ghost RGB is restamped
+    // live every frame by update_imex_ghost_colors, so color-only changes never need
+    // a mesh rebuild. With IMEX off there are no ghosts, whatever the plate holds.
+    if (m_imex_ghost_layout_version == m_imex_layout_key_version &&
+        (!m_imex_layout_key || !m_imex_layout_key->s.imex || m_imex_ghost_objects == obj_to_instance_set))
+        return;
+    m_imex_ghost_layout_version = m_imex_layout_key_version;
+    m_imex_ghost_objects        = obj_to_instance_set;
+    calc_imex_ghosts();
 }
 
 // Ghost opacity, stamped together with RGB by update_imex_ghost_colors every
@@ -896,9 +833,10 @@ void PartPlate::calc_imex_ghosts()
     if (!m_plater || !m_model) return;
     if (obj_to_instance_set.empty()) return;
 
-    std::string active_tools_str;
-    int primary_phys = -1;
-    if (!resolve_active_mode_tools(active_tools_str, primary_phys)) return;
+    const ImexActiveMode& active = m_imex_active_mode;
+    if (!active.resolved()) return;
+    const std::string& active_tools_str = active.tools;
+    const int          primary_phys     = active.primary;
 
     // IMEX firmware-managed zones: the slicer emits a centered single-half slice and the
     // firmware fans copies/mirrors out from there — placement is not slicer-authoritative.
@@ -911,9 +849,8 @@ void PartPlate::calc_imex_ghosts()
         return;
 
     // Zone centers are the basis for ghost placement; make sure they exist before
-    // we read them. render_imex_zones already ensures this, but ghost rebuild can
-    // also be driven from mode/preset invalidation paths that don't touch zones.
-    ensure_imex_zones();
+    // we read them.
+    rebuild_stale_imex_zones();
 
     const auto heads = parse_imex_active_tools(active_tools_str);
 
@@ -1051,13 +988,13 @@ void PartPlate::update_imex_ghost_transforms(
 {
     if (m_imex_ghost_volumes.empty() || !m_plater || !m_model) return;
 
-    std::string active_tools_str;
-    int primary_phys = -1;
-    if (!resolve_active_mode_tools(active_tools_str, primary_phys)) return;
-
     // Reuse zone-center-derived offsets (same source calc_imex_ghosts uses), so
     // update and rebuild paths always agree on where each ghost belongs.
     ensure_imex_zones();
+    const ImexActiveMode& active = m_imex_active_mode;
+    if (!active.resolved()) return;
+    const std::string& active_tools_str = active.tools;
+    const int          primary_phys     = active.primary;
     auto center_for = [&](int phys) -> Vec2d {
         auto it = m_imex_head_zone_centers.find(phys);
         return (it == m_imex_head_zone_centers.end()) ? Vec2d::Zero() : it->second;
@@ -1294,11 +1231,11 @@ bool PartPlate::has_imex_multimaterial_conflict() const
     // which the raw key's single default entry does not describe.
     const ConfigOptionInts pem = effective_physical_extruder_map(*pb);
 
-    // Resolve the active mode's tools string from the printer config. Print::validate()
+    // The active mode's roster, as refresh_imex_layout_key() resolved it. Print::validate()
     // resolves the same name the same way and keeps going on an empty result -- the mixed
     // filament rule below does not depend on the roster -- so this must too, or the badge
     // goes quiet on exactly the plates the slicer refuses.
-    const std::string active_tools_str = find_imex_mode(printer_cfg, mode).active_tools;
+    const std::string& active_tools_str = m_imex_active_mode.tools;
 
     // Convert PartPlate's 1-based extruder list to the 0-based form the helper expects.
     //
@@ -1330,7 +1267,7 @@ void PartPlate::render_imex_zones(bool force_default_color)
     if (force_default_color)
         return;
 
-    ensure_imex_zones();
+    rebuild_stale_imex_zones();
     ensure_imex_ghosts();
 
     // Read visualization theme from printer config.
@@ -2673,11 +2610,8 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                 auto* is_imex_opt = pb ? pb->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex") : nullptr;
                 if (is_imex_opt && is_imex_opt->value) {
                     // The icon shows the mode the plate slices as, the one its ghosts follow.
-                    std::string  active_tools;
-                    int          primary_phys = -1;
-                    const size_t kind = size_t(resolve_active_mode_tools(active_tools, primary_phys) ?
-                                                   imex_mode_kind(active_tools) :
-                                                   ImexModeKind::Primary);
+                    const ImexActiveMode& active = m_imex_active_mode;
+                    const size_t kind = size_t(active.resolved() ? imex_mode_kind(active.tools) : ImexModeKind::Primary);
                     // Both the mode name and the conflict warning describe the same hovered icon,
                     // and set_hover_tooltip records one string per frame, so they are composed here.
                     std::string hover_tip;
@@ -3093,8 +3027,6 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	int glb_internal_solid_extr = glb_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = glb_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = glb_config.opt_int("bottom_surface_filament_id");
-	if (glb_top_surface_extr == 0) glb_top_surface_extr = glb_internal_solid_extr;
-	if (glb_bottom_surface_extr == 0) glb_bottom_surface_extr = glb_internal_solid_extr;
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
@@ -3192,8 +3124,6 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		int obj_top_surface_extr = 0;
 		if (const ConfigOption* top_opt = mo->config.option("top_surface_filament_id"); top_opt != nullptr)
 			obj_top_surface_extr = top_opt->getInt();
-		if (obj_top_surface_extr == 0)
-			obj_top_surface_extr = obj_internal_solid_extr;
 		if (obj_top_surface_extr != 0)
 			plate_extruders.push_back(obj_top_surface_extr);
 		else if (glb_top_surface_extr != 0)
@@ -3202,8 +3132,6 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		int obj_bottom_surface_extr = 0;
 		if (const ConfigOption* bottom_opt = mo->config.option("bottom_surface_filament_id"); bottom_opt != nullptr)
 			obj_bottom_surface_extr = bottom_opt->getInt();
-		if (obj_bottom_surface_extr == 0)
-			obj_bottom_surface_extr = obj_internal_solid_extr;
 		if (obj_bottom_surface_extr != 0)
 			plate_extruders.push_back(obj_bottom_surface_extr);
 		else if (glb_bottom_surface_extr != 0)
@@ -3264,8 +3192,6 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 	int glb_internal_solid_extr = full_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = full_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = full_config.opt_int("bottom_surface_filament_id");
-	if (glb_top_surface_extr == 0) glb_top_surface_extr = glb_internal_solid_extr;
-	if (glb_bottom_surface_extr == 0) glb_bottom_surface_extr = glb_internal_solid_extr;
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
@@ -3370,8 +3296,6 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 			int obj_top_surface_extr = 0;
 			if (const ConfigOption* top_opt = object->config.option("top_surface_filament_id"); top_opt != nullptr)
 				obj_top_surface_extr = top_opt->getInt();
-			if (obj_top_surface_extr == 0)
-				obj_top_surface_extr = obj_internal_solid_extr;
 			if (obj_top_surface_extr != 0)
 				plate_extruders.push_back(obj_top_surface_extr);
 			else if (glb_top_surface_extr != 0)
@@ -3380,8 +3304,6 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 			int obj_bottom_surface_extr = 0;
 			if (const ConfigOption* bottom_opt = object->config.option("bottom_surface_filament_id"); bottom_opt != nullptr)
 				obj_bottom_surface_extr = bottom_opt->getInt();
-			if (obj_bottom_surface_extr == 0)
-				obj_bottom_surface_extr = obj_internal_solid_extr;
 			if (obj_bottom_surface_extr != 0)
 				plate_extruders.push_back(obj_bottom_surface_extr);
 			else if (glb_bottom_surface_extr != 0)
@@ -5222,7 +5144,7 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
 
 			const BoundingBox& pp_bbox = poly.contour.bounding_box();
 			calc_gridlines(poly, pp_bbox);
-			m_imex_zones_mode_cache = "\x01"; // force rebuild on next render
+			m_imex_zones_stale = true; // force rebuild on next render
 			calc_imex_zones();
 
 			calc_vertex_for_icons(0, m_del_icon);
@@ -5340,6 +5262,8 @@ bool PartPlate::intersects(const BoundingBoxf3& bb) const
 
 void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_body, bool force_background_color, HeightLimitMode mode, int hover_id, bool render_cali, bool show_grid, bool hide_chrome)
 {
+    refresh_imex_layout_key();
+
     glsafe(::glEnable(GL_DEPTH_TEST));
 
     GLShaderProgram *shader = wxGetApp().get_shader("flat");
@@ -8624,7 +8548,7 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
                 std::replace(s.begin(), s.end(), ',', ' ');
                 std::istringstream iss(s);
                 std::string tok;
-                while (iss >> tok) { try { out.push_back(std::stod(tok)); } catch (...) {} }
+                while (iss >> tok) { try { out.push_back(boost::lexical_cast<double>(tok)); } catch (...) {} }
                 return out;
             };
 

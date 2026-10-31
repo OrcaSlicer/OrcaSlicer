@@ -2848,7 +2848,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
         // Confirm if the printer preset has a duplicate name
         if (!rewritten && preset_bundle->printers.find_preset(printer_preset_name)) {
             MessageDialog dlg(this,
-                              _L("The printer preset you created already has a preset with the same name. Do you want to overwrite it\?\n\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \nand filament and process presets without the same preset name will be reserved.\n\tCancel: Do not create a preset; return to the creation interface."),
+                              _L("The printer preset you created already has a preset with the same name. Do you want to overwrite it\?\n\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n\tCancel: Do not create a preset; return to the creation interface."),
                               wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES | wxCANCEL | wxYES_DEFAULT | wxCENTRE);
             int           res = dlg.ShowModal();
             if (res == wxID_YES) {
@@ -3456,7 +3456,7 @@ bool CreatePrinterPresetDialog::validate_input_valid()
                 if (preset.config.opt_string("printer_model") == printer_model)
                     diameters += preset.config.opt_string("printer_variant") + "  ";
             }
-            MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter.")
+            MessageDialog dlg(this, _L("The system preset does not allow creation.\nPlease re-enter the printer model or nozzle diameter.")
                                   + _L("\n\nAvailable nozzle profiles for this printer:")
                                   + "\n" + diameters
                                   + _L("\n\nChoose YES to switch existing preset:")
@@ -3977,7 +3977,7 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
                     wxString filament_name = wxString::FromUTF8(filament_name_to_preset.first);
                     m_preset_sizer->Add(create_checkbox(m_presets_window, filament_name, m_printer_name), 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(5));
                 }
-                m_serial_text->SetLabel(_L("Only the filament names with user filament presets will be displayed, \nand all user filament presets in each filament name you select will be exported as a ZIP archive."));
+                m_serial_text->SetLabel(_L("Only the filament names with user filament presets will be displayed,\nand all user filament presets in each filament name you select will be exported as a ZIP archive."));
             } else if (export_type == m_exprot_type.process_preset) {
                 for (std::pair<std::string, std::vector<Preset *>> presets : m_process_presets) {
                     Preset *      printer_preset = preset_bundle->printers.find_preset(presets.first, false);
@@ -3993,7 +3993,7 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
                     }
 
                 }
-                m_serial_text->SetLabel(_L("Only printer names with changed process presets will be displayed, \nand all user process presets in each printer name you select will be exported as a ZIP archive."));
+                m_serial_text->SetLabel(_L("Only printer names with changed process presets will be displayed,\nand all user process presets in each printer name you select will be exported as a ZIP archive."));
             }
             //m_presets_window->SetSizerAndFit(m_preset_sizer);
             m_presets_window->Layout();
