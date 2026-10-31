@@ -7713,7 +7713,7 @@ LayerResult GCode::process_layer(
 
                         // Make sure ironing is the last
                         if (support_extrusion_role == erMixed || support_extrusion_role == erSupportMaterialInterface) {
-                            gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning);
+                            gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning, instance_to_print.print_object.config().support_ironing_speed.value);
                         }
                     }
 
@@ -8109,7 +8109,7 @@ LayerResult GCode::process_layer(
                     gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, support_role);
                     // Make sure ironing is the last (Orca names this role erIroning, not erSupportIroning).
                     if (support_role == erMixed || support_role == erSupportMaterialInterface)
-                        gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning);
+                        gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning, instance_to_print.print_object.config().support_ironing_speed.value);
                 }
 
                 // --- Shared instance footer (mirrors Orca's main instance loop) ---
@@ -9013,7 +9013,7 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
     return gcode;
 }
 
-std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fills, const ExtrusionRole support_extrusion_role)
+std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fills, const ExtrusionRole support_extrusion_role, double ironing_speed)
 {
     static constexpr const char* support_label            = "support material";
     static constexpr const char* support_interface_label  = "support material interface";
@@ -9037,6 +9037,7 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
 
         return small_perimeter_speed > 0 ? small_perimeter_speed : default_speed;
     };
+    const double support_ironing_speed = ironing_speed > 0 ? ironing_speed : -1.0;
 
     // Supports are removed after printing and gain nothing from high precision G-code but a larger file, so they are
     // written with the standard precision, as the wipe tower is. Support ironing keeps it, as it smooths the surface
@@ -9077,16 +9078,16 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
             const ExtrusionEntityCollection* collection = dynamic_cast<const ExtrusionEntityCollection*>(ee);
 
             if (path) {
-                gcode += extrude_path(*path, label, speed_for_path(path->length(), role));
+                gcode += extrude_path(*path, label, speed_for_path(path->length(), role, role == erIroning ? support_ironing_speed : -1.0));
             }
             else if (multipath) {
-                gcode += extrude_multi_path(*multipath, label, speed_for_path(multipath->length(), role));
+                gcode += extrude_multi_path(*multipath, label, speed_for_path(multipath->length(), role, role == erIroning ? support_ironing_speed : -1.0));
             }
             else if (loop) {
-                gcode += extrude_loop(*loop, label, speed_for_path(loop->length(), role));
+                gcode += extrude_loop(*loop, label, speed_for_path(loop->length(), role, role == erIroning ? support_ironing_speed : -1.0));
             }
             else if (collection) {
-                gcode += extrude_support(*collection, support_extrusion_role);
+                gcode += extrude_support(*collection, support_extrusion_role, ironing_speed);
             }
             else {
                 throw Slic3r::InvalidArgument("Unknown extrusion type");

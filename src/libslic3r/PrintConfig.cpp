@@ -8014,6 +8014,36 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.1));
 
+    def = this->add("support_ironing_inset", coFloat);
+    def->label = L("Support Ironing inset");
+    def->category = L("Support");
+    def->tooltip = L("The distance to keep from the edges of the support interface when ironing. 0 means no inset.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("support_ironing_direction", coFloat);
+    def->label = L("Support Ironing direction");
+    def->category = L("Support");
+    def->tooltip = L("Angle added to the direction of the support interface lines to get the direction of the ironing lines. "
+                     "0 irons in the same direction as the support interface.");
+    def->sidetext = L("°");
+    def->min = 0;
+    def->max = 360;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("support_ironing_speed", coFloat);
+    def->label = L("Support Ironing speed");
+    def->category = L("Support");
+    def->tooltip = L("Print speed of the support ironing lines. 0 uses the Ironing speed.");
+    def->sidetext = L("mm/s");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
     def = this->add("activate_chamber_temp_control",coBools);
     def->label = L("Activate temperature control");
     def->tooltip = L("Enable this option for automated chamber temperature control. "
