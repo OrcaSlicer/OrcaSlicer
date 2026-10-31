@@ -1,6 +1,8 @@
 #include "Arrange.hpp"
+#include "ClipperUtils.hpp"
 #include "ExPolygon.hpp"
 #include "Point.hpp"
+#include "Polygon.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "PrintConfig.hpp"
@@ -197,11 +199,20 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
         coord_t max_width = 0, max_height = 0;
         for (const ArrangePolygon &ap : selected) {
             BoundingBox apbb      = ap.poly.contour.bounding_box();
-            // Printing by object, the inflation only keeps objects apart and may reach past the edge,
-            // so measure the object itself, leaving EPSILON for rounding when it fills the bed.
-            coord_t     inflation = params.is_seq_print ? scaled(EPSILON) : ap.inflation;
-            max_width             = std::max(max_width, apbb.size().x() + 2 * inflation);
-            max_height            = std::max(max_height, apbb.size().y() + 2 * inflation);
+            coord_t     inflation = ap.inflation;
+            if (params.is_seq_print) {
+                // Printing by object, the inflation only keeps objects apart and may reach past the edge,
+                // so measure the object itself, leaving EPSILON for rounding when it fills the bed. Measure
+                // it as the nester packs it, inflated with square joins and then turned, since the corners
+                // of that outline reach past the inflation.
+                const ExPolygons inflated = offset_ex(ap.poly, float(ap.inflation), jtSquare);
+                Polygon          outline  = inflated.empty() ? ap.poly.contour : inflated.front().contour;
+                outline.rotate(ap.rotation);
+                apbb      = outline.bounding_box();
+                inflation = scaled(EPSILON) - (inflated.empty() ? 0 : ap.inflation);
+            }
+            max_width  = std::max(max_width, apbb.size().x() + 2 * inflation);
+            max_height = std::max(max_height, apbb.size().y() + 2 * inflation);
         }
         auto margin = [](coord_t bed, coord_t item) { return std::max(0., unscale<double>(bed - item) / 2.); };
         params.bed_shrink_x = std::min<double>(params.bed_shrink_x, std::max<double>(params.brim_skirt_distance, margin(bedbb.size().x(), max_width)));
@@ -1093,13 +1104,19 @@ std::function<double(const Item &, const ItemGroup&)> AutoArranger<ExPolygon>::g
     };
 }
 
-template<class Bin> void remove_large_items(std::vector<Item> &items, Bin &&bin)
+// Drop the fixed objects lying wholly outside the bin, such as those on other plates. One that reaches
+// into the bin still takes the room it covers there, like an object at the bed edge whose inflation
+// crosses the edge of a shrunk bed.
+template<class Bin> void remove_items_outside_bin(std::vector<Item> &items, const Bin &bin)
 {
+    const auto binbb = sl::boundingBox(bin);
     auto it = items.begin();
     while (it != items.end())
     {
+        const auto bb = it->boundingBox();
         //BBS: skip virtual object
-        if (!it->is_virt_object && !sl::isInside(it->transformedShape(), bin))
+        if (!it->is_virt_object && (bb.maxCorner().x() < binbb.minCorner().x() || bb.minCorner().x() > binbb.maxCorner().x() ||
+                                    bb.maxCorner().y() < binbb.minCorner().y() || bb.minCorner().y() > binbb.maxCorner().y()))
             it = items.erase(it);
         else
             it++;
@@ -1145,7 +1162,7 @@ void _arrange(
 
     AutoArranger<BinT> arranger{corrected_bin, mod_params, progressfn, stopfn};
 
-    remove_large_items(excludes, corrected_bin);
+    remove_items_outside_bin(excludes, corrected_bin);
 
     // If there is something on the plate
     if (!excludes.empty()) arranger.preload(excludes);

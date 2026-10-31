@@ -610,6 +610,42 @@ TEST_CASE("Sequential print keeps short objects off a calibration region", "[Arr
             CHECK(ap.transformed_poly().contour.bounding_box().max.y() <= region_bb.min.y());
 }
 
+// The nester packs an object turned and inflated, and the inflated corners of a turned square
+// reach past its inflation, so cutting the arrange bed to the object's size must measure that
+// outline. The square is 196 mm wide turned 30 degrees.
+TEST_CASE("Sequential print arranges a turned short object filling the printable area", "[Arrange]")
+{
+    ArrangePolygon item = make_square(scaled(196. / (std::cos(PI / 6) + std::sin(PI / 6))));
+    item.height   = NOZZLE_HEIGHT_MM / 2;
+    item.rotation = PI / 6;
+    ArrangePolygons items{item};
+    ArrangePolygons fixed;
+    arrange_by_object(items, fixed);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+// An object closer to the bed edge than the bed margin, as one placed by hand, still takes its
+// room when Fill bed adds objects around it, though its inflation crosses the arrange bed's edge.
+TEST_CASE("Sequential print keeps short objects off one at the bed edge", "[Arrange]")
+{
+    ArrangePolygon obstacle = make_square(scaled(40.));
+    obstacle.translation    = {scaled(1.), scaled(80.)};
+    obstacle.height         = NOZZLE_HEIGHT_MM / 2;
+    obstacle.extrude_ids    = {1};
+    ArrangePolygons fixed{obstacle};
+    ArrangePolygons items = squares(20, 40., NOZZLE_HEIGHT_MM / 2);
+    arrange_by_object(items, fixed);
+
+    ExPolygons placed{obstacle.transformed_poly()};
+    for (const ArrangePolygon &ap : items)
+        if (ap.bed_idx == 0)
+            placed.emplace_back(ap.transformed_poly());
+    REQUIRE(placed.size() > 1);
+    REQUIRE(disjoint(placed));
+}
+
 TEST_CASE("Bed exclusions apply by physical nozzle and overlapping Z range", "[Arrange][ExclusionVolume][MultiNozzle]")
 {
     ArrangePolygon object = make_square(scaled(20.));
