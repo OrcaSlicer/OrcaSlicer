@@ -95,6 +95,9 @@ public:
     void Rebuild(const std::vector<SlotGridSlot>& slots, std::function<void(size_t slot_index)> on_pick);
     // Shows the popup just below `anchor`.
     void PopupBelow(wxWindow* anchor);
+    // The live printer's slots below `anchor`, `current_slot` checked. A pick posts
+    // EVT_SET_FINISH_MAPPING to `owner` in the AMS mapping popup's format, tray id = slot index.
+    void PopupForFilament(wxWindow* owner, wxWindow* anchor, int filament_id, int current_slot);
 
 private:
     SlotGridPanel*              m_grid{nullptr};
