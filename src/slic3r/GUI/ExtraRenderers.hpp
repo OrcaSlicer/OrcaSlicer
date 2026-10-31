@@ -202,4 +202,12 @@ private:
 };
 
 
+// Human-readable tooltip for the filament column, given the extruder text
+// ("1", "2", ... or "default"): "<filament name> (L/R) — <color name> — <AMS location>".
+wxString get_filament_column_tooltip(const wxString& extruder_text);
+
+// Nozzle-side suffix for a 1-based filament index on a synced dual-nozzle printer:
+// " (L)" (left), " (R)" (right), or empty for single-nozzle / unknown.
+wxString get_filament_nozzle_suffix(int extruder_idx_1based);
+
 #endif // slic3r_GUI_ExtraRenderers_hpp_

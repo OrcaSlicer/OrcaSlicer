@@ -193,6 +193,7 @@
 #include "GUI_App.hpp"
 #include "Shortcuts.hpp"
 #include "GUI_ObjectList.hpp"
+#include "ExtraRenderers.hpp"
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
 #endif
@@ -1343,8 +1344,14 @@ struct DynamicFilamentList : DynamicList
         int old_slot = old_index >= 0 && old_index < int(slot_map.size()) ? slot_map[old_index] : -1;
         cb->Clear();
         cb->Append(_L("Default"));
-        for (auto i : items) {
-            cb->Append(i.first, i.second ? *i.second : wxNullBitmap);
+        for (size_t k = 0; k < items.size(); ++k) {
+            const int combo_idx = cb->Append(items[k].first, items[k].second ? *items[k].second : wxNullBitmap);
+            // Match the object-list filament menu: right-aligned nozzle side on dual-nozzle printers.
+            const int slot = (k + 1 < slot_map.size()) ? slot_map[k + 1] : 0;
+            wxString suffix = get_filament_nozzle_suffix(slot);
+            suffix.Trim(false);
+            if (!suffix.IsEmpty())
+                cb->SetItemRightText(combo_idx, suffix);
         }
 
         int restored = index_of(wxString::Format("%d", old_slot));
@@ -1389,10 +1396,17 @@ struct DynamicFilamentList : DynamicList
         for (int i = 0; i < presets.size(); ++i) {
             if (physical_only && wxGetApp().preset_bundle->is_mixed_filament(i))
                 continue;
+            // Show the filament name (e.g. "PLA Matte"), matching the object-list menu, and fall back to
+            // the filament type when no name is available.
+            auto preset = wxGetApp().preset_bundle->filaments.find_preset(presets[i]);
             wxString str;
-            std::string type;
-            wxGetApp().preset_bundle->filaments.find_preset(presets[i])->get_filament_type(type);
-            str << type;
+            if (preset != nullptr)
+                str = from_u8(preset->label(false));
+            if (str.IsEmpty() && preset != nullptr) {
+                std::string type;
+                preset->get_filament_type(type);
+                str = from_u8(type);
+            }
             items.push_back({str, i < icons.size() ? icons[i] : nullptr});
             slot_map.push_back(i + 1);
         }
@@ -6136,7 +6150,10 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
     if (obj->ams_support_virtual_tray) {
         int extruder = 0x10000; // Main (first) extruder at right
         for (auto & vt_tray : obj->vt_slot) {
-            filament_ams_list.emplace(extruder + stoi(vt_tray.id), build_tray_config(vt_tray, "Ext",vt_tray.id, "0"));//254 or 255
+            // Only include an external spool slot when a spool is actually present. Empty slots would
+            // otherwise add phantom "Ext" filaments (and a spurious left assignment).
+            if (vt_tray.is_exists && !vt_tray.setting_id.empty())
+                filament_ams_list.emplace(extruder + stoi(vt_tray.id), build_tray_config(vt_tray, "Ext",vt_tray.id, "0"));//254 or 255
             extruder = 0;
         }
     }
@@ -6153,10 +6170,27 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         return std::string();
     };
 
+    // Attribute each AMS to its extruder exactly like the nozzle sync view does: with a Filament Track
+    // Switch use the current switcher position, otherwise the uniquely bound extruder. Without the
+    // switch this is the extruder the AMS is installed on.
+    const bool fila_switch_flag = is_fila_switch_ready();
     auto list = obj->GetFilaSystem()->GetAmsList();
     for (auto ams : list) {
-        int ams_id   = std::stoi(ams.first);
-        int extruder = ams.second->GetExtruderId() ? 0 : 0x10000; // Main (first) extruder at right
+        int ams_id = std::stoi(ams.first);
+        int extruder_id;
+        if (fila_switch_flag) {
+            auto switcher_pos = ams.second->GetSwitcherPos();
+            if (!switcher_pos)
+                continue;
+            extruder_id = obj->is_main_extruder_on_left() ? (1 - static_cast<int>(switcher_pos.value()))
+                                                          : static_cast<int>(switcher_pos.value());
+        } else {
+            const auto &uniq_extruder_id = ams.second->GetUniqueBindedExtruderId();
+            if (!uniq_extruder_id)
+                continue;
+            extruder_id = uniq_extruder_id.value();
+        }
+        int extruder = extruder_id ? 0 : 0x10000; // Main (first) extruder at right
         for (auto tray : ams.second->GetTrays()) {
             int  slot_id = std::stoi(tray.first);
             filament_ams_list.emplace(extruder + (ams_id * 4 + slot_id),
