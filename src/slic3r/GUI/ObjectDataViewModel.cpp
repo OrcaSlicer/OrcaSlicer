@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <algorithm>
+#include <limits>
 #include "slic3r/GUI/GUI_ObjectSettings.hpp"
 #include <tuple>
 #include <wx/bmpcbox.h>
@@ -1298,7 +1299,9 @@ void ObjectDataViewModel::DeleteVolumeChildren(wxDataViewItem& parent)
 
     // set m_containet to FALSE if parent has no child
 #ifndef __WXGTK__
-    root->m_container = false;
+    // Instances, settings and other rows may remain after the volumes are gone.
+    if (root->GetChildCount() == 0)
+        root->m_container = false;
 #endif //__WXGTK__
 }
 
@@ -2105,12 +2108,44 @@ unsigned int ObjectDataViewModel::GetChildren(const wxDataViewItem &parent, wxDa
 		return 0;
 	}
 
-    unsigned int count = node->GetChildren().GetCount();
-    for (unsigned int pos = 0; pos < count; pos++)
-    {
-        ObjectDataViewModelNode* child = node->GetChildren().Item(pos);
-        array.Add(wxDataViewItem((void*)child));
+    std::vector<ObjectDataViewModelNode*> children;
+    for (auto* child : node->GetChildren())
+        children.push_back(child);
+    if (node->m_type == itObject && node->m_model_object != nullptr) {
+        const ModelObject& object = *node->m_model_object;
+        if (std::any_of(object.volumes.begin(), object.volumes.end(), [](const ModelVolume* volume) {
+                return volume->import_display_order >= 0;
+            })) {
+            // Node indices count visible volumes; cut connectors do not create tree nodes.
+            std::vector<const ModelVolume*> visible_parts;
+            for (const ModelVolume* part : object.volumes)
+                if (!(object.is_cut() && part->is_cut_connector()))
+                    visible_parts.push_back(part);
+            std::vector<size_t> slots;
+            std::vector<ObjectDataViewModelNode*> parts;
+            for (size_t i = 0; i < children.size(); ++i)
+                if (children[i]->GetType() == itVolume) {
+                    slots.push_back(i);
+                    parts.push_back(children[i]);
+                }
+            auto rank = [&](const ObjectDataViewModelNode* part) {
+                const int index = part->GetIdx();
+                if (index >= 0 && size_t(index) < visible_parts.size() &&
+                    visible_parts[size_t(index)]->import_display_order >= 0)
+                    return size_t(visible_parts[size_t(index)]->import_display_order);
+                return std::numeric_limits<size_t>::max();
+            };
+            std::stable_sort(parts.begin(), parts.end(), [&](const auto* a, const auto* b) {
+                return rank(a) < rank(b);
+            });
+            // Keep settings/layers/instances in their existing slots and never alter m_idx.
+            for (size_t i = 0; i < slots.size(); ++i)
+                children[slots[i]] = parts[i];
+        }
     }
+    const auto count = static_cast<unsigned int>(children.size());
+    for (auto* child : children)
+        array.Add(wxDataViewItem((void*)child));
 
     return count;
 }

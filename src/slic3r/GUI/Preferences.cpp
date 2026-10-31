@@ -1775,13 +1775,32 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_step_dialog);
 
+    // Each import dialog can be restored after choosing "Don't ask again".
+    g_sizer->Add(create_item_checkbox(_L("Show options when importing AMF file"),
+        _L("Show body grouping, original-name and sorting options when importing geometry into the current project."),
+        "import_names_amf_show_dialog"));
+    // "Geometry", not "file": a 3MF project opens without this dialog.
+    g_sizer->Add(create_item_checkbox(_L("Show options when importing 3MF geometry"),
+        _L("Show original-name and sorting options when importing a 3MF without project settings into the current project."),
+        "import_names_3mf_show_dialog"));
+    // Applies also when the STEP dialog is turned off with "Don't show again".
+    g_sizer->Add(create_item_checkbox(_L("Keep original names when importing STEP file"),
+        _L("Use the body names stored in the imported file when it contains them."), "import_names_step_keep"));
+    g_sizer->Add(create_item_checkbox(_L("Keep original names when importing AMF file"),
+        _L("Use the body names stored in the imported file when it contains them."), "import_names_amf_keep"));
+    g_sizer->Add(create_item_checkbox(_L("Keep original names when importing 3MF geometry"),
+        _L("Use the body names stored in the imported file when it contains them."), "import_names_3mf_keep"));
+    g_sizer->Add(create_item_checkbox(_L("Ask how to handle unsupported characters in imported names"),
+        _L("Show the removal or replacement choices when original names contain unsupported characters."),
+        "import_names_cleanup_show_dialog"));
+
     auto item_step_linear      = create_item_decimal_input(_L("STEP importing: linear deflection"), "mm", _L("Linear deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: 0.003 mm."), "linear_deflection", 0.001, 0.1, 3);
     g_sizer->Add(item_step_linear);
 
     auto item_step_angle       = create_item_decimal_input(_L("STEP importing: angle deflection"), "", _L("Angle deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: 0.5."), "angle_deflection", 0.01, 1.0, 2);
     g_sizer->Add(item_step_angle);
 
-    auto item_step_split       = create_item_checkbox(_L("STEP importing: Split into multiple objects"), _L("If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: disabled."), "is_split_compound");
+    auto item_step_split       = create_item_checkbox(_L("STEP importing: Split into multiple objects"), _L("If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: enabled."), "is_split_compound");
     g_sizer->Add(item_step_split);
 
     auto item_draco_bits = create_item_spinctrl(_L("Quality level for Draco export"), "",
