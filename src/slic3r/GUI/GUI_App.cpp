@@ -9586,6 +9586,11 @@ void GUI_App::MacOpenURL(const wxString& url)
 {
     if (url.empty())
         return;
+    // A cold launch delivers the URL before post_init, so open it there like a command-line URL.
+    if (!m_post_initialized) {
+        init_params->input_files = { into_u8(url) };
+        return;
+    }
     start_download(into_u8(url));
 }
 
