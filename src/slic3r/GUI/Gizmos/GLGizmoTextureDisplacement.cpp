@@ -336,10 +336,22 @@ constexpr float PREFER_PURE_DE = 2.f;
 // the quantizer's lookup cube.
 constexpr size_t MIX_TARGET_SAMPLES = size_t(1) << 20;
 constexpr size_t MIX_TARGET_BINS    = 256;
-// rank_mixes() stops once the best remaining mix would improve the match by less than this, in
-// CIEDE2000 averaged over every pixel of the colouring layers (see mix_targets()): a mix that only
-// touches a few stray pixels is not worth a filament slot.
-constexpr float MIN_MIX_GAIN = 0.05f;
+// The longest interleave cycle a mix may use, as the denominator of its ratio. The slicer alternates
+// a mix layer by layer, so the cycle is how many layers one repeat spans; past this it stops reading
+// as a colour and starts reading as bands of its two filaments. It also sets how many mixes exist at
+// all - the coprime ratios per pair of filaments - so it is what decides how finely a gradient can be
+// stepped. Ten gives 33 ratios per pair against the 11 of six: measured on four filaments, a
+// green-to-red gradient goes from 11 usable mixes to 16, and the shipped Colour Bricks from 6 to 10.
+constexpr int MIX_MAX_DENOMINATOR = 10;
+
+// rank_mixes() stops once the best remaining mix would improve the match by less than this FRACTION
+// of what the best mix bought: a mix that only touches a few stray pixels is not worth a filament
+// slot. Relative rather than a fixed amount of CIEDE2000, because the gains decay smoothly and a
+// fixed cut lands wherever that curve happens to cross it - on a red-to-green gradient with five
+// filaments the old 0.05 kept a mix worth 0.052 and refused one worth 0.042, and it stopped at the
+// same count whether the user allowed 8 mixes or 28, and whether four filaments were loaded or six.
+// As a fraction it scales with the texture, so both the setting and the loaded filaments matter.
+constexpr double MIN_MIX_GAIN_FRACTION = 0.001;
 
 // The project's mixed filament slots, one string each, as the palette cache compares them: anything
 // that changes which of them a mix can reuse changes this.
@@ -5894,7 +5906,7 @@ std::vector<GLGizmoTextureDisplacement::PaletteEntry> GLGizmoTextureDisplacement
     std::vector<PaletteEntry> candidates;
     for (int i = 0; i < n; ++i)
         for (int j = i + 1; j < n; ++j)
-            for (int den = 2; den <= 6; ++den)
+            for (int den = 2; den <= MIX_MAX_DENOMINATOR; ++den)
                 for (int num = 1; num < den; ++num) {
                     if (std::gcd(num, den) != 1)
                         continue; // 2/4 is 1/2, already there
@@ -5933,6 +5945,8 @@ std::vector<GLGizmoTextureDisplacement::PaletteEntry> GLGizmoTextureDisplacement
     std::vector<float>        current = pure_d;
     std::vector<char>         taken(nc, 0);
     std::vector<PaletteEntry> out;
+    // Set from the first mix taken, so the floor is read off this texture rather than assumed.
+    double                    floor_gain = 0.;
     const auto                counts = [&](size_t c, size_t t) {
         const float d = dist[c * nt + t];
         return d < current[t] && d <= pure_d[t] - PREFER_PURE_DE;
@@ -5952,8 +5966,11 @@ std::vector<GLGizmoTextureDisplacement::PaletteEntry> GLGizmoTextureDisplacement
                 best      = c;
             }
         }
-        if (best == nc || best_gain < double(MIN_MIX_GAIN))
+        // Nothing left that helps, or the remaining mixes are noise beside the first one.
+        if (best == nc || best_gain <= 0. || best_gain < floor_gain)
             break;
+        if (out.empty())
+            floor_gain = best_gain * MIN_MIX_GAIN_FRACTION;
         taken[best] = 1;
         out.push_back(candidates[best]);
         for (size_t t = 0; t < nt; ++t)
@@ -7914,8 +7931,9 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                             // physical filaments.
                             const int max_mixes = std::max(1, int(EnforcerBlockerType::ExtruderMax) - int(m_palette_filaments.size()));
                             if (int_row("##color_mix_count", _L("Mixed colors"), &opts.color_mix_count, 1, max_mixes, "%d", card_pad,
-                                        _L("The most mixed filaments a bake may add. They are picked from the "
-                                           "texture's colors, and only the ones the bake actually uses are created."),
+                                        _L("The most mixed filaments a bake may add - a ceiling, not a count. They "
+                                           "are picked from the texture's colors, so a texture the filaments already "
+                                           "cover gets fewer, and only the ones the bake actually uses are created."),
                                         { { "mixed_colors_few.png", _L("Few") }, { "mixed_colors_many.png", _L("Many") } }))
                                 m_preview_params_dirty = true;
                             // After the slider, so a change shows in the same frame.
@@ -7926,6 +7944,27 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                             // TRN %1% is the number of printable colors, %2% is "from N filaments".
                             ImGui::TextDisabled("%s", Slic3r::format(into_u8(_L_PLURAL("%1% printable color %2%", "%1% printable colors %2%", n_colors)),
                                                                      n_colors, from_filaments).c_str());
+                            // Two reasons the palette can hold fewer mixes than the setting asks for, and both
+                            // used to be silent, leaving the user raising a number that changed nothing. A
+                            // flat-color image is matched against the filaments alone, so it gets none at all;
+                            // otherwise the ranking stops once another mix would no longer noticeably improve
+                            // the match.
+                            const int n_mixes = std::max(0, n_colors - n_filaments);
+                            if (n_mixes < opts.color_mix_count) {
+                                const bool flat = std::any_of(mv->texture_displacement_layers.begin(),
+                                                              mv->texture_displacement_layers.end(),
+                                                              [](const TextureDisplacementLayer &l) {
+                                                                  return l.color_enabled && !l.empty() &&
+                                                                         height_texture_has_color(l) &&
+                                                                         analyze_texture_detail(l).flat_colors;
+                                                              });
+                                ImGui::PushTextWrapPos(content_rx - card_pad);
+                                ImGui::TextDisabled("%s", flat ?
+                                    _u8L("Flat-color image: each color prints in one filament, so no mixes are used.").c_str() :
+                                    Slic3r::format(_u8L("This texture uses %1% of them - more mixes would not "
+                                                        "change the result."), n_mixes).c_str());
+                                ImGui::PopTextWrapPos();
+                            }
                         }
                         if (int_row("##color_despeckle", _L("Denoise"), &opts.color_despeckle, 0, 6, "%d", card_pad,
                                     _L("Cleans up single stray triangles of the wrong color, which detail finer "
