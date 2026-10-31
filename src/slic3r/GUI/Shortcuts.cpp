@@ -163,6 +163,8 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(Search,            "search",             L("Search"),                                               GLOBAL, { 'F', CTRL }),
     SHORTCUT(SwitchView,        "switch_view",        L("Switch between Prepare/Preview"),                       CANVAS, { WXK_TAB }),
     SHORTCUT(CollapseSidebar,   "collapse_sidebar",   L("Collapse/Expand the sidebar"),                          CANVAS, { WXK_TAB, SHIFT }),
+    SHORTCUT(FocusNextPane,     "focus_next_pane",    L("Move focus to the next main pane"),                     GLOBAL, { WXK_F6 }),
+    SHORTCUT(FocusPreviousPane, "focus_previous_pane", L("Move focus to the previous main pane"),                GLOBAL, { WXK_F6, SHIFT }),
     // The jump-to-tab shortcuts have no default key, so users can bind the ones they want.
     SHORTCUT(GoToHome,          "go_to_home",         L("Go to the Home tab"),                                   GLOBAL, {}),
 #ifdef SLIC3R_CAD
