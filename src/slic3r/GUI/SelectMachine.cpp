@@ -36,7 +36,9 @@
 #include "libslic3r/MultiNozzleUtils.hpp" // filament-change-gap model for the best-position popup
 #include "BackgroundSlicingProcess.hpp"   // complete type for background_process().get_current_gcode_result()
 #include "DeviceCore/DevStorage.h"
+#include "ActivePrinterSession.hpp"
 #include "FilamentMapRowsView.hpp"        // collect_device_map_table_for_send (device-owned mapping)
+#include "SlotGridPanel.hpp"
 #include "libslic3r/PrintConfig.hpp"      // FilamentMappingProtocol
 
 #include <wx/event.h>
@@ -2620,6 +2622,8 @@ void SelectMachineDialog::on_cancel(wxCloseEvent &event)
 {
     if (m_mapping_popup.IsShown())
         m_mapping_popup.Dismiss();
+    if (m_slot_picker != nullptr && m_slot_picker->IsShown())
+        m_slot_picker->Dismiss();
 
     if (m_timelapse_check_timer)
         m_timelapse_check_timer->Stop();
@@ -3596,6 +3600,8 @@ void SelectMachineDialog::on_send_print()
 
     if (m_mapping_popup.IsShown())
         m_mapping_popup.Dismiss();
+    if (m_slot_picker != nullptr && m_slot_picker->IsShown())
+        m_slot_picker->Dismiss();
 
     if (m_print_type == PrintFromType::FROM_NORMAL && m_is_in_sending_mode)
         return;
@@ -3642,15 +3648,27 @@ void SelectMachineDialog::on_send_print()
 
     get_ams_mapping_result(ams_mapping_array,ams_mapping_array2, ams_mapping_info);
 
-    // Device-owned mapping (e.g. Snapmaker U1): ask for the pick before any export/upload starts.
+    // Device-owned mapping: the agent takes the map before the print starts. A toolchanger's map is
+    // the slot picked for each filament; any other printer is asked before export/upload starts.
     // Only FROM_NORMAL guarantees the edited preset matches the target printer.
     std::vector<int> device_map_table;
-    if (m_print_type == PrintFromType::FROM_NORMAL) {
-        const DynamicPrintConfig& target_printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-        const ConfigOption*       protocol_opt           = target_printer_config.option("filament_mapping_protocol");
-        if (protocol_opt != nullptr && protocol_opt->getInt() == (int) FilamentMappingProtocol::fmpSnapmaker) {
-            PartPlate*        part_plate      = m_plater->get_partplate_list().get_plate(m_print_plate_idx);
-            std::vector<int>  plate_filaments = part_plate ? part_plate->get_device_filaments() : std::vector<int>();
+    const NetworkAgent* print_agent = wxGetApp().getAgent();
+    if (m_print_type == PrintFromType::FROM_NORMAL && print_agent != nullptr && print_agent->supports_print_time_mapping()) {
+        PartPlate*       part_plate      = m_plater->get_partplate_list().get_plate(m_print_plate_idx);
+        std::vector<int> plate_filaments = part_plate ? part_plate->get_device_filaments() : std::vector<int>();
+        if (obj_->GetFilaSystem() && obj_->GetFilaSystem()->IsAllToolchanger() && obj_ == active_printer_session().live_machine()) {
+            device_map_table.assign(wxGetApp().preset_bundle->filament_presets.size(), 0);
+            for (const FilamentInfo& f : m_ams_mapping_result)
+                if (f.id >= 0 && size_t(f.id) < device_map_table.size() && f.tray_id >= 0)
+                    device_map_table[f.id] = f.tray_id + 1;
+            const bool all_picked = std::all_of(plate_filaments.begin(), plate_filaments.end(), [&](int filament) {
+                return filament >= 1 && size_t(filament) <= device_map_table.size() && device_map_table[filament - 1] > 0;
+            });
+            if (!all_picked) {
+                m_status_bar->set_status_text(_L("Pick a printer slot for every filament on this plate."));
+                return;
+            }
+        } else {
             auto picked = collect_device_map_table_for_send(this, plate_filaments, _L("Map filaments to tools"));
             if (!picked.has_value()) {
                 BOOST_LOG_TRIVIAL(info) << "print_job: filament map dialog canceled for send";
@@ -3659,6 +3677,9 @@ void SelectMachineDialog::on_send_print()
             }
             device_map_table = *picked;
         }
+        // The printer maps the g-code's tool numbers, which differ from project filaments under compaction.
+        if (const Print* sliced_print = part_plate ? part_plate->fff_print() : nullptr)
+            device_map_table = device_wire_filament_map(sliced_print->filament_compaction(), plate_filaments, device_map_table);
     }
 
     if (m_print_type == PrintFromType::FROM_NORMAL) {
@@ -5716,6 +5737,19 @@ void SelectMachineDialog::reset_and_sync_ams_list()
             DeviceManager *dev_manager = Slic3r::GUI::wxGetApp().getDeviceManager();
             if (!dev_manager) return;
             MachineObject *obj_ = dev_manager->get_selected_machine();
+            // Orca: toolchangers pick from the slot grid, as in the sync dialog; other machines keep
+            // the AMS popup.
+            if (obj_ && obj_->get_dev_id() == m_printer_last_select && obj_->GetFilaSystem() &&
+                obj_->GetFilaSystem()->IsAllToolchanger() && obj_ == active_printer_session().live_machine()) {
+                if (!m_slot_picker)
+                    m_slot_picker = new SlotPickPopup(this);
+                int current_slot = -1;
+                for (const FilamentInfo &f : m_ams_mapping_result)
+                    if (f.id == extruder)
+                        current_slot = f.tray_id;
+                m_slot_picker->PopupForFilament(this, item, extruder, current_slot);
+                return;
+            }
             m_mapping_popup.set_show_type(get_filament_mapping_show_type(obj_, extruder));
             if (obj_) {
                 if (m_mapping_popup.IsShown()) return;
