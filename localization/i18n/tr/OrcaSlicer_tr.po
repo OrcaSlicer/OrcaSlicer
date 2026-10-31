@@ -9821,7 +9821,7 @@ msgstr "Bazı yayınlanan ayarlar uygulanamadı:"
 msgid "Some filament slots were changed:"
 msgstr "Bazı filament yuvaları değiştirildi:"
 
-msgid "Component name(s) inside step file not in UTF-8 format!"
+msgid "Component name(s) inside STEP file not in UTF-8 format!"
 msgstr "Step dosyasındaki bileşenlerin adı UTF-8 formatında değil!"
 
 # AI Translated
@@ -23680,8 +23680,8 @@ msgid "Expecting a regular expression."
 msgstr "Bir düzenli ifade bekleniyordu."
 
 # AI Translated
-msgid "Invalid utf8 sequence"
-msgstr "Geçersiz utf8 dizisi"
+msgid "Invalid UTF-8 sequence"
+msgstr "Geçersiz UTF-8 dizisi"
 
 # AI Translated
 msgid "Non-ASCII7 characters are only allowed inside text blocks and string literals, not inside code blocks."
@@ -26539,7 +26539,7 @@ msgstr "s"
 msgid "Volumetric speed"
 msgstr "Hacimsel hız"
 
-msgid "Step file import parameters"
+msgid "STEP file import parameters"
 msgstr "Adım dosyası içe aktarma parametreleri"
 
 msgid "Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."
@@ -38029,18 +38029,18 @@ msgstr "%1% dosyasından çıkarılan yapılandırma değerlerinin sayısı şü
 
 # AI Translated
 msgid ""
-"Load step file failed.\n"
+"Load STEP file failed.\n"
 "Cannot open file for reading.\n"
 msgstr ""
 "STEP dosyası yüklenemedi.\n"
 "Dosya okuma için açılamıyor.\n"
 
 # AI Translated
-msgid "import svg failed: could not open svg."
+msgid "import SVG failed: could not open svg."
 msgstr "SVG içe aktarma başarısız oldu: SVG açılamadı."
 
 # AI Translated
-msgid "import svg failed: could not parse imported svg data."
+msgid "import SVG failed: could not parse imported svg data."
 msgstr "SVG içe aktarma başarısız oldu: içe aktarılan SVG verileri ayrıştırılamadı."
 
 # AI Translated
