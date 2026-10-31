@@ -1,0 +1,13 @@
+{
+    "type": "filament",
+    "name": "PET CF @base",
+    "from": "system",
+    "instantiation": "false",
+    "inherits": "fdm_filament_pet",
+    "filament_vendor": [
+        "3D-Fuel"
+    ],
+    "required_nozzle_HRC": [
+        "60"
+    ]
+}

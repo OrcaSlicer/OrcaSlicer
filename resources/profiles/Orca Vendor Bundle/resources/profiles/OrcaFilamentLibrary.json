@@ -1,0 +1,112 @@
+{
+    "name": "OrcaFilamentLibrary",
+    "version": "01.00.00.00",
+    "force_update": "0",
+    "description": "Orca Filament Library",
+    "filament_list": [
+        {
+            "name": "Standard PLA @base",
+            "sub_path": "filament/3D-Fuel/Standard PLA @base.json"
+        },
+        {
+            "name": "Standard PLA @System",
+            "sub_path": "filament/3D-Fuel/Standard PLA @System.json"
+        },
+        {
+            "name": "Tough Pro PLA @base",
+            "sub_path": "filament/3D-Fuel/Tough Pro PLA @base.json"
+        },
+        {
+            "name": "Tough Pro PLA @System",
+            "sub_path": "filament/3D-Fuel/Tough Pro PLA @System.json"
+        },
+        {
+            "name": "Pro PETG @base",
+            "sub_path": "filament/3D-Fuel/Pro PETG @base.json"
+        },
+        {
+            "name": "Pro PETG @System",
+            "sub_path": "filament/3D-Fuel/Pro PETG @System.json"
+        },
+        {
+            "name": "PET CF @base",
+            "sub_path": "filament/3D-Fuel/PET CF @base.json"
+        },
+        {
+            "name": "PET CF @System",
+            "sub_path": "filament/3D-Fuel/PET CF @System.json"
+        },
+        {
+            "name": "Pro PCTG @base",
+            "sub_path": "filament/3D-Fuel/Pro PCTG @base.json"
+        },
+        {
+            "name": "Pro PCTG @System",
+            "sub_path": "filament/3D-Fuel/Pro PCTG @System.json"
+        },
+        {
+            "name": "Pro PCTG-CF @base",
+            "sub_path": "filament/3D-Fuel/Pro PCTG-CF @base.json"
+        },
+        {
+            "name": "Pro PCTG-CF @System",
+            "sub_path": "filament/3D-Fuel/Pro PCTG-CF @System.json"
+        },
+        {
+            "name": "Pro PCTG Matte Black @base",
+            "sub_path": "filament/3D-Fuel/Pro PCTG Matte Black @base.json"
+        },
+        {
+            "name": "Pro PCTG Matte Black @System",
+            "sub_path": "filament/3D-Fuel/Pro PCTG Matte Black @System.json"
+        },
+        {
+            "name": "Pro PCTG-GF @base",
+            "sub_path": "filament/3D-Fuel/Pro PCTG-GF @base.json"
+        },
+        {
+            "name": "Pro PCTG-GF @System",
+            "sub_path": "filament/3D-Fuel/Pro PCTG-GF @System.json"
+        },
+        {
+            "name": "Standard PLA Refuel @base",
+            "sub_path": "filament/3D-Fuel/Standard PLA Refuel @base.json"
+        },
+        {
+            "name": "Standard PLA Refuel @System",
+            "sub_path": "filament/3D-Fuel/Standard PLA Refuel @System.json"
+        },
+        {
+            "name": "Tough Pro Refuel @base",
+            "sub_path": "filament/3D-Fuel/Tough Pro Refuel @base.json"
+        },
+        {
+            "name": "Tough Pro Refuel @System",
+            "sub_path": "filament/3D-Fuel/Tough Pro Refuel @System.json"
+        },
+        {
+            "name": "Pro PETG Refuel @base",
+            "sub_path": "filament/3D-Fuel/Pro PETG Refuel @base.json"
+        },
+        {
+            "name": "Pro PETG Refuel @System",
+            "sub_path": "filament/3D-Fuel/Pro PETG Refuel @System.json"
+        },
+        {
+            "name": "Pro PCTG Refuel @base",
+            "sub_path": "filament/3D-Fuel/Pro PCTG Refuel @base.json"
+        },
+        {
+            "name": "Pro PCTG Refuel @System",
+            "sub_path": "filament/3D-Fuel/Pro PCTG Refuel @System.json"
+        },
+        {
+            "name": "Pro PCTG-ESD @base",
+            "sub_path": "filament/3D-Fuel/Pro PCTG-ESD @base.json"
+        },
+        {
+            "name": "Pro PCTG-ESD @System",
+            "sub_path": "filament/3D-Fuel/Pro PCTG-ESD @System.json"
+        }
+    ]
+}

@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Standard PLA @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Standard PLA @base",
+    "compatible_printers": []
+}

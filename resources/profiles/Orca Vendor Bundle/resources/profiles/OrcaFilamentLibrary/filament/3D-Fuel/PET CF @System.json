@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "PET CF @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "PET CF @base",
+    "compatible_printers": []
+}

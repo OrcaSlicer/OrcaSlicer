@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Pro PCTG ESD @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Pro PCTG ESD @base",
+    "compatible_printers": []
+}

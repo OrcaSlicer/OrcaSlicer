@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Standard PLA Refuel @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Standard PLA Refuel @base",
+    "compatible_printers": []
+}

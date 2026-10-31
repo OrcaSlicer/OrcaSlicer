@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Tough Pro Refuel @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Tough Pro Refuel @base",
+    "compatible_printers": []
+}
