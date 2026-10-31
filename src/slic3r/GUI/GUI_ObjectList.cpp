@@ -703,6 +703,14 @@ void ObjectList::set_tooltip_for_item(const wxPoint& pt)
 #else
         tooltip = _(L("Click the icon to toggle printable properties of the object"));
 #endif //__WXMSW__
+    else if (col->GetModelColumn() == (unsigned int)colHeight) {
+        if (node->IsVaribaleHeight() == hiVariable)
+            tooltip = _L("Click the icon to edit variable layer height");
+    }
+    else if (col->GetModelColumn() == (unsigned int)colFilament) {
+        if (node->GetType() & (itObject | itVolume | itLayer))
+            tooltip = _L("Click to select filament color");
+    }
     // BBS
     else if (col->GetModelColumn() == (unsigned int)colSupportPaint) {
         if (node->HasSupportPainting())
