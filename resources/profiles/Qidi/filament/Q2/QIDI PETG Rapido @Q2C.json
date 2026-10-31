@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Rapido@Q2C-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_2_1_41",
+	"filament_id": "OF4S3To3",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"

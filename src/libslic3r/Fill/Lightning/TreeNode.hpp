@@ -4,14 +4,22 @@
 #ifndef LIGHTNING_TREE_NODE_H
 #define LIGHTNING_TREE_NODE_H
 
+#include <cstdint>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
+#include <random>
 #include <vector>
 
 #include "../../EdgeGrid.hpp"
 #include "../../Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "SVG.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Line.hpp"
 
 //#define LIGHTNING_TREE_NODE_DEBUG_OUTPUT
 
@@ -259,8 +267,9 @@ protected:
      * 
      * \param long_line a reference to a polyline in \p output which to continue building on in the recursion
      * \param output all branches in this tree connected into polylines
+     * \param rng the generator the junctions draw from, carried through the recursion
      */
-    void convertToPolylines(size_t long_line_idx, Polylines &output) const;
+    void convertToPolylines(size_t long_line_idx, Polylines &output, std::mt19937_64 &rng) const;
 
     void removeJunctionOverlap(Polylines &polylines, coord_t line_overlap) const;
 

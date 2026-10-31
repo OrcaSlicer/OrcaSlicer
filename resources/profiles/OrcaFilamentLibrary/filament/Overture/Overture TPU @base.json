@@ -3,7 +3,7 @@
 	"name": "Overture TPU @base",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"filament_id": "GFOT008",
+	"filament_id": "OFcvKkrs",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"100"

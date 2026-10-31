@@ -1,16 +1,21 @@
 #include "PythonPluginBridge.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 #include <exception>
+#include "libslic3r/LifecycleEvents.hpp"
 #include <memory>
 #include <mutex>
 #include <slic3r/plugin/PluginAuditManager.hpp>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <string>
 #include <unordered_map>
 
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <vector>
+#include <utility>
 
 #include "PythonInterpreter.hpp"
 #include "PluginFsUtils.hpp"
@@ -19,8 +24,14 @@
 #include "PyPluginPackage.hpp"
 #include "PyPluginTrampoline.hpp"
 #include "pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp"
+#include "pluginTypes/pages/PagesPluginCapability.hpp"
+#include "pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
 #include "pluginTypes/script/ScriptPluginCapability.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/gil.h>
+#include "slic3r/GUI/I18N.hpp"
+#include <nlohmann/json.hpp>
 
 namespace py = pybind11;
 
@@ -39,6 +50,7 @@ thread_local std::string g_active_plugin_key;
 std::mutex g_registry_mutex;
 std::unordered_map<std::string, std::vector<py::object>> g_pending_capabilities;
 std::unordered_map<std::string, py::object> g_pending_package;
+std::unordered_map<std::string, PluginPermissions> g_pending_permissions;
 struct PluginInstanceHandle
 {
     // The C++ plugin interface points into a Python object. Keep both alive through one
@@ -76,6 +88,8 @@ void discard_pending_capture_without_python(const std::string& plugin_key)
         (void) package->second.release();
         g_pending_package.erase(package);
     }
+
+    g_pending_permissions.erase(plugin_key);
 }
 
 } // namespace
@@ -100,34 +114,38 @@ void PythonPluginBridge::begin_plugin_capture(const std::string& plugin_key)
         // for this same entry path.
         g_pending_capabilities.erase(plugin_key);
         g_pending_package.erase(plugin_key);
+        g_pending_permissions.erase(plugin_key);
     }
     // From now until finalize/cancel, @orca.plugin and register_capability() calls made by
     // Python code on this thread are attributed to this plugin.
     g_active_plugin_key = plugin_key;
 }
 
-std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(const std::string& plugin_key, std::string& error)
+std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(const std::string& capture_key,
+                                                                              const std::string& plugin_key,
+                                                                              std::string&       error)
 {
     PythonGILState gil;
     if (!gil) {
         error = "Python interpreter is shutting down";
         return {};
     }
-    BOOST_LOG_TRIVIAL(info) << "Finalizing Python plugin capture for key " << plugin_key;
+    BOOST_LOG_TRIVIAL(info) << "Finalizing Python plugin capture for key " << capture_key;
 
     // Phase 1: run the package class's register_capabilities() while the active key is
     // still set. That method is expected to call orca.register_capability() once per
     // capability class, and register_capability() needs g_active_plugin_key to know which
     // pending bucket to append to.
     {
-        auto clear_active_key = [&plugin_key]() {
-            if (g_active_plugin_key == plugin_key)
+        auto clear_active_key = [&capture_key]() {
+            if (g_active_plugin_key == capture_key)
                 g_active_plugin_key.clear();
         };
-        auto discard_pending_for_key = [&plugin_key]() {
+        auto discard_pending_for_key = [&capture_key]() {
             std::lock_guard<std::mutex> lock(g_registry_mutex);
-            g_pending_capabilities.erase(plugin_key);
-            g_pending_package.erase(plugin_key);
+            g_pending_capabilities.erase(capture_key);
+            g_pending_package.erase(capture_key);
+            g_pending_permissions.erase(capture_key);
         };
 
         try {
@@ -137,7 +155,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             py::object package_cls;
             {
                 std::lock_guard<std::mutex> lock(g_registry_mutex);
-                auto it = g_pending_package.find(plugin_key);
+                auto it = g_pending_package.find(capture_key);
                 if (it != g_pending_package.end()) {
                     package_cls = it->second;
                     g_pending_package.erase(it);
@@ -156,6 +174,37 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             // are kept.
             py::object package = package_cls();
             package.attr("register_capabilities")();
+
+            // Permission declarations are collected while register_capabilities() runs so the
+            // plugin can describe its needs without touching wx from the Python load worker. Ask
+            // only after registration returns, before capability instances are materialized.
+            PluginPermissions requested_permissions;
+            {
+                std::lock_guard<std::mutex> lock(g_registry_mutex);
+                auto it = g_pending_permissions.find(capture_key);
+                if (it != g_pending_permissions.end()) {
+                    requested_permissions = std::move(it->second);
+                    g_pending_permissions.erase(it);
+                }
+            }
+            const bool has_permission_request =
+                !requested_permissions.fs_read.empty() || !requested_permissions.fs_readwrite.empty() ||
+                !requested_permissions.network_http.empty() || !requested_permissions.network_socket.empty() ||
+                !requested_permissions.process.empty() || !requested_permissions.threading.empty();
+            if (has_permission_request) {
+                bool granted = false;
+                {
+                    py::gil_scoped_release release;
+                    granted = PluginAuditManager::instance().request_permissions(plugin_key, requested_permissions);
+                }
+                if (!granted) {
+                    error = _u8L("Plugin permission request denied");
+                    BOOST_LOG_TRIVIAL(warning) << error << " for key " << plugin_key;
+                    discard_pending_for_key();
+                    clear_active_key();
+                    return {};
+                }
+            }
         } catch (py::error_already_set& err) {
             log_python_exception_keep(err);
             error = err.what();
@@ -179,7 +228,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
     std::vector<py::object> classes;
     {
         std::lock_guard<std::mutex> lock(g_registry_mutex);
-        auto it = g_pending_capabilities.find(plugin_key);
+        auto it = g_pending_capabilities.find(capture_key);
         if (it != g_pending_capabilities.end()) {
             classes = std::move(it->second);
             g_pending_capabilities.erase(it);
@@ -188,10 +237,10 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
 
     // Registration is complete. Later register_capability() calls should fail instead of
     // accidentally attaching themselves to this plugin.
-    if (g_active_plugin_key == plugin_key)
+    if (g_active_plugin_key == capture_key)
         g_active_plugin_key.clear();
 
-    BOOST_LOG_TRIVIAL(info) << "Collected " << classes.size() << " registered capability class(es) for key " << plugin_key;
+    BOOST_LOG_TRIVIAL(info) << "Collected " << classes.size() << " registered capability class(es) for key " << capture_key;
 
     std::vector<CapturedCapability> capabilities;
     capabilities.reserve(classes.size());
@@ -203,7 +252,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             py::object instance = cls();
             if (!py::isinstance<PluginCapabilityInterface>(instance)) {
                 error = "Registered capability must inherit from a PluginCapability base";
-                BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed type check for key " << plugin_key
+                BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed type check for key " << capture_key
                                          << " error=" << error;
                 return {};
             }
@@ -211,7 +260,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             auto capability_iface = instance.cast<std::shared_ptr<PluginCapabilityInterface>>();
             if (!capability_iface) {
                 error = "Failed to cast Python capability to PluginCapabilityInterface";
-                BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed cast for key " << plugin_key
+                BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed cast for key " << capture_key
                                          << " error=" << error;
                 return {};
             }
@@ -225,7 +274,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             // here is a hard error that rejects the whole plugin capture.
             if (name.find(';') != std::string::npos) {
                 error = "Capability name must not contain ';': " + name;
-                BOOST_LOG_TRIVIAL(error) << "Python plugin capture rejected capability for key " << plugin_key
+                BOOST_LOG_TRIVIAL(error) << "Python plugin capture rejected capability for key " << capture_key
                                          << " error=" << error;
                 return {};
             }
@@ -245,12 +294,12 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             // log the traceback here. GIL is held for the duration of finalize_plugin_capture.
             log_python_exception_keep(err);
             error = err.what();
-            BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised Python exception for key " << plugin_key
+            BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised Python exception for key " << capture_key
                                      << " error=" << error;
             return {};
         } catch (const std::exception& ex) {
             error = ex.what();
-            BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised exception for key " << plugin_key
+            BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised exception for key " << capture_key
                                      << " error=" << error;
             return {};
         }
@@ -278,6 +327,7 @@ void PythonPluginBridge::cancel_plugin_capture(const std::string& plugin_key)
         // may already have registered under this key.
         g_pending_capabilities.erase(plugin_key);
         g_pending_package.erase(plugin_key);
+        g_pending_permissions.erase(plugin_key);
     }
 
     if (g_active_plugin_key == plugin_key)
@@ -304,6 +354,7 @@ void PythonPluginBridge::clear_pending_captures()
             (void) pkg.release();
         }
         g_pending_package.clear();
+        g_pending_permissions.clear();
         g_active_plugin_key.clear();
         return;
     }
@@ -312,6 +363,7 @@ void PythonPluginBridge::clear_pending_captures()
     BOOST_LOG_TRIVIAL(info) << "Clearing " << g_pending_capabilities.size() << " pending Python plugin capture(s)";
     g_pending_capabilities.clear();
     g_pending_package.clear();
+    g_pending_permissions.clear();
     g_active_plugin_key.clear();
 }
 
@@ -319,17 +371,18 @@ void bind_python_api(pybind11::module_& m)
 {
     m.doc() = "OrcaSlicer plugin API";
 
-    auto pluginTypes = py::enum_<PluginCapabilityType>(m, "PluginType", "Available plugin capability groups")
-                           .value("PrinterConnection", PluginCapabilityType::PrinterConnection)
-                           .value("Automation", PluginCapabilityType::Automation)
-                           .value("Analysis", PluginCapabilityType::Analysis)
-                           .value("Importer", PluginCapabilityType::Importer)
-                           .value("Exporter", PluginCapabilityType::Exporter)
-                           .value("Visualization", PluginCapabilityType::Visualization)
-                           .value("Script", PluginCapabilityType::Script)
-                           .value("SlicingPipeline", PluginCapabilityType::SlicingPipeline)
-                           .value("Unknown", PluginCapabilityType::Unknown)
-                           .export_values();
+    py::enum_<PluginCapabilityType>(m, "PluginType", "Available plugin capability groups")
+        .value("PrinterConnection", PluginCapabilityType::PrinterConnection)
+        .value("Pages", PluginCapabilityType::Pages)
+        .value("Analysis", PluginCapabilityType::Analysis)
+        .value("Importer", PluginCapabilityType::Importer)
+        .value("Exporter", PluginCapabilityType::Exporter)
+        .value("Visualization", PluginCapabilityType::Visualization)
+        .value("Script", PluginCapabilityType::Script)
+        .value("SlicingPipeline", PluginCapabilityType::SlicingPipeline)
+        .value("ResourceTexture", PluginCapabilityType::ResourceTexture)
+        .value("Unknown", PluginCapabilityType::Unknown)
+        .export_values();
 
     py::enum_<PluginResult>(m, "PluginResult", "Execution summary code")
         .value("Success", PluginResult::Success)
@@ -337,6 +390,61 @@ void bind_python_api(pybind11::module_& m)
         .value("RecoverableError", PluginResult::RecoverableError)
         .value("FatalError", PluginResult::FatalError)
         .export_values();
+
+    py::enum_<LifecycleEvent>(m, "LifecycleEvent", "Application lifecycle moment passed to on_lifecycle_event")
+        .value("NewProject", LifecycleEvent::NewProject)
+        .value("ProjectOpened", LifecycleEvent::ProjectOpened)
+        .value("ProjectBeforeSave", LifecycleEvent::ProjectBeforeSave)
+        .value("ProjectAfterSave", LifecycleEvent::ProjectAfterSave)
+        .value("ProjectClosed", LifecycleEvent::ProjectClosed)
+        .value("ProjectDirtyChanged", LifecycleEvent::ProjectDirtyChanged)
+        .value("SliceStarted", LifecycleEvent::SliceStarted)
+        .value("SliceGeometryFinished", LifecycleEvent::SliceGeometryFinished)
+        .value("GCodeExportStarted", LifecycleEvent::GCodeExportStarted)
+        .value("GCodeExportFinished", LifecycleEvent::GCodeExportFinished)
+        .value("SlicingJobComplete", LifecycleEvent::SlicingJobComplete)
+        .value("ObjectAdded", LifecycleEvent::ObjectAdded)
+        .value("ObjectDeleted", LifecycleEvent::ObjectDeleted)
+        .value("ObjectTransformed", LifecycleEvent::ObjectTransformed)
+        .value("ObjectChanged", LifecycleEvent::ObjectChanged)
+        .value("ObjectRenamed", LifecycleEvent::ObjectRenamed)
+        .value("PlateCreated", LifecycleEvent::PlateCreated)
+        .value("PlateDeleted", LifecycleEvent::PlateDeleted)
+        .value("PlateSelected", LifecycleEvent::PlateSelected)
+        .value("PlateRenamed", LifecycleEvent::PlateRenamed)
+        .value("PresetSelected", LifecycleEvent::PresetSelected)
+        .value("PresetSaved", LifecycleEvent::PresetSaved)
+        .value("PrintStateChanged", LifecycleEvent::PrintStateChanged)
+        .value("DeviceOnline", LifecycleEvent::DeviceOnline)
+        .value("DeviceOffline", LifecycleEvent::DeviceOffline)
+        .value("DeviceDiscovered", LifecycleEvent::DeviceDiscovered)
+        .value("DeviceSelected", LifecycleEvent::DeviceSelected)
+        .value("UploadStarted", LifecycleEvent::UploadStarted)
+        .value("UploadFinished", LifecycleEvent::UploadFinished)
+        .value("PrintJobStarted", LifecycleEvent::PrintJobStarted)
+        .value("PrintJobFinished", LifecycleEvent::PrintJobFinished)
+        .value("SendJobStarted", LifecycleEvent::SendJobStarted)
+        .value("SendJobFinished", LifecycleEvent::SendJobFinished)
+        .export_values();
+
+    py::enum_<LifecycleEvtCode>(m, "LifecycleEvtCode", "Outcome code accompanying a LifecycleEventContext")
+        .value("Ok", LifecycleEvtCode::Ok)
+        .value("Error", LifecycleEvtCode::Error)
+        .value("Warn", LifecycleEvtCode::Warn)
+        .export_values();
+
+    py::class_<LifecycleEventContext>(m, "LifecycleEventContext", "Payload accompanying a LifecycleEvent")
+        .def(py::init<>())
+        .def_readonly("name", &LifecycleEventContext::name)
+        .def_readonly("code", &LifecycleEventContext::code)
+        .def_readonly("msg", &LifecycleEventContext::msg)
+        .def_readonly("id", &LifecycleEventContext::id)
+        .def_readonly("previous_name", &LifecycleEventContext::previous_name)
+        .def_readonly("device_id", &LifecycleEventContext::device_id)
+        .def_readonly("job_id", &LifecycleEventContext::job_id)
+        .def_readonly("source", &LifecycleEventContext::source)
+        .def_readonly("index", &LifecycleEventContext::index)
+        .def_readonly("dirty", &LifecycleEventContext::dirty);
 
     py::class_<PluginContext>(m, "PluginContext", "Context shared with plugin entry points")
         .def(py::init<>())
@@ -362,6 +470,9 @@ void bind_python_api(pybind11::module_& m)
         .def("get_type", &PluginCapabilityInterface::get_type)
         .def("on_load", &PluginCapabilityInterface::on_load)
         .def("on_unload", &PluginCapabilityInterface::on_unload)
+        .def("on_lifecycle_event", &PluginCapabilityInterface::on_lifecycle_event,
+             "Override to react to an application lifecycle moment (LifecycleEvent) and its\n"
+             "LifecycleEventContext payload. Available on every capability type.")
         .def("has_config_ui", &PluginCapabilityInterface::has_config_ui,
              "Override to return True to replace the host's default JSON editor with your own HTML\n"
              "UI, returned by get_config_ui(). Every capability is configurable and appears in the\n"
@@ -419,9 +530,11 @@ void bind_python_api(pybind11::module_& m)
     BOOST_LOG_TRIVIAL(debug) << "Registering embedded Python plugin type bindings";
 
     // Make sure you register your bindings here
-    PrinterAgentPluginCapability::RegisterBindings(m, pluginTypes);
-    ScriptPluginCapability::RegisterBindings(m, pluginTypes);
-    SlicingPipelinePluginCapability::RegisterBindings(m, pluginTypes);
+    PrinterAgentPluginCapability::RegisterBindings(m);
+    PagesPluginCapability::RegisterBindings(m);
+    ScriptPluginCapability::RegisterBindings(m);
+    SlicingPipelinePluginCapability::RegisterBindings(m);
+    ResourceTexturePluginCapability::RegisterBindings(m);
     PluginHost::RegisterBindings(m);
     BOOST_LOG_TRIVIAL(debug) << "Registered ScriptPluginCapability Python bindings";
 
@@ -448,6 +561,95 @@ void bind_python_api(pybind11::module_& m)
         },
         R"pbdoc(Register a PluginCapability subclass while OrcaSlicer loads your module.)pbdoc");
 
+    m.def(
+        "request_permissions",
+        [](const std::vector<std::string>& fs_read,
+           const std::vector<std::string>& fs_readwrite,
+           const std::vector<std::string>& network_http,
+           const std::vector<std::string>& network_socket,
+           const std::vector<std::string>& process,
+           bool                            threading,
+           const std::vector<std::string>& network) {
+            if (g_active_plugin_key.empty())
+                throw py::value_error("request_permissions() called outside plugin discovery context");
+
+            // Validate and canonicalize everything before touching the pending registry, so a
+            // partially invalid call cannot leave a half-recorded request behind.
+            const auto reject_empty = [](const char* name, const std::vector<std::string>& targets) {
+                for (const std::string& target : targets)
+                    if (target.empty())
+                        throw py::value_error(std::string("request_permissions(") + name +
+                                              "=...) does not accept empty values");
+            };
+            reject_empty("fs_read", fs_read);
+            reject_empty("fs_readwrite", fs_readwrite);
+            reject_empty("network_http", network_http);
+            reject_empty("network_socket", network_socket);
+            reject_empty("process", process);
+
+            // A network URL is reduced to scheme://host, so one grant covers every path, query
+            // and port on that host. It is recorded as an HTTP grant; network_permission_matches
+            // applies that grant to raw socket events for the same host too.
+            std::vector<std::string> normalized_network;
+            normalized_network.reserve(network.size());
+            for (const std::string& url : network) {
+                const std::string normalized = PluginAuditManager::normalize_network_url(url);
+                if (normalized.empty())
+                    throw py::value_error(
+                        "request_permissions(network=...) requires an http:// or https:// URL with a host");
+                if (std::find(normalized_network.begin(), normalized_network.end(), normalized) ==
+                    normalized_network.end())
+                    normalized_network.push_back(normalized);
+            }
+
+            std::lock_guard<std::mutex> lock(g_registry_mutex);
+            PluginPermissions& requested = g_pending_permissions[g_active_plugin_key];
+
+            const auto add_targets = [](std::vector<std::string>& bucket, const std::vector<std::string>& targets) {
+                for (const std::string& target : targets)
+                    if (std::find(bucket.begin(), bucket.end(), target) == bucket.end())
+                        bucket.push_back(target);
+            };
+
+            add_targets(requested.fs_read, fs_read);
+            add_targets(requested.fs_readwrite, fs_readwrite);
+            add_targets(requested.network_http, network_http);
+            add_targets(requested.network_http, normalized_network);
+            add_targets(requested.network_socket, network_socket);
+            add_targets(requested.process, process);
+
+            if (threading && std::find(requested.threading.begin(), requested.threading.end(),
+                                       kThreadPermissionTarget) == requested.threading.end())
+                requested.threading.emplace_back(kThreadPermissionTarget);
+        },
+        py::arg("fs_read") = std::vector<std::string>{},
+        py::arg("fs_readwrite") = std::vector<std::string>{},
+        py::arg("network_http") = std::vector<std::string>{},
+        py::arg("network_socket") = std::vector<std::string>{},
+        py::arg("process") = std::vector<std::string>{},
+        py::arg("threading") = false,
+        py::arg("network") = std::vector<std::string>{},
+        R"pbdoc(Request permissions while OrcaSlicer loads your module.
+
+Each bucket takes the target strings the plugin expects the corresponding audit event to
+report: filesystem paths for fs_read and fs_readwrite, URLs for network_http, socket addresses
+for network_socket, and commands for process. threading=True requests permission to start
+threads. Targets already granted to the plugin are not asked for again.
+
+A filesystem target may end in "/*" to grant a whole directory tree, for example
+"/path/to/folder/*". That covers the folder itself and every path beneath it, at any depth.
+"*" is the only wildcard and is recognized only as the final path component; a "*" anywhere
+else in a target is an ordinary character. Wildcards apply to fs_read and fs_readwrite only,
+and a grant in one of those buckets never authorizes the other direction. Tree grants are
+matched on canonical paths, so a symlink below the granted folder does not extend the grant
+outside it. Paths the host denies by name or keyword stay denied even when a wildcard covers
+them.
+
+`network` also lists http(s) URLs, but each is reduced to its scheme and host, so one grant covers
+every path, query and port on that host and also authorizes raw socket events for it. The host
+presents one request to the user after register_capabilities() returns and before any capability
+instance is created. Denying the request aborts the plugin load.)pbdoc");
+
     m.def("plugin", [](py::object cls) {
         if (g_active_plugin_key.empty())
             throw py::value_error("@orca.plugin used outside plugin discovery context");
@@ -472,6 +674,93 @@ void bind_python_api(pybind11::module_& m)
         return cls; // decorator returns the class unchanged
     }, R"pbdoc(Mark the single plugin package class (the orca.base subclass) for this file.)pbdoc");
 
+}
+
+void install_python_thread_audit_shim()
+{
+    // Runs with the GIL held from PythonInterpreter::initialize(). CPython's own thread bootstrap
+    // calls the target with no knowledge of the audit context that created it: the calling
+    // thread is the only place the plugin key and capability are still available. Capture them
+    // here, then re-establish the same ScopedPluginAuditContext inside the spawned thread before
+    // the plugin body runs. The identity lives only in this C++ closure -- no Python-visible
+    // setter is added.
+    try {
+        py::object thread_module = py::module_::import("_thread");
+
+        const int installed = PyObject_HasAttrString(thread_module.ptr(), "_orca_thread_audit_shim_installed");
+        if (installed == 1) {
+            BOOST_LOG_TRIVIAL(debug) << "[AUDIT] Python thread attribution shim already installed";
+            return;
+        }
+        if (installed < 0)
+            PyErr_Clear();
+
+        py::object original = py::reinterpret_steal<py::object>(
+            PyObject_GetAttrString(thread_module.ptr(), "start_new_thread"));
+        if (!original || !PyCallable_Check(original.ptr())) {
+            PyErr_Clear();
+            BOOST_LOG_TRIVIAL(error) << "[AUDIT] _thread.start_new_thread is missing or not callable; "
+                                        "plugin threads will run without audit attribution";
+            return;
+        }
+
+        py::object shim = py::cpp_function(
+            [original](py::object function, py::object args, py::object kwargs) -> py::object {
+                const std::string plugin_key  = PluginAuditManager::instance().current_plugin();
+                if (plugin_key.empty()) {
+                    // Not called from a plugin: preserve the stock implementation untouched.
+                    return kwargs.is_none() ? original(function, args) : original(function, args, kwargs);
+                }
+                const std::string capability = PluginAuditManager::instance().current_capability();
+
+                py::object guarded = py::cpp_function(
+                    [function, plugin_key, capability](py::args call_args, py::kwargs call_kwargs) -> py::object {
+                        ScopedPluginAuditContext audit_scope(plugin_key, capability);
+                        PyObject* result = PyObject_Call(function.ptr(), call_args.ptr(), call_kwargs.ptr());
+                        if (result == nullptr)
+                            throw py::error_already_set();
+                        return py::reinterpret_steal<py::object>(result);
+                    });
+                return kwargs.is_none() ? original(guarded, args) : original(guarded, args, kwargs);
+            },
+            py::arg("function"), py::arg("args"), py::arg("kwargs") = py::none());
+
+        if (PyObject_SetAttrString(thread_module.ptr(), "start_new_thread", shim.ptr()) < 0) {
+            PyErr_Clear();
+            BOOST_LOG_TRIVIAL(error)
+                << "[AUDIT] Failed to install Python thread attribution shim on _thread.start_new_thread";
+            return;
+        }
+        if (PyObject_SetAttrString(thread_module.ptr(), "_orca_thread_audit_shim_installed", Py_True) < 0)
+            PyErr_Clear();
+
+        // threading.py caches the function at import time (as `_start_new_thread` in 3.12, and as
+        // `start_new_thread` in older versions). Patch the cached reference too when the module is
+        // already loaded; otherwise its Thread.start() would keep calling the unwrapped original.
+        py::object sys_modules = py::module_::import("sys").attr("modules");
+        PyObject*  threading_module = PyDict_GetItemString(sys_modules.ptr(), "threading");
+        if (threading_module && threading_module != Py_None) {
+            const char* cached_names[] = {"_start_new_thread", "start_new_thread"};
+            for (const char* cached_name : cached_names) {
+                const int has_cached_name = PyObject_HasAttrString(threading_module, cached_name);
+                if (has_cached_name < 0) {
+                    PyErr_Clear();
+                    continue;
+                }
+                if (has_cached_name != 1)
+                    continue;
+                if (PyObject_SetAttrString(threading_module, cached_name, shim.ptr()) < 0) {
+                    PyErr_Clear();
+                    BOOST_LOG_TRIVIAL(warning) << "[AUDIT] Failed to update threading." << cached_name
+                                               << " with the Python thread attribution shim";
+                }
+            }
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "[AUDIT] Python thread attribution shim installed";
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT] Failed to install Python thread attribution shim: " << ex.what();
+    }
 }
 
 } // namespace Slic3r

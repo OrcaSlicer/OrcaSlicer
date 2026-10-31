@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Starlight @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFL67",
+	"filament_id": "OFIxOuOu",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

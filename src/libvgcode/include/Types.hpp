@@ -5,6 +5,7 @@
 #ifndef VGCODE_TYPES_HPP
 #define VGCODE_TYPES_HPP
 
+#include <cstddef>
 #define VGCODE_ENABLE_COG_AND_TOOL_MARKERS 0
 
 #include <array>
@@ -37,6 +38,8 @@ static constexpr float MAX_WIPES_RADIUS_MM = 1.0f;
 // Used for positions, displacements and so on.
 //
 using Vec3 = std::array<float, 3>;
+// ORCA: the per vertex data uploaded as GL_RGBA32F, see extract_pos_and_or_hwa().
+using Vec4 = std::array<float, 4>;
 
 //
 // 4x4 square matrix with elements in column-major order:
@@ -59,6 +62,13 @@ using Color = std::array<uint8_t, 3>;
 // Color palette
 //
 using Palette = std::vector<Color>;
+
+//
+// ORCA: RGB color and opacity, 255 is opaque. Filament colors can be translucent.
+// [3] -> alpha
+//
+using ColorWithAlpha = std::array<uint8_t, 4>;
+using PaletteWithAlpha = std::vector<ColorWithAlpha>;
 
 //
 // Axis aligned box in 3 dimensions

@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Pro @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM019",
+	"filament_id": "OFF9OKoY",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

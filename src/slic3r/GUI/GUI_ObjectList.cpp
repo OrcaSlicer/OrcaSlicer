@@ -1,14 +1,18 @@
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Factories.hpp"
 //#include "GUI_ObjectLayers.hpp"
 #include "GUI_App.hpp"
+#include "Shortcuts.hpp"
 #include "I18N.hpp"
 #include "Plater.hpp"
 #include "BitmapComboBox.hpp"
 #include "MainFrame.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 
 #include "OptionsGroup.hpp"
 #include "Tab.hpp"
@@ -23,18 +27,73 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "SingleChoiceDialog.hpp"
 #include "StepMeshDialog.hpp"
+#include "PrimitiveSizeDialog.hpp"
 
 
+#include "slic3r/GUI/Event.hpp"
+#include "libslic3r/Config.hpp"
+#include <string>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <cstddef>
+#include "slic3r/GUI/ExtraRenderers.hpp"
+#include <cassert>
+#include <algorithm>
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <memory>
+#include <iterator>
+#include "slic3r/GUI/GLToolbar.hpp"
+#include <optional>
+#include <cstdlib>
+#include <utility>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Point.hpp"
+#include <boost/algorithm/string/predicate.hpp>
+#include "libslic3r/LocalesUtils.hpp"
+#include <exception>
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/GUI_ObjectLayers.hpp"
+#include <map>
+#include <set>
+#include "libslic3r/BrimEarsPoint.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/GUI_ObjectSettings.hpp"
+#include <cmath>
+#include "slic3r/GUI/GUI_Utils.hpp"
 #include <vector>
 #include <unordered_map>
 #include <functional>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/log/trivial.hpp>
+#include <wx/arrstr.h>
+#include <wx/dc.h>
+#include <wx/gdicmn.h>
+#include <wx/colour.h>
+#include <wx/dataview.h>
+#include <wx/event.h>
+#include <wx/dvrenderers.h>
+#include <wx/chartype.h>
+#include <wx/dataobj.h>
+#include <wx/dnd.h>
+#include <wx/busycursor.h>
+#include <wx/msgdlg.h>
+#include <wx/accel.h>
+#include <wx/app.h>
 #include <wx/progdlg.h>
 #include <wx/listbook.h>
 #include <wx/numformatter.h>
+#include <wx/string.h>
+#include <wx/setup.h>
+#include <wx/settings.h>
 #include <wx/utils.h>
 #include <wx/headerctrl.h>
+#include <wx/window.h>
 
 #include "slic3r/Utils/FixModelByCgal.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
@@ -46,8 +105,12 @@
 #include <wx/renderer.h>
 #endif /* __WXMSW__ */
 #include "Gizmos/GLGizmoScale.hpp"
+#include "Gizmos/GLGizmosManager.hpp"
 
 #include "libslic3r/TriangleMeshDeal.hpp"
+
+class wxMenu;
+namespace Slic3r { class Step; }
 namespace Slic3r
 {
 namespace GUI
@@ -245,56 +308,15 @@ ObjectList::ObjectList(wxWindow* parent) :
     // Key events are not correctly processed by the wxDataViewCtrl on OSX.
     // Our patched wxWidgets process the keyboard accelerators.
     // On the other hand, using accelerators will break in-place editing on Windows & Linux/GTK (there is no in-place editing working on OSX for wxDataViewCtrl for now).
-//    Bind(wxEVT_KEY_DOWN, &ObjectList::OnChar, this);
-    {
-        // Accelerators
-        // 	wxAcceleratorEntry entries[25];
-        wxAcceleratorEntry entries[26];
-        int index = 0;
-        entries[index++].Set(wxACCEL_CTRL, (int)'C', wxID_COPY);
-        entries[index++].Set(wxACCEL_CTRL, (int)'X', wxID_CUT);
-        entries[index++].Set(wxACCEL_CTRL, (int)'V', wxID_PASTE);
-        entries[index++].Set(wxACCEL_CTRL, (int)'M', wxID_DUPLICATE);
-        entries[index++].Set(wxACCEL_CTRL, (int)'A', wxID_SELECTALL);
-        entries[index++].Set(wxACCEL_CTRL, (int)'Z', wxID_UNDO);
-        entries[index++].Set(wxACCEL_CTRL, (int)'Y', wxID_REDO);
-        entries[index++].Set(wxACCEL_NORMAL, WXK_BACK, wxID_DELETE);
-        //entries[index++].Set(wxACCEL_NORMAL, int('+'), wxID_ADD);
-        //entries[index++].Set(wxACCEL_NORMAL, WXK_NUMPAD_ADD, wxID_ADD);
-        //entries[index++].Set(wxACCEL_NORMAL, int('-'), wxID_REMOVE);
-        //entries[index++].Set(wxACCEL_NORMAL, WXK_NUMPAD_SUBTRACT, wxID_REMOVE);
-        //entries[index++].Set(wxACCEL_NORMAL, int('p'), wxID_PRINT);
-
-        int numbers_cnt = 0;
-        for (auto char_number : { '1', '2', '3', '4', '5', '6', '7', '8', '9' }) {
-            entries[index + numbers_cnt].Set(wxACCEL_NORMAL, int(char_number), wxID_LAST + numbers_cnt+1);
-            entries[index + 9 + numbers_cnt].Set(wxACCEL_NORMAL, WXK_NUMPAD0 + numbers_cnt - 1, wxID_LAST + numbers_cnt+1);
-            numbers_cnt++;
-            // index++;
-        }
-        wxAcceleratorTable accel(26, entries);
-        SetAcceleratorTable(accel);
-
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->copy();                      }, wxID_COPY);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->paste();                     }, wxID_PASTE);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->select_item_all_children();  }, wxID_SELECTALL);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->remove();                    }, wxID_DELETE);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->undo();  					}, wxID_UNDO);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->redo();                    	}, wxID_REDO);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->cut();                    	}, wxID_CUT);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->clone();                    	}, wxID_DUPLICATE);
-        //this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->increase_instances();        }, wxID_ADD);
-        //this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->decrease_instances();        }, wxID_REMOVE);
-        //this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->toggle_printable_state();    }, wxID_PRINT);
-
-        for (int i = 1; i < 10; i++)
-            this->Bind(wxEVT_MENU, [this, i](wxCommandEvent &evt) {
-                if (filaments_count() > 1 && i <= filaments_count())
-                    this->set_extruder_for_selected_items(i);
-            }, wxID_LAST+i);
-
-        m_accel = accel;
-    }
+    m_shortcut_id_base = wxWindow::NewControlId(int(Shortcut::Count));
+    for (size_t i = 0; i < size_t(Shortcut::Count); ++i)
+        this->Bind(wxEVT_MENU, [this, shortcut = Shortcut(i)](wxCommandEvent&) { dispatch_shortcut(shortcut); }, m_shortcut_id_base + int(i));
+    for (int i = 1; i < 10; i++)
+        this->Bind(wxEVT_MENU, [this, i](wxCommandEvent &evt) {
+            if (filaments_count() > 1 && i <= filaments_count())
+                this->set_extruder_for_selected_items(i);
+        }, wxID_LAST+i);
+    update_shortcut_accelerators();
 #else //__WXOSX__
     Bind(wxEVT_CHAR, [this](wxKeyEvent& event) { key_event(event); }); // doesn't work on OSX
 #endif
@@ -1092,7 +1114,7 @@ void ObjectList::update_name_column_width() const
         }
     }
 
-    GetColumn(colName)->SetWidth(max(0, client_size.x - (others_width)*em));
+    GetColumn(colName)->SetWidth(std::max(0, client_size.x - (others_width)*em));
 }
 
 void ObjectList::set_filament_column_hidden(const bool hide) const
@@ -1180,10 +1202,7 @@ void ObjectList::update_name_in_model(const wxDataViewItem& item) const
         int plate_idx = -1;
         const ItemType type0 = m_objects_model->GetItemType(item, plate_idx);
         if (plate_idx >= 0) {
-            auto plate = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx);
-            if (plate->get_plate_name() != name) {
-                plate->set_plate_name(name);
-            }
+            wxGetApp().plater()->rename_plate(plate_idx, name);
             m_objects_model->SetCurSelectedPlateFullName(plate_idx, name);
         }
         return;
@@ -1199,17 +1218,39 @@ void ObjectList::update_name_in_model(const wxDataViewItem& item) const
     if (m_objects_model->GetItemType(item) & itObject) {
         std::string name = m_objects_model->GetName(item).ToUTF8().data();
         if (obj->name != name) {
+            const std::string previous_name = obj->name;
             obj->name = name;
             // if object has just one volume, rename this volume too
             if (obj->volumes.size() == 1)
                 obj->volumes[0]->name = obj->name;
             Slic3r::save_object_mesh(*obj);
+
+            LifecycleEventContext ctx;
+            ctx.name = name;
+            ctx.previous_name = previous_name;
+            ctx.id = std::to_string(obj->id().id);
+            ctx.index = obj_idx;
+            ctx.source = "object";
+            fire_lifecycle_event(LifecycleEvent::ObjectRenamed, ctx);
         }
         return;
     }
 
     if (volume_id < 0) return;
-    obj->volumes[volume_id]->name = m_objects_model->GetName(item).ToUTF8().data();
+    std::string name = m_objects_model->GetName(item).ToUTF8().data();
+    if (obj->volumes[volume_id]->name == name)
+        return;
+
+    const std::string previous_name = obj->volumes[volume_id]->name;
+    obj->volumes[volume_id]->name = name;
+
+    LifecycleEventContext ctx;
+    ctx.name = name;
+    ctx.previous_name = previous_name;
+    ctx.id = std::to_string(obj->volumes[volume_id]->id().id);
+    ctx.index = volume_id;
+    ctx.source = "volume";
+    fire_lifecycle_event(LifecycleEvent::ObjectRenamed, ctx);
 }
 
 void ObjectList::update_name_in_list(int obj_idx, int vol_idx) const
@@ -1579,8 +1620,10 @@ void ObjectList::list_manipulation(const wxPoint& mouse_pos, bool evt_context_me
             int obj_idx, vol_idx;
             get_selected_item_indexes(obj_idx, vol_idx, item);
             if (obj_idx != -1) {
-                Plater::TakeSnapshot(plater, _u8L("Shift objects to bed"));
-                (*m_objects)[obj_idx]->ensure_on_bed();
+                Plater::TakeSnapshot snapshot(plater, _u8L("Shift objects to bed"));
+                // Shift on request also when auto drop is off, which ensure_on_bed() skips.
+                ModelObject* mo = (*m_objects)[obj_idx];
+                mo->translate_instances(-mo->min_z() * Vec3d::UnitZ());
                 cnv->reload_scene(true, true);
                 update_info_items(obj_idx);
                 notify_instance_updated(obj_idx);
@@ -1796,36 +1839,10 @@ void ObjectList::decrease_instances()
 #ifndef __WXOSX__
 void ObjectList::key_event(wxKeyEvent& event)
 {
-    //if (event.GetKeyCode() == WXK_TAB)
-    //    Navigate(event.ShiftDown() ? wxNavigationKeyEvent::IsBackward : wxNavigationKeyEvent::IsForward);
-    //else
-    if (event.GetKeyCode() == WXK_DELETE /*|| event.GetKeyCode() == WXK_BACK*/ )
-        remove();
-    //else if (event.GetKeyCode() == WXK_F5)
-    //    wxGetApp().plater()->reload_all_from_disk();
-    else if (wxGetKeyState(wxKeyCode('A')) && wxGetKeyState(WXK_CONTROL/*WXK_SHIFT*/))
-        select_item_all_children();
-    else if (wxGetKeyState(wxKeyCode('C')) && wxGetKeyState(WXK_CONTROL))
-        copy();
-    else if (wxGetKeyState(wxKeyCode('V')) && wxGetKeyState(WXK_CONTROL))
-        paste();
-    else if (wxGetKeyState(wxKeyCode('Y')) && wxGetKeyState(WXK_CONTROL))
-        redo();
-    else if (wxGetKeyState(wxKeyCode('Z')) && wxGetKeyState(WXK_CONTROL))
-        undo();
-    else if (wxGetKeyState(wxKeyCode('X')) && wxGetKeyState(WXK_CONTROL))
-        cut();
-    else if (wxGetKeyState(wxKeyCode('K')) && wxGetKeyState(WXK_CONTROL))
-        clone();
-    else if (event.GetUnicodeKey() == '+')
-        increase_instances();
-    else if (event.GetUnicodeKey() == '-')
-        decrease_instances();
-    else if (event.GetUnicodeKey() == 'p')
-        toggle_printable_state();
-    else if (event.GetUnicodeKey() == 'd')
-        toggle_auto_drop();
-    else if (filaments_count() > 1) {
+    const std::optional<Shortcut> shortcut = wxGetApp().shortcuts().lookup(ShortcutContext::ObjectList, KeyChord::from_event(event));
+    if (shortcut.has_value() && dispatch_shortcut(*shortcut))
+        return;
+    if (filaments_count() > 1) {
         std::vector<wxChar> numbers = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
         wxChar key_char = event.GetUnicodeKey();
         if (std::find(numbers.begin(), numbers.end(), key_char) != numbers.end()) {
@@ -1841,6 +1858,43 @@ void ObjectList::key_event(wxKeyEvent& event)
         event.Skip();
 }
 #endif /* __WXOSX__ */
+
+#ifdef __WXOSX__
+void ObjectList::update_shortcut_accelerators()
+{
+    std::vector<wxAcceleratorEntry> entries;
+    const ShortcutRegistry& shortcuts = wxGetApp().shortcuts();
+    for (Shortcut shortcut : shortcuts_in(ShortcutContext::ObjectList))
+        if (const KeyChord chord = shortcuts.binding(shortcut); chord.valid())
+            entries.push_back(chord.to_accelerator_entry(m_shortcut_id_base + int(shortcut)));
+    for (int i = 1; i < 10; ++i) {
+        entries.emplace_back(wxACCEL_NORMAL, '0' + i, wxID_LAST + i);
+        entries.emplace_back(wxACCEL_NORMAL, WXK_NUMPAD0 + i, wxID_LAST + i);
+    }
+    m_accel = wxAcceleratorTable(int(entries.size()), entries.data());
+    SetAcceleratorTable(m_accel);
+}
+#endif /* __WXOSX__ */
+
+bool ObjectList::dispatch_shortcut(Shortcut shortcut)
+{
+    switch (shortcut) {
+    case Shortcut::DeleteSelected:  remove(); break;
+    case Shortcut::SelectAll:       select_item_all_children(); break;
+    case Shortcut::Copy:            copy(); break;
+    case Shortcut::Paste:           paste(); break;
+    case Shortcut::Cut:             cut(); break;
+    case Shortcut::Undo:            undo(); break;
+    case Shortcut::Redo:            redo(); break;
+    case Shortcut::CloneSelected:   clone(); break;
+    case Shortcut::AddInstance:     increase_instances(); break;
+    case Shortcut::RemoveInstance:  decrease_instances(); break;
+    case Shortcut::TogglePrintable: toggle_printable_state(); break;
+    case Shortcut::ToggleAutoDrop:  toggle_auto_drop(); break;
+    default: return false;
+    }
+    return true;
+}
 
 void ObjectList::OnBeginDrag(wxDataViewEvent &event)
 {
@@ -1949,6 +2003,12 @@ bool ObjectList::can_drop(const wxDataViewItem& item, int& src_obj_id, int& src_
 
         if (dragged_item_v_type == item_v_type && dragged_item_v_type != ModelVolumeType::MODEL_PART)
             return true;
+
+        // Use tree item types: hidden cut connectors make tree indices differ from volumes indices.
+        if (is_precise_seam(dragged_item_v_type) && is_precise_seam(item_v_type))
+            // Allow reordering only within the strong or weak modifier group.
+            return is_precise_seam_strong(dragged_item_v_type) == is_precise_seam_strong(item_v_type);
+
         if ((dragged_item_v_type != item_v_type) ||   // we can't reorder volumes outside of types
             item_v_type >= ModelVolumeType::SUPPORT_BLOCKER)        // support blockers/enforcers can't change its place
             return false;
@@ -2038,10 +2098,43 @@ void ObjectList::OnDrop(wxDataViewEvent &event)
         int to_volume_id   = m_objects_model->GetVolumeIdByItem(item);
         int delta          = to_volume_id < from_volume_id ? -1 : 1;
 
-        auto &volumes = (*m_objects)[m_dragged_data.obj_idx()]->volumes;
+        const int obj_idx = m_dragged_data.obj_idx();
+        // Object-indexed UI maps may be stale after another object is removed or reordered.
+        if (obj_idx < 0 || size_t(obj_idx) >= m_objects->size()) {
+            event.Veto();
+            m_dragged_data.clear();
+            return;
+        }
+        const ModelObject *object = (*m_objects)[obj_idx];
+        auto &volumes = (*m_objects)[obj_idx]->volumes;
+        std::vector<size_t> visible_volume_indices;
+        visible_volume_indices.reserve(volumes.size());
+        for (size_t idx = 0; idx < volumes.size(); ++idx)
+            // Match add_volumes_to_object_in_list: only connectors of cut objects are hidden.
+            if (!(object->is_cut() && volumes[idx]->is_cut_connector()))
+                visible_volume_indices.push_back(idx);
 
-        int cnt = 0;
-        for (int id = from_volume_id; cnt < abs(from_volume_id - to_volume_id); id += delta, cnt++) std::swap(volumes[id], volumes[id + delta]);
+        // Validate the entire move before any swap; these checks must also protect Release builds.
+        if (from_volume_id < 0 || to_volume_id < 0 ||
+            size_t(from_volume_id) >= visible_volume_indices.size() || size_t(to_volume_id) >= visible_volume_indices.size()) {
+            event.Veto();
+            m_dragged_data.clear();
+            return;
+        }
+
+        // Move through visible slots only, keeping hidden cut connectors at their original indices.
+        // The local mapping stays valid because no hidden volume changes slots during the move.
+        for (int id = from_volume_id; id != to_volume_id; id += delta) {
+            const size_t current_idx = visible_volume_indices[id];
+            const size_t next_idx = visible_volume_indices[id + delta];
+            std::swap(volumes[current_idx], volumes[next_idx]);
+        }
+
+        // Later selection/filament handlers use this cache; repair it for the moved object too.
+        auto &ui_to_model = m_objects_model->get_ui_and_3d_volume_map()[obj_idx];
+        ui_to_model.clear();
+        for (size_t idx = 0; idx < visible_volume_indices.size(); ++idx)
+            ui_to_model[int(idx)] = int(visible_volume_indices[idx]);
 
         select_item(m_objects_model->ReorganizeChildren(from_volume_id, to_volume_id, m_objects_model->GetParent(item)));
 
@@ -2324,7 +2417,7 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
                 bool split_compound = wxGetApp().app_config->get_bool("is_split_compound");
                 model = Model::read_from_step(
                     input_file, LoadStrategy::LoadModel, nullptr, nullptr,
-                    [this, &is_user_cancel, &linear, &angle, &split_compound](Slic3r::Step& file, double& linear_value,
+                    [&is_user_cancel, &linear, &angle, &split_compound](Slic3r::Step& file, double& linear_value,
                                                                                      double& angle_value, bool& is_split) -> int {
                         if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
                             StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
@@ -2411,41 +2504,112 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
     }
 }
 
-static TriangleMesh create_mesh(const std::string& type_name, const BoundingBoxf3& bb)
+// The dimensions the size dialog asks for, filled with the default size of the primitive.
+static std::vector<PrimitiveSizeDialog::Field> primitive_size_fields(const std::string& type_name)
 {
     const double side = wxGetApp().plater()->canvas3D()->get_size_proportional_to_max_bed_size(0.1);
 
+    if (type_name == "Cube")
+        return {{_L("X"), side}, {_L("Y"), side}, {_L("Z"), side}};
+    if (type_name == "Cylinder" || type_name == "Cone")
+        return {{_L("Diameter"), side}, {_L("Height"), side}};
+    if (type_name == "Sphere")
+        return {{_L("Diameter"), side}};
+    if (type_name == "Disc")
+        return {{_L("Diameter"), side}, {_L("Height"), 0.2}};
+    if (type_name == "Torus")
+        // TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+        return {{_L("Inner diameter"), 0.75 * side}, {_L("Tube diameter"), 0.25 * side}};
+    return {};
+}
+
+// Replaces the default values with the size the user saved for the primitive, stored as space separated numbers.
+static void apply_saved_primitive_size(std::vector<PrimitiveSizeDialog::Field>& fields, const std::string& saved)
+{
+    std::vector<std::string> tokens;
+    boost::split(tokens, saved, boost::is_space(), boost::token_compress_on);
+    if (tokens.size() != fields.size())
+        return;
+    std::vector<double> values;
+    for (const std::string& token : tokens) {
+        const double value = string_to_double_decimal_point(token);
+        if (!std::isfinite(value) || value <= 0.)
+            return;
+        values.push_back(value);
+    }
+    for (size_t i = 0; i < fields.size(); ++i)
+        fields[i].value = values[i];
+}
+
+// interactive starts from the size the user saved and asks for the size unless the user turned the dialog off;
+// otherwise the primitive gets its built-in default size. nullopt when the user cancels.
+static std::optional<std::vector<double>> primitive_size(const std::string& type_name, bool interactive)
+{
+    std::vector<PrimitiveSizeDialog::Field> fields     = primitive_size_fields(type_name);
+    AppConfig*                              app_config = wxGetApp().app_config;
+    if (interactive && !fields.empty()) {
+        apply_saved_primitive_size(fields, app_config->get("primitive_size", type_name));
+        if (app_config->get_bool("enable_primitive_size_dialog")) {
+            PrimitiveSizeDialog dlg(wxGetApp().mainframe, _L(type_name), fields);
+            if (dlg.ShowModal() != wxID_OK)
+                return std::nullopt;
+            if (dlg.dont_show_again())
+                app_config->set_bool("enable_primitive_size_dialog", false);
+            if (dlg.save_as_default()) {
+                std::string saved;
+                for (double value : dlg.get_values())
+                    saved += (saved.empty() ? "" : " ") + float_to_string_decimal_point(value);
+                app_config->set_str("primitive_size", type_name, saved);
+            }
+            return dlg.get_values();
+        }
+    }
+    std::vector<double> size;
+    for (const PrimitiveSizeDialog::Field& field : fields)
+        size.push_back(field.value);
+    return size;
+}
+
+// Angle step that keeps the facets of a circle of this radius within 0.002 mm of it, in 16 to 720 segments.
+static double primitive_angle_step(double radius)
+{
+    const double step = 2. * std::acos(1. - std::min(1., 0.002 / radius));
+    return std::clamp(step, 2. * PI / 720., 2. * PI / 16.);
+}
+
+// size holds the values of primitive_size_fields(type_name).
+static TriangleMesh create_mesh(const std::string& type_name, const std::vector<double>& size, const BoundingBoxf3& bb)
+{
     TriangleMesh mesh;
     if (type_name == "Cube")
         // Sitting on the print bed, left front front corner at (0, 0).
-        mesh = TriangleMesh(its_make_cube(side, side, side));
-    else if (type_name == "Cylinder")
+        mesh = TriangleMesh(its_make_cube(size[0], size[1], size[2]));
+    else if (type_name == "Cylinder" || type_name == "Disc")
         // Centered around 0, sitting on the print bed.
-        // The cylinder has the same volume as the box above.
-        mesh = TriangleMesh(its_make_cylinder(0.5 * side, side));
+        mesh = TriangleMesh(its_make_cylinder(0.5 * size[0], size[1], primitive_angle_step(0.5 * size[0])));
     else if (type_name == "Sphere")
         // Centered around 0, half the sphere below the print bed, half above.
-        // The sphere has the same volume as the box above.
-        mesh = TriangleMesh(its_make_sphere(0.5 * side, PI / 90));
+        mesh = TriangleMesh(its_make_sphere(0.5 * size[0], primitive_angle_step(0.5 * size[0])));
     else if (type_name == "Slab")
         // Sitting on the print bed, left front front corner at (0, 0).
         mesh = TriangleMesh(its_make_cube(bb.size().x() * 1.5, bb.size().y() * 1.5, bb.size().z() * 0.5));
     else if (type_name == "Cone")
-        mesh = TriangleMesh(its_make_cone(0.5 * side, side));
-    else if (type_name == "Disc")
-        mesh = TriangleMesh(its_make_cylinder(0.5 * side, 0.2f));
-    else if (type_name == "Torus")
-        mesh = TriangleMesh(its_make_torus(0.5 * side, 0.125 * side,(PI / 60)));
+        mesh = TriangleMesh(its_make_cone(0.5 * size[0], size[1], primitive_angle_step(0.5 * size[0])));
+    else if (type_name == "Torus") {
+        const double tube_radius = 0.5 * size[1];
+        const double radius      = 0.5 * size[0] + tube_radius;
+        mesh = TriangleMesh(its_make_torus(radius, tube_radius, primitive_angle_step(radius + tube_radius), primitive_angle_step(tube_radius)));
+    }
     return mesh;
 }
 
-void ObjectList::load_generic_subobject(const std::string& type_name, const ModelVolumeType type)
+void ObjectList::load_generic_subobject(const std::string& type_name, const ModelVolumeType type, bool interactive)
 {
     // BBS: single snapshot
     Plater::SingleSnapshot single(wxGetApp().plater());
 
     if (type == ModelVolumeType::INVALID) {
-        load_shape_object(type_name);
+        load_shape_object(type_name, interactive);
         return;
     }
 
@@ -2464,6 +2628,10 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     if (instance_idx == -1)
         return;
 
+    const std::optional<std::vector<double>> size = primitive_size(type_name, interactive);
+    if (!size)
+        return;
+
     take_snapshot(_u8L("Add primitive"));
 
     // Selected object
@@ -2471,7 +2639,7 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     // Bounding box of the selected instance in world coordinate system including the translation, without modifiers.
     BoundingBoxf3 instance_bb = model_object.instance_bounding_box(instance_idx);
 
-    TriangleMesh mesh = create_mesh(type_name, instance_bb);
+    TriangleMesh mesh = create_mesh(type_name, *size, instance_bb);
 
 	// Mesh will be centered when loading.
     ModelVolume *new_volume = model_object.add_volume(std::move(mesh), type);
@@ -2545,7 +2713,7 @@ void ObjectList::switch_to_object_process()
     }
 }
 
-void ObjectList::load_shape_object(const std::string &type_name)
+void ObjectList::load_shape_object(const std::string &type_name, bool interactive)
 {
     const Selection& selection = wxGetApp().plater()->canvas3D()->get_selection();
     //assert(selection.get_object_idx() == -1); // Add nothing is something is selected on 3DScene
@@ -2556,11 +2724,15 @@ void ObjectList::load_shape_object(const std::string &type_name)
     if (obj_idx < 0)
         return;
 
+    const std::optional<std::vector<double>> size = primitive_size(type_name, interactive);
+    if (!size)
+        return;
+
     Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Add Primitive"));
 
     // Create mesh
     BoundingBoxf3 bb;
-    TriangleMesh mesh = create_mesh(type_name, bb);
+    TriangleMesh mesh = create_mesh(type_name, *size, bb);
     // Rotate the largest overhang area toward the part cooling fan so new shapes start in a
     // cooling friendly orientation. Skip the plain cube: the pressure advance pattern
     // calibration reuses it as an axis-aligned anchor and scales it by its bounding box,
@@ -2577,6 +2749,11 @@ void ObjectList::load_shape_object(const std::string &type_name)
 
 void ObjectList::load_mesh_object(const TriangleMesh &mesh, const wxString &name, bool center)
 {
+    load_mesh_object(std::vector<std::pair<const TriangleMesh*, wxString>>{{&mesh, name}}, name, center);
+}
+
+void ObjectList::load_mesh_object(const std::vector<std::pair<const TriangleMesh*, wxString>> &parts, const wxString &name, bool center)
+{
     // Add mesh to model as a new object
     Model& model = wxGetApp().plater()->model();
 
@@ -2585,14 +2762,19 @@ void ObjectList::load_mesh_object(const TriangleMesh &mesh, const wxString &name
 #endif /* _DEBUG */
 
     std::vector<size_t> object_idxs;
-    auto bb = mesh.bounding_box();
+    BoundingBoxf3 bb;
     ModelObject* new_object = model.add_object();
     new_object->name = into_u8(name);
     new_object->add_instance(); // each object should have at least one instance
 
-    ModelVolume* new_volume = new_object->add_volume(mesh);
+    // add_volume() centres each part on its own geometry, so the part offsets carry the
+    // meshes' placement relative to each other.
+    for (const auto& [mesh, part_name] : parts) {
+        bb.merge(mesh->bounding_box());
+        ModelVolume* new_volume = new_object->add_volume(*mesh);
+        new_volume->name = into_u8(part_name);
+    }
     new_object->sort_volumes(true);
-    new_volume->name = into_u8(name);
     // set a default extruder value, since user can't add it manually
     // BBS
     new_object->config.set_key_value("extruder", new ConfigOptionInt(1));
@@ -2603,7 +2785,7 @@ void ObjectList::load_mesh_object(const TriangleMesh &mesh, const wxString &name
     Slic3r::save_object_mesh(*new_object);
 
     // BBS: find an empty cell to put the copied object
-    auto start_point = wxGetApp().plater()->build_volume().bounding_volume2d().center();
+    auto start_point = wxGetApp().plater()->build_volume().bed_center();
     auto empty_cell  = wxGetApp().plater()->canvas3D()->get_nearest_empty_cell({start_point(0), start_point(1)});
 
     new_object->instances[0]->set_offset(center ? to_3d(Vec2d(empty_cell(0), empty_cell(1)), -new_object->origin_translation.z()) : bb.center());
@@ -2681,12 +2863,13 @@ void ObjectList::del_info_item(const int obj_idx, InfoItemType type)
     GLCanvas3D* cnv = plater->canvas3D();
 
     switch (type) {
-    case InfoItemType::CustomSupports:
+    case InfoItemType::CustomSupports: {
         cnv->get_gizmos_manager().reset_all_states();
-        Plater::TakeSnapshot(plater, "Remove support painting");
+        Plater::TakeSnapshot snapshot(plater, "Remove support painting");
         for (ModelVolume* mv : (*m_objects)[obj_idx]->volumes)
             mv->supported_facets.reset();
         break;
+    }
 
     // BBS: remove CustomSeam
 
@@ -2697,19 +2880,21 @@ void ObjectList::del_info_item(const int obj_idx, InfoItemType type)
         }
         break;
 
-    case InfoItemType::MmSegmentation:
+    case InfoItemType::MmSegmentation: {
         cnv->get_gizmos_manager().reset_all_states();
-        Plater::TakeSnapshot(plater, "Remove color painting");
+        Plater::TakeSnapshot snapshot(plater, "Remove color painting");
         for (ModelVolume* mv : (*m_objects)[obj_idx]->volumes)
             mv->mmu_segmentation_facets.reset();
         break;
+    }
 
-    case InfoItemType::FuzzySkin:
+    case InfoItemType::FuzzySkin: {
         cnv->get_gizmos_manager().reset_all_states();
-        Plater::TakeSnapshot(plater, _u8L("Remove paint-on fuzzy skin"));
+        Plater::TakeSnapshot snapshot(plater, _u8L("Remove paint-on fuzzy skin"));
         for (ModelVolume* mv : (*m_objects)[obj_idx]->volumes)
             mv->fuzzy_skin_facets.reset();
         break;
+    }
 
     // BBS: remove Sinking
     case InfoItemType::Undef : assert(false); break;
@@ -3133,8 +3318,8 @@ void ObjectList::merge(bool to_multipart_object)
                 new_object->printable = false;
                 new_object->instances[0]->printable = false;
             }
-            if (object->instances[0]->auto_drop == false) {
-                new_object->instances[0]->auto_drop = false;
+            if (object->auto_drop == false) {
+                new_object->auto_drop = false;
             }
 
             // merge layers
@@ -3233,6 +3418,24 @@ void ObjectList::merge(bool to_multipart_object)
 
 void ObjectList::layers_editing()
 {
+    // Height ranges give each range its own layer height, varying the mixed sub-layer heights just
+    // like an adaptive profile, so this raises the same warning as variable layer height and shares
+    // its do-not-show-again flag.
+    const auto& print_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    if (print_config.opt_bool("enable_mixed_color_sublayer")) {
+        if (wxGetApp().app_config->get("no_warn_mixed_sublayer_variable_layer") != "1") {
+            // Orca: parent to the plater like the sibling site in Plater::priv::on_action_layersediting
+            // (BBS passes nullptr, which MsgDialog remaps to the main frame).
+            MessageDialog dlg(wxGetApp().plater(),
+                _L("Using variable layer height together with mixed color sublayer may result in poor color mixing quality."),
+                _L("Warning"), wxICON_WARNING | wxOK);
+            dlg.show_dsa_button();
+            dlg.ShowModal();
+            if (dlg.get_checkbox_state())
+                wxGetApp().app_config->set("no_warn_mixed_sublayer_variable_layer", "1");
+        }
+    }
+
     const Selection& selection = scene_selection();
     const int obj_idx = selection.get_object_idx();
     wxDataViewItem item = obj_idx >= 0 && GetSelectedItemsCount() > 1 && selection.is_single_full_object() ?
@@ -3299,7 +3502,7 @@ void ObjectList::boolean()
         }
     }
 
-    TriangleMesh mesh = Plater::combine_mesh_fff(*object, -1, [this](const std::string& msg) {return wxGetApp().notification_manager()->push_plater_error_notification(msg); });
+    TriangleMesh mesh = Plater::combine_mesh_fff(*object, -1, [](const std::string& msg) {return wxGetApp().notification_manager()->push_plater_error_notification(msg); });
 
     // add mesh to model as a new object, keep the original object's name and config
     Model* model = object->get_model();
@@ -3530,7 +3733,15 @@ void ObjectList::delete_all_connectors_for_object(int obj_idx)
             obj->delete_connectors();
 
             if (obj->volumes.empty() || !obj->has_solid_mesh()) {
+                const std::string deleted_obj_name = obj->name;
                 model.delete_object(idx);
+                wxGetApp().plater()->get_partplate_list().notify_instance_removed(idx, -1);
+                {
+                    Slic3r::LifecycleEventContext ctx;
+                    ctx.name = deleted_obj_name;
+                    ctx.code = Slic3r::LifecycleEvtCode::Ok;
+                    Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectDeleted, ctx);
+                }
                 m_objects_model->Delete(m_objects_model->GetItemById(idx));
                 continue;
             }
@@ -3835,7 +4046,8 @@ wxDataViewItem ObjectList::add_settings_item(wxDataViewItem parent_item, const D
     const bool is_layer_settings = m_objects_model->GetItemType(parent_item) == itLayer;
     if (!is_object_settings) {
         ModelVolumeType volume_type = m_objects_model->GetVolumeType(parent_item);
-        if (volume_type == ModelVolumeType::NEGATIVE_VOLUME || volume_type == ModelVolumeType::SUPPORT_BLOCKER || volume_type == ModelVolumeType::SUPPORT_ENFORCER)
+        // Precise Seam is non-printing helper geometry — no per-volume settings
+        if (volume_type == ModelVolumeType::NEGATIVE_VOLUME || volume_type == ModelVolumeType::SUPPORT_BLOCKER || volume_type == ModelVolumeType::SUPPORT_ENFORCER || is_precise_seam(volume_type))
             return ret;
     }
 
@@ -3846,7 +4058,7 @@ wxDataViewItem ObjectList::add_settings_item(wxDataViewItem parent_item, const D
         if (config->opt_float("layer_height") == object_cfg->opt_float("layer_height")) {
             SettingsFactory::Bundle new_cat_options;
             for (auto cat_opt : cat_options) {
-                std::vector<string> temp;
+                std::vector<std::string> temp;
                 for (auto value : cat_opt.second) {
                     if (value != "layer_height")
                         temp.push_back(value);
@@ -4098,6 +4310,13 @@ void ObjectList::add_object_to_list(size_t obj_idx, bool call_selection_changed,
     std::string warning_bitmap = get_warning_icon_name(model_object->mesh().stats());
     const auto item = m_objects_model->AddObject(model_object, warning_bitmap, model_object->is_cut());
     Expand(m_objects_model->GetParent(item));
+
+    {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.name = model_object->name;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectAdded, ctx);
+    }
 
     if (!do_info_update)
         return;
@@ -5694,13 +5913,49 @@ ModelVolumeType ObjectList::get_selected_volume_type()
     return ModelVolumeType::INVALID;
 }
 
-void ObjectList::set_volume_type(ModelVolumeType new_type)
+// ---------------- Helpers for Precise Seam group-aware type changes ----------------
+// Used by set_volume_type() and the "Precise Seam Type" subtype submenu handler.
+
+// Detects whether a type change crosses a Precise Seam "group boundary" that requires
+// manual repositioning inside ModelObject::volumes[]:
+//   - between any non-PS type and any PS subtype, or
+//   - between strong PS (CENTER/LEFT/RIGHT) and weak PS (ENFORCED/BLOCKED/NEUTRAL).
+// sort_volumes() is stable and groups strong PS before weak PS. When a volume crosses
+// a group, moving it to the end of volumes[] lets the subsequent stable sort place it
+// at the end of its new group. Without this, a strong→weak transition would leave the
+// volume stuck in the strong segment and break the modifier-application order.
+static bool precise_seam_group_changed(ModelVolumeType old_type, ModelVolumeType new_type)
+{
+    const bool old_is_ps = is_precise_seam(old_type);
+    const bool new_is_ps = is_precise_seam(new_type);
+    if (old_is_ps != new_is_ps)
+        return true;                 // non-PS ↔ PS transition
+    if (!old_is_ps)
+        return false;                // both non-PS — regular enum ordering is enough
+    return is_precise_seam_strong(old_type) != is_precise_seam_strong(new_type);
+}
+
+// Moves a volume to the end of ModelObject::volumes[]. Combined with stable sort_volumes(),
+// this places it at the end of its new group while preserving relative order of others.
+static void move_volume_to_end(ModelObject* obj, ModelVolume* volume)
+{
+    if (obj == nullptr || volume == nullptr)
+        return;
+    auto it = std::find(obj->volumes.begin(), obj->volumes.end(), volume);
+    if (it != obj->volumes.end()) {
+        obj->volumes.erase(it);
+        obj->volumes.push_back(volume);
+    }
+}
+
+void ObjectList::set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype)
 {
     struct VolumeSelection {
         int          object_idx;
         ModelVolume* volume;
     };
 
+    // --- Collect selected volumes from the object tree, falling back to the 3D canvas ---
     std::vector<VolumeSelection> volumes;
     auto add_volume = [&volumes](int obj_idx, ModelVolume* volume) {
         if (volume == nullptr)
@@ -5765,25 +6020,49 @@ void ObjectList::set_volume_type(ModelVolumeType new_type)
     // and historically crashed (originally fixed in the now-disabled change_part_type() by hiding
     // Support entries in the old choice dialog; the UI-side guard for the current submenu lives
     // in MenuFactory::append_menu_item_change_type, see #13120).
+    // The same rationale applies to any Precise Seam subtype.
     // This block must never be reachable under a healthy UI; if it ever logs, the UI guard has
     // been bypassed (new entry point, refactor, plugin, etc.) and should be investigated.
-    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER) {
+    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER
+        || is_precise_seam(new_type)) {
         const bool has_text_or_svg = std::any_of(volumes.begin(), volumes.end(),
             [](const VolumeSelection& sel) { return sel.volume->is_svg() || sel.volume->is_text(); });
         if (has_text_or_svg) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__
-                << ": blocked attempt to set SUPPORT_BLOCKER/ENFORCER on SVG/text volume; "
+                << ": blocked attempt to set SUPPORT_BLOCKER/ENFORCER or Precise Seam on SVG/text volume; "
                 << "UI guard should have prevented this -- possible regression in the Change Type menu";
             return;
         }
     }
 
+    // --- Subtype preservation for the generic "Precise Seam" entry ---
+    // The Change Type submenu uses PRECISE_SEAM_CENTER as the single "Precise Seam" entry
+    // and calls with preserve_ps_subtype=true: volumes that are already Precise Seam keep
+    // their subtype (LEFT/RIGHT/etc.); only non-PS volumes get converted to the default
+    // CENTER subtype.
+    //
+    // The "Precise Seam Type" subtype submenu calls with preserve_ps_subtype=false: the
+    // user explicitly picked CENTER and all selected PS volumes must be set to CENTER
+    // verbatim (otherwise CENTER would become unreachable for mixed-subtype selections,
+    // since preservation would keep every volume at its current subtype and any_diff would
+    // be false — the reason for this two-parameter split).
+    auto effective_new_type = [new_type, preserve_ps_subtype](const ModelVolume* v) -> ModelVolumeType {
+        if (preserve_ps_subtype && new_type == ModelVolumeType::PRECISE_SEAM_CENTER && v->is_precise_seam())
+            return v->type();
+        return new_type;
+    };
+
+    // --- Any-change check using the effective target type ---
     const bool any_diff = std::any_of(volumes.begin(), volumes.end(),
-        [new_type](const VolumeSelection& sel) { return sel.volume->type() != new_type; });
+        [&effective_new_type](const VolumeSelection& sel) {
+            return sel.volume->type() != effective_new_type(sel.volume);
+        });
 
     if (!any_diff)
         return;
 
+    // --- Last-solid-part guard (pre-existing behavior) ---
+    // When converting away from MODEL_PART, ensure at least one solid part remains per object.
     if (new_type != ModelVolumeType::MODEL_PART) {
         std::map<int, int> total_part_cnt;
         std::map<int, int> selected_part_cnt;
@@ -5811,14 +6090,36 @@ void ObjectList::set_volume_type(ModelVolumeType new_type)
 
     take_snapshot(_u8L("Change part type"));
 
+    // --- Apply type changes with Precise Seam group-aware repositioning ---
+    // Note: `changed_volumes` / `touched_objects` track every processed volume, including
+    // subtype-preservation no-ops. Tracking no-ops is intentional — it ensures such
+    // volumes remain selected after the post-apply rebuild. Without that, a cross-object
+    // mixed selection like [Part, PS_LEFT] clicking "Change type → Precise Seam" would
+    // silently deselect the preserved PS_LEFT: only the Part's object would enter
+    // touched_objects, and the final SetSelections(new_selection) would drop PS_LEFT.
     std::set<const ModelVolume*> changed_volumes;
     std::set<int>                touched_objects;
     for (const auto& sel : volumes) {
-        sel.volume->set_type(new_type);
+        const ModelVolumeType target   = effective_new_type(sel.volume);
+        const ModelVolumeType old_type = sel.volume->type();
+
+        // Record the volume for reselection before the no-op short-circuit (see comment above).
         changed_volumes.insert(sel.volume);
         touched_objects.insert(sel.object_idx);
+
+        if (old_type == target)
+            continue; // subtype-preservation no-op — nothing to write/move
+
+        sel.volume->set_type(target);
+
+        // If the change crosses a PS group boundary, move the volume to the end of volumes[]
+        // so the stable sort in reorder_volumes_and_get_selection() places it at the end of
+        // its new group (see precise_seam_group_changed() for details).
+        if (precise_seam_group_changed(old_type, target))
+            move_volume_to_end((*m_objects)[sel.object_idx], sel.volume);
     }
 
+    // --- Rebuild selection to follow the changed volumes ---
     wxDataViewItemArray new_selection;
     for (int obj_idx : touched_objects) {
         wxDataViewItemArray sel_items = reorder_volumes_and_get_selection(obj_idx, [&changed_volumes](const ModelVolume* volume) {
@@ -6082,29 +6383,43 @@ void ObjectList::rename_item()
 
 void ObjectList::fix_through_cgal()
 {
+    std::vector<int> obj_idxs, vol_idxs;
+    get_selection_indexes(obj_idxs, vol_idxs);
+    fix_through_cgal(obj_idxs, vol_idxs);
+}
+
+void ObjectList::fix_all_through_cgal(bool all_plates)
+{
+    std::vector<int> obj_idxs;
+    if (all_plates) {
+        for (int obj_idx = 0; obj_idx < int(m_objects->size()); ++obj_idx)
+            obj_idxs.push_back(obj_idx);
+    } else {
+        for (const ModelObject *mo : wxGetApp().plater()->get_partplate_list().get_selected_plate()->get_objects_on_this_plate())
+            obj_idxs.push_back(int(std::find(m_objects->begin(), m_objects->end(), mo) - m_objects->begin()));
+        std::sort(obj_idxs.begin(), obj_idxs.end());
+        obj_idxs.erase(std::unique(obj_idxs.begin(), obj_idxs.end()), obj_idxs.end());
+    }
+    fix_through_cgal(obj_idxs, {});
+}
+
+void ObjectList::fix_through_cgal(const std::vector<int> &obj_idxs, const std::vector<int> &vol_idxs)
+{
     // Do not fix anything when a gizmo is open. There might be issues with updates
     // and what is worse, the snapshot time would refer to the internal stack.
-    if (!wxGetApp().plater()->get_view3D_canvas3D()->get_gizmos_manager().check_gizmos_closed_except(GLGizmosManager::Undefined))
+    if (obj_idxs.empty() || !wxGetApp().plater()->get_view3D_canvas3D()->get_gizmos_manager().check_gizmos_closed_except(GLGizmosManager::Undefined))
         return;
 
     //          model_name
     std::vector<std::string>                           succes_models;
     //                   model_name     failing reason
     std::vector<std::pair<std::string, std::string>>   failed_models;
-
-    std::vector<int> obj_idxs, vol_idxs;
-    get_selection_indexes(obj_idxs, vol_idxs);
+    size_t                                             unchanged_models = 0;
+    bool                                               painting_removed = false;
 
     std::vector<std::string> model_names;
 
-    // clear selections from the non-broken models if any exists
-    // and than fill names of models to repairing
     if (vol_idxs.empty()) {
-#if !FIX_THROUGH_CGAL_ALWAYS
-        for (int i = int(obj_idxs.size())-1; i >= 0; --i)
-                if (object(obj_idxs[i])->get_repaired_errors_count() == 0)
-                    obj_idxs.erase(obj_idxs.begin()+i);
-#endif // FIX_THROUGH_CGAL_ALWAYS
         for (int obj_idx : obj_idxs)
             if (object(obj_idx))
                 model_names.push_back(object(obj_idx)->name);
@@ -6112,31 +6427,26 @@ void ObjectList::fix_through_cgal()
     else {
         ModelObject* obj = object(obj_idxs.front());
         if (obj) {
-#if !FIX_THROUGH_CGAL_ALWAYS
-            for (int i = int(vol_idxs.size()) - 1; i >= 0; --i)
-                if (obj->get_repaired_errors_count(vol_idxs[i]) == 0)
-                    vol_idxs.erase(vol_idxs.begin() + i);
-#endif // FIX_THROUGH_CGAL_ALWAYS
             for (int vol_idx : vol_idxs)
                 model_names.push_back(obj->volumes[vol_idx]->name);
         }
     }
 
     auto plater = wxGetApp().plater();
+    const bool keep_painting = GUI::wxGetApp().app_config->get_bool("keep_painting");
 
-    auto fix_and_update_progress = [this, plater, model_names](const int obj_idx, const int vol_idx,
-                                          int model_idx,
-                                          ProgressDialog& progress_dlg,
-                                          std::vector<std::string>& succes_models,
-                                          std::vector<std::pair<std::string, std::string>>& failed_models)
+    auto fix_and_update_progress = [&](const int obj_idx, const int vol_idx, int model_idx, ProgressDialog& progress_dlg)
     {
-        if (!object(obj_idx))
+        ModelObject *mo = object(obj_idx);
+        if (!mo)
             return false;
 
         const std::string& model_name = model_names[model_idx];
         wxString msg = _L("Repairing model object");
         if (model_names.size() == 1)
             msg += ": " + from_u8(model_name) + "\n";
+        else if (model_names.size() > 10)
+            msg += ": " + from_u8(model_name) + wxString::Format(" (%d/%d)", model_idx + 1, int(model_names.size())) + "\n";
         else {
             msg += ":\n";
             for (int i = 0; i < int(model_names.size()); ++i)
@@ -6144,33 +6454,29 @@ void ObjectList::fix_through_cgal()
             msg += "\n";
         }
 
-        const bool keep_painting = GUI::wxGetApp().app_config->get_bool("keep_painting");
-        if (!keep_painting) {
-            plater->clear_before_change_mesh(obj_idx);
-        }
-        const size_t volumes_before = object(obj_idx)->volumes.size();
+        auto count_painted = [mo]() { return std::count_if(mo->volumes.begin(), mo->volumes.end(), [](const ModelVolume *mv) { return mv->is_any_painted(); }); };
+        const auto  painted_before = count_painted();
         std::string res;
-        if (!fix_model_with_cgal_gui(*(object(obj_idx)), vol_idx, progress_dlg, msg, res, keep_painting))
+        bool        modified = false;
+        if (!fix_model_with_cgal_gui(*mo, vol_idx, progress_dlg, msg, res, keep_painting, &modified))
             return false;
-        //wxGetApp().plater()->changed_mesh(obj_idx);
-        object(obj_idx)->ensure_on_bed();
-        plater->changed_mesh(obj_idx);
 
-        const size_t volumes_after = object(obj_idx)->volumes.size();
-        if (volumes_after != volumes_before)
-            add_volumes_to_object_in_list(obj_idx);
+        if (modified) {
+            painting_removed = painting_removed || count_painted() < painted_before;
+            mo->ensure_on_bed();
+            plater->changed_mesh(obj_idx);
+            plater->get_partplate_list().notify_instance_update(obj_idx, 0);
+            plater->sidebar().obj_list()->update_plate_values_for_items();
+            update_item_error_icon(obj_idx, vol_idx);
+            update_info_items(obj_idx);
+        }
 
-        plater->get_partplate_list().notify_instance_update(obj_idx, 0);
-        plater->sidebar().obj_list()->update_plate_values_for_items();
-
-        if (res.empty())
+        if (!res.empty())
+            failed_models.push_back({ model_name, res });
+        else if (modified)
             succes_models.push_back(model_name);
         else
-            failed_models.push_back({ model_name, res });
-
-        update_item_error_icon(obj_idx, vol_idx);
-        update_info_items(obj_idx);
-
+            ++unchanged_models;
         return true;
     };
 
@@ -6183,11 +6489,7 @@ void ObjectList::fix_through_cgal()
     if (vol_idxs.empty()) {
         int vol_idx{ -1 };
         for (int obj_idx : obj_idxs) {
-#if !FIX_THROUGH_CGAL_ALWAYS
-            if (object(obj_idx)->get_repaired_errors_count(vol_idx) == 0)
-                continue;
-#endif // FIX_THROUGH_CGAL_ALWAYS
-            if (!fix_and_update_progress(obj_idx, vol_idx, model_idx, progress_dlg, succes_models, failed_models))
+            if (!fix_and_update_progress(obj_idx, vol_idx, model_idx, progress_dlg))
                 break;
             model_idx++;
         }
@@ -6195,7 +6497,7 @@ void ObjectList::fix_through_cgal()
     else {
         int obj_idx{ obj_idxs.front() };
         for (int vol_idx : vol_idxs) {
-            if (!fix_and_update_progress(obj_idx, vol_idx, model_idx, progress_dlg, succes_models, failed_models))
+            if (!fix_and_update_progress(obj_idx, vol_idx, model_idx, progress_dlg))
                 break;
             model_idx++;
         }
@@ -6203,20 +6505,29 @@ void ObjectList::fix_through_cgal()
     // Close the progress dialog
     progress_dlg.Update(100, "");
 
+    if (painting_removed)
+        plater->notify_painting_removed();
+
     // Show info notification
-    wxString msg;
+    std::vector<wxString> blocks;
     wxString bullet_suf = "\n   - ";
     if (!succes_models.empty()) {
-        msg = _L_PLURAL("The following model object has been repaired", "The following model objects have been repaired", succes_models.size()) + ":";
+        wxString block = _L_PLURAL("The following model object has been repaired", "The following model objects have been repaired", succes_models.size()) + ":";
         for (auto& model : succes_models)
-            msg += bullet_suf + from_u8(model);
-        msg += "\n\n";
+            block += bullet_suf + from_u8(model);
+        blocks.push_back(block);
     }
     if (!failed_models.empty()) {
-        msg += _L_PLURAL("Failed to repair the following model object", "Failed to repair the following model objects", failed_models.size()) + ":\n";
+        wxString block = _L_PLURAL("Failed to repair the following model object", "Failed to repair the following model objects", failed_models.size()) + ":";
         for (auto& model : failed_models)
-            msg += bullet_suf + from_u8(model.first) + ": " + _(model.second);
+            block += bullet_suf + from_u8(model.first) + ": " + _(model.second);
+        blocks.push_back(block);
     }
+    if (unchanged_models > 0)
+        blocks.push_back(format_wxstr(_L_PLURAL("%1$d model object needed no repair.", "%1$d model objects needed no repair.", unchanged_models), unchanged_models));
+    wxString msg;
+    for (const wxString &block : blocks)
+        msg += (msg.IsEmpty() ? "" : "\n\n") + block;
     if (msg.IsEmpty())
         msg = _L("Repairing was canceled");
     plater->get_notification_manager()->push_notification(NotificationType::CgalFinished, NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel, into_u8(msg));
@@ -6249,7 +6560,7 @@ void GUI::ObjectList::smooth_mesh()
     get_selection_indexes(obj_idxs, vol_idxs);
     auto object_idx = obj_idxs.front();
     ModelObject *obj{nullptr};
-    auto show_warning_dlg = [this](int cur_face_count,std::string name,bool is_part) {
+    auto show_warning_dlg = [](int cur_face_count,std::string name,bool is_part) {
         int limit_face_count = 1000000;
         if (cur_face_count > limit_face_count) {
             auto name_str = wxString::FromUTF8(name);
@@ -6262,7 +6573,7 @@ void GUI::ObjectList::smooth_mesh()
         }
         return false;
     };
-    auto show_smooth_mesh_error_dlg = [this](std::string name) {
+    auto show_smooth_mesh_error_dlg = [](std::string name) {
         auto name_str = wxString::FromUTF8(name);
         auto content  = wxString::Format(_L("\"%s\" part's mesh contains errors. Please repair it first."), name_str);
         WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), content, wxEmptyString, wxOK);
@@ -6278,13 +6589,20 @@ void GUI::ObjectList::smooth_mesh()
         }
         for (auto mv : obj->volumes) {
             bool ok;
-            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(), ok);
+            TriangleMesh unsmoothed_mesh;
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(), ok, keep_painting ? &unsmoothed_mesh : nullptr);
             if (ok) {
                 const std::optional<TriangleSelector::SavedPainting> saved_painting = keep_painting ?
                                                                                           mv->save_painting() :
                                                                                           std::optional<TriangleSelector::SavedPainting>{};
-                mv->set_mesh(result_mesh);
+                // Remap the paint onto the subdivided mesh before its vertices are smoothed. That mesh lies on the old surface,
+                // so the paint lands where it was, also on sharp edges the smoothing rounds off. The smoothed mesh has the
+                // same triangles, so the paint carries over to it as it is. Without painting to keep, restore_painting() only
+                // clears it.
+                if (keep_painting)
+                    mv->set_mesh(unsmoothed_mesh);
                 mv->restore_painting(saved_painting);
+                mv->set_mesh(result_mesh);
                 mv->calculate_convex_hull();
                 mv->invalidate_convex_hull_2d();
                 mv->set_new_unique_id();
@@ -6307,13 +6625,17 @@ void GUI::ObjectList::smooth_mesh()
                 return;
             }
             bool ok;
-            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(),ok);
+            TriangleMesh unsmoothed_mesh;
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(), ok, keep_painting ? &unsmoothed_mesh : nullptr);
             if (ok) {
                 const std::optional<TriangleSelector::SavedPainting> saved_painting = keep_painting ?
                                                                                           mv->save_painting() :
                                                                                           std::optional<TriangleSelector::SavedPainting>{};
-                mv->set_mesh(result_mesh);
+                // Remap the paint before smoothing, as above.
+                if (keep_painting)
+                    mv->set_mesh(unsmoothed_mesh);
                 mv->restore_painting(saved_painting);
+                mv->set_mesh(result_mesh);
                 mv->calculate_convex_hull();
                 mv->invalidate_convex_hull_2d();
                 mv->set_new_unique_id();
@@ -6505,10 +6827,12 @@ void ObjectList::OnEditingStarted(wxDataViewEvent &event)
     else if (col == colSinking) {
         Plater *    plater = wxGetApp().plater();
         GLCanvas3D *cnv    = plater->canvas3D();
-        Plater::TakeSnapshot(plater, _u8L("Shift objects to bed"));
+        Plater::TakeSnapshot snapshot(plater, _u8L("Shift objects to bed"));
         int obj_idx, vol_idx;
         get_selected_item_indexes(obj_idx, vol_idx, item);
-        (*m_objects)[obj_idx]->ensure_on_bed();
+        // Shift on request also when auto drop is off, which ensure_on_bed() skips.
+        ModelObject* mo = (*m_objects)[obj_idx];
+        mo->translate_instances(-mo->min_z() * Vec3d::UnitZ());
         cnv->reload_scene(true, true);
         update_info_items(obj_idx);
         notify_instance_updated(obj_idx);
@@ -6724,6 +7048,71 @@ void ObjectList::reload_all_plates(bool notify_partplate)
     wxGetApp().plater()->get_view3D_canvas3D()->update_instance_printable_state_for_objects(obj_idxs);
 }
 
+void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order, bool descending)
+{
+    struct Entry { wxString name; double value; ModelObject* object; };
+    std::vector<Entry> entries;
+    entries.reserve(objects.size());
+    for (ModelObject* object : objects) {
+        double value = 0.;
+        if (order == ObjectOrder::Filament)
+            value = object->config.has("extruder") ? object->config.extruder() : 1;
+        else if (order != ObjectOrder::Name) {
+            const BoundingBoxf3 bbox = object->instance_convex_hull_bounding_box(object->instances.front());
+            value = order == ObjectOrder::Height ? bbox.max.z() : bbox.size().prod();
+        }
+        entries.push_back({order == ObjectOrder::Name ? from_u8(object->name) : wxString(), value, object});
+    }
+    std::stable_sort(entries.begin(), entries.end(), [order, descending](const Entry& l, const Entry& r) {
+        const Entry& a = descending ? r : l;
+        const Entry& b = descending ? l : r;
+        return order == ObjectOrder::Name ? wxCmpNatural(a.name, b.name) < 0 : a.value < b.value;
+    });
+    for (size_t i = 0; i < objects.size(); ++i)
+        objects[i] = entries[i].object;
+}
+
+void ObjectList::order_objects(ObjectOrder order, bool all_plates)
+{
+    Plater* plater = wxGetApp().plater();
+    if (!plater->get_view3D_canvas3D()->get_gizmos_manager().check_gizmos_closed_except(GLGizmosManager::Undefined))
+        return;
+
+    PartPlateList& plates     = plater->get_partplate_list();
+    const int      curr_plate = plates.get_curr_plate_index();
+    auto sorted = [&](bool descending) {
+        std::vector<ModelObject*> objects = *m_objects;
+        for (int plate_idx = 0; plate_idx < plates.get_plate_count(); ++plate_idx) {
+            if (!all_plates && plate_idx != curr_plate)
+                continue;
+            // Sort within the list positions the plate already holds, so other plates keep their order.
+            std::vector<size_t>       slots;
+            std::vector<ModelObject*> plate_objects;
+            for (size_t obj_idx = 0; obj_idx < objects.size(); ++obj_idx)
+                if (plates.find_instance(int(obj_idx), 0) == plate_idx) {
+                    slots.push_back(obj_idx);
+                    plate_objects.push_back(objects[obj_idx]);
+                }
+            sort_objects(plate_objects, order, descending);
+            for (size_t i = 0; i < slots.size(); ++i)
+                objects[slots[i]] = plate_objects[i];
+        }
+        return objects;
+    };
+    // Choosing the order the objects already have reverses it.
+    std::vector<ModelObject*> objects = sorted(false);
+    if (objects == *m_objects)
+        objects = sorted(true);
+
+    if (objects != *m_objects) {
+        take_snapshot(_u8L("Object order changed"));
+        *m_objects = std::move(objects);
+        plates.reload_all_objects(false, all_plates ? -1 : curr_plate);
+    }
+    // Rebuilt even when the order holds: an object moved to another plate is listed last there.
+    reload_all_plates();
+}
+
 void ObjectList::on_plate_selected(int plate_index)
 {
     wxDataViewItem item = m_objects_model->GetItemByPlateId(plate_index);
@@ -6872,18 +7261,10 @@ void ObjectList::toggle_auto_drop()
 
         obj_idxs.emplace_back(static_cast<size_t>(obj_idx));
 
-        ItemType type = m_objects_model->GetItemType(item);
-        // set auto_drop value for selected instance/instances in object
-        if (type == itInstance) {
-            int inst_idx = m_objects_model->GetInstanceIdByItem(item);
-            obj->instances[inst_idx]->auto_drop = !current_auto_drop;
-        } else {
-            for (auto inst : obj->instances)
-                inst->auto_drop = !current_auto_drop;
-                
-        if (current_auto_drop == false) 
+        // auto_drop is shared by all instances of an object.
+        obj->auto_drop = !current_auto_drop;
+        if (current_auto_drop == false)
             obj->ensure_on_bed();
-        }
     }
 
     sort(obj_idxs.begin(), obj_idxs.end());

@@ -3,7 +3,7 @@
 	"name": "Elas PLA Pro @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA00",
+	"filament_id": "OFaYz8iE",
 	"instantiation": "false",
 	"activate_air_filtration": [
 		"0"

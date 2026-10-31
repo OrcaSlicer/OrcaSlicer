@@ -4,7 +4,11 @@
 	"inherits": "Flashforge PLA @FF AD5M 0.25 Nozzle",
 	"from": "system",
 	"setting_id": "k1OiugasUs7baG1f",
+	"filament_id": "OFMkAW6r",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"additional_cooling_fan_speed": [
 		"40"
 	],

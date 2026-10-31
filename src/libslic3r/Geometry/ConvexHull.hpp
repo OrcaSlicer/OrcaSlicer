@@ -1,9 +1,12 @@
 #ifndef slic3r_Geometry_ConvexHull_hpp_
 #define slic3r_Geometry_ConvexHull_hpp_
 
+#include <utility>
 #include <vector>
 
 #include "../Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
 
 namespace Slic3r {
 

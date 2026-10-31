@@ -3,7 +3,7 @@
 	"name": "eSUN PLA-Matte @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFL05",
+	"filament_id": "OFDETOM6",
 	"instantiation": "false",
 	"filament_cost": [
 		"14.99"

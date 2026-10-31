@@ -5,6 +5,7 @@
 #include "../include/Types.hpp"
 
 #include <algorithm>
+#include <cstdint>
 
 namespace libvgcode {
 

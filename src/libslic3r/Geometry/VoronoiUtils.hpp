@@ -6,12 +6,9 @@
 #include <limits>
 
 #include "libslic3r/Geometry/Voronoi.hpp"
-#include "libslic3r/Arachne/utils/PolygonsSegmentIndex.hpp"
 #include "libslic3r/Arachne/utils/PolygonsPointIndex.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
-
-using VD = Slic3r::Geometry::VoronoiDiagram;
 
 namespace Slic3r::Geometry {
 
@@ -20,8 +17,8 @@ template<typename PT> struct SegmentCellRange
 {
     const PT             source_segment_start_point; // The start point of the source segment of this cell.
     const PT             source_segment_end_point;   // The end point of the source segment of this cell.
-    const VD::edge_type *edge_begin = nullptr;       // The edge of the Voronoi diagram where the loop around the cell starts.
-    const VD::edge_type *edge_end   = nullptr;       // The edge of the Voronoi diagram where the loop around the cell ends.
+    const VoronoiDiagram::edge_type *edge_begin = nullptr;       // The edge of the Voronoi diagram where the loop around the cell starts.
+    const VoronoiDiagram::edge_type *edge_end   = nullptr;       // The edge of the Voronoi diagram where the loop around the cell ends.
 
     SegmentCellRange() = delete;
     explicit SegmentCellRange(const PT &source_segment_start_point, const PT &source_segment_end_point)
@@ -35,8 +32,8 @@ template<typename PT> struct SegmentCellRange
 template<typename PT> struct PointCellRange
 {
     const PT             source_point;  // The source point of this cell.
-    const VD::edge_type *edge_begin = nullptr; // The edge of the Voronoi diagram where the loop around the cell starts.
-    const VD::edge_type *edge_end   = nullptr; // The edge of the Voronoi diagram where the loop around the cell ends.
+    const VoronoiDiagram::edge_type *edge_begin = nullptr; // The edge of the Voronoi diagram where the loop around the cell starts.
+    const VoronoiDiagram::edge_type *edge_end   = nullptr; // The edge of the Voronoi diagram where the loop around the cell ends.
 
     PointCellRange() = delete;
     explicit PointCellRange(const PT &source_point) : source_point(source_point) {}
@@ -47,20 +44,20 @@ template<typename PT> struct PointCellRange
 class VoronoiUtils
 {
 public:
-    static Vec2i64 to_point(const VD::vertex_type *vertex);
+    static Vec2i64 to_point(const VoronoiDiagram::vertex_type *vertex);
 
-    static Vec2i64 to_point(const VD::vertex_type &vertex);
+    static Vec2i64 to_point(const VoronoiDiagram::vertex_type &vertex);
 
-    static bool is_finite(const VD::vertex_type &vertex);
+    static bool is_finite(const VoronoiDiagram::vertex_type &vertex);
 
-    static VD::vertex_type make_rotated_vertex(VD::vertex_type &vertex, double angle);
+    static VoronoiDiagram::vertex_type make_rotated_vertex(VoronoiDiagram::vertex_type &vertex, double angle);
 
     template<typename SegmentIterator>
     static typename boost::polygon::enable_if<
         typename boost::polygon::gtl_if<typename boost::polygon::is_segment_concept<
             typename boost::polygon::geometry_concept<typename std::iterator_traits<SegmentIterator>::value_type>::type>::type>::type,
         typename std::iterator_traits<SegmentIterator>::reference>::type
-    get_source_segment(const VD::cell_type &cell, SegmentIterator segment_begin, SegmentIterator segment_end);
+    get_source_segment(const VoronoiDiagram::cell_type &cell, SegmentIterator segment_begin, SegmentIterator segment_end);
 
     template<typename SegmentIterator>
     static typename boost::polygon::enable_if<
@@ -74,7 +71,7 @@ public:
         typename boost::polygon::gtl_if<typename boost::polygon::is_segment_concept<
             typename boost::polygon::geometry_concept<typename std::iterator_traits<SegmentIterator>::value_type>::type>::type>::type,
         Arachne::PolygonsPointIndex>::type
-    get_source_point_index(const VD::cell_type &cell, SegmentIterator segment_begin, SegmentIterator segment_end);
+    get_source_point_index(const VoronoiDiagram::cell_type &cell, SegmentIterator segment_begin, SegmentIterator segment_end);
 
     /**
      * Discretize a parabola based on (approximate) step size.
@@ -114,7 +111,7 @@ public:
             typename boost::polygon::geometry_concept<typename std::iterator_traits<SegmentIterator>::value_type>::type>::type>::type,
         Geometry::SegmentCellRange<
             typename boost::polygon::segment_point_type<typename std::iterator_traits<SegmentIterator>::value_type>::type>>::type
-    compute_segment_cell_range(const VD::cell_type &cell, SegmentIterator segment_begin, SegmentIterator segment_end);
+    compute_segment_cell_range(const VoronoiDiagram::cell_type &cell, SegmentIterator segment_begin, SegmentIterator segment_end);
 
     /**
      * Compute the range of line segments that surround a cell of the skeletal
@@ -141,19 +138,19 @@ public:
             typename boost::polygon::geometry_concept<typename std::iterator_traits<SegmentIterator>::value_type>::type>::type>::type,
         Geometry::PointCellRange<
             typename boost::polygon::segment_point_type<typename std::iterator_traits<SegmentIterator>::value_type>::type>>::type
-    compute_point_cell_range(const VD::cell_type &cell, SegmentIterator segment_begin, SegmentIterator segment_end);
+    compute_point_cell_range(const VoronoiDiagram::cell_type &cell, SegmentIterator segment_begin, SegmentIterator segment_end);
 
     template<typename T> static bool is_in_range(double value)
     {
         return double(std::numeric_limits<T>::lowest()) <= value && value <= double(std::numeric_limits<T>::max());
     }
 
-    template<typename T> static bool is_in_range(const VD::vertex_type &vertex)
+    template<typename T> static bool is_in_range(const VoronoiDiagram::vertex_type &vertex)
     {
         return VoronoiUtils::is_finite(vertex) && is_in_range<T>(vertex.x()) && is_in_range<T>(vertex.y());
     }
 
-    template<typename T> static bool is_in_range(const VD::edge_type &edge)
+    template<typename T> static bool is_in_range(const VoronoiDiagram::edge_type &edge)
     {
         if (edge.vertex0() == nullptr || edge.vertex1() == nullptr)
             return false;

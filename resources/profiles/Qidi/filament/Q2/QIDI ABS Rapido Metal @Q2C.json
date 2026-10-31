@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Rapido Metal@Q2C-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_2_1_13",
+	"filament_id": "OFeCJqxx",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"

@@ -1,5 +1,9 @@
 #include "ProgressStatusBar.hpp"
 
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <string>
 #include <wx/timer.h>
 #include <wx/gauge.h>
 #include <wx/button.h>

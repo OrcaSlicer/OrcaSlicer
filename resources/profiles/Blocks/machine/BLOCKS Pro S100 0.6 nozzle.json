@@ -6,7 +6,7 @@
 	"setting_id": "XkWdS210oUMQN17N",
 	"instantiation": "true",
 	"printer_model": "BLOCKS Pro S100",
-	"default_print_profile": "0.30mm Standard 0.6 nozzle @Blocks",
+	"default_print_profile": "0.30mm Standard 0.6 nozzle @Blocks_Pro_S100",
 	"max_layer_height": [
 		"0.50"
 	],
@@ -26,5 +26,8 @@
 	"upward_compatible_machine": [
 		"BLOCKS Pro S100"
 	],
-	"printer_variant": "0.6"
+	"printer_variant": "0.6",
+	"default_filament_profile": [
+		"Blocks PLA @Blocks_Pro_S100"
+	]
 }

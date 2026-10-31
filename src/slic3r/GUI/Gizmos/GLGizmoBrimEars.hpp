@@ -6,6 +6,22 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include <string>
+#include <wx/event.h>
+#include <vector>
+#include <map>
+#include "slic3r/GUI/3DScene.hpp"
+#include <memory>
+#include <optional>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <wx/string.h>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <cereal/archives/binary.hpp>
+#include "libslic3r/Geometry.hpp"
 
 
 namespace Slic3r {
@@ -85,7 +101,7 @@ public:
     void update_model_object();
     //ClippingPlane get_sla_clipping_plane() const;
 
-    bool is_selection_rectangle_dragging() const { return m_selection_rectangle.is_dragging(); }
+    bool is_selection_rectangle_dragging() const override { return m_selection_rectangle.is_dragging(); }
 
     bool wants_enter_leave_snapshots() const override { return true; }
     std::string get_gizmo_entering_text() const override { return _u8L("Entering Brim Ears"); }
@@ -167,6 +183,8 @@ protected:
 
     std::string on_get_name() const override;
     bool on_is_activable() const override;
+    // The preview ear is drawn only while the cursor is on the model.
+    bool render_follows_cursor() const override { return render_hover_point.has_value(); }
     //bool on_is_selectable() const override;
     virtual CommonGizmosDataID on_get_requirements() const override;
     void on_load(cereal::BinaryInputArchive& ar) override;

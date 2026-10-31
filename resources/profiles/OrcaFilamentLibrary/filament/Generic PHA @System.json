@@ -4,7 +4,16 @@
 	"inherits": "fdm_filament_pha",
 	"from": "system",
 	"setting_id": "kks2z4JbypqY68RW",
+	"filament_id": "OF74KeQR",
 	"instantiation": "true",
 	"description": "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances.",
-	"compatible_printers": []
+	"compatible_printers": [],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	]
 }

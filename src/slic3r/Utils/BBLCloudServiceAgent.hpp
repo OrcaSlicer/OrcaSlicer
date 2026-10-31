@@ -1,9 +1,14 @@
 #ifndef __BBL_CLOUD_SERVICE_AGENT_HPP__
 #define __BBL_CLOUD_SERVICE_AGENT_HPP__
 
+#include "CloudProvider.hpp"
 #include "ICloudServiceAgent.hpp"
+#include "bambu_networking.hpp"
+#include <functional>
+#include "libslic3r/ProjectTask.hpp"
 #include <string>
 #include <map>
+#include <vector>
 
 namespace Slic3r {
 

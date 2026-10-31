@@ -3,7 +3,6 @@
 	"name": "fdm_process_common",
 	"from": "system",
 	"instantiation": "false",
-	"adaptive_layer_height": "0",
 	"bridge_flow": "0.95",
 	"bridge_no_support": "0",
 	"bridge_speed": "25",
@@ -41,7 +40,6 @@
 	"internal_solid_infill_speed": "40",
 	"outer_wall_line_width": "0.42",
 	"outer_wall_speed": "120",
-	"overhang_totally_speed": "19",
 	"print_sequence": "by layer",
 	"spiral_mode": "0",
 	"standby_temperature_delta": "-5",
@@ -70,6 +68,5 @@
 	"xy_hole_compensation": "0",
 	"xy_contour_compensation": "0",
 	"compatible_printers": [],
-	"smooth_coefficient": "80",
 	"scarf_angle_threshold": "155"
 }

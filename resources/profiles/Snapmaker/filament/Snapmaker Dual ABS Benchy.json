@@ -4,6 +4,7 @@
 	"inherits": "Snapmaker Dual ABS @base",
 	"from": "system",
 	"setting_id": "YMUFsOzEISsMqCLe",
+	"filament_id": "OFeAxvEt",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker Artisan (0.4 nozzle)"

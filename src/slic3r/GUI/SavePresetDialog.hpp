@@ -4,25 +4,36 @@
 //#include <wx/gdicmn.h>
 
 #include "libslic3r/Preset.hpp"
-#include "wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
 #include "GUI_Utils.hpp"
-#include "Widgets/RadioGroup.hpp"
-#include "Widgets/Button.hpp"
-#include "Widgets/RoundedRectangle.hpp"
-#include "Widgets/Label.hpp"
-#include "Widgets/TextInput.hpp"
+#include <string>
+#include <wx/anybutton.h>
+#include <wx/sizer.h>
+#include <wx/checklst.h>
+#include <vector>
+#include <wx/event.h>
+#include <wx/string.h>
 
-class wxString;
+class RadioGroup;
+class TextInput;
+class wxBoxSizer;
+class wxCommandEvent;
+
 class wxStaticText;
 class wxComboBox;
 class wxStaticBitmap;
 
 #define SAVE_PRESET_DIALOG_DEF_COLOUR wxColour(255, 255, 255)
-#define SAVE_PRESET_DIALOG_INPUT_SIZE wxSize(FromDIP(360), FromDIP(24))
+#define SAVE_PRESET_DIALOG_INPUT_SIZE wxSize(FromDIP(360), FromDIP(28))
 #define SAVE_PRESET_DIALOG_BUTTON_SIZE wxSize(FromDIP(60), FromDIP(24))
 
 namespace Slic3r {
 namespace GUI {
+
+enum class PresetNameStatus { Valid, Warning, Invalid };
+
+// ORCA Shared profile name validation for SavePresetDialog and PhysicalPrinterDialog.
+PresetNameStatus check_preset_name(const PresetCollection &presets, const std::string &name, wxString &info_line);
 
 class SavePresetDialog : public DPIDialog
 {
@@ -47,7 +58,6 @@ class SavePresetDialog : public DPIDialog
         Item(Preset::Type type, const std::string& suffix, wxBoxSizer* sizer, SavePresetDialog* parent);
 
         void            update_valid_bmp();
-        void accept();
         virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags = wxSIZE_AUTO);
 
         bool            is_valid()      const { return m_valid_type != NoValid; }
@@ -75,6 +85,8 @@ class SavePresetDialog : public DPIDialog
         bool                m_save_to_project {false};
         RadioGroup*         m_radio_group; // ORCA
         bool                m_detach{false};
+
+        Button*             m_ok_btn        {nullptr};
 
         void update();
     };

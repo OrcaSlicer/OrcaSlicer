@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PAHT-CF @EC",
-	"inherits": "Elegoo PAHT @base",
+	"inherits": "Elegoo PAHT-CF @base",
 	"from": "system",
 	"setting_id": "ZRd4WPQrh8nC8n7G",
 	"instantiation": "true",

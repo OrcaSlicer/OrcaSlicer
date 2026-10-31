@@ -3,6 +3,6 @@
 	"name": "Snapmaker PVA @base",
 	"inherits": "fdm_filament_pva",
 	"from": "system",
-	"filament_id": "1344609062",
+	"filament_id": "OFyhjiNs",
 	"instantiation": "false"
 }

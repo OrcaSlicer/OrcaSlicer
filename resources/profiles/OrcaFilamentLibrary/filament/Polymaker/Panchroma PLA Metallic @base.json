@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Metallic @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM012",
+	"filament_id": "OFjb0wos",
 	"instantiation": "false",
 	"filament_cost": [
 		"29.99"

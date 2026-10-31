@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge HS PLA @FF AD5X",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "5vzOmbjHbkJXrgYM",
+	"filament_id": "OFIK2H3G",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"cool_plate_temp": [
 		"45"
 	],

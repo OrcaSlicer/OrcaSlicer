@@ -21,7 +21,6 @@
 	"top_surface_acceleration": "2000",
 	"initial_layer_acceleration": "500",
 	"line_width": "0.42",
-	"internal_bridge_support_thickness": "0.8",
 	"initial_layer_line_width": "0.5",
 	"initial_layer_speed": "50",
 	"initial_layer_infill_speed": "90",

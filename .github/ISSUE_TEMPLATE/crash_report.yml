@@ -1,0 +1,183 @@
+name: 💥 Crash Report
+description: Orca Slicer closes on its own, freezes or stops responding
+labels: ["crash"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Thank you for taking the time to report a crash.**
+
+        Use this form when Orca Slicer closes on its own, freezes, or stops responding.
+        If the application stays open and only produces a wrong result, please use the [Bug report](https://github.com/OrcaSlicer/OrcaSlicer/issues/new?assignees=&labels=&projects=&template=bug_report.yml) form instead.
+        A printer whose toolhead collides with the print is also a bug report rather than a crash, since the application itself did not stop.
+
+        Before filing, please check if the issue already exists (either open or closed) by using the search bar on the issues page. If it does, comment there. Even if it's closed, we can reopen it based on your comment.
+  - type: checkboxes
+    attributes:
+      label: Is this crash reproducible in the latest nightly build?
+      description: >
+        Please verify this crash still happens in the latest nightly build first. It may already be fixed there:
+        [Nightly builds](https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds).
+      options:
+        - label: I have checked the latest nightly build and the crash is still reproducible
+          required: true
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this crash?
+      description: Please search to see if an issue already exists for the crash you encountered.
+      options:
+        - label: I have searched the existing issues
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: OrcaSlicer Version
+      description: Which version of Orca Slicer are you running? You can see the full version in `Help` -> `About Orca Slicer`.
+      placeholder: e.g. 2.5.0
+    validations:
+      required: true
+  - type: input
+    id: working_version
+    attributes:
+      label: Regression compared to a previous version
+      description: Did it work in a previous version?
+      placeholder: e.g. 2.3.2
+    validations:
+      required: false
+  - type: dropdown
+    id: os_type
+    attributes:
+      label: "Operating System (OS)"
+      description: "What OSes are you seeing the crash on?"
+      multiple: true
+      options:
+        - Linux
+        - macOS
+        - Windows
+    validations:
+      required: true
+  - type: input
+    id: os_version
+    attributes:
+      label: "OS Version"
+      description: "What OS version does this relate to?"
+      placeholder: "i.e. OS: Windows 7/8/10/11 ..., Ubuntu 22.04/Fedora 36 ..., macOS 10.15/11.1/12.3 ..."
+    validations:
+      required: true
+  - type: input
+    id: printer
+    attributes:
+      label: Printer
+      description: Which printer was selected
+      placeholder: Voron 2.4/VzBot/Prusa MK4/Bambu Lab X1 series/Bambu Lab P1P/...
+    validations:
+      required: true
+  - type: dropdown
+    id: crash_moment
+    attributes:
+      label: When does the crash happen?
+      description: Pick the point where Orca Slicer stops working.
+      options:
+        - Not sure
+        - On startup, before the main window appears
+        - When opening or importing a project or model
+        - While changing printer, filament or process settings
+        - While slicing
+        - In the 3D view, Preview or Assembly view
+        - When exporting G-code or sending a print to the printer
+        - On the Device tab, or connecting to a printer (camera, sync, login)
+        - While using a specific tool, dialog or calibration
+        - After resuming from sleep or changing monitors
+        - When closing the application
+        - No clear pattern
+    validations:
+      required: true
+  - type: dropdown
+    id: crash_frequency
+    attributes:
+      label: How often does it happen?
+      options:
+        - Not sure
+        - Every time
+        - Often, but not every time
+        - Rarely
+        - It only happened once
+    validations:
+      required: true
+  - type: dropdown
+    id: fresh_config
+    attributes:
+      label: Does it still crash with a fresh configuration?
+      description: >
+        Close Orca Slicer and rename your configuration folder (`%APPDATA%\OrcaSlicer` on Windows,
+        `$HOME/Library/Application Support/OrcaSlicer` on macOS, `$HOME/.config/OrcaSlicer` on Linux),
+        then start it again. Renaming keeps your settings, so you can put the folder back afterwards.
+      options:
+        - I have not tried this
+        - Yes, it still crashes
+        - No, the crash goes away
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce_steps
+    attributes:
+      label: How to reproduce
+      description: Please describe the detailed steps that lead to the crash.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. Orca Slicer closes
+    validations:
+      required: true
+  - type: textarea
+    id: system_info
+    attributes:
+      label: Additional system information
+      description: >
+        Display card and driver version are worth adding for crashes on startup or in the 3D view.
+        CPU and memory are worth adding for crashes while slicing.
+      placeholder: |
+        CPU: 11th gen Intel r core tm i7-1185g7/AMD Ryzen 7 6800h/...
+        Memory: 32/16 GB...
+        Display Card: NVIDIA Quadro P400/...
+    validations:
+      required: false
+  - type: textarea
+    id: file_uploads
+    attributes:
+      label: Project file, logs and crash report uploads
+      description: |
+        A crash report without logs usually cannot be acted on. Attach the files with the **Paste, drop, or click to add files** control directly underneath this box. Zip anything that is not a `.log`, `.txt` or image, since GitHub rejects other file types, and keep each file under 25 MB.
+
+        * The **project file** used when the crash happened, zipped. Export it just before or after the crash, even if the plate is empty, since we need the configuration it carries. `File` -> `Save project as...`
+        * The whole **log folder**, zipped rather than single files picked out of it. `Help` -> `Show Configuration Folder` opens it, or find it at:
+          * Windows: `%APPDATA%\OrcaSlicer\log`, usually `C:\Users\<you>\AppData\Roaming\OrcaSlicer\log`
+          * macOS: `$HOME/Library/Application Support/OrcaSlicer/log`
+          * Linux: `$HOME/.config/OrcaSlicer/log`
+          * Flatpak: `$HOME/.var/app/com.orcaslicer.OrcaSlicer/config/OrcaSlicer/log`
+          * On Windows the crash itself is written to a separate `crash_*.log` in there, and that is the file we need most. If the zip comes out over 25 MB GitHub will refuse it, so attach the newest log and any `crash_*.log` on their own instead.
+        * The **operating system crash report**, on macOS and Linux, where Orca Slicer cannot write its own crash log. It is often the only record of where it died:
+          * macOS: Console.app -> Crash Reports, or `$HOME/Library/Logs/DiagnosticReports/`. The file starts with `OrcaSlicer` and ends in `.ips`. Zip it before attaching, GitHub does not accept `.ips` files.
+          * Linux: run `orca-slicer` from a terminal (Flatpak: `flatpak run com.orcaslicer.OrcaSlicer`) and paste everything it prints when it dies. On systemd systems `coredumpctl info orca-slicer` gives a backtrace.
+      placeholder: |
+        Zipped project file
+        Zipped log folder
+        Zipped macOS .ips crash report, or the terminal output on Linux
+    validations:
+      required: true
+  - type: checkboxes
+    id: file_checklist
+    attributes:
+      label: Checklist of files to include
+      options:
+        - label: Log folder
+        - label: Project file
+        - label: Operating system crash report (macOS and Linux)
+  - type: textarea
+    attributes:
+      label: Anything else?
+      description: |
+        Screenshots? References? Anything that will give us more context about the crash you are encountering!
+    validations:
+      required: false

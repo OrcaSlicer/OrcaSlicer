@@ -4,7 +4,14 @@
 	"inherits": "Generic TPU @System",
 	"from": "system",
 	"setting_id": "AHu6wNV3zcPBusOF",
+	"filament_id": "OFx0WlzS",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"additional_cooling_fan_speed": [
 		"40"
 	],

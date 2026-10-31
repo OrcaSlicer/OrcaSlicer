@@ -4,21 +4,24 @@
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "fhhnfJm4dN9FXpWQ",
-	"filament_id": "GFL98111",
+	"filament_id": "OFhQf8ou",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.8 nozzle)"
 	],
 	"enable_pressure_advance": [
-		"0"
+		"0",
+		"1"
 	],
 	"filament_end_gcode": [
 		""
 	],
 	"filament_multitool_ramming": [
+		"1",
 		"1"
 	],
 	"filament_multitool_ramming_flow": [
+		"25",
 		"25"
 	],
 	"filament_start_gcode": [
@@ -40,46 +43,59 @@
 		"65"
 	],
 	"filament_flow_ratio": [
+		"0.98",
 		"0.98"
 	],
 	"filament_max_volumetric_speed": [
+		"18",
 		"18"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"15",
 		"15"
 	],
 	"filament_multitool_ramming_volume": [
+		"5",
 		"5"
 	],
 	"filament_retract_length_toolchange": [
+		"10",
 		"10"
 	],
 	"filament_retraction_length": [
+		"3",
 		"3"
 	],
 	"filament_type": [
 		"PLA-CF"
 	],
 	"filament_z_hop": [
+		"nil",
 		"nil"
 	],
 	"filament_z_hop_types": [
+		"Slope Lift",
 		"Slope Lift"
 	],
 	"nozzle_temperature": [
-		"220"
+		"220",
+		"210"
 	],
 	"nozzle_temperature_initial_layer": [
-		"220"
+		"220",
+		"210"
 	],
 	"nozzle_temperature_range_high": [
+		"250",
 		"250"
 	],
 	"nozzle_temperature_range_low": [
+		"210",
 		"210"
 	],
 	"pressure_advance": [
-		"0.015"
+		"0.015",
+		"0.03"
 	],
 	"filament_cost": [
 		"35"
@@ -91,12 +107,14 @@
 		"8"
 	],
 	"activate_air_filtration": [
+		"0",
 		"0"
 	],
 	"chamber_temperatures": [
 		"0"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"cool_plate_temp": [
@@ -106,15 +124,19 @@
 		"45"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"filament_long_retractions_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_speed": [
+		"nil",
 		"nil"
 	],
 	"overhang_fan_threshold": [
@@ -130,6 +152,19 @@
 		"45"
 	],
 	"additional_cooling_fan_speed": [
+		"0",
 		"0"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"fan_min_speed": [
+		"100",
+		"100"
+	],
+	"fan_max_speed": [
+		"100",
+		"100"
 	]
 }

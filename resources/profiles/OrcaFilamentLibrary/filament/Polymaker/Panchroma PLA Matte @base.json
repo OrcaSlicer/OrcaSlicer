@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Matte @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM002",
+	"filament_id": "OFrOh600",
 	"instantiation": "false",
 	"filament_cost": [
 		"20.99"

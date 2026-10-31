@@ -1,8 +1,10 @@
 #ifndef __Http_hpp__
 #define __Http_hpp__
 
+#include <cstddef>
 #include <map>
 #include <memory>
+#include <ostream>
 #include <string>
 #include <functional>
 #include <boost/filesystem/path.hpp>

@@ -3,7 +3,6 @@
 	"name": "fdm_filament_asa",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "GFB98",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"105"

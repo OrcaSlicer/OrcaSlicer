@@ -8,5 +8,5 @@
 	"bed_model": "creality_ender3v2neo_buildplate_model.stl",
 	"bed_texture": "creality_ender3v2neo_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Creality Generic ABS;Creality Generic ASA;Creality Generic PLA;Creality Generic PETG"
+	"default_materials": "Generic ABS @Creality;Generic ASA @Creality;Generic PLA @Creality;Generic PETG @Creality"
 }

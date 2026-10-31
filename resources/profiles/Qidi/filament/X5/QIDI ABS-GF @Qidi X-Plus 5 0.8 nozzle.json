@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "LskHdeEngKlRCSmg",
 	"name": "QIDI ABS-GF @Qidi X-Plus 5 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ABS-GF@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "LskHdeEngKlRCSmg",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.01"
 	],

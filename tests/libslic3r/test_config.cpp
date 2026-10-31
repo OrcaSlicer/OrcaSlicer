@@ -1,5 +1,11 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include "catch2/catch_approx.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PrintConfigConstants.hpp"
 #include "libslic3r/LocalesUtils.hpp"
@@ -11,9 +17,21 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/archives/binary.hpp>
 
-#include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
+#include "libslic3r/Config.hpp"
+#include <cstddef>
+#include <initializer_list>
+#include <memory>
+#include <map>
+#include <iterator>
 #include <nlohmann/json.hpp>
+
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <utility>
+#include <catch2/matchers/catch_matchers_vector.hpp>
 
 using namespace Slic3r;
 
@@ -285,6 +303,15 @@ TEST_CASE("Flush-volume warning predicate respects used filament transitions", "
     }
 }
 
+TEST_CASE("Enum list options copied from the print config defaults read and write their names", "[Config]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    // z_hop_types defaults to Slope Lift.
+    CHECK(config.opt_serialize("z_hop_types") == "Slope Lift");
+    config.set_deserialize_strict("z_hop_types", "Normal Lift");
+    CHECK(config.opt_serialize("z_hop_types") == "Normal Lift");
+}
+
 // TODO: https://github.com/SoftFever/OrcaSlicer/issues/11269 - Is this test still relevant? Delete if not.
 // It was failing so at least "nozzle_type" and "extruder_printable_area" could not be serialized
 // and an exception was thrown, but "nozzle_type" has been around for at least 3 months now.
@@ -419,6 +446,213 @@ SCENARIO("update_diff_values_to_child_config tolerates legacy machine-limit vect
     }
 }
 
+TEST_CASE("A variant index comes from the same variant and id, else the id's first variant", "[Config][Variant]") {
+    const std::vector<std::string> variant_list{"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard"};
+    const std::vector<int>         variant_ids{1, 1, 2};
+
+    SECTION("same variant and id") {
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", 1, variant_list, variant_ids) == 1);
+        CHECK(Slic3r::find_variant_index("Direct Drive Standard", 2, variant_list, variant_ids) == 2);
+    }
+    SECTION("a variant the id lacks falls back to the id's first variant") {
+        CHECK(Slic3r::find_variant_index("Bowden Standard", 1, variant_list, variant_ids) == 0);
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", 2, variant_list, variant_ids) == 2);
+    }
+    SECTION("an id with no variants matches none") {
+        CHECK(Slic3r::find_variant_index("Direct Drive Standard", 3, variant_list, variant_ids) == -1);
+    }
+    SECTION("a negative id or a list without ids matches any id") {
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", -1, variant_list, variant_ids) == 1);
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", 2, variant_list, {}) == 1);
+    }
+    SECTION("a variant past a shorter id list gets no variant index") {
+        CHECK(Slic3r::map_variant_indices(variant_list, {1}, variant_list, variant_ids) == std::vector<int>{0, -1, -1});
+    }
+    SECTION("a list without variant strings has one variant per id, and an empty one a single variant") {
+        CHECK(Slic3r::map_variant_indices(variant_list, variant_ids, {}, {1, 2}) == std::vector<int>{0, 0, 1});
+        CHECK(Slic3r::map_variant_indices(variant_list, variant_ids, {}, {}) == std::vector<int>{0, 0, 0});
+    }
+}
+
+SCENARIO("update_diff_values_to_child_config keeps a child's values on variants it does not list",
+         "[Config][Variant]") {
+    std::set<std::string> no_keys;
+    auto variants = [](std::initializer_list<std::string> names) { return new Slic3r::ConfigOptionStrings(names); };
+
+    GIVEN("A filament parent with three variants") {
+        Slic3r::DynamicPrintConfig parent;
+        parent.set_key_value("filament_extruder_variant",
+            variants({"Direct Drive Standard", "Bowden Standard", "Direct Drive High Flow"}));
+        parent.set_deserialize_strict("nozzle_temperature", "220,220,220");
+
+        WHEN("the child was saved when the parent had only its first variant") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_key_value("filament_extruder_variant", variants({"Direct Drive Standard"}));
+            child.set_deserialize_strict("nozzle_temperature", "199");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("the child's value applies to every variant") {
+                REQUIRE(parent.opt_serialize("nozzle_temperature") == "199,199,199");
+            }
+        }
+        WHEN("the child lists every variant, in another order") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_key_value("filament_extruder_variant",
+                variants({"Bowden Standard", "Direct Drive High Flow", "Direct Drive Standard"}));
+            child.set_deserialize_strict("nozzle_temperature", "190,205,199");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("each variant keeps its own value") {
+                REQUIRE(parent.opt_serialize("nozzle_temperature") == "199,190,205");
+            }
+        }
+        WHEN("the child lists no variants") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_deserialize_strict("nozzle_temperature", "199");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("the child's value applies to every variant") {
+                REQUIRE(parent.opt_serialize("nozzle_temperature") == "199,199,199");
+            }
+        }
+    }
+
+    GIVEN("A two-extruder printer parent with two variants per extruder") {
+        Slic3r::DynamicPrintConfig parent;
+        parent.set_key_value("printer_extruder_variant",
+            variants({"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}));
+        parent.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 1, 2, 2}));
+        parent.set_deserialize_strict("retraction_length", "0.8,0.8,0.8,0.8");
+
+        WHEN("the child lists only the Standard variant of each extruder") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_key_value("printer_extruder_variant", variants({"Direct Drive Standard", "Direct Drive Standard"}));
+            child.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 2}));
+            child.set_deserialize_strict("retraction_length", "1.1,2.2");
+            parent.update_diff_values_to_child_config(child, "printer_extruder_id", "printer_extruder_variant",
+                                                      Slic3r::printer_options_with_variant_1,
+                                                      Slic3r::printer_options_with_variant_2);
+            THEN("each extruder's High Flow variant takes that extruder's value") {
+                REQUIRE(parent.opt_serialize("retraction_length") == "1.1,1.1,2.2,2.2");
+            }
+        }
+        WHEN("the child lists no variants") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_deserialize_strict("retraction_length", "1.1");
+            parent.update_diff_values_to_child_config(child, "printer_extruder_id", "printer_extruder_variant",
+                                                      Slic3r::printer_options_with_variant_1,
+                                                      Slic3r::printer_options_with_variant_2);
+            THEN("only the first extruder's variants take the child's value") {
+                REQUIRE(parent.opt_serialize("retraction_length") == "1.1,1.1,0.8,0.8");
+            }
+        }
+    }
+}
+
+SCENARIO("update_non_diff_values_to_base_config keeps a project's changed values on variants it does not list",
+         "[Config][Variant]") {
+    std::set<std::string> no_keys;
+    auto variants = [](std::initializer_list<std::string> names) { return new Slic3r::ConfigOptionStrings(names); };
+
+    GIVEN("A filament base with three variants") {
+        Slic3r::DynamicPrintConfig base;
+        base.set_key_value("filament_extruder_variant",
+            variants({"Direct Drive Standard", "Bowden Standard", "Direct Drive High Flow"}));
+        base.set_deserialize_strict("nozzle_temperature", "220,220,220");
+
+        WHEN("the project was saved when the base had only its first variant") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_key_value("filament_extruder_variant", variants({"Direct Drive Standard"}));
+            project.set_deserialize_strict("nozzle_temperature", "199");
+
+            AND_WHEN("the project lists the value as changed") {
+                project.update_non_diff_values_to_base_config(base, project.keys(), {"nozzle_temperature"}, "", "filament_extruder_variant",
+                                                              Slic3r::filament_options_with_variant, no_keys);
+                THEN("the project's value applies to every variant") {
+                    REQUIRE(project.opt_serialize("nozzle_temperature") == "199,199,199");
+                }
+            }
+            AND_WHEN("the project does not list the value as changed") {
+                project.update_non_diff_values_to_base_config(base, project.keys(), {}, "", "filament_extruder_variant",
+                                                              Slic3r::filament_options_with_variant, no_keys);
+                THEN("the base's values replace it") {
+                    REQUIRE(project.opt_serialize("nozzle_temperature") == "220,220,220");
+                }
+            }
+        }
+        WHEN("the project lists every variant, in another order") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_key_value("filament_extruder_variant",
+                variants({"Bowden Standard", "Direct Drive High Flow", "Direct Drive Standard"}));
+            project.set_deserialize_strict("nozzle_temperature", "190,205,199");
+            project.update_non_diff_values_to_base_config(base, project.keys(), {"nozzle_temperature"}, "", "filament_extruder_variant",
+                                                          Slic3r::filament_options_with_variant, no_keys);
+            THEN("each variant keeps its own value") {
+                REQUIRE(project.opt_serialize("nozzle_temperature") == "199,190,205");
+            }
+        }
+        WHEN("the project lists no variants") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_deserialize_strict("nozzle_temperature", "199");
+            project.update_non_diff_values_to_base_config(base, project.keys(), {"nozzle_temperature"}, "", "filament_extruder_variant",
+                                                          Slic3r::filament_options_with_variant, no_keys);
+            THEN("the project's value applies to every variant") {
+                REQUIRE(project.opt_serialize("nozzle_temperature") == "199,199,199");
+            }
+        }
+    }
+
+    GIVEN("A two-extruder printer base with two variants per extruder") {
+        Slic3r::DynamicPrintConfig base;
+        base.set_key_value("printer_extruder_variant",
+            variants({"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}));
+        base.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 1, 2, 2}));
+        base.set_deserialize_strict("retraction_length", "0.8,0.8,0.8,0.8");
+
+        WHEN("the project lists only the Standard variant of each extruder") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_key_value("printer_extruder_variant", variants({"Direct Drive Standard", "Direct Drive Standard"}));
+            project.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 2}));
+            project.set_deserialize_strict("retraction_length", "1.1,2.2");
+            project.update_non_diff_values_to_base_config(base, project.keys(), {"retraction_length"}, "printer_extruder_id", "printer_extruder_variant",
+                                                          Slic3r::printer_options_with_variant_1,
+                                                          Slic3r::printer_options_with_variant_2);
+            THEN("each extruder's High Flow variant takes that extruder's value") {
+                REQUIRE(project.opt_serialize("retraction_length") == "1.1,1.1,2.2,2.2");
+            }
+        }
+        WHEN("the project lists only the Standard variant of each extruder, and the variant lists as changed") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_key_value("printer_extruder_variant", variants({"Direct Drive Standard", "Direct Drive Standard"}));
+            project.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 2}));
+            project.set_deserialize_strict("machine_max_speed_x", "300,100,400,150");
+            base.set_deserialize_strict("machine_max_speed_x", "500,200,500,200,500,200,500,200");
+            project.update_non_diff_values_to_base_config(base, project.keys(),
+                                                          {"machine_max_speed_x", "printer_extruder_id", "printer_extruder_variant"},
+                                                          "printer_extruder_id", "printer_extruder_variant",
+                                                          Slic3r::printer_options_with_variant_1,
+                                                          Slic3r::printer_options_with_variant_2);
+            THEN("the variant lists are the base's") {
+                REQUIRE(project.opt_serialize("printer_extruder_variant") == base.opt_serialize("printer_extruder_variant"));
+                REQUIRE(project.opt_serialize("printer_extruder_id") == "1,1,2,2");
+            }
+            THEN("each extruder's High Flow variant takes that extruder's pair of limits") {
+                REQUIRE(project.opt_serialize("machine_max_speed_x") == "300,100,300,100,400,150,400,150");
+            }
+        }
+        WHEN("the project lists no variants") {
+            Slic3r::DynamicPrintConfig project;
+            project.set_deserialize_strict("retraction_length", "1.1");
+            project.update_non_diff_values_to_base_config(base, project.keys(), {"retraction_length"}, "printer_extruder_id", "printer_extruder_variant",
+                                                          Slic3r::printer_options_with_variant_1,
+                                                          Slic3r::printer_options_with_variant_2);
+            THEN("only the first extruder's variants take the project's value") {
+                REQUIRE(project.opt_serialize("retraction_length") == "1.1,1.1,0.8,0.8");
+            }
+        }
+    }
+}
+
 // SCENARIO("DynamicPrintConfig JSON serialization", "[Config]") {
 //     WHEN("DynamicPrintConfig is serialized and deserialized") {
 // 	auto now = std::chrono::high_resolution_clock::now();
@@ -486,6 +720,77 @@ TEST_CASE("save_to_json round-trips plugin capability references as strings", "[
     REQUIRE(reloaded.load_from_json(tmp.string(), substitutions, true, key_values, reason) == 0);
     CHECK(reason.empty());
     CHECK(reloaded.option<ConfigOptionStrings>("slicing_pipeline_plugin")->values == refs);
+}
+
+TEST_CASE("load_from_json hands a preset's include list to the caller instead of the config", "[Config]") {
+    ScopedTemporaryFile tmp(".json");
+    {
+        boost::nowide::ofstream ofs(tmp.string());
+        ofs << R"({"type":"machine","name":"P","instantiation":"true","include":["T start","T end"],"machine_end_gcode":"M84"})";
+    }
+    DynamicPrintConfig config;
+    ConfigSubstitutionContext substitutions(ForwardCompatibilitySubstitutionRule::Disable);
+    std::map<std::string, std::string> key_values;
+    std::string reason;
+    REQUIRE(config.load_from_json(tmp.string(), substitutions, false, key_values, reason) == 0);
+    CHECK(reason.empty());
+    CHECK(key_values["include"] == R"(["T start","T end"])");
+    CHECK_FALSE(config.has("include"));
+    CHECK(substitutions.unrecogized_keys.empty());
+    CHECK(config.opt_string("machine_end_gcode") == "M84");
+}
+
+TEST_CASE("save_to_json writes the same document to a stream as to a file", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    config.set_key_value("wall_loops", new ConfigOptionInt(3));
+    config.set_key_value("filament_type", new ConfigOptionStrings({ "PLA", "PETG" }));
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28\nG1 Z5"));
+
+    ScopedTemporaryFile tmp(".json");
+    config.save_to_json(tmp.string(), "test_preset", "User", "1.0.0.0");
+    std::string file_contents;
+    {
+        boost::nowide::ifstream ifs(tmp.string());
+        file_contents.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    }
+    // The file format: one tab per nesting level and a trailing newline.
+    REQUIRE_FALSE(file_contents.empty());
+    CHECK(file_contents.rfind("{\n\t\"", 0) == 0);
+    CHECK(file_contents.back() == '\n');
+
+    std::ostringstream strict, replaced;
+    config.save_to_json(strict, "test_preset", "User", "1.0.0.0");
+    config.save_to_json(replaced, "test_preset", "User", "1.0.0.0", true);
+    CHECK(strict.str() == file_contents);
+    CHECK(replaced.str() == file_contents);
+    CHECK(nlohmann::json::parse(strict.str())["machine_start_gcode"] == "G28\nG1 Z5");
+}
+
+TEST_CASE("save_to_json replaces invalid UTF-8 in a stream only when asked", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28 ; \xff"));
+
+    std::ostringstream strict, replaced;
+    CHECK_THROWS_AS(config.save_to_json(strict, "test_preset", "User", "1.0.0.0"), nlohmann::json::type_error);
+    REQUIRE_NOTHROW(config.save_to_json(replaced, "test_preset", "User", "1.0.0.0", true));
+    CHECK(nlohmann::json::parse(replaced.str())["machine_start_gcode"] == "G28 ; \xEF\xBF\xBD");
+}
+
+TEST_CASE("save_to_json leaves an existing file untouched when the config cannot be serialized", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28 ; \xff"));
+
+    ScopedTemporaryFile tmp(".json");
+    {
+        boost::nowide::ofstream ofs(tmp.string());
+        ofs << "previous";
+    }
+    CHECK_THROWS_AS(config.save_to_json(tmp.string(), "test_preset", "User", "1.0.0.0"), nlohmann::json::type_error);
+
+    boost::nowide::ifstream ifs(tmp.string());
+    const std::string contents((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    CHECK(contents == "previous");
 }
 
 TEST_CASE("plugin capability references survive string-map serialization", "[Config][plugins]") {
@@ -583,6 +888,41 @@ TEST_CASE_METHOD(PluginResolverFixture,
     const std::vector<std::string> manifest = config.option<ConfigOptionStrings>("plugins")->values;
 
     CHECK(manifest == std::vector<std::string>{"x;;slicing-pipeline"});
+}
+
+TEST_CASE("unresolved_plugin_capabilities reports exactly the values the manifest drops", "[Config][plugins]") {
+    // GUI save entry points use this query to warn before a preset loses a plugin reference, so it
+    // must match the serializer's notion of "unresolved" -- same options, same resolver calls.
+    ConfigBase::set_resolve_capability_fn([](const std::string& name, const std::string& type) {
+        return name == "offline" ? std::string() : name + ";;" + type;
+    });
+    std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "printer_agent", "plugins"}));
+    config->option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = {"offline", "here"};
+    config->option<ConfigOptionString>("printer_agent", true)->value              = "agent";
+
+    const std::vector<UnresolvedPluginCapability> unresolved = config->unresolved_plugin_capabilities();
+    config->update_plugin_manifest();
+    const std::vector<std::string> manifest = config->option<ConfigOptionStrings>("plugins")->values;
+    ConfigBase::set_resolve_capability_fn(nullptr);
+
+    // Only the value no plugin can provide is reported; the resolved ones are not.
+    REQUIRE(unresolved.size() == 1);
+    CHECK(unresolved.front().opt_key == "slicing_pipeline_plugin");
+    CHECK(unresolved.front().capability_name == "offline");
+    // ... and the manifest holds the complementary set of references (keys() is in sorted order,
+    // so printer_agent comes first).
+    CHECK(manifest == std::vector<std::string>{"agent;;printer-connection", "here;;slicing-pipeline"});
+}
+
+TEST_CASE("unresolved_plugin_capabilities is empty without a resolver", "[Config][plugins]") {
+    // CLI/headless leaves the loaded manifest untouched when it serializes, so nothing is lost and
+    // there is nothing to prompt about.
+    ConfigBase::set_resolve_capability_fn(nullptr);
+    std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "plugins"}));
+    config->option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = {"offline"};
+    CHECK(config->unresolved_plugin_capabilities().empty());
 }
 
 TEST_CASE("H2C/A2L-era multi-nozzle and pre-heat config keys exist", "[config]") {
@@ -827,4 +1167,768 @@ SCENARIO("ConfigOptionVector::set_to_index throws on incompatible type", "[Confi
             }
         }
     }
+}
+
+TEST_CASE("read_cli applies valid values and collects non-option arguments", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--nozzle-temperature", "210,190", "--reduce-crossing-wall=1", "model.3mf"};
+    REQUIRE(config.read_cli(5, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionInts>("nozzle_temperature")->values == std::vector<int>{210, 190});
+    REQUIRE(config.opt<ConfigOptionBool>("reduce_crossing_wall")->value);
+    REQUIRE(extra == t_config_option_keys{"model.3mf"});
+    REQUIRE(keys == t_config_option_keys{"nozzle_temperature", "reduce_crossing_wall"});
+}
+
+TEST_CASE("read_cli rejects nil for a non-nullable vector option", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--nozzle-temperature", "nil"};
+    REQUIRE_FALSE(config.read_cli(3, argv, &extra, &keys));
+}
+
+TEST_CASE("read_cli rejects an invalid boolean value", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--reduce-crossing-wall=maybe"};
+    REQUIRE_FALSE(config.read_cli(2, argv, &extra, &keys));
+}
+
+TEST_CASE("read_cli accepts the common spellings of a boolean value", "[Config]") {
+    const auto [text, expected] = GENERATE(table<const char*, bool>({
+        {"--reduce-crossing-wall=1", true},
+        {"--reduce-crossing-wall=true", true},
+        {"--reduce-crossing-wall=Yes", true},
+        {"--reduce-crossing-wall=on", true},
+        {"--reduce-crossing-wall=enabled", true},
+        {"--reduce-crossing-wall=TRUE", true},
+        {"--reduce-crossing-wall=oN", true},
+        {"--reduce-crossing-wall=0", false},
+        {"--reduce-crossing-wall=false", false},
+        {"--reduce-crossing-wall=No", false},
+        {"--reduce-crossing-wall=off", false},
+        {"--reduce-crossing-wall=disabled", false},
+        {"--reduce-crossing-wall=FALSE", false},
+        {"--reduce-crossing-wall=DiSaBlEd", false},
+    }));
+
+    DYNAMIC_SECTION(text) {
+        Slic3r::DynamicPrintConfig config;
+        t_config_option_keys extra, keys;
+        const char* argv[] = {"orca-slicer", text};
+        REQUIRE(config.read_cli(2, argv, &extra, &keys));
+        REQUIRE(config.opt<ConfigOptionBool>("reduce_crossing_wall")->value == expected);
+    }
+}
+
+TEST_CASE("read_cli accepts the common boolean spellings inside a bools vector", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--filament-soluble=true,no,1"};
+    REQUIRE(config.read_cli(2, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionBools>("filament_soluble")->values == std::vector<unsigned char>{1, 0, 1});
+}
+
+TEST_CASE("read_cli trims whitespace around boolean spellings", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--reduce-crossing-wall= true ", "--filament-soluble= true , no ,1"};
+    REQUIRE(config.read_cli(3, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionBool>("reduce_crossing_wall")->value);
+    REQUIRE(config.opt<ConfigOptionBools>("filament_soluble")->values == std::vector<unsigned char>{1, 0, 1});
+}
+
+TEST_CASE("read_cli normalizes boolean spellings when a bools vector is repeated", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--filament-soluble=true", "--filament-soluble=off"};
+    REQUIRE(config.read_cli(3, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionBools>("filament_soluble")->values == std::vector<unsigned char>{1, 0});
+}
+
+TEST_CASE("read_cli keeps nil alongside boolean spellings in a nullable bools vector", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--enable-overhang-speed=nil,yes,off"};
+    REQUIRE(config.read_cli(2, argv, &extra, &keys));
+    auto* opt = config.opt<ConfigOptionBoolsNullable>("enable_overhang_speed");
+    REQUIRE(opt != nullptr);
+    REQUIRE(opt->values.size() == 3);
+    REQUIRE(opt->is_nil(0));
+    REQUIRE(opt->values[1] == 1);
+    REQUIRE(opt->values[2] == 0);
+}
+
+TEST_CASE("read_cli rejects an empty item inside a bools vector", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--filament-soluble=true,,1"};
+    REQUIRE_FALSE(config.read_cli(2, argv, &extra, &keys));
+}
+
+TEST_CASE("read_cli rejects an unknown spelling next to a valid one in a bools vector", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--filament-soluble=true,affirmative"};
+    REQUIRE_FALSE(config.read_cli(2, argv, &extra, &keys));
+}
+
+// The normalization lives in read_cli's boolean branches, so options of other types keep the
+// value verbatim - a path named "on" or a colour named "true" must not turn into "1".
+TEST_CASE("read_cli leaves boolean spellings alone for non-boolean options", "[Config]") {
+    SECTION("string option") {
+        Slic3r::DynamicPrintAndCLIConfig config;
+        t_config_option_keys extra, keys;
+        const char* argv[] = {"orca-slicer", "--logfile=true"};
+        REQUIRE(config.read_cli(2, argv, &extra, &keys));
+        REQUIRE(config.opt<ConfigOptionString>("logfile")->value == "true");
+    }
+    SECTION("strings vector option") {
+        Slic3r::DynamicPrintConfig config;
+        t_config_option_keys extra, keys;
+        const char* argv[] = {"orca-slicer", "--filament-colour=on;off"};
+        REQUIRE(config.read_cli(2, argv, &extra, &keys));
+        REQUIRE(config.opt<ConfigOptionStrings>("filament_colour")->values == std::vector<std::string>{"on", "off"});
+    }
+}
+
+TEST_CASE("read_cli treats a bare boolean flag as true without consuming the next argument", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--reduce-crossing-wall", "model.3mf"};
+    REQUIRE(config.read_cli(3, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionBool>("reduce_crossing_wall")->value);
+    REQUIRE(extra == t_config_option_keys{"model.3mf"});
+}
+
+TEST_CASE("read_cli rejects an invalid scalar numeric value", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--top-shell-layers", "several"};
+    REQUIRE_FALSE(config.read_cli(3, argv, &extra, &keys));
+}
+
+TEST_CASE("A scalar option keeps its value when deserializing fails", "[Config]") {
+    using Catch::Matchers::WithinAbs;
+
+    SECTION("float") {
+        ConfigOptionFloat opt(7.5);
+        REQUIRE_FALSE(opt.deserialize("abc"));
+        CHECK_THAT(opt.value, WithinAbs(7.5, 1e-9));
+    }
+    SECTION("int") {
+        ConfigOptionInt opt(3);
+        REQUIRE_FALSE(opt.deserialize("abc"));
+        CHECK(opt.value == 3);
+    }
+    SECTION("percent") {
+        ConfigOptionPercent opt(40.);
+        REQUIRE_FALSE(opt.deserialize("abc%"));
+        CHECK_THAT(opt.value, WithinAbs(40., 1e-9));
+    }
+    SECTION("float or percent") {
+        ConfigOptionFloatOrPercent opt(0.4, false);
+        REQUIRE_FALSE(opt.deserialize("abc%"));
+        CHECK_THAT(opt.value, WithinAbs(0.4, 1e-9));
+        CHECK_FALSE(opt.percent);
+    }
+    SECTION("point") {
+        ConfigOptionPoint opt(Vec2d(1., 2.));
+        REQUIRE_FALSE(opt.deserialize("5,abc"));
+        CHECK(opt.value == Vec2d(1., 2.));
+    }
+    SECTION("point3") {
+        ConfigOptionPoint3 opt(Vec3d(1., 2., 3.));
+        REQUIRE_FALSE(opt.deserialize("5,6,abc"));
+        CHECK(opt.value == Vec3d(1., 2., 3.));
+    }
+}
+
+TEST_CASE("A scalar option still takes a valid value", "[Config]") {
+    using Catch::Matchers::WithinAbs;
+
+    ConfigOptionFloatOrPercent opt(0.4, false);
+    REQUIRE(opt.deserialize("50%"));
+    CHECK_THAT(opt.value, WithinAbs(50., 1e-9));
+    CHECK(opt.percent);
+
+    ConfigOptionPoint point;
+    REQUIRE(point.deserialize("3x4"));
+    CHECK(point.value == Vec2d(3., 4.));
+}
+
+TEST_CASE("read_cli appends values when a vector option is repeated", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--nozzle-temperature", "210", "--nozzle-temperature", "190,200"};
+    REQUIRE(config.read_cli(5, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionInts>("nozzle_temperature")->values == std::vector<int>{210, 190, 200});
+    // the key is recorded once, on first use
+    REQUIRE(keys == t_config_option_keys{"nozzle_temperature"});
+}
+
+TEST_CASE("read_cli parses a bools vector given in the --flag=values form", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--filament-soluble=1,0,1"};
+    REQUIRE(config.read_cli(2, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionBools>("filament_soluble")->values == std::vector<unsigned char>{1, 0, 1});
+}
+
+TEST_CASE("read_cli rejects an invalid value inside a bools vector", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--filament-soluble=1,maybe"};
+    REQUIRE_FALSE(config.read_cli(2, argv, &extra, &keys));
+}
+
+TEST_CASE("read_cli appends true for a bare bools vector flag", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--filament-soluble"};
+    REQUIRE(config.read_cli(2, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionBools>("filament_soluble")->values == std::vector<unsigned char>{1});
+}
+
+TEST_CASE("read_cli splits a strings vector on semicolons and unescapes quoted items", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--filament-colour", "#FF0000;\"a\\nb\";#00FF00"};
+    REQUIRE(config.read_cli(3, argv, &extra, &keys));
+    auto& values = config.opt<ConfigOptionStrings>("filament_colour")->values;
+    REQUIRE(values == std::vector<std::string>{"#FF0000", "a\nb", "#00FF00"});
+}
+
+TEST_CASE("read_cli rejects a strings vector with an unterminated quote", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--filament-colour", "\"oops"};
+    REQUIRE_FALSE(config.read_cli(3, argv, &extra, &keys));
+}
+
+TEST_CASE("read_cli parses a points vector in the NxM coordinate form", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--printable-area", "0x0,200x0,200x200,0x200"};
+    REQUIRE(config.read_cli(3, argv, &extra, &keys));
+    auto& points = config.opt<ConfigOptionPoints>("printable_area")->values;
+    REQUIRE(points.size() == 4);
+    REQUIRE_THAT(points[1].x(), Catch::Matchers::WithinAbs(200.0, 1e-9));
+    REQUIRE_THAT(points[1].y(), Catch::Matchers::WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(points[3].x(), Catch::Matchers::WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(points[3].y(), Catch::Matchers::WithinAbs(200.0, 1e-9));
+}
+
+// logfile is a CLI-only option, so it needs the config type whose def pulls in cli_misc_config_def.
+TEST_CASE("read_cli stores the log file path as a string", "[Config]") {
+    Slic3r::DynamicPrintAndCLIConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--logfile", "orca.log"};
+    REQUIRE(config.read_cli(3, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionString>("logfile")->value == "orca.log");
+}
+
+TEST_CASE("read_cli accepts nil entries for a nullable vector option", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--filament-retraction-length", "nil,2.5"};
+    REQUIRE(config.read_cli(3, argv, &extra, &keys));
+    auto* opt = config.opt<ConfigOptionFloatsNullable>("filament_retraction_length");
+    REQUIRE(opt != nullptr);
+    REQUIRE(opt->values.size() == 2);
+    REQUIRE(opt->is_nil(0));
+    REQUIRE_FALSE(opt->is_nil(1));
+    REQUIRE_THAT(opt->values[1], Catch::Matchers::WithinAbs(2.5, 1e-9));
+}
+
+// get_at() returns values.front() for an out-of-range index, so calling it on an empty vector
+// option is UB. filament_id and filament_is_support are unpopulated on a CLI from-scratch slice.
+TEST_CASE("get_filament_type treats empty vector options as absent", "[Config][Filament]")
+{
+    DynamicPrintConfig config;
+    std::string displayed;
+
+    SECTION("an empty filament_type yields no type at all")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings());
+        REQUIRE(config.get_filament_type(displayed, 0) == "");
+    }
+
+    SECTION("an empty filament_is_support falls back to the plain filament type")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings({"PETG"}));
+        config.set_key_value("filament_is_support", new ConfigOptionBools());
+        REQUIRE(config.get_filament_type(displayed, 0) == "PETG");
+        REQUIRE(displayed == "PETG");
+    }
+
+    SECTION("a support filament with an empty filament_id resolves from the type alone")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings({"PLA"}));
+        config.set_key_value("filament_is_support", new ConfigOptionBools({true}));
+        config.set_key_value("filament_id", new ConfigOptionStrings());
+        REQUIRE(config.get_filament_type(displayed, 0) == "PLA-S");
+        REQUIRE(displayed == "Sup.PLA");
+    }
+
+    SECTION("a populated filament_id still selects the support type by id")
+    {
+        config.set_key_value("filament_type", new ConfigOptionStrings({"PETG"}));
+        config.set_key_value("filament_is_support", new ConfigOptionBools({true}));
+        config.set_key_value("filament_id", new ConfigOptionStrings({"GFS00"}));
+        REQUIRE(config.get_filament_type(displayed, 0) == "PLA-S");
+        REQUIRE(displayed == "Sup.PLA");
+    }
+}
+
+namespace {
+
+// min_object_distance reads exactly these three options.
+DynamicPrintConfig spacing_config(PrinterTechnology tech, PrintSequence seq, double clearance_radius)
+{
+    DynamicPrintConfig c;
+    c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(tech));
+    c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(seq));
+    c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(clearance_radius));
+    return c;
+}
+
+} // namespace
+
+TEST_CASE("min_object_distance floors object spacing per print sequence", "[Config]")
+{
+    struct Case
+    {
+        std::string       description;
+        PrinterTechnology tech;
+        PrintSequence     sequence;
+        double            clearance_radius;
+        double            expected;
+    };
+
+    auto c = GENERATE(values<Case>({
+        {"sequential FFF takes a clearance radius above the floor", ptFFF, PrintSequence::ByObject, 12., 12.},
+        {"sequential FFF holds the floor at the radius",            ptFFF, PrintSequence::ByObject,  6.,  6.},
+        {"sequential FFF holds the floor below the radius",         ptFFF, PrintSequence::ByObject,  4.,  6.},
+        {"layered FFF ignores the clearance radius",                ptFFF, PrintSequence::ByLayer,  12.,  6.},
+        {"SLA is a flat 6mm",                                       ptSLA, PrintSequence::ByObject, 12.,  6.},
+        {"SLA ignores the print sequence too",                      ptSLA, PrintSequence::ByLayer,  12.,  6.},
+    }));
+
+    DYNAMIC_SECTION(c.description)
+    {
+        CHECK_THAT(min_object_distance(spacing_config(c.tech, c.sequence, c.clearance_radius)),
+                   Catch::Matchers::WithinAbs(c.expected, 1e-9));
+    }
+}
+
+TEST_CASE("min_object_distance yields no floor when an FFF config lacks the options", "[Config]")
+{
+    // Missing options yield 0 rather than an error, so a caller gets no floor at all.
+    SECTION("no clearance radius") {
+        DynamicPrintConfig c;
+        c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(ptFFF));
+        c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByObject));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("no print sequence") {
+        DynamicPrintConfig c;
+        c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(ptFFF));
+        c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(12.));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("nothing at all") {
+        CHECK_THAT(min_object_distance(DynamicPrintConfig{}), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("an unset printer technology is treated as FFF") {
+        DynamicPrintConfig c;
+        c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByObject));
+        c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(12.));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(12., 1e-9));
+    }
+}
+
+TEST_CASE("handle_legacy maps the boolean arc fitting values to modes", "[Config]") {
+    const auto [value, mode] = GENERATE(table<std::string, ArcFittingMode>({
+        { "0",             ArcFittingMode::Disabled },
+        { "false",         ArcFittingMode::Disabled },
+        { "1",             ArcFittingMode::Enabled },
+        { "true",          ArcFittingMode::Enabled },
+        { "sparse_infill", ArcFittingMode::SparseInfill },
+    }));
+    INFO(value);
+    ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Disable);
+    DynamicPrintConfig config;
+    config.set_deserialize("enable_arc_fitting", value, ctxt);
+    CHECK(config.opt_enum<ArcFittingMode>("enable_arc_fitting") == mode);
+}
+
+TEST_CASE("handle_legacy migrates the adaptive TPMS keys", "[Config]") {
+    ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Enable);
+    DynamicPrintConfig config;
+    config.set_deserialize("tpms_adaptive", "stepped_shells", ctxt);
+    config.set_deserialize("tpms_interior_density", "12%", ctxt);
+    config.set_deserialize("tpms_adaptive_gradient", "quadratic", ctxt);
+
+    CHECK(config.opt_enum<AdaptiveInfillMode>("adaptive_infill_mode") == AdaptiveInfillMode::SteppedShells);
+    CHECK(config.option<ConfigOptionPercent>("adaptive_infill_interior_density")->value == Catch::Approx(12.));
+    CHECK(config.opt_enum<AdaptiveInfillGradient>("adaptive_infill_gradient") == AdaptiveInfillGradient::Quadratic);
+    CHECK(ctxt.substitutions.empty());
+}
+
+TEST_CASE("normalize_fdm leaves feature filaments on Default", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("sparse_infill_filament_id", new ConfigOptionInt(2));
+    config.set_key_value("internal_solid_filament_id", new ConfigOptionInt(0));
+    config.set_key_value("top_surface_filament_id", new ConfigOptionInt(3));
+    config.normalize_fdm();
+    CHECK(config.opt_int("internal_solid_filament_id") == 0);
+    CHECK_FALSE(config.has("bottom_surface_filament_id"));
+}
+
+TEST_CASE("silent_mode is no longer saved and is dropped on load", "[Config]") {
+    DynamicPrintConfig full;
+    full.apply(FullPrintConfig::defaults());
+    CHECK_FALSE(full.has("silent_mode"));
+
+    // Projects saved before its removal still carry it.
+    ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Enable);
+    DynamicPrintConfig        config;
+    config.set_deserialize("silent_mode", "0", ctxt);
+    CHECK_FALSE(config.has("silent_mode"));
+    CHECK(ctxt.unrecogized_keys == std::vector<std::string>{"silent_mode"});
+}
+
+TEST_CASE("handle_legacy migrates every IDEX/IQEX key testers already have", "[Config]") {
+    // Three eras of saved profiles: the feature shipped as iXex (is_ixex + ixex_*), the clearance
+    // pair was renamed to say what it measures, then the whole prefix became imex_. Driven from the
+    // full era-1 key list, because the gap this test was rewritten to catch was a key the earlier
+    // hand-picked version simply did not mention.
+    ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Enable);
+
+    DynamicPrintConfig era1;
+    era1.set_deserialize("is_ixex", "1", ctxt);
+    era1.set_deserialize("ixex_gantry_count", "2", ctxt);
+    era1.set_deserialize("ixex_tools_per_gantry", "2", ctxt);
+    era1.set_deserialize("ixex_carriage_width_x", "12.5", ctxt);
+    era1.set_deserialize("ixex_carriage_width_y", "7.25", ctxt);
+    era1.set_deserialize("ixex_carriage_margin", "1.5", ctxt);
+    era1.set_deserialize("ixex_tool_layout", "front-right", ctxt);
+    era1.set_deserialize("ixex_viz_theme", "deuteranopia", ctxt);
+    era1.set_deserialize("ixex_parallel_mode", "copy", ctxt);
+    era1.set_deserialize("ixex_mode_names", "\"Duplicate\";\"Mirror\"", ctxt);
+    era1.set_deserialize("ixex_mode_active_tools", "\"0:P,1:C\";\"0:P,1:M\"", ctxt);
+    era1.set_deserialize("ixex_mode_gcodes", "\"M118 copy\";\"M118 mirror\"", ctxt);
+
+    // The gate first: every other value is inert without it, and a populated but disabled config is
+    // worse than an empty one because it looks configured.
+    REQUIRE(era1.option("is_imex") != nullptr);
+    CHECK(era1.opt_bool("is_imex"));
+
+    CHECK(era1.opt_int("imex_gantry_count") == 2);
+    CHECK(era1.opt_int("imex_tools_per_gantry") == 2);
+    CHECK(era1.opt_float("imex_nozzle_clearance_x") == Catch::Approx(12.5));
+    CHECK(era1.opt_float("imex_nozzle_clearance_y") == Catch::Approx(7.25));
+    CHECK(era1.opt_float("imex_carriage_margin") == Catch::Approx(1.5));
+    CHECK(era1.opt_string("imex_parallel_mode") == "copy");
+
+    // Both enums changed type from coString, and a forward-compatible substitution would hand back
+    // a default rather than fail, so assert the value and not merely that the option exists.
+    CHECK(era1.opt_enum<ImexToolLayout>("imex_tool_layout") == ImexToolLayout::FrontRight);
+    CHECK(era1.opt_enum<ImexVizTheme>("imex_viz_theme") == ImexVizTheme::Deuteranopia);
+
+    // The three lists carry escaped, semicolon-separated values - the likeliest place for a silent
+    // change - so check both elements survive in order.
+    CHECK(era1.opt_string("imex_mode_names", 0u) == "Duplicate");
+    CHECK(era1.opt_string("imex_mode_names", 1u) == "Mirror");
+    CHECK(era1.opt_string("imex_mode_active_tools", 0u) == "0:P,1:C");
+    CHECK(era1.opt_string("imex_mode_gcodes", 1u) == "M118 mirror");
+
+    // Era 2: renamed clearance keys, still under the old prefix.
+    DynamicPrintConfig era2;
+    era2.set_deserialize("ixex_nozzle_clearance_x", "3.5", ctxt);
+    CHECK(era2.opt_float("imex_nozzle_clearance_x") == Catch::Approx(3.5));
+
+    // Era 3 (current) is untouched by the branch.
+    DynamicPrintConfig era3;
+    era3.set_deserialize("imex_nozzle_clearance_x", "9.0", ctxt);
+    CHECK(era3.opt_float("imex_nozzle_clearance_x") == Catch::Approx(9.0));
+
+    // The two keys with no modern counterpart are dropped and reported, not mapped onto a key that
+    // does not exist.
+    ConfigSubstitutionContext obsolete_ctxt(ForwardCompatibilitySubstitutionRule::Enable);
+    DynamicPrintConfig        obsolete;
+    obsolete.set_deserialize("ixex_primary_col", "1", obsolete_ctxt);
+    obsolete.set_deserialize("ixex_primary_row", "0", obsolete_ctxt);
+    CHECK(obsolete.option("imex_primary_col") == nullptr);
+    CHECK(obsolete.option("imex_primary_row") == nullptr);
+    CHECK(obsolete_ctxt.unrecogized_keys.size() == 2);
+}
+
+TEST_CASE("Static print configs compare, order and hash by their option values", "[Config]")
+{
+    // PrintObjectConfig comes from PRINT_CONFIG_CLASS_DEFINE; PrintConfig combines MachineEnvelopeConfig
+    // and GCodeConfig through PRINT_CONFIG_CLASS_DERIVED_DEFINE. Both generate hash(), operator==,
+    // operator< and the option registration from the same option list. The hash inequalities use fixed
+    // inputs, so they are deterministic; they check that hash() covers the changed option.
+    SECTION("default-constructed configs are equal and find their options by key")
+    {
+        PrintObjectConfig a, b;
+        REQUIRE(a == b);
+        REQUIRE(a.hash() == b.hash());
+        REQUIRE_FALSE(a < b);
+        REQUIRE_FALSE(b < a);
+        REQUIRE(a.optptr("layer_height") == &a.layer_height);
+        REQUIRE(a.optptr("brim_object_gap") == &a.brim_object_gap);
+    }
+
+    SECTION("one differing option makes the configs unequal and orders them")
+    {
+        PrintObjectConfig a, b;
+        b.layer_height.value = a.layer_height.value + 0.05;
+        REQUIRE(a != b);
+        REQUIRE(a.hash() != b.hash());
+        REQUIRE(a < b);
+        REQUIRE_FALSE(b < a);
+    }
+
+    SECTION("ordering is decided by the first option in declaration order that differs")
+    {
+        PrintObjectConfig a, b;
+        a.brim_object_gap.value = b.brim_object_gap.value + 1.0;  // declared first
+        a.layer_height.value    = b.layer_height.value - 0.05;    // declared later, points the other way
+        REQUIRE(b < a);
+        REQUIRE_FALSE(a < b);
+    }
+
+    SECTION("a derived config sees differences in its parents and in its own options")
+    {
+        PrintConfig a, b;
+        REQUIRE(a == b);
+        REQUIRE(a.hash() == b.hash());
+
+        b.gcode_flavor.value = b.gcode_flavor.value == gcfMarlinLegacy ? gcfKlipper : gcfMarlinLegacy;  // GCodeConfig parent
+        REQUIRE(a != b);
+        REQUIRE(a.hash() != b.hash());
+
+        PrintConfig c, d;
+        d.skirt_distance.value = c.skirt_distance.value + 1.0;  // PrintConfig's own list
+        REQUIRE(c != d);
+        REQUIRE(c.hash() != d.hash());
+        REQUIRE(c.optptr("skirt_distance") == &c.skirt_distance);
+        REQUIRE(c.optptr("gcode_flavor") == &c.gcode_flavor);
+    }
+}
+
+namespace {
+
+// Keys whose values differ between two full configs, compared as text so enum names count too.
+std::vector<std::string> differing_keys(const FullPrintConfig &a, const FullPrintConfig &b)
+{
+    std::vector<std::string> keys;
+    for (const std::string &key : a.keys())
+        if (a.opt_serialize(key) != b.opt_serialize(key))
+            keys.push_back(key);
+    return keys;
+}
+
+// Applies source to one full config member by member and to another key by key, as apply() did before
+// static configs could apply themselves.
+template<class Source> void check_member_apply_matches_key_apply(const Source &source)
+{
+    FullPrintConfig by_member;
+    FullPrintConfig by_key;
+    by_member.apply(source);
+    by_key.apply_only(source, source.keys());
+    CHECK(differing_keys(by_member, by_key).empty());
+    CHECK_FALSE(differing_keys(by_member, FullPrintConfig()).empty());
+}
+
+} // namespace
+
+TEST_CASE("A static config applies itself onto a config of its type as a lookup by name would", "[Config]")
+{
+    SECTION("region config")
+    {
+        PrintRegionConfig region;
+        region.sparse_infill_pattern.value = ipGyroid;
+        region.outer_wall_speed.values     = {37.};
+        region.sparse_infill_density.value = 35.;
+        FullPrintConfig full;
+        REQUIRE(region.apply_to(full));
+        check_member_apply_matches_key_apply(region);
+    }
+    SECTION("object config")
+    {
+        PrintObjectConfig object;
+        object.seam_position.value  = spRear;
+        object.wall_generator.value = PerimeterGeneratorType::Arachne;
+        object.support_speed.values = {33.};
+        object.enable_support.value = true;
+        FullPrintConfig full;
+        REQUIRE(object.apply_to(full));
+        check_member_apply_matches_key_apply(object);
+    }
+    SECTION("G-code config, whose enum lists carry their names through a keys map")
+    {
+        GCodeConfig gcode;
+        gcode.z_hop_types.values       = {int(zhtSpiral)};
+        gcode.retraction_length.values = {1.5};
+        FullPrintConfig full;
+        REQUIRE(gcode.apply_to(full));
+        check_member_apply_matches_key_apply(gcode);
+    }
+}
+
+TEST_CASE("A static config applied onto a config of another type falls back to a lookup by name", "[Config]")
+{
+    PrintRegionConfig region;
+    region.sparse_infill_pattern.value = ipGyroid;
+    DynamicPrintConfig dynamic;
+    REQUIRE_FALSE(region.apply_to(dynamic));
+    dynamic.apply(region);
+    CHECK(dynamic.opt_serialize("sparse_infill_pattern") == "gyroid");
+}
+
+TEST_CASE("Default options of enum lists get their definition's keys map", "[Config]")
+{
+    size_t enum_lists = 0;
+    for (const auto &[key, def] : print_config_def.options) {
+        if (def.type != coEnums || !def.default_value)
+            continue;
+        INFO(key);
+        const std::unique_ptr<ConfigOption> opt(def.create_default_option());
+        CHECK(*opt == *def.default_value);
+        const auto *nullable_enums = dynamic_cast<const ConfigOptionEnumsGenericNullable *>(opt.get());
+        const auto *enums          = dynamic_cast<const ConfigOptionEnumsGeneric *>(opt.get());
+        REQUIRE((nullable_enums != nullptr) != (enums != nullptr));
+        CHECK((nullable_enums != nullptr ? nullable_enums->keys_map : enums->keys_map) == def.enum_keys_map);
+        ++enum_lists;
+    }
+    CHECK(enum_lists > 0);
+}
+
+TEST_CASE("Custom G-code placeholder lists are keyed by option keys", "[Config]")
+{
+    const auto &placeholders = custom_gcode_specific_placeholders();
+    REQUIRE_FALSE(placeholders.empty());
+    for (const auto &[gcode_key, keys] : placeholders) {
+        INFO(gcode_key);
+        CHECK(print_config_def.has(gcode_key));
+    }
+
+    // Multiline text options that aren't custom G-code; add any new one that isn't G-code here.
+    const std::set<std::string> not_gcode = { "notes", "filament_notes", "printer_notes", "post_process",
+                                              "adaptive_pressure_advance_model", "small_area_infill_flow_compensation_model" };
+    size_t gcode_options = 0;
+    for (const auto &[key, def] : print_config_def.options) {
+        if (!def.multiline || not_gcode.count(key) > 0)
+            continue;
+        INFO(key);
+        CHECK(placeholders.count(key) == 1);
+        ++gcode_options;
+    }
+    CHECK(gcode_options == placeholders.size());
+}
+
+TEST_CASE("A disabled filament override survives the merge with a parent that sets it", "[Config][Variant]")
+{
+    std::set<std::string>      no_keys;
+    Slic3r::DynamicPrintConfig parent;
+    parent.set_deserialize_strict("filament_retract_before_wipe", "100%");
+    parent.set_deserialize_strict("filament_ironing_flow", "15%");
+    Slic3r::DynamicPrintConfig child;
+    child.set_deserialize_strict("filament_retract_before_wipe", "nil");
+    child.set_deserialize_strict("filament_ironing_flow", "nil");
+    parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                              Slic3r::filament_options_with_variant, no_keys);
+    CHECK(parent.opt_serialize("filament_retract_before_wipe") == "nil");
+    CHECK(parent.opt_serialize("filament_ironing_flow") == "nil");
+}
+
+SCENARIO("A two-variant child's disabled override column is matched to the parent's variant by name", "[Config][Variant]")
+{
+    std::set<std::string> no_keys;
+    GIVEN("A two-variant filament parent") {
+        Slic3r::DynamicPrintConfig parent;
+        parent.set_deserialize_strict("filament_extruder_variant", "Direct Drive Standard;Direct Drive High Flow");
+        parent.set_deserialize_strict("filament_retract_before_wipe", "100%,100%");
+        parent.set_deserialize_strict("filament_flow_ratio", "1,1");
+        WHEN("the child disables the override on one variant and leaves a plain option nil on it") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_deserialize_strict("filament_extruder_variant", "Direct Drive Standard;Direct Drive High Flow");
+            child.set_deserialize_strict("filament_retract_before_wipe", "nil,100%");
+            child.set_deserialize_strict("filament_flow_ratio", "nil,1.1");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("the override column is disabled while the plain option's nil column inherits") {
+                CHECK(parent.opt_serialize("filament_retract_before_wipe") == "nil,100%");
+                CHECK(parent.opt_serialize("filament_flow_ratio") == "1,1.1");
+            }
+        }
+        WHEN("the child lists the same variants in the other order") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_deserialize_strict("filament_extruder_variant", "Direct Drive High Flow;Direct Drive Standard");
+            child.set_deserialize_strict("filament_retract_before_wipe", "70%,nil");
+            child.set_deserialize_strict("filament_flow_ratio", "1.1,nil");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("columns are matched by variant name, the disabled one included") {
+                CHECK(parent.opt_serialize("filament_retract_before_wipe") == "nil,70%");
+                CHECK(parent.opt_serialize("filament_flow_ratio") == "1,1.1");
+            }
+        }
+        WHEN("the child was saved with a single variant") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_deserialize_strict("filament_extruder_variant", "Direct Drive Standard");
+            child.set_deserialize_strict("filament_retract_before_wipe", "nil");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("its one value applies to every variant of that extruder, as slicing does") {
+                CHECK(parent.opt_serialize("filament_retract_before_wipe") == "nil,nil");
+            }
+        }
+    }
+}
+
+TEST_CASE("Every listed filament override is nullable", "[Config]")
+{
+    std::set<std::string> overrides(Slic3r::filament_extruder_override_keys.begin(), Slic3r::filament_extruder_override_keys.end());
+    overrides.insert({ "filament_retract_length_nc", "filament_ironing_flow", "filament_ironing_spacing", "filament_ironing_inset", "filament_ironing_speed" });
+    for (const auto &[key, def] : Slic3r::print_config_def.options) {
+        INFO(key);
+        CHECK(Slic3r::is_filament_extruder_override_key(key) == (overrides.count(key) == 1));
+        if (overrides.count(key) == 1)
+            CHECK(def.nullable);
+    }
+}
+
+TEST_CASE("Entries of a list applied by index onto an empty list are copied", "[Config][Regression]")
+{
+    const std::vector<std::string> ids = GENERATE(std::vector<std::string>{"GFA00"}, std::vector<std::string>{"GFA00", "GFA01"});
+    DynamicPrintConfig edited;
+    edited.set_key_value("filament_ids", new ConfigOptionStrings(ids));
+    std::vector<std::string> keys;
+    for (size_t i = 0; i < ids.size(); ++i)
+        keys.push_back("filament_ids#" + std::to_string(i));
+
+    DynamicPrintConfig saved;
+    saved.set_key_value("filament_ids", new ConfigOptionStrings());
+    saved.apply_only(edited, keys);
+    CHECK(saved.option<ConfigOptionStrings>("filament_ids")->values == ids);
+}
+
+TEST_CASE("An empty list applied by index replaces the target list", "[Config][Regression]")
+{
+    DynamicPrintConfig saved;
+    saved.set_key_value("filament_ids", new ConfigOptionStrings());
+    DynamicPrintConfig edited;
+    SECTION("target has entries") { edited.set_key_value("filament_ids", new ConfigOptionStrings({"GFA00"})); }
+    SECTION("target lacks the option") {}
+
+    edited.apply_only(saved, {"filament_ids#0"});
+    CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());
 }

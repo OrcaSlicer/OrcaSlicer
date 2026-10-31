@@ -1,21 +1,31 @@
 #ifndef slic3r_ClipperZUtils_hpp_
 #define slic3r_ClipperZUtils_hpp_
 
+#include "libslic3r.h"
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <functional>
 #include <numeric>
+#include <utility>
 #include <vector>
 
-#include <clipper/clipper_z.hpp>
+#include <libslic3r/ClipperUtils.hpp>
 #include <libslic3r/Point.hpp>
 #include <libslic3r/ExPolygon.hpp>
+#include "Polygon.hpp"
 
 namespace Slic3r {
 
 namespace ClipperZUtils {
 
-using ZPoint  = ClipperLib_Z::IntPoint;
-using ZPoints = ClipperLib_Z::Path;
-using ZPath   = ClipperLib_Z::Path;
-using ZPaths  = ClipperLib_Z::Paths;
+using ZPoint  = Vec3crd;
+using ZPoints = std::vector<ZPoint, PointsAllocator<ZPoint>>;
+using ZPath   = ZPoints;
+using ZPaths  = std::vector<ZPath, PointsAllocator<ZPath>>;
+
+// Sets Z of an intersection point from the edges crossing there.
+using ZFillCallback = std::function<void(const ZPoint &e1bot, const ZPoint &e1top, const ZPoint &e2bot, const ZPoint &e2top, ZPoint &pt)>;
 
 inline bool zpoint_lower(const ZPoint &l, const ZPoint &r)
 {
@@ -101,6 +111,12 @@ inline VecOfPoints from_zpaths(const ZPaths &paths)
     return out;
 }
 
+// Signed area, positive for a CCW path.
+double area(const ZPath &path);
+
+// Non-zero rule boolean, the subject may be open. zfill only sees intersections off the input vertices.
+ZPaths clip_zpaths(ClipType clip_type, const ZPaths &subject, bool subject_open, const ZPaths &clip, const ZFillCallback &zfill, bool preserve_collinear = false);
+
 class ClipperZIntersectionVisitor {
 public:
     using Intersection  = std::pair<coord_t, coord_t>;
@@ -126,8 +142,8 @@ public:
             }
         }
     }
-    ClipperLib_Z::ZFillCallback clipper_callback() {
-        return [this](const ZPoint &e1bot, const ZPoint &e1top, 
+    ZFillCallback clipper_callback() {
+        return [this](const ZPoint &e1bot, const ZPoint &e1top,
                  const ZPoint &e2bot, const ZPoint &e2top, ZPoint &pt)
         { return (*this)(e1bot, e1top, e2bot, e2top, pt); };
     }

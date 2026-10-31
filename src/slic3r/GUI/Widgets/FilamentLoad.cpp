@@ -1,16 +1,24 @@
 #include "FilamentLoad.hpp"
-#include "Label.hpp"
-#include "../BitmapCache.hpp"
 #include "../I18N.hpp"
-#include "../GUI_App.hpp"
 #include "../DeviceCore/DevFilaSystem.h"
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StepCtrl.hpp"
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <string>
+#include <wx/colour.h>
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
 
 #include <boost/log/trivial.hpp>
+#include <wx/string.h>
+#include "slic3r/GUI/DeviceManager.hpp"
 
-#include "CalibUtils.hpp"
+class wxWindow;
+
 
 namespace Slic3r {
     namespace GUI {
@@ -45,15 +53,17 @@ FilamentLoad::FilamentLoad(wxWindow* parent, wxWindowID id, const wxPoint& pos, 
     // STEP_CHECK_POSITION and STEP_CONFIRM_EXTRUDED share code 0x08, so CONFIRM is assigned first
     // and CHECK_POSITION last, leaving code 0x08 mapped to "Check filament location" as on device.
     DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_IDLE]                = _L("Idling...");
-    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PAUSE]               = _L("Pause");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PAUSE]               = _L_CONTEXT("Pause", "Verb");
     DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_HEAT_NOZZLE]         = _L("Heat the nozzle");
     DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_CUT_FILAMENT]        = _L("Cut filament");
     DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PULL_CURR_FILAMENT]  = _L("Pull back the current filament");
     DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PUSH_NEW_FILAMENT]   = _L("Push new filament into extruder");
     DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_GRAB_NEW_FILAMENT]   = _L("Grab new filament");
     DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PURGE_OLD_FILAMENT]  = _L("Purge old filament");
-    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_SWITCH_EXTRUDER]     = _L("Switch") + " " + _L("extruder");
-    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_SWITCH_HOTEND]       = _L("Switch") + " " + _L("hotend");
+    // TRN Filament change step: the printer switches to the other extruder.
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_SWITCH_EXTRUDER]     = _L("Switch extruder");
+    // TRN Filament change step: the printer switches to another hotend.
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_SWITCH_HOTEND]       = _L("Switch hotend");
     DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_AMS_FILA_COOLING]    = _L("Wait for AMS cooling");
     DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PUSH_SWITCHER_FILA]  = _L("Switch current filament at Filament Track Switch");
     DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PULL_SWITCHER_FILA]  = _L("Pull back current filament at Filament Track Switch");
@@ -139,11 +149,8 @@ void FilamentLoad::SetFilamentStep(FilamentStep item_idx, FilamentStepType f_typ
         }
     }
 
-    wxString slot_info = L"AMS-";
-    slot_info = slot_info + std::to_string(m_ams_id);
-    slot_info = slot_info + L'-';
-    slot_info = slot_info + std::to_string(m_slot_id);
-    slot_info = slot_info + L" Slot";
+    // TRN AMS unit number, then slot number
+    wxString slot_info = wxString::Format(_L("AMS-%d-%d Slot"), m_ams_id, m_slot_id);
     step_control->SetSlotInformation(slot_info);
 }
 

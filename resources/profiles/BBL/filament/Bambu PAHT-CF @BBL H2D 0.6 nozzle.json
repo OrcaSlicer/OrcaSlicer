@@ -1,0 +1,84 @@
+{
+    "type": "filament",
+    "name": "Bambu PAHT-CF @BBL H2D 0.6 nozzle",
+    "inherits": "Bambu PAHT-CF @base",
+    "from": "system",
+    "setting_id": "GFSN04_21",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "counter_coef_2": [
+        "0.00545"
+    ],
+    "counter_coef_3": [
+        "-0.0202"
+    ],
+    "counter_limit_max": [
+        "0.03"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_dev_ams_drying_temperature": [
+        "65",
+        "85",
+        "65",
+        "85"
+    ],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "12",
+        "12",
+        "12"
+    ],
+    "filament_flow_ratio": [
+        "0.96",
+        "0.96",
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "8",
+        "8",
+        "8"
+    ],
+    "filament_preheat_temperature_delta": [
+        "20",
+        "20",
+        "20"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual_e3d"
+    ],
+    "nozzle_temperature": [
+        "290",
+        "290",
+        "290"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "290",
+        "290",
+        "290"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2D 0.6 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

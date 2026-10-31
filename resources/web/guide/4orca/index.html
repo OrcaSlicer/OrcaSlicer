@@ -8,34 +8,34 @@
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />		
 <link rel="stylesheet" type="text/css" href="4orca.css" />
-<script type="text/javascript" src="../js/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
 <script type="text/javascript" src="../js/json2.js"></script>	
-<script type="text/javascript" src="../../data/text.js"></script>	
+<script type="text/javascript" src="../../include/i18n.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
 <script type="text/javascript" src="../js/common.js"></script>
 <script type="text/javascript" src="4orca.js"></script>	
 </head>
 <body onLoad="OnInit()">
 <div id="Title">
-	<div class="trans" tid="orca3">Stealth Mode</div>
+	<div data-i18n="stealth_mode">Stealth Mode</div>
 </div>
 <div id="Content">
 
     <div id="FeatureText">
-		<div><a tid="orca4" class="trans TextS1">This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.</a></div>
+		<div><a class="TextS1" data-i18n="stealth_mode_desc">This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.</a></div>
 			<br/>
-			<div><a tid="orca12" class="trans TextS2">Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud.</a></div>
+			<div><a class="TextS2" data-i18n="stealth_mode_note">Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud.</a></div>
     </div>
 	
 	
 	<!-- ORCA use label tag to allow checkbox to toggle when user clicked to text -->
-	<label id="CheckArea"><input id="StealthMode" onClick="SendStealthModeCheck()" type="checkbox"><a tid="orca5" class="trans TextS1">Enable Stealth Mode.</a></label>
-	<div id="RestartText" tid="t70" class="trans" ></div>
+	<label id="CheckArea"><input id="StealthMode" onClick="SendStealthModeCheck()" type="checkbox"><a class="TextS1" data-i18n="enable_stealth_mode">Enable Stealth Mode.</a></label>
+	<div id="RestartText"></div>
 	
 </div>
 <div id="AcceptArea">
-	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t8" id="PreBtn"  onclick="window.history.back()">Back</div>
-	<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t9" id="GotoNetPluginBtn"  onclick="GotoNetPluginPage()">Next</div>	
+	<div class="ButtonStyleRegular ButtonTypeChoice" id="PreBtn" onclick="window.history.back()" data-i18n="back">Back</div>
+	<div class="ButtonStyleConfirm ButtonTypeChoice" id="GotoNetPluginBtn" onclick="GotoNetPluginPage()" data-i18n="next">Next</div>	
 </div>	
 </body>
 </html>

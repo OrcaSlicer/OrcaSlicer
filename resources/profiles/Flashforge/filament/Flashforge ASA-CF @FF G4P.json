@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge ASA-CF @FF G4P",
-	"inherits": "Flashforge Generic ABS",
+	"inherits": "Generic ABS @Flashforge",
 	"from": "system",
 	"setting_id": "kZXg6odPm5iW79Qn",
+	"filament_id": "OFq0TY7C",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_chamber_temp_control": [
 		"1"
 	],
@@ -36,7 +40,7 @@
 		"; filament start gcode\n;right_extruder_material: ASA-CF\n"
 	],
 	"filament_type": [
-		"ASA"
+		"ASA-CF"
 	],
 	"compatible_printers": [
 		"Flashforge Guider4 Pro 0.4 nozzle"

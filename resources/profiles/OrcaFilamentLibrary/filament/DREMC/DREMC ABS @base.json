@@ -3,7 +3,7 @@
 	"name": "DREMC ABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "DREMC003",
+	"filament_id": "OFzrUUxc",
 	"instantiation": "false",
 	"filament_cost": [
 		"24"

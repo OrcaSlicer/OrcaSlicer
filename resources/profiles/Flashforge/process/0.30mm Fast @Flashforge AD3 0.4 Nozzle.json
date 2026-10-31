@@ -45,7 +45,6 @@
 	"min_bead_width": "100",
 	"elefant_foot_compensation": "0.15",
 	"small_perimeter_speed": "50%",
-	"overhang_speed_classic": "0",
 	"internal_bridge_speed": "64",
 	"accel_to_decel_enable": "0",
 	"filter_out_gap_fill": "0.5",

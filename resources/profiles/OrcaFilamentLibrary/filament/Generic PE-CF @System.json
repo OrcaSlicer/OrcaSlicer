@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic PE-CF @System",
-	"inherits": "fdm_filament_pe",
+	"inherits": "Generic PE-CF @base",
 	"from": "system",
 	"setting_id": "prroSXONXxaahNkq",
 	"instantiation": "true",

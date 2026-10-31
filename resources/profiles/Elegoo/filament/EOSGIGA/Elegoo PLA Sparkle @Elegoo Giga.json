@@ -1,7 +1,8 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Sparkle @Elegoo Giga",
-	"inherits": "Elegoo PLA @base",
+	"renamed_from": "Elegoo PLA Sparkle @EOS Giga",
+	"inherits": "Elegoo PLA Sparkle @base",
 	"from": "system",
 	"setting_id": "pgsOuYMxtcm3Fkar",
 	"instantiation": "true",
@@ -31,6 +32,5 @@
 		"Elegoo OrangeStorm Giga 0.6 nozzle",
 		"Elegoo OrangeStorm Giga 0.8 nozzle",
 		"Elegoo OrangeStorm Giga 1.0 nozzle"
-	],
-	"renamed_from": "Elegoo PLA Sparkle @EOS Giga"
+	]
 }

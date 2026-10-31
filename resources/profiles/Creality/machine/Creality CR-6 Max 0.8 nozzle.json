@@ -8,7 +8,7 @@
 	"printer_model": "Creality CR-6 Max",
 	"printer_structure": "i3",
 	"default_filament_profile": [
-		"Creality Generic PLA"
+		"Generic PLA @Creality"
 	],
 	"printer_variant": "0.8",
 	"default_print_profile": "0.32mm Standard @Creality CR-6 0.8",

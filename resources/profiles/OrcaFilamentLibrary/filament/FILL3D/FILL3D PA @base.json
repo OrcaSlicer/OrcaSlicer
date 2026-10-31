@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "FILL3D PA @base",
-	"from": "system",
-	"filament_id": "FILL3D006",
-	"instantiation": "false",
 	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"filament_id": "OFJNeELv",
+	"instantiation": "false",
 	"filament_vendor": [
 		"FILL3D"
 	],

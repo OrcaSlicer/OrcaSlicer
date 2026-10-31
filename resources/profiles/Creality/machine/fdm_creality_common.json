@@ -116,7 +116,6 @@
 	"deretraction_speed": [
 		"40"
 	],
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "M25 ;pause print",
@@ -124,7 +123,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"Creality Generic PLA"
+		"Generic PLA @Creality"
 	],
 	"default_print_profile": "0.20mm Standard @Creality",
 	"bed_exclude_area": [

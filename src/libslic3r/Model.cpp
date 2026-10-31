@@ -1,9 +1,28 @@
 #include "Model.hpp"
+#include "calib.hpp"
+#include "Format/STEP.hpp"
+#include "TriangleMesh.hpp"
+#include "Semver.hpp"
+#include "Format/OBJ.hpp"
+#include "Config.hpp"
+#include "Format/STL.hpp"
+#include "Format/objparser.hpp"
+#include "CustomGCode.hpp"
+#include "PrintConfig.hpp"
+#include "ObjectID.hpp"
+#include "BoundingBox.hpp"
+#include "Point.hpp"
+#include "Utils.hpp"
+#include "Polygon.hpp"
+#include "SLA/SupportPoint.hpp"
+#include "TextureDisplacement.hpp"
 #include "libslic3r.h"
+#include "AABBTreeIndirect.hpp"
 #include "BuildVolume.hpp"
+#include "TexturePainting.hpp"
+#include "Format/AssimpImport.hpp"
 #include "ClipperUtils.hpp"
 #include "Exception.hpp"
-#include "Model.hpp"
 #include "ModelArrange.hpp"
 #include "Arrange.hpp"
 #include "Geometry.hpp"
@@ -11,6 +30,8 @@
 #include "TriangleMeshSlicer.hpp"
 #include "TriangleSelector.hpp"
 #include "MaterialType.hpp"
+#include "Tesselate.hpp"
+#include "MeshRepair.hpp"
 
 #include "Format/AMF.hpp"
 #include "Format/svg.hpp"
@@ -20,7 +41,19 @@
 #include "FaceDetector.hpp"
 
 #include "libslic3r/Geometry/ConvexHull.hpp"
+#include "ClipperUtils.hpp"
 
+#include <Eigen/Core>
+#include <algorithm>
+#include <cstddef>
+#include <cassert>
+#include <cstdlib>
+#include <ctime>
+#include <boost/filesystem/operations.hpp>
+#include <boost/lexical_cast.hpp>
+#include <exception>
+#include <cmath>
+#include <array>
 #include <float.h>
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -31,7 +64,23 @@
 
 #include "SVG.hpp"
 #include <Eigen/Dense>
+#include <array>
 #include <functional>
+#include <vector>
+#include <string>
+#include <map>
+#include <utility>
+#include <memory>
+#include <iterator>
+#include <limits>
+#include <sstream>
+#include <iomanip>
+#include <set>
+#include <optional>
+#include <iostream>
+#include <ios>
+#include <ostream>
+#include <initializer_list>
 #include "GCodeWriter.hpp"
 
 // BBS: for segment
@@ -40,6 +89,7 @@
 
 // Transtltion
 #include "I18N.hpp"
+#include "ExPolygon.hpp"
 
 // ModelIO support
 #ifdef __APPLE__
@@ -104,6 +154,9 @@ Model& Model::assign_copy(const Model &rhs)
     this->mk_version = rhs.mk_version;
     this->md_name = rhs.md_name;
     this->md_value = rhs.md_value;
+    this->texture_mesh = rhs.texture_mesh;
+
+    this->cad_recipe = rhs.cad_recipe;
 
     return *this;
 }
@@ -139,6 +192,7 @@ Model& Model::assign_copy(Model &&rhs)
     this->mk_version = rhs.mk_version;
     this->md_name = rhs.md_name;
     this->md_value = rhs.md_value;
+    this->texture_mesh = std::move(rhs.texture_mesh);
     this->backup_path = std::move(rhs.backup_path);
     this->object_backup_id_map = std::move(rhs.object_backup_id_map);
     this->next_object_backup_id = rhs.next_object_backup_id;
@@ -148,6 +202,7 @@ Model& Model::assign_copy(Model &&rhs)
     rhs.model_info.reset();
     this->profile_info = rhs.profile_info;
     rhs.profile_info.reset();
+    this->cad_recipe = std::move(rhs.cad_recipe);
     return *this;
 }
 
@@ -239,6 +294,27 @@ _finished:
 // BBS: add part plate related logic
 // BBS: backup & restore
 // Loading model from a file, it may be a simple geometry file as STL or OBJ, however it may be a project file as well.
+// Build a plain geometry ModelObject from a textured mesh. The texture itself is carried
+// separately on Model::texture_mesh and consumed by the texture import dialog.
+static void add_textured_mesh_to_model(Model& model, const TexturedMesh& tex_mesh, const std::string& input_file)
+{
+    std::string object_name = boost::filesystem::path(input_file).filename().string();
+
+    indexed_triangle_set its;
+    its.vertices.resize(tex_mesh.vertices.size());
+    for (size_t i = 0; i < tex_mesh.vertices.size(); ++i)
+        its.vertices[i] = Vec3f(tex_mesh.vertices[i][0], tex_mesh.vertices[i][1], tex_mesh.vertices[i][2]);
+    its.indices.resize(tex_mesh.indices.size());
+    for (size_t i = 0; i < tex_mesh.indices.size(); ++i)
+        its.indices[i] = Vec3i32(tex_mesh.indices[i][0], tex_mesh.indices[i][1], tex_mesh.indices[i][2]);
+
+    its_merge_vertices(its);
+    its_remove_degenerate_faces(its);
+    its_compactify_vertices(its);
+
+    model.add_object(object_name.c_str(), input_file.c_str(), TriangleMesh(std::move(its)));
+}
+
 Model Model::read_from_file(const std::string&                                  input_file,
                             DynamicPrintConfig*                                 config,
                             ConfigSubstitutionContext*                          config_substitutions,
@@ -250,8 +326,7 @@ Model Model::read_from_file(const std::string&                                  
                             Import3mfProgressFn                                 proFn,
                             ImportstlProgressFn                                 stlFn,
                             BBLProject *                                        project,
-                            int                                                 plate_id,
-                            ObjImportColorFn                                    objFn)
+                            int                                                 plate_id)
 {
     Model model;
 
@@ -281,32 +356,103 @@ Model Model::read_from_file(const std::string&                                  
         result = load_stl(input_file.c_str(), &model, nullptr, stlFn,256);
     else if (boost::algorithm::iends_with(input_file, ".obj")) {
         ObjInfo                 obj_info;
-        result = load_obj(input_file.c_str(), &model, obj_info, message);
-        if (result){
-            ObjDialogInOut in_out;
-            in_out.model = &model;
-            in_out.lost_material_name = obj_info.lost_material_name;
+        ObjParser::MtlData      mtl_data;
+        result = load_obj(input_file.c_str(), &model, obj_info, message, nullptr, &mtl_data);
+        // Keep the model's own UV channel on the volume, whatever the colour import then does with
+        // the mesh: it is what TextureProjectionMethod::ModelUV maps a texture-displacement layer
+        // through, so a model that arrives with a UV layout is textured on that layout instead of on
+        // a fresh unwrap. load_obj() fills obj_info.uvs per face of the mesh it built, in the same
+        // order (and only when every face named a known material, hence the size check). V is flipped
+        // on the way in, to the convention DecodedHeightTexture samples in - the same flip
+        // obj_to_textured_mesh() does for the colour importer.
+        if (result && !obj_info.uvs.empty() && !model.objects.empty() && !model.objects.back()->volumes.empty()) {
+            ModelVolume                &volume = *model.objects.back()->volumes[0];
+            const indexed_triangle_set &its    = volume.mesh().its;
+            if (obj_info.uvs.size() == its.indices.size()) {
+                volume.texture_uv.resize(its.indices.size() * 3);
+                for (size_t fi = 0; fi < obj_info.uvs.size(); ++fi)
+                    for (int k = 0; k < 3; ++k)
+                        volume.texture_uv[fi * 3 + size_t(k)] =
+                            Vec2f(obj_info.uvs[fi][size_t(k)].x(), 1.f - obj_info.uvs[fi][size_t(k)].y());
+            }
+        }
+        if (result && obj_info.has_uv_png && !obj_info.uvs.empty() && !model.objects.empty()) {
+            // Textured OBJ: hand the mesh + materials to the texture-to-color importer
+            // instead of the flat per-face colour dialog.
+            auto tex_mesh = std::make_shared<TexturedMesh>();
+            std::string obj_dir = boost::filesystem::path(input_file).parent_path().string();
+            if (obj_to_textured_mesh(obj_info,
+                    model.objects.back()->volumes[0]->mesh().its,
+                    mtl_data, obj_dir, *tex_mesh)) {
+                model.texture_mesh = tex_mesh;
+            }
+        }
+        else if (result && !model.objects.empty() && !model.objects.back()->volumes.empty()) {
+            // Vertex-colour and MTL face-colour OBJs also go through the texture-to-color
+            // importer (as precomputed per-face colors) instead of the flat
+            // per-face colour dialog, matching the uv_png branch above.
+            auto build_tex_mesh_geometry = [&]() {
+                auto tex_mesh = std::make_shared<TexturedMesh>();
+                const auto& its = model.objects.back()->volumes[0]->mesh().its;
+                tex_mesh->vertices.resize(its.vertices.size());
+                for (size_t i = 0; i < its.vertices.size(); ++i)
+                    tex_mesh->vertices[i] = {its.vertices[i].x(), its.vertices[i].y(), its.vertices[i].z()};
+                tex_mesh->indices.resize(its.indices.size());
+                for (size_t i = 0; i < its.indices.size(); ++i)
+                    tex_mesh->indices[i] = {its.indices[i][0], its.indices[i][1], its.indices[i][2]};
+                return tex_mesh;
+            };
             if (obj_info.vertex_colors.size() > 0) {
-                if (objFn) { // 1.result is ok and pop up a dialog
-                    in_out.input_colors      = std::move(obj_info.vertex_colors);
-                    in_out.is_single_color   = false;
-                    in_out.deal_vertex_color = true;
-                    objFn(in_out);
+                auto tex_mesh = build_tex_mesh_geometry();
+                const auto& its = model.objects.back()->volumes[0]->mesh().its;
+                tex_mesh->precomputed_face_colors.resize(its.indices.size());
+                for (size_t i = 0; i < its.indices.size(); ++i) {
+                    const auto& f = its.indices[i];
+                    auto avg = [&](int ch) -> std::size_t {
+                        float v = (obj_info.vertex_colors[f[0]][ch]
+                                 + obj_info.vertex_colors[f[1]][ch]
+                                 + obj_info.vertex_colors[f[2]][ch]) / 3.0f * 255.0f;
+                        return (std::size_t) std::clamp(v, 0.0f, 255.0f);
+                    };
+                    tex_mesh->precomputed_face_colors[i] = {avg(0), avg(1), avg(2)};
                 }
-            } else if (obj_info.face_colors.size() > 0 && obj_info.has_uv_png == false) { // mtl file
-                if (objFn) { // 1.result is ok and pop up a dialog
-                    in_out.input_colors      = std::move(obj_info.face_colors);
-                    in_out.is_single_color   = obj_info.is_single_mtl;
-                    in_out.deal_vertex_color = false;
-                    objFn(in_out);
+                tex_mesh->precomputed_vertex_colors = obj_info.vertex_colors;
+                model.texture_mesh = tex_mesh;
+            } else if (obj_info.face_colors.size() > 0 && obj_info.has_uv_png == false) {
+                auto tex_mesh = build_tex_mesh_geometry();
+                const size_t nf = tex_mesh->indices.size();
+                tex_mesh->precomputed_face_colors.resize(nf);
+                for (size_t i = 0; i < nf; ++i) {
+                    if (i < obj_info.face_colors.size()) {
+                        const auto& c = obj_info.face_colors[i];
+                        tex_mesh->precomputed_face_colors[i] = {
+                            (std::size_t) std::clamp(c[0] * 255.0f, 0.0f, 255.0f),
+                            (std::size_t) std::clamp(c[1] * 255.0f, 0.0f, 255.0f),
+                            (std::size_t) std::clamp(c[2] * 255.0f, 0.0f, 255.0f)
+                        };
+                    } else {
+                        tex_mesh->precomputed_face_colors[i] = {128, 128, 128};
+                    }
                 }
-            } /*else if (obj_info.has_uv_png && obj_info.uvs.size() > 0) {
-                boost::filesystem::path full_path(input_file);
-                std::string             obj_directory = full_path.parent_path().string();
-                obj_info.obj_dircetory = obj_directory;
-                result = false;
-                message = _L("Importing obj with png function is developing.");
-            }*/
+                model.texture_mesh = tex_mesh;
+            }
+        }
+    }
+    else if (boost::algorithm::iends_with(input_file, ".glb") ||
+             boost::algorithm::iends_with(input_file, ".gltf") ||
+             boost::algorithm::iends_with(input_file, ".fbx")) {
+        // These formats can carry material/texture data, so they go through the textured
+        // import path: the geometry becomes a normal object and the texture is handed to the
+        // texture-to-color dialog via Model::texture_mesh.
+        auto tex_mesh = std::make_shared<TexturedMesh>();
+        result = load_assimp_textured_model(input_file, *tex_mesh, &message);
+        if (result) {
+            model.texture_mesh = tex_mesh;
+            add_textured_mesh_to_model(model, *tex_mesh, input_file);
+        } else if (!message.empty()) {
+            BOOST_LOG_TRIVIAL(error) << "Assimp: failed to load model: " << message
+                                     << ", path=" << input_file;
+            message = _L("The file format is incompatible and cannot be parsed.");
         }
     }
     else if (boost::algorithm::iends_with(input_file, ".svg"))
@@ -330,7 +476,7 @@ Model Model::read_from_file(const std::string&                                  
              boost::algorithm::iends_with(input_file, ".abc") || boost::algorithm::iends_with(input_file, ".ply")) {
         std::string temp_stl = make_temp_stl_with_modelio(input_file);
         if (temp_stl.empty()) {
-            throw Slic3r::RuntimeError("Failed to convert asset to STL via ModelIO.");
+            throw Slic3r::RuntimeError(_L("Failed to convert asset to STL via ModelIO."));
         }
         result = load_stl(temp_stl.c_str(), &model);
         delete_temp_file(temp_stl);
@@ -578,6 +724,7 @@ void Model::clear_objects()
     this->objects.clear();
     object_backup_id_map.clear();
     next_object_backup_id = 1;
+    texture_mesh.reset();
 }
 
 // BBS: backup, reuse objects
@@ -798,7 +945,7 @@ void Model::convert_multipart_object(unsigned int max_extruders)
             // Revert the centering operation.
             trafo_volume.set_offset(trafo_volume.get_offset() - o->origin_translation);
             int counter = 1;
-            auto copy_volume = [o, v, max_extruders, &counter, &extruder_counter](ModelVolume *new_v) {
+            auto copy_volume = [o, v, &counter](ModelVolume *new_v) {
                 assert(new_v != nullptr);
                 new_v->name = (counter > 1) ? o->name + "_" + std::to_string(counter++) : o->name;
                 //BBS: Use extruder priority: volumn > object > default
@@ -1137,6 +1284,7 @@ ModelObject& ModelObject::assign_copy(const ModelObject &rhs)
     this->layer_config_ranges         = rhs.layer_config_ranges;
     this->layer_height_profile        = rhs.layer_height_profile;
     this->printable                   = rhs.printable;
+    this->auto_drop                   = rhs.auto_drop;
     this->origin_translation          = rhs.origin_translation;
     this->cut_id.copy(rhs.cut_id);
     this->copy_transformation_caches(rhs);
@@ -1177,6 +1325,7 @@ ModelObject& ModelObject::assign_copy(ModelObject &&rhs)
     this->layer_config_ranges         = std::move(rhs.layer_config_ranges);
     this->layer_height_profile        = std::move(rhs.layer_height_profile);
     this->printable                   = std::move(rhs.printable);
+    this->auto_drop                   = rhs.auto_drop;
     this->origin_translation          = std::move(rhs.origin_translation);
     this->copy_transformation_caches(rhs);
 
@@ -1367,6 +1516,20 @@ void ModelObject::sort_volumes(bool full_sort)
     // sort volumes inside the object to order "Model Part, Negative Volume, Modifier, Support Blocker and Support Enforcer. "
     if (full_sort)
         std::stable_sort(volumes.begin(), volumes.end(), [](ModelVolume* vl, ModelVolume* vr) {
+            // Special handling for Precise Seam modifiers: group-based sorting with user order preservation
+            if (vl->is_precise_seam() && vr->is_precise_seam()) {
+                // Strong (center/left/right) always before weak (enforced/blocked/neutral)
+                bool vl_strong = vl->is_precise_seam_strong();
+                bool vr_strong = vr->is_precise_seam_strong();
+                if (vl_strong != vr_strong)
+                    return vl_strong; // strong < weak → strong group appears first
+
+                // Within same group (both strong or both weak): preserve current order
+                // stable_sort will maintain relative positions when comparator returns false
+                return false;
+            }
+
+            // For non-Precise-Seam or mixed types: use standard enum-based ordering
             return vl->type() < vr->type();
         });
     // sort have to controll "place" of the support blockers/enforcers. But one of the model parts have to be on the first place.
@@ -1374,6 +1537,16 @@ void ModelObject::sort_volumes(bool full_sort)
         std::stable_sort(volumes.begin(), volumes.end(), [](ModelVolume* vl, ModelVolume* vr) {
             ModelVolumeType vl_type = vl->type() > ModelVolumeType::PARAMETER_MODIFIER ? vl->type() : ModelVolumeType::PARAMETER_MODIFIER;
             ModelVolumeType vr_type = vr->type() > ModelVolumeType::PARAMETER_MODIFIER ? vr->type() : ModelVolumeType::PARAMETER_MODIFIER;
+
+            // Apply same Precise Seam grouping logic for partial sort
+            if (vl->is_precise_seam() && vr->is_precise_seam()) {
+                bool vl_strong = vl->is_precise_seam_strong();
+                bool vr_strong = vr->is_precise_seam_strong();
+                if (vl_strong != vr_strong)
+                    return vl_strong;
+                return false; // preserve order within same group
+            }
+
             return vl_type < vr_type;
         });
 }
@@ -1548,6 +1721,9 @@ indexed_triangle_set ModelObject::raw_indexed_triangle_set() const
             size_t j = out.indices.size();
             append(out.vertices, v->mesh().its.vertices);
             append(out.indices,  v->mesh().its.indices);
+            // Orca: Point the volume's triangles at its own vertices, which follow those of the volumes before it.
+            for (size_t k = j; k < out.indices.size(); ++ k)
+                out.indices[k] += stl_triangle_vertex_indices::Constant(int(i));
             const Transform3d& m = v->get_matrix();
             for (; i < out.vertices.size(); ++ i)
                 out.vertices[i] = (m * out.vertices[i].cast<double>()).cast<float>().eval();
@@ -1719,6 +1895,9 @@ void ModelObject::center_around_origin(bool include_modifiers)
 
 void ModelObject::ensure_on_bed(bool allow_negative_z)
 {
+    if (!auto_drop)
+        return;
+
     double z_offset = 0.0;
 
     if (allow_negative_z) {
@@ -1737,14 +1916,8 @@ void ModelObject::ensure_on_bed(bool allow_negative_z)
     else
         z_offset = -this->min_z();
 
-    if (z_offset != 0.0) {
-        for (size_t i = 0; i < instances.size(); ++i) {
-            if (!instances[i]->auto_drop)
-                continue;
-
-            translate_instance(i, z_offset * Vec3d::UnitZ());
-        }
-    }
+    if (z_offset != 0.0)
+        translate_instances(z_offset * Vec3d::UnitZ());
 }
 
 void ModelObject::translate_instances(const Vec3d& vector)
@@ -1977,6 +2150,15 @@ void ModelVolume::reset_extra_facets()
     this->seam_facets.reset();
     this->mmu_segmentation_facets.reset();
     this->fuzzy_skin_facets.reset();
+    // Texture-displacement paint data has no remap-across-topology-change support yet (see
+    // build_texture_displacement()'s documented limitation), so it must be dropped here rather
+    // than left referring to a mesh that no longer matches it.
+    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
+        this->texture_displacement_facet(i).reset();
+    // Same reasoning for the model's own UV channel: it is indexed by triangle, so against a mesh
+    // this no longer matches it would map the texture by another mesh's triangle numbering. A caller
+    // that can carry it across - see transfer_uv_channel() - puts it back after this.
+    this->reset_texture_uv();
 }
 
 std::optional<TriangleSelector::SavedPainting> ModelVolume::save_painting() const
@@ -2533,7 +2715,8 @@ std::vector<int> ModelVolume::get_extruders() const
     if (m_type == ModelVolumeType::INVALID
         || m_type == ModelVolumeType::NEGATIVE_VOLUME
         || m_type == ModelVolumeType::SUPPORT_BLOCKER
-        || m_type == ModelVolumeType::SUPPORT_ENFORCER)
+        || m_type == ModelVolumeType::SUPPORT_ENFORCER
+        || this->is_precise_seam()) // Precise Seam is non-printing helper geometry
         return std::vector<int>();
 
     if (mmu_segmentation_facets.timestamp() != mmuseg_ts) {
@@ -2576,7 +2759,8 @@ void ModelVolume::update_extruder_count(size_t extruder_count)
     }
 }
 
-void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id)
+void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id,
+                                                             const std::vector<unsigned char> &filament_is_mixed)
 {
     std::vector<int> used_extruders = get_extruders();
     for (int extruder_id : used_extruders) {
@@ -2587,8 +2771,22 @@ void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_cou
     }
     // Same stale-assignment cleanup as update_extruder_count, for the filament-delete path.
     // Ported from BambuStudio (STUDIO-15763).
-    if (extruder_id() > extruder_count) {
-        this->config.erase("extruder");
+    size_t eid = extruder_id();
+    // Judge out-of-range against the post-remap id, mirroring update_filament_values_for_items_when_delete_filament.
+    // Using the pre-remap eid would wrongly erase a high extruder that should remap (e.g. 5 -> 4 after
+    // deleting filament 1); update_filament_values_for_items_when_delete_filament would then skip it
+    // (!has("extruder")) and the volume would fall back to the object default color.
+    size_t remapped = eid;
+    if (eid == filament_id)
+        remapped = (replace_filament_id > 0) ? (size_t)replace_filament_id : 1;
+    else if (eid > filament_id)
+        remapped = eid - 1;
+    if (remapped > extruder_count) {
+        // filament_is_mixed is the pre-delete snapshot; index it with the ORIGINAL eid (1-based),
+        // not remapped, so we check whether this volume's current slot is a mixed slot.
+        bool is_mixed = !filament_is_mixed.empty() && eid >= 1 && (eid - 1) < filament_is_mixed.size() && filament_is_mixed[eid - 1];
+        if (!is_mixed)
+            this->config.erase("extruder");
     }
 }
 
@@ -2722,6 +2920,19 @@ ModelVolumeType ModelVolume::type_from_string(const std::string &s)
 		return ModelVolumeType::SUPPORT_ENFORCER;
     if (s == "support_blocker")
 		return ModelVolumeType::SUPPORT_BLOCKER;
+    // Precise Seam types
+    if (s == "precise_seam_center")
+		return ModelVolumeType::PRECISE_SEAM_CENTER;
+    if (s == "precise_seam_left")
+		return ModelVolumeType::PRECISE_SEAM_LEFT;
+    if (s == "precise_seam_right")
+		return ModelVolumeType::PRECISE_SEAM_RIGHT;
+    if (s == "precise_seam_enforced")
+		return ModelVolumeType::PRECISE_SEAM_ENFORCED;
+    if (s == "precise_seam_blocked")
+		return ModelVolumeType::PRECISE_SEAM_BLOCKED;
+    if (s == "precise_seam_neutral")
+		return ModelVolumeType::PRECISE_SEAM_NEUTRAL;
     //assert(s == "0");
     // Default value if invalud type string received.
 	return ModelVolumeType::MODEL_PART;
@@ -2736,6 +2947,12 @@ std::string ModelVolume::type_to_string(const ModelVolumeType t)
 	case ModelVolumeType::PARAMETER_MODIFIER: return "modifier_part";
 	case ModelVolumeType::SUPPORT_ENFORCER:   return "support_enforcer";
 	case ModelVolumeType::SUPPORT_BLOCKER:    return "support_blocker";
+	case ModelVolumeType::PRECISE_SEAM_CENTER:   return "precise_seam_center";
+	case ModelVolumeType::PRECISE_SEAM_LEFT:     return "precise_seam_left";
+	case ModelVolumeType::PRECISE_SEAM_RIGHT:    return "precise_seam_right";
+	case ModelVolumeType::PRECISE_SEAM_ENFORCED: return "precise_seam_enforced";
+	case ModelVolumeType::PRECISE_SEAM_BLOCKED:  return "precise_seam_blocked";
+	case ModelVolumeType::PRECISE_SEAM_NEUTRAL:  return "precise_seam_neutral";
     default:
         assert(false);
         return "normal_part";
@@ -2755,6 +2972,18 @@ size_t ModelVolume::split(unsigned int max_extruders, bool remap_paint)
     if (text_configuration.has_value())
         text_configuration.reset();
 
+    // Parts without a convex hull enclose no volume; drop them here, as deleting volumes later could delete this one.
+    std::vector<std::unique_ptr<ModelVolume>> parts;
+    for (TriangleMesh &mesh : meshes)
+        if (!mesh.empty()) {
+            std::unique_ptr<ModelVolume> part(new ModelVolume(object, *this, std::move(mesh)));
+            if (const std::shared_ptr<const TriangleMesh> &hull = part->get_convex_hull_shared_ptr();
+                hull != nullptr && !hull->its.vertices.empty() && !hull->its.indices.empty())
+                parts.emplace_back(std::move(part));
+        }
+    if (parts.empty())
+        return 1;
+
     std::optional<TriangleSelector::SavedPainting> saved_painting = remap_paint ? save_painting() :
                                                                                   std::optional<TriangleSelector::SavedPainting>{};
 
@@ -2765,26 +2994,22 @@ size_t ModelVolume::split(unsigned int max_extruders, bool remap_paint)
     unsigned int extruder_counter = 0;
     const Vec3d offset = this->get_offset();
 
-    for (TriangleMesh &mesh : meshes) {
-        if (mesh.empty())
-            // Repair may have removed unconnected triangles, thus emptying the mesh.
-            continue;
-
+    for (std::unique_ptr<ModelVolume> &part : parts) {
         if (idx == 0) {
-            this->set_mesh(std::move(mesh));
-            this->calculate_convex_hull();
+            this->set_mesh(part->m_mesh);
+            m_convex_hull = part->m_convex_hull;
             this->invalidate_convex_hull_2d();
             // Assign a new unique ID, so that a new GLVolume will be generated.
             this->set_new_unique_id();
-            // reset the source to disable reload from disk
-            this->source = ModelVolume::Source();
 
             // BBS: reset facet annotations
             this->reset_extra_facets();
         }
         else
-            this->object->volumes.insert(this->object->volumes.begin() + (++ivolume), new ModelVolume(object, *this, std::move(mesh)));
+            this->object->volumes.insert(this->object->volumes.begin() + (++ivolume), part.release());
 
+        // reset the source to disable reload from disk
+        this->object->volumes[ivolume]->source = ModelVolume::Source();
         this->object->volumes[ivolume]->set_offset(Vec3d::Zero());
         this->object->volumes[ivolume]->center_geometry_after_creation();
         this->object->volumes[ivolume]->translate(offset);
@@ -2798,19 +3023,27 @@ size_t ModelVolume::split(unsigned int max_extruders, bool remap_paint)
         ++ idx;
     }
 
-    // discard volumes for which the convex hull was not generated or is degenerate
-    size_t i = 0;
-    while (i < this->object->volumes.size()) {
-        const std::shared_ptr<const TriangleMesh> &hull = this->object->volumes[i]->get_convex_hull_shared_ptr();
-        if (hull == nullptr || hull->its.vertices.empty() || hull->its.indices.empty()) {
-            this->object->delete_volume(i);
-            --idx;
-            --i;
-        }
-        ++i;
-    }
-
     return idx;
+}
+
+bool ModelVolume::repair(bool keep_painting, MeshRepairStats *stats_out, std::string *error, const std::function<void(int)> &progress)
+{
+    TriangleMesh    mesh = this->mesh();
+    MeshRepairStats stats;
+    const bool      ok = repair_mesh(mesh, &stats, error, progress);
+    if (stats_out)
+        *stats_out = stats;
+    if (!ok || !stats.modified)
+        return ok;
+
+    const std::optional<TriangleSelector::SavedPainting> saved_painting = keep_painting ? save_painting() : std::nullopt;
+    this->set_mesh(std::move(mesh));
+    this->calculate_convex_hull();
+    this->invalidate_convex_hull_2d();
+    // Assign a new unique ID, so that a new GLVolume will be generated.
+    this->set_new_unique_id();
+    this->restore_painting(saved_painting);
+    return true;
 }
 
 void ModelVolume::translate(const Vec3d& displacement)
@@ -2844,6 +3077,11 @@ void ModelVolume::assign_new_unique_ids_recursive()
     seam_facets.set_new_unique_id();
     mmu_segmentation_facets.set_new_unique_id();
     fuzzy_skin_facets.set_new_unique_id();
+    // As set_new_unique_id() already does: the undo/redo stack stores FacetsAnnotation contents keyed
+    // by ObjectID, so a clone left sharing these ids with its source can be handed the source's mask
+    // on an undo - after which a paint mask and the mesh it was recorded against no longer match.
+    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
+        texture_displacement_facet(i).set_new_unique_id();
 }
 
 void ModelVolume::rotate(double angle, Axis axis)
@@ -3007,6 +3245,9 @@ void Model::setPrintSpeedTable(const DynamicPrintConfig& config, const PrintConf
     //auto print_config = print.config();
     //printSpeedMap.bed_poly.points = get_bed_shape(*(wxGetApp().plater()->config()));
     printSpeedMap.bed_poly.points = get_bed_shape(config);
+    // Collision volumes are additive to the legacy bed keep-out. Preserve the
+    // established printable-bed polygon so bed-edge and legacy-area brim
+    // clipping continue to work when collision volumes are also configured.
     Pointfs excluse_area_points = print_config.bed_exclude_area.values;
     Polygons exclude_polys;
     Polygon exclude_poly;
@@ -3018,7 +3259,8 @@ void Model::setPrintSpeedTable(const DynamicPrintConfig& config, const PrintConf
             exclude_poly.points.clear();
         }
     }
-    printSpeedMap.bed_poly = diff({ printSpeedMap.bed_poly }, exclude_polys)[0];
+    if (!exclude_polys.empty())
+        printSpeedMap.bed_poly = diff({ printSpeedMap.bed_poly }, exclude_polys)[0];
 }
 
 // find temperature of heatend and bed and matierial of an given extruder
@@ -3314,6 +3556,316 @@ Polygon ModelInstance::convex_hull_2d()
     return convex_hull;
 }
 
+namespace {
+
+struct ExclusionPrismFootprintTriangle
+{
+    std::array<Vec2d, 3> vertices;
+    Vec2d min = Vec2d::Zero();
+    Vec2d max = Vec2d::Zero();
+};
+
+static double cross_2d(const Vec2d &a, const Vec2d &b)
+{
+    return a.x() * b.y() - a.y() * b.x();
+}
+
+template<class DistanceFn>
+static std::vector<Vec3d> clip_polygon_by_signed_distance(const std::vector<Vec3d> &input, DistanceFn distance)
+{
+    constexpr double clip_epsilon = 1e-8;
+    constexpr double duplicate_epsilon_sq = 1e-16;
+
+    std::vector<Vec3d> output;
+    if (input.empty())
+        return output;
+
+    auto append_point = [&output](const Vec3d &point) {
+        if (output.empty() || (output.back() - point).squaredNorm() > duplicate_epsilon_sq)
+            output.emplace_back(point);
+    };
+
+    Vec3d prev = input.back();
+    double prev_distance = distance(prev);
+    bool prev_inside = prev_distance >= -clip_epsilon;
+    for (const Vec3d &curr : input) {
+        const double curr_distance = distance(curr);
+        const bool curr_inside = curr_distance >= -clip_epsilon;
+
+        if (curr_inside != prev_inside) {
+            const double denom = prev_distance - curr_distance;
+            if (std::abs(denom) > clip_epsilon) {
+                const double t = prev_distance / denom;
+                append_point(prev + t * (curr - prev));
+            }
+        }
+        if (curr_inside)
+            append_point(curr);
+
+        prev = curr;
+        prev_distance = curr_distance;
+        prev_inside = curr_inside;
+    }
+
+    if (output.size() > 1 && (output.front() - output.back()).squaredNorm() <= duplicate_epsilon_sq)
+        output.pop_back();
+
+    return output;
+}
+
+static std::vector<ExclusionPrismFootprintTriangle> triangulated_prism_footprints(const Polygon &polygon)
+{
+    std::vector<ExclusionPrismFootprintTriangle> out;
+    if (polygon.points.size() < 3)
+        return out;
+
+    ExPolygon expolygon;
+    expolygon.contour = polygon;
+    expolygon.contour.make_counter_clockwise();
+
+    std::vector<Vec2d> triangles = triangulate_expolygon_2d(expolygon, NORMALS_UP);
+    if (triangles.empty()) {
+        triangles.reserve((polygon.points.size() - 2) * 3);
+        const Vec2d first(unscale<double>(polygon.points.front().x()), unscale<double>(polygon.points.front().y()));
+        for (size_t i = 1; i + 1 < polygon.points.size(); ++i) {
+            triangles.emplace_back(first);
+            triangles.emplace_back(unscale<double>(polygon.points[i].x()), unscale<double>(polygon.points[i].y()));
+            triangles.emplace_back(unscale<double>(polygon.points[i + 1].x()), unscale<double>(polygon.points[i + 1].y()));
+        }
+    }
+
+    out.reserve(triangles.size() / 3);
+    for (size_t i = 0; i + 2 < triangles.size(); i += 3) {
+        ExclusionPrismFootprintTriangle tri;
+        tri.vertices = { triangles[i], triangles[i + 1], triangles[i + 2] };
+
+        const double area = cross_2d(tri.vertices[1] - tri.vertices[0], tri.vertices[2] - tri.vertices[0]);
+        if (std::abs(area) <= EPSILON)
+            continue;
+        if (area < 0.0)
+            std::swap(tri.vertices[1], tri.vertices[2]);
+
+        tri.min = tri.vertices[0].cwiseMin(tri.vertices[1]).cwiseMin(tri.vertices[2]);
+        tri.max = tri.vertices[0].cwiseMax(tri.vertices[1]).cwiseMax(tri.vertices[2]);
+        out.emplace_back(std::move(tri));
+    }
+
+    return out;
+}
+
+static bool triangle_bbox_intersects_prism_footprint(const Vec3d &p0, const Vec3d &p1, const Vec3d &p2, const ExclusionPrismFootprintTriangle &footprint)
+{
+    constexpr double bbox_epsilon = 1e-8;
+    const double tri_min_x = std::min({ p0.x(), p1.x(), p2.x() });
+    const double tri_max_x = std::max({ p0.x(), p1.x(), p2.x() });
+    const double tri_min_y = std::min({ p0.y(), p1.y(), p2.y() });
+    const double tri_max_y = std::max({ p0.y(), p1.y(), p2.y() });
+
+    return tri_max_x >= footprint.min.x() - bbox_epsilon &&
+           tri_min_x <= footprint.max.x() + bbox_epsilon &&
+           tri_max_y >= footprint.min.y() - bbox_epsilon &&
+           tri_min_y <= footprint.max.y() + bbox_epsilon;
+}
+
+static std::vector<Vec3d> clip_model_triangle_to_prism(
+    const Vec3d &p0,
+    const Vec3d &p1,
+    const Vec3d &p2,
+    const double z_min,
+    const double z_max,
+    const ExclusionPrismFootprintTriangle &footprint)
+{
+    std::vector<Vec3d> clipped = { p0, p1, p2 };
+    clipped = clip_polygon_by_signed_distance(clipped, [z_min](const Vec3d &p) { return p.z() - z_min; });
+    clipped = clip_polygon_by_signed_distance(clipped, [z_max](const Vec3d &p) { return z_max - p.z(); });
+
+    for (size_t i = 0; i < footprint.vertices.size() && clipped.size() >= 3; ++i) {
+        const Vec2d &a = footprint.vertices[i];
+        const Vec2d &b = footprint.vertices[(i + 1) % footprint.vertices.size()];
+        const Vec2d edge = b - a;
+        clipped = clip_polygon_by_signed_distance(clipped, [a, edge](const Vec3d &p) {
+            return cross_2d(edge, Vec2d(p.x() - a.x(), p.y() - a.y()));
+        });
+    }
+
+    return clipped;
+}
+
+static double polygon_3d_area2(const std::vector<Vec3d> &polygon)
+{
+    if (polygon.size() < 3)
+        return 0.0;
+
+    Vec3d normal = Vec3d::Zero();
+    for (size_t i = 1; i + 1 < polygon.size(); ++i)
+        normal += (polygon[i] - polygon.front()).cross(polygon[i + 1] - polygon.front());
+    return normal.norm();
+}
+
+static void append_clipped_polygon(indexed_triangle_set &out, const std::vector<Vec3d> &polygon)
+{
+    if (polygon.size() < 3)
+        return;
+
+    // Do not reserve exact capacity here. This helper may be called for many
+    // clipped fragments, so let std::vector grow amortized through emplace_back.
+    const int base = int(out.vertices.size());
+    for (const Vec3d &point : polygon)
+        out.vertices.emplace_back(point.cast<float>());
+
+    for (size_t i = 1; i + 1 < polygon.size(); ++i) {
+        stl_triangle_vertex_indices tri;
+        tri << base, base + int(i), base + int(i + 1);
+        out.indices.emplace_back(tri);
+    }
+}
+
+static bool mesh_contains_point_linear(const indexed_triangle_set &its, const Vec3d &point)
+{
+    constexpr double ray_epsilon = 1e-6;
+    const Vec3d ray_direction = Vec3d::UnitX();
+    double nearest_hit_distance = std::numeric_limits<double>::infinity();
+    size_t nearest_face = size_t(-1);
+
+    for (size_t face_id = 0; face_id < its.indices.size(); ++face_id) {
+        const stl_triangle_vertex_indices &face = its.indices[face_id];
+        double distance;
+        double u;
+        double v;
+        if (AABBTreeIndirect::detail::intersect_triangle(
+                point, ray_direction,
+                its.vertices[face[0]], its.vertices[face[1]], its.vertices[face[2]],
+                distance, u, v, ray_epsilon) &&
+            distance > 0.0 && distance < nearest_hit_distance) {
+            nearest_hit_distance = distance;
+            nearest_face = face_id;
+        }
+    }
+
+    // This matches AABBMesh::hit_result::is_inside(): for a consistently
+    // oriented closed mesh, the nearest face points along a ray leaving it.
+    return nearest_face != size_t(-1) &&
+           its_unnormalized_normal(its, nearest_face).cast<double>().dot(ray_direction) > 0.0;
+}
+
+} // namespace
+
+bool ModelInstance::intersects_bed_exclude_region(const BedExcludeRegion &region, indexed_triangle_set *intersection_mesh) const
+{
+    // With no output mesh this is a fast yes/no test and returns on the first
+    // hit. With an output mesh it collects all clipped fragments for the red
+    // GUI intersection preview.
+    if (intersection_mesh != nullptr)
+        intersection_mesh->clear();
+
+    if (region.polygon.points.size() < 3)
+        return false;
+
+    double z_min = region.z_min;
+    double z_max = region.z_max;
+    if (z_min > z_max)
+        std::swap(z_min, z_max);
+    if (z_max <= z_min + EPSILON)
+        return false;
+
+    const std::vector<ExclusionPrismFootprintTriangle> footprints = triangulated_prism_footprints(region.polygon);
+    if (footprints.empty())
+        return false;
+
+    bool intersects = false;
+    const ModelObject *model_object = get_object();
+    const Transform3d instance_matrix = get_matrix();
+
+    for (const ModelVolume *volume : model_object->volumes) {
+        if (! volume->is_model_part())
+            continue;
+
+        const indexed_triangle_set &its = volume->mesh().its;
+        if (its.vertices.empty() || its.indices.empty())
+            continue;
+
+        const Transform3d volume_matrix = instance_matrix * volume->get_matrix();
+        bool volume_surface_intersects = false;
+        for (const stl_triangle_vertex_indices &face : its.indices) {
+            const Vec3d p0 = volume_matrix * its.vertices[face[0]].cast<double>();
+            const Vec3d p1 = volume_matrix * its.vertices[face[1]].cast<double>();
+            const Vec3d p2 = volume_matrix * its.vertices[face[2]].cast<double>();
+
+            const double tri_min_z = std::min({ p0.z(), p1.z(), p2.z() });
+            const double tri_max_z = std::max({ p0.z(), p1.z(), p2.z() });
+            if (tri_max_z < z_min || tri_min_z > z_max)
+                continue;
+
+            for (const ExclusionPrismFootprintTriangle &footprint : footprints) {
+                if (! triangle_bbox_intersects_prism_footprint(p0, p1, p2, footprint))
+                    continue;
+
+                std::vector<Vec3d> clipped = clip_model_triangle_to_prism(p0, p1, p2, z_min, z_max, footprint);
+                if (polygon_3d_area2(clipped) <= 1e-8)
+                    continue;
+
+                volume_surface_intersects = true;
+                intersects = true;
+                if (intersection_mesh == nullptr)
+                    return true;
+
+                append_clipped_polygon(*intersection_mesh, clipped);
+            }
+        }
+
+        if (!volume_surface_intersects && !intersects) {
+            // Surface clipping cannot detect a prism wholly enclosed by a
+            // solid. In that topology, with no boundary crossing, one point
+            // inside the connected prism is sufficient to test containment.
+            const ExclusionPrismFootprintTriangle &footprint = footprints.front();
+            const Vec2d probe_xy = (footprint.vertices[0] + footprint.vertices[1] + footprint.vertices[2]) / 3.0;
+            const Vec3d probe_world(probe_xy.x(), probe_xy.y(), z_min + 0.5 * (z_max - z_min));
+            const Vec3d probe_local = volume_matrix.inverse() * probe_world;
+
+            // A linear ray scan keeps this one-off fallback O(n) without
+            // adding ray tests to the usual surface-intersection path.
+            if (volume->mesh().bounding_box().contains(probe_local) && mesh_contains_point_linear(its, probe_local)) {
+                intersects = true;
+                if (intersection_mesh == nullptr)
+                    return true;
+            }
+        }
+    }
+
+    return intersects;
+}
+
+bool ModelInstance::intersects_bed_exclude_regions(
+    const std::vector<BedExcludeRegion> &regions,
+    indexed_triangle_set *intersection_mesh) const
+{
+    if (intersection_mesh != nullptr)
+        intersection_mesh->clear();
+    if (regions.empty())
+        return false;
+
+    const Polygon hull = const_cast<ModelInstance *>(this)->convex_hull_2d();
+    bool intersects = false;
+    for (const BedExcludeRegion &region : regions) {
+        if (intersection(Polygons{ region.polygon }, Polygons{ hull }).empty())
+            continue;
+
+        if (intersection_mesh == nullptr) {
+            if (intersects_bed_exclude_region(region))
+                return true;
+            continue;
+        }
+
+        indexed_triangle_set region_intersection;
+        if (intersects_bed_exclude_region(region, &region_intersection)) {
+            intersects = true;
+            if (!region_intersection.empty())
+                its_merge(*intersection_mesh, region_intersection);
+        }
+    }
+    return intersects;
+}
+
 //BBS: invalidate instance's convex_hull_2d
 void ModelInstance::invalidate_convex_hull_2d()
 {
@@ -3495,6 +4047,24 @@ void FacetsAnnotation::get_facets(const ModelVolume& mv, std::vector<indexed_tri
     selector.get_facets(facets_per_type);
 }
 
+void FacetsAnnotation::shift_states_above(const ModelVolume &mv, EnforcerBlockerType threshold, int delta)
+{
+    if (empty()) return;
+    TriangleSelector selector(mv.mesh());
+    selector.deserialize(m_data, false);
+    selector.shift_states_above(threshold, delta);
+    this->set(selector);
+}
+
+void FacetsAnnotation::remap_states(const ModelVolume &mv, const EnforcerBlockerStateMap &state_map)
+{
+    if (empty()) return;
+    TriangleSelector selector(mv.mesh());
+    selector.deserialize(m_data, false);
+    selector.remap_triangle_state(state_map);
+    this->set(selector);
+}
+
 void FacetsAnnotation::set_enforcer_block_type_limit(const ModelVolume  &mv,
                                                      EnforcerBlockerType max_type,
                                                      EnforcerBlockerType to_delete_filament,
@@ -3587,7 +4157,11 @@ void FacetsAnnotation::set_triangle_from_string(int triangle_id, const std::stri
             m_data.bitstream.insert(m_data.bitstream.end(), bool(dec & (1 << i)));
     }
 
-    m_data.update_used_states(bitstream_start_idx);
+    if (!m_data.update_used_states(bitstream_start_idx)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": dropping malformed paint data of triangle " << triangle_id;
+        m_data.bitstream.resize(bitstream_start_idx);
+        m_data.triangles_to_split.pop_back();
+    }
 }
 
 bool FacetsAnnotation::equals(const FacetsAnnotation &other) const
@@ -3757,6 +4331,43 @@ bool model_has_advanced_features(const Model &model)
             	return true;
     }
     return false;
+}
+
+void remap_model_filament_slots(Model &model, const std::map<int, int> &slot_relocations)
+{
+    if (slot_relocations.empty())
+        return;
+
+    // Paint states and the object/volume "extruder" configs store one-based slot numbers
+    // (see Sidebar::on_action_add_filament's insertion remap for the same encoding).
+    std::map<int, int> one_based_slots;
+    for (const auto &[from, to] : slot_relocations)
+        one_based_slots.emplace(from + 1, to + 1);
+
+    EnforcerBlockerStateMap paint_state_map;
+    for (size_t state = 0; state < paint_state_map.size(); ++state)
+        paint_state_map[state] = EnforcerBlockerType(state);
+    for (const auto &[one_based_from, one_based_to] : one_based_slots) {
+        assert(one_based_from >= 0 && size_t(one_based_from) < paint_state_map.size());
+        assert(one_based_to > 0 && size_t(one_based_to) < paint_state_map.size());
+        paint_state_map[size_t(one_based_from)] = EnforcerBlockerType(one_based_to);
+    }
+
+    auto remap_extruder_config = [&one_based_slots](ModelConfig &config) -> bool {
+        const auto it = config.has("extruder") ? one_based_slots.find(config.extruder()) : one_based_slots.end();
+        if (it == one_based_slots.end())
+            return false;
+        config.set("extruder", it->second);
+        return true;
+    };
+
+    for (ModelObject *object : model.objects) {
+        remap_extruder_config(object->config);
+        for (ModelVolume *volume : object->volumes) {
+            remap_extruder_config(volume->config);
+            volume->mmu_segmentation_facets.remap_states(*volume, paint_state_map);
+        }
+    }
 }
 
 #ifndef NDEBUG

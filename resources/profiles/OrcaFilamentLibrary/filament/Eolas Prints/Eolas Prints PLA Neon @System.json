@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFSEP004",
-	"setting_id": "sKgUBhF3VvETDkwg",
 	"name": "Eolas Prints PLA Neon @System",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "sKgUBhF3VvETDkwg",
+	"filament_id": "OFrFBEfd",
+	"instantiation": "true",
 	"filament_color": [
 		"#4d9398"
 	],

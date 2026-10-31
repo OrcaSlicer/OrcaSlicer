@@ -3,7 +3,7 @@
 	"name": "Fiberon PETG-ESD @Snapmaker U1 base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "GFL06",
+	"filament_id": "OFcytyoA",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

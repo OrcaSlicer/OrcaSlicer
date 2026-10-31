@@ -3,7 +3,7 @@
 	"name": "Snapmaker PA-CF @U1 base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "34931774250",
+	"filament_id": "OFEmsric",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""
@@ -31,12 +31,6 @@
 	],
 	"filament_unloading_speed": [
 		"35"
-	],
-	"filament_load_time": [
-		"2"
-	],
-	"filament_unload_time": [
-		"2"
 	],
 	"filament_cooling_moves": [
 		"2"

@@ -1,0 +1,18 @@
+{
+	"type": "machine",
+	"name": "Prusa CORE One MMU3 0.25 nozzle",
+	"inherits": "Prusa CORE One MMU3 0.4 nozzle",
+	"from": "system",
+	"setting_id": "8VtAsgGqtUUBmaxH",
+	"instantiation": "true",
+	"default_print_profile": "0.12mm SPEED @COREONE0.25 + MMU3",
+	"max_layer_height": "0.15",
+	"min_layer_height": "0.05",
+	"nozzle_diameter": [
+		"0.25"
+	],
+	"printer_model": "Prusa CORE One MMU3",
+	"printer_variant": "0.25",
+	"retraction_length": "0.8",
+	"z_hop": "0.15"
+}

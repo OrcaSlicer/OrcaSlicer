@@ -1,8 +1,15 @@
 #ifndef slic3r_Http_App_hpp_
 #define slic3r_Http_App_hpp_
 
+#include <boost/asio/ip/basic_endpoint.hpp>
+#include <functional>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/streambuf.hpp>
 #include <iostream>
+#include <map>
 #include <mutex>
+#include <sstream>
 #include <stack>
 
 #include <boost/beast/core.hpp>
@@ -130,7 +137,7 @@ private:
     {
     public:
         HttpServer&                        server;
-        boost::asio::io_service            io_service;
+        boost::asio::io_context            io_service;
         boost::asio::ip::tcp::acceptor     acceptor;
         std::set<std::shared_ptr<session>> sessions;
 

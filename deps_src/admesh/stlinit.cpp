@@ -75,6 +75,19 @@ static FILE *stl_open_count_facets(stl_file *stl, const char *file, unsigned int
       		break;
     	}
   	}
+  	// Zero normals and coordinates like 10 or 15 have no byte above 127, so the test above can miss a binary file.
+  	// Its size still matches its facet count; text read as that count would need a file of gigabytes.
+  	if (stl->stats.type == ascii) {
+    	uint32_t header_num_facets;
+    	fseek(fp, custom_header_length, SEEK_SET);
+    	if (fread(&header_num_facets, sizeof(uint32_t), 1, fp) == 1) {
+#if BOOST_ENDIAN_BIG_BYTE
+      		stl_internal_reverse_quads((char*)&header_num_facets, 4);
+#endif /* BOOST_ENDIAN_BIG_BYTE */
+      		if (header_size + uint64_t(header_num_facets) * SIZEOF_STL_FACET == file_size)
+        		stl->stats.type = binary;
+    	}
+  	}
   	rewind(fp);
 
   	uint32_t num_facets = 0;
@@ -162,7 +175,7 @@ static bool stl_read(stl_file *stl, FILE *fp, int first_facet, bool first, Impor
         rewind(fp);
         try{
             char solid_name[256];
-            int res_solid = fscanf(fp, " solid %[^\n]", solid_name);
+            int res_solid = fscanf(fp, " solid %255[^\n]", solid_name);
             if (res_solid == 1) {
                 char* mw_position = strstr(solid_name, "MW");
                 if (mw_position != NULL) {
@@ -170,7 +183,7 @@ static bool stl_read(stl_file *stl, FILE *fp, int first_facet, bool first, Impor
                     char version_str[16];
                     char model_id_str[128]; 
                     char country_code_str[16];
-                    int num_values = sscanf(mw_position + 3, "%s %s %s", version_str, model_id_str, country_code_str);
+                    int num_values = sscanf(mw_position + 3, "%15s %127s %15s", version_str, model_id_str, country_code_str);
                     if (num_values == 3) {
                         if (strcmp(version_str, "1.0") == 0) {
                             model_id = model_id_str;

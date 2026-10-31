@@ -1,10 +1,14 @@
 #ifndef slic3r_UpdateDialogs_hpp_
 #define slic3r_UpdateDialogs_hpp_
 
+#include "slic3r/GUI/GUI_Utils.hpp"
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
+#include <wx/gdicmn.h>
 #include <wx/hyperlink.h>
+#include <wx/string.h>
 
 #include "libslic3r/Semver.hpp"
 #include "MsgDialog.hpp"
@@ -33,7 +37,6 @@ public:
 
 	void on_hyperlink(wxHyperlinkEvent& evt);
 private:
-	wxCheckBox *cbox;
 };
 
 

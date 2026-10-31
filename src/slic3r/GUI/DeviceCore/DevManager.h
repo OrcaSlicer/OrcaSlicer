@@ -1,8 +1,12 @@
 #pragma once
+#include <chrono>
+#include <map>
 #include <mutex>
 #include "libslic3r/CommonDefs.hpp"
 
-#include "slic3r/Utils/json_diff.hpp"
+#include <string>
+#include <vector>
+#include <wx/object.h>
 #include <wx/string.h>
 #include <wx/timer.h>
 
@@ -12,6 +16,7 @@ namespace Slic3r
 struct BBLocalMachine;
 class MachineObject;
 class NetworkAgent;
+class AppConfig;
 
 namespace GUI {
 class GUI_App;
@@ -24,22 +29,27 @@ class DeviceManager
     friend class DeviceManagerRefresher;
 private:
     NetworkAgent* m_agent{ nullptr };
+    AppConfig* m_app_config{ nullptr };
     DeviceManagerRefresher* m_refresher{ nullptr };
 
     bool m_enable_mutil_machine = false;
 
     std::mutex listMutex;
+    bool m_restore_last_machine{ false };                       /* see restore_last_machine() */
+    std::chrono::steady_clock::time_point m_lan_connect_started; /* the selected LAN machine's last connect */
     std::string selected_machine;                               /* dev_id */
     std::string local_selected_machine;                         /* dev_id */
     std::map<std::string, MachineObject*> localMachineList;     /* dev_id -> MachineObject*, localMachine SSDP   */
     std::map<std::string, MachineObject*> userMachineList;      /* dev_id -> MachineObject*  cloudMachine of User */
 
 public:
-    DeviceManager(NetworkAgent* agent = nullptr);
+    DeviceManager(NetworkAgent* agent = nullptr, bool enable_refresher = true,
+                  AppConfig* app_config = nullptr);
     ~DeviceManager();
 
 public:
     NetworkAgent* get_agent() const { return m_agent; }
+    AppConfig* get_app_config() const;
     void set_agent(NetworkAgent* agent);
 
     void start_refresher();
@@ -74,9 +84,16 @@ public:
     void erase_user_machine(std::string dev_id) { userMachineList.erase(dev_id); }
     void clean_user_info(bool keep_local_selection = false);
 
+    // Retain agent-owned LAN discoveries across a switch; the active-agent list filter keeps
+    // entries from other agents hidden while allowing them to reappear when switched back.
     void clear_other_devices();
 
     void load_last_machine();
+    // Selects the printer last selected under the live agent: now when it is one of the agent's
+    // machines, else once an accepted cloud machine list holds it. Any selection, and logging out,
+    // settle a pending restore.
+    void restore_last_machine();
+    bool has_pending_last_machine_restore() const { return m_restore_last_machine; }
     void update_user_machine_list_info(const std::string& provider);
     void parse_user_print_info(std::string body);
     void reload_printer_settings();
@@ -90,9 +107,14 @@ public:
 
     /* my machine*/
     MachineObject* get_my_machine(std::string dev_id);
-    std::map<std::string, MachineObject*> get_my_machine_list();
-    std::map<std::string, MachineObject*> get_my_cloud_machine_list();
+    std::map<std::string, MachineObject*> get_my_machine_list(const std::string& agent_id = "");
+    std::map<std::string, MachineObject*> get_my_cloud_machine_list(const std::string& agent_id = "");
     void modify_device_name(std::string dev_id, std::string dev_name, const std::string& provider);
+
+    // id of the currently live IPrinterAgent (IPrinterAgent::get_agent_info().id), or empty if
+    // m_agent has no printer agent set yet. Pass to get_my_machine_list()/get_my_cloud_machine_list()
+    // to scope results to the active agent.
+    std::string get_current_printer_agent_id() const;
 
     /* create machine or update machine properties */
     void on_machine_alive(std::string json_str);
@@ -112,8 +134,13 @@ private:
     // reload without an app restart.
     void load_local_machines_from_config();
 
+    // Applies a cloud machine list under listMutex; false when the response is stale, holds no
+    // device list or can't be parsed.
+    bool read_user_print_info(const std::string& body);
+
     void keep_alive();
     void check_pushing();
+    std::string get_current_cloud_provider() const;
 
     void OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state);
     void OnSelectedMachineChanged(const std::string& pre_dev_id, const std::string& new_dev_id);
@@ -126,14 +153,15 @@ public:
         std::string connection_type, std::string bind_state, std::string version,
         std::string access_code);
     static void update_local_machine(const MachineObject& m);
+    static void update_local_machine(const MachineObject& m, AppConfig* config);
 };
 
 class DeviceManagerRefresher : public wxObject
 {
-    wxTimer* m_timer{ nullptr };
-    int            m_timer_interval_msec = 5000;
+    wxTimer* m_timer{nullptr};
+    int m_timer_interval_msec = 5000;
 
-    DeviceManager* m_manager{ nullptr };
+    DeviceManager* m_manager{nullptr};
 
 public:
     DeviceManagerRefresher(DeviceManager* manger);

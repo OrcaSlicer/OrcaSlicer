@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Starlight @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM009",
+	"filament_id": "OFC78WGQ",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

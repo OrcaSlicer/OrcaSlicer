@@ -3,7 +3,7 @@
 	"name": "Snapmaker PETG @U1 base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "22090010620",
+	"filament_id": "OF4WB37S",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""
@@ -32,12 +32,6 @@
 	"filament_unloading_speed": [
 		"35"
 	],
-	"filament_load_time": [
-		"2"
-	],
-	"filament_unload_time": [
-		"2"
-	],
 	"filament_cooling_moves": [
 		"2"
 	],
@@ -51,7 +45,7 @@
 		"250"
 	],
 	"temperature_vitrification": [
-		"178"
+		"70"
 	],
 	"fan_max_speed": [
 		"20"

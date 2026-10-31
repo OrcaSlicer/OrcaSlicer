@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFSEP005",
-	"setting_id": "5g69jS4PRY0PbXvI",
 	"name": "Eolas Prints PLA High Speed @System",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "5g69jS4PRY0PbXvI",
+	"filament_id": "OFvzvwCu",
+	"instantiation": "true",
 	"filament_color": [
 		"#4d9398"
 	],

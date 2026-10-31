@@ -4,6 +4,13 @@
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include <wx/peninfobase.h>
+#include <wx/event.h>
 #include <wx/window.h>
 
 class StaticBox : public wxWindow
@@ -27,6 +34,8 @@ public:
 
     void SetBorderWidth(int width);
 
+    void SetTopMargin(int margin); // ORCA
+
     void SetBorderColor(StateColor const & color);
 
     void SetBorderColorNormal(wxColor const &color);
@@ -46,6 +55,8 @@ public:
 protected:
     void eraseEvent(wxEraseEvent& evt);
 
+    void sizeEvent(wxSizeEvent& evt);
+
     void paintEvent(wxPaintEvent& evt);
 
     void render(wxDC& dc);
@@ -55,6 +66,7 @@ protected:
 protected:
     double radius;
     int border_width = 1;
+    int top_margin = 0;
     wxPenStyle border_style = wxPENSTYLE_SOLID;
     StateHandler state_handler;
     StateColor   border_color;

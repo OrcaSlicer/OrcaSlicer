@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Wood @base",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"filament_id": "OFWYtgCa",
+	"instantiation": "false"
+}

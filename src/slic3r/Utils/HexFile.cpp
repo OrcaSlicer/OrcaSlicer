@@ -1,9 +1,15 @@
 #include "HexFile.hpp"
 
+#include <cstddef>
+#include <boost/filesystem/path.hpp>
+#include <ostream>
+#include <exception>
 #include <sstream>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
+#include <string>
+#include <utility>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

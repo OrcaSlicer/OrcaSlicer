@@ -3,6 +3,13 @@
 
 #include "GUI_ObjectSettings.hpp"
 #include "wxExtensions.hpp"
+#include <utility>
+#include <wx/string.h>
+#include <functional>
+#include <wx/sizer.h>
+#include <wx/event.h>
+
+#include <slic3r/GUI/Widgets/TextInput.hpp>
 
 #ifdef __WXOSX__
 #include "libslic3r/PrintConfig.hpp"
@@ -29,7 +36,7 @@ enum EditorType
     etLayerHeight   = 4,
 };
 
-class LayerRangeEditor : public wxTextCtrl
+class LayerRangeEditor : public TextInput
 {
     bool                m_enter_pressed     { false };
     bool                m_call_kill_focus   { false };
@@ -50,6 +57,8 @@ public:
 
     EditorType          type() const {return m_type;}
     void                set_focus_data() const { m_set_focus_data(m_type);}
+    void                SetValue(const wxString& value) {GetTextCtrl()->SetValue(value);}
+    wxString            GetValue() {return GetTextCtrl()->GetValue();}
     void                msw_rescale();
 
 private:
@@ -60,6 +69,7 @@ class ObjectLayers : public OG_Settings
 {
     ScalableBitmap  m_bmp_delete;
     ScalableBitmap  m_bmp_add;
+    ScalableBitmap  m_bmp_layer;
     ModelObject*    m_object {nullptr};
 
     wxFlexGridSizer*       m_grid_sizer;

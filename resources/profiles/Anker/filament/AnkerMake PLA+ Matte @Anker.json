@@ -1,0 +1,13 @@
+{
+	"type": "filament",
+	"name": "AnkerMake PLA+ Matte @Anker",
+	"inherits": "AnkerMake PLA+ Matte @Anker base",
+	"from": "system",
+	"setting_id": "tPgwC1eEXyWPOn9S",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Anker M5 0.4 nozzle",
+		"Anker M5 All-Metal 0.4 nozzle",
+		"Anker M5C 0.4 nozzle"
+	]
+}

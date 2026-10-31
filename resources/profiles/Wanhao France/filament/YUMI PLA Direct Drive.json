@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "YUMI PLA Direct Drive",
-	"inherits": "Yumi Generic PLA",
+	"inherits": "Generic PLA @Yumi",
 	"from": "system",
 	"setting_id": "v2p0ooSxHnvVkn57",
-	"filament_id": "GFU99",
+	"filament_id": "OFJxSqO4",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Yumi"

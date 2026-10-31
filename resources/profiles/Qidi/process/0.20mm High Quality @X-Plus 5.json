@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "azERQAEOdeNEo2z7",
 	"name": "0.20mm High Quality @X-Plus 5",
-	"from": "system",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "azERQAEOdeNEo2z7",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"bridge_flow": "1",
