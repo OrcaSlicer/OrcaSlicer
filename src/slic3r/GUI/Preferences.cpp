@@ -1058,6 +1058,20 @@ void PreferencesDialog::set_dark_mode()
 #endif
 }
 
+// Orca: appending the print time needs forced filename entry, so it is disabled and turned off without it.
+void PreferencesDialog::update_append_print_time_checkbox()
+{
+    if (m_append_print_time_checkbox == nullptr)
+        return;
+    const bool forced = app_config->get_bool("force_filename_entry");
+    m_append_print_time_checkbox->Enable(forced);
+    if (!forced && app_config->get_bool("append_print_time_to_filename")) {
+        m_append_print_time_checkbox->SetValue(false);
+        app_config->set_bool("append_print_time_to_filename", false);
+        app_config->save();
+    }
+}
+
 wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString tooltip, std::string param, const wxString secondary_title, const wxString wiki_url)
 {
     auto tip = tooltip.IsEmpty() ? title : tooltip; // auto fill tooltips with title if its empty
@@ -1070,6 +1084,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
 
     if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
     if (param == SETTING_OPENGL_SKIP_IDENTICAL_FRAMES) { m_skip_identical_frames_checkbox = checkbox; }
+    if (param == "append_print_time_to_filename") { m_append_print_time_checkbox = checkbox; }
 
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
 
@@ -1098,6 +1113,9 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         }
         else if (param == SETTING_OPENGL_SCENE_CACHE) {
             if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(checkbox->GetValue());
+        }
+        else if (param == "force_filename_entry") {
+            update_append_print_time_checkbox();
         }
         else if (param == "stealth_mode") {
             bool enabled = app_config->get_stealth_mode();
@@ -1915,6 +1933,17 @@ void PreferencesDialog::create_items()
 
     auto item_remember_print_action = create_item_checkbox(_L("Remember last print action"), _L("If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."), "remember_print_action");
     g_sizer->Add(item_remember_print_action);
+
+    auto item_force_filename_entry = create_item_checkbox(_L("Force filename entry on upload"),
+        _L("If enabled, the filename starts empty when uploading to a printer host, and the upload buttons stay disabled until a filename is entered. The file extension is added if it's missing."),
+        "force_filename_entry");
+    g_sizer->Add(item_force_filename_entry);
+
+    auto item_append_print_time = create_item_checkbox(_L("Append print time to filename"),
+        _L("If enabled, the estimated print time is appended to the entered filename, e.g. box_1h23m.gcode. Requires \"Force filename entry on upload\"."),
+        "append_print_time_to_filename");
+    g_sizer->Add(item_append_print_time);
+    update_append_print_time_checkbox();
 
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
