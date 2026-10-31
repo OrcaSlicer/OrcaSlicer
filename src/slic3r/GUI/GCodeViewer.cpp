@@ -3716,6 +3716,22 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     // the volumes wear the solid's colours for the frame, over their own filament colours
     update_solid_model_colors(whole);
     const SolidModelColors& colors = m_solid_model_colors;
+    // The layers the solid stands for are never the ones a slider thumb lights, so the solid
+    // wears what the toolpath shader gives the rest of the print: dimmed to the preference's
+    // brightness while the viewer dims the layers around the inspected ones, dark grey while the
+    // moves slider is short of the top layer's end; see libvgcode::ViewerImpl::set_layer_colors().
+    const bool top_layer_only = m_viewer.is_top_layer_only_view_range();
+    const bool moves_short = m_viewer.get_view_full_range()[1] != m_viewer.get_view_visible_range()[1];
+    const bool inspecting = layers[0] > 0 || layers[1] + 1 < m_viewer.get_layers_count() || moves_short;
+    const bool dimmed = top_layer_only && inspecting && m_viewer.is_dim_previous_layers();
+    const bool greyed = !dimmed && top_layer_only && moves_short;
+    auto shade = [dimmed, greyed, brightness = m_viewer.get_dim_previous_layers_brightness()](const ColorRGBA& color) {
+        if (greyed)
+            return ColorRGBA(64.0f / 255.0f, 64.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+        if (dimmed)
+            return ColorRGBA(brightness * color.r(), brightness * color.g(), brightness * color.b(), 1.0f);
+        return ColorRGBA(color.r(), color.g(), color.b(), 1.0f);
+    };
     std::vector<ColorRGBA> own_colors;
     own_colors.reserve(m_shells.volumes.volumes.size());
     // the tower draws itself in its own colours and leaves the volume's at the default; one list per volume
@@ -3725,14 +3741,11 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
         own_colors.push_back(volume->color);
         const std::optional<ColorRGBA>& body = colors.bodies[k].body;
         if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr) {
-            if (body.has_value()) {
-                own_tower_colors[k] = tower->colors();
-                tower->colors().assign(own_tower_colors[k].size(), *body);
-            }
+            own_tower_colors[k] = tower->colors();
+            for (ColorRGBA& color : tower->colors())
+                color = shade(body.value_or(color));
         }
-        else if (body.has_value())
-            volume->color = *body;
-        volume->color.a(1.0f);
+        volume->color = shade(body.value_or(volume->color));
         volume->set_render_color();
     }
     m_shells.volumes.set_z_range(z_bottom, z_top);
@@ -3834,7 +3847,7 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
                 if (tower != nullptr && !tower->colors().empty())
                     inside = tower->colors().front();
                 if (const std::optional<ColorRGBA>& cap = colors.bodies[n].caps[k]; cap.has_value())
-                    inside = *cap;
+                    inside = shade(*cap);
                 inside = ColorRGBA(0.55f * inside.r(), 0.55f * inside.g(), 0.55f * inside.b(), 1.0f);
                 cap_shader->start_using();
                 cap_shader->set_uniform("view_model_matrix", camera.get_view_matrix());
@@ -3853,7 +3866,7 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     m_shells.volumes.set_z_range(-FLT_MAX, FLT_MAX);
     for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
         GLVolume* volume = m_shells.volumes.volumes[k];
-        if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr && !own_tower_colors[k].empty())
+        if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr)
             tower->colors() = own_tower_colors[k];
         volume->color = own_colors[k];
         volume->set_render_color();
