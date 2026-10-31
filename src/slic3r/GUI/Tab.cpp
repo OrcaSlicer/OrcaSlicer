@@ -60,9 +60,11 @@
 #include <wx/panel.h>
 #include <wx/colour.h>
 #include <wx/dataview.h>
+#include <wx/types.h>
 #include <wx/dynarray.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
+#include <wx/textctrl.h>
 
 #include <wx/bmpcbox.h>
 #include <wx/bmpbuttn.h>
@@ -77,6 +79,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/OptionsGroup.hpp"
 #include "wxExtensions.hpp"
@@ -120,7 +123,10 @@
 #endif // WIN32
 
 #include <algorithm>
+#include <cctype>
+#include <cstdio>
 #include <cstdlib>
+#include <random>
 #include <unordered_set>
 #include "slic3r/GUI/GUI_Utils.hpp"
 
@@ -938,7 +944,8 @@ void Tab::update_label_colours()
                 color = &m_modified_label_clr;
         }
         if (opt.first == "printable_area"            ||
-            opt.first == "compatible_prints"    || opt.first == "compatible_printers"           ) {
+            opt.first == "compatible_prints"    || opt.first == "compatible_printers"           ||
+            opt.first == "filament_id") {
             if (Line* line = get_line(opt.first))
                 line->set_label_colour(color);
             continue;
@@ -982,7 +989,7 @@ void Tab::decorate()
         bool        option_without_field = false;
 
         if (opt.first == "printable_area" ||
-            opt.first == "compatible_prints" || opt.first == "compatible_printers")
+            opt.first == "compatible_prints" || opt.first == "compatible_printers" || opt.first == "filament_id")
             option_without_field = true;
 
         if (!option_without_field) {
@@ -1403,6 +1410,18 @@ void TabFilament::init_options_list()
         else
             m_options_list.emplace(opt_key + "#0", m_opt_status_value);
     }
+    // filament_id is not in the config, but its row is coloured like the others (see update_custom_dirty).
+    m_options_list.emplace("filament_id", m_opt_status_value);
+}
+
+// filament_id lives on the preset, not in its config, so the config comparisons don't see a change to it.
+void TabFilament::update_custom_dirty(std::vector<std::string>& dirty_options, std::vector<std::string>& nonsys_options)
+{
+    const Preset& edited = m_presets->get_edited_preset();
+    if (edited.filament_id != m_presets->get_selected_preset().filament_id)
+        dirty_options.emplace_back("filament_id");
+    if (const Preset* parent = m_presets->get_selected_preset_parent(); parent && parent->filament_id != edited.filament_id)
+        nonsys_options.emplace_back("filament_id");
 }
 
 void Tab::get_sys_and_mod_flags(const std::string& opt_key, bool& sys_page, bool& modified_page)
@@ -1457,6 +1476,9 @@ void Tab::update_changed_tree_ui()
                     get_sys_and_mod_flags(opt_key, sys_page, modified_page);
                 }
             }
+            // The Filament ID row has no config option, so it is not in the group's option map.
+            if (page->title() == "Filament")
+                get_sys_and_mod_flags("filament_id", sys_page, modified_page);
             if (page->title() == "Dependencies") {
                 if (m_type == Slic3r::Preset::TYPE_PRINTER) {
                     sys_page = m_presets->get_selected_preset_parent() != nullptr;
@@ -4761,6 +4783,42 @@ void TabFilament::build()
     auto page = add_options_page(L("Filament"), "custom-gcode_filament"); // ORCA: icon only visible on placeholders
         //BBS
         auto optgroup = page->new_optgroup(L("Basic information"), L"param_information");
+        {
+            // filament_id lives on the Preset rather than in its config, so it cannot use a regular
+            // option line. Same placeholder approach as "imex_pre_slice_warnings": the placeholder
+            // Option gives the line its label column, and line.widget supplies the control.
+            ConfigOptionDef placeholder_def;
+            placeholder_def.label   = L("Filament ID");
+            placeholder_def.mode    = comDevelop;
+            placeholder_def.tooltip = L("Identifier used to match this profile to filament reported by a printer, "
+                                        "for example from an AMS or a spool's filament tag. Each profile should have its own ID.");
+            auto line = Line{ placeholder_def.label, placeholder_def.tooltip };
+            line.label_path = "material_basic_information#filament-id";
+            line.append_option(Option{ placeholder_def, "filament_id" });
+            line.widget = [this](wxWindow* parent) -> wxSizer* {
+                m_filament_id_input = new ::TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition,
+                                                      wxSize(Field::def_width_wider() * m_em_unit, wxDefaultCoord), wxTE_PROCESS_ENTER);
+                wxTextCtrl* ctrl = m_filament_id_input->GetTextCtrl();
+                ctrl->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { apply_filament_id(); });
+                ctrl->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
+                    apply_filament_id();
+                    e.Skip();
+                });
+                m_filament_id_generate = new ::Button(parent, wxEmptyString, "refresh", 0, 16);
+                m_filament_id_generate->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
+                m_filament_id_generate->SetToolTip(_L("Generate a new filament ID that no other profile uses."));
+                m_filament_id_generate->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+                    m_filament_id_input->GetTextCtrl()->ChangeValue(from_u8(generate_filament_id()));
+                    apply_filament_id();
+                });
+                update_filament_id_line();
+                auto* s = new wxBoxSizer(wxHORIZONTAL);
+                s->Add(m_filament_id_input, 0, wxALIGN_CENTER_VERTICAL);
+                s->Add(m_filament_id_generate, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, parent->FromDIP(5));
+                return s;
+            };
+            optgroup->append_line(line);
+        }
         optgroup->append_single_option_line("filament_type", "material_basic_information#type"); // ORCA use same width with other elements
         optgroup->append_single_option_line("filament_vendor", "material_basic_information#vendor");
         optgroup->append_single_option_line("filament_soluble", "material_basic_information#soluble-material");
@@ -5228,6 +5286,9 @@ void TabFilament::toggle_options()
     }
     if (m_active_page->title() == L("Filament"))
     {
+        // Only user profiles show their filament ID; system and bundled IDs are fixed and generated.
+        toggle_line("filament_id", m_presets->get_selected_preset().is_user());
+
         bool pa = m_config->opt_bool("enable_pressure_advance", variant_index);
         const wxString pressure_advance_reason = _L("Enable pressure advance to use this setting.");
         toggle_option("pressure_advance", pa, 256 + variant_index, pressure_advance_reason);
@@ -5316,6 +5377,7 @@ void TabFilament::update()
     m_update_cnt++;
 
     update_description_lines();
+    update_filament_id_line();
     //BBS: GUI refactor
     //Layout();
     m_parent->Layout();
@@ -5334,9 +5396,116 @@ void TabFilament::clear_pages()
 
     m_volumetric_speed_description_line = nullptr;
 	m_cooling_description_line = nullptr;
+    m_filament_id_input = nullptr;
+    m_filament_id_generate = nullptr;
 
     //BBS: GUI refactor
     m_overrides_options.clear();
+}
+
+// A system or bundled preset's ID is fixed, and a derived preset takes its parent's ID
+// (Preset::save only writes filament_id for presets that inherit nothing).
+bool TabFilament::can_edit_filament_id(const Preset& preset)
+{
+    return preset.is_user() && preset.inherits().empty();
+}
+
+// Shown in Developer mode, for user profiles only (see toggle_options). Editable when the profile owns
+// its ID; a profile that inherits shows its parent's ID read-only, with a tooltip on how to change it.
+void TabFilament::update_filament_id_line()
+{
+    if (!m_filament_id_input)
+        return;
+    const Preset& selected = m_presets->get_selected_preset();
+    const bool    editable = can_edit_filament_id(selected);
+
+    wxString tip;
+    if (editable)
+        tip = _L("Each profile should have its own filament ID. A change is stored when the profile is saved.");
+    else if (!selected.inherits().empty())
+        // TRN %1% is the name of the parent profile.
+        tip = format_wxstr(_L("This profile uses the filament ID of its parent profile \"%1%\". To give it its own ID, save it with \"Detach from parent\" checked."),
+                           selected.inherits());
+
+    wxTextCtrl* ctrl = m_filament_id_input->GetTextCtrl();
+    ctrl->ChangeValue(from_u8(m_presets->get_edited_preset().filament_id));
+    ctrl->SetEditable(editable);
+    m_filament_id_input->SetToolTip(tip);
+    if (m_filament_id_generate)
+        m_filament_id_generate->Enable(editable);
+}
+
+// Same format as the IDs "Create filament" gives new profiles ("P" and 7 hex digits), picked at random
+// until no other filament profile uses it.
+std::string TabFilament::generate_filament_id() const
+{
+    std::mt19937                            gen(std::random_device{}());
+    std::uniform_int_distribution<unsigned> dist(0, 0xFFFFFFF);
+    for (;;) {
+        char buf[9];
+        std::snprintf(buf, sizeof(buf), "P%07x", dist(gen));
+        const std::string id(buf);
+        bool              used = false;
+        for (const Preset& preset : *m_presets)
+            if (preset.filament_id == id) {
+                used = true;
+                break;
+            }
+        if (!used)
+            return id;
+    }
+}
+
+// Applies the typed ID to the edited preset only. It is written to disk when the profile is saved,
+// like any other change (PresetCollection::is_dirty and save_current_preset handle filament_id).
+void TabFilament::apply_filament_id()
+{
+    // Showing a dialog moves the focus away, which fires the kill-focus handler again.
+    if (!m_filament_id_input || m_applying_filament_id)
+        return;
+    const Preset& selected = m_presets->get_selected_preset();
+    Preset&       edited   = m_presets->get_edited_preset();
+    std::string   new_id   = into_u8(m_filament_id_input->GetTextCtrl()->GetValue());
+    boost::algorithm::trim(new_id);
+    if (!can_edit_filament_id(selected) || new_id == edited.filament_id) {
+        update_filament_id_line();
+        return;
+    }
+
+    m_applying_filament_id = true;
+    auto finish = [this]() {
+        m_applying_filament_id = false;
+        update_filament_id_line();
+    };
+
+    const bool valid = !new_id.empty() && new_id.size() <= 32 &&
+                       std::all_of(new_id.begin(), new_id.end(), [](unsigned char c) { return std::isalnum(c) || c == '-' || c == '_'; });
+    if (!valid) {
+        MessageDialog(this, _L("A filament ID must be 1 to 32 characters long and can only contain letters, numbers, \"-\" and \"_\"."),
+                      _L("Filament ID"), wxOK | wxICON_WARNING).ShowModal();
+        finish();
+        return;
+    }
+
+    // Presets that share an ID cannot be told apart when a printer reports that ID.
+    // Derived presets carry their parent's ID, so only base presets are listed.
+    wxString users;
+    for (const Preset& preset : *m_presets)
+        if (&preset != &selected && preset.filament_id == new_id && m_presets->get_preset_base(preset) == &preset)
+            users += "\n" + from_u8(preset.name);
+    if (!users.empty()) {
+        // TRN %1% is a filament ID, %2% is a list of profile names, one per line.
+        MessageDialog dlg(this, format_wxstr(_L("The filament ID \"%1%\" is already used by:%2%\n\nProfiles that share an ID cannot be told apart when matching filament reported by a printer. Use it anyway?"), new_id, users),
+                          _L("Filament ID"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+        if (dlg.ShowModal() != wxID_YES) {
+            finish();
+            return;
+        }
+    }
+
+    edited.filament_id = new_id;
+    update_dirty();
+    finish();
 }
 
 // Orca:

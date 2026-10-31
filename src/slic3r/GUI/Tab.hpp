@@ -50,6 +50,7 @@
 #include "Notebook.hpp"
 #include "ParamsPanel.hpp"
 #include "Widgets/TextInput.hpp"
+#include "Widgets/Button.hpp"
 #include "Widgets/CheckBox.hpp" // ORCA
 #include "Widgets/ComboBox.hpp"
 
@@ -704,6 +705,15 @@ private:
 
     std::map<std::string, ::CheckBox*> m_overrides_options;
 
+    // filament_id is preset metadata, not a config option, so it has its own row.
+    ::TextInput*    m_filament_id_input {nullptr};
+    ::Button*       m_filament_id_generate {nullptr};
+    bool            m_applying_filament_id {false};
+    static bool     can_edit_filament_id(const Preset& preset);
+    void            update_filament_id_line();
+    void            apply_filament_id();
+    std::string     generate_filament_id() const;
+
 public:
 	//BBS: GUI refactor
 	TabFilament(ParamsPanel* parent) :
@@ -718,6 +728,7 @@ public:
     void        init_options_list() override;
     void        clear_pages() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
+    void        update_custom_dirty(std::vector<std::string>& dirty_options, std::vector<std::string>& nonsys_options) override;
 
 	void		on_value_change(const std::string& opt_key, const boost::any& value) override;
 
