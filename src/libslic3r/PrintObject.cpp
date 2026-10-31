@@ -4064,6 +4064,11 @@ void PrintObject::bridge_over_infill()
                 ExPolygons additional_ensuring = intersection_ex(additional_ensuring_areas, near_perimeters);
 
                 SurfacesPtr internal_infills = region->fill_surfaces.filter_by_type(stInternal);
+                // Orca: Sloping walls shift adjacent infill contours, so their boundary bands
+                // may intersect in a strip too narrow to print. Widen these contacts into
+                // sparse infill to retain support after the fill's half-spacing inset.
+                additional_ensuring = intersection_ex(internal_infills,
+                    expand_ex(to_polygons(additional_ensuring), region->flow(frSolidInfill).scaled_spacing()));
                 ExPolygons new_internal_infills = diff_ex(internal_infills, cut_from_infill);
                 new_internal_infills            = diff_ex(new_internal_infills, additional_ensuring);
                 for (const ExPolygon &ep : new_internal_infills) {
