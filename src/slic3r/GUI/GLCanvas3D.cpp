@@ -2143,7 +2143,8 @@ void GLCanvas3D::toggle_model_objects_visibility(bool visible, const ModelObject
                     if (  (gizmo_type == GLGizmosManager::FdmSupports
                         || gizmo_type == GLGizmosManager::Seam
                         || gizmo_type == GLGizmosManager::Cut
-                        || gizmo_type == GLGizmosManager::FuzzySkin)
+                        || gizmo_type == GLGizmosManager::FuzzySkin
+                        || gizmo_type == GLGizmosManager::PaintedModifier)
                         && !vol->is_modifier) {
                         vol->force_neutral_color = true;
                     }
@@ -3278,6 +3279,9 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
             const ModelInstance* model_instance = model_object->instances[instance_idx];
             for (int volume_idx = 0; volume_idx < (int)model_object->volumes.size(); ++volume_idx) {
                 const ModelVolume* model_volume = model_object->volumes[volume_idx];
+                // A painted modifier shares its host's mesh; its paint is shown by its gizmo only.
+                if (model_volume->is_painted_modifier())
+                    continue;
                 if (m_canvas_type == ECanvasType::CanvasAssembleView) {
                     if (model_volume->is_model_part())
                         model_volume_state.emplace_back(model_volume, model_instance->id(), GLVolume::CompositeID(object_idx, volume_idx, instance_idx));
@@ -3468,7 +3472,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
         const ModelObject &model_object = *m_model->objects[obj_idx];
         for (int volume_idx = 0; volume_idx < (int)model_object.volumes.size(); ++ volume_idx) {
 			const ModelVolume &model_volume = *model_object.volumes[volume_idx];
-            if (m_canvas_type == ECanvasType::CanvasAssembleView && !model_volume.is_model_part())
+            if ((m_canvas_type == ECanvasType::CanvasAssembleView && !model_volume.is_model_part()) || model_volume.is_painted_modifier())
                 continue;
             for (int instance_idx = 0; instance_idx < (int)model_object.instances.size(); ++ instance_idx) {
 				const ModelInstance &model_instance = *model_object.instances[instance_idx];
@@ -5105,7 +5109,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                     && m_gizmos.get_current_type() != GLGizmosManager::Seam
                     && m_gizmos.get_current_type() != GLGizmosManager::Cut
                     && m_gizmos.get_current_type() != GLGizmosManager::MmSegmentation
-                    && m_gizmos.get_current_type() != GLGizmosManager::FuzzySkin) {
+                    && m_gizmos.get_current_type() != GLGizmosManager::FuzzySkin
+                    && m_gizmos.get_current_type() != GLGizmosManager::PaintedModifier) {
                     m_rectangle_selection.start_dragging(m_mouse.position, evt.ShiftDown() ? GLSelectionRectangle::Select : GLSelectionRectangle::Deselect);
 
                     if (!has_mouse_capture())  // ORCA keep tracking mouse position while drag active and cursor not in window bounds
@@ -5305,7 +5310,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 const Vec3d rot = (Vec3d(pos.x(), pos.y(), 0.) - m_mouse.drag.start_position_3D) * (PI * TRACKBALLSIZE / 180.) * mult;
                 if (this->m_canvas_type == ECanvasType::CanvasAssembleView || m_gizmos.get_current_type() == GLGizmosManager::FdmSupports ||
                     m_gizmos.get_current_type() == GLGizmosManager::Seam || m_gizmos.get_current_type() == GLGizmosManager::MmSegmentation ||
-                    m_gizmos.get_current_type() == GLGizmosManager::FuzzySkin) {
+                    m_gizmos.get_current_type() == GLGizmosManager::FuzzySkin || m_gizmos.get_current_type() == GLGizmosManager::PaintedModifier) {
                     // Orca: Reuse the centralized pivot policy for scene-oriented tools.
                     const std::optional<Vec3d> rotate_target = get_camera_orbit_target(ECameraNavigationType::Mouse);
                     if (rotate_target.has_value())
@@ -12159,7 +12164,7 @@ std::optional<Vec3d> GLCanvas3D::get_camera_orbit_target(ECameraNavigationType n
     const GLGizmosManager::EType gizmo_type = m_gizmos.get_current_type();
     const bool use_scene_target = m_canvas_type == ECanvasType::CanvasAssembleView ||
         gizmo_type == GLGizmosManager::FdmSupports || gizmo_type == GLGizmosManager::Seam ||
-        gizmo_type == GLGizmosManager::MmSegmentation || gizmo_type == GLGizmosManager::FuzzySkin;
+        gizmo_type == GLGizmosManager::MmSegmentation || gizmo_type == GLGizmosManager::FuzzySkin || gizmo_type == GLGizmosManager::PaintedModifier;
     if (use_scene_target) {
         if (!m_selection.is_empty())
             return m_selection.get_bounding_box().center();

@@ -170,7 +170,8 @@ static std::vector<ExPolygons> slice_volume(
 static inline bool model_volume_needs_slicing(const ModelVolume &mv)
 {
     ModelVolumeType type = mv.type();
-    return type == ModelVolumeType::MODEL_PART || type == ModelVolumeType::NEGATIVE_VOLUME || type == ModelVolumeType::PARAMETER_MODIFIER;
+    return type == ModelVolumeType::MODEL_PART || type == ModelVolumeType::NEGATIVE_VOLUME || type == ModelVolumeType::PARAMETER_MODIFIER ||
+           type == ModelVolumeType::PAINTED_MODIFIER;
 }
 
 // Slice printable volumes, negative volumes and modifier volumes, sorted by ModelVolume::id().
@@ -479,7 +480,7 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
                     for (int idx_region = 0; idx_region < int(layer_range.volume_regions.size()); ++ idx_region)
                         if (! temp_slices[idx_region].expolygons.empty()) {
                             const PrintObjectRegions::VolumeRegion &region = layer_range.volume_regions[idx_region];
-                            if (region.model_volume->is_modifier()) {
+                            if (region.model_volume->is_region_modifier()) {
                                 assert(region.parent > -1);
                                 bool next_region_same_modifier = idx_region + 1 < int(temp_slices.size()) && layer_range.volume_regions[idx_region + 1].model_volume == region.model_volume;
                                 RegionSlice &parent_slice = temp_slices[region.parent];
@@ -1364,6 +1365,12 @@ void PrintObject::slice_volumes()
             print->config(), this->config(), this->trafo_centered(),
             this->model_object()->volumes, m_shared_regions->layer_ranges, slice_zs, throw_on_cancel_callback,
             &m_belt_min_z);
+        // A painted modifier was sliced as its whole host, keep only what its paint covers.
+        for (const ModelVolume *model_volume : this->model_object()->volumes)
+            if (model_volume->is_painted_modifier())
+                if (auto it = std::find_if(objSliceByVolume.begin(), objSliceByVolume.end(), [model_volume](const VolumeSlices &vs) { return vs.volume_id == model_volume->id(); });
+                    it != objSliceByVolume.end())
+                    it->slices = painted_modifier_segmentation(*this, *model_volume, it->slices, throw_on_cancel_callback);
     }
 
     //BBS: "model_part" volumes are grouded according to their connections
