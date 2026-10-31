@@ -199,7 +199,10 @@ static std::optional<BedExclusionCollision> colliding_bed_exclusion(
             std::optional<BedExclusionCollision>(BedExclusionCollision{ *first_collision, true }) : std::nullopt;
     }
 
-    for (const unsigned int filament_id : print_object.printing_extruders()) {
+    // A mixed filament prints with its component filaments.
+    const std::vector<unsigned int> filament_ids = expand_mixed_filaments(print_object.printing_extruders(),
+        print.config().filament_is_mixed.values, print.config().filament_mixed_components.values);
+    for (const unsigned int filament_id : filament_ids) {
         const int resolved_extruder = bed_exclusion_extruder_for_filament(
             filament_id, print.get_filament_maps(), print.get_filament_map_mode(), print.is_BBL_printer(),
             true, regions_by_extruder.size());
@@ -2976,13 +2979,15 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     m_config.enable_pressure_advance.get_at(column)) {
 
                     const std::string pa_model = m_config.adaptive_pressure_advance_model.get_at(column);
-                    if (!pa_model.empty()) {
-                        std::string validation_error = AdaptivePAProcessor::validate_adaptive_pa_model(pa_model);
-                        if (!validation_error.empty()) {
-                            warn(L("The Adaptive Pressure Advance model for one or more extruders may contain invalid values."),
-                                 "adaptive_pressure_advance_model");
-                            break;
-                        }
+                    if (!AdaptivePAProcessor::adaptive_pa_model_has_measurements(pa_model)) {
+                        warn(L("Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."),
+                             "adaptive_pressure_advance_model");
+                        break;
+                    }
+                    if (!AdaptivePAProcessor::validate_adaptive_pa_model(pa_model).empty()) {
+                        warn(L("The Adaptive Pressure Advance model for one or more extruders may contain invalid values."),
+                             "adaptive_pressure_advance_model");
+                        break;
                     }
                 }
             }
@@ -4915,7 +4920,8 @@ std::vector<std::set<int>> Print::get_physical_unprintable_filaments(const std::
     auto get_unprintable_extruder_id = [&](unsigned int filament_idx) -> int {
         // filament_printable may be shorter than the filament count; get_at() clamps.
         int status = m_config.filament_printable.get_at(filament_idx);
-        for (int i = 0; i < extruder_num; ++i) {
+        // An int has bits for the first 32 extruders only.
+        for (int i = 0; i < std::min(extruder_num, 32); ++i) {
             if (!(status >> i & 1)) {
                 return i;
             }

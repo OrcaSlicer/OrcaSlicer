@@ -1160,10 +1160,6 @@ void add_correct_opts_to_options_list(const std::string &opt_key, std::map<std::
 
 std::string Tab::options_list_storage_key(const std::string& opt_key) const
 {
-    if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" ||
-        opt_key == "compatible_printers" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area")
-        return opt_key;
-
     if (m_config == nullptr || !m_config->has(opt_key))
         return opt_key;
 
@@ -1171,13 +1167,7 @@ std::string Tab::options_list_storage_key(const std::string& opt_key) const
     if (option == nullptr || !option->is_vector())
         return opt_key;
 
-    const ConfigOptionDef* def = m_config->def()->get(opt_key);
-    if (def == nullptr)
-        return opt_key;
-
-    const bool serialized = def->gui_flags == "serialized";
-    const bool is_plugin_field = def->gui_type == ConfigOptionDef::GUIType::plugin_picker;
-    return (serialized || is_plugin_field) ? opt_key : opt_key + "#0";
+    return is_edited_as_whole_list(m_config->def(), opt_key) ? opt_key : opt_key + "#0";
 }
 
 // Orca: deep_diff() flags every vector entry at or past the reference vector's length as changed,
@@ -2447,7 +2437,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 msg_text += "\n\n" + _L("Change these settings automatically\?\nYes - Change these settings automatically.\nNo  - Do not change these settings for me.");
             } else {
                 msg_text = _L("When using soluble material for the support interface, we recommend the following settings:\n"
-                              "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
+                              "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height "
                               "and use soluble materials for both support interface and support base.");
                 msg_text += "\n\n" + _L("Change these settings automatically\?\nYes - Change these settings automatically.\nNo  - Do not change these settings for me.");
             }
@@ -2659,7 +2649,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
 void Tab::show_timelapse_warning_dialog() {
     if (!m_is_timelapse_wipe_tower_already_prompted) {
-        wxString      msg_text = _(L("When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
+        wxString      msg_text = _(L("When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" "
                                 "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."));
         msg_text += "\n";
         MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
@@ -3714,6 +3704,15 @@ void TabPrint::update()
 
         wxGetApp().mainframe->on_config_changed(m_config);
     }
+}
+
+int TabPrint::extruder_variant_index(int extruder_id, NozzleVolumeType nozzle_type)
+{
+    const auto *extruders = m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnumsGeneric>("extruder_type");
+    if (extruders == nullptr || extruder_id < 0 || extruder_id >= int(extruders->size()))
+        return -1;
+    return m_config->get_index_for_extruder(extruder_id + 1, "print_extruder_id", ExtruderType(extruders->values[extruder_id]), nozzle_type,
+                                            "print_extruder_variant");
 }
 
 void TabPrint::clear_pages()
@@ -4821,7 +4820,7 @@ void TabFilament::build()
 
             update_dirty();
             if (opt_key.substr(0, opt_key.find('#')) == "adaptive_pressure_advance_model")
-                m_config_manipulation.check_adaptive_pressure_advance_model(&filament_config);
+                m_config_manipulation.check_adaptive_pressure_advance_model(&filament_config, selected_variant_index());
 
             on_value_change(opt_key, value);
         };
@@ -6077,7 +6076,7 @@ if (is_marlin_flavor)
                                 // if value is differs from first nozzle diameter value
                                 if (fabs(cur_diam - frst_diam) > EPSILON) {
                                     const wxString msg_text = _(
-                                        L("Single Extruder Multi Material is selected,\n"
+                                        L("Single Extruder Multi Material is selected, "
                                           "and all extruders must have the same diameter.\n"
                                           "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"));
                                     MessageDialog dialog(parent(), msg_text, _(L("Nozzle diameter")), wxICON_WARNING | wxYES_NO);
@@ -6969,8 +6968,10 @@ void TabPrinter::toggle_options()
         double retract_after_wipe  = m_config->option<ConfigOptionPercents>("retract_after_wipe")->get_at(variant_index);
 
         toggle_option("retract_before_wipe", wipe && !is_approx(retract_after_wipe, 100.), i,
+            // xgettext:no-c-format, no-boost-format
             _L("Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."));
         toggle_option("retract_after_wipe", wipe && !is_approx(retract_before_wipe, 100.), i,
+            // xgettext:no-c-format, no-boost-format
             _L("Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."));
 
         if (use_firmware_retraction && wipe && retract_before_wipe < 100.0) {

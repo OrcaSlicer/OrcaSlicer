@@ -16,6 +16,7 @@
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/SLAPrint.hpp"
@@ -1583,9 +1584,10 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     //unprintable_filament_ids.resize(inside_extruders.size());
                     ModelObject *model_object = model_objects[volume->object_idx()];
                     ModelVolume *model_volume = model_object->volumes[volume->volume_idx()];
+                    // A mixed filament prints with its component filaments.
+                    const std::vector<int> filaments = expand_mixed_filament_ids(model_volume->get_extruders(), plate_project_config);
                     for (size_t i = 0; i < printable_area_inside_extruders.size(); ++i) {
                         if (!printable_area_inside_extruders[i]) {
-                            std::vector<int> filaments = model_volume->get_extruders();
                             unprintable_filament_ids[i].insert(filaments.begin(), filaments.end());
                             if (object_results) {
                                 std::map<int, std::set<int>>& obj_extruder_filament_maps = objects_unprintable_filaments[model_object];

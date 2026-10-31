@@ -370,6 +370,28 @@ static std::set<int> tools_for_feature(const std::string& gcode, std::string_vie
     return tools;
 }
 
+// Choosing the filament of one infill or surface must not move the others off "Default", the object's filament.
+TEST_CASE("Infill and surfaces left on Default print with the object filament", "[MultiFilament]")
+{
+    const std::pair<const char *, std::string_view> features[] = {
+        { "sparse_infill_filament_id",  "Sparse infill" },
+        { "internal_solid_filament_id", "Internal solid infill" },
+        { "top_surface_filament_id",    "Top surface" },
+        { "bottom_surface_filament_id", "Bottom surface" },
+    };
+    const std::string set_key = GENERATE("sparse_infill_filament_id", "internal_solid_filament_id",
+                                         "top_surface_filament_id", "bottom_surface_filament_id");
+    CAPTURE(set_key);
+
+    DynamicPrintConfig config = multifilament_config(2, { { "skirt_loops", 0 }, { "brim_type", "no_brim" } });
+    config.set_deserialize_strict(set_key, "2");
+    const std::string gcode = slice({ cube(20) }, config);
+    for (const auto &[key, feature] : features) {
+        CAPTURE(feature);
+        CHECK(tools_for_feature(gcode, feature) == std::set<int>{ key == set_key ? 1 : 0 });
+    }
+}
+
 // A 20x20mm slab on a 4x4mm pillar: on the slab's first layer both walls are overhangs from end to end, so
 // only their wall index tells the inner wall from the outer one.
 TEST_CASE("Overhanging inner walls print with the inner wall filament", "[MultiFilament]")
@@ -2135,6 +2157,33 @@ TEST_CASE("Unused extruder turns off on non-IMEX three-tool print", "[MultiFilam
     // T1 and T2 print up to 10mm — neither should get S0 before that.
     CHECK_FALSE(premature_s0_t1);
     CHECK_FALSE(premature_s0_t2);
+}
+
+// The GUI re-applies the unchanged config after every slice; that must not invalidate it.
+TEST_CASE("Reapplying an unchanged config after slicing reports no change", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "wall_filament",                    "1" },
+        { "sparse_infill_filament",           "2" },
+        { "solid_infill_filament",            "2" },
+        { "enable_prime_tower",               "1" },
+        { "independent_support_layer_height", "1" },
+        { "wipe_tower_x",                     "50" },
+        { "wipe_tower_y",                     "50" },
+        // init_print sets it, so the reapply differs only in what apply() itself normalizes.
+        { "gcode_comments",                   "1" },
+    });
+    Model model;
+    Print print;
+    Slic3r::Test::init_print({ TestMesh::cube_with_hole }, print, model, config);
+    print.process();
+    const bool ept_before  = print.config().enable_prime_tower.value;
+    const bool islh_before = print.config().independent_support_layer_height.value;
+
+    const auto status = print.apply(model, config);
+
+    CHECK(print.config().enable_prime_tower.value == ept_before);
+    CHECK(print.config().independent_support_layer_height.value == islh_before);
+    CHECK(status == PrintBase::APPLY_STATUS_UNCHANGED);
 }
 
 static DynamicPrintConfig short_change_length_config() {

@@ -94,6 +94,16 @@ public:
     // Does NOT include the per-object Z-shift.
     static Transform3d build_forward_transform(const PrintConfig &config);
 
+    // Belt printers: compute the full machine->model back-transform from the print
+    // config, so the "designed" (upright) G-code preview maps each toolpath vertex
+    // back to Cartesian space. The G-code forward pipeline is (BeltKinematics::
+    // to_machine_coords):  gcode = MachineFrame( AxisRemap( X ) ), with X the model
+    // already un-rotated to Cartesian by the back-transform. So the inverse is:
+    //   model = AxisRemap^-1 . MachineFrame^-1
+    // (origin-snap is a per-instance translation that only shifts position, not
+    // orientation, so it is intentionally omitted.)
+    static Transform3d build_gcode_back_transform(const PrintConfig &config);
+
     // ---- Belt floor parameters --------------------------------------------
 
     struct BeltFloorParams {

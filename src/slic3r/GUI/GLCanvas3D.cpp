@@ -1013,9 +1013,13 @@ void GLCanvas3D::Labels::render(const std::vector<const ModelInstance*>& sorted_
 // The sums a solid adds to a marker.
 static GCodeProcessorResult::ObjectMass::Sum mass_sum(const MassProperties& solid)
 {
-    return { solid.mass, solid.volume, solid.mass * solid.center,
-             solid.mass * (solid.spread.diagonal() + solid.center.cwiseProduct(solid.center)) };
+    GCodeProcessorResult::ObjectMass::Sum sum{ solid.mass, solid.volume, solid.mass * solid.center };
+    sum.set_second_moments(solid.mass * (solid.spread + solid.center * solid.center.transpose()));
+    return sum;
 }
+
+// The ImGui id of the window with a marker's details, whatever its title.
+static constexpr const char* details_window = "###center_of_mass";
 
 // On screen, of the plates, the objects, the supports and the bodies, each smaller than the one before, so that markers at
 // one place still show.
@@ -1166,14 +1170,16 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
     if (shader == nullptr)
         return;
 
-    // Preview adds markers for what is printed up to the top layer shown.
+    // Preview adds markers for what is printed up to the top layer shown, unless that is the last, which is the finished print.
+    bool printing = false;
     if (preview) {
         const GCodeViewer& gcode_viewer = canvas.get_gcode_viewer();
         m_top_layer                     = gcode_viewer.get_layers_z_range()[1];
-        const auto add = [this](const GCodeProcessorResult::ObjectMass& mass, MarkerKind kind) {
+        printing                        = m_top_layer + 1 < gcode_viewer.get_layers_count();
+        const auto add = [this, printing](const GCodeProcessorResult::ObjectMass& mass, MarkerKind kind) {
             if (const Sum total = mass.total(); total.mass > 0.)
                 m_drawn[0][kind].push_back({ total, mass.box, mass.assembly });
-            if (!mass.printed_up_to_layer.empty())
+            if (printing && !mass.printed_up_to_layer.empty())
                 if (const Sum& sum = mass.printed_up_to_layer[std::min(m_top_layer, mass.printed_up_to_layer.size() - 1)]; sum.mass > 0.)
                     m_drawn[1][kind].push_back({ sum, mass.box, mass.assembly });
         };
@@ -1186,6 +1192,12 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
             add(support, mkSupport);
     } else
         m_drawn[0] = model_markers(canvas);
+    // The section view cuts them away by their centers, as it does the toolpaths' option markers.
+    if (const ClippingPlane plane = canvas._get_section_view_plane(); plane.is_active())
+        for (Markers& markers : m_drawn)
+            for (std::vector<Marker>& kind : markers)
+                kind.erase(std::remove_if(kind.begin(), kind.end(), [&plane](const Marker& marker) { return plane.is_point_clipped(marker.center()); }),
+                           kind.end());
     if (std::all_of(m_drawn.begin(), m_drawn.end(),
                     [](const Markers& markers) { return std::all_of(markers.begin(), markers.end(), [](const auto& kind) { return kind.empty(); }); }))
         return;
@@ -1238,7 +1250,7 @@ void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
             }
     };
     // Preview fades the finished parts' markers under those of what is printed so far.
-    draw(m_drawn[0], preview ? 0.4f : 1.f);
+    draw(m_drawn[0], printing ? 0.4f : 1.f);
     draw(m_drawn[1], 1.f);
     shader->stop_using();
     glsafe(::glEnable(GL_DEPTH_TEST));
@@ -1295,7 +1307,7 @@ void GLCanvas3D::CenterOfMass::render_details(GLCanvas3D& canvas)
                               marker.assembly       ? _u8L("Assembly center of mass") :
                                                       _u8L("Object center of mass");
     bool open = true;
-    imgui.begin(title + "###center_of_mass", &open,
+    imgui.begin(title + details_window, &open,
                 ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
     if (ImGui::IsWindowAppearing())
         imgui.set_requires_extra_frame();
@@ -1323,10 +1335,23 @@ void GLCanvas3D::CenterOfMass::render_details(GLCanvas3D& canvas)
         ImGui::EndTable();
     }
     imgui.end();
-    if (!open) {
-        m_picked.reset();
-        canvas._set_overlay_as_dirty();
-    }
+    if (!open)
+        hide_details(canvas);
+}
+
+bool GLCanvas3D::CenterOfMass::details_hovered() const
+{
+    const ImGuiWindow* hovered = ImGui::GetCurrentContext()->HoveredWindow;
+    return m_picked && hovered != nullptr && hovered == ImGui::FindWindowByName(details_window);
+}
+
+bool GLCanvas3D::CenterOfMass::hide_details(GLCanvas3D& canvas)
+{
+    if (!m_picked)
+        return false;
+    m_picked.reset();
+    canvas._set_overlay_as_dirty();
+    return true;
 }
 
 void GLCanvas3D::Tooltip::set_text(const std::string& text)
@@ -2575,6 +2600,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     camera.apply_projection(_max_bounding_box(true, true, true));
 
+    const ImGuiID active_id = ImGui::GetActiveID();
     wxGetApp().imgui()->new_frame();
 
     if (_update_inactive_plates_visibility())
@@ -2729,6 +2755,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     m_frame_profiler.mark("notifications");
 
     ImDrawData* draw_data = wxGetApp().imgui()->end_frame();
+    m_overlay_dirty |= active_id != ImGui::GetActiveID();
 
     std::optional<size_t> signature;
     if (_is_frame_skipping_enabled())
@@ -3365,9 +3392,14 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 volume->is_modifier = !mvs->model_volume->is_model_part();
                 volume->set_color(color_from_model_volume(*mvs->model_volume));
 
+                const ModelInstance& instance = *mvs->model_volume->get_object()->instances[mvs->composite_id.instance_id];
+                // Follow the instance's printable flag on every reload; the assemble view never shows it.
+                if (m_canvas_type != ECanvasType::CanvasAssembleView)
+                    volume->printable = instance.printable;
+
                 // updates volumes transformations
                 if (m_canvas_type != ECanvasType::CanvasAssembleView) {
-                    volume->set_instance_transformation(mvs->model_volume->get_object()->instances[mvs->composite_id.instance_id]->get_transformation());
+                    volume->set_instance_transformation(instance.get_transformation());
                     volume->set_volume_transformation(mvs->model_volume->get_transformation());
                     // updates volumes convex hull
                     if (mvs->model_volume->is_model_part() && ! volume->convex_hull())
@@ -3377,14 +3409,14 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                     volume->set_offset_to_assembly(Vec3d(0, 0, 0));
                 }
                 else {
-                    volume->set_instance_transformation(mvs->model_volume->get_object()->instances[mvs->composite_id.instance_id]->get_assemble_transformation());
+                    volume->set_instance_transformation(instance.get_assemble_transformation());
                     volume->set_volume_transformation(mvs->model_volume->get_transformation());
                     // updates volumes convex hull
                     if (mvs->model_volume->is_model_part() && ! volume->convex_hull())
                         // Model volume was likely changed from modifier or support blocker / enforcer to a model part.
                         // Only model parts require convex hulls.
                         volume->set_convex_hull(mvs->model_volume->get_convex_hull_shared_ptr());
-                    volume->set_offset_to_assembly(mvs->model_volume->get_object()->instances[mvs->composite_id.instance_id]->get_offset_to_assembly());
+                    volume->set_offset_to_assembly(instance.get_offset_to_assembly());
                 }
             }
         }
@@ -3454,6 +3486,8 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                     it->volume_idx = m_volumes.volumes.size();
                     m_volumes.load_object_volume(&model_object, obj_idx, volume_idx, instance_idx, m_color_by, m_initialized, m_canvas_type == ECanvasType::CanvasAssembleView);
                     m_volumes.volumes.back()->geometry_id = key.geometry_id;
+                    if (m_canvas_type != ECanvasType::CanvasAssembleView)
+                        m_volumes.volumes.back()->printable = model_instance.printable;
                     update_object_list = true;
                 } else {
 					// Recycling an old GLVolume.
@@ -4052,8 +4086,10 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     if (m_extra_frame_requested || mouse3d_controller_applied) {
         m_dirty = true;
         m_extra_frame_requested = false;
-        evt.RequestMore();
     }
+
+    if (m_dirty)
+        evt.RequestMore();
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     else if (imgui_requires_extra_frame || wxGetApp().imgui()->requires_extra_frame()) {
         // ImGui settling a window or fading a tooltip.
@@ -4400,7 +4436,8 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
     if (!imgui_claimed)
     {
         // Before the gizmos and the selection, which Esc also closes.
-        if (evt.GetEventType() == wxEVT_KEY_DOWN && keyCode == WXK_ESCAPE && std::exchange(m_section_view->panel_open, false)) {
+        if (evt.GetEventType() == wxEVT_KEY_DOWN && keyCode == WXK_ESCAPE &&
+            (std::exchange(m_section_view->panel_open, false) || m_center_of_mass.hide_details(*this))) {
             _set_overlay_as_dirty();
             return;
         }
@@ -4501,7 +4538,8 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
     evt.SetY(evt.GetY() * scale);
 #endif
 
-    if (wxGetApp().imgui()->update_mouse_data(evt)) {
+    // A marker's details move with the view, so zooming can bring them under the mouse, where the wheel keeps zooming.
+    if (wxGetApp().imgui()->update_mouse_data(evt) && !m_center_of_mass.details_hovered()) {
         if (m_canvas_type == CanvasPreview) {
             IMSlider* m_layers_slider = get_gcode_viewer().get_layers_slider();
             IMSlider* m_moves_slider = get_gcode_viewer().get_moves_slider();
@@ -4968,6 +5006,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         return;
     }
 
+    if (evt.ButtonDown() && wxWindow::FindFocus() != m_canvas)
+        // Grab keyboard focus on any mouse click event.
+        m_canvas->SetFocus();
+
     // A click on a center of mass marker shows its details instead of selecting.
     if (evt.LeftDown() && !mouse_in_layer_editing && m_center_of_mass.on_left_down(*this, pos.cast<double>())) {
         m_mouse.ignore_left_up = true;
@@ -4985,10 +5027,6 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         m_mouse.drag.move_requires_threshold = false;
         m_mouse.set_move_start_threshold_position_2D_as_invalid();
     }
-
-    if (evt.ButtonDown() && wxWindow::FindFocus() != m_canvas)
-        // Grab keyboard focus on any mouse click event.
-        m_canvas->SetFocus();
 
     if (evt.Entering()) {
         // Set focus in order to remove it from sidebar fields and ensure hotkeys work
@@ -5263,7 +5301,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 m_mouse.is_start_position_3D_defined()) {
                 Camera& camera = wxGetApp().plater()->get_camera();
                 auto mult_pref = wxGetApp().app_config->get("camera_orbit_mult");
-                const double mult = mult_pref.empty() ? 1.0 : std::stod(mult_pref);
+                const double mult = mult_pref.empty() ? 1.0 : string_to_double_decimal_point(mult_pref);
                 const Vec3d rot = (Vec3d(pos.x(), pos.y(), 0.) - m_mouse.drag.start_position_3D) * (PI * TRACKBALLSIZE / 180.) * mult;
                 if (this->m_canvas_type == ECanvasType::CanvasAssembleView || m_gizmos.get_current_type() == GLGizmosManager::FdmSupports ||
                     m_gizmos.get_current_type() == GLGizmosManager::Seam || m_gizmos.get_current_type() == GLGizmosManager::MmSegmentation ||
@@ -8554,12 +8592,26 @@ GLCanvas3D::EShadowMode GLCanvas3D::_shadow_mode() const
     return mode == "static" ? EShadowMode::Static : mode == "orbit" ? EShadowMode::Orbit : EShadowMode::Off;
 }
 
+// The Z range _render_objects() draws the volumes in.
+static std::array<float, 2> volumes_z_range(const GLCanvas3D& canvas)
+{
+    if (!canvas.get_use_clipping_planes())
+        return { -FLT_MAX, FLT_MAX };
+    const std::array<ClippingPlane, 2>& planes = canvas.get_clipping_planes();
+    return { float(-planes[0].get_data()[3]), float(planes[1].get_data()[3]) };
+}
+
 size_t GLCanvas3D::_shadow_casters_signature(bool toolpath_casters) const
 {
     if (toolpath_casters)
         return m_gcode_viewer.shadow_casters_signature();
 
     size_t hash = 1;
+    const ClippingPlane clipping_plane = get_raycaster_clipping_plane();
+    for (double value : clipping_plane.get_data())
+        boost::hash_combine(hash, value);
+    for (float value : volumes_z_range(*this))
+        boost::hash_combine(hash, value);
     for (const GLVolume* volume : m_volumes.volumes) {
         if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
             continue;
@@ -9226,11 +9278,17 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
             }
             // Only the enabled layers are drawn, so fitting the map to the whole print wastes
             // its depth range and makes contact shadows shift as the slider moves. The z = 0
-            // shadow is enclosed separately below, so the plate shadow is unaffected.
+            // shadow is enclosed separately below, so the plate shadow is unaffected. A belt
+            // print's layers are tilted and its layer Zs are print Zs, which bound none of its
+            // toolpaths in either view, so it keeps the whole print.
             const std::vector<double> layer_zs = m_gcode_viewer.get_layers_zs();
-            if (!layer_zs.empty()) {
-                const size_t top = std::min<size_t>(m_gcode_viewer.get_layers_z_range()[1], layer_zs.size() - 1);
-                obj_bb.max.z() = std::max(obj_bb.min.z(), std::min(obj_bb.max.z(), layer_zs[top]));
+            if (!layer_zs.empty() && !m_gcode_viewer.is_belt_view()) {
+                const std::array<size_t, 2>& layers_range = m_gcode_viewer.get_layers_z_range();
+                const size_t top    = std::min<size_t>(layers_range[1], layer_zs.size() - 1);
+                const size_t bottom = std::min(layers_range[0], top);
+                // Layer Z drops back down for each object in a by object print, so take the highest enabled layer.
+                const double max_z = *std::max_element(layer_zs.begin() + bottom, layer_zs.begin() + top + 1);
+                obj_bb.max.z() = std::max(obj_bb.min.z(), std::min(obj_bb.max.z(), max_z));
             }
         }
         else {
@@ -9387,15 +9445,19 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 
                 if (toolpath_casters)
                     m_gcode_viewer.render_shadow_casters(Transform3d(light_view), Transform3d(light_proj), eye);
-                // Only this branch draws through "flat"; the toolpaths bring their own program.
-                else if (GLShaderProgram* shader = wxGetApp().get_shader("flat"); shader != nullptr) {
+                // Only this branch draws through "flat_clip"; the toolpaths bring their own program.
+                else if (GLShaderProgram* shader = wxGetApp().get_shader("flat_clip"); shader != nullptr) {
                     shader->start_using();
                     shader->set_uniform("projection_matrix", Transform3d(light_proj));
+                    // Clipped as _render_objects() clips them, so a cut away part casts no shadow.
+                    shader->set_uniform("clipping_plane", get_raycaster_clipping_plane().inverted_normal().get_data());
+                    shader->set_uniform("z_range", volumes_z_range(*this));
                     for (GLVolume* volume : m_volumes.volumes) {
                         if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
                             continue;
-                        const Transform3d view_model = Transform3d(light_view) * volume->world_matrix();
-                        shader->set_uniform("view_model_matrix", view_model);
+                        const Transform3d world = volume->world_matrix();
+                        shader->set_uniform("volume_world_matrix", world);
+                        shader->set_uniform("view_model_matrix", Transform3d(light_view) * world);
                         volume->model.render(shader);
                     }
                     shader->stop_using();
@@ -9582,10 +9644,8 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         }
     }
 
-    if (m_use_clipping_planes)
-        m_volumes.set_z_range(-m_clipping_planes[0].get_data()[3], m_clipping_planes[1].get_data()[3]);
-    else
-        m_volumes.set_z_range(-FLT_MAX, FLT_MAX);
+    const std::array<float, 2> z_range = volumes_z_range(*this);
+    m_volumes.set_z_range(z_range[0], z_range[1]);
 
     GLGizmosManager& gm = get_gizmos_manager();
     GLGizmoBase* current_gizmo = gm.get_current();
