@@ -1002,6 +1002,47 @@ TEST_CASE("Selected printer uses its default or saved bed type", "[Preset][Bundl
     CHECK(app_config.get_printer_setting("Test Printer", "curr_bed_type") == std::to_string(static_cast<int>(expected_bed_type)));
 }
 
+TEST_CASE("Installed slot filaments keep their slots when selections reload", "[Preset][Bundle]")
+{
+    VendorProfile vendor("TestVendor");
+    // A printer and two system filaments, as the vendor profiles load them.
+    auto add_presets = [&vendor](PresetBundle& bundle) {
+        add_inmemory_preset(bundle.printers, "Test Printer");
+        for (const char* name : {"Filament A", "Filament B"}) {
+            Preset& filament   = add_inmemory_preset(bundle.filaments, name);
+            filament.is_system = true;
+            filament.vendor    = &vendor;
+        }
+    };
+
+    // Only A is installed, and the printer's slots hold A and B, as an AMS sync leaves them.
+    AppConfig app_config;
+    app_config.set(AppConfig::SECTION_FILAMENTS, "Filament A", "true");
+    app_config.set("presets", PRESET_PRINTER_NAME, "Test Printer");
+    app_config.set_printer_setting("Test Printer", PRESET_FILAMENT_NAME, "Filament A");
+    app_config.set_printer_setting("Test Printer", "filament_01", "Filament B");
+    const std::vector<std::string> slots{"Filament A", "Filament B"};
+
+    PresetBundle uninstalled;
+    add_presets(uninstalled);
+    uninstalled.load_selections(app_config);
+    CHECK(uninstalled.filament_presets == std::vector<std::string>{"Filament A", "Filament A"});
+
+    PresetBundle synced;
+    add_presets(synced);
+    synced.load_selections(app_config);
+    synced.filament_presets = slots;
+    synced.install_slot_filaments(app_config);
+    CHECK(app_config.get(AppConfig::SECTION_FILAMENTS, "Filament B") == "true");
+    synced.export_selections(app_config);
+
+    // A restart knows only what the config holds.
+    PresetBundle restarted;
+    add_presets(restarted);
+    restarted.load_selections(app_config);
+    CHECK(restarted.filament_presets == slots);
+}
+
 TEST_CASE("A directory of user presets loads with each one resolved against its parent", "[Preset][Bundle]")
 {
     ScopedTemporaryDir   temp_dir;
