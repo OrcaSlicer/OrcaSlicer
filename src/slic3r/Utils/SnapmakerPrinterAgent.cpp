@@ -144,6 +144,8 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
 {
     if (!ensure_device_info(dev_id))
         return false;
+    if (fetch_afc_filament_info())
+        return true;
 
     std::string url = join_url(device_info.base_url, "/printer/objects/query?print_task_config&filament_detect");
 
@@ -250,6 +252,8 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
 
 bool SnapmakerPrinterAgent::push_filament_info(std::string dev_id, const FilamentSlotInfo& info)
 {
+    if (afc_active())
+        return MoonrakerPrinterAgent::push_filament_info(dev_id, info);
     if (!ensure_device_info(dev_id))
         return false;
 

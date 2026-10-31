@@ -943,24 +943,14 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     if (!ensure_device_info(dev_id))
         return false;
 
-    std::vector<AmsTrayData> trays;
-    int max_lane_index = 0;
-
     // Try Moonraker filament data (more generic, supports any filament changer
     // software that reports lane data to Moonraker like AFC and recent Happy
     // Hare as of Feb 15, 2026)
-    bool has_topology = false;
-    if (fetch_moonraker_filament_data(trays, max_lane_index, has_topology)) {
-        m_filament_dialect = MoonrakerFilamentDialect::Dialect::afc_lane_data;
-        // Older AFC lane_data leaves the unit and slot to its AFC_stepper objects.
-        if (!has_topology)
-            fetch_afc_lane_topology(trays);
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
-                                << (max_lane_index + 1) << " lanes";
-        int ams_count = max_lane_index + 1;
-        build_ams_payload(ams_count, max_lane_index, trays, AmsUnitShape::Toolchanger);
+    if (fetch_afc_filament_info())
         return true;
-    }
+
+    std::vector<AmsTrayData> trays;
+    int max_lane_index = 0;
 
     // Attempt Happy Hare first (more widely adopted, supports more filament changers)
     if (fetch_hh_filament_info(trays, max_lane_index)) {
@@ -985,6 +975,29 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     m_filament_dialect = MoonrakerFilamentDialect::Dialect::none;
     BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected";
     return false;
+}
+
+bool MoonrakerPrinterAgent::fetch_afc_filament_info()
+{
+    std::vector<AmsTrayData> trays;
+    int                      max_lane_index = 0;
+    bool                     has_topology   = false;
+    if (!fetch_moonraker_filament_data(trays, max_lane_index, has_topology)) {
+        m_filament_dialect = MoonrakerFilamentDialect::Dialect::none;
+        return false;
+    }
+    m_filament_dialect = MoonrakerFilamentDialect::Dialect::afc_lane_data;
+    // Older AFC lane_data leaves the unit and slot to its AFC_stepper objects.
+    if (!has_topology)
+        fetch_afc_lane_topology(trays);
+    // Both lanes are kept: the printer still addresses each by name.
+    for (const auto& [first, second] : MoonrakerFilamentDialect::duplicate_unit_slots(trays))
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_afc_filament_info: lanes " << first << " and " << second
+                                   << " report the same unit and slot";
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_afc_filament_info: Detected Moonraker filament system with "
+                            << (max_lane_index + 1) << " lanes";
+    build_ams_payload(max_lane_index + 1, max_lane_index, trays, AmsUnitShape::Toolchanger);
+    return true;
 }
 
 bool MoonrakerPrinterAgent::supports_filament_push() const

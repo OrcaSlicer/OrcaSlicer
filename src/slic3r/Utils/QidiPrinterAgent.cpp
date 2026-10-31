@@ -54,6 +54,8 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
 {
     if (!ensure_device_info(dev_id))
         return false;
+    if (fetch_afc_filament_info())
+        return true;
 
     std::string error;
 
