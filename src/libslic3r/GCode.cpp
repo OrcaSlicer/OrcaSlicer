@@ -7318,7 +7318,6 @@ LayerResult GCode::process_layer(
             std::vector<GCode::ObjectByExtruder> &objects_by_extruder = objects_by_extruder_it->second;
             std::vector<InstanceToPrint> &instances = filament_plan.first;
             std::vector<IslandOrderNode> nodes;
-            std::vector<std::pair<size_t, bool>> layout;   // Per instance, see IslandOrderCacheEntry
             std::vector<size_t>          node_instances;
             auto quantize_to_mm = [](const Point &pt) -> Point {
                 const coord_t grid = coord_t(scale_(1.));
@@ -7343,7 +7342,6 @@ LayerResult GCode::process_layer(
                     const size_t instance_idx = instances.size();
                     instances.emplace_back(object_by_extruder, layer_id, *print_object, instance_id,
                                            print_object->instances()[instance_id].model_instance->get_labeled_id());
-                    layout.emplace_back(islands.size(), ! islands.empty() && ! islands.back().by_region.empty());
                     const Point &shift = print_object->instances()[instance_id].shift;
                     const size_t first_node = nodes.size();
                     if (islands_chainable)
@@ -7361,49 +7359,54 @@ LayerResult GCode::process_layer(
                 }
             }
 
-            // Reuse the cached tour while this filament's island layout is unchanged.
-            auto &cache_entry = m_ordering_cache[filament_id];
-            if (! (cache_entry.nodes == nodes && cache_entry.layout == layout)) {
-                cache_entry.nodes  = nodes;
-                cache_entry.layout = layout;
-                Points node_points;
-                node_points.reserve(nodes.size());
-                for (const IslandOrderNode &node : nodes)
-                    node_points.emplace_back(node.pos);
-                std::vector<size_t> tour = order_points_with_strategy(node_points, print.config().print_order, &wt_pos);
-                // Chained starting near the wipe tower, reversed so the layer ends near it.
-                std::reverse(tour.begin(), tour.end());
+            Points node_points;
+            node_points.reserve(nodes.size());
+            for (const IslandOrderNode &node : nodes)
+                node_points.emplace_back(node.pos);
 
-                // Group consecutive tour stops of the same instance into visits.
-                std::vector<InstanceVisit> visits;
-                std::vector<bool> instance_seen(instances.size(), false);
-                std::vector<int>  last_visit_of_instance(instances.size(), -1);
-                for (size_t node_idx : tour) {
-                    const size_t instance_idx = node_instances[node_idx];
-                    if (visits.empty() || visits.back().instance_idx != instance_idx) {
-                        visits.push_back({instance_idx, {}, !instance_seen[instance_idx]});
-                        instance_seen[instance_idx] = true;
-                    }
-                    if (nodes[node_idx].island_idx != size_t(-1))
-                        visits.back().islands.emplace_back(nodes[node_idx].island_idx);
-                    last_visit_of_instance[instance_idx] = int(visits.size()) - 1;
-                }
-                // The trailing catch-all island has no geometry to chain by; append it to the
-                // instance's last visit.
-                for (size_t i = 0; i < instances.size(); ++i) {
-                    if (last_visit_of_instance[i] < 0)
-                        continue;
-                    InstanceVisit &last_visit = visits[size_t(last_visit_of_instance[i])];
-                    if (last_visit.islands.empty())
-                        // A visit without explicit islands already prints everything.
-                        continue;
-                    std::vector<ObjectByExtruder::Island> &islands = instances[i].object_by_extruder.islands;
-                    if (! islands.empty() && ! islands.back().by_region.empty())
-                        last_visit.islands.emplace_back(islands.size() - 1);
-                }
-                cache_entry.visits = std::move(visits);
+            // Reuse the cached tour while this filament's islands are unchanged.
+            auto &cache_entry = m_ordering_cache[filament_id];
+            if (cache_entry.nodes != nodes) {
+                cache_entry.nodes = nodes;
+                cache_entry.tour  = order_points_with_strategy(node_points, print.config().print_order, &wt_pos);
+                // Chained starting near the wipe tower, reversed so the layer ends near it.
+                std::reverse(cache_entry.tour.begin(), cache_entry.tour.end());
             }
-            filament_plan.second = cache_entry.visits;
+            std::vector<size_t> tour = cache_entry.tour;
+            // With one pass and no wipe tower nothing pulls the layer towards the tower: start where
+            // the nozzle is, so the tour's closing travel is not repeated at every layer change.
+            // Snake and best-of tours may follow rows the user chose, so they keep their start.
+            if (print.config().print_order == PrintOrder::Default && ! has_wipe_tower && plan_filaments.size() == 1 &&
+                this->last_pos_defined())
+                tsp_open_cycle_near(tour, node_points, this->last_pos() + Point::new_scale(m_origin.x(), m_origin.y()));
+
+            // Group consecutive tour stops of the same instance into visits.
+            std::vector<InstanceVisit> &visits = filament_plan.second;
+            std::vector<bool> instance_seen(instances.size(), false);
+            std::vector<int>  last_visit_of_instance(instances.size(), -1);
+            for (size_t node_idx : tour) {
+                const size_t instance_idx = node_instances[node_idx];
+                if (visits.empty() || visits.back().instance_idx != instance_idx) {
+                    visits.push_back({instance_idx, {}, !instance_seen[instance_idx]});
+                    instance_seen[instance_idx] = true;
+                }
+                if (nodes[node_idx].island_idx != size_t(-1))
+                    visits.back().islands.emplace_back(nodes[node_idx].island_idx);
+                last_visit_of_instance[instance_idx] = int(visits.size()) - 1;
+            }
+            // The trailing catch-all island has no geometry to chain by; append it to the
+            // instance's last visit.
+            for (size_t i = 0; i < instances.size(); ++i) {
+                if (last_visit_of_instance[i] < 0)
+                    continue;
+                InstanceVisit &last_visit = visits[size_t(last_visit_of_instance[i])];
+                if (last_visit.islands.empty())
+                    // A visit without explicit islands already prints everything.
+                    continue;
+                std::vector<ObjectByExtruder::Island> &islands = instances[i].object_by_extruder.islands;
+                if (! islands.empty() && ! islands.back().by_region.empty())
+                    last_visit.islands.emplace_back(islands.size() - 1);
+            }
         }
     }
 

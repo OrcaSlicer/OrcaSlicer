@@ -275,6 +275,19 @@ void tsp_rotate_minimize_closing(std::vector<size_t>& path, const Points& center
     std::rotate(path.begin(), path.begin() + best_start, path.end());
 }
 
+void tsp_open_cycle_near(std::vector<size_t>& path, const Points& centers, const Point& start_near)
+{
+    if (path.size() < 2)
+        return;
+    auto distance2 = [](const Point& a, const Point& b) { return (a.cast<double>() - b.cast<double>()).squaredNorm(); };
+    const auto start = std::min_element(path.begin(), path.end(), [&](size_t a, size_t b) {
+        return distance2(centers[a], start_near) < distance2(centers[b], start_near);
+    });
+    std::rotate(path.begin(), start, path.end());
+    if (distance2(centers[path.front()], centers[path[1]]) > distance2(centers[path.front()], centers[path.back()]))
+        std::reverse(path.begin() + 1, path.end());
+}
+
 /* ====================================================================
  * Snake ordering
  * ==================================================================== */
