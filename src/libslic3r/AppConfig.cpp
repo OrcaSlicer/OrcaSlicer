@@ -557,6 +557,11 @@ void AppConfig::set_defaults()
         set_bool("remember_print_action", false);
     }
 
+    if (get("force_filename_entry").empty())
+        set_bool("force_filename_entry", false);
+    if (get("append_print_time_to_filename").empty())
+        set_bool("append_print_time_to_filename", false);
+
     if (get("ignore_ext_filament_in_filament_map").empty()){
         set_bool("ignore_ext_filament_in_filament_map", false);
     }
