@@ -50,6 +50,12 @@ vec3 view_position(ivec2 p, float depth)
     return v.xyz / v.w;
 }
 
+// 1 for a turn between neighboring texels of about 7 to 23 degrees: neither flat nor a crease.
+float gradual_turn(float cos_angle)
+{
+    return (1.0 - smoothstep(0.985, 0.997, cos_angle)) * smoothstep(0.88, 0.92, cos_angle);
+}
+
 float pack_edge(float strength, float crossing)
 {
     return (floor(strength * 15.0 + 0.5) * 16.0 + floor(clamp(crossing, 0.0, 1.0) * 15.0 + 0.5) + 0.25) / 255.0;
@@ -74,11 +80,21 @@ float inner_edge(ivec2 q, ivec2 dir)
     float d1 = fetch_depth(q + dir);
     vec3 p0 = view_position(q, d0);
     vec3 p1 = view_position(q + dir, d1);
-    // One surface hides the other: they are pixels apart, and not along a surface seen edge on.
+    // One surface hides the other: they are pixels apart off their planes.
     vec3 d = p1 - p0;
-    float gap = max(abs(dot(n0, d)), abs(dot(n1, d)));
     float px = dot(pixel_size_coef, vec2(-max(p0.z, p1.z), 1.0));
-    float jump = smoothstep(2.0, 4.0, gap / px) * smoothstep(0.25, 0.5, gap / max(length(d), 1e-12));
+    float jump = smoothstep(2.0, 4.0, max(abs(dot(n0, d)), abs(dot(n1, d))) / px);
+    // A step: the texel after the pair lies pixels off the surface before it carried on, both ways, which a surface
+    // seen edge on does not.
+    float off = 1e9;
+    if (covered(mb))
+        off = length(p1 - (2.0 * p0 - view_position(q - dir, fetch_depth(q - dir))));
+    if (covered(ma))
+        off = min(off, length(p0 - (2.0 * p1 - view_position(q + 2 * dir, fetch_depth(q + 2 * dir)))));
+    if (off < 1e9)
+        jump *= smoothstep(1.0, 2.0, off / px);
+    // Nor a fillet, which turns a little at every texel on both sides.
+    jump *= 1.0 - gradual_turn(dot(nb, n0)) * gradual_turn(dot(n1, na));
     float crease = 1.0 - smoothstep(CREASE_COS_FULL, CREASE_COS_START, dot(n0, n1));
     float strength = unpack2(m0.g).x == unpack2(m1.g).x ? max(jump, crease) : 1.0;
     if (strength <= 0.0)

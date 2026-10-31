@@ -40,9 +40,10 @@ The targets are allocated once at canvas size and kept, and they are freed with 
 
 A pair of covered texels makes an edge when its normals differ by more than 25 degrees, fully at 40,
 when one surface hides the other, or when the texels belong to different parts. One surface hides the
-other when the view space step between the texels lies more than a few pixels off their planes and
-leaves them at a clear angle. A step along one surface seen edge on stays in its plane, so curved
-surfaces at grazing angles do not break into lines. A texel on a triangle smaller than a pixel both ways
+other when the view space step between the texels lies more than a few pixels off their planes, and
+each texel lies more than a pixel off the surface of the other side carried on over the pair. A curved
+surface seen edge on carries on smoothly, so it does not break into lines, nor does a fillet whose facets
+turn a little at every texel on both sides. A texel on a triangle smaller than a pixel both ways
 takes the normal of a neighbor beside it: the normals of such slivers can be far off their surface and
 would otherwise show as dots.
 
