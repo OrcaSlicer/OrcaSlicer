@@ -8069,8 +8069,11 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
             finishFn(ret == 0);
 
             // Queued after the refresh reload_settings() queues, so it runs once the pulled presets are loaded.
-            if (ret == 0 && m_agent && !t.expired() && reload_settings())
-                CallAfter([this, t] {
+            auto pull_applied = std::make_shared<std::atomic<bool>>(false);
+            const bool reloaded = ret == 0 && m_agent && !t.expired() && reload_settings();
+            if (reloaded)
+                CallAfter([this, t, pull_applied] {
+                    pull_applied->store(true);
                     // A stopped or restarted sync: the next sync, if one starts, pulls the presets again.
                     if (t.expired() || is_closing())
                         return;
@@ -8078,6 +8081,11 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                     if (m_legacy_filament_check_due)
                         check_legacy_user_filament_presets(false);
                 });
+            // Upload nothing until the refresh has applied the cloud list fetched by reload_settings(). A preset
+            // uploaded before then gets a setting_id but is missing from that older list, so the refresh would take
+            // it for one deleted in another session and remove its local files.
+            while (reloaded && !pull_applied->load() && !t.expired())
+                boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
 
             // For orca specific syncing
             auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());
