@@ -373,6 +373,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "preheat_time",
         "preheat_steps",
         "machine_start_gcode",
+        "initial_z_clearance_height",
         "filament_start_gcode",
         "change_filament_gcode",
         "wipe",
