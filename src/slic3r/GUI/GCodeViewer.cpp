@@ -2932,7 +2932,8 @@ void GCodeViewer::set_interacting(bool interacting)
     const bool sectioned = m_clipping_plane[0] != 0.0f || m_clipping_plane[1] != 0.0f || m_clipping_plane[2] != 0.0f;
     const bool usable = m_reduced_detail_mode != libvgcode::EReducedDetailMode::Off &&
                         (!solid_model_enabled() || (!m_shells.volumes.empty() && m_layers_z_rising && !sectioned));
-    // the legend may have recoloured the toolpaths since the last drag
+    // sampled afresh as each drag begins: the legend may have recoloured the toolpaths, and the
+    // sliders may have moved the span, since the last one
     if (interacting && !m_viewer.is_reduced_detail())
         m_solid_model_colors.valid = false;
     m_viewer.set_reduced_detail(interacting && usable);
@@ -3865,16 +3866,22 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
 // The views that colour by filament leave every body its own colour. The body and the tower are
 // sampled over the layers the solid stands for and each cap in its own layer, each colour that of
 // the vertex the viewer picks to represent the role there, so a view that grades the toolpaths,
-// by speed or fan, shows the solid in the grade most of that role was printed at.
+// by speed or fan, shows the solid in the grade most of that role was printed at. The body and
+// the tower are sampled once, as the drag begins, and held while a slider drag moves the span:
+// sampled again at every step, the grade would flip with the layers the sample happens to fall
+// on. Each cap follows its own layer.
 void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_layers)
 {
     SolidModelColors& colors = m_solid_model_colors;
     const libvgcode::EViewType view_type = m_viewer.get_view_type();
-    if (colors.valid && colors.view_type == view_type && colors.whole_layers == whole_layers)
+    const bool held = colors.valid && colors.view_type == view_type;
+    if (held && colors.whole_layers == whole_layers)
         return;
-    colors = SolidModelColors();
-    colors.valid = true;
-    colors.view_type = view_type;
+    if (!held) {
+        colors = SolidModelColors();
+        colors.valid = true;
+        colors.view_type = view_type;
+    }
     colors.whole_layers = whole_layers;
     if (view_type == libvgcode::EViewType::Summary || view_type == libvgcode::EViewType::ColorPrint || view_type == libvgcode::EViewType::Tool)
         return;
@@ -3891,8 +3898,10 @@ void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_lay
     const std::initializer_list<Role> walls = { Role::ExternalPerimeter, Role::Perimeter, Role::OverhangPerimeter };
     const std::initializer_list<Role> infill = { Role::InternalInfill, Role::SolidInfill, Role::TopSolidInfill, Role::BottomSurface,
                                                  Role::BridgeInfill, Role::InternalBridgeInfill, Role::Ironing };
-    colors.body = sample(whole_layers, walls);
-    colors.tower = sample(whole_layers, { Role::WipeTower });
+    if (!held) {
+        colors.body = sample(whole_layers, walls);
+        colors.tower = sample(whole_layers, { Role::WipeTower });
+    }
     for (size_t k = 0; k < 2; ++k) {
         colors.caps[k] = sample({ whole_layers[k], whole_layers[k] }, infill);
         if (!colors.caps[k].has_value())

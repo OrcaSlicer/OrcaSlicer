@@ -388,6 +388,7 @@ private:
     // colours them by something other than the filament; see update_solid_model_colors()
     struct SolidModelColors
     {
+        // cleared as a drag begins, see set_interacting()
         bool valid{ false };
         libvgcode::EViewType view_type{ libvgcode::EViewType::COUNT };
         libvgcode::Interval  whole_layers{ 0, 0 };
