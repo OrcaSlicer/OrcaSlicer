@@ -27,20 +27,24 @@ class Button;
 
 // custom message the ButtonsListCtrl sends to its parent (Notebook) to notify a selection change:
 wxDECLARE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);
+// Drag intent only: the owner decides which pages may move and persists their order.
+wxDECLARE_EVENT(wxCUSTOMEVT_NOTEBOOK_TAB_REORDER, wxCommandEvent);
 
 class ButtonsListCtrl : public wxControl
 {
 public:
     // BBS
     ButtonsListCtrl(wxWindow* parent, wxBoxSizer* side_tools = NULL);
-    ~ButtonsListCtrl() {}
+    ~ButtonsListCtrl() override;
 
     void OnPaint(wxPaintEvent&);
     void SetSelection(int sel);
     void UpdateMode();
     void Rescale();
-    bool InsertPage(size_t n, const wxString &text, bool bSelect = false, const std::string &bmp_name = "", const wxBitmap &bmp = wxNullBitmap);
+    bool InsertPage(size_t n, const wxString &text, bool bSelect = false, const std::string &bmp_name = "", const wxBitmap &bmp = wxNullBitmap,
+                    bool draggable = false);
     void RemovePage(size_t n);
+    bool MovePage(size_t from, size_t to);
     bool SetPageImage(size_t n, const std::string& bmp_name) const;
     void SetPageText(size_t n, const wxString& strText);
     void SetCompact(size_t n, bool compact); // ORCA
@@ -60,6 +64,12 @@ public:
     wxWindow* GetOverflowButton() const { return m_overflow_button; }
 
 private:
+    void CancelDrag();
+    int DraggablePageAt(const wxPoint& position) const;
+    void OnTabMouseDown(Button* button, wxMouseEvent& event);
+    void OnTabMouseMotion(Button* button, wxMouseEvent& event);
+    void OnTabMouseUp(Button* button, wxMouseEvent& event);
+
     wxFlexGridSizer*                m_buttons_sizer;
     wxBoxSizer*                     m_sizer;
     // BBS: use Button
@@ -69,7 +79,12 @@ private:
     int                             m_line_margin;
     std::vector<wxString>           m_pageLabels; // ORCA
     std::vector<std::string>        m_pageIcons;  // ORCA: resource icon name per page, plugin pages empty
+    std::vector<bool>               m_pageDraggable;
     wxWindow*                       m_overflow_button{nullptr}; // ORCA
+    Button*                        m_drag_button{nullptr};
+    wxPoint                        m_drag_start;
+    bool                           m_dragging{false};
+    wxWindow*                      m_drop_indicator{nullptr};
 };
 
 class Notebook : public wxBookCtrlBase
@@ -196,7 +211,7 @@ public:
             return false;
 
         m_pageNames.insert(m_pageNames.begin() + n, id);
-        GetBtnsListCtrl()->InsertPage(n, text, bSelect, bmp_name, bmp);
+        GetBtnsListCtrl()->InsertPage(n, text, bSelect, bmp_name, bmp, id.StartsWith("plugin."));
 
         // wxBookCtrlBase::InsertPage() only inserts into the page list and sizes the new
         // page to the current page's rect — it never touches visibility, and a freshly
@@ -215,6 +230,26 @@ public:
                             int WXUNUSED(imageId) = NO_IMAGE) override
     {
         return InsertPage(n, wxString(), page, text, "", bSelect);
+    }
+
+    // Reorder existing pages without hiding them, rebuilding their buttons or changing selection.
+    bool MovePage(size_t from, size_t to)
+    {
+        if (from >= GetPageCount() || to >= GetPageCount())
+            return false;
+        if (from == to)
+            return true;
+
+        wxWindow* const selected = GetCurrentPage();
+        wxWindow* const moved = m_pages[from];
+        const wxString name = m_pageNames[from];
+        m_pages.erase(m_pages.begin() + from);
+        m_pages.insert(m_pages.begin() + to, moved);
+        m_pageNames.erase(m_pageNames.begin() + from);
+        m_pageNames.insert(m_pageNames.begin() + to, name);
+        m_selection = selected == nullptr ? wxNOT_FOUND : FindPage(selected);
+        GetBtnsListCtrl()->MovePage(from, to);
+        return true;
     }
 
     virtual int SetSelection(size_t n) override

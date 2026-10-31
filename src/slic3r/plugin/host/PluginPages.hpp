@@ -18,6 +18,7 @@
 
 class wxWebViewEvent;
 class wxWindow;
+class wxCommandEvent;
 
 class Notebook;
 
@@ -72,6 +73,8 @@ private:
     std::shared_ptr<PagesPluginCapability> get_pages_cap(const PluginCapabilityId& id, bool is_enabled) const;
     bool create_page(const PluginCapabilityId& id);
     void remove_page(const PluginCapabilityId& id);
+    void remove_notebook_pages();
+    void on_tab_reorder(wxCommandEvent& event);
 
     void show_overflow_menu();
     static wxString page_tab_id(const PluginCapabilityId& id);
@@ -84,6 +87,8 @@ private:
 
     std::map<PluginCapabilityId, Page> m_pages;
     std::vector<PluginCapabilityId> m_order;
+    // Includes inactive pages so reloading or re-enabling a plugin restores its position.
+    std::vector<PluginCapabilityId> m_preferred_order;
     Notebook* m_parent{nullptr};
 
     int m_visible_page_count{0};

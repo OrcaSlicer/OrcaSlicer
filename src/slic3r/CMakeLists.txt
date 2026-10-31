@@ -695,6 +695,7 @@ set(SLIC3R_GUI_SOURCES
     plugin/host/PluginHostUi.hpp
     plugin/host/PluginPages.cpp
     plugin/host/PluginPages.hpp
+    plugin/host/PluginPageOrder.hpp
     plugin/host/PluginResourceTextures.cpp
     plugin/host/PluginResourceTextures.hpp
     plugin/CloudPluginService.cpp
