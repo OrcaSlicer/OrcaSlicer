@@ -1734,6 +1734,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             volumetric_speed_coefficients))
     ((ConfigOptionInts,              filament_adhesiveness_category))
     ((ConfigOptionFloats,              filament_density))
+    // How deep light gets into this filament. Nothing in slicing reads it: it is a property of the
+    // filament, for tools that predict the colour of a stack of translucent layers.
+    ((ConfigOptionFloats,              filament_transmission_distance))
     ((ConfigOptionStrings,             filament_type))
     ((ConfigOptionBools,               filament_soluble))
     ((ConfigOptionStrings,             filament_ids))
