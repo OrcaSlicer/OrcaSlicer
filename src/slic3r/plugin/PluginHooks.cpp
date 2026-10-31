@@ -1,6 +1,7 @@
 #include "PluginHooks.hpp"
 
 #include "PluginManager.hpp"
+#include "PluginResolver.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginInterface.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
@@ -33,24 +34,8 @@ namespace {
 void install_capability_resolver()
 {
     ConfigBase::set_resolve_capability_fn([](const std::string& cap_name, const std::string& cap_type) {
-        PluginManager& plugin_mgr = PluginManager::instance();
-        const PluginCapabilityType type = plugin_capability_type_from_string(cap_type);
-        // only_enabled = false: this resolves the reference a preset STORES, which must stay
-        // resolvable whether or not the user currently has the capability enabled. Filtering on
-        // the enable flag here would quietly drop the reference out of the preset's manifest.
-        auto plugin_cap = plugin_mgr.get_plugin_capability(cap_name, type, /*only_enabled=*/false);
-        if (!plugin_cap)
-            return std::string();
-
-        PluginDescriptor descriptor;
-        if (!plugin_mgr.try_get_plugin_descriptor_for_capability(cap_name, type, descriptor))
-            return std::string();
-
-        // Cloud plugins are resolved at runtime via the UUID in the middle field, so the first
-        // field keeps the friendly display name. Local plugins are looked up by plugin_key (the
-        // first field, with an empty UUID), so emit the plugin_key to keep them resolvable.
-        const std::string identity = descriptor.is_cloud_plugin() ? descriptor.name : descriptor.plugin_key;
-        return identity + ';' + descriptor.cloud_uuid() + ';' + cap_name;
+        const auto ref = PluginManager::instance().resolve_capability_ref(cap_name, plugin_capability_type_from_string(cap_type));
+        return ref ? create_full_ref(*ref) : std::string();
     });
 }
 
