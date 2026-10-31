@@ -1,5 +1,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/nowide/filesystem.hpp>
 #include <boost/system/error_code.hpp>
 #include <catch2/catch_all.hpp>
 
@@ -32,9 +33,11 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
+#include <clocale>
 #include <fstream>
 #include <functional>
 #include <ios>
+#include <locale>
 #include <memory>
 #include <string>
 #include <utility>
@@ -298,6 +301,71 @@ TEST_CASE("Plugin audit denies secret/certificate/config-like paths by keyword",
     SECTION("an empty path is not denied")
     {
         CHECK_FALSE(mgr.is_denied_path_keyword(fs::path()));
+    }
+}
+
+namespace {
+
+// Converts paths as UTF-8 for the test's lifetime, as the app does from startup
+// (boost::nowide::nowide_filesystem() in OrcaSlicer.cpp).
+struct Utf8PathConversion
+{
+    std::locale previous = boost::nowide::nowide_filesystem();
+    ~Utf8PathConversion() { fs::path::imbue(previous); }
+};
+
+// Switches the C library's character classification to a single-byte code page, as the app's UI
+// language does on Windows (Russian_Russia.1251), when the system has one.
+struct SingleByteCtypeLocale
+{
+    std::string previous;
+    bool        applied = false;
+
+    SingleByteCtypeLocale()
+    {
+        if (const char* current = std::setlocale(LC_CTYPE, nullptr))
+            previous = current;
+        for (const char* name : {".1251", "Russian_Russia.1251", "ru_RU.CP1251", "ru_RU.cp1251", "ru_RU.KOI8-R", "en_US.ISO-8859-1"})
+            if (std::setlocale(LC_CTYPE, name) != nullptr) {
+                applied = true;
+                break;
+            }
+    }
+    ~SingleByteCtypeLocale()
+    {
+        if (applied)
+            std::setlocale(LC_CTYPE, previous.c_str());
+    }
+};
+
+} // namespace
+
+TEST_CASE("Plugin audit keyword check keeps non-Latin path names intact", "[audit]")
+{
+    seed_denied_keywords();
+    const PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    // Lowering these names byte by byte in a single-byte C locale broke their UTF-8, and turning
+    // the result back into a path threw out of the audit hook: the plugin call never returned.
+    const Utf8PathConversion    utf8_paths;
+    const SingleByteCtypeLocale ctype;
+    INFO("single-byte C locale in use: " << (ctype.applied ? "yes" : "no"));
+
+    const std::string folder   = "\xD0\x9D\xD0\xBE\xD0\xB2\xD0\xB0\xD1\x8F \xD0\xBF\xD0\xB0\xD0\xBF\xD0\xBA\xD0\xB0"; // "Новая папка"
+    const std::string part     = "\xD0\xB4\xD0\xB5\xD1\x82\xD0\xB0\xD0\xBB\xD1\x8C.stl";                          // "деталь.stl"
+    const std::string settings = "\xD0\xBD\xD0\xB0\xD1\x81\xD1\x82\xD1\x80\xD0\xBE\xD0\xB9\xD0\xBA\xD0\xB8.INI";      // "настройки.INI"
+
+    SECTION("a path with non-Latin names is checked without an error and allowed")
+    {
+        bool denied = true;
+        CHECK_NOTHROW(denied = mgr.is_denied_path_keyword(fs::path("/models/" + folder + "/" + part)));
+        CHECK_FALSE(denied);
+    }
+
+    SECTION("keywords and config files next to non-Latin names are still denied, in any case")
+    {
+        CHECK(mgr.is_denied_path_keyword(fs::path("/models/" + folder + "/CONFIG/a.stl")));
+        CHECK(mgr.is_denied_path_keyword(fs::path("/models/" + folder + "/" + settings)));
     }
 }
 
