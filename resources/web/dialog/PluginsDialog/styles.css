@@ -72,8 +72,8 @@ body {
 }
 
 .explore-main-btn {
-  flex: 0 0 var(--explore-action-width);
-  width: var(--explore-action-width) !important;
+  flex: 0 0 auto;
+  width: auto !important;
   min-width: var(--explore-action-width) !important;
   padding-right: 13px !important;
   padding-left: 13px !important;
@@ -109,10 +109,10 @@ body {
 
 .explore-menu {
   position: absolute;
-  left: var(--explore-arrow-width);
+  right: 0;
   top: calc(100% + 2px);
   z-index: 20;
-  width: var(--explore-action-width);
+  width: max-content;
   min-width: var(--explore-action-width);
   padding: 4px 0;
   border: 0;
