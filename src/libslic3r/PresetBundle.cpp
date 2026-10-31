@@ -5005,6 +5005,16 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
 
             size_t tray_count = ams_filament_presets.size();
             size_t total      = std::max(tray_count, exist_presets.size());
+            if (ams_sync_drop_empty_slots) {
+                size_t loaded_count = 0;
+                for (size_t i = 0; i < ams_infos.size(); ++i)
+                    if (ams_infos[i].valid)
+                        loaded_count = i + 1;
+                if (loaded_count > 0) {
+                    total = loaded_count;
+                    exist_presets.clear();
+                }
+            }
 
             std::vector<std::string> result_colors;
             std::vector<std::string> result_color_types;
@@ -5034,10 +5044,16 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     result_multi_colors.push_back({exist_colors[i]});
                 } else {
                     // New slot beyond existing count: prefer a generic filament preset
-                    auto it = std::find_if(filaments.begin(), filaments.end(), [](const Preset &f) {
-                        return f.is_compatible && f.is_system
-                            && boost::algorithm::starts_with(f.name, "Generic ");
-                    });
+                    auto it = filaments.end();
+                    if (ams_sync_drop_empty_slots)
+                        it = std::find_if(filaments.begin(), filaments.end(), [](const Preset &f) {
+                            return f.is_compatible && f.is_system && f.alias == "Generic PLA";
+                        });
+                    if (it == filaments.end())
+                        it = std::find_if(filaments.begin(), filaments.end(), [](const Preset &f) {
+                            return f.is_compatible && f.is_system
+                                && boost::algorithm::starts_with(f.name, "Generic ");
+                        });
                     std::string fallback_name = (it != filaments.end()) ? it->name : filaments.first_visible().name;
                     result_colors.push_back("#CECECE");
                     result_color_types.push_back("1");

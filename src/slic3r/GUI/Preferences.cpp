@@ -2256,6 +2256,11 @@ void PreferencesDialog::create_items()
         if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(false);
     }
 
+    auto item_sync_empty_slots = create_item_checkbox(_L("Sync only the loaded slots"),
+        _L("When syncing filaments, remove empty printer slots from the end of the filament list and show an empty slot between loaded ones as grey Generic PLA, instead of keeping the filaments that were there before."),
+        "sync_ams_drop_empty_slots");
+    g_sizer->Add(item_sync_empty_slots);
+
     auto item_filament_sync_mode = create_item_combobox(
         _L("Filament sync mode"),
         _L("Choose whether sync updates both filament preset and color, or only color."),
