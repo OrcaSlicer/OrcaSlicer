@@ -11428,6 +11428,19 @@ TEST_CASE("a sweep profile can be one closed loop of a sketch or a face of a bod
     }
 }
 
+TEST_CASE("a sweep along a path with a sharp corner is one solid with both legs", "[CadDocument][sweep]")
+{
+    CadDocument doc;
+    SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = Vec2d(0, 0); c.p0 = c.center; c.radius = 2.0;
+    const int prof = doc.add_sketch_entities({c}, SketchPlane::XY(), "Wire");
+    const int path = doc.add_sketch3d({Vec3d(0, 0, 0), Vec3d(0, 0, 30), Vec3d(30, 0, 30)}, false, false, "Path");
+    doc.add_sweep(prof, path, BooleanMode::New, "Bent");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(M_PI * 4.0 * 60.0, 0.05));   // both legs, not 30 mm of them
+}
+
 TEST_CASE("a mate offered with no flip control puts two faces in contact, not overlapping", "[CadDocument][mate]")
 {
     CadDocument doc;

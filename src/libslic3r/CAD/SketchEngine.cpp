@@ -42,6 +42,7 @@
 #include <BRepBuilderAPI_Transform.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRepOffsetAPI_MakePipe.hxx>
+#include <BRepOffsetAPI_MakePipeShell.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepAlgoAPI_Splitter.hxx>
 #include <BRepBuilderAPI_MakePolygon.hxx>
@@ -415,6 +416,18 @@ TopoDS_Shape SketchEngine::make_sweep(const TopoDS_Wire& profile, const TopoDS_W
     pipe.Build();
     if (!pipe.IsDone())
         throw std::runtime_error(_u8L("Failed to sweep profile along path"));
+    // A path of several edges (a polyline with sharp corners) is swept with a right-corner transition, so each corner is filled
+    // and the result is ONE solid carrying both legs; MakePipe leaves a solid whose volume counts only the first leg.
+    int n_edges = 0;
+    for (TopExp_Explorer ex(path, TopAbs_EDGE); ex.More(); ex.Next()) ++n_edges;
+    if (n_edges > 1) {
+        BRepOffsetAPI_MakePipeShell shell(path);
+        shell.SetMode(false);   // corrected Frenet
+        shell.SetTransitionMode(BRepBuilderAPI_RightCorner);
+        shell.Add(profile, false, false);
+        shell.Build();
+        if (shell.IsDone() && shell.MakeSolid()) return shell.Shape();
+    }
     return pipe.Shape();
 }
 

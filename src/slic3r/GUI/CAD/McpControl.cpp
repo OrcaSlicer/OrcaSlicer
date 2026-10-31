@@ -447,7 +447,7 @@ json describe_tools_core()
                  {"params", json::array({
                      json{{"name", "name"},  {"type", "string"}, {"enum", json::array({"imgui_tree", "imgui_ribbon", "imgui_menu"})}},
                      json{{"name", "value"}, {"type", "boolean"}, {"default", false}}})}},
-            json{{"name", "plane"}, {"summary", "Create a datum plane: offset (mm) from base 0=XY, 1=XZ, 2=YZ or 3+N = Nth earlier datum, optional tilt (deg) about axis. Sketch on it with sketch_begin plane=datum:N."},
+            json{{"name", "plane"}, {"summary", "Create a datum plane: offset (mm) from base 0=XY, 1=XZ, 2=YZ or 3+N = Nth earlier datum, optional tilt (deg) about axis. Sketch on it with sketch_begin plane=datum:N. type: offset | on_face | at_angle (edge, angle) | midplane (face, face2) | tangent (cylindrical face, angle) | two_edges (edge, edge2); face/edge ids from query_topology, body/body2/edge_body/edge2_body default the last body."},
                  {"params", json::array({
                      json{{"name", "base"},   {"type", "integer"}, {"default", 0}},
                      json{{"name", "offset"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
@@ -735,6 +735,16 @@ json describe_tools()
         compact_tool("list_fields", "The field names set_feature_expr accepts, and (with feature) what that feature has bound now.", {{"feature", "integer", "optional feature index"}}),
         compact_tool("set_feature_expr", "Bind a feature field to an expression and recompute. An unknown field is refused (\"unknown parameter\"). Fields: " + bindable_fields_text() + ", and dim:<N> for sketch dimension N.", {{"feature", "integer", "feature index"}, {"field", "string", "field name"}, {"expr", "string", "expression over the variables"}}),
         compact_tool("sweep", "Sweep a profile sketch along a path sketch.", {{"profile", "integer", "Sketch feature index"}, {"path", "integer", "Sketch feature index"}, {"boolean", "string", "new|union|subtract|intersect"}}),
+        compact_tool("primitive", "A box, cylinder, sphere, cone or torus in one call (a Sketch + Extrude/Revolve underneath, so it stays editable). Sizes in mm; radius or diameter.",
+                     {{"shape", "string", "box|cylinder|sphere|cone|torus"}, {"at", "array", "[x,y,z] centre of the base (box, cylinder, cone) or of the shape (sphere, torus); default the origin"},
+                      {"width", "number", "box x"}, {"depth", "number", "box y"}, {"height", "number", "box, cylinder, cone z"},
+                      {"radius", "number", "cylinder, cone base, sphere; torus ring centre line (or diameter)"}, {"radius2", "number", "cone top radius, 0 = a point (or diameter2)"},
+                      {"tube_radius", "number", "torus tube (or tube_diameter)"}, {"boolean", "string", "new|union|subtract|intersect"}, {"body", "integer", "target body for union/subtract"}}),
+        compact_tool("coil", "A spring in one call: helix + round wire + sweep. Sizes in mm.",
+                     {{"radius", "number", "coil radius to the wire centre"}, {"pitch", "number", "rise per turn"}, {"height", "number", "total rise"},
+                      {"wire_radius", "number", "or wire_diameter"}, {"left_handed", "boolean", ""}, {"plane", "string", "XY|XZ|YZ axis plane, or normal+origin"}, {"boolean", "string", "new|union|subtract|intersect"}}),
+        compact_tool("pipe", "A round pipe along a 3D polyline or spline (world-mm points, as sketch3d).",
+                     {{"points", "array", "[[x,y,z],...], at least two"}, {"radius", "number", "or diameter"}, {"smooth", "boolean", "spline through the points"}, {"boolean", "string", "new|union|subtract|intersect"}}),
         compact_tool("loft", "Loft through two or more profile sketches, in order.", {{"profiles", "array", "[Sketch feature index,...]"}, {"ruled", "boolean", "straight (ruled) instead of smooth"}, {"boolean", "string", "new|union|subtract|intersect"}}),
         compact_tool("thread", "Helical thread about the plane normal at (x,y): external adds material to the last body, internal cuts it.", {
             {"radius", "number", "major radius, mm"}, {"pitch", "number", "mm per turn"}, {"height", "number", "axial length"}, {"depth", "number", "radial depth"},
@@ -2904,9 +2914,41 @@ json action_ui_option(DesignPanel* panel, const json& params)
 json action_plane(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
+    // type: offset (default; base/datum offset + tilt, or `face` offset along its normal) | on_face (the face's own plane) |
+    // at_angle (about `edge`, angle deg, from `face` or the base) | midplane (halfway between `face` and `face2`) |
+    // tangent (to the cylindrical `face`, angle deg round it) | two_edges (the plane holding `edge` and `edge2`).
+    // face/edge ids come from query_topology; `body`/`body2` name the bodies that own them (default the last).
+    const std::string type = params.value("type", std::string("offset"));
+    PlaneType pt = PlaneType::Offset;
+    if      (type == "on_face")   pt = PlaneType::Coincident;
+    else if (type == "at_angle")  pt = PlaneType::Angle;
+    else if (type == "midplane")  pt = PlaneType::Midplane;
+    else if (type == "tangent")   pt = PlaneType::Tangent;
+    else if (type == "two_edges") pt = PlaneType::TwoEdges;
+    else if (type != "offset")    throw std::runtime_error("plane type must be offset | on_face | at_angle | midplane | tangent | two_edges");
+    const int last = int(doc.bodies.size()) - 1;
+    auto need = [&](const char* k) {
+        if (!params.contains(k) || !params[k].is_number_integer()) throw std::runtime_error(std::string("plane type ") + type + " needs '" + k + "'");
+        return params[k].get<int>();
+    };
+    if (pt != PlaneType::Offset || params.contains("face")) {
+        if ((pt == PlaneType::Coincident || pt == PlaneType::Midplane || pt == PlaneType::Tangent) && last < 0) throw std::runtime_error("no body to take a face from");
+        if (pt == PlaneType::Coincident || pt == PlaneType::Midplane || pt == PlaneType::Tangent) need("face");
+        if (pt == PlaneType::Midplane) need("face2");
+        if (pt == PlaneType::Angle || pt == PlaneType::TwoEdges) need("edge");
+        if (pt == PlaneType::TwoEdges) need("edge2");
+    }
     doc.checkpoint();
     const int idx = doc.add_plane(params.value("base", 0), params.value("offset", 0.0),
-                                  params.value("tilt", 0.0), params.value("axis", 0), "Plane");
+                                  params.value("angle", params.value("tilt", 0.0)), params.value("axis", 0), "Plane");
+    if (idx >= 0) {
+        CadFeature& pf = doc.features[size_t(idx)];
+        pf.plane_type = pt;
+        pf.plane_face_body  = params.value("body", last);  pf.plane_face  = params.value("face", -1);
+        pf.plane_face2_body = params.value("body2", last); pf.plane_face2 = params.value("face2", -1);
+        pf.plane_edge_body  = params.value("edge_body", params.value("body", last));   pf.plane_edge  = params.value("edge", -1);
+        pf.plane_edge2_body = params.value("edge2_body", params.value("body", last));  pf.plane_edge2 = params.value("edge2", -1);
+    }
     doc.recompute();   // datum-only docs yield no body; that is expected
     panel->mcp_after_change();
     return json{{"ok", idx >= 0}, {"plane_index", idx}, {"datum_planes", int(doc.resolve_datum_planes().size())}};
@@ -3686,6 +3728,139 @@ json action_loft(DesignPanel* panel, const json& params)
     doc.checkpoint();
     const int i = doc.add_loft(refs, params.value("ruled", false), bool_from(params.value("boolean", std::string("new"))), "Loft");
     return finish_feature(panel, doc, json{{"loft_index", i}});
+}
+
+// {shape: box|cylinder|sphere|cone|torus, at:[x,y,z], boolean, body} -- SolidCraft/FreeCAD primitives in ONE call. Built from the
+// same Sketch + Extrude/Revolve features the GUI makes, so the result stays editable and parametric (no new recipe type).
+//   box      width (x), depth (y), height (z): footprint centred on `at`, grows up from at.z
+//   cylinder radius|diameter, height:        base centred on `at`, grows up
+//   cone     radius|diameter (base), radius2|diameter2 (top, default 0 = a point), height: base centred on `at`
+//   sphere   radius|diameter:                centred on `at`
+//   torus    radius|diameter (ring centre line), tube_radius|tube_diameter: centred on `at`, ring in XY
+json action_primitive(DesignPanel* panel, const json& params)
+{
+    const std::string shape = params.value("shape", std::string());
+    CadDocument& doc = panel->mcp_doc();
+    auto pos = [&](const char* k, double dflt) {
+        const double v = params.value(k, dflt);
+        if (!(v > 0.0) || v > 1e6) throw std::runtime_error(std::string(k) + " must be > 0");
+        return v;
+    };
+    auto rad = [&](const char* r, const char* d, double dflt) {   // radius, or diameter/2
+        if (params.contains(r)) return pos(r, dflt);
+        if (params.contains(d)) return 0.5 * pos(d, dflt * 2.0);
+        return dflt;
+    };
+    const BooleanMode mode   = bool_from(params.value("boolean", std::string("new")));
+    const int         target = target_body_arg(params, doc);
+    json pj{{"origin", params.contains("at") ? params["at"] : json::array({0, 0, 0})}};
+
+    if (shape != "box" && shape != "cylinder" && shape != "sphere" && shape != "cone" && shape != "torus")
+        throw std::runtime_error("primitive needs shape: box | cylinder | sphere | cone | torus");
+
+    // extruded shapes sketch on XY (grow along +Z); revolved ones on a vertical plane whose y axis is world Z, revolved about it
+    const bool extruded = shape == "box" || shape == "cylinder";
+    pj["normal"] = extruded ? json::array({0, 0, 1}) : json::array({0, -1, 0});
+    const SketchPlane pl = plane_from(pj, doc);
+
+    auto circle = [&](Vec2d c, double r) {
+        SketchEntity e; e.type = SketchEntity::Type::Circle; e.center = c; e.p0 = c; e.radius = r; return e;
+    };
+    auto line = [&](Vec2d a, Vec2d b) { SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = a; e.p1 = b; return e; };
+
+    // validate every size BEFORE the checkpoint, so a bad value leaves the document untouched
+    double w = 0, d = 0, h = 0, r = 0, r2 = 0, tube = 0;
+    if (shape == "box")      { w = pos("width", 20); d = pos("depth", 20); h = pos("height", 10); }
+    if (shape == "cylinder") { r = rad("radius", "diameter", 5); h = pos("height", 10); }
+    if (shape == "cone")     { r = rad("radius", "diameter", 5); h = pos("height", 10);
+                               r2 = params.contains("radius2") || params.contains("diameter2") ? rad("radius2", "diameter2", 0) : 0.0; }
+    if (shape == "sphere")   r = rad("radius", "diameter", 5);
+    if (shape == "torus")  { r = rad("radius", "diameter", 10); tube = rad("tube_radius", "tube_diameter", 2);
+                             if (tube >= r) throw std::runtime_error("torus tube radius must be smaller than the ring radius"); }
+
+    doc.checkpoint();
+    int s = -1, f = -1;
+    if (shape == "box") {
+        SketchProfile p; p.closed = true;
+        p.points = {Vec2d(-w / 2, -d / 2), Vec2d(w / 2, -d / 2), Vec2d(w / 2, d / 2), Vec2d(-w / 2, d / 2)};
+        s = doc.add_sketch_profile(p, pl, "Sketch");
+        f = doc.add_extrude(s, h, false, mode, "Box");
+    } else if (shape == "cylinder") {
+        s = doc.add_sketch_entities({circle(Vec2d(0, 0), r)}, pl, "Sketch");
+        f = doc.add_extrude(s, h, false, mode, "Cylinder");
+    } else if (shape == "sphere") {
+        SketchEntity arc; arc.type = SketchEntity::Type::Arc; arc.center = Vec2d(0, 0); arc.radius = r;
+        arc.start_angle = 0; arc.end_angle = M_PI;
+        arc.p0 = Vec2d(r, 0); arc.p1 = Vec2d(-r, 0);
+        s = doc.add_sketch_entities({arc, line(Vec2d(-r, 0), Vec2d(r, 0))}, pl, "Sketch");
+        f = doc.add_revolve(s, 360.0, 0, false, mode, "Sphere");   // about the diameter along the plane's x
+    } else if (shape == "cone") {
+        SketchProfile p; p.closed = true;
+        p.points = r2 > 0 ? std::vector<Vec2d>{Vec2d(0, 0), Vec2d(r, 0), Vec2d(r2, h), Vec2d(0, h)}
+                          : std::vector<Vec2d>{Vec2d(0, 0), Vec2d(r, 0), Vec2d(0, h)};
+        s = doc.add_sketch_profile(p, pl, "Sketch");
+        f = doc.add_revolve(s, 360.0, 1, false, mode, "Cone");     // about the plane's y = world Z
+    } else {   // torus
+        s = doc.add_sketch_entities({circle(Vec2d(r, 0), tube)}, pl, "Sketch");
+        f = doc.add_revolve(s, 360.0, 1, false, mode, "Torus");
+    }
+    if (target >= 0) doc.features[size_t(f)].target_body = target;
+    return finish_feature(panel, doc, json{{"shape", shape}, {"sketch_index", s}, {"feature_index", f}});
+}
+
+// {radius, pitch, height, wire_radius|wire_diameter, plane, left_handed, boolean} -- a spring/coil in one call: a helix, a round
+// wire profile standing across its start and perpendicular to it, and a sweep of the one along the other.
+json action_coil(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    const double R = params.value("radius", 10.0), P = params.value("pitch", 5.0), H = params.value("height", 20.0);
+    const double wr = params.contains("wire_radius") ? params.value("wire_radius", 1.0) : 0.5 * params.value("wire_diameter", 2.0);
+    if (!(R > 0) || !(P > 0) || !(H > 0) || !(wr > 0)) throw std::runtime_error("radius, pitch, height and the wire size must be > 0");
+    if (wr >= P * 0.5 && P < 2 * wr) throw std::runtime_error("the wire is thicker than the pitch: neighbouring turns would overlap");
+    const bool lh = params.value("left_handed", false);
+    const SketchPlane hp = plane_from(params, doc);
+    doc.checkpoint();
+    const int hx = doc.add_helix(hp, R, P, H, lh, 0.0, "Helix");
+    // the helix starts at origin + R x and runs along (y * 2 pi R, +-) + normal * pitch
+    const Vec3d y = hp.normal.cross(hp.x_axis);
+    SketchPlane pl;
+    pl.origin = hp.origin + hp.x_axis * R;
+    pl.normal = (y * (lh ? -2.0 : 2.0) * M_PI * R + hp.normal * P).normalized();
+    pl.x_axis = hp.x_axis;                 // radial, so perpendicular to the tangent
+    pl.y_axis = pl.normal.cross(pl.x_axis);
+    SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = Vec2d(0, 0); c.p0 = c.center; c.radius = wr;
+    const int sk = doc.add_sketch_entities({c}, pl, "Wire");
+    const int sw = doc.add_sweep(sk, hx, bool_from(params.value("boolean", std::string("new"))), "Coil");
+    return finish_feature(panel, doc, json{{"helix_index", hx}, {"sketch_index", sk}, {"sweep_index", sw}});
+}
+
+// {points:[[x,y,z],...] (world mm, like sketch3d), radius|diameter, smooth, boolean} -- a round pipe along a 3D polyline or spline.
+json action_pipe(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    if (!params.contains("points") || !params["points"].is_array() || params["points"].size() < 2)
+        throw std::runtime_error("pipe needs 'points': [[x,y,z], ...] with at least two points");
+    std::vector<Vec3d> pts;
+    for (const auto& p : params["points"]) {
+        if (!p.is_array() || p.size() < 3) throw std::runtime_error("each point must be [x, y, z]");
+        pts.emplace_back(jn(p, 0), jn(p, 1), jn(p, 2));
+    }
+    const double r = params.contains("radius") ? params.value("radius", 1.0) : 0.5 * params.value("diameter", 2.0);
+    if (!(r > 0)) throw std::runtime_error("radius must be > 0");
+    const Vec3d t = pts[1] - pts[0];
+    if (t.norm() < 1e-9) throw std::runtime_error("the first two points coincide");
+    doc.checkpoint();
+    const int path = doc.add_sketch3d(pts, params.value("smooth", false), false, "Path");
+    SketchPlane pl;
+    pl.origin = pts[0];
+    pl.normal = t.normalized();
+    const Vec3d h = std::abs(pl.normal.x()) < 0.9 ? Vec3d(1, 0, 0) : Vec3d(0, 1, 0);
+    pl.x_axis = (h - pl.normal * h.dot(pl.normal)).normalized();
+    pl.y_axis = pl.normal.cross(pl.x_axis);
+    SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = Vec2d(0, 0); c.p0 = c.center; c.radius = r;
+    const int sk = doc.add_sketch_entities({c}, pl, "Pipe section");
+    const int sw = doc.add_sweep(sk, path, bool_from(params.value("boolean", std::string("new"))), "Pipe");
+    return finish_feature(panel, doc, json{{"path_index", path}, {"sketch_index", sk}, {"sweep_index", sw}});
 }
 
 // {radius (major), pitch, height, depth, internal, x, y, plane}
@@ -4569,6 +4744,9 @@ json call_method_core(DesignPanel* panel, const std::string& method, const json&
     if (method == "sweep")          return action_sweep(panel, params);
     if (method == "loft")           return action_loft(panel, params);
     if (method == "thread")         return action_thread(panel, params);
+    if (method == "primitive")      return action_primitive(panel, params);
+    if (method == "coil")           return action_coil(panel, params);
+    if (method == "pipe")           return action_pipe(panel, params);
     if (method == "sm_rule" || method == "sm_base" || method == "sm_flange" || method == "sm_contour" || method == "sm_hem"
         || method == "sm_unfold" || method == "sm_refold")
         return action_sheet(panel, method, params);
