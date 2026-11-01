@@ -9966,7 +9966,7 @@ msgstr "Kai kurių patalpintų parametrų pritaikyti nepavyko:"
 msgid "Some filament slots were changed:"
 msgstr "Kai kurie gijų lizdai buvo pakeisti:"
 
-msgid "Component name(s) inside step file not in UTF-8 format!"
+msgid "Component name(s) inside STEP file not in UTF-8 format!"
 msgstr "Komponentų pavadinimai STEP faile nėra UTF-8 formato!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -23698,8 +23698,8 @@ msgid "Expecting a regular expression."
 msgstr "Tikimasi reguliariosios išraiškos."
 
 # AI Translated
-msgid "Invalid utf8 sequence"
-msgstr "Netinkama utf8 seka"
+msgid "Invalid UTF-8 sequence"
+msgstr "Netinkama UTF-8 seka"
 
 # AI Translated
 msgid "Non-ASCII7 characters are only allowed inside text blocks and string literals, not inside code blocks."
@@ -26435,7 +26435,7 @@ msgstr "s"
 msgid "Volumetric speed"
 msgstr "Tūrinis greitis"
 
-msgid "Step file import parameters"
+msgid "STEP file import parameters"
 msgstr "STEP failų importavimo parametrai"
 
 msgid "Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."
@@ -37954,18 +37954,18 @@ msgstr "Įtartinai mažai konfigūracijos verčių išgauta iš %1%: %2%"
 
 # AI Translated
 msgid ""
-"Load step file failed.\n"
+"Load STEP file failed.\n"
 "Cannot open file for reading.\n"
 msgstr ""
 "STEP failo įkėlimas nepavyko.\n"
 "Nepavyksta atidaryti failo skaitymui.\n"
 
 # AI Translated
-msgid "import svg failed: could not open svg."
+msgid "import SVG failed: could not open svg."
 msgstr "SVG importas nepavyko: nepavyko atidaryti SVG."
 
 # AI Translated
-msgid "import svg failed: could not parse imported svg data."
+msgid "import SVG failed: could not parse imported svg data."
 msgstr "SVG importas nepavyko: nepavyko išanalizuoti importuotų SVG duomenų."
 
 # AI Translated

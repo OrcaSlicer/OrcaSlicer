@@ -304,6 +304,12 @@ int BBLNetworkPlugin::destroy_agent()
 {
     int ret = 0;
     if (m_agent && m_destroy_agent) {
+        // The agent's SSDP discovery threads keep polling the discovery state the agent owns, and
+        // destroying the agent frees that state without joining them; stopping discovery joins them.
+        // Nothing else guarantees discovery is stopped here: on exit the printer agent that would
+        // forward start_discovery(false) has already been detached.
+        if (m_start_discovery)
+            m_start_discovery(m_agent, false, false);
         ret = m_destroy_agent(m_agent);
     }
     m_agent = nullptr;
