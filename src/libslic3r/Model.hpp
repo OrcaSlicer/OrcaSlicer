@@ -1844,6 +1844,9 @@ public:
     // Croaks if the duplicated objects do not fit the print bed.
     void duplicate_objects_grid(size_t x, size_t y, coordf_t dist);
 
+    // Turns the content of a freshly read file around Z as one piece. Placed objects are centered around their own
+    // origin without moving; unplaced ones are centered in XY only, the shift recorded in origin_translation.
+    void          rotate_and_center_objects(double angle_z);
     bool 		  looks_like_multipart_object() const;
     void 		  convert_multipart_object(unsigned int max_extruders);
     bool          looks_like_imperial_units() const;

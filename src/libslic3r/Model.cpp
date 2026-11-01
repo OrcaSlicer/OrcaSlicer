@@ -895,6 +895,67 @@ void Model::duplicate_objects_grid(size_t x, size_t y, coordf_t dist)
     }
 }
 
+void Model::rotate_and_center_objects(double angle_z)
+{
+    // The common center of the placed objects, taken before anything changes. Objects without instances lie in the
+    // file's coordinates and turn around its origin.
+    BoundingBoxf3 placed_bb;
+    for (const ModelObject *object : this->objects)
+        for (size_t i = 0; i < object->instances.size(); ++i)
+            placed_bb.merge(object->instance_bounding_box(i));
+    const Vec3d center = placed_bb.defined ? Vec3d(placed_bb.center().x(), placed_bb.center().y(), 0.) : Vec3d::Zero();
+
+    if (angle_z != 0.) {
+        const Transform3d turn          = Geometry::rotation_transform(angle_z * Vec3d::UnitZ());
+        const Matrix3d    rotation      = turn.linear();
+        const Transform3d around_center = Geometry::translation_transform(center) * turn * Geometry::translation_transform(-center);
+        for (ModelObject *object : this->objects) {
+            // The volumes are shared by all instances, so they can take the rotation only if it commutes with the
+            // linear part (rotation, scale, mirror) of every instance; otherwise the instances take it.
+            // The tolerance only absorbs rounding: the instances' path is exact, so doubtful cases go there.
+            const auto commutes_with_turn = [&rotation](const ModelInstance *instance) {
+                const Matrix3d linear   = instance->get_matrix_no_offset().linear();
+                const double   residual = (linear * rotation - rotation * linear).cwiseAbs().maxCoeff();
+                return residual <= 1e-9 * std::max(1., linear.cwiseAbs().maxCoeff());
+            };
+            const bool commutes = std::all_of(object->instances.begin(), object->instances.end(), commutes_with_turn);
+            if (commutes) {
+                // Each volume turns around the object's origin together with its offset, so a multi-part object keeps
+                // its shape.
+                for (ModelVolume *volume : object->volumes)
+                    volume->set_transformation(turn * volume->get_matrix());
+                for (ModelInstance *instance : object->instances)
+                    instance->set_offset(center + rotation * (instance->get_offset() - center));
+            } else {
+                for (ModelInstance *instance : object->instances)
+                    instance->set_transformation(Geometry::Transformation(around_center * instance->get_matrix()));
+            }
+            object->invalidate_bounding_box();
+        }
+    }
+
+    for (ModelObject *object : this->objects) {
+        const BoundingBoxf3 bb = object->full_raw_mesh_bounding_box();
+        if (!bb.defined)
+            continue;
+        Vec3d shift = -bb.center();
+        if (object->instances.empty()) {
+            // Not placed yet: the shift is recorded for the parts merging and export, as center_around_origin() does.
+            // Z stays for the multi-part check, and the object is centered in full when it is placed.
+            shift.z() = 0.;
+            object->translate(shift);
+            object->origin_translation += shift;
+        } else {
+            object->translate(shift);
+            // The instances take the opposite shift, so the object stays where it is. origin_translation records only
+            // centering the instances do not compensate, so it does not change.
+            for (ModelInstance *instance : object->instances)
+                instance->set_offset(instance->get_offset() - instance->get_matrix_no_offset().linear() * shift);
+        }
+        object->invalidate_bounding_box();
+    }
+}
+
 bool Model::looks_like_multipart_object() const
 {
     if (this->objects.size() <= 1)
