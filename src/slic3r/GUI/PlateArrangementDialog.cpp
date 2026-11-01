@@ -231,13 +231,13 @@ void PlateArrangementDialog::render_title_bar()
 
 void PlateArrangementDialog::render_plate_grid()
 {
-    const GuiCfg&  cfg   = *m_gui_cfg;
-    const int      cols  = grid_columns(m_plate_count);
-    const int      rows  = std::max(1, (m_plate_count + cols - 1) / cols);
-    const float    cell  = cell_size(cols);
-    const float    pitch = cell + cfg.plate_spacing;
-    const float    bleed = std::round(cfg.plate_spacing * .5f); // room for borders and markers outside the outer cells
-    ImGuiIO&       io    = ImGui::GetIO();
+    const GuiCfg& cfg   = *m_gui_cfg;
+    const int     cols  = grid_columns(m_plate_count);
+    const int     rows  = std::max(1, (m_plate_count + cols - 1) / cols);
+    const float   cell  = cell_size(cols);
+    const float   pitch = cell + cfg.plate_spacing;
+    const float   bleed = std::round(cfg.plate_spacing * .5f); // room for borders and markers outside the outer cells
+    ImGuiIO&      io    = ImGui::GetIO();
 
     // More plates than cells (above the 36 plates Orca allows) would scroll.
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() - bleed);
@@ -323,10 +323,10 @@ void PlateArrangementDialog::render_plate_grid()
 
 void PlateArrangementDialog::render_plate(ImDrawList* dl, PartPlate* plate, const ImVec2& pmin, float size, bool selected, bool hovered, float alpha) const
 {
-    const GuiCfg&  cfg   = *m_gui_cfg;
-    const ImVec2   pmax  = pmin + ImVec2(size, size);
-    const float    inset = cfg.plate_inset;
-    const float    inner = std::max(0.f, cfg.plate_rounding - inset);
+    const GuiCfg& cfg   = *m_gui_cfg;
+    const ImVec2  pmax  = pmin + ImVec2(size, size);
+    const float   inset = cfg.plate_inset;
+    const float   inner = std::max(0.f, cfg.plate_rounding - inset);
 
     auto w_alpha = [](ImVec4 c, float a) { c.w *= a; return c; }; // reduce on drag preview
     auto u32     = [](ImVec4 c) { return  ImGui::ColorConvertFloat4ToU32(c); };
