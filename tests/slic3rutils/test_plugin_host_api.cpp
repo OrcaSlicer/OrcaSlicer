@@ -339,6 +339,14 @@ TEST_CASE("Plugin host API reports no GL details before the 3D view exists", "[P
     CHECK(has_attr(plater_type, "export_3mf_copy"));
 }
 
+TEST_CASE("Plugin host API lets plugins open a project or import models on the plater", "[PluginHost][Python]")
+{
+    py::object plater_type = import_orca_module().attr("host").attr("Plater");
+
+    CHECK(has_attr(plater_type, "open_project"));
+    CHECK(has_attr(plater_type, "import_models"));
+}
+
 TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app initialization", "[PluginHost][Python]")
 {
     py::object host = import_orca_module().attr("host");

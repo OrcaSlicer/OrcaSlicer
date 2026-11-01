@@ -2,10 +2,12 @@
 #include <pybind11/cast.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
+#include <pybind11/stl.h>
 
 #include <libslic3r/Model.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/AppConfig.hpp>
+#include <libslic3r/Format/ProjectStrategy.hpp>
 #include <libslic3r/Semver.hpp>
 #include <libslic3r_version.h>
 #include <slic3r/GUI/BuildCommit.hpp>
@@ -13,6 +15,7 @@
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <slic3r/GUI/GUI.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
+#include <slic3r/GUI/MainFrame.hpp>
 #include <slic3r/GUI/OpenGLManager.hpp>
 #include <slic3r/GUI/Plater.hpp>
 #include <slic3r/Utils/CloudProvider.hpp>
@@ -21,9 +24,11 @@
 #include <slic3r/Utils/bambu_networking.hpp>
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/optional/optional.hpp>
 
+#include <cstddef>
 #include <memory>
 #include <stdexcept>
 #include <wx/app.h>
@@ -31,6 +36,7 @@
 #include <wx/thread.h>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace py = pybind11;
 
@@ -90,6 +96,49 @@ void export_3mf_copy(GUI::Plater& plater, const std::string& path)
         throw py::error_already_set();
     if (!plater.export_3mf_copy(GUI::into_path(GUI::from_u8(path))))
         throw std::runtime_error("Failed to write " + path);
+}
+
+// The file is read from C++, so raise the audit event Python's open(path, "r") raises, the
+// read-side counterpart of export_3mf_copy(). Returns the path once the plugin may read it.
+boost::filesystem::path readable_path(const std::string& path, const char* function_name)
+{
+    if (PySys_Audit("open", "ssi", path.c_str(), "r", 0) < 0)
+        throw py::error_already_set();
+    boost::filesystem::path file = GUI::into_path(GUI::from_u8(path));
+    if (!boost::filesystem::is_regular_file(file)) {
+        PyErr_SetString(PyExc_FileNotFoundError, (std::string(function_name) + "(): no such file: " + path).c_str());
+        throw py::error_already_set();
+    }
+    return file;
+}
+
+void open_project(GUI::Plater& plater, const std::string& path)
+{
+    require_main_thread("open_project");
+    if (!boost::iends_with(path, ".3mf"))
+        throw py::value_error("open_project() needs a path ending in .3mf");
+    const boost::filesystem::path file = readable_path(path, "open_project");
+    // "<loadall>" is what File > Open Project uses for a 3MF the user chose to open as a project:
+    // Orca still offers to save the current project, and the user can cancel there.
+    plater.load_project(GUI::from_path(file), "<loadall>");
+    GUI::wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+}
+
+std::vector<size_t> import_models(GUI::Plater& plater, const std::vector<std::string>& paths)
+{
+    require_main_thread("import_models");
+    if (paths.empty())
+        throw py::value_error("import_models() needs at least one path");
+    std::vector<boost::filesystem::path> files;
+    files.reserve(paths.size());
+    for (const std::string& path : paths)
+        files.push_back(readable_path(path, "import_models"));
+    // One undo step for the whole batch, like File > Import. Each file stays a separate object:
+    // a plugin decides that, so Orca does not ask whether to merge them into one multi-part object.
+    GUI::Plater::TakeSnapshot snapshot(&plater, files.size() == 1 ? "Import Object" : "Import Objects");
+    std::vector<size_t> objects = plater.load_files(files, LoadStrategy::LoadModel, false);
+    GUI::wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    return objects;
 }
 
 py::object gl_info()
@@ -168,7 +217,14 @@ void host_bindings::register_app(py::module_& host)
         })
         .def("export_3mf_copy", &export_3mf_copy, py::arg("path"),
              "Write the current project, unsaved changes included, to path as a 3MF copy. The project's "
-             "file name and saved state are not changed, and the signed-in account is not written as the designer.");
+             "file name and saved state are not changed, and the signed-in account is not written as the designer.")
+        .def("open_project", &open_project, py::arg("path"),
+             "Open the 3MF at path as the current project, like File > Open Project, and show the Prepare tab. Orca "
+             "first offers to save unsaved changes; if the user cancels, the current project stays open.")
+        .def("import_models", &import_models, py::arg("paths"),
+             "Add the model files at paths (STL, 3MF, STEP, ...) to the current project as one undo step, like "
+             "File > Import, and show the Prepare tab. Each file becomes its own object. Returns the indices of the "
+             "new objects in the model.");
 
     host.def("plater", &current_plater, py::return_value_policy::reference);
     host.def("model", []() -> Model& {
