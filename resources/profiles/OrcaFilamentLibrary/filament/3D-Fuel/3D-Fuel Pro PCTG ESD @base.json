@@ -1,9 +1,9 @@
 {
 	"type": "filament",
-	"name": "Pro PCTG ESD @base",
+	"name": "3D-Fuel Pro PCTG ESD @base",
 	"inherits": "fdm_filament_pctg",
 	"from": "system",
-	"filament_id": "OFrALVKg",
+	"filament_id": "OFPUx4CF",
 	"instantiation": "false",
 	"filament_vendor": [
 		"3D-Fuel"
