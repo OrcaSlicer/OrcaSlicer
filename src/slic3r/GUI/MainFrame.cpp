@@ -16,6 +16,7 @@
 #include <functional>
 #include <memory>
 #include <wx/busycursor.h>
+#include <wx/datetime.h>
 #include <cstddef>
 #include "slic3r/GUI/Project.hpp"
 #include <wx/bookctrl.h>
@@ -4585,7 +4586,11 @@ void MainFrame::get_recent_projects(boost::property_tree::wptree &tree, int imag
         boost::system::error_code ec;
         std::time_t t = boost::filesystem::last_write_time(proj, ec);
         if (!ec) {
-            std::wstring time = wxDateTime(t).FormatISOCombined(' ').ToStdWstring();
+            const wxDateTime date(t);
+            const bool       use_12h = wxGetApp().app_config->get_bool("use_12h_time_format");
+            // "YYYY-MM-DD HH:MM:SS", or "YYYY-MM-DD hh:MM:SS AM/PM" with the 12-hour option
+            std::wstring time = use_12h ? (date.FormatISODate() + " " + from_u8(format_clock_time(date.GetHour(), date.GetMinute(), true, date.GetSecond()))).ToStdWstring() :
+                                          date.FormatISOCombined(' ').ToStdWstring();
             item.put(L"time", time);
             if (i <= images) {
                 auto thumbnail = m_recent_projects.GetThumbnailUrl(i);
