@@ -137,35 +137,26 @@ To as_abi(From fn)
     return reinterpret_cast<To>(reinterpret_cast<void (*)()>(fn));
 }
 
-// The certificates in pem, re-encoded, when there is at least one and every one is a CA; else "".
-// Only what OpenSSL parsed ends up in printer.cer, never the rest of the file.
-std::string ca_certificates_pem(const std::string& pem)
+std::string certificate_pem(X509* cert)
 {
-    std::unique_ptr<BIO, decltype(&BIO_free)> in(BIO_new_mem_buf(pem.data(), int(pem.size())), &BIO_free);
     std::unique_ptr<BIO, decltype(&BIO_free)> out(BIO_new(BIO_s_mem()), &BIO_free);
-    if (!in || !out)
+    if (!out || PEM_write_bio_X509(out.get(), cert) != 1)
         return {};
-
-    ERR_clear_error();
-    int  count = 0;
-    bool ok    = true;
-    // Never prompt for a passphrase: an encrypted block counts as broken.
-    pem_password_cb* const no_passphrase = [](char*, int, int, void*) { return 0; };
-    while (X509* cert = PEM_read_bio_X509(in.get(), nullptr, no_passphrase, nullptr)) {
-        ok = ok && X509_check_ca(cert) >= 1 && PEM_write_bio_X509(out.get(), cert) == 1;
-        X509_free(cert);
-        ++count;
-    }
-    // Reading ends with "no start line" at the end of the input; any other error is a broken certificate.
-    const unsigned long err = ERR_peek_last_error();
-    ok = ok && count > 0 && ERR_GET_LIB(err) == ERR_LIB_PEM && ERR_GET_REASON(err) == PEM_R_NO_START_LINE;
-    ERR_clear_error();
-    if (!ok)
-        return {};
-
     char*      data = nullptr;
     const long size = BIO_get_mem_data(out.get(), &data);
     return std::string(data, size_t(size));
+}
+
+const char* ca_file_error_text(BBLPrinterAgent::CaFileError error)
+{
+    switch (error) {
+    case BBLPrinterAgent::CaFileError::Unreadable: return "it cannot be read";
+    case BBLPrinterAgent::CaFileError::NoCertificate: return "it holds no certificate";
+    case BBLPrinterAgent::CaFileError::Damaged: return "it holds a damaged certificate";
+    case BBLPrinterAgent::CaFileError::NotCa: return "it holds a certificate that is not a CA";
+    case BBLPrinterAgent::CaFileError::None: break;
+    }
+    return "";
 }
 
 // Replaces path in one step and only when its content changes: the plug-in may read it at any time.
@@ -383,27 +374,66 @@ int BBLPrinterAgent::connect_printer(const PrinterConnectionParams& params)
     return -1;
 }
 
+BBLPrinterAgent::CaFileCheck BBLPrinterAgent::check_ca_file(const std::string& path)
+{
+    std::string pem;
+    try {
+        load_string_file(path, pem);
+    } catch (const std::exception&) {
+        return {CaFileError::Unreadable, {}};
+    }
+
+    std::unique_ptr<BIO, decltype(&BIO_free)> in(BIO_new_mem_buf(pem.data(), int(pem.size())), &BIO_free);
+    if (!in)
+        return {CaFileError::Unreadable, {}};
+
+    ERR_clear_error();
+    std::vector<std::string> certificates;
+    bool                     all_ca  = true;
+    bool                     written = true;
+    // Never prompt for a passphrase: an encrypted block counts as damaged.
+    pem_password_cb* const no_passphrase = [](char*, int, int, void*) { return 0; };
+    while (X509* cert = PEM_read_bio_X509(in.get(), nullptr, no_passphrase, nullptr)) {
+        all_ca = all_ca && X509_check_ca(cert) >= 1;
+        certificates.push_back(certificate_pem(cert));
+        written = written && !certificates.back().empty();
+        X509_free(cert);
+    }
+    // Reading ends with "no start line" at the end of the input; any other error is a broken certificate.
+    const unsigned long err    = ERR_peek_last_error();
+    const bool          at_end = ERR_GET_LIB(err) == ERR_LIB_PEM && ERR_GET_REASON(err) == PEM_R_NO_START_LINE;
+    ERR_clear_error();
+
+    if (!at_end || !written)
+        return {CaFileError::Damaged, {}};
+    if (certificates.empty())
+        return {CaFileError::NoCertificate, {}};
+    if (!all_ca)
+        return {CaFileError::NotCa, {}};
+    return {CaFileError::None, std::move(certificates)};
+}
+
 std::string BBLPrinterAgent::cert_dir_with_cas(const std::string& bundled_dir, const std::string& out_dir, const std::set<std::string>& extra_cas)
 {
     namespace fs = boost::filesystem;
 
-    std::string extra;
+    std::vector<std::string> certificates;
     for (const std::string& ca_file : extra_cas) {
-        std::string pem;
-        try {
-            load_string_file(ca_file, pem);
-        } catch (const std::exception&) {
-            pem.clear();
-        }
-        const std::string certs = ca_certificates_pem(pem);
-        if (certs.empty()) {
-            BOOST_LOG_TRIVIAL(warning) << "Ignoring CA file, it holds no readable CA certificate: " << ca_file;
+        CaFileCheck check = check_ca_file(ca_file);
+        if (check.error != CaFileError::None) {
+            BOOST_LOG_TRIVIAL(warning) << "Ignoring CA file, " << ca_file_error_text(check.error) << ": " << ca_file;
             continue;
         }
-        extra += certs;
+        for (std::string& certificate : check.certificates)
+            if (std::find(certificates.begin(), certificates.end(), certificate) == certificates.end())
+                certificates.push_back(std::move(certificate));
     }
-    if (extra.empty())
+    if (certificates.empty())
         return bundled_dir;
+
+    std::string extra;
+    for (const std::string& certificate : certificates)
+        extra += certificate;
 
     try {
         std::string bundle;

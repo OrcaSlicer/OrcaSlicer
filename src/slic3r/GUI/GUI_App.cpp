@@ -16,6 +16,7 @@
 #include "WebUserLoginDialog.hpp"
 #include "WebViewDialog.hpp"
 #include "slic3r/Utils/BBLCloudServiceAgent.hpp"
+#include "slic3r/Utils/BBLPrinterAgent.hpp"
 #include "slic3r/Utils/CloudDeleteQueue.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "GUI_Init.hpp"
@@ -2449,6 +2450,12 @@ void GUI_App::init_networking_callbacks()
                                     text += L"\n\u2022 " + _L("Check that the printer is on the same network as this computer and that its IP address is correct.");
                                     text += L"\n\u2022 " + _L("If the connection still fails, try a different network plug-in version in Preferences.");
                                     text += L"\n\u2022 " + _L("A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error.");
+                                    if (const std::string ca_file = obj->get_ca_file(); !ca_file.empty()) {
+                                        const BBLPrinterAgent::CaFileError error = BBLPrinterAgent::check_ca_file(ca_file).error;
+                                        text += L"\n\u2022 " + (error == BBLPrinterAgent::CaFileError::None ?
+                                                    _L("Check that the CA file chosen for this printer is the CA that signed the certificate of the printer or proxy.") :
+                                                    ca_file_error_message(error));
+                                    }
                                     wxGetApp().show_dialog(text);
                                 } else {
                                     text = wxString::Format(_L("Connect %s failed! [SN:%s, code=%s]"), from_u8(obj->get_dev_name()), obj->get_dev_id(), msg);

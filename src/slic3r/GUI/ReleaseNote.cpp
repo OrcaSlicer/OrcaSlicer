@@ -1889,6 +1889,8 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
     m_test_right_msg->Hide();
     m_test_wrong_msg->Hide();
     m_trouble_shoot->Hide();
+    if (!check_ca_input())
+        return;
     std::string str_ip = m_input_ip->GetTextCtrl()->GetValue().ToStdString();
     std::string str_access_code = m_input_access_code->GetTextCtrl()->GetValue().ToStdString();
     if (str_access_code.empty())
@@ -1936,8 +1938,13 @@ void InputIpAddressDialog::init_cafile_input()
     const bool editable  = bbl_agent || Http::ca_file_supported();
     m_input_cafile->Enable(editable);
     m_button_cafile->Enable(editable);
-    m_cafile_hint->SetLabel(editable ? _L("HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate.") :
-                                       _L("This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."));
+    if (bbl_agent)
+        // TRN CA: certificate authority.
+        m_cafile_hint->SetLabel(_L("HTTPS CA file is optional. It is only needed for a printer behind a proxy with its own CA. Choose the certificate of that CA, not the server certificate of the proxy."));
+    else if (editable)
+        m_cafile_hint->SetLabel(_L("HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."));
+    else
+        m_cafile_hint->SetLabel(_L("This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."));
     m_cafile_hint->Wrap(FromDIP(352));
 
     wxString ca_file;
@@ -1962,6 +1969,35 @@ bool InputIpAddressDialog::is_bbl_agent() const
     return agent_id.empty() || agent_id == BBL_PRINTER_AGENT_ID;
 }
 
+bool InputIpAddressDialog::check_ca_input()
+{
+    const std::string ca_file = into_u8(m_input_cafile->GetValue().Strip(wxString::both));
+    if (ca_file.empty() || !is_bbl_agent())
+        return true;
+    const BBLPrinterAgent::CaFileError error = BBLPrinterAgent::check_ca_file(ca_file).error;
+    if (error == BBLPrinterAgent::CaFileError::None)
+        return true;
+    update_test_msg(ca_file_error_message(error), false);
+    // Manual setup can't fix a CA file.
+    m_button_manual_setup->Hide();
+    Layout();
+    Fit();
+    return false;
+}
+
+wxString ca_file_error_message(BBLPrinterAgent::CaFileError error)
+{
+    switch (error) {
+    case BBLPrinterAgent::CaFileError::Unreadable: return _L("The CA file chosen for this printer cannot be read.");
+    case BBLPrinterAgent::CaFileError::NoCertificate: return _L("The CA file chosen for this printer holds no certificate.");
+    case BBLPrinterAgent::CaFileError::Damaged: return _L("The CA file chosen for this printer holds a damaged certificate.");
+    // TRN CA: certificate authority.
+    case BBLPrinterAgent::CaFileError::NotCa: return _L("The CA file chosen for this printer holds a certificate that is not a CA, such as a server certificate. Use a file that holds only CA certificates.");
+    case BBLPrinterAgent::CaFileError::None: break;
+    }
+    return {};
+}
+
 void InputIpAddressDialog::on_send_retry()
 {
     m_test_right_msg->Hide();
@@ -1978,6 +2014,8 @@ void InputIpAddressDialog::on_send_retry()
 
     // check support function
     if (!m_obj) return;
+    if (!check_ca_input())
+        return;
     const bool        bbl_agent = is_bbl_agent();
     const std::string ca_file   = into_u8(m_input_cafile->GetValue().Strip(wxString::both));
     if (!m_obj->is_support_send_to_sdcard) {
