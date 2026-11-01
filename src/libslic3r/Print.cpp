@@ -2367,7 +2367,18 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 if (ext < is_mixed.size() && is_mixed[ext])
                     return {L("Spiral (vase) mode does not work when an object contains more than one material."), nullptr, "spiral_mode"};
         assert(m_objects.size() == 1);
-        const auto all_regions = m_objects.front()->all_regions();
+        const PrintObject *object = m_objects.front();
+        auto all_regions = object->all_regions();
+        // Painted all over, the object prints only its painted regions: its own filament's regions stay empty.
+        const ModelVolumePtrs &volumes = object->model_object()->volumes;
+        if (object->shared_regions() && std::all_of(volumes.begin(), volumes.end(), [](const ModelVolume *volume) {
+                return !volume->is_model_part() || volume->is_mm_painted_everywhere();
+            })) {
+            all_regions.clear();
+            for (const PrintObjectRegions::LayerRangeRegions &range : object->shared_regions()->layer_ranges)
+                for (const PrintObjectRegions::PaintedRegion &painted : range.painted_regions)
+                    all_regions.emplace_back(*painted.region);
+        }
         if (all_regions.size() > 1) {
             // Orca: make sure regions are not compatible
             if (std::any_of(all_regions.begin() + 1, all_regions.end(), [this, ra = all_regions.front()](const auto rb) {
