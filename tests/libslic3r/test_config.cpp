@@ -1229,6 +1229,15 @@ TEST_CASE("read_cli accepts the common boolean spellings inside a bools vector",
     REQUIRE(config.opt<ConfigOptionBools>("filament_soluble")->values == std::vector<unsigned char>{1, 0, 1});
 }
 
+TEST_CASE("read_cli accepts the --single-instance flag read by the GUI start-up", "[Config]") {
+    Slic3r::DynamicPrintAndCLIConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--single-instance", "model.3mf"};
+    REQUIRE(config.read_cli(3, argv, &extra, &keys));
+    REQUIRE(config.opt_bool("single_instance"));
+    REQUIRE(extra == t_config_option_keys{"model.3mf"});
+}
+
 TEST_CASE("read_cli trims whitespace around boolean spellings", "[Config]") {
     Slic3r::DynamicPrintConfig config;
     t_config_option_keys extra, keys;
