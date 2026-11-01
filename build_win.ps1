@@ -564,6 +564,8 @@ try {
         if ($Tests) {
             $cmakeArgs += "-DBUILD_TESTS=ON"
         }
+        # Enable ORCA_TOOLS to build generate_system_cache.exe for preset cache generation
+        $cmakeArgs += "-DORCA_TOOLS=ON"
         # MSBuild + ARM64 needs -A arch
         if ($Msbuild -and $Arch -eq "ARM64") {
             $cmakeArgs += "-A", "ARM64"
