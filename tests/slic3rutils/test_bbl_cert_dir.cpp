@@ -3,6 +3,7 @@
 #include <ctime>
 #include <set>
 #include <string>
+#include <vector>
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -105,6 +106,53 @@ TEST_CASE("The bundled cert folder is kept when no custom CA is usable", "[BBLCe
     INFO("unusable CA: " << unusable);
     CHECK(BBLPrinterAgent::cert_dir_with_cas(bundled.dir.path().string(), out.string(), extra_cas) == bundled.dir.path().string());
     CHECK_FALSE(fs::exists(out));
+}
+
+TEST_CASE("A CA file is checked for why it cannot be trusted", "[BBLCertDir]")
+{
+    using Error = BBLPrinterAgent::CaFileError;
+    const auto [content, expected] = GENERATE(table<std::string, Error>({
+        {"<missing>", Error::Unreadable},
+        {"", Error::NoCertificate},
+        {"hello", Error::NoCertificate},
+        {"-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n", Error::Damaged},
+        {ca_pem + "-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n", Error::Damaged},
+        // Encrypted: must not prompt for a passphrase.
+        {"-----BEGIN CERTIFICATE-----\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-128-CBC,000102030405060708090A0B0C0D0E0F\n\n" +
+             ca_pem.substr(ca_pem.find('\n') + 1),
+         Error::Damaged},
+        {leaf_pem, Error::NotCa},
+        {ca_pem + leaf_pem, Error::NotCa},
+        {ca_pem, Error::None},
+    }));
+
+    ScopedTemporaryDir scratch{"orca-bbl-cert-check"};
+    const fs::path     file = scratch.path() / "ca.crt";
+    if (content != "<missing>")
+        save_string_file(file, content);
+
+    INFO("content: " << content);
+    const BBLPrinterAgent::CaFileCheck check = BBLPrinterAgent::check_ca_file(file.string());
+    CHECK(check.error == expected);
+    if (expected == Error::None)
+        CHECK(check.certificates == std::vector<std::string>{ca_pem});
+    else
+        CHECK(check.certificates.empty());
+}
+
+TEST_CASE("A CA used through two files is added once", "[BBLCertDir]")
+{
+    BundledCertDir     bundled;
+    ScopedTemporaryDir scratch{"orca-bbl-cert-out"};
+    const fs::path     out     = scratch.path() / "cert";
+    const fs::path     old_ca  = scratch.path() / "old-ca.crt";
+    const fs::path     renewed = scratch.path() / "renewed-ca.crt";
+    save_string_file(old_ca, ca_pem);
+    save_string_file(renewed, ca_pem);
+
+    BBLPrinterAgent::cert_dir_with_cas(bundled.dir.path().string(), out.string(), {old_ca.string(), renewed.string()});
+
+    CHECK(read_file(out / "printer.cer") == bundled_pem + ca_pem);
 }
 
 TEST_CASE("An unchanged cert folder is not rewritten", "[BBLCertDir]")
