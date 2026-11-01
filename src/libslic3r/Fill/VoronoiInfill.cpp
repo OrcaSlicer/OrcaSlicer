@@ -20,6 +20,17 @@
 #include "VoronoiPointCloud.hpp"
 
 namespace Slic3r {
+
+ExPolygons Voronoi::floor_interiors(const std::vector<Band> &bands)
+{
+    // Shrink by one fixed-point unit to retain coincident boundary walls;
+    // Clipper handles boundary lines differently by direction.
+    ExPolygons interiors;
+    for (const Band &band : bands)
+        append(interiors, offset_ex(band.polygon, -1.f));
+    return interiors;
+}
+
 Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, const ExPolygon &region,
                                           const GeometryParams &params)
 {
@@ -89,11 +100,7 @@ Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, co
         for (ExPolygon &polygon : diff_ex(footprints[i], covered))
             result.bands.push_back({std::move(polygon), m_bands[i].supported_side, m_bands[i].row_origin + expansion});
     }
-    // Shrink floor interiors by one fixed-point unit to retain coincident
-    // boundary walls; Clipper handles those lines differently by direction.
-    ExPolygons wall_mask;
-    for (const Voronoi::Band &band : result.bands)
-        append(wall_mask, offset_ex(band.polygon, -1.f));
+    const ExPolygons wall_mask = Voronoi::floor_interiors(result.bands);
     result.walls = diff_pl(intersection_pl(m_section.walls, region), wall_mask);
     result.walls.erase(std::remove_if(result.walls.begin(), result.walls.end(),
         [](const Polyline &wall) { return wall.length() <= scale_(0.000008); }), result.walls.end());
