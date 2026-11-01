@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/lexical_cast.hpp>
 #include <cstddef>
 #include <algorithm>
 #include "libslic3r/Color.hpp"
@@ -3026,8 +3027,6 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	int glb_internal_solid_extr = glb_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = glb_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = glb_config.opt_int("bottom_surface_filament_id");
-	if (glb_top_surface_extr == 0) glb_top_surface_extr = glb_internal_solid_extr;
-	if (glb_bottom_surface_extr == 0) glb_bottom_surface_extr = glb_internal_solid_extr;
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
@@ -3125,8 +3124,6 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		int obj_top_surface_extr = 0;
 		if (const ConfigOption* top_opt = mo->config.option("top_surface_filament_id"); top_opt != nullptr)
 			obj_top_surface_extr = top_opt->getInt();
-		if (obj_top_surface_extr == 0)
-			obj_top_surface_extr = obj_internal_solid_extr;
 		if (obj_top_surface_extr != 0)
 			plate_extruders.push_back(obj_top_surface_extr);
 		else if (glb_top_surface_extr != 0)
@@ -3135,8 +3132,6 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		int obj_bottom_surface_extr = 0;
 		if (const ConfigOption* bottom_opt = mo->config.option("bottom_surface_filament_id"); bottom_opt != nullptr)
 			obj_bottom_surface_extr = bottom_opt->getInt();
-		if (obj_bottom_surface_extr == 0)
-			obj_bottom_surface_extr = obj_internal_solid_extr;
 		if (obj_bottom_surface_extr != 0)
 			plate_extruders.push_back(obj_bottom_surface_extr);
 		else if (glb_bottom_surface_extr != 0)
@@ -3197,8 +3192,6 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 	int glb_internal_solid_extr = full_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = full_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = full_config.opt_int("bottom_surface_filament_id");
-	if (glb_top_surface_extr == 0) glb_top_surface_extr = glb_internal_solid_extr;
-	if (glb_bottom_surface_extr == 0) glb_bottom_surface_extr = glb_internal_solid_extr;
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
@@ -3303,8 +3296,6 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 			int obj_top_surface_extr = 0;
 			if (const ConfigOption* top_opt = object->config.option("top_surface_filament_id"); top_opt != nullptr)
 				obj_top_surface_extr = top_opt->getInt();
-			if (obj_top_surface_extr == 0)
-				obj_top_surface_extr = obj_internal_solid_extr;
 			if (obj_top_surface_extr != 0)
 				plate_extruders.push_back(obj_top_surface_extr);
 			else if (glb_top_surface_extr != 0)
@@ -3313,8 +3304,6 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 			int obj_bottom_surface_extr = 0;
 			if (const ConfigOption* bottom_opt = object->config.option("bottom_surface_filament_id"); bottom_opt != nullptr)
 				obj_bottom_surface_extr = bottom_opt->getInt();
-			if (obj_bottom_surface_extr == 0)
-				obj_bottom_surface_extr = obj_internal_solid_extr;
 			if (obj_bottom_surface_extr != 0)
 				plate_extruders.push_back(obj_bottom_surface_extr);
 			else if (glb_bottom_surface_extr != 0)
@@ -8559,7 +8548,7 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
                 std::replace(s.begin(), s.end(), ',', ' ');
                 std::istringstream iss(s);
                 std::string tok;
-                while (iss >> tok) { try { out.push_back(std::stod(tok)); } catch (...) {} }
+                while (iss >> tok) { try { out.push_back(boost::lexical_cast<double>(tok)); } catch (...) {} }
                 return out;
             };
 
