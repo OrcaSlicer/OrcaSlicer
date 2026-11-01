@@ -115,6 +115,9 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
     glsafe(::glGetFloatv(GL_COLOR_CLEAR_VALUE, clear_color));
     const GLboolean blend = ::glIsEnabled(GL_BLEND);
     const GLboolean cull  = ::glIsEnabled(GL_CULL_FACE);
+    const GLboolean scissor_test = ::glIsEnabled(GL_SCISSOR_TEST);
+    GLint scissor_box[4] = { 0, 0, 0, 0 };
+    glsafe(::glGetIntegerv(GL_SCISSOR_BOX, scissor_box));
 
     // The mask: normal, part and the distances to the triangle edges of the nearest selected surface.
     glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_mask_fbo));
@@ -216,7 +219,9 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
         glsafe(::glStencilMask(0xFF));
         glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
     }
-    glsafe(::glDisable(GL_SCISSOR_TEST));
+    glsafe(::glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3]));
+    if (!scissor_test)
+        glsafe(::glDisable(GL_SCISSOR_TEST));
     glsafe(::glDepthFunc(GL_LESS));
     glsafe(::glDepthMask(GL_TRUE));
     if (!blend)
