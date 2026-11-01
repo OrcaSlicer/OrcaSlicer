@@ -9603,6 +9603,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                 fan_overlap_threshold = overhang_fan_overlap_threshold(FILAMENT_CONFIG(overhang_fan_threshold));
 
             if (NOZZLE_CONFIG(slowdown_for_curled_perimeters)){
+                const FloatOrPercent fully_unsupported_speed = path.role() == erBridgeInfill ?
+                    FloatOrPercent{NOZZLE_CONFIG(bridge_speed) * 100 / ref_speed, true} :
+                    (NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) < 0.5 ?
+                         FloatOrPercent{100, true} :
+                         FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true});
                 ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
                     {FloatOrPercent{100, true},
                      (NOZZLE_CONFIG(overhang_1_4_speed).get_abs_value(ref_speed) < 0.5) ?
@@ -9617,9 +9622,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                      (NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) < 0.5) ?
                          FloatOrPercent{100, true} :
                          FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
-                     (NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) < 0.5) ?
-                         FloatOrPercent{100, true} :
-                         FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true}});
+                     fully_unsupported_speed});
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
                                                                               ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
