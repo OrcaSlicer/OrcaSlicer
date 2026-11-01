@@ -9,6 +9,7 @@
 #endif
 
 #include <catch2/catch_test_macros.hpp>
+#include <initializer_list>
 #include <string>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/generators/catch_generators_range.hpp>
@@ -2258,6 +2259,62 @@ TEST_CASE("Changing G-code precision invalidates only G-code export", "[Print][R
 
 namespace {
 
+// A plate printed by layer with the prime tower on and both filaments loaded. The tower stands in a corner
+// of the 200 mm bed, far from where the objects are placed.
+DynamicPrintConfig prime_tower_config(std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> extra = {})
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",         1 },
+        { "printable_area",             "0x0,200x0,200x200,0x200" },
+        { "wipe_tower_x",               160 },
+        { "wipe_tower_y",               160 },
+        { "prime_tower_width",          20 },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
+        { "brim_type",                  "no_brim" },
+        { "layer_change_gcode",         "G92 E0\n" }, // validate() relative-E reset
+    });
+    config.set_deserialize_strict(extra);
+    return config;
+}
+
+// Support on filament 1 with its interface on filament 2, for the objects that need any.
+const std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> support_interface_on_filament_2 = {
+    { "enable_support",             1 },
+    { "support_type",               "normal(auto)" },
+    { "support_threshold_angle",    30 },
+    { "support_filament",           1 },
+    { "support_interface_filament", 2 },
+};
+
+ModelObject *add_object(Model &model, TriangleMesh &&mesh, double x, double y)
+{
+    ModelObject *object = model.add_object();
+    object->add_volume(std::move(mesh));
+    object->add_instance()->set_offset(Vec3d(x, y, 0.));
+    object->ensure_on_bed();
+    return object;
+}
+
+// Slices the lower half of a 20 mm cube at 0.1 mm, so that it shares none of its layers there with an
+// object sliced at 0.2 mm.
+void slice_lower_half_finer(ModelObject &object)
+{
+    DynamicPrintConfig range;
+    range.set_key_value("layer_height", new ConfigOptionFloat(0.1));
+    object.layer_config_ranges[{ 0., 10. }].assign_config(std::move(range));
+}
+
+void print_upper_part_with_filament_2(ModelObject &object, double from_z, double to_z)
+{
+    DynamicPrintConfig range;
+    range.set_key_value("extruder", new ConfigOptionInt(2));
+    // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
+    range.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    object.layer_config_ranges[{ from_z, to_z }].assign_config(std::move(range));
+}
+
 // The slicing parameters of an object printed with one filament, on a printer whose first extruder
 // allows layers up to 0.32 mm and the second one up to 0.28 mm. The layers are 0.2 mm, within both.
 SlicingParameters slicing_parameters_on_filament(unsigned int filament)
@@ -2280,6 +2337,84 @@ SlicingParameters slicing_parameters_on_filament(unsigned int filament)
 }
 
 } // namespace
+
+// The parts use one filament and only their support would use the other, so the plate changes filaments
+// only if slicing generates support. Without any, no tower is printed, and the objects need not share
+// their layers.
+TEST_CASE("A plate is sliced with objects that do not share their layers when no support changes filaments", "[Print][PrimeTower]")
+{
+    Model model;
+    slice_lower_half_finer(*add_object(model, cube(20), 20., 20.));
+    add_object(model, cube(20), 60., 20.);
+    Print print;
+    print.apply(model, prime_tower_config(support_interface_on_filament_2));
+
+    CHECK(print.validate().string.empty());
+    REQUIRE_NOTHROW(print.process());
+    CHECK(print.wipe_tower_data().tool_changes.empty());
+}
+
+TEST_CASE("Objects that do not share their layers are refused once their support changes filaments", "[Print][PrimeTower]")
+{
+    Model model;
+    slice_lower_half_finer(*add_object(model, cube(20), 20., 20.));
+    TriangleMesh overhang = mesh(TestMesh::overhang);
+    overhang.scale(2.f);
+    add_object(model, std::move(overhang), 60., 20.);
+    Print print;
+    print.apply(model, prime_tower_config(support_interface_on_filament_2));
+
+    // Before slicing it is not known whether the overhang gets support.
+    CHECK(print.validate().string.empty());
+    REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("prime tower"));
+}
+
+TEST_CASE("Objects that do not share their layers are refused before slicing when their parts use two filaments", "[Print][PrimeTower]")
+{
+    Model model;
+    slice_lower_half_finer(*add_object(model, cube(20), 20., 20.));
+    add_object(model, cube(20), 60., 20.)->config.set_key_value("extruder", new ConfigOptionInt(2));
+    Print print;
+    print.apply(model, prime_tower_config());
+
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("prime tower"));
+}
+
+// "No sparse layers" refuses an object that rises too far above the compacted tower. Away from the
+// toolhead that limit is the lid clearance above the tower, which slicing alone tells how tall it is.
+TEST_CASE("No sparse layers lets an object away from the tower rise past the lid clearance when the tower keeps up", "[Print][PrimeTower]")
+{
+    Model model;
+    // A tool change on every layer, so the compacted tower is as tall as the objects.
+    add_object(model, make_cube(20., 20., 40.), 20., 20.);
+    add_object(model, make_cube(20., 20., 40.), 60., 20.)->config.set_key_value("extruder", new ConfigOptionInt(2));
+    Print print;
+    print.apply(model, prime_tower_config({
+        { "wipe_tower_no_sparse_layers",      1 },
+        { "extruder_clearance_height_to_lid", 20 },
+        { "extruder_clearance_height_to_rod", 20 },
+    }));
+
+    CHECK(print.validate().string.empty());
+    REQUIRE_NOTHROW(print.process());
+    CHECK_FALSE(print.wipe_tower_data().tool_changes.empty());
+}
+
+TEST_CASE("No sparse layers still refuses an object that rises past the lid clearance above the tower", "[Print][PrimeTower]")
+{
+    Model model;
+    // The filament only changes from 30 mm up, by when the compacted tower is still a few layers tall.
+    print_upper_part_with_filament_2(*add_object(model, make_cube(20., 20., 40.), 20., 20.), 30., 40.);
+    Print print;
+    print.apply(model, prime_tower_config({
+        { "wipe_tower_no_sparse_layers",      1 },
+        { "extruder_clearance_height_to_lid", 20 },
+        { "extruder_clearance_height_to_rod", 20 },
+    }));
+
+    CHECK(print.validate().string.empty());
+    REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("No sparse layers"));
+}
 
 TEST_CASE("An object takes the layer height limits of the extruder of its own filament", "[Print]")
 {

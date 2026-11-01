@@ -1188,6 +1188,12 @@ public:
 
     // Wipe tower support.
     bool                        has_wipe_tower() const;
+    // Orca: has_wipe_tower() only says the prime tower is enabled for a plate that may change filaments.
+    // This says the plate prints a tower whatever slicing finds; when false, whether it does depends on
+    // the support that slicing generates.
+    bool                        wipe_tower_certain_before_slicing() const;
+    // Orca: the layering a prime tower needs, all objects sharing their layers. Empty if they do.
+    StringObjectException       validate_wipe_tower_layering() const;
     // Belt purge prism (belt-mode replacement for the wipe tower).
     bool                        has_belt_purge_tower() const;
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
@@ -1659,6 +1665,8 @@ struct CompactedTowerClearance
     double far_clearance;
     // The object sits within the toolhead radius, so the head body limits it rather than the rod.
     bool   near_body;
+    // The object sits within the nozzle cone, so it may not rise above the tower at all.
+    bool   near_nozzle;
     // Horizontal clearance this particular object has to keep from the tower: the full toolhead
     // radius once it rises past the nozzle cone, the bare cone while it stays below. It is what the
     // error message quotes and what the plater grows the object outline by.

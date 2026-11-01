@@ -1352,6 +1352,7 @@ CompactedTowerClearance compacted_wipe_tower_clearance(const PrintConfig &config
     const Polygons inst_near_nozzle = offset(inst_hull, float(scale_(compacted_tower_half_clearance(MAX_OUTER_NOZZLE_DIAMETER))), jtRound, scale_(0.1));
     const bool     near_nozzle      = ! intersection(zone.grown_nozzle, inst_near_nozzle).empty();
     result.near_body                = false;
+    result.near_nozzle              = near_nozzle;
     if (! object_is_short) {
         const Polygons inst_near_body = offset(inst_hull, float(scale_(compacted_tower_half_clearance(zone.body_radius))), jtRound, scale_(0.1));
         result.near_body              = ! intersection(zone.grown_body, inst_near_body).empty();
@@ -1459,7 +1460,9 @@ static Polygon estimated_wipe_tower_footprint(const Print &print)
 StringObjectException Print::compacted_wipe_tower_clearance_valid(const Print &print, Polygons *polygons, std::vector<std::pair<Polygon, float>> *height_polygons)
 {
     const PrintConfig &config = print.config();
-    if (! wipe_tower_sparse_layers_skipped(config) || config.print_sequence != PrintSequence::ByLayer || ! print.has_wipe_tower())
+    // Orca: when only the support could change filaments, whether there is a tower at all is left to
+    // validate_compacted_wipe_tower_clearance(), once slicing has told.
+    if (! wipe_tower_sparse_layers_skipped(config) || config.print_sequence != PrintSequence::ByLayer || ! print.wipe_tower_certain_before_slicing())
         return {};
 
     const CompactedTowerZone zone = compacted_wipe_tower_zone(config, estimated_wipe_tower_footprint(print));
@@ -1476,6 +1479,12 @@ StringObjectException Print::compacted_wipe_tower_clearance_valid(const Print &p
             if (inst_hull.points.empty())
                 continue;
             const CompactedTowerClearance clearance = compacted_wipe_tower_clearance(config, zone, inst_hull, object_top);
+            // Orca: away from the toolhead only the rod and the lid limit an object, and whether it reaches
+            // them depends on how far the compacted tower has grown by each tool change, which only slicing
+            // tells. Measured from the plate, any object taller than the lid clearance was refused wherever
+            // it stood. validate_compacted_wipe_tower_clearance() judges those against the real tower.
+            if (! clearance.near_nozzle && ! clearance.near_body)
+                continue;
             body_tier_used                          = body_tier_used || compacted_tower_body_tier(clearance);
             // Every tier the precise check applies is applied here too, otherwise an object standing
             // within the toolhead radius would pass here and then be rejected mid-slice, which is the
@@ -1997,6 +2006,93 @@ std::string Print::slicing_errors_message(const SlicingErrors &errors) const
     return message;
 }
 
+// Orca: the layering a prime tower needs, all objects sharing their layers over the height they have in common.
+StringObjectException Print::validate_wipe_tower_layering() const
+{
+    if (m_objects.size() < 2)
+        return {};
+    const bool has_custom_layering = std::any_of(m_objects.begin(), m_objects.end(),
+        [](const PrintObject *object) { return object->model_object()->has_custom_layering(); });
+    std::vector<std::vector<coordf_t>> layer_height_profiles(m_objects.size());
+    auto layer_height_profile = [this, &layer_height_profiles](const size_t print_object_idx) -> const std::vector<coordf_t>& {
+        std::vector<coordf_t> &profile = layer_height_profiles[print_object_idx];
+        if (profile.empty())
+            PrintObject::update_layer_height_profile(*m_objects[print_object_idx]->model_object(), m_objects[print_object_idx]->slicing_parameters(), profile);
+        return profile;
+    };
+
+    const SlicingParameters &slicing_params0 = m_objects.front()->slicing_parameters();
+    size_t                  tallest_object_idx = 0;
+    for (size_t i = 1; i < m_objects.size(); ++ i) {
+        const PrintObject       *object         = m_objects[i];
+        const SlicingParameters &slicing_params = object->slicing_parameters();
+        if (std::abs(slicing_params.first_print_layer_height - slicing_params0.first_print_layer_height) > EPSILON ||
+            std::abs(slicing_params.layer_height             - slicing_params0.layer_height            ) > EPSILON)
+            return {L("A prime tower requires that all objects have the same layer height."), object, "initial_layer_print_height"};
+        if (slicing_params.raft_layers() != slicing_params0.raft_layers())
+            return {L("A prime tower requires that all objects are printed over the same number of raft layers."), object, "raft_layers"};
+        // BBS: support gap can be multiple of object layer height, remove _L()
+#if 0
+        if (slicing_params0.gap_object_support != slicing_params.gap_object_support ||
+            slicing_params0.gap_support_object != slicing_params.gap_support_object)
+            return {L("The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."), object};
+#endif
+        if (!equal_layering(slicing_params, slicing_params0))
+            return  { L("A prime tower requires that all objects are sliced with the same layer height."), object };
+        if (has_custom_layering) {
+            auto &lh         = layer_height_profile(i);
+            auto &lh_tallest = layer_height_profile(tallest_object_idx);
+            if (*(lh.end() - 2) > *(lh_tallest.end() - 2))
+                tallest_object_idx = i;
+        }
+    }
+
+    // BBS: remove obsolete logics and _L()
+    if (has_custom_layering) {
+        std::vector<std::vector<coordf_t>> layer_z_series;
+        layer_z_series.assign(m_objects.size(), std::vector<coordf_t>());
+
+        for (size_t idx_object = 0; idx_object < m_objects.size(); ++idx_object) {
+            layer_z_series[idx_object] = generate_object_layers(m_objects[idx_object]->slicing_parameters(), layer_height_profile(idx_object), m_objects[idx_object]->config().precise_z_height.value);
+        }
+
+        for (size_t idx_object = 0; idx_object < m_objects.size(); ++idx_object) {
+            if (idx_object == tallest_object_idx) continue;
+            // Check that the layer height profiles are equal. This will happen when one object is
+            // a copy of another, or when a layer height modifier is used the same way on both objects.
+            // The latter case might create a floating point inaccuracy mismatch, so compare
+            // element-wise using an epsilon check.
+            size_t         i   = 0;
+            const coordf_t eps = 0.5 * EPSILON; // layers closer than EPSILON will be merged later. Let's make
+            // this check a bit more sensitive to make sure we never consider two different layers as one.
+            while (i < layer_height_profiles[idx_object].size() && i < layer_height_profiles[tallest_object_idx].size()) {
+                // BBS: remove the break condition, because a variable layer height object and a new object will not be checked when slicing
+                //if (i % 2 == 0 && layer_height_profiles[tallest_object_idx][i] > layer_height_profiles[idx_object][layer_height_profiles[idx_object].size() - 2])
+                //    break;
+                if (std::abs(layer_height_profiles[idx_object][i] - layer_height_profiles[tallest_object_idx][i]) > eps)
+                    return {L("The prime tower is only supported if all objects have the same variable layer height.")};
+                ++i;
+            }
+        }
+    }
+    return {};
+}
+
+// Orca: a tower is printed only on a tool change. When the parts themselves use one filament, the only
+// tool changes can come from support printed with another filament, and only slicing tells whether
+// there is any support at all.
+bool Print::wipe_tower_certain_before_slicing() const
+{
+    if (! this->has_wipe_tower())
+        return false;
+    if ((m_config.enable_wrapping_detection.value && m_config.wrapping_exclude_area.values.size() > 2) || this->enable_timelapse_print())
+        return true;
+    std::vector<unsigned int> extruders = this->object_extruders();
+    this->append_tool_change_extruders(extruders);
+    sort_remove_duplicates(extruders);
+    return extruders.size() > 1;
+}
+
 StringObjectException Print::validate(std::vector<StringObjectException> *warnings, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons) const
 {
     auto add_warning = [warnings](StringObjectException w) {
@@ -2452,11 +2548,6 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
     }
 
-    // Some of the objects has variable layer height applied by painting or by a table.
-    bool has_custom_layering = std::find_if(m_objects.begin(), m_objects.end(), 
-        [](const PrintObject *object) { return object->model_object()->has_custom_layering(); }) 
-        != m_objects.end();
-
     // Custom layering is not allowed for tree supports as of now.
     for (size_t print_object_idx = 0; print_object_idx < m_objects.size(); ++ print_object_idx)
         if (const PrintObject &print_object = *m_objects[print_object_idx];
@@ -2533,62 +2624,11 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
 #endif
 
-        if (m_objects.size() > 1) {
-            const SlicingParameters &slicing_params0 = m_objects.front()->slicing_parameters();
-            size_t                  tallest_object_idx = 0;
-            for (size_t i = 1; i < m_objects.size(); ++ i) {
-                const PrintObject       *object         = m_objects[i];
-                const SlicingParameters &slicing_params = object->slicing_parameters();
-                if (std::abs(slicing_params.first_print_layer_height - slicing_params0.first_print_layer_height) > EPSILON ||
-                    std::abs(slicing_params.layer_height             - slicing_params0.layer_height            ) > EPSILON)
-                    return {L("A prime tower requires that all objects have the same layer height."), object, "initial_layer_print_height"};
-                if (slicing_params.raft_layers() != slicing_params0.raft_layers())
-                    return {L("A prime tower requires that all objects are printed over the same number of raft layers."), object, "raft_layers"};
-                // BBS: support gap can be multiple of object layer height, remove _L()
-#if 0
-                if (slicing_params0.gap_object_support != slicing_params.gap_object_support ||
-                    slicing_params0.gap_support_object != slicing_params.gap_support_object)
-                    return {L("The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."), object};
-#endif
-                if (!equal_layering(slicing_params, slicing_params0))
-                    return  { L("A prime tower requires that all objects are sliced with the same layer height."), object };
-                if (has_custom_layering) {
-                    auto &lh         = layer_height_profile(i);
-                    auto &lh_tallest = layer_height_profile(tallest_object_idx);
-                    if (*(lh.end() - 2) > *(lh_tallest.end() - 2))
-                        tallest_object_idx = i;
-                }
-            }
-
-            // BBS: remove obsolete logics and _L()
-            if (has_custom_layering) {
-                std::vector<std::vector<coordf_t>> layer_z_series;
-                layer_z_series.assign(m_objects.size(), std::vector<coordf_t>());
-               
-                for (size_t idx_object = 0; idx_object < m_objects.size(); ++idx_object) {
-                    layer_z_series[idx_object] = generate_object_layers(m_objects[idx_object]->slicing_parameters(), layer_height_profiles[idx_object], m_objects[idx_object]->config().precise_z_height.value);
-                }
-
-                for (size_t idx_object = 0; idx_object < m_objects.size(); ++idx_object) {
-                    if (idx_object == tallest_object_idx) continue;
-                    // Check that the layer height profiles are equal. This will happen when one object is
-                    // a copy of another, or when a layer height modifier is used the same way on both objects.
-                    // The latter case might create a floating point inaccuracy mismatch, so compare
-                    // element-wise using an epsilon check.
-                    size_t         i   = 0;
-                    const coordf_t eps = 0.5 * EPSILON; // layers closer than EPSILON will be merged later. Let's make
-                    // this check a bit more sensitive to make sure we never consider two different layers as one.
-                    while (i < layer_height_profiles[idx_object].size() && i < layer_height_profiles[tallest_object_idx].size()) {
-                        // BBS: remove the break condition, because a variable layer height object and a new object will not be checked when slicing
-                        //if (i % 2 == 0 && layer_height_profiles[tallest_object_idx][i] > layer_height_profiles[idx_object][layer_height_profiles[idx_object].size() - 2])
-                        //    break;
-                        if (std::abs(layer_height_profiles[idx_object][i] - layer_height_profiles[tallest_object_idx][i]) > eps)
-                            return {L("The prime tower is only supported if all objects have the same variable layer height.")};
-                        ++i;
-                    }
-                }
-            }
-        }
+        // Orca: the objects only have to share their layers when the tower is printed. When that depends on
+        // the support slicing generates, _make_wipe_tower() checks it once the tool changes are known.
+        if (m_objects.size() > 1 && (this->has_belt_purge_tower() || this->wipe_tower_certain_before_slicing()))
+            if (StringObjectException error = this->validate_wipe_tower_layering(); ! error.string.empty())
+                return error;
     }
 
 	{
@@ -3644,6 +3684,9 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         m_wipe_tower_data.clear();
         m_tool_ordering.clear();
+        // Orca: _make_wipe_tower() sets it up only for a tower it generates, so none is left from an earlier
+        // slicing of the plate, nor uninitialized when the plate turns out to change no filament.
+        m_fake_wipe_tower = FakeWipeTower();
         if (this->has_belt_purge_tower() && this->config().print_sequence != PrintSequence::ByObject) {
             this->_plan_belt_purge();
         }
@@ -3981,7 +4024,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         using Clock                 = std::chrono::high_resolution_clock;
         auto            startTime   = Clock::now();
         std::optional<const FakeWipeTower *> wipe_tower_opt = {};
-        if (this->has_wipe_tower()) {
+        // Orca: only a tower that is printed can collide with the objects.
+        if (this->has_wipe_tower() && m_wipe_tower_data.tool_ordering.has_wipe_tower()) {
             m_fake_wipe_tower.set_pos({m_config.wipe_tower_x.get_at(m_plate_index), m_config.wipe_tower_y.get_at(m_plate_index)});
             wipe_tower_opt = std::make_optional<const FakeWipeTower *>(&m_fake_wipe_tower);
         }
@@ -5286,6 +5330,12 @@ void Print::_make_wipe_tower()
     if (!m_wipe_tower_data.tool_ordering.has_wipe_tower())
         // Don't generate any wipe tower.
         return;
+
+    // Orca: validate() leaves the layering unchecked when only the support could change filaments, since
+    // it cannot know before slicing whether there is any support. Now that there are tool changes, check it.
+    if (! this->wipe_tower_certain_before_slicing())
+        if (StringObjectException error = this->validate_wipe_tower_layering(); ! error.string.empty())
+            throw Slic3r::SlicingError(error.string, error.object ? error.object->id().id : 0);
 
     // Check whether there are any layers in m_tool_ordering, which are marked with has_wipe_tower,
     // they print neither object, nor support. Each such layer needs a virtual support layer
