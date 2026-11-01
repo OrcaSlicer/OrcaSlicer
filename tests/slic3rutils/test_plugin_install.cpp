@@ -9,6 +9,7 @@
 #include <slic3r/plugin/PluginFsUtils.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include "catch2/catch_message.hpp"
@@ -18,6 +19,7 @@
 #include <boost/filesystem.hpp>
 
 #include <fstream>
+#include <sstream>
 #include <string>
 
 #include <libslic3r/Zipper.hpp>
@@ -105,6 +107,89 @@ TEST_CASE("install_plugin accepts a side-loaded .py with complete PEP 723 metada
     // Positive control: a complete side-loaded .py must still install (guards against over-rejection).
     REQUIRE(installed);
     CHECK(error.empty());
+}
+
+namespace {
+
+const std::string changelog_entry = "[[tool.orcaslicer.plugin.changelog]]\n";
+
+PluginDescriptor read_header(const std::string& toml_lines)
+{
+    ScopedDataDir guard("header");
+    std::string contents = "# /// script\n# [tool.orcaslicer.plugin]\n# name = \"Header Test\"\n# version = \"9.9.9\"\n";
+    std::istringstream lines(toml_lines);
+    for (std::string line; std::getline(lines, line);)
+        contents += "# " + line + "\n";
+    contents += "# ///\n";
+
+    PluginDescriptor descriptor;
+    std::string error;
+    REQUIRE(read_python_plugin_metadata(write_py_file(guard.dir, "header.py", contents), descriptor, error));
+    return descriptor;
+}
+
+} // namespace
+
+TEST_CASE("a header's inline SVG thumbnail becomes a data URI", "[PluginInstall]")
+{
+    // PHN2Zy8+ is the base64 of <svg/>.
+    CHECK(read_header("thumbnail = '<svg/>'\n").thumbnail_url == "data:image/svg+xml;base64,PHN2Zy8+");
+}
+
+TEST_CASE("a header thumbnail that is not inline SVG is refused", "[PluginInstall]")
+{
+    const std::string value = GENERATE("https://example.com/a.svg", "file:///C:/a.svg", "a.svg", "data:image/svg+xml;base64,PHN2Zy8+");
+    CHECK(read_header("thumbnail = '" + value + "'\n").thumbnail_url.empty());
+}
+
+TEST_CASE("an oversized header thumbnail is refused", "[PluginInstall]")
+{
+    CHECK(read_header("thumbnail = '<svg>" + std::string(256 * 1024, 'x') + "</svg>'\n").thumbnail_url.empty());
+}
+
+TEST_CASE("a header without a thumbnail or changelog leaves them empty", "[PluginInstall]")
+{
+    const PluginDescriptor descriptor = read_header("");
+    CHECK(descriptor.thumbnail_url.empty());
+    CHECK(descriptor.changelog.empty());
+}
+
+TEST_CASE("header changelog entries are sorted newest first", "[PluginInstall]")
+{
+    const PluginDescriptor descriptor = read_header(
+        changelog_entry + "version = \"1.0.0\"\ndate = \"2026-01-02\"\nchanges = \"Older\"\n" +
+        changelog_entry + "version = \"2.0.0\"\ndate = \"2026-03-04\"\nchanges = \"Newer\"\n");
+    REQUIRE(descriptor.changelog.size() == 2);
+    CHECK(descriptor.changelog[0].version == "2.0.0");
+    CHECK(descriptor.changelog[0].changelog == "Newer");
+    CHECK(descriptor.changelog[1].version == "1.0.0");
+    CHECK(descriptor.changelog[0].created_time - descriptor.changelog[1].created_time == 61 * 86400);
+}
+
+TEST_CASE("header changelog entries for one version keep their written order", "[PluginInstall]")
+{
+    const std::string fields = "version = \"1.0.0\"\ndate = \"2026-01-02\"\n";
+    const PluginDescriptor descriptor = read_header(
+        changelog_entry + fields + "changes = \"First\"\n" + changelog_entry + fields + "changes = \"Second\"\n");
+    REQUIRE(descriptor.changelog.size() == 2);
+    CHECK(descriptor.changelog[0].changelog == "First");
+    CHECK(descriptor.changelog[1].changelog == "Second");
+}
+
+TEST_CASE("a header changelog entry with an invalid date is undated", "[PluginInstall]")
+{
+    const PluginDescriptor descriptor = read_header(changelog_entry + "date = \"soon\"\nchanges = \"Text\"\n");
+    REQUIRE(descriptor.changelog.size() == 1);
+    CHECK(descriptor.changelog[0].created_time == 0);
+}
+
+TEST_CASE("header changelog keys do not change the plugin's identity or dependencies", "[PluginInstall]")
+{
+    const PluginDescriptor descriptor = read_header(
+        changelog_entry + "version = \"1.0.0\"\nname = \"Other\"\ndependencies = [\"evil\"]\nchanges = \"Text\"\n");
+    CHECK(descriptor.version == "9.9.9");
+    CHECK(descriptor.name == "Header Test");
+    CHECK(descriptor.dependencies.empty());
 }
 
 TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's installed version", "[PluginInstall]")
