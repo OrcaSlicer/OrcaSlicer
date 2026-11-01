@@ -12,6 +12,7 @@
 #include "PartPlate.hpp"
 #include "BitmapCache.hpp"
 #include "Camera.hpp"
+#include "SelectionOutline.hpp"
 
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
@@ -107,9 +108,6 @@ float FullTransparentModdifiedToFixAlpha = 0.3f;
 // value like 0.18f could not because in C++ (int)(0.18f * 255) == 45 however in OpenGL it renders this as 46
 // which breaks the `SelectMachineDialog::record_edge_pixels_data()` function!
 float FULL_BLACK_THRESHOLD = 0.2f;
-// Keep depth_tex away from texture unit 0 to avoid sampler-type aliasing with
-// shadow/environment samplers when realistic view is disabled.
-static constexpr int OUTLINE_DEPTH_TEX_UNIT = 5;
 
 Slic3r::ColorRGBA adjust_color_for_rendering(const Slic3r::ColorRGBA &colors)
 {
@@ -549,159 +547,6 @@ void GLVolume::render()
     std::vector<ColorRGBA> colors = GUI::wxGetApp().plater()->get_extruders_colors();
 
     simple_render(shader, model_objects, colors);
-}
-
-//BBS: add outline related logic
-void GLVolume::render_with_outline(const GUI::Size& cnv_size)
-{
-    if (!is_active)
-        return;
-
-    GLShaderProgram *shader = GUI::wxGetApp().get_current_shader();
-    if (shader == nullptr)
-        return;
-
-    ModelObjectPtrs &model_objects = GUI::wxGetApp().model().objects;
-    std::vector<ColorRGBA> colors = GUI::wxGetApp().plater()->get_extruders_colors();
-
-    const GUI::OpenGLManager::EFramebufferType framebuffers_type = GUI::OpenGLManager::get_framebuffers_type();
-    if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Unknown) {
-        // No supported, degrade to normal rendering
-        simple_render(shader, model_objects, colors);
-        return;
-    }
-    // 0th. render pass, render the model using stencil buffer
-    glsafe(::glEnable(GL_STENCIL_TEST));
-    glsafe(::glStencilMask(0xFF));
-    glsafe(::glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE));
-    glsafe(::glClearStencil(0));
-    glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
-    glsafe(::glStencilFunc(GL_ALWAYS, 0xFF, 0xFF));
-    // This pass paints the visible surface, so it must go through simple_render() to keep
-    // per-triangle MMU paint colors; the later is_outline passes only draw the flat silhouette
-    // highlight and are fine using the single-color model.
-    simple_render(shader, model_objects, colors);
-    glsafe(::glStencilFunc(GL_NOTEQUAL, 0xFF, 0xFF));
-    glsafe(::glStencilMask(0x00));
-    shader->set_uniform("is_outline", true);
-    shader->set_uniform("screen_size", Vec2f{cnv_size.get_width(), cnv_size.get_height()});
-    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
-        model.render(shader);
-    else
-        model.render(this->tverts_range, shader);
-    shader->set_uniform("is_outline", false);
-    glsafe(::glStencilMask(0xFF));
-    glsafe(::glDisable(GL_STENCIL_TEST));
-    // render the outline using depth buffer and discard the pixels that are not on the outline
-    // The silhouette is resolved per sample in the shader (see DetectSilho in gouraud.fs/phong.fs).
-    // That needs the GL 3.2 entry points and a shader that declares depth_tex as sampler2DMS, which
-    // only the 140 ones do and only under GL_ARB_texture_multisample - so ask the compiled program
-    // rather than the GL version, or a sampler2D ends up bound to a multisample texture.
-    // Only the Arb branch below allocates a multisample texture, so keep the target consistent with it.
-    const bool  use_msaa_outline = framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb &&
-                                   GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 2) &&
-                                   shader->get_uniform_location("msaa_samples") >= 0;
-    const GLenum depth_tex_target = use_msaa_outline ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-    // Keep the depth texture off image unit 0. The object shaders leave shadow_map (and
-    // environment_tex) at the default sampler value 0 whenever the shadow pass is skipped - which is
-    // the case with realistic view off - and GL forbids two sampler types referring to the same image
-    // unit. A sampler2DMS on unit 0 then makes every draw fail with INVALID_OPERATION on drivers that
-    // enforce it (Mesa), i.e. the model disappears entirely. Unit 5 is unused (shadow_map takes 4).
-    const int depth_tex_unit = OUTLINE_DEPTH_TEX_UNIT;
-    int aa_samples = 1;
-    if (use_msaa_outline) {
-        if (const AppConfig* app_config = GUI::wxGetApp().app_config; app_config != nullptr) {
-            const std::string value = app_config->get(SETTING_OPENGL_AA_SAMPLES);
-            if (value == "2" || value == "4" || value == "8" || value == "16")
-                aa_samples = ::atoi(value.c_str());
-        }
-        // Never request more samples than the driver supports for depth textures (a 1-sample texture
-        // is used when MSAA is disabled, keeping a single code path for the sampler2DMS shader).
-        GLint max_samples = 1;
-        glsafe(::glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &max_samples));
-        if (aa_samples > max_samples)
-            aa_samples = max_samples < 1 ? 1 : max_samples;
-        if (aa_samples < 1)
-            aa_samples = 1;
-    }
-    // 1st. render pass, render the model into a separate render target that has only depth buffer
-    GLuint depth_fbo   = 0;
-    GLuint depth_tex = 0;
-    if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
-        glsafe(::glGenFramebuffers(1, &depth_fbo));
-        glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo));
-
-        glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
-        glsafe(::glGenTextures(1, &depth_tex));
-        glsafe(::glBindTexture(depth_tex_target, depth_tex));
-        if (use_msaa_outline) {
-            // Multisample textures do not take filter/wrap parameters.
-            glsafe(::glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, aa_samples, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), GL_TRUE));
-        } else {
-            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-            glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
-        }
-
-        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_tex_target, depth_tex, 0));
-    } else {
-        glsafe(::glGenFramebuffersEXT(1, &depth_fbo));
-        glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, depth_fbo));
-
-        glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
-        glsafe(::glGenTextures(1, &depth_tex));
-        glsafe(::glBindTexture(GL_TEXTURE_2D, depth_tex));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
-
-        glsafe(::glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depth_tex, 0));
-    }
-    // Unbind before drawing: the texture is this framebuffer's depth attachment, so leaving it bound
-    // to a sampled unit would be a feedback loop.
-    glsafe(::glBindTexture(depth_tex_target, 0));
-    glsafe(::glActiveTexture(GL_TEXTURE0));
-    glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
-    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
-        model.render(shader);
-    else
-        model.render(this->tverts_range, shader);
-
-    // 2nd. render pass, just a normal render with the depth buffer passed as a texture
-    if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
-        glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, 0));
-    } else if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Ext) {
-        glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0));
-    }
-    shader->set_uniform("is_outline", true);
-    shader->set_uniform("screen_size", Vec2f{cnv_size.get_width(), cnv_size.get_height()});
-    shader->set_uniform("msaa_samples", aa_samples);
-    glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
-    glsafe(::glBindTexture(depth_tex_target, depth_tex));
-    glsafe(::glActiveTexture(GL_TEXTURE0));
-    shader->set_uniform("depth_tex", depth_tex_unit);
-    simple_render(shader, model_objects, colors);
-
-    // Some clean up to do
-    glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
-    glsafe(::glBindTexture(depth_tex_target, 0));
-    glsafe(::glActiveTexture(GL_TEXTURE0));
-    shader->set_uniform("is_outline", false);
-    if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
-        glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, 0));
-        if (depth_fbo != 0)
-            glsafe(::glDeleteFramebuffers(1, &depth_fbo));
-    } else if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Ext) {
-        glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0));
-        if (depth_fbo != 0)
-            glsafe(::glDeleteFramebuffersEXT(1, &depth_fbo));
-    }
-    if (depth_tex != 0)
-        glsafe(::glDeleteTextures(1, &depth_tex));
 }
 
 //BBS add render for simple case
@@ -1202,15 +1047,14 @@ float GLVolumeCollection::get_selection_support_normal_z() const
     return static_cast<float>(-std::cos(std::clamp(angle_rad, 0.0, Geometry::deg2rad(89.0))));
 }
 
-//BBS: add outline drawing logic
 void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
                                 bool                                  disable_cullface,
                                 const Transform3d &                   view_matrix,
                                 const Transform3d&                    projection_matrix,
-                                const GUI::Size&                      cnv_size,
                                 std::function<bool(const GLVolume &)> filter_func,
                                 bool                                  partly_inside_enable,
-                                std::vector<double> *                 printable_heights) const
+                                std::vector<double> *                 printable_heights,
+                                std::vector<GLVolume*> *              outlined_volumes) const
 {
     GLVolumeWithIdAndZList to_render = volumes_to_render(volumes, type, view_matrix, filter_func);
     if (to_render.empty())
@@ -1238,16 +1082,9 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
 
     const float support_normal_z = get_selection_support_normal_z();
 
-    // The outline passes below are driven by is_outline, which only the object shaders have; with an
-    // overlay one (wireframe, x-ray) bound they would just draw the volume again.
-    const bool shader_can_outline = shader->get_uniform_location("is_outline") >= 0;
     // ORCA: the object shaders that know how draw a part of a translucent filament as its print would
     // show, in premultiplied color, see translucent_filament_color() in gouraud.fs
     const bool shade_translucent_filaments = type == ERenderType::Transparent && shader->get_uniform_location("translucent_filament") >= 0;
-
-    // Prime depth_tex on every frame so non-outline draws do not keep the
-    // default sampler unit 0, which can conflict with other sampler types.
-    shader->set_uniform("depth_tex", OUTLINE_DEPTH_TEX_UNIT);
 
     // Compute up direction accounting for build plate tilt. This is frame-invariant
     // (config cannot change mid-render), so compute it once before the volume loop.
@@ -1358,11 +1195,19 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
             glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
             glsafe(::glPolygonOffset(1.0f, 1.0f));
         }
-		//BBS: add outline related logic
-        if (volume.first->selected && shader_can_outline && GUI::wxGetApp().show_outline())
-            volume.first->render_with_outline(cnv_size);
-        else
-            volume.first->render();
+        const bool outlined = outlined_volumes != nullptr && volume.first->selected && volume.first->is_active && !volume.first->is_wipe_tower;
+        if (outlined) {
+            outlined_volumes->push_back(volume.first);
+            glsafe(::glEnable(GL_STENCIL_TEST));
+            glsafe(::glStencilMask(GUI::SelectionOutline::StencilBit));
+            glsafe(::glStencilFunc(GL_ALWAYS, GUI::SelectionOutline::StencilBit, GUI::SelectionOutline::StencilBit));
+            glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
+        }
+        volume.first->render();
+        if (outlined) {
+            glsafe(::glDisable(GL_STENCIL_TEST));
+            glsafe(::glStencilMask(0xFF));
+        }
         if (volume.first->depth_bias)
             glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
 

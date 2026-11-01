@@ -98,6 +98,12 @@ std::pair<bool, std::string> GLShadersManager::init()
         );
     // used to render objects as translucent, edge weighted surfaces in the X-Ray view
     valid &= append_shader("xray", { prefix + "xray.vs", prefix + "xray.fs" });
+#if !SLIC3R_OPENGL_ES
+    // used to outline the selected volumes, see SelectionOutline
+    valid &= append_shader("outline_mask", { prefix + "outline_mask.vs", prefix + "outline_mask.fs" });
+    valid &= append_shader("outline_edges", { prefix + "background.vs", prefix + "outline_edges.fs" });
+    valid &= append_shader("outline", { prefix + "background.vs", prefix + "outline.fs" });
+#endif // !SLIC3R_OPENGL_ES
     // used to render variable layers heights in 3d editor
     valid &= append_shader("variable_layer_height", { prefix + "variable_layer_height.vs", prefix + "variable_layer_height.fs" });
     // used to render highlight contour around selected triangles inside the multi-material gizmo
