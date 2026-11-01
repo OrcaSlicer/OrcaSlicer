@@ -21,6 +21,7 @@
 #include <string>
 #include <wx/event.h>
 #include <functional>
+#include <optional>
 #include "libslic3r/Color.hpp"
 
 namespace Slic3r {
@@ -32,6 +33,7 @@ struct CutConnectorAttributes;
 
 namespace GUI {
 class Selection;
+class ImGuiWrapper;
 
 enum class SLAGizmoEventType : unsigned char;
 
@@ -236,7 +238,6 @@ class GLGizmoCut3D : public GLGizmoBase
         , Manual
     };
 
-    std::vector<std::string> m_modes;
     size_t m_mode{ size_t(CutMode::cutPlanar) };
 
     std::vector<std::string> m_connector_modes;
@@ -283,6 +284,14 @@ public:
 
     BoundingBoxf3   bounding_box() const;
     BoundingBoxf3   transformed_bounding_box(const Vec3d& plane_center, const Transform3d& rotation_m = Transform3d::Identity()) const;
+
+    // The cut modes, shown as a row of icon buttons. Planar and Dovetail are modes of this tool; Curve is the
+    // "Cut along path" tool (GLGizmoPathCut), a gizmo of its own that is opened from this row.
+    enum class ModeButton : int { Planar = 0, Dovetail = 1, Curve = 2 };
+    // Draws the "Mode" row, with the buttons starting at controls_x, and returns the button clicked, if any.
+    static std::optional<ModeButton> render_mode_buttons(ImGuiWrapper &imgui, ModeButton active, float controls_x, float scale, bool enabled, bool is_dark);
+    // Selects Planar or Dovetail, as when coming back from the Curve tool.
+    void select_mode(ModeButton mode);
 
 protected:
     bool               on_init() override;
@@ -356,7 +365,7 @@ protected:
 private:
     void set_center(const Vec3d&center, bool update_tbb = false);
     void switch_to_mode(size_t new_mode);
-    bool render_cut_mode_combo();
+    bool render_cut_mode_buttons(bool enabled);
     bool render_double_input(const std::string& label, double& value_in);
     bool render_slider_two_input(const std::string& label, float& value_in, float& tolerance_in, float min_val = -0.1f, float max_tolerance = -0.1f);
     bool render_slider_input(const std::string& label, float& value_in, float min_val = -0.1f, float max_val = 100.f);

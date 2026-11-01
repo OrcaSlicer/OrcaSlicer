@@ -68,6 +68,8 @@
 #include "slic3r/GUI/GLShader.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include <array>
+#include <optional>
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
@@ -244,10 +246,6 @@ GLGizmoCut3D::GLGizmoCut3D(GLCanvas3D& parent, const std::string& icon_filename,
     , m_connector_style (int(CutConnectorStyle::Prism))
     , m_connector_shape_id (int(CutConnectorShape::Circle))
 {
-    m_modes = { _u8L("Planar"), _u8L("Dovetail")//, _u8L("Grid")
-//              , _u8L("Radial"), _u8L("Modular")
-    };
-
     m_connector_modes = { _u8L("Auto"), _u8L("Manual") };
 
     m_connector_types = { _u8L("Plug"), _u8L("Dowel"), _u8L("Snap") };
@@ -564,21 +562,63 @@ void GLGizmoCut3D::switch_to_mode(size_t new_mode)
     reset_cut_by_contours();
 }
 
-bool GLGizmoCut3D::render_cut_mode_combo()
+std::optional<GLGizmoCut3D::ModeButton> GLGizmoCut3D::render_mode_buttons(ImGuiWrapper &imgui, ModeButton active, float controls_x, float scale, bool enabled, bool is_dark)
 {
+    // Same look as the tool type buttons of the painting tools.
+    const std::array<wchar_t, 3> icons = is_dark ?
+        std::array<wchar_t, 3>{ ImGui::CutModePlaneDarkIcon, ImGui::CutModeDovetailDarkIcon, ImGui::CutModePathDarkIcon } :
+        std::array<wchar_t, 3>{ ImGui::CutModePlaneIcon, ImGui::CutModeDovetailIcon, ImGui::CutModePathIcon };
+    const std::array<std::string, 3> tooltips = { _u8L("Planar"), _u8L("Dovetail"), _u8L_CONTEXT("Curve", "Cut mode") };
+
     ImGui::AlignTextToFramePadding();
-    ImGuiWrapper::push_combo_style(m_parent.get_scale());
-    int selection_idx = int(m_mode);
-    const bool is_changed = m_imgui->combo(_u8L("Mode"), m_modes, selection_idx, 0, m_label_width, m_control_width);
-    ImGuiWrapper::pop_combo_style();
-
-    if (is_changed) {
-        Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Change cut mode"), UndoRedo::SnapshotType::GizmoAction);
-        switch_to_mode(size_t(selection_idx));
-        check_and_update_connectors_state();
+    imgui.text(_u8L("Mode"));
+    std::optional<ModeButton> clicked;
+    for (size_t i = 0; i < icons.size(); ++i) {
+        ImGui::SameLine(i == 0 ? controls_x : 0.f);
+        const bool is_active = int(active) == int(i);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.f * scale);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.f * scale, 4.f * scale));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
+        ImGui::PushStyleColor(ImGuiCol_Button, is_active ? ImVec4(0.f, .59f, .53f, .25f) : ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, is_active ? ImVec4(0.f, .59f, .53f, .25f) : ImVec4(.6f, .6f, .6f, .2f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, is_active ? ImVec4(0.f, .59f, .53f, .30f) : ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Border, is_active ? ImGuiWrapper::COL_ORCA : ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_BorderActive, is_active ? ImGuiWrapper::COL_ORCA : ImVec4(0, 0, 0, 0));
+        // glyph_button() does not honour disabled_begin(), so a disabled row ignores the click here.
+        if (imgui.glyph_button(icons[i], ImVec2(16.f * scale, 16.f * scale)) && enabled && !is_active)
+            clicked = ModeButton(i);
+        ImGui::PopStyleColor(6);
+        ImGui::PopStyleVar(3);
+        if (ImGui::IsItemHovered())
+            imgui.tooltip(tooltips[i], ImGui::GetFontSize() * 20.f);
     }
+    return clicked;
+}
 
-    return is_changed;
+void GLGizmoCut3D::select_mode(ModeButton mode)
+{
+    if (mode == ModeButton::Curve || size_t(mode) == m_mode)
+        return;
+    switch_to_mode(size_t(mode));
+    check_and_update_connectors_state();
+}
+
+bool GLGizmoCut3D::render_cut_mode_buttons(bool enabled)
+{
+    const std::optional<ModeButton> clicked = render_mode_buttons(*m_imgui, ModeButton(m_mode), m_label_width, m_parent.get_scale(),
+                                                                  enabled, m_is_dark_mode);
+    if (!clicked)
+        return false;
+    if (*clicked == ModeButton::Curve) {
+        // Opened after this frame: the Cut tool is closed while it draws its window otherwise.
+        wxGetApp().CallAfter([this]() { m_parent.get_gizmos_manager().open_gizmo(GLGizmosManager::PathCut); });
+        return false;
+    }
+    Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Change cut mode"), UndoRedo::SnapshotType::GizmoAction);
+    switch_to_mode(size_t(*clicked));
+    check_and_update_connectors_state();
+    return true;
 }
 
 bool GLGizmoCut3D::render_double_input(const std::string& label, double& value_in)
@@ -2915,7 +2955,7 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
     if (mode == CutMode::cutPlanar || mode == CutMode::cutTongueAndGroove) {
 
         m_imgui->disabled_begin(has_connectors);
-        if (render_cut_mode_combo())
+        if (render_cut_mode_buttons(!has_connectors))
             mode = CutMode(m_mode);
         m_imgui->disabled_end();
 

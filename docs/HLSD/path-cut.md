@@ -60,6 +60,11 @@ force a connector where the check rejects it.
 
 ## GUI
 
+The tool is the Curve mode of the Cut tool. It has no toolbar icon of its own: the Cut tool shows its
+modes (Planar, Dovetail, Curve) as a row of icon buttons, and Curve opens `GLGizmoPathCut`, which
+shows the same row to go back to the other two. It stays a separate gizmo because it works on points
+picked on the mesh rather than on the cut plane the Cut tool is built around.
+
 `GLGizmoPathCut` collects the points, runs the cut as a background job on a copy of the mesh, shows
 a preview with the pieces moved apart, and replaces the object with the pieces only when the user
 applies the cut, as one undo step. The job is dropped when the tool is closed or the object changes

@@ -9,8 +9,10 @@
 #include "slic3r/GUI/GLShader.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoCut.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include <optional>
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/format.hpp"
@@ -710,6 +712,18 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
     const float field_x = ImGui::GetStyle().WindowPadding.x + label_w + gap;
     // checkbox square + its spacing, generously: the toolbar style draws larger boxes
     const float check_x = ImGui::GetStyle().WindowPadding.x + ImGui::GetFrameHeight() * 1.5f + check_w + gap;
+
+    // Shown as the Curve mode of the Cut tool: the same row leads back to Planar and Dovetail.
+    if (const std::optional<GLGizmoCut3D::ModeButton> clicked =
+            GLGizmoCut3D::render_mode_buttons(*m_imgui, GLGizmoCut3D::ModeButton::Curve, field_x, scale, !m_busy, m_is_dark_mode))
+        wxGetApp().CallAfter([this, mode = *clicked]() {
+            GLGizmosManager &manager = m_parent.get_gizmos_manager();
+            if (!manager.open_gizmo(GLGizmosManager::Cut))
+                return;
+            if (auto *cut = dynamic_cast<GLGizmoCut3D *>(manager.get_current()))
+                cut->select_mode(mode);
+        });
+    ImGui::Separator();
 
     m_imgui->disabled_begin(m_busy);
     // Switching the mode starts a new path. A previewed cut that leaves the object in one piece is made

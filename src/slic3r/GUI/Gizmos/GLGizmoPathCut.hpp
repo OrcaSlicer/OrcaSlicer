@@ -46,6 +46,8 @@ protected:
     bool               on_init() override;
     std::string        on_get_name() const override;
     bool               on_is_activable() const override;
+    // No toolbar icon: the tool is the Curve mode of the Cut tool and is opened from there.
+    bool               on_is_selectable() const override { return false; }
     void               on_render() override;
     void               on_set_state() override;
     CommonGizmosDataID on_get_requirements() const override;
