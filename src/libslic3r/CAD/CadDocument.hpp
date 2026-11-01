@@ -1011,6 +1011,8 @@ public:
     bool can_undo() const { return !m_undo.empty(); }
     bool can_redo() const { return !m_redo.empty(); }
     size_t undo_depth() const { return m_undo.size(); }
+    uint64_t checkpoint_count{0};   // every checkpoint() adds one; unlike undo_depth() it keeps counting once the undo stack is full, so a caller can tell that a command touched the document
+
     void   drop_undo_to(size_t depth) { while (m_undo.size() > depth) m_undo.pop_back(); }   // a rolled-back batch leaves no steps behind
     size_t redo_depth() const { return m_redo.size(); }
     bool undo();   // restore the previous feature list + recompute(); false if no history
