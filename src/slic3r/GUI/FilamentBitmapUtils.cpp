@@ -16,6 +16,7 @@
 #include <wx/geometry.h>
 #include <wx/font.h>
 #include <wx/graphics.h>
+#include <wx/math.h>
 #include <wx/peninfobase.h>
 #include <wx/pen.h>
 #include <wx/settings.h>
@@ -539,7 +540,7 @@ constexpr double kPlotLeftRatio   = 0.0316;
 constexpr double kPlotRightRatio  = 0.6766;
 constexpr double kPlotTopRatio    = 0.1529;
 constexpr double kPlotBottomRatio = 0.8474;
-constexpr int    kGridDivisions   = 9;    // 10 grid lines including the outer borders.
+constexpr int    kGridDivisions   = 10;   // 10% steps, 11 grid lines including the outer borders.
 constexpr int    kStrokeAxis      = 2;    // axis line width (px, no DPI scaling)
 constexpr int    kAxisArrowHalf   = 5;    // half-base of the axis arrow triangle (DIP)
 constexpr int    kAxisArrowLen    = 10;   // length of the axis arrow triangle (DIP)
@@ -579,24 +580,39 @@ void add_dashes(std::vector<Dash>& dashes, TriPoint a, TriPoint b)
 // Dark dashes over a light fill, white ones over a dark fill.
 wxColour dash_colour(double luminance) { return luminance > 0.5 ? wxColour(38, 46, 48) : *wxWHITE; }
 
-// Strokes the dashes anti-aliased at sub-pixel positions, so all dashes of one line stay collinear.
-void stroke_dashes(wxDC& dc, const std::vector<Dash>& dashes, const wxColour& colour)
+// The anti-aliased graphics context of `dc`, or one created over it and kept alive by `owned`.
+// Null when wx cannot wrap the dc. Drop `owned` before drawing on the dc again.
+wxGraphicsContext* graphics_context(wxDC& dc, std::unique_ptr<wxGraphicsContext>& owned)
 {
-    std::unique_ptr<wxGraphicsContext> owned_gc;
-    wxGraphicsContext*                 gc = dc.GetGraphicsContext();
+    wxGraphicsContext* gc = dc.GetGraphicsContext();
     if (!gc) {
-        owned_gc.reset(wxGraphicsContext::CreateFromUnknownDC(dc));
-        gc = owned_gc.get();
+        owned.reset(wxGraphicsContext::CreateFromUnknownDC(dc));
+        gc = owned.get();
     }
-    wxCHECK_RET(gc, "Dashed lines require a graphics context");
-    gc->SetAntialiasMode(wxANTIALIAS_DEFAULT);
-    gc->SetPen(gc->CreatePen(wxGraphicsPenInfo(colour, dip_px(1)).Cap(wxCAP_BUTT)));
-    wxGraphicsPath path = gc->CreatePath();
-    for (const auto& [p0, p1] : dashes) {
-        path.MoveToPoint(p0.x, p0.y);
-        path.AddLineToPoint(p1.x, p1.y);
+    if (gc)
+        gc->SetAntialiasMode(wxANTIALIAS_DEFAULT);
+    return gc;
+}
+
+// Strokes the dashes at sub-pixel positions through `gc`, so all dashes of one line stay
+// collinear. Without a graphics context they are drawn on `dc`, rounded to whole pixels.
+void stroke_dashes(wxDC& dc, wxGraphicsContext* gc, const std::vector<Dash>& dashes, const wxColour& colour)
+{
+    if (gc) {
+        gc->SetPen(gc->CreatePen(wxGraphicsPenInfo(colour, dip_px(1)).Cap(wxCAP_BUTT)));
+        wxGraphicsPath path = gc->CreatePath();
+        for (const auto& [p0, p1] : dashes) {
+            path.MoveToPoint(p0.x, p0.y);
+            path.AddLineToPoint(p1.x, p1.y);
+        }
+        gc->StrokePath(path);
+    } else {
+        wxPen pen(colour, dip_px(1));
+        pen.SetCap(wxCAP_BUTT);
+        dc.SetPen(pen);
+        for (const auto& [p0, p1] : dashes)
+            dc.DrawLine(wxRound(p0.x), wxRound(p0.y), wxRound(p1.x), wxRound(p1.y));
     }
-    gc->StrokePath(path);
 }
 
 } // namespace
@@ -634,7 +650,7 @@ void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
     wxGCDC dc(memdc);
     wxGraphicsContext* gc = dc.GetGraphicsContext();
 
-    // 10x10 light grid (10 lines including outer borders, 9 equal divisions).
+    // 10x10 light grid (11 lines including outer borders, 10 equal divisions).
     dc.SetPen(wxPen(theme.grid, 1));
     for (int i = 0; i <= kGridDivisions; ++i) {
         const int x = rc.x + rc.width  * i / kGridDivisions;
@@ -722,10 +738,12 @@ void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
     if (min_ratio > 0.0) {
         std::vector<Dash> dashes;
         for (const double ratio : {min_ratio, 1.0 - min_ratio}) {
-            const double y = rc.y + std::floor((1.0 - ratio) * rc.height);
+            // Floored like the grid lines so the dashes sit on them; the epsilon keeps a ratio such
+            // as 1 - 0.9 from landing a pixel short.
+            const double y = rc.y + std::floor((1.0 - ratio) * rc.height + 1e-6);
             add_dashes(dashes, {double(rc.x), y}, {double(rc.x + rc.width), y});
         }
-        stroke_dashes(dc, dashes, dash_colour(theme.background.GetLuminance()));
+        stroke_dashes(dc, gc, dashes, dash_colour(theme.background.GetLuminance()));
     }
 
     // Outline only when the curve colour is perceptually close to the background; otherwise the
@@ -778,11 +796,13 @@ void draw_mixed_ratio_blend_bar(wxDC& dc, const wxRect& rect, const wxColour& fi
 
     // Each dashed line is dark or light to suit the fill under it.
     if (min_ratio > 0.0) {
+        std::unique_ptr<wxGraphicsContext> owned_gc;
+        wxGraphicsContext*                 gc = graphics_context(dc, owned_gc);
         for (const double t : {min_ratio, 1.0 - min_ratio}) {
             const double      x = rect.x + std::floor(t * rect.width);
             std::vector<Dash> dashes;
             add_dashes(dashes, {x, double(rect.y)}, {x, double(rect.y + rect.height)});
-            stroke_dashes(dc, dashes, dash_colour(lerp_blend(first, second, 1.0 - t).GetLuminance()));
+            stroke_dashes(dc, gc, dashes, dash_colour(lerp_blend(first, second, 1.0 - t).GetLuminance()));
         }
     }
 
@@ -934,6 +954,9 @@ void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<w
     }
     dc.DrawBitmap(bmp, 0, 0);
 
+    std::unique_ptr<wxGraphicsContext> owned_gc;
+    wxGraphicsContext*                 gc = graphics_context(dc, owned_gc);
+
     // Dashed outline of the area where every weight is at least `min_weight`. It is dark or light
     // depending on how light the fill under the line is on average, so it stays visible over most blends.
     if (min_weight > 0.0) {
@@ -954,16 +977,23 @@ void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<w
             tri_barycentric({(p0.x + p1.x) / 2, (p0.y + p1.y) / 2}, v[0], v[1], v[2], w0, w1, w2);
             luminance += tri_mix_colour(c0, c1, c2, w0, w1, w2).GetLuminance();
         }
-        stroke_dashes(dc, dashes, dash_colour(luminance / dashes.size()));
+        stroke_dashes(dc, gc, dashes, dash_colour(luminance / dashes.size()));
     }
 
-    // Published-ratio marker (read-only twin of the editor's drag handle).
+    // Drag handle, anti-aliased at its sub-pixel position when a graphics context is available.
     const double w0 = weights[0], w1 = weights[1], w2 = weights[2];
-    const int hx = int(w0 * v[0].x + w1 * v[1].x + w2 * v[2].x);
-    const int hy = int(w0 * v[0].y + w1 * v[1].y + w2 * v[2].y);
-    dc.SetBrush(*wxWHITE_BRUSH);
-    dc.SetPen(wxPen(theme.ring, dip_px(2)));
-    dc.DrawCircle(hx, hy, dip_px(5));
+    const double hx = w0 * v[0].x + w1 * v[1].x + w2 * v[2].x;
+    const double hy = w0 * v[0].y + w1 * v[1].y + w2 * v[2].y;
+    const double r  = dip_px(5);
+    if (gc) {
+        gc->SetBrush(*wxWHITE_BRUSH);
+        gc->SetPen(gc->CreatePen(wxGraphicsPenInfo(theme.ring, dip_px(2))));
+        gc->DrawEllipse(hx - r, hy - r, 2 * r, 2 * r);
+    } else {
+        dc.SetBrush(*wxWHITE_BRUSH);
+        dc.SetPen(wxPen(theme.ring, dip_px(2)));
+        dc.DrawCircle(wxRound(hx), wxRound(hy), wxRound(r));
+    }
 }
 
 void draw_mixed_triangle_labels(wxDC& dc, const wxSize& size, const std::array<double, 3>& weights,
