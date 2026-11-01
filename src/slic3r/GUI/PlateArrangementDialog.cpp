@@ -218,7 +218,7 @@ void PlateArrangementDialog::render_title_bar()
     if (ImGui::IsItemActive())
         m_window_pos += ImGui::GetIO().MouseDelta;
     ImGui::SetCursorPos(ImVec2(start.x, start.y + std::round((cfg.title_height - ImGui::GetTextLineHeight()) * .5f)));
-    m_imgui->bold_text(_u8L("Arrange Plates"));
+    m_imgui->bold_text(_u8L("Arrange plates"));
 
     ImGui::SetCursorPos(ImVec2(start.x + cfg.grid_size - cfg.close_width, start.y));
     if (m_imgui->button(_L("Close"), ImVec2(cfg.close_width, cfg.title_height), true))
