@@ -544,6 +544,8 @@ class GLCanvas3D
         void render_details(GLCanvas3D& canvas);
         // Whether the mouse is over the details.
         bool details_hovered() const;
+        // Whether a button held down was pressed on the details, off their close button.
+        bool details_pressed() const;
         // Whether there were details to hide.
         bool hide_details(GLCanvas3D& canvas);
     };

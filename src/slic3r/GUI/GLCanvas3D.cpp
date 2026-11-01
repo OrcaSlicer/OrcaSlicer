@@ -1345,6 +1345,21 @@ bool GLCanvas3D::CenterOfMass::details_hovered() const
     return m_picked && hovered != nullptr && hovered == ImGui::FindWindowByName(details_window);
 }
 
+bool GLCanvas3D::CenterOfMass::details_pressed() const
+{
+    if (!details_hovered())
+        return false;
+    const ImGuiContext& g      = *ImGui::GetCurrentContext();
+    const ImGuiWindow*  window = g.HoveredWindow;
+    // The close button is active after a press on it, the window's move id after a press elsewhere on the window.
+    if (g.ActiveIdWindow == window && g.ActiveId != window->MoveId)
+        return false;
+    for (int button = 0; button < IM_ARRAYSIZE(g.IO.MouseDown); ++button)
+        if (g.IO.MouseDown[button] && window->Rect().Contains(g.IO.MouseClickedPos[button]))
+            return true;
+    return false;
+}
+
 bool GLCanvas3D::CenterOfMass::hide_details(GLCanvas3D& canvas)
 {
     if (!m_picked)
@@ -4819,7 +4834,18 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     // that incorrectly suppresses the active drag's tooltip and can interrupt its processing. The active drag always takes priority.
     const bool other_drag_active = m_gizmos.is_dragging() || m_mouse.dragging || m_rectangle_selection.is_dragging() || m_layers_editing.state == LayersEditing::Editing;
 
-    if (imgui->update_mouse_data(evt) && !other_drag_active) {
+    // A drag that started on a marker's details moves the view, as over empty space. ImGui would take it and do nothing,
+    // and its release off the details would reach the canvas as a click. ImGui has not seen this event yet, so what it
+    // hovers is still what was under the press.
+    const bool camera_drag = evt.Dragging() && !other_drag_active && m_center_of_mass.details_pressed();
+    if (camera_drag) {
+        // Else the object under the details keeps a left drag from turning the view.
+        m_hover_volume_idxs.clear();
+        // From the press, as the canvas does, which went to the ImGui branch below and left its position in m_mouse.position.
+        m_mouse.drag.start_position_2D = Point(m_mouse.position.x(), m_mouse.position.y());
+    }
+
+    if (imgui->update_mouse_data(evt) && !other_drag_active && !camera_drag) {
         if ((evt.LeftDown() || (evt.Moving() && (evt.AltDown() || evt.ShiftDown()))) && m_canvas != nullptr)
             m_canvas->SetFocus();
         m_mouse.position = evt.Leaving() ? Vec2d(-1.0, -1.0) : pos.cast<double>();
