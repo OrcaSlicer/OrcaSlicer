@@ -755,6 +755,8 @@ void ParamsPanel::switch_to_object(bool with_tips)
 
 void ParamsPanel::notify_object_config_changed()
 {
+    if (auto *print_tab = dynamic_cast<TabPrint *>(wxGetApp().get_tab(Preset::TYPE_PRINT)))
+        print_tab->refresh_support_override_notice();
     auto & model = wxGetApp().model();
     bool has_config = false;
     for (auto obj : model.objects) {
