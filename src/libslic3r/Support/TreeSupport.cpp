@@ -1535,7 +1535,9 @@ void TreeSupport::generate_toolpaths()
     coordf_t support_extrusion_width = m_support_params.support_extrusion_width;
     coordf_t nozzle_diameter = nozzle_diameter_for_filament(*m_print_config, object_config.support_filament, m_object->print()->is_BBL_printer());
     coordf_t layer_height = object_config.layer_height.value;
-    const size_t wall_count = object_config.tree_support_wall_count.value;
+    // Orca: -1 is auto. 0 is auto too, but lets support thick enough be printed as infill alone, without a wall.
+    const int    wall_count_config = object_config.tree_support_wall_count.value;
+    const size_t wall_count        = size_t(std::max(0, wall_count_config));
 
     // Check if set to zero, use default if so.
     if (support_extrusion_width <= 0.0)
@@ -1804,16 +1806,17 @@ void TreeSupport::generate_toolpaths()
                         else {
                             //ORCA: Force base walls before infill to keep outline->fill order.
                             if (need_infill && m_support_params.base_fill_pattern != ipLightning) {
-                                // allow infill-only mode if support is thick enough (so min_wall_count is 0);
-                                // otherwise must draw 1 wall
+                                // Orca: at least one wall when the wall count is auto (-1). Infill alone stacks into
+                                // separate plates with nothing tying them together, and a tall support folds over.
+                                // 0 allows infill-only mode if support is thick enough, as auto did before.
                                 // Don't need extra walls if we have infill. Extra walls may overlap with the infills.
-                                size_t min_wall_count = offset(poly, -scale_(support_spacing * 1.5)).empty() ? 1 : 0;
+                                size_t min_wall_count = wall_count_config == 0 && !offset(poly, -scale_(support_spacing * 1.5)).empty() ? 0 : 1;
                                 make_perimeter_and_infill(base_dst, poly, std::max(min_wall_count, wall_count), flow,
                                     erSupportMaterial, filler_support.get(), support_density, false);
                             }
                             else {
                                 SupportParameters support_params = m_support_params;
-                                if (area_group.need_extra_wall && object_config.tree_support_wall_count.value == 0)
+                                if (area_group.need_extra_wall && wall_count_config <= 0)
                                     support_params.tree_branch_diameter_double_wall_area_scaled = 0.1;
                                 tree_supports_generate_paths(base_dst, loops, flow, support_params);
                             }
