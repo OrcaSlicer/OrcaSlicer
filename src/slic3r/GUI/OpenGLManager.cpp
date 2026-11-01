@@ -490,7 +490,11 @@ int OpenGLManager::stencil_bits()
     ::glGetIntegerv(GL_STENCIL_BITS, &bits); // compatibility profiles
     if (::glGetError() != GL_NO_ERROR) {
         bits = 0;
-        ::glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_STENCIL, GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE, &bits);
+        GLint fbo = 0;
+        ::glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &fbo);
+        // The default framebuffer names its stencil buffer, a framebuffer object its stencil attachment.
+        ::glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, fbo == 0 ? GL_STENCIL : GL_STENCIL_ATTACHMENT,
+                                                GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE, &bits);
         ::glGetError();
     }
     return std::max(0, int(bits));
