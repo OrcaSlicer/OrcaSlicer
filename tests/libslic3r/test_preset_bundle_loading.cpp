@@ -9136,3 +9136,34 @@ TEST_CASE("The cloud diff force-emits a disabled override only where the cloud w
     // An ironing override defaults to nil: an absent key stays nil, so it is not sent.
     CHECK(key_values.count("filament_ironing_flow") == 0);
 }
+
+// ORCA: a user preset that overrides a scalar its parent also sets must keep its own value.
+// The GUI load path merges a child onto its parent with update_diff_values_to_child_config();
+// this pins that the scalar override survives that merge.
+TEST_CASE("A user preset keeps the scalar values it overrides from its parent", "[Preset][Inheritance]")
+{
+    ScopedTemporaryDir         temp_dir;
+    PresetBundle               bundle;
+    PresetsConfigSubstitutions substitutions;
+
+    const std::string parent_name = "Vendor Printer @System";
+    Preset           &parent      = add_inmemory_preset(bundle.printers, parent_name);
+    parent.config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor", true)->value = gcfMarlinLegacy;
+    parent.config.option<ConfigOptionString>("machine_start_gcode", true)->value     = "M862.3 P \"MK4\"";
+
+    // A real user preset stores only the keys it overrides, so the merge carries the rest.
+    const fs::path file = temp_dir.path() / PRESET_PRINTER_NAME / "Child.json";
+    fs::create_directories(file.parent_path());
+    std::ofstream(file.string())
+        << R"({"type":"machine","name":"Child","from":"User","version":"1.0.0","inherits":")" << parent_name
+        << R"(","gcode_flavor":"klipper","machine_start_gcode":"PRINT_START EXTRUDER=240 BED=80"})";
+
+    bundle.printers.load_presets(temp_dir.path().string(), PRESET_PRINTER_NAME, substitutions,
+                                 ForwardCompatibilitySubstitutionRule::Disable);
+
+    const Preset *child = bundle.printers.find_preset("Child");
+    REQUIRE(child != nullptr);
+    CHECK(child->inherits() == parent_name);
+    CHECK(child->config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value == gcfKlipper);
+    CHECK(child->config.opt_string("machine_start_gcode") == "PRINT_START EXTRUDER=240 BED=80");
+}
