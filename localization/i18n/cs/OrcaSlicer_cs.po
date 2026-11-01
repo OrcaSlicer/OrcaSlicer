@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-10-30 11:58-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -1989,15 +1989,15 @@ msgid "Selection 1"
 msgstr "Výběr 1"
 
 msgid ""
-"Select 2 faces on objects and \n"
-" make objects assemble together."
+"Select 2 faces on objects and\n"
+"make objects assemble together."
 msgstr ""
 "Vyberte 2 plochy na objektech a\n"
 "spojte objekty dohromady."
 
 msgid ""
-"Select 2 points or circles on objects and \n"
-" specify distance between them."
+"Select 2 points or circles on objects and\n"
+"specify distance between them."
 msgstr ""
 "Vyberte 2 body nebo kružnice na objektech a\n"
 "určete vzdálenost mezi nimi."
@@ -2089,11 +2089,11 @@ msgstr "Varování: Vyberte prosím vlastnost bodu nebo kruhu."
 # AI Translated
 msgid ""
 "It is recommended to assemble objects first,\n"
-"because they are restricted to the bed \n"
+"because they are restricted to the bed\n"
 "and only parts can be lifted."
 msgstr ""
 "Doporučujeme objekty nejprve sestavit,\n"
-"protože jsou vázány k podložce \n"
+"protože jsou vázány k podložce\n"
 "a zvednout lze pouze části."
 
 msgid "Face and face assembly"
@@ -2290,6 +2290,18 @@ msgstr "Nesprávné heslo"
 #, c-format, boost-format
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "Připojení %s selhalo! [SN:%s, kód=%s]"
+
+# AI Translated
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr "Zkontrolujte, zda je tiskárna ve stejné síti jako tento počítač a zda je její IP adresa správná."
+
+# AI Translated
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr "Pokud připojení stále selhává, zkuste v Předvolbách jinou verzi síťového pluginu."
+
+# AI Translated
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr "Tuto chybu může způsobit také chybějící nebo poškozený certifikát TLS/CA v souboru „printer.cer“."
 
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
@@ -3287,8 +3299,9 @@ msgstr "Název"
 msgid "All Plates"
 msgstr "Všechny desky"
 
+# AI Translated
 msgid "Order By"
-msgstr ""
+msgstr "Seřadit podle"
 
 # AI Translated
 msgid "Fix All"
@@ -3342,8 +3355,9 @@ msgstr "Klonovat"
 msgid "Simplify Model"
 msgstr "Zjednodušit model"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "Subdivizní síť (Ztracená barva)"
+# AI Translated
+msgid "Subdivision mesh"
+msgstr "Zjemnění sítě"
 
 msgid "Center"
 msgstr "Střed"
@@ -3504,6 +3518,25 @@ msgstr "Chyba!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Nepodařilo se získat data modelu v aktuálním souboru."
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+# AI Translated
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr "Vnitřní průměr"
+
+# AI Translated
+msgid "Tube diameter"
+msgstr "Průměr trubice"
 
 # AI Translated
 msgid "Add primitive"
@@ -4429,8 +4462,9 @@ msgstr "Odesílání G-code souboru na SD kartu"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Úspěšně odesláno. Aktuální stránka se zavře za %s s"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "Před odesláním do tiskárny je nutné vložit úložiště."
+# AI Translated
+msgid "Insert storage or free up space before sending to the printer."
+msgstr "Před odesláním do tiskárny vložte úložiště nebo uvolněte místo."
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
 msgstr "Odesílání G-code souboru přes LAN, ale úložiště v tiskárně není v pořádku a může způsobit problémy při tisku."
@@ -5395,137 +5429,183 @@ msgstr ""
 "Ano – povolit Arachne Wall Generator\n"
 "Ne – zakázat Arachne Wall Generator a nastavit režim [Displacement] pro Fuzzy Skin"
 
+# AI Translated
 msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
-msgstr ""
+msgstr "Pro použití vyhlazování rychlosti extruze nastavte maximální sklon objemové rychlosti extruze na hodnotu větší než nula."
 
+# AI Translated
 msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
-msgstr ""
+msgstr "Prokládání oblouky není k dispozici na pásových tiskárnách a při povoleném vyhlazování rychlosti extruze."
 
+# AI Translated
 msgid "Set wall loops above zero to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení nastavte počet smyček stěn na hodnotu větší než nula."
 
+# AI Translated
 msgid "This setting is hidden because sparse infill density is zero."
-msgstr ""
+msgstr "Toto nastavení je skryté, protože hustota řídké výplně je nulová."
 
+# AI Translated
 msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
-msgstr ""
+msgstr "Kotvy výplně vyžadují nenulovou hustotu řídké výplně a jiný vzor než Koncentrický nebo Spirálový odsaz."
 
+# AI Translated
 msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
-msgstr ""
+msgstr "Pro zobrazení tohoto nastavení povolte kombinaci výplně a použijte nenulovou hustotu řídké výplně."
 
+# AI Translated
 msgid "Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "Vyberte výplň Gyroid, TPMS-D nebo TPMS-FK s hustotou řídké výplně větší než nula a menší než 100 %."
 
+# AI Translated
 msgid "Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "Povolte adaptivní hustotu pro výplň Gyroid, TPMS-D nebo TPMS-FK s hustotou řídké výplně větší než nula a menší než 100 %."
 
+# AI Translated
 msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte výplň Gyroid s nenulovou hustotou řídké výplně a vypněte adaptivní hustotu."
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support multiline infill."
-msgstr ""
+msgstr "Vybraný vzor řídké výplně nepodporuje víceřádkovou výplň."
 
+# AI Translated
 msgid "The Line infill pattern does not support infill anchors."
-msgstr ""
+msgstr "Vzor výplně Čára nepodporuje kotvy výplně."
 
+# AI Translated
 msgid "Select an infill pattern other than Line and set the maximum infill anchor length above zero."
-msgstr ""
+msgstr "Vyberte jiný vzor výplně než Čára a nastavte maximální délku kotvy výplně na hodnotu větší než nula."
 
+# AI Translated
 msgid "Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte vzor řídké výplně Křížové cik-cak nebo Uzamčený Zag."
 
+# AI Translated
 msgid "Select the Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte vzor řídké výplně Uzamčený Zag."
 
+# AI Translated
 msgid "Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte vzor řídké výplně Cikcak, Křížové cik-cak nebo Uzamčený Zag."
 
+# AI Translated
 msgid "Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte výplň 3D medová plástev s nenulovou hustotou řídké výplně."
 
+# AI Translated
 msgid "Enable spiral vase mode to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte režim spirálové vázy."
 
+# AI Translated
 msgid "Enable spiral vase mode and spiral smoothing to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte režim spirálové vázy a hladkou spirálu."
 
+# AI Translated
 msgid "This setting requires top shell layers, or more than one bottom shell layer in spiral vase mode."
-msgstr ""
+msgstr "Toto nastavení vyžaduje vrstvy horního pláště, nebo v režimu spirálové vázy více než jednu vrstvu spodního pláště."
 
+# AI Translated
 msgid "This setting requires a top shell with nonzero top surface density."
-msgstr ""
+msgstr "Toto nastavení vyžaduje horní plášť s nenulovou hustotou horního povrchu."
 
+# AI Translated
 msgid "Set bottom shell layers above zero to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení nastavte počet vrstev spodního pláště na hodnotu větší než nula."
 
+# AI Translated
 msgid "Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."
-msgstr ""
+msgstr "Použijte nenulovou hustotu řídké výplně a takový vzor výplně a nastavení víceřádkové výplně, které podporují vyhlazení výplně."
 
+# AI Translated
 msgid "Set top surface expansion above zero to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení nastavte rozšíření horního povrchu na hodnotu větší než nula."
 
+# AI Translated
 msgid "Use a top or bottom shell with the Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Použijte horní nebo spodní plášť se vzorem povrchu Archimédovy akordy nebo Oktagramová spirála."
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support separated infills."
-msgstr ""
+msgstr "Vybraný vzor řídké výplně nepodporuje oddělené výplně."
 
+# AI Translated
 msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Použijte horní plášť s nenulovou hustotou povrchu a vzorem povrchu Koncentrický, Spirálový odsaz, Archimédovy akordy nebo Oktagramová spirála."
 
+# AI Translated
 msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "Použijte vrstvy spodního pláště a vzor povrchu Koncentrický, Spirálový odsaz, Archimédovy akordy nebo Oktagramová spirála."
 
+# AI Translated
 msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení použijte nenulovou hustotu řídké výplně nebo vrstvy horního či spodního pláště."
 
+# AI Translated
 msgid "Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."
-msgstr ""
+msgstr "Pro úpravu tloušťky horního pláště vypněte režim spirálové vázy a nastavte počet vrstev horního pláště na hodnotu větší než nula."
 
+# AI Translated
 msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
-msgstr ""
+msgstr "Pro úpravu tloušťky spodního pláště vypněte režim spirálové vázy a nastavte počet vrstev spodního pláště na hodnotu větší než nula."
 
+# AI Translated
 msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
-msgstr ""
+msgstr "Pro úpravu zrychlení jednotlivých rolí extruze nastavte výchozí zrychlení na hodnotu větší než nula."
 
+# AI Translated
+# Needs human review: The English 'Marlin firmware G-code flavor' is the option shown as 'Marlin 2' in the G-code flavor list; check the hint reads right next to it.
 msgid "This setting requires the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "Toto nastavení vyžaduje typ G-code firmwaru Marlin."
 
+# AI Translated
 msgid "Jerk settings are unavailable while the printer uses junction deviation."
-msgstr ""
+msgstr "Nastavení jerku nejsou k dispozici, když tiskárna používá Junction Deviation."
 
+# AI Translated
+# Needs human review: The English 'Marlin firmware G-code flavor' is the option shown as 'Marlin 2' in the G-code flavor list; check the hint reads right next to it.
 msgid "Set the printer junction deviation limit above zero with the Marlin firmware G-code flavor to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení použijte typ G-code firmwaru Marlin a nastavte limit Junction Deviation tiskárny na hodnotu větší než nula."
 
+# AI Translated
 msgid "Set default jerk above zero to edit jerk for individual extrusion roles."
-msgstr ""
+msgstr "Pro úpravu jerku jednotlivých rolí extruze nastavte výchozí jerk na hodnotu větší než nula."
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení použijte tiskárnu, která není pásová, a nastavte počet smyček okraje na hodnotu větší než nula."
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero and disable the full-height draft shield to edit skirt height."
-msgstr ""
+msgstr "Pro úpravu výšky okraje použijte tiskárnu, která není pásová, nastavte počet smyček okraje na hodnotu větší než nula a vypněte ochranný štít v plné výšce."
 
+# AI Translated
 msgid "Skirts are unavailable for belt printers."
-msgstr ""
+msgstr "Okraj není na pásových tiskárnách k dispozici."
 
+# AI Translated
 msgid "Select a brim type other than No brim to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte jiný typ límce než Bez límce."
 
+# AI Translated
 msgid "Enable a brim on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte límec na tiskárně bez nakloněného pásu."
 
+# AI Translated
 msgid "Select a brim type with an editable width, or enable a brim on a tilted belt printer."
-msgstr ""
+msgstr "Vyberte typ límce s upravitelnou šířkou, nebo povolte límec na pásové tiskárně s nakloněným pásem."
 
+# AI Translated
 msgid "This setting requires a belt printer with a tilted slicing plane."
-msgstr ""
+msgstr "Toto nastavení vyžaduje pásovou tiskárnu s nakloněnou rovinou slicování."
 
+# AI Translated
 msgid "Enable a brim on a belt printer with a tilted slicing plane to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte límec na pásové tiskárně s nakloněnou rovinou slicování."
 
+# AI Translated
 msgid "Enable walls or a brim to select the wall filament."
-msgstr ""
+msgstr "Pro výběr filamentu stěn povolte stěny nebo límec."
 
 # AI Translated
 msgid "Brim ear radius"
@@ -5534,284 +5614,399 @@ msgstr "Poloměr ouška límce"
 msgid "Brim width"
 msgstr "Šířka límce"
 
+# AI Translated
+# Needs human review: Glossary cell for Brim ears is unsettled (⚠); used 'ouška límce' as the catalog's brim ear labels do.
 msgid "Set brim width above zero to edit brim ear detection."
-msgstr ""
+msgstr "Pro úpravu detekce oušek límce nastavte šířku límce na hodnotu větší než nula."
 
+# AI Translated
+# Needs human review: Glossary cell for Brim ears is unsettled (⚠); used 'ouška límce' as the catalog's brim ear labels do.
 msgid "Use painted brim ears or set brim width above zero to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení použijte malovaná ouška límce, nebo nastavte šířku límce na hodnotu větší než nula."
 
+# AI Translated
+# Needs human review: Glossary cell for Brim ears is unsettled (⚠). 'Automatic brim ears' is the brim type shown as 'Myší ouško'; check the hint reads right next to it.
 msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte automatická ouška límce na tiskárně bez nakloněného pásu."
 
+# AI Translated
+# Needs human review: Glossary cell for Brim ears is unsettled (⚠). 'Automatic brim ears' is the brim type shown as 'Myší ouško'; check the hint reads right next to it.
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte automatická nebo malovaná ouška límce na tiskárně bez nakloněného pásu."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte kompenzaci sloní nohy, nebo nastavte hustotu vrstev kompenzace sloní nohy na hodnotu menší než 100 %."
 
+# AI Translated
 msgid "Rafts are unavailable for belt printers."
-msgstr ""
+msgstr "Raft není na pásových tiskárnách k dispozici."
 
+# AI Translated
 msgid "Enable support to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení povolte podpory."
 
+# AI Translated
 msgid "Enable support or add raft layers to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení povolte podpory nebo přidejte vrstvy raftu."
 
+# AI Translated
 msgid "Select an automatic support type to edit the threshold angle."
-msgstr ""
+msgstr "Pro úpravu prahového úhlu vyberte automatický typ podpory."
 
+# AI Translated
 msgid "Select an automatic support type and set the threshold angle to zero to edit threshold overlap."
-msgstr ""
+msgstr "Pro úpravu prahového překrytí vyberte automatický typ podpory a nastavte prahový úhel na nulu."
 
+# AI Translated
 msgid "Threshold overlap is unavailable for tree supports."
-msgstr ""
+msgstr "Prahové překrytí není u stromových podpěr k dispozici."
 
+# AI Translated
 msgid "Enable tree supports and select a style other than Organic or Default to show this setting."
-msgstr ""
+msgstr "Pro zobrazení tohoto nastavení povolte stromové podpěry a vyberte jiný styl než Organické nebo Výchozí."
 
+# AI Translated
 msgid "Enable tree supports with the Organic or Default style to show this setting."
-msgstr ""
+msgstr "Pro zobrazení tohoto nastavení povolte stromové podpěry se stylem Organické nebo Výchozí."
 
+# AI Translated
 msgid "Independent support layer height is unavailable for organic tree supports."
-msgstr ""
+msgstr "Nezávislá výška vrstvy podpěr není u organických stromových podpěr k dispozici."
 
+# AI Translated
+# Needs human review: The labels of these two settings say 'lem' (Šířka lemu stromové podpěry, Automatická šířka lemu); the glossary's Brim is 'Límec'. Check which the hint should quote.
 msgid "Enable tree supports and turn off automatic brim width to edit the tree support brim width."
-msgstr ""
+msgstr "Pro úpravu šířky límce stromových podpěr povolte stromové podpěry a vypněte automatickou šířku límce."
 
+# AI Translated
+# Needs human review: Quotes the label 'Maximální délka mostů'; the glossary's Bridge is 'Můstky'. Check which the hint should use.
 msgid "Enable tree supports to show the maximum bridge length."
-msgstr ""
+msgstr "Pro zobrazení maximální délky mostů povolte stromové podpěry."
 
+# AI Translated
+# Needs human review: Quotes the labels 'Nepodporovat mosty' and 'Maximální délka mostů'; the glossary's Bridge is 'Můstky'. Check which the hint should use.
 msgid "Tree supports use maximum bridge length instead of the bridge support setting."
-msgstr ""
+msgstr "Stromové podpěry používají místo nastavení Nepodporovat mosty maximální délku mostů."
 
+# AI Translated
 msgid "Enable automatic tree supports to show this setting."
-msgstr ""
+msgstr "Pro zobrazení tohoto nastavení povolte automatické stromové podpěry."
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení nastavte počet horních nebo spodních vrstev rozhraní podpory na hodnotu větší než nula."
 
+# AI Translated
 msgid "Enable a raft, or enable supports with top interface layers, to use support ironing."
-msgstr ""
+msgstr "Pro použití vyhlazování podpory povolte raft, nebo povolte podpory s horními vrstvami rozhraní."
 
+# AI Translated
 msgid "Enable support ironing with a raft or top support interface layers to show this setting."
-msgstr ""
+msgstr "Pro zobrazení tohoto nastavení povolte vyhlazování podpory s raftem nebo s horními vrstvami rozhraní podpory."
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit interface spacing."
-msgstr ""
+msgstr "Pro úpravu mezery rozhraní nastavte počet horních nebo spodních vrstev rozhraní podpory na hodnotu větší než nula."
 
+# AI Translated
 msgid "Support ironing requires a solid interface, so interface spacing cannot be edited."
-msgstr ""
+msgstr "Vyhlazování podpory vyžaduje plné rozhraní, proto nelze mezeru rozhraní upravit."
 
+# AI Translated
 msgid "Enable walls, a skirt or a brim to edit inner wall line width."
-msgstr ""
+msgstr "Pro úpravu šířky čáry vnitřní stěny povolte stěny, okraj nebo límec."
 
+# AI Translated
 msgid "Enable support, a raft, or a skirt to select the support filament."
-msgstr ""
+msgstr "Pro výběr filamentu podpory povolte podpory, raft nebo okraj."
 
+# AI Translated
 msgid "Add raft layers to show raft contact distance."
-msgstr ""
+msgstr "Pro zobrazení vzdálenosti kontaktu raftu přidejte vrstvy raftu."
 
+# AI Translated
 msgid "Raft contact distance is unavailable when the top support Z distance is zero."
-msgstr ""
+msgstr "Vzdálenost kontaktu raftu není k dispozici, když je horní vzdálenost podpory v ose Z nulová."
 
+# AI Translated
 msgid "Add raft layers to show raft expansion."
-msgstr ""
+msgstr "Pro zobrazení rozšíření raftu přidejte vrstvy raftu."
 
+# AI Translated
 msgid "Slim, Strong and Hybrid tree supports use first layer expansion instead of raft expansion."
-msgstr ""
+msgstr "Stromové podpěry Slim, Strong a Hybridní používají místo rozšíření raftu rozšíření první vrstvy."
 
+# AI Translated
 msgid "Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."
-msgstr ""
+msgstr "Pro úpravu rozšíření první vrstvy přidejte raft, nebo zvolte jiný styl stromových podpěr než Slim nebo Strong."
 
+# AI Translated
 msgid "Enable ironing to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte vyhlazování."
 
+# AI Translated
 msgid "Enable ironing with the Rectilinear pattern to edit ironing angles."
-msgstr ""
+msgstr "Pro úpravu úhlů vyhlazování povolte vyhlazování a jako vzor vyberte Obdélníkový vzor."
 
+# AI Translated
 msgid "Enable ironing or support ironing to edit ironing speed."
-msgstr ""
+msgstr "Pro úpravu rychlosti vyhlazování povolte vyhlazování nebo vyhlazování podpory."
 
+# AI Translated
 msgid "Enable Z contouring to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte konturování v ose Z."
 
+# AI Translated
+# Needs human review: Glossary cell for Print sequence is unsettled (⚠); used 'sekvence tisku' as the setting's label does. 'Print order' is the setting labelled 'Pořadí v rámci vrstvy'.
 msgid "Print order cannot be edited when the print sequence is By object."
-msgstr ""
+msgstr "Pořadí tisku nelze upravit, když je sekvence tisku nastavena na Podle objektu."
 
+# AI Translated
 msgid "This setting is unavailable for Bambu Lab printers."
-msgstr ""
+msgstr "Toto nastavení není na tiskárnách Bambu Lab k dispozici."
 
+# AI Translated
 msgid "This setting is unavailable in single extruder multimaterial mode."
-msgstr ""
+msgstr "Toto nastavení není v režimu jedné trysky pro více materiálů k dispozici."
 
+# AI Translated
 msgid "Enable ooze prevention to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte prevenci vytékání."
 
+# AI Translated
 msgid "Enable ooze prevention and use a positive number of preheat steps to show this setting."
-msgstr ""
+msgstr "Pro zobrazení tohoto nastavení povolte prevenci vytékání a nastavte kladný počet kroků předehřevu."
 
+# AI Translated
 msgid "Enable the belt purge tower in the belt printer settings to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte čisticí věž pásu v nastavení pásové tiskárny."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'základní věž' for the prime tower as the catalog does.
 msgid "Enable the prime tower on a non-belt printer to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte základní věž na tiskárně, která není pásová."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'základní věž' for the prime tower as the catalog does.
 msgid "Enable the prime tower and tower interface features on a non-belt printer to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte na tiskárně, která není pásová, základní věž a funkce rozhraní věže."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'základní věž' and 'věž na očištění trysky' as the catalog does. The 'Wipe tower type' label reads 'Typ čistící věže'.
 msgid "Enable the prime tower and select wipe tower Type 2 on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Povolte základní věž a na tiskárně, která není od Bambu Lab ani pásová, nastavte typ věže na očištění trysky na Typ 2."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'základní věž' for the prime tower as the catalog does.
 msgid "Enable the prime tower on a non-belt printer and turn off skipping sparse tower layers to use layer combination."
-msgstr ""
+msgstr "Pro použití kombinování vrstev povolte na tiskárně, která není pásová, základní věž a vypněte vynechávání řídkých vrstev věže."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'základní věž' for the prime tower as the catalog does.
 msgid "Enable the prime tower with Rib walls on a non-belt printer to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte na tiskárně, která není pásová, základní věž se stěnami typu Žebra."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'základní věž' for the prime tower as the catalog does.
 msgid "Enable a Type 2 prime tower with Cone walls on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Na tiskárně, která není od Bambu Lab ani pásová, povolte základní věž Typ 2 se stěnami typu Kužel."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'základní věž' for the prime tower as the catalog does.
 msgid "Enable the prime tower on a non-belt printer and choose a wall type other than Rib to edit tower width."
-msgstr ""
+msgstr "Pro úpravu šířky věže povolte na tiskárně, která není pásová, základní věž a zvolte jiný typ stěny než Žebra."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'základní věž' for the prime tower as the catalog does.
 msgid "Enable a Type 2 prime tower on a non-Bambu, non-belt printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Na tiskárně, která není od Bambu Lab ani pásová, povolte základní věž Typ 2 a vypněte režim jedné trysky pro více materiálů."
 
+# AI Translated
 msgid "Select Cyclic tool change ordering to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte pořadí výměn nástrojů Cyklické."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'základní věž' for the prime tower as the catalog does.
 msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Povolte základní věž a buď vypněte čištění v základní věži, nebo vypněte režim jedné trysky pro více materiálů."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'základní věž' for the prime tower as the catalog does.
 msgid "Enable the prime tower to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte základní věž."
 
+# AI Translated
 msgid "Enable avoiding crossing walls to edit the maximum travel detour distance."
-msgstr ""
+msgstr "Pro úpravu maximální délky objížďky při přejezdu povolte vyhýbání se křížení stěn."
 
+# AI Translated
 msgid "Enable setting other flow ratios to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte možnost Nastavit další poměry průtoku."
 
+# AI Translated
 msgid "Enable slowing down for overhangs to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte zpomalení pro převisy."
 
+# AI Translated
 msgid "This setting is available in object settings rather than global print settings."
-msgstr ""
+msgstr "Toto nastavení je dostupné v nastavení objektu, nikoli v globálním nastavení tisku."
 
+# AI Translated
 msgid "Select a specific support interface filament and use the default support filament to show this setting."
-msgstr ""
+msgstr "Pro zobrazení tohoto nastavení vyberte konkrétní filament rozhraní podpory a jako filament podpory ponechte výchozí."
 
+# AI Translated
 msgid "Enable fuzzy skin to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte fuzzy skin."
 
+# AI Translated
 msgid "Enable fuzzy skin with Ripple noise to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte fuzzy skin se šumem Vlnky."
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic or Ripple to edit noise scale."
-msgstr ""
+msgstr "Pro úpravu měřítka šumu povolte fuzzy skin a vyberte jiný typ šumu než Klasický nebo Vlnky."
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic, Voronoi or Ripple to edit noise octaves."
-msgstr ""
+msgstr "Pro úpravu oktáv šumu povolte fuzzy skin a vyberte jiný typ šumu než Klasický, Voronoi nebo Vlnky."
 
+# AI Translated
 msgid "Enable fuzzy skin with Perlin or Billow noise to edit persistence."
-msgstr ""
+msgstr "Pro úpravu perzistence povolte fuzzy skin se šumem Perlin nebo Vlnění."
 
+# AI Translated
 msgid "Select the Arachne wall generator to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte generátor stěn Arachne."
 
+# AI Translated
 msgid "Thin wall detection is unavailable with the Arachne wall generator."
-msgstr ""
+msgstr "Detekce tenkých stěn není s generátorem stěn Arachne k dispozici."
 
+# AI Translated
 msgid "Disable role-based wipe speed to edit wipe speed manually."
-msgstr ""
+msgstr "Pro ruční úpravu rychlosti očištění vypněte rychlost očištění podle role."
 
+# AI Translated
 msgid "Enable inward wiping to edit inward wipe distance."
-msgstr ""
+msgstr "Pro úpravu vzdálenosti očištění dovnitř povolte očištění dovnitř."
 
+# AI Translated
 msgid "This setting requires the Klipper G-code flavor."
-msgstr ""
+msgstr "Toto nastavení vyžaduje typ G-code Klipper."
 
+# AI Translated
 msgid "Enable acceleration to deceleration to edit its factor."
-msgstr ""
+msgstr "Pro úpravu faktoru povolte accel_to_decel."
 
+# AI Translated
 msgid "Enable excluding objects with the Klipper G-code flavor to edit the outline tolerance."
-msgstr ""
+msgstr "Pro úpravu tolerance obrysu povolte vyloučení objektů s typem G-code Klipper."
 
+# AI Translated
 msgid "Enable making overhangs printable to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte úpravu převisů pro tisknutelnost."
 
+# AI Translated
 msgid "Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5."
-msgstr ""
+msgstr "Povolte pouze jednu stěnu na horním povrchu s vrstvami horního pláště, nebo použijte Arachne s faktorem minimální délky stěny větším než 0,5."
 
+# AI Translated
 msgid "Enable converting holes to polyholes to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte převod otvorů na polyotvory."
 
+# AI Translated
 msgid "Enable overhang wall detection to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte detekci převislých stěn."
 
+# AI Translated
 msgid "Reverse overhang direction is unavailable in spiral vase mode."
-msgstr ""
+msgstr "Obrácení směru převisů není v režimu spirálové vázy k dispozici."
 
+# AI Translated
 msgid "Disable spiral vase mode and enable reverse overhang direction to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vypněte režim spirálové vázy a povolte obrácení směru převisů."
 
+# AI Translated
 msgid "Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."
-msgstr ""
+msgstr "Povolte detekci převislých stěn a obrácení směru převisů a vypněte režim spirálové vázy i obracení pouze vnitřních obvodů."
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer."
-msgstr ""
+msgstr "Toto nastavení vyžaduje tiskárnu Bambu Lab."
 
+# AI Translated
 msgid "Enable small area infill flow compensation to edit its model."
-msgstr ""
+msgstr "Pro úpravu jejího modelu povolte kompenzaci průtoku výplně na malé ploše."
 
+# AI Translated
 msgid "Scarf seams are unavailable in spiral vase mode and for belt printers."
-msgstr ""
+msgstr "Šikmé spoje švu nejsou v režimu spirálové vázy ani na pásových tiskárnách k dispozici."
 
+# AI Translated
 msgid "Enable scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte šikmé spoje švu na tiskárně, která není pásová, s vypnutým režimem spirálové vázy."
 
+# AI Translated
 msgid "Disable scarfing the entire loop to edit the minimum scarf length."
-msgstr ""
+msgstr "Pro úpravu minimální délky šikmého spoje vypněte šikmý spoj kolem celé smyčky."
 
+# AI Translated
 msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte podmíněné šikmé spoje švu na tiskárně, která není pásová, s vypnutým režimem spirálové vázy."
 
+# AI Translated
 msgid "Enable beam interlocking to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte vzájemné zajištění nosníků."
 
+# AI Translated
 msgid "Disable beam interlocking to edit segmented region interlocking depth."
-msgstr ""
+msgstr "Pro úpravu hloubky prokládání segmentované oblasti vypněte vzájemné zajištění nosníků."
 
+# AI Translated
 msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte vzor řídké výplně Boční mřížka."
 
+# AI Translated
 msgid "Select the Lightning sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte vzor řídké výplně Blesk."
 
+# AI Translated
 msgid "Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."
-msgstr ""
+msgstr "Šablony rotace výplně nejsou pro výplň Adaptivní kubická a Podpůrná kostka k dispozici."
 
+# AI Translated
 msgid "Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."
-msgstr ""
+msgstr "Pro úpravu směru výplně vymažte šablonu rotace řídké výplně a zvolte jiný vzor než Adaptivní kubická nebo Podpůrná kostka."
 
+# AI Translated
 msgid "Clear the solid infill rotation template to edit solid infill direction."
-msgstr ""
+msgstr "Pro úpravu směru plné výplně vymažte šablonu rotace plné výplně."
 
+# AI Translated
 msgid "Select the Lateral Honeycomb sparse infill pattern to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vyberte vzor řídké výplně Boční plást."
 
+# AI Translated
 msgid "The selected printer does not support wrapping detection."
-msgstr ""
+msgstr "Vybraná tiskárna nepodporuje detekci shlukování."
 
+# AI Translated
+# Needs human review: SLA pad: rendered 'podložka' as PrusaSlicer's Czech does, but Orca's Czech also uses 'podložka' for the print bed; the SLA pad labels themselves are not translated.
 msgid "Enable the pad to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení povolte podložku."
 
+# AI Translated
+# Needs human review: SLA pad: rendered 'podložka' as PrusaSlicer's Czech does, but Orca's Czech also uses 'podložka' for the print bed; the SLA pad labels themselves are not translated.
 msgid "Enable the pad around the object to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení povolte podložku kolem objektu."
 
+# AI Translated
+# Needs human review: SLA pad: rendered 'podložka' as PrusaSlicer's Czech does, but Orca's Czech also uses 'podložka' for the print bed; the SLA pad labels themselves are not translated.
 msgid "Enable support and disable the pad around the object to edit object elevation."
-msgstr ""
+msgstr "Pro úpravu vyvýšení objektu povolte podpory a vypněte podložku kolem objektu."
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "Spirálový režim funguje pouze tehdy, když je počet smyček stěny 1, podpěry jsou vypnuté, detekce usazenin sondováním je vypnutá, počet horních plných vrstev je 0, hustota řídké výplně je 0 a typ časosběru je tradiční."
@@ -6836,6 +7031,10 @@ msgstr "Levá tryska: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Pravá tryska: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+# AI Translated
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr "Poloha nebo velikost některých modelů přesahuje tisknutelný rozsah přiřazeného extruderu. Zkontrolujte a upravte polohu nebo velikost dílu tak, aby se vešel do tisknutelného rozsahu."
+
 msgid "Mirror object"
 msgstr "Zrcadlit objekt"
 
@@ -7096,7 +7295,7 @@ msgid "Size:"
 msgstr "Velikost:"
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Byly nalezeny konflikty drah G-code ve vrstvě %d, Z = %.2lf mm. Oddělte prosím konfliktní objekty více od sebe (%s <-> %s)."
 
@@ -7588,8 +7787,9 @@ msgstr "Obnovit rozložení oken"
 msgid "Reset to default window layout"
 msgstr "Obnovit výchozí rozložení oken"
 
+# AI Translated
 msgid "Show 3Dconnexion Settings"
-msgstr ""
+msgstr "Zobrazit nastavení 3Dconnexion"
 
 msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr "Zobrazit/Skrýt dialog nastavení zařízení 3Dconnexion"
@@ -7945,6 +8145,10 @@ msgstr "Stáhnout"
 msgid "Download selected files from printer."
 msgstr "Stáhnout vybrané soubory z tiskárny."
 
+# AI Translated
+msgid "Select all files in the list for batch management."
+msgstr "Vybrat všechny soubory v seznamu pro hromadnou správu."
+
 msgid "Batch manage files."
 msgstr "Hromadná správa souborů."
 
@@ -8219,10 +8423,10 @@ msgid "Clear"
 msgstr "Vymazat"
 
 msgid ""
-"You have completed printing the mall model, \n"
+"You have completed printing the mall model,\n"
 "but synchronizing rating information has failed."
 msgstr ""
-"Dokončili jste tisk modelu, \n"
+"Dokončili jste tisk modelu,\n"
 "ale synchronizace informací o hodnocení selhala."
 
 msgid "How do you like this printing file?"
@@ -8484,7 +8688,7 @@ msgid "You can select up to 16 images."
 msgstr "Můžete vybrat až 16 obrázků."
 
 msgid ""
-"At least one successful print record of this print profile is required \n"
+"At least one successful print record of this print profile is required\n"
 "to give a positive rating (4 or 5 stars)."
 msgstr ""
 "Pro udělení kladného hodnocení (4 nebo 5 hvězd)\n"
@@ -9102,19 +9306,23 @@ msgstr ""
 "Pro tento typ nejsou dostupné žádné funkce pluginů.\n"
 "Abyste je mohli použít, některé povolte nebo nainstalujte."
 
+# AI Translated
 msgid "Hidden by the current configuration."
-msgstr ""
+msgstr "Skryto kvůli aktuální konfiguraci."
 
+# AI Translated
 #, boost-format
 msgid "Hidden: %1%"
-msgstr ""
+msgstr "Skryto: %1%"
 
+# AI Translated
 msgid "Disabled by the current configuration."
-msgstr ""
+msgstr "Zakázáno kvůli aktuální konfiguraci."
 
+# AI Translated
 #, boost-format
 msgid "Disabled: %1%"
-msgstr ""
+msgstr "Zakázáno: %1%"
 
 # AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
@@ -9330,8 +9538,9 @@ msgstr "Zobrazit nastavení všech objektů"
 msgid "Material settings"
 msgstr "Nastavení materiálu"
 
+# AI Translated
 msgid "The process flow ratio cannot be edited in this panel."
-msgstr ""
+msgstr "Poměr průtoku procesu nelze v tomto panelu upravit."
 
 # AI Translated
 msgid "Each mode names the tool heads that take part and the role each one plays. Click a tool button to cycle its role — hover a color below for what each role does."
@@ -9342,6 +9551,7 @@ msgid "Add Mode"
 msgstr "Přidat režim"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "Nástroje"
 
@@ -9358,8 +9568,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "Které tiskové hlavy se režimu účastní a jakou roli každá z nich hraje. Kliknutím na dlaždici přepnete její roli."
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "G-code spuštěný na začátku tisku, který přepne tiskárnu do tohoto režimu (například volání SET_PRINT_MODE v Klipperu). Slicer generuje pouze dráhy primárního nástroje (Primary); ostatní řídí firmware."
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"G-code spuštěný na začátku tisku, který přepne tiskárnu do tohoto režimu (například volání SET_PRINT_MODE v Klipperu).\n"
+"\n"
+"Slicer generuje pouze dráhy primárního nástroje (Primary); ostatní řídí firmware."
 
 # AI Translated
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -9420,8 +9636,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "Název tohoto paralelního režimu, jak se zobrazuje ve výběru režimu IDEX/IQEX u desky. V projektu se ukládá podle názvu, takže po přejmenování režimu, který již desky používají, se tyto desky vrátí do režimu Primární. Nesmí být prázdný — prázdný název se nahradí vygenerovaným."
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "G-code vložený jednou na začátku tisku, který používá tento režim, ještě před startovacím G-code stroje. Zde se tiskárna přepíná do odpovídajícího režimu firmwaru — například voláním SET_PRINT_MODE v Klipperu nebo M567 v RepRapFirmware — protože slicer generuje pouze dráhy primárního nástroje (Primary) a nástroje v rolích Kopie (Copy) / Zrcadlo (Mirror) řídí firmware. Zástupné znaky jsou podporovány; procházet je můžete tlačítkem úprav. Pokud režim nevyžaduje nastavení firmwaru, ponechte prázdné."
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"G-code vložený jednou na začátku tisku, který používá tento režim, ještě před startovacím G-code stroje. Zde se tiskárna přepíná do odpovídajícího režimu firmwaru — například voláním SET_PRINT_MODE v Klipperu nebo M567 v RepRapFirmware — protože slicer generuje pouze dráhy primárního nástroje (Primary) a nástroje v rolích Kopie (Copy) / Zrcadlo (Mirror) řídí firmware.\n"
+"\n"
+"Zástupné znaky jsou podporovány; procházet je můžete tlačítkem úprav. Pokud režim nevyžaduje nastavení firmwaru, ponechte prázdné."
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -9844,12 +10066,10 @@ msgstr "Objekt je příliš malý"
 # AI Translated
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
+"Instead of considering them as multiple objects, should the file be loaded as a single object with multiple parts?"
 msgstr ""
 "Tento soubor obsahuje několik objektů umístěných v různých výškách.\n"
-"Má se soubor místo toho, aby byly považovány za více objektů, \n"
-"načíst jako jeden objekt s více částmi?"
+"Má se soubor místo toho, aby byly považovány za více objektů, načíst jako jeden objekt s více částmi?"
 
 msgid "Multi-part object detected"
 msgstr "Detekován vícedílný objekt"
@@ -10404,7 +10624,7 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "Abnormální data tiskového souboru. Prosím, znovu nakrájejte."
 
 msgid ""
-"Print By Object: \n"
+"Print By Object:\n"
 "We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
 "Tisk podle objektu:\n"
@@ -10439,6 +10659,12 @@ msgstr "V tiskárně nejsou žádné filamenty. Nejprve filamenty vložte do tis
 
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "Všechny filamenty v tiskárně mají neznámý typ. Nastavte typ filamentu na displeji tiskárny nebo na stránce zařízení v aplikaci."
+
+# AI Translated
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr "Tiskárna %s je připojena, ale nebyl na ní nalezen žádný systém filamentů (AMS, CFS ani jiná vícemateriálová jednotka), takže nejsou žádné filamenty k synchronizaci."
 
 msgid "Device Page"
 msgstr "Stránka zařízení"
@@ -10749,13 +10975,15 @@ msgstr "Používat tlačítka okna na levé straně"
 msgid "(Requires restart)"
 msgstr "(Vyžaduje restart)"
 
+# AI Translated
 #. TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
 msgid "Render on the discrete GPU"
-msgstr ""
+msgstr "Vykreslovat na dedikované grafické kartě"
 
+# AI Translated
 #. TRN DRI_PRIME is an environment variable name and must stay as it is.
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
-msgstr ""
+msgstr "Na počítači se dvěma grafickými kartami spouští OrcaSlicer na dedikované grafické kartě místo té, která obsluhuje displej. Některé systémy s Waylandem nedokážou zobrazit snímky vykreslené na druhé grafické kartě, nebo se jim vůbec nepodaří otevřít okno. Pokud 3D zobrazení zůstává prázdné, tuto možnost vypněte. Pokud se OrcaSlicer už nespustí, spusťte jej jednou s proměnnou prostředí DRI_PRIME=0, abyste se sem mohli vrátit."
 
 msgid "Downloads folder"
 msgstr "Složka pro stahování"
@@ -10974,6 +11202,14 @@ msgstr "Automaticky vypočítat objemy čištění při změně vybraných hodno
 
 msgid "Auto arrange plate after cloning"
 msgstr "Automaticky uspořádat podložku po klonování"
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "Zobrazit možnosti při přidávání primitivu"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "Pokud je povoleno, dialog se před přidáním primitivního tvaru zeptá na jeho rozměry."
 
 msgid "Auto slice after changes"
 msgstr "Automaticky slicovat po změnách"
@@ -11268,14 +11504,12 @@ msgstr "Znovu použít 3D scénu při nečinnosti"
 
 # AI Translated
 msgid ""
-"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, and reuses the previous frame's scene instead. Reduces GPU load.\n"
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
 msgstr ""
-"Přeskočí překreslení 3D scény, když se nad zobrazovací oblastí pohybuje pouze kurzor myši,\n"
-"a místo toho znovu použije scénu z předchozího snímku. Snižuje zatížení GPU.\n"
+"Přeskočí překreslení 3D scény, když se nad zobrazovací oblastí pohybuje pouze kurzor myši, a místo toho znovu použije scénu z předchozího snímku. Snižuje zatížení GPU.\n"
 "Vypněte, pokud zobrazovací oblast ukazuje zastaralý nebo chybějící obsah.\n"
 "\n"
 "Projeví se okamžitě."
@@ -11405,9 +11639,11 @@ msgstr "Stealth režim"
 # AI Translated
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+"\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
 "Tím se vypnou všechny cloudové funkce včetně synchronizace profilů s Orca Cloud. Uživatelé, kteří chtějí pracovat zcela offline, mohou tuto možnost zapnout.\n"
+"\n"
 "Poznámka: Je-li Stealth režim zapnut, nebudou vaše uživatelské profily zálohovány do Orca Cloud."
 
 # AI Translated
@@ -11724,6 +11960,30 @@ msgid "The selected preset is null!"
 msgstr "Zvolená předvolba je nulová!"
 
 # AI Translated
+msgid "Changing one dimension changes the others in proportion."
+msgstr "Změna jednoho rozměru úměrně změní ostatní."
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "Uložit toto nastavení jako výchozí"
+
+# AI Translated
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr "Pokud je povoleno, budou se tyto rozměry od nynějška používat pro tento tvar, i když se tento dialog nezobrazí."
+
+# AI Translated
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr "Pokud je povoleno, tvary se přidávají ve výchozí velikosti bez dotazu. Dialog lze znovu zapnout v Předvolbách."
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "Velikost musí být větší než nula"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Neplatný číselný vstup."
+
+# AI Translated
 msgctxt "Layer range"
 msgid "End"
 msgstr "Konec"
@@ -11903,6 +12163,18 @@ msgstr "Předvolba „%1%“ již existuje a není kompatibilní s aktuální ti
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Upozorňujeme, že uložením přepíšete tuto předvolbu."
+
+# AI Translated
+msgid "control characters are not allowed."
+msgstr "Řídicí znaky nejsou povoleny."
+
+# AI Translated
+msgid "The name is a reserved system name."
+msgstr "Název je vyhrazený systémový název."
+
+# AI Translated
+msgid "The name is too long."
+msgstr "Název je příliš dlouhý."
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "Název nesmí být stejný jako alias předvolby."
@@ -12596,8 +12868,9 @@ msgstr "Před tiskem přes LAN je nutné vložit úložiště."
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "Úložiště je v neplatném stavu nebo je pouze pro čtení."
 
-msgid "Storage needs to be inserted before printing."
-msgstr "Před tiskem je nutné vložit úložiště."
+# AI Translated
+msgid "Insert storage or free up space before printing."
+msgstr "Před tiskem vložte úložiště nebo uvolněte místo."
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Nelze odeslat tiskovou úlohu do tiskárny, která vyžaduje aktualizaci firmwaru."
@@ -12670,9 +12943,6 @@ msgstr "Nelze odeslat tiskovou úlohu během probíhající aktualizace."
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "Vybraná tiskárna není kompatibilní se zvolenými předvolbami tiskárny."
 
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Před odesláním do tiskárny je nutné vložit úložiště."
-
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Tiskárna musí být ve stejné síti LAN jako Orca Slicer."
 
@@ -12726,12 +12996,8 @@ msgstr "Vypršel časový limit pro přijetí přihlašovacího hlášení"
 msgid "Unknown Failure"
 msgstr "Neznámé selhání"
 
-msgid ""
-"Please Find the Pin Code in Account page on printer screen,\n"
-" and type in the Pin Code below."
-msgstr ""
-"PIN kód najdete na stránce Účet na obrazovce tiskárny.\n"
-"Zadejte prosím PIN kód níže."
+msgid "Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."
+msgstr "PIN kód najdete na stránce Účet na obrazovce tiskárny. Zadejte prosím PIN kód níže."
 
 msgid "Can't find Pin Code?"
 msgstr "Nemůžete najít PIN kód?"
@@ -12896,12 +13162,10 @@ msgstr ""
 
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
-"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
-"and use soluble materials for both support interface and support base."
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height and use soluble materials for both support interface and support base."
 msgstr ""
 "Při použití rozpustného materiálu pro rozhraní podpor doporučujeme následující nastavení:\n"
-"horní Z vzdálenost 0, rozestup rozhraní 0, prokládaný přímočarý vzor, zakázat nezávislou výšku vrstvy podpor\n"
-"a použít rozpustný materiál jak pro rozhraní podpor, tak pro základ podpor."
+"horní Z vzdálenost 0, rozestup rozhraní 0, prokládaný přímočarý vzor, zakázat nezávislou výšku vrstvy podpor a použít rozpustný materiál jak pro rozhraní podpor, tak pro základ podpor."
 
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
 msgstr "Povolením této možnosti se změní tvar modelu. Pokud váš tisk vyžaduje přesné rozměry nebo je součástí sestavy, doporučujeme ověřit, zda tato změna geometrie neovlivní funkčnost tisku."
@@ -12918,15 +13182,12 @@ msgstr "Experimentální funkce: Stažení a odstřižení filamentu na větší
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications. Please use with the latest printer firmware."
 msgstr "Experimentální funkce: Stažení a odstřižení filamentu na větší vzdálenost během výměny filamentu pro minimalizaci purge. Ačkoliv to může výrazně snížit purge, může to také zvýšit riziko ucpání trysky nebo jiných komplikací při tisku. Používejte prosím s nejnovějším firmware tiskárny."
 
-msgid ""
-"When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr ""
-"Při záznamu časosběru bez tiskové hlavy je doporučeno přidat „Časosběr věž na očištění trysky“.\n"
-"Klikněte pravým tlačítkem na prázdné místo tiskové podložky a zvolte „Přidat primitivum“ → „Časosběr věž na očištění trysky“."
+msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+msgstr "Při záznamu časosběru bez tiskové hlavy je doporučeno přidat „Časosběr věž na očištění trysky“. Klikněte pravým tlačítkem na prázdné místo tiskové podložky a zvolte „Přidat primitivum“ → „Časosběr věž na očištění trysky“."
 
+# AI Translated
 msgid "Setting unavailable"
-msgstr ""
+msgstr "Nastavení není k dispozici"
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "Bude vytvořena kopie aktuálního systémového přednastavení, která bude oddělena od systémového přednastavení."
@@ -13096,14 +13357,16 @@ msgstr "Konfigurace pluginu"
 msgid "Notes"
 msgstr "Poznámky"
 
+# AI Translated
 msgid "The selected printer does not support multiple bed types."
-msgstr ""
+msgstr "Vybraná tiskárna nepodporuje více typů podložek."
 
 msgid "Frequent"
 msgstr "Časté"
 
+# AI Translated
 msgid "Custom filament print order is unavailable while the plate contains mixed-color filaments."
-msgstr ""
+msgstr "Vlastní pořadí tisku filamentů není k dispozici, pokud deska obsahuje míchané filamenty."
 
 #, c-format, boost-format
 msgid ""
@@ -13134,14 +13397,17 @@ msgstr "Přepisování nastavení"
 msgid "Retraction when switching material"
 msgstr "Retrakce při změně materiálu"
 
+# AI Translated
 msgid "Set the filament retraction length above zero, or use the printer's value, to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení nastavte délku retrakce filamentu na hodnotu větší než nula, nebo použijte hodnotu tiskárny."
 
+# AI Translated
 msgid "The printer profile must allow filament overrides for long retraction when cutting."
-msgstr ""
+msgstr "Profil tiskárny musí umožňovat, aby filament přepsal dlouhou retrakci při přeříznutí."
 
+# AI Translated
 msgid "Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte dlouhou retrakci při přeříznutí v profilu tiskárny a zapněte ji v profilu filamentu."
 
 msgid "Basic information"
 msgstr "Základní informace"
@@ -13272,59 +13538,78 @@ msgstr "Kompatibilní tiskárny"
 msgid "Compatible process profiles"
 msgstr "Kompatibilní procesní profily"
 
+# AI Translated
+# Needs human review: Quotes the label 'Vynutit chlazení pro převisy a mosty'; the glossary's Bridge is 'Můstky'. Check which the hint should use.
 msgid "Enable cooling for overhangs and bridges to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení povolte chlazení pro převisy a mosty."
 
+# AI Translated
 msgid "Enable slowing down for layer cooling to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte zpomalení tisku pro lepší chlazení vrstvy."
 
+# AI Translated
 msgid "Set the number of initial layers without cooling to zero to override the first layer fan speed."
-msgstr ""
+msgstr "Pro přepsání rychlosti ventilátoru první vrstvy nastavte počet počátečních vrstev bez chlazení na nulu."
 
+# AI Translated
 msgid "Enable the auxiliary fan in the printer profile to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte v profilu tiskárny pomocný ventilátor."
 
+# AI Translated
 msgid "The selected printer does not support air filtration."
-msgstr ""
+msgstr "Vybraná tiskárna nepodporuje filtraci vzduchu."
 
+# AI Translated
 msgid "Activate air filtration to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení aktivujte filtraci vzduchu."
 
+# AI Translated
 msgid "Activate air filtration and enable it during printing to edit the exhaust fan speed."
-msgstr ""
+msgstr "Pro úpravu rychlosti odsávacího ventilátoru aktivujte filtraci vzduchu a zapněte ji během tisku."
 
+# AI Translated
 msgid "Activate air filtration and enable it on completion to edit the exhaust fan speed."
-msgstr ""
+msgstr "Pro úpravu rychlosti odsávacího ventilátoru aktivujte filtraci vzduchu a zapněte ji po dokončení tisku."
 
+# AI Translated
 msgid "Enable pressure advance to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte Pressure Advance."
 
+# AI Translated
 msgid "Select this bed type or enable support for multiple bed types in the printer profile to show its temperature settings."
-msgstr ""
+msgstr "Pro zobrazení nastavení teploty vyberte tento typ podložky, nebo v profilu tiskárny povolte podporu více typů podložek."
 
+# AI Translated
 msgid "Enable pressure advance and adaptive pressure advance to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte Pressure Advance a adaptivní Pressure Advance."
 
+# AI Translated
 msgid "Enable the pellet printer option in the printer profile to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte v profilu tiskárny možnost Tiskárna na pelety."
 
+# AI Translated
 msgid "Filament diameter is unavailable for pellet printers."
-msgstr ""
+msgstr "Průměr filamentu není u tiskáren na pelety k dispozici."
 
+# AI Translated
 msgid "The selected printer does not support chamber temperature control."
-msgstr ""
+msgstr "Vybraná tiskárna nepodporuje řízení teploty komory."
 
+# AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
-msgstr ""
+msgstr "Před povolením adaptivní objemové rychlosti nastavte nenulové koeficienty objemové rychlosti."
 
+# AI Translated
 msgid "Enable multitool ramming to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení povolte ramming pro více nástrojů."
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer with multiple extruders."
-msgstr ""
+msgstr "Toto nastavení vyžaduje tiskárnu Bambu Lab s více extrudery."
 
+# AI Translated
 msgid "Use a Bambu Lab printer with multiple extruders and enable long retraction when the extruder changes."
-msgstr ""
+msgstr "Použijte tiskárnu Bambu Lab s více extrudery a povolte dlouhou retrakci při změně extruderu."
 
 msgid "Printable space"
 msgstr "Tisknutelný prostor"
@@ -13440,12 +13725,10 @@ msgid "Number of extruders of the printer."
 msgstr "Počet extruderů tiskárny."
 
 msgid ""
-"Single Extruder Multi Material is selected,\n"
-"and all extruders must have the same diameter.\n"
+"Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
 msgstr ""
-"Je vybráno nastavení jedné trysky pro více materiálů,\n"
-"a všechny extrudery musí mít stejný průměr.\n"
+"Je vybráno nastavení jedné trysky pro více materiálů, a všechny extrudery musí mít stejný průměr.\n"
 "Chcete změnit průměr všech extruderů na hodnotu průměru trysky prvního extruderu?"
 
 msgid "Nozzle diameter"
@@ -13486,62 +13769,85 @@ msgstr "Omezení výšky vrstvy"
 msgid "Z-Hop"
 msgstr "Z-Hop"
 
+# AI Translated
+# Needs human review: The English 'Marlin firmware G-code flavor' is the option shown as 'Marlin 2' in the G-code flavor list; check the hint reads right next to it.
 msgid "Power loss recovery requires a Bambu Lab printer or the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "Obnova po výpadku napájení vyžaduje tiskárnu Bambu Lab nebo typ G-code firmwaru Marlin."
 
+# AI Translated
 msgid "Build plate tilt is derived from the belt tilt on belt printers."
-msgstr ""
+msgstr "Na pásových tiskárnách se naklonění podložky odvozuje z naklonění pásu."
 
+# AI Translated
 msgid "Enable belt printer mode to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte režim pásové tiskárny."
 
+# AI Translated
 msgid "Enable belt printer mode and select a belt rotation axis to edit its angle."
-msgstr ""
+msgstr "Pro úpravu úhlu povolte režim pásové tiskárny a vyberte osu naklonění pásu."
 
+# AI Translated
 msgid "Enable belt printer mode and select Expert or Developer settings visibility to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte režim pásové tiskárny a vyberte viditelnost nastavení Expertní nebo Vývojářský."
 
+# AI Translated
 msgid "Enable belt printer mode, select Expert or Developer settings visibility, and decouple the machine frame tilt to edit its angle."
-msgstr ""
+msgstr "Pro úpravu úhlu povolte režim pásové tiskárny, vyberte viditelnost nastavení Expertní nebo Vývojářský a oddělte naklonění souřadnicového systému stroje."
 
+# AI Translated
 msgid "Enable support for parallel printheads to edit their count."
-msgstr ""
+msgstr "Pro úpravu jejich počtu povolte podporu paralelních tiskových hlav."
 
+# AI Translated
 msgid "Collision volume mode selection requires multiple extruders."
-msgstr ""
+msgstr "Výběr režimu kolizních objemů vyžaduje více extruderů."
 
+# AI Translated
 msgid "Select a shared collision volume mode or use a single-extruder printer to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení vyberte sdílený režim kolizních objemů, nebo použijte tiskárnu s jedním extruderem."
 
+# AI Translated
 msgid "Enable the auxiliary fan to edit its direction."
-msgstr ""
+msgstr "Pro úpravu jeho směru povolte pomocný ventilátor."
 
+# AI Translated
 msgid "Air filtration and the cooling filter are alternative accessories; disable cooling filter support to use air filtration."
-msgstr ""
+msgstr "Filtrace vzduchu a filtr pro chlazení jsou alternativní příslušenství; pro použití filtrace vzduchu vypněte podporu filtru pro chlazení."
 
+# AI Translated
 msgid "Enable cooling filter support in the printer profile to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte v profilu tiskárny podporu filtru pro chlazení."
 
+# AI Translated
 msgid "Enable belt printer mode to use the belt purge tower."
-msgstr ""
+msgstr "Pro použití čisticí věže pásu povolte režim pásové tiskárny."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'věž na očištění trysky' for the wipe tower as the catalog does. The 'Wipe tower type' label reads 'Typ čistící věže'.
 msgid "Wipe tower type selection is unavailable for Bambu Lab printers and belt printers."
-msgstr ""
+msgstr "Výběr typu věže na očištění trysky není na tiskárnách Bambu Lab ani na pásových tiskárnách k dispozici."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'věž na očištění trysky' for the wipe tower as the catalog does. The 'Wipe tower type' label reads 'Typ čistící věže'.
 msgid "Select wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení nastavte na tiskárně, která není od Bambu Lab, typ věže na očištění trysky na Typ 2."
 
+# AI Translated
 msgid "Extruder count cannot be edited in single extruder multimaterial mode."
-msgstr ""
+msgstr "Počet extruderů nelze v režimu jedné trysky pro více materiálů upravit."
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode to use manual filament changes."
-msgstr ""
+msgstr "Pro použití manuální výměny filamentu povolte režim jedné trysky pro více materiálů."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'věž na očištění trysky' for the wipe tower as the catalog does. The 'Wipe tower type' label reads 'Typ čistící věže'.
 msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte na tiskárně, která není od Bambu Lab, režim jedné trysky pro více materiálů s věží na očištění trysky Typ 2."
 
+# AI Translated
 msgid "Enable IDEX/IQEX printer mode to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte režim tiskárny IDEX/IQEX."
 
 # AI Translated
 msgid "Front-left"
@@ -13559,35 +13865,48 @@ msgstr "Vzadu vlevo"
 msgid "Rear-right"
 msgstr "Vzadu vpravo"
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'věž na očištění trysky' for the wipe tower as the catalog does. The 'Wipe tower type' label reads 'Typ čistící věže'.
 msgid "Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Použijte více extruderů s věží na očištění trysky Typ 2 na tiskárně, která není od Bambu Lab, a vypněte režim jedné trysky pro více materiálů."
 
+# AI Translated
 msgid "Set retraction length above zero or enable firmware retraction to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení nastavte délku retrakce na hodnotu větší než nula, nebo povolte firmwarovou retrakci."
 
+# AI Translated
 msgid "The extruder printable area and height are fixed by the printer profile."
-msgstr ""
+msgstr "Tisknutelnou oblast a výšku extruderu určuje profil tiskárny."
 
+# AI Translated
 msgid "This setting is shown for printers with exactly two extruders."
-msgstr ""
+msgstr "Toto nastavení se zobrazuje u tiskáren s právě dvěma extrudery."
 
+# AI Translated
 msgid "Select per-extruder collision volumes on a printer with multiple extruders to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení vyberte na tiskárně s více extrudery kolizní objemy pro jednotlivé extrudery."
 
+# AI Translated
 msgid "Retraction length is controlled by the firmware while firmware retraction is enabled."
-msgstr ""
+msgstr "Když je povolena firmwarová retrakce, délku retrakce řídí firmware."
 
+# AI Translated
 msgid "Enable retraction and set Z hop above zero to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení povolte retrakci a nastavte výšku Z-hopu na hodnotu větší než nula."
 
+# AI Translated
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení nastavte délku retrakce na hodnotu větší než nula a vypněte firmwarovou retrakci."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
-msgstr ""
+msgstr "Pro úpravu množství retrakce před setřením povolte retrakci a očištění a nastavte délku retrakce po očištění na hodnotu menší než 100 %."
 
+# AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
-msgstr ""
+msgstr "Pro úpravu délky retrakce po očištění povolte retrakci a očištění a nastavte množství retrakce před setřením na hodnotu menší než 100 %."
 
 # AI Translated
 msgid ""
@@ -13602,47 +13921,62 @@ msgstr ""
 msgid "Firmware Retraction"
 msgstr "Firmwarová retrakce"
 
+# AI Translated
 msgid "Enable retraction and wiping to edit wipe distance."
-msgstr ""
+msgstr "Pro úpravu délky očištění povolte retrakci a očištění."
 
+# AI Translated
 msgid "This setting requires multiple extruders."
-msgstr ""
+msgstr "Toto nastavení vyžaduje více extruderů."
 
+# AI Translated
 msgid "Use multiple extruders and set tool change retraction length above zero to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení použijte více extruderů a nastavte délku retrakce při výměně nástroje na hodnotu větší než nula."
 
+# AI Translated
 msgid "Disable firmware retraction and allow long retraction when cutting to use this setting."
-msgstr ""
+msgstr "Pro použití tohoto nastavení vypněte firmwarovou retrakci a povolte dlouhou retrakci při přeříznutí."
 
+# AI Translated
 msgid "Enable long retraction when cutting to edit the retraction distance."
-msgstr ""
+msgstr "Pro úpravu vzdálenosti retrakce povolte dlouhou retrakci při přeříznutí."
 
+# AI Translated
 msgid "Select a Z hop type other than Normal to edit travel slope."
-msgstr ""
+msgstr "Pro úpravu úhlu přejezdu vyberte jiný typ Z-hopu než Normální."
 
+# AI Translated
 msgid "Travel acceleration limits are unavailable for the Marlin legacy and Klipper G-code flavors."
-msgstr ""
+msgstr "Limity zrychlení přejezdu nejsou pro typy G-code Marlin (starší) a Klipper k dispozici."
 
+# AI Translated
 msgid "Jerk limits are unavailable while Marlin uses nonzero junction deviation."
-msgstr ""
+msgstr "Limity jerku nejsou k dispozici, když Marlin používá nenulovou hodnotu Junction Deviation."
 
+# AI Translated
 msgid "Emitting machine limits requires the Marlin legacy, Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "Odesílání limitů stroje vyžaduje typ G-code Marlin (starší), Marlin nebo RepRapFirmware."
 
+# AI Translated
 msgid "Enable resonance avoidance to edit its speed range."
-msgstr ""
+msgstr "Pro úpravu rozsahu rychlostí povolte vyhýbání rezonancím."
 
+# AI Translated
 msgid "This input shaping setting requires the Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "Toto nastavení Input Shaping vyžaduje typ G-code Marlin nebo RepRapFirmware."
 
+# AI Translated
 msgid "Enable emitting machine limits to G-code to emit input shaping settings."
-msgstr ""
+msgstr "Pro odeslání nastavení Input Shaping povolte odesílání limitů stroje do G-code."
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code to edit this setting."
-msgstr ""
+msgstr "Pro úpravu tohoto nastavení povolte odesílání limitů stroje a Input Shaping do G-code."
 
+# AI Translated
+# Needs human review: The English 'Marlin firmware G-code flavor' is the option shown as 'Marlin 2' in the G-code flavor list; check the hint reads right next to it.
 msgid "Enable emitting machine limits and input shaping to G-code with the Marlin firmware G-code flavor to edit separate Y-axis values."
-msgstr ""
+msgstr "Pro úpravu samostatných hodnot pro osu Y povolte s typem G-code firmwaru Marlin odesílání limitů stroje a Input Shaping do G-code."
 
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
 msgstr "Přepnutí na tiskárnu s jiným typem nebo počtem extruderů zahodí nebo obnoví změny parametrů souvisejících s extruderem nebo více tryskami."
@@ -13707,8 +14041,9 @@ msgstr ""
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "Opravdu chcete odstranit vybranou předvolbu?"
 
+# AI Translated
 msgid "Select \"All\" to edit the compatibility condition instead of using an explicit profile list."
-msgstr ""
+msgstr "Pro úpravu podmínky kompatibility místo použití explicitního seznamu profilů vyberte „Vše“."
 
 msgid "Select printers"
 msgstr "Vyberte tiskárny"
@@ -13820,8 +14155,9 @@ msgstr "Klikněte pro obnovení aktuální hodnoty a navázání na globální h
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Kliknutím zrušíte aktuální úpravu a obnovíte uloženou hodnotu."
 
+# AI Translated
 msgid "Material print speed cannot be edited for the SL1 printer."
-msgstr ""
+msgstr "Rychlost tisku materiálu nelze u tiskárny SL1 upravit."
 
 msgid "Process Settings"
 msgstr "Nastavení procesu"
@@ -13909,15 +14245,15 @@ msgstr "Přeneste vybrané možnosti do nově zvolené předvolby."
 
 #, boost-format
 msgid ""
-"Save the selected options to preset \n"
+"Save the selected options to preset\n"
 "\"%1%\"."
 msgstr ""
-"Uložit vybrané možnosti do předvolby \n"
+"Uložit vybrané možnosti do předvolby\n"
 "„%1%“."
 
 #, boost-format
 msgid ""
-"Transfer the selected options to the newly selected preset \n"
+"Transfer the selected options to the newly selected preset\n"
 "\"%1%\"."
 msgstr ""
 "Přeneste vybrané možnosti do nově zvolené předvolby\n"
@@ -14799,12 +15135,8 @@ msgstr "Připojování k tiskárně... Dialog se zavře později"
 msgid "Connection failed, please double check IP and Access Code"
 msgstr "Připojení selhalo, zkontrolujte prosím IP a přístupový kód."
 
-msgid ""
-"Connection failed! If your IP and Access Code is correct, \n"
-"please move to step 3 for troubleshooting network issues"
-msgstr ""
-"Připojení selhalo! Pokud jsou vaše IP a přístupový kód správné,\n"
-"přejděte ke kroku 3 pro řešení problémů se sítí."
+msgid "Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"
+msgstr "Připojení selhalo! Pokud jsou vaše IP a přístupový kód správné, přejděte ke kroku 3 pro řešení problémů se sítí."
 
 msgid "Connection failed! Please refer to the wiki page."
 msgstr "Připojení selhalo! Podívejte se prosím do wiki."
@@ -15311,6 +15643,11 @@ msgstr "%1% protíná kolizní objem extruderu %2%."
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% je příliš blízko ostatním, může dojít ke kolizím."
 
+# AI Translated
+#, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr "Objekt %1% se tiskne později, než odpovídá jeho pořadí v seznamu objektů, aby nedošlo ke kolizi."
+
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% je příliš vysoký, může dojít ke kolizím."
@@ -15367,10 +15704,11 @@ msgstr "Pokud chcete přesto tisknout, můžete povolit možnost v Nastavení / 
 msgid "No extrusions under current settings."
 msgstr "Při aktuálním nastavení nejsou žádné extruze."
 
+# AI Translated
 #. TRN %1% is the filament number as shown in the filament list, starting from 1.
 #, boost-format
 msgid "The flow ratio of filament %1% must be greater than 0."
-msgstr ""
+msgstr "Poměr průtoku filamentu %1% musí být větší než 0."
 
 # AI Translated
 msgid "Mixed filaments are not supported in IDEX/IQEX parallel modes. Switch this plate to Primary mode."
@@ -15627,8 +15965,19 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "Možnost přesné stěny se ignoruje pro sekvence stěn vnější-vnitřní nebo vnitřní-vnější-vnitřní."
 
 # AI Translated
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "Model Adaptive Pressure Advance pro jeden nebo více extruderů může obsahovat neplatné hodnoty."
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr "Adaptivní Pressure Advance je povolen pro jeden nebo více extruderů, ale do jejich modelu Adaptive Pressure Advance nebyla zadána žádná měření."
+
+# AI Translated
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
+"Model Adaptive Pressure Advance filamentu %1% obsahuje neplatné hodnoty.\n"
+"%2%"
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Smrštění filamentu nebude použito, protože hodnoty smrštění použitých filamentů se neshodují."
@@ -16361,8 +16710,14 @@ msgstr ""
 msgid "Precise wall"
 msgstr "Přesná stěna"
 
-msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr "Zlepšete přesnost pláště úpravou rozestupu vnější stěny. To také zlepšuje konzistenci vrstvy. POZNÁMKA: Tato volba bude ignorována u sekvencí stěn vnější-vnitřní nebo vnitřní-vnější-vnitřní."
+msgid ""
+"Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n"
+"\n"
+"Note: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgstr ""
+"Zlepšete přesnost pláště úpravou rozestupu vnější stěny. To také zlepšuje konzistenci vrstvy.\n"
+"\n"
+"Poznámka: Tato volba bude ignorována u sekvencí stěn vnější-vnitřní nebo vnitřní-vnější-vnitřní."
 
 msgid "Only one wall on top surfaces"
 msgstr "Pouze jedna stěna na horním povrchu"
@@ -16376,9 +16731,11 @@ msgstr "Práh jedné stěny"
 #, no-c-format, no-boost-format
 msgid ""
 "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+"\n"
 "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
 msgstr ""
 "Pokud má být horní povrch tištěn a je částečně překryt další vrstvou, nebude považován za horní vrstvu, pokud jeho šířka bude pod touto hodnotou. To může být užitečné, abyste zabránili aktivaci funkce ‚jeden obvod navrchu‘ na površích, které mají být pokryty pouze obvody. Tato hodnota může být v mm nebo % šířky extruze.\n"
+"\n"
 "Varování: Pokud je povoleno, mohou vzniknout artefakty, pokud máte na další vrstvě tenké prvky, například písmena. Pro odstranění těchto artefaktů nastavte tuto hodnotu na 0."
 
 msgid "Only one wall on first layer"
@@ -16476,7 +16833,7 @@ msgid ""
 "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
 "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 "\n"
-"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen.\n"
 "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
 "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
 "\n"
@@ -16491,7 +16848,7 @@ msgstr ""
 "Zapněte tuto volbu, chcete-li zpomalit tisk v místech, kde se mohly obvody zkroutit nahoru.\n"
 "Například při tisku převisů na ostrých rozích, jako je příď trupu modelu Benchy, se použije dodatečné zpomalení, které omezí kroucení narůstající přes více vrstev.\n"
 "\n"
-"Obecně se doporučuje mít tuto volbu zapnutou, pokud není chlazení vaší tiskárny dostatečně výkonné nebo rychlost tisku natolik nízká, že ke kroucení obvodů nedochází. \n"
+"Obecně se doporučuje mít tuto volbu zapnutou, pokud není chlazení vaší tiskárny dostatečně výkonné nebo rychlost tisku natolik nízká, že ke kroucení obvodů nedochází.\n"
 "Při tisku s vysokou rychlostí vnějších obvodů může tento parametr při zpomalování způsobit artefakty na stěnách, a to kvůli potenciálně velkému rozdílu rychlostí tisku, kdy extruder nestíhá požadovanou změnu průtoku.\n"
 "Hlavní příčinou těchto artefaktů je nejspíš mírně nepřesné doladění PA, zejména v kombinaci s dlouhým časem vyhlazení PA.\n"
 "\n"
@@ -16753,8 +17110,12 @@ msgstr "Výchozí profil procesu při přepnutí na tento profil tiskárny."
 msgid "Activate air filtration"
 msgstr "Aktivovat filtraci vzduchu"
 
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "Aktivovat pro lepší filtraci vzduchu. G-code příkaz: M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"Aktivovat pro lepší filtraci vzduchu.\n"
+"G-code příkaz: M106 P3 S(0-255)"
 
 msgid "Enable this to override the fan speed set in custom G-code during print."
 msgstr "Povolte tuto možnost pro přepsání rychlosti ventilátoru nastavené ve vlastním G-code během tisku."
@@ -17195,14 +17556,26 @@ msgstr "Výška špičky trysky."
 msgid "Bed mesh min"
 msgstr "Minimální síť podložky"
 
-msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Tato volba nastavuje minimální bod povolené oblasti meshování podložky. Kvůli XY offsetu sondy většina tiskáren nedokáže sondovat celou podložku. Aby bod sondování nepřekročil oblast podložky, musí být minimální a maximální hodnoty meshování nastaveny správně. OrcaSlicer zajišťuje, že hodnoty adaptive_bed_mesh_min/adaptive_bed_mesh_max nepřesáhnou tyto min/max body. Tyto informace obvykle získáte od výrobce tiskárny. Výchozí nastavení je (-99999, -99999), což znamená, že nejsou žádná omezení a sonda může měřit po celé ploše podložky."
+msgid ""
+"This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Tato volba nastavuje minimální bod povolené oblasti meshování podložky. Kvůli XY offsetu sondy většina tiskáren nedokáže sondovat celou podložku. Aby bod sondování nepřekročil oblast podložky, musí být minimální a maximální hodnoty meshování nastaveny správně. OrcaSlicer zajišťuje, že hodnoty adaptive_bed_mesh_min/adaptive_bed_mesh_max nepřesáhnou tyto min/max body. Tyto informace obvykle získáte od výrobce tiskárny.\n"
+"\n"
+"Výchozí nastavení je (-99999, -99999), což znamená, že nejsou žádná omezení a sonda může měřit po celé ploše podložky."
 
 msgid "Bed mesh max"
 msgstr "Maximální síť podložky"
 
-msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Tato volba nastavuje maximální bod povolené oblasti meshování podložky. Kvůli XY offsetu sondy většina tiskáren nedokáže sondovat celou podložku. Aby bod sondování nepřekročil oblast podložky, musí být minimální a maximální hodnoty meshování nastaveny správně. OrcaSlicer zajišťuje, že hodnoty adaptive_bed_mesh_min/adaptive_bed_mesh_max nepřesáhnou tyto min/max body. Tyto informace obvykle získáte od výrobce tiskárny. Výchozí nastavení je (99999, 99999), což znamená, že nejsou žádná omezení a sondování je možné po celé podložce."
+msgid ""
+"This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Tato volba nastavuje maximální bod povolené oblasti meshování podložky. Kvůli XY offsetu sondy většina tiskáren nedokáže sondovat celou podložku. Aby bod sondování nepřekročil oblast podložky, musí být minimální a maximální hodnoty meshování nastaveny správně. OrcaSlicer zajišťuje, že hodnoty adaptive_bed_mesh_min/adaptive_bed_mesh_max nepřesáhnou tyto min/max body. Tyto informace obvykle získáte od výrobce tiskárny.\n"
+"\n"
+"Výchozí nastavení je (99999, 99999), což znamená, že nejsou žádná omezení a sondování je možné po celé podložce."
 
 msgid "Probe point distance"
 msgstr "Vzdálenost sondovacích bodů"
@@ -17323,13 +17696,11 @@ msgstr "Statický Pressure Advance pro můstky"
 
 # AI Translated
 msgid ""
-"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
-"equivalent walls (using adaptive settings if enabled).\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Statická hodnota Pressure Advance pro můstky. Nastavte 0, chcete-li použít stejný Pressure Advance jako u \n"
-"odpovídajících stěn (včetně adaptivního nastavení, je-li zapnuto).\n"
+"Statická hodnota Pressure Advance pro můstky. Nastavte 0, chcete-li použít stejný Pressure Advance jako u odpovídajících stěn (včetně adaptivního nastavení, je-li zapnuto).\n"
 "\n"
 "Nižší hodnota PA při tisku můstků pomáhá omezit projevy mírné podextruze ihned za můstkem. Ta je způsobena poklesem tlaku v trysce při tisku do vzduchu a nižší PA jej pomáhá vyrovnat."
 
@@ -18465,8 +18836,12 @@ msgstr "Nejlepší pozice objektu"
 msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "Nejvhodnější automaticky uspořádaná pozice v rozsahu [0,1] vzhledem k tvaru desky."
 
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "Povolte tuto možnost, pokud má tiskárna pomocný ventilátor chlazení dílů. G-code příkaz: M106 P2 S(0-255)."
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"Povolte tuto možnost, pokud má tiskárna pomocný ventilátor chlazení dílů.\n"
+"G-code příkaz: M106 P2 S(0-255)."
 
 # AI Translated
 msgid "Fan direction"
@@ -18578,8 +18953,14 @@ msgid "Skip G-code config block"
 msgstr "Vynechat konfigurační blok G-code"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "Nezapisuje CONFIG_BLOCK (dvojice klíč/hodnota s konfigurací sliceru) do souboru G-code. Může to pomoci u tiskáren, jejichž firmware při zpracování těchto řádků s komentáři havaruje (např. Anycubic go-klipper). Poznámka: soubor G-code již nebude obsahovat nastavení sliceru, takže jeho opětovný import do OrcaSlicer konfiguraci neobnoví."
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"Nezapisuje CONFIG_BLOCK (dvojice klíč/hodnota s konfigurací sliceru) do souboru G-code. Může to pomoci u tiskáren, jejichž firmware při zpracování těchto řádků s komentáři havaruje (např. Anycubic go-klipper).\n"
+"\n"
+"Poznámka: soubor G-code již nebude obsahovat nastavení sliceru, takže jeho opětovný import do OrcaSlicer konfiguraci neobnoví."
 
 msgid "Pellet Modded Printer"
 msgstr "Tiskárna na pelety"
@@ -18596,8 +18977,14 @@ msgstr "Povolte tuto možnost, pokud chcete používat více typů podložek."
 msgid "Label objects"
 msgstr "Označit objekty"
 
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "Povolte tuto možnost pro přidání komentářů do G-code označujících tiskové pohyby podle objektu, ke kterému patří. To je užitečné pro plugin OctoPrint CancelObject. Toto nastavení NENÍ kompatibilní s konfigurací Single Extruder Multi Material ani s funkcemi Očistit do objektu / Očistit do výplně."
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"Povolte tuto možnost pro přidání komentářů do G-code označujících tiskové pohyby podle objektu, ke kterému patří. To je užitečné pro plugin OctoPrint CancelObject.\n"
+"\n"
+"Toto nastavení NENÍ kompatibilní s konfigurací Single Extruder Multi Material ani s funkcemi Očistit do objektu / Očistit do výplně."
 
 msgid "Exclude objects"
 msgstr "Vyloučit objekty"
@@ -18616,14 +19003,28 @@ msgstr "Maximální odchylka obrysu objektu zapsaného do EXCLUDE_OBJECT_DEFINE 
 msgid "Verbose G-code"
 msgstr "Podrobný G-code"
 
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "Aktivujte tuto volbu pro vytvoření komentovaného G-code souboru, kde je každý řádek vysvětlen popisným textem. Pokud tisknete ze SD karty, zvýšená velikost souboru může zpomalit firmware."
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"Aktivujte tuto volbu pro vytvoření komentovaného G-code souboru, kde je každý řádek vysvětlen popisným textem.\n"
+"\n"
+"Pokud tisknete ze SD karty, zvýšená velikost souboru může zpomalit firmware."
 
+# AI Translated
 msgid "High precision G-code (experimental)"
-msgstr ""
+msgstr "G-code s vysokou přesností (experimentální)"
 
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+# AI Translated
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
 msgstr ""
+"Zapisuje X, Y, Z, I a J se 4 desetinnými místy místo 3 a E se 6 místo 5, aby se v G-code omezily chyby zaokrouhlení. Při relativních vzdálenostech E se chyba zaokrouhlení každého pohybu navíc přenáší do dalšího pohybu. Podpory se po tisku odstraňují, proto si ponechávají standardní přesnost. To může pomoci stabilizovat extruzi u malých trysek (např. 0,2 mm) a tenkých vrstev (např. 0,08 mm a méně), kde každý pohyb vytlačí tak málo materiálu, že chyby zaokrouhlení mají největší vliv. Účinek silně závisí na tom, jak dobře jsou vyladěna ostatní nastavení, a pokud tiskový profil není dobře zkalibrován, může být těžko postřehnutelný.\n"
+"\n"
+"Soubor G-code se zvětší přibližně o 10 procent, což může zpomalit tiskárny, které G-code zpracovávají pomalu."
 
 msgid "Infill combination"
 msgstr "Kombinace výplně"
@@ -18640,14 +19041,34 @@ msgstr "Tento parametr přidává malý posun do každé vrstvy výplně pro vyt
 msgid "Sparse infill rotation template"
 msgstr "Šablona rotace řídké výplně"
 
-msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr "Otáčet směr řídké výplně v každé vrstvě podle šablony úhlů. Zadejte úhly oddělené čárkami (např. '0,30,60,90'). Úhly jsou aplikovány postupně po vrstvách a po skončení seznamu se opakují. Je podporována pokročilá syntaxe: '+5' otáčí každou vrstvu o +5°; '+5#5' otáčí každých 5 vrstev o +5°. Podrobnosti najdete na Wiki. Pokud je nastavena šablona, standardní nastavení směru výplně se ignoruje. Poznámka: některé vzory výplně (například Gyroid) řídí rotaci samy; používejte opatrně."
+msgid ""
+"Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends.\n"
+"\n"
+"Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n"
+"\n"
+"When a template is set, the standard infill direction setting is ignored.\n"
+"\n"
+"Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+msgstr ""
+"Otáčet směr řídké výplně v každé vrstvě podle šablony úhlů. Zadejte úhly oddělené čárkami (např. '0,30,60,90'). Úhly jsou aplikovány postupně po vrstvách a po skončení seznamu se opakují.\n"
+"\n"
+"Je podporována pokročilá syntaxe: '+5' otáčí každou vrstvu o +5°; '+5#5' otáčí každých 5 vrstev o +5°. Podrobnosti najdete na Wiki.\n"
+"\n"
+"Pokud je nastavena šablona, standardní nastavení směru výplně se ignoruje.\n"
+"\n"
+"Poznámka: některé vzory výplně (například Gyroid) řídí rotaci samy; používejte opatrně."
 
 msgid "Solid infill rotation template"
 msgstr "Šablona rotace plného výplně"
 
-msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr "Tento parametr přidává rotaci směru plné výplně pro každou vrstvu dle zadané šablony. Šablona je seznam úhlů ve stupních oddělený čárkami, např. '0,90'. První úhel se použije na první vrstvu, druhý úhel na druhou vrstvu atd. Pokud je vrstev více než úhlů, úhly se opakují. Vezměte na vědomí, že ne všechny vzory plné výplně podporují rotaci."
+msgid ""
+"This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated.\n"
+"\n"
+"Note that not all solid infill patterns support rotation."
+msgstr ""
+"Tento parametr přidává rotaci směru plné výplně pro každou vrstvu dle zadané šablony. Šablona je seznam úhlů ve stupních oddělený čárkami, např. '0,90'. První úhel se použije na první vrstvu, druhý úhel na druhou vrstvu atd. Pokud je vrstev více než úhlů, úhly se opakují.\n"
+"\n"
+"Vezměte na vědomí, že ne všechny vzory plné výplně podporují rotaci."
 
 msgid "Skeleton infill density"
 msgstr "Hustota výplně skeletu"
@@ -19370,10 +19791,12 @@ msgstr "Minimální rychlost ventilátoru chlazení dílu."
 
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "Rychlost pomocného ventilátoru chlazení dílů. Pomocný ventilátor poběží touto rychlostí během tisku, kromě prvních několika vrstev, které jsou určeny počtem vrstev bez chlazení.\n"
-"Pro použití této funkce povolte auxiliary_fan v nastavení tiskárny. G-code příkaz: M106 P2 S(0-255)"
+"Pro použití této funkce povolte auxiliary_fan v nastavení tiskárny.\n"
+"G-code příkaz: M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "Pro prvních"
@@ -19460,8 +19883,14 @@ msgstr "Počáteční a koncové body, které vedou z oblasti řezače do odpadk
 msgid "Reduce infill retraction"
 msgstr "Snížit retrakci při výplni"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "Neprovádět retrakci, pokud se přejezd nachází zcela uvnitř oblasti výplně. Případné vytékání materiálu tak nebude viditelné. To může snížit počet retrakčních pohybů u složitých modelů a zkrátit dobu tisku, ale zároveň zpomalit slicování a generování G-code. V oblastech, kde je retrakce přeskočena, se zároveň neprovádí ani Z-hop."
+msgid ""
+"Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n"
+"\n"
+"Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr ""
+"Neprovádět retrakci, pokud se přejezd nachází zcela uvnitř oblasti výplně. Případné vytékání materiálu tak nebude viditelné. To může snížit počet retrakčních pohybů u složitých modelů a zkrátit dobu tisku, ale zároveň zpomalit slicování a generování G-code.\n"
+"\n"
+"V oblastech, kde je retrakce přeskočena, se zároveň neprovádí ani Z-hop."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Tato možnost sníží teplotu neaktivních extruderů, aby se zabránilo vytékání."
@@ -19910,8 +20339,14 @@ msgstr "Tato volba určuje práh převisu pro použití švů typu scarf joint. 
 msgid "Scarf joint speed"
 msgstr "Rychlost spoje límce"
 
-msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Tato volba nastavuje rychlost tisku pro zkosené spoje. Zkosené spoje se doporučuje tisknout pomalu (méně než 100 mm/s). Je také vhodné povolit 'Vyhlazování rychlosti extruze', pokud se nastavená rychlost výrazně liší od rychlosti obvodu nebo vnitřních stěn. Pokud je zde zadaná rychlost vyšší než rychlost obvodu nebo vnitřních stěn, tiskárna použije pomalejší z těchto dvou rychlostí. Pokud je zadáno jako procento (např. 80 %), rychlost se vypočítá na základě příslušné rychlosti obvodu nebo vnitřních stěn. Výchozí hodnota je nastavena na 100 %."
+msgid ""
+"This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
+"\n"
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+msgstr ""
+"Tato volba nastavuje rychlost tisku pro zkosené spoje. Zkosené spoje se doporučuje tisknout pomalu (méně než 100 mm/s). Je také vhodné povolit 'Vyhlazování rychlosti extruze', pokud se nastavená rychlost výrazně liší od rychlosti obvodu nebo vnitřních stěn.\n"
+"\n"
+"Pokud je zde zadaná rychlost vyšší než rychlost obvodu nebo vnitřních stěn, tiskárna použije pomalejší z těchto dvou rychlostí. Pokud je zadáno jako procento (např. 80 %), rychlost se vypočítá na základě příslušné rychlosti obvodu nebo vnitřních stěn. Výchozí hodnota je nastavena na 100 %."
 
 msgid "Scarf joint flow ratio"
 msgstr "Poměr průtoku spoje límce"
@@ -20158,8 +20593,14 @@ msgstr "Poměr průtoku pro dokončovací spirálu"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Nastavuje finální poměr průtoku při ukončování spirály. Přechod spirály obvykle během poslední smyčky snižuje poměr průtoku ze 100 % na 0 %, což může v některých případech vést k podextruzi na konci spirály."
 
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "Pokud je vybrán plynulý nebo tradiční režim, bude pro každý tisk vytvořeno časosběrné video. Po vytištění každé vrstvy pořídí komorová kamera snímek. Po dokončení tisku budou všechny snímky spojeny do časosběrného videa. Pokud je vybrán plynulý režim, tisková hlava se po vytištění každé vrstvy přesune k odpadnímu skluzu a poté pořídí snímek. Protože během pořizování snímku může z trysky unikat roztavený filament, vyžaduje plynulý režim čistící věž pro očištění trysky."
+msgid ""
+"If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n"
+"\n"
+"If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+msgstr ""
+"Pokud je vybrán plynulý nebo tradiční režim, bude pro každý tisk vytvořeno časosběrné video. Po vytištění každé vrstvy pořídí komorová kamera snímek. Po dokončení tisku budou všechny snímky spojeny do časosběrného videa.\n"
+"\n"
+"Pokud je vybrán plynulý režim, tisková hlava se po vytištění každé vrstvy přesune k odpadnímu skluzu a poté pořídí snímek. Protože během pořizování snímku může z trysky unikat roztavený filament, vyžaduje plynulý režim čistící věž pro očištění trysky."
 
 msgid "Traditional"
 msgstr "Tradiční"
@@ -20376,8 +20817,14 @@ msgstr "Výměna nástroje na věži na očištění trysky"
 
 # AI Translated
 # Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "věž na očištění"; align it once the term is settled.
-msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
-msgstr "Vynutí přejezd tiskové hlavy k věži na očištění trysky před vydáním příkazu k výměně nástroje (Tx). Týká se pouze tiskáren s více extrudery (více tiskovými hlavami), které používají věž na očištění trysky typu 2. Ve výchozím nastavení Orca na strojích s více tiskovými hlavami tento přejezd vynechává, protože výměnu hlavy řeší firmware, což může vést k vydání příkazu Tx nad tištěným dílem. Zapněte tuto volbu, chcete-li, aby byla výměna nástroje vždy vydána nad věží na očištění trysky."
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+msgstr ""
+"Vynutí přejezd tiskové hlavy k věži na očištění trysky před vydáním příkazu k výměně nástroje (Tx).\n"
+"\n"
+"Týká se pouze tiskáren s více extrudery (více tiskovými hlavami), které používají věž na očištění trysky typu 2. Ve výchozím nastavení Orca na strojích s více tiskovými hlavami tento přejezd vynechává, protože výměnu hlavy řeší firmware, což může vést k vydání příkazu Tx nad tištěným dílem. Zapněte tuto volbu, chcete-li, aby byla výměna nástroje vždy vydána nad věží na očištění trysky."
 
 # AI Translated
 # Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "věž na očištění"; align it once the term is settled.
@@ -20386,8 +20833,14 @@ msgstr "Čekat na teplotu na věži na očištění trysky"
 
 # AI Translated
 # Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "věž na očištění"; align it once the term is settled.
-msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr "Vyzvedne nový nástroj, aniž by čekal na dosažení tiskové teploty, přejede na věž na očištění trysky a počká na teplotu tam, těsně před čištěním. Materiál vytékající při ohřevu skončí na věži místo na modelu a přejezd se překrývá s ohřevem. Relevantní pouze pro tiskárny s více extrudery (více tiskovými hlavami) používající věž na očištění trysky typu 2. Firmware ani makro pro změnu nástroje nesmí na teplotu čekat samo. Pokud je vypnuto, čekání na teplotu se vloží hned po příkazu ke změně nástroje."
+msgid ""
+"Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating.\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
+"Vyzvedne nový nástroj, aniž by čekal na dosažení tiskové teploty, přejede na věž na očištění trysky a počká na teplotu tam, těsně před čištěním. Materiál vytékající při ohřevu skončí na věži místo na modelu a přejezd se překrývá s ohřevem.\n"
+"\n"
+"Relevantní pouze pro tiskárny s více extrudery (více tiskovými hlavami) používající věž na očištění trysky typu 2. Firmware ani makro pro změnu nástroje nesmí na teplotu čekat samo. Pokud je vypnuto, čekání na teplotu se vloží hned po příkazu ke změně nástroje."
 
 msgid "No sparse layers (beta)"
 msgstr "Žádné řídké vrstvy (beta)"
@@ -20686,10 +21139,16 @@ msgid "This is the speed for support."
 msgstr "Rychlost podpěr."
 
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"Styl a tvar podpory. U běžné podpory promítnutí podpěr do pravidelné mřížky vytvoří stabilnější podpěry (výchozí), zatímco těsné podpěrné věže šetří materiál a snižují poškození objektu.\n"
+"Styl a tvar podpory.\n"
+"\n"
+"U běžné podpory promítnutí podpěr do pravidelné mřížky vytvoří stabilnější podpěry (výchozí), zatímco těsné podpěrné věže šetří materiál a snižují poškození objektu.\n"
+"\n"
 "U stromové podpory organický a úzký styl agresivněji spojuje větve a výrazně šetří materiál (výchozí organický), zatímco hybridní styl vytvoří podobnou strukturu jako běžná podpora pod velkými plochými převisy."
 
 msgid "Default (Grid/Organic)"
@@ -20723,9 +21182,11 @@ msgstr "Prahový úhel"
 # AI Translated
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
 "Podpory budou generovány pro převisy, jejichž úhel sklonu je pod prahovou hodnotou. Čím je tato hodnota menší, tím strmější převis lze vytisknout bez podpor.\n"
+"\n"
 "Poznámka: Při nastavení 0 používají běžné podpory místo toho Prahové překrytí, zatímco stromové podpěry se vrátí k výchozí hodnotě 30."
 
 msgid "Threshold overlap"
@@ -20773,16 +21234,6 @@ msgstr "Osa naklonění pásu"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Osa, kolem které se síť před slicováním otočí. Jde o naklonění pásové tiskárny: izometrická rotace (bez zkreslení), která řídí také vykreslování podložky a naklonění gravitace pro podpory a kterou zpětná transformace G-code invertuje před zkosením/změnou měřítka v souřadnicovém systému stroje a přemapováním os. Obvyklé je naklonění portálu kolem osy X (pás se pohybuje podél Y)."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -20991,13 +21442,11 @@ msgid "Activate temperature control"
 msgstr "Aktivovat kontrolu teploty"
 
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"Povolit tuto možnost pro automatizované řízení teploty komory. Tato volba aktivuje odeslání příkazu M191 před \"machine_start_gcode\",\n"
-"který nastaví teplotu komory a čeká, dokud není dosaženo. Navíc předá na konci tisku příkaz M141 k vypnutí topení komory, pokud je k dispozici.\n"
+"Povolit tuto možnost pro automatizované řízení teploty komory. Tato volba aktivuje odeslání příkazu M191 před \"machine_start_gcode\", který nastaví teplotu komory a čeká, dokud není dosaženo. Navíc předá na konci tisku příkaz M141 k vypnutí topení komory, pokud je k dispozici.\n"
 "\n"
 "Tato volba spoléhá na firmware, který podporuje příkazy M191 a M141 nativně nebo přes makra, a je obvykle využívána při instalaci aktivního topení komory."
 
@@ -21006,25 +21455,31 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "Pro materiály s vysokou teplotou, jako jsou ABS, ASA, PC a PA, může vyšší teplota komory pomoci potlačit nebo snížit deformace a vést k vyšší pevnosti mezi vrstvami. Vyšší teplota komory však zároveň snižuje účinnost filtrace vzduchu pro ABS a ASA.\n"
 "\n"
 "Pro PLA, PETG, TPU, PVA a další nízkoteplotní materiály by měla být tato volba deaktivována (nastavena na 0), protože teplota komory by měla být nízká, aby se předešlo ucpání extruderu způsobenému změkčením materiálu v tepelném přerušení.\n"
 "\n"
-"Pokud je povoleno, tento parametr rovněž nastaví G-code proměnnou s názvem chamber_temperature, kterou lze použít k předání požadované teploty komory do makra spuštění tisku, nebo do makra pro tepelnou stabilizaci, například takto: PRINT_START (další proměnné) CHAMBER_TEMP=[chamber_temperature]. To může být užitečné, pokud vaše tiskárna nepodporuje příkazy M141/M191, nebo pokud chcete provádět tepelnou stabilizaci v makru spuštění tisku, pokud není instalováno aktivní topení komory."
+"Pokud je povoleno, tento parametr rovněž nastaví G-code proměnnou s názvem chamber_temperature, kterou lze použít k předání požadované teploty komory do makra spuštění tisku, nebo do makra pro tepelnou stabilizaci, například takto:\n"
+"PRINT_START (další proměnné) CHAMBER_TEMP=[chamber_temperature]\n"
+"To může být užitečné, pokud vaše tiskárna nepodporuje příkazy M141/M191, nebo pokud chcete provádět tepelnou stabilizaci v makru spuštění tisku, pokud není instalováno aktivní topení komory."
 
 # AI Translated
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
-"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this:\n"
+"PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
 "Toto je teplota komory, při které má tisk začít, zatímco se komora dále ohřívá k „cílové“ teplotě komory. Nastavte například Cílovou na 60 a Minimální na 50, aby tisk začal, jakmile komora dosáhne 50℃, bez čekání na celých 60℃.\n"
 "\n"
-"Nastavuje proměnnou G-code s názvem chamber_minimal_temperature, kterou lze předat vašemu makru pro zahájení tisku nebo makru pro prohřátí, například takto: PRINT_START (další proměnné) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"Nastavuje proměnnou G-code s názvem chamber_minimal_temperature, kterou lze předat vašemu makru pro zahájení tisku nebo makru pro prohřátí, například takto:\n"
+"PRINT_START (další proměnné) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Na rozdíl od „cílové“ teploty komory tato volba nevydává žádné příkazy M141/M191; hodnotu pouze zpřístupní vašemu vlastnímu G-code. Neměla by překročit „cílovou“ teplotu komory."
 
@@ -21452,8 +21907,18 @@ msgstr "Při přechodu mezi různým počtem stěn v tenčích částech dílu j
 msgid "Wall transitioning filter margin"
 msgstr "Okraj filtru přechodu stěny"
 
-msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
-msgstr "Zabránit přecházení tam a zpět mezi jednou přidanou a jednou odebranou stěnou. Tento okraj rozšiřuje rozsah šířek extruze, které následně platí: [Minimální šířka stěny - okraj, 2 * Minimální šířka stěny + okraj]. Zvýšením tohoto okraje se snižuje počet přechodů, čímž se snižuje počet začátků/konců extruze a doba přejezdů. Velká variabilita šířky extruze však může vést k problémům s podextruzí nebo nadextruzí. Je vyjádřena jako procento průměru trysky."
+msgid ""
+"Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin].\n"
+"\n"
+"Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems.\n"
+"\n"
+"It's expressed as a percentage over nozzle diameter."
+msgstr ""
+"Zabránit přecházení tam a zpět mezi jednou přidanou a jednou odebranou stěnou. Tento okraj rozšiřuje rozsah šířek extruze, které následně platí: [Minimální šířka stěny - okraj, 2 * Minimální šířka stěny + okraj].\n"
+"\n"
+"Zvýšením tohoto okraje se snižuje počet přechodů, čímž se snižuje počet začátků/konců extruze a doba přejezdů. Velká variabilita šířky extruze však může vést k problémům s podextruzí nebo nadextruzí.\n"
+"\n"
+"Je vyjádřena jako procento průměru trysky."
 
 msgid "Wall transitioning threshold angle"
 msgstr "Prahový úhel přechodu stěny"
@@ -21535,8 +22000,14 @@ msgstr "Aby se zabránilo vytékání, bude teplota trysky během natlačování
 msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
 msgstr "Maximální objemová rychlost pro vytlačování před výměnou extruderu, kde -1 znamená použití maximální objemové rychlosti."
 
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "Aby se zabránilo vytékání, bude teplota trysky během natlačování snížena. Poznámka: provede se pouze příkaz k ochlazení a aktivace ventilátoru; dosažení cílové teploty není zaručeno. 0 znamená vypnuto."
+msgid ""
+"To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n"
+"\n"
+"Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed."
+msgstr ""
+"Aby se zabránilo vytékání, bude teplota trysky během natlačování snížena. 0 znamená vypnuto.\n"
+"\n"
+"Poznámka: provede se pouze příkaz k ochlazení a aktivace ventilátoru; dosažení cílové teploty není zaručeno."
 
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
 msgstr "Maximální objemový průtok pro natlačení před výměnou hotendu, kde -1 znamená použití maximálního objemového průtoku."
@@ -22146,6 +22617,14 @@ msgstr "Odhadovaná doba tisku v normálním režimu (tj. nikoli v tichém reži
 
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "Odhadovaná doba tisku v normálním režimu (tj. nikoli v tichém režimu). Stejné jako normal_print_time."
+
+# AI Translated
+msgid "Used filament types"
+msgstr "Použité typy filamentů"
+
+# AI Translated
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr "Seznam všech typů filamentů použitých během tisku, oddělených podtržítky."
 
 msgid "Print time (silent mode)"
 msgstr "Doba tisku (tichý režim)"
@@ -23874,6 +24353,10 @@ msgstr ""
 "- Materiály, které mohou používat stejnou teplotu vyhřívané podložky\n"
 "- Různé značky a řady filamentů (Značka = Bambu, Řada = Basic, Matte)"
 
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "Čára"
+
 msgid "Pattern"
 msgstr "Vzor"
 
@@ -24009,11 +24492,11 @@ msgstr "Automatické měřítko podle trysky"
 
 # AI Translated
 msgid ""
-"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
-"Tento model je navržen pro trysku 0,4 mm a výšku vrstvy 0,2 mm. \n"
+"Tento model je navržen pro trysku 0,4 mm a výšku vrstvy 0,2 mm.\n"
 "Je-li volba změny měřítka zapnuta (doporučeno), model se dynamicky přizpůsobí průměru vaší současné trysky a odpovídající výšce vrstvy, takže je test přesný a dobře čitelný.\n"
 "Měřítko vypněte pouze tehdy, chcete-li vytisknout referenční model přesně tak, jak je."
 
@@ -24191,12 +24674,12 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
-" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
 "\n"
 "%s"
 msgstr ""
 "Koncová rychlost (%.0f mm/s) překračuje maximální objemovou rychlost filamentu (%.1f mm³/s), která při této šířce čáry a výšce vrstvy omezuje vnější stěnu na přibližně %.0f mm/s.\n"
-" Vyšší rychlosti budou oříznuty, takže horní bloky věže se nevytisknou požadovanou rychlostí.\n"
+"Vyšší rychlosti budou oříznuty, takže horní bloky věže se nevytisknou požadovanou rychlostí.\n"
 "\n"
 "%s"
 
@@ -24854,13 +25337,11 @@ msgstr "V části tisknutelné oblasti na první stránce jste zadali nepovolen�
 # AI Translated
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
+"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "Předvolba tiskárny, kterou jste vytvořili, již má stejný název. Chcete ji přepsat?\n"
-"\tAno: Přepíše se předvolba tiskárny se stejným názvem, předvolby filamentu a procesu se stejným názvem budou znovu vytvořeny \n"
-"a předvolby filamentu a procesu s odlišným názvem budou zachovány.\n"
+"\tAno: Přepíše se předvolba tiskárny se stejným názvem, předvolby filamentu a procesu se stejným názvem budou znovu vytvořeny a předvolby filamentu a procesu s odlišným názvem budou zachovány.\n"
 "\tZrušit: Předvolba nebude vytvořena; návrat do rozhraní tvorby."
 
 msgid "You need to select at least one filament preset."
@@ -24900,7 +25381,7 @@ msgid "The entered nozzle diameter is invalid, please re-enter:\n"
 msgstr "Zadaný průměr trysky je neplatný, zadejte jej znovu:\n"
 
 msgid ""
-"The system preset does not allow creation. \n"
+"The system preset does not allow creation.\n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
 "Systémová předvolba neumožňuje vytvoření.\n"
@@ -25041,17 +25522,17 @@ msgid "Only printer names with user printer presets will be displayed, and each 
 msgstr "Zobrazí se pouze názvy tiskáren s uživatelskými předvolbami tiskárny, každá vybraná předvolba bude exportována jako zip archiv."
 
 msgid ""
-"Only the filament names with user filament presets will be displayed, \n"
+"Only the filament names with user filament presets will be displayed,\n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
-"Zobrazí se pouze názvy filamentů s uživatelskými filamentovými profily. \n"
+"Zobrazí se pouze názvy filamentů s uživatelskými filamentovými profily.\n"
 "Všechny uživatelské filamentové profily ve vybraných filamentech budou exportovány jako zip archiv."
 
 msgid ""
-"Only printer names with changed process presets will be displayed, \n"
+"Only printer names with changed process presets will be displayed,\n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
-"Zobrazí se pouze názvy tiskáren se změněnými procesními předvolbami. \n"
+"Zobrazí se pouze názvy tiskáren se změněnými procesními předvolbami.\n"
 "Všechny uživatelské procesní předvolby ve vybraných tiskárnách budou exportovány jako zip archiv."
 
 msgid "Please select at least one printer or filament."
@@ -26389,10 +26870,6 @@ msgstr "Počet trojúhelníkových plošek"
 # AI Translated
 msgid "Calculating, please wait..."
 msgstr "Probíhá výpočet, čekejte prosím..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "Uložit toto nastavení jako výchozí"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -30392,10 +30869,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Tyto dvě čáry se nestýkají v rohu — vyberte dvě čáry, které se v rohu stýkají"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "Velikost musí být větší než nula"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Zaoblení: poloměr přesahuje délku ramene, nebo se obě čáry nestýkají v rohu"
 
@@ -30471,21 +30944,43 @@ msgstr "Zadejte číslo"
 msgid "Not a number"
 msgstr "Není číslo"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "Vytvořit"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "Přidat materiál"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "Odstranit"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "Zaoblení / zkosení / úkos"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "Opakovat"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "Transformace"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "Referenční geometrie"
+
+# AI Translated
+msgctxt "Design"
+msgid "Modify"
+msgstr "Upravit"
 
 # AI Translated
 msgctxt "Design"
@@ -30819,6 +31314,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "Obdélník dvěma rohy"
 
+msgctxt "Design"
+msgid "Rectangle"
+msgstr "Obdélník"
+
 # AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
@@ -30839,6 +31338,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "Kružnice středem"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "Kruh"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -30853,6 +31356,11 @@ msgstr "Kružnice třemi body"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "Oblouk třemi body"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "Oblouk"
 
 # AI Translated
 msgctxt "Design"
@@ -30893,6 +31401,11 @@ msgstr "Spline"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "Trojúhelník"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "Mnohoúhelník"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -31000,6 +31513,7 @@ msgid "Linear array"
 msgstr "Lineární pole"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "Pole"
 
@@ -31309,6 +31823,46 @@ msgstr "Přepnout mezi Přípravou/Náhledem"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Sbalit/rozbalit postranní panel"
+
+# AI Translated
+msgid "Go to the Home tab"
+msgstr "Přejít na kartu Domů"
+
+# AI Translated
+msgid "Go to the Design tab"
+msgstr "Přejít na kartu Návrh"
+
+# AI Translated
+msgid "Go to the Prepare tab"
+msgstr "Přejít na kartu Připravit"
+
+# AI Translated
+msgid "Go to the Preview tab"
+msgstr "Přejít na kartu Náhled"
+
+# AI Translated
+msgid "Go to the Device tab"
+msgstr "Přejít na kartu Zařízení"
+
+# AI Translated
+msgid "Go to the Multi-device tab"
+msgstr "Přejít na kartu Více zařízení"
+
+# AI Translated
+msgid "Go to the Project tab"
+msgstr "Přejít na kartu Projekt"
+
+# AI Translated
+msgid "Go to the Calibration tab"
+msgstr "Přejít na kartu Kalibrace"
+
+# AI Translated
+msgid "Switch to the next tab"
+msgstr "Přepnout na další kartu"
+
+# AI Translated
+msgid "Switch to the previous tab"
+msgstr "Přepnout na předchozí kartu"
 
 # AI Translated
 msgid "Reload the device page"
@@ -32300,8 +32854,9 @@ msgstr "Uložit aktuální barvu"
 msgid "Palettes"
 msgstr "Palety"
 
+# AI Translated
 msgid "Pick color from screen"
-msgstr ""
+msgstr "Vybrat barvu z obrazovky"
 
 # AI Translated
 msgid "Search colors"
@@ -33999,10 +34554,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Nastavte tvar podložky vaší tiskárny."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Neplatný číselný vstup."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Průměry filamentu a trysky"
 
@@ -34233,6 +34784,71 @@ msgstr "Wiki->"
 # AI Translated
 msgid "Note:"
 msgstr "Poznámka:"
+
+# AI Translated
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr "• %1%: %2%"
+
+# AI Translated
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr "• %1% – %2%: %3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Následující nastavení odkazují na pluginy, které Orca Slicer na tomto počítači nedokáže identifikovat:\n"
+"\n"
+"%1%\n"
+"\n"
+"Pokud přesto uložíte, předvolba si u těchto nastavení odkazy na pluginy neponechá. Na jiném počítači pak Orca Slicer nebude vědět, které pluginy nabídnout, a nastavení tam nemusí fungovat."
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Následující nastavení odkazují na pluginy, které Orca Slicer na tomto počítači nedokáže identifikovat:\n"
+"\n"
+"%1%\n"
+"\n"
+"Pokud přesto uložíte, projekt si u těchto nastavení odkazy na pluginy neponechá. Na jiném počítači pak Orca Slicer nebude vědět, které pluginy nabídnout, a nastavení tam nemusí fungovat."
+
+# AI Translated
+msgid "Plugin Not Identified"
+msgstr "Plugin nebyl identifikován"
+
+# AI Translated
+msgid "Save anyway"
+msgstr "Přesto uložit"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Ukládané předvolby odkazují na pluginy, které Orca Slicer na tomto počítači nedokáže identifikovat:\n"
+"\n"
+"%1%\n"
+"\n"
+"Pokud přesto uložíte, předvolby si u těchto nastavení odkazy na pluginy neponechají. Na jiném počítači pak Orca Slicer nebude vědět, které pluginy nabídnout, a nastavení tam nemusí fungovat."
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -35031,6 +35647,10 @@ msgstr "Opakuje texturu po namalované oblasti. Vypnuto umístí jedinou kopii, 
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "Zapněte Dláždění a zvolte, jak se textura opakuje."
+
+# AI Translated
+msgid "Repeat"
+msgstr "Opakovat"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -36790,6 +37410,10 @@ msgid "Forward"
 msgstr "Vpřed"
 
 # AI Translated
+msgid "Tools"
+msgstr "Nástroje"
+
+# AI Translated
 msgid "View Source"
 msgstr "Zobrazit zdroj"
 
@@ -36999,6 +37623,7 @@ msgstr[2] ""
 "Plugin „%s“ žádá o odstranění následujících souborů:\n"
 "%s"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -37006,7 +37631,12 @@ msgid ""
 "\n"
 "Approval covers HTTP or HTTPS access and raw network connections to the listed hosts. It does not restrict ports. A URL with a path, query or port is covered only for that exact URL."
 msgstr ""
+"Plugin „%s“ žádá o síťový přístup k těmto cílům:\n"
+"%s\n"
+"\n"
+"Schválení zahrnuje přístup přes HTTP nebo HTTPS a přímá síťová připojení k uvedeným hostitelům. Neomezuje porty. URL s cestou, dotazem nebo portem je zahrnuta pouze pro tuto přesnou URL."
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -37014,6 +37644,10 @@ msgid ""
 "\n"
 "Approval covers raw network connections to the listed hosts. It does not restrict ports."
 msgstr ""
+"Plugin „%s“ žádá o síťový přístup k těmto cílům:\n"
+"%s\n"
+"\n"
+"Schválení zahrnuje přímá síťová připojení k uvedeným hostitelům. Neomezuje porty."
 
 # AI Translated
 #, c-format, boost-format

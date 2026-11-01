@@ -8,6 +8,7 @@
 
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
@@ -129,7 +130,16 @@ bool QidiPrinterAgent::print_uploaded_file(const PrintParams& params, const std:
 
     // On the X-Max 4 and Q2, Klipper only opens the copy Moonraker's print start makes, so SDCARD_PRINT_FILE can't find the upload
     std::string response;
-    return send_jsonrpc_command(device_info.base_url, device_info.api_key, {{"filename", filename}}, response);
+    return send_jsonrpc_command(device_info.base_url, device_info.api_key, print_start_request(params, filename), response);
+}
+
+nlohmann::json QidiPrinterAgent::print_start_request(const PrintParams& params, const std::string& filename)
+{
+    nlohmann::json request{{"filename", filename}};
+    // Qidi's Moonraker prints Metadata/plate_<plateindex>.gcode from a 3MF, defaulting to plate 1
+    if (boost::iends_with(filename, ".3mf"))
+        request["plateindex"] = std::to_string(params.plate_index);
+    return request;
 }
 
 bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
