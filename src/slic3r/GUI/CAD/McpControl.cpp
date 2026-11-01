@@ -5370,13 +5370,15 @@ json call_method(DesignPanel* panel, const std::string& method, const json& para
     std::vector<CadFeature> saved_features;
     decltype(doc.variables) saved_vars;
     const size_t depth0 = doc.undo_depth();
+    const uint64_t checkpoints0 = doc.checkpoint_count;
     if (tx) { saved_features = doc.features; saved_vars = doc.variables; }
     json r;
     try { r = call_method_core(panel, method, resolved); }
     catch (...) {
-        // Unconditional, not keyed on the undo depth: once the stack is full (200 steps) checkpoint() drops the oldest as it adds one, so the
-        // depth stops changing and a test on it would stop restoring in any long session. One recompute, on the error path only.
-        if (tx) {
+        // Keyed on checkpoint_count, not on the undo depth: once the stack is full (200 steps) checkpoint() drops the oldest as it adds one, so the
+        // depth stops changing and a test on it would stop restoring in any long session. A verb that touches the document checkpoints first; a
+        // refusal before that (most junk) changes nothing and must not pay for a rebuild and a GUI refresh (8 s each in a long fuzz session).
+        if (tx && doc.checkpoint_count != checkpoints0) {
             doc.features = saved_features; doc.variables = saved_vars;
             if (doc.undo_depth() > depth0) doc.drop_undo_to(depth0);   // the refused call leaves no undo step either
             try { doc.recompute(); } catch (const std::exception&) {}

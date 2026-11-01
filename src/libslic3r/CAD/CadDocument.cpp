@@ -2314,6 +2314,7 @@ void CadDocument::clear()
 
 void CadDocument::checkpoint()
 {
+    ++checkpoint_count;
     m_bar = rollback_index;   // an ADD still honours the bar (append_feature); everything else acts on the full history
     rollback_index = -1;
     m_undo.push_back(Snapshot{features, variables});   // snapshot the pre-mutation recipe
