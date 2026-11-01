@@ -21180,6 +21180,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
                                                          storage_paths, storage_names, config->get_bool("open_device_tab_post_upload"));
         }
 
+        if (const Print* print = p->background_process.fff_print(); print != nullptr && !print->print_statistics().estimated_normal_print_time.empty())
+            pDlg->set_print_time(short_time(print->print_statistics().estimated_normal_print_time));
         pDlg->init();
         if (pDlg->ShowModal() != wxID_OK) {
             return;
