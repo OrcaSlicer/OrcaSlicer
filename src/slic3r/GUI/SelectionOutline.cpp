@@ -86,9 +86,11 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
                 hi = hi.cwiseMax(c.head<2>() / c.w());
             }
         }
+        // Clamped before the conversion, as a corner close to the camera plane projects far off screen.
+        auto to_pixel = [](double ndc, int size) { return std::clamp((ndc * 0.5 + 0.5) * size, -1.0, size + 1.0); };
         if (!behind)
-            box = { int(std::floor((lo.x() * 0.5 + 0.5) * width)), int(std::floor((lo.y() * 0.5 + 0.5) * height)),
-                    int(std::ceil((hi.x() * 0.5 + 0.5) * width)), int(std::ceil((hi.y() * 0.5 + 0.5) * height)) };
+            box = { int(std::floor(to_pixel(lo.x(), width))), int(std::floor(to_pixel(lo.y(), height))),
+                    int(std::ceil(to_pixel(hi.x(), width))), int(std::ceil(to_pixel(hi.y(), height))) };
     }
     auto scissor = [&box, width, height](int pad) {
         const int x0 = std::clamp(box[0] - pad, 0, width);
