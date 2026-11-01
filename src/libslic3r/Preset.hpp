@@ -996,14 +996,20 @@ private:
         // Both files as they were before the preset was read from them. Resolve runs
         // without the instance lock, so commit compares this with the disk under it.
         PresetFilesOnDisk on_disk;
-        // Counted and logged by commit, in the order the directory listed the files.
+        // Counted and logged by commit. A missing parent is reported only once the retry in
+        // load_presets() gives up, so these no longer follow the order of the files.
         std::vector<std::string>   errors;
         PresetsConfigSubstitutions substitutions;
+        // ORCA: the named parent was not in the collection. It may still be a sibling of
+        // this pass, so load_presets() publishes the pass and retries, for as many passes as
+        // keep resolving something.
+        bool        missing_parent { false };
     };
 
     // Read and flatten one preset file. It reads only, and resolves against the presets
     // loaded before this pass, never another file of the same pass, so the files of a
-    // pass are independent of each other.
+    // pass are independent of each other. A file whose parent is a sibling is retried by
+    // load_presets() in a later pass, once that parent has joined the collection.
     UserPresetLoad  resolve_user_preset(const boost::filesystem::path &file, const std::string &canonical_name,
                                         const PresetOrigin &load_origin, ForwardCompatibilitySubstitutionRule substitution_rule,
                                         const std::string &extruder_id_name, const std::string &extruder_variant_name,

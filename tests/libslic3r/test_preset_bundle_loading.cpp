@@ -9225,3 +9225,118 @@ TEST_CASE("The cloud diff force-emits a disabled override only where the cloud w
     // An ironing override defaults to nil: an absent key stays nil, so it is not sent.
     CHECK(key_values.count("filament_ironing_flow") == 0);
 }
+
+TEST_CASE("A user preset inheriting a sibling in the same directory loads", "[Preset][Bundle][Regression]")
+{
+    // Both name orders: a pass resolves against m_presets while its own presets wait in
+    // presets_loaded, so a sibling parent is invisible within a pass whichever way the
+    // directory is enumerated. Each layout fails on a single-pass loader.
+    const std::string parent_name = GENERATE("AAA Parent", "ZZZ Parent");
+    const std::string child_name  = parent_name == "AAA Parent" ? "ZZZ Child" : "AAA Child";
+
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+
+    const fs::path dir = temp_dir.path() / PRESET_PRINT_NAME;
+    DynamicPrintConfig parent_config(coll.default_preset().config);
+    parent_config.option<ConfigOptionInt>("top_shell_layers", true)->value = 7;
+    parent_config.option<ConfigOptionString>("print_settings_id", true)->value = parent_name;
+    parent_config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value.clear();
+    fs::create_directories(dir);
+    parent_config.save_to_json((dir / (parent_name + ".json")).string(), parent_name, "User", "1.0.0");
+    // States nothing but its parent, so a value it has can only have come from resolving it.
+    write_minimal_child(dir / (child_name + ".json"), child_name, parent_name);
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    REQUIRE(coll.find_preset(parent_name) != nullptr);
+    const Preset *child = coll.find_preset(child_name);
+    REQUIRE(child != nullptr);
+    CHECK(child->inherits() == parent_name);
+    REQUIRE(coll.get_preset_parent(*child) != nullptr);
+    CHECK(coll.get_preset_parent(*child)->name == parent_name);
+    // The parent's value reached the child, so the preset was resolved and not merely listed.
+    CHECK(child->config.opt_int("top_shell_layers") == 7);
+}
+
+TEST_CASE("A chain of user presets in one directory resolves to any depth", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+
+    // Written in the worst order for a single pass: every child precedes its parent.
+    const fs::path dir = temp_dir.path() / PRESET_PRINT_NAME;
+    write_print_preset(coll.default_preset().config, dir / "A Grandchild.json", "A Grandchild", "B Child");
+    write_print_preset(coll.default_preset().config, dir / "B Child.json", "B Child", "C Root");
+    write_print_preset(coll.default_preset().config, dir / "C Root.json", "C Root");
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    for (const char *name : { "C Root", "B Child", "A Grandchild" })
+        REQUIRE(coll.find_preset(name) != nullptr);
+
+    const Preset *grandchild = coll.find_preset("A Grandchild");
+    REQUIRE(coll.get_preset_parent(*grandchild) != nullptr);
+    CHECK(coll.get_preset_parent(*grandchild)->name == "B Child");
+}
+
+TEST_CASE("A user preset whose parent does not exist is still rejected", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+
+    // Deferring must not turn a genuinely dangling parent into a silent success.
+    write_print_preset(coll.default_preset().config,
+                       temp_dir.path() / PRESET_PRINT_NAME / "Orphan.json", "Orphan", "No Such Parent");
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    CHECK(coll.find_preset("Orphan") == nullptr);
+}
+
+TEST_CASE("An orphan beside a chain is reported exactly once", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+
+    // A directory that needs three passes to settle, with an orphan that never resolves. The
+    // orphan is re-offered on every pass, so this is what catches it being counted or its
+    // substitutions reported again each time.
+    const fs::path dir = temp_dir.path() / PRESET_PRINT_NAME;
+    write_print_preset(coll.default_preset().config, dir / "C Root.json", "C Root");
+    write_minimal_child(dir / "B Child.json", "B Child", "C Root");
+    write_minimal_child(dir / "A Grandchild.json", "A Grandchild", "B Child");
+    // Carries a value the parser has to substitute, so its substitutions can be counted too.
+    fs::create_directories(dir);
+    std::ofstream((dir / "Z Orphan.json").string())
+        << R"({"type":"process","name":"Z Orphan","from":"User","version":"1.0.0",)"
+        << R"("inherits":"No Such Parent","ironing_type":"every other layer"})";
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Enable);
+
+    for (const char *name : { "C Root", "B Child", "A Grandchild" })
+        CHECK(coll.find_preset(name) != nullptr);
+    CHECK(coll.find_preset("Z Orphan") == nullptr);
+
+    // One for the orphan's missing parent, one for the "incorrect keys" that write_print_preset's
+    // print_settings_id puts in a root preset. Counting twice would mean a pass reported again.
+    CHECK(coll.error_count() == 2);
+
+    size_t orphan_reports = 0;
+    size_t orphan_substitutions = 0;
+    for (const PresetConfigSubstitutions &ps : substitutions)
+        if (ps.preset_name == "Z Orphan") {
+            ++orphan_reports;
+            orphan_substitutions += ps.substitutions.size();
+        }
+    CHECK(orphan_reports == 1);
+    CHECK(orphan_substitutions == 1);
+}
