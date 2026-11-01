@@ -3652,7 +3652,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("infill_direction", coFloat);
     def->label = L("Sparse infill direction");
     def->category = L("Strength");
-    def->tooltip = L("This is the angle for sparse infill pattern, which controls the start or main direction of lines. Voronoi uses a point cloud fixed in model coordinates and ignores this setting.");
+    def->tooltip = L("This is the angle for sparse infill pattern, which controls the start or main direction of lines.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->max = 360;
