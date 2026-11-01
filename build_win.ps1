@@ -178,6 +178,10 @@ if ($Preset) {
 # Defaults
 if (-not $Arch) { $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "ARM64" } else { "x64" } }
 if (-not $Config) { $Config = "Release" }
+# Remember whether the caller pinned the dependency tree: the default has to be
+# the per-(compiler, arch) tree deps actually build into, deps/<depName>, which is
+# only known after the configuration is resolved below.
+$DepsDirExplicit = [bool]$DepsDir
 if (-not $DepsDir) { $DepsDir = "deps" }
 
 # Resolve actions: if none specified but Tests/RunTests given, build slicer
@@ -440,12 +444,23 @@ try {
         "relwithdebinfo"  = "build-dbginfo"
         "minsizerel"      = "build-minsize"
     }
+    # Dependency trees are shared across configurations and mirror build_win.bat's
+    # cfg_dep_* table: the deps project is configured for a multi-config generator,
+    # so CMAKE_BUILD_TYPE is ignored, DEP_DEBUG stays OFF and every configuration
+    # is served by the same libraries. Only Debug keeps its own tree. Splitting the
+    # tree per configuration made .ps1 rebuild dependencies that .bat reuses.
+    $depDirs = @{
+        "release"         = "build"
+        "debug"           = "build-dbg"
+        "relwithdebinfo"  = "build"
+        "minsizerel"      = "build"
+    }
     $configLower = $Config.ToLower()
     if (-not $configDirs.ContainsKey($configLower)) {
         throw "Unknown configuration '$Config'. Known configurations: release, debug, relwithdebinfo, minsizerel."
     }
     $treeName = $configDirs[$configLower]
-    $depName  = $configDirs[$configLower]
+    $depName  = $depDirs[$configLower]
 
     # Suffixes for compiler and architecture
     if ($ClangCl) { $treeName += "-clang"; $depName += "-clang" }
@@ -579,8 +594,17 @@ try {
         # Strawberry Perl's c\include is added to the compiler include path and
         # contains an older jpeglib.h (no JCS_EXT_RGBA) that wins over deps'
         # libjpeg-turbo due to include-path ordering. Explicitly pin JPEG to deps.
-        $depsInstallDir = Join-Path $DepsDir "OrcaSlicer_dep/usr/local"
+        # Without an explicit -DepsDir the tree is deps/<depName>, not deps/.
+        $depsInstallRoot = if ($DepsDirExplicit) { $DepsDir } else { Join-Path "deps" $depName }
+        $depsInstallDir = Join-Path $depsInstallRoot "OrcaSlicer_dep/usr/local"
         if (Test-Path $depsInstallDir -PathType Container) {
+            # CMakeLists.txt force-derives CMAKE_PREFIX_PATH from DEP_BUILD_DIR, so
+            # pinning CMAKE_PREFIX_PATH alone is ignored. Pass the dependency tree
+            # explicitly whenever it is not the default deps/<build dir>, as
+            # build_win.bat does, so a tree shared by several configurations resolves.
+            $depsRootFull = (Resolve-Path -LiteralPath $depsInstallRoot).Path
+            $depsInstallDir = Join-Path $depsRootFull "OrcaSlicer_dep/usr/local"
+            $cmakeArgs += "-DDEP_BUILD_DIR=$($depsRootFull.Replace('\', '/'))"
             $cmakeArgs += "-DCMAKE_PREFIX_PATH=$depsInstallDir"
             $cmakeArgs += "-DJPEG_INCLUDE_DIR=$depsInstallDir/include"
             $jpegLib = Join-Path $depsInstallDir "lib/jpeg.lib"
