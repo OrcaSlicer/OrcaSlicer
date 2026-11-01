@@ -30,6 +30,13 @@ the local geometry may contain fewer walls, and walls scheduled later do not
 provide support. Outer/Inner wall order therefore normally retains the regular
 wipe path.
 
+With Inner/Outer/Inner wall order the adjacent inner wall is printed last. An
+inward wipe can use the external bead's own material only up to half its actual
+width. Larger requested offsets are limited to this half-width, even if a more
+distant inner perimeter was printed earlier. This limit applies to percentages
+and equivalent absolute distances, using the actual extrusion width rather than
+the configured Auto width.
+
 Retraction and pressure advance calibrations disable inward wiping so it cannot
 mask the behavior being measured. The calibration settings turn it off, and
 G-code generation enforces this even if a profile or object override enables it.
@@ -128,18 +135,21 @@ Joins that already backtrack across the seam gap are not adjusted this way.
 
 ## Execution and retraction
 
-The stored wipe path uses a sentinel first point. Execution starts from the
-actual nozzle position and proceeds to the second stored point. Path selection,
-support validation and wipe-length calculation must all use this same executable
-geometry, especially after a Wipe on loop move.
+Regular stored wipe paths use a sentinel first point, replaced by the actual
+nozzle position during execution. An accepted inward path instead records its
+actual starting position in that first point and advances the logical nozzle
+position to its executable endpoint. Seam selection and travel planning therefore
+use the position after wiping while the move waits for the retraction decision.
+The stored path, endpoint and wipe-length calculation use the same clipped
+geometry, including after a Wipe on loop move.
 
-An accepted inward path executes at the end of the external loop, after any
-Wipe on loop move, without retracting filament. It consumes the stored path and
-updates the nozzle position before travel planning. A short travel to the next
-wall cannot discard this wipe or force a retraction or Z-hop. Subsequent travel
-uses the normal minimum-travel threshold and retraction/lift settings from the
-new position. The regular wipe, including fallback, remains deferred until a
-normal retraction uses it.
+The next travel applies the normal minimum-travel threshold and retraction/lift
+rules from that endpoint. If retraction is needed, the ordinary retract operation
+executes the inward wipe with the configured before/during/after split. Otherwise
+the wipe executes without retracting or Z-hopping. It also executes when the next
+extrusion starts at its endpoint and needs no travel. A consumed or replaced path
+clears its pending state, so it cannot execute twice. Regular fallback wipes
+remain deferred until a normal retraction uses them.
 
 Retraction is divided into portions before, during and after wiping. The amount
 that can be retracted during the wipe depends on its executable length, wipe
@@ -147,8 +157,10 @@ speed and the active filament's retraction speed. Fractional retraction speeds
 are retained in this calculation. For a 2 mm wipe at 100 mm/s and a retraction
 speed of 25.5 mm/s, the wipe can retract 0.51 mm. With a total retraction of 0.8 mm
 and both before/after percentages set to zero, the remaining 0.29 mm is retracted
-before wiping. This split applies to regular deferred wipes, including fallback;
-an accepted inward wipe executes separately without retraction.
+before wiping. This split applies to regular and inward wipes whenever normal
+travel planning or an explicit layer/tool-change retraction calls for a retract.
+An inward wipe preceding a travel that needs no retraction has zero retraction
+in all three portions, irrespective of the configured percentages.
 
 ## Implementation and verification
 
@@ -163,6 +175,9 @@ an accepted inward wipe executes separately without retraction.
   across path subdivisions.
 - [FFF tests](../../tests/fff_print/test_wipe.cpp) cover emitted trajectories,
   fallback, minimum-travel retraction and Z-hop rules, and export invalidation.
+  Inward-wipe checks cover before/during/after retraction splits, including 100%
+  before or after wiping, with both E modes and Wipe on loop. Short travels
+  still wipe with zero retraction and no Z-hop for every split.
   With Wipe inward disabled, they check the loop move's direction and magnitude
   for Classic and Arachne, the subsequent wipe's start and length, and fractional
   retraction splitting in absolute and relative E modes.

@@ -540,7 +540,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         auto& writer = gcodegen.writer();
         auto& config = gcodegen.config();
         auto extruder = writer.filament();
-        auto last_pos = gcodegen.last_pos();
+        auto last_pos = inward ? path.first_point() : gcodegen.last_pos();
         
         // Declare & initialize retraction lengths
         double retraction_length_remaining = 0,
@@ -699,10 +699,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // BBS
             double wipe_dist = scale_(gcodegen.config().wipe_distance.get_at(gcodegen.get_filament_config_index((int)gcodegen.writer().filament()->id())));
 
-            /*  Take the stored wipe path and replace first point with the current actual position
-                (they might be different, for example, in case of loop clipping).  */
+            // Regular paths start at the current nozzle position. A pending inward
+            // path retains its actual start while last_pos already tracks its end.
             Polyline wipe_path;
-            wipe_path.append(gcodegen.last_pos());
+            wipe_path.append(inward ? path.first_point() : gcodegen.last_pos());
             wipe_path.append(
                 this->path.points.begin() + 1,
                 this->path.points.end()
@@ -8805,7 +8805,11 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
             // a different width than the config default.
             const double outer_wall_line_width = paths.front().width;
             const double requested_offset = m_config.wipe_inward_distance.get_abs_value(outer_wall_line_width);
-            const double offset_dist = scale_(std::min(requested_offset, outer_wall_line_width));
+            // Sandwich order leaves the adjacent inner wall until last. Only
+            // the outer bead's own inner half is available for wiping now.
+            const double max_offset = outer_wall_line_width *
+                (m_config.wall_sequence == WallSequence::InnerOuterInner ? 0.5 : 1.);
+            const double offset_dist = scale_(std::min(requested_offset, max_offset));
             if (offset_dist > SCALED_EPSILON) {
                 const Point seam_start = paths.front().first_point();
                 const Point seam_end   = paths.back().last_point();
@@ -8841,11 +8845,15 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         this->set_last_pos(*wipe_on_loops_dest);
     }
 
-    // Execute the accepted path before another extrusion replaces it. Wiping
-    // must not force retraction or Z-hop across a short travel to the next wall.
-    // Ordinary travel planning decides whether to retract from the new position.
-    if (wipe_inward_applied)
-        gcode += m_wipe.wipe(*this, 0.);
+    // Plan seams and travel from the wipe's destination, as with an immediate
+    // wipe, but retain its actual start until travel decides whether to retract.
+    // The ordinary retract path then applies the configured before/during/after split.
+    if (wipe_inward_applied) {
+        m_wipe.path.points.front() = this->last_pos();
+        m_wipe.path.clip_end(m_wipe.path.length() - scale_(FILAMENT_CONFIG(wipe_distance)));
+        m_wipe.inward = true;
+        this->set_last_pos(m_wipe.path.last_point());
+    }
 
     return gcode;
 }
@@ -9390,6 +9398,10 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
             gcode += this->writer().travel_to_z(m_nominal_z, z_sync_comment, true);
         }
         m_need_change_layer_lift_z = false;
+    } else if (m_wipe.inward) {
+        // The next extrusion starts at the wipe's destination, so no travel or
+        // retraction is needed, but the pending wipe must still execute once.
+        gcode += m_wipe.wipe(*this, 0.);
     }
 
     if (path.z_contoured && !path.polyline.lines().empty()) {
@@ -10628,6 +10640,10 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
             route_around_exclusion_volumes(travel, std::nullopt, true) ||
             (last_post_before_retract == this->last_pos() && exclusion_volume_travel_rerouted);
     } else {
+        // A short travel still executes an accepted inward wipe, without
+        // bypassing the ordinary minimum-travel or Z-hop rules.
+        if (m_wipe.inward)
+            gcode += m_wipe.wipe(*this, 0.);
         // Reset the wipe path when traveling, so one would not wipe along an old path.
         m_wipe.reset_path();
         // if (m_config.reduce_crossing_wall) {

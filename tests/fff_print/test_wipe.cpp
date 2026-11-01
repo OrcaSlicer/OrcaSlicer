@@ -15,6 +15,7 @@
 #include <map>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -186,15 +187,22 @@ TEST_CASE("Wipe retraction preserves fractional speed with inward wipe disabled"
     CHECK_THAT(before_wipe, Catch::Matchers::WithinAbs(0.8 - expected_during, 0.00005));
 }
 
-TEST_CASE("Inward wipe respects the minimum travel for retraction and Z hop", "[Wipe][Regression]")
+TEST_CASE("Inward wipe preserves retraction splits and minimum travel for Z hop", "[Wipe][RetractionSplit][Regression]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
     const char *relative_e = GENERATE("0", "1");
     const char *reduce_crossing_wall = GENERATE("0", "1");
     const char *minimum_travel = GENERATE("5", "0");
-    CAPTURE(wall_generator, relative_e, reduce_crossing_wall, minimum_travel);
+    const bool wipe_on_loops = GENERATE(false, true);
+    const auto split = GENERATE(table<const char *, const char *>({
+        {"0%", "50%"}, {"25%", "25%"}, {"100%", "0%"}, {"0%", "100%"}, {"0%", "0%"}
+    }));
+    const char *before_percent = std::get<0>(split);
+    const char *after_percent = std::get<1>(split);
+    CAPTURE(wall_generator, relative_e, reduce_crossing_wall, minimum_travel, wipe_on_loops,
+            before_percent, after_percent);
     DynamicPrintConfig config = wipe_config(
-        wall_generator, true, "50%", "10%", false, "3", "inner-outer-inner wall");
+        wall_generator, true, "50%", "10%", wipe_on_loops, "3", "inner-outer-inner wall");
     config.set_deserialize_strict({
         {"gcode_flavor", "marlin2"},
         {"use_relative_e_distances", relative_e},
@@ -202,8 +210,8 @@ TEST_CASE("Inward wipe respects the minimum travel for retraction and Z hop", "[
         {"retraction_minimum_travel", minimum_travel},
         {"retract_when_changing_layer", "0"},
         {"use_firmware_retraction", "0"},
-        {"retract_before_wipe", "0%"},
-        {"retract_after_wipe", "0%"},
+        {"retract_before_wipe", before_percent},
+        {"retract_after_wipe", after_percent},
         {"retraction_speed", "25.5"},
         {"role_based_wipe_speed", "0"},
         {"wipe_speed", "100"},
@@ -220,10 +228,14 @@ TEST_CASE("Inward wipe respects the minimum travel for retraction and Z hop", "[
     ExtrusionRole role = erNone;
     bool after_outer_wall = false;
     bool in_wipe = false;
+    bool wipe_seen = false;
     size_t transitions = 0;
     size_t same_layer_transitions = 0;
     size_t inward_wipes = 0;
-    double retraction = 0.;
+    double before_wipe = 0.;
+    double during_wipe = 0.;
+    double after_wipe = 0.;
+    double wipe_length = 0.;
     double lift = 0.;
     double outer_z = 0.;
     GCodeReader parser;
@@ -233,6 +245,7 @@ TEST_CASE("Inward wipe respects the minimum travel for retraction and Z hop", "[
             role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
         if (line.comment().find(start_tag) == 0) {
             in_wipe = true;
+            wipe_seen = true;
             if (after_outer_wall)
                 ++inward_wipes;
         } else if (line.comment().find(end_tag) == 0) {
@@ -241,28 +254,40 @@ TEST_CASE("Inward wipe respects the minimum travel for retraction and Z hop", "[
         if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
             if (role == erExternalPerimeter) {
                 after_outer_wall = true;
-                retraction = lift = 0.;
+                before_wipe = during_wipe = after_wipe = wipe_length = lift = 0.;
+                wipe_seen = false;
                 outer_z = line.new_Z(self);
             } else if (after_outer_wall) {
                 REQUIRE(role == erPerimeter);
+                REQUIRE(wipe_seen);
+                REQUIRE(wipe_length > EPSILON);
                 ++transitions;
                 const double layer_rise = std::max(0., double(self.z()) - outer_z);
                 if (layer_rise < EPSILON)
                     ++same_layer_transitions;
-                // A 5 mm threshold suppresses retraction across a few wall widths.
-                // A zero threshold still permits the ordinary retract and lift.
+                // A short travel must still wipe without retracting or hopping.
+                // Otherwise the configured split is limited by the time available
+                // at 100 mm/s, with any excess retracted before the wipe.
                 const bool retract = std::stod(minimum_travel) == 0.;
-                CHECK_THAT(retraction, Catch::Matchers::WithinAbs(retract ? 0.8 : 0., 0.00005));
-                // Exclude an ordinary layer change from the accumulated upward motion.
+                const double expected_after = retract ? 0.8 * std::stod(after_percent) / 100. : 0.;
+                const double requested_before = retract ? 0.8 * std::stod(before_percent) / 100. : 0.;
+                const double expected_during = retract ? std::min(0.8 - requested_before - expected_after,
+                                                                  25.5 * wipe_length / 100.) : 0.;
+                const double expected_before = retract ? 0.8 - expected_during - expected_after : 0.;
+                CHECK_THAT(before_wipe, Catch::Matchers::WithinAbs(expected_before, 0.0001));
+                CHECK_THAT(during_wipe, Catch::Matchers::WithinAbs(expected_during, 0.0001));
+                CHECK_THAT(after_wipe, Catch::Matchers::WithinAbs(expected_after, 0.0001));
                 CHECK_THAT(lift - layer_rise, Catch::Matchers::WithinAbs(retract ? 0.4 : 0., 0.001));
                 after_outer_wall = false;
             }
         } else if (after_outer_wall) {
-            if (line.retracting(self))
-                retraction -= line.dist_E(self);
-            lift += std::max(0., double(line.dist_Z(self)));
+            if (line.retracting(self)) {
+                double &portion = in_wipe ? during_wipe : (wipe_seen ? after_wipe : before_wipe);
+                portion -= line.dist_E(self);
+            }
             if (in_wipe)
-                CHECK_THAT(line.dist_E(self), Catch::Matchers::WithinAbs(0., 0.00005));
+                wipe_length += line.dist_XY(self);
+            lift += std::max(0., double(line.dist_Z(self)));
         }
     });
     // The 1 mm cube has five 0.2 mm layers: every outer wall must still wipe.
@@ -480,6 +505,34 @@ TEST_CASE("Literal inward wipe distance is clamped to the outer wall width", "[W
     REQUIRE(oversized.size() == full_width.size());
     for (size_t i = 0; i < full_width.size(); ++i)
         REQUIRE_THAT((oversized[i] - full_width[i]).norm(), Catch::Matchers::WithinAbs(0., 0.01));
+}
+
+TEST_CASE("Sandwich wall order limits inward wipe to half the outer wall width", "[Wipe][InwardWallOrder][Regression]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    const bool wipe_on_loops = GENERATE(false, true);
+    const auto [outer_width, distance, limited] = GENERATE(table<const char *, const char *, bool>({
+        {"0", "25%", false}, {"0", "50%", true}, {"0", "50.1%", true}, {"0", "100%", true},
+        {"0.4", "0.15", false}, {"0.4", "0.21", true}, {"0.6", "0.21", false}, {"0.6", "0.4", true}
+    }));
+    CAPTURE(wall_generator, wipe_on_loops, outer_width, distance);
+    DynamicPrintConfig regular = wipe_config(
+        wall_generator, false, "50%", "10%", wipe_on_loops, "3", "inner-outer-inner wall");
+    regular.set_deserialize_strict({{"outer_wall_line_width", outer_width}, {"retraction_minimum_travel", "0"}});
+    DynamicPrintConfig inward = regular;
+    inward.set_deserialize_strict({{"wipe_inward", "1"}});
+    const auto regular_paths = wipe_destinations(slice({make_cube(10., 10., 1.)}, regular));
+    const auto half_width_paths = wipe_destinations(slice({make_cube(10., 10., 1.)}, inward));
+    inward.set_deserialize_strict({{"wipe_inward_distance", distance}});
+    const auto requested_paths = wipe_destinations(slice({make_cube(10., 10., 1.)}, inward));
+    REQUIRE_FALSE(regular_paths.empty());
+    REQUIRE_FALSE(half_width_paths.empty());
+    REQUIRE_FALSE(requested_paths.empty());
+    // Oversized requests retain the inward wipe instead of falling back to the
+    // regular path. The same 0.21 mm request reaches the limit for a 0.4 mm
+    // wall but remains below it for a 0.6 mm wall, using actual extrusion widths.
+    REQUIRE(trajectories_differ(regular_paths, half_width_paths));
+    CHECK(trajectories_differ(half_width_paths, requested_paths) == !limited);
 }
 
 TEST_CASE("Inward wipe is not applied without an adjacent wall", "[Wipe][Regression]")
