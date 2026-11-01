@@ -2110,7 +2110,7 @@ namespace client
             first = it;
             return true;
         err:
-            MyContext::throw_exception(L("Invalid utf8 sequence"), IteratorRange(first, last));
+            MyContext::throw_exception(L("Invalid UTF-8 sequence"), IteratorRange(first, last));
             return false;
         }
 
