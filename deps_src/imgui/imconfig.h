@@ -228,6 +228,12 @@ namespace ImGui
     const wchar_t OpenDarkButton       = 0x0859;
     const wchar_t OpenHoverButton      = 0x085A;
     const wchar_t OpenHoverDarkButton  = 0x085B;
+    const wchar_t CutModePlaneIcon        = 0x0860;
+    const wchar_t CutModeDovetailIcon     = 0x0861;
+    const wchar_t CutModePathIcon         = 0x0862;
+    const wchar_t CutModePlaneDarkIcon    = 0x0863;
+    const wchar_t CutModeDovetailDarkIcon = 0x0864;
+    const wchar_t CutModePathDarkIcon     = 0x0865;
 
     //    void MyFunction(const char* name, const MyMatrix44& v);
 

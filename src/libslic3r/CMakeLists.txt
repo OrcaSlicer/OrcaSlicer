@@ -119,6 +119,8 @@ set(lisbslic3r_sources
     CustomGCode.hpp
     CutUtils.cpp
     CutUtils.hpp
+    PathCutGeometry.hpp
+    PathCutConnectors.hpp
     EdgeGrid.cpp
     EdgeGrid.hpp
     ElephantFootCompensation.cpp
