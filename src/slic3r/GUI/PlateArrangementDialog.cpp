@@ -520,14 +520,14 @@ void PlateArrangementDialog::render_bottom_bar()
     if (render_icon_button(IconId::ZoomOut, true, _u8L("Zoom out to all plates")))
         m_parent.zoom_to_plate(REQUIRES_ZOOM_TO_ALL_PLATE);
 
-    ImGui::SetCursorPos(ImVec2(x0 + cfg.grid_size - cfg.add_width - cfg.delete_width - group, row2));
-    if (m_imgui->button(_L("Add"), ImVec2(cfg.add_width, cfg.button_size), plater->can_add_plate()))
+    ImGui::SetCursorPos(ImVec2(x0 + cfg.grid_size - cfg.choose_width * 2.f - cfg.item_spacing, row2));
+    if (m_imgui->button(_L("Add"), ImVec2(cfg.choose_width, cfg.button_size), plater->can_add_plate()))
         plater->CallAfter([]() { wxGetApp().plater()->add_plate(); }); // the new plate becomes current, and selected
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
         m_imgui->tooltip(_u8L("Add plate"), ImGui::GetFontSize() * 20.f);
 
-    ImGui::SameLine(0.f, group); // apart from Add, as it removes plates
-    if (m_imgui->button(_L("Remove"), ImVec2(cfg.delete_width, cfg.button_size), (m_plate_count > 1 && int(m_selection.size()) < m_plate_count))){
+    ImGui::SameLine(0.f, cfg.item_spacing); // apart from Add, as it removes plates
+    if (m_imgui->button(_L("Remove"), ImVec2(cfg.choose_width, cfg.button_size), (m_plate_count > 1 && int(m_selection.size()) < m_plate_count))){
         std::vector<int> indices;
         for (PartPlate* plate : m_selection)
             indices.push_back(plate->get_index());
@@ -590,9 +590,8 @@ void PlateArrangementDialog::create_gui_cfg()
     cfg.window_rounding = px(10.f);
     cfg.frame_rounding  = px(3.f);
     cfg.title_height    = px(26.f);
-    cfg.close_width     = std::round(m_imgui->calc_text_size(_L("Close")).x  + px(20.f));
-    cfg.add_width       = std::round(m_imgui->calc_text_size(_L("Add")).x    + px(20.f));
-    cfg.delete_width    = std::round(m_imgui->calc_text_size(_L("Remove")).x + px(20.f));
+    cfg.close_width     = std::round(std::max(px(60.f), m_imgui->calc_text_size(_L("Close")).x)  + px(20.f));
+    cfg.choose_width    = std::round(std::max(px(60.f), std::max(m_imgui->calc_text_size(_L("Remove")).x, m_imgui->calc_text_size(_L("Add")).x)) + px(20.f));
     cfg.button_size     = px(26.f);
     cfg.button_padding  = cfg.frame_rounding; // image_button() rounds its corners by at most the padding
     cfg.item_spacing    = px(4.f);

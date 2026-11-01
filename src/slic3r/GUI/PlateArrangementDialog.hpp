@@ -125,8 +125,7 @@ private:
         float frame_rounding;
         float title_height;       // also the height of the Close button
         float close_width;        // from the translated label
-        float add_width; 
-        float delete_width; 
+        float choose_width;       // one width for Add/Remove buttons
         float button_size;        // bottom bar buttons, and the height of the name field
         float button_padding;     // around a button's icon; also its corner radius
         float item_spacing;
