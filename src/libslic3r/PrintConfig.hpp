@@ -1739,6 +1739,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_ids))
     ((ConfigOptionStrings,             filament_colour))
     ((ConfigOptionStrings,             filament_vendor))
+    ((ConfigOptionStrings,             filament_subtype))
     ((ConfigOptionBools,               filament_is_support))
     // Mixed-color filament: a virtual slot realized from 2-3 physical filaments.
     ((ConfigOptionBools,               filament_is_mixed))
