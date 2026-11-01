@@ -3,6 +3,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <ios>
+#include <libslic3r/Utils.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
@@ -10,12 +11,16 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include "catch2/catch_message.hpp"
 #include "plugin_test_utils.hpp"
+#include "test_utils.hpp"
 
 #include <boost/filesystem.hpp>
 
 #include <fstream>
 #include <string>
+
+#include <libslic3r/Zipper.hpp>
 
 using namespace Slic3r;
 namespace fs = boost::filesystem;
@@ -29,6 +34,14 @@ fs::path write_py_file(const fs::path& dir, const std::string& filename, const s
     std::ofstream out(p.string(), std::ios::binary);
     out << contents;
     return p;
+}
+
+// The shared production helper: makes the path absolute and lexically normalized and, on
+// Windows, prefixes it with the extended-length "\\?\" form, so the test can create, verify and
+// clean up a tree past MAX_PATH even with LongPathsEnabled off. Identity on other platforms.
+fs::path to_extended_path(const fs::path& p)
+{
+    return Slic3r::extended_path(p);
 }
 
 } // namespace
@@ -183,4 +196,60 @@ TEST_CASE("an unsubscribed cloud plugin follows its header version", "[PluginIns
     scanned.version = "1.0.0";
     REQUIRE(read_install_state(plugin_dir, scanned));
     CHECK(scanned.installed_version == "1.0.0");
+}
+
+TEST_CASE("extract_zip_to_directory writes entries under a destination longer than MAX_PATH",
+          "[PluginInstall][PluginFsUtils]")
+{
+    ScopedTemporaryDir dir("deep-extract");
+
+    const fs::path wheel = dir.path() / "deep_pkg-1.0-py3-none-any.whl";
+    const std::string payload = "print('hello from a deep path')\n";
+    {
+        Zipper zipper(wheel.string(), Zipper::NO_COMPRESSION);
+        zipper.add_entry("pkg/", "", 0); // explicit directory entry
+        zipper.add_entry("pkg/module.py", payload.data(), payload.size());
+        zipper.finalize();
+    }
+
+    // A single 240-char component keeps every filename below the NTFS 255 limit while pushing the
+    // full destination (temp dir + component) past the 260-char MAX_PATH the Win32 APIs enforce
+    // when LongPathsEnabled is off.
+    const fs::path destination = dir.path() / std::string(240, 'd');
+    REQUIRE(destination.string().size() > 260);
+
+    std::string error;
+    REQUIRE(extract_zip_to_directory(wheel, destination, error));
+    INFO("extract error: " << error);
+    CHECK(error.empty());
+
+    // Verify through a long-path-capable path, otherwise the check itself is bounded by MAX_PATH.
+    const fs::path module_py = destination / "pkg" / "module.py";
+    REQUIRE(fs::exists(to_extended_path(module_py)));
+    REQUIRE(fs::is_regular_file(to_extended_path(module_py)));
+
+    // Remove the deep subtree here: ScopedTemporaryDir's plain remove_all cannot reach past
+    // MAX_PATH on Windows.
+    boost::system::error_code ec;
+    fs::remove_all(to_extended_path(destination), ec);
+    CHECK_FALSE(ec);
+}
+
+TEST_CASE("extract_zip_to_directory rejects an entry that escapes the destination",
+          "[PluginInstall][PluginFsUtils]")
+{
+    ScopedTemporaryDir dir("escape-extract");
+
+    const fs::path wheel = dir.path() / "evil-1.0-py3-none-any.whl";
+    {
+        Zipper zipper(wheel.string(), Zipper::NO_COMPRESSION);
+        zipper.add_entry("pkg/module.py", "print('ok')\n", 12);
+        zipper.add_entry("../escape.txt", "escaped\n", 8);
+        zipper.finalize();
+    }
+
+    std::string error;
+    CHECK_FALSE(extract_zip_to_directory(wheel, dir.path() / "out", error));
+    CHECK_THAT(error, Catch::Matchers::ContainsSubstring("escapes the plugin package"));
+    CHECK_FALSE(fs::exists(dir.path() / "escape.txt"));
 }

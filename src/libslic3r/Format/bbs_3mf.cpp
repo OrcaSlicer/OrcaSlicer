@@ -988,7 +988,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             MetadataList metadata;
             VolumeMetadataList volumes;
-            bool auto_drop { true };
+            std::optional<bool> auto_drop;
         };
 
         struct CutObjectInfo
@@ -1208,6 +1208,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         //IdToGeometryMap m_orig_geometries; // backup & restore
         CurrentConfig m_curr_config;
         IdToMetadataMap m_objects_metadata;
+        std::set<int>   m_items_auto_drop_off; // object ids with a build item auto_drop="0" (2.4.x layout)
         IdToCutObjectInfoMap       m_cut_object_infos;
         IdToLayerHeightsProfileMap m_layer_heights_profiles;
         IdToLayerConfigRangesMap m_layer_config_ranges;
@@ -1463,6 +1464,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_objects.clear();
         m_instances.clear();
         m_objects_metadata.clear();
+        m_items_auto_drop_off.clear();
         m_curr_metadata_name.clear();
         m_curr_characters.clear();
 
@@ -1502,6 +1504,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_curr_config.object_id = -1;
         m_curr_config.volume_id = -1;
         m_objects_metadata.clear();
+        m_items_auto_drop_off.clear();
         m_layer_heights_profiles.clear();
         m_layer_config_ranges.clear();
         m_brim_ear_points.clear();
@@ -2257,11 +2260,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             ObjectMetadata::VolumeMetadataList volumes;
             ObjectMetadata::VolumeMetadataList* volumes_ptr = nullptr;
 
+            // 2.4.x stored auto_drop on build items, shared by all instances of an object; any "off" wins
+            const bool legacy_auto_drop = !m_items_auto_drop_off.count(object.first.second);
+
             IdToMetadataMap::iterator obj_metadata = m_objects_metadata.find(object.first.second);
             if (obj_metadata != m_objects_metadata.end()) {
                 // config data has been found, this model was saved using slic3r pe
 
-                model_object->auto_drop = obj_metadata->second.auto_drop;
+                model_object->auto_drop = obj_metadata->second.auto_drop.value_or(legacy_auto_drop);
 
                 // apply object's name and config data
                 for (const Metadata& metadata : obj_metadata->second.metadata) {
@@ -2279,6 +2285,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
             else {
                 // config data not found, this model was not saved using slic3r pe
+                model_object->auto_drop = legacy_auto_drop;
 
                 // add the entire geometry as the single volume to generate
                 //volumes.emplace_back(0, (int)obj_geometry->second.triangles.size() - 1);
@@ -4121,6 +4128,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         std::string path = bbs_get_attribute_value_string(attributes, num_attributes, PPATH_ATTR);
         Transform3d transform = bbs_get_transform_from_3mf_specs_string(bbs_get_attribute_value_string(attributes, num_attributes, TRANSFORM_ATTR));
         int printable = bbs_get_attribute_value_bool(attributes, num_attributes, PRINTABLE_ATTR);
+        if (const char* auto_drop = bbs_get_attribute_value_charptr(attributes, num_attributes, AUTO_DROP_ATTR); auto_drop != nullptr && !::atoi(auto_drop))
+            m_items_auto_drop_off.insert(object_id);
         return !m_load_model || _create_object_instance(path, object_id, transform, printable, 1);
     }
 
@@ -4489,7 +4498,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // int instances_count_id = bbs_get_attribute_value_int(attributes, num_attributes, INSTANCESCOUNT_ATTR);
 
         ObjectMetadata metadata;
-        metadata.auto_drop = bbs_get_attribute_value_bool(attributes, num_attributes, AUTO_DROP_ATTR);
+        if (bbs_get_attribute_value_charptr(attributes, num_attributes, AUTO_DROP_ATTR) != nullptr)
+            metadata.auto_drop = bbs_get_attribute_value_bool(attributes, num_attributes, AUTO_DROP_ATTR);
         m_objects_metadata.insert({ object_id, std::move(metadata) });
         m_curr_config.object_id = object_id;
         return true;
@@ -4851,7 +4861,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::istringstream(used_for_object) >> std::boolalpha >> filament_info.used_for_object;
             std::istringstream(used_for_support) >> std::boolalpha >> filament_info.used_for_support;
             filament_info.group_id = parse_int_list(group_id);
-            filament_info.nozzle_diameter = atof(nozzle_diameter.c_str());
+            filament_info.nozzle_diameter = string_to_double_decimal_point(nozzle_diameter);
             filament_info.nozzle_volume_type = volume_type;
             m_curr_plater->slice_filaments_info.push_back(filament_info);
         }
@@ -8798,7 +8808,7 @@ bool _BBS_3MF_Exporter::_add_model_config_file_to_archive(mz_zip_archive& archiv
 
                 if (plate_data->limit_filament_maps.size() > 0) {
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LIMIT_FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"";
-                    add_vector<int>(stream, plate_data->limit_filament_maps);
+                    add_vector<uint64_t>(stream, plate_data->limit_filament_maps);
                     stream << "\"/>\n";
                 }
 
@@ -10110,7 +10120,7 @@ bool to_xml(std::stringstream &stream, const EmbossShape::SvgFile &svg, const Mo
     assert(file_data != nullptr);
     if (file_data == nullptr && !svg.path.empty()) file_data = read_from_disk(svg.path);
     if (file_data == nullptr) {
-        BOOST_LOG_TRIVIAL(warning) << "Can't write svg file no filedata";
+        BOOST_LOG_TRIVIAL(warning) << "Can't write SVG file no filedata";
         return false;
     }
     const std::string &file_data_str = *file_data; 
@@ -10126,7 +10136,7 @@ void to_xml(std::stringstream &stream, const EmbossShape &es, const ModelVolume 
     stream << "   <" << SHAPE_TAG << " ";
     if (es.svg_file.has_value())
         if (!to_xml(stream, *es.svg_file, volume, archive, export_full_path)) {
-            BOOST_LOG_TRIVIAL(warning) << "Can't write svg file defiden embossed shape into 3mf";
+            BOOST_LOG_TRIVIAL(warning) << "Can't write SVG file defiden embossed shape into 3mf";
         }
 
     stream << SHAPE_SCALE_ATTR << "=\"" << es.scale << "\" ";

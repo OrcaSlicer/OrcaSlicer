@@ -1,0 +1,108 @@
+name: Approve PR checks
+
+# The repository makes a maintainer approve workflow runs on pull requests from first-time
+# contributors, and that setting covers every workflow at once. This approves the pending runs of
+# Check profiles, Check locale and clang-tidy at the head of each open pull request from a fork, so
+# they report without waiting; Build all and the other workflows still wait for a maintainer. It
+# does not read the approval setting, so a stricter one does not hold these three back either.
+#
+# Its token can approve runs and pull_request_target needs no approval, so it must never check out
+# or run pull request code. It reads run, pull request and git tree metadata only.
+
+on:
+  # Approves the runs for a pull request's new head right away. No paths filter: clang_tidy.yml
+  # runs on every pull request into these branches.
+  pull_request_target:
+    branches:
+    - main
+    - release/*
+  # Looks at every pending run: one not listed yet when the job above looked, and all of them when
+  # pull_request_target is blocked by an Actions event policy.
+  schedule:
+  - cron: '7,17,27,37,47,57 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  approve:
+    name: Approve PR checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: write        # list and approve workflow runs
+      contents: read        # compare commits and read git trees
+      pull-requests: read   # list open pull requests
+    steps:
+      - name: Approve pending runs
+        # A failed job would leave a red check on the pull request, which blocks pr-merge-bot.
+        # The sweep retries and reports the failure instead.
+        continue-on-error: ${{ github.event_name == 'pull_request_target' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          # Both empty for the sweep, which then considers every pending run.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # The workflows approved here, found by file name.
+          workflows="check_profiles.yml check_locale.yml clang_tidy.yml"
+
+          # Prints the tree of a commit's .github/, or nothing if it has none; fails if the commit
+          # cannot be read.
+          github_tree() {
+            gh api "repos/${GH_REPO}/git/trees/$1" --jq '.tree[] | select(.path == ".github") | .sha'
+          }
+
+          # The approve endpoint is for pull requests from forks, so runs from this repository's own
+          # branches are left to a maintainer. Each workflow is listed on its own, so pending runs of
+          # other workflows cannot fill the endpoint's 1000-result window. A failed listing exits
+          # rather than passing for an empty one.
+          runs=$(for workflow in $workflows; do
+            gh api --paginate "repos/${GH_REPO}/actions/workflows/${workflow}/runs?event=pull_request&status=action_required&per_page=100${HEAD_SHA:+&head_sha=${HEAD_SHA}}" \
+              --jq '.workflow_runs[] | select(.head_repository.full_name != .repository.full_name) | [.id, .workflow_id, .head_sha, .name] | @tsv' \
+              || exit 1
+          done)
+          if [ -z "$runs" ]; then
+            echo "No run of these workflows is waiting for approval."
+            exit 0
+          fi
+          # Runs for superseded commits and closed pull requests are left alone.
+          if [ -n "$PR_NUMBER" ]; then
+            open_heads=$(gh api "repos/${GH_REPO}/pulls/${PR_NUMBER}" --jq 'select(.state == "open") | .head.sha')
+          else
+            open_heads=$(gh api --paginate "repos/${GH_REPO}/pulls?state=open&per_page=100" --jq '.[].head.sha')
+          fi
+
+          failed=0
+          while IFS=$'\t' read -r run_id workflow_id sha name; do
+            grep -qx "$sha" <<< "$open_heads" || continue
+            # The approved run takes its workflow from the head merged into the base branch. A head
+            # whose .github/ is the one it branched from main with changes no workflow, so that
+            # merge runs only workflow code already on this repository's branches. A maintainer
+            # approves the rest.
+            if ! newest=$(gh api "repos/${GH_REPO}/actions/workflows/${workflow_id}/runs?event=pull_request&head_sha=${sha}&per_page=1" --jq '.workflow_runs[0].id') \
+              || ! base=$(gh api "repos/${GH_REPO}/compare/main...${sha}" --jq .merge_base_commit.sha) \
+              || ! head_tree=$(github_tree "$sha") || ! base_tree=$(github_tree "$base"); then
+              echo "::warning::Could not read the ${name} runs or the .github/ trees for ${sha}."
+              failed=1
+              continue
+            fi
+            # Reopening a pull request leaves an older run at the same head; only the newest runs.
+            [ "$newest" = "$run_id" ] || continue
+            if [ -z "$head_tree" ] || [ "$head_tree" != "$base_tree" ]; then
+              echo "::notice::Leaving ${name} run ${run_id} to a maintainer: ${sha} changes .github/."
+              continue
+            fi
+            if gh api -X POST "repos/${GH_REPO}/actions/runs/${run_id}/approve" > /dev/null; then
+              echo "Approved ${name} run ${run_id} for ${sha}."
+            # A maintainer or another run of this workflow may have approved it first.
+            elif ! conclusion=$(gh api "repos/${GH_REPO}/actions/runs/${run_id}" --jq .conclusion) \
+              || [ "$conclusion" = action_required ]; then
+              echo "::warning::Could not approve ${name} run ${run_id} for ${sha}."
+              failed=1
+            else
+              echo "${name} run ${run_id} no longer waits for approval."
+            fi
+          done <<< "$runs"
+          exit "$failed"

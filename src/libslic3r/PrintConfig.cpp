@@ -10,21 +10,23 @@
 #include "FilamentMixer.hpp"
 #include "MaterialType.hpp"
 #include "I18N.hpp"
-#include "enum_bitmask.hpp"
+#include "LocalesUtils.hpp"
 #include "format.hpp"
 
 #include "GCode/Thumbnails.hpp"
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <iterator>
+#include "enum_bitmask.hpp"
 #include <numeric>
 #include <cstddef>
-#include <algorithm>
 #include <cassert>
 #include <map>
 #include <boost/algorithm/string/classification.hpp>
-#include <iterator>
 #include <cstdlib>
 #include "libslic3r.h"
 #include <boost/algorithm/string/predicate.hpp>
-#include <cmath>
 #include <boost/algorithm/string/constants.hpp>
 #include <limits>
 #include <memory>
@@ -33,6 +35,8 @@
 #include <boost/preprocessor/tuple/to_seq.hpp>
 #include <cstdint>
 #include <set>
+#include <optional>
+#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -119,12 +123,18 @@ const std::vector<std::string> filament_extruder_override_keys = {
 };
 
 // Some filament override parameters are generated from filament_extruder_override_keys,
-// while filament_retract_length_nc is defined separately. Keep the generator list
-// unchanged and use this helper for behavior checks that need the full override set.
+// while filament_retract_length_nc and the ironing overrides are defined separately.
+// Keep the generator list unchanged and use this helper for behavior checks that need
+// the full override set. A nil in one of these keys means the override is disabled, so
+// child presets store and load it verbatim instead of treating nil as "inherit".
 bool is_filament_extruder_override_key(const std::string &opt_key)
 {
     return std::find(filament_extruder_override_keys.begin(), filament_extruder_override_keys.end(), opt_key) != filament_extruder_override_keys.end() ||
-           opt_key == "filament_retract_length_nc";
+           opt_key == "filament_retract_length_nc" ||
+           opt_key == "filament_ironing_flow" ||
+           opt_key == "filament_ironing_spacing" ||
+           opt_key == "filament_ironing_inset" ||
+           opt_key == "filament_ironing_speed";
 }
 
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
@@ -241,6 +251,14 @@ static t_config_enum_values s_keys_map_PowerLossRecoveryMode {
     { "disable",                int(PowerLossRecoveryMode::Disable) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
+
+// Orca
+static t_config_enum_values s_keys_map_ArcFittingMode {
+    { "disabled",      int(ArcFittingMode::Disabled) },
+    { "enabled",       int(ArcFittingMode::Enabled) },
+    { "sparse_infill", int(ArcFittingMode::SparseInfill) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ArcFittingMode)
 
 static t_config_enum_values s_keys_map_CenterOfSurfacePattern{
     {"each_surface", int(CenterOfSurfacePattern::Each_Surface)},
@@ -366,24 +384,24 @@ static t_config_enum_values s_keys_map_SurfaceFillOrder{
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SurfaceFillOrder)
 
 //Orca
-static t_config_enum_values s_keys_map_TpmsAdaptiveMode{
-    { "disabled",       int(TpmsAdaptiveMode::Disabled) },
-    { "distance_warp",  int(TpmsAdaptiveMode::DistanceWarp) },
-    { "smooth_blend",   int(TpmsAdaptiveMode::SmoothBlend) },
-    { "stepped_shells", int(TpmsAdaptiveMode::SteppedShells) },
-    { "lobes",          int(TpmsAdaptiveMode::Lobes) },
-    { "normal_z",       int(TpmsAdaptiveMode::NormalZ) },
-    { "normal_y",       int(TpmsAdaptiveMode::NormalY) },
-    { "normal_x",       int(TpmsAdaptiveMode::NormalX) },
+static t_config_enum_values s_keys_map_AdaptiveInfillMode{
+    { "disabled",       int(AdaptiveInfillMode::Disabled) },
+    { "distance_warp",  int(AdaptiveInfillMode::DistanceWarp) },
+    { "smooth_blend",   int(AdaptiveInfillMode::SmoothBlend) },
+    { "stepped_shells", int(AdaptiveInfillMode::SteppedShells) },
+    { "lobes",          int(AdaptiveInfillMode::Lobes) },
+    { "normal_z",       int(AdaptiveInfillMode::NormalZ) },
+    { "normal_y",       int(AdaptiveInfillMode::NormalY) },
+    { "normal_x",       int(AdaptiveInfillMode::NormalX) },
 };
-CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(TpmsAdaptiveMode)
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(AdaptiveInfillMode)
 
-static t_config_enum_values s_keys_map_TpmsAdaptiveGradient{
-    { "linear",      int(TpmsAdaptiveGradient::Linear) },
-    { "quadratic",   int(TpmsAdaptiveGradient::Quadratic) },
-    { "exponential", int(TpmsAdaptiveGradient::Exponential) },
+static t_config_enum_values s_keys_map_AdaptiveInfillGradient{
+    { "linear",      int(AdaptiveInfillGradient::Linear) },
+    { "quadratic",   int(AdaptiveInfillGradient::Quadratic) },
+    { "exponential", int(AdaptiveInfillGradient::Exponential) },
 };
-CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(TpmsAdaptiveGradient)
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(AdaptiveInfillGradient)
 
 //BBS
 static t_config_enum_values s_keys_map_PrintSequence {
@@ -721,6 +739,13 @@ static const t_config_enum_values s_keys_map_FilamentMapMode = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FilamentMapMode)
 
+static const t_config_enum_values s_keys_map_BedExcludeVolumeMode = {
+    { "shared",          int(BedExcludeVolumeMode::Shared) },
+    { "toolhead_offset", int(BedExcludeVolumeMode::ToolheadOffset) },
+    { "per_extruder",    int(BedExcludeVolumeMode::PerExtruder) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(BedExcludeVolumeMode)
+
 // IMEX: keep the legacy hyphenated wire strings so existing presets / 3MFs
 // deserialize unchanged after the coString -> coEnum migration.
 static const t_config_enum_values s_keys_map_ImexToolLayout = {
@@ -1029,10 +1054,38 @@ void PrintConfigDef::init_common_params()
     def = this->add("bed_exclude_area", coPoints);
     def->label = L("Excluded bed area");
     def->tooltip = L("Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. "
-        "The area is expressed as polygon by points in following format: \"XxY, XxY, ...\"");
+        "The area is expressed as a polygon in the format \"XxY, XxY, ...\". It constrains material and model placement, "
+        "but allows machine travel. Configure toolhead collision volumes separately for G-code checking and travel avoidance.");
     def->mode = comAdvanced;
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPoints{ Vec2d(0, 0) });
+
+    def = this->add("bed_exclude_volumes", coString);
+    def->label = L("Toolhead collision volumes");
+    def->tooltip = L("Collision volumes used for model and generated-material exclusion, G-code checking, and travel avoidance. "
+        "Use \"XxY, XxY, ...\" for a full-height polygon or \"ZMIN..ZMAX;XxY, XxY, ...\" for a Z-limited volume. "
+        "Separate multiple volumes with \"|\". These volumes are additional to the excluded bed area. "
+        "Automatic arrangement conservatively uses the bounding box of a non-convex volume.");
+    def->mode = comAdvanced;
+    def->gui_type = ConfigOptionDef::GUIType::one_string;
+    def->set_default_value(new ConfigOptionString());
+
+    def = this->add("bed_exclude_volume_mode", coEnum);
+    def->label = L("Collision volume behavior");
+    def->tooltip = L("Choose whether all nozzles use the same collision volumes, derive toolhead-relative volumes from each nozzle's XY offset, or configure independent volumes for every extruder. In individual mode, select each extruder on the Extruder page to configure its volumes.");
+    def->enum_keys_map = &ConfigOptionEnum<BedExcludeVolumeMode>::get_enum_values();
+    def->enum_values = { "shared", "toolhead_offset", "per_extruder" };
+    // TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+    def->enum_labels = { L("Shared by all nozzles"), L("Toolhead-relative (nozzle offsets)"), L("Individual per extruder") };
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<BedExcludeVolumeMode>(BedExcludeVolumeMode::Shared));
+
+    def = this->add("extruder_bed_exclude_volumes", coStrings);
+    def->label = L("Extruder collision volumes");
+    def->tooltip = L("Collision volumes used only by this extruder in individual mode. Use the same polygon and optional Z-range format as the shared collision volumes. Leave empty for no collision volumes on this extruder. Automatic arrangement conservatively uses the bounding box of a non-convex volume.");
+    def->mode = comAdvanced;
+    def->gui_type = ConfigOptionDef::GUIType::one_string;
+    def->set_default_value(new ConfigOptionStrings{ "" });
 
     def = this->add("bed_custom_texture", coString);
     def->label = L("Bed custom texture");
@@ -1489,6 +1542,17 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def = this->add("bottom_color_penetration_layers", coInt);
+    def->label = L("Bottom paint penetration layers");
+    def->category = L("Strength");
+    def->sidetext = L("layers");
+    def->tooltip = L("The number of layers, including the bottom surface layer, that take the color painted on a bottom surface. "
+                     "Set to 0 to use the bottom shell layers. A value larger than the bottom shell also colors the sparse "
+                     "infill above the painted area.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("gap_fill_target", coEnum);
     def->label = L("Apply gap fill");
     def->category = L("Strength");
@@ -1799,7 +1863,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("precise_outer_wall",coBool);
     def->label = L("Precise wall");
     def->category = L("Quality");
-    def->tooltip  = L("Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option "
+    def->tooltip  = L("Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n\nNote: This option "
                        "will be ignored for outer-inner or inner-outer-inner wall sequences.");
     def->set_default_value(new ConfigOptionBool{true});
 
@@ -1817,7 +1881,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value."
         " This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters."
         " This value can be a mm or a % of the perimeter extrusion width."
-        "\nWarning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts.");
+        "\n\nWarning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts.");
     def->sidetext = L("mm or %");
     def->ratio_over = "inner_wall_line_width";
     def->min = 0;
@@ -1908,7 +1972,7 @@ void PrintConfigDef::init_fff_params()
                      "For example, additional slowdown will be applied when printing overhangs on sharp corners like the "
                      "front of the Benchy hull, reducing curling which compounds over multiple layers.\n\n"
                      "It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the "
-                     "print speed is slow enough that perimeter curling does not happen. \n"
+                     "print speed is slow enough that perimeter curling does not happen.\n"
                      "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, "
                      "due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
                      "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined "
@@ -2297,7 +2361,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("activate_air_filtration",coBools);
     def->label = L("Activate air filtration");
-    def->tooltip = L("Activate for better air filtration. G-code command: M106 P3 S(0-255)");
+    def->tooltip = L("Activate for better air filtration.\nG-code command: M106 P3 S(0-255)");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBools{false});
     
@@ -2795,7 +2859,7 @@ void PrintConfigDef::init_fff_params()
         "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the "
         "entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be "
         "set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max "
-        "points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which "
+        "points. This information can usually be obtained from your printer manufacturer.\n\nThe default setting is (-99999, -99999), which "
         "means there are no limits, thus allowing probing across the entire bed.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comAdvanced;
@@ -2807,7 +2871,7 @@ void PrintConfigDef::init_fff_params()
         "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the "
         "entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be "
         "set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max "
-        "points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which "
+        "points. This information can usually be obtained from your printer manufacturer.\n\nThe default setting is (99999, 99999), which "
         "means there are no limits, thus allowing probing across the entire bed.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comAdvanced;
@@ -2943,7 +3007,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("adaptive_pressure_advance_bridges", coFloats);
     def->label = L("Static pressure advance for bridges");
-    def->tooltip = L("Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+    def->tooltip = L("Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as "
 					"equivalent walls (using adaptive settings if enabled).\n\n"
                     "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. "
                     "This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this.");
@@ -3232,7 +3296,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Shrinkage (XY)");
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). "
-        "The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+        "The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
         "Be sure to allow enough space between objects, as this compensation is done after the checks.");
     def->sidetext = "%";
     def->ratio_over = "";
@@ -3347,7 +3411,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_cooling_before_tower", coFloats);
     def->label = L("Wipe tower cooling");
-    def->tooltip = L("Temperature drop before entering filament tower");
+    def->tooltip = L("Temperature drop before entering the wipe tower.");
     def->sidetext = L(u8"\u2103" /* °C */); // degrees Celsius, CIS languages need translation
     def->mode = comDevelop;
     def->nullable = true;
@@ -3660,7 +3724,7 @@ void PrintConfigDef::init_fff_params()
     def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
 
-    def             = this->add("tpms_adaptive", coEnum);
+    def             = this->add("adaptive_infill_mode", coEnum);
     def->label      = L("Adaptive density (experimental)");
     def->category   = L("Strength");
     def->tooltip    = L("Grades the Gyroid and TPMS infill inside the object: its cells grow from the surface of the "
@@ -3678,7 +3742,7 @@ void PrintConfigDef::init_fff_params()
                         "joined to the rest by a narrower neck, is graded towards its own center.\n"
                         " - Normal Z, Y or X: follows the sections of the object normal to that axis, so the density "
                         "does not change along it.");
-    def->enum_keys_map = &ConfigOptionEnum<TpmsAdaptiveMode>::get_enum_values();
+    def->enum_keys_map = &ConfigOptionEnum<AdaptiveInfillMode>::get_enum_values();
     def->enum_values.push_back("disabled");
     def->enum_values.push_back("distance_warp");
     def->enum_values.push_back("smooth_blend");
@@ -3696,9 +3760,9 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Normal Y"));
     def->enum_labels.push_back(L("Normal X"));
     def->mode       = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<TpmsAdaptiveMode>(TpmsAdaptiveMode::Disabled));
+    def->set_default_value(new ConfigOptionEnum<AdaptiveInfillMode>(AdaptiveInfillMode::Disabled));
 
-    def             = this->add("tpms_interior_density", coPercent);
+    def             = this->add("adaptive_infill_interior_density", coPercent);
     def->label      = L("Interior density");
     def->category   = L("Strength");
     def->tooltip    = L("Density of the adaptive infill at the center of the object.");
@@ -3708,7 +3772,7 @@ void PrintConfigDef::init_fff_params()
     def->mode       = comAdvanced;
     def->set_default_value(new ConfigOptionPercent(5));
 
-    def             = this->add("tpms_adaptive_gradient", coEnum);
+    def             = this->add("adaptive_infill_gradient", coEnum);
     def->label      = L("Adaptive gradient");
     def->category   = L("Strength");
     def->tooltip    = L("How the density changes from the surface to the center of the object.\n"
@@ -3717,7 +3781,7 @@ void PrintConfigDef::init_fff_params()
                         "changes faster towards the center.\n"
                         "Exponential: the density changes quickly just below the surface and levels off towards "
                         "the center.");
-    def->enum_keys_map = &ConfigOptionEnum<TpmsAdaptiveGradient>::get_enum_values();
+    def->enum_keys_map = &ConfigOptionEnum<AdaptiveInfillGradient>::get_enum_values();
     def->enum_values.push_back("linear");
     def->enum_values.push_back("quadratic");
     def->enum_values.push_back("exponential");
@@ -3725,7 +3789,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Quadratic"));
     def->enum_labels.push_back(L("Exponential"));
     def->mode       = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<TpmsAdaptiveGradient>(TpmsAdaptiveGradient::Linear));
+    def->set_default_value(new ConfigOptionEnum<AdaptiveInfillGradient>(AdaptiveInfillGradient::Linear));
 
     // Z-buckling bias optimization (experimental). Tightens the gyroid wave along the Z
     // (vertical) axis at low infill density to shorten the effective column length under
@@ -3883,7 +3947,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("accel_to_decel_factor", coPercent);
     def->label = L("accel_to_decel");
     def->category = L("Speed");
-    def->tooltip = L("Klipper's max_accel_to_decel will be adjusted to this %% of acceleration.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Klipper's max_accel_to_decel will be adjusted to this % of acceleration.");
     def->sidetext = "%";
     def->min = 1;
     def->max = 100;
@@ -4220,6 +4285,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fuzzy_skin_mode", coEnum);
     def->label = L("Fuzzy skin generator mode");
     def->category = L("Others");
+    // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Fuzzy skin generation mode. Works only with Arachne!\n"
                      "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
                      "Extrusion: The mode when the pattern formed by the amount of extruded plastic. "
@@ -4228,7 +4294,7 @@ void PrintConfigDef::init_fff_params()
                      "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n\n"
                      "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. "
                      "At the same time, the width of the extrusion for a particular layer should also not be below a certain level. "
-                     "It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! "
+                     "It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! "
                      "If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated." );
     def->enum_keys_map = &ConfigOptionEnum<FuzzySkinMode>::get_enum_values();
     def->enum_values.push_back("displacement");
@@ -4357,16 +4423,25 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(0));
 
     // BBS
-    def = this->add("enable_arc_fitting", coBool);
+    def = this->add("enable_arc_fitting", coEnum);
     def->label = L("Arc fitting");
-    def->tooltip = L("Enable this to get a G-code file which has G2 and G3 moves. "
-                     "The fitting tolerance is same as the resolution.\n\n"
-                     "Note: For Klipper machines, this option is recommended to be disabled. Klipper does not benefit from "
-                     "arc commands as these are split again into line segments by the firmware. This results in a reduction "
-                     "in surface quality as line segments are converted to arcs by the slicer and then back to line segments "
-                     "by the firmware.");
+    def->tooltip = L("Fit G2 and G3 arc moves to the toolpaths. Walls and surfaces are fitted within the resolution, while "
+                     "sparse infill, supports and the wipe tower use fixed tolerances.\n"
+                     " - Disabled: only straight G1 moves are used.\n"
+                     " - Enabled: arcs are fitted to all toolpaths.\n"
+                     " - Sparse infill only: arcs are fitted to the sparse infill only, which shortens the G-code of "
+                     "curved infill patterns without affecting the walls and surfaces.\n\n"
+                     "Note: For Klipper machines, Disabled is recommended. Klipper splits arcs back into line segments, "
+                     "which lowers the surface quality and can increase the print time.");
+    def->enum_keys_map = &ConfigOptionEnum<ArcFittingMode>::get_enum_values();
+    def->enum_values.push_back("disabled");
+    def->enum_values.push_back("enabled");
+    def->enum_values.push_back("sparse_infill");
+    def->enum_labels.push_back(L("Disabled"));
+    def->enum_labels.push_back(L("Enabled"));
+    def->enum_labels.push_back(L("Sparse infill only"));
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(0));
+    def->set_default_value(new ConfigOptionEnum<ArcFittingMode>(ArcFittingMode::Disabled));
     // BBS
     def = this->add("gcode_add_line_number", coBool);
     def->label = L("Add line number");
@@ -4455,7 +4530,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("auxiliary_fan", coBool);
     def->label = L("Auxiliary part cooling fan");
-    def->tooltip = L("Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255).");
+    def->tooltip = L("Enable this option if machine has auxiliary part cooling fan.\nG-code command: M106 P2 S(0-255).");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -4538,14 +4613,14 @@ void PrintConfigDef::init_fff_params()
     // Orca: may remove this option later
     def =this->add("support_chamber_temp_control",coBool);
     def->label=L("Support controlling chamber temperature");
-    def->tooltip=L("This option is enabled if machine support controlling chamber temperature\nG-code command: M141 S(0-255)");
+    def->tooltip=L("This option is enabled if the machine supports controlling the chamber temperature\nG-code command: M141 S(0-255)");
     def->mode=comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
     def->readonly=false;
 
     def =this->add("support_air_filtration",coBool);
     def->label=L("Support air filtration");
-    def->tooltip=L("Enable this if printer support air filtration\nG-code command: M106 P3 S(0-255)");
+    def->tooltip=L("Enable this if the printer supports air filtration\nG-code command: M106 P3 S(0-255)");
     def->mode=comDevelop;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -4556,7 +4631,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("cooling_filter_enabled", coBool);
     def->label = L("Use cooling filter");
-    def->tooltip = L("Enable this if printer support cooling filter");
+    def->tooltip = L("Enable this if the printer supports a cooling filter");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -4598,7 +4673,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Skip G-code config block");
     def->tooltip = L("Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. "
                    "This can help with printers whose firmware crashes when parsing these comment lines "
-                   "(e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, "
+                   "(e.g. Anycubic go-klipper).\n\nNote: the G-code file will no longer contain slicer settings, "
                    "so importing it back into OrcaSlicer will not restore the configuration.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
@@ -4618,7 +4693,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("gcode_label_objects", coBool);
     def->label = L("Label objects");
     def->tooltip = L("Enable this to add comments into the G-code labeling print moves with what object they belong to,"
-                   " which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with "
+                   " which is useful for the Octoprint CancelObject plug-in.\n\nThis setting is NOT compatible with "
                    "Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(1));
@@ -4629,13 +4704,37 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("exclude_object_tolerance", coFloat);
+    def->label = L("Outline tolerance");
+    def->tooltip = L("Maximum deviation of the object outline written to EXCLUDE_OBJECT_DEFINE from the "
+                     "original outline. Larger values give fewer points, which helps firmware that stalls "
+                     "while parsing G-code with many objects. 0 keeps every point.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 5;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.1));
+
     def = this->add("gcode_comments", coBool);
     def->label = L("Verbose G-code");
-    def->tooltip = L("Enable this to get a commented G-code file, with each line explained by a descriptive text. "
+    def->tooltip = L("Enable this to get a commented G-code file, with each line explained by a descriptive text.\n\n"
                    "If you print from SD card, the additional weight of the file could make your firmware "
                    "slow down.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(0));
+
+    def = this->add("high_precision_gcode", coBool);
+    def->label = L("High precision G-code (experimental)");
+    def->tooltip = L("Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce "
+                     "rounding errors in the G-code. With relative E distances, the rounding error of each move is also "
+                     "carried over to the next one. Supports are removed after printing, so they keep the standard "
+                     "precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and "
+                     "thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors "
+                     "matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard "
+                     "to notice unless the print profile is well calibrated.\n\nThe G-code file becomes about 10 percent larger, "
+                     "which may slow down printers that parse G-code slowly.");
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
 
     //BBS
     def = this->add("infill_combination", coBool);
@@ -4661,9 +4760,9 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip  = L("Rotate the sparse infill direction per layer using a template of angles. "
                       "Enter comma-separated degrees (e.g., '0,30,60,90'). "
-                      "Angles are applied in order by layer and repeat when the list ends. "
-                      "Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. "
-                      "When a template is set, the standard infill direction setting is ignored. "
+                      "Angles are applied in order by layer and repeat when the list ends.\n\n"
+                      "Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n\n"
+                      "When a template is set, the standard infill direction setting is ignored.\n\n"
                       "Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->mode     = comAdvanced;
@@ -4676,7 +4775,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip  = L("This parameter adds a rotation of solid infill direction to each layer according to the specified template. "
                       "The template is a comma-separated list of angles in degrees, e.g. '0,90'. "
                       "The first angle is applied to the first layer, the second angle to the second layer, and so on. "
-                      "If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation.");
+                      "If there are more layers than angles, the angles will be repeated.\n\nNote that not all solid infill patterns support rotation.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionString(""));
@@ -5218,12 +5317,6 @@ void PrintConfigDef::init_fff_params()
     def->mode       = comAdvanced;
     def->set_default_value(new ConfigOptionString(""));
 
-    def = this->add("silent_mode", coBool);
-    def->label = L("Silent Mode");
-    def->tooltip = L("Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly");
-    def->mode = comDevelop;
-    def->set_default_value(new ConfigOptionBool(false));
-
     def = this->add("emit_machine_limits_to_gcode", coBool);
     def->label = L("Emit limits to G-code");
     def->category = L("Machine limits");
@@ -5593,7 +5686,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("additional_cooling_fan_speed", coInts);
     def->label = L("Fan speed");
     def->tooltip = L("Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers "
-                     "which is defined by no cooling layers.\nPlease enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)");
+                     "which is defined by no cooling layers.\nPlease enable auxiliary_fan in printer settings to use this feature.\nG-code command: M106 P2 S(0-255)");
     def->sidetext = "%";
     def->min = 0;
     def->max = 100;
@@ -5767,7 +5860,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("reduce_infill_retraction", coBool);
     def->label = L("Reduce infill retraction");
-    def->tooltip = L("Don\'t retract when the travel is entirely within an infill area. That means the oozing can\'t been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped.");
+    def->tooltip = L("Don\'t retract when the travel is entirely within an infill area. That means the oozing can\'t been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n\nNote that Z-hop is also not performed in areas where retraction is skipped.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5816,7 +5909,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("detect_overhang_wall", coBool);
     def->label = L("Detect overhang walls");
     def->category = L("Quality");
-    def->tooltip = L("This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -6442,7 +6536,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Seam gap");
     def->category = L("Quality");
     def->tooltip = L("In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-                     "This amount can be specified in millimeters or as a percentage of the current extruder diameter. The default value for this parameter is 10%.");
+                     "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%.");
     def->sidetext = L("mm or %");
     def->min = 0;
     def->mode = comAdvanced;
@@ -6499,7 +6593,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip  = L(
         "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 "
          "mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the "
-         "outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default "
+         "outer or inner walls.\n\nIf the speed specified here is higher than the speed of the outer or inner walls, the printer will default "
          "to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective "
          "outer or inner wall speed. The default value is set to 100%.");
     def->sidetext = L("mm/s or %");
@@ -6831,7 +6925,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("timelapse_type", coEnum);
     def->label = L("Timelapse");
-    def->tooltip = L("If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle.");
+    def->tooltip = L("If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n\nIf smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle.");
     def->enum_keys_map = &ConfigOptionEnum<TimelapseType>::get_enum_values();
     def->enum_values.emplace_back("0");
     def->enum_values.emplace_back("1");
@@ -7089,7 +7183,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("tool_change_on_wipe_tower", coBool);
     def->label = L("Tool change on wipe tower");
-    def->tooltip = L("Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). "
+    def->tooltip = L("Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n\n"
                      "Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. "
                      "By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, "
                      "which can result in the Tx command being issued above the printed part. "
@@ -7101,7 +7195,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Wait for temperature on wipe tower");
     def->tooltip = L("Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe "
                      "tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on "
-                     "the tower instead of the model, and the travel overlaps with the heating. "
+                     "the tower instead of the model, and the travel overlaps with the heating.\n\n"
                      "Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. "
                      "The firmware or tool change macro must not wait for the temperature itself. "
                      "When disabled, the temperature wait is issued right after the tool change command.");
@@ -7521,9 +7615,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_style", coEnum);
     def->label = L("Style");
     def->category = L("Support");
-    def->tooltip = L("Style and shape of the support. For normal support, projecting the supports into a regular grid "
+    def->tooltip = L("Style and shape of the support.\n\n"
+                     "For normal support, projecting the supports into a regular grid "
                      "will create more stable supports (default), while snug support towers will save material and reduce "
-                     "object scarring.\n"
+                     "object scarring.\n\n"
                      "For tree support, slim and organic style will merge branches more aggressively and save "
                      "a lot of material (default organic), while hybrid style will create similar structure to normal support "
                      "under large flat overhangs.");
@@ -7557,7 +7652,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_threshold_angle", coInt);
     def->label = L("Threshold angle");
     def->category = L("Support");
-    def->tooltip = L("Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\nNote: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30.");
+    def->tooltip = L("Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n\nNote: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->max = 90;
@@ -7922,7 +8017,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("activate_chamber_temp_control",coBools);
     def->label = L("Activate temperature control");
     def->tooltip = L("Enable this option for automated chamber temperature control. "
-                     "This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n which sets the chamber temperature and waits until it is reached. "
+                     "This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. "
                      "In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n\n"
                      "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed.");
     def->mode = comSimple;
@@ -7939,7 +8034,7 @@ void PrintConfigDef::init_fff_params()
                      "material softening at the heat break.\n\n"
                      "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be "
                      "used to pass the desired chamber temperature to your print start macro, or a heat soak macro "
-                     "like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. "
+                     "like this:\nPRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
                      "This may be useful if your printer does not support M141/M191 commands, or if you desire "
                      "to handle heat soaking in the print start macro if no active chamber heater is installed."
                     );
@@ -7955,7 +8050,7 @@ void PrintConfigDef::init_fff_params()
                      "toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to "
                      "begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n\n"
                      "It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro "
-                     "or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n\n"
+                     "or a heat soak macro, like this:\nPRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n\n"
                      "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes "
                      "the value to your custom G-code. It should not exceed the \"Target\" chamber temperature.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
@@ -8067,6 +8162,17 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.6));
+
+    def = this->add("top_color_penetration_layers", coInt);
+    def->label = L("Top paint penetration layers");
+    def->category = L("Strength");
+    def->sidetext = L("layers");
+    def->tooltip = L("The number of layers, including the top surface layer, that take the color painted on a top surface. "
+                     "Set to 0 to use the top shell layers. A value larger than the top shell also colors the sparse "
+                     "infill below the painted area.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
 
     def           = this->add("separated_infills", coBool);
     def->label    = L("Separated infills");
@@ -8546,10 +8652,10 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Quality");
     def->tooltip = L("Prevent transitioning back and forth between one extra wall and one less. This "
         "margin extends the range of extrusion widths which follow to [Minimum wall width "
-        "- margin, 2 * Minimum wall width + margin]. Increasing this margin "
+        "- margin, 2 * Minimum wall width + margin].\n\nIncreasing this margin "
         "reduces the number of transitions, which reduces the number of extrusion "
         "starts/stops and travel time. However, large extrusion width variation can lead to "
-        "under- or overextrusion problems. "
+        "under- or overextrusion problems.\n\n"
         "It's expressed as a percentage over nozzle diameter.");
     def->sidetext = "%";
     def->mode = comAdvanced;
@@ -8803,7 +8909,7 @@ void PrintConfigDef::init_fff_params()
     def          = this->add("filament_pre_cooling_temperature_nc", coInts);
     def->label   = L("Hotend change");
     def->tooltip = L(
-        "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled.");
+        "To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n\nNote: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed.");
     def->mode     = comAdvanced;
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min      = 0;
@@ -9654,6 +9760,12 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "change_filament_gcode";
     } else if (opt_key == "bridge_fan_speed") {
         opt_key = "overhang_fan_speed";
+    } else if (opt_key == "tpms_adaptive") {
+        opt_key = "adaptive_infill_mode";
+    } else if (opt_key == "tpms_interior_density") {
+        opt_key = "adaptive_infill_interior_density";
+    } else if (opt_key == "tpms_adaptive_gradient") {
+        opt_key = "adaptive_infill_gradient";
     } else if (opt_key == "infill_extruder" || opt_key == "sparse_infill_filament") {
         // ORCA: legacy feature-filament selector. Pre-2.4.0-dev these keys were 1-based and the
         // default value "1" meant "the first/active filament". The current scheme uses a dedicated
@@ -9770,6 +9882,13 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
             value = "enable";
         } else if (value == "0" || boost::iequals(value, "false")) {
             value = "disable";
+        }
+    }
+    else if (opt_key == "enable_arc_fitting") {
+        if (value == "1" || boost::iequals(value, "true")) {
+            value = "enabled";
+        } else if (value == "0" || boost::iequals(value, "false")) {
+            value = "disabled";
         }
     }
     else if(opt_key == "ensure_vertical_shell_thickness") {
@@ -10108,6 +10227,7 @@ std::set<std::string> printer_extruder_options = {
     "nozzle_diameter",
     "default_nozzle_volume_type",
     "extruder_printable_area",
+    "extruder_bed_exclude_volumes",
     "extruder_printable_height",
     "min_layer_height",
     "max_layer_height",
@@ -10251,25 +10371,6 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
         }
     }
 
-    if (this->has("sparse_infill_filament_id")) {
-        int sparse_infill_filament_id = this->option("sparse_infill_filament_id")->getInt();
-        if (sparse_infill_filament_id > 0 && (!this->has("internal_solid_filament_id") || this->option("internal_solid_filament_id")->getInt() == 0))
-            this->option("internal_solid_filament_id", true)->setInt(sparse_infill_filament_id);
-    }
-
-    const int internal_solid = this->has("internal_solid_filament_id") ? this->option("internal_solid_filament_id")->getInt() : 0;
-    const int top_surface    = this->has("top_surface_filament_id") ? this->option("top_surface_filament_id")->getInt() : 0;
-    const int bottom_surface = this->has("bottom_surface_filament_id") ? this->option("bottom_surface_filament_id")->getInt() : 0;
-
-    if (internal_solid == 0 && top_surface > 0)
-        this->option("internal_solid_filament_id", true)->setInt(top_surface);
-    if (internal_solid == 0 && bottom_surface > 0)
-        this->option("internal_solid_filament_id", true)->setInt(bottom_surface);
-    if (top_surface == 0 && internal_solid > 0)
-        this->option("top_surface_filament_id", true)->setInt(internal_solid);
-    if (bottom_surface == 0 && internal_solid > 0)
-        this->option("bottom_surface_filament_id", true)->setInt(internal_solid);
-
     if (this->has("spiral_mode") && this->opt<ConfigOptionBool>("spiral_mode", true)->value) {
         {
             // this should be actually done only on the spiral layers instead of all
@@ -10347,25 +10448,6 @@ void DynamicPrintConfig::normalize_fdm_1()
             //     this->option("support_interface_filament", true)->setInt(extruder);
         }
     }
-
-    if (this->has("sparse_infill_filament_id")) {
-        int sparse_infill_filament_id = this->option("sparse_infill_filament_id")->getInt();
-        if (sparse_infill_filament_id > 0 && (!this->has("internal_solid_filament_id") || this->option("internal_solid_filament_id")->getInt() == 0))
-            this->option("internal_solid_filament_id", true)->setInt(sparse_infill_filament_id);
-    }
-
-    const int internal_solid = this->has("internal_solid_filament_id") ? this->option("internal_solid_filament_id")->getInt() : 0;
-    const int top_surface    = this->has("top_surface_filament_id") ? this->option("top_surface_filament_id")->getInt() : 0;
-    const int bottom_surface = this->has("bottom_surface_filament_id") ? this->option("bottom_surface_filament_id")->getInt() : 0;
-
-    if (internal_solid == 0 && top_surface > 0)
-        this->option("internal_solid_filament_id", true)->setInt(top_surface);
-    if (internal_solid == 0 && bottom_surface > 0)
-        this->option("internal_solid_filament_id", true)->setInt(bottom_surface);
-    if (top_surface == 0 && internal_solid > 0)
-        this->option("top_surface_filament_id", true)->setInt(internal_solid);
-    if (bottom_surface == 0 && internal_solid > 0)
-        this->option("bottom_surface_filament_id", true)->setInt(internal_solid);
 
     if (this->has("spiral_mode") && this->opt<ConfigOptionBool>("spiral_mode", true)->value) {
         {
@@ -10574,6 +10656,12 @@ void DynamicPrintConfig::set_num_filaments(unsigned int num_filaments)
         if (key == "default_filament_profile")
             // Don't resize this field, as it is presented to the user at the "Dependencies" page of the Printer profile and we don't want to present
             // empty fields there, if not defined by the system profile.
+            continue;
+        // A variant-bearing key holds one value per (slot, variant): its length is the preset's
+        // variant list, not the filament count. Resizing it here truncated every variant but the
+        // first, which the readers then hid by clamping to the first value. Preset::normalize
+        // skips the same keys in its own pass below this call.
+        if (filament_options_with_variant.count(key) != 0)
             continue;
         auto* opt = this->option(key, false);
         assert(opt != nullptr);
@@ -12255,7 +12343,8 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
                     opt_src->set(opt_target);
                 }
                 else
-                    opt_vec_src->set_only_diff(opt_vec_dest, variant_index, stride);
+                    // An override's nil means "disabled" and is the child's value; every other nil column inherits.
+                    opt_vec_src->set_only_diff(opt_vec_dest, variant_index, stride, is_filament_extruder_override_key(opt));
             }
         }
     }
@@ -12350,6 +12439,25 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
             error_message.emplace("nozzle_diameter", _u8L("invalid value ") + cfg.nozzle_diameter.serialize());
             break;
         }
+
+    const bool collision_volumes_enabled = has_bed_exclude_volumes(cfg);
+    if (cfg.bed_exclude_volume_mode.value != BedExcludeVolumeMode::PerExtruder &&
+        !cfg.bed_exclude_volumes.value.empty() &&
+        !is_valid_bed_exclude_volumes_string(cfg.bed_exclude_volumes.value, cfg.printable_height.value)) {
+        error_message.emplace("bed_exclude_volumes", L("Invalid collision volume definition."));
+    }
+    if (collision_volumes_enabled && cfg.bed_exclude_volume_mode.value == BedExcludeVolumeMode::ToolheadOffset &&
+        cfg.extruder_offset.size() < cfg.nozzle_diameter.size()) {
+        error_message.emplace("extruder_offset", L("A nozzle offset is required for every extruder when toolhead-relative collision volumes are enabled."));
+    }
+    if (collision_volumes_enabled && cfg.bed_exclude_volume_mode.value == BedExcludeVolumeMode::PerExtruder) {
+        for (const std::string &entry : cfg.extruder_bed_exclude_volumes.values) {
+            if (!is_valid_bed_exclude_volumes_string(entry, cfg.printable_height.value)) {
+                error_message.emplace("extruder_bed_exclude_volumes", L("Invalid per-extruder collision volume definition."));
+                break;
+            }
+        }
+    }
 
     // --perimeters
     if (cfg.wall_loops.value < 0) {
@@ -13288,9 +13396,9 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
     def->label = L("Print time (normal mode)");
     def->tooltip = L("Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time.");
 
-    //def = this->add("printing_filament_types", coString);
-    //def->label = L("Used filament types");
-    //def->tooltip = L("Comma-separated list of all filament types used during the print.");
+    def = this->add("printing_filament_types", coString);
+    def->label = L("Used filament types");
+    def->tooltip = L("Underscore-separated list of all filament types used during the print.");
 
     def = this->add("silent_print_time", coString);
     def->label = L("Print time (silent mode)");
@@ -13309,8 +13417,8 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
     def->tooltip = L("Total cost of the material wasted on the wipe tower. Calculated from filament_cost value in Filament Settings.");
 
     def = this->add("total_wipe_tower_filament", coFloat);
-    def->label = L("Wipe tower volume");
-    def->tooltip = L("Total filament volume extruded on the wipe tower.");
+    def->label = L("Total wipe tower filament");
+    def->tooltip = L("Total length of filament used on the wipe tower, in mm.");
 
     def = this->add("used_filament", coFloat);
     def->label = L("Used filament");
@@ -13476,12 +13584,31 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
     // Machine G-code
     {"file_start_gcode",           {}},
     {"machine_start_gcode",         {}},
-    {"machine_end_gcode",           {"layer_num", "layer_z", "max_layer_z", "filament_extruder_id"}},
+    {"machine_end_gcode",           {"layer_num", "layer_z", "max_layer_z", "filament_extruder_id",
+                                      "current_filament_id", "current_extruder_id", "current_nozzle_id",
+                                      "nozzle_diameter_at_nozzle_id", "nozzle_volume_types"}},
     {"before_layer_change_gcode",   {"layer_num", "layer_z", "max_layer_z"}},
-    {"layer_change_gcode",          {"layer_num", "layer_z", "max_layer_z"}},
-    {"timelapse_gcode",             {"layer_num", "layer_z", "max_layer_z"}},
-    {"change_filament_gcode",       {"layer_num", "layer_z", "max_layer_z", "next_extruder", "previous_extruder", "fan_speed",
+    {"layer_change_gcode",          {"layer_num", "layer_z", "max_layer_z", "most_used_physical_extruder_id",
+                                      "current_filament_id", "current_nozzle_id", "curr_y_acceleration_limit",
+                                      "curr_accumulated_mass", "previous_layer_mass", "curr_layer_mass"}},
+    {"time_lapse_gcode",            {"layer_num", "layer_z", "max_layer_z", "most_used_physical_extruder_id",
+                                      "curr_physical_extruder_id", "timelapse_pos_x", "timelapse_pos_y",
+                                      "has_timelapse_safe_pos", "timelapse_inline_photo",
+                                      "farthest_point_timelapse_enabled", "clear_to_x0"}},
+    {"wrapping_detection_gcode",    {"layer_num", "layer_z", "max_layer_z", "most_used_physical_extruder_id",
+                                      "curr_physical_extruder_id"}},
+    {"change_filament_gcode",       {"layer_num", "layer_z", "max_layer_z", "next_extruder", "previous_extruder",
+                               "current_hotend", "next_hotend", "current_nozzle_id", "next_nozzle_id",
+                               "current_filament_id", "next_filament_id", "old_extruder_variant", "new_extruder_variant",
+                               "nozzle_diameter_at_nozzle_id", "nozzle_volume_types", "filament_retract_length_nc",
+                               "new_extruder_retracted_length", "outer_wall_volumetric_speed", "fan_speed",
                                "first_flush_volume", "flush_length_1", "flush_length_2", "flush_length_3", "flush_length_4",
+                               "flush_length", "flush_volumetric_speeds", "flush_temperatures", "filament_cooling_before_tower",
+                               "wipe_avoid_perimeter", "wipe_avoid_pos_x", "is_prime_tower_interface",
+                               "filament_tower_interface_purge_volume", "filament_tower_interface_print_temp",
+                               "wipe_tower_wait_pos_x", "wipe_tower_wait_pos_y", "wipe_tower_wait_pos_valid",
+                               "wipe_tower_center_pos_x", "wipe_tower_center_pos_y", "wipe_tower_center_pos_valid",
+                               "temperature", "nozzle_temperature", "first_layer_temperature", "nozzle_temperature_initial_layer",
                                "new_filament_e_feedrate", "new_filament_temp", "new_retract_length",
                                "new_retract_length_toolchange", "old_filament_e_feedrate", "old_filament_temp", "old_retract_length",
                                "old_retract_length_toolchange", "relative_e_axis", "second_flush_volume", "toolchange_count", "toolchange_z",
@@ -13494,8 +13621,18 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
     {"machine_pause_gcode",         {}},
     {"template_custom_gcode",       {}},
     // Filament G-code
-    {"filament_start_gcode",        {"filament_extruder_id"}},
-    {"filament_end_gcode",          {"layer_num", "layer_z", "max_layer_z", "filament_extruder_id"}},
+    {"filament_start_gcode",        {"layer_num", "layer_z", "max_layer_z", "filament_extruder_id",
+                                      "current_filament_id", "current_extruder_id", "current_nozzle_id",
+                                      "nozzle_diameter_at_nozzle_id", "nozzle_volume_types",
+                                      "retraction_distance_when_cut", "long_retraction_when_cut",
+                                      "temperature", "nozzle_temperature", "first_layer_temperature",
+                                      "nozzle_temperature_initial_layer"}},
+    {"filament_end_gcode",          {"layer_num", "layer_z", "max_layer_z", "filament_extruder_id",
+                                      "current_filament_id", "current_extruder_id", "current_nozzle_id",
+                                      "nozzle_diameter_at_nozzle_id", "nozzle_volume_types",
+                                      "retraction_distance_when_cut", "long_retraction_when_cut",
+                                      "temperature", "nozzle_temperature", "first_layer_temperature",
+                                      "nozzle_temperature_initial_layer"}},
 };
 
 const std::map<t_custom_gcode_key, t_config_option_keys>& custom_gcode_specific_placeholders()
@@ -13510,7 +13647,8 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
 // Common Defs
     def = this->add("layer_num", coInt);
     def->label = L("Layer number");
-    def->tooltip = L("Index of the current layer. Zero-based (i.e. first layer is number 0), except in extrusion role change G-code, where it is one-based.");
+    def->tooltip = L("Index of the current layer. The index is zero-based (first layer has index 0). Before the first "
+                     "layer starts, it is -1. In extrusion role change G-code, the index is one-based (first layer has index 1).");
 
     def = this->add("layer_z", coFloat);
     def->label = L("Layer Z");
@@ -13522,13 +13660,57 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
 
     def = this->add("filament_extruder_id", coInt);
     def->label = L("Filament extruder ID");
-    def->tooltip = L("The current extruder ID. The same as current_extruder.");
+    def->tooltip = L("In filament start G-code, the index of the filament that is being loaded. In filament end G-code, "
+                     "the index of the filament that is being unloaded. The index is zero-based (first filament has "
+                     "index 0). At a tool change, filament end G-code gets the extruder index instead, unless the Type 1 "
+                     "wipe tower does the tool change. Machine end G-code gets the value from the last filament end "
+                     "G-code at the end of the print.");
+
+    new_def("current_filament_id", coInt, L("Current filament ID"), L("Index of the currently active filament. The index is zero-based (first filament has index 0)."));
+    new_def("current_extruder_id", coInt, L("Current extruder ID"), L("Index of the currently active physical extruder. The index is zero-based (first extruder has index 0)."));
+    new_def("current_nozzle_id", coInt, L("Current nozzle ID"), L("Index of the currently active nozzle. The index is zero-based (first nozzle has index 0)."));
+    new_def("nozzle_diameter_at_nozzle_id", coFloats, L("Nozzle diameters"), L("Nozzle diameters indexed by nozzle ID."));
+    new_def("nozzle_volume_types", coStrings, L("Nozzle volume types"),
+            // TRN The quoted values are G-code identifiers; keep them in English.
+            L("Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."));
+    new_def("retraction_distance_when_cut", coFloat, L("Retraction distance when cut"), L("Retraction distance used when cutting filament."));
+    new_def("long_retraction_when_cut", coBool, L("Long retraction when cut"), L("Whether long retraction is used when cutting filament."));
+
+// layer_change_gcode
+    new_def("most_used_physical_extruder_id", coInt, L("Most-used physical extruder ID"), L("Index of the physical extruder used most often on the current layer. The index is zero-based (first extruder has index 0)."));
+    new_def("curr_y_acceleration_limit", coFloat, L("Current Y acceleration limit"), L("Current Y-axis acceleration limit after the bed-mass adjustment."));
+    new_def("curr_accumulated_mass", coFloat, L("Current accumulated mass"), L("Accumulated printed mass at the current layer."));
+    new_def("previous_layer_mass", coFloat, L("Previous layer mass"), L("Printed mass of the previous layer."));
+    new_def("curr_layer_mass", coFloat, L("Previous layer mass"), L("Same as previous_layer_mass. Bambu Studio uses this name."));
+
+// time_lapse_gcode
+    new_def("curr_physical_extruder_id", coInt, L("Current physical extruder ID"), L("Index of the physical extruder active for the current layer. The index is zero-based (first extruder has index 0)."));
+    new_def("timelapse_pos_x", coInt, L("Timelapse position X"), L("Selected X position for timelapse capture."));
+    new_def("timelapse_pos_y", coInt, L("Timelapse position Y"), L("Selected Y position for timelapse capture."));
+    new_def("has_timelapse_safe_pos", coBool, L("Has timelapse safe position"), L("Whether a safe timelapse position was found."));
+    new_def("timelapse_inline_photo", coBool, L("Timelapse inline photo"), L("Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."));
+    new_def("farthest_point_timelapse_enabled", coBool, L("Farthest-point timelapse enabled"), L("Whether farthest-point timelapse positioning is active."));
+    new_def("clear_to_x0", coBool, L("Clear path to X0"), L("Whether the nozzle can move to X0 at the current height without hitting another printed object."));
 
 // change_filament_gcode
-    new_def("previous_extruder", coInt, L("Previous extruder"), L("Index of the extruder that is being unloaded. The index is zero based (first extruder has index 0)."));
-    new_def("next_extruder", coInt, L("Next extruder"), L("Index of the extruder that is being loaded. The index is zero based (first extruder has index 0)."));
+    new_def("previous_extruder", coInt, L("Previous extruder"), L("Index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At the start of the print, when no filament is loaded yet, it is -1."));
+    new_def("next_extruder", coInt, L("Next extruder"), L("Index of the filament that is being loaded. The index is zero-based (first filament has index 0)."));
+    new_def("current_hotend", coInt, L("Current hotend"), L("Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."));
+    new_def("next_hotend", coInt, L("Next hotend"), L("Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."));
+    new_def("next_nozzle_id", coInt, L("Next nozzle ID"), L("Index of the nozzle associated with the incoming filament. The index is zero-based (first nozzle has index 0)."));
+    new_def("next_filament_id", coInt, L("Next filament ID"), L("Index of the incoming filament. The index is zero-based (first filament has index 0)."));
+    new_def("old_extruder_variant", coString, L("Old extruder variant"),
+            // TRN The quoted value is a G-code identifier; keep it in English.
+            L("Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."));
+    new_def("new_extruder_variant", coString, L("New extruder variant"),
+            // TRN The quoted value is a G-code identifier; keep it in English.
+            L("Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."));
+    new_def("filament_retract_length_nc", coFloat, L("Filament nozzle-change retract length"), L("Nozzle-change retraction length of the outgoing filament."));
+    new_def("new_extruder_retracted_length", coFloat, L("New extruder retracted length"), L("Retraction length still applied to the incoming extruder from when it was parked."));
+    new_def("outer_wall_volumetric_speed", coFloat, L("Outer wall volumetric speed"), L("Volumetric speed used for the outer wall."));
     new_def("relative_e_axis", coBool, L("Relative e-axis"), L("Indicates if relative positioning is being used."));
     new_def("toolchange_count", coInt, L("Toolchange count"), L("The number of toolchanges throughout the print."));
+    new_def("toolchange_z", coFloat, L("Toolchange Z"), L("The Z position during the toolchange."));
     new_def("fan_speed", coNone, "", ""); //Option is no longer used and is zeroed by placeholder parser for compatability
     new_def("old_retract_length", coFloat, L("Old retract length"), L("The retraction length of the previous filament."));
     new_def("new_retract_length", coFloat, L("New retract length"), L("The retraction length of the new filament."));
@@ -13539,8 +13721,8 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
     new_def("x_after_toolchange", coFloat, L("X after toolchange"), L("The X pos after toolchange."));
     new_def("y_after_toolchange", coFloat, L("Y after toolchange"), L("The Y pos after toolchange."));
     new_def("z_after_toolchange", coFloat, L("Z after toolchange"), L("The Z pos after toolchange."));
-    new_def("first_flush_volume", coFloat, L("First flush volume"), L("The first flush volume."));
-    new_def("second_flush_volume", coFloat, L("Second flush volume"), L("The second flush volume."));
+    new_def("first_flush_volume", coFloat, L("First flush volume"), L("First half of the planned purge length, in mm of filament."));
+    new_def("second_flush_volume", coFloat, L("Second flush volume"), L("Second half of the planned purge length, in mm of filament."));
     new_def("old_filament_e_feedrate", coInt, L("Old filament e feedrate"), L("The old filament extruder feedrate."));
     new_def("new_filament_e_feedrate", coInt, L("New filament e feedrate"), L("The new filament extruder feedrate."));
     new_def("travel_point_1_x", coFloat, L("Travel point 1 X"), L("The travel point 1 X."));
@@ -13553,6 +13735,25 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
     new_def("flush_length_2", coFloat, L("Flush Length 2"), L("The second flush length."));
     new_def("flush_length_3", coFloat, L("Flush Length 3"), L("The third flush length."));
     new_def("flush_length_4", coFloat, L("Flush Length 4"), L("The fourth flush length."));
+    new_def("flush_length", coFloat, L("Flush length"), L("Total flush length."));
+    new_def("flush_volumetric_speeds", coFloats, L("Flush volumetric speeds"), L("Flush volumetric speeds for each filament."));
+    new_def("flush_temperatures", coInts, L("Flush temperatures"), L("Flush temperatures for each filament."));
+    new_def("filament_cooling_before_tower", coFloats, L("Filament cooling before tower"), L("Temperature drop before entering the wipe tower."));
+    new_def("wipe_avoid_perimeter", coBool, L("Avoid wipe perimeter"), L("Whether travel should avoid the wipe perimeter."));
+    new_def("wipe_avoid_pos_x", coFloat, L("Wipe tower avoidance X"), L("X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."));
+    new_def("is_prime_tower_interface", coBool, L("Prime tower interface"), L("Whether the current purge is for the prime tower interface layer (where different materials meet)."));
+    new_def("filament_tower_interface_purge_volume", coFloat, L("Interface layer purge length"), L("Purge length for prime tower interface layer (where different materials meet)."));
+    new_def("filament_tower_interface_print_temp", coInt, L("Interface layer print temperature"), L("Print temperature for prime tower interface layer (where different materials meet)."));
+    new_def("wipe_tower_wait_pos_x", coFloat, L("Wipe tower wait position X"), L("X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."));
+    new_def("wipe_tower_wait_pos_y", coFloat, L("Wipe tower wait position Y"), L("Y coordinate of the nozzle's wipe-tower wait position."));
+    new_def("wipe_tower_wait_pos_valid", coBool, L("Wipe tower wait position valid"), L("Whether the wait position is set, which is the case when the print has a wipe tower."));
+    new_def("wipe_tower_center_pos_x", coFloat, L("Wipe tower wait position X"), L("Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."));
+    new_def("wipe_tower_center_pos_y", coFloat, L("Wipe tower wait position Y"), L("Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."));
+    new_def("wipe_tower_center_pos_valid", coBool, L("Wipe tower wait position valid"), L("Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."));
+    new_def("temperature", coInts, L("Temperature"), L("Nozzle temperatures indexed by filament."));
+    new_def("nozzle_temperature", coInts, L("Nozzle temperature"), L("Nozzle temperatures indexed by filament."));
+    new_def("first_layer_temperature", coInts, L("First layer temperature"), L("First-layer nozzle temperatures indexed by filament."));
+    new_def("nozzle_temperature_initial_layer", coInts, L("First layer nozzle temperature"), L("First-layer nozzle temperatures indexed by filament."));
 
 // change_extrusion_role_gcode
     // The whole tooltip is one literal so that the GUI can look it up in the catalog.
@@ -13650,31 +13851,513 @@ Points get_bed_shape(const PrintConfig &cfg, bool use_share)
 
 Points get_bed_shape(const SLAPrinterConfig &cfg) { return to_points(make_counter_clockwise(cfg.printable_area.values)); }
 
-Polygons get_bed_excluded_area(const PrintConfig& cfg)
+namespace {
+
+static bool looks_like_bed_exclusion_volume_syntax(const std::string &value)
 {
-    const Pointfs exclude_area_points = cfg.bed_exclude_area.values;
+    return value.find('|') != std::string::npos || (value.find("..") != std::string::npos && value.find(';') != std::string::npos);
+}
 
-    // Belt printer: project exclusion zone points from the belt surface to machine-frame XY.
-    // On the belt surface Z=0, so the in-plane axis foreshortens by cos(tilt).  The tilt
-    // axis decides which bed axis foreshortens: tilt about X (belt along Y) scales Y,
-    // tilt about Y (belt along X) scales X.  Derived from belt_slice_rotation.
-    const bool is_belt = cfg.belt_printer.value;
-    const auto tilt    = BeltTransformPipeline::physical_tilt(
-        cfg.belt_slice_rotation.value, cfg.belt_slice_rotation_angle.value);
-    const double cos_x = is_belt ? std::cos(Geometry::deg2rad(tilt.tilt_x_deg)) : 1.0; // foreshortens Y
-    const double cos_y = is_belt ? std::cos(Geometry::deg2rad(tilt.tilt_y_deg)) : 1.0; // foreshortens X
+static bool parse_double_token(const std::string &text, double &out)
+{
+    std::string token = text;
+    boost::trim(token);
+    if (token.empty())
+        return false;
 
-    Polygon exclude_poly;
-    for (int i = 0; i < exclude_area_points.size(); i++) {
-        auto pt = exclude_area_points[i];
-        double x = is_belt ? pt.x() * cos_y : pt.x();
-        double y = is_belt ? pt.y() * cos_x : pt.y();
-        exclude_poly.points.emplace_back(scale_(x), scale_(y));
+    size_t parsed = 0;
+    out = string_to_double_decimal_point(token, &parsed);
+    return parsed == token.size() && std::isfinite(out);
+}
+
+static bool parse_z_range_token(
+    const std::string &token_in,
+    const double printable_height,
+    double &z_min,
+    double &z_max,
+    bool &has_z)
+{
+    std::string token = token_in;
+    boost::trim(token);
+    if (token.empty())
+        return false;
+
+    size_t range_pos = token.find("..");
+    if (range_pos == std::string::npos)
+        return false;
+
+    std::string min_token = token.substr(0, range_pos);
+    std::string max_token = token.substr(range_pos + 2);
+    boost::trim(min_token);
+    boost::trim(max_token);
+
+    double parsed_min = 0.0;
+    double parsed_max = printable_height;
+    if (! min_token.empty() && ! parse_double_token(min_token, parsed_min))
+        return false;
+    if (! max_token.empty() && ! parse_double_token(max_token, parsed_max))
+        return false;
+
+    z_min = std::clamp(parsed_min, 0.0, printable_height);
+    z_max = std::clamp(parsed_max, 0.0, printable_height);
+    has_z = true;
+    // A range wholly outside the printable height clamps to a plane, which is
+    // not a volume and must not participate in conservative unknown-Z checks.
+    return z_min < z_max;
+}
+
+static std::optional<Polygon> parse_exclude_polygon_points(const std::string &points_str)
+{
+    Pointfs points;
+    std::vector<std::string> point_tokens;
+    boost::split(point_tokens, points_str, boost::is_any_of(","));
+    points.reserve(point_tokens.size());
+    for (std::string point_token : point_tokens) {
+        boost::trim(point_token);
+        const size_t separator = point_token.find('x');
+        if (separator == std::string::npos || point_token.find('x', separator + 1) != std::string::npos)
+            return std::nullopt;
+
+        double x = 0.0;
+        double y = 0.0;
+        if (!parse_double_token(point_token.substr(0, separator), x) ||
+            !parse_double_token(point_token.substr(separator + 1), y) ||
+            !std::isfinite(x) || !std::isfinite(y))
+            return std::nullopt;
+        points.emplace_back(x, y);
+    }
+    if (points.size() < 3)
+        return std::nullopt;
+
+    Polygon polygon;
+    polygon.points.reserve(points.size());
+    for (const Vec2d &pt : points)
+        polygon.points.emplace_back(scale_(pt.x()), scale_(pt.y()));
+    if (polygon.area() == 0.0)
+        return std::nullopt;
+    polygon.make_counter_clockwise();
+    return polygon;
+}
+
+static void append_legacy_bed_exclude_regions(
+    std::vector<BedExcludeRegion> &out,
+    const Pointfs &legacy_points,
+    const double printable_height)
+{
+    if (legacy_points.size() < 3)
+        return;
+
+    Polygon polygon;
+    polygon.points.reserve(legacy_points.size());
+    for (const Vec2d &pt : legacy_points)
+        polygon.points.emplace_back(scale_(pt.x()), scale_(pt.y()));
+    polygon.make_counter_clockwise();
+
+    out.push_back({ std::move(polygon), 0.0, printable_height,
+                    BedExcludeRegion::Purpose::MaterialKeepout, false });
+}
+
+static void append_bed_exclusion_volume_regions(
+    std::vector<BedExcludeRegion> &out,
+    const std::string &region_specs_raw,
+    const double printable_height)
+{
+    std::vector<std::string> region_specs;
+    boost::split(region_specs, region_specs_raw, boost::is_any_of("|\n"));
+
+    for (const std::string &spec_raw : region_specs) {
+        std::string spec = spec_raw;
+        boost::trim(spec);
+        if (spec.empty())
+            continue;
+
+        std::vector<std::string> fields;
+        boost::split(fields, spec, boost::is_any_of(";"));
+
+        double z_min = 0.0;
+        double z_max = printable_height;
+        bool has_z_range = false;
+        std::string points_field;
+        bool invalid_z = false;
+
+        for (std::string field : fields) {
+            boost::trim(field);
+            if (field.empty())
+                continue;
+
+            bool parsed_z_range = parse_z_range_token(field, printable_height, z_min, z_max, has_z_range);
+            if (parsed_z_range)
+                continue;
+
+            if (field.find("..") != std::string::npos && field.find('x') == std::string::npos) {
+                invalid_z = true;
+                break;
+            }
+
+            if (boost::algorithm::istarts_with(field, "points="))
+                field = field.substr(std::string("points=").size());
+            else if (boost::algorithm::istarts_with(field, "polygon="))
+                field = field.substr(std::string("polygon=").size());
+
+            points_field = field;
+        }
+
+        if (invalid_z)
+            continue;
+
+        if (! has_z_range) {
+            z_min = 0.0;
+            z_max = printable_height;
+        }
+
+        if (z_min >= z_max)
+            continue;
+
+        std::optional<Polygon> polygon = parse_exclude_polygon_points(points_field);
+        if (! polygon)
+            continue;
+
+        out.push_back({ std::move(*polygon), z_min, z_max,
+                        BedExcludeRegion::Purpose::CollisionVolume, has_z_range });
+    }
+}
+
+static bool has_nonempty_string(const std::string &value)
+{
+    return std::any_of(value.begin(), value.end(), [](const char c) { return !std::isspace(static_cast<unsigned char>(c)); });
+}
+
+static bool collision_volumes_configured(
+    const std::string &shared_specs,
+    const BedExcludeVolumeMode mode,
+    const std::vector<std::string> &per_extruder_specs)
+{
+    if (mode == BedExcludeVolumeMode::PerExtruder)
+        return std::any_of(per_extruder_specs.begin(), per_extruder_specs.end(), has_nonempty_string);
+    return has_nonempty_string(shared_specs);
+}
+
+static std::vector<BedExcludeRegion> parse_master_bed_excluded_regions(
+    const Pointfs &legacy_points,
+    const std::string &shared_specs,
+    const bool use_collision_volumes,
+    const BedExcludeVolumeMode mode,
+    const double printable_height)
+{
+    std::vector<BedExcludeRegion> regions;
+    const double height = std::max(0.0, printable_height);
+    // Legacy excluded areas remain a shared material/placement keep-out even
+    // when collision volumes are configured. Collision volumes add constraints;
+    // they do not silently remove the printer profile's established area.
+    append_legacy_bed_exclude_regions(regions, legacy_points, height);
+    if (use_collision_volumes && mode != BedExcludeVolumeMode::PerExtruder)
+        append_bed_exclusion_volume_regions(regions, shared_specs, height);
+    return regions;
+}
+
+static void project_bed_material_keepouts(std::vector<BedExcludeRegion> &regions, const ConfigBase &cfg)
+{
+    const auto *belt = cfg.option<ConfigOptionBool>("belt_printer");
+    if (belt == nullptr || !belt->value)
+        return;
+
+    const auto *axis = cfg.option<ConfigOptionEnum<BeltRotationAxis>>("belt_slice_rotation");
+    const auto *angle = cfg.option<ConfigOptionFloat>("belt_slice_rotation_angle");
+    if (axis == nullptr || angle == nullptr)
+        return;
+
+    const auto tilt = BeltTransformPipeline::physical_tilt(axis->value, angle->value);
+    const double cos_x = std::cos(Geometry::deg2rad(tilt.tilt_x_deg));
+    const double cos_y = std::cos(Geometry::deg2rad(tilt.tilt_y_deg));
+    // Resolve bed-surface coordinates once, before any placement or tower
+    // consumer sees them. Collision volumes already use model coordinates.
+    for (BedExcludeRegion &region : regions)
+        if (!region.is_collision_volume())
+            for (Point &point : region.polygon.points)
+                point = Point(scale_(unscale<double>(point.x()) * cos_y), scale_(unscale<double>(point.y()) * cos_x));
+}
+
+static std::vector<BedExcludeRegion> resolve_bed_excluded_regions(
+    const std::vector<BedExcludeRegion> &master_regions,
+    const BedExcludeVolumeMode mode,
+    const std::vector<std::string> &per_extruder_specs,
+    const std::vector<Vec2d> &extruder_offsets,
+    const size_t reference_extruder,
+    const size_t extruder_id,
+    const double printable_height)
+{
+    if (mode == BedExcludeVolumeMode::Shared)
+        return master_regions;
+
+    if (mode == BedExcludeVolumeMode::PerExtruder) {
+        std::vector<BedExcludeRegion> regions = master_regions;
+        if (extruder_id < per_extruder_specs.size())
+            append_bed_exclusion_volume_regions(
+                regions, per_extruder_specs[extruder_id], std::max(0.0, printable_height));
+        return regions;
     }
 
-    exclude_poly.make_counter_clockwise();
+    std::vector<BedExcludeRegion> regions = master_regions;
+    if (extruder_id >= extruder_offsets.size() || extruder_offsets.empty())
+        return regions;
 
-    return {exclude_poly};
+    const size_t clamped_reference = std::min(reference_extruder, extruder_offsets.size() - 1);
+    // A model-space point is emitted as model_position - extruder_offset. Therefore a
+    // carriage/toolhead obstacle described through the reference nozzle appears in another
+    // nozzle's model space translated by (other_offset - reference_offset).
+    const Vec2d delta = extruder_offsets[extruder_id] - extruder_offsets[clamped_reference];
+    const Point translation(scale_(delta.x()), scale_(delta.y()));
+    for (BedExcludeRegion &region : regions) {
+        // Toolhead-relative offsets apply only to opt-in collision volumes.
+        // A legacy material keep-out is bed-fixed and shared by every nozzle.
+        if (region.is_collision_volume())
+            region.polygon.translate(translation);
+    }
+    return regions;
+}
+
+static size_t bed_exclusion_extruder_count(
+    const size_t nozzle_count,
+    const size_t offset_count,
+    const size_t per_extruder_count)
+{
+    return std::max<size_t>(1, std::max({ nozzle_count, offset_count, per_extruder_count }));
+}
+
+static std::vector<BedExcludeRegion> flatten_bed_excluded_regions(
+    const BedExcludeVolumeMode mode,
+    std::vector<std::vector<BedExcludeRegion>> regions_by_extruder)
+{
+    if (regions_by_extruder.empty())
+        return {};
+    if (mode == BedExcludeVolumeMode::Shared)
+        return std::move(regions_by_extruder.front());
+
+    std::vector<BedExcludeRegion> flattened;
+    // A shared legacy area is present in every resolved nozzle group so object
+    // validation sees it for every tool. Flatten it only once, while retaining
+    // every nozzle-specific collision volume.
+    bool material_keepout_added = false;
+    for (std::vector<BedExcludeRegion> &regions : regions_by_extruder) {
+        for (BedExcludeRegion &region : regions) {
+            if (!region.is_collision_volume()) {
+                if (material_keepout_added)
+                    continue;
+                material_keepout_added = true;
+            }
+            flattened.emplace_back(std::move(region));
+        }
+    }
+    return flattened;
+}
+
+} // namespace
+
+int bed_exclusion_extruder_for_filament(
+    const size_t filament_id, const std::vector<int> &configured_map, const FilamentMapMode map_mode,
+    const bool is_bambu, const bool automatic_map_resolved, const size_t extruder_count)
+{
+    if (extruder_count == 0)
+        return -1;
+
+    const bool automatic = is_auto_filament_map_mode(map_mode);
+    if (automatic && is_bambu && !automatic_map_resolved)
+        return -1;
+
+    // Generic multi-tool printers use filament ids as tool ids. Their global
+    // filament_map still carries the Bambu grouping seed [1, 1, ...], which is
+    // not a meaningful assignment for these machines.
+    if (automatic && !is_bambu && filament_id < extruder_count)
+        return int(filament_id);
+
+    if (filament_id < configured_map.size() && configured_map[filament_id] > 0 &&
+        size_t(configured_map[filament_id]) <= extruder_count)
+        return configured_map[filament_id] - 1;
+
+    return filament_id < extruder_count ? int(filament_id) : -1;
+}
+
+std::vector<std::vector<BedExcludeRegion>> get_bed_excluded_regions_by_extruder(const DynamicPrintConfig &cfg)
+{
+    const ConfigOptionFloat *height_option = cfg.opt<ConfigOptionFloat>("printable_height");
+    const double printable_height = height_option != nullptr ? height_option->value : 0.0;
+    const ConfigOptionPoints *legacy_option = cfg.opt<ConfigOptionPoints>("bed_exclude_area");
+    const ConfigOptionString *shared_option = cfg.opt<ConfigOptionString>("bed_exclude_volumes");
+    const BedExcludeVolumeMode configured_mode = cfg.has("bed_exclude_volume_mode") ?
+        cfg.opt_enum<BedExcludeVolumeMode>("bed_exclude_volume_mode") : BedExcludeVolumeMode::Shared;
+    const ConfigOptionStrings *per_extruder_option = cfg.opt<ConfigOptionStrings>("extruder_bed_exclude_volumes");
+    const ConfigOptionPoints *offset_option = cfg.opt<ConfigOptionPoints>("extruder_offset");
+    const ConfigOptionFloats *nozzle_option = cfg.opt<ConfigOptionFloats>("nozzle_diameter");
+    const ConfigOptionInt *reference_option = cfg.opt<ConfigOptionInt>("master_extruder_id");
+
+    const Pointfs legacy_points = legacy_option != nullptr ? legacy_option->values : Pointfs{};
+    const std::string shared_specs = shared_option != nullptr ? shared_option->value : std::string{};
+    const std::vector<std::string> per_extruder_specs = per_extruder_option != nullptr ? per_extruder_option->values : std::vector<std::string>{};
+    const bool use_collision_volumes = collision_volumes_configured(shared_specs, configured_mode, per_extruder_specs);
+    const BedExcludeVolumeMode active_mode = use_collision_volumes ? configured_mode : BedExcludeVolumeMode::Shared;
+    std::vector<BedExcludeRegion> master_regions = parse_master_bed_excluded_regions(
+        legacy_points, shared_specs, use_collision_volumes, active_mode, printable_height);
+    project_bed_material_keepouts(master_regions, cfg);
+    const std::vector<Vec2d> offsets = offset_option != nullptr ? offset_option->values : std::vector<Vec2d>{};
+    const size_t count = bed_exclusion_extruder_count(
+        nozzle_option != nullptr ? nozzle_option->size() : 0,
+        offsets.size(), per_extruder_specs.size());
+    const size_t reference = reference_option != nullptr && reference_option->value > 0 ? size_t(reference_option->value - 1) : 0;
+
+    std::vector<std::vector<BedExcludeRegion>> result;
+    result.reserve(count);
+    for (size_t extruder_id = 0; extruder_id < count; ++extruder_id)
+        result.emplace_back(resolve_bed_excluded_regions(master_regions, active_mode, per_extruder_specs, offsets, reference, extruder_id, printable_height));
+    return result;
+}
+
+std::vector<std::vector<BedExcludeRegion>> get_bed_excluded_regions_by_extruder(const PrintConfig &cfg)
+{
+    const double printable_height = cfg.printable_height.value;
+    const bool use_collision_volumes = collision_volumes_configured(
+        cfg.bed_exclude_volumes.value, cfg.bed_exclude_volume_mode.value,
+        cfg.extruder_bed_exclude_volumes.values);
+    const BedExcludeVolumeMode active_mode = use_collision_volumes ?
+        cfg.bed_exclude_volume_mode.value : BedExcludeVolumeMode::Shared;
+    std::vector<BedExcludeRegion> master_regions = parse_master_bed_excluded_regions(
+        cfg.bed_exclude_area.values, cfg.bed_exclude_volumes.value, use_collision_volumes,
+        active_mode, printable_height);
+    project_bed_material_keepouts(master_regions, cfg);
+    const size_t count = bed_exclusion_extruder_count(
+        cfg.nozzle_diameter.size(), cfg.extruder_offset.size(), cfg.extruder_bed_exclude_volumes.size());
+    const size_t reference = cfg.master_extruder_id.value > 0 ? size_t(cfg.master_extruder_id.value - 1) : 0;
+
+    std::vector<std::vector<BedExcludeRegion>> result;
+    result.reserve(count);
+    for (size_t extruder_id = 0; extruder_id < count; ++extruder_id) {
+        result.emplace_back(resolve_bed_excluded_regions(
+            master_regions, active_mode, cfg.extruder_bed_exclude_volumes.values,
+            cfg.extruder_offset.values, reference, extruder_id, printable_height));
+    }
+    return result;
+}
+
+std::vector<BedExcludeRegion> get_bed_excluded_regions(const DynamicPrintConfig &cfg, const size_t extruder_id)
+{
+    std::vector<std::vector<BedExcludeRegion>> regions = get_bed_excluded_regions_by_extruder(cfg);
+    return extruder_id < regions.size() ? std::move(regions[extruder_id]) : std::vector<BedExcludeRegion>{};
+}
+
+std::vector<BedExcludeRegion> get_bed_excluded_regions(const PrintConfig &cfg, const size_t extruder_id)
+{
+    std::vector<std::vector<BedExcludeRegion>> regions = get_bed_excluded_regions_by_extruder(cfg);
+    return extruder_id < regions.size() ? std::move(regions[extruder_id]) : std::vector<BedExcludeRegion>{};
+}
+
+std::vector<BedExcludeRegion> get_bed_excluded_regions(const DynamicPrintConfig &cfg)
+{
+    return flatten_bed_excluded_regions(active_bed_exclude_volume_mode(cfg), get_bed_excluded_regions_by_extruder(cfg));
+}
+
+std::vector<BedExcludeRegion> get_bed_excluded_regions(const PrintConfig &cfg)
+{
+    return flatten_bed_excluded_regions(active_bed_exclude_volume_mode(cfg), get_bed_excluded_regions_by_extruder(cfg));
+}
+
+bool is_bed_exclusion_volume_syntax(const std::string &value)
+{
+    return looks_like_bed_exclusion_volume_syntax(value);
+}
+
+bool is_valid_bed_exclude_volumes_string(const std::string &value, const double printable_height)
+{
+    if (value.empty())
+        return true;
+
+    std::vector<std::string> specs;
+    boost::split(specs, value, boost::is_any_of("|\n"));
+    bool found_nonempty = false;
+    for (std::string spec : specs) {
+        boost::trim(spec);
+        if (spec.empty())
+            continue;
+        found_nonempty = true;
+        std::vector<BedExcludeRegion> parsed;
+        append_bed_exclusion_volume_regions(parsed, spec, std::max(0.0, printable_height));
+        if (parsed.size() != 1)
+            return false;
+    }
+    return found_nonempty;
+}
+
+void append_bed_exclude_volumes(DynamicPrintConfig &config, const std::string &definition)
+{
+    if (definition.empty())
+        return;
+
+    const auto append = [&definition](const std::string &current) {
+        return current.empty() ? definition : current + '|' + definition;
+    };
+    const BedExcludeVolumeMode mode = config.has("bed_exclude_volume_mode") ?
+        config.opt_enum<BedExcludeVolumeMode>("bed_exclude_volume_mode") : BedExcludeVolumeMode::Shared;
+    if (mode == BedExcludeVolumeMode::PerExtruder) {
+        const ConfigOptionStrings *current = config.option<ConfigOptionStrings>("extruder_bed_exclude_volumes");
+        std::vector<std::string> definitions = current != nullptr ? current->values : std::vector<std::string>{};
+        const ConfigOptionFloats *nozzles = config.option<ConfigOptionFloats>("nozzle_diameter");
+        const size_t extruder_count = std::max<size_t>(1, nozzles != nullptr ? nozzles->size() : 0);
+        definitions.resize(std::max(definitions.size(), extruder_count));
+        for (size_t extruder_id = 0; extruder_id < extruder_count; ++extruder_id)
+            definitions[extruder_id] = append(definitions[extruder_id]);
+        config.set_key_value("extruder_bed_exclude_volumes", new ConfigOptionStrings(std::move(definitions)));
+        return;
+    }
+
+    const ConfigOptionString *current = config.option<ConfigOptionString>("bed_exclude_volumes");
+    config.set_key_value("bed_exclude_volumes", new ConfigOptionString(
+        append(current != nullptr ? current->value : std::string{})));
+}
+
+bool has_bed_exclude_volumes(const DynamicPrintConfig &cfg)
+{
+    const ConfigOptionString *shared = cfg.opt<ConfigOptionString>("bed_exclude_volumes");
+    const ConfigOptionStrings *per_extruder = cfg.opt<ConfigOptionStrings>("extruder_bed_exclude_volumes");
+    const BedExcludeVolumeMode mode = cfg.has("bed_exclude_volume_mode") ?
+        cfg.opt_enum<BedExcludeVolumeMode>("bed_exclude_volume_mode") : BedExcludeVolumeMode::Shared;
+    return collision_volumes_configured(
+        shared != nullptr ? shared->value : std::string{}, mode,
+        per_extruder != nullptr ? per_extruder->values : std::vector<std::string>{});
+}
+
+bool has_bed_exclude_volumes(const PrintConfig &cfg)
+{
+    return collision_volumes_configured(
+        cfg.bed_exclude_volumes.value, cfg.bed_exclude_volume_mode.value,
+        cfg.extruder_bed_exclude_volumes.values);
+}
+
+BedExcludeVolumeMode active_bed_exclude_volume_mode(const DynamicPrintConfig &cfg)
+{
+    if (!has_bed_exclude_volumes(cfg) || !cfg.has("bed_exclude_volume_mode"))
+        return BedExcludeVolumeMode::Shared;
+    return cfg.opt_enum<BedExcludeVolumeMode>("bed_exclude_volume_mode");
+}
+
+BedExcludeVolumeMode active_bed_exclude_volume_mode(const PrintConfig &cfg)
+{
+    return has_bed_exclude_volumes(cfg) ? cfg.bed_exclude_volume_mode.value : BedExcludeVolumeMode::Shared;
+}
+
+Polygons get_bed_excluded_area(const PrintConfig& cfg)
+{
+    const std::vector<BedExcludeRegion> regions = get_bed_excluded_regions(cfg);
+    Polygons excluded_polygons;
+    excluded_polygons.reserve(regions.size());
+
+    for (const BedExcludeRegion &region : regions) {
+        if (region.has_z_range && region.z_min > EPSILON)
+            continue;
+        if (region.z_max <= EPSILON)
+            continue;
+
+        excluded_polygons.emplace_back(region.polygon);
+    }
+
+    return excluded_polygons;
 }
 
 Polygon get_bed_shape_with_excluded_area(const PrintConfig& cfg, bool use_share)

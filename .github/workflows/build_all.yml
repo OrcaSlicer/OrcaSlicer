@@ -19,8 +19,12 @@ on:
      - 'build_linux.sh'
      - 'build_win.bat'
      - 'scripts/test_build_win.ps1'
+     - 'scripts/check_exception_throw_info.ps1'
+     - 'scripts/test_check_exception_throw_info.ps1'
      - 'build_release_macos.sh'
      - 'scripts/build_preset_cache.*'
+     - 'scripts/prune_cached_presets.ps1'
+     - 'scripts/test_prune_cached_presets.ps1'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
      - 'tests/**'
@@ -41,8 +45,12 @@ on:
      - 'build_linux.sh'
      - 'build_win.bat'
      - 'scripts/test_build_win.ps1'
+     - 'scripts/check_exception_throw_info.ps1'
+     - 'scripts/test_check_exception_throw_info.ps1'
      - 'build_release_macos.sh'
      - 'scripts/build_preset_cache.*'
+     - 'scripts/prune_cached_presets.ps1'
+     - 'scripts/test_prune_cached_presets.ps1'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
      - 'tests/**'
@@ -83,6 +91,14 @@ jobs:
       - name: Run the build script test suite
         shell: powershell
         run: .\scripts\test_build_win.ps1
+
+      - name: Run the exception throw info check tests
+        shell: powershell
+        run: .\scripts\test_check_exception_throw_info.ps1
+
+      - name: Run the preset prune tests
+        shell: powershell
+        run: .\scripts\test_prune_cached_presets.ps1
 
   build_linux:
     strategy:

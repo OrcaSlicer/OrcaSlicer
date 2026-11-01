@@ -110,8 +110,8 @@ bool GLGizmoMove3D::on_is_activable() const
 
 void GLGizmoMove3D::on_set_state() {
     if (get_state() == On) {
-        m_last_selected_obejct_idx = -1;
-        m_last_selected_volume_idx = -1;
+        m_last_selected_obejct_idx = -2;
+        m_last_selected_volume_idx = -2;
         change_cs_by_selection();
     }
     if (m_object_manipulation)
@@ -355,13 +355,17 @@ void GLGizmoMove3D::render_align_preview()
     if (m_object_manipulation == nullptr || m_object_manipulation->get_hovered_align_type() == AlignType::NONE)
         return;
 
-    // The box the hovered operation aligns to, in world coordinates like the operation itself.
-    const AlignType         type   = m_object_manipulation->get_hovered_align_type();
-    const GLGizmoAlignment &helper = m_object_manipulation->get_alignment_helper();
-    const BoundingBoxf3     box    = m_object_manipulation->get_align_to_parent() ? helper.get_parent_box() : helper.get_items_box();
+    // The box the hovered operation aligns to, in the frame the operation aligns along.
+    const AlignType         type      = m_object_manipulation->get_hovered_align_type();
+    const GLGizmoAlignment &helper    = m_object_manipulation->get_alignment_helper();
+    const bool              to_parent = m_object_manipulation->get_align_to_parent();
+    const Matrix3d          basis     = helper.reference_basis(to_parent);
+    const BoundingBoxf3     box       = to_parent ? helper.get_parent_box(basis) : helper.get_items_box(basis);
     if (!box.defined)
         return;
-    m_parent.get_selection().render_bounding_box(box, {0.0f, 150.0f / 255.0f, 136.0f / 255.0f}, m_parent.get_scale());
+    Transform3d basis_trafo = Transform3d::Identity();
+    basis_trafo.linear()    = basis;
+    m_parent.get_selection().render_bounding_box(box, basis_trafo, {0.0f, 150.0f / 255.0f, 136.0f / 255.0f}, m_parent.get_scale());
 
     GLShaderProgram* shader = wxGetApp().get_shader("flat");
     if (shader == nullptr)
@@ -427,7 +431,7 @@ void GLGizmoMove3D::render_align_preview()
     for (double position : positions) {
         plane_center[axis]         = position;
         plane_matrix.translation() = plane_center;
-        shader->set_uniform("view_model_matrix", camera.get_view_matrix() * plane_matrix);
+        shader->set_uniform("view_model_matrix", camera.get_view_matrix() * basis_trafo * plane_matrix);
         m_align_plane.render();
     }
     shader->stop_using();
@@ -437,7 +441,7 @@ void GLGizmoMove3D::render_align_preview()
 }
 
 void GLGizmoMove3D::change_cs_by_selection() {
-    int          obejct_idx, volume_idx;
+    int          obejct_idx = -1, volume_idx = -1;
     ModelVolume *model_volume = m_parent.get_selection().get_selected_single_volume(obejct_idx, volume_idx);
     if (m_last_selected_obejct_idx == obejct_idx && m_last_selected_volume_idx == volume_idx) {
         return;

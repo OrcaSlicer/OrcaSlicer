@@ -490,6 +490,9 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
 bool is_compatible_with_printer(const DynamicPrintConfig &preset_config, Preset::Type preset_type,
                                 const DynamicPrintConfig &printer_config, const std::string &printer_name);
 
+// True for a list option the settings tab edits as one value, so a change to it is reported for the whole list.
+bool is_edited_as_whole_list(const ConfigDef *def, const std::string &opt_key);
+
 // Where a preset is being loaded from. `Auto` lets load_presets() infer from the directory path.
 struct PresetOrigin {
     enum class Kind { Auto, User, LocalBundle, SubscribedBundle };
@@ -659,6 +662,12 @@ public:
                                     const std::string &       compatible_printers,
                                     bool                      force_rewritten = false);
 
+    // User presets made for one printer alone, as clone_presets_for_printer() makes them: every entry of
+    // their compatible_printers is that printer. They are deleted together with that printer. Presets
+    // that also list other printers, or are not limited by printer name, are shared and kept, and so is
+    // every preset a kept preset inherits from.
+    std::vector<Preset const *> get_user_presets_for_printer(const std::string &printer_name) const;
+
     std::map<std::string, std::vector<Preset const *>> get_filament_presets() const;
 
     // Returns a loaded preset, returns true if an existing preset was selected AND modified from config.
@@ -756,7 +765,14 @@ public:
     Preset&         get_edited_preset()         { return m_edited_preset; }
     const Preset&   get_edited_preset() const   { return m_edited_preset; }
 
-    const Preset& get_selected_preset_base() const { return *get_preset_base(m_presets[m_idx_selected]); }
+    // The root of the selected preset's inherits chain, or the selected preset itself when
+    // the chain names a preset that is not loaded (e.g. a vendor that is not installed).
+    const Preset& get_selected_preset_base() const
+    {
+        const Preset &selected = m_presets[m_idx_selected];
+        const Preset *base     = get_preset_base(selected);
+        return base ? *base : selected;
+    }
 
     // Return the last saved preset.
 //  const Preset&   get_saved_preset() const { return m_saved_preset; }

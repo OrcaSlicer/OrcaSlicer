@@ -50,6 +50,12 @@ jobs:
               'documentation'
             ];
             const pr = context.payload.pull_request;
+            // First-time contributors also get a link to the contributing guide
+            const greeting = ['FIRST_TIME_CONTRIBUTOR', 'FIRST_TIMER'].includes(pr.author_association)
+              ? `Hi @${pr.user.login}, thanks for contributing to OrcaSlicer! ` +
+                `[How to Contribute](https://www.orcaslicer.com/wiki/developer_reference/how_to_contribute) explains what reviewers need from a PR.\n\n` +
+                `You can`
+              : `Hi @${pr.user.login}, you can`;
             const labelsList = `${allowedLabels
               .slice(0, -1)
               .map((label) => `\`${label}\``)
@@ -72,7 +78,7 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: pr.number,
                 body:
-                  `Hi @${pr.user.login}, you can manage the labels for this PR by \`/bot add-label\` and \`/bot remove-label\`\n\n` +
+                  `${greeting} manage the labels for this PR by \`/bot add-label\` and \`/bot remove-label\`.\n\n` +
                   `Allowed labels are:\n${labelsList}\n\n` +
                   `Examples:\n${examplesText}`
               });
@@ -118,19 +124,24 @@ jobs:
               return;
             }
 
-            try {
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pr.number,
-                labels: ['Localization']
-              });
-              core.info('Applied Localization label.');
-            } catch (error) {
-              if (isPermissionDenied(error)) {
-                core.warning('Cannot add Localization label because token cannot write.');
-              } else {
-                throw error;
+            // The label marks translation-only PRs: every changed file is a .po or .pot catalog
+            if (!files.every((file) => /\.pot?$/.test(file.filename))) {
+              core.info('Files other than .po/.pot catalogs changed; skipping Localization label.');
+            } else {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  labels: ['Localization']
+                });
+                core.info('Applied Localization label.');
+              } catch (error) {
+                if (isPermissionDenied(error)) {
+                  core.warning('Cannot add Localization label because token cannot write.');
+                } else {
+                  throw error;
+                }
               }
             }
 

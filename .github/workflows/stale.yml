@@ -1,0 +1,58 @@
+name: Stale issues and PRs
+
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write # save the run state in the actions cache
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v11
+        with:
+          # Each new stale label costs about 2 operations. Runs that stop early
+          # continue from the same place the next day.
+          operations-per-run: 300
+          ascending: true
+          stale-issue-label: stale
+          stale-pr-label: stale
+          remove-stale-when-updated: true
+
+          # Issues
+          days-before-issue-stale: 90
+          days-before-issue-close: 14
+          close-issue-reason: not_planned
+          exempt-issue-labels: enhancement
+          exempt-all-issue-assignees: true
+          exempt-all-issue-milestones: true
+          stale-issue-message: |
+            This issue has had no activity for 90 days, so it will be closed in 14 days.
+
+            If it still happens on the latest OrcaSlicer release, please leave a comment with the version you tested and it will stay open.
+          close-issue-message: |
+            This issue was closed because there was no activity after the reminder.
+
+            If it still happens on the latest release, leave a comment here and a team member can reopen it, or open a new issue with the details.
+
+          # PRs: only PRs where we asked the author for something
+          only-pr-labels: "wait for response"
+          days-before-pr-stale: 90
+          days-before-pr-close: 14
+          exempt-draft-pr: true
+          exempt-all-pr-assignees: true
+          exempt-all-pr-milestones: true
+          delete-branch: false
+          stale-pr-message: |
+            We asked for changes or more information on this PR, and there has been no activity for 90 days. It will be closed in 14 days.
+
+            To keep it open, leave a comment. If you push new commits, please also leave a short comment, because a push alone does not reset this. If you no longer have time for it, that is fine, just let us know.
+          close-pr-message: |
+            This PR was closed because we did not hear back after the reminder. Thank you for the work you put into it.
+
+            If you want to continue, push your changes and reopen it, or open a new PR.
