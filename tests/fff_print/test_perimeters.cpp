@@ -106,6 +106,28 @@ SliceLengths slice_lengths(const Print &print)
     return out;
 }
 
+Print &recessed_corner(Print &print, Model &model, const DynamicPrintConfig &config)
+{
+    ModelObject *object = model.add_object();
+    object->name = "recessed_corner.stl";
+    TriangleMesh slab = make_cube(24., 24., 3.);
+    slab.translate(-12.f, -12.f, 0.f);
+    object->add_volume(std::move(slab), ModelVolumeType::MODEL_PART, false);
+    // The 1mm floor lies 1.75mm from the slab edge, so larger wall counts reach the recess.
+    TriangleMesh recess = make_prism(8.f, 3.f, 12.f);
+    recess.rotate_x(PI / 2.);
+    recess.translate(0.f, 10.25f, 2.5f);
+    object->add_volume(std::move(recess), ModelVolumeType::NEGATIVE_VOLUME, false);
+    object->add_instance();
+    object->ensure_on_bed();
+    print.auto_assign_extruders(object);
+    print.apply(model, config);
+    print.validate();
+    print.set_status_silent();
+    print.process();
+    return print;
+}
+
 double perimeter_length_at(const Print &print, double print_z)
 {
     for (const Layer *layer : print.objects().front()->layers())
@@ -241,6 +263,78 @@ TEST_CASE("Only one wall on top surfaces drops inner walls only where a top fill
     CHECK(one_wall_no_fill < plain);
     CHECK(one_wall_no_expand > one_wall);
     CHECK(one_wall_no_expand < plain);
+}
+
+TEST_CASE("Classic top surfaces fill recessed corners without artificial walls", "[Perimeters][Regression]")
+{
+    const double threshold = GENERATE(0., 1.2);
+    const int wall_loops = GENERATE(1, 2, 3, 4, 5, 6, 8, 12);
+    CAPTURE(threshold, wall_loops);
+    DynamicPrintConfig config = base_config("classic");
+    config.set_deserialize_strict({
+        { "only_one_wall_top",                 true },
+        { "wall_loops",                        wall_loops },
+        { "min_width_top_surface",             threshold },
+        { "top_surface_pattern",               "monotonicline" },
+        { "gap_fill_target",                   "nowhere" },
+        { "line_width",                        0.4 },
+        { "outer_wall_line_width",             0.4 },
+        { "inner_wall_line_width",             0.4 },
+        { "internal_solid_infill_line_width",  0.4 },
+        { "top_surface_line_width",            0.4 },
+        { "wall_sequence",                     "inner wall/outer wall" },
+    });
+    Model model;
+    Print print;
+    recessed_corner(print, model, config);
+
+    const Layer *floor = nullptr;
+    for (const Layer *layer : print.objects().front()->layers())
+        if (std::abs(layer->print_z - 1.) < EPSILON)
+            floor = layer;
+    REQUIRE(floor != nullptr);
+    REQUIRE(floor->upper_layer != nullptr);
+    // Keep the narrow tip in the checks, allowing only boundary rounding.
+    const ExPolygons interior = offset_ex(diff_ex(floor->lslices, floor->upper_layer->lslices), -scaled<double>(0.05));
+    REQUIRE_FALSE(interior.empty());
+    Polygons top_coverage;
+    const coord_t far_wall_limit = get_extents(floor->lslices).min.y() + scaled<double>(0.4 * wall_loops);
+    size_t inner_walls = 0;
+    for (const LayerRegion *region : floor->regions()) {
+        for (const ExtrusionEntity *entity : region->perimeters.flatten().entities) {
+            const Polyline wall = entity->as_polyline();
+            inner_walls += entity->inset_idx > 0 && std::any_of(wall.points.begin(), wall.points.end(),
+                [far_wall_limit](const Point &point) { return point.y() < far_wall_limit; });
+            CHECK(intersection_pl(Polylines{ wall }, interior).empty());
+        }
+        for (const ExtrusionEntity *entity : region->thin_fills.flatten().entities)
+            CHECK(intersection_pl(Polylines{ entity->as_polyline() }, interior).empty());
+        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+            if (entity->role() == erTopSolidInfill)
+                append(top_coverage, entity->polygons_covered_by_width(10.f));
+    }
+    CHECK(inner_walls == size_t(config.opt_int("wall_loops") - 1));
+    CHECK(diff_ex(interior, offset(top_coverage, scaled<double>(0.05))).empty());
+}
+
+TEST_CASE("One-wall threshold still excludes wholly narrow enclosed faces", "[Perimeters][Regression]")
+{
+    auto length_for = [](bool only_one_wall_top) {
+        DynamicPrintConfig config = base_config("classic");
+        config.set_deserialize_strict({
+            { "only_one_wall_top",     only_one_wall_top },
+            { "wall_loops",            6 },
+            // The 8mm-wide recess cannot survive a 5mm inset from each side.
+            { "min_width_top_surface", 5. },
+        });
+        Model model;
+        Print print;
+        recessed_corner(print, model, config);
+        return perimeter_length_at(print, 1.);
+    };
+    const double plain = length_for(false);
+    REQUIRE(plain > 0.);
+    CHECK_THAT(length_for(true), Catch::Matchers::WithinAbs(plain, 1.));
 }
 
 // The bottom counterpart: the first layer is thinned to a single wall only where a bottom shell fills the
