@@ -81,10 +81,16 @@ $Profiles = (Get-Item $Profiles).FullName
 $dllDir = Get-ChildItem -Path $BuildDir -Filter "TKernel.dll" -Recurse -ErrorAction SilentlyContinue |
     Select-Object -First 1
 if ($dllDir) {
-    $env:PATH = (Split-Path -Parent $dllDir.FullName) + ";" + $env:PATH
+    $dllPath = (Split-Path -Parent $dllDir.FullName)
+    Write-Host "Found TKernel.dll at: $dllPath"
+    $env:PATH = $dllPath + ";" + $env:PATH
+} else {
+    Write-Warning "TKernel.dll NOT FOUND under $BuildDir - generate_system_cache.exe may fail to load dependencies"
 }
+Write-Host "PATH for generate_system_cache.exe: $env:PATH"
 
 Write-Host "Generating per-vendor preset caches in $Profiles"
+Write-Host "Running: $($tool.FullName) --path $Profiles --log_level 2"
 
 # Start clean so vendors that went away - and caches written by older tool
 # versions - don't linger next to the freshly generated ones.
@@ -92,7 +98,9 @@ Get-ChildItem -Path $Profiles -Filter "*.opc" -ErrorAction SilentlyContinue | Re
 Get-ChildItem -Path $Profiles -Filter "*.cache" -ErrorAction SilentlyContinue | Remove-Item -Force
 
 & $tool.FullName --path $Profiles --log_level 2
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+$exitCode = $LASTEXITCODE
+Write-Host "generate_system_cache.exe exited with code: $exitCode"
+if ($exitCode -ne 0) { exit $exitCode }
 
 # Process each target directory
 foreach ($target in $TargetDir) {
