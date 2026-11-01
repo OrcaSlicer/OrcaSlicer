@@ -163,6 +163,9 @@ public:
     bool try_get_plugin_descriptor_for_capability(const std::string& capability_name,
                                                   PluginCapabilityType type,
                                                   PluginDescriptor& out) const;
+    // The "name;uuid;capability" reference for a loaded capability, as stored in a preset's
+    // "plugins" manifest; std::nullopt when no loaded package provides it.
+    std::optional<PluginCapabilityRef> resolve_capability_ref(const std::string& capability_name, PluginCapabilityType type) const;
     // Per-plugin storage directory under orca_plugins/plugin_data, created if missing. Throws
     // std::runtime_error if the plugin is unregistered, the key is invalid, or (cloud plugins)
     // no user is logged in yet.
@@ -444,6 +447,15 @@ void execute_capabilities_from_refs(const ConfigOptionStrings& capabilities,
                     break;
                 }
             }
+        }
+
+        // The manifest is derived from the picker value only when that value changes, so it can be
+        // stale or empty (e.g. derived before the plugin finished loading) even though the
+        // capability is loaded now. Resolve it by name instead of silently skipping the step.
+        if (!ref) {
+            ref = plugin_mgr.resolve_capability_ref(capability, type);
+            if (ref)
+                BOOST_LOG_TRIVIAL(warning) << tag << ": capability '" << capability << "' missing from the plugins manifest; resolved by name";
         }
 
         if (!ref) {

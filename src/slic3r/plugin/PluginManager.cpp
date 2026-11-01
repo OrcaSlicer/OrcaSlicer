@@ -5,6 +5,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <exception>
 #include <functional>
+#include "libslic3r/Config.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include <memory>
 #include <optional>
@@ -553,6 +554,24 @@ bool PluginManager::try_get_plugin_descriptor_for_capability(const std::string& 
     }
 
     return false;
+}
+
+std::optional<PluginCapabilityRef> PluginManager::resolve_capability_ref(const std::string& capability_name,
+                                                                         PluginCapabilityType type) const
+{
+    // only_enabled = false: a stored reference must stay resolvable whether or not the user
+    // currently has the capability enabled; the dispatchers report "disabled" separately.
+    if (!get_plugin_capability(capability_name, type, /*only_enabled=*/false))
+        return std::nullopt;
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor_for_capability(capability_name, type, descriptor))
+        return std::nullopt;
+
+    // Cloud plugins are resolved at runtime via the UUID, so the name field keeps the friendly
+    // display name. Local plugins are looked up by plugin_key with an empty UUID.
+    const std::string identity = descriptor.is_cloud_plugin() ? descriptor.name : descriptor.plugin_key;
+    return PluginCapabilityRef{identity, capability_name, descriptor.cloud_uuid()};
 }
 
 std::string PluginManager::get_storage_dir(const std::string& plugin_key) const
