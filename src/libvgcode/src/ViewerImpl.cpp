@@ -1426,7 +1426,7 @@ void ViewerImpl::LayerColorsUniforms::init(unsigned int shader_id)
     kept_vertex      = glGetUniformLocation(shader_id, "kept_vertex");
 }
 
-void ViewerImpl::set_layer_colors(const LayerColorsUniforms& uni) const
+LayerShading ViewerImpl::get_layer_shading() const
 {
     const size_t top_layer_id = m_settings.top_layer_only_view_range ? m_layers.get_view_range()[1] : 0;
     const bool color_top_layer_only = m_view_range.get_full()[1] != m_view_range.get_visible()[1];
@@ -1448,11 +1448,22 @@ void ViewerImpl::set_layer_colors(const LayerColorsUniforms& uni) const
 
     // Without dimming, the layers below the top one go dark grey while the moves slider is short of
     // the end. Neither touches the inspected layers, nor the first vertex of a spiral vase layer.
-    glsafe(glUniform2i(uni.lit_layers, dim_previous_layers && inspecting_bottom_layer ? static_cast<int>(layers_range[0]) : -1,
-                                       dim_previous_layers && inspecting_top_layer ? static_cast<int>(layers_range[1]) : -1));
-    glsafe(glUniform1i(uni.grey_below_layer, color_top_layer_only ? static_cast<int>(top_layer_id) : 0));
-    glsafe(glUniform1f(uni.dim_brightness, dim_previous_layers ? m_settings.dim_previous_layers_brightness : -1.0f));
-    glsafe(glUniform1i(uni.kept_vertex, m_settings.spiral_vase_mode ? static_cast<int>(m_view_range.get_enabled()[0]) : -1));
+    LayerShading shading;
+    shading.lit_layers = { dim_previous_layers && inspecting_bottom_layer ? static_cast<int>(layers_range[0]) : -1,
+                           dim_previous_layers && inspecting_top_layer ? static_cast<int>(layers_range[1]) : -1 };
+    shading.grey_below_layer = color_top_layer_only ? static_cast<int>(top_layer_id) : 0;
+    shading.dim_brightness = dim_previous_layers ? m_settings.dim_previous_layers_brightness : -1.0f;
+    shading.kept_vertex = m_settings.spiral_vase_mode ? static_cast<int>(m_view_range.get_enabled()[0]) : -1;
+    return shading;
+}
+
+void ViewerImpl::set_layer_colors(const LayerColorsUniforms& uni) const
+{
+    const LayerShading shading = get_layer_shading();
+    glsafe(glUniform2i(uni.lit_layers, shading.lit_layers[0], shading.lit_layers[1]));
+    glsafe(glUniform1i(uni.grey_below_layer, shading.grey_below_layer));
+    glsafe(glUniform1f(uni.dim_brightness, shading.dim_brightness));
+    glsafe(glUniform1i(uni.kept_vertex, shading.kept_vertex));
 }
 
 void ViewerImpl::update_colors()
@@ -1831,10 +1842,10 @@ uint8_t ViewerImpl::get_vertex_alpha(const PathVertex& v) const
     switch (m_settings.view_type)
     {
     case EViewType::Tool:
-        return m_tool_colors[v.extruder_id][3];
+        return static_cast<size_t>(v.extruder_id) < m_tool_colors.size() ? m_tool_colors[v.extruder_id][3] : 255;
     case EViewType::Summary:
     case EViewType::ColorPrint:
-        return m_layers.layer_contains_colorprint_options(static_cast<size_t>(v.layer_id)) ? 255 :
+        return (m_color_print_colors.empty() || m_layers.layer_contains_colorprint_options(static_cast<size_t>(v.layer_id))) ? 255 :
             m_color_print_colors[static_cast<size_t>(v.color_id) % m_color_print_colors.size()][3];
     default:
         return 255;

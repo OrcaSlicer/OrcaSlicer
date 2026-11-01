@@ -40,7 +40,8 @@
 #define SETTING_OPENGL_SHOW_RENDER_TIMINGS "opengl_show_render_timings"
 #define SETTING_OPENGL_REALISTIC_MODE "opengl_realistic_mode"
 #define SETTING_OPENGL_REALISTIC_PHONG "opengl_realistic_phong"
-#define SETTING_OPENGL_SHADING_MODEL "opengl_shading_model"
+// gouraud, phong or pathtrace. Replaces opengl_realistic_phong; opengl_shading_model was written but never read.
+#define SETTING_OPENGL_SHADING_MODEL "opengl_realistic_shading"
 #define SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS "opengl_phong_basic_plate_shadows"
 // off, static (light fixed in the world) or orbit (light turning with the camera)
 #define SETTING_OPENGL_REALISTIC_SHADOWS "opengl_realistic_shadows"
@@ -48,6 +49,7 @@
 #define SETTING_OPENGL_PHONG_SMOOTH_NORMALS "opengl_phong_smooth_normals"
 #define SETTING_OPENGL_REALISTIC_PREVIEW "opengl_realistic_preview"
 #define SETTING_OPENGL_REALISTIC_GLOSS "opengl_realistic_gloss"
+#define SETTING_OPENGL_PATHTRACE_QUALITY "opengl_pathtrace_quality"
 
 #define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
 #define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1

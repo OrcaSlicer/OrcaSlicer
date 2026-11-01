@@ -1,0 +1,222 @@
+#version 430
+
+// Resolves the path tracer's accumulation into the display images, optionally through an
+// edge-aware a-trous wavelet filter (Dammertz et al. 2010). The radiance is filtered divided by
+// the albedo of the first surface, so that filament colors and their borders stay sharp, and the
+// filter stops at changes of normal, distance, albedo and surface class (background, bed, opaque,
+// translucent). Each pass widens the 5x5 kernel by doubling the step between its taps.
+// The luminance edge stop follows the variance of each pixel's average, as in SVGF (Schied et al.
+// 2017): where a pixel is still noisy neighbors of a different luminance blend in, where it has
+// converged its edges and texture stay. The variance is carried through the passes.
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+// Sums of radiance (rgb) and coverage (a), and of the bed term (rgb) and sample count (a).
+uniform sampler2D accumulation_tex;
+uniform sampler2D bed_accumulation_tex;
+// Normal (xyz) and distance (w), and albedo (rgb) and class (a) of the first surface.
+uniform sampler2D normal_depth_tex;
+uniform sampler2D albedo_tex;
+// Output of the previous pass: demodulated radiance (rgb) and coverage (a), and bed term (rgb).
+uniform sampler2D color_in_tex;
+uniform sampler2D bed_in_tex;
+// Sum of the squared luminance of the samples, and whether the edge stop follows the variance it
+// gives; the interactive pass does not keep it.
+uniform sampler2D moment_tex;
+uniform bool use_variance;
+
+layout(rgba16f, binding = 0) writeonly uniform image2D color_out_image;
+layout(rgba16f, binding = 1) writeonly uniform image2D bed_out_image;
+layout(rgba8, binding = 2) writeonly uniform image2D display_image;
+layout(rgba8, binding = 3) writeonly uniform image2D bed_display_image;
+
+uniform ivec2 image_size;
+// Distance between the kernel taps in pixels, 0 to resolve without filtering.
+uniform int step_size;
+// The first pass reads the accumulation, the others the output of the previous pass.
+uniform bool first_pass;
+// The last pass writes the display images.
+uniform bool final_pass;
+// Weight of the filtered image over the unfiltered one, falling as samples accumulate; the
+// variance guided filter of the radiance limits itself and is not blended.
+uniform float strength;
+// Edge stop on the demodulated luminance without variance, narrowing as the noise falls; the bed
+// term always uses it.
+uniform float luminance_sigma;
+
+const float CLASS_OPAQUE = 2.0 / 3.0;
+
+float luminance(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+
+bool is_opaque_class(float c) { return abs(c - CLASS_OPAQUE) < 0.17; }
+
+// Divisor of the radiance: the albedo of opaque surfaces, 1 elsewhere.
+vec3 demodulation(vec4 albedo_class)
+{
+    return is_opaque_class(albedo_class.a) ? max(albedo_class.rgb, vec3(0.03)) : vec3(1.0);
+}
+
+// Average radiance and coverage, and the bed term averaged over the samples that reached the bed.
+vec4 resolve(ivec2 p, out vec3 bed)
+{
+    vec4 acc = texelFetch(accumulation_tex, p, 0);
+    vec4 bed_acc = texelFetch(bed_accumulation_tex, p, 0);
+    float n = max(bed_acc.a, 1.0);
+    // Samples weigh in the bed term by how much of the bed they let through.
+    float through = bed_acc.a - acc.a;
+    bed = through > 1e-3 ? bed_acc.rgb / through : vec3(1.0);
+    return acc / n;
+}
+
+// Variance of the average luminance of a pixel, from the sums of its samples' luminance and squares.
+float mean_variance(ivec2 p)
+{
+    float n = max(texelFetch(bed_accumulation_tex, p, 0).a, 1.0);
+    float mean = luminance(texelFetch(accumulation_tex, p, 0).rgb) / n;
+    float second = texelFetch(moment_tex, p, 0).r / n;
+    return max(second - mean * mean, 0.0) / n;
+}
+
+// Demodulated radiance and coverage of a pixel, its bed term, and the variance of its luminance.
+vec4 load_color(ivec2 p, vec4 albedo_class, out vec3 bed, out float variance)
+{
+    if (first_pass) {
+        vec4 c = resolve(p, bed);
+        vec3 demod = demodulation(albedo_class);
+        float scale = luminance(demod);
+        variance = use_variance ? mean_variance(p) / (scale * scale) : 0.0;
+        return vec4(c.rgb / demod, c.a);
+    }
+    vec4 b = texelFetch(bed_in_tex, p, 0);
+    bed = b.rgb;
+    variance = b.a;
+    return texelFetch(color_in_tex, p, 0);
+}
+
+vec3 linear_to_srgb(vec3 c)
+{
+    c = clamp(c, vec3(0.0), vec3(1.0));
+    bvec3 cutoff = lessThanEqual(c, vec3(0.0031308));
+    return mix(1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, c * 12.92, cutoff);
+}
+
+// Highlight shoulder on the largest channel, scaling the color by the same factor, so that a bright
+// saturated filament keeps its hue instead of drifting towards the primaries as channels clip.
+vec3 apply_tone(vec3 color)
+{
+    vec3 c = max(vec3(0.0), color);
+    float peak = max(c.r, max(c.g, c.b));
+    if (peak > 0.8) {
+        float mapped = peak / (1.0 + (peak - 0.8));
+        c *= mapped / peak;
+        // Light far above white runs towards white, as on film and in the eye, instead of staying a
+        // fully saturated color. Below white the filament colors stay exact: a curve that bends them
+        // there, AgX among them, bleaches every lit surface.
+        float over = clamp((peak - 1.0) / 3.0, 0.0, 1.0);
+        c = mix(c, vec3(mapped), 0.7 * over * over);
+    }
+    return linear_to_srgb(c);
+}
+
+void main()
+{
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    if (any(greaterThanEqual(p, image_size)))
+        return;
+
+    vec4 nd_p = texelFetch(normal_depth_tex, p, 0);
+    vec4 alb_p = texelFetch(albedo_tex, p, 0);
+    vec3 bed_p;
+    float variance_p;
+    vec4 color_p = load_color(p, alb_p, bed_p, variance_p);
+    if (first_pass && use_variance && step_size > 0) {
+        // A single pixel's variance estimate is itself noisy: take that of its 3x3 neighborhood.
+        float scale = luminance(demodulation(alb_p));
+        float sum = 0.0;
+        float count = 0.0;
+        for (int dy = -1; dy <= 1; ++dy) {
+            for (int dx = -1; dx <= 1; ++dx) {
+                ivec2 q = p + ivec2(dx, dy);
+                if (any(lessThan(q, ivec2(0))) || any(greaterThanEqual(q, image_size)))
+                    continue;
+                sum += mean_variance(q);
+                count += 1.0;
+            }
+        }
+        variance_p = sum / max(count, 1.0) / (scale * scale);
+    }
+
+    vec4 color = color_p;
+    vec3 bed = bed_p;
+    float variance = variance_p;
+    if (step_size > 0) {
+        const float kernel[3] = float[3](3.0 / 8.0, 1.0 / 4.0, 1.0 / 16.0);
+        float lum_p = luminance(color_p.rgb);
+        float bed_lum_p = luminance(bed_p);
+        vec4 color_sum = vec4(0.0);
+        vec3 bed_sum = vec3(0.0);
+        float color_weight = 0.0;
+        float bed_weight = 0.0;
+        float variance_sum = 0.0;
+        float color_sigma = use_variance ? 4.0 * sqrt(variance_p) + 1e-4 : luminance_sigma;
+        float depth_scale = 0.02 * float(step_size) * nd_p.w + 1e-3;
+        for (int dy = -2; dy <= 2; ++dy) {
+            for (int dx = -2; dx <= 2; ++dx) {
+                ivec2 q = p + ivec2(dx, dy) * step_size;
+                if (any(lessThan(q, ivec2(0))) || any(greaterThanEqual(q, image_size)))
+                    continue;
+                vec4 alb_q = texelFetch(albedo_tex, q, 0);
+                if (abs(alb_q.a - alb_p.a) > 0.17)
+                    continue;
+                vec4 nd_q = texelFetch(normal_depth_tex, q, 0);
+                vec3 bed_q;
+                float variance_q;
+                vec4 color_q = load_color(q, alb_q, bed_q, variance_q);
+
+                float w = kernel[abs(dx)] * kernel[abs(dy)];
+                w *= pow(max(0.0, dot(nd_p.xyz, nd_q.xyz)), 32.0) + (dot(nd_p.xyz, nd_p.xyz) < 0.25 ? 1.0 : 0.0);
+                w *= exp(-abs(nd_p.w - nd_q.w) / depth_scale);
+                vec3 d_alb = alb_p.rgb - alb_q.rgb;
+                w *= exp(-dot(d_alb, d_alb) * 30.0);
+
+                float w_color = w * exp(-abs(lum_p - luminance(color_q.rgb)) / color_sigma);
+                color_sum += w_color * color_q;
+                color_weight += w_color;
+                variance_sum += w_color * w_color * variance_q;
+                float w_bed = w * exp(-abs(bed_lum_p - luminance(bed_q)) / (0.5 * luminance_sigma));
+                bed_sum += w_bed * bed_q;
+                bed_weight += w_bed;
+            }
+        }
+        if (color_weight > 1e-6) {
+            color = color_sum / color_weight;
+            variance = variance_sum / (color_weight * color_weight);
+        }
+        if (bed_weight > 1e-6)
+            bed = bed_sum / bed_weight;
+    }
+
+    if (!final_pass) {
+        imageStore(color_out_image, p, color);
+        imageStore(bed_out_image, p, vec4(bed, variance));
+        return;
+    }
+
+    // Blend over the unfiltered average, which comes straight from the accumulation.
+    vec3 raw_bed;
+    vec4 raw = resolve(p, raw_bed);
+    vec4 demod = vec4(demodulation(alb_p), 1.0);
+    vec4 avg = mix(raw, color * demod, use_variance ? 1.0 : strength);
+    bed = mix(raw_bed, bed, strength);
+
+    // A bright highlight on a clear surface would vanish once multiplied by its low coverage, so the
+    // coverage is raised to the radiance it carries.
+    float out_alpha = clamp(max(avg.a, max(avg.r, max(avg.g, avg.b))), 0.0, 1.0);
+    vec3 unpremul = out_alpha > 1e-4 ? avg.rgb / out_alpha : vec3(0.0);
+    imageStore(display_image, p, vec4(apply_tone(unpremul), out_alpha));
+    // The bed term, stored halved so that factors up to 2 fit RGBA8: the composite blends it with
+    // GL_DST_COLOR, GL_SRC_COLOR, which yields 2 * src * dst. The rasterized bed is in sRGB, the
+    // power maps the linear ratio close to the ratio of the encoded values.
+    vec3 bed_encoded = pow(clamp(bed, vec3(0.0), vec3(2.0)), vec3(1.0 / 1.8));
+    imageStore(bed_display_image, p, vec4(clamp(0.5 * bed_encoded, vec3(0.0), vec3(1.0)), 1.0));
+}

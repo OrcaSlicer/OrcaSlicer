@@ -31,6 +31,8 @@ set(lisbslic3r_sources
     AABBMesh.hpp
     AABBTreeIndirect.hpp
     AABBTreeLines.hpp
+    PathTracer.cpp
+    PathTracer.hpp
     Algorithm/LineSplit.cpp
     Algorithm/LineSplit.hpp
     Algorithm/RegionExpansion.cpp
