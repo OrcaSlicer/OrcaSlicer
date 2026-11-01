@@ -17,7 +17,6 @@
 #include <vector>
 #include <utility>
 
-#include <wx/colour.h>
 #include <wx/event.h>
 #include <wx/string.h>
 
@@ -61,10 +60,12 @@ void PlateArrangementDialog::render_input_window()
         m_double_click = false;
         return;
     }
-    const int count = wxGetApp().plater()->get_partplate_list().get_plate_count();
+    // Fetched once per frame for every function of the dialog.
+    m_plate_list  = &wxGetApp().plater()->get_partplate_list();
+    m_plate_count = m_plate_list->get_plate_count();
     create_gui_cfg();
-    update_plates(count);
-    update_thumbnails(count);
+    update_plates();
+    update_thumbnails();
     update_icons();
 
     on_render_input_window();
@@ -99,8 +100,9 @@ bool PlateArrangementDialog::on_key(const wxKeyEvent& evt)
             set_open(false);
         return true;
     }
-    const int count = wxGetApp().plater()->get_partplate_list().get_plate_count();
-    if (m_drag.pressed || m_cursor == nullptr || count < 1)
+    // Between frames: a plate may have been added or removed since the last one.
+    m_plate_count = m_plate_list->get_plate_count();
+    if (m_drag.pressed || m_cursor == nullptr || m_plate_count < 1)
         return true;
 
     if (evt.CmdDown()) { // Ctrl (Cmd on macOS) moves the selected plates
@@ -110,7 +112,7 @@ bool PlateArrangementDialog::on_key(const wxKeyEvent& evt)
         return true;
     }
 
-    const int cols = grid_columns(count), cur = m_cursor->get_index(), last = count - 1;
+    const int cols = grid_columns(m_plate_count), cur = m_cursor->get_index(), last = m_plate_count - 1;
     int       target = cur;
     switch (key) {
     case WXK_LEFT:  target = cur - 1; break;
@@ -146,7 +148,10 @@ void PlateArrangementDialog::on_set_state()
     }
     m_center_frames = m_positioned ? 0 : 3; // centred the first time, then where the user left it
     m_focus_request = true;
-    m_canvas_plate = m_anchor = m_cursor = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+    // Opened before its first frame, which is where the plate list is fetched otherwise.
+    m_plate_list   = &wxGetApp().plater()->get_partplate_list();
+    m_plate_count  = m_plate_list->get_plate_count();
+    m_canvas_plate = m_anchor = m_cursor = m_plate_list->get_curr_plate();
     if (m_cursor != nullptr)
         m_selection.insert(m_cursor);
     m_parent.set_as_dirty();
@@ -226,10 +231,8 @@ void PlateArrangementDialog::render_title_bar()
 void PlateArrangementDialog::render_plate_grid()
 {
     const GuiCfg&  cfg   = *m_gui_cfg;
-    PartPlateList& list  = wxGetApp().plater()->get_partplate_list();
-    const int      count = list.get_plate_count();
-    const int      cols  = grid_columns(count);
-    const int      rows  = std::max(1, (count + cols - 1) / cols);
+    const int      cols  = grid_columns(m_plate_count);
+    const int      rows  = std::max(1, (m_plate_count + cols - 1) / cols);
     const float    cell  = cell_size(cols);
     const float    pitch = cell + cfg.plate_spacing;
     const float    bleed = std::round(cfg.plate_spacing * .5f); // room for borders and markers outside the outer cells
@@ -243,7 +246,7 @@ void PlateArrangementDialog::render_plate_grid()
     const ImVec2 origin   = ImGui::GetCursorScreenPos() + ImVec2(bleed, bleed); // follows the scroll position
     auto         cell_min = [&](int i) { return origin + ImVec2(std::round(float(i % cols) * pitch), std::round(float(i / cols) * pitch)); };
 
-    if (count == 1) { // the single plate, with the message across the free row below it
+    if (m_plate_count == 1) { // the single plate, with the message across the free row below it
         const std::string msg  = _u8L("There is only one plate. Add more plates to arrange them.");
         const float       wrap = cfg.grid_size - 2.f * cfg.plate_spacing;
         const ImVec2      tsz  = ImGui::CalcTextSize(msg.c_str(), nullptr, false, wrap);
@@ -251,8 +254,8 @@ void PlateArrangementDialog::render_plate_grid()
         dl->AddText(ImGui::GetFont(), ImGui::GetFontSize(), c - tsz * .5f, ImGui::GetColorU32(ImGuiCol_TextDisabled), msg.c_str(), nullptr, wrap);
     }
 
-    for (int i = 0; i < count; ++i) {
-        PartPlate* plate = list.get_plate(i);
+    for (int i = 0; i < m_plate_count; ++i) {
+        PartPlate* plate = m_plate_list->get_plate(i);
         ImGui::SetCursorScreenPos(cell_min(i));
         ImGui::PushID(i);
         ImGui::InvisibleButton("##plate", ImVec2(cell, cell));
@@ -280,7 +283,7 @@ void PlateArrangementDialog::render_plate_grid()
     if (m_drag.pressed && !m_drag.active && io.MouseDown[0]) {
         const ImVec2 d = io.MousePos - m_drag.press_pos;
         if (d.x * d.x + d.y * d.y > cfg.drag_threshold * cfg.drag_threshold) {
-            if (!is_selected(list.get_plate(m_drag.press_index)))
+            if (!is_selected(m_plate_list->get_plate(m_drag.press_index)))
                 select(m_drag.press_index, false, false);
             m_drag.active = true;
         }
@@ -292,8 +295,8 @@ void PlateArrangementDialog::render_plate_grid()
         const int    col   = std::clamp(int(std::floor(local.x / pitch)), 0, cols - 1);
         int          idx   = row * cols + col;
         bool         after = local.x - float(col) * pitch > cell * .5f;
-        if (idx >= count) { // past the last plate of the last row
-            idx   = count - 1;
+        if (idx >= m_plate_count) { // past the last plate of the last row
+            idx   = m_plate_count - 1;
             after = true;
         }
         const int insert    = idx + (after ? 1 : 0);
@@ -320,12 +323,11 @@ void PlateArrangementDialog::render_plate_grid()
 void PlateArrangementDialog::render_plate(ImDrawList* dl, PartPlate* plate, const ImVec2& pmin, float size, bool selected, bool hovered, float alpha) const
 {
     const GuiCfg&  cfg   = *m_gui_cfg;
-    PartPlateList& list  = wxGetApp().plater()->get_partplate_list();
     const ImVec2   pmax  = pmin + ImVec2(size, size);
     const float    inset = cfg.plate_inset;
     const float    inner = std::max(0.f, cfg.plate_rounding - inset);
 
-    auto w_alpha = [](ImVec4 c, float alpha) { c.w *= alpha; return c; }; // reduce on drag preview
+    auto w_alpha = [](ImVec4 c, float a) { c.w *= a; return c; }; // reduce on drag preview
     auto u32     = [](ImVec4 c) { return  ImGui::ColorConvertFloat4ToU32(c); };
 
     ImVec4 plate_tint = ImVec4(0.f, 0.f, 0.f, m_is_dark_mode ? .1f : .05f);
@@ -338,7 +340,7 @@ void PlateArrangementDialog::render_plate(ImDrawList* dl, PartPlate* plate, cons
     const std::string num   = std::to_string(plate->get_index() + 1);
     ImFont*           font  = ImGui::GetFont();
     const float       fsize = ImGui::GetFontSize() * cfg.no_font_scale * std::clamp(size / (2.f * cell_size(cfg.max_columns)), .8f, 1.f);
-    const ImVec2      ref   = font->CalcTextSizeA(fsize, FLT_MAX, 0.f, list.get_plate_count() > 9 ? "99" : "9");
+    const ImVec2      ref   = font->CalcTextSizeA(fsize, FLT_MAX, 0.f, m_plate_count > 9 ? "99" : "9");
     const float       side  = std::round(std::max(ref.x + fsize * .4f, ref.y));
     const ImVec2      bmin  = pmin + ImVec2(inset, inset);
     const ImVec2      tsz   = font->CalcTextSizeA(fsize, FLT_MAX, 0.f, num.c_str());
@@ -366,16 +368,15 @@ void PlateArrangementDialog::render_plate(ImDrawList* dl, PartPlate* plate, cons
 
 void PlateArrangementDialog::render_drag_preview() const
 {
-    const GuiCfg&  cfg  = *m_gui_cfg;
-    PartPlateList& list = wxGetApp().plater()->get_partplate_list();
-    PartPlate* lead = nullptr; // first dragged plate in plate order
+    const GuiCfg& cfg  = *m_gui_cfg;
+    PartPlate*    lead = nullptr; // first dragged plate in plate order
     for (PartPlate* p : m_selection)
         if (lead == nullptr || p->get_index() < lead->get_index())
             lead = p;
     if (lead == nullptr)
         return;
 
-    const float  size = cell_size(grid_columns(list.get_plate_count())) * cfg.ghost_scale;
+    const float  size = cell_size(grid_columns(m_plate_count)) * cfg.ghost_scale;
     const ImVec2 pmin = ImGui::GetIO().MousePos - m_drag.grab_offset * cfg.ghost_scale;
     ImDrawList*  dl   = ImGui::GetForegroundDrawList();
     render_plate(dl, lead, pmin, size, true, false, cfg.ghost_alpha);
@@ -394,7 +395,6 @@ void PlateArrangementDialog::render_bottom_bar()
 {
     const GuiCfg& cfg    = *m_gui_cfg;
     Plater*       plater = wxGetApp().plater();
-    const int     count  = plater->get_partplate_list().get_plate_count();
     const float   btn    = cfg.button_size;
     const float   gap    = cfg.item_spacing;
     const float   group  = cfg.group_spacing;
@@ -526,7 +526,7 @@ void PlateArrangementDialog::render_bottom_bar()
         m_imgui->tooltip(_u8L("Add plate"), ImGui::GetFontSize() * 20.f);
 
     ImGui::SameLine(0.f, group); // apart from Add, as it removes plates
-    if (m_imgui->button(_L("Remove"), ImVec2(cfg.delete_width, cfg.button_size), (count > 1 && int(m_selection.size()) < count))){
+    if (m_imgui->button(_L("Remove"), ImVec2(cfg.delete_width, cfg.button_size), (m_plate_count > 1 && int(m_selection.size()) < m_plate_count))){
         std::vector<int> indices;
         for (PartPlate* plate : m_selection)
             indices.push_back(plate->get_index());
@@ -548,7 +548,7 @@ bool PlateArrangementDialog::render_icon_button(iconId icon, bool enabled, const
     const GuiCfg&            cfg  = *m_gui_cfg;
     const IconManager::Icon& i    = *m_icons[size_t(icon)].front();
     const float              size = cfg.button_size - 2.f * cfg.button_padding;
-    auto shade = [&](const ImVec4& c, bool dark, float a /*amount*/) { // lighter in dark mode, darker in light mode
+    auto shade = [](const ImVec4& c, bool dark, float a /*amount*/) { // lighter in dark mode, darker in light mode
         return dark ? ImVec4(c.x + (1.f - c.x) * a, c.y + (1.f - c.y) * a, c.z + (1.f - c.z) * a, c.w) :
                       ImVec4(c.x * (1.f - a)      , c.y * (1.f - a)      , c.z * (1.f - a)      , c.w);
     };
@@ -603,9 +603,9 @@ void PlateArrangementDialog::create_gui_cfg()
 
 int PlateArrangementDialog::index_of(PartPlate* plate) // -1 once the plate is gone
 {
-    PartPlateList& list = wxGetApp().plater()->get_partplate_list();
-    for (int i = 0; i < list.get_plate_count(); ++i)
-        if (list.get_plate(i) == plate)
+    // Called from CallAfter(), after the plates may have changed: the live count, not the frame's.
+    for (int i = 0; i < m_plate_list->get_plate_count(); ++i)
+        if (m_plate_list->get_plate(i) == plate)
             return i;
     return -1;
 }
@@ -615,13 +615,12 @@ float PlateArrangementDialog::cell_size(int cols) const
     return (m_gui_cfg->grid_size - (cols - 1) * m_gui_cfg->plate_spacing) / cols;
 }
 
-void PlateArrangementDialog::update_plates(int count)
+void PlateArrangementDialog::update_plates()
 {
     // Forget plates deleted since the last frame (undo, the plate's delete icon, ...).
-    PartPlateList&       list = wxGetApp().plater()->get_partplate_list();
     std::set<PartPlate*> alive;
-    for (int i = 0; i < count; ++i)
-        alive.insert(list.get_plate(i));
+    for (int i = 0; i < m_plate_count; ++i)
+        alive.insert(m_plate_list->get_plate(i));
     for (auto it = m_selection.begin(); it != m_selection.end();)
         it = alive.count(*it) ? std::next(it) : m_selection.erase(it);
     for (auto it = m_thumbnails.begin(); it != m_thumbnails.end();)
@@ -631,7 +630,7 @@ void PlateArrangementDialog::update_plates(int count)
             *p = nullptr;
 
     // Follow the plate picked in the 3D view, or made current by adding / deleting plates.
-    PartPlate* curr = list.get_curr_plate();
+    PartPlate* curr = m_plate_list->get_curr_plate();
     if (*m_pending_switches == 0 && curr != m_canvas_plate) {
         m_canvas_plate = curr;
         m_selection.clear();
@@ -641,33 +640,31 @@ void PlateArrangementDialog::update_plates(int count)
     if (m_cursor == nullptr && !m_selection.empty())
         m_cursor = *m_selection.begin();
     // No drag can end on a grid shown for a single plate's sake.
-    if (count < 2)
+    if (m_plate_count < 2)
         m_drag = Drag();
 }
 
-void PlateArrangementDialog::update_thumbnails(int count)
+void PlateArrangementDialog::update_thumbnails()
 {
     // Wait until a drag (of plates, objects or the camera) ends: re-rendering on every move would stall it.
     if (ImGui::GetIO().MouseDown[0])
         return;
 
-    Plater*        plater = wxGetApp().plater();
-    PartPlateList& list   = plater->get_partplate_list();
     // Rendered at 2x the cell for crisp previews on HiDPI screens.
-    const int px = std::clamp(int(std::ceil(cell_size(grid_columns(count)) * 2.f)), 64, m_gui_cfg->thumbnail_max);
+    const int px = std::clamp(int(std::ceil(cell_size(grid_columns(m_plate_count)) * 2.f)), 64, m_gui_cfg->thumbnail_max);
 
-    if (plater->is_gcode_3mf()) { // no model to render from: use the previews stored in the 3mf
-        for (int i = 0; i < count; ++i)
-            if (Thumbnail& t = m_thumbnails[list.get_plate(i)]; !t.texture) {
+    if (wxGetApp().plater()->is_gcode_3mf()) { // no model to render from: use the previews stored in the 3mf
+        for (int i = 0; i < m_plate_count; ++i)
+            if (Thumbnail& t = m_thumbnails[m_plate_list->get_plate(i)]; !t.texture) {
                 t.texture = std::make_unique<IMToolbarItem>();
-                t.texture->set_thumbnail(list.get_plate(i)->thumbnail_data);
+                t.texture->set_thumbnail(m_plate_list->get_plate(i)->thumbnail_data);
             }
         return;
     }
 
     // Fingerprints, per plate, what the thumbnail renderer draws: which volumes, their geometry, placement and color
     // re-rendered when its fingerprint changes, whatever code path changed the scene.
-    std::vector<std::size_t> fingerprints(size_t(count), 0);
+    std::vector<std::size_t> fingerprints(size_t(m_plate_count), 0);
     std::map<std::pair<int, int>, int> plate_of; // (object, instance) -> plate index
 
     auto hash_combine = [](std::size_t& seed, const auto& v) {
@@ -679,8 +676,8 @@ void PlateArrangementDialog::update_thumbnails(int count)
         if (v == nullptr || v->is_wipe_tower || v->object_idx() < 0)
             continue;
         const auto [it, added] = plate_of.try_emplace({ v->composite_id.object_id, v->composite_id.instance_id }, -1);
-        for (int i = 0; added && i < count; ++i)
-            if (list.get_plate(i)->contain_instance(it->first.first, it->first.second)) {
+        for (int i = 0; added && i < m_plate_count; ++i)
+            if (m_plate_list->get_plate(i)->contain_instance(it->first.first, it->first.second)) {
                 it->second = i;
                 break;
             }
@@ -699,8 +696,8 @@ void PlateArrangementDialog::update_thumbnails(int count)
             hash_combine(h, v->color.data()[k]);
     }
 
-    for (int i = 0; i < count; ++i) {
-        Thumbnail& t = m_thumbnails[list.get_plate(i)];
+    for (int i = 0; i < m_plate_count; ++i) {
+        Thumbnail& t = m_thumbnails[m_plate_list->get_plate(i)];
         if (t.texture && t.fingerprint == fingerprints[size_t(i)] && t.px == px)
             continue;
         ThumbnailData data;
@@ -729,9 +726,8 @@ void PlateArrangementDialog::update_icons()
 
 void PlateArrangementDialog::select(int index, bool extend, bool toggle)
 {
-    PartPlateList& list  = wxGetApp().plater()->get_partplate_list();
-    PartPlate*     plate = list.get_plate(index);
-    m_cursor             = plate;
+    PartPlate* plate = m_plate_list->get_plate(index);
+    m_cursor         = plate;
 
     if (toggle && !extend) { // Ctrl + click: the canvas keeps its plate
         if (is_selected(plate) && m_selection.size() > 1)
@@ -746,7 +742,7 @@ void PlateArrangementDialog::select(int index, bool extend, bool toggle)
             m_selection.clear();
         const int a = m_anchor->get_index();
         for (int i = std::min(a, index); i <= std::max(a, index); ++i)
-            m_selection.insert(list.get_plate(i));
+            m_selection.insert(m_plate_list->get_plate(i));
     } else
         m_selection = { m_anchor = plate };
     set_canvas_plate(index);
@@ -754,15 +750,14 @@ void PlateArrangementDialog::select(int index, bool extend, bool toggle)
 
 void PlateArrangementDialog::set_canvas_plate(int index)
 {
-    PartPlateList& list  = wxGetApp().plater()->get_partplate_list();
-    PartPlate*     plate = list.get_plate(index);
+    PartPlate* plate = m_plate_list->get_plate(index);
     if (plate == m_canvas_plate)
         return;
     m_canvas_plate = plate;
     ++*m_pending_switches;
-    wxGetApp().plater()->CallAfter([this, plate, &list, pending = m_pending_switches]() {
+    wxGetApp().plater()->CallAfter([this, plate, pending = m_pending_switches]() {
         --*pending;
-        if (const int i = index_of(plate); i >= 0 && i != list.get_curr_plate_index()) {
+        if (const int i = index_of(plate); i >= 0 && i != m_plate_list->get_curr_plate_index()) {
             wxGetApp().plater()->select_plate(i);
             wxGetApp().plater()->deselect_all();
         }
@@ -771,10 +766,9 @@ void PlateArrangementDialog::set_canvas_plate(int index)
 
 std::vector<bool> PlateArrangementDialog::selection_mask() const
 {
-    PartPlateList&    list = wxGetApp().plater()->get_partplate_list();
-    std::vector<bool> mask(size_t(list.get_plate_count()));
+    std::vector<bool> mask(static_cast<size_t>(m_plate_count));
     for (size_t i = 0; i < mask.size(); ++i)
-        mask[i] = is_selected(list.get_plate(int(i)));
+        mask[i] = is_selected(m_plate_list->get_plate(int(i)));
     return mask;
 }
 

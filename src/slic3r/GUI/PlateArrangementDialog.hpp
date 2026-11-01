@@ -22,6 +22,7 @@ class GLCanvas3D;
 class ImGuiWrapper;
 class IMToolbarItem;
 class PartPlate;
+class PartPlateList;
 
 // ImGui window on the Prepare canvas for arranging plates by drag & drop, keyboard or the bottom bar buttons.
 // Every change is applied to the plate list right away, as one undo step. Laid out like a gizmo: GLCanvas3D owns
@@ -85,8 +86,8 @@ private:
     int index_of(PartPlate* plate);
 
     // Plates, previews and icons, brought up to date before each frame.
-    void update_plates(int count);
-    void update_thumbnails(int count);
+    void update_plates();
+    void update_thumbnails();
     void update_icons();
 
     // Selection. The cursor is the plate keyboard moves start from; it is also the canvas' current plate.
@@ -152,9 +153,13 @@ private:
         int                            px{ 0 };
     };
 
-    GLCanvas3D&   m_parent;
-    ImGuiWrapper* m_imgui;
-    bool          m_is_dark_mode{ false };
+    GLCanvas3D&    m_parent;
+    ImGuiWrapper*  m_imgui;
+    bool           m_is_dark_mode{ false };
+    // The plates, fetched by render_input_window() for every function; on_set_state() fetches them for opening,
+    // on_key() refreshes the count between frames.
+    PartPlateList* m_plate_list{ nullptr };
+    int            m_plate_count{ 0 };
 
     bool   m_open{ false };
     bool   m_focused{ false };       // the window had the ImGui focus in the last frame
