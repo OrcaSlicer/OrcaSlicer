@@ -776,14 +776,21 @@ void ArrangeJob::pack_tighter(Ctl &ctl, ArrangePolygons &selected, const Points 
     ctl.update_status(0, _u8L("Packing tighter..."));
 
     // Show the stock result first, held for a moment before sparrow's layouts replace it.
-    std::vector<arrangement::ArrangeParams::Pose> stock;
+    // The stock arranger may reorder its items, so poses follow m_live_aps by item id.
+    std::map<int, const ArrangePolygon *> stock_by_id;
     for (const ArrangePolygon &ap : m_selected)
-        stock.push_back({ap.bed_idx, ap.translation, ap.rotation});
+        stock_by_id[ap.itemid] = &ap;
+    std::vector<arrangement::ArrangeParams::Pose> stock;
+    for (const ArrangePolygon &ap : m_live_aps) {
+        const auto it = stock_by_id.find(ap.itemid);
+        stock.push_back(it == stock_by_id.end() ? arrangement::ArrangeParams::Pose{ap.bed_idx, ap.translation, ap.rotation}
+                                                : arrangement::ArrangeParams::Pose{it->second->bed_idx, it->second->translation, it->second->rotation});
+    }
     const std::shared_ptr<std::atomic<bool>> alive = m_live_alive;
-    m_live_open = true;
     wxGetApp().CallAfter([this, alive, stock] {
         if (!alive->load())
             return;
+        m_live_open = true;
         m_live_stock = stock;
         apply_live(stock);
     });
