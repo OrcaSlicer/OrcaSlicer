@@ -560,6 +560,39 @@ jobs:
           }
         shell: powershell
 
+      - name: Debug preset cache environment (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          Write-Host "=== Debug: Build directory state ==="
+          Write-Host "BUILD_DIR = $env:BUILD_DIR"
+          Write-Host "BUILD_DIR exists: $(Test-Path $env:BUILD_DIR)"
+          if (Test-Path $env:BUILD_DIR) {
+            Get-ChildItem $env:BUILD_DIR | Select-Object Name, LastWriteTime
+          }
+          Write-Host "=== Searching for generate_system_cache.exe ==="
+          $tools = Get-ChildItem -Path $env:BUILD_DIR -Filter "generate_system_cache.exe" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
+          if ($tools) {
+            $tools | ForEach-Object { Write-Host "Found: $($_.FullName) (LastWrite: $($_.LastWriteTime))" }
+          } else {
+            Write-Host "generate_system_cache.exe NOT FOUND"
+          }
+          Write-Host "=== Searching for TKernel.dll ==="
+          $tkernel = Get-ChildItem -Path $env:BUILD_DIR -Filter "TKernel.dll" -Recurse -ErrorAction SilentlyContinue
+          if ($tkernel) {
+            $tkernel | ForEach-Object { Write-Host "Found TKernel.dll: $($_.FullName)" }
+          } else {
+            Write-Host "TKernel.dll NOT FOUND"
+          }
+          Write-Host "=== Checking build directory structure ==="
+          if (Test-Path "$env:BUILD_DIR\OrcaSlicer\resources\profiles") {
+            Write-Host "Target dir exists: $env:BUILD_DIR\OrcaSlicer\resources\profiles"
+          } else {
+            Write-Host "Target dir NOT FOUND: $env:BUILD_DIR\OrcaSlicer\resources\profiles"
+          }
+          Write-Host "=== PATH ==="
+          Write-Host $env:PATH
+
       - name: Build system preset cache (Windows)
         if: runner.os == 'Windows'
         shell: powershell
