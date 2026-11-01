@@ -1490,14 +1490,9 @@ std::string GCodeWriter::_retract(double length, double restart_extra, const std
             gcode = FLAVOR_IS(gcfMachinekit) ? "G22 ; retract\n" : "G10 ; retract\n";
         }
         else {
-            // BBS
             const bool high_precision = this->high_precision();
             GCodeG1Formatter w(high_precision);
-            w.emit_e(filament()->E_to_emit(high_precision));
-            w.emit_f(filament()->retract_speed() * 60.);
-            // BBS
-            w.emit_comment(GCodeWriter::full_gcode_comment, comment);
-            gcode = w.string();
+            gcode = this->emit_retract(filament()->E_to_emit(high_precision), comment);
         }
     }
 
@@ -1520,21 +1515,41 @@ std::string GCodeWriter::unretract(float extra_retract)
             gcode += this->reset_e();
         }
         else {
-            //BBS
-            // use G1 instead of G0 because G0 will blend the restart with the previous travel move
             const bool high_precision = this->high_precision();
             GCodeG1Formatter w(high_precision);
-            // extra_retract over-extrudes for the PETG pre-extrusion; 0 by
-            // default -> identical to the plain deretract E position.
-            w.emit_e(filament()->E_to_emit(high_precision, extra_retract));
-            w.emit_f(filament()->deretract_speed() * 60.);
-            //BBS
-            w.emit_comment(GCodeWriter::full_gcode_comment, " ; unretract");
-            gcode += w.string();
+            gcode = this->emit_unretract(filament()->E_to_emit(high_precision, extra_retract), " ; unretract");
         }
     }
-
+    
     return gcode;
+}
+
+std::string GCodeWriter::emit_retract(double E, std::string comment)
+{
+    //BBS
+    // use G1 instead of G0 because G0 will blend the restart with the previous travel move
+    GCodeG1Formatter w;
+    w.emit_e(E);
+    w.emit_f(filament()->retract_speed() * 60.);
+    //BBS
+    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+
+    return w.string();
+}
+
+std::string GCodeWriter::emit_unretract(double E, std::string comment)
+{
+    //BBS
+    // use G1 instead of G0 because G0 will blend the restart with the previous travel move
+    GCodeG1Formatter w;
+    // extra_retract over-extrudes for the PETG pre-extrusion; 0 by
+    // default -> identical to the plain deretract E position.
+    w.emit_e(E);
+    w.emit_f(filament()->deretract_speed() * 60.);
+    //BBS
+    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+
+    return w.string();
 }
 
 
