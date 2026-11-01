@@ -60,6 +60,9 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                                                               // Overlap (1 - distance / flow_width) at or below which the overhang
                                                               // fan switches on; negative when the fan does not depend on overlap.
                                                               float                                   fan_overlap_threshold = -1.0f,
+                                                              // Overlap at or below which an extrusion no longer takes part in slowing down for
+                                                              // layer cooling; negative when every extrusion takes part.
+                                                              float                                   cooling_exclusion_overlap_threshold = -1.0f,
                                                               // Returns an input point's signed distance if already known, else nullptr.
                                                               const KNOWN_DISTANCES&                  known_distance = KNOWN_DISTANCES{})
 {
@@ -156,16 +159,22 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
     auto fan_on = [fan_overlap_threshold, width_inv](float distance) {
         return fan_overlap_threshold >= 0.f && 1.f - distance * width_inv <= fan_overlap_threshold;
     };
+    // Whether an overhang distance is excluded from slowing down for layer cooling.
+    auto excluded_from_cooling = [cooling_exclusion_overlap_threshold, width_inv](float distance) {
+        return cooling_exclusion_overlap_threshold >= 0.f && 1.f - distance * width_inv <= cooling_exclusion_overlap_threshold;
+    };
     // Whether two overhang distances are interchangeable ie have the same speed (beyond a 1mm/sec threshold that gcode.cpp filters out on) 
-    // and the same fan state.
-    auto same_speed_and_fan = [&distance_to_speed, &fan_on](float a, float b) {
-        return std::abs(distance_to_speed(a) - distance_to_speed(b)) <= 1.f && fan_on(a) == fan_on(b);
+    // and the same fan state and take part in slowing down for layer cooling alike.
+    auto same_speed_and_fan = [&distance_to_speed, &fan_on, &excluded_from_cooling](float a, float b) {
+        return std::abs(distance_to_speed(a) - distance_to_speed(b)) <= 1.f && fan_on(a) == fan_on(b) &&
+               excluded_from_cooling(a) == excluded_from_cooling(b);
     };
     // Whether the first overhang distance prints slower than the second, beyond the 1mm/sec gcode.cpp tolerance, or turns the overhang
     // fan on where the second does not. Against a supported point (overhang distance 0) it tells whether an end is
     // affected by the overhang.
-    auto slower_or_cooled = [&distance_to_speed, &fan_on](float a, float b) {
-        return distance_to_speed(a) < distance_to_speed(b) - 1.f || (fan_on(a) && !fan_on(b));
+    auto slower_or_cooled = [&distance_to_speed, &fan_on, &excluded_from_cooling](float a, float b) {
+        return distance_to_speed(a) < distance_to_speed(b) - 1.f || (fan_on(a) && !fan_on(b)) ||
+               (excluded_from_cooling(a) && !excluded_from_cooling(b));
     };
 
     // ORCA: Interior sampling
@@ -177,7 +186,7 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
     // Skipped where there is nothing to find: min_distance <= 0 when no overhang can slow this path down, and
     // fan_overlap_threshold < 0 when no overhang switches the fan on. It also needs distance_to_speed to tell which of
     // the points it could add would change the G-code.
-    if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && distance_to_speed && (min_distance > 0 || fan_overlap_threshold >= 0.f)) {
+    if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && distance_to_speed && (min_distance > 0 || fan_overlap_threshold >= 0.f || cooling_exclusion_overlap_threshold >= 0.f)) {
         // Probe at least this densely before treating matching samples as evidence that a span is uniform. The
         // segmentation pass below only splits lines of 2mm or more, and every pass here drops points closer
         // together than min_spacing, so finer discovery would not produce a more precise transition.
@@ -546,7 +555,10 @@ public:
                                                            bool								   slowdown_for_curled_edges,
                                                            // Overlap at or below which the overhang fan switches on; negative when the fan
                                                            // does not depend on overlap.
-                                                           float                               fan_overlap_threshold = -1.0f)
+                                                           float                               fan_overlap_threshold = -1.0f,
+                                                           // Overlap at or below which an extrusion no longer takes part in slowing down
+                                                           // for layer cooling; negative when every extrusion takes part.
+                                                           float                               cooling_exclusion_overlap_threshold = -1.0f)
     {
         size_t                               speed_sections_count = std::min(overlaps.values.size(), speeds.values.size());
         std::vector<std::pair<float, float>> speed_sections;
@@ -636,7 +648,7 @@ public:
         std::vector<ExtendedPoint<3>> extended_points =
             estimate_points_properties<true, true, true, true, false>(path.polyline.points, prev_boundaries, path.width, -1,
                                                                smallest_distance_with_lower_speed, effective_speed, fan_overlap_threshold,
-                                                               known_distance);
+                                                               cooling_exclusion_overlap_threshold, known_distance);
         const auto width_inv = 1.0f / path.width;
         std::vector<ProcessedPoint> processed_points;
         processed_points.reserve(extended_points.size());

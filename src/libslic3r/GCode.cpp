@@ -9587,6 +9587,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     }
 }
     
+    // ORCA: Overhangs steeper than "Overhang threshold for slowing down", and bridges, are left out of slowing down for
+    // layer cooling. The cooling buffer only slows down what carries the _EXTRUDE_SET_SPEED marker.
+    const int cooling_boundary = m_enable_cooling_markers && FILAMENT_CONFIG(slow_down_for_layer_cooling) ?
+        FILAMENT_CONFIG(overhang_threshold_participating_cooling) : int(Overhang_threshold_participating_cooling_bridge);
+    const bool path_excluded_from_cooling = cooling_boundary < Overhang_threshold_participating_cooling_bridge && is_bridge(path.role());
+    // Overlap at or below which an extrusion of this path is left out; negative when all of it takes part.
+    const float cooling_exclusion_overlap_threshold = cooling_boundary < Overhang_threshold_participating_cooling_bridge && !path_excluded_from_cooling ?
+        overhang_fan_overlap_threshold(cooling_boundary + 1) : -1.f;
+
     bool requires_segmented_extrusion = false;
     // A uniform fan state can be represented by the normal path-wide marker. Only a
     // transition within the path requires point-by-point emission.
@@ -9594,7 +9603,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     std::vector<ProcessedPoint> new_points {};
 
     const bool need_overhang_detection = NOZZLE_CONFIG(enable_overhang_speed) ||
-        (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers);
+        (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) || cooling_exclusion_overlap_threshold >= 0.f;
 
     if (need_overhang_detection && !path_on_first_layer && !object_layer_over_raft() &&
         (is_bridge(path.role()) || is_perimeter(path.role()))) {
@@ -9643,7 +9652,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
                                                                               ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
-                                                                              fan_overlap_threshold);
+                                                                              fan_overlap_threshold, cooling_exclusion_overlap_threshold);
         	}else{
                 ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
                                                                      {FloatOrPercent{100, true},
@@ -9663,13 +9672,19 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
                                                                               ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
-                                                                              fan_overlap_threshold);
+                                                                              fan_overlap_threshold, cooling_exclusion_overlap_threshold);
             }
             if (!NOZZLE_CONFIG(enable_overhang_speed))
                 for (ProcessedPoint &point : new_points)
                     point.speed = speed;
             requires_segmented_extrusion = std::any_of(new_points.begin(), new_points.end(),
                 [speed](const ProcessedPoint &point) { return fabs(double(point.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
+            // A change in whether an extrusion takes part in slowing down needs a separate extrusion move as well.
+            if (cooling_exclusion_overlap_threshold >= 0.f && !requires_segmented_extrusion)
+                requires_segmented_extrusion = std::adjacent_find(new_points.begin(), new_points.end(),
+                    [cooling_exclusion_overlap_threshold](const ProcessedPoint &previous, const ProcessedPoint &current) {
+                        return (previous.overlap <= cooling_exclusion_overlap_threshold) != (current.overlap <= cooling_exclusion_overlap_threshold);
+                    }) != new_points.end();
             if (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers && fan_overlap_threshold >= 0.f &&
                 !new_points.empty()) {
                 path_overhang_fan_active = new_points.front().overlap <= fan_overlap_threshold;
@@ -9829,10 +9844,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     //    { "75%", Overhang_threshold_4_4 },
     //    { "95%", Overhang_threshold_bridge }
     std::string comment;
+    // The marker that lets the cooling buffer slow an extrusion down; left out where the extrusion is excluded.
+    constexpr std::string_view extrude_set_speed_marker = ";_EXTRUDE_SET_SPEED";
+    std::string                comment_excluded;
     if (m_enable_cooling_markers) {
-        comment = ";_EXTRUDE_SET_SPEED";
         if (is_external_perimeter(path.role()))
-            comment += ";_EXTERNAL_PERIMETER";
+            comment_excluded = ";_EXTERNAL_PERIMETER";
+        comment = path_excluded_from_cooling ? comment_excluded : std::string(extrude_set_speed_marker) + comment_excluded;
     }
 
     // Change fan speed based on current extrusion role
@@ -10093,7 +10111,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
             Polyline3 l(p);
             total_length = l.length() * SCALING_FACTOR;
         }
-        m_writer.set_speed(gcode, last_set_speed, "", comment);
+        // ORCA: Whether the extrusion printed last is left out of slowing down for layer cooling.
+        bool cooling_excluded = path_excluded_from_cooling ||
+            (cooling_exclusion_overlap_threshold >= 0.f && new_points[0].overlap <= cooling_exclusion_overlap_threshold);
+        m_writer.set_speed(gcode, last_set_speed, "", cooling_excluded ? comment_excluded : comment);
         Vec3d prev            = this->point_to_gcode_quantized(new_points[0].p);
         bool pre_fan_enabled = false;
         bool cur_fan_enabled = false;
@@ -10170,13 +10191,25 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                 }
             }// ORCA: End of adaptive PA code segment
             
+            // ORCA: The move takes part in slowing down for layer cooling unless the path or its overlap says otherwise. Closing
+            // the block of the previous move and setting the speed again, with or without the marker, switches the state.
+            const bool move_excluded = path_excluded_from_cooling ||
+                (cooling_exclusion_overlap_threshold >= 0.f && pre_processed_point.overlap <= cooling_exclusion_overlap_threshold);
+            if (m_enable_cooling_markers && move_excluded != cooling_excluded) {
+                gcode += ";_EXTRUDE_END\n";
+                cooling_excluded = move_excluded;
+                m_writer.set_speed(gcode, new_speed, "", cooling_excluded ? comment_excluded : comment);
+                last_set_speed = new_speed;
+            }
+            const std::string &speed_comment = cooling_excluded ? comment_excluded : comment;
+
             // Ignore small speed variations - emit speed change if the delta between current and new is greater than 60mm/min / 1mm/sec
             // Reset speed to F if delta to F is less than 1mm/sec
             if ((std::abs(last_set_speed - new_speed) > 60)) {
-                m_writer.set_speed(gcode, new_speed, "", comment);
+                m_writer.set_speed(gcode, new_speed, "", speed_comment);
                 last_set_speed = new_speed;
             } else if ((std::abs(F - new_speed) <= 60)) {
-                m_writer.set_speed(gcode, F, "", comment);
+                m_writer.set_speed(gcode, F, "", speed_comment);
                 last_set_speed = F;
             }
             auto dE = e_per_mm * line_length;
