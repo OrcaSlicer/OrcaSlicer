@@ -376,6 +376,7 @@ struct CadFeature {
     Vec3d       xf_pivot{0, 0, 0};
     double      xf_angle_deg{0};
     bool        xf_copy{false};      // true: keep the original, append the moved copy as a new body
+    double      xf_scale{1.0};       // uniform scale about xf_pivot, applied before the rotation and the move
 
     // Thicken feature: offset one face of an existing body into a new thin solid body.
     // The face belongs to `target_body`; the offset runs along the face normal.
