@@ -9752,7 +9752,7 @@ msgstr "Argitaratutako ezarpen batzuk ezin izan dira aplikatu:"
 msgid "Some filament slots were changed:"
 msgstr "Filamentu-erreten batzuk aldatu dira:"
 
-msgid "Component name(s) inside step file not in UTF-8 format!"
+msgid "Component name(s) inside STEP file not in UTF-8 format!"
 msgstr "STEP fitxategiko osagai-izena(k) ez dago/daude UTF-8 formatuan!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -23318,8 +23318,8 @@ msgid "Expecting a regular expression."
 msgstr "Adierazpen erregular bat espero zen."
 
 # AI Translated
-msgid "Invalid utf8 sequence"
-msgstr "utf8 sekuentzia baliogabea"
+msgid "Invalid UTF-8 sequence"
+msgstr "UTF-8 sekuentzia baliogabea"
 
 # AI Translated
 msgid "Non-ASCII7 characters are only allowed inside text blocks and string literals, not inside code blocks."
@@ -26049,7 +26049,7 @@ msgstr "s"
 msgid "Volumetric speed"
 msgstr "Abiadura bolumetrikoa"
 
-msgid "Step file import parameters"
+msgid "STEP file import parameters"
 msgstr "STEP fitxategia inportatzeko parametroak"
 
 msgid "Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."
@@ -37474,18 +37474,18 @@ msgstr "%1% fitxategitik atera den konfigurazio-balio kopurua susmagarriki txiki
 
 # AI Translated
 msgid ""
-"Load step file failed.\n"
+"Load STEP file failed.\n"
 "Cannot open file for reading.\n"
 msgstr ""
 "STEP fitxategia kargatzeak huts egin du.\n"
 "Ezin da fitxategia ireki irakurtzeko.\n"
 
 # AI Translated
-msgid "import svg failed: could not open svg."
+msgid "import SVG failed: could not open svg."
 msgstr "SVG inportatzeak huts egin du: ezin izan da SVGa ireki."
 
 # AI Translated
-msgid "import svg failed: could not parse imported svg data."
+msgid "import SVG failed: could not parse imported svg data."
 msgstr "SVG inportatzeak huts egin du: ezin izan dira inportatutako SVG datuak analizatu."
 
 # AI Translated

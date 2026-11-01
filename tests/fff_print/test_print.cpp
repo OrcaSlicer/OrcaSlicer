@@ -932,6 +932,38 @@ TEST_CASE("Plate name reaches the G-code once G-code export is invalidated", "[P
     CHECK(regenerated.find("; Plate First") == std::string::npos);
 }
 
+// The background thread drops its own export when an in-place edit of the file fails. The print's cancel
+// callback stops that thread and waits for it, so the invalidation must not call it.
+TEST_CASE("An export the background thread invalidates is written again without re-slicing", "[Print]")
+{
+    // Declared before the print, whose destructor calls the cancel callback too.
+    bool cancel_called = false;
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model);
+    print.set_status_silent();
+    print.set_cancel_callback([&cancel_called]() { cancel_called = true; });
+
+    ScopedTemporaryFile output(".gcode");
+    print.process();
+    print.export_gcode(output.string(), nullptr, nullptr);
+    REQUIRE(print.finished());
+    // What a post-processing script that failed half way leaves in the file.
+    std::ofstream(output.string(), std::ios::app) << "; half edited\n";
+
+    print.invalidate_gcode_export_from_worker();
+    CHECK_FALSE(print.finished());
+    CHECK_FALSE(cancel_called);
+    CHECK(print.objects().front()->is_step_done(posSlice));
+
+    print.process();
+    print.export_gcode(output.string(), nullptr, nullptr);
+    CHECK(print.finished());
+    std::ifstream in(output.string(), std::ios::binary);
+    const std::string gcode((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    CHECK(gcode.find("; half edited") == std::string::npos);
+}
+
 // The layer change G-code runs before its layer prints, so the layer mass it gets is the previous layer's.
 TEST_CASE("Layer change G-code gets the previous layer's mass under both placeholder names", "[Print]")
 {

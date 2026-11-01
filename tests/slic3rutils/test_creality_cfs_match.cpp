@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <string>
 #include <vector>
 
 #include "libslic3r/Preset.hpp"
@@ -234,4 +235,75 @@ TEST_CASE("A third party spool matches its preset inside the printer vendor's bu
     // ... and a Creality spool still prefers Creality's own generic over the eSUN preset, which
     // carries Creality's profile too but adds a brand word the spool never claimed.
     CHECK(match(with_third_party, "Creality", "", "PLA") == "PLA-GENERIC");
+}
+
+TEST_CASE("A spool the printer cannot name matches no preset", "[CFS][Creality]")
+{
+    CHECK(match(k2_stock_nozzle, "", "", "").empty());
+}
+
+// A K2 SE lists a loaded spool whose RFID tag the firmware does not know with only its colour
+// (vendor, type and name blank, state 2) and shows it on the printer; the slicer must list it
+// too. The empty slot 3 and the external spool holder (box type 1) are what gets skipped.
+TEST_CASE("The K2 CFS box response keeps a loaded spool the printer cannot name", "[CFS][Creality]")
+{
+    const std::string response = R"({"boxsInfo":{"name":"MF003","materialBoxs":[
+        {"id":0,"state":0,"type":1,"materials":[
+            {"id":0,"vendor":"","type":"","color":"","name":"","rfid":"0","state":1,"percent":100,"editStatus":2}]},
+        {"id":1,"state":1,"type":0,"temp":23,"humidity":56,"materials":[
+            {"id":0,"vendor":"Creality","type":"PLA","name":"Hyper PLA","rfid":"01001","color":"#0ffffff",
+             "percent":100,"state":2,"selected":0,"editStatus":0,"remaining_length":330000},
+            {"id":1,"vendor":"Creality","type":"PLA","name":"Hyper PLA","rfid":"01001","color":"#0000000",
+             "percent":58,"state":2,"selected":0,"editStatus":0,"remaining_length":191400},
+            {"id":2,"vendor":"","type":"","name":"","rfid":"504C4","color":"#7592d31",
+             "percent":96,"state":2,"selected":0,"editStatus":0,"remaining_length":2915520},
+            {"id":3,"vendor":"","type":"","name":"","rfid":"","color":"",
+             "percent":100,"state":0,"selected":0,"editStatus":0}]}]}})";
+    std::vector<CrealityPrintAgent::CFSSlot> slots;
+    int                                      box_count = 0;
+    std::string                              error;
+    REQUIRE(CrealityPrintAgent::parse_cfs_response(response, slots, box_count, error));
+    CHECK(box_count == 1);
+    REQUIRE(slots.size() == 3);
+    CHECK(slots[0].slot_id == 0);
+    CHECK(slots[0].filament_type == "PLA");
+    CHECK(slots[0].brand_name == "Hyper PLA");
+    CHECK(slots[0].color_hex == "#ffffff");
+    CHECK(slots[1].slot_id == 1);
+    CHECK(slots[2].slot_id == 2);
+    CHECK(slots[2].box_id == 0);
+    CHECK(slots[2].vendor.empty());
+    CHECK(slots[2].filament_type.empty());
+    CHECK(slots[2].color_hex == "#592d31");
+}
+
+TEST_CASE("The K2 CFS box response skips a slot that reports neither material nor colour", "[CFS][Creality]")
+{
+    const std::string response = R"({"boxsInfo":{"materialBoxs":[
+        {"id":1,"state":1,"type":0,"materials":[
+            {"id":0,"vendor":"","type":"","name":"","color":"","state":2},
+            {"id":1,"vendor":"Creality","type":"PETG","name":"","color":"#0ff1e1e","state":1}]}]}})";
+    std::vector<CrealityPrintAgent::CFSSlot> slots;
+    int                                      box_count = 0;
+    std::string                              error;
+    REQUIRE(CrealityPrintAgent::parse_cfs_response(response, slots, box_count, error));
+    CHECK(box_count == 1);
+    REQUIRE(slots.size() == 1);
+    CHECK(slots[0].slot_id == 1);
+    CHECK(slots[0].filament_type == "PETG");
+}
+
+TEST_CASE("The K2 CFS box response reads a null or mistyped field as blank", "[CFS][Creality]")
+{
+    const std::string response = R"({"boxsInfo":{"materialBoxs":[
+        {"id":1,"state":1,"type":0,"materials":[
+            {"id":0,"vendor":null,"type":"PLA","name":7,"color":"#0ffffff","state":1}]}]}})";
+    std::vector<CrealityPrintAgent::CFSSlot> slots;
+    int                                      box_count = 0;
+    std::string                              error;
+    REQUIRE(CrealityPrintAgent::parse_cfs_response(response, slots, box_count, error));
+    REQUIRE(slots.size() == 1);
+    CHECK(slots[0].vendor.empty());
+    CHECK(slots[0].brand_name.empty());
+    CHECK(slots[0].filament_type == "PLA");
 }

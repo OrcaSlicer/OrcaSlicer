@@ -9850,7 +9850,10 @@ void GLCanvas3D::_render_section_view_caps()
         // No cut face below the plate.
         if (m_canvas_type != CanvasAssembleView)
             clipper.set_limiting_plane(ClippingPlane(Vec3d::UnitZ(), -SINKING_Z_THRESHOLD));
-        clipper.render_cut({ 0.25f, 0.25f, 0.25f, 1.0f });
+        // The part's own color, below the 30-85% of it its lit faces show, or above them on a dark part.
+        const ColorRGB color = to_rgb(volume->render_color);
+        const float    luma  = 0.299f * color.r() + 0.587f * color.g() + 0.114f * color.b();
+        clipper.render_cut(to_rgba(luma > 0.3f ? 0.35f * color : lerp(color, ColorRGB::WHITE(), 0.4f)));
     }
     m_section_view_caps = std::move(caps);
 }
