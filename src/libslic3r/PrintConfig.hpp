@@ -90,11 +90,11 @@ enum class FuzzySkinMode {
 };
 
 // ORCA: direction in which top_surface_expansion grows the top surfaces.
-enum class TopSurfaceExpansionDirection {
-    InwardAndOutward,
-    Inward,
-    Outward,
-};
+//enum class TopSurfaceExpansionDirection {
+//    InwardAndOutward,
+//    Inward,
+//    Outward,
+//};
 
 enum class CenterOfSurfacePattern {
     Each_Surface,
@@ -495,6 +495,13 @@ enum class ToolChangeOrderingType
 };
 
 // BBS
+enum class TopOneWallType {
+    None,
+    Topmost,
+    Alltop
+};
+
+// BBS
 enum OverhangFanThreshold {
     Overhang_threshold_none = 0,
     Overhang_threshold_1_4,
@@ -799,7 +806,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PrinterTechnology)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(GCodeFlavor)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
-CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TopSurfaceExpansionDirection)
+//CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TopSurfaceExpansionDirection)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
@@ -1566,9 +1573,10 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt, top_shell_layers))
     ((ConfigOptionFloat, top_shell_thickness))
     ((ConfigOptionInt, top_color_penetration_layers))
-    ((ConfigOptionFloat, top_surface_expansion))
-    ((ConfigOptionFloat, top_surface_expansion_margin))
-    ((ConfigOptionEnum<TopSurfaceExpansionDirection>, top_surface_expansion_direction))
+    ((ConfigOptionFloatOrPercent, top_surface_expansion))
+    //((ConfigOptionFloat, top_surface_expansion_margin))
+    //((ConfigOptionEnum<TopSurfaceExpansionDirection>, top_surface_expansion_direction))
+
     ((ConfigOptionFloatsNullable, top_surface_speed))
     //BBS
     ((ConfigOptionBoolsNullable,            enable_overhang_speed))
@@ -1576,10 +1584,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsOrPercentsNullable, overhang_2_4_speed))
     ((ConfigOptionFloatsOrPercentsNullable, overhang_3_4_speed))
     ((ConfigOptionFloatsOrPercentsNullable, overhang_4_4_speed))
-    ((ConfigOptionBool,                 only_one_wall_top))
+    ((ConfigOptionEnum<TopOneWallType>,     top_one_wall_type))
 
     //SoftFever
     ((ConfigOptionFloatOrPercent,       min_width_top_surface))
+    // ((ConfigOptionPercent,              top_surface_inset))
     ((ConfigOptionBool,                 only_one_wall_first_layer))
     ((ConfigOptionFloat,                print_flow_ratio))
     ((ConfigOptionFloatOrPercent,       seam_gap))
