@@ -43,7 +43,9 @@ namespace Slic3r { namespace GUI {
 
 static bool is_point_in_rect(const wxPoint& pt, const wxRect& rect)
 {
-    return  rect.GetLeft() <= pt.x && pt.x <= rect.GetRight() &&
+    // An empty rectangle is a slot that drew nothing: it answers no hit test, whatever the point.
+    return  rect.width > 0 && rect.height > 0 &&
+            rect.GetLeft() <= pt.x && pt.x <= rect.GetRight() &&
             rect.GetTop() <= pt.y && pt.y <= rect.GetBottom();
 }
 
@@ -198,6 +200,17 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
         {
             // BBS: new layout
             // h_pos = m_bmp_mode_sz.GetWidth() + m_h_gap;
+            const int blinking_button_width = m_bmp_blinking_sz.GetWidth() + m_h_gap;
+            // A row toggle is drawn at the start of the row and keeps the act slot after the value:
+            // a publish row shows the Tab's revert-to-saved icon there as any other row does.
+            const int act_slot_width = blinking_button_width;
+            if (line.row_toggle)
+                h_pos += row_toggle_width() + m_h_gap + toggle_gap();
+            // A per-extruder icon on a row that also carries a toggle sits after the toggle, not
+            // in the left margin the sidebar uses.
+            if (line.row_toggle && line_has_multi_extruder_icon(line))
+                h_pos += multi_extruder_width() + m_h_gap;
+
             if (line.near_label_widget_win) {
                 wxSize near_label_widget_sz = line.near_label_widget_win->GetSize();
                 if (field_in)
@@ -207,11 +220,10 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
                     break;
                 }
             }
+
             wxString label = line.label;
             if (opt_group->label_width != 0)
                 add_label_width(ctrl_line, label, opt_group->label_width * m_em_unit);
-
-            int blinking_button_width = m_bmp_blinking_sz.GetWidth() + m_h_gap;
 
             if (line.widget) {
 #ifndef DISABLE_BLINKING
@@ -230,7 +242,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             }
 
             if (opt_group->option_label_at_right) // BBS: position buttons at right
-                add_buttons_width(blinking_button_width);
+                add_buttons_width(act_slot_width);
 
             // If we have a single option with no sidetext
             const std::vector<Option>& option_set = line.get_options();
@@ -274,7 +286,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
                 } else {
                     // BBS: new layout
                     h_pos += field->getWindow()->GetSize().x;
-                    add_buttons_width(blinking_button_width);
+                    add_buttons_width(act_slot_width);
                     if (option_set.size() == 1 && option_set.front().opt.full_width)
                         break;
 
@@ -384,8 +396,17 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
     bool suppress_hyperlinks = false;
 
     for (CtrlLine& line : ctrl_lines) {
+        // A line that is not drawn or draws no toggle must drop its hover flag: its box is not
+        // repainted, so a stale one would keep the toggle looking hovered.
+        line.is_row_toggle_hover = line.is_visible && line.row_toggle() != nullptr &&
+                                   is_point_in_rect(pos, line.rect_row_toggle);
+
         if (!line.is_visible) continue;
         line.is_focused = is_point_in_rect(pos, line.rect_label);
+        // The first label or act-slot hit supplies the tooltip; keep walking only to settle every
+        // line's hover and focus state in this same pass.
+        if (focusedLine != nullptr || !tooltip.IsEmpty())
+            continue;
         if (line.is_focused) {
             if (!suppress_hyperlinks && !line.og_line.label_path.empty())
                 tooltip = OptionsGroup::get_url(line.og_line.label_path) + "\n\n";
@@ -409,7 +430,7 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
                 ? line.og_line.get_options().front().opt_id : into_u8(line.og_line.label);
             markdowntip.erase(0, markdowntip.find_last_of('#') + 1);
             // BBS
-            break;
+            continue;
         }
 
         size_t undo_icons_cnt = line.rects_undo_icon.size();
@@ -437,8 +458,6 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
                 break;
             }
         }
-        if (!tooltip.IsEmpty())
-            break;
     }
 
     // Set tooltips with information for each icon
@@ -475,6 +494,17 @@ void OG_CustomCtrl::OnLeftDown(wxMouseEvent& event)
         if (!line.is_visible) continue;
         if (line.launch_browser())
             return;
+        if (RowToggle* toggle = line.row_toggle(); toggle != nullptr && is_point_in_rect(pos, line.rect_row_toggle)) {
+            if (toggle->enabled) {
+                toggle->checked = !toggle->checked;
+                if (toggle->on_change)
+                    toggle->on_change(toggle->checked);
+                Refresh();
+                Update();
+            }
+            event.Skip();
+            return;
+        }
         size_t undo_icons_cnt = line.rects_undo_icon.size();
         assert(line.rects_undo_icon.size() == line.rects_undo_to_sys_icon.size());
 
@@ -516,8 +546,10 @@ void OG_CustomCtrl::OnLeftDown(wxMouseEvent& event)
 
 void OG_CustomCtrl::OnLeaveWin(wxMouseEvent& event)
 {
-    for (CtrlLine& line : ctrl_lines)
+    for (CtrlLine& line : ctrl_lines) {
         line.is_focused = false;
+        line.is_row_toggle_hover = false;
+    }
 
     // BBS: markdown tip
     MarkdownTip::ShowTip("", "", {});
@@ -646,6 +678,10 @@ void OG_CustomCtrl::msw_rescale()
     m_bmp_blinking_sz = create_scaled_bitmap("blank_16", this).GetSize();
     if (m_bmp_multi_extruder.bmp().IsOk())
         m_bmp_multi_extruder.msw_rescale();
+    for (ScalableBitmap* bmp : { &m_bmp_check_on, &m_bmp_check_off, &m_bmp_check_on_focused, &m_bmp_check_off_focused,
+                                 &m_bmp_check_on_disabled, &m_bmp_check_off_disabled })
+        if (bmp->bmp().IsOk())
+            bmp->msw_rescale();
 
     m_max_win_width = 0;
 
@@ -826,14 +862,22 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         render_separator(dc, v_pos);
         return;
     }
+    // Rewrite the act-slot rectangles every paint: a row that stops drawing its marker must not
+    // keep the previous paint's hit area, or an empty slot would still answer clicks and tooltips.
+    std::fill(rects_undo_icon.begin(), rects_undo_icon.end(), wxRect());
+    std::fill(rects_undo_to_sys_icon.begin(), rects_undo_to_sys_icon.end(), wxRect());
 
     Field* field = og_line.get_options().empty() ? nullptr :
                    ctrl->opt_group->get_field(og_line.get_options().front().opt_id);
 
     bool suppress_hyperlinks = false;
     if (draw_just_act_buttons) {
+        // A full-width row (a G-code block) has no label column, so its toggle opens the row and
+        // the editor keeps its own band below.
+        if (og_line.row_toggle)
+            draw_row_toggle(dc, wxPoint(h_pos, v_pos));
         //BBS: GUI refactor
-        if (field && field->undo_bitmap()) {
+        else if (field && field->undo_bitmap()) {
             // if (field)
             //  BBS: new layout
             const wxPoint pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), field->undo_to_sys_bitmap()->bmp(),
@@ -846,18 +890,31 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
 
     const std::vector<Option>& option_set = og_line.get_options();
 
-    // ORCA draw multi_extruder icon to spacing before field lines so labels keep aligned
-    bool is_multi_extruder = false;
-    if (ctrl->opt_group->draw_multi_extruder)
-        for (const Option& opt : option_set)
-            is_multi_extruder |= opt.opt_id.find_last_of('#') != std::string::npos;
+    // ORCA draw multi_extruder icon to spacing before field lines so labels keep aligned. The Tab
+    // marks the rows by a '#' in the option id; a caller that keys every row by a column sets
+    // Line::multi_extruder instead.
+    const bool is_multi_extruder = ctrl->line_has_multi_extruder_icon(og_line);
+
+    // A row toggle opens the row: [checkbox] label ... value, in every section.
+    const wxCoord row_start = h_pos;
+    if (og_line.row_toggle)
+        h_pos = draw_row_toggle(dc, wxPoint(h_pos, v_pos)).x;
+
+    // The per-extruder icon keeps the sidebar's position: in the row's left margin, left of the
+    // label, so the label column does not shift. A row with a publish checkbox draws it after the
+    // checkbox instead, and the label moves right past it.
     if (is_multi_extruder) {
-        if (!ctrl->m_bmp_multi_extruder.bmp().IsOk())
-            ctrl->m_bmp_multi_extruder = ScalableBitmap(ctrl, "multi_extruder");
+        ctrl->init_multi_extruder_bitmap();
         const wxBitmap& bmp    = ctrl->m_bmp_multi_extruder.bmp();
         const wxSize    bmp_sz = get_bitmap_size(bmp); // Logical size. GetWidth() returns physical pixels on macOS retina which pushes icon outside of control
-        const wxCoord   icon_x = std::max(0, h_pos - bmp_sz.GetWidth() - ctrl->m_h_gap);
         const wxCoord   icon_y = v_pos + lround((height - bmp_sz.GetHeight()) / 2);
+        wxCoord         icon_x;
+        if (og_line.row_toggle) {
+            icon_x = h_pos;
+            h_pos += bmp_sz.GetWidth() + ctrl->m_h_gap;
+        } else {
+            icon_x = std::max(0, row_start - bmp_sz.GetWidth() - ctrl->m_h_gap);
+        }
         dc.DrawBitmap(bmp, icon_x, icon_y, true);
     }
 
@@ -908,6 +965,14 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
     };
 
     auto draw_buttons = [&h_pos, &dc, &v_pos, this](Field* field, size_t bmp_rect_id = 0) {
+        // A publish row draws its revert icon only while its value differs from the saved preset;
+        // the orange label is the marker otherwise. The slot keeps its width and gets no hit
+        // rectangle, so values and units stay in their column and the empty space is inert.
+        if (og_line.row_toggle && field != nullptr && !field->m_is_modified_value) {
+            if (field->undo_bitmap() != nullptr)
+                h_pos += get_bitmap_size(field->undo_bitmap()->bmp()).GetWidth() + ctrl->m_h_gap;
+            return;
+        }
         if (field && field->undo_to_sys_bitmap()) {
             h_pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), field->undo_to_sys_bitmap()->bmp(), field->undo_bitmap()->bmp(), field->blink(), bmp_rect_id).x;
         }
@@ -1087,6 +1152,81 @@ wxPoint OG_CustomCtrl::CtrlLine::draw_act_bmps(wxDC& dc, wxPoint pos, const wxBi
     h_pos += bmp_dim2 + ctrl->m_h_gap;
 
     return wxPoint(h_pos, v_pos);
+}
+
+// Paints the opt-in row toggle, using the same bitmaps ::CheckBox uses. Returns the x the
+// following columns continue from.
+wxPoint OG_CustomCtrl::CtrlLine::draw_row_toggle(wxDC& dc, wxPoint pos)
+{
+    const RowToggle* toggle = row_toggle();
+    if (toggle == nullptr)
+        return pos;
+
+    ctrl->init_row_toggle_bitmaps();
+    const ScalableBitmap* bmp = nullptr;
+    if (!toggle->enabled)
+        bmp = toggle->checked ? &ctrl->m_bmp_check_on_disabled : &ctrl->m_bmp_check_off_disabled;
+    else if (is_row_toggle_hover)
+        bmp = toggle->checked ? &ctrl->m_bmp_check_on_focused : &ctrl->m_bmp_check_off_focused;
+    else
+        bmp = toggle->checked ? &ctrl->m_bmp_check_on : &ctrl->m_bmp_check_off;
+
+    // Same vertical centring draw_act_bmps uses for the undo icon. The toggle's own gap sits
+    // between the box and whatever it shares the row with.
+    const int     gap    = ctrl->toggle_gap();
+    const wxSize  bmp_sz = get_bitmap_size(bmp->bmp());
+    const wxCoord v_pos  = pos.y + lround((height - bmp_sz.GetHeight()) / 2);
+    rect_row_toggle      = wxRect(pos.x, v_pos, bmp_sz.GetWidth(), bmp_sz.GetHeight());
+
+    dc.DrawBitmap(bmp->bmp(), pos.x, v_pos);
+
+    // Keep the following columns where get_pos() reserves them: the drawn box's width, then the
+    // control's gap and the toggle's gap.
+    return wxPoint(pos.x + bmp_sz.GetWidth() + ctrl->m_h_gap + gap, pos.y);
+}
+
+void OG_CustomCtrl::init_row_toggle_bitmaps()
+{
+    if (m_row_toggle_bitmaps_ready)
+        return;
+    m_bmp_check_on           = ScalableBitmap(this, "check_on", 18);
+    m_bmp_check_off          = ScalableBitmap(this, "check_off", 18);
+    m_bmp_check_on_focused   = ScalableBitmap(this, "check_on_focused", 18);
+    m_bmp_check_off_focused  = ScalableBitmap(this, "check_off_focused", 18);
+    m_bmp_check_on_disabled  = ScalableBitmap(this, "check_on_disabled", 18);
+    m_bmp_check_off_disabled = ScalableBitmap(this, "check_off_disabled", 18);
+    m_row_toggle_bitmaps_ready = true;
+}
+
+wxCoord OG_CustomCtrl::row_toggle_width()
+{
+    init_row_toggle_bitmaps();
+    return get_bitmap_size(m_bmp_check_on.bmp()).GetWidth();
+}
+
+void OG_CustomCtrl::init_multi_extruder_bitmap()
+{
+    if (!m_bmp_multi_extruder.bmp().IsOk())
+        m_bmp_multi_extruder = ScalableBitmap(this, "multi_extruder");
+}
+
+bool OG_CustomCtrl::line_has_multi_extruder_icon(const Line& line) const
+{
+    // The Tab marks a per-extruder row by a '#' in the option id; a caller that keys every row by a
+    // column sets Line::multi_extruder instead.
+    if (line.multi_extruder)
+        return true;
+    if (!opt_group->draw_multi_extruder)
+        return false;
+    return std::any_of(line.get_options().begin(), line.get_options().end(), [](const Option& opt) {
+        return opt.opt_id.find_last_of('#') != std::string::npos;
+    });
+}
+
+wxCoord OG_CustomCtrl::multi_extruder_width()
+{
+    init_multi_extruder_bitmap();
+    return get_bitmap_size(m_bmp_multi_extruder.bmp()).GetWidth();
 }
 
 wxCoord OG_CustomCtrl::CtrlLine::draw_edit_bmp(wxDC &dc, wxPoint pos, const wxBitmap& bmp_edit)
