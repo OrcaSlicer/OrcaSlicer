@@ -813,6 +813,14 @@ void PrintObject::prepare_infill()
     this->set_done(posPrepareInfill);
 }
 
+static bool uses_voronoi(const PrintObject &object)
+{
+    for (size_t i = 0; i < object.num_printing_regions(); ++i)
+        if (object.printing_region(i).config().sparse_infill_pattern == ipVoronoi)
+            return true;
+    return false;
+}
+
 static size_t infill_layer_grain_size(size_t count, bool reuse_network)
 {
     // Balance network reuse against enough batches to occupy the available workers.
@@ -829,9 +837,7 @@ void PrintObject::infill()
     if (this->set_started(posInfill)) {
         m_print->set_status(35, L("Generating infill toolpath"));
 
-        bool has_voronoi = false;
-        for (size_t i = 0; i < num_printing_regions(); ++i)
-            has_voronoi |= printing_region(i).config().sparse_infill_pattern == ipVoronoi;
+        const bool has_voronoi = uses_voronoi(*this);
 
         size_t completed_layers = 0;
         std::mutex progress_mutex;
@@ -3410,9 +3416,7 @@ void PrintObject::bridge_over_infill()
             layers_to_generate_infill.push_back(pair.first - 1);
         }
 
-        bool has_voronoi = false;
-        for (size_t i = 0; i < num_printing_regions(); ++i)
-            has_voronoi |= printing_region(i).config().sparse_infill_pattern == ipVoronoi;
+        const bool has_voronoi = uses_voronoi(*this);
         tbb::parallel_for(tbb::blocked_range<size_t>(0, layers_to_generate_infill.size(),
             infill_layer_grain_size(layers_to_generate_infill.size(), has_voronoi)), [po = static_cast<const PrintObject *>(this),
                                                                                             &layers_to_generate_infill,

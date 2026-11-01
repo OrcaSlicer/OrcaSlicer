@@ -15,6 +15,10 @@
 
 namespace Slic3r {
 
+namespace Voronoi {
+ExPolygons floor_interiors(const std::vector<Band> &bands);
+}
+
 // Printable sections of a 3D point field, with replaceable site sampling.
 class VoronoiInfill
 {

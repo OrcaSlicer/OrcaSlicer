@@ -49,9 +49,7 @@ void FillVoronoi::_fill_surface_single(const FillParams &params, unsigned int,
     multiline_fill(layer.walls, params, float(params.flow.spacing()));
     if (params.multiline > 1)
         layer.walls = intersection_pl(std::move(layer.walls), expolygon);
-    ExPolygons excluded;
-    // Exclude floor interiors, preserving walls exactly on their boundaries.
-    for (const auto &band : layer.bands) append(excluded, offset_ex(band.polygon, -1.f));
+    const ExPolygons excluded = Voronoi::floor_interiors(layer.bands);
     if (!excluded.empty()) layer.walls = diff_pl(layer.walls, excluded);
     if (!params.dont_connect() && !layer.walls.empty()) {
         Polylines connected;
