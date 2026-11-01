@@ -80,7 +80,7 @@ TEST_CASE("A custom CA is appended to a copy of the bundled printer.cer", "[BBLC
 
 TEST_CASE("The bundled cert folder is kept when no custom CA is usable", "[BBLCertDir]")
 {
-    const std::string unusable = GENERATE("none", "missing", "not-pem", "broken-pem", "leaf-only", "ca-and-leaf");
+    const std::string unusable = GENERATE("none", "missing", "not-pem", "broken-pem", "encrypted", "leaf-only", "ca-and-leaf");
 
     BundledCertDir     bundled;
     ScopedTemporaryDir scratch{"orca-bbl-cert-out"};
@@ -94,6 +94,9 @@ TEST_CASE("The bundled cert folder is kept when no custom CA is usable", "[BBLCe
         save_string_file(file, "hello");
     else if (unusable == "broken-pem")
         save_string_file(file, "-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n");
+    else if (unusable == "encrypted") // must not prompt for a passphrase
+        save_string_file(file, "-----BEGIN CERTIFICATE-----\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-128-CBC,000102030405060708090A0B0C0D0E0F\n\n" +
+                                   ca_pem.substr(ca_pem.find('\n') + 1));
     else if (unusable == "leaf-only")
         save_string_file(file, leaf_pem);
     else if (unusable == "ca-and-leaf")

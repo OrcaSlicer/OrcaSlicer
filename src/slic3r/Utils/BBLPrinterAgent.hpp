@@ -120,6 +120,8 @@ public:
     // returns out_dir. Files are replaced in one step, and only when their content changes.
     // Returns bundled_dir when no extra CA is usable or out_dir cannot be written.
     static std::string cert_dir_with_cas(const std::string& bundled_dir, const std::string& out_dir, const std::set<std::string>& extra_cas);
+    // Adds ca_file to the plug-in's cert folder for this session.
+    static void trust_ca_file(const std::string& ca_file);
 
 private:
     int publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode);

@@ -32,6 +32,7 @@
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <utility>
 #include <vector>
 using json = nlohmann::json;
@@ -148,7 +149,9 @@ std::string ca_certificates_pem(const std::string& pem)
     ERR_clear_error();
     int  count = 0;
     bool ok    = true;
-    while (X509* cert = PEM_read_bio_X509(in.get(), nullptr, nullptr, nullptr)) {
+    // Never prompt for a passphrase: an encrypted block counts as broken.
+    pem_password_cb* const no_passphrase = [](char*, int, int, void*) { return 0; };
+    while (X509* cert = PEM_read_bio_X509(in.get(), nullptr, no_passphrase, nullptr)) {
         ok = ok && X509_check_ca(cert) >= 1 && PEM_write_bio_X509(out.get(), cert) == 1;
         X509_free(cert);
         ++count;
@@ -176,14 +179,17 @@ void replace_file(const boost::filesystem::path& path, const std::string& conten
     }
     const boost::filesystem::path tmp = path.string() + ".tmp";
     save_string_file(tmp, content);
-    boost::filesystem::rename(tmp, path);
+    if (const std::error_code ec = rename_file(tmp.string(), path.string()))
+        throw std::system_error(ec, "Cannot replace " + path.string());
 }
+
+} // namespace
 
 // The plug-in has one cert folder for all printers, and multi-printer sending talks to several at
 // once, so the folder trusts every CA file used this session. It is rebuilt and re-pointed on every
 // connect: restarting networking points the plug-in back at the bundled folder (GUI_App), and a
 // renewed CA file is picked up. Re-pointing after start() takes effect on the next connection.
-void trust_ca_file(const std::string& ca_file)
+void BBLPrinterAgent::trust_ca_file(const std::string& ca_file)
 {
     static std::mutex            mutex;
     static std::set<std::string> ca_files;
@@ -196,10 +202,8 @@ void trust_ca_file(const std::string& ca_file)
 
     std::lock_guard<std::mutex> lock(mutex);
     ca_files.insert(ca_file);
-    set_cert_file(agent, BBLPrinterAgent::cert_dir_with_cas(resources_dir() + "/cert", data_dir() + "/cert", ca_files), "slicer_base64.cer");
+    set_cert_file(agent, cert_dir_with_cas(resources_dir() + "/cert", data_dir() + "/cert", ca_files), "slicer_base64.cer");
 }
-
-} // namespace
 
 std::string BBLPrinterAgent::to_orca_filament_id(const std::string& printer_filament_id) const
 {

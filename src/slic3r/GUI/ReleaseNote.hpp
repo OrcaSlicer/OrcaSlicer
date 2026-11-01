@@ -366,6 +366,7 @@ public:
     void post_update_test_msg(std::weak_ptr<InputIpAddressDialog> w, wxString text, bool beconnect);
     void workerThreadFunc(std::string str_ip, std::string str_access_code, std::string sn, std::string model_id, std::string name, std::string ca_file);
     bool is_bbl_agent() const;
+    void init_cafile_input();
     void OnTimer(wxTimerEvent& event);
     void on_text(wxCommandEvent& evt);
     void on_dpi_changed(const wxRect& suggested_rect) override;
