@@ -287,7 +287,7 @@ static std::vector<double> get_nozzle_diameters_by_nozzle_id(const MultiNozzleUt
         auto nozzle = group_result->get_nozzle_from_id(id);
         if (!nozzle)
             break;
-        diameters.push_back(std::stod(nozzle->diameter));
+        diameters.push_back(string_to_double_decimal_point(nozzle->diameter));
     }
     return diameters;
 }
