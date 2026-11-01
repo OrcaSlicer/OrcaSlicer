@@ -4884,6 +4884,12 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         if (!m_mouse.dragging && m_tooltip.is_empty() && (m_gizmos.get_current_type() != GLGizmosManager::MmSegmentation || !evt.Moving()))
             return;
     }
+    // ORCA A left press on the canvas outside ImGui's windows takes the focus from them, as a click on the void does
+    // inside ImGui. ImGui itself notices such a click only in a frame drawn while the button is still down, and the
+    // canvas draws one only when the press changed something: a press on a plate changes nothing before the release,
+    // so the dialog kept the focus, and the arrow keys, after a plate was picked on the canvas.
+    else if (evt.LeftDown() && imgui->display_initialized())
+        ImGui::SetWindowFocus(nullptr);
 
     // Design tab: the interactive sketch tool owns the mouse whenever it has
     // something on screen — an active session OR committed sketch overlays that the user
