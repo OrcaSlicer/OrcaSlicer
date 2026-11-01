@@ -7,6 +7,7 @@
 #include "Widgets/ComboBox.hpp"
 
 #include "libslic3r/Technologies.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <wx/dataview.h>
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
 #include <vector>
@@ -325,13 +326,20 @@ wxWindow* BitmapChoiceRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
     ::ComboBox *c_editor = new ::ComboBox(parent, wxID_ANY, wxEmptyString,
         labelRect.GetTopLeft(), wxSize(labelRect.GetWidth(), -1),
         0, nullptr, wxCB_READONLY | CB_NO_DROP_ICON | CB_NO_TEXT);
+    c_editor->EnableTypeToFilter();
     c_editor->GetDropDown().SetUseContentWidth(true);
        
     if (has_default_extruder && has_default_extruder())
         c_editor->Append(_L("default"), *get_default_extruder_color_icon());
 
-    for (size_t i = 0; i < icons.size(); i++)
-        c_editor->Append(wxString::Format("%d", i+1), *icons[i]);
+    const auto& filament_names = Slic3r::GUI::wxGetApp().preset_bundle->filament_presets;
+    for (size_t i = 0; i < icons.size(); i++) {
+        const int row = c_editor->Append(wxString::Format("%d", i+1), *icons[i]);
+        if (i < filament_names.size()) {
+            c_editor->SetItemAlias(row, Slic3r::GUI::from_u8(filament_names[i]));
+            c_editor->SetItemTooltip(row, Slic3r::GUI::from_u8(filament_names[i]));
+        }
+    }
 
     if (has_default_extruder && has_default_extruder())
         c_editor->SetSelection(atoi(data.GetText().c_str()));
