@@ -960,7 +960,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_default_acceleration = config->opt_float_nullable("default_acceleration", variant_index) > 0;
 
     for (auto el : {"outer_wall_acceleration", "inner_wall_acceleration", "initial_layer_acceleration", "initial_layer_travel_acceleration",
-        "top_surface_acceleration", "travel_acceleration", "bridge_acceleration", "sparse_infill_acceleration", "internal_solid_infill_acceleration"})
+        "top_surface_acceleration", "travel_acceleration", "travel_short_distance_acceleration", "bridge_acceleration", "sparse_infill_acceleration", "internal_solid_infill_acceleration"})
         toggle_field(el, have_default_acceleration, variant_index, _L("Set default acceleration above zero to edit acceleration for individual extrusion roles."));
 
     bool machine_supports_junction_deviation = false;
