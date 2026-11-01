@@ -6,6 +6,16 @@
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/SwitchButton.hpp"
 #include "DeviceManager.hpp"
+#include <vector>
+#include "libslic3r/calib.hpp"
+#include <wx/event.h>
+#include <wx/timer.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/DeviceErrorDialog.hpp"
+#include <string>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/arrstr.h>
+#include <map>
 
 namespace Slic3r {
 namespace GUI {

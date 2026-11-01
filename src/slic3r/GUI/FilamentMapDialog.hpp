@@ -2,7 +2,11 @@
 #define slic3r_FilamentMapDialog_hpp_
 
 #include "FilamentMapPanel.hpp"
+#include <string>
+#include "libslic3r/PrintConfig.hpp"
 #include <vector>
+#include <wx/string.h>
+#include <wx/event.h>
 #include "CapsuleButton.hpp"
 #include "Widgets/CheckBox.hpp"
 

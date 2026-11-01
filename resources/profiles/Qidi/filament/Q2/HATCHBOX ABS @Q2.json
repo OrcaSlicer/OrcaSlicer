@@ -3,7 +3,7 @@
 	"name": "HATCHBOX ABS@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "GFB99",
+	"filament_id": "OFwLBAGf",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"

@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid PETG @base",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"filament_id": "OFLXvuMr",
+	"instantiation": "false"
+}

@@ -5,6 +5,25 @@
 	"from": "system",
 	"setting_id": "80333z8YjBojDweT",
 	"instantiation": "true",
+	"default_nozzle_volume_type": [
+		"Standard"
+	],
+	"extruder_type": [
+		"Direct Drive"
+	],
+	"extruder_variant_list": [
+		"Direct Drive Standard,Direct Drive High Flow,Direct Drive Extra High Flow"
+	],
+	"printer_extruder_id": [
+		"1",
+		"1",
+		"1"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow"
+	],
 	"printer_model": "Generic Marlin Printer",
 	"gcode_flavor": "marlin",
 	"machine_end_gcode": "G1 E-1.0 F2100 ; retract\nG92 E0.0\nG1{if max_layer_z < max_print_height} Z{z_offset+min(max_layer_z+30, max_print_height)}{endif} E-34.0 F720 ; move print head up & retract filament\nG4 ; wait\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nG1 X0 Y105 F3000 ; park print head\nM84 ; disable motors",
@@ -13,21 +32,33 @@
 		"0.32"
 	],
 	"retraction_length": [
+		"0.9",
+		"0.9",
 		"0.9"
 	],
 	"retraction_minimum_travel": [
+		"1",
+		"1",
 		"1"
 	],
 	"retraction_speed": [
+		"45",
+		"45",
 		"45"
 	],
 	"deretraction_speed": [
+		"35",
+		"35",
 		"35"
 	],
 	"wipe": [
+		"0",
+		"0",
 		"0"
 	],
 	"z_hop": [
+		"0.4",
+		"0.4",
 		"0.4"
 	],
 	"nozzle_diameter": [

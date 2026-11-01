@@ -1,8 +1,16 @@
 #ifndef slic3r_MultiMaterialSegmentation_hpp_
 #define slic3r_MultiMaterialSegmentation_hpp_
 
+#include <cstddef>
+#include <functional>
 #include <utility>
 #include <vector>
+
+#include <boost/polygon/polygon.hpp>
+
+#include "Line.hpp"
+#include "Point.hpp"
+#include "libslic3r.h"
 
 namespace Slic3r {
 

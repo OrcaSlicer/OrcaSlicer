@@ -1,4 +1,10 @@
 // for scroll
+#include <wx/gdicmn.h>
+#include <wx/scrolwin.h>
+#include <cstddef>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/colour.h>
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
 #include <wx/wx.h>
@@ -21,6 +27,8 @@ ScrolledWindow::ScrolledWindow(wxWindow *parent, wxWindowID id, wxPoint position
     m_bottomScrollbar    = NULL;
     m_verticalSplitter   = NULL;
     m_horizontalSplitter = NULL;
+    m_userPanel          = NULL;
+    m_scroll_win         = NULL;
 
     m_marginWidth        = marginWidth;
 
@@ -110,23 +118,13 @@ void ScrolledWindow::SetTipColor(wxColour color)
     if (m_bottomScrollbar) m_bottomScrollbar->SetTipColor(color);
 }
 
-void ScrolledWindow::Refresh()
+bool ScrolledWindow::SetBackgroundColour(const wxColour &color)
 {
-    // m_rightScrollbar->SetViewStart(0);
-    // m_rightScrollbar->Refresh();
-    // m_rightScrollbar->Update();
-    // m_userPanel->Refresh();
-    // m_bottomScrollbar->SetViewStart(0);
-    // m_rightScrollbar->Refresh();
-    // m_bottomScrollbar->Refresh();
-}
-
-void ScrolledWindow::SetBackgroundColour(wxColour color)
-{
-    wxWindow::SetBackgroundColour(color); 
+    const bool result = wxWindow::SetBackgroundColour(color);
     m_verticalSplitter->SetBackgroundColour(color); 
     m_userPanel->SetBackgroundColour(color);
     m_scroll_win->SetBackgroundColour(color);
+    return result;
 }
 
 void ScrolledWindow::SetMarginColor(wxColour color)

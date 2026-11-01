@@ -1,8 +1,12 @@
 #ifndef __ORCA_CLOUD_SERVICE_AGENT_HPP__
 #define __ORCA_CLOUD_SERVICE_AGENT_HPP__
 
+#include "CloudProvider.hpp"
+#include "ICameraSignalingChannel.hpp"
 #include "ICloudServiceAgent.hpp"
+#include "bambu_networking.hpp"
 #include <cstdlib>
+#include "libslic3r/ProjectTask.hpp"
 #include <string>
 #include <map>
 #include <mutex>
@@ -12,6 +16,7 @@
 #include <memory>
 #include <thread>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
 
@@ -89,6 +94,7 @@ struct SyncPullResponse {
 struct SyncPushResult {
     bool success;
     int http_code;
+    int conflict_code;
     long long new_updated_time;
     ProfileUpsert server_version;
     bool server_deleted;
@@ -197,9 +203,35 @@ public:
     // ========================================================================
     std::string get_cloud_service_host() override;
     std::string get_cloud_login_url(const std::string& language = "") override;
+
+    // ========================================================================
+    // OrcaCloud webview session handoff (OrcaCloud "Webview Session Handoff" guide)
+    // ========================================================================
+    // The cloud pane never receives the desktop's access/refresh tokens. Instead the page posts
+    // request_web_session, the desktop mints a single-use token through the gateway and loads the
+    // Complete URL; the site then signs itself in. These builders return "" when no cloud URL is
+    // configured.
+    //
+    // Start URL: {web}/auth/handoff?next=<path>[&user_id=<desktop user id>]. `next` defaults to
+    // /app/profiles; user_id is included only while signed in.
+    std::string build_web_session_start_url(const std::string& next = std::string()) const;
+    // Complete URL: {web}/auth/handoff#token_hash=<hash>&state=<state>. Both values URL-encoded.
+    std::string build_web_session_complete_url(const std::string& token_hash, const std::string& state) const;
+    // Clears only the webview's own session; loaded on an explicit desktop sign-out.
+    std::string build_web_session_signout_url() const;
+    // POST {api}/api/v1/account/web-session-handoff with the desktop access token (no body),
+    // refreshing once on 401 through the shared policy. On 200 writes the single-use `token_hash`;
+    // otherwise writes the server's error code (e.g. WEB_SESSION_HANDOFF_UNAVAILABLE) into
+    // `error_code`. Blocking: call from a worker thread. Never logs the token.
+    int request_web_session_handoff(std::string& token_hash, std::string& error_code, unsigned int& http_code);
+
     int connect_server() override;
     bool is_server_connected() override;
     int refresh_connection() override;
+    // Cancels a health check started by refresh_connection() and waits for it; later
+    // refresh_connection() calls do nothing. Call it before tearing down what the server-connected
+    // and HTTP-error callbacks reach.
+    void stop_health_check();
     bool is_refresh_running() const { return refresh_running.load(); }
     int start_subscribe(std::string module) override;
     int stop_subscribe(std::string module) override;
@@ -221,6 +253,12 @@ public:
     int get_setting_list(std::string bundle_version, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
     int get_setting_list2(std::string bundle_version, CheckFn chk_fn, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
     int delete_setting(std::string setting_id) override;
+    // delete_setting() sent only with `user_id`'s token. A token refresh can load another account's
+    // session (another instance may have signed in as someone else), so the account is checked whenever
+    // the token is read, including for the retry after a 401. When the session belongs to another
+    // account nothing is sent, and the delete counts as failed, to be tried again. An empty user_id sends
+    // with the current session, as delete_setting() does.
+    int delete_setting_as(const std::string& user_id, const std::string& setting_id);
 
     // ========================================================================
     // ICloudServiceAgent Interface Implementation - Cloud User Services
@@ -241,6 +279,7 @@ public:
     // ICloudServiceAgent Interface Implementation - Model Mall & Publishing
     // ========================================================================
     int get_camera_url(std::string dev_id, std::function<void(std::string)> callback) override;
+    // std::unique_ptr<ICameraSignalingChannel> create_camera_signaling_channel(const std::string& dev_id) override;
     int get_design_staffpick(int offset, int limit, std::function<void(std::string)> callback) override;
     int start_publish(PublishParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, std::string* out) override;
     int get_model_publish_url(std::string* url) override;
@@ -324,7 +363,7 @@ public:
 
     void persist_user_secret(const std::string& secret);
     bool load_user_secret(std::string& out_secret);
-    void clear_user_secret();
+    void clear_user_secret(bool all_backends = false);
 
     // Token refresh helpers
     bool          refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
@@ -342,7 +381,7 @@ public:
                           bool persist = true);
     // Accepts either nested Orca cloud / GoTrue session JSON or flat WebView token JSON.
     bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
-    void clear_session();
+    void clear_session(bool all_backends = false);
 
     static std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "");
 
@@ -358,6 +397,7 @@ private:
         bool         success{false};
         unsigned int status{0};
         std::string  body;
+        std::string  etag;
     };
 
     // Applies the "retry once on 401" policy for the data HTTP methods.
@@ -369,10 +409,14 @@ private:
                               const std::string& reason);
 
     // HTTP request helpers
-    int http_get(const std::string& path, std::string* response_body, unsigned int* http_code);
+    // A non-empty `if_none_match` makes the request conditional, so the server may answer 304 with no
+    // body. `etag`, when given, receives the answer's ETag, or an empty string if it has none.
+    int http_get(const std::string& path, std::string* response_body, unsigned int* http_code,
+                 const std::string& if_none_match = {}, std::string* etag = nullptr);
     int http_post(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code);
     int http_put(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code);
-    int http_delete(const std::string& path, std::string* response_body, unsigned int* http_code);
+    // A non-empty `required_user_id` sends the request only while the session belongs to that account.
+    int http_delete(const std::string& path, std::string* response_body, unsigned int* http_code, const std::string& required_user_id = {});
     std::map<std::string, std::string> data_headers();
     RefreshResult attempt_refresh_after_unauthorized(const std::string& reason);
 
@@ -384,6 +428,10 @@ private:
     void compute_fallback_path();
     bool decode_jwt_expiry(const std::string& token, std::chrono::system_clock::time_point& out_tp);
     bool should_refresh_locked(std::chrono::seconds skew) const;
+
+    // Server reachability probe shared by connect_server() and refresh_connection(); returns
+    // false without reporting anything once `cancel` is set.
+    bool run_health_check(const std::atomic_bool* cancel);
 
     // Callback invocation
     void invoke_server_connected_callback(int return_code, int reason_code);
@@ -411,10 +459,25 @@ private:
     // Member variables - auth state
     PkceBundle pkce_bundle;
     std::string secret_fallback_path;
+    // Set once this process has read a secret from the store or written one. Unless the user logs
+    // out explicitly, clear_user_secret() only touches the store while it is set, so a logged-out
+    // instance (the GUI polls the login status every 2 s) makes no keychain calls and cannot wipe
+    // a login another instance saved.
+    std::atomic_bool secret_stored{false};
     SessionHandler session_handler;
     OnLoginCompleteHandler on_login_complete_handler;
     SessionInfo session;
     mutable std::mutex session_mutex;
+
+    // The last subscription list the server sent, kept so a poll can revalidate it and reuse it on a
+    // 304. It belongs to the account that received it and is dropped at sign-out.
+    struct SubscriptionsCache {
+        std::string user_id;
+        std::string etag;
+        std::string body;
+    };
+    SubscriptionsCache subscriptions_cache;
+    std::mutex subscriptions_cache_mutex;
 
     // Refresh diagnostics (see docs/analysis/refresh_token_already_used.md). Epoch seconds so the
     // refresh-failure log can report token staleness without holding a lock or logging any token.
@@ -442,6 +505,9 @@ private:
     mutable std::recursive_mutex state_mutex;
     std::thread refresh_thread;
     std::atomic_bool refresh_running{false};
+    std::thread health_check_thread;
+    std::atomic_bool health_check_running{false};
+    std::atomic_bool health_check_stopped{false};
 };
 
 } // namespace Slic3r

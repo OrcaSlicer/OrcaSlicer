@@ -5,6 +5,8 @@
 
 #include <wx/tglbtn.h>
 
+class wxWindow;
+
 namespace Slic3r {
 namespace GUI {
 
@@ -15,13 +17,9 @@ public:
 
 public:
     void SetValue(bool value) override;
-	bool GetValue();
     void Rescale();
     bool Disable() {
         return wxBitmapToggleButton::Disable();
-    }
-    bool Enable() {
-        return wxBitmapToggleButton::Enable();
     }
 
 private:

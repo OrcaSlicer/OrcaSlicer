@@ -3,6 +3,7 @@
 
 #include "CSGMesh.hpp"
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r { namespace csg {

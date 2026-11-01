@@ -3,7 +3,6 @@
 	"name": "fdm_filament_bvoh",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OGFS97",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"70"
@@ -40,6 +39,15 @@
 	],
 	"filament_max_volumetric_speed": [
 		"8"
+	],
+	"filament_multitool_ramming": [
+		"0"
+	],
+	"filament_multitool_ramming_flow": [
+		"6"
+	],
+	"filament_multitool_ramming_volume": [
+		"0.1"
 	],
 	"filament_type": [
 		"BVOH"

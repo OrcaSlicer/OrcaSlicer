@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Galaxy @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM007",
+	"filament_id": "OFFkCLBl",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

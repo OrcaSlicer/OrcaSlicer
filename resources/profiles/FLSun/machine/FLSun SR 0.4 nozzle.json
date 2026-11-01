@@ -13,7 +13,7 @@
 	],
 	"nozzle_type": "brass",
 	"default_filament_profile": [
-		"FLSun Generic PLA"
+		"Generic PLA @FLSun"
 	],
 	"bed_exclude_area": [
 		"0x0"

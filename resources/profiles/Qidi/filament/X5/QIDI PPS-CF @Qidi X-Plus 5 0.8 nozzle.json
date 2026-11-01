@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PPS-CF @Qidi X-Plus 5 0.8 nozzle",
+	"inherits": "QIDI PPS-CF@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "D29sGCB9OI4cTn0S",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.008"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.8 nozzle"
+	]
+}

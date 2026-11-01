@@ -51,9 +51,4 @@
 // Enable extension of tool position imgui dialog to show actual speed profile
 #define ENABLE_ACTUAL_SPEED_DEBUG 1
 
-// Disable layout inspector for public release
-#if BBL_RELEASE_TO_PUBLIC
-#define WXINSPECTOR_DISABLE
-#endif
-
 #endif // _prusaslicer_technologies_h_

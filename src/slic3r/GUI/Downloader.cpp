@@ -5,8 +5,24 @@
 #include "MainFrame.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/regex.hpp>
+#include <string>
+#include <wx/utils.h>
+#include <utility>
+#include <cstddef>
+#include <wx/event.h>
+#include <cassert>
+#include <memory>
+#include "slic3r/GUI/DownloaderFileGet.hpp"
+#include "libslic3r/Utils.hpp"
+#include <functional>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <wx/arrstr.h>
+#include <wx/string.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -134,7 +150,7 @@ void Downloader::start_download(const std::string& full_url)
     Plater* plater = wxGetApp().plater();
 
     mainframe->Freeze();
-    mainframe->select_tab((size_t)MainFrame::TabPosition::tp3DEditor);
+    mainframe->select_tab(TAB_ID_PREPARE);
     plater->select_view_3D("3D");
     plater->select_view("plate");
     plater->get_current_canvas3D()->zoom_to_bed();
@@ -151,7 +167,7 @@ void Downloader::start_download(const std::string& full_url)
         // Orca: show error
         NotificationManager* ntf_mngr = wxGetApp().notification_manager();
         ntf_mngr->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel,
-                                    "Could not start download due to malformed URL");
+                                    _u8L("Could not start download due to malformed URL"));
 		return;
 	}
     size_t id = get_next_id();

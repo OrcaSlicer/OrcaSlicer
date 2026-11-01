@@ -1,6 +1,8 @@
 #ifndef PNGREAD_HPP
 #define PNGREAD_HPP
 
+#include <cstddef>
+#include <algorithm>
 #include <cstdint>
 #include <vector>
 #include <string>
@@ -47,6 +49,9 @@ bool decode_colored_png(IStream &in_buf, ImageColorscale &out_img);
 struct ReadBuf { const void *buf = nullptr; const size_t sz = 0; };
 
 bool is_png(const ReadBuf &pngbuf);
+
+// True if decode_png() or decode_colored_png() would accept these bytes, judged from the header alone.
+bool is_decodable_8bit_png(const ReadBuf &pngbuf);
 
 struct ReadBufStream: public IStream {
     const ReadBuf &rbuf_ref;

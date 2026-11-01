@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "Elegoo Rapid PETG @ECC",
 	"renamed_from": "Elegoo RAPID PETG @ECC",
-	"inherits": "Elegoo PETG @base",
+	"inherits": "Elegoo Rapid PETG @base",
 	"from": "system",
 	"setting_id": "r4F3n71ajBUlmLgN",
 	"instantiation": "true",

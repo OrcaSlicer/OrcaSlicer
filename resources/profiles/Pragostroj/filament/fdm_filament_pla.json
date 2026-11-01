@@ -1,0 +1,25 @@
+{
+    "type": "filament",
+    "name": "fdm_filament_pla",
+    "inherits": "fdm_filament_common",
+    "from": "system",
+    "instantiation": "false",
+    "idle_temperature": [
+        "0"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "nozzle_temperature_range_high": [
+        "230"
+    ],
+    "additional_cooling_fan_speed": [
+        "70"
+    ]
+}

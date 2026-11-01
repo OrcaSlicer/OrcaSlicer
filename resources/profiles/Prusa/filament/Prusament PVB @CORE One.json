@@ -1,11 +1,15 @@
 {
 	"type": "filament",
 	"name": "Prusament PVB @CORE One",
+	"renamed_from": "Prusament PVB CORE One;Prusament PVB @CORE One MMU3;Prusament PVB CORE One MMU3",
 	"inherits": "fdm_filament_pvb",
 	"from": "system",
 	"setting_id": "085dGkrnPhatF07x",
-	"filament_id": "Prusament PVB @CORE One",
+	"filament_id": "OFh7mvPO",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pla"
+	],
 	"chamber_temperature": [
 		"20"
 	],
@@ -18,7 +22,11 @@
 		"Prusa CORE One 0.4 nozzle",
 		"Prusa CORE One 0.5 nozzle",
 		"Prusa CORE One HF 0.4 nozzle",
-		"Prusa CORE One HF 0.5 nozzle"
+		"Prusa CORE One HF 0.5 nozzle",
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
 	],
 	"fan_cooling_layer_time": [
 		"40"
@@ -48,7 +56,7 @@
 		"8"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
-		"35"
+		"15"
 	],
 	"filament_notes": [
 		""
@@ -57,7 +65,7 @@
 		"1"
 	],
 	"filament_start_gcode": [
-		"M900 K{if nozzle_diameter[filament_extruder_id]==0.4}0.05{elsif nozzle_diameter[filament_extruder_id]==0.25}0.14{elsif nozzle_diameter[filament_extruder_id]==0.3}0.07{elsif nozzle_diameter[filament_extruder_id]==0.35}0.06{elsif nozzle_diameter[filament_extruder_id]==0.6}0.03{elsif nozzle_diameter[filament_extruder_id]==0.5}0.035{elsif nozzle_diameter[filament_extruder_id]==0.8}0.015{else}0{endif} ; Filament gcode\n\n{if printer_notes=~/.*(MK4IS|XLIS|MK4S|MK3.9S|CORE One).*/}\nM572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.036{elsif nozzle_diameter[filament_extruder_id]==0.5}0.025{elsif nozzle_diameter[filament_extruder_id]==0.6}0.022{elsif nozzle_diameter[filament_extruder_id]==0.8}0.014{elsif nozzle_diameter[filament_extruder_id]==0.25}0.12{elsif nozzle_diameter[filament_extruder_id]==0.3}0.08{else}0{endif} ; Filament gcode\n{endif}\n\nM142 S36 ; set heatbreak target temp"
+		"M900 K{if nozzle_diameter[filament_extruder_id]==0.4}0.05{elsif nozzle_diameter[filament_extruder_id]==0.25}0.14{elsif nozzle_diameter[filament_extruder_id]==0.3}0.07{elsif nozzle_diameter[filament_extruder_id]==0.35}0.06{elsif nozzle_diameter[filament_extruder_id]==0.6}0.03{elsif nozzle_diameter[filament_extruder_id]==0.5}0.035{elsif nozzle_diameter[filament_extruder_id]==0.8}0.015{else}0{endif} ; Filament gcode\n\n{if printer_notes=~/.*(MK4IS|XLIS|MK4S|MK3.9S|COREONE).*/}\nM572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.036{elsif nozzle_diameter[filament_extruder_id]==0.5}0.025{elsif nozzle_diameter[filament_extruder_id]==0.6}0.022{elsif nozzle_diameter[filament_extruder_id]==0.8}0.014{elsif nozzle_diameter[filament_extruder_id]==0.25}0.12{elsif nozzle_diameter[filament_extruder_id]==0.3}0.08{else}0{endif} ; Filament gcode\n{endif}\n\nM142 S36 ; set heatbreak target temp"
 	],
 	"filament_type": [
 		"PVB"
@@ -81,7 +89,7 @@
 		"75"
 	],
 	"idle_temperature": [
-		"150"
+		"170"
 	],
 	"nozzle_temperature": [
 		"215"
@@ -100,5 +108,11 @@
 	],
 	"slow_down_min_speed": [
 		"20"
+	],
+	"filament_unloading_speed": [
+		"60"
+	],
+	"filament_unloading_speed_start": [
+		"60"
 	]
 }

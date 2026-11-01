@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "FILL3D PLA Turbo @base",
-	"from": "system",
-	"filament_id": "FILL3D001",
-	"instantiation": "false",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OFoSknDB",
+	"instantiation": "false",
 	"adaptive_pressure_advance": [
 		"1"
 	],

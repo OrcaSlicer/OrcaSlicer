@@ -1,9 +1,13 @@
 #ifndef slic3r_FillGyroid_hpp_
 #define slic3r_FillGyroid_hpp_
 
-#include "../libslic3r.h"
 
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include <utility>
+#include "libslic3r/Polyline.hpp"
+
+namespace Slic3r { class Point; }
 
 namespace Slic3r {
 
@@ -16,6 +20,7 @@ public:
     // require bridge flow since most of this pattern hangs in air
     bool use_bridge_flow() const override { return false; }
     bool is_self_crossing() override { return false; }
+    bool aligned_to_origin() const override { return true; }
 
     // Correction applied to regular infill angle to maximize printing
     // speed in default configuration (degrees)

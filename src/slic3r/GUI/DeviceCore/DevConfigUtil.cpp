@@ -1,7 +1,23 @@
 #include "DevConfigUtil.h"
 
+#include <nlohmann/json.hpp>
+#include "slic3r/GUI/DeviceManager.hpp"
+
+#include <string>
+#include <algorithm>
+#include <map>
+#include <vector>
+#include <boost/nowide/fstream.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <cstddef>
+#include <boost/log/trivial.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <utility>
+#include <exception>
+#include <cctype>
 #include <wx/dir.h>
 #include <boost/filesystem/operations.hpp>
+#include <wx/string.h>
 #include "../I18N.hpp"
 
 using namespace nlohmann;
@@ -16,27 +32,43 @@ namespace Slic3r
 // This block is never executed at runtime.
 static void _toolhead_translation_markers()
 {
-    // Dynamic toolhead display names from JSON config — xgettext cannot scan these
-    L("Main Extruder");     L("Main extruder");     L("main extruder");
-    L("Auxiliary Extruder"); L("Auxiliary extruder"); L("auxiliary extruder");
-    L("Left Extruder");     L("Left extruder");     L("left extruder");
-    L("Right Extruder");    L("Right extruder");    L("right extruder");
-    L("Main Nozzle");       L("Main nozzle");       L("main nozzle");
-    L("Auxiliary Nozzle");   L("Auxiliary nozzle");   L("auxiliary nozzle");
-    L("Left Nozzle");       L("Left nozzle");       L("left nozzle");
-    L("Right Nozzle");      L("Right nozzle");      L("right nozzle");
-    L("Main Hotend");       L("Main hotend");       L("main hotend");
-    L("Auxiliary Hotend");   L("Auxiliary hotend");   L("auxiliary hotend");
-    L("Left Hotend");       L("Left hotend");       L("left hotend");
-    L("Right Hotend");      L("Right hotend");      L("right hotend");
-    // standalone position words (short_name=true runtime results)
-    L("main");              L("auxiliary");
-    L("Main");              L("Auxiliary");
-    L("left");              L("right");
-    L("Left");              L("Right");
+    // Possible runtime values of tool_head_display_names, marked for extraction.
+    static const char *const markers[] = {
+        L("Main Extruder"),      L("Main extruder"),      L("main extruder"),
+        L("Auxiliary Extruder"), L("Auxiliary extruder"), L("auxiliary extruder"),
+        L("Left Extruder"),      L("Left extruder"),      L("left extruder"),
+        L("Right Extruder"),     L("Right extruder"),     L("right extruder"),
+        L("Main Nozzle"),        L("Main nozzle"),        L("main nozzle"),
+        L("Auxiliary Nozzle"),   L("Auxiliary nozzle"),   L("auxiliary nozzle"),
+        L("Left Nozzle"),        L("Left nozzle"),        L("left nozzle"),
+        L("Right Nozzle"),       L("Right nozzle"),       L("right nozzle"),
+        L("Main Hotend"),        L("Main hotend"),        L("main hotend"),
+        L("Auxiliary Hotend"),   L("Auxiliary hotend"),   L("auxiliary hotend"),
+        L("Left Hotend"),        L("Left hotend"),        L("left hotend"),
+        L("Right Hotend"),       L("Right hotend"),       L("right hotend"),
+        // standalone position words (short_name=true runtime results)
+        L("main"),               L("auxiliary"),
+        L("Main"),               L("Auxiliary"),
+        L("left"),               L("right"),
+        L("Left"),               L("Right"),
+    };
+    (void) markers;
 }
 
 std::string DevPrinterConfigUtil::m_resource_file_path = "";
+
+bool DevPrinterConfigUtil::is_printer_model_compatible(const std::string& source_model, MachineObject& machine)
+{
+    const std::string& target_model = machine.printer_type;
+    if (is_optional_printer_model_id(source_model) || is_optional_printer_model_id(target_model))
+        return true;
+
+    if (source_model == target_model)
+        return true;
+
+    const auto compatible_machine = machine.get_compatible_machine();
+    return std::find(compatible_machine.begin(), compatible_machine.end(), source_model) != compatible_machine.end();
+}
 
 
 std::map<std::string, std::string> DevPrinterConfigUtil::get_all_model_id_with_name()

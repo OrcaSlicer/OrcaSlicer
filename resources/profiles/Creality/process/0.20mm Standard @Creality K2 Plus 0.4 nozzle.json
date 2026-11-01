@@ -172,8 +172,6 @@
 	"overhang_reverse": "0",
 	"overhang_reverse_internal_only": "0",
 	"overhang_reverse_threshold": "50%",
-	"overhang_speed_classic": "0",
-	"overhang_totally_speed": "50",
 	"prime_tower_brim_width": "3",
 	"prime_volume": "45",
 	"print_flow_ratio": "1",

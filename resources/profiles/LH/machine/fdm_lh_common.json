@@ -128,7 +128,6 @@
 	"z_hop_types": [
 		"Auto Lift"
 	],
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"manual_filament_change": "1",
@@ -136,7 +135,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"LH Generic PLA"
+		"LHS PLA"
 	],
 	"enable_filament_ramming": "0",
 	"default_print_profile": "0.20mm Daily @LH Stinger",

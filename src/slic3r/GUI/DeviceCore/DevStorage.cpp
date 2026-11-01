@@ -1,6 +1,9 @@
 #include "DevStorage.h"
-#include "slic3r/GUI/DeviceManager.hpp"
+#include <nlohmann/json.hpp>
+#include <string>
 
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 

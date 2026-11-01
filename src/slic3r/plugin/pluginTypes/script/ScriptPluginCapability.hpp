@@ -2,6 +2,7 @@
 #define slic3r_ScriptPluginCapability_hpp_
 
 #include "../../PythonPluginInterface.hpp"
+#include <pybind11/pybind11.h>
 
 namespace Slic3r {
 class ScriptPluginCapability : public PluginCapabilityInterface
@@ -11,8 +12,7 @@ public:
 
     virtual ExecutionResult execute() = 0;
 
-    static void RegisterBindings(pybind11::module_ &module,
-                                 pybind11::enum_<PluginCapabilityType> &pluginTypes);
+    static void RegisterBindings(pybind11::module_ &module);
 };
 } // namespace Slic3r
 

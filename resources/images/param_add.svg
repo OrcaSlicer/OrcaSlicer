@@ -1,8 +1,4 @@
-<svg width="25" height="25" xmlns="http://www.w3.org/2000/svg" fill="none">
-
- <g>
-  <title>Layer 1</title>
-  <path id="svg_1" stroke-linecap="round" stroke-width="2" stroke="#262E30" d="m1,12.5l23,0"/>
-  <path id="svg_2" stroke-linecap="round" stroke-width="2" stroke="#262E30" d="m12.5,24l0,-23"/>
- </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+<line x1="0.5" y1="7.5" x2="14.5" y2="7.5" style="fill:none;stroke:#949494;stroke-linecap:round;stroke-linejoin:round"/>
+<line x1="7.5" y1="0.5" x2="7.5" y2="14.5" style="fill:none;stroke:#949494;stroke-linecap:round;stroke-linejoin:round"/>
 </svg>

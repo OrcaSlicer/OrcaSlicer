@@ -23,6 +23,7 @@ struct SlopeDetection
     bool actived;
 	float normal_z;
     mat3 volume_world_normal_matrix;
+    vec3 up_direction;
 };
 
 uniform mat4 view_model_matrix;
@@ -39,6 +40,10 @@ uniform vec2 z_range;
 uniform vec4 clipping_plane;
 // Color clip plane - general orientation. Used by the cut gizmo.
 uniform vec4 color_clip_plane;
+// ORCA: realistic view - static shadows also light the scene from their fixed light.
+uniform bool use_static_light;
+uniform vec3 static_light_dir;
+vec3 top_light_dir() { return use_static_light ? static_light_dir : LIGHT_TOP_DIR; }
 
 attribute vec3 v_position;
 attribute vec3 v_normal;
@@ -60,11 +65,11 @@ void main()
 
 	// Compute the cos of the angle between the normal and lights direction. The light is directional so the direction is constant for every vertex.
 	// Since these two are normalized the cosine is the dot product. We also need to clamp the result to the [0,1] range.
-	float NdotL = max(dot(eye_normal, LIGHT_TOP_DIR), 0.0);
+	float NdotL = max(dot(eye_normal, top_light_dir()), 0.0);
 
 	intensity.x = INTENSITY_AMBIENT + NdotL * LIGHT_TOP_DIFFUSE;
     vec4 position = view_model_matrix * vec4(v_position, 1.0);
-    intensity.y = LIGHT_TOP_SPECULAR * pow(max(dot(-normalize(position.xyz), reflect(-LIGHT_TOP_DIR, eye_normal)), 0.0), LIGHT_TOP_SHININESS);
+    intensity.y = LIGHT_TOP_SPECULAR * pow(max(dot(-normalize(position.xyz), reflect(-top_light_dir(), eye_normal)), 0.0), LIGHT_TOP_SHININESS);
 
 	// Perform the same lighting calculation for the 2nd light source (no specular applied).
 	NdotL = max(dot(eye_normal, LIGHT_FRONT_DIR), 0.0);
@@ -73,8 +78,8 @@ void main()
     // Point in homogenous coordinates.
     world_pos = volume_world_matrix * vec4(v_position, 1.0);
 
-    // z component of normal vector in world coordinate used for slope shading
-    world_normal_z = slope.actived ? (normalize(slope.volume_world_normal_matrix * v_normal)).z : 0.0;
+    // dot product of world normal with up direction, used for slope shading
+    world_normal_z = slope.actived ? dot(normalize(slope.volume_world_normal_matrix * v_normal), slope.up_direction) : 0.0;
 
     gl_Position = projection_matrix * position;
     if (is_outline) {

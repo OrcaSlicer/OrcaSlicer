@@ -1,6 +1,7 @@
 #ifndef ANYPTR_HPP
 #define ANYPTR_HPP
 
+#include <boost/variant/variant.hpp>
 #include <memory>
 #include <type_traits>
 #include <boost/variant.hpp>

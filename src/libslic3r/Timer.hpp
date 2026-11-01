@@ -1,8 +1,10 @@
 #ifndef libslic3r_Timer_hpp_
 #define libslic3r_Timer_hpp_
 
+#include <cstdint>
 #include <string>
 #include <chrono>
+#include <string_view>
 
 namespace Slic3r {
 

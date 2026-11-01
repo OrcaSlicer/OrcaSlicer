@@ -4,7 +4,14 @@
 	"inherits": "Generic ABS @System",
 	"from": "system",
 	"setting_id": "ycgiXY41kqNgslE3",
+	"filament_id": "OFojbdhR",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_chamber_temp_control": [
 		"1"
 	],

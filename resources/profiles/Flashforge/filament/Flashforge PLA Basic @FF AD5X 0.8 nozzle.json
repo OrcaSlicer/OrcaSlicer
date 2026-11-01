@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Basic @FF AD5X 0.8 nozzle",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "0OsrtqfIxrEJMwac",
+	"filament_id": "OFJ3F2jm",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"cool_plate_temp": [
 		"45"
 	],

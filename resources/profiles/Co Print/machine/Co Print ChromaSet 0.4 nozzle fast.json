@@ -29,48 +29,63 @@
 		"0.5"
 	],
 	"machine_max_speed_e": [
+		"100",
 		"100"
 	],
 	"machine_max_speed_x": [
+		"700",
 		"700"
 	],
 	"machine_max_speed_y": [
+		"700",
 		"700"
 	],
 	"machine_max_speed_z": [
+		"20",
 		"20"
 	],
 	"machine_max_acceleration_e": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_extruding": [
+		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_retracting": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_travel": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_x": [
+		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_y": [
+		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_z": [
+		"500",
 		"500"
 	],
 	"machine_max_jerk_e": [
+		"5",
 		"5"
 	],
 	"machine_max_jerk_x": [
+		"20",
 		"20"
 	],
 	"machine_max_jerk_y": [
+		"20",
 		"20"
 	],
 	"machine_max_jerk_z": [
+		"0.5",
 		"0.5"
 	],
 	"z_hop": [
@@ -108,7 +123,7 @@
 	"machine_end_gcode": "end_print",
 	"change_filament_gcode": "FILAMENT_CHANGE LAYER_NUM=[layer_num] NEXT_EXTRUDER=[next_extruder]",
 	"default_filament_profile": [
-		"CoPrint Generic PLA"
+		"Generic PLA @CoPrint"
 	],
 	"extruder_clearance_radius": [
 		"65"

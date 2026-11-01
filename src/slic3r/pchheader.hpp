@@ -46,7 +46,6 @@
 #include <numeric>
 #include <ostream>
 #include <random>
-#include <regex>
 #include <set>
 #include <sstream>
 #include <stack>

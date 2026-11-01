@@ -1,11 +1,17 @@
 {
 	"type": "filament",
-	"filament_id": "GFL99",
-	"setting_id": "JBFKMaFtd7kO8Ksq",
 	"name": "Polymaker PETG @Sovol SV08 MAX",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic PETG @System",
+	"from": "system",
+	"setting_id": "JBFKMaFtd7kO8Ksq",
+	"filament_id": "OF6H51Xx",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Polymaker"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],

@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Polymaker HT-PLA-GF @Base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"instantiation": "false",
 	"filament_density": [
 		"1.34"
 	],
@@ -18,11 +23,6 @@
 		"0"
 	],
 	"description": "",
-	"inherits": "fdm_filament_pla",
-	"name": "Polymaker HT-PLA-GF @Base",
-	"type": "filament",
-	"instantiation": "false",
-	"from": "system",
 	"filament_vendor": [
 		"Polymaker"
 	]

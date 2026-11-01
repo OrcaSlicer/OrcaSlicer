@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFSEP018",
-	"setting_id": "JFXFsEzqXxNqxnsL",
 	"name": "Eolas Prints ASA @System",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"setting_id": "JFXFsEzqXxNqxnsL",
+	"filament_id": "OFlSNkhc",
+	"instantiation": "true",
 	"filament_color": [
 		"#4d9398"
 	],

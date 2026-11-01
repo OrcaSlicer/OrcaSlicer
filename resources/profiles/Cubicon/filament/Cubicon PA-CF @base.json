@@ -2,17 +2,9 @@
 	"type": "filament",
 	"name": "Cubicon PA-CF @base",
 	"inherits": "fdm_filament_pa",
-	"setting_id": "55cJDyCoEudfOePY",
-	"filament_id": "P510cfd0",
-	"instantiation": "true",
-	"compatible_printers": [
-		"Cubicon xCeler-I 0.4 nozzle",
-		"Cubicon xCeler-Plus 0.4 nozzle"
-	],
+	"filament_id": "OFiEz2XI",
+	"instantiation": "false",
 	"default_filament_colour": "",
-	"filament_settings_id": [
-		"Cubicon PA-CF @base"
-	],
 	"filament_type": [
 		"PA"
 	],

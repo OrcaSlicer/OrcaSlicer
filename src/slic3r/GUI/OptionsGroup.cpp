@@ -1,30 +1,46 @@
 #include "OptionsGroup.hpp"
-#include "ConfigExceptions.hpp"
 #include "Plater.hpp"
+#include "SettingsIndex.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "OG_CustomCtrl.hpp"
 #include "MsgDialog.hpp"
 #include "PluginPickerDialog.hpp"
-#include "format.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/LabeledStaticBox.hpp"
 
+#include <boost/any.hpp>
 #include <boost/log/trivial.hpp>
+#include <functional>
+#include <cstddef>
+#include <iostream>
 #include <libslic3r/Config.hpp>
+#include "slic3r/GUI/Field.hpp"
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/plugin/PluginDescriptor.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <string>
 #include <utility>
+#include <vector>
 #include <wx/bookctrl.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 #include <wx/numformatter.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include "libslic3r/Exception.hpp"
-#include "libslic3r/Utils.hpp"
-#include "libslic3r/AppConfig.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "I18N.hpp"
 #include <algorithm>
 #include <locale>
+#include <wx/sizer.h>
+#include <wx/stattext.h>
+#include <wx/utils.h>
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -54,6 +70,9 @@ const t_field& OptionsGroup::build_field(const t_config_option_key& id, const Co
     case ConfigOptionDef::GUIType::one_string: m_fields.emplace(id, TextCtrl::Create<TextCtrl>(this->ctrl_parent(), opt, id)); break;
     case ConfigOptionDef::GUIType::plugin_picker: m_fields.emplace(id, PluginField::Create<PluginField>(this->ctrl_parent(), opt, id)); break;
     case ConfigOptionDef::GUIType::plugin_config: m_fields.emplace(id, PluginConfigField::Create<PluginConfigField>(this->ctrl_parent(), opt, id)); break;
+    case ConfigOptionDef::GUIType::printer_agent_select: m_fields.emplace(
+            id, PrinterAgentChoice::Create<PrinterAgentChoice>(this->ctrl_parent(), opt, id));
+        break;
     default:
         switch (opt.type) {
             case coFloatOrPercent:
@@ -241,6 +260,26 @@ void OptionsGroup::append_line(const Line& line)
 {
     m_lines.emplace_back(line);
 
+    // Feed the searcher the row's wiki path (Line::label_path, for the Speed Dial's "open wiki"
+    // affordance) and the label the row actually draws, so a setting action is named like the page.
+    if (m_use_custom_ctrl) {
+        Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
+        const Preset::Type      type  = static_cast<Preset::Type>(config_type());
+        const bool              multi = line.get_options().size() > 1;
+        for (const auto& opt : line.get_options()) {
+            if (!line.label_path.empty())
+                index.set_path(opt.opt_id, type, line.label_path);
+            // Mirror the sub-label OG_CustomCtrl draws for a multi-option row, so the palette
+            // names each field like the page does.
+            const std::string& leaf_src = opt.opt.label;
+            const wxString leaf = (leaf_src == L_CONTEXT("Top", "Layers") || leaf_src == L_CONTEXT("Bottom", "Layers")) ?
+                                      _L_CONTEXT(leaf_src, "Layers") :
+                                      _(leaf_src);
+            index.set_line_label(opt.opt_id, type, Search::compose_display_label(line.label, leaf, multi),
+                                 Search::compose_display_label(line.label_en, from_u8(leaf_src), multi));
+        }
+    }
+
     if (line.full_width && (line.widget != nullptr || !line.get_extra_widgets().empty()))
         return;
 
@@ -386,6 +425,7 @@ void OptionsGroup::activate_line(Line& line)
             }
             if (label != nullptr && line.label_tooltip != "")
                 label->SetToolTip(line.label_tooltip);
+            line.label_widget = label;
         }
     }
 
@@ -574,6 +614,7 @@ void OptionsGroup::clear(bool destroy_custom_ctrl)
     for (Line& line : m_lines) {
         if (line.near_label_widget_win)
             line.near_label_widget_win = nullptr;
+        line.label_widget = nullptr;
 
         if (line.widget_sizer) {
             line.widget_sizer->Clear(true);
@@ -610,7 +651,7 @@ Line OptionsGroup::create_single_option_line(const Option& option, const std::st
 {
     wxString tooltip = _(get_formatted_tooltip_text(option.opt, option.opt_id));
 
-    Line retval{_(option.opt.label), tooltip};
+    Line retval{from_u8(option.opt.label), tooltip};
     retval.label_path = path;
     retval.append_option(option);
 
@@ -645,13 +686,23 @@ Option ConfigOptionsGroup::get_option(const std::string& opt_key, int opt_index 
     m_opt_map.emplace(opt_id, pair);
 
     if (m_use_custom_ctrl) // fill group and category values just for options from Settings Tab
-        wxGetApp().sidebar().get_searcher().add_key(opt_id, static_cast<Preset::Type>(this->config_type()), title, this->config_category());
+        wxGetApp().sidebar().settings_index().add_key(opt_id, static_cast<Preset::Type>(this->config_type()), title, this->config_category(), this->icon);
 
     return Option(*m_config->def()->get(opt_key), opt_id);
 }
 
 void ConfigOptionsGroup::on_change_OG(const t_config_option_key& opt_id, const boost::any& value)
 {
+    if (opt_id == "printer_agent") {
+        // TODO: Replace this option-specific branch with a generic value adapter if
+        // more fields need custom field-value to config-value conversion.
+        if (const std::string* id = boost::any_cast<std::string>(&value))
+            this->change_opt_value("printer_agent", wxGetApp().canonical_printer_agent_id(*id));
+
+        OptionsGroup::on_change_OG(opt_id, value);
+        return;
+    }
+
     if (!m_opt_map.empty()) {
         auto it = m_opt_map.find(opt_id);
         if (it == m_opt_map.end()) {
@@ -683,10 +734,15 @@ std::string OptionsGroup::pick_plugin(const ConfigOptionDef& opt)
     Slic3r::PluginManager& manager = Slic3r::PluginManager::instance();
     const Slic3r::PluginCapabilityType plugin_type = Slic3r::plugin_capability_type_from_string(opt.plugin_type);
     if (plugin_type == Slic3r::PluginCapabilityType::Unknown) {
-        const std::string message = opt.plugin_type.empty()
-                                        ? "This setting does not specify a plugin capability type."
-                                        : "This setting specifies an unrecognized plugin capability type: '" + opt.plugin_type + "'.";
-        wxMessageBox(from_u8(message), _L("Plugin Selection"), wxOK | wxICON_WARNING, m_parent);
+        MessageDialog dlg(m_parent, 
+            opt.plugin_type.empty() ? _L("This setting does not specify a plugin capability type.")
+                                    : _L("This setting specifies an unrecognized plugin capability type: ") + "'" + opt.plugin_type + "'.", 
+            _L("Plugin Selection"), 
+            wxOK | wxICON_WARNING
+        );
+        dlg.CenterOnParent();
+        dlg.ShowModal();
+
         return {};
     }
 
@@ -699,7 +755,13 @@ std::string OptionsGroup::pick_plugin(const ConfigOptionDef& opt)
     });
 
     if (caps.empty()) {
-        wxMessageBox(_L("No plugins capabilities available for this type.\nEnable or install some to use."), _L("Plugin Selection"), wxOK | wxICON_INFORMATION, m_parent);
+        MessageDialog dlg(m_parent,
+            _L("No plugins capabilities available for this type.\nEnable or install some to use."),
+            _L("Plugin Selection"),
+            wxOK | wxICON_INFORMATION
+        );
+        dlg.CenterOnParent();
+        dlg.ShowModal();
         return {};
     }
 
@@ -722,7 +784,7 @@ std::string OptionsGroup::pick_plugin(const ConfigOptionDef& opt)
         return {};
 
     // Only the bare capability name is stored; the full "name;uuid;capability" reference is derived when
-    // the preset is serialized (see ConfigBase::save_plugin_collection). Resolve here to reject bad picks.
+    // the preset is serialized (see ConfigBase::collect_plugin_manifest). Resolve here to reject bad picks.
     Slic3r::PluginDescriptor descriptor;
     if (!manager.try_get_plugin_descriptor(selection.plugin_key, descriptor) || descriptor.name.empty())
         return {};
@@ -770,6 +832,17 @@ void ConfigOptionsGroup::back_to_config_value(const DynamicPrintConfig& config, 
         }
     }
 #endif
+    else if (opt_key == "printer_agent")
+    {
+        // A deregistered/"(missing)" saved id has no selectable row, so the field yields no
+        // value. Restore the saved id directly instead of letting the generic revert path read
+        // the field value back into the edited config.
+        const std::string saved_id = config.opt_string("printer_agent");
+        set_value(opt_key, saved_id);
+        this->change_opt_value(opt_key, saved_id);
+        OptionsGroup::on_change_OG(opt_key, saved_id);
+        return;
+    }
     else if (m_opt_map.find(opt_key) == m_opt_map.end() ||
              // This option don't have corresponded field
              opt_key == "printable_area" || opt_key == "compatible_printers" || opt_key == "compatible_prints" || opt_key == "thumbnails" ||
@@ -1136,7 +1209,7 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
         if (opt_key == "printable_area")
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else if (opt_key == "bed_exclude_area")
-            ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
+            ret = from_u8(config.option<ConfigOptionPoints>(opt_key)->serialize());
         else if (opt_key == "wrapping_exclude_area")
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else
@@ -1247,7 +1320,7 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
         if (opt_key == "printable_area")
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else if (opt_key == "bed_exclude_area")
-            ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
+            ret = from_u8(config.option<ConfigOptionPoints>(opt_key)->serialize());
         else if (opt_key == "wrapping_exclude_area")
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else
@@ -1257,6 +1330,21 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
     default: break;
     }
     return ret;
+}
+
+bool ConfigOptionsGroup::commit_config_value(const t_config_option_key& opt_key, int opt_index)
+{
+    if (m_config == nullptr)
+        return false;
+
+    // m_opt_map is filled while the option lines are created, so it still resolves the option when
+    // the group's controls (and thus its fields) have not been built yet.
+    const std::string opt_id = option_id_in_map(m_opt_map, opt_key, opt_index);
+    if (opt_id.empty())
+        return false;
+
+    on_change_OG(opt_id, get_config_value2(*m_config, opt_key, opt_index));
+    return true;
 }
 
 Field* ConfigOptionsGroup::get_fieldc(const t_config_option_key& opt_key, int opt_index)

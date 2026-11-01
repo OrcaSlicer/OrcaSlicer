@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "L6GIF36jbXf5NVOw",
-	"filament_id": "GFPETG-CF",
+	"filament_id": "OF9UJOGF",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic PETG-CF @Anycubic Kobra S1 Max 0.8 nozzle"
@@ -323,12 +323,6 @@
 	],
 	"slow_down_min_speed": [
 		"10"
-	],
-	"supertack_plate_temp": [
-		"35"
-	],
-	"supertack_plate_temp_initial_layer": [
-		"35"
 	],
 	"support_material_interface_fan_speed": [
 		"-1"

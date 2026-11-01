@@ -1,9 +1,12 @@
 #pragma once
+#include <cassert>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include "libslic3r/CommonDefs.hpp"
 
-#include "slic3r/Utils/json_diff.hpp"
+#include <nlohmann/json.hpp>
+#include <vector>
 #include <wx/string.h>
 
 #include "DevDefs.h"

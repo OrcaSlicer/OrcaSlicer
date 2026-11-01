@@ -40,7 +40,6 @@
 	"small_perimeter_threshold": [
 		"4"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_line_width": "0.22",
 	"sparse_infill_speed": [
 		"100"

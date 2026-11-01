@@ -1,6 +1,6 @@
 /*******************************************************************************
 * Author    :  Angus Johnson                                                   *
-* Date      :  22 January 2025                                                 *
+* Date      :  11 October 2025                                                 *
 * Website   :  https://www.angusj.com                                          *
 * Copyright :  Angus Johnson 2010-2025                                         *
 * Purpose   :  Path Offset (Inflate/Shrink)                                    *
@@ -37,29 +37,35 @@ const double arc_const = 0.002; // <-- 1/500
 // Miscellaneous methods
 //------------------------------------------------------------------------------
 
-std::optional<size_t> GetLowestClosedPathIdx(const Paths64& paths)
+void GetLowestClosedPathInfo(const Paths64& paths, std::optional<size_t>& idx, bool& is_neg_area)
 {
-    std::optional<size_t> result;
+	idx.reset();
 	Point64 botPt = Point64(INT64_MAX, INT64_MIN);
 	for (size_t i = 0; i < paths.size(); ++i)
 	{
+		double a = MAX_DBL;
 		for (const Point64& pt : paths[i])
 		{
 			if ((pt.y < botPt.y) ||
 				((pt.y == botPt.y) && (pt.x >= botPt.x))) continue;
-            result = i;
+			if (a == MAX_DBL) 
+			{
+				a = Area(paths[i]);
+				if (a == 0) break; // invalid closed path, so break from inner loop
+				is_neg_area = a < 0;
+			}
+      idx = i;
 			botPt.x = pt.x;
 			botPt.y = pt.y;
 		}
 	}
-	return result;
 }
 
 inline double Hypot(double x, double y)
 {
 	// given that this is an internal function, and given the x and y parameters
 	// will always be coordinate values (or the difference between coordinate values),
-	// x and y should always be within INT64_MIN to INT64_MAX. Consequently,
+	// x and y should always be within INT64_MIN to INT64_MAX. Consequently, 
 	// there should be no risk that the following computation will overflow
 	// see https://stackoverflow.com/a/32436148/359538
 	return std::sqrt(x * x + y * y);
@@ -145,15 +151,16 @@ ClipperOffset::Group::Group(const Paths64& _paths, JoinType _join_type, EndType 
 
 	if (end_type == EndType::Polygon)
 	{
-		lowest_path_idx = GetLowestClosedPathIdx(paths_in);
+		bool is_neg_area;
+		GetLowestClosedPathInfo(paths_in, lowest_path_idx, is_neg_area);
 		// the lowermost path must be an outer path, so if its orientation is negative,
 		// then flag the whole group is 'reversed' (will negate delta etc.)
 		// as this is much more efficient than reversing every path.
-    is_reversed = (lowest_path_idx.has_value()) && Area(paths_in[lowest_path_idx.value()]) < 0;
+    is_reversed = lowest_path_idx.has_value() && is_neg_area;
 	}
 	else
 	{
-    lowest_path_idx = std::nullopt;
+    lowest_path_idx.reset();
 		is_reversed = false;
 	}
 }
@@ -236,7 +243,7 @@ void ClipperOffset::DoSquare(const Path64& path, size_t j, size_t k)
 	{
 		PointD pt4 = PointD(pt3.x + vec.x * group_delta_, pt3.y + vec.y * group_delta_);
 		PointD pt = ptQ;
-		GetSegmentIntersectPt(pt1, pt2, pt3, pt4, pt);
+		GetLineIntersectPt(pt1, pt2, pt3, pt4, pt);
 		//get the second intersect point through reflecion
         path_out.emplace_back(ReflectPoint(pt, ptQ));
         path_out.emplace_back(pt);
@@ -245,7 +252,7 @@ void ClipperOffset::DoSquare(const Path64& path, size_t j, size_t k)
 	{
 		PointD pt4 = GetPerpendicD(path[j], norms[k], group_delta_);
 		PointD pt = ptQ;
-		GetSegmentIntersectPt(pt1, pt2, pt3, pt4, pt);
+		GetLineIntersectPt(pt1, pt2, pt3, pt4, pt);
         path_out.emplace_back(pt);
 		//get the second intersect point through reflecion
         path_out.emplace_back(ReflectPoint(pt, ptQ));
@@ -291,7 +298,8 @@ void ClipperOffset::DoRound(const Path64& path, size_t j, size_t k, double angle
 #else
     path_out.emplace_back(pt.x + offsetVec.x, pt.y + offsetVec.y);
 #endif
-	int steps = static_cast<int>(std::ceil(steps_per_rad_ * std::abs(angle))); // #448, #456
+	// Orca: round the step count like Clipper1 did, so round offsets keep their vertices.
+	int steps = std::max(static_cast<int>(std::round(steps_per_rad_ * std::abs(angle))), 1);
 	for (int i = 1; i < steps; ++i) // ie 1 less than steps
 	{
 		offsetVec = PointD(offsetVec.x * step_cos_ - step_sin_ * offsetVec.y,
@@ -333,9 +341,9 @@ void ClipperOffset::OffsetPoint(Group& group, const Path64& path, size_t j, size
 	if (cos_a > -0.999 && (sin_a * group_delta_ < 0)) // test for concavity first (#593)
 	{
 		// is concave
-		// by far the simplest way to construct concave joins, especially those joining very
-		// short segments, is to insert 3 points that produce negative regions. These regions
-		// will be removed later by the finishing union operation. This is also the best way
+		// by far the simplest way to construct concave joins, especially those joining very 
+		// short segments, is to insert 3 points that produce negative regions. These regions 
+		// will be removed later by the finishing union operation. This is also the best way 
 		// to ensure that path reversals (ie over-shrunk paths) are removed.
 #ifdef USINGZ
         path_out.emplace_back(GetPerpendic(path[j], norms[k], group_delta_), path[j].z);
@@ -366,11 +374,31 @@ void ClipperOffset::OffsetPoint(Group& group, const Path64& path, size_t j, size
 		DoSquare(path, j, k);
 }
 
+// Orca: join concave corners at the crossing of both edge offsets where safe, 3-point loops make dense inward offsets slow.
+static bool OffsetConcaveCrossing(const Path64& path, const PathD& norms, size_t j, size_t k, size_t next,
+	double delta, Path64& path_out)
+{
+	const double sin_a = CrossProduct(norms[j], norms[k]);
+	const double cos_a = DotProduct(norms[j], norms[k]);
+	if (cos_a <= -0.999 || sin_a * delta >= 0) return false;
+	const double x = std::fabs(delta * sin_a) / (1 + cos_a);
+	if (4 * x * x > DistanceSqr(path[k], path[j]) || 4 * x * x > DistanceSqr(path[j], path[next])) return false;
+	const double q = delta / (1 + cos_a);
+#ifdef USINGZ
+	path_out.emplace_back(path[j].x + (norms[k].x + norms[j].x) * q, path[j].y + (norms[k].y + norms[j].y) * q, path[j].z);
+#else
+	path_out.emplace_back(path[j].x + (norms[k].x + norms[j].x) * q, path[j].y + (norms[k].y + norms[j].y) * q);
+#endif
+	return true;
+}
+
 void ClipperOffset::OffsetPolygon(Group& group, const Path64& path)
 {
 	path_out.clear();
 	for (Path64::size_type j = 0, k = path.size() - 1; j < path.size(); k = j, ++j)
-		OffsetPoint(group, path, j, k);
+		if (deltaCallback64_ || path[j] == path[k] ||
+			!OffsetConcaveCrossing(path, norms, j, k, j + 1 == path.size() ? 0 : j + 1, group_delta_, path_out))
+			OffsetPoint(group, path, j, k);
     solution->emplace_back(path_out);
 }
 
@@ -380,7 +408,7 @@ void ClipperOffset::OffsetOpenJoined(Group& group, const Path64& path)
 	Path64 reverse_path(path);
 	std::reverse(reverse_path.begin(), reverse_path.end());
 
-	//rebuild normals
+	//rebuild normals 
 	std::reverse(norms.begin(), norms.end());
     norms.emplace_back(norms[0]);
 	norms.erase(norms.begin());
@@ -601,10 +629,10 @@ void ClipperOffset::ExecuteInternal(double delta)
 
 	if (!solution->size()) return;
 
-		bool paths_reversed = CheckReverseOrientation();
+	bool paths_reversed = CheckReverseOrientation();
 	//clean up self-intersections ...
 	Clipper64 c;
-	c.PreserveCollinear(false);
+	c.PreserveCollinear(preserve_collinear_);
 	//the solution should retain the orientation of the input
 	c.ReverseSolution(reverse_solution_ != paths_reversed);
 #ifdef USINGZ

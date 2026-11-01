@@ -6,6 +6,8 @@ uniform sampler2D shadow_map;
 uniform mat4 shadow_light_vp;
 uniform float shadow_intensity;
 uniform float shadow_map_texel;
+// Plate area a shadow can reach, min xy then max xy; the rest is skipped before any lookup.
+uniform vec4 shadow_bounds;
 
 varying vec4 world_pos;
 
@@ -33,6 +35,8 @@ float shadow_occlusion()
 
 void main()
 {
+    if (any(lessThan(world_pos.xy, shadow_bounds.xy)) || any(greaterThan(world_pos.xy, shadow_bounds.zw)))
+        discard;
     float occ = shadow_occlusion();
     if (occ <= 0.0)
         discard;

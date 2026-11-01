@@ -11,7 +11,6 @@
 #include <list>
 #include <vector>
 
-#include "utils/HalfEdgeGraph.hpp"
 #include "utils/PolygonsSegmentIndex.hpp"
 #include "utils/ExtrusionJunction.hpp"
 #include "utils/ExtrusionLine.hpp"

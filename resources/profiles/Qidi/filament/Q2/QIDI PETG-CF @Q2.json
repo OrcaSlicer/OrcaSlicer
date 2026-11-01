@@ -3,7 +3,7 @@
 	"name": "QIDI PETG-CF@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_42",
+	"filament_id": "OF4iWKrE",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"

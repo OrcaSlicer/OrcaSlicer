@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA PRO @0.2 nozzle",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA PRO @base",
 	"from": "system",
 	"setting_id": "ed7EP0Fx9X6WoP8q",
 	"instantiation": "true",

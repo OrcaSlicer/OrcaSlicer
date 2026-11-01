@@ -4,10 +4,13 @@
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "AEKT5WgqOTAVYijs",
-	"filament_id": "GFL99",
+	"filament_id": "OFjVOWfJ",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic PLA High Speed @Anycubic Kobra S1 0.4 nozzle"
+	],
+	"filament_vendor": [
+		"Anycubic"
 	],
 	"filament_flow_ratio": [
 		"0.96"
@@ -105,9 +108,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"31.925"
-	],
 	"filament_loading_speed": [
 		"0"
 	],
@@ -176,9 +176,6 @@
 	],
 	"filament_toolchange_delay": [
 		"0"
-	],
-	"filament_unload_time": [
-		"24.75"
 	],
 	"filament_unloading_speed": [
 		"0"

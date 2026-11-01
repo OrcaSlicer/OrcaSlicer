@@ -5,9 +5,14 @@
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
 #include "FilamentBitmapUtils.hpp"
+#include "ColorPickerDialog.hpp"
+#include <optional>
 #include "Widgets/Button.hpp"
 #include "EncodedFilament.hpp"
 #include <wx/dialog.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/wx.h>
 #include <wx/scrolwin.h>
 #include <wx/bitmap.h>
@@ -21,10 +26,13 @@ namespace Slic3r { namespace GUI {
 class FilamentPickerDialog : public DPIDialog
 {
 public:
-    FilamentPickerDialog(wxWindow *parent, const wxString &fila_id, const FilamentColor &fila_color, const std::string &fila_type);
+    FilamentPickerDialog(wxWindow *parent, const wxString &fila_id, const FilamentColor &fila_color, const std::string &fila_type,
+                         std::optional<FilamentColorPickerValue> ordered_color = std::nullopt);
     virtual ~FilamentPickerDialog();
 
     // Public interface methods
+    bool HasSelectionChanged() const { return m_selection_changed; }
+    const std::optional<ColorSelection>& GetCustomColorSelection() const { return m_custom_selection; }
     bool IsDataLoaded() const { return m_is_data_loaded; }
     wxColour GetSelectedColour() const;
     const FilamentColor& GetSelectedFilamentColor() const { return m_cur_filament_color; }
@@ -64,7 +72,7 @@ private:
 
     // UI update methods
     void UpdatePreview(const FilamentColorCode& filament);
-    void UpdateCustomColorPreview(const wxColour& custom_color);
+    void UpdateCustomColorPreview(const std::vector<wxColour>& colors, bool gradient);
     void UpdateButtonStates(wxBitmapButton* selected_btn);
 
     // Shaped window methods
@@ -73,7 +81,6 @@ private:
 
     // Data loading
     bool LoadFilamentData(const wxString& fila_id);
-    wxColourData GetSingleColorData();
 
     // Flash effect
     void StartFlashing();
@@ -94,6 +101,9 @@ private:
     FilamentColorCodes* m_cur_color_codes{nullptr};
     wxBitmapButton* m_cur_selected_btn{nullptr};
     FilamentColor m_cur_filament_color;
+    std::optional<FilamentColorPickerValue> m_ordered_color;
+    std::optional<ColorSelection> m_custom_selection;
+    bool m_selection_changed = false;
 
     // Shaped window members
     wxBitmap m_shape_bmp;

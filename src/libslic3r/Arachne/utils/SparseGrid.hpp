@@ -6,11 +6,14 @@
 #define UTILS_SPARSE_GRID_H
 
 #include <cassert>
+#include <unordered_map>
+#include <cstddef>
 #include <vector>
 #include <functional>
 
 #include "../../Point.hpp"
 #include "SquareGrid.hpp"
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r::Arachne {
 

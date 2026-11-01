@@ -1,0 +1,16 @@
+{
+	"type": "process",
+	"name": "0.15mm Standard @VIRTU E3",
+	"inherits": "process_Standard_VIRTU E3",
+	"from": "system",
+	"setting_id": "NFY8TFxasqh2wUvX",
+	"instantiation": "true",
+	"layer_height": "0.15",
+	"initial_layer_print_height": "0.2",
+	"compatible_printers": [
+		"VIRTU E3 - 0.2 nozzle",
+		"VIRTU E3 - 0.3 nozzle",
+		"VIRTU E3 - 0.4 nozzle",
+		"VIRTU E3 - 0.5 nozzle"
+	]
+}

@@ -3,7 +3,7 @@
 	"name": "Elegoo PC @base",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"filament_id": "OEPCB00",
+	"filament_id": "OFUyDDNv",
 	"instantiation": "false",
 	"filament_density": [
 		"1.25"

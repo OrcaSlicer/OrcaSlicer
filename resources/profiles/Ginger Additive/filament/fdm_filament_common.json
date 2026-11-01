@@ -2,7 +2,6 @@
 	"type": "filament",
 	"name": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "P510eff9",
 	"instantiation": "false",
 	"activate_air_filtration": [
 		"0"
@@ -94,9 +93,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"0"
-	],
 	"filament_loading_speed": [
 		"28"
 	],
@@ -164,9 +160,6 @@
 		"; filament start gcode\n{if  (bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S255\n{elsif(bed_temperature[current_extruder] >35)||(bed_temperature_initial_layer[current_extruder] >35)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
 	],
 	"filament_toolchange_delay": [
-		"0"
-	],
-	"filament_unload_time": [
 		"0"
 	],
 	"filament_unloading_speed": [

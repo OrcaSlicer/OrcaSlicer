@@ -8,5 +8,5 @@
 	"bed_model": "",
 	"bed_texture": "",
 	"hotend_model": "",
-	"default_materials": "Tiertime ABS;Tiertime PLA"
+	"default_materials": "Tiertime ABS;Tiertime PLA;Tiertime PLA@300HS"
 }

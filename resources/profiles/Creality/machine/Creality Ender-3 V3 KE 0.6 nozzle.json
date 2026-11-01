@@ -117,7 +117,7 @@
 	"change_filament_gcode": "M600",
 	"machine_pause_gcode": "PAUSE",
 	"default_filament_profile": [
-		"Creality Generic PLA @Ender-3V3-all"
+		"Generic PLA @Creality Ender-3V3-all"
 	],
 	"machine_start_gcode": "SET_GCODE_VARIABLE MACRO=PRINTER_PARAM VARIABLE=fan0_min VALUE=30 ;compensate for fan speed\nSET_VELOCITY_LIMIT ACCEL_TO_DECEL=2500 ;revert accel_to_decel back to 2500\nM220 S100 ;Reset Feedrate\nM221 S100 ;Reset Flowrate\n\nM140 S[bed_temperature_initial_layer_single] ;Set bed temp\nG28 X Y ;Home XY axes\nM190 S[bed_temperature_initial_layer_single] ;Wait for bed temp to stabilize\nG28 Z ;Home Z axis & load bed mesh\nBED_MESH_CALIBRATE PROBE_COUNT=5,5 ;Auto bed level\n\nM104 S[nozzle_temperature_initial_layer] ;Set nozzle temp\nG92 E0 ;Reset Extruder\nG1 X-2.0 Y20 Z0.3 F5000.0 ;Move to start position\nM109 S[nozzle_temperature_initial_layer] ;Wait for nozzle temp to stabilize\nG1 Z0.2 ;Lower nozzle to printing height\nG1 Y145.0 F1500.0 E15 ;Draw the first line\nG1 X-1.7 F5000.0 ;Move to side a little\nG1 Y30 F1500.0 E15 ;Draw the second line\nG92 E0 ;Reset Extruder",
 	"machine_end_gcode": "G92 E0 ;Reset Extruder\nG1 E-1.2 Z{max_layer_z + 0.5} F1800 ;Retract and raise Z\n{if max_layer_z < 50}\nG1 Z{max_layer_z + 25} F900 ;Raise Z more\n{endif}\n\nG1 X2 Y218 F3000 ;Present print\nM106 S0 ;Turn-off fan\nM104 S0 ;Turn-off hotend\nM140 S0 ;Turn-off bed\n\nM84 X Y E ;Disable all steppers but Z",

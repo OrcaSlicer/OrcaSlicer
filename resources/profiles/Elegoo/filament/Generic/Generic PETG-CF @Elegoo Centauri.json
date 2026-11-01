@@ -4,6 +4,7 @@
 	"inherits": "Generic PETG @base",
 	"from": "system",
 	"setting_id": "bWUrg1tIttzhMYlr",
+	"filament_id": "OFoYSJKi",
 	"instantiation": "true",
 	"filament_type": [
 		"PETG-CF"

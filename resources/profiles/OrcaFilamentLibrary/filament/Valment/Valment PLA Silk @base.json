@@ -3,7 +3,7 @@
 	"name": "Valment PLA Silk @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "VLMNT02",
+	"filament_id": "OFpBlrvY",
 	"instantiation": "false",
 	"filament_cost": [
 		"710"
@@ -21,6 +21,9 @@
 		"0.98"
 	],
 	"filament_max_volumetric_speed": [
+		"7.5"
+	],
+	"filament_multitool_ramming_flow": [
 		"7.5"
 	],
 	"filament_vendor": [

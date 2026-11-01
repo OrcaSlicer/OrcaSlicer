@@ -3,7 +3,7 @@
 	"name": "DREMC ABS-GF @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "DREMC009",
+	"filament_id": "OFCidU7j",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"12"

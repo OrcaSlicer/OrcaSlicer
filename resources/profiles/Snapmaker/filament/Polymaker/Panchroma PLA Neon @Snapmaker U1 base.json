@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Neon @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM013",
+	"filament_id": "OFO1GEq6",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

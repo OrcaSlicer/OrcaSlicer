@@ -7,12 +7,25 @@
 #include "Widgets/TextInput.hpp"
 #include "Widgets/AMSControl.hpp"
 #include "Widgets/ProgressBar.hpp"
-#include "Widgets/HyperLink.hpp"
 #include "wxExtensions.hpp"
 #include "PresetComboBoxes.hpp"
 
 #include "slic3r/Utils/CalibUtils.hpp"
 #include "../../libslic3r/calib.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include "libslic3r/PrintConfig.hpp"
+#include <string>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <vector>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/string.h>
+#include <memory>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
+#include <wx/scrolwin.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -141,7 +154,7 @@ private:
     void init_bitmaps();
     void create_wiki(wxWindow* parent);
 
-    HyperLink* m_wiki_text; // ORCA
+    Button* m_wiki_text; // ORCA
     wxString  m_wiki_url;
     ScalableBitmap m_prev_bmp_normal;
     ScalableBitmap m_prev_bmp_hover;

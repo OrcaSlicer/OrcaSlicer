@@ -2,8 +2,18 @@
 #include "Label.hpp"
 #include "StateColor.hpp"
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/dc.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/utils.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+
+class wxWindow;
 
 BEGIN_EVENT_TABLE(StaticLine, wxWindow)
 

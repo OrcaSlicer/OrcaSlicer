@@ -1,8 +1,12 @@
 #ifndef slic3r_SupportLayer_hpp_
 #define slic3r_SupportLayer_hpp_
 
+#include <memory>
+#include <cstddef>
 #include <oneapi/tbb/scalable_allocator.h>
 #include <oneapi/tbb/spin_mutex.h>
+#include <utility>
+#include <vector>
 // for Slic3r::deque
 #include "../libslic3r.h"
 #include "../ClipperUtils.hpp"

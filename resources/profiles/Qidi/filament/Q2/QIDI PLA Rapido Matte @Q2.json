@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Matte@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_2",
+	"filament_id": "OF3IKafc",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"100"

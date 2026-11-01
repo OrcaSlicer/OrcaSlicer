@@ -1,18 +1,39 @@
 #include <catch2/catch_all.hpp>
 
-#include "libslic3r/libslic3r.h"
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Utils.hpp"
 
 #include "test_utils.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
+#include <iomanip>
+#include <ios>
 #include <map>
+#include <math.h>
 #include <memory>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
+#include "libslic3r/Config.hpp"
+
+namespace Slic3r { enum ExtrusionRole : uint8_t; }
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 // Regression coverage for filament/tool-change time being folded into the first
 // pending motion block (an extrusion move) instead of the tool-change move, and
@@ -37,12 +58,16 @@ FullPrintConfig make_config(double load_time, double unload_time, double tool_ch
     return config;
 }
 
-void run_processor(GCodeProcessor& proc, const FullPrintConfig& config, const char* gcode)
+void run_processor(GCodeProcessor& proc, const FullPrintConfig& config, const char* gcode, bool is_bbl_printer = true)
 {
     // reserved_tag() selects between two tag tables based on this shared static, and
-    // other tests in the binary mutate it -- pin it so our "; FEATURE:" role tags are
-    // parsed deterministically regardless of test execution order.
-    GCodeProcessor::s_IsBBLPrinter = true;
+    // other tests in the binary mutate it -- pin it so role tags are parsed
+    // deterministically regardless of test execution order.
+    const bool previous_is_bbl_printer = GCodeProcessor::s_IsBBLPrinter;
+    GCodeProcessor::s_IsBBLPrinter = is_bbl_printer;
+    const ScopeGuard restore_flag([previous_is_bbl_printer] {
+        GCodeProcessor::s_IsBBLPrinter = previous_is_bbl_printer;
+    });
     ScopedTemporaryFile temp(".gcode");
     {
         std::ofstream os(temp.string());
@@ -83,6 +108,45 @@ double filament_change_delay(const GCodeProcessorResult& r)
 }
 
 } // namespace
+
+TEST_CASE("G29 preparation time is added only once", "[GCodeTiming][Regression]")
+{
+    const FullPrintConfig config = make_config(0.0, 0.0, 0.0);
+    auto estimate = [&config](bool is_bbl_printer, const char* commands) {
+        const auto mode = PrintEstimatedStatistics::ETimeMode::Normal;
+        std::string gcode = is_bbl_printer ? "; FEATURE: Custom\n" : ";TYPE:Custom\n";
+        gcode += "G1 X10 Y10 Z0.2 F600\nG1 X20 Y10 F600\n";
+        if (is_bbl_printer)
+            gcode += "M622 J1\n";
+        gcode += commands;
+        if (is_bbl_printer)
+            gcode += "M623\n";
+        gcode += "G1 X20 Y20 F600\nG1 X10 Y20 F600\n";
+
+        GCodeProcessor processor;
+        run_processor(processor, config, gcode.c_str(), is_bbl_printer);
+        return std::make_pair(processor.get_time(mode), processor.get_prepare_time(mode));
+    };
+
+    const auto [baseline_time, baseline_prepare] = estimate(false, "G4 S0\n");
+    const auto [one_time, one_prepare] = estimate(false, "G29\n");
+    const auto [repeated_time, repeated_prepare] = estimate(false,
+        "G29 P9 X10 Y-4 W32 H4\nG29 P1\nG29 P1 X0 Y0 W50 H20 C\nG29 P3.2\nG29 P3.13\nG29 A\n");
+
+    REQUIRE_THAT(one_time - baseline_time, WithinAbs(260.0, 1e-2));
+    REQUIRE_THAT(one_prepare - baseline_prepare, WithinAbs(260.0, 1e-2));
+    REQUIRE_THAT(repeated_time, WithinAbs(one_time, 1e-2));
+    REQUIRE_THAT(repeated_prepare, WithinAbs(one_prepare, 1e-2));
+
+    const auto [baseline_bbl_time, baseline_bbl_prepare] = estimate(true, "G4 S0\n");
+    const auto [one_bbl_time, one_bbl_prepare] = estimate(true, "G29\n");
+    const auto [repeated_bbl_time, repeated_bbl_prepare] = estimate(true, "G29\nG29\n");
+
+    REQUIRE_THAT(one_bbl_time - baseline_bbl_time, WithinAbs(260.0, 1e-2));
+    REQUIRE_THAT(one_bbl_prepare - baseline_bbl_prepare, WithinAbs(260.0, 1e-2));
+    REQUIRE_THAT(repeated_bbl_time, WithinAbs(one_bbl_time, 1e-2));
+    REQUIRE_THAT(repeated_bbl_prepare, WithinAbs(one_bbl_prepare, 1e-2));
+}
 
 TEST_CASE("Filament-change time is attributed to tool-change moves, not extrusion roles", "[GCodeTiming]")
 {
@@ -417,4 +481,391 @@ TEST_CASE("Per-slot machine limits follow the active nozzle", "[GCodeTiming][Mul
         REQUIRE_THAT(times[1], Catch::Matchers::WithinRel(100.0 / 200.0, 0.10));
         REQUIRE_THAT(times[2], Catch::Matchers::WithinRel(101.0 / 200.0, 0.10));
     }
+}
+
+// Junction planning decides the speeds the "actual speed" / "actual flow" preview shows. Per-axis
+// jerk limits a corner by the largest single-axis component of the velocity change, allowing sqrt(2)
+// more speed on a diagonal than on an axis -- a four-lobed ripple around every circle. Klipper and
+// Marlin 2 with M205 J plan with junction deviation instead, which sees only the corner angle.
+namespace {
+
+// One acceleration everywhere and axis limits far above it, so only the junction model under test
+// can slow a corner down.
+FullPrintConfig make_junction_config(GCodeFlavor flavor, double corner_velocity, double junction_deviation)
+{
+    FullPrintConfig config;
+    config.gcode_flavor.value = flavor;
+    config.filament_diameter.values = {1.75};
+    config.filament_map.values = {1};
+
+    const std::vector<double> accel   = {1000.0, 1000.0};
+    const std::vector<double> axis    = {20000.0, 20000.0};
+    const std::vector<double> speed   = {500.0, 500.0};
+    config.machine_max_acceleration_extruding.values = accel;
+    config.machine_max_acceleration_travel.values    = accel;
+    config.machine_max_acceleration_retracting.values = accel;
+    config.machine_max_acceleration_x.values = axis;
+    config.machine_max_acceleration_y.values = axis;
+    config.machine_max_acceleration_z.values = axis;
+    config.machine_max_acceleration_e.values = axis;
+    config.machine_max_speed_x.values = speed;
+    config.machine_max_speed_y.values = speed;
+    config.machine_max_speed_z.values = speed;
+    config.machine_max_speed_e.values = speed;
+    // Klipper reads this as the square corner velocity, Marlin as classic jerk.
+    config.machine_max_jerk_x.values = {corner_velocity, corner_velocity};
+    config.machine_max_jerk_y.values = {corner_velocity, corner_velocity};
+    config.machine_max_jerk_z.values = {corner_velocity, corner_velocity};
+    // Kept out of the way so it never binds in the classic-jerk comparisons.
+    config.machine_max_jerk_e.values = {100.0, 100.0};
+    config.machine_max_junction_deviation.values = {junction_deviation, junction_deviation};
+    config.machine_min_extruding_rate.values = {0.0, 0.0};
+    config.machine_min_travel_rate.values    = {0.0, 0.0};
+    return config;
+}
+
+constexpr double junction_x = 60.0;
+constexpr double junction_y = 60.0;
+
+// Two 40mm moves meeting at (junction_x, junction_y) with the given turn, rotated by `orientation`.
+// 40mm is long enough to reach the commanded 150mm/s and brake back to any corner speed these tests
+// produce. `e_per_mm` of zero makes them travels, which keeps the junction vector purely geometric
+// as the formulas below assume.
+std::string corner_gcode(double turn_deg, double orientation_deg, double e_per_mm = 0.0)
+{
+    const double len   = 40.0;
+    const double a_in  = orientation_deg * M_PI / 180.0;
+    const double a_out = (orientation_deg + turn_deg) * M_PI / 180.0;
+    std::ostringstream extrude;
+    if (e_per_mm > 0.0)
+        extrude << std::fixed << std::setprecision(4) << " E" << len * e_per_mm;
+
+    std::ostringstream os;
+    os << std::fixed << std::setprecision(4)
+       << "M83\n"
+       << "G1 Z0.2 F1200\n"
+       << "G1 X" << junction_x - len * std::cos(a_in)  << " Y" << junction_y - len * std::sin(a_in)  << " F6000\n"
+       << "G1 X" << junction_x                         << " Y" << junction_y   << extrude.str()      << " F9000\n"
+       << "G1 X" << junction_x + len * std::cos(a_out) << " Y" << junction_y + len * std::sin(a_out)
+       << extrude.str() << " F9000\n";
+    return os.str();
+}
+
+// Speed allowed through the corner: the vertex ending the incoming move carries that block's exit
+// speed, and the vertices the actual-speed pass inserts are all strictly interior.
+double corner_speed(const GCodeProcessorResult& r)
+{
+    for (const auto& mv : r.moves)
+        if ((mv.type == EMoveType::Travel || mv.type == EMoveType::Extrude) &&
+            std::abs(mv.position.x() - junction_x) < 1e-3 &&
+            std::abs(mv.position.y() - junction_y) < 1e-3)
+            return mv.actual_feedrate;
+    return -1.0;
+}
+
+double planned_corner_speed(GCodeFlavor flavor, double corner_velocity, double junction_deviation,
+                            double turn_deg, double orientation_deg = 0.0, double e_per_mm = 0.0)
+{
+    GCodeProcessor proc;
+    run_processor(proc, make_junction_config(flavor, corner_velocity, junction_deviation),
+                  corner_gcode(turn_deg, orientation_deg, e_per_mm).c_str());
+    return corner_speed(proc.get_result());
+}
+
+} // namespace
+
+TEST_CASE("Klipper extrusion ratio changes use its own corner velocity, not E jerk", "[GCodeTiming][JunctionDeviation]")
+{
+    const double jerk_e = GENERATE(0.0, 100.0);
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    config.machine_max_jerk_e.values = {jerk_e, jerk_e};
+    GCodeProcessor processor;
+    run_processor(processor, config,
+        "G90\nM83\nSET_VELOCITY_LIMIT ACCEL=1000 MINIMUM_CRUISE_RATIO=0\n"
+        "G1 X20 Y60 F6000\nM400\n"
+        "G1 X60 Y60 E0.8 F6000\nG1 X100 Y60 E1.6 F6000\nM400\n");
+    // A 0.02 -> 0.04 extrusion ratio change is capped at 1 / 0.02 = 50 mm/s.
+    REQUIRE_THAT(corner_speed(processor.get_result()), Catch::Matchers::WithinAbs(50.0, 0.01));
+}
+
+TEST_CASE("Klipper legacy smoothing stays absolute across acceleration changes", "[GCodeTiming][Klipper]")
+{
+    const bool modern = GENERATE(false, true);
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    const std::string gcode = std::string("G90\nSET_VELOCITY_LIMIT ACCEL=1000 ") +
+        (modern ? "MINIMUM_CRUISE_RATIO=0.75\n" : "ACCEL_TO_DECEL=250\n") +
+        "G1 X40 F30000\nM400\nM204 S2000\nG1 X0\nM400\n";
+    GCodeProcessor processor;
+    run_processor(processor, config, gcode.c_str());
+    const double expected = modern ? 0.5 + 0.25 * std::sqrt(2.0) : 0.95;
+    REQUIRE_THAT(processor.get_time(PrintEstimatedStatistics::ETimeMode::Normal), WithinAbs(expected, 1e-5));
+}
+
+TEST_CASE("Klipper corners are planned with junction deviation derived from the square corner velocity",
+          "[GCodeTiming][JunctionDeviation]")
+{
+    // jd = scv^2 * (sqrt(2) - 1) / max_accel, then v^2 = jd * accel * sin(t/2) / (1 - sin(t/2)).
+    // The acceleration cancels: the corner speed depends only on the scv and the angle.
+    const double scv = 5.0;
+
+    SECTION("a right angle is taken at exactly the square corner velocity") {
+        // sin(t/2) = sqrt(0.5) at 90 degrees, so v == scv -- the definition of the square corner
+        // velocity, and what makes the mapping above the right one.
+        REQUIRE_THAT(planned_corner_speed(gcfKlipper, scv, 0.0, 90.0), Catch::Matchers::WithinRel(scv, 0.02));
+    }
+
+    SECTION("a shallow corner is taken far faster than the per-axis jerk model allows") {
+        // 6 degrees: sin(t/2) = cos(3 deg), so v = 5 * sqrt((sqrt(2) - 1) * 728.68) = 86.9mm/s. Per-axis
+        // jerk ignores the angle and caps the velocity *change* (2v*sin(3 deg)), giving 47.8mm/s.
+        const double jd_speed     = planned_corner_speed(gcfKlipper, scv, 0.0, 6.0);
+        const double jerk_speed   = planned_corner_speed(gcfMarlinLegacy, scv, 0.0, 6.0);
+        REQUIRE_THAT(jd_speed, Catch::Matchers::WithinRel(86.87, 0.02));
+        REQUIRE_THAT(jerk_speed, Catch::Matchers::WithinRel(47.75, 0.02));
+    }
+}
+
+TEST_CASE("Junction deviation limits a corner by its angle alone, not by its orientation",
+          "[GCodeTiming][JunctionDeviation]")
+{
+    // The four-lobed ripple on circular walls is per-axis jerk being anisotropic: a velocity change
+    // lying on an axis gets sqrt(2) less headroom than the same change on the diagonal.
+    const double scv = 5.0;
+    const double turn = 6.0;
+
+    SECTION("Klipper plans both orientations identically") {
+        const double on_axis  = planned_corner_speed(gcfKlipper, scv, 0.0, turn, 0.0);
+        const double diagonal = planned_corner_speed(gcfKlipper, scv, 0.0, turn, 45.0);
+        REQUIRE(on_axis > 0.0);
+        REQUIRE_THAT(diagonal, Catch::Matchers::WithinRel(on_axis, 0.02));
+    }
+
+    SECTION("the classic jerk model keeps its orientation dependence") {
+        const double on_axis  = planned_corner_speed(gcfMarlinLegacy, scv, 0.0, turn, 0.0);
+        const double diagonal = planned_corner_speed(gcfMarlinLegacy, scv, 0.0, turn, 45.0);
+        REQUIRE(on_axis > 0.0);
+        REQUIRE(diagonal / on_axis > 1.2);
+    }
+}
+
+TEST_CASE("Junction deviation is only used where the firmware actually plans with it",
+          "[GCodeTiming][JunctionDeviation]")
+{
+    const double jerk = 5.0;
+
+    SECTION("Marlin 2 with M205 J disabled keeps the classic jerk planning") {
+        // machine_max_junction_deviation == 0 is how a Marlin 2 printer says it runs classic jerk.
+        const double classic = planned_corner_speed(gcfMarlinLegacy, jerk, 0.0, 90.0);
+        REQUIRE(classic > 0.0);
+        REQUIRE_THAT(planned_corner_speed(gcfMarlinFirmware, jerk, 0.0, 90.0),
+                     Catch::Matchers::WithinRel(classic, 1e-4));
+    }
+
+    SECTION("Marlin 2 with M205 J enabled switches to junction deviation") {
+        // sqrt(1000 * 0.05 * 2.4142136) = 11.0mm/s, independent of the jerk values it no longer reads.
+        REQUIRE_THAT(planned_corner_speed(gcfMarlinFirmware, jerk, 0.05, 90.0),
+                     Catch::Matchers::WithinRel(10.99, 0.02));
+    }
+
+    SECTION("machines without junction deviation are untouched by the jerk values it would ignore") {
+        // A flavor that never enters the junction deviation path must ignore the setting entirely.
+        const double without = planned_corner_speed(gcfMarlinLegacy, jerk, 0.0, 90.0);
+        REQUIRE_THAT(planned_corner_speed(gcfMarlinLegacy, jerk, 0.05, 90.0),
+                     Catch::Matchers::WithinRel(without, 1e-4));
+    }
+}
+
+TEST_CASE("How fast a corner is taken does not depend on how much is extruded through it",
+          "[GCodeTiming][JunctionDeviation]")
+{
+    // The junction cosine is taken over XYZE, so the direction vectors have to be unit length or the
+    // E term makes the two paths look more parallel than they are and the corner comes out too fast,
+    // the more so the higher the flow. Marlin normalizes over XYZE on any extruding move
+    // (planner.cpp, esteps > 0) and Klipper leaves E out of the cosine altogether
+    // (toolhead.py::Move.calc_junction); on both, this corner is planned by its geometry alone.
+    const double scv  = 5.0;
+    const double turn = 6.0;
+    const double geometric = planned_corner_speed(gcfKlipper, scv, 0.0, turn);
+    REQUIRE(geometric > 0.0);
+
+    // 0.029mm/mm is an ordinary 0.42 x 0.2 line on 1.75mm filament; 0.1 is a fat large-nozzle one.
+    // Unnormalized these came out at 94.4 and 150.0mm/s against a geometric 86.9.
+    for (double e_per_mm : {0.029, 0.1})
+        REQUIRE_THAT(planned_corner_speed(gcfKlipper, scv, 0.0, turn, 0.0, e_per_mm),
+                     Catch::Matchers::WithinRel(geometric, 0.02));
+
+    SECTION("and the same holds on Marlin 2") {
+        const double marlin = planned_corner_speed(gcfMarlinFirmware, scv, 0.05, turn);
+        REQUIRE(marlin > 0.0);
+        REQUIRE_THAT(planned_corner_speed(gcfMarlinFirmware, scv, 0.05, turn, 0.0, 0.029),
+                     Catch::Matchers::WithinRel(marlin, 0.02));
+    }
+}
+
+// Expected times are Klipper's own planner math (klippy/toolhead.py). For a move from rest to rest,
+// LookAheadQueue.flush() reduces to cruise_v2 = min(vmax^2, d * accel, d * pseudo_accel) with
+// pseudo_accel = accel * (1 - minimum_cruise_ratio), and Move.set_junction() to a trapezoid at accel;
+// a move too short to reach its speed still spends that ratio of its length cruising.
+namespace {
+
+constexpr double klipper_accel        = 1000.0; // make_junction_config's acceleration
+constexpr double klipper_cruise_ratio = 0.5;
+constexpr double klipper_pseudo_accel = klipper_accel * (1.0 - klipper_cruise_ratio);
+
+// Time of a move that starts and ends at rest.
+double rest_to_rest_time(double distance, double max_speed, double accel, double pseudo_accel)
+{
+    const double cruise_v2 = std::min(sqr(max_speed), distance * pseudo_accel);
+    const double cruise = std::sqrt(cruise_v2);
+    return 2.0 * cruise / accel + (distance - cruise_v2 / accel) / cruise;
+}
+
+// Every run states the cruise ratio rather than relying on the estimator's built-in default.
+void run_klipper(GCodeProcessor& proc, const std::string& gcode,
+                 const FullPrintConfig& config = make_junction_config(gcfKlipper, 5.0, 0.0))
+{
+    const std::string limits = "SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=" + std::to_string(klipper_cruise_ratio) + "\n";
+    run_processor(proc, config, (limits + gcode).c_str());
+}
+
+double klipper_time(const std::string& gcode, const FullPrintConfig& config = make_junction_config(gcfKlipper, 5.0, 0.0))
+{
+    GCodeProcessor proc;
+    run_klipper(proc, gcode, config);
+    return proc.get_time(PrintEstimatedStatistics::ETimeMode::Normal);
+}
+
+double time_after_retract(const GCodeProcessorResult& r)
+{
+    double t = 0.0;
+    bool after = false;
+    for (const auto& mv : r.moves) {
+        if (mv.type == EMoveType::Retract)
+            after = true;
+        else if (after)
+            t += mv.time[NORMAL];
+    }
+    return t;
+}
+
+} // namespace
+
+TEST_CASE("A straight line split into short segments is planned as one move", "[GCodeTiming][Klipper]")
+{
+    // 100 mm at 50 mm/s queues 2 s of motion, so the look-ahead flushes lazily part-way along the
+    // line; at 10 mm/s^2 the ramps span many segments and the cruise ratio caps the speed.
+    const int segments = GENERATE(1, 100, 1000);
+    std::ostringstream gcode;
+    gcode << "SET_VELOCITY_LIMIT ACCEL=10\n" << std::fixed << std::setprecision(3);
+    for (int i = 1; i <= segments; ++i)
+        gcode << "G1 X" << 100.0 * i / segments << " F3000\n";
+    REQUIRE_THAT(klipper_time(gcode.str()),
+                 WithinRel(rest_to_rest_time(100.0, 50.0, 10.0, 10.0 * (1.0 - klipper_cruise_ratio)), 1e-6));
+}
+
+TEST_CASE("Where the look-ahead flushes does not change the estimate", "[GCodeTiming][Klipper]")
+{
+    // A retraction stops the toolhead, so the zig-zag after it is planned on its own; the straight run
+    // before it only shifts where the queue flushes lazily (1 s of motion after a stop, then every 0.15 s).
+    auto zigzag_time = [](int run_moves) {
+        std::string gcode = "M83\nG91\n";
+        for (int i = 0; i < run_moves; ++i)
+            gcode += "G1 X1 F6000\n";
+        gcode += "G1 E-1 F2400\n";
+        const char* moves[] = {"G1 X2 F3000\n", "G1 Y2 F9000\n", "G1 X2 F1200\n", "G1 Y-2 F9000\n"};
+        for (int i = 0; i < 24; ++i)
+            gcode += moves[i % 4];
+        GCodeProcessor proc;
+        run_klipper(proc, gcode);
+        return time_after_retract(proc.get_result());
+    };
+    const double reference = zigzag_time(0);
+    REQUIRE(reference > 0.0);
+    for (int run_moves : {30, 80, 105, 130}) {
+        INFO("run moves = " << run_moves);
+        REQUIRE_THAT(zigzag_time(run_moves), WithinAbs(reference, 1e-9));
+    }
+}
+
+TEST_CASE("A short move into a corner is limited by the centripetal term, not the corner velocity",
+          "[GCodeTiming][Klipper]")
+{
+    // A 50 mm/s square corner velocity allows 50 mm/s through the right angle; the 1 mm move into it
+    // allows sqrt(0.5 * 1 * 1000 * tan(45 deg)) = 22.4 mm/s (Move.calc_junction's move_centripetal_v2).
+    GCodeProcessor proc;
+    run_klipper(proc, "G90\nG1 X59 Y60 F6000\nM400\nG1 X60 Y60 F9000\nG1 X60 Y100 F9000\n",
+                make_junction_config(gcfKlipper, 50.0, 0.0));
+    REQUIRE_THAT(corner_speed(proc.get_result()), WithinRel(std::sqrt(500.0), 1e-6));
+}
+
+TEST_CASE("A corner keeps the square corner velocity when the acceleration changes between its moves",
+          "[GCodeTiming][Klipper]")
+{
+    GCodeProcessor proc;
+    run_klipper(proc, "G90\nG1 X20 Y60 F6000\nM400\nG1 X60 Y60 F9000\nM204 S4000\nG1 X60 Y100 F9000\n");
+    REQUIRE_THAT(corner_speed(proc.get_result()), WithinRel(5.0, 1e-6));
+}
+
+TEST_CASE("A retraction stops the toolhead and runs at the extruder's own limits", "[GCodeTiming][Klipper]")
+{
+    // An E acceleration of 0 is unset, and the retraction then uses the retract acceleration.
+    const auto [e_accel, retract_accel] = GENERATE(table<double, double>({{20000.0, 20000.0}, {0.0, 3000.0}}));
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    config.machine_max_acceleration_e.values = {e_accel, e_accel};
+    config.machine_max_acceleration_retracting.values = {3000.0, 3000.0};
+    GCodeProcessor proc;
+    run_klipper(proc, "G90\nM83\nG1 X60 Y60 F9000\nG1 E-1 F2400\nG1 X100 Y60 F9000\n", config);
+    REQUIRE_THAT(corner_speed(proc.get_result()), WithinAbs(0.0, 1e-6));
+    const double expected = rest_to_rest_time(std::sqrt(2.0) * 60.0, 150.0, klipper_accel, klipper_pseudo_accel) +
+                            rest_to_rest_time(1.0, 40.0, retract_accel, std::min(retract_accel, klipper_pseudo_accel)) +
+                            rest_to_rest_time(40.0, 150.0, klipper_accel, klipper_pseudo_accel);
+    REQUIRE_THAT(proc.get_time(PrintEstimatedStatistics::ETimeMode::Normal), WithinRel(expected, 1e-6));
+}
+
+TEST_CASE("Extruder limits apply to retractions, not to extrusion along a path", "[GCodeTiming][Klipper]")
+{
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    config.machine_max_speed_e.values = {10.0, 10.0};
+    config.machine_max_acceleration_e.values = {10.0, 10.0};
+    REQUIRE_THAT(klipper_time("M83\nG1 X40 E20 F30000\n", config),
+                 WithinRel(rest_to_rest_time(40.0, 500.0, klipper_accel, klipper_pseudo_accel), 1e-6));
+    REQUIRE_THAT(klipper_time("M83\nG1 E-1 F2400\n", config),
+                 WithinRel(rest_to_rest_time(1.0, 10.0, 10.0, 10.0), 1e-6));
+}
+
+TEST_CASE("A Z move is limited by the Z axis speed and acceleration", "[GCodeTiming][Klipper]")
+{
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    config.machine_max_speed_z.values = {20.0, 20.0};
+    config.machine_max_acceleration_z.values = {100.0, 100.0};
+    REQUIRE_THAT(klipper_time("G1 Z10 F1200\n", config),
+                 WithinRel(rest_to_rest_time(10.0, 20.0, 100.0, 100.0), 1e-6));
+}
+
+TEST_CASE("M204 sets the acceleration from S, or the smaller of P and T", "[GCodeTiming][Klipper]")
+{
+    const char* m204 = GENERATE("M204 S500", "M204 P500 T2000", "M204 P2000 T500");
+    REQUIRE_THAT(klipper_time(std::string(m204) + "\nG1 X100 F30000\n"),
+                 WithinRel(rest_to_rest_time(100.0, 500.0, 500.0, 500.0 * (1.0 - klipper_cruise_ratio)), 1e-6));
+}
+
+TEST_CASE("SET_VELOCITY_LIMIT applies every limit on the line and ignores the comment", "[GCodeTiming][Klipper]")
+{
+    REQUIRE_THAT(klipper_time("SET_VELOCITY_LIMIT VELOCITY=80 ACCEL=500 MINIMUM_CRUISE_RATIO=0.2 ; ACCEL=9999\n"
+                              "G1 X20 F30000\n"),
+                 WithinRel(rest_to_rest_time(20.0, 80.0, 500.0, 500.0 * (1.0 - 0.2)), 1e-6));
+}
+
+TEST_CASE("ACCEL_TO_DECEL is ignored on a line that also sets the minimum cruise ratio", "[GCodeTiming][Klipper]")
+{
+    // Klipper 0.13 prefers the cruise ratio and later releases no longer read ACCEL_TO_DECEL at all.
+    // ACCEL_TO_DECEL comes last, so applying the parameters in line order would let it win.
+    REQUIRE_THAT(klipper_time("SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=" + std::to_string(klipper_cruise_ratio) +
+                              " ACCEL_TO_DECEL=100\nG1 X40 F30000\n"),
+                 WithinRel(rest_to_rest_time(40.0, 500.0, klipper_accel, klipper_pseudo_accel), 1e-6));
+}
+
+TEST_CASE("M400 without a delay waits for the queue to drain", "[GCodeTiming][Klipper]")
+{
+    REQUIRE_THAT(klipper_time("G90\nG1 X40 F30000\nM400\nG1 X80\n"),
+                 WithinRel(2.0 * rest_to_rest_time(40.0, 500.0, klipper_accel, klipper_pseudo_accel), 1e-6));
 }

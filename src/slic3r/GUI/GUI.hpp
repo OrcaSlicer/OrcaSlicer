@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_hpp_
 #define slic3r_GUI_hpp_
 
+#include <string>
 namespace boost { class any; }
 namespace boost::filesystem { class path; }
 
@@ -40,11 +41,11 @@ extern void add_menus(wxMenuBar *menu, int event_preferences_changed, int event_
 // Change option value in config
 void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt_key, const boost::any& value, int opt_index = 0);
 
-// If monospaced_font is true, the error message is displayed using html <code><pre></pre></code> tags,
-// so that the code formatting will be preserved. This is useful for reporting errors from the placeholder parser.
-void show_error(wxWindow* parent, const wxString& message, bool monospaced_font = false);
-void show_error(wxWindow* parent, const char* message, bool monospaced_font = false);
-inline void show_error(wxWindow* parent, const std::string& message, bool monospaced_font = false) { show_error(parent, message.c_str(), monospaced_font); }
+// If has_code_excerpts is true, code excerpts (a source line and the caret line below it) render
+// monospaced so the caret aligns. Used for placeholder-parser errors.
+void show_error(wxWindow* parent, const wxString& message, bool has_code_excerpts = false);
+void show_error(wxWindow* parent, const char* message, bool has_code_excerpts = false);
+inline void show_error(wxWindow* parent, const std::string& message, bool has_code_excerpts = false) { show_error(parent, message.c_str(), has_code_excerpts); }
 void show_error_id(int id, const std::string& message);   // For Perl
 void show_info(wxWindow* parent, const wxString& message, const wxString& title = wxString());
 void show_info(wxWindow* parent, const char* message, const char* title = nullptr);
@@ -76,6 +77,9 @@ std::string	into_u8(const wxString &str);
 wxString	from_path(const boost::filesystem::path &path);
 // boost path from wxString
 boost::filesystem::path	into_path(const wxString &str);
+// file:// URL of a local path, percent-encoded so characters such as '#', '%' and '?' stay part of the path.
+// Append any query or fragment to the result.
+wxString	file_url_from_path(const boost::filesystem::path &path);
 
 // Display an About dialog
 extern void about();
@@ -83,6 +87,9 @@ extern void about();
 extern void desktop_open_datadir_folder();
 // Ask the destop to open one folder
 extern void desktop_open_any_folder(const std::string& path);
+// Ask the desktop to open a file from the project's auxiliary directory, after a confirmation
+// unless its type is known to be plain content. Returns false if the file was not opened.
+extern bool desktop_open_project_attachment(wxWindow *parent, const boost::filesystem::path &path);
 } // namespace GUI
 } // namespace Slic3r
 

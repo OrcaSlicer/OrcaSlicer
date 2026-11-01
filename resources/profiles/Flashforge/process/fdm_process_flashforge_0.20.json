@@ -11,7 +11,6 @@
 	"gap_infill_speed": "200",
 	"sparse_infill_speed": "270",
 	"small_perimeter_speed": "50%",
-	"overhang_speed_classic": "0",
 	"internal_bridge_speed": "50",
 	"internal_solid_infill_acceleration": "7000",
 	"accel_to_decel_enable": "0",

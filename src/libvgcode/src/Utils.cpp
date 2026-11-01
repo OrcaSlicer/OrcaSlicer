@@ -6,6 +6,9 @@
 
 #include <assert.h>
 #include <cmath>
+#include "../include/Types.hpp"
+#include <vector>
+#include <cstdint>
 
 namespace libvgcode {
 

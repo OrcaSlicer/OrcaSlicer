@@ -2,10 +2,16 @@
 #define slic3r_Fill3DHoneycomb_hpp_
 
 #include <map>
+#include <utility>
 
 #include "../libslic3r.h"
 
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+
+namespace Slic3r { class Point; }
 
 namespace Slic3r {
 
@@ -19,6 +25,7 @@ public:
     //       pattern is placed on top of previous layers
     bool use_bridge_flow() const override { return false; }
     bool is_self_crossing() override { return false; }
+    bool aligned_to_origin() const override { return true; }
 
 protected:
 	void _fill_surface_single(
