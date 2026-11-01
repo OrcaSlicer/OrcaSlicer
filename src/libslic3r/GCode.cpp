@@ -4725,7 +4725,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // and export G-code into file.
                 tool_ordering.cal_most_used_extruder(print.config());
                 m_printed_objects.emplace_back(&object);
-                this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value), *print_object_instance_sequential_active - object.instances().data(), file,
+                std::vector<LayerToPrint> object_layers = collect_layers_to_print(object, print.config().belt_printer.value);
+                m_object_layer_count = (unsigned int)object_layers.size();
+                m_object_layer_index = 0;
+                this->process_layers(print, tool_ordering, std::move(object_layers), *print_object_instance_sequential_active - object.instances().data(), file,
                                      prime_extruder);
                 {
                     // save the flush statitics stored in tool ordering by object
@@ -6616,6 +6619,9 @@ LayerResult GCode::process_layer(
     assert(! layers.empty());
     // Either printing all copies of all objects, or just a single copy of a single object.
     assert(single_object_instance_idx == size_t(-1) || layers.size() == 1);
+    // Orca: count the object's layers before the early returns below, so they keep the numbering
+    if (m_object_layer_count > 0)
+        ++m_object_layer_index;
 
     // First object, support and raft layer, if available.
     const Layer         *object_layer  = nullptr;
@@ -6759,6 +6765,12 @@ LayerResult GCode::process_layer(
 
     if (!m_config.layer_change_gcode.value.empty())
         gcode += this->process_layer_change_gcode(print, print_z, most_used_extruder, has_wipe_tower);
+
+    // Orca: Z restarts for every object in sequential prints, so report the layer within the object.
+    // After the layer change G-code, as many profiles report the whole-print layer there.
+    if (m_object_layer_count > 0 && m_writer.get_gcode_flavor() == gcfKlipper)
+        gcode += "SET_PRINT_STATS_INFO TOTAL_LAYER=" + std::to_string(m_object_layer_count) +
+                 " CURRENT_LAYER=" + std::to_string(m_object_layer_index) + "\n";
 
     //BBS: set layer time fan speed after layer change gcode
     gcode += ";_SET_FAN_SPEED_CHANGING_LAYER\n";
