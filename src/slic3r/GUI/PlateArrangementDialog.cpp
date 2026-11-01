@@ -458,8 +458,8 @@ void PlateArrangementDialog::render_bottom_bar()
                 wxGetApp().plater()->select_plate_by_hover_id(i * int(PartPlate::GRABBER_COUNT) + action);
         });
     };
-    const bool   locked      = single != nullptr && single->is_locked();
-    const bool   unlocked    = single != nullptr && !locked; // a locked plate keeps its objects where they are
+    const bool all_locked = std::all_of(m_selection.begin(), m_selection.end(), [](PartPlate* plate) { return plate->is_locked(); });
+    const bool unlocked   = single != nullptr && !single->is_locked(); // a locked plate keeps its objects where they are
     ImGui::SetCursorPos(ImVec2(actions, row1));
     if (render_icon_button(IconId::Orient, unlocked, _u8L("Auto orient objects on current plate")))
         plate_action(ActionOrient);
@@ -467,9 +467,19 @@ void PlateArrangementDialog::render_bottom_bar()
     if (render_icon_button(IconId::Arrange, unlocked, _u8L("Arrange objects on current plate")))
         plate_action(ActionArrange);
     ImGui::SameLine();
-    if (render_icon_button(locked ? IconId::Locked : IconId::Unlocked, single != nullptr,
-                           locked ? _u8L("Unlock current plate") : _u8L("Lock current plate"), locked ? &ImGuiWrapper::COL_ORCA : nullptr))
-        plate_action(ActionLock);
+    const std::string lock_tip = single != nullptr ? (all_locked ? _u8L("Unlock current plate")   : _u8L("Lock current plate")) :
+                                                     (all_locked ? _u8L("Unlock selected plates") : _u8L("Lock selected plates"));
+    if (render_icon_button(all_locked ? IconId::Locked : IconId::Unlocked, !m_selection.empty(), lock_tip, all_locked ? &ImGuiWrapper::COL_ORCA : nullptr)) {
+        // Through the plate list rather than the plate's own action, which toggles one plate per undo step.
+        plater->CallAfter([this, plates = std::vector<PartPlate*>(m_selection.begin(), m_selection.end()), lock = !all_locked]() {
+            Plater*              pl = wxGetApp().plater();
+            Plater::TakeSnapshot snapshot(pl, "lock partplate"); // one undo step for all of them
+            for (PartPlate* plate : plates)
+                if (const int i = index_of(plate); i >= 0) // the plate may be gone by now
+                    pl->get_partplate_list().lock_plate(i, lock);
+            pl->get_view3D_canvas3D()->set_as_dirty();
+        });
+    }
     ImGui::SameLine();
     if (render_icon_button(IconId::Settings, single != nullptr, _u8L("Customize current plate"),
                            single != nullptr && single->has_custom_settings() ? &ImGuiWrapper::COL_WARNING : nullptr))
