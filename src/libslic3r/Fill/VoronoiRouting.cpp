@@ -1,4 +1,5 @@
 #include "VoronoiRouting.hpp"
+#include "VoronoiHash.hpp"
 #include "../KDTreeIndirect.hpp"
 #include "../ShortestPath.hpp"
 #include "libslic3r/Point.hpp"
@@ -25,13 +26,6 @@ size_t other(const WallGraph &graph, size_t edge, size_t vertex)
     return graph.edges[edge][0] == vertex ? graph.edges[edge][1] : graph.edges[edge][0];
 }
 
-uint64_t mix(uint64_t value)
-{
-    value += 0x9e3779b97f4a7c15ULL;
-    value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9ULL;
-    value = (value ^ (value >> 27)) * 0x94d049bb133111ebULL;
-    return value ^ (value >> 31);
-}
 
 bool site_less(const Vec3d &a, const Vec3d &b)
 {

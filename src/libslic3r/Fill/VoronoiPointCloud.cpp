@@ -1,6 +1,6 @@
 #include "VoronoiPointCloud.hpp"
+#include "VoronoiHash.hpp"
 #include "../I18N.hpp"
-#include "../KDTreeIndirect.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
@@ -20,13 +20,6 @@
 
 namespace Slic3r::Voronoi {
 namespace {
-uint64_t mix(uint64_t value)
-{
-    value += 0x9e3779b97f4a7c15ULL;
-    value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9ULL;
-    value = (value ^ (value >> 27)) * 0x94d049bb133111ebULL;
-    return value ^ (value >> 31);
-}
 
 bool contains(const BoundingBoxf3 &outer, const BoundingBoxf3 &inner)
 {
