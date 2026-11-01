@@ -23339,6 +23339,26 @@ void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
 
 
 //BBS: select Plate by hover_id
+int Plater::arrange_plates(const std::vector<int>& new_order)
+{
+    PartPlateList&   list = p->partplate_list;
+    std::vector<int> identity(size_t(list.get_plate_count()));
+    std::iota(identity.begin(), identity.end(), 0);
+    if (new_order.size() != identity.size() || new_order == identity || !std::is_permutation(new_order.begin(), new_order.end(), identity.begin()))
+        return -1;
+
+    TakeSnapshot snapshot(this, "Reorder plates");
+    list.reorder_plates(new_order);
+    // Same refresh as after moving a plate; select_plate() also moves the bed origin to the current plate's new place.
+    list.select_plate(list.get_curr_plate_index());
+    list.update_slice_context_to_current_plate(p->background_process);
+    p->preview->update_gcode_result(list.get_current_slice_result());
+    p->sidebar->obj_list()->reload_all_plates();
+    list.update_plates();
+    update();
+    return 0;
+}
+
 int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModidyPlateName)
 {
     int ret;
@@ -23533,15 +23553,8 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
             ret = -1;
         }
     } else if ((action == 7) && (!right_click)) {
-        // move plate to the front
-        take_snapshot("move plate to the front");
-        ret = p->partplate_list.move_plate_to_index(plate_index,0);
-        p->partplate_list.update_slice_context_to_current_plate(p->background_process);
-        p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
-        p->sidebar->obj_list()->reload_all_plates();
-        p->partplate_list.update_plates();
-        update();
-        p->partplate_list.select_plate(0);
+        // open the plate arrangement dialog
+        get_view3D_canvas3D()->toggle_plate_arrangement_dialog();
     }
     else if (action == (int)PartPlate::PLATE_IMEX_MODE_ID)
     {
