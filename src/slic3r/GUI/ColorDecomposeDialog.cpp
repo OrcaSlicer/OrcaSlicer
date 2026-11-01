@@ -1324,29 +1324,35 @@ bool ColorDecomposeDialog::try_build_single_base_result(DecomposeMode mode, Colo
     return false;
 }
 
+// The color the components give when mixed by their ratios (per RGB channel).
+static wxColour mixed_color(const std::vector<DecomposeComponent>& components, const wxColour& fallback)
+{
+    if (components.empty())
+        return fallback;
+    int total = 0;
+    for (const auto& comp : components)
+        total += comp.ratio;
+    if (total <= 0)
+        total = 100;
+    double r = 0.0, g = 0.0, b = 0.0;
+    for (const auto& comp : components) {
+        const double w = static_cast<double>(comp.ratio) / total;
+        r += comp.colour.Red() * w;
+        g += comp.colour.Green() * w;
+        b += comp.colour.Blue() * w;
+    }
+    return wxColour(static_cast<unsigned char>(std::clamp(r, 0.0, 255.0)),
+                    static_cast<unsigned char>(std::clamp(g, 0.0, 255.0)),
+                    static_cast<unsigned char>(std::clamp(b, 0.0, 255.0)));
+}
+
 void ColorDecomposeDialog::compute_decomposition()
 {
     auto fallback_result = [this](DecomposeMode mode, const std::vector<DecomposeComponent>& components) {
         ColorDecomposeResult result;
         result.mode = mode;
         result.components = components;
-        int total = 0;
-        double r = 0.0, g = 0.0, b = 0.0;
-        for (const auto& comp : result.components)
-            total += comp.ratio;
-        if (total <= 0)
-            total = 100;
-        for (const auto& comp : result.components) {
-            const double w = static_cast<double>(comp.ratio) / total;
-            r += comp.colour.Red() * w;
-            g += comp.colour.Green() * w;
-            b += comp.colour.Blue() * w;
-        }
-        result.matched_color = result.components.empty()
-            ? m_target_color
-            : wxColour(static_cast<unsigned char>(std::clamp(r, 0.0, 255.0)),
-                       static_cast<unsigned char>(std::clamp(g, 0.0, 255.0)),
-                       static_cast<unsigned char>(std::clamp(b, 0.0, 255.0)));
+        result.matched_color = mixed_color(result.components, m_target_color);
         return result;
     };
 
@@ -1424,6 +1430,10 @@ void ColorDecomposeDialog::compute_decomposition()
                 {CMYKW_YELLOW, 25, -1, DecomposeBaseColor::Yellow},
                 {CMYKW_WHITE, 25, -1, DecomposeBaseColor::White}
             });
+        // The recipe only inverts its own formula, so its preview always equals the target. What the
+        // slots' filaments give when mixed by these ratios is what can be expected.
+        ColorDecomposeResult& cmykw = m_mode_results[mode_index(DecomposeMode::CMYKW)];
+        cmykw.matched_color = mixed_color(cmykw.components, m_target_color);
     }
 
     m_result = m_mode_results[mode_index(m_selected_mode)];
