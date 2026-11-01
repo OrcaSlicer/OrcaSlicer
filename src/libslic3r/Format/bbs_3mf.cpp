@@ -7298,19 +7298,15 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 }
             }
 
+            // Replace any imported OrcaSlicer version in the map so it is written only once.
+            if (!m_minimal_published && metadata_item_map.find(BBL_APPLICATION_TAG) != metadata_item_map.end())
+                metadata_item_map[ORCASLICER_TAG] = SoftFever_VERSION;
+
             // store metadata info
             for (auto item : metadata_item_map) {
                 BOOST_LOG_TRIVIAL(info) << "bbs_3mf: save key= " << item.first << ", value = " << item.second;
                 stream << " <" << METADATA_TAG << " name=\"" << item.first << "\">"
                        << xml_escape(item.second) << "</" << METADATA_TAG << ">\n";
-                if (item.first == BBL_APPLICATION_TAG && !m_minimal_published) {
-                    // The OrcaSlicer tag is only written for files that carry the Application
-                    // tag, which a minimal published 3MF erases (see the map assignment above):
-                    // the explicit !m_minimal_published guard keeps the tag-less guarantee from
-                    // depending on that erase happening to run first.
-                    stream << " <" << METADATA_TAG << " name=\"" << ORCASLICER_TAG << "\">"
-                           << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";
-                }
             }
 
             stream << " <" << RESOURCES_TAG << ">\n";

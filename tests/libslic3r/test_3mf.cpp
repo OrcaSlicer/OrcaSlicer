@@ -20,6 +20,7 @@
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/ProjectTask.hpp"
 #include "libslic3r/PublishSettings.hpp"
+#include "libslic3r_version.h"
 
 #include "test_utils.hpp"
 
@@ -483,6 +484,48 @@ static bool load_project(const std::string& path, Model& model, const ScopedTemp
                                      &is_orca_3mf, &file_version, nullptr, LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
     release_PlateData_list(plates);
     return loaded;
+}
+
+TEST_CASE("Saving an Orca project writes one current OrcaSlicer version tag", "[3mf][Regression]")
+{
+    const bool duplicate_input = GENERATE(false, true);
+    const SaveStrategy strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+    ScopedTemporaryFile source(".3mf");
+    Model model;
+    model.add_object()->add_volume(make_cube(10., 10., 10.));
+    model.add_default_instances();
+    model.model_info = std::make_shared<ModelInfo>();
+    model.model_info->metadata_items["custom_metadata"] = "preserved";
+    store_project(model, source.string(), strategy);
+
+    const std::string tag = "<metadata name=\"OrcaSlicer\">";
+    const std::string current_tag = tag + SoftFever_VERSION + "</metadata>";
+    std::string xml;
+    REQUIRE(read_cad_recipe_entry(source.string(), xml, "3D/3dmodel.model"));
+    REQUIRE(xml.find(current_tag) != std::string::npos);
+    REQUIRE(xml.find(tag, xml.find(tag) + tag.size()) == std::string::npos);
+
+    // Also cover old versions and files already containing the duplicate produced by the bug.
+    std::string old_tags = tag + "2.3.2</metadata>";
+    if (duplicate_input)
+        old_tags += "\n " + tag + "2.3.3</metadata>";
+    REQUIRE(replace_in_3mf_entry(source.string(), "3dmodel.model", current_tag, old_tags));
+
+    for (int cycle = 0; cycle < 3; ++cycle) {
+        CAPTURE(duplicate_input, cycle);
+        ScopedTemporaryDir backup_dir("orca_metadata");
+        Model loaded;
+        REQUIRE(load_project(source.string(), loaded, backup_dir));
+        REQUIRE(loaded.model_info != nullptr);
+        CHECK(loaded.model_info->metadata_items.at("custom_metadata") == "preserved");
+
+        store_project(loaded, source.string(), strategy);
+        REQUIRE(read_cad_recipe_entry(source.string(), xml, "3D/3dmodel.model"));
+        const size_t first = xml.find(tag);
+        REQUIRE(first != std::string::npos);
+        CHECK(xml.find(tag, first + tag.size()) == std::string::npos);
+        CHECK(xml.find(current_tag) == first);
+    }
 }
 
 TEST_CASE("A plate's G-code statistics are stored next to its G-code", "[3mf]")
