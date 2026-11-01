@@ -76,16 +76,20 @@ template<typename T> void register_agent()
                                                     if (cloud_agent)
                                                         agent->set_cloud_agent(cloud_agent);
                                                     return agent;
-                                                });
+                                                },
+                                                info.native_device_tab);
 }
 
 } // anonymous namespace
 
-bool NetworkAgentFactory::register_printer_agent(const std::string& id, const std::string& display_name, PrinterAgentFactory factory)
+bool NetworkAgentFactory::register_printer_agent(const std::string& id, const std::string& display_name, PrinterAgentFactory factory,
+                                                 bool native_device_tab)
 {
     std::lock_guard<std::mutex> lock(s_registry_mutex);
     auto& agents = get_printer_agents();
-    return agents.emplace(id, PrinterAgentInfo(id, display_name, std::move(factory))).second;
+    PrinterAgentInfo info(id, display_name, std::move(factory));
+    info.native_device_tab = native_device_tab;
+    return agents.emplace(id, std::move(info)).second;
 }
 
 bool NetworkAgentFactory::is_printer_agent_registered(const std::string& id)
@@ -166,8 +170,12 @@ std::shared_ptr<IPrinterAgent> NetworkAgentFactory::create_printer_agent_by_id(c
 
 void NetworkAgentFactory::clear_printer_agent_cache()
 {
-    std::lock_guard<std::mutex> lock(s_registry_mutex);
-    auto& cache = get_printer_agent_cache();
+    // Disconnects and destroys the agents outside the lock, since a destructor waits for its agent's threads
+    std::map<std::string, std::shared_ptr<IPrinterAgent>> cache;
+    {
+        std::lock_guard<std::mutex> lock(s_registry_mutex);
+        cache.swap(get_printer_agent_cache());
+    }
     for (auto& pair : cache) {
         if (pair.second)
             pair.second->disconnect_printer();

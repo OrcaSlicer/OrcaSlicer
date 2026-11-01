@@ -8,20 +8,45 @@ set(_python_url "https://www.python.org/ftp/python/${_python_version}/Python-${_
 set(_python_sha256 "c08bc65a81971c1dd5783182826503369466c7e67374d1646519adf05207b684")
 
 
-set(_patch_cmd "")
 if(WIN32)
-
-    # Fix python build failure on Windows if python is not available, due to wrong nuget download URL
-    # See https://github.com/python/cpython/issues/153438
-    # Patch from https://github.com/python/cpython/pull/153608
-    # This patch has not been merged to 3.12 yet so we need to apply it manually
-    #
-    # Without core.autocrlf=false the patched find_python.bat comes out LF and
-    # cmd.exe cannot find its goto labels.
-    set(_patch_cmd git init
-                   && ${GIT_EXECUTABLE} -c core.autocrlf=false apply --verbose
-                      --ignore-space-change --whitespace=fix
-                      ${CMAKE_CURRENT_LIST_DIR}/01-windows-nuget.patch)
+    # Build-time Python for PCbuild's scripts, pinned because 3.15 cannot run the 3.12 scripts.
+    set(DEP_PYTHON_HOST "" CACHE FILEPATH
+        "Python 3.10-3.13 that runs CPython's build scripts; empty downloads a pinned one from nuget.org")
+    if(DEP_PYTHON_HOST)
+        execute_process(
+            COMMAND "${DEP_PYTHON_HOST}" -E -c "import sys; print('%d.%d' % sys.version_info[:2])"
+            OUTPUT_VARIABLE _python_host_minor
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            RESULT_VARIABLE _python_host_result
+        )
+        if(NOT _python_host_result EQUAL 0 OR _python_host_minor VERSION_LESS 3.10 OR _python_host_minor VERSION_GREATER 3.13)
+            message(FATAL_ERROR "DEP_PYTHON_HOST must be Python 3.10 to 3.13, got '${_python_host_minor}' from ${DEP_PYTHON_HOST}")
+        endif()
+        file(TO_NATIVE_PATH "${DEP_PYTHON_HOST}" _python_host)
+    else()
+        set(_python_host_version "3.13.16")
+        if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
+            set(_python_host_package pythonarm64)
+            set(_python_host_sha256 bfd77aa5b0edff4a7936a3220e8b79e7c78f864ce13e8fa2c835d9946e11694a)
+        else()
+            set(_python_host_package pythonx86)
+            set(_python_host_sha256 c65cf47664b33286dfc5f2a17303668dd59e057869815ed9b270fb3866c1dd15)
+        endif()
+        set(_python_host_dir "${CMAKE_CURRENT_BINARY_DIR}/dep_python3_host-prefix/src/dep_python3_host")
+        ExternalProject_Add(dep_python3_host
+            URL "https://api.nuget.org/v3-flatcontainer/${_python_host_package}/${_python_host_version}/${_python_host_package}.${_python_host_version}.nupkg"
+            URL_HASH SHA256=${_python_host_sha256}
+            DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/python3
+            # Renames the .nupkg to .zip so ExternalProject extracts it.
+            DOWNLOAD_NAME ${_python_host_package}.${_python_host_version}.zip
+            SOURCE_DIR "${_python_host_dir}"
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND ""
+            INSTALL_COMMAND ""
+        )
+        file(TO_NATIVE_PATH "${_python_host_dir}/tools/python.exe" _python_host)
+        set(_python_depends dep_python3_host)
+    endif()
 
     if(MSVC_VERSION EQUAL 1800)
         set(_python_platform_toolset v120)
@@ -63,6 +88,47 @@ if(WIN32)
     # release python3xx.lib; Py_DEBUG could not load release plugin modules.
     set(_python_pcbuild_config Release)
 
+    # CPython's own libraries, fetched here instead of by get_externals.bat, which ignores failed
+    # downloads. Must match PCbuild/get_externals.bat for _python_version.
+    set(_python_externals
+        # repo       folder                 commit                                    sha256 of the archive
+        source-deps  bzip2-1.0.8            05301997b2f9590f49c672cf3dfd3d3dfa7ad521  44b15bede52b32f8673a2976621a847258b041243c003e30f4d9a05214785fe5
+        source-deps  sqlite-3.49.1.0        cb7a3997059739fe9c63b2819aeda7c6907510ef  586fe469463f5b27b749f9eef1938baa8e8a12030341e96160a371356c2d6759
+        source-deps  xz-5.2.5               c6bc0c612605622aaef101a33a751f9de2ecc193  d99882a8f9fd48be0e605e27e3c077e5eaab370f6f52ebcc8ff754480ffdf0bc
+        source-deps  zlib-1.3.1             4dc98e1909830e2bdc2a9cc2236e3c5d5037335b  39d867c083ebc37c77cf03a442f87c0f83db006eb64343bd4a19f1c84c26f50c
+        bin-deps     libffi-3.4.4           94cb9a1c7feb608adf2b9f8fe2dbd6925ffbf90d  6b0f53490e0dd958708bff32df689cf2163c214147fcb8edb76a403fa6a877ca
+        bin-deps     openssl-bin-3.0.16.2   1174fd43d858425c345b16d631716fb98ba492ea  b741fd1411a36cb899fee2c39b70a4492f4bc1c6e2301d67df32e9754118a63b
+    )
+    set(_python_externals_dir "${CMAKE_CURRENT_BINARY_DIR}/dep_python3_externals")
+    list(LENGTH _python_externals _python_externals_len)
+    math(EXPR _python_externals_last "${_python_externals_len} - 1")
+    foreach(_i RANGE 0 ${_python_externals_last} 4)
+        math(EXPR _j "${_i} + 1")
+        math(EXPR _k "${_i} + 2")
+        math(EXPR _l "${_i} + 3")
+        list(GET _python_externals ${_i} _ext_repo)
+        list(GET _python_externals ${_j} _ext_name)
+        list(GET _python_externals ${_k} _ext_commit)
+        list(GET _python_externals ${_l} _ext_sha256)
+        ExternalProject_Add(dep_python3_ext_${_ext_name}
+            URL "https://github.com/python/cpython-${_ext_repo}/archive/${_ext_commit}.zip"
+            URL_HASH SHA256=${_ext_sha256}
+            DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/python3
+            DOWNLOAD_NAME cpython-${_ext_repo}-${_ext_name}.zip
+            SOURCE_DIR "${_python_externals_dir}/${_ext_name}"
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND ""
+            INSTALL_COMMAND ""
+        )
+        list(APPEND _python_depends dep_python3_ext_${_ext_name})
+    endforeach()
+    file(TO_NATIVE_PATH "${_python_externals_dir}" _python_externals_native)
+
+    # PCbuild runs PYTHON without -E, so PYTHONHOME and PYTHONPATH are cleared.
+    set(_python_env_args --unset=PYTHONHOME --unset=PYTHONPATH "PYTHON=${_python_host}"
+        "EXTERNALS_DIR=${_python_externals_native}"
+        "GIT_CEILING_DIRECTORIES=<SOURCE_DIR>/..")
+
     # CPython's PCbuild needs a 64-bit-hosted toolchain: find_msbuild.bat picks the
     # 32-bit Bin\MSBuild.exe, whose x86 cl.exe/link.exe run out of address space
     # (fatal C1002 "out of heap space") building the LTCG-optimized pythoncore.
@@ -71,7 +137,6 @@ if(WIN32)
     # then hosts arm64 tools on its own; the amd64 MSBuild still defaults to x86, so
     # PreferredToolArchitecture pins it to x64. Scoped to this build step, so
     # CPython's own sources stay untouched.
-    set(_python_env_args "GIT_CEILING_DIRECTORIES=<SOURCE_DIR>/..")
     if(CMAKE_GENERATOR_INSTANCE)   # empty for non-VS generators (e.g. Ninja)
         set(_python_msbuild "${CMAKE_GENERATOR_INSTANCE}/MSBuild/Current/Bin/${_python_msbuild_host}/MSBuild.exe")
         if(EXISTS "${_python_msbuild}")
@@ -284,12 +349,12 @@ endif()
 ExternalProject_Add(dep_python3
     URL "${_python_url}"
     URL_HASH SHA256=${_python_sha256}
-    PATCH_COMMAND ${_patch_cmd}
     DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/python3
     BUILD_IN_SOURCE ON
     CONFIGURE_COMMAND ${_conf_cmd}
     BUILD_COMMAND ${_build_cmd}
     INSTALL_COMMAND ${_install_cmd}
+    DEPENDS ${_python_depends}
 )
 
 # Python depends on OpenSSL and ZLIB
@@ -300,10 +365,11 @@ if(TARGET dep_ZLIB)
     add_dependencies(dep_python3 dep_ZLIB)
 endif()
 
-if (NOT WIN32 AND NOT APPLE)
-    # CPython's Makefile rules for _ssl and _hashlib depend only on their own
-    # sources, not on the OpenSSL archives, so a rebuilt OpenSSL does not make
-    # them relink and they keep the previous symbols. On an incremental tree,
+if (NOT WIN32)
+    # _ssl and _hashlib embed the static OpenSSL built in deps/ (Windows uses
+    # CPython's prebuilt OpenSSL instead). Their Makefile rules depend only on
+    # their own sources, not on the OpenSSL archives, so a rebuilt OpenSSL does
+    # not make them relink and they keep the previous one. On an incremental tree,
     # drop the built modules and relink them against the current OpenSSL; a
     # fresh build is left alone (its PGO target builds them). "make" alone is a
     # no-op once PGO has run, so sharedmods is invoked explicitly.

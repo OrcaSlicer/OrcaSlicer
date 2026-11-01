@@ -1,0 +1,24 @@
+{
+    "type": "filament",
+    "name": "School House Spools TPU 95A @base",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "filament_id": "OFChno4b",
+    "instantiation": "false",
+    "description": "This TPU is dried after extrusion and ships ready to print, so it does not need drying out of the box. Drying is optional if the spool has been sitting out for a while. It is soft and flexible, so it is not suited to automatic multi-material feeders.",
+    "filament_cost": [
+        "25"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_vendor": [
+        "School House Spools"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ]
+}

@@ -107,7 +107,7 @@ protected:
     /*!
      * BoundingBox of all points in m_unsupported_points. Used for mapping of sign integer numbers to positive integer numbers.
      */
-    const BoundingBox          m_unsupported_points_bbox;
+    BoundingBox                m_unsupported_points_bbox;
 
     /*!
      * Links the unsupported points to a grid point, so that we can quickly look

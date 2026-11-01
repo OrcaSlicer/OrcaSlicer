@@ -19,8 +19,10 @@
 #include "libslic3r/BoundingBox.hpp"
 #include <cstddef>
 #include "libslic3r/Config.hpp"
+#include "libslic3r/IMEXZones.hpp"
 #include "libvgcode/include/GCodeInputData.hpp"
 #include <iterator>
+#include <optional>
 #include "libvgcode/include/PathVertex.hpp"
 #include <libvgcode/include/Types.hpp>
 
@@ -87,6 +89,8 @@ public:
             float m_model_z_offset{ 0.5f };
             bool m_visible{ true };
             bool m_is_dark = false;
+            // the G-code was exported with high_precision_gcode, so positions are shown with one more decimal
+            bool m_high_precision_gcode{ false };
             float m_scale_factor{ 1.0f };
 #if ENABLE_ACTUAL_SPEED_DEBUG
             ActualSpeedImguiWidget m_actual_speed_imgui_widget;
@@ -102,6 +106,7 @@ public:
             void set_world_position(const Vec3f& position) { m_world_position = position; }
             void set_world_offset(const Vec3f& offset) { m_world_offset = offset; }
             void set_z_offset(float z_offset) { m_z_offset = z_offset; }
+            void set_high_precision_gcode(bool high_precision) { m_high_precision_gcode = high_precision; }
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
             void set_actual_speed_y_range(const std::pair<float, float>& y_range) {
@@ -268,50 +273,23 @@ private:
     // Invalidation key for the plan above: every input the plan is derived from, and
     // nothing that changes between frames. A stale plan would put the preview markers
     // somewhere the plate's own zones and ghosts do not agree with, which is exactly the
-    // drift the shared layout call exists to prevent -- so this deliberately mirrors
-    // PartPlate::build_imex_cache_key(). The two keys are not field-for-field identical, and
-    // the differences are deliberate rather than incidental:
-    //   - bed extents and plate_index are here and not there. Zone centres scale with the
-    //     extents, and one preview serves every plate, so the preview must key what the plate
-    //     gets for free -- it re-bakes on set_shape() and is keyed by being that plate.
-    //   - mode_names / mode_active_tools hold the printer's WHOLE mode table; the plate resolves
-    //     one active mode and keys that roster plus its primary head. Same information reached
-    //     two ways, so a change to the active mode moves both keys.
-    //   - imex_carriage_margin is there and not here: it only sizes the plate's advisory bands,
-    //     which the preview never draws.
-    // imex_tool_layout is in both, which the plate's key gained for the reason this one has it:
-    // the T0-corner flip moves every zone rectangle while nothing else keyed changes.
+    // drift the shared layout call exists to prevent -- so the layout half is the plate's own
+    // key. The preview adds the plate index and bed extents, which a plate gets for free: zone
+    // centers scale with the bed, and one preview serves every plate, while each plate rebuilds
+    // its zones in set_shape(). The layout key also holds imex_carriage_margin, which only sizes
+    // the plate's advisory bands, so a margin change re-resolves the plan needlessly.
     struct ImexMarkerKey
     {
-        // Scalar half. Built fresh on the stack each frame -- it allocates nothing -- and
-        // compared as a tuple.
-        struct Scalars
+        std::optional<ImexLayoutKey> layout;
+        struct Plate
         {
-            int    plate_index      = -1;
-            int    gantry_count     = 0;
-            int    tools_per_gantry = 0;
-            int    tool_layout      = -1;
-            double clearance_x      = 0.0;
-            double clearance_y      = 0.0;
-            bool   firmware_managed = false;
+            int    plate_index = -1;
             double bed_min_x = 0.0, bed_min_y = 0.0, bed_max_x = 0.0, bed_max_y = 0.0;
 
-            auto tied() const {
-                return std::tie(plate_index, gantry_count, tools_per_gantry, tool_layout,
-                                clearance_x, clearance_y, firmware_managed,
-                                bed_min_x, bed_min_y, bed_max_x, bed_max_y);
-            }
-            bool operator==(const Scalars& rhs) const { return tied() == rhs.tied(); }
+            auto tied() const { return std::tie(plate_index, bed_min_x, bed_min_y, bed_max_x, bed_max_y); }
+            bool operator==(const Plate& rhs) const { return tied() == rhs.tied(); }
         };
-        Scalars s;
-        // Resolved active mode (the plate's mode beats the process preset), plus the printer
-        // preset's whole mode table. The name alone is not identity: two presets can carry
-        // the same mode name over different tool rosters, and editing a roster in place
-        // moves neither the name nor any scalar above. Compared by value, never copied
-        // unless something actually changed.
-        std::string              mode;
-        std::vector<std::string> mode_names;
-        std::vector<std::string> mode_active_tools;
+        Plate plate;
     };
     ImexMarkerKey  m_imex_marker_key;
     ImexMarkerPlan m_imex_marker_plan;
@@ -402,6 +380,8 @@ public:
     //BBS: GUI refactor: add canvas width and height
     // Shells, toolpaths, the sequential markers and the IDEX/IQEX toolhead boxes, drawn in 3D.
     void render_scene(int canvas_width, int canvas_height);
+    // ORCA: the toolpaths of translucent filaments, blended over the scene, then the markers. render_scene() leaves both out.
+    void render_translucent_toolpaths(int canvas_width, int canvas_height);
     // Legend, sliders, the marker's position window and the G-code window, all ImGui.
     void render_overlay(int canvas_width, int canvas_height, int right_margin);
     // ORCA: realistic view. Depth-only pass drawing the toolpaths as the light sees them, into
@@ -414,6 +394,8 @@ public:
     // ORCA: section view
     void set_clipping_plane(const ClippingPlane& plane);
     void set_light_top_dir(const Vec3d& direction);
+    // ORCA: the untinted highlight of the filaments, which the canvas gives them in realistic view only
+    void set_gloss(bool gloss) { m_viewer.set_gloss(gloss); }
     //BBS
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
@@ -502,6 +484,8 @@ public:
     // ORCA: brightness of those darkened layers, 1.0 = unchanged, 0.0 = black
     void set_dim_previous_layers_brightness(float value) { m_viewer.set_dim_previous_layers_brightness(value); }
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
+    // ORCA: draw the toolpaths of translucent filament colors translucent
+    void set_translucent_filaments(bool value) { m_viewer.set_translucent_filaments(value); }
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 
@@ -534,7 +518,11 @@ private:
     // Canvas height minus the room the horizontal slider takes.
     int sequential_view_height(int canvas_height) const;
     void render_toolpaths();
+    // The sequential markers and the IDEX/IQEX toolhead boxes.
+    void render_markers(int canvas_width, int canvas_height);
     void render_shells(int canvas_width, int canvas_height);
+    // ORCA: a filament color as the toolpaths show it, opaque unless translucent filaments are shown
+    ColorRGBA shown_filament_color(ColorRGBA color) const;
 
     //BBS: GUI refactor: add canvas size
     void render_legend(float &legend_height, int canvas_width, int canvas_height, int right_margin);

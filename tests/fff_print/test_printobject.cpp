@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
 #include "libslic3r/libslic3r.h"
@@ -30,6 +31,7 @@
 #include "libslic3r/Line.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include <functional>
 #include <map>
 #include <set>
 #include <string>
@@ -158,6 +160,24 @@ TEST_CASE("Initial layer height is honored", "[PrintObject]")
     REQUIRE(layer_zs.size() > 1);
     REQUIRE_THAT(*layer_zs.begin(),            Catch::Matchers::WithinAbs(0.3, 1e-4));
     REQUIRE_THAT(*std::next(layer_zs.begin()), Catch::Matchers::WithinAbs(0.5, 1e-4));
+}
+
+TEST_CASE("An object too thin for any layer fails with a slicing error", "[PrintObject][Regression]")
+{
+    const int  raft_layers      = GENERATE(0, 2);
+    const bool precise_z_height = GENERATE(false, true);
+    DYNAMIC_SECTION("raft_layers " << raft_layers << ", precise_z_height " << precise_z_height) {
+        Slic3r::Print print;
+        Slic3r::Model model;
+        Slic3r::Test::init_print({make_cube(20, 20, 0.002)}, print, model, {
+            { "layer_height",               0.2 },
+            { "initial_layer_print_height", 0.2 },
+            { "min_layer_height",           0.07 },
+            { "raft_layers",                raft_layers },
+            { "precise_z_height",           precise_z_height }
+        });
+        REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("No layers were detected"));
+    }
 }
 
 static TriangleMesh internal_bridge_step()
@@ -594,5 +614,129 @@ TEST_CASE("Body centering survives islands merging and splitting between layers"
             CHECK(actual.min == expected.min);
             CHECK(actual.max == expected.max);
         }
+    }
+}
+
+TEST_CASE("Z contouring slices an object that has several instances", "[PrintObject]")
+{
+    Print print;
+    Model model;
+    place_two_cube_instances_apart(10., { { "zaa_enabled", "1" } }, print, model);
+    REQUIRE(print.objects().size() == 1);
+    REQUIRE(print.objects().front()->instances().size() == 2);
+
+    CHECK_NOTHROW(print.process());
+    CHECK(print.objects().front()->is_step_done(posContouring));
+}
+
+TEST_CASE("Z contouring slices instances of one object that are turned differently", "[PrintObject]")
+{
+    // An instance turned about Z is sliced as a PrintObject of its own, with the same ModelObject behind it.
+    Print print;
+    Model model;
+    place_two_cube_instances_apart(10., { { "zaa_enabled", "1" } }, print, model);
+    model.objects.front()->instances.back()->set_rotation(Z, PI / 4.);
+    print.apply(model, DynamicPrintConfig(print.full_print_config()));
+    REQUIRE(print.objects().size() == 2);
+
+    CHECK_NOTHROW(print.process());
+    for (const PrintObject *object : print.objects())
+        CHECK(object->is_step_done(posContouring));
+}
+
+// A box tilted about X, so that its top slopes along Y and Z contouring has a surface to follow, with
+// one instance for each Z rotation given, laid out in a row.
+static void slice_tilted_box_instances(const std::vector<double> &z_rotations, Print &print, Model &model)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "zaa_enabled", "1" } });
+
+    TriangleMesh box = make_cube(20, 20, 10);
+    box.rotate_x(float(PI / 12.));
+    ModelObject *object = model.add_object();
+    object->add_volume(std::move(box));
+    for (size_t idx = 0; idx < z_rotations.size(); ++idx) {
+        ModelInstance *instance = object->add_instance();
+        instance->set_offset(Vec3d(50. + 50. * double(idx), 100., 0.));
+        instance->set_rotation(Z, z_rotations[idx]);
+    }
+    object->ensure_on_bed();
+    print.auto_assign_extruders(object);
+    print.apply(model, config);
+    print.validate();
+    print.set_status_silent();
+    print.process();
+}
+
+// The Z that contouring gave each point of the object's extrusions, by layer and by XY in the
+// PrintObject's own frame, which does not depend on where its instances stand on the bed.
+static std::vector<std::map<std::pair<coord_t, coord_t>, coord_t>> contoured_heights(const PrintObject &object)
+{
+    std::vector<std::map<std::pair<coord_t, coord_t>, coord_t>> heights(object.layer_count());
+    for (size_t layer_idx = 0; layer_idx < object.layer_count(); ++layer_idx) {
+        auto &layer_heights = heights[layer_idx];
+        std::function<void(const ExtrusionEntity &)> visit = [&](const ExtrusionEntity &entity) {
+            if (const auto *path = dynamic_cast<const ExtrusionPath *>(&entity)) {
+                if (path->z_contoured)
+                    for (const Point3 &pt : path->polyline.points)
+                        layer_heights[{ pt.x(), pt.y() }] = pt.z();
+            } else if (const auto *multipath = dynamic_cast<const ExtrusionMultiPath *>(&entity)) {
+                for (const ExtrusionPath &path : multipath->paths)
+                    visit(path);
+            } else if (const auto *loop = dynamic_cast<const ExtrusionLoop *>(&entity)) {
+                for (const ExtrusionPath &path : loop->paths)
+                    visit(path);
+            } else if (const auto *collection = dynamic_cast<const ExtrusionEntityCollection *>(&entity)) {
+                for (const ExtrusionEntity *child : collection->entities)
+                    visit(*child);
+            }
+        };
+        for (const LayerRegion *region : object.get_layer(int(layer_idx))->regions()) {
+            visit(region->perimeters);
+            visit(region->fills);
+        }
+    }
+    return heights;
+}
+
+TEST_CASE("Z contouring follows the surface of each instance as it is turned", "[PrintObject]")
+{
+    // Two instances of a box with a sloped top, the second turned a quarter turn about Z: its top slopes
+    // along X instead of Y. Each is contoured against the box turned as that instance is, so it has to
+    // match the same box placed alone with that turn.
+    Print print;
+    Model model;
+    slice_tilted_box_instances({ 0., PI / 2. }, print, model);
+    REQUIRE(print.objects().size() == 2);
+
+    for (const PrintObject *object : print.objects()) {
+        const double z_rotation = object->instances().front().model_instance->get_rotation().z();
+        Print reference;
+        Model reference_model;
+        slice_tilted_box_instances({ z_rotation }, reference, reference_model);
+        REQUIRE(reference.objects().size() == 1);
+
+        const auto heights           = contoured_heights(*object);
+        const auto reference_heights = contoured_heights(*reference.objects().front());
+        REQUIRE(heights.size() == reference_heights.size());
+
+        size_t matched = 0, lifted = 0;
+        for (size_t layer_idx = 0; layer_idx < heights.size(); ++layer_idx) {
+            const coord_t print_z = scaled(object->get_layer(int(layer_idx))->print_z);
+            for (const auto &[xy, z] : heights[layer_idx]) {
+                const auto it = reference_heights[layer_idx].find(xy);
+                if (it == reference_heights[layer_idx].end())
+                    continue;
+                INFO("layer " << layer_idx << ", rotation " << z_rotation);
+                CHECK(std::abs(z - it->second) <= scaled(0.001));
+                ++matched;
+                if (std::abs(z - print_z) > scaled(0.01))
+                    ++lifted;
+            }
+        }
+        INFO("rotation " << z_rotation);
+        // Enough points in common to mean something, and contouring did move some of them.
+        CHECK(matched > 100);
+        CHECK(lifted > 0);
     }
 }

@@ -996,16 +996,46 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                 if (is_auto(stype) && config_detect_sharp_tails)
                 {
                     // BBS detect sharp tail
+                    // On a belt, "below" has to include the belt itself and the
+                    // shear-advanced lower layer, or every belt-contact island reads as
+                    // a sharp tail -- which is what the empty-predecessor skip above was
+                    // really masking. effective_lower is exactly that notion of below.
+                    const ExPolygons &tail_lower = belt_ovh_active ? effective_lower : lower_polys;
+                    // Each island is tested only against the lower islands whose box meets its own; overlaps() tries
+                    // every pair, which is quadratic in the island counts of the two layers.
+                    std::vector<BoundingBox> lower_bboxes;
+                    lower_bboxes.reserve(tail_lower.size());
+                    for (const ExPolygon &lower : tail_lower)
+                        lower_bboxes.emplace_back(get_extents(lower));
                     for (const ExPolygon& expoly : curr_polys) {
                         bool  is_sharp_tail = false;
                         // 1. nothing below
-                        // this is a sharp tail region if it's floating and non-ignorable.
-                        // On a belt, "below" has to include the belt itself and the
-                        // shear-advanced lower layer, or every belt-contact island reads as
-                        // a sharp tail -- which is what the empty-predecessor skip above was
-                        // really masking. effective_lower is exactly that notion of below.
-                        const ExPolygons &tail_lower = belt_ovh_active ? effective_lower : lower_polys;
-                        if (!overlaps(offset_ex(expoly, 0.1 * extrusion_width_scaled), tail_lower)) {
+                        // this is a sharp tail region if it's floating and non-ignorable
+                        const ExPolygons  expanded = offset_ex(expoly, 0.1 * extrusion_width_scaled);
+                        const BoundingBox bbox     = get_extents(expanded);
+                        ExPolygons        lower_nearby;
+                        for (size_t i = 0; i < tail_lower.size(); ++i)
+                            if (lower_bboxes[i].overlap(bbox))
+                                lower_nearby.emplace_back(tail_lower[i]);
+                        // As overlaps(expanded, lower_nearby), with each lower island cut to the island's box first:
+                        // below a fine relief the lower layer is a few islands with thousands of holes, and the whole
+                        // of that boundary would otherwise be intersected once per island above.
+                        const auto overlaps_nearby = [&]() {
+                            for (const ExPolygon &a : expanded) {
+                                if (a.empty())
+                                    continue;
+                                const BoundingBox a_bbox = get_extents(a);
+                                for (const ExPolygon &b : lower_nearby) {
+                                    if (b.empty() || !get_extents(b).overlap(a_bbox))
+                                        continue;
+                                    const Polygons b_near = ClipperUtils::clip_clipper_polygons_with_subject_bbox(b, a_bbox.inflated(SCALED_EPSILON));
+                                    if (!intersection_pl(to_polylines(b_near), a).empty() || b.contains(a.contour.points.front()))
+                                        return true;
+                                }
+                            }
+                            return false;
+                        };
+                        if (!overlaps_nearby()) {
                             is_sharp_tail = !offset_ex(expoly, -0.1 * extrusion_width_scaled).empty();
                         }
 
@@ -2149,7 +2179,9 @@ void TreeSupport::draw_circles()
     const bool with_lightning_infill = m_support_params.base_fill_pattern == ipLightning;
     coordf_t support_extrusion_width = m_support_params.support_extrusion_width;
     const float tree_brim_width = config.tree_support_brim_width.value;
-
+    // Reinforce branches moving more than half a support-line width between layers.
+    // Square the threshold for comparison with the squared XY movement below.
+    const double max_move_sq = sqr(double(scale_(m_object_config->support_line_width / 2)));
     // Belt floor: the first object layer is not on a flat bed — it rests on the
     // tilted, moving belt. So the first-object-layer adhesion features (the tree
     // support brim, the hybrid first-layer base expansion) must be suppressed:
@@ -2201,7 +2233,7 @@ void TreeSupport::draw_circles()
                 size_t           first_base_roof_area = 0;
                 bool             floor_interface_as_base = false;
                 bool has_circle_node = false;
-                bool need_extra_wall = false;
+                ExPolygons extra_wall_areas;
                 ExPolygons collision_sharp_tails;
                 ExPolygons collision_base;
                 auto             get_collision = [&](bool sharp_tail) -> ExPolygons             &{
@@ -2279,7 +2311,6 @@ void TreeSupport::draw_circles()
                         // area = diff_clipped({ ExPolygon(circle) }, get_collision(node.is_sharp_tail && node.distance_to_top <= 0));
 
                         if (!area.empty()) has_circle_node = true;
-                        if (node.need_extra_wall) need_extra_wall = true;
 
                         // merge overhang to get a smoother interface surface
                         // Do not merge when buildplate_only is on, because some underneath nodes may have been deleted.
@@ -2293,6 +2324,10 @@ void TreeSupport::draw_circles()
                             append(area, overhang_expanded);
                         }
                     }
+
+                    // Use the Pythagorean theorem to compare movement magnitude (dx² + dy²) without a square root.
+                    if (node.is_processed && node.movement.cast<double>().squaredNorm() > max_move_sq)
+                        append(extra_wall_areas, area);
 
                     if (obj_layer_nr>0 && node.distance_to_top < 0)
                         append(roof_gap_areas, area);
@@ -2530,7 +2565,8 @@ void TreeSupport::draw_circles()
                     //if (area(expoly) < SQ(scale_(1))) continue;
                     area_groups.emplace_back(&expoly, SupportLayer::BaseType, max_layers_above_base);
                     area_groups.back().need_infill = overlaps({ expoly }, area_poly);
-                    area_groups.back().need_extra_wall = need_extra_wall && !area_groups.back().need_infill;
+                    area_groups.back().need_extra_wall = !area_groups.back().need_infill &&
+                        !extra_wall_areas.empty() && overlaps({expoly}, extra_wall_areas);
                 }
                 for (size_t roof_idx = 0; roof_idx < ts_layer->roof_areas.size(); ++roof_idx) {
                     auto &expoly = ts_layer->roof_areas[roof_idx];
@@ -3321,7 +3357,7 @@ void TreeSupport::drop_nodes()
                     return; // from parallel_for_each lambda
                 }
                 const ExPolygons& next_collision = get_collision(0, obj_layer_nr_next);
-                const bool   to_buildplate  = !is_inside_ex(m_ts_data->m_layer_outlines[obj_layer_nr_next], next_layer_vertex);
+                const bool to_buildplate = !is_inside_ex(next_collision, next_layer_vertex);
                 // don't increase radius if next node will collide partially with the object (STUDIO-7883)
                 to_outside             = projection_onto(next_collision, next_layer_vertex);
                 direction_to_outer     = to_outside - node.position;
@@ -3433,11 +3469,6 @@ void TreeSupport::smooth_nodes()
         }
     }
     
-    float max_move = scale_(m_object_config->support_line_width / 2);
-    // if the branch is very tall, the tip also needs extra wall
-    float thresh_tall_branch = 100;
-    float thresh_dist_to_top = 30;
-
     for (int layer_nr = 0; layer_nr< contact_nodes.size(); layer_nr++) {
         std::vector<SupportNode *> &curr_layer_nodes = contact_nodes[layer_nr];
         if (curr_layer_nodes.empty()) continue;
@@ -3447,20 +3478,17 @@ void TreeSupport::smooth_nodes()
                 std::vector<double> radii;
                 std::vector<SupportNode *>   branch;
                 SupportNode *              p_node = node;
-                float                        total_height = 0;
                 // add a fixed head if it's not a polygon node, see STUDIO-4403
                 // Polygon node can't be added because the move distance might be huge, making the nodes in between jump and dangling
                 if (node->child && node->child->type!=ePolygon) {
                     pts.push_back(p_node->child->position);
                     radii.push_back(p_node->child->radius);
                     branch.push_back(p_node->child);
-                    total_height += p_node->child->height;
                 }
                 do {
                     pts.push_back(p_node->position);
                     radii.push_back(p_node->radius);
                     branch.push_back(p_node);
-                    total_height += p_node->height;
                     p_node = p_node->parent;
                 } while (p_node && !p_node->is_processed);
                 if (pts.size() < 3) continue;
@@ -3479,22 +3507,12 @@ void TreeSupport::smooth_nodes()
                             branch[i]->radius = radii1[i];
                             branch[i]->movement = (pts[i + 1] - pts[i - 1]) / 2;
                             branch[i]->is_processed = true;
-                            if (branch[i]->parents.size() > 1 || (branch[i]->movement.x() > max_move || branch[i]->movement.y() > max_move) ||
-                                (total_height > thresh_tall_branch && branch[i]->dist_mm_to_top < thresh_dist_to_top))
-                                branch[i]->need_extra_wall = true;
                             BOOST_LOG_TRIVIAL(info) << "smooth_nodes: layer_nr=" << layer_nr << ", i=" << i << ", pt=" << pt << ", movement=" << branch[i]->movement << ", radius=" << branch[i]->radius;
                         }
                     }
                     if (k < iterations - 1) {
                         std::swap(pts, pts1);
                         std::swap(radii, radii1);
-                    }
-                    else {
-                        // interpolate need_extra_wall in the end
-                        for (size_t i = 1; i < branch.size() - 1; i++) {
-                            if (branch[i - 1]->need_extra_wall && branch[i + 1]->need_extra_wall)
-                                branch[i]->need_extra_wall = true;
-                        }
                     }
                 }
             }

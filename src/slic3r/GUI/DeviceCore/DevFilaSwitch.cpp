@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 

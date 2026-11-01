@@ -74,6 +74,10 @@ webkit_web_view_run_javascript_finish                (WebKitWebView             
 						      GError                    **error);
 WEBKIT_API void
 webkit_javascript_result_unref              (WebKitJavascriptResult *js_result);
+WEBKIT_API guint
+webkit_get_major_version                     (void);
+WEBKIT_API guint
+webkit_get_minor_version                     (void);
 }
 #endif
 
@@ -427,6 +431,29 @@ bool WebView::NeedsRecreateOnShow()
     return false;
 #endif
 }
+
+bool WebView::NeedsCompositingWorkaround()
+{
+#ifdef __linux__
+    const guint major = webkit_get_major_version();
+    const guint minor = webkit_get_minor_version();
+    return major < 2 || (major == 2 && minor < 42);
+#else
+    return false;
+#endif
+}
+
+bool WebView::SupportsForceSharedMemory()
+{
+#ifdef __linux__
+    const guint major = webkit_get_major_version();
+    const guint minor = webkit_get_minor_version();
+    return major > 2 || (major == 2 && minor >= 44);
+#else
+    return false;
+#endif
+}
+
 #if wxUSE_WEBVIEW_EDGE
 bool WebView::CheckWebViewRuntime()
 {
@@ -444,6 +471,12 @@ bool WebView::DownloadAndInstallWebViewRuntime()
     return DownloadAndInstallWV2RT() == 0;
 }
 #endif
+wxString WebView::RedactUrl(const wxString& url)
+{
+    const size_t cut = url.find_first_of(wxString("?#"));
+    return cut == wxString::npos ? url : url.Left(cut);
+}
+
 void WebView::LoadUrl(wxWebView * webView, wxString const &url)
 {
     auto url2  = url;
@@ -451,7 +484,7 @@ void WebView::LoadUrl(wxWebView * webView, wxString const &url)
     url2.Replace("\\", "/");
 #endif
     if (!url2.empty()) { url2 = wxURI(url2).BuildURI(); }
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << url2.ToUTF8();
+    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << RedactUrl(url2).ToUTF8();
     webView->LoadURL(url2);
 }
 

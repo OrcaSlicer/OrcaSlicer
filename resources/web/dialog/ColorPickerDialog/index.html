@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-orca-page="color-picker">
+<head><title data-i18n="Color Picker">Color Picker</title>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../../include/global.css">
+<link rel="stylesheet" href="../css/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<p id="selectionNotice" hidden data-i18n="The current multi-color selection is kept until you choose a different color.">The current multi-color selection is kept until you choose a different color.</p>
+<fieldset id="pickerEditors" disabled>
+<div class="main-wrapper">
+
+  <div class="left-panel" id="palettePanel">
+    <div class="palette thin-scroll" id="palette" tabindex="-1"></div>
+    <p class="palette-empty hidden" id="paletteEmpty" data-i18n="No matching colors">No matching colors</p>
+    <div class="palette-toolbar">
+      <div class="palette-select ComboBox" id="paletteSelect">
+        <div class="arrow-icon"></div>
+        <select id="paletteCombo" tabindex="-1">
+          <option value="basic"           data-i18n="Basic Colors">Basic Colors</option>
+          <option value="orca"            data-i18n="Orca Palette">Orca Palette</option>
+          <option value="ral"             data-i18n="RAL Classic" >RAL Classic</option>
+          <option value="gradient" hidden data-i18n="Gradients"   >Gradients</option>
+        </select>
+      </div>
+      <input type="search" id="paletteFilter" class="palette-filter hidden" autocomplete="off" spellcheck="false"
+             placeholder="Filter colors" data-i18n-placeholder="Filter colors" aria-label="Filter colors" data-i18n-aria-label="Filter colors">
+      <button type="button" id="paletteSearchToggle" class="palette-search-button" aria-pressed="false" title="Search colors" data-i18n-title="Search colors">
+        <div class="icon-search icon16"></div>
+        <div class="icon-close icon16"></div>
+      </button>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="spectrum-row">
+      <div class="saturation-slider">
+        <input class="valueSlider" type="range" id="satSlider" min="0" max="100" step="0.1" tabindex="-1" aria-label="Saturation" data-i18n-aria-label="Saturation">
+      </div>
+      <div class="spectrum-container">
+        <canvas id="spectrum"></canvas>
+        <div id="colorIndicator"></div>
+      </div>
+    </div>
+    <div class="editor-grid">
+      <div class="editor-column">
+        <div id="modeControls" class="hidden">
+          <input class="switch-check" type="checkbox" id="modeSwitch">
+          <label class="switch-slider" for="modeSwitch">
+            <div class="switch-label" data-i18n="Solid">Solid</div>
+            <div class="switch-label" data-i18n="Gradient">Gradient</div>
+          </label>
+        </div>
+
+        <div class="hex-row">
+          <div class="inline-field field-hex">
+            <label for="hexInput">#</label>
+            <input type="text" id="hexInput" required value="808080" maxlength="8" autocomplete="off" spellcheck="false" aria-label="Hex color" data-i18n-aria-label="Hex color">
+          </div>
+          <div class="inline-field value-field hidden" id="alphaControls" title="Opacity percent">
+            <label for="oValue">
+              <svg viewBox="0 0 12 12" width="12" height="12">
+                 <path d="M0,1v10c0,.55.45,1,1,1h10c.55,0,1-.45,1-1V1c0-.55-.45-1-1-1H1C.45,0,0,.45,0,1ZM6,6v5H1v-5h5V1h5v5h-5Z" style="fill:#999"/>
+              </svg>
+            </label>
+            <input type="number" id="oValue" min="0" max="100" aria-label="Opacity percent" data-i18n-aria-label="Opacity percent">
+          </div>
+        </div>
+
+        <!-- Third row: gradient endpoints, replaced by the opacity slider while the opacity field is in use. -->
+        <div id="thirdRow" class="third-row">
+          <!-- Gradient colors: evenly spaced thumbs (built by colorpicker.js); a click selects the nearest. -->
+          <div id="gradientCtrlBar" class="invisible" role="group" aria-label="Gradient" data-i18n-aria-label="Gradient">
+            <div id="gradientStops" class="gradient-stops">
+              <div class="gradient-track"></div>
+            </div>
+            <div class="gradient-step-buttons hidden">
+              <button type="button" id="gradientRemove" class="gradient-step-button hidden" title="Remove color" data-i18n-title="Remove color">
+                <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><rect x="0" y="4" width="10" height="2" fill="currentColor"/></svg>
+              </button>
+              <button type="button" id="gradientAdd" class="gradient-step-button hidden" title="Add color" data-i18n-title="Add color">
+                <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><rect x="0" y="4" width="10" height="2" fill="currentColor"/><rect x="4" y="0" width="2" height="10" fill="currentColor"/></svg>
+              </button>
+            </div>
+          </div>
+          <div id="opacitySliderBar" hidden>
+            <input class="valueSlider" type="range" id="opacitySlider" min="0" max="100" step="0.1" tabindex="-1" aria-label="Opacity" data-i18n-aria-label="Opacity">
+          </div>
+        </div>
+      </div>
+      <div class="editor-column">
+        <div class="inline-field value-field" title="Hue">
+          <label for="hValue">H</label>
+          <input type="number" id="hValue" min="0" max="360" step="1">
+        </div>
+        <div class="inline-field value-field" title="Saturation">
+          <label for="sValue">S</label>
+          <input type="number" id="sValue" min="0" max="100" step="1">
+        </div>
+        <div class="inline-field value-field" title="Lightness">
+          <label for="lValue">L</label>
+          <input type="number" id="lValue" min="0" max="100" step="1">
+        </div>
+      </div>
+      <div class="editor-column">
+        <div class="inline-field value-field" title="Red">
+          <label for="rValue">R</label>
+          <input type="number" id="rValue" min="0" max="255" step="1">
+        </div>
+        <div class="inline-field value-field" title="Green">
+          <label for="gValue">G</label>
+          <input type="number" id="gValue" min="0" max="255" step="1">
+        </div>
+        <div class="inline-field value-field" title="Blue">
+          <label for="bValue">B</label>
+          <input type="number" id="bValue" min="0" max="255" step="1">
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-container">
+      <button id="originalPreview" type="button" class="color-preview original-preview"  title="Original color" data-i18n-title="Original color">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <circle cx="11.5" cy="11.5" r="11.5" style="fill:#ff6f00;"/>
+          <g style="fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;">
+            <polyline points="5.5 5.5 5.5 9.5 9.5 9.5" />
+            <path d="M5.84,9.5c.82-2.33,3.05-4,5.66-4,3.31,0,6,2.69,6,6s-2.69,6-6,6c-2.95,0-5.41-2.13-5.91-4.94"/>
+          </g>
+        </svg>
+      </button>
+      <button id="colorPreview" class="color-preview" title="Save current color" data-i18n-title="Save current color">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <circle cx="11.5" cy="11.5" r="11.5" style="fill:#009688"/>
+          <path d="M11.85,5.11l1.43,4.39h4.61c.35,0,.5.45.22.66l-3.73,2.71,1.43,4.39c.11.34-.28.62-.56.41l-3.73-2.71-3.73,2.71c-.29.21-.67-.07-.56-.41l1.43-4.39-3.73-2.71c-.29-.21-.14-.66.22-.66h4.61s1.43-4.39,1.43-4.39c.11-.34.59-.34.7,0Z" style="fill:none; stroke:#fff; stroke-linecap:round; stroke-linejoin:round;"/>
+        </svg>
+      </button>
+      <div class="saved-grid" id="userColors"></div>
+    </div>
+
+    <div class="dialog-actions">
+      <button type="button" id="paletteToggle" class="icon-button" aria-expanded="false" aria-controls="palettePanel" title="Palettes" data-i18n-title="Palettes">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor">
+          <rect x="0.5" y="1.5" width="15" height="13" rx="2"/>
+          <line x1="4.5" y1="1.5" x2="4.5" y2="14.5"/>
+        </svg>
+      </button>
+      <!-- Shown only where the host can use color sampler -->
+      <button type="button" id="eyedropperBtn" class="icon-button hidden" aria-pressed="false" title="Pick color from screen" data-i18n-title="Pick color from screen">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="7.5" y1="2.5" x2="13.5" y2="8.5"/>
+          <line x1="3.5" y1="9.5" x2="9.5" y2="9.5"/>
+          <path d="M10.5,3.5h-1l-7,7-.72,2.86c-.13.52.34.98.85.85l2.86-.72,7-7v-1"/>
+          <path d="M10.5,3.5c0-1.1.9-2,2-2s2,.9,2,2-.9,2-2,2" stroke-width="1.1"/> <!-- Somehow 1px causes clipping on shape -->
+        </svg>
+      </button>
+      <div class="stretch-spacer"></div>
+      <button id="confirmBtn" class="ButtonTypeChoice ButtonStyleConfirm" data-i18n="OK">OK</button>
+      <button id="cancelBtn"  class="ButtonTypeChoice ButtonStyleRegular" data-i18n="Cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+</fieldset>
+<script src="palettes.js"></script><script src="colorpicker-model.js"></script><script src="colorpicker.js"></script></body></html>

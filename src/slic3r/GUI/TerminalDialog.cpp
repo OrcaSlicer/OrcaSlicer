@@ -16,6 +16,7 @@
 
 #include <cctype>
 #include <wx/string.h>
+#include <nlohmann/json.hpp>
 
 class wxWindow;
 

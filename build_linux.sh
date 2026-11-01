@@ -22,7 +22,7 @@ function usage() {
     echo "   -g: run the requested build steps inside a Docker/Podman Ubuntu 24.04 container similar to the GitHub Actions Linux runner"
     echo "   -h: prints this help text"
     echo "   -i: build the Orca Slicer AppImage (optional)"
-    echo "   -p: boost ccache hit rate by disabling precompiled headers (default: ON)"
+    echo "   -p: disable precompiled headers (on by default): more ccache hits after header changes, slower misses"
     echo "   -r: skip RAM and disk checks (low RAM compiling)"
     echo "   -s: build the Orca Slicer (optional)"
     echo "   -t: build tests (optional), requires -s flag"
@@ -473,8 +473,8 @@ fi
 # cmake 4.x compatibility workaround
 export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
-DISTRIBUTION=$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr -d '"')
-DISTRIBUTION_LIKE=$(awk -F= '/^ID_LIKE=/ {print $2}' /etc/os-release | tr -d '"')
+DISTRIBUTION=$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr -d "'\"")
+DISTRIBUTION_LIKE=$(awk -F= '/^ID_LIKE=/ {print $2}' /etc/os-release | tr -d "'\"")
 # Check for direct distribution match to Ubuntu/Debian
 if [ "${DISTRIBUTION}" == "ubuntu" ] || [ "${DISTRIBUTION}" == "linuxmint" ] ; then
     DISTRIBUTION="debian"
@@ -549,6 +549,20 @@ fi
 if [ -n "${CMAKE_CCACHE}" ] ; then
     echo "${CMAKE_CCACHE} found, enabling compiler caching..."
     export CMAKE_CCACHE_ARGS=(-DCMAKE_C_COMPILER_LAUNCHER="${CMAKE_CCACHE}" -DCMAKE_CXX_COMPILER_LAUNCHER="${CMAKE_CCACHE}")
+    # The same ccache settings as the CI build. Without this sloppiness ccache refuses every
+    # compile that uses the precompiled header, which is most of OrcaSlicer, and skips headers
+    # a checkout has just written. It is added to the sloppiness already configured, and
+    # CCACHE_SLOPPINESS or CCACHE_(NO)DEPEND set in the environment win.
+    if [[ "$(basename "${CMAKE_CCACHE}")" == ccache ]] ; then
+        if [[ -z "${CCACHE_SLOPPINESS+x}" ]] ; then
+            CCACHE_SLOPPINESS=$("${CMAKE_CCACHE}" --get-config sloppiness 2>/dev/null || true)
+            export CCACHE_SLOPPINESS="${CCACHE_SLOPPINESS:+${CCACHE_SLOPPINESS},}pch_defines,time_macros,include_file_mtime,include_file_ctime"
+        fi
+        # Hash the includes the compiler reports instead of preprocessing every miss.
+        if [[ -z "${CCACHE_DEPEND+x}${CCACHE_NODEPEND+x}" ]] ; then
+            export CCACHE_DEPEND=1
+        fi
+    fi
 else
     echo "Note: ccache or sccache are not found. Install either of them for faster rebuilds."
 fi
