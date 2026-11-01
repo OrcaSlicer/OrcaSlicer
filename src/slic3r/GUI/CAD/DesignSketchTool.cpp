@@ -11876,6 +11876,21 @@ int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ent
     return base;
 }
 
+bool DesignSketchTool::apply_corner_scripted(int a, int b, double value, bool fillet)
+{
+    const int n = int(m_entities.size());
+    if (a < 0 || b < 0 || a >= n || b >= n || a == b || !(value > 0)) return false;
+    if (m_entities[a].type != SketchEntity::Type::Line || m_entities[b].type != SketchEntity::Type::Line) return false;
+    const Mode keep = m_mode;
+    m_mode = fillet ? Mode::Fillet : Mode::Chamfer;
+    m_op_a = a; m_op_b = b; m_op_value = value;
+    const size_t before = m_entities.size();
+    confirm_op();                         // reports and resets itself when the value overruns
+    reset_op();
+    m_mode = keep;
+    return m_entities.size() > before;    // the arc / segment was appended
+}
+
 bool DesignSketchTool::select_indices(const std::vector<int>& idx)
 {
     m_selection.clear();

@@ -11506,3 +11506,50 @@ TEST_CASE("a face offers its strategic points, per face type, and a connector ca
     CHECK_THAT((frames[0].origin - pa[1].p).norm(), WithinAbs(0.0, 1e-6));
     CHECK((frames[0].origin - pa[0].p).norm() > 1.0);
 }
+
+TEST_CASE("a changed scale is not served from the replay cache, and push/pull moves a face", "[CadDocument][transform]")
+{
+    using Catch::Matchers::WithinRel;
+    auto box = [] {
+        auto doc = std::make_unique<CadDocument>();
+        const int sk = doc->add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "S");
+        doc->add_extrude(sk, 10.0, false, BooleanMode::New, "Box");
+        REQUIRE(doc->recompute());
+        return doc;
+    };
+    const double v0 = box()->body_mass_properties(0).volume;
+    // same recipe, only xf_scale differs: the cache key must tell them apart (it once hashed the legacy field list)
+    for (double s : {2.0, 3.0, 0.5}) {
+        auto doc = box();
+        const int t = doc->add_transform(0, Vec3d(0, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "Scale");
+        doc->features[t].xf_scale = s;
+        REQUIRE(doc->recompute());
+        CHECK_THAT(doc->body_mass_properties(0).volume, WithinRel(v0 * s * s * s, 1e-6));
+    }
+
+    // push/pull of the top face: +5 grows by area x 5
+    auto doc = box();
+    int top = -1;
+    for (int f = 0;; ++f) {
+        const TopoDS_Face fc = GeometryEngine::face_by_index(doc->bodies[0].shape, f);
+        if (fc.IsNull()) break;
+        if (GeometryEngine::face_normal_world(fc).z() > 0.99) top = f;
+    }
+    REQUIRE(top >= 0);
+    doc->add_extrude_face(top, 5.0, false, BooleanMode::Add, "Pull");
+    REQUIRE(doc->recompute());
+    CHECK_THAT(doc->body_mass_properties(0).volume, WithinRel(v0 + 100.0 * 5.0, 1e-6));
+}
+
+TEST_CASE("a surface fill spans a non-planar 3D boundary", "[CadDocument][surface]")
+{
+    CadDocument doc;
+    // a saddle-ish closed polygon: opposite corners high, the others low
+    const int sk = doc.add_sketch3d({Vec3d(0, 0, 0), Vec3d(10, 0, 3), Vec3d(10, 10, 0), Vec3d(0, 10, 3)}, false, true, "Hole");
+    doc.add_surface_fill(sk, "Patch");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    CHECK_FALSE(doc.bodies[0].shape.IsNull());
+    CHECK(GeometryEngine::face_by_index(doc.bodies[0].shape, 0).IsNull() == false);
+}

@@ -81,6 +81,7 @@
 #include <gp_Pln.hxx>
 #include <BRepAlgoAPI_Section.hxx>
 #include <BRepAdaptor_Surface.hxx>
+#include <BRepAdaptor_Curve.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Edge.hxx>
@@ -416,9 +417,10 @@ json describe_tools_core()
                      json{{"name", "keep_original"},{"type", "boolean"}, {"default", true}, {"description", "when mode=new, keep the source body"}},
                      json{{"name", "body"},         {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                  })}},
-            json{{"name", "transform"}, {"summary", "Move and/or rotate a body (B-rep transform). copy=true keeps the source and appends the transformed copy as a new body."},
+            json{{"name", "transform"}, {"summary", "Move, rotate and/or uniformly scale a body (B-rep transform; scale about the pivot first, then rotate, then move). copy=true keeps the source and appends the transformed copy as a new body."},
                  {"params", json::array({
                      json{{"name", "body"},    {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
+                     json{{"name", "scale"},   {"type", "number"}, {"default", 1}, {"description", "uniform scale factor about the pivot (> 0)"}},
                      json{{"name", "dx"},      {"type", "number"}, {"unit", "mm"}, {"default", 0}},
                      json{{"name", "dy"},      {"type", "number"}, {"unit", "mm"}, {"default", 0}},
                      json{{"name", "dz"},      {"type", "number"}, {"unit", "mm"}, {"default", 0}},
@@ -536,7 +538,7 @@ json describe_tools_core()
                       json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 360}},
                       json{{"name", "axis"},    {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}},
                   })}},
-            json{{"name", "mate"}, {"summary", "Mate two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a). kind: 0=Fastened, 1=Planar, 2=Revolute, 3=Slider, 4=Cylindrical."},
+            json{{"name", "mate"}, {"summary", "Mate two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a). kind: 0=Fastened, 1=Planar, 2=Revolute, 3=Slider, 4=Cylindrical. Motion: bind mate_angle (revolute) or mate_offset (slider) with set_feature_expr to a variable, then step it with sweep_variable (bbox/interference per step) or set_variable."},
                  {"params", json::array({
                      json{{"name", "kind"},    {"type", "integer"}, {"default", 0}, {"description", "0=Fastened (rigid), 1=Planar (normal only), 2=Revolute (free rotation about axis), 3=Slider (free translation along axis), 4=Cylindrical (free rotation+translation)"}},
                      json{{"name", "cs_a"},    {"type", "integer"}, {"description", "feature index of the fixed CoordSys (mate connector A)"}},
@@ -740,6 +742,19 @@ json describe_tools()
                       {"width", "number", "box x"}, {"depth", "number", "box y"}, {"height", "number", "box, cylinder, cone z"},
                       {"radius", "number", "cylinder, cone base, sphere; torus ring centre line (or diameter)"}, {"radius2", "number", "cone top radius, 0 = a point (or diameter2)"},
                       {"tube_radius", "number", "torus tube (or tube_diameter)"}, {"boolean", "string", "new|union|subtract|intersect"}, {"body", "integer", "target body for union/subtract"}}),
+        compact_tool("stitch", "Join two sheet bodies that meet along an edge into one (Boolean union with a fuzzy tolerance).",
+                     {{"a", "any", "target body (index or name)"}, {"b", "any", "tool body, consumed"}, {"tolerance", "number", "merge edges closer than this, default 0.05 mm"}, {"keep_tool", "boolean", ""}}),
+        compact_tool("surface_extend", "Grow a planar sheet past a straight free edge, in its plane, away from the face; stitched on.",
+                     {{"edge", "integer", "edge id from query_topology"}, {"distance", "number", "mm"}, {"body", "integer", "default last"}, {"face", "integer", "the sheet's face if several"}, {"stitch", "boolean", "default true"}, {"tolerance", "number", "stitch tolerance"}}),
+        compact_tool("surface_patch", "Close a hole in a sheet: fill the loop of boundary edges (need not be planar) and stitch the patch on.",
+                     {{"edges", "array", "edge ids bounding the hole, any order"}, {"body", "integer", "default last"}, {"samples", "integer", "points per curved edge, default 48"}, {"stitch", "boolean", "default true"}, {"tolerance", "number", "stitch tolerance"}}),
+        compact_tool("push_pull", "Move a planar face along its normal: + grows the body, - cuts into it.",
+                     {{"face", "integer", "face id from query_topology"}, {"body", "integer", "owner body (default last)"}, {"distance", "number", "mm, signed"}}),
+        compact_tool("sketch_op", "On the open sketch: trim / extend (at), fillet (a, b, radius) / chamfer (a, b, distance) a corner of two lines, linear_pattern (entities, count, step) / circular_pattern (entities, count, center, angle).",
+                     {{"op", "string", "trim|extend|fillet|chamfer|linear_pattern|circular_pattern"}, {"at", "array", "[x,y] on the entity to trim/extend"}, {"tol", "number", "pick tolerance mm, default 2"},
+                      {"a", "integer", "first line"}, {"b", "integer", "second line"}, {"radius", "number", "fillet radius"}, {"distance", "number", "chamfer setback"},
+                      {"entities", "array", "pattern sources (default all)"}, {"count", "integer", "total instances, sources included"}, {"step", "array", "[dx,dy] mm"},
+                      {"center", "array", "[x,y] rotation centre"}, {"angle", "number", "total sweep deg, default 360"}}),
         compact_tool("coil", "A spring in one call: helix + round wire + sweep. Sizes in mm.",
                      {{"radius", "number", "coil radius to the wire centre"}, {"pitch", "number", "rise per turn"}, {"height", "number", "total rise"},
                       {"wire_radius", "number", "or wire_diameter"}, {"left_handed", "boolean", ""}, {"plane", "string", "XY|XZ|YZ axis plane, or normal+origin"}, {"boolean", "string", "new|union|subtract|intersect"}}),
@@ -2412,6 +2427,59 @@ json action_sketch_mirror(DesignPanel* panel, const json& params)
     return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())}, {"dof", t.dof()}};
 }
 
+// {op: trim|extend|fillet|chamfer|linear_pattern|circular_pattern, ...} on the open sketch, through the code the mouse tools use.
+//  trim/extend: at:[x,y] (the point of the entity to cut / grow; the nearest one within tol, default 2 mm).
+//  fillet/chamfer: a, b (line indices), radius | distance.
+//  linear_pattern: entities, count, step:[dx,dy] (copies of the sources, the originals stay).
+//  circular_pattern: entities, count, center:[x,y], angle (total deg, default 360 = evenly round).
+json action_sketch_op(DesignPanel* panel, const json& params)
+{
+    DesignSketchTool& t = mcp_sketch(panel);
+    const std::string op = params.value("op", std::string());
+    auto pt = [&](const char* k) {
+        if (!params.contains(k) || !params[k].is_array() || params[k].size() < 2) throw std::runtime_error(op + " needs '" + k + "': [x, y]");
+        return Vec2d(jn(params[k], 0), jn(params[k], 1));
+    };
+    if (op == "trim" || op == "extend") {
+        const bool ok = t.trim_scripted(pt("at"), params.value("tol", 2.0), op == "extend");
+        panel->mcp_viewport()->request_repaint();
+        return json{{"ok", ok}, {"entities", int(t.entities().size())}, {"dof", t.dof()},
+                    {"error", ok ? "" : "nothing within tol of 'at' could be " + std::string(op == "trim" ? "trimmed (it crosses nothing)" : "extended (it meets nothing)")}};
+    }
+    if (op == "fillet" || op == "chamfer") {
+        const bool f = op == "fillet";
+        if (!params.contains("a") || !params.contains("b")) throw std::runtime_error(op + " needs 'a' and 'b' (line indices)");
+        const char* key = f ? "radius" : "distance";
+        if (!params.contains(key)) throw std::runtime_error(op + " needs '" + key + "'");
+        const bool ok = t.apply_corner_scripted(params["a"].get<int>(), params["b"].get<int>(), params[key].get<double>(), f);
+        panel->mcp_viewport()->request_repaint();
+        return json{{"ok", ok}, {"entities", int(t.entities().size())}, {"dof", t.dof()},
+                    {"error", ok ? "" : "need two lines that meet at a corner, and a value that does not overrun either"}};
+    }
+    if (op == "linear_pattern" || op == "circular_pattern") {
+        const int count = params.value("count", 2);
+        if (count < 2 || count > 500) throw std::runtime_error("count must be 2..500 (the sources count as the first)");
+        std::vector<SketchEntity> src;
+        for (int i : sketch_targets(params, t, true))
+            if (i >= 0 && i < int(t.entities().size())) src.push_back(t.entities()[i]);
+        if (src.empty()) throw std::runtime_error("nothing to pattern");
+        std::vector<SketchEntity> out;
+        const bool lin = op == "linear_pattern";
+        const Vec2d step = lin ? pt("step") : Vec2d(0, 0), c = lin ? Vec2d(0, 0) : pt("center");
+        const double total = params.value("angle", 360.0);
+        const double da = (std::abs(total - 360.0) < 1e-9 ? total / count : total / (count - 1)) * M_PI / 180.0;
+        for (int k = 1; k < count; ++k) {
+            const auto cp = lin ? SketchEngine::transform_entities(src, step * k, 0.0, 1.0, Vec2d(0, 0))
+                                : SketchEngine::transform_entities(src, Vec2d(0, 0), da * k, 1.0, c);
+            out.insert(out.end(), cp.begin(), cp.end());
+        }
+        const int base = t.add_entities_scripted(out);
+        panel->mcp_viewport()->request_repaint();
+        return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())}, {"dof", t.dof()}};
+    }
+    throw std::runtime_error("sketch_op: op must be trim | extend | fillet | chamfer | linear_pattern | circular_pattern");
+}
+
 json sketch_report(DesignSketchTool& t)
 {
     const auto rep = t.loop_report();
@@ -2745,12 +2813,164 @@ json action_transform(DesignPanel* panel, const json& params)
     Vec3d pivot(params.value("pivot_x", 0.0), params.value("pivot_y", 0.0), params.value("pivot_z", 0.0));
     double angle = params.value("angle", 0.0);
     bool copy = params.value("copy", false);
+    const double scale = params.value("scale", 1.0);   // uniform, about the pivot
+    if (!(scale > 1e-6)) throw std::runtime_error("scale must be > 0");
     doc.checkpoint();
     int idx = doc.add_transform(bi, translate, axis, pivot, angle, copy, "Transform");
+    if (idx >= 0) doc.features[size_t(idx)].xf_scale = scale;
     bool ok = doc.recompute();
     if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"transform_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+// {a, b, tolerance=0.05, keep_tool=false} (body index or name; also accepts target/tool) -- stitch two sheets that meet along an edge into
+// one: a Boolean union with a fuzzy tolerance, so it stays an editable Boolean feature. Edges closer than `tolerance` are merged.
+json action_stitch(DesignPanel* panel, const json& params)
+{
+    json p = params;
+    if (!p.contains("target") && p.contains("a")) p["target"] = p["a"];
+    if (!p.contains("tool")   && p.contains("b")) p["tool"]   = p["b"];
+    p["op"] = "union";
+    if (!p.contains("tolerance")) p["tolerance"] = 0.05;
+    return action_boolean(panel, p);
+}
+
+// Union the newest body into `body` with a fuzzy tolerance; true when it took. A failed stitch is rolled back, the caller's feature stays.
+bool stitch_last_into(CadDocument& doc, int body, double tol)
+{
+    const int nb = int(doc.bodies.size());
+    doc.add_boolean(BooleanMode::Add, body, nb - 1, false, tol, -1, -1, "Stitch");
+    if (doc.recompute()) return true;
+    const std::string why = doc.error;
+    doc.undo(); doc.recompute(); doc.error = why;
+    return false;
+}
+
+// {body?, edge, distance, face?, stitch=true, tolerance=0.05} -- grow a sheet past a straight free edge, in the plane of its (planar) face,
+// away from the face. A line sketch standing on the edge, perpendicular to that direction, extruded as a surface and stitched on.
+json action_surface_extend(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    if (!params.contains("edge") || !params["edge"].is_number_integer()) throw std::runtime_error("surface_extend needs 'edge' (id from query_topology)");
+    const double dist = params.value("distance", 0.0);
+    if (!(dist > 0)) throw std::runtime_error("surface_extend needs 'distance' > 0");
+    int body = target_body_arg(params, doc);
+    if (body < 0) body = int(doc.bodies.size()) - 1;   // omitted: the last one
+    if (body < 0 || body >= int(doc.bodies.size())) throw std::runtime_error("no such body");
+    const TopoDS_Shape sh = doc.bodies[body].shape;
+    const TopoDS_Edge e = GeometryEngine::edge_by_index(sh, params["edge"].get<int>());
+    if (e.IsNull()) throw std::runtime_error("no such edge on that body (ids expire when the model rebuilds)");
+    BRepAdaptor_Curve cv(e);
+    if (cv.GetType() != GeomAbs_Line) throw std::runtime_error("surface_extend: the edge must be straight (a curved edge needs a sweep along it)");
+    const gp_Pnt a = cv.Value(cv.FirstParameter()), b = cv.Value(cv.LastParameter());
+    const Vec3d p0(a.X(), a.Y(), a.Z()), p1(b.X(), b.Y(), b.Z());
+    const double len = (p1 - p0).norm();
+    if (len < 1e-9) throw std::runtime_error("the edge has no length");
+    const Vec3d ex = (p1 - p0) / len, mid = 0.5 * (p0 + p1);
+    // the face the sheet is made of: the one asked for, else the planar face whose centroid is nearest the edge
+    TopoDS_Face fc;
+    if (params.contains("face")) fc = GeometryEngine::face_by_index(sh, params["face"].get<int>());
+    else {
+        double best = 1e300;
+        for (int i = 0;; ++i) {
+            const TopoDS_Face f = GeometryEngine::face_by_index(sh, i);
+            if (f.IsNull()) break;
+            if (BRepAdaptor_Surface(f).GetType() != GeomAbs_Plane) continue;
+            const double d = (GeometryEngine::face_centroid_world(f) - mid).norm();
+            if (d < best) { best = d; fc = f; }
+        }
+    }
+    if (fc.IsNull() || BRepAdaptor_Surface(fc).GetType() != GeomAbs_Plane) throw std::runtime_error("surface_extend works on a planar face");
+    const Vec3d n = GeometryEngine::face_normal_world(fc).normalized();
+    Vec3d d = (mid - GeometryEngine::face_centroid_world(fc));
+    d -= ex * d.dot(ex); d -= n * d.dot(n);                // across the edge, in the face's plane, pointing out of the face
+    if (d.norm() < 1e-9) throw std::runtime_error("cannot tell which way is out of the face from this edge (it passes through the face centre)");
+    d.normalize();
+    SketchPlane pl;
+    pl.origin = p0; pl.normal = d; pl.x_axis = ex; pl.y_axis = d.cross(ex);
+    SketchEntity l; l.type = SketchEntity::Type::Line; l.p0 = Vec2d(0, 0); l.p1 = Vec2d(len, 0);
+    doc.checkpoint();
+    const int sk = doc.add_sketch_entities({l}, pl, "Extension edge");
+    const int sw = doc.add_surface_extrude(sk, dist, "Extension");
+    if (!doc.recompute()) {
+        const std::string why = doc.error; doc.undo(); doc.error = why; panel->mcp_after_change();
+        return json{{"ok", false}, {"error", why}};
+    }
+    const bool stitched = params.value("stitch", true) && stitch_last_into(doc, body, params.value("tolerance", 0.05));
+    panel->mcp_after_change();
+    return json{{"ok", true}, {"sketch_index", sk}, {"feature_index", sw}, {"stitched", stitched}, {"bodies", int(doc.bodies.size())},
+                {"direction", json::array({d.x(), d.y(), d.z()})}, {"error", doc.error}};
+}
+
+// {body?, edges:[ids], samples=48, stitch=true, tolerance=0.05} -- close a hole: the edges that bound it (a closed loop, any order)
+// become a 3D polyline sampled along them, a filling surface spans it, and the patch is stitched to the body. The boundary
+// need not be planar; curved edges are followed by `samples` points each, so the patch edge is within the chord sag of the hole.
+json action_surface_patch(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    if (!params.contains("edges") || !params["edges"].is_array() || params["edges"].empty()) throw std::runtime_error("surface_patch needs 'edges': the ids bounding the hole");
+    int body = target_body_arg(params, doc);
+    if (body < 0) body = int(doc.bodies.size()) - 1;   // omitted: the last one
+    if (body < 0 || body >= int(doc.bodies.size())) throw std::runtime_error("no such body");
+    const int samples = std::max(2, std::min(400, params.value("samples", 48)));
+    std::vector<std::vector<Vec3d>> chains;
+    for (const auto& id : params["edges"]) {
+        const TopoDS_Edge e = GeometryEngine::edge_by_index(doc.bodies[body].shape, id.get<int>());
+        if (e.IsNull()) throw std::runtime_error("no such edge " + std::to_string(id.get<int>()) + " (ids expire when the model rebuilds)");
+        BRepAdaptor_Curve cv(e);
+        const int n = cv.GetType() == GeomAbs_Line ? 2 : samples;
+        std::vector<Vec3d> c;
+        for (int i = 0; i < n; ++i) {
+            const gp_Pnt q = cv.Value(cv.FirstParameter() + (cv.LastParameter() - cv.FirstParameter()) * i / double(n - 1));
+            c.emplace_back(q.X(), q.Y(), q.Z());
+        }
+        chains.push_back(std::move(c));
+    }
+    // order the edges into one loop by matching ends
+    const double tol = 1e-4;
+    std::vector<Vec3d> loop = chains[0];
+    std::vector<bool> used(chains.size(), false); used[0] = true;
+    for (size_t k = 1; k < chains.size(); ++k) {
+        bool found = false;
+        for (size_t i = 0; i < chains.size() && !found; ++i) {
+            if (used[i]) continue;
+            if ((chains[i].front() - loop.back()).norm() < tol) { loop.insert(loop.end(), chains[i].begin() + 1, chains[i].end()); found = true; }
+            else if ((chains[i].back() - loop.back()).norm() < tol) { loop.insert(loop.end(), chains[i].rbegin() + 1, chains[i].rend()); found = true; }
+            if (found) used[i] = true;
+        }
+        if (!found) throw std::runtime_error("the edges do not chain into one loop");
+    }
+    if ((loop.front() - loop.back()).norm() >= tol) throw std::runtime_error("the edges do not close: a gap remains between the last and the first");
+    loop.pop_back();   // the closed flag joins them
+    doc.checkpoint();
+    const int sk = doc.add_sketch3d(loop, false, true, "Patch boundary");
+    const int fi = doc.add_surface_fill(sk, "Patch");
+    if (!doc.recompute()) {
+        const std::string why = doc.error; doc.undo(); doc.error = why; panel->mcp_after_change();
+        return json{{"ok", false}, {"error", why}};
+    }
+    const bool stitched = params.value("stitch", true) && stitch_last_into(doc, body, params.value("tolerance", 0.05));
+    panel->mcp_after_change();
+    return json{{"ok", true}, {"boundary_index", sk}, {"feature_index", fi}, {"stitched", stitched}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+// {face, body?, distance} -- press-pull: move a planar face along its normal. + grows the body out, - cuts it in (the kernel's face-extrude).
+json action_push_pull(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("face") || !params["face"].is_number_integer()) throw std::runtime_error("push_pull needs 'face' (id from query_topology)");
+    const double d = params.value("distance", 0.0);
+    if (std::abs(d) < 1e-9) throw std::runtime_error("push_pull needs a non-zero 'distance' (+ out of the body, - into it)");
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body");
+    const int bi = target_body_arg(params, doc);
+    doc.checkpoint();
+    const int idx = doc.add_extrude_face(params["face"].get<int>(), d, false, BooleanMode::Add, "Push/Pull");
+    if (idx >= 0) doc.features[size_t(idx)].target_body = bi;
+    bool ok = doc.recompute();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
 json action_thicken(DesignPanel* panel, const json& params)
@@ -4746,6 +4966,11 @@ json call_method_core(DesignPanel* panel, const std::string& method, const json&
     if (method == "thread")         return action_thread(panel, params);
     if (method == "primitive")      return action_primitive(panel, params);
     if (method == "coil")           return action_coil(panel, params);
+    if (method == "push_pull")      return action_push_pull(panel, params);
+    if (method == "stitch")         return action_stitch(panel, params);
+    if (method == "surface_extend") return action_surface_extend(panel, params);
+    if (method == "surface_patch")  return action_surface_patch(panel, params);
+    if (method == "sketch_op")      return action_sketch_op(panel, params);
     if (method == "pipe")           return action_pipe(panel, params);
     if (method == "sm_rule" || method == "sm_base" || method == "sm_flange" || method == "sm_contour" || method == "sm_hem"
         || method == "sm_unfold" || method == "sm_refold")

@@ -114,6 +114,7 @@ template<class V, class F> void cad_fields_helix_xf_thicken(V& v, F& f)
     v(f.helix_radius); v(f.helix_pitch); v(f.helix_height); v(f.helix_left_handed); v(f.helix_taper_deg);
     v(f.xf_translate); v(f.xf_axis); v(f.xf_pivot); v(f.xf_angle_deg); v(f.xf_copy);
     v(f.thicken_face); v(f.thicken_thickness); v(f.thicken_flip);
+    v(f.xf_scale);
 }
 template<class V, class F> void cad_fields_project_rib_mate(V& v, F& f)
 {

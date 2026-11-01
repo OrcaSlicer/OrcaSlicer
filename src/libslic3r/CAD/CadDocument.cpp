@@ -589,6 +589,7 @@ static const struct { const char* name; double CadFeature::* member; } kBindable
     {"thread_y", &CadFeature::thread_y},
     {"width", &CadFeature::width},
     {"xf_angle_deg", &CadFeature::xf_angle_deg},
+    {"xf_scale", &CadFeature::xf_scale},
 };
 
 // Write `value` into the CadFeature numeric field named `field`. Integer-valued fields are rounded. Throws
@@ -3334,9 +3335,12 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         if (f.sketch_ref < 0 || f.sketch_ref >= int(features.size()))
             throw std::runtime_error("surface-fill: bad sketch ref");
         const CadFeature& sk = features[f.sketch_ref];
-        if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project)
+        if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project && sk.type != CadFeatureType::Sketch3D)
             throw std::runtime_error("surface-fill: ref is not a sketch");
-        TopoDS_Wire wire = build_sketch_wire(sk);
+        std::string e3;
+        // a 3D sketch is a boundary that need not be planar (a patch over a hole in a curved sheet)
+        TopoDS_Wire wire = sk.type == CadFeatureType::Sketch3D ? build_sketch3d_wire(sk, e3) : build_sketch_wire(sk);
+        if (wire.IsNull() && !e3.empty()) throw std::runtime_error(format(_u8L("surface-fill: %1%"), e3));
         if (wire.IsNull()) throw std::runtime_error(_u8L("surface-fill: empty boundary"));
         BRepOffsetAPI_MakeFilling fill;
         int nedges = 0;
@@ -4003,7 +4007,12 @@ void CadDocument::apply_transform(std::vector<CadBody>& bodies, const CadFeature
     }
     gp_Trsf tr;
     tr.SetTranslation(gp_Vec(f.xf_translate.x(), f.xf_translate.y(), f.xf_translate.z()));
-    const gp_Trsf trsf = tr * rot;          // rotate first, then translate
+    gp_Trsf sc;
+    if (std::abs(f.xf_scale - 1.0) > 1e-12) {
+        if (!(f.xf_scale > 1e-6)) throw std::runtime_error(_u8L("transform: scale must be > 0"));
+        sc.SetScale(gp_Pnt(f.xf_pivot.x(), f.xf_pivot.y(), f.xf_pivot.z()), f.xf_scale);
+    }
+    const gp_Trsf trsf = tr * rot * sc;     // scale first, then rotate, then translate
 
     BRepBuilderAPI_Transform xform(bodies[tgt].shape, trsf, true /*copy*/);
     if (!xform.IsDone()) throw std::runtime_error(_u8L("transform: failed"));
@@ -5264,7 +5273,9 @@ bool CadDocument::recompute()
             {   // chain: this feature's bytes (fields already bound to the variables) on top of everything before it
                 const auto th = Prof::clock::now();
                 std::ostringstream fos;
-                { cereal::BinaryOutputArchive fa(fos); fa(features[fi]); }
+                // cad_save_feature, not fa(features[fi]): that is the frozen legacy list, blind to every field added since v7,
+                // so a changed xf_scale (or any newer field) hit the cache entry of the old value.
+                { cereal::BinaryOutputArchive fa(fos); cad_save_feature(fa, features[fi]); }
                 const std::string fb = fos.str();
                 fp = fnv_chain(fp, fb.data(), fb.size());
                 prof.hash_ms += Prof::since(th);

@@ -665,6 +665,11 @@ public:
     int  add_entities_scripted(const std::vector<SketchEntity>& ents, bool infer = true);
     // Replace the selection with these entity indices (out-of-range ones are ignored).
     bool select_indices(const std::vector<int>& idx);
+    // Fillet (radius) or chamfer (setback) the corner of lines `a` and `b`, through the same confirm_op a gesture ends in.
+    // False when either is not a line, or the value overruns a leg / the lines do not meet.
+    bool apply_corner_scripted(int a, int b, double value, bool fillet);
+    // Trim / extend the entity nearest `p` (within tol), as the scissors tool does.
+    bool trim_scripted(const Vec2d& p, double tol, bool extend) { return apply_live_trim(p, tol, extend); }
     // Append candidates, live-solve, and roll back the batch if it turns the system
     // inconsistent. Returns true when the batch was kept. Public so the panel's live-constraint
     // path can commit a plan through the SAME append→solve→keep-or-rollback the gestures use.
