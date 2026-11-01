@@ -13,7 +13,7 @@
 
 #include <glad/gl.h>
 #include <boost/log/trivial.hpp>
-
+#include <vector>
 #include <algorithm>
 #include <array>
 #include <cfloat>
