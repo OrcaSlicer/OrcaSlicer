@@ -521,6 +521,7 @@ jobs:
       - name: Build slicer Win
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}
+        timeout-minutes: 120
         # Strawberry Perl is required by OpenSSL's Configure. Git for Windows
         # ships a cygwin perl that shadows Strawberry Perl on PATH. Chocolatey
         # has permission issues on this self-hosted runner, so download the
