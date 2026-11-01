@@ -86,8 +86,16 @@ if ($dllDir) {
     $env:PATH = $dllPath + ";" + $env:PATH
 } else {
     Write-Warning "TKernel.dll NOT FOUND under $BuildDir - generate_system_cache.exe may fail to load dependencies"
+    # Search for any DLLs in the build dir
+    $dlls = Get-ChildItem -Path $BuildDir -Filter "*.dll" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 10
+    Write-Host "Found DLLs in build dir:"
+    $dlls | ForEach-Object { Write-Host "  $($_.FullName)" }
 }
 Write-Host "PATH for generate_system_cache.exe: $env:PATH"
+
+# Also check if the tool itself exists and is executable
+Write-Host "Tool path: $($tool.FullName)"
+Write-Host "Tool exists: $(Test-Path $tool.FullName)"
 
 Write-Host "Generating per-vendor preset caches in $Profiles"
 Write-Host "Running: $($tool.FullName) --path $Profiles --log_level 2"
