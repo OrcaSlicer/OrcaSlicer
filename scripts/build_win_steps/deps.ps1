@@ -25,7 +25,9 @@ function Check-Dependencies {
     param([string]$Cmake, [string]$Compiler, [string]$Config, [switch]$ForceRebuild, [string]$DepsBuildDir)
     if (-not $DepsBuildDir) { $DepsBuildDir = "deps/build-clang" }
     $depsPrefix   = "$DepsBuildDir/OrcaSlicer_dep/usr/local"
-    $depsManifest = "$DepsBuildDir/.deps-manifest"
+    # Keep the manifest inside OrcaSlicer_dep so it travels with the CI cache and
+    # deps artifact, which archive only that directory.
+    $depsManifest = "$DepsBuildDir/OrcaSlicer_dep/.deps-manifest"
 
     $currentHash = Get-DepsManifestHash
     $storedHash = $null
@@ -33,9 +35,15 @@ function Check-Dependencies {
 
     $needsRebuild = $ForceRebuild -or -not (Test-Path $depsPrefix -PathType Container)
     if (-not $needsRebuild -and -not $storedHash) {
-        # No manifest means the tree was never completed, e.g. an interrupted build or
-        # a restored partial cache. Trusting it would skip Boost and fail at link time.
-        $needsRebuild = $true
+        # CI caches only deps/build/OrcaSlicer_dep, so a cache-restored tree arrives
+        # without the manifest that used to live in its parent. Treating that as
+        # "never completed" rebuilt every dependency from source on every CI job -
+        # hours of work that build_win.bat skips (it trusts any existing usr/local),
+        # which both stalled the self-hosted runner and skewed the .bat/.ps1
+        # comparison. Adopt the tree and record its hash; only a missing prefix
+        # counts as incomplete.
+        $currentHash | Set-Content $depsManifest -Encoding ASCII
+        $storedHash = $currentHash
     }
     if (-not $needsRebuild -and $storedHash -and $currentHash -ne $storedHash) {
         $needsRebuild = $true

@@ -518,6 +518,25 @@ jobs:
           path: ${{ github.workspace }}/${{ inputs.cache-path }}
           if-no-files-found: ignore
 
+      # A self-hosted laptop that suspends mid-build freezes the step: the job
+      # sat in "Build slicer Win" for 57h and the logs were never assembled.
+      # Keep the machine awake on AC and record headroom so an OOM/disk-full
+      # kill is distinguishable from a sleep.
+      - name: Keep runner awake and record headroom (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        continue-on-error: true
+        run: |
+          powercfg /change standby-timeout-ac 0
+          powercfg /change hibernate-timeout-ac 0
+          powercfg /change monitor-timeout-ac 30
+          Write-Host "standby/hibernate timeouts on AC disabled"
+          $os = Get-CimInstance Win32_OperatingSystem
+          Write-Host ("RAM total {0:N1} GB, free {1:N1} GB" -f ($os.TotalVisibleMemorySize/1MB), ($os.FreePhysicalMemory/1MB))
+          $c = Get-PSDrive C
+          Write-Host ("C: free {0:N1} GB of {1:N1} GB" -f ($c.Free/1GB), (($c.Used+$c.Free)/1GB))
+          Write-Host ("PROCESSOR_COUNT={0}" -f $env:NUMBER_OF_PROCESSORS)
+
       - name: Build slicer Win
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}
