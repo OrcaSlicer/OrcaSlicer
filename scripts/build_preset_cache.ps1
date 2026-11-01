@@ -179,11 +179,18 @@ foreach ($target in $TargetDir) {
                 $pruned += $pruneCount
             }
 
-            # Deepest first, so a directory the delete above emptied goes too
-            $emptyDirs = Get-ChildItem -Path $vendorDir -Directory -Recurse -ErrorAction SilentlyContinue |
-                Sort-Object FullName -Descending
+            # Deepest first, so a directory the delete above emptied goes too.
+            # Enumeration can yield a null entry (a directory removed or
+            # unreadable mid-walk), and Remove-Item throws NullReferenceException
+            # on a null -LiteralPath instead of honouring -ErrorAction, which
+            # killed the whole step. Skipping these is enough: a leftover empty
+            # directory only means the cache misses a size win.
+            $emptyDirs = @(Get-ChildItem -Path $vendorDir -Directory -Recurse -ErrorAction SilentlyContinue |
+                Sort-Object FullName -Descending)
             foreach ($d in $emptyDirs) {
-                Remove-Item -LiteralPath $d.FullName -Force -ErrorAction SilentlyContinue
+                if (-not $d -or -not $d.FullName) { continue }
+                try { Remove-Item -LiteralPath $d.FullName -Force -ErrorAction Stop }
+                catch { Write-Host ("  kept {0}: {1}" -f $d.FullName, $_.Exception.Message) }
             }
         }
 
