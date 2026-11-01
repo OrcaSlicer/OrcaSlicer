@@ -76,13 +76,17 @@ jobs:
           output-cmd: ${{ runner.os == 'Windows' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
           # Cache key intentionally does NOT hash deps/** so that a PR branch
-          # can restore the base branch's deps cache. The Boost skip in
-          # deps/CMakeLists.txt does not change the cached deps output
-          # (Boost is prebuilt via choco, not compiled), so sharing the cache
-          # across branches is safe. Restore-keys in build_deps.yml handle
-          # finer-grained fallback within the same prefix.
-          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build >> ${{ env.output-cmd }}
-          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build- >> ${{ env.output-cmd }}
+          # can restore the base branch's deps cache. Restore-keys in
+          # build_deps.yml handle finer-grained fallback within the same prefix.
+          #
+          # -v2: earlier caches hold a Boost whose Boost.Locale was built with the
+          # iconv backend enabled (Boost enables it whenever Iconv is found at
+          # build time). Consuming such a tree requires find_package(Iconv), which
+          # this runner cannot satisfy, so the slicer configure fails before any
+          # compilation. A Boost built here reports "Boost.Locale: iconv OFF" and
+          # carries no Iconv dependency.
+          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-v2 >> ${{ env.output-cmd }}
+          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build-v2- >> ${{ env.output-cmd }}
           # Relative to the workspace, which differs from the build's when this job runs on Linux.
           echo cache-path=deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}
             
