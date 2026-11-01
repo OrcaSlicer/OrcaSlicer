@@ -572,15 +572,13 @@ static void append_result_plus(wxWindow* parent, wxBoxSizer* sizer, int plus_gap
     sizer->AddStretchSpacer();
 }
 
+// The room of the components is the same in every mode (up to four colors), so the cards and the
+// dialog keep their size while the user switches modes.
 static int result_components_inner_width(wxWindow* host, size_t count)
 {
-    const int pad = host->FromDIP(12);
-    const int two_color_card = host->FromDIP(128);
-    if (count <= 2)
-        return two_color_card - 2 * pad;
     const int swatch = host->FromDIP(32);
     const int plus = host->FromDIP(24);
-    const int n = static_cast<int>(count);
+    const int n = static_cast<int>(std::max<size_t>(count, 4));
     return n * swatch + (n - 1) * plus;
 }
 
@@ -1227,9 +1225,8 @@ void ColorDecomposeDialog::update_matched_color_display()
         const int plus_gap = FromDIP(24);
         auto id_of = [&preview](size_t i) { return i < preview.component_ids.size() ? preview.component_ids[i] : 0; };
         auto is_new = [&](size_t i) { return can_create && id_of(i) > 0 && !is_existing_physical_id(id_of(i)); };
-        bool any_new = false;
-        for (size_t i = 0; i < components.size(); ++i)
-            any_new = any_new || is_new(i);
+        // The band of the "New" badge is always reserved, so the rows have the same height in every mode.
+        const bool any_new = !components.empty();
         const int plus_top_pad = any_new ? FromDIP(8) : 0;
         for (size_t i = 0; i < components.size(); ++i) {
             append_result_component(m_decomposed_container, m_result_components_sizer, components[i].colour,
