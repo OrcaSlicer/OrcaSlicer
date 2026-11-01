@@ -342,6 +342,22 @@ TEST_CASE("Plugin audit checks denied keywords below data_dir, not in the direct
         CHECK(decision.reason == "denied path keyword");
     }
 
+    SECTION("host-managed browser profiles are blocked despite the allowed root")
+    {
+        const fs::path browser_cookie = flatpak_data_dir / "web_profiles" / "example_plugin" / "Cookies";
+
+        AuditDecision read_decision = mgr.check_open(browser_cookie.string(), "r");
+        CHECK_FALSE(read_decision.allowed);
+        CHECK(read_decision.reason == "denied path keyword");
+
+        AuditDecision write_decision = mgr.check_open(browser_cookie.string(), "w");
+        CHECK_FALSE(write_decision.allowed);
+        CHECK(write_decision.reason == "denied path keyword");
+
+        // The rule is scoped to the host-owned browser subtree, not normal plugin storage.
+        CHECK(mgr.check_open((flatpak_data_dir / "orca_plugins" / "test_plugin" / "state.json").string(), "w").allowed);
+    }
+
     SECTION("the app config below data_dir() is still denied by name")
     {
         AuditDecision decision = mgr.check_open((flatpak_data_dir / (SLIC3R_APP_KEY ".conf")).string(), "r");
