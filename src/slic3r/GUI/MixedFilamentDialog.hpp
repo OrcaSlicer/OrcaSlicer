@@ -101,6 +101,8 @@ private:
     // Picks dialog (width, height) based on current state so the gradient curve
     // editor and the recommendation list stay visible at the same time.
     wxSize compute_dialog_size() const;
+    // Resizes the dialog to compute_dialog_size() around its centre, clamped to its display.
+    void resize_keeping_centre();
     void rebuild_all_combos();
     void rebuild_recommendation_items();
     void refresh_curve_editor_colors();
