@@ -41,7 +41,7 @@
 #include "SceneCache.hpp"
 #include "FrameProfiler.hpp"
 #include "IMToolbar.hpp"
-#include "PlateArrangementDialog.hpp"
+#include "Lazy.hpp"
 #include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Slicing.hpp"
 
@@ -106,6 +106,8 @@ struct KeyChord;
 #if ENABLE_RETINA_GL
 class RetinaHelper;
 #endif
+
+class PlateArrangementDialog;
 
 class Size
 {
@@ -669,8 +671,10 @@ private:
     std::vector<std::unique_ptr<IMToolbarItem>> m_plate_switcher_items;
     unsigned m_plate_switcher_version{ unsigned(-1) };
     bool     m_plate_switcher_scrollbar{ false };
-    // Drag & drop plate arrangement dialog, opened from the plate's reorder icon.
-    PlateArrangementDialog m_plate_arrangement_dialog;
+    // Drag & drop plate arrangement dialog, built the first time it is opened: never prebuilt (order -1, and not in
+    // the idle queue). The holder does not own what it builds; m_plate_arrangement_dialog_owner does.
+    std::unique_ptr<PlateArrangementDialog> m_plate_arrangement_dialog_owner;
+    Lazy<PlateArrangementDialog>            m_plate_arrangement_dialog;
     mutable GLToolbar m_assemble_view_toolbar;
     mutable IMReturnToolbar m_return_toolbar;
     mutable Vec2i32 m_canvas_toolbar_pos = {140, 5};
@@ -1105,7 +1109,8 @@ public:
     //BBS: GUI refactor: GLToolbar
     void _update_select_plate_toolbar_stats_item(bool force_selected = false);
     void reset_select_plate_toolbar_selection();
-    PlateArrangementDialog& get_plate_arrangement_dialog() { return m_plate_arrangement_dialog; }
+    // Opens or closes the plate arrangement dialog, building it the first time.
+    void toggle_plate_arrangement_dialog();
     void enable_select_plate_toolbar(bool enable);
     void enable_assemble_view_toolbar(bool enable);
     void enable_return_toolbar(bool enable);

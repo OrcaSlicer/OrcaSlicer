@@ -98,6 +98,7 @@
 #include "MainFrame.hpp"
 #include "WipeTowerDialog.hpp"
 #include "GUI_App.hpp"
+#include "PlateArrangementDialog.hpp"
 #include "Shortcuts.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Colors.hpp"
@@ -1626,7 +1627,11 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
     , m_in_render(false)
     , m_main_toolbar(GLToolbar::Normal, "Main")
     , m_separator_toolbar(GLToolbar::Normal, "Separator")
-    , m_plate_arrangement_dialog(*this)
+    , m_plate_arrangement_dialog("plate_arrangement_dialog", -1, [this] {
+        m_plate_arrangement_dialog_owner = std::make_unique<PlateArrangementDialog>(*this);
+        m_plate_arrangement_dialog_owner->on_change_color_mode(m_is_dark);
+        return m_plate_arrangement_dialog_owner.get();
+    })
     , m_assemble_view_toolbar(GLToolbar::Normal, "Assembly_View")
     , m_return_toolbar()
     , m_canvas_type(ECanvasType::CanvasView3D)
@@ -1712,6 +1717,12 @@ GLCanvas3D::~GLCanvas3D()
     m_sel_plate_toolbar.del_all_item();
     m_sel_plate_toolbar.del_stats_item();
     m_plate_switcher_items.clear();
+}
+
+void GLCanvas3D::toggle_plate_arrangement_dialog()
+{
+    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.ensure())
+        dialog->toggle();
 }
 
 void GLCanvas3D::post_event(wxEvent &&event)
@@ -1804,7 +1815,8 @@ void GLCanvas3D::on_change_color_mode(bool is_dark, bool reinit) {
     m_moves_slider->on_change_color_mode(is_dark);
     // Partplate
     wxGetApp().plater()->get_partplate_list().on_change_color_mode(is_dark);
-    m_plate_arrangement_dialog.on_change_color_mode(is_dark);
+    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get())
+        dialog->on_change_color_mode(is_dark);
     // Plates toolbar - Reload All Stats button images
     _init_select_plate_toolbar();
 
@@ -4111,7 +4123,8 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
 
     auto       imgui         = wxGetApp().imgui();
     const bool imgui_claimed = imgui->claim_key_event(evt);
-    if (m_plate_arrangement_dialog.on_key(evt)) // the char of a key the dialog took on key-down
+    // The char of a key the dialog took on key-down.
+    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get(); dialog != nullptr && dialog->on_key(evt))
         return;
     if (imgui->update_key_data(evt) || imgui_claimed)
         render();
@@ -4264,7 +4277,7 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
         // The Plater context also covers the assembly view, which does not show the dialog.
         if (m_canvas_type != ECanvasType::CanvasView3D || m_design_canvas)
             return false;
-        m_plate_arrangement_dialog.toggle();
+        toggle_plate_arrangement_dialog();
         m_dirty = true;
         break;
     case Shortcut::Mouse3DSettings: {
@@ -4440,7 +4453,7 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
     const bool alt_wheel_released = evt.GetEventType() == wxEVT_KEY_UP && keyCode == WXK_ALT && std::exchange(m_alt_wheel_used, false);
 
     // The plate arrangement dialog takes its navigation keys before ImGui and the shortcuts, which move objects on arrows.
-    if (m_plate_arrangement_dialog.on_key(evt)) {
+    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get(); dialog != nullptr && dialog->on_key(evt)) {
         render();
         return;
     }
@@ -4854,7 +4867,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // Hovering an ImGui window only changes the overlay.
         const bool overlay_only = evt.Moving() && !m_mouse.dragging;
         if (evt.LeftDClick())
-            m_plate_arrangement_dialog.on_double_click();
+            if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get())
+                dialog->on_double_click();
         // ImGui takes a press or a release only inside a frame. Motion is rendered from on_idle().
         if (evt.ButtonDown() || evt.ButtonUp() || evt.ButtonDClick())
             _render_frame(true);
@@ -10185,8 +10199,9 @@ void GLCanvas3D::_render_overlays()
     _render_imgui_select_plate_toolbar();
     _render_plate_switcher();
     // Plates are only edited on the Prepare canvas.
-    if (m_canvas_type == ECanvasType::CanvasView3D && !m_design_canvas)
-        m_plate_arrangement_dialog.render_input_window();
+    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get();
+        dialog != nullptr && m_canvas_type == ECanvasType::CanvasView3D && !m_design_canvas)
+        dialog->render_input_window();
     _render_return_toolbar();
     // BBS
     //_render_view_toolbar();
