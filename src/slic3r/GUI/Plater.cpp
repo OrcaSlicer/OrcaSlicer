@@ -10587,10 +10587,16 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type, const wxString& 
         default: break;
     }
 
-    std::string out_dir = (boost::filesystem::path(output_file).parent_path()).string();
+    wxString start_dir;
+    if (output_file.parent_path().empty())
+        start_dir = from_u8(wxGetApp().app_config->get_last_output_dir("", false));
+    else if (is_shapes_dir(output_file.parent_path().string()))
+        start_dir = from_u8(wxGetApp().app_config->get_last_dir());
+    else
+        start_dir = from_path(output_file.parent_path());
 
     wxFileDialog dlg(q, dlg_title,
-        is_shapes_dir(out_dir) ? from_u8(wxGetApp().app_config->get_last_dir()) : from_path(output_file.parent_path()), from_path(output_file.filename()),
+        start_dir, from_path(output_file.filename()),
         wildcard, wxFD_SAVE | wxFD_OVERWRITE_PROMPT | wxPD_APP_MODAL);
 
     int result = dlg.ShowModal();
