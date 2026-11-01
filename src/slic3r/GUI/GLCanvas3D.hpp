@@ -1169,9 +1169,9 @@ public:
 
     void render(bool only_init = false);
     // Draws a full frame now and copies it, as presented (scene, toolpaths, toolbars and ImGui
-    // overlays), into `out` at the canvas's pixel size. Used by automation screenshots. Fails with
-    // `err` when the canvas is hidden, not drawable, or already inside a frame (a dialog opened
-    // from one of its panels). UI thread.
+    // overlays), into `out` at the canvas's pixel size, after any extra frames a change asked for to
+    // settle. Used by automation screenshots. Fails with `err` when the canvas is hidden, not
+    // drawable, or already inside a frame (a dialog opened from one of its panels). UI thread.
     bool render_and_capture(wxImage& out, std::string& err);
     // How many frames this canvas has presented. While it stays the same, the frame on screen is the last
     // one presented, so a recording can reuse its capture of it instead of drawing another.
@@ -1598,6 +1598,8 @@ private:
     // Realistic view: binds, or unbinds, the shadow map the toolpaths read on texture unit 4. False without a map.
     bool _bind_gcode_shadow_map(bool bind) const;
     void _render_gcode_overlay(int canvas_width, int canvas_height);
+    // Hands the layers and moves sliders' positions to the toolpaths. Returns whether either slider had moved.
+    bool _apply_gcode_sliders();
     //BBS: render a plane for assemble
     void _render_plane() const;
     void _render_selection();

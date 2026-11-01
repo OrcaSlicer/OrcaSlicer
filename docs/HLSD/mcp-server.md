@@ -1891,7 +1891,10 @@ dialog natively; cross-origin frames other than plugin configuration UIs are lis
 - `canvas`: the visible 3D view, the Design view while the Design tab is shown, exactly as drawn,
   toolbars and ImGui panels included (the Design view's sketch overlay and status line too), on
   every platform. `GLCanvas3D::render_and_capture()` forces a frame and reads the back buffer just
-  before the swap; it fails, saying why, when the canvas is hidden or mid-frame.
+  before the swap; it fails, saying why, when the canvas is hidden or mid-frame. That frame is often
+  the first since a tool's change, yet it shows the change settled, since slider moves reach the
+  toolpaths before they are drawn and the capture first draws any extra frames the change asked for:
+  a capture right after `set_view` shows the layers its slider shows and the legend laid out.
 - `window`: the main window's own pixels, never the screen, from `capture_native_window()`, with
   every visible 3D canvas composited in from its canvas capture, since window capture loses OpenGL
   content on several platforms.
@@ -1962,7 +1965,8 @@ Wayland, where the app can't know where its windows are, dialogs are not composi
 `note` says which applies. The `canvas` target is `shown_canvas()`. A recording captures with
 `CaptureOptions::hide_covering` off, so X11 never hides and re-shows the script runner at each frame.
 
-The costly part is a 3D view: `render_and_capture()` draws a frame and reads it back. A recording
+The costly part is a 3D view: `render_and_capture()` draws a frame, after any extra frames a change
+asked for, and reads it back. A recording
 keeps each canvas's last capture with `GLCanvas3D::presented_frames()`, which counts the frames the
 canvas presented, and its size and the UI generation; while all three are unchanged, the frame on
 screen is the kept one, so the canvas is drawn only when it changed. Each tick measures its capture
@@ -2448,7 +2452,8 @@ closes its dialog, `tools/mcp/tests/web_dialogs.json` the preset bundle dialog, 
 `tools/mcp/test_web_ui.py` every page control kind, action, refusal, locator, timeout and close of
 the MCP web fixture plugin's dialog, window, dock panel and configuration UI (side-loaded with
 `--install DATADIR`), `tools/mcp/test_set_view_preview.py` the
-legend combo's semantics of `set_view {view_type}` and its preview refusals,
+legend combo's semantics of `set_view {view_type}`, a canvas screenshot straight after a layer or
+view type change, and the preview refusals of `set_view`,
 `tools/mcp/test_export_running_job.py` an export during and after a job that outlived its reply,
 `tools/mcp/test_send_gcode.py` `send_gcode` and `get_state.uploads` against a stub print host that
 answers 200 or 500,

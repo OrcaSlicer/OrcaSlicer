@@ -6,7 +6,9 @@
 
 Picking a view type is the legend combo's pick: a feature type hidden by a click on its legend row
 shows again when Line Type is picked, and the pick is written to the app config for the "Last used"
-preview default. The refusals: legend rows before a slice, a height above the top layer, layer with
+preview default. A canvas screenshot taken straight after a layer change shows the new layers, not
+the previous ones under the new slider position, and one after a view type change shows the legend
+laid out for it. The refusals: legend rows before a slice, a height above the top layer, layer with
 layer_z, an unknown legend row (named with the rows the print has), a value that is not true or
 false, and a silent-mode estimate the print does not have; a refused call changes nothing. Exits 0
 when every check passes.
@@ -74,6 +76,32 @@ def main():
     client.call("set_view", view_type="feature_type")
     check("picking Line Type shows it again", legend()["features"]["Sparse infill"] is True)
     check("Line Type is remembered", last_view_type("feature_type") == "feature_type", last_view_type("feature_type"))
+
+    # Each change is captured twice. One script runs the calls back to back, which seldom leaves the app
+    # an idle frame between a change and its first capture to draw the change before the capture does.
+    # The last view type is the one picked above.
+    out_dir = os.path.join(session["datadir"], "set_view_captures")
+    changes = [{"layer_range": [1, 40]}, {"view_type": "speed"}, {"layer_range": [64, 64]}, {"view_type": "height"},
+               {"layer_range": [20, 100]}, {"view_type": "fan_speed"}, {"layer_range": [1, 128]}, {"view_type": "feature_type"}]
+    steps = []
+    for i, change in enumerate(changes):
+        steps.append({"tool": "set_view", "args": change})
+        steps += [{"tool": "screenshot", "args": {"target": "canvas", "save_path": f"${{out_dir}}/{i}{shot}.png",
+                                                  "overwrite": True, "include_image": False}}
+                  for shot in "ab"]
+    ran = client.await_job(client.call("run_script", script={"orca_script": 1, "name": "captures after view changes", "steps": steps},
+                                       out_dir=out_dir))
+    check("the capture script runs", ran.get("passed") is True, ran)
+    if ran.get("passed") is True:
+        def png(name):
+            with open(os.path.join(out_dir, name), "rb") as f:
+                return f.read()
+        a = [png(f"{i}a.png") for i in range(len(changes))]
+        b = [png(f"{i}b.png") for i in range(len(changes))]
+        stale = [c for c, first, second in zip(changes, a, b) if first != second]
+        unchanged = [c for c, first, before in zip(changes[1:], a[1:], b) if first == before]
+        check("a capture right after a layer or view type change shows it settled", not stale, f"stale after {stale}")
+        check("every change shows in the capture", not unchanged, f"unchanged after {unchanged}")
 
     reply = client.call("set_view", legend={"Sparse infill": False, "travel": True}, layer_z=1.05)
     check("layer_z between two tops shows up to the upper one", reply.get("layers") == [1, 6, 128] and reply.get("z") == [0.2, 1.2], reply)

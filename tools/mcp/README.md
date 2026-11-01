@@ -278,8 +278,9 @@ changes the layer (by number and by height), the view type, legend rows and time
 reads the cube's G-code opened for viewing the same way. Run it on a fresh datadir: modified presets
 left by an earlier script make opening the G-code ask about them. `test_set_view_preview.py` checks
 what that script cannot: `set_view {view_type}` acts as the legend's combo (a feature type hidden by
-a click on its row shows again on Line Type, and the pick reaches the app config), and the refusals
-of the preview arguments.
+a click on its row shows again on Line Type, and the pick reaches the app config), a canvas
+screenshot straight after a layer or view type change shows the new layers and the legend laid out
+(it matches the capture after it), and the refusals of the preview arguments.
 
 `tests/agent_forms.json` calls tools the way agents often write them: a lone path for `paths`,
 `object` for `objects` with the index as a string, an action by the key inside its id, `action` for

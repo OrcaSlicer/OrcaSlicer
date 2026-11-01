@@ -2564,6 +2564,17 @@ bool GLCanvas3D::render_and_capture(wxImage& out, std::string& err)
         err = "The 3D view is not shown; switch to its tab first";
         return false;
     }
+    // A change that takes more than one frame to show, such as an ImGui window sizing itself to new
+    // content, asks for extra frames, which the idle loop draws next. A capture is often the first frame
+    // after the change, so it first draws those frames as the idle loop does, redrawing the scene only
+    // when something asked for it: a few at most, since a fading tooltip keeps asking.
+    ImGuiWrapper& imgui = *wxGetApp().imgui();
+    for (int i = 0; i < 3 && (m_extra_frame_requested || imgui.requires_extra_frame()); ++i) {
+        const bool scene_dirty = m_dirty || m_extra_frame_requested;
+        m_dirty = m_extra_frame_requested = false;
+        imgui.reset_requires_extra_frame();
+        _refresh_if_shown_on_screen(scene_dirty);
+    }
     out = wxImage();
     m_frame_capture = &out;
     Slic3r::ScopeGuard reset([this]() { m_frame_capture = nullptr; });
@@ -2666,6 +2677,13 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     if (_update_inactive_plates_visibility())
         scene_dirty = true;
 
+    // Only the Preview showing G-code draws the sliders and toolpaths.
+    const bool render_gcode = m_canvas_type == ECanvasType::CanvasPreview && m_render_preview;
+    // Slider moves made since the last frame reach the toolpaths before they are drawn, so a frame drawn
+    // right after a move, such as a screenshot, shows it.
+    if (render_gcode && _apply_gcode_sliders())
+        scene_dirty = true;
+
     if (m_picking_enabled && !m_benchmarking) {
         if (m_rectangle_selection.is_dragging())
             // picking pass using rectangle selection
@@ -2701,7 +2719,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
             m_render_stats.increment_scene_fps_counter();
     }
 
-    if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
+    if (render_gcode) {
         // BBS: GUI refactor: add canvas size as parameters
         _render_gcode_overlay(cnv_size.get_width(), cnv_size.get_height());
         m_frame_profiler.mark("legend");
@@ -10103,10 +10121,19 @@ bool GLCanvas3D::_bind_gcode_shadow_map(bool bind) const
 void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
 {
     m_gcode_viewer.render_overlay(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
-    IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
-    IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
 
     send_layer_ticks_changes();
+
+    // A slider dragged in this overlay moved after the scene was drawn; the next frame shows the move.
+    if (_apply_gcode_sliders())
+        post_event(SimpleEvent(EVT_GLCANVAS_UPDATE));
+}
+
+bool GLCanvas3D::_apply_gcode_sliders()
+{
+    IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
+    IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
+    bool      moved         = false;
 
     if (layers_slider->is_dirty()) {
         set_volumes_z_range({layers_slider->GetLowerValueD(), layers_slider->GetHigherValueD()});
@@ -10114,14 +10141,15 @@ void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
             m_gcode_viewer.set_layers_z_range({static_cast<unsigned int>(layers_slider->GetLowerValue()), static_cast<unsigned int>(layers_slider->GetHigherValue())});
         }
         layers_slider->set_as_dirty(false);
-        post_event(SimpleEvent(EVT_GLCANVAS_UPDATE));
+        moved = true;
     }
 
     if (moves_slider->is_dirty()) {
         moves_slider->set_as_dirty(false);
         m_gcode_viewer.update_sequential_view_current((moves_slider->GetLowerValueD() - 1.0), static_cast<unsigned int>(moves_slider->GetHigherValueD() - 1.0));
-        post_event(SimpleEvent(EVT_GLCANVAS_UPDATE));
+        moved = true;
     }
+    return moved;
 }
 
 void GLCanvas3D::send_layer_ticks_changes()
