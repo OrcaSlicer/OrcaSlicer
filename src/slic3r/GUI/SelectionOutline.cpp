@@ -39,7 +39,12 @@ static const ColorRGB OUTLINE_COLOR = ColorRGB::WHITE();
 void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camera& camera, const std::array<float, 2>& z_range,
                               const std::array<double, 4>& clipping_plane, float scale, GLModel& quad)
 {
-    if (volumes.empty() || OpenGLManager::get_framebuffers_type() != OpenGLManager::EFramebufferType::Arb)
+    // The targets take 16 bytes a pixel, so they are kept only while something is outlined.
+    if (volumes.empty()) {
+        reset();
+        return;
+    }
+    if (OpenGLManager::get_framebuffers_type() != OpenGLManager::EFramebufferType::Arb)
         return;
     GLShaderProgram* mask_shader  = wxGetApp().get_shader("outline_mask");
     GLShaderProgram* edges_shader = wxGetApp().get_shader("outline_edges");

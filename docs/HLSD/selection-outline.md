@@ -34,7 +34,8 @@ each pass reads the one before it.
    draws where the stencil bit is clear, so its inner edge is the multisampled silhouette of the
    selection itself. The lines pass draws where it is set, so inner lines stop exactly at the silhouette.
 
-The targets are allocated once at canvas size and kept, and they are freed with the canvas.
+The targets, 16 bytes a pixel at canvas size, are allocated when something is outlined and kept from frame
+to frame, and they are freed in the first frame with nothing to outline.
 
 ## Inner edges
 
