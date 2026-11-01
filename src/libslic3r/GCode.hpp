@@ -243,6 +243,8 @@ public:
         m_last_pos_defined(false),
         m_last_extrusion_role(erNone),
         m_last_width(0.0f),
+        // Orca: Cache the last emitted percentage to avoid duplicate overhang tags.
+        m_last_overhang_percentage(0.0f),
 #if ENABLE_GCODE_VIEWER_DATA_CHECKING
         m_last_mm3_per_mm(0.0),
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
@@ -730,6 +732,10 @@ protected:
     std::map<unsigned int, IslandOrderCacheEntry> m_ordering_cache;
 
     ExtrusionQualityEstimator m_extrusion_quality_estimator;
+    // Opt-in preview data, kept apart from the speed/fan estimate so that it never changes printer commands: walls are
+    // measured against the layer directly below, infill against the material printed under it.
+    ExtrusionQualityEstimator m_wall_overhang_estimator;
+    ExtrusionQualityEstimator m_infill_overhang_estimator;
 
 
     /* Origin of print coordinates expressed in unscaled G-code coordinates.
@@ -848,6 +854,10 @@ protected:
     float                               m_last_layer_z{ 0.0f };
     float                               m_max_layer_z{ 0.0f };
     float                               m_last_width{ 0.0f };
+    // Orca: Last percentage written to the G-code processor metadata stream.
+    float                               m_last_overhang_percentage{ 0.0f };
+    // Orca: Cache the reference-plane spacing separately from extrusion height; -1 forces the first tag.
+    float                               m_last_overhang_z_distance{ -1.0f };
     // Bedslinger mass model: cumulative printed mass at the previous layer change, used to derive
     // previous_layer_mass, the mass of the layer printed since then.
     double                              m_last_layer_accumulated_mass{ 0.0 };
@@ -1051,8 +1061,10 @@ protected:
 std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Print& print, bool init_order = false);
 
 // The overhang data ExtrusionQualityEstimator needs for the object layers in `layers`, computed ahead of the generator;
-// `overhang_fan` says whether the overhang fan can switch on for any filament.
-std::vector<PrecomputedOverhangLayer> precompute_overhang_layers(const std::vector<GCode::LayerToPrint> &layers, bool overhang_fan);
+// `overhang_fan` says whether the overhang fan can switch on for any filament, and `metadata` whether overhang metadata
+// is exported.
+std::vector<PrecomputedOverhangLayer> precompute_overhang_layers(const std::vector<GCode::LayerToPrint> &layers, bool overhang_fan,
+                                                                 bool metadata = false);
 
 }
 
