@@ -113,11 +113,12 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
     glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_mask_fbo));
     glsafe(::glEnable(GL_SCISSOR_TEST));
     scissor(mask_pad);
+    // Before the clear, which leaves the depth alone under a closed depth mask.
+    glsafe(::glDepthMask(GL_TRUE));
     glsafe(::glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
     glsafe(::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     glsafe(::glEnable(GL_DEPTH_TEST));
     glsafe(::glDepthFunc(GL_LESS));
-    glsafe(::glDepthMask(GL_TRUE));
     glsafe(::glDisable(GL_BLEND));
     glsafe(::glDisable(GL_CULL_FACE));
     mask_shader->start_using();
