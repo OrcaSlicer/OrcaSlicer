@@ -14,6 +14,7 @@
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "libslic3r/Preset.hpp"
 #include <functional>
+#include <memory>
 #include <wx/busycursor.h>
 #include <cstddef>
 #include "slic3r/GUI/Project.hpp"
@@ -47,6 +48,9 @@
 #include <ctime>
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/calib_dlg.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
+#include "slic3r/GUI/Widgets/SideButton.hpp"
 #include <wx/panel.h>
 #include <wx/settings.h>
 #include <wx/textentry.h>
@@ -398,6 +402,8 @@ static wxIcon main_frame_icon(GUI_App::EAppMode app_mode)
 
 wxDEFINE_EVENT(EVT_SYNC_CLOUD_PRESET,     SimpleEvent);
 
+MainFrame::~MainFrame() = default;
+
 MainFrame::MainFrame() :
 DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_STYLE, "mainframe")
     , m_printhost_queue_dlg(new PrintHostQueueDialog(this))
@@ -405,7 +411,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     , m_recent_projects(18)
     , m_settings_dialog(this)
     , m_idle([] { return wxGetApp().input_idle_ms(); })
-    , m_diff_dialog("compare_presets", 100, [this] { return make_diff_dialog(); })
+    , m_diff_dialog(std::make_unique<Lazy<DiffPresetDialog>>("compare_presets", 100, [this] { return make_diff_dialog(); }))
 {
 #ifdef __WXOSX__
     set_miniaturizable(GetHandle());
@@ -732,6 +738,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         MarkdownTip::ExitTip();
         // Prevent queued selection/UI refresh work from running as normal during reset.
         wxGetApp().set_closing(true);
+        wxGetApp().start_exit_watchdog();
 
         m_plater->reset();
         this->shutdown();
@@ -844,6 +851,44 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
         return false;
 
     switch (*shortcut) {
+    case Shortcut::GoToHome:    m_tabpanel->SelectPageByName(TAB_ID_HOME); break;
+#ifdef SLIC3R_CAD
+    case Shortcut::GoToDesign:  m_tabpanel->SelectPageByName(TAB_ID_DESIGN); break;
+#endif
+    case Shortcut::GoToPrepare: m_tabpanel->SelectPageByName(TAB_ID_PREPARE); break;
+    case Shortcut::GoToPreview: m_tabpanel->SelectPageByName(TAB_ID_PREVIEW); break;
+    case Shortcut::GoToDevice:
+        if (!m_tabpanel->SelectPageByName(TAB_ID_MONITOR))
+            m_tabpanel->SelectPageByName(TAB_ID_MONITOR_WEB);
+        break;
+    case Shortcut::GoToMultiDevice: m_tabpanel->SelectPageByName(TAB_ID_MULTI_DEVICE); break;
+    case Shortcut::GoToProject:     m_tabpanel->SelectPageByName(TAB_ID_PROJECT); break;
+    case Shortcut::GoToCalibration: m_tabpanel->SelectPageByName(TAB_ID_CALIBRATION); break;
+    case Shortcut::TabNext:
+    case Shortcut::TabPrevious: {
+        // Cycle through the tab bar, wrapping around at either end
+        const int count = int(m_tabpanel->GetPageCount());
+        int       sel   = m_tabpanel->GetSelection();
+        if (count > 1 && sel != wxNOT_FOUND) {
+            const int step = (*shortcut == Shortcut::TabNext) ? 1 : count - 1;
+            // Skip a tab that vetoes the switch, such as Device without the network plug-in
+            for (int tried = 1; tried < count; ++tried) {
+                sel = (sel + step) % count;
+                m_tabpanel->SetSelection(size_t(sel));
+                if (m_tabpanel->GetSelection() == sel)
+                    break;
+            }
+            // Focus the tab bar on any page but the canvases, since CHAR_HOOK gets no keys while a web page has focus
+            wxWindow* const page = m_tabpanel->GetCurrentPage();
+            bool keeps_focus = page == m_plater;
+#ifdef SLIC3R_CAD
+            keeps_focus = keeps_focus || page == m_design_page;
+#endif
+            if (!keeps_focus)
+                m_tabpanel->GetBtnsListCtrl()->SetFocus();
+        }
+        break;
+    }
     case Shortcut::SlicePlate:
         if (m_slice_enable) {
             wxGetApp().plater()->update(true, true);
@@ -1615,6 +1660,14 @@ void MainFrame::show_device(bool should_use_native) {
     // get it — otherwise a Bambu user sees two Device tabs, one of them permanently empty.
     const bool want_web_device_tab = use_printer_agents && wxGetApp().preset_bundle != nullptr &&
                                      !wxGetApp().preset_bundle->use_bbl_device_tab();
+    // An agent whose printers have nothing for the native Device and Calibration tabs leaves the web page as the only Device tab
+    bool want_native_device_tabs = true;
+    if (want_web_device_tab) {
+        const std::string agent_id = wxGetApp().resolve_printer_agent_id(
+            wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("printer_agent"));
+        const PrinterAgentInfo* agent_info = NetworkAgentFactory::get_printer_agent_info(agent_id);
+        want_native_device_tabs = agent_info == nullptr || agent_info->native_device_tab;
+    }
 
     // Remove the extra page before switching to any layout that shouldn't have it.
     if (!want_web_device_tab) {
@@ -1625,7 +1678,16 @@ void MainFrame::show_device(bool should_use_native) {
     }
 
     if (use_printer_agents) {
-        if (!m_monitor_page->in_book()) {
+        if (!want_native_device_tabs) {
+            if ((idx = m_tabpanel->FindPage(m_monitor_page)) != wxNOT_FOUND) {
+                m_monitor_page->Show(false);
+                m_tabpanel->RemovePage(idx);
+            }
+            if ((idx = m_tabpanel->FindPage(m_calibration_page)) != wxNOT_FOUND) {
+                m_calibration_page->Show(false);
+                m_tabpanel->RemovePage(idx);
+            }
+        } else if (!m_monitor_page->in_book()) {
             if ((idx = m_tabpanel->FindPage(m_printer_view_page)) != wxNOT_FOUND) {
                 m_printer_view_page->Show(false);
                 m_tabpanel->RemovePage(idx);
@@ -1645,20 +1707,29 @@ void MainFrame::show_device(bool should_use_native) {
                                        TAB_ID_MULTI_DEVICE, m_multi_machine_page, _L("Multi-device"), "tab_multi_active");
             }
         }
-        if (!m_calibration_page->in_book()) {
+        if (want_native_device_tabs && !m_calibration_page->in_book()) {
             m_calibration_page->Show(false);
             m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration_page,
                                    _L("Calibration"), "tab_calibration_active");
         }
 
         if (want_web_device_tab) {
-            if ((idx = m_tabpanel->FindPage(m_printer_view_page)) == wxNOT_FOUND) {
+            // Without the native Device tab the web page takes its id, so every way to the Device tab leads here
+            const char*    id    = want_native_device_tabs ? TAB_ID_MONITOR_WEB : TAB_ID_MONITOR;
+            const wxString label = want_native_device_tabs ? _L("Device (Web)") : _L("Device");
+            idx = m_tabpanel->FindPage(m_printer_view_page);
+            if (idx != wxNOT_FOUND && m_tabpanel->FindPageByName(id) != idx) {
                 m_printer_view_page->Show(false);
-                // Immediately right of the native Device tab, not at the end of the tab bar.
-                m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR}), TAB_ID_MONITOR_WEB,
-                                       m_printer_view_page, _L("Device (Web)"), "tab_monitor_active");
+                m_tabpanel->RemovePage(idx);
+                idx = wxNOT_FOUND;
+            }
+            if (idx == wxNOT_FOUND) {
+                m_printer_view_page->Show(false);
+                // Immediately right of the native Device tab, or of Preview without it, not at the end of the tab bar.
+                m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR, TAB_ID_PREVIEW}), id, m_printer_view_page, label,
+                                       "tab_monitor_active");
             } else {
-                m_tabpanel->SetPageText(idx, _L("Device (Web)"));
+                m_tabpanel->SetPageText(idx, label);
             }
         }
 
@@ -1956,8 +2027,10 @@ void MainFrame::publish_project()
     // published 3MF); a null pointer means "fresh", keeping the dirty defaults.
     std::vector<std::string> pending_keys;
     std::vector<Slic3r::PublishedMaterialEntry> pending_material;
-    const bool has_prior = m_plater->get_pending_published(pending_keys, pending_material);
-    PublishSettingsDialog dlg(this, has_prior ? &pending_keys : nullptr, has_prior ? &pending_material : nullptr);
+    bool pending_legacy_process = false;
+    const bool has_prior = m_plater->get_pending_published(pending_keys, pending_material, pending_legacy_process);
+    PublishSettingsDialog dlg(this, has_prior ? &pending_keys : nullptr, has_prior ? &pending_material : nullptr,
+                              pending_legacy_process);
     if (dlg.ShowModal() != wxID_OK)
         return;
     m_plater->set_pending_published(dlg.GetPublishedKeys(), dlg.GetPublishedMaterialKeys());
@@ -3473,6 +3546,18 @@ void MainFrame::init_menubar_as_editor()
             this);
 
         viewMenu->AppendSeparator();
+        wxMenuItem* mouse3d_settings = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show 3Dconnexion Settings"), Shortcut::Mouse3DSettings, true),
+            _L("Show/Hide 3Dconnexion devices settings dialog"),
+            [this](wxCommandEvent&) {
+                Mouse3DController& controller = m_plater->get_mouse3d_controller();
+                controller.show_settings_dialog(!controller.is_settings_dialog_shown());
+                m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
+            },
+            this, [this]() { return is_prepare_or_preview_tab() && m_plater->get_mouse3d_controller().can_show_settings_dialog(); },
+            [this]() { return m_plater->get_mouse3d_controller().is_settings_dialog_shown(); }, this);
+        m_shortcut_menu_items.push_back({ mouse3d_settings, Shortcut::Mouse3DSettings, _L("Show 3Dconnexion Settings"), true });
+
+        viewMenu->AppendSeparator();
         wxMenuItem* show_labels = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show &Labels"), Shortcut::ShowLabels, true), _L("Show object labels in 3D scene."),
             [this](wxCommandEvent&) { m_plater->show_view3D_labels(!m_plater->are_view3D_labels_shown()); m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT)); }, this,
             [this]() { return m_plater->is_view3D_shown(); }, [this]() { return m_plater->are_view3D_labels_shown(); }, this);
@@ -4256,7 +4341,7 @@ void MainFrame::prebuild_pages_when_idle()
     for (LazyBase* page : m_lazy_pages)
         if (page->prebuild_order() >= 0)
             m_idle.add(*page);
-    m_idle.add(m_diff_dialog);
+    m_idle.add(*m_diff_dialog);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": prebuild queue: " << m_idle.names();
     m_idle.start();
     m_prebuild_started = true;

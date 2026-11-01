@@ -1,0 +1,15 @@
+{
+	"type": "process",
+	"name": "0.40mm Standard @BenFab 450 0.8 nozzle",
+	"inherits": "fdm_process_benfab_08040",
+	"from": "system",
+	"setting_id": "GGEbst5eFFHPvnFK",
+	"instantiation": "true",
+	"filename_format": "BenFab450_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
+	"compatible_printers": [
+		"BenFab 450 0.8 nozzle"
+	],
+	"default_acceleration": "3000",
+	"min_width_top_surface": "50%",
+	"outer_wall_acceleration": "1500"
+}

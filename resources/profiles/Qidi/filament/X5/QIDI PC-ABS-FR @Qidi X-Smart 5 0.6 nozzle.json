@@ -1,0 +1,23 @@
+{
+	"type": "filament",
+	"name": "QIDI PC/ABS-FR @Qidi X-Smart 5 0.6 nozzle",
+	"inherits": "QIDI PC/ABS-FR@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "76s2Hzylq11YXq0i",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"chamber_temperatures": [
+		"0"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.6 nozzle"
+	]
+}

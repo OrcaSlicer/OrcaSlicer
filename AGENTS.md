@@ -58,6 +58,10 @@ ctest --test-dir ./tests/fff_print -C Release
 - Profile/format changes need version migration handling
 - Dependencies built separately in `deps/build/`, then linked to main app
 
+## Pull requests
+
+Before opening a pull request or posting on GitHub, read [CONTRIBUTING.md](CONTRIBUTING.md), including its "If you are an AI agent" section.
+
 ## Code review focus areas
 
 - Changes must not cause regressions in existing functionality, defaults, profiles, or project compatibility.
@@ -112,5 +116,5 @@ See `.claude/skills/orca-translations/references/source-audit.md` for the full c
 ### Verifying
 
 - `scripts/run_gettext.bat --full` (Windows) regenerates the template, merges every catalog and compiles the `.mo` files. It must exit 0.
-- Or check a single catalog with `msgfmt --check-format -o <out>.mo localization/i18n/<lang>/OrcaSlicer_<lang>.po`.
+- Or check a single catalog with `msgfmt --check-format --check-header -o <out>.mo localization/i18n/<lang>/OrcaSlicer_<lang>.po`. Without `--check-header`, msgfmt skips the placeholder check in plural forms.
 - Fuzzy entries are not shown to users. If you correct one, clear its `fuzzy` flag, otherwise the fix never ships.

@@ -1187,6 +1187,8 @@ private:
     // The config key behind m_undocked.
     static constexpr const char *UNDOCKED_CONFIG_KEY = "texture_displacement_panel_undocked";
 
+    bool m_show_resolution = false;
+
     // Smooth scrolling for a child window, called inside it: the panel body (everything between the header
     // and the pinned Bake footer) and the texture library's grid. ImGui jumps a fixed number of lines per
     // wheel notch, which on tall layer cards reads as a hard jolt rather than a scroll. The child sets

@@ -543,6 +543,10 @@ class GLCanvas3D
         // Shows the details of the marker under the mouse, else hides them; whether it hit one.
         bool on_left_down(GLCanvas3D& canvas, const Vec2d& mouse);
         void render_details(GLCanvas3D& canvas);
+        // Whether the mouse is over the details.
+        bool details_hovered() const;
+        // Whether there were details to hide.
+        bool hide_details(GLCanvas3D& canvas);
     };
 
     class Tooltip
@@ -1564,6 +1568,10 @@ private:
     void _render_xray_volumes();
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height);
+    // The translucent toolpaths, after the occlusion pass, which would shade them as the surface behind them.
+    void _render_gcode_translucent(int canvas_width, int canvas_height);
+    // Realistic view: binds, or unbinds, the shadow map the toolpaths read on texture unit 4. False without a map.
+    bool _bind_gcode_shadow_map(bool bind) const;
     void _render_gcode_overlay(int canvas_width, int canvas_height);
     //BBS: render a plane for assemble
     void _render_plane() const;

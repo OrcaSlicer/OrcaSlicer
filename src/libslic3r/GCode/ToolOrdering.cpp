@@ -140,6 +140,29 @@ unsigned int LayerTools::internal_solid_filament_id(const PrintRegion &region) c
 	return resolve_mixed(result);
 }
 
+// 1 based filament of an island's extrusions; the tool ordering and the G-code export must agree on it.
+static unsigned int region_filament(const ExtrusionEntityCollection &extrusions, const PrintRegionConfig &config)
+{
+    if (extrusions.has_infill()) {
+        if (!extrusions.has_solid_infill())
+            return config.sparse_infill_filament_id.value;
+        // Orca: Gap fill takes the filament of the surface it fills.
+        ExtrusionRole role = erNone;
+        for (const ExtrusionEntity *ee : extrusions.entities)
+            if (const ExtrusionRole er = ee->role(); er != erGapFill)
+                role = (role == erNone || role == er) ? er : erMixed;
+        if (role == erTopSolidInfill || role == erIroning)
+            return config.top_surface_filament_id.value;
+        if (role == erBottomSurface)
+            return config.bottom_surface_filament_id.value;
+        return config.internal_solid_filament_id.value;
+    }
+    // Walls, and the gap fill between them.
+    const ExtrusionEntitiesPtr &walls = extrusions.entities;
+    return !walls.empty() && std::all_of(walls.begin(), walls.end(), [](const ExtrusionEntity *ee) { return is_inner_wall(*ee); }) ?
+        config.inner_wall_filament_id.value : config.outer_wall_filament_id.value;
+}
+
 // Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
 unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const
 {
@@ -149,30 +172,7 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
 	assert(region.config().top_surface_filament_id.value > 0);
 	assert(region.config().bottom_surface_filament_id.value > 0);
 	// 1 based extruder ID.
-    unsigned int extruder = 1;
-    if (this->extruder_override == 0) {
-        if (extrusions.has_infill()) {
-            if (extrusions.has_solid_infill()) {
-                ExtrusionRole role = extrusions.role();
-                if (role == erTopSolidInfill || role == erIroning)
-                    extruder = region.config().top_surface_filament_id;
-                else if (role == erBottomSurface)
-                    extruder = region.config().bottom_surface_filament_id;
-                else
-                    extruder = region.config().internal_solid_filament_id;
-            } else {
-                extruder = region.config().sparse_infill_filament_id;
-            }
-        } else {
-            const ExtrusionRole role = extrusions.role();
-            if (role == erPerimeter)
-                extruder = region.config().inner_wall_filament_id.value;
-            else
-                extruder = region.config().outer_wall_filament_id.value;
-        }
-    } else
-        extruder = this->extruder_override;
-
+    const unsigned int extruder = this->extruder_override == 0 ? region_filament(extrusions, region.config()) : this->extruder_override;
     unsigned int result = (extruder == 0) ? 0 : extruder - 1;
     return resolve_mixed(result);
 }
@@ -855,7 +855,12 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
 
                 if (something_nonoverriddable){
                		layer_tools.extruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
-                    if (extruder_override == 0 && region.config().wall_loops.value > 1)
+                    const ExtrusionEntitiesPtr &islands = layerm->perimeters.entities;
+                    const bool has_inner_wall = std::any_of(islands.begin(), islands.end(), [](const ExtrusionEntity *island) {
+                        const ExtrusionEntitiesPtr &walls = static_cast<const ExtrusionEntityCollection*>(island)->entities;
+                        return std::any_of(walls.begin(), walls.end(), [](const ExtrusionEntity *ee) { return is_inner_wall(*ee); });
+                    });
+                    if (extruder_override == 0 && region.config().wall_loops.value > 1 && has_inner_wall)
                         layer_tools.extruders.emplace_back(region.config().inner_wall_filament_id.value);
                     if (layerCount == 0) {
                         firstLayerExtruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
@@ -865,23 +870,13 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                 layer_tools.has_object = true;
             }
 
-            bool has_infill             = false;
-            bool has_internal_solid     = false;
-            bool has_top_solid_surface  = false;
-            bool has_bottom_surface     = false;
+            std::vector<unsigned int> fill_filaments;
             bool something_nonoverriddable = false;
             for (const ExtrusionEntity *ee : layerm->fills.entities) {
                 // fill represents infill extrusions of a single island.
                 const auto *fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
-                ExtrusionRole role = fill->entities.empty() ? erNone : fill->entities.front()->role();
-                if (role == erTopSolidInfill || role == erIroning)
-                    has_top_solid_surface = true;
-                else if (role == erBottomSurface)
-                    has_bottom_surface = true;
-                else if (is_solid_infill(role))
-                    has_internal_solid = true;
-                else if (role != erNone)
-                    has_infill = true;
+                if (! fill->entities.empty())
+                    fill_filaments.emplace_back(region_filament(*fill, region.config()));
 
                 if (m_print_config_ptr) {
                     if (! layer_tools.wiping_extrusions().is_overriddable_and_mark(*fill, *m_print_config_ptr, object, region))
@@ -890,19 +885,12 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             }
 
             if (something_nonoverriddable || !m_print_config_ptr) {
-            	if (extruder_override == 0) {
-                    if (has_internal_solid)
-                        layer_tools.extruders.emplace_back(region.config().internal_solid_filament_id);
-                    if (has_top_solid_surface)
-                        layer_tools.extruders.emplace_back(region.config().top_surface_filament_id);
-                    if (has_bottom_surface)
-                        layer_tools.extruders.emplace_back(region.config().bottom_surface_filament_id);
-	                if (has_infill)
-	                    layer_tools.extruders.emplace_back(region.config().sparse_infill_filament_id);
-                } else if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
+            	if (extruder_override == 0)
+                    append(layer_tools.extruders, fill_filaments);
+                else if (! fill_filaments.empty())
             		layer_tools.extruders.emplace_back(extruder_override);
             }
-            if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
+            if (! fill_filaments.empty())
                 layer_tools.has_object = true;
         }
 
@@ -1684,13 +1672,13 @@ static FilamentGroupContext build_filament_group_context(
     return context;
 }
 
-// Orca: restore the master-extruder preference. Orca historically ran
-// optimize_group_for_master_extruder / can_swap_groups after grouping so a light-filament print stays
-// on the primary/master extruder. A weak in-enum penalty alone cannot overcome a pre-existing
-// non-zero right-extruder self-flush term in the flush matrix (which otherwise pulls a lone filament
-// onto the non-master extruder and changes H2D/H2C g-code). We re-apply the preference ONLY in this
-// slicing wrapper — never in the FilamentGroup engine or the test harness — so existing prints keep
-// their extruder assignment while the new engine's genuine multi-filament grouping deltas still land.
+// Orca: the master-extruder preference for flush-mode grouping on two-extruder machines. It keeps a
+// light-filament print on the master extruder, which the engine's own in-enum penalty is too weak to
+// do against a non-zero right-extruder self-flush term in the flush matrix (that term pulls a lone
+// filament onto the non-master extruder). It lives in this slicing wrapper, not in the FilamentGroup
+// engine, so the engine and its golden tests stay comparable with BambuStudio's. It only breaks ties
+// against the filaments loaded in the printer: get_recommended_filament_maps keeps the engine's
+// grouping when that matches them better.
 static bool can_swap_extruder_groups(int extruder_id_0, const std::set<int>& group_0, int extruder_id_1, const std::set<int>& group_1, const FilamentGroupContext& ctx)
 {
     using namespace FilamentGroupUtils;
@@ -1851,11 +1839,20 @@ MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filamen
                 if (!has_multiple_nozzle)
                     fg.get_custom_seq = get_custom_seq;
                 ret = fg.calc_filament_group();
-                // Flush-mode auto grouping: restore the master-extruder preference
-                // (optimize_group_for_master_extruder). Match mode assigns by AMS colour and never had
-                // it. Kept out of the FilamentGroup engine so the test harness is unaffected.
-                if (context.group_info.mode == FGMode::FlushMode)
-                    ret = apply_master_extruder_preference(context, used_filaments, ret);
+                // Flush mode prefers the master extruder; match mode groups by the AMS colours alone.
+                // select_best_group_for_ams keeps the first candidate on a tie and when the printer
+                // reports no filaments, so the preferred grouping loses only to one that matches the
+                // loaded filaments strictly better.
+                if (context.group_info.mode == FGMode::FlushMode) {
+                    std::vector<int> preferred = apply_master_extruder_preference(context, used_filaments, ret);
+                    std::vector<FilamentGroupUtils::FilamentInfo> used_filament_info;
+                    for (auto f : used_filaments)
+                        used_filament_info.emplace_back(context.model_info.filament_info[f]);
+                    // The context's nozzle list, which the nozzle ids in ret index (one entry per
+                    // physical nozzle), not the one-per-extruder nozzle_list above.
+                    ret = select_best_group_for_ams({preferred, ret}, context.nozzle_info.nozzle_list, used_filaments, used_filament_info,
+                                                    context.machine_info.machine_filament_info, context.group_info.has_filament_switcher);
+                }
             }
         }
 

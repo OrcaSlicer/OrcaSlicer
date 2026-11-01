@@ -2,11 +2,12 @@
 #define slic3r_PagesPluginCapability_hpp_
 
 #include "../../PythonPluginInterface.hpp"
-#include "pybind11/pybind11.h"
 
 #include <functional>
 #include <mutex>
 #include <string>
+
+namespace pybind11 { class module_; }
 
 namespace Slic3r {
 class PagesPluginCapability : public PluginCapabilityInterface

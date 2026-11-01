@@ -69,7 +69,7 @@ bool StepPreProcessor::preprocess(const char* path, std::string &output_path)
 {
     boost::nowide::ifstream infile(path);
     if (!infile.good()) {
-        throw Slic3r::RuntimeError(_u8L("Load step file failed.\nCannot open file for reading.\n"));
+        throw Slic3r::RuntimeError(_u8L("Load STEP file failed.\nCannot open file for reading.\n"));
         return false;
     }
 
@@ -117,7 +117,7 @@ bool StepPreProcessor::isUtf8File(const char* path)
 {
     boost::nowide::ifstream infile(path);
     if (!infile.good()) {
-        throw Slic3r::RuntimeError(_u8L("Load step file failed.\nCannot open file for reading.\n"));
+        throw Slic3r::RuntimeError(_u8L("Load STEP file failed.\nCannot open file for reading.\n"));
         return false;
     }
 

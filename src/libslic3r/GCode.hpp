@@ -248,7 +248,6 @@ public:
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
         m_brim_done(false),
         m_second_layer_things_done(false),
-        m_silent_time_estimator_enabled(false),
         m_last_obj_copy(nullptr, Point(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max())),
         // BBS
         m_toolchange_count(0),
@@ -849,8 +848,8 @@ protected:
     float                               m_last_layer_z{ 0.0f };
     float                               m_max_layer_z{ 0.0f };
     float                               m_last_width{ 0.0f };
-    // Bedslinger mass model: cumulative printed mass at the previous layer, used to derive
-    // the current layer mass for the per-layer Y acceleration limit (curr_y_acceleration_limit).
+    // Bedslinger mass model: cumulative printed mass at the previous layer change, used to derive
+    // previous_layer_mass, the mass of the layer printed since then.
     double                              m_last_layer_accumulated_mass{ 0.0 };
 
     // Always check gcode placeholders when building in debug mode.
@@ -911,7 +910,6 @@ protected:
     int m_timelapse_warning_code = 0;
     bool m_support_traditional_timelapse = true;
 
-    bool m_silent_time_estimator_enabled;
 
     Print *m_print{nullptr};
 

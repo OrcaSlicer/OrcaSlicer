@@ -27,6 +27,7 @@
 	"initial_layer_print_height": "0.2",
 	"elefant_foot_compensation": "0.15",
 	"bottom_shell_layers": "4",
+	"bottom_color_penetration_layers": "3",
 	"top_shell_thickness": "0.6",
 	"bridge_flow": "1",
 	"support_threshold_angle": "25",
@@ -41,5 +42,6 @@
 	"overhang_2_4_speed": "30",
 	"overhang_3_4_speed": "10",
 	"ironing_speed": "30",
-	"support_speed": "100"
+	"support_speed": "100",
+	"top_color_penetration_layers": "4"
 }
