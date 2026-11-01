@@ -245,13 +245,15 @@ std::vector<PathGroup> order_groups(std::vector<PathGroup> groups, const Point &
                                [](const PathGroup &group) { return group.paths.empty(); }), groups.end());
     std::vector<PathEndpoints> endpoints;
     endpoints.reserve(groups.size());
+    // Freely reversible chords avoid Orca's slower direction-constrained ordering.
+    // Floors keep their supported-side-first sweep below, even when a chord reverses;
+    // the resulting entry/exit mismatch can add travel at either end.
     for (const PathGroup &group : groups)
         endpoints.push_back({group.paths.front().first_point(), group.paths.back().last_point(), true});
     std::vector<PathGroup> ordered;
     ordered.reserve(groups.size());
     for (const auto &[index, reverse] : chain_path_endpoints(endpoints, &start_near)) {
         PathGroup &group = groups[index];
-        // Floor chords may reverse during scheduling; their supported sweep may not.
         if (reverse && group.reversible) {
             std::reverse(group.paths.begin(), group.paths.end());
             for (Polyline &path : group.paths) path.reverse();
