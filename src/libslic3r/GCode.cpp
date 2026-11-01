@@ -8378,10 +8378,7 @@ void GCode::append_full_config(const Print &print, std::string &str)
         "printhost_password"sv,
         "printhost_port"sv
     });
-    // Orca: firmware that prefix-matches "bed_temperature" in this block (e.g. Anycubic Kobra) picks up
-    // bed_temperature_formula and shows its enum name instead of a temperature. The key is only read at
-    // slice time from m_config, so dropping it is safe. Not a banned_keys entry like the two above: that
-    // set is static, and this key already ships in BBL dumps, so the ban must be per-call and BBL-exempt.
+    // Orca: firmware that scans this block for "bed_temperature" (Anycubic Kobra) shows the enum name as the bed temperature.
     const bool ban_bed_temperature_formula = !print.is_BBL_printer();
     auto is_banned = [ban_bed_temperature_formula](const std::string &key) {
         if (ban_bed_temperature_formula && key == "bed_temperature_formula")
