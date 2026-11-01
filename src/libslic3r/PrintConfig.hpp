@@ -1022,6 +1022,20 @@ void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVect
 // single value, gives every variant of a filament that filament's value; other lengths are left alone.
 void normalize_filament_values_to_variants(DynamicPrintConfig &config);
 
+// Orca: appends `variant` to a filament config's nozzle variants. Every filament_options_with_variant
+// option gets a new slot holding its value from `source_slot`; an option with a single value is first
+// given one value per variant.
+void add_filament_variant(DynamicPrintConfig &config, const std::string &variant, size_t source_slot);
+
+// Orca: removes the nozzle variant at `slot` from a filament config, with its value in every
+// filament_options_with_variant option that holds one value per variant. Keeps the last variant.
+void remove_filament_variant(DynamicPrintConfig &config, size_t slot);
+
+// Orca: the nozzle variant a user can add next to a filament with `variants`: the first nozzle volume
+// type, in enum order, of current_variant's extruder type that `variants` lacks. Empty when none is left
+// or current_variant is not a known variant.
+std::string next_filament_variant_to_add(const std::vector<std::string> &variants, const std::string &current_variant);
+
 extern std::set<std::string> filament_dev_options;
 
 // Orca: a filament_dev_options option holds several values per filament, and how many is up to the

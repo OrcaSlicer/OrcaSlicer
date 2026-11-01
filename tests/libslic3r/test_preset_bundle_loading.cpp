@@ -1226,6 +1226,87 @@ TEST_CASE("A user filament synced to the cloud and back keeps its values and uns
     }
 }
 
+TEST_CASE("A user filament keeps a nozzle variant its parent lacks on load", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetCollection   filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                                 static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+
+    Preset &parent = add_inmemory_preset(filaments, "Parent Filament");
+    parent.config.set_key_value("filament_extruder_variant", new ConfigOptionStrings({"Direct Drive Standard"}));
+    parent.config.set_deserialize_strict("filament_flow_ratio", "0.98");
+    parent.config.set_deserialize_strict("filament_max_volumetric_speed", "21");
+    parent.config.set_deserialize_strict("nozzle_temperature", "260");
+    parent.is_system = true;
+
+    // The user filament adds a High Flow variant and leaves the Standard flow ratio to its parent.
+    PresetsConfigSubstitutions substitutions;
+    SECTION("from its file") {
+        const fs::path file = temp_dir.path() / PRESET_FILAMENT_NAME / "User Filament.json";
+        fs::create_directories(file.parent_path());
+        std::ofstream(file.string()) << R"({
+            "type": "filament", "name": "User Filament", "from": "User", "version": "1.0.0",
+            "inherits": "Parent Filament", "filament_settings_id": ["User Filament"],
+            "filament_extruder_variant": ["Direct Drive Standard", "Direct Drive High Flow"],
+            "filament_flow_ratio": ["nil", "0.955"],
+            "filament_max_volumetric_speed": ["26", "40"]
+        })";
+        filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                               ForwardCompatibilitySubstitutionRule::Disable);
+    }
+    SECTION("from the cloud") {
+        const std::map<std::string, std::string> values = {
+            {BBL_JSON_KEY_VERSION, "1.0.0"}, {BBL_JSON_KEY_SETTING_ID, "child-id"}, {BBL_JSON_KEY_USER_ID, "user"},
+            {BBL_JSON_KEY_INHERITS, "Parent Filament"}, {"filament_settings_id", "User Filament"},
+            {"filament_extruder_variant", "Direct Drive Standard;Direct Drive High Flow"},
+            {"filament_flow_ratio", "nil,0.955"},
+            {"filament_max_volumetric_speed", "26,40"}};
+        REQUIRE(filaments.load_user_preset("User Filament", values, substitutions, ForwardCompatibilitySubstitutionRule::Disable));
+    }
+
+    const Preset *child = filaments.find_preset("User Filament");
+    REQUIRE(child != nullptr);
+    CHECK(child->config.opt_serialize("filament_extruder_variant") == "Direct Drive Standard;Direct Drive High Flow");
+    CHECK(child->config.opt_serialize("filament_flow_ratio") == "0.98,0.955");
+    CHECK(child->config.opt_serialize("filament_max_volumetric_speed") == "26,40");
+    // A key the child never set takes the parent's value on the added variant too.
+    CHECK(child->config.opt_serialize("nozzle_temperature") == "260,260");
+}
+
+TEST_CASE("A user filament with a nozzle variant its parent lacks reloads as it was saved", "[Preset][Bundle]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+
+    Preset &parent = add_inmemory_preset(bundle.filaments, "Parent Filament @System");
+    parent.config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard"};
+    parent.config.option<ConfigOptionFloatsNullable>("filament_flow_ratio", true)->values = {0.98};
+    parent.config.option<ConfigOptionFloats>("filament_max_volumetric_speed", true)->values = {21.};
+
+    const fs::path file = data_dir.tmp.path() / PRESET_FILAMENT_NAME / "User Filament.json";
+    Preset         child(Preset::TYPE_FILAMENT, "User Filament");
+    child.file    = file.string();
+    child.version = *Semver::parse("1.0.0");
+    child.config  = parent.config;
+    child.config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = parent.name;
+    add_filament_variant(child.config, "Direct Drive High Flow", 0);
+    child.config.option<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1]     = 0.955;
+    child.config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values[1] = 40.;
+    REQUIRE(child.save(&parent.config));
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.filaments.load_presets(data_dir.tmp.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                                  ForwardCompatibilitySubstitutionRule::EnableSilent);
+    const Preset *loaded = bundle.filaments.find_preset("User Filament");
+    REQUIRE(loaded != nullptr);
+    const std::vector<std::string> dirty = PresetCollection::dirty_options(loaded, &child, true);
+    for (const std::string &key : {"filament_extruder_variant", "filament_flow_ratio", "filament_max_volumetric_speed"}) {
+        INFO(key);
+        CHECK(loaded->config.opt_serialize(key) == child.config.opt_serialize(key));
+        CHECK(std::find(dirty.begin(), dirty.end(), key) == dirty.end());
+    }
+}
+
 TEST_CASE("A project filament storing one value for a per-variant key applies it to every variant", "[Preset][Bundle][Regression]")
 {
     PresetCollection filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),

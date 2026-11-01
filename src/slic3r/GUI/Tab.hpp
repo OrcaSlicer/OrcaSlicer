@@ -331,6 +331,8 @@ public:
     wxSizer *       m_variant_sizer   = nullptr;
     MultiSwitchButton *  m_extruder_switch = nullptr;
     MultiSwitchButton *  m_variant_combo   = nullptr;
+    ScalableButton *m_add_variant_btn = nullptr;
+    ScalableButton *m_remove_variant_btn = nullptr;
     ScalableButton *m_extruder_sync   = nullptr;
 	wxPanel *       m_extruder_sync_box  = nullptr;
     // Orca: whether m_extruder_switch switches nozzle variants (it then offers sync between them).
@@ -404,6 +406,16 @@ public:
     bool        is_printer_extruder_page(const Page* page) const { return m_type == Preset::TYPE_PRINTER && page && page->title() == "Extruder"; }
     // Shows the variant switch row on pages with options that follow it.
     void        update_variant_sizer_visibility();
+    // Orca: the nozzle variant the filament tab's "+" button adds next, empty when there is none.
+    std::string next_variant_to_add() const;
+    void        add_next_variant();
+    // Orca: the "-" button removes the selected nozzle variant, unless it is the last one or the system parent's.
+    bool        can_remove_selected_variant() const;
+    void        remove_selected_variant();
+    // Orca: the edited filament's nozzle variants, nullptr outside the filament tab or when it has none.
+    const ConfigOptionStrings *edited_filament_variants() const;
+    size_t      selected_filament_variant_slot(const ConfigOptionStrings &variants) const;
+    bool        is_system_parent_variant(const std::string &variant) const;
     void        update_all_extruder_options_status();
     void        check_extruder_options_status(int index, bool &sys_extruder, bool &modified_extruder, const std::vector<PageShp>& pages_to_check);
 

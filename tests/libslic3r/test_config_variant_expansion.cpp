@@ -883,3 +883,80 @@ TEST_CASE("The mixed filament metadata is sized to the filament count", "[Config
     REQUIRE(config.option<ConfigOptionBools>("filament_is_mixed")->values == std::vector<unsigned char>({false, false, false, false}));
     REQUIRE(config.option<ConfigOptionStrings>("filament_mixed_components")->values == std::vector<std::string>({"", "", "", ""}));
 }
+
+TEST_CASE("Adding a filament variant gives every per-variant option a slot seeded from the source variant", "[Config][FilamentVariants]")
+{
+    DynamicPrintConfig filament;
+    filament.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard"};
+    filament.option<ConfigOptionFloatsNullable>("filament_flow_ratio", true)->values = {0.98};
+    filament.option<ConfigOptionFloats>("filament_max_volumetric_speed", true)->values = {21.};
+
+    add_filament_variant(filament, "Direct Drive High Flow", 0);
+
+    REQUIRE(filament.option<ConfigOptionStrings>("filament_extruder_variant")->values ==
+            std::vector<std::string>({"Direct Drive Standard", "Direct Drive High Flow"}));
+    REQUIRE(filament.option<ConfigOptionFloatsNullable>("filament_flow_ratio")->values == std::vector<double>({0.98, 0.98}));
+    REQUIRE(filament.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({21., 21.}));
+}
+
+TEST_CASE("Adding a filament variant copies the values of the chosen source variant", "[Config][FilamentVariants]")
+{
+    DynamicPrintConfig filament;
+    filament.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard", "Direct Drive High Flow"};
+    filament.option<ConfigOptionFloats>("filament_max_volumetric_speed", true)->values = {21., 40.};
+
+    add_filament_variant(filament, "Direct Drive TPU High Flow", 1);
+
+    REQUIRE(filament.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({21., 40., 40.}));
+}
+
+TEST_CASE("The next filament variant to add is the first nozzle volume type the filament lacks", "[Config][FilamentVariants]")
+{
+    const std::string standard  = get_extruder_variant_string(etDirectDrive, nvtStandard);
+    const std::string high_flow = get_extruder_variant_string(etDirectDrive, nvtHighFlow);
+
+    REQUIRE(next_filament_variant_to_add({standard}, standard) == high_flow);
+    // A Bowden variant offers the next Bowden variant, not a Direct Drive one.
+    REQUIRE(next_filament_variant_to_add({standard, get_extruder_variant_string(etBowden, nvtStandard)},
+                                         get_extruder_variant_string(etBowden, nvtStandard)) ==
+            get_extruder_variant_string(etBowden, nvtHighFlow));
+}
+
+TEST_CASE("No filament variant is offered when every volume type is present or the variant is unknown", "[Config][FilamentVariants]")
+{
+    std::vector<std::string> all_direct_drive;
+    for (NozzleVolumeType volume_type : get_valid_nozzle_volume_type())
+        all_direct_drive.push_back(get_extruder_variant_string(etDirectDrive, volume_type));
+
+    REQUIRE(next_filament_variant_to_add(all_direct_drive, all_direct_drive.front()).empty());
+    REQUIRE(next_filament_variant_to_add({"Unknown Variant"}, "Unknown Variant").empty());
+}
+
+TEST_CASE("Removing a filament variant drops its slot from every per-variant option", "[Config][FilamentVariants]")
+{
+    DynamicPrintConfig filament;
+    filament.option<ConfigOptionStrings>("filament_extruder_variant", true)->values =
+        {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive TPU High Flow"};
+    filament.option<ConfigOptionFloats>("filament_max_volumetric_speed", true)->values = {21., 40., 30.};
+    filament.option<ConfigOptionInts>("nozzle_temperature", true)->values = {260};
+
+    remove_filament_variant(filament, 1);
+
+    REQUIRE(filament.option<ConfigOptionStrings>("filament_extruder_variant")->values ==
+            std::vector<std::string>({"Direct Drive Standard", "Direct Drive TPU High Flow"}));
+    REQUIRE(filament.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({21., 30.}));
+    // A single value shared by every variant stays.
+    REQUIRE(filament.option<ConfigOptionInts>("nozzle_temperature")->values == std::vector<int>({260}));
+}
+
+TEST_CASE("The last filament variant cannot be removed", "[Config][FilamentVariants]")
+{
+    DynamicPrintConfig filament;
+    filament.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard"};
+    filament.option<ConfigOptionFloats>("filament_max_volumetric_speed", true)->values = {21.};
+
+    remove_filament_variant(filament, 0);
+
+    REQUIRE(filament.option<ConfigOptionStrings>("filament_extruder_variant")->values == std::vector<std::string>({"Direct Drive Standard"}));
+    REQUIRE(filament.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({21.}));
+}

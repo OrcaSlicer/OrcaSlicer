@@ -621,18 +621,39 @@ void Tab::create_preset_tab()
             if (m_active_page)
                 m_active_page->update_visibility(m_mode, true);
             m_page_view->GetParent()->Layout();
+            // The "+" button offers the next variant of the selected variant's extruder type.
+            update_variant_sizer_visibility();
         });
 
         ScalableButton* icon = nullptr;
         add_scaled_button(panel, &icon, "multi_extruder");
         icon->SetToolTip(_L("Parameters with this icon can be configured per nozzle."));
 
+        add_scaled_button(panel, &m_add_variant_btn, "add");
+        // TRN Tooltip of the "+" button at the right of the nozzle flow type tags (SF, HF, ...) of the filament settings.
+        m_add_variant_btn->SetToolTip(_L("Add settings for another nozzle flow type"));
+        m_add_variant_btn->Bind(wxEVT_BUTTON, [this](auto &evt) {
+            evt.Skip();
+            add_next_variant();
+        });
+
+        add_scaled_button(panel, &m_remove_variant_btn, "delete");
+        // TRN Tooltip of the "-" button at the right of the nozzle flow type tags (SF, HF, ...) of the filament settings.
+        m_remove_variant_btn->SetToolTip(_L("Remove the settings of the selected nozzle flow type"));
+        m_remove_variant_btn->Bind(wxEVT_BUTTON, [this](auto &evt) {
+            evt.Skip();
+            remove_selected_variant();
+        });
+
         wxBoxSizer *top_sizer = new wxBoxSizer(wxHORIZONTAL);
-        top_sizer->Add(icon,            0, wxALIGN_CENTER_VERTICAL);
-        top_sizer->Add(m_variant_combo, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
+        top_sizer->Add(icon,                 0, wxALIGN_CENTER_VERTICAL);
+        top_sizer->Add(m_variant_combo,      0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
+        top_sizer->AddStretchSpacer(1);
+        top_sizer->Add(m_add_variant_btn,    0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
+        top_sizer->Add(m_remove_variant_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
 
         m_variant_sizer = new wxBoxSizer(wxVERTICAL);
-        m_variant_sizer->Add(top_sizer, 0, wxEXPAND | wxLEFT, m_em_unit);
+        m_variant_sizer->Add(top_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, m_em_unit);
 
         m_main_sizer->Add(m_variant_sizer, 0, wxEXPAND | wxTOP, m_em_unit);
     }
@@ -9328,8 +9349,17 @@ void Tab::update_variant_sizer_visibility()
 {
     if (!m_variant_sizer)
         return;
-    const bool show = variant_switch_active() && m_active_page && !m_active_page->m_opt_id_map.empty();
+    const bool can_add_variant    = !next_variant_to_add().empty();
+    const bool can_remove_variant = can_remove_selected_variant();
+    if (m_add_variant_btn)
+        m_add_variant_btn->Enable(can_add_variant);
+    if (m_remove_variant_btn)
+        m_remove_variant_btn->Enable(can_remove_variant);
+    // Orca: the filament row also shows with a single variant, so its "+" button can add a second one.
+    const bool show = (variant_switch_active() || can_add_variant) && m_active_page && !m_active_page->m_opt_id_map.empty();
     m_main_sizer->Show(m_variant_sizer, show);
+    // The row keeps its height when only the switch width changes, so the parent's layout would not reach it.
+    Layout();
     if (m_extruder_sync) {
         m_extruder_sync->Show(show);
         // Orca: copying between extruders is offered only between nozzle variants, and not on the Extruder page.
@@ -9337,6 +9367,71 @@ void Tab::update_variant_sizer_visibility()
                                 get_extruder_sync_enable_state(get_current_active_extruder()));
     }
     GetParent()->Layout();
+}
+
+const ConfigOptionStrings *Tab::edited_filament_variants() const
+{
+    if (!m_variant_combo || !m_config)
+        return nullptr;
+    const auto *variants = m_config->option<ConfigOptionStrings>("filament_extruder_variant");
+    return variants && !variants->empty() ? variants : nullptr;
+}
+
+size_t Tab::selected_filament_variant_slot(const ConfigOptionStrings &variants) const
+{
+    return size_t(std::clamp(m_variant_combo->GetSelection(), 0, int(variants.size()) - 1));
+}
+
+bool Tab::is_system_parent_variant(const std::string &variant) const
+{
+    const Preset *parent = m_presets->get_selected_preset_parent();
+    if (!parent || !parent->is_system)
+        return false;
+    const auto *parent_variants = parent->config.option<ConfigOptionStrings>("filament_extruder_variant");
+    return parent_variants && std::find(parent_variants->values.begin(), parent_variants->values.end(), variant) != parent_variants->values.end();
+}
+
+std::string Tab::next_variant_to_add() const
+{
+    const ConfigOptionStrings *variants = edited_filament_variants();
+    if (!variants)
+        return {};
+    return next_filament_variant_to_add(variants->values, variants->values[selected_filament_variant_slot(*variants)]);
+}
+
+bool Tab::can_remove_selected_variant() const
+{
+    const ConfigOptionStrings *variants = edited_filament_variants();
+    if (!variants || variants->size() < 2)
+        return false;
+    // A user preset reloads with every variant of the system preset it inherits, so a removed one would come back.
+    return !is_system_parent_variant(variants->values[selected_filament_variant_slot(*variants)]);
+}
+
+void Tab::add_next_variant()
+{
+    const std::string variant = next_variant_to_add();
+    if (variant.empty())
+        return;
+    const size_t source_slot = selected_filament_variant_slot(*edited_filament_variants());
+    add_filament_variant(*m_config, variant, source_slot);
+    const int new_slot = int(edited_filament_variants()->size()) - 1;
+    update_extruder_variants(-1, false);
+    // Fires the selection handler, which points the pages at the new variant and reloads them.
+    m_variant_combo->SetSelection(new_slot);
+    update_dirty();
+}
+
+void Tab::remove_selected_variant()
+{
+    if (!can_remove_selected_variant())
+        return;
+    const int slot = int(selected_filament_variant_slot(*edited_filament_variants()));
+    remove_filament_variant(*m_config, size_t(slot));
+    // Rebuilding the tags reselects the old index, which fires the selection handler and reloads the pages.
+    update_extruder_variants(-1, false);
+    m_variant_combo->SetSelection(std::max(0, slot - 1));
+    update_dirty();
 }
 
 void Tab::switch_excluder(int extruder_id, bool reload)

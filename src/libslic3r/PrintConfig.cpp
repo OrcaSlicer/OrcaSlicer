@@ -11427,6 +11427,65 @@ void normalize_filament_values_to_variants(DynamicPrintConfig &config)
     }
 }
 
+void add_filament_variant(DynamicPrintConfig &config, const std::string &variant, size_t source_slot)
+{
+    auto *variants = config.option<ConfigOptionStrings>("filament_extruder_variant");
+    if (variants == nullptr)
+        return;
+    const size_t new_slot = variants->size();
+    for (const std::string &key : filament_options_with_variant) {
+        auto *values = dynamic_cast<ConfigOptionVectorBase *>(config.option(key));
+        if (values == nullptr || values == variants || values->empty())
+            continue;
+        // set_at() first fills the missing slots from the first value, which turns a single value into one per variant.
+        values->set_at(values, new_slot, source_slot);
+    }
+    variants->values.push_back(variant);
+}
+
+static void erase_vector_slot(ConfigOptionVectorBase &values, size_t slot)
+{
+    for (size_t i = slot; i + 1 < values.size(); ++i)
+        values.set_at(&values, i, i + 1);
+    values.resize(values.size() - 1);
+}
+
+void remove_filament_variant(DynamicPrintConfig &config, size_t slot)
+{
+    const auto *variants = config.option<ConfigOptionStrings>("filament_extruder_variant");
+    if (variants == nullptr || variants->size() < 2 || slot >= variants->size())
+        return;
+    const size_t variant_count = variants->size();
+    // filament_extruder_variant is one of these options, so its name goes with the values.
+    for (const std::string &key : filament_options_with_variant) {
+        auto *values = dynamic_cast<ConfigOptionVectorBase *>(config.option(key));
+        if (values != nullptr && values->size() == variant_count)
+            erase_vector_slot(*values, slot);
+    }
+}
+
+static std::optional<ExtruderType> filament_variant_drive(const std::string &variant)
+{
+    for (int drive = 0; drive <= etMaxExtruderType; ++drive)
+        for (NozzleVolumeType volume_type : get_valid_nozzle_volume_type())
+            if (get_extruder_variant_string(ExtruderType(drive), volume_type) == variant)
+                return ExtruderType(drive);
+    return std::nullopt;
+}
+
+std::string next_filament_variant_to_add(const std::vector<std::string> &variants, const std::string &current_variant)
+{
+    const std::optional<ExtruderType> drive = filament_variant_drive(current_variant);
+    if (!drive)
+        return {};
+    for (NozzleVolumeType volume_type : get_valid_nozzle_volume_type()) {
+        const std::string variant = get_extruder_variant_string(*drive, volume_type);
+        if (std::find(variants.begin(), variants.end(), variant) == variants.end())
+            return variant;
+    }
+    return {};
+}
+
 void set_filament_dev_options(DynamicPrintConfig &config, const std::vector<const DynamicPrintConfig *> &filament_configs)
 {
     for (const std::string &key : filament_dev_options) {
