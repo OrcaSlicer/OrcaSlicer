@@ -46,7 +46,7 @@ enum class Shortcut : uint8_t {
     // Camera
     ViewDefault, ViewTop, ViewBottom, ViewFront, ViewRear, ViewLeft, ViewRight, ViewPlate, ZoomIn, ZoomOut, Mouse3DSettings,
     // Display
-    ShowLabels, ShowCollisionVolumes, ShowWireframe, ToggleGcodeWindow, ToggleOneLayerMode, ToggleBeltRawGcode,
+    ShowLabels, ShowCollisionVolumes, ShowWireframe, PlateArrangement, ToggleGcodeWindow, ToggleOneLayerMode, ToggleBeltRawGcode,
     // Application
     Preferences, Search, SwitchView, CollapseSidebar, ReloadDevicePage, KeyboardShortcuts, Quit,
     // Speed Dial

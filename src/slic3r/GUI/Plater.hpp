@@ -857,6 +857,8 @@ public:
     void apply_background_progress();
     //BBS: select the plate by hover_id
     int select_plate_by_hover_id(int hover_id, bool right_click = false, bool isModidyPlateName = false);
+    // Reorders plates in one undoable step: new_order[k] is the current index of the plate moved to index k.
+    int reorder_plates(const std::vector<int>& new_order);
     //BBS: add an empty plate and switch to it (the toolbar's Add Plate). Returns the new
     // plate index, or -1 when the plate cap is reached.
     int add_plate();

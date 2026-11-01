@@ -61,6 +61,12 @@ last drawn frame, since `WantCaptureKeyboard` and `WantTextInput` only catch up 
 next frame starts, and is called only when the focus is on a visible canvas from
 `OpenGLManager::create_wxglcanvas()`.
 
+An ImGui overlay can take keys of its own ahead of everything else on the canvas. The plate
+reorder dialog (`PlateArrangementDialog::on_key`) takes the arrow keys, Home, End and Esc while its
+window has the ImGui focus and no InputText is active, before ImGui and the shortcuts see them,
+since the arrows would otherwise also move the selected objects. Like the canvas, it applies the
+key-down's decision to that key's char event and release.
+
 The `Plater`, `Preview` and `Painting` shortcuts act on the 3D view, so they run only while
 the 3D view has the keyboard. `GLCanvas3D` feeds every key event to ImGui and asks
 `ImGuiWrapper::claim_key_event()` whether to act on it as well. While an ImGui popup (a
