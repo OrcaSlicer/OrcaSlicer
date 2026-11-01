@@ -28,6 +28,7 @@
 
 #include <map>
 #include <utility>
+#include <vector>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
@@ -215,6 +216,52 @@ TEST_CASE("Plugin host API exposes the filament slot form of preset update and g
         try {
             preset.attr(name).attr("update")(1, "layer_height", "0.25");
             FAIL("slot-addressed update on a non-filament editor unexpectedly succeeded");
+        } catch (const py::error_already_set& error) {
+            CHECK(error.matches(PyExc_ValueError));
+            CHECK(std::string(error.what()).find("only available on") != std::string::npos);
+        }
+    }
+}
+
+TEST_CASE("Plugin host API sets a filament slot's color and rejects malformed colors first", "[PluginHost][Python]")
+{
+    py::object preset   = import_orca_module().attr("host").attr("preset");
+    py::object filament = preset.attr("filament");
+    REQUIRE(has_attr(filament, "set_slot_color"));
+    auto color_list = [](const std::vector<std::string>& colors) {
+        py::list list;
+        for (const std::string& color : colors)
+            list.append(color);
+        return list;
+    };
+
+    // Malformed colors are rejected before any application access.
+    const std::vector<std::vector<std::string>> malformed = { {}, {"#12345"}, {"123456"}, {"#12345G"} };
+    for (const std::vector<std::string>& colors : malformed) {
+        CAPTURE(colors);
+        try {
+            filament.attr("set_slot_color")(1, color_list(colors));
+            FAIL("a malformed color was accepted");
+        } catch (const py::error_already_set& error) {
+            CHECK(error.matches(PyExc_ValueError));
+        }
+    }
+
+    // A well-formed color reaches the same clean failure as the rest of host.preset without a wx application.
+    try {
+        filament.attr("set_slot_color")(1, color_list({"#29cb94", "#000000"}), true);
+        FAIL("set_slot_color unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+    }
+
+    // Only the filament editor has slots.
+    for (const char* name : { "process", "printer" }) {
+        CAPTURE(name);
+        try {
+            preset.attr(name).attr("set_slot_color")(1, color_list({"#000000"}));
+            FAIL("set_slot_color on a non-filament editor unexpectedly succeeded");
         } catch (const py::error_already_set& error) {
             CHECK(error.matches(PyExc_ValueError));
             CHECK(std::string(error.what()).find("only available on") != std::string::npos);
