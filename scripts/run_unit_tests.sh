@@ -70,4 +70,9 @@ fi
 # --no-tests=error fails the job if the filter matches nothing (instead of passing green).
 args=(--test-dir "${TEST_DIR}" -LE "NotWorking|RequiresApp" --no-tests=error --output-junit "$(pwd)/ctest_results.xml" --output-on-failure -j)
 [ -n "${BUILD_CONFIG}" ] && args+=(--build-config "${BUILD_CONFIG}")
-ctest "${args[@]}"
+# GTK needs a display for native event/capture tests, even when its frames stay hidden.
+if [ "$(uname -s)" = Linux ] && [ -z "${DISPLAY:-}" ] && command -v xvfb-run >/dev/null 2>&1; then
+    xvfb-run -a ctest "${args[@]}"
+else
+    ctest "${args[@]}"
+fi

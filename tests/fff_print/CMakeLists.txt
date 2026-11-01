@@ -12,6 +12,7 @@ add_executable(${_TEST_NAME}_tests
 	test_fan_mover.cpp
 	test_fill.cpp
 	test_flow.cpp
+	test_small_area_infill_flow_compensation.cpp
 	test_gcode_processor.cpp
 	test_gcode_statistics.cpp
 	test_gcode_timing.cpp
