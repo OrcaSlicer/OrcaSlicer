@@ -107,11 +107,9 @@ private:
     struct GuiCfg
     {
         // The design sizes in create_gui_cfg() are pixels at that scaling.
-        float no_font_scale{1.1f}; // plate number size relative to the UI font
         float ghost_scale  {.85f}; // plate following the cursor while dragging
         float ghost_alpha  {.75f};
         float dragged_alpha{.35f}; // plates left behind while they are dragged
-        int   thumbnail_max{512};
         int   max_columns  {6};   // densest grid; it sets the fixed size of the window
         float font_size{ 0.f };   // the ImGui font size the sizes below were made for
         float grid_size;          // edge of the square grid, fixed: sized for the densest grid
@@ -130,7 +128,7 @@ private:
         float button_padding;     // around a button's icon; also its corner radius
         float item_spacing;
         float group_spacing;      // between button groups
-        float row_spacing;        // between the title bar, the grid and the bottom bar rows
+        float v_spacing;          // between the title bar, the grid and the bottom bar rows
         float drag_threshold;
     };
     std::optional<GuiCfg> m_gui_cfg;

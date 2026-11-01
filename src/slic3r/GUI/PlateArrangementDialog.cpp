@@ -177,16 +177,16 @@ void PlateArrangementDialog::on_render_input_window()
 
     // The gizmos' window style, with this window's sizes and the Regular buttons of Widgets/Button.
     ImGuiWrapper::push_toolbar_style(m_parent.get_scale());
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding   , ImVec2(cfg.window_padding, cfg.window_padding));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing     , ImVec2(cfg.item_spacing, cfg.item_spacing));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding  , cfg.window_rounding);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding   , cfg.frame_rounding);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize , 0.f);
-    ImGui::PushStyleColor(ImGuiCol_Button             , ImGuiWrapper::to_ImVec4(decode_color_to_float_array(m_is_dark_mode ? "#3E3E45" : "#DFDFDF")));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered      , ImGuiWrapper::to_ImVec4(decode_color_to_float_array(m_is_dark_mode ? "#4D4D54" : "#D4D4D4")));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive       , ImGuiWrapper::to_ImVec4(decode_color_to_float_array(m_is_dark_mode ? "#3E3E45" : "#DFDFDF")));
-    ImGui::PushStyleColor(ImGuiCol_TextDisabled       , m_is_dark_mode ? ImVec4(1.f,1.f,1.f,.4f) : ImVec4(0.f,0.f,0.f,.4f));
-    ImGui::PushStyleColor(ImGuiCol_Border             , ImGuiWrapper::to_ImVec4(decode_color_to_float_array(m_is_dark_mode ? "#4E4E54" : "#D4D4D8")));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding  , ImVec2(cfg.window_padding, cfg.window_padding));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing    , ImVec2(cfg.item_spacing, cfg.item_spacing));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding , cfg.window_rounding);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , cfg.frame_rounding);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+    ImGui::PushStyleColor(ImGuiCol_Button            , ImGuiWrapper::to_ImVec4(decode_color_to_float_array(m_is_dark_mode ? "#3E3E45" : "#DFDFDF")));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered     , ImGuiWrapper::to_ImVec4(decode_color_to_float_array(m_is_dark_mode ? "#4D4D54" : "#D4D4D4")));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive      , ImGuiWrapper::to_ImVec4(decode_color_to_float_array(m_is_dark_mode ? "#3E3E45" : "#DFDFDF")));
+    ImGui::PushStyleColor(ImGuiCol_TextDisabled      , m_is_dark_mode ? ImVec4(1.f,1.f,1.f,.4f) : ImVec4(0.f,0.f,0.f,.4f));
+    ImGui::PushStyleColor(ImGuiCol_Border            , ImGuiWrapper::to_ImVec4(decode_color_to_float_array(m_is_dark_mode ? "#4E4E54" : "#D4D4D8")));
 
     m_imgui->begin(std::string("##PlateArrangementDialog"), ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
@@ -224,9 +224,9 @@ void PlateArrangementDialog::render_title_bar()
     if (m_imgui->button(_L("Close"), ImVec2(cfg.close_width, cfg.title_height), true))
         set_open(false);
 
-    const float y = std::round(p.y + cfg.title_height + cfg.row_spacing * .5f);
+    const float y = std::round(p.y + cfg.title_height + cfg.v_spacing * .5f);
     ImGui::GetWindowDrawList()->AddLine(ImVec2(p.x, y), ImVec2(p.x + cfg.grid_size, y), ImGui::GetColorU32(ImGuiCol_Separator), 1.f);
-    ImGui::SetCursorPos(ImVec2(start.x, start.y + cfg.title_height + cfg.row_spacing));
+    ImGui::SetCursorPos(ImVec2(start.x, start.y + cfg.title_height + cfg.v_spacing));
 }
 
 void PlateArrangementDialog::render_plate_grid()
@@ -326,7 +326,6 @@ void PlateArrangementDialog::render_plate(ImDrawList* dl, PartPlate* plate, cons
     const GuiCfg& cfg   = *m_gui_cfg;
     const ImVec2  pmax  = pmin + ImVec2(size, size);
     const float   inset = cfg.plate_inset;
-    const float   inner = std::max(0.f, cfg.plate_rounding - inset);
 
     auto w_alpha = [](ImVec4 c, float a) { c.w *= a; return c; }; // reduce on drag preview
     auto u32     = [](ImVec4 c) { return  ImGui::ColorConvertFloat4ToU32(c); };
@@ -340,12 +339,12 @@ void PlateArrangementDialog::render_plate(ImDrawList* dl, PartPlate* plate, cons
     // Square number badge
     const std::string num   = std::to_string(plate->get_index() + 1);
     ImFont*           font  = ImGui::GetFont();
-    const float       fsize = ImGui::GetFontSize() * cfg.no_font_scale * std::clamp(size / (2.f * cell_size(cfg.max_columns)), .8f, 1.f);
+    const float       fsize = ImGui::GetFontSize() * std::clamp(size / (2.f * cell_size(cfg.max_columns)), .8f, 1.f); // use smaller font on denser grids
     const ImVec2      ref   = font->CalcTextSizeA(fsize, FLT_MAX, 0.f, m_plate_count > 9 ? "99" : "9");
     const float       side  = std::round(std::max(ref.x + fsize * .4f, ref.y));
     const ImVec2      bmin  = pmin + ImVec2(inset, inset);
     const ImVec2      tsz   = font->CalcTextSizeA(fsize, FLT_MAX, 0.f, num.c_str());
-    dl->AddRectFilled(bmin, bmin + ImVec2(side, side), u32(w_alpha(selected ? ImGuiWrapper::COL_ORCA : plate_tint, alpha)), inner);
+    dl->AddRectFilled(bmin, bmin + ImVec2(side, side), u32(w_alpha(selected ? ImGuiWrapper::COL_ORCA : plate_tint, alpha)), std::max(0.f, cfg.plate_rounding - inset));
     dl->AddText(font, fsize, bmin + (ImVec2(side, side) - tsz) * .5f, u32(w_alpha(selected ? ImVec4(1.f, 1.f, 1.f, 1.f) : ImGui::GetStyleColorVec4(ImGuiCol_Text), alpha)), num.c_str());
 
     // State badges
@@ -405,8 +404,8 @@ void PlateArrangementDialog::render_bottom_bar()
     auto w_alpha = [](ImVec4 c, float alpha) { c.w *= alpha; return c; }; // reduce on drag preview
 
     // Every item of a row starts at the row's top and is as tall as a button, the name field included.
-    const float row1 = std::round(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y + cfg.row_spacing);
-    const float row2 = row1 + btn + cfg.row_spacing;
+    const float row1 = std::round(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y + cfg.v_spacing);
+    const float row2 = row1 + btn + cfg.v_spacing;
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(cfg.item_spacing, (btn - ImGui::GetFontSize()) * .5f));
 
     // Top row for plate
@@ -595,8 +594,8 @@ void PlateArrangementDialog::create_gui_cfg()
     cfg.button_size     = px(26.f);
     cfg.button_padding  = cfg.frame_rounding; // image_button() rounds its corners by at most the padding
     cfg.item_spacing    = px(4.f);
-    cfg.group_spacing   = px(12.f);
-    cfg.row_spacing     = px(12.f);
+    cfg.group_spacing   = px(10.f);
+    cfg.v_spacing     = px(12.f);
     cfg.drag_threshold  = px(5.f);
     m_gui_cfg = cfg;
 }
@@ -651,7 +650,7 @@ void PlateArrangementDialog::update_thumbnails()
         return;
 
     // Rendered at 2x the cell for crisp previews on HiDPI screens.
-    const int px = std::clamp(int(std::ceil(cell_size(grid_columns(m_plate_count)) * 2.f)), 64, m_gui_cfg->thumbnail_max);
+    const int px = std::clamp(int(std::ceil(cell_size(grid_columns(m_plate_count)) * 2.f)), 64, 512);
 
     if (wxGetApp().plater()->is_gcode_3mf()) { // no model to render from: use the previews stored in the 3mf
         for (int i = 0; i < m_plate_count; ++i)
