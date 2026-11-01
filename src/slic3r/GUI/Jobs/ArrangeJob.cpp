@@ -14,6 +14,7 @@
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 
 #include "libnest2d/common.hpp"

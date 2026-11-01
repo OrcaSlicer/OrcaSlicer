@@ -4018,29 +4018,6 @@ ExPolygon ModelInstance::true_outline_2d_ex(const Transform3d &trafo_instance) c
 }
 
 //BBS: hull-first footprint test, used by the exclusion-area checks.
-bool ModelInstance::footprint_intersects(const Polygons &polys, const Transform3d &trafo_instance,
-                                         const Point &offset) const
-{
-    if (polys.empty())
-        return false;
-
-    // The footprint is inside the convex hull, so a clear hull never pays for the projection.
-    Polygon hull = get_object()->convex_hull_2d(trafo_instance);
-    hull.translate(offset);
-    if (intersection(polys, hull).empty())
-        return false;
-
-    // Without the sparrow packer nothing places concave outlines near the region, so the hull
-    // stays the criterion and behaviour is unchanged.
-    if (!arrangement::sparrow_available())
-        return true;
-
-    // Hull crosses the region: a concave or rotated part may still be clear.
-    ExPolygon outline = true_outline_2d_ex(trafo_instance);
-    outline.translate(offset);
-    return !intersection_ex(outline, polys).empty();
-}
-
 void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConfig &config_global) const
 {
 //    static const double SIMPLIFY_TOLERANCE_MM = 0.1;

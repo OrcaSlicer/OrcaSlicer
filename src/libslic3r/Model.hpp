@@ -1579,12 +1579,6 @@ public:
     ExPolygon true_outline_2d_ex(const Transform3d &trafo_instance) const;
     Polygon   true_outline_2d(const Transform3d &trafo_instance) const;
 
-    // BBS: does this instance's footprint intersect `polys`? `trafo_instance` and
-    // `offset` place the instance into the frame of `polys`. Tests the convex hull
-    // first and only pays for the true outline when the hull intersects.
-    bool footprint_intersects(const Polygons &polys, const Transform3d &trafo_instance,
-                              const Point &offset = Point(0, 0)) const;
-
     // Getting the input polygon for arrange
     // We use void* as input type to avoid including Arrange.hpp in Model.hpp.
     void get_arrange_polygon(void *arrange_polygon, const Slic3r::DynamicPrintConfig &config = Slic3r::DynamicPrintConfig()) const;

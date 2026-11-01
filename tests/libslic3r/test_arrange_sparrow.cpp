@@ -289,28 +289,6 @@ TEST_CASE("Stock fallback uses convex hulls without changing input contours", "[
     }
 }
 
-TEST_CASE("Exclusion checks retain shallow mesh protrusions", "[arrange][sparrow]")
-{
-    // A 0.1 mm outward tip disappears under the former 0.2 mm simplification.
-    std::vector<Vec3f> vertices{{0, 0, 1}, {20, 0, 1}, {20.1f, 10, 1}, {20, 20, 1}, {0, 20, 1}};
-    for (size_t i = 0; i < 5; ++i)
-        vertices.emplace_back(vertices[i].x(), vertices[i].y(), 2.f);
-    std::vector<Vec3i> faces{{0, 2, 1}, {0, 3, 2}, {0, 4, 3},
-                             {5, 6, 7}, {5, 7, 8}, {5, 8, 9}};
-    for (int i = 0; i < 5; ++i) {
-        int j = (i + 1) % 5;
-        faces.emplace_back(i, j, j + 5);
-        faces.emplace_back(i, j + 5, i + 5);
-    }
-    Model model;
-    auto *object = model.add_object();
-    const TriangleMesh mesh(vertices, faces);
-    object->add_volume(mesh, false);
-    auto *instance = object->add_instance();
-    REQUIRE(instance->footprint_intersects({rectangle(20.04, 9, 1, 2)}, Transform3d::Identity()));
-    REQUIRE_FALSE(instance->footprint_intersects({rectangle(20.2, 9, 1, 2)}, Transform3d::Identity()));
-}
-
 namespace {
 ArrangePolygon ring_host(Polygon opening)
 {
@@ -450,14 +428,12 @@ TEST_CASE("Projected openings reach Arrange and close when covered by geometry",
     instance->get_arrange_polygon(&first, config);
     REQUIRE(first.poly.holes.size() == 1);
     REQUIRE(std::abs(first.poly.holes.front().area()) * SCALING_FACTOR * SCALING_FACTOR == Approx(160. * 160.));
-    REQUIRE_FALSE(instance->footprint_intersects({rectangle(80, 80, 20, 20)}, Transform3d::Identity()));
     // A later volume change must invalidate the cached opening. Even a thin
     // ceiling would make the projected opening unsafe for another printed part.
     add_box(20, 20, 160, 160);
     ArrangePolygon covered;
     instance->get_arrange_polygon(&covered, config);
     REQUIRE(covered.poly.holes.empty());
-    REQUIRE(instance->footprint_intersects({rectangle(80, 80, 20, 20)}, Transform3d::Identity()));
 }
 
 TEST_CASE("Cancelling before hole cleanup preserves the completed placement", "[arrange][sparrow][holes]")

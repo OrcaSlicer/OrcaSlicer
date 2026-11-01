@@ -58,7 +58,6 @@
 #include "IMEXHelpers.hpp"
 #include "IMEXZones.hpp"
 #include "Print.hpp"
-#include "Arrange.hpp"
 #include "BoundingBox.hpp"
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
@@ -1634,19 +1633,6 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     Polygons convex_hulls_other;
     // Orca: check convex hull intersection for each instance individually
     for (auto& inst : print_instances_ordered) {
-        // BBS: exclusion check once per instance on the true footprint, not per
-        // volume on the hull -- a concave or rotated part whose hull clips the
-        // exclusion zone can still be clear of it.
-        // Only with the sparrow packer; otherwise the per-volume hull test below applies.
-        if (arrangement::sparrow_available() && inst->model_instance->footprint_intersects(
-                exclude_polys,
-                Geometry::assemble_transform(Vec3d::Zero(), inst->model_instance->get_rotation(),
-                                             inst->model_instance->get_scaling_factor(), inst->model_instance->get_mirror()),
-                inst->shift - inst->print_object->center_offset())) {
-            //ORCA: Pass ModelInstance instead of ModelObject
-            return {inst->model_instance->get_object()->name + L(" is too close to exclusion area, there may be collisions when printing.") + "\n",
-                    inst->model_instance};
-        }
         Polygons current_instance_hulls;
         for (const ModelVolume *v : inst->print_object->model_object()->volumes) {
             if (!v->is_model_part()) continue;
