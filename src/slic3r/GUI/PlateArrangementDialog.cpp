@@ -330,8 +330,9 @@ void PlateArrangementDialog::render_plate(ImDrawList* dl, PartPlate* plate, cons
     auto w_alpha = [](ImVec4 c, float a) { c.w *= a; return c; }; // reduce on drag preview
     auto u32     = [](ImVec4 c) { return  ImGui::ColorConvertFloat4ToU32(c); };
 
-    ImVec4 plate_tint = ImVec4(0.f, 0.f, 0.f, m_is_dark_mode ? .1f : .05f);
-    dl->AddRectFilled(pmin, pmax, u32(w_alpha(selected ? w_alpha(ImGuiWrapper::COL_ORCA, .25f) : plate_tint, alpha)), cfg.plate_rounding);
+    ImVec4 plate_tint     = ImVec4(0.f, 0.f, 0.f, m_is_dark_mode ? .1f : .05f);
+    ImVec4 plate_sel_tint = m_focused ? w_alpha(ImGuiWrapper::COL_ORCA, .25f) : ImGui::GetStyleColorVec4(ImGuiCol_Button);
+    dl->AddRectFilled(pmin, pmax, u32(w_alpha(selected ? plate_sel_tint : plate_tint, alpha)), cfg.plate_rounding);
     auto it = m_thumbnails.find(plate);
     if (it != m_thumbnails.end() && it->second.texture && it->second.texture->texture_id)
         dl->AddImageRounded(it->second.texture->texture_id, pmin, pmax, ImVec2(0.f, 1.f), ImVec2(1.f, 0.f), IM_COL32(255, 255, 255, 255), cfg.plate_rounding);
@@ -344,7 +345,8 @@ void PlateArrangementDialog::render_plate(ImDrawList* dl, PartPlate* plate, cons
     const float       side  = std::round(std::max(ref.x + fsize * .4f, ref.y));
     const ImVec2      bmin  = pmin + ImVec2(inset, inset);
     const ImVec2      tsz   = font->CalcTextSizeA(fsize, FLT_MAX, 0.f, num.c_str());
-    dl->AddRectFilled(bmin, bmin + ImVec2(side, side), u32(w_alpha(selected ? ImGuiWrapper::COL_ORCA : plate_tint, alpha)), std::max(0.f, cfg.plate_rounding - inset));
+    ImVec4            no_bg = m_focused ? ImGuiWrapper::COL_ORCA : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+    dl->AddRectFilled(bmin, bmin + ImVec2(side, side), u32(w_alpha(selected ? no_bg : plate_tint, alpha)), std::max(0.f, cfg.plate_rounding - inset));
     dl->AddText(font, fsize, bmin + (ImVec2(side, side) - tsz) * .5f, u32(w_alpha(selected ? ImVec4(1.f, 1.f, 1.f, 1.f) : ImGui::GetStyleColorVec4(ImGuiCol_Text), alpha)), num.c_str());
 
     // State badges
@@ -361,7 +363,8 @@ void PlateArrangementDialog::render_plate(ImDrawList* dl, PartPlate* plate, cons
 
     if (selected || hovered) {
         const float t = cfg.border;
-        dl->AddRect(pmin - ImVec2(t, t) * .5f, pmax + ImVec2(t, t) * .5f, u32(w_alpha(selected && hovered ? ImGuiWrapper::COL_ORCA_HOVER : ImGuiWrapper::COL_ORCA, alpha)), cfg.plate_rounding + t * .5f, 0, t);
+        ImVec4 border_clr = m_focused ? (selected && hovered ? ImGuiWrapper::COL_ORCA_HOVER : ImGuiWrapper::COL_ORCA) : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+        dl->AddRect(pmin - ImVec2(t, t) * .5f, pmax + ImVec2(t, t) * .5f, u32(w_alpha(border_clr, alpha)), cfg.plate_rounding + t * .5f, 0, t);
     } else
         dl->AddRect(pmin, pmax, u32(w_alpha(ImGui::GetStyleColorVec4(ImGuiCol_Border), alpha)), cfg.plate_rounding, 0, 1.f);
 }
