@@ -46,7 +46,9 @@
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
+#include <chrono>
 #include <cmath>
+#include <memory>
 #include <string>
 
 #define SAVE_ARRANGE_POLY 0
@@ -654,6 +656,26 @@ void ArrangeJob::prepare()
 #endif
 
     check_unprintable();
+
+    // The live view of the packing pass starts from what is on the plates now.
+    m_stock_selected.clear();
+    m_live_stock.clear();
+    m_live_restore.clear();
+    m_live_open = false;
+    m_live_used = false;
+    m_live_alive = std::make_shared<std::atomic<bool>>(true);
+    if (m_pack_eligible) {
+        m_live_aps = m_selected;
+        for (ModelObject *mo : m_plater->model().objects)
+            for (ModelInstance *mi : mo->instances)
+                m_live_restore.emplace_back(mi, mi->get_transformation());
+        DynamicConfig &proj_cfg = wxGetApp().preset_bundle->project_config;
+        const auto    *wtx      = proj_cfg.opt<ConfigOptionFloats>("wipe_tower_x");
+        const auto    *wty      = proj_cfg.opt<ConfigOptionFloats>("wipe_tower_y");
+        m_live_tower_x   = wtx ? wtx->values : std::vector<double>();
+        m_live_tower_y   = wty ? wty->values : std::vector<double>();
+        m_live_tower_pos = m_plater->model().wipe_tower.positions;
+    }
 }
 
 void ArrangeJob::check_unprintable()
@@ -753,6 +775,20 @@ void ArrangeJob::pack_tighter(Ctl &ctl, ArrangePolygons &selected, const Points 
     m_progress_value = 0;
     ctl.update_status(0, _u8L("Packing tighter..."));
 
+    // Show the stock result first, held for a moment before sparrow's layouts replace it.
+    std::vector<arrangement::ArrangeParams::Pose> stock;
+    for (const ArrangePolygon &ap : m_selected)
+        stock.push_back({ap.bed_idx, ap.translation, ap.rotation});
+    const std::shared_ptr<std::atomic<bool>> alive = m_live_alive;
+    m_live_open = true;
+    wxGetApp().CallAfter([this, alive, stock] {
+        if (!alive->load())
+            return;
+        m_live_stock = stock;
+        apply_live(stock);
+    });
+    auto last = std::make_shared<std::chrono::steady_clock::time_point>(std::chrono::steady_clock::now() + std::chrono::milliseconds(875));
+
     // Sparrow ignores the input bed of movable items, so one left unplaced means it failed.
     for (ArrangePolygon &ap : selected)
         if (!ap.is_virt_object) // prime towers stay pinned to their plates
@@ -768,6 +804,16 @@ void ArrangeJob::pack_tighter(Ctl &ctl, ArrangePolygons &selected, const Points 
             plate_filaments[ap.bed_idx].insert(ap.extrude_ids.begin(), ap.extrude_ids.end());
     for (const auto &[bed, filaments] : plate_filaments)
         pack.sparrow_max_filaments_per_plate = std::max(pack.sparrow_max_filaments_per_plate, int(filaments.size()));
+    pack.on_layout = [this, alive, last](const std::vector<arrangement::ArrangeParams::Pose> &poses) {
+        const auto now = std::chrono::steady_clock::now();
+        if (now - *last < std::chrono::milliseconds(125))
+            return;
+        *last = now;
+        wxGetApp().CallAfter([this, alive, poses] {
+            if (alive->load())
+                apply_live(poses);
+        });
+    };
     arrangement::arrange(selected, m_unselected, bedpts, pack);
 
     // Fewer parts left out wins, then fewer plates. A stop falls back to the stock result.
@@ -776,6 +822,7 @@ void ArrangeJob::pack_tighter(Ctl &ctl, ArrangePolygons &selected, const Points 
     if (!ctl.was_canceled() && (packed_unplaced < m_stock_unplaced || (packed_unplaced == m_stock_unplaced && packed < m_stock_score))) {
         m_packed_score    = packed;
         m_packed_unplaced = packed_unplaced;
+        m_stock_selected  = std::move(m_selected);
         m_selected        = std::move(selected);
     }
 }
@@ -902,22 +949,89 @@ static std::string concat_strings(const std::set<std::string> &strings,
         });
 }
 
-void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
-    try {
-        if (eptr)
-            std::rethrow_exception(eptr);
-    } catch (libnest2d::GeometryException &) {
-        show_error(m_plater, _(L("Arrange failed. "
-                                 "Found some exceptions when processing object geometries.")));
-        eptr = nullptr;
-    } catch (...) {
-        eptr = std::current_exception();
-    }
+void ArrangeJob::restore_live()
+{
+    // Nothing stops an edit during the job, so skip instances deleted since prepare().
+    std::set<const ModelInstance *> alive;
+    for (const ModelObject *mo : m_plater->model().objects)
+        alive.insert(mo->instances.begin(), mo->instances.end());
+    for (auto &[instance, trafo] : m_live_restore)
+        if (alive.count(instance))
+            instance->set_transformation(trafo);
 
-    // A cancel while the packer runs keeps the stock result, which m_selected still holds.
-    if ((canceled && !m_packing) || eptr)
+    // Prime towers too: applying a layout can move them (new plates, exclusion zones).
+    PartPlateList &plates = m_plater->get_partplate_list();
+    DynamicConfig &proj_cfg = wxGetApp().preset_bundle->project_config;
+    auto          *wtx      = proj_cfg.opt<ConfigOptionFloats>("wipe_tower_x");
+    auto          *wty      = proj_cfg.opt<ConfigOptionFloats>("wipe_tower_y");
+    if (!wtx || !wty || m_live_tower_x.size() != m_live_tower_y.size())
         return;
+    auto &positions = m_plater->model().wipe_tower.positions;
+    for (int i = 0; i < plates.get_plate_count(); ++i) {
+        if (i < int(m_live_tower_x.size()) && i < int(wtx->values.size()) && i < int(wty->values.size())) {
+            wtx->values[i] = m_live_tower_x[i];
+            wty->values[i] = m_live_tower_y[i];
+        } else
+            plates.set_default_wipe_tower_pos_for_plate(i); // a plate added since prepare()
+        if (i < int(positions.size()))
+            positions[i] = i < int(m_live_tower_pos.size()) ? m_live_tower_pos[i] : Vec2d(wtx->values[i], wty->values[i]);
+    }
+}
 
+// Main thread. Re-applies from the saved transformations, because ArrangePolygon::apply()
+// adds its rotation to the instance's current one.
+void ArrangeJob::apply_live(const std::vector<arrangement::ArrangeParams::Pose> &poses)
+{
+    if (!m_live_open || poses.size() != m_live_aps.size())
+        return;
+    m_live_used = true;
+    restore_live();
+    PartPlateList &plate_list = m_plater->get_partplate_list();
+
+    // Sparrow fills plates from the first one, so its plates go in front and the stock
+    // plates, with the parts it has not taken yet, follow.
+    int sparrow_plates = 0;
+    for (size_t i = 0; i < poses.size(); ++i)
+        if (!m_live_aps[i].is_virt_object)
+            sparrow_plates = std::max(sparrow_plates, poses[i].bed_idx + 1);
+
+    // Assign every plate first: a new plate can reflow the grid that positions depend on.
+    std::vector<ArrangePolygon> live, waiting;
+    for (size_t i = 0; i < poses.size(); ++i) {
+        ArrangePolygon ap = m_live_aps[i];
+        if (ap.is_virt_object)
+            continue;
+        arrangement::ArrangeParams::Pose pose = poses[i];
+        if (pose.bed_idx < 0 && !only_on_partplate && i < m_live_stock.size() && m_live_stock[i].bed_idx >= 0) {
+            pose = m_live_stock[i];
+            pose.bed_idx += sparrow_plates;
+        }
+        if (pose.bed_idx < 0) {
+            waiting.push_back(ap); // not placed yet: wait outside in the original layout
+            continue;
+        }
+        ap.bed_idx     = pose.bed_idx;
+        ap.translation = pose.translation;
+        ap.rotation    = pose.rotation;
+        // Creates plates as needed; finalize() recycles any left empty.
+        if (only_on_partplate)
+            plate_list.postprocess_bed_index_for_current_plate(ap);
+        else
+            plate_list.postprocess_bed_index_for_selected(ap);
+        live.push_back(ap);
+    }
+    for (ArrangePolygon &ap : waiting)
+        ap.bed_idx = plate_list.get_plate_count();
+    live.insert(live.end(), waiting.begin(), waiting.end());
+    for (ArrangePolygon &ap : live) {
+        plate_list.postprocess_arrange_polygon(ap, true);
+        ap.apply();
+    }
+    m_plater->canvas3D()->reload_scene(true);
+}
+
+void ArrangeJob::apply_result(ArrangePolygons &selected, ArrangePolygons &unselected, ArrangePolygons &locked, ArrangePolygons &unprintable)
+{
     // Unprintable items go to the last virtual bed
     int beds = 0;
 
@@ -930,7 +1044,7 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
     else
         plate_list.clear(false, false, true, -1);
     //BBS: adjust the bed_index, create new plates, get the max bed_index
-    for (ArrangePolygon& ap : m_selected) {
+    for (ArrangePolygon& ap : selected) {
         //if (ap.bed_idx < 0) continue;  // bed_idx<0 means unarrangable
         //BBS: partplate postprocess
         if (only_on_partplate)
@@ -944,7 +1058,7 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
     }
 
     //BBS: adjust the bed_index, create new plates, get the max bed_index
-    for (ArrangePolygon& ap : m_unselected)
+    for (ArrangePolygon& ap : unselected)
     {
         if (ap.is_virt_object)
             continue;
@@ -957,7 +1071,7 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(":arrange unselected %4%: bed_id %1%, trans {%2%,%3%}") % ap.bed_idx % unscale<double>(ap.translation(X)) % unscale<double>(ap.translation(Y)) % ap.name;
     }
 
-    for (ArrangePolygon& ap : m_locked) {
+    for (ArrangePolygon& ap : locked) {
         beds = std::max(ap.bed_idx, beds);
 
         plate_list.postprocess_arrange_polygon(ap, false);
@@ -966,7 +1080,7 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
     }
 
     // Apply the arrange result to all selected objects
-    for (ArrangePolygon& ap : m_selected) {
+    for (ArrangePolygon& ap : selected) {
         //BBS: partplate postprocess
         plate_list.postprocess_arrange_polygon(ap, true);
 
@@ -974,7 +1088,7 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
     }
 
     // Apply the arrange result to unselected objects(due to the sukodu-style column changes, the position of unselected may also be modified)
-    for (ArrangePolygon& ap : m_unselected)
+    for (ArrangePolygon& ap : unselected)
     {
         if (ap.is_virt_object)
             continue;
@@ -987,7 +1101,7 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
 
     // Move the unprintable items to the last virtual bed.
     // Note ap.apply() moves relatively according to bed_idx, so we need to subtract the orignal bed_idx
-    for (ArrangePolygon& ap : m_unprintable) {
+    for (ArrangePolygon& ap : unprintable) {
         ap.bed_idx = beds + 1;
         plate_list.postprocess_arrange_polygon(ap, true);
 
@@ -995,27 +1109,7 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(":arrange m_unprintable: name: %4%, bed_id %1%, trans {%2%,%3%}") % ap.bed_idx % unscale<double>(ap.translation(X)) % unscale<double>(ap.translation(Y)) % ap.name;
     }
 
-    {
-        Slic3r::LifecycleEventContext ctx;
-        ctx.code = Slic3r::LifecycleEvtCode::Ok;
-        ctx.msg = "arranged";
-        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
-    }
-
     m_plater->update();
-    // BBS
-    //wxGetApp().obj_manipul()->set_dirty();
-
-    if (!m_unarranged.empty()) {
-        std::set<std::string> names;
-        for (ModelInstance *mi : m_unarranged)
-            names.insert(mi->get_object()->name);
-
-        m_plater->get_notification_manager()->push_notification(GUI::format(
-            _L("Arrangement ignored the following objects which can't fit into a single bed:\n%s"),
-            concat_strings(names, "\n")));
-    }
-    m_plater->get_notification_manager()->close_notification_of_type(NotificationType::ArrangeOngoing);
 
     //BBS: reload all objects due to arrange
     if (only_on_partplate) {
@@ -1035,6 +1129,68 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
     wxGetApp().obj_list()->reload_all_plates();
 
     m_plater->update();
+}
+
+void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
+    // Drop the live preview: the result applies relative to the original transformations.
+    if (m_live_alive)
+        m_live_alive->store(false);
+    if (m_live_used)
+        restore_live();
+
+    try {
+        if (eptr)
+            std::rethrow_exception(eptr);
+    } catch (libnest2d::GeometryException &) {
+        show_error(m_plater, _(L("Arrange failed. "
+                                 "Found some exceptions when processing object geometries.")));
+        eptr = nullptr;
+    } catch (...) {
+        eptr = std::current_exception();
+    }
+
+    // A cancel while the packer runs keeps the stock result, which m_selected still holds.
+    if ((canceled && !m_packing) || eptr) {
+        if (m_live_used) {
+            // The preview may have added plates; recycle the empty ones.
+            if (!only_on_partplate)
+                m_plater->get_partplate_list().rebuild_plates_after_arrangement(true, true);
+            m_plater->update();
+        }
+        return;
+    }
+
+    // The stock result first, as its own undo step: undo goes packed -> stock -> before.
+    // Not with locked or skipped plates: applying unlocks those, and a second apply would
+    // then map beds onto them.
+    if (m_packed_score >= 0 && m_locked.empty() && m_uncompatible_plates.empty()) {
+        ArrangePolygons unselected = m_unselected, locked = m_locked, unprintable = m_unprintable;
+        apply_result(m_stock_selected, unselected, locked, unprintable);
+        m_plater->take_snapshot(_u8L("Pack tighter"));
+        restore_live();
+    }
+    apply_result(m_selected, m_unselected, m_locked, m_unprintable);
+
+    {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        ctx.msg = "arranged";
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
+    }
+
+    if (!m_unarranged.empty()) {
+        std::set<std::string> names;
+        for (ModelInstance *mi : m_unarranged)
+            names.insert(mi->get_object()->name);
+
+        m_plater->get_notification_manager()->push_notification(GUI::format(
+            _L("Arrangement ignored the following objects which can't fit into a single bed:\n%s"),
+            concat_strings(names, "\n")));
+    }
+    m_plater->get_notification_manager()->close_notification_of_type(NotificationType::ArrangeOngoing);
+    if (m_packing)
+        m_plater->get_notification_manager()->push_notification(NotificationType::BBLPlateInfo,
+            NotificationManager::NotificationLevel::RegularNotificationLevel, done_message(canceled));
 
     m_plater->m_arrange_running.store(false);
 }

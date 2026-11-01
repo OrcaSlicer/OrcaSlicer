@@ -4,7 +4,10 @@
 
 #include <map>
 #include "libslic3r/Polygon.hpp"
+#include <atomic>
 #include <exception>
+#include <memory>
+#include <utility>
 #include <optional>
 #include <string>
 #include <vector>
@@ -12,6 +15,7 @@
 #include "Job.hpp"
 #include "libslic3r/Arrange.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Geometry.hpp"
 #include "libslic3r/IMEXArrange.hpp"
 
 namespace Slic3r {
@@ -75,6 +79,24 @@ class ArrangeJob : public Job
     bool        predict_better(int stock_score, double bed_area) const;
     std::string done_message(bool canceled) const;
     void        pack_tighter(Ctl &ctl, ArrangePolygons &selected, const Points &bedpts);
+    void        apply_result(ArrangePolygons &selected, ArrangePolygons &unselected, ArrangePolygons &locked, ArrangePolygons &unprintable);
+
+    ArrangePolygons m_stock_selected; // kept for the undo step
+
+    // Live view of the sparrow phase. Applied from the transformations saved in
+    // prepare(), which finalize() restores before applying the result.
+    ArrangePolygons m_live_aps;
+    std::vector<arrangement::ArrangeParams::Pose> m_live_stock; // where parts wait until sparrow takes them
+    std::vector<std::pair<ModelInstance *, Geometry::Transformation>> m_live_restore;
+    // Prime tower state as prepare() found it; restore_live() puts it back with the parts.
+    std::vector<double> m_live_tower_x, m_live_tower_y;
+    std::vector<Vec2d>  m_live_tower_pos;
+    bool                m_live_open = false;
+    bool                m_live_used = false;
+    // Cleared by finalize(); queued preview updates check it before touching the job.
+    std::shared_ptr<std::atomic<bool>> m_live_alive;
+    void apply_live(const std::vector<arrangement::ArrangeParams::Pose> &poses);
+    void restore_live();
 
     // clear m_selected and m_unselected, reserve space for next usage
     void clear_input();
