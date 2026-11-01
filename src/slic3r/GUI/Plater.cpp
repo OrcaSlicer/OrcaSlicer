@@ -23339,7 +23339,7 @@ void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
 
 
 //BBS: select Plate by hover_id
-int Plater::reorder_plates(const std::vector<int>& new_order)
+int Plater::arrange_plates(const std::vector<int>& new_order)
 {
     PartPlateList&   list = p->partplate_list;
     std::vector<int> identity(size_t(list.get_plate_count()));

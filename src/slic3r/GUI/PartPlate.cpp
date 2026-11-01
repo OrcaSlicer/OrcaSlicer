@@ -2600,10 +2600,10 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                 render_icon_texture(m_plate_name_edit_icon.model, m_partplate_list->m_plate_name_edit_texture);
 
 			if (hover_id == 7) {
-                render_icon_texture(m_reorder_icon.model, m_partplate_list->m_reorder_hovered_texture);
+                render_icon_texture(m_arrange_plates_icon.model, m_partplate_list->m_arrange_plates_hovered_texture);
                 set_hover_tooltip(wxGetApp().shortcuts().with_key(_u8L("Arrange plates"), Shortcut::PlateArrangement));
             } else
-                render_icon_texture(m_reorder_icon.model, m_partplate_list->m_reorder_texture);
+                render_icon_texture(m_arrange_plates_icon.model, m_partplate_list->m_arrange_plates_texture);
 
             // IDEX/IQEX mode icon — only when is_imex is active
             {
@@ -2974,7 +2974,7 @@ void PartPlate::register_raycasters_for_picking(GLCanvas3D &canvas)
 	// During reset / reload_scene the icon may not have a raycaster yet, which is valid.
 	if (m_plate_name_edit_icon.mesh_raycaster != nullptr)
 		register_model_for_picking(canvas, m_plate_name_edit_icon, picking_id_component(6));
-    register_model_for_picking(canvas, m_reorder_icon, picking_id_component(7));
+    register_model_for_picking(canvas, m_arrange_plates_icon, picking_id_component(7));
 
     // Only register filament map button for H2D (dual-extruder Bambu Lab) printers
     PresetBundle* preset = wxGetApp().preset_bundle;
@@ -5158,7 +5158,7 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
 			PresetBundle* preset = wxGetApp().preset_bundle;
 			dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
 			calc_vertex_for_icons(dual_bbl ? 5 : 6, m_plate_filament_map_icon);
-			calc_vertex_for_icons(dual_bbl ? 6 : 5, m_reorder_icon);
+			calc_vertex_for_icons(dual_bbl ? 6 : 5, m_arrange_plates_icon);
 			{
 				auto* is_imex_opt = preset->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
 				if (is_imex_opt && is_imex_opt->value) {
@@ -6028,18 +6028,18 @@ void PartPlateList::generate_icon_textures()
 	}
 
 	
-	// if (m_reorder_texture.get_id() == 0)
+	// if (m_arrange_plates_texture.get_id() == 0)
     {
         file_name = path + (m_is_dark ? "plate_arrangement_dark.svg" : "plate_arrangement.svg");
-        if (!m_reorder_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
+        if (!m_arrange_plates_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(":load file %1% failed") % file_name;
         }
     }
 
-    // if (m_reorder_hovered_texture.get_id() == 0)
+    // if (m_arrange_plates_hovered_texture.get_id() == 0)
     {
         file_name = path + (m_is_dark ? "plate_arrangement_hover_dark.svg" : "plate_arrangement_hover.svg");
-        if (!m_reorder_hovered_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
+        if (!m_arrange_plates_hovered_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(":load file %1% failed") % file_name;
         }
     }
@@ -6217,8 +6217,8 @@ void PartPlateList::release_icon_textures()
 	m_logo_texture.reset();
 	m_del_texture.reset();
 	m_del_hovered_texture.reset();
-    m_reorder_hovered_texture.reset();
-    m_reorder_texture.reset();
+    m_arrange_plates_hovered_texture.reset();
+    m_arrange_plates_texture.reset();
 	m_arrange_texture.reset();
 	m_arrange_hovered_texture.reset();
 	m_orient_texture.reset();

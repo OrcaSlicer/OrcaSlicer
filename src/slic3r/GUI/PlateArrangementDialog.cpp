@@ -821,7 +821,7 @@ bool PlateArrangementDialog::is_identity(const std::vector<int>& order)
 void PlateArrangementDialog::apply_order(const std::vector<int>& order)
 {
     if (!is_identity(order)) // the plate list is changed outside of the ImGui frame
-        wxGetApp().plater()->CallAfter([order]() { wxGetApp().plater()->reorder_plates(order); });
+        wxGetApp().plater()->CallAfter([order]() { wxGetApp().plater()->arrange_plates(order); });
 }
 
 void PlateArrangementDialog::zoom_to_selection()

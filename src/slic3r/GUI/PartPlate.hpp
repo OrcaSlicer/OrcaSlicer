@@ -209,7 +209,7 @@ private:
     PickingModel m_plate_settings_icon;
     PickingModel m_plate_filament_map_icon;
     PickingModel m_plate_name_edit_icon;
-    PickingModel m_reorder_icon;
+    PickingModel m_arrange_plates_icon;
     PickingModel m_imex_mode_icon;
     GLModel      m_imex_warn_icon;   // warning badge: IMEX parallel mode + multi-material conflict
     GLModel m_plate_idx_icon;
@@ -817,8 +817,8 @@ class PartPlateList : public ObjectBase
     GLTexture m_logo_texture;
     GLTexture m_del_texture;
     GLTexture m_del_hovered_texture;
-    GLTexture m_reorder_hovered_texture;
-    GLTexture m_reorder_texture;
+    GLTexture m_arrange_plates_hovered_texture;
+    GLTexture m_arrange_plates_texture;
     GLTexture m_arrange_texture;
     GLTexture m_arrange_hovered_texture;
     GLTexture m_orient_texture;
