@@ -1,4 +1,5 @@
 #include "VoronoiPointCloud.hpp"
+#include "../I18N.hpp"
 #include "../KDTreeIndirect.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
@@ -83,7 +84,7 @@ std::vector<Vec3d> PoissonPointCloud::points_in_cells(const Vec3i64 &first, cons
 
 ActivePointCloud::ActivePointCloud(std::shared_ptr<const PointCloudProvider> provider) : m_provider(std::move(provider))
 {
-    if (!m_provider) throw std::invalid_argument("Missing Voronoi point-cloud provider");
+    if (!m_provider) throw std::invalid_argument(_u8L("Missing Voronoi point-cloud provider"));
 }
 
 double ActivePointCloud::spacing(double s, double h, double density) const
@@ -142,7 +143,7 @@ bool ActivePointCloud::update(const BoundingBox &bounds, double z, double margin
     if (extent && !extent->defined) return false;
     const auto source_extent = extent ? std::optional<BoundingBoxf3>(m_provider->generation_bounds(*extent)) : std::nullopt;
     const double step = m_provider->cell_size(spacing);
-    if (!std::isfinite(step) || step <= 0.) throw std::invalid_argument("Invalid Voronoi generation cell size");
+    if (!std::isfinite(step) || step <= 0.) throw std::invalid_argument(_u8L("Invalid Voronoi generation cell size"));
     const Vec2d min = bounds.min.cast<double>() * SCALING_FACTOR;
     const Vec2d max = bounds.max.cast<double>() * SCALING_FACTOR;
     double reach = spacing;
@@ -163,7 +164,7 @@ bool ActivePointCloud::update(const BoundingBox &bounds, double z, double margin
         if (!std::isfinite(r) && source_extent && contains(m_known, *source_extent) &&
             (m_known.max.array() > source_extent->max.array()).all()) return false;
         if (!std::isfinite(r) && !source_extent && ++empty_expansions > 4)
-            throw std::invalid_argument("Voronoi point sampling found no control points; check infill density and modifiers");
+            throw std::invalid_argument(_u8L("Voronoi point sampling found no control points; check infill density and modifiers"));
 
         // Cull complete cell rows only when more cells are needed, before allocating
         // their points or inserting them into the persistent Delaunay network.
