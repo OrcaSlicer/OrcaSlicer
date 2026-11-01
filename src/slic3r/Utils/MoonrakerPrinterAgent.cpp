@@ -861,7 +861,7 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
     return UNKNOWN_FILAMENT_ID;
 }
 
-bool MoonrakerPrinterAgent::fetch_creality_cfs_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
+std::string MoonrakerPrinterAgent::query_box_object() const
 {
     const std::string url = join_url(device_info.base_url, "/printer/objects/query?box");
     std::string response_body;
@@ -874,7 +874,12 @@ bool MoonrakerPrinterAgent::fetch_creality_cfs_data(std::vector<AmsTrayData>& tr
                 response_body = std::move(body);
         })
         .perform_sync();
+    return response_body;
+}
 
+bool MoonrakerPrinterAgent::fetch_creality_cfs_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
+{
+    const std::string response_body = query_box_object();
     std::vector<CrealityCfsSlot> slots;
     if (response_body.empty() || !parse_creality_cfs_response(response_body, slots) || slots.empty())
         return false;
@@ -1411,7 +1416,7 @@ bool MoonrakerPrinterAgent::query_printer_status(const std::string&           ba
 }
 
 void MoonrakerPrinterAgent::send_gcode_async(const std::string& dev_id, const std::string& gcode,
-                                             std::function<void(bool)> on_result) const
+                                             std::function<void(bool)> on_result, long timeout_max_s) const
 {
     (void) dev_id;
     const std::string base_url = device_info.base_url;
@@ -1423,7 +1428,7 @@ void MoonrakerPrinterAgent::send_gcode_async(const std::string& dev_id, const st
     http.header("Content-Type", "application/json")
         .set_post_body(nlohmann::json{{"script", gcode}}.dump())
         .timeout_connect(5)
-        .timeout_max(10)
+        .timeout_max(timeout_max_s)
         .on_complete([on_result](std::string body, unsigned status_code) {
             (void) body;
             const bool success = status_code == 200;
@@ -2541,11 +2546,23 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
             dispatch_local_connect(ConnectStatusOk, dev_id, "0");
             dispatch_printer_connected(dev_id);
             BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: connect_printer completed - dev_id=" << dev_id;
+            on_printer_connected(dev_id);
         }
     } else if (result != BAMBU_NETWORK_ERR_CANCELED) {
         // Orca todo: revist here, for now don't send error, this is set current MachineObject to null
         // dispatch_local_connect(ConnectStatusFailed, dev_id, error_msg);
     }
+}
+
+void MoonrakerPrinterAgent::fetch_filament_info_on_main(const std::string& dev_id)
+{
+    QueueOnMainFn queue_fn;
+    {
+        std::lock_guard<std::recursive_mutex> lock(state_mutex);
+        queue_fn = queue_on_main_fn;
+    }
+    if (queue_fn)
+        queue_fn([this, dev_id] { fetch_filament_info(dev_id); });
 }
 
 bool MoonrakerPrinterAgent::is_numeric(const std::string& value)
