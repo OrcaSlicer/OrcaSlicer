@@ -1360,6 +1360,14 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("sparse_infill_rotate_template", !FillAdaptive, -1, _L("Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."));
     toggle_field("infill_direction", config->opt_string("sparse_infill_rotate_template") == "" && !FillAdaptive, -1, _L("Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."));
     toggle_field("solid_infill_direction", config->opt_string("solid_infill_rotate_template") == "", -1, _L("Clear the solid infill rotation template to edit solid infill direction."));
+
+    // Voronoi's cloud is fixed in model coordinates.
+    if (pattern == ipVoronoi) {
+        for (const auto key : { "infill_direction", "sparse_infill_rotate_template", "align_infill_direction_to_model" })
+            toggle_line(key, false, -1, _L("Voronoi infill uses a fixed point cloud and does not support rotation."));
+    } else {
+        toggle_line("align_infill_direction_to_model", true);
+    }
     
     toggle_line("infill_overhang_angle", config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralHoneycomb, -1, _L("Select the Lateral Honeycomb sparse infill pattern to use this setting."));
 
