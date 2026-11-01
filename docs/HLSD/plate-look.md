@@ -12,7 +12,7 @@ Looks are stored in `AppConfig` under the `plate_look` section, one key per prin
 
 | Part | Used in |
 | --- | --- |
-| Label | sidebar plate list, per-plate settings dialog |
+| Label | sidebar plate list, per-plate settings dialog, bed temperature rows of the filament settings |
 | Icon | sidebar thumbnail and its hover popup, plate button in the 3D view |
 | Skin | the whole bed surface in the 3D view, replacing the built-in strips or logo |
 

@@ -6,7 +6,9 @@
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "Plater.hpp"
+#include "Tab.hpp"
 #include "format.hpp"
+#include "libslic3r/Preset.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -181,6 +183,8 @@ void edit_plate_looks(wxWindow *parent)
     for (size_t index = 0; index < bed_types.size(); ++index)
         set_plate_look(bed_types[index], dialog.looks()[index]);
     wxGetApp().plater()->sidebar().refresh_plate_looks();
+    if (auto *filament_tab = dynamic_cast<TabFilament *>(wxGetApp().get_tab(Preset::TYPE_FILAMENT)))
+        filament_tab->refresh_plate_labels();
 }
 
 }} // namespace Slic3r::GUI

@@ -101,6 +101,7 @@
 #include "IMEXModesCtrl.hpp"
 #include "MultiChoiceDialog.hpp"
 #include "MsgDialog.hpp"
+#include "PlateLook.hpp"
 #include "PlateLookDialog.hpp"
 #include "Notebook.hpp"
 
@@ -4788,6 +4789,20 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
     }
 }
 
+// The filament rows name some plates differently from the plate list, so they keep their own labels.
+static const char* bed_temp_row_label(BedType bed_type)
+{
+    switch (bed_type) {
+    case btSuperTack: return L("Cool Plate (SuperTack)");
+    case btPC: return L("Cool Plate");
+    case btPCT: return L("Textured Cool Plate");
+    case btEP: return L("Engineering Plate");
+    case btPEI: return L("Smooth PEI Plate / High Temp Plate");
+    case btPTE: return L("Textured PEI Plate");
+    default: return "";
+    }
+}
+
 void TabFilament::build()
 {
     m_presets = &m_preset_bundle->filaments;
@@ -4895,42 +4910,42 @@ void TabFilament::build()
         optgroup->append_line(line);
 
         optgroup = page->new_optgroup(L("Bed temperature"), L"param_bed_temp");
-        line = { L("Cool Plate (SuperTack)"),
+        line = { bed_temp_row_label(btSuperTack),
                  L("Bed temperature when the Cool Plate SuperTack is installed. A value of 0 means the filament does not support printing on the Cool Plate SuperTack.") };
         line.label_path = "material_temperatures#bed";
         line.append_option(optgroup->get_option("supertack_plate_temp_initial_layer"));
         line.append_option(optgroup->get_option("supertack_plate_temp"));
         optgroup->append_line(line);
 
-        line = { L("Cool Plate"),
+        line = { bed_temp_row_label(btPC),
                  L("This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate.") };
         line.label_path = "material_temperatures#bed";
         line.append_option(optgroup->get_option("cool_plate_temp_initial_layer"));
         line.append_option(optgroup->get_option("cool_plate_temp"));
         optgroup->append_line(line);
 
-        line = { L("Textured Cool Plate"),
+        line = { bed_temp_row_label(btPCT),
                  L("This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate.") };
         line.label_path = "material_temperatures#bed";
         line.append_option(optgroup->get_option("textured_cool_plate_temp_initial_layer"));
         line.append_option(optgroup->get_option("textured_cool_plate_temp"));
         optgroup->append_line(line);
 
-        line = { L("Engineering Plate"),
+        line = { bed_temp_row_label(btEP),
                  L("This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate.") };
         line.label_path = "material_temperatures#bed";
         line.append_option(optgroup->get_option("eng_plate_temp_initial_layer"));
         line.append_option(optgroup->get_option("eng_plate_temp"));
         optgroup->append_line(line);
 
-        line = { L("Smooth PEI Plate / High Temp Plate"),
+        line = { bed_temp_row_label(btPEI),
                  L("This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate.") };
         line.label_path = "material_temperatures#bed";
         line.append_option(optgroup->get_option("hot_plate_temp_initial_layer"));
         line.append_option(optgroup->get_option("hot_plate_temp"));
         optgroup->append_line(line);
 
-        line = { L("Textured PEI Plate"),
+        line = { bed_temp_row_label(btPTE),
                  L("This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate.") };
         line.label_path = "material_temperatures#bed";
         line.append_option(optgroup->get_option("textured_plate_temp_initial_layer"));
@@ -5350,6 +5365,7 @@ void TabFilament::update()
 
     m_update_cnt++;
 
+    refresh_plate_labels();
     update_description_lines();
     //BBS: GUI refactor
     //Layout();
@@ -5361,6 +5377,16 @@ void TabFilament::update()
 
     if (m_update_cnt == 0)
         wxGetApp().mainframe->on_config_changed(m_config);
+}
+
+void TabFilament::refresh_plate_labels()
+{
+    for (int index = btPC; index < btCount; ++index) {
+        const BedType     bed_type     = BedType(index);
+        const std::string custom_label = get_plate_look(bed_type).label;
+        set_option_label(get_bed_temp_1st_layer_key(bed_type),
+                         custom_label.empty() ? wxString(bed_temp_row_label(bed_type)) : wxString::FromUTF8(custom_label));
+    }
 }
 
 void TabFilament::clear_pages()
