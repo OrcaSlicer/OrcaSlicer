@@ -203,6 +203,12 @@ struct PublishedConfig
     // zero-based slot. Consumers (e.g. model extruder/color-painting remapping) use this to
     // keep geometry references pointing at the relocated definitions.
     std::map<int, int>          mixed_slot_relocations;
+    // The author's printer extruder layout. When set, published printer keys map to the receiver's
+    // extruder with the author's number (see resolve_published_extruder_slot).
+    PublishedExtruderLayout     printer_layout;
+    // The author's process extruder layout (print_extruder_id / print_extruder_variant). Empty for
+    // files published before per-extruder process keys were exported; those import positionally.
+    PublishedExtruderLayout     print_layout;
 };
 
 // Bundle of Print + Filament + Printer presets.
@@ -302,6 +308,9 @@ public:
     // BBS Load user presets
     PresetsConfigSubstitutions load_user_presets(std::string user, ForwardCompatibilitySubstitutionRule rule, bool read_only = false);
     PresetsConfigSubstitutions load_user_presets(AppConfig &config, std::map<std::string, std::map<std::string, std::string>>& my_presets, ForwardCompatibilitySubstitutionRule rule);
+
+    bool reload_local_bundle(const std::string& preset_folder, const std::string& bundle_id, std::string* error = nullptr);
+    std::vector<std::string> list_local_bundle_ids(const std::string& preset_folder);
     // Orca: Import subscribed bundle presets (load and save to disk in one operation), handles one bundle at a time
     PresetsConfigSubstitutions update_subscribed_presets(AppConfig& config,
                                                          const std::map<std::string, std::map<std::string, std::string>>& bundle_presets,
@@ -397,6 +406,28 @@ public:
     std::vector<Preset*> get_current_project_embedded_presets();
     void reset_project_embedded_presets();
 
+    // What importing a file's settings replaces, so that an import which fails part-way, or whose
+    // file is then rejected, can be undone without copying every preset.
+    struct Selection
+    {
+        struct Collection
+        {
+            std::string       selected;
+            DynamicPrintConfig edited;
+            // The baseline saved_is_dirty() compares against, which feeds the project dirty state.
+            DynamicPrintConfig saved;
+            // By index: an import only inserts project-embedded presets, which a restore drops first.
+            std::vector<bool> visible;
+        };
+        Collection                      prints, filaments, printers;
+        std::vector<std::string>        filament_presets;
+        DynamicPrintConfig              project_config;
+        std::vector<std::map<int, int>> extruder_ams_counts;
+    };
+    // Nothing while project-embedded presets exist: a restore drops them, which would lose a loaded project's presets.
+    std::optional<Selection> selection() const;
+    void                     restore_selection(const Selection &selection);
+
     //BBS: find printer model
     std::string get_texture_for_printer_model(std::string model_name);
     std::string get_stl_model_for_printer_model(std::string model_name);
@@ -404,6 +435,21 @@ public:
 
     // Export selections (current print, current filaments, current printer) into config.ini
     void            export_selections(AppConfig &config);
+
+    // While one lives, export_selections() writes nothing, so a selection only shown for a while (the
+    // settings of a G-code being previewed) is not remembered as the user's. It also covers the
+    // exports the GUI makes on its own while refreshing.
+    class SelectionExportBlocker
+    {
+    public:
+        explicit SelectionExportBlocker(PresetBundle &bundle) : m_bundle(bundle) { ++m_bundle.m_selection_export_blockers; }
+        ~SelectionExportBlocker() { --m_bundle.m_selection_export_blockers; }
+        SelectionExportBlocker(const SelectionExportBlocker &) = delete;
+        SelectionExportBlocker &operator=(const SelectionExportBlocker &) = delete;
+
+    private:
+        PresetBundle &m_bundle;
+    };
 
     // n is the total slot count, and growth appends at the raw tail - which is where the mixed
     // slots live. A caller adding physical filaments has to add num_mixed_filaments() on top and
@@ -413,6 +459,10 @@ public:
 
     void get_ams_cobox_infos(AMSComboInfo &combox_info);
     unsigned int sync_ams_list(std::vector<std::pair<DynamicPrintConfig *,std::string>> &unknowns, bool use_map, std::map<int, AMSMapInfo> &maps, bool enable_append, MergeFilamentInfo &merge_info, bool color_only = false);
+    // Installs the system filament presets in the slots: visible now, and in config's filaments
+    // section, which load_selections() keeps a slot's preset by. After an AMS sync the slots hold the
+    // printer's filaments, which the user may never have ticked.
+    void install_slot_filaments(AppConfig &config);
     //BBS: check whether this is the only edited filament
     bool is_the_only_edited_filament(unsigned int filament_index);
 
@@ -524,7 +574,7 @@ public:
     int get_printer_extruder_count() const;
     bool support_different_extruders() const;
 
-    // Orca: Ensure filament_presets has at least one slot per nozzle on FFF printers.
+    // Orca: Ensure filament_presets has at least min_filament_count() slots on FFF printers.
     // Called from (load|update)_selections before the parallel project_config arrays
     // (filament_colour/colour_type/map) are sized off filament_presets.size(), so a
     // short saved filament list doesn't truncate the loaded colors.
@@ -545,6 +595,11 @@ public:
     // In the future the configuration will likely be read from an AMF file as well.
     // If the file is loaded successfully, its print / filament / printer profiles will be activated.
     ConfigSubstitutions         load_config_file(const std::string &path, ForwardCompatibilitySubstitutionRule compatibility_rule);
+
+    // The settings an OrcaSlicer G-code was sliced with, from its config block, ready for load_config_model().
+    // Throws when the file carries no such block (another slicer, or the block was left out).
+    DynamicPrintConfig          config_from_gcode(const std::string &path, ForwardCompatibilitySubstitutionRule compatibility_rule,
+                                                  ConfigSubstitutions &substitutions) const;
 
     // Load a config bundle file, into presets and store the loaded presets into separate files
     // of the local configuration directory.
@@ -686,6 +741,12 @@ public:
         const std::atomic<bool>* cancel = nullptr, std::vector<std::string>* failed = nullptr);
 
 private:
+    // Orca: The fewest filaments the selected FFF printer runs with. A tool changer carries one
+    // filament per tool, so it needs one per nozzle. A printer feeding filaments through shared
+    // nozzles (single_extruder_multi_material, e.g. a Bambu Lab H2D) maps any number of them onto
+    // its nozzles, so one is enough, and the user may delete down to it.
+    size_t min_filament_count() const;
+
     // Move the presets and vendor profiles of `others` into this bundle, in one pass
     // over each collection. A preset whose name this bundle or an earlier one of
     // `others` already has is left out and listed under the bundle that repeats it.
@@ -895,6 +956,9 @@ private:
     bool validation_mode = false;
     std::string vendor_to_validate = "";
     int m_errors = 0;
+
+    // The live SelectionExportBlockers.
+    int m_selection_export_blockers = 0;
 
     // Helper function: save preset to bundle directory with common logic
     bool save_preset_to_bundle_dir(Preset& preset, PresetCollection* collection,

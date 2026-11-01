@@ -24,6 +24,7 @@
 #include "../PrintConfig.hpp"
 #include "../Flow.hpp"
 #include "../ExtrusionEntity.hpp"
+#include "FillCornerSmoothing.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Point.hpp"
@@ -33,7 +34,7 @@ namespace Slic3r { class ExtrusionEntityCollection; }
 namespace Slic3r {
 
 class Surface;
-class TpmsRadialField;
+class AdaptiveInfillField;
 enum InfillPattern : int;
 
 namespace FillAdaptive {
@@ -93,12 +94,14 @@ struct FillParams
     bool        gyroid_optimized { false };
 
     // For TPMS: grade the density from the surface to the interior of the object. Density fraction.
-    TpmsAdaptiveMode     tpms_adaptive { TpmsAdaptiveMode::Disabled };
-    float                tpms_interior_density { 0.f };
-    TpmsAdaptiveGradient tpms_adaptive_gradient { TpmsAdaptiveGradient::Linear };
+    AdaptiveInfillMode     adaptive_infill_mode { AdaptiveInfillMode::Disabled };
+    float                adaptive_infill_interior_density { 0.f };
+    AdaptiveInfillGradient adaptive_infill_gradient { AdaptiveInfillGradient::Linear };
 
     // Orca: corner smoothing factor in the range [0, 1].
     double      smooth_factor { 0. };
+    // The corner smoothing in scaled coordinates.
+    CornerSmoothing corner_smoothing() const { return CornerSmoothing{smooth_factor, scaled<double>(resolution)}; }
 
     // For Lateral lattice
     coordf_t    lateral_lattice_angle_1    { 0.f };
@@ -162,7 +165,7 @@ public:
     FillAdaptive::Octree* adapt_fill_octree = nullptr;
 
     // Radial coordinate inside the object for the adaptive TPMS infill
-    const TpmsRadialField* tpms_radial_field = nullptr;
+    const AdaptiveInfillField* adaptive_infill_field = nullptr;
 
     // PrintConfig and PrintObjectConfig are used by infills that use Arachne (Concentric and FillEnsuring).
     // Orca: also used by gap fill function.
@@ -258,8 +261,11 @@ public:
 
     static coord_t  _adjust_solid_spacing(const coord_t width, const coord_t distance);
 };
-   //Fill  Multiline 
+   //Fill  Multiline
    void multiline_fill(Polylines& polylines, const FillParams& params, float spacing);
+   // Joins polylines whose ends are at most max_gap apart, shortest gaps first and without closing a loop, so each such
+   // group prints as one path. Without can_reverse only the end of one polyline joins the start of another.
+   void join_close_ends(Polylines &polylines, double max_gap, bool can_reverse);
 } // namespace Slic3r
 
 #endif // slic3r_FillBase_hpp_

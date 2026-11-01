@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 426 426" width="426" height="426">
+	<g fill="none" stroke="#9e9e9e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+		<path transform="translate(104.10,378.80) scale(1.8)" d="M0,0 V14 H6 Q9,14 9,10.5 Q9,7 6,7 H0 M0,7 H5 Q8,7 8,3.5 Q8,0 5,0 H0"/>
+		<path transform="translate(127.50,378.80) scale(1.8)" d="M9,0 H0 V14 H9 M0,7 H7"/>
+		<path transform="translate(150.90,378.80) scale(1.8)" d="M0,14 V0 L9,14 V0"/>
+		<path transform="translate(174.30,378.80) scale(1.8)" d="M9,0 H0 V14 M0,7 H7"/>
+		<path transform="translate(197.70,378.80) scale(1.8)" d="M0,14 L4.5,0 L9,14 M2,8.5 H7"/>
+		<path transform="translate(221.10,378.80) scale(1.8)" d="M0,0 V14 H6 Q9,14 9,10.5 Q9,7 6,7 H0 M0,7 H5 Q8,7 8,3.5 Q8,0 5,0 H0"/>
+		<path transform="translate(258.90,378.80) scale(1.8)" d="M7,14 V0 L0,10 H9"/>
+		<path transform="translate(282.30,378.80) scale(1.8)" d="M9,0 H1 L0.5,6.5 Q8,4.5 9,9.5 Q9,14 4.5,14 Q1,14 0,12"/>
+		<path transform="translate(305.70,378.80) scale(1.8)" d="M4.5,0 Q9,0 9,7 Q9,14 4.5,14 Q0,14 0,7 Q0,0 4.5,0 Z"/>
+	</g>
+</svg>

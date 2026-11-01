@@ -373,6 +373,25 @@ bool GLGizmosManager::init_icon_textures()
         icon_list.insert(std::make_pair((int) icon, texture_id));
     }
 
+    for (const auto& [icon, name] : std::initializer_list<std::pair<MENU_ICON_NAME, const char*>>{
+        { IC_ALIGN_X_MIN   , "align_x_min"    }, { IC_ALIGN_X_MIN_DARK   , "align_x_min_dark"    },
+        { IC_ALIGN_X_CENTER, "align_x_center" }, { IC_ALIGN_X_CENTER_DARK, "align_x_center_dark" },
+        { IC_ALIGN_X_MAX   , "align_x_max"    }, { IC_ALIGN_X_MAX_DARK   , "align_x_max_dark"    },
+        { IC_ALIGN_Y_MIN   , "align_y_min"    }, { IC_ALIGN_Y_MIN_DARK   , "align_y_min_dark"    },
+        { IC_ALIGN_Y_CENTER, "align_y_center" }, { IC_ALIGN_Y_CENTER_DARK, "align_y_center_dark" },
+        { IC_ALIGN_Y_MAX   , "align_y_max"    }, { IC_ALIGN_Y_MAX_DARK   , "align_y_max_dark"    },
+        { IC_ALIGN_Z_MIN   , "align_z_min"    }, { IC_ALIGN_Z_MIN_DARK   , "align_z_min_dark"    },
+        { IC_ALIGN_Z_CENTER, "align_z_center" }, { IC_ALIGN_Z_CENTER_DARK, "align_z_center_dark" },
+        { IC_ALIGN_Z_MAX   , "align_z_max"    }, { IC_ALIGN_Z_MAX_DARK   , "align_z_max_dark"    },
+        { IC_DISTRIBUTE_X  , "distribute_x"   }, { IC_DISTRIBUTE_X_DARK  , "distribute_x_dark"   },
+        { IC_DISTRIBUTE_Y  , "distribute_y"   }, { IC_DISTRIBUTE_Y_DARK  , "distribute_y_dark"   },
+        { IC_DISTRIBUTE_Z  , "distribute_z"   }, { IC_DISTRIBUTE_Z_DARK  , "distribute_z_dark"   }
+    }) {
+        if (!IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/" + name + ".svg", 16, 16, texture_id))
+            return false;
+        icon_list.insert(std::make_pair((int) icon, texture_id));
+    }
+
     return true;
 }
 
@@ -615,6 +634,13 @@ bool GLGizmosManager::is_allow_select_all() {
         return true;
     }
     return false;
+}
+
+// Ctrl+click and Alt+click grow the selection only where that serves the gizmo: the Move gizmo aligns and distributes
+// several objects or parts, while Scale uses Ctrl for single sided scaling.
+bool GLGizmosManager::is_allow_multi_select_parts_or_objects() const
+{
+    return m_current == Undefined || m_current == EType::Move;
 }
 
 std::optional<ClippingPlane> GLGizmosManager::get_clipping_plane() const

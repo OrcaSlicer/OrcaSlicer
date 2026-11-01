@@ -1,9 +1,11 @@
 
 #include <catch2/catch_test_macros.hpp>
+#include <boost/filesystem/path.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include "catch2/generators/catch_generators_range.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/3mf.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
@@ -36,15 +38,22 @@
 #include <nlohmann/json.hpp>
 
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/file_status.hpp>   // no_perms, owner_all
 #include <boost/nowide/fstream.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <algorithm>
 #include <functional>
 #include <initializer_list>
 
+#include <fstream>
+#ifndef _WIN32
+#include <unistd.h> // geteuid
+#endif
+
 #include <catch2/catch_tostring.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <memory>
 #include <string>
 #include <sstream>
 #include <type_traits> // for std::enable_if_t
@@ -172,6 +181,78 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
             }
         }
     }
+}
+
+TEST_CASE("Volumetric per-extruder exclusions survive a 3MF round-trip", "[3mf][ExclusionVolume][MultiNozzle]")
+{
+    // The importer creates a backup tree for the reloaded model. Give that
+    // process-global temp root a writable, isolated location on every OS.
+    ScopedSlic3rTemporaryDir temporary_dir("orca_exclusion");
+
+    Model model;
+    ModelObject *object = model.add_object();
+    object->add_volume(make_cube(10.0, 10.0, 10.0));
+    object->add_instance();
+
+    // Keep the project config intentionally sparse: this test owns only the
+    // exclusion settings and should not depend on unrelated printer-profile
+    // defaults surviving the project archive round-trip.
+    DynamicPrintConfig source;
+    source.set_key_value("bed_exclude_volume_mode",
+                         new ConfigOptionEnum<BedExcludeVolumeMode>(BedExcludeVolumeMode::PerExtruder));
+    source.set_deserialize_strict("bed_exclude_area", "0x0,10x0,10x10,0x10");
+    source.set_key_value("bed_exclude_volumes", new ConfigOptionString("0..10;1x1,2x1,2x2,1x2"));
+    source.set_key_value("extruder_bed_exclude_volumes", new ConfigOptionStrings{
+        "0..25;5x5,15x5,15x15,5x15",
+        "30..80;40x40,55x40,55x55,40x55|0..5;70x10,80x10,80x20,70x20",
+    });
+
+    const boost::filesystem::path backup_dir = temporary_dir.path() / "source_backup";
+    model.set_backup_path(backup_dir.string());
+
+    const boost::filesystem::path path = temporary_dir.path() / "round_trip.3mf";
+    const std::string path_string = path.string();
+    auto plate = std::make_unique<PlateData>();
+    plate->plate_index = 0;
+    StoreParams store_params;
+    store_params.path = path_string.c_str();
+    store_params.model = &model;
+    store_params.config = &source;
+    store_params.plate_data_list.push_back(plate.get());
+    store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+    REQUIRE(store_bbs_3mf(store_params));
+
+    Model reloaded_model;
+    DynamicPrintConfig reloaded;
+    ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Disable};
+    PlateDataPtrs reloaded_plates;
+    std::vector<Preset *> project_presets;
+    bool is_bbl_3mf = false;
+    bool is_orca_3mf = false;
+    Semver file_version;
+    const bool loaded = load_bbs_3mf(
+        path_string.c_str(), &reloaded, &substitutions, &reloaded_model, &reloaded_plates,
+        &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+    release_PlateData_list(reloaded_plates);
+
+    REQUIRE(loaded);
+    REQUIRE(reloaded.option<ConfigOptionEnum<BedExcludeVolumeMode>>("bed_exclude_volume_mode") != nullptr);
+    CHECK(reloaded.option<ConfigOptionEnum<BedExcludeVolumeMode>>("bed_exclude_volume_mode")->value ==
+          BedExcludeVolumeMode::PerExtruder);
+
+    const auto *areas = reloaded.option<ConfigOptionStrings>("extruder_bed_exclude_volumes");
+    REQUIRE(areas != nullptr);
+    REQUIRE(areas->values.size() == 2);
+    CHECK(areas->values == source.option<ConfigOptionStrings>("extruder_bed_exclude_volumes")->values);
+
+    const auto *shared_volumes = reloaded.option<ConfigOptionString>("bed_exclude_volumes");
+    REQUIRE(shared_volumes != nullptr);
+    CHECK(shared_volumes->value == source.opt_string("bed_exclude_volumes"));
+
+    const auto *legacy = reloaded.option<ConfigOptionPoints>("bed_exclude_area");
+    REQUIRE(legacy != nullptr);
+    CHECK(legacy->serialize() == "0x0,10x0,10x10,0x10");
 }
 
 SCENARIO("Mirrored instance transforms survive 3mf round trips", "[3mf][Regression]") {
@@ -404,6 +485,44 @@ static bool load_project(const std::string& path, Model& model, const ScopedTemp
     return loaded;
 }
 
+TEST_CASE("A plate's G-code statistics are stored next to its G-code", "[3mf]")
+{
+    const bool with_statistics = GENERATE(false, true);
+    ScopedTemporaryFile gcode(".gcode");
+    save_string_file(gcode.path(), "G1 X10 Y10 E1\n");
+
+    Model        model;
+    ModelObject* object = model.add_object();
+    object->add_volume(make_cube(10., 10., 10.));
+    object->add_instance();
+    ScopedTemporaryDir backup_dir("orca_statistics_src");
+    model.set_backup_path(backup_dir.string());
+
+    // A sliced plate's info reads the printer settings.
+    DynamicPrintConfig cfg = DynamicPrintConfig::full_print_config();
+    PlateData          plate;
+    plate.plate_index     = 0;
+    plate.gcode_file      = gcode.string();
+    plate.is_sliced_valid = true;
+    if (with_statistics)
+        plate.statistics = R"({ "version": 1 })";
+    ScopedTemporaryFile file(".3mf");
+    const std::string   path = file.string();
+    StoreParams         sp;
+    sp.path     = path.c_str();
+    sp.model    = &model;
+    sp.config   = &cfg;
+    sp.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence | SaveStrategy::WithGcode;
+    sp.plate_data_list.push_back(&plate);
+    REQUIRE(store_bbs_3mf(sp));
+
+    std::string stored;
+    REQUIRE(read_cad_recipe_entry(path, stored, "Metadata/plate_1.gcode"));
+    CHECK(read_cad_recipe_entry(path, stored, "Metadata/plate_1.statistics.json") == with_statistics);
+    if (with_statistics)
+        CHECK(stored == plate.statistics);
+}
+
 TEST_CASE("A project with a plate id below 1 fails to load", "[3mf][Regression]")
 {
     const int plate_id = GENERATE(0, -1);
@@ -459,6 +578,28 @@ TEST_CASE("A project whose components reference themselves fails to load", "[3mf
     bool               loaded = true;
     REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
     REQUIRE_FALSE(loaded);
+}
+
+TEST_CASE("A project in the 2.4.x layout keeps auto drop off from its build item", "[3mf][Regression]")
+{
+    // 2.4.x wrote auto_drop on the build item and left it off the object, so the object is re-laid out here.
+    ScopedTemporaryFile temp(".3mf");
+    {
+        Model        model;
+        ModelObject* object = model.add_object();
+        object->add_volume(make_cube(10., 10., 10.));
+        object->add_instance();
+        object->auto_drop = false;
+        store_project(model, temp.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+    }
+    REQUIRE(replace_in_3mf_entry(temp.string(), "model_settings.config", " auto_drop=\"0\"", ""));
+    REQUIRE(replace_in_3mf_entry(temp.string(), "3dmodel.model", "printable=\"1\"/>", "printable=\"1\" auto_drop=\"0\"/>"));
+
+    ScopedTemporaryDir backup_dir("orca_auto_drop_dst");
+    Model              model;
+    REQUIRE(load_project(temp.string(), model, backup_dir));
+    REQUIRE(model.objects.size() == 1);
+    CHECK_FALSE(model.objects.front()->auto_drop);
 }
 
 TEST_CASE("An object loads up to the component reference budget and fails past it", "[3mf][Regression]")
@@ -1937,6 +2078,48 @@ SCENARIO("Published per-extruder printer keys mask the other extruders to their 
     }
 }
 
+// A per-extruder process key ("outer_wall_speed#1") masks the other extruders to their defaults, as
+// the printer keys do. A bare process key keeps whole-vector serialization.
+TEST_CASE("Published per-extruder process keys mask the other extruders to their defaults", "[3mf]")
+{
+    // outer_wall_speed is a nullable float vector, so its values and default use ConfigOptionFloatsNullable.
+    DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+    full_cfg.opt<ConfigOptionFloatsNullable>("outer_wall_speed")->values = { 200., 150., 120. };
+
+    const ConfigOptionFloatsNullable* default_speed = print_config_def.get("outer_wall_speed")->get_default_value<ConfigOptionFloatsNullable>();
+    REQUIRE(default_speed != nullptr);
+    REQUIRE(!default_speed->values.empty());
+    const double default_value = default_speed->values.front();
+
+    SECTION("the selected extruder's value survives and the others hold the default") {
+        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, { "outer_wall_speed#1" }, {});
+        const std::vector<double>& values = filtered_cfg.opt<ConfigOptionFloatsNullable>("outer_wall_speed")->values;
+        REQUIRE(values.size() == 3);
+        CHECK_THAT(values[1], Catch::Matchers::WithinAbs(150., 1e-6));
+        CHECK_THAT(values[0], Catch::Matchers::WithinAbs(default_value, 1e-6));
+        CHECK_THAT(values[2], Catch::Matchers::WithinAbs(default_value, 1e-6));
+    }
+
+    SECTION("the bare key serializes the whole vector") {
+        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, { "outer_wall_speed" }, {});
+        const std::vector<double>& values = filtered_cfg.opt<ConfigOptionFloatsNullable>("outer_wall_speed")->values;
+        REQUIRE(values.size() == 3);
+        CHECK_THAT(values[0], Catch::Matchers::WithinAbs(200., 1e-6));
+        CHECK_THAT(values[1], Catch::Matchers::WithinAbs(150., 1e-6));
+        CHECK_THAT(values[2], Catch::Matchers::WithinAbs(120., 1e-6));
+    }
+}
+
+// Every per-extruder process key needs a default: masking restores the unselected slots with it,
+// and a key without one is dropped from the published payload.
+TEST_CASE("Every per-extruder process key has a default to mask unused slots with", "[3mf]")
+{
+    const std::string key = GENERATE(Catch::Generators::from_range(print_options_with_variant));
+    const ConfigOptionDef* def = print_config_def.get(key);
+    REQUIRE(def != nullptr);
+    CHECK(def->default_value.get() != nullptr);
+}
+
 // The extended per-entry fields (full dump list, published type and colour) travel inside the
 // published_material_keys metadata and round-trip unchanged.
 SCENARIO("Published 3MF round-trips the extended material metadata", "[3mf]") {
@@ -2309,6 +2492,205 @@ SCENARIO("thumbnail relationships are declared only for thumbnails that were wri
                 std::string part;
                 CHECK(read_cad_recipe_entry(temp.string(), part, "Metadata/plate_1.png"));
                 CHECK(read_cad_recipe_entry(temp.string(), part, "Metadata/plate_1_small.png"));
+            }
+        }
+    }
+}
+// has_restore_data() runs from the queued EVT_RESTORE_PROJECT handler, whose try starts after
+// the call, so a filesystem_error from probing the stored backup path aborts the application.
+// The realistic trigger is an absolute path from another user's config whose home is not
+// searchable, so the parent, not the backup directory, is what blocks.
+#ifndef _WIN32
+TEST_CASE("has_restore_data reports no restore data for a path it cannot probe", "[3mf]") {
+    if (::geteuid() == 0)
+        SKIP("root ignores the directory permissions this test depends on");
+
+    ScopedTemporaryDir      outer("orca_restore");
+    boost::filesystem::path backup = outer.path() / "backup";
+    REQUIRE(boost::filesystem::create_directory(backup));
+    std::ofstream((backup / ".3mf").string()) << "stand-in for the backed-up project";
+    std::ofstream((backup / "origin.txt").string()) << "project.3mf";
+
+    // Control: while the path is readable the session is found, so the false below really is
+    // the probe failing and not a mis-built fixture.
+    std::string readable = backup.string(), origin;
+    REQUIRE(has_restore_data(readable, origin));
+    REQUIRE(readable == (backup / ".3mf").string());
+    REQUIRE(origin == "project.3mf");
+
+    // Puts the permissions back before ~ScopedTemporaryDir needs them to clean up, and does so
+    // even if an assertion below throws.
+    struct Searchable {
+        boost::filesystem::path dir;
+        ~Searchable() { boost::system::error_code ec;
+                        boost::filesystem::permissions(dir, boost::filesystem::owner_all, ec); }
+    } restore{ outer.path() };
+
+    // Non-throwing here too: a filesystem that refuses the mode change has to reach the skip
+    // below rather than fail the test. The probe then still succeeds, which is that same case.
+    boost::system::error_code probe_ec;
+    boost::filesystem::permissions(outer.path(), boost::filesystem::no_perms, probe_ec);
+    if (boost::filesystem::exists(backup / ".3mf", probe_ec) || !probe_ec)
+        SKIP("the backup path could not be made unprobeable here");
+
+    std::string unprobeable = backup.string(), origin2;
+    bool        has         = true;
+    REQUIRE_NOTHROW(has = has_restore_data(unprobeable, origin2));
+    CHECK_FALSE(has);
+    CHECK(unprobeable == backup.string());   // not rewritten to the .3mf it could not confirm
+    CHECK(origin2 == "<lock>");              // and the caller is told not to remove it
+}
+#endif // _WIN32
+
+// Every "return false" that leaves origin empty is an instruction to the caller to
+// remove_all() the backup directory (Plater.cpp's EVT_RESTORE_PROJECT handler), so the
+// distinction these cases draw is between a backup that is spent and one whose state could
+// not be established. Only the first may be collected.
+TEST_CASE("has_restore_data claims the lock when lock.txt cannot be interpreted", "[3mf]") {
+    ScopedTemporaryDir      outer("orca_lock");
+    boost::filesystem::path backup = outer.path() / "backup";
+    REQUIRE(boost::filesystem::create_directory(backup));
+    std::ofstream((backup / ".3mf").string()) << "stand-in for the backed-up project";
+
+    SECTION("an empty lock.txt holds no pid") {
+        std::ofstream lock((backup / "lock.txt").string());
+        lock.close();   // created, left zero length
+        REQUIRE(boost::filesystem::file_size(backup / "lock.txt") == 0);
+
+        std::string path = backup.string(), origin;
+        bool        has  = true;
+        REQUIRE_NOTHROW(has = has_restore_data(path, origin));
+        CHECK_FALSE(has);
+        CHECK(origin == "<lock>");
+    }
+
+    SECTION("lock.txt holds something that is not a pid") {
+        std::ofstream((backup / "lock.txt").string()) << "not-a-pid";
+
+        std::string path = backup.string(), origin;
+        bool        has  = true;
+        REQUIRE_NOTHROW(has = has_restore_data(path, origin));
+        CHECK_FALSE(has);
+        CHECK(origin == "<lock>");
+    }
+}
+
+#ifndef _WIN32
+TEST_CASE("has_restore_data claims the lock when lock.txt cannot be read", "[3mf]") {
+    if (::geteuid() == 0)
+        SKIP("root ignores the file permissions this test depends on");
+
+    ScopedTemporaryDir      outer("orca_lock");
+    boost::filesystem::path backup = outer.path() / "backup";
+    REQUIRE(boost::filesystem::create_directory(backup));
+    std::ofstream((backup / ".3mf").string()) << "stand-in for the backed-up project";
+    std::ofstream((backup / "lock.txt").string()) << "1";
+    boost::system::error_code mode_ec;   // a filesystem that refuses the mode change must skip below
+    boost::filesystem::permissions(backup / "lock.txt", boost::filesystem::no_perms, mode_ec);
+
+    boost::nowide::ifstream probe((backup / "lock.txt").string());
+    if (probe.good())
+        SKIP("this filesystem does not enforce file read permissions");
+
+    // load_string_file() throws here.
+    std::string path = backup.string(), origin;
+    bool        has  = true;
+    REQUIRE_NOTHROW(has = has_restore_data(path, origin));
+    CHECK_FALSE(has);
+    CHECK(origin == "<lock>");
+}
+#endif // _WIN32
+
+// The negative control for the three cases above: claiming the lock whenever anything is
+// amiss would strand every spent backup on disk forever, so a readable directory that
+// simply has nothing to restore must still come back collectable.
+TEST_CASE("has_restore_data leaves a spent backup collectable", "[3mf]") {
+    ScopedTemporaryDir      outer("orca_spent");
+    boost::filesystem::path backup = outer.path() / "backup";
+    REQUIRE(boost::filesystem::create_directory(backup));
+
+    SECTION("no lock and no project") {
+        std::string path = backup.string(), origin;
+        CHECK_FALSE(has_restore_data(path, origin));
+        CHECK(origin.empty());
+    }
+
+    SECTION("a lock from a process that is not us, and no project") {
+        // get_process_name() compares executable names and answers empty for a pid it cannot
+        // read, so pid 1 never matches this process and the lock must not be claimed.
+        std::ofstream((backup / "lock.txt").string()) << "1";
+
+        std::string path = backup.string(), origin;
+        CHECK_FALSE(has_restore_data(path, origin));
+        CHECK(origin.empty());
+    }
+
+    SECTION("the directory does not exist at all") {
+        std::string path = (outer.path() / "gone").string(), origin;
+        CHECK_FALSE(has_restore_data(path, origin));
+        CHECK(origin.empty());
+    }
+}
+
+// The no-light pass must not mark the plate thumbnail as written.
+SCENARIO("a rendered no-light thumbnail does not suppress the plate thumbnail", "[3mf]")
+{
+    GIVEN("a plate whose no-light thumbnail is rendered and whose plate thumbnail is only on disk") {
+        Model model;
+        const std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        ScopedTemporaryDir backup_dir("orca_no_light");
+        model.set_backup_path(backup_dir.string());
+
+        // Only the bytes matter: the exporter copies this file into the archive verbatim.
+        ScopedTemporaryFile png(".png");
+        const std::string  png_path = png.string();
+        const std::string  png_body = "\x89PNG\r\n\x1a\n" "plate-1-thumbnail-from-disk";
+        {
+            boost::nowide::ofstream out(png_path.c_str(), std::ios::binary);
+            out << png_body;
+        }
+        REQUIRE(boost::filesystem::exists(png_path));
+
+        PlateData plate;
+        plate.plate_index    = 0;
+        plate.thumbnail_file = png_path;
+        PlateDataPtrs plates{ &plate };
+
+        ThumbnailData plate_thumbnail;      // nothing was rendered for the plate itself
+        ThumbnailData no_light_thumbnail;
+        no_light_thumbnail.set(16, 16);
+        no_light_thumbnail.pixels.assign(16 * 16 * 4, static_cast<unsigned char>(0xff));
+        REQUIRE_FALSE(plate_thumbnail.is_valid());
+        REQUIRE(no_light_thumbnail.is_valid());
+
+        WHEN("the project is written") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string  test_file = temp.string();
+
+            DynamicPrintConfig cfg;
+            StoreParams        sp;
+            sp.path                    = test_file.c_str();
+            sp.model                   = &model;
+            sp.config                  = &cfg;
+            sp.plate_data_list         = plates;
+            sp.thumbnail_data          = { &plate_thumbnail };
+            sp.no_light_thumbnail_data = { &no_light_thumbnail };
+            sp.strategy                = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(sp));
+
+            THEN("the plate thumbnail is still copied in from disk") {
+                std::string got;
+                REQUIRE(read_cad_recipe_entry(test_file, got, "Metadata/plate_1.png"));
+                REQUIRE(got == png_body);
+            }
+
+            THEN("the rendered no-light thumbnail is written as well") {
+                std::string got;
+                REQUIRE(read_cad_recipe_entry(test_file, got, "Metadata/plate_no_light_1.png"));
+                REQUIRE_FALSE(got.empty());
             }
         }
     }

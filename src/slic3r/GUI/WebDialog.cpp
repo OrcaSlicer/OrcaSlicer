@@ -16,6 +16,7 @@
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
 #endif
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 

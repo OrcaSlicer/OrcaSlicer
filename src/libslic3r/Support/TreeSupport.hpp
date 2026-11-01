@@ -135,7 +135,6 @@ struct SupportNode
     TreeNodeType   type            = eCircle;
     bool           is_corner       = false;
     bool           is_processed    = false;
-    bool           need_extra_wall = false;
     bool           is_sharp_tail   = false;
     bool           valid = true;
     ExPolygon      overhang; // when type==ePolygon, set this value to get original overhang area

@@ -1,0 +1,23 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Qidi X-Smart 5 0.8 nozzle",
+	"inherits": "Generic ABS@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "EktVm1sCxoHjzuV7",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
+	],
+	"pressure_advance": [
+		"0.011"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.8 nozzle"
+	]
+}
