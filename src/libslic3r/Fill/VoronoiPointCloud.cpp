@@ -14,7 +14,6 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
-#include <random>
 #include <stdexcept>
 #include <cstdint>
 
@@ -60,14 +59,17 @@ std::vector<Vec3d> PoissonPointCloud::points_in_cells(const Vec3i64 &first, cons
                 uint64_t seed = mix(0x564f524f4e4f49ULL ^ uint64_t(ix));
                 seed = mix(seed ^ uint64_t(iy));
                 seed = mix(seed ^ uint64_t(iz));
-                std::mt19937_64 rng(seed);
-                auto uniform = [&]() { return double(rng() >> 11) * (1. / 9007199254740992.); };
+                // Independent domains keep count draws and each point's axes stable
+                // when another draw is added or the generation order changes.
+                auto uniform = [seed](uint64_t purpose, size_t index) {
+                    return double(mix(seed ^ purpose ^ mix(uint64_t(index))) >> 11) * (1. / 9007199254740992.);
+                };
                 size_t count = 0;
-                double product = uniform();
+                double product = uniform(0x434f554e54ULL, 0);
                 // exp(-8), fixed independently of the platform math library.
-                while (product > 0.00033546262790251185) { ++count; product *= uniform(); }
+                while (product > 0.00033546262790251185) { ++count; product *= uniform(0x434f554e54ULL, count); }
                 for (size_t i = 0; i < count; ++i) {
-                    const double x = uniform(), y = uniform(), z = uniform();
+                    const double x = uniform(0x58ULL, i), y = uniform(0x59ULL, i), z = uniform(0x5aULL, i);
                     const Vec3d point((double(ix) + x) * tile, (double(iy) + y) * tile, (double(iz) + z) * tile);
                     sites.push_back(point);
                 }

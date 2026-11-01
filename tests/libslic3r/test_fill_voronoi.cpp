@@ -1082,3 +1082,48 @@ TEST_CASE("Voronoi reports coverage failures instead of silently dropping infill
         return std::numeric_limits<double>::infinity();
     }));
 }
+
+TEST_CASE("Voronoi generation cell populations follow a Poisson distribution", "[FillVoronoi]")
+{
+    constexpr int cells_per_axis = 16;
+    constexpr size_t cell_count = cells_per_axis * cells_per_axis * cells_per_axis;
+    std::array<size_t, cell_count> counts{};
+    const auto sites = Voronoi::PoissonPointCloud().points_in_cells(Vec3i64(-8, -8, -8), Vec3i64(8, 8, 8), 1.);
+    for (const Vec3d &point : sites) {
+        const auto cell = ((point / 2.).array().floor().cast<int>() + 8).eval();
+        REQUIRE((cell >= 0).all());
+        REQUIRE((cell < cells_per_axis).all());
+        ++counts[size_t((cell.z() * cells_per_axis + cell.y()) * cells_per_axis + cell.x())];
+    }
+    const double mean = double(sites.size()) / cell_count;
+    double variance = 0.;
+    for (size_t count : counts) variance += std::pow(double(count) - mean, 2.);
+    variance /= cell_count;
+    // The generation cell is twice the nominal spacing on each axis: lambda = 8.
+    REQUIRE_THAT(mean, Catch::Matchers::WithinAbs(8., 0.25));
+    REQUIRE_THAT(variance, Catch::Matchers::WithinAbs(8., 0.75));
+}
+
+TEST_CASE("Voronoi cell coordinates fill the cube independently", "[FillVoronoi]")
+{
+    const auto sites = Voronoi::PoissonPointCloud().points_in_cells(Vec3i64(-8, -8, -8), Vec3i64(8, 8, 8), 1.);
+    std::array<std::array<size_t, 10>, 3> bins{};
+    std::array<size_t, 8> octants{};
+    REQUIRE_FALSE(sites.empty());
+    for (const Vec3d &point : sites) {
+        const Vec3d local = point / 2. - (point / 2.).array().floor().matrix();
+        unsigned octant = 0;
+        for (int axis = 0; axis < 3; ++axis) {
+            REQUIRE(local[axis] >= 0.);
+            REQUIRE(local[axis] < 1.);
+            ++bins[axis][size_t(local[axis] * 10.)];
+            octant |= unsigned(local[axis] >= 0.5) << axis;
+        }
+        ++octants[octant];
+    }
+    for (const auto &axis : bins)
+        for (size_t count : axis)
+            REQUIRE_THAT(double(count), Catch::Matchers::WithinRel(double(sites.size()) / 10., 0.1));
+    for (size_t count : octants)
+        REQUIRE_THAT(double(count), Catch::Matchers::WithinRel(double(sites.size()) / 8., 0.1));
+}
