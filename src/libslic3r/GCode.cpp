@@ -8710,7 +8710,9 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
     
     if (!enable_seam_slope) {
         for (const ExtrusionPath& path : paths) {
+            m_cooling_inset_idx = loop.inset_idx;
             gcode += this->_extrude(path, description, speed_for_path(path));
+            m_cooling_inset_idx = -1;
             // Orca: Adaptive PA - dont adapt PA after the first multipath extrusion is completed
             // as we have already set the PA value to the average flow over the totality of the path
             // in the first extrude move
@@ -8747,7 +8749,9 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
 
         // Then extrude it
         for (const ExtrusionPath* path : new_loop.get_all_paths()) {
+            m_cooling_inset_idx = loop.inset_idx;
             gcode += this->_extrude(*path, description, speed_for_path(*path));
+            m_cooling_inset_idx = -1;
             // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
             // as we have already set the PA value to the average flow over the totality of the path
             // in the first extrude move
@@ -8869,7 +8873,9 @@ std::string GCode::extrude_multi_path(const ExtrusionMultiPath& multipath, const
     // Orca: end of multipath average mm3_per_mm value calculation
 
     for (const ExtrusionPath &path : multipath.paths){
+        m_cooling_inset_idx = multipath.inset_idx;
         gcode += this->_extrude(path, description, speed);
+        m_cooling_inset_idx = -1;
         // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
         // as we have already set the PA value to the average flow over the totality of the path
         // in the first extrude move.
@@ -9833,6 +9839,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
         comment = ";_EXTRUDE_SET_SPEED";
         if (is_external_perimeter(path.role()))
             comment += ";_EXTERNAL_PERIMETER";
+        else if (m_cooling_inset_idx == 1 && is_perimeter(path.role()) &&
+                 FILAMENT_CONFIG(cooling_slowdown_logic) == cslConsistentSurface)
+            // Orca: The first inner wall is protected from the slow down together with the outer wall (Consistent surface).
+            comment += ";_INTERNAL_PERIMETER1";
     }
 
     // Change fan speed based on current extrusion role

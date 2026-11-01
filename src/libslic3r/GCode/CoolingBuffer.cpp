@@ -64,6 +64,16 @@ void CoolingBuffer::reset(const Vec3d &position)
     m_current_fan_speed = -1;
 }
 
+// One G-code move of a ";_EXTRUDE_SET_SPEED" block, kept for the Consistent surface transition.
+struct CoolingMoveSegment
+{
+    // Start and end of the G-code line at the G-code snippet.
+    size_t  line_start;
+    size_t  line_end;
+    // XY Euclidian length of the move.
+    float   length;
+};
+
 struct CoolingLine
 {
     enum Type {
@@ -95,6 +105,10 @@ struct CoolingLine
         // Belt printers: extrusions within the first-layer band above the belt.
         TYPE_BELT_BAND_START           = 1 << 21,
         TYPE_BELT_BAND_END             = 1 << 22,
+        // The end of a slowed down extrusion, which keeps its original feedrate (Consistent surface transition).
+        TYPE_TRANSITION_TAIL           = 1 << 23,
+        // The first inner wall, protected from the slow down together with the external perimeters (Consistent surface).
+        TYPE_FIRST_INTERNAL_PERIMETER  = 1 << 24,
     };
 
     CoolingLine(unsigned int type, size_t  line_start, size_t  line_end) :
@@ -103,7 +117,7 @@ struct CoolingLine
 
     bool adjustable(bool slowdown_external_perimeters) const {
         return (this->type & TYPE_ADJUSTABLE) &&
-               (! (this->type & TYPE_EXTERNAL_PERIMETER) || slowdown_external_perimeters) &&
+               (! (this->type & (TYPE_EXTERNAL_PERIMETER | TYPE_FIRST_INTERNAL_PERIMETER)) || slowdown_external_perimeters) &&
                this->time < this->time_max;
     }
 
@@ -126,6 +140,10 @@ struct CoolingLine
     float   time_max;
     // If marked with the "slowdown" flag, the line has been slowed down.
     bool    slowdown;
+    // Moves of the extrusion, only collected for the Consistent surface logic.
+    std::vector<CoolingMoveSegment> move_segments;
+    // TYPE_TRANSITION_TAIL: start of the G-code line holding the original feedrate of the extrusion.
+    size_t  feedrate_line_start = 0;
 };
 
 // Calculate the required per extruder time stretches.
@@ -206,13 +224,14 @@ struct PerExtruderAdjustments
     // Sort the lines, adjustable first, higher feedrate first.
     // Used by non-proportional slow down.
     void sort_lines_by_decreasing_feedrate() {
-        std::sort(lines.begin(), lines.end(), [](const CoolingLine &l1, const CoolingLine &l2) {
-            bool adj1 = l1.adjustable();
-            bool adj2 = l2.adjustable();
+        const bool slowdown_external = ! protect_external;
+        std::sort(lines.begin(), lines.end(), [slowdown_external](const CoolingLine &l1, const CoolingLine &l2) {
+            bool adj1 = l1.adjustable(slowdown_external);
+            bool adj2 = l2.adjustable(slowdown_external);
             return (adj1 == adj2) ? l1.feedrate > l2.feedrate : adj1;
         });
         for (n_lines_adjustable = 0;
-            n_lines_adjustable < lines.size() && this->lines[n_lines_adjustable].adjustable();
+            n_lines_adjustable < lines.size() && this->lines[n_lines_adjustable].adjustable(! protect_external);
             ++ n_lines_adjustable);
         time_non_adjustable = 0.f;
         for (size_t i = n_lines_adjustable; i < lines.size(); ++ i)
@@ -261,6 +280,59 @@ struct PerExtruderAdjustments
     float                       slow_down_min_speed     = 0.f;
     
     bool                        dont_slow_down_outer_wall = false;
+    // Consistent surface slowdown logic: the external perimeters are excluded from the slow down
+    // until all the other extrusions are slowed down to their minimum speed.
+    bool                        consistent_surface = false;
+    // Set while the external perimeters are protected from the slow down (see calculate_layer_slowdown()).
+    bool                        protect_external   = false;
+    // Consistent surface: length of the end of the slowed down extrusions, which keeps the original feedrate.
+    float                       transition_distance = 0.f;
+
+    // Keep the last tail_length mm of the adjustable extrusions (the external perimeters excluded) at the original
+    // feedrate. Whole moves are kept, so the kept length is at most tail_length. An extrusion, which is only
+    // partially kept, is split into the slowed down part and a non-adjustable TYPE_TRANSITION_TAIL line.
+    // Must be called before the lines are sorted and any slow down is applied.
+    void create_transition_tail(float tail_length) {
+        if (tail_length <= 0.f)
+            return;
+        std::vector<CoolingLine> tails;
+        float remaining = tail_length;
+        for (auto it = lines.rbegin(); it != lines.rend() && remaining > 0.f; ++ it) {
+            CoolingLine &line = *it;
+            if (! (line.type & CoolingLine::TYPE_ADJUSTABLE) || (line.type & (CoolingLine::TYPE_EXTERNAL_PERIMETER | CoolingLine::TYPE_FIRST_INTERNAL_PERIMETER)) ||
+                ! line.adjustable() || line.move_segments.empty() || line.feedrate <= 0.f)
+                continue;
+            size_t first_tail = line.move_segments.size();
+            float  tail_len   = 0.f;
+            while (first_tail > 0 && tail_len + line.move_segments[first_tail - 1].length <= remaining) {
+                -- first_tail;
+                tail_len += line.move_segments[first_tail].length;
+            }
+            if (first_tail == 0) {
+                // The whole extrusion is kept at the original feedrate.
+                line.time_max = line.time;
+                remaining    -= tail_len;
+            } else {
+                if (first_tail < line.move_segments.size() && tail_len > 0.f) {
+                    const CoolingMoveSegment &segment = line.move_segments[first_tail];
+                    CoolingLine tail(CoolingLine::TYPE_G1 | CoolingLine::TYPE_TRANSITION_TAIL, segment.line_start, segment.line_end);
+                    tail.feedrate_line_start = line.line_start;
+                    tail.length   = tail_len;
+                    tail.feedrate = line.feedrate;
+                    tail.time     = tail.time_max = tail_len / line.feedrate;
+                    line.length  -= tail_len;
+                    line.time     = line.length / line.feedrate;
+                    line.time_max = (slow_down_min_speed == 0.f) ? FLT_MAX : std::max(line.time, line.length / slow_down_min_speed);
+                    line.move_segments.resize(first_tail);
+                    tails.emplace_back(std::move(tail));
+                }
+                // Only a part of this extrusion fits into the transition, nothing more is kept.
+                break;
+            }
+        }
+        for (CoolingLine &tail : tails)
+            lines.emplace_back(std::move(tail));
+    }
 
 
     // Parsed lines.
@@ -372,6 +444,9 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
         adj.slow_down_min_speed           = float(m_config.slow_down_min_speed.get_at(extruder_id));
         // ORCA: To enable dont slow down external perimeters feature per filament (extruder)
         adj.dont_slow_down_outer_wall   = m_config.dont_slow_down_outer_wall.get_at(extruder_id);
+        adj.consistent_surface          = m_config.cooling_slowdown_logic.get_at(extruder_id) == cslConsistentSurface;
+        if (adj.consistent_surface)
+            adj.transition_distance     = float(m_config.cooling_perimeter_transition_distance.get_at(extruder_id));
         map_extruder_to_per_extruder_adjustment[extruder_id] = i;
     }
 
@@ -443,6 +518,8 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             bool wipe               = boost::contains(sline, ";_WIPE");
             if (external_perimeter)
                 line.type |= CoolingLine::TYPE_EXTERNAL_PERIMETER;
+            else if (boost::contains(sline, ";_INTERNAL_PERIMETER1"))
+                line.type |= CoolingLine::TYPE_FIRST_INTERNAL_PERIMETER;
             if (wipe)
                 line.type |= CoolingLine::TYPE_WIPE;
 
@@ -496,6 +573,10 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
                 line.time_max = line.time;
                 if ((line.type & CoolingLine::TYPE_ADJUSTABLE) || active_speed_modifier != size_t(-1))
                     line.time_max = (adjustment->slow_down_min_speed == 0.f) ? FLT_MAX : std::max(line.time, line.length / adjustment->slow_down_min_speed);
+                if (adjustment->consistent_surface && (line.type & CoolingLine::TYPE_ADJUSTABLE) &&
+                    (line.type & (CoolingLine::TYPE_G1 | CoolingLine::TYPE_G2 | CoolingLine::TYPE_G3)))
+                    // The first move of the extrusion.
+                    line.move_segments.push_back({ line.line_start, line.line_end, line.length });
                 // BBS: add G2 and G3 support
                 if (active_speed_modifier < adjustment->lines.size() && ((line.type & CoolingLine::TYPE_G1) ||
                                                                          (line.type & CoolingLine::TYPE_G2) ||
@@ -504,6 +585,8 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
                     assert((line.type & CoolingLine::TYPE_HAS_F) == 0);
                     CoolingLine &sm = adjustment->lines[active_speed_modifier];
                     assert(sm.feedrate > 0.f);
+                    if (adjustment->consistent_surface)
+                        sm.move_segments.push_back({ line.line_start, line.line_end, line.length });
                     sm.length   += line.length;
                     sm.time     += line.time;
                     if (sm.time_max != FLT_MAX) {
@@ -626,10 +709,10 @@ static inline void extruder_range_slow_down_non_proportional(
                 // and the minimum speed is set to zero.
                 float time_adjustable = 0.f;
                 for (auto it = adj; it != by_min_print_speed.end(); ++ it)
-                    time_adjustable += (*it)->adjustable_time(true);
+                    time_adjustable += (*it)->adjustable_time(! (*it)->protect_external);
                 float rate = (time_adjustable + time_stretch) / time_adjustable;
                 for (auto it = adj; it != by_min_print_speed.end(); ++ it)
-                    (*it)->slow_down_proportional(rate, true);
+                    (*it)->slow_down_proportional(rate, ! (*it)->protect_external);
                 return;
             } else {
                 float feedrate_limit = std::max(feedrate_next, (*adj)->slow_down_min_speed);
@@ -674,6 +757,8 @@ float CoolingBuffer::calculate_layer_slowdown(std::vector<PerExtruderAdjustments
     // Collect total print time of non-adjustable extruders.
     float elapsed_time_total0 = 0.f;
     for (PerExtruderAdjustments &adj : per_extruder_adjustments) {
+        if (adj.consistent_surface && adj.cooling_slow_down_enabled)
+            adj.create_transition_tail(adj.transition_distance);
         // Curren total time for this extruder.
         adj.time_total  = adj.elapsed_time_total();
         // Maximum time for this extruder, when all extrusion moves are slowed down to min_extrusion_speed.
@@ -701,17 +786,49 @@ float CoolingBuffer::calculate_layer_slowdown(std::vector<PerExtruderAdjustments
             // The current total time is above the minimum threshold of the rest of the extruders, don't adjust anything.
         } else {
             // Adjust this and all the following (higher m_config.slow_down_layer_time) extruders.
-            // Sum maximum slow down time as if everything was slowed down including the external perimeters.
+            // Consistent surface: the external perimeters of the extruders using it are excluded from the first pass.
+            bool consistent_surface = false;
+            for (auto it = cur_begin; it != by_slowdown_time.end(); ++ it) {
+                (*it)->protect_external = (*it)->consistent_surface;
+                consistent_surface     |= (*it)->protect_external;
+            }
+            if (consistent_surface)
+                for (auto it = cur_begin; it != by_slowdown_time.end(); ++ it)
+                    (*it)->sort_lines_by_decreasing_feedrate();
+            // Sum maximum slow down time as if everything was slowed down including the external perimeters,
+            // unless they are protected.
             float max_time = elapsed_time_total0;
             for (auto it = cur_begin; it != by_slowdown_time.end(); ++ it)
-                max_time += (*it)->time_maximum;
+                max_time += (*it)->protect_external ? (*it)->maximum_time_after_slowdown(false) : (*it)->time_maximum;
             if (max_time > slow_down_layer_time) {
                 extruder_range_slow_down_non_proportional(cur_begin, by_slowdown_time.end(), slow_down_layer_time - total);
+            } else if (consistent_surface) {
+                // The layer time cannot be reached without the external perimeters. Slow down everything else
+                // to the minimum speed and let the external perimeters take over the rest.
+                float total_protected = elapsed_time_total0;
+                float max_time_all    = elapsed_time_total0;
+                for (auto it = cur_begin; it != by_slowdown_time.end(); ++ it) {
+                    (*it)->slowdown_to_minimum_feedrate(! (*it)->protect_external);
+                    (*it)->protect_external = false;
+                    total_protected += (*it)->time_total;
+                    max_time_all    += (*it)->time_maximum;
+                }
+                if (max_time_all > slow_down_layer_time) {
+                    for (auto it = cur_begin; it != by_slowdown_time.end(); ++ it)
+                        (*it)->sort_lines_by_decreasing_feedrate();
+                    extruder_range_slow_down_non_proportional(cur_begin, by_slowdown_time.end(), slow_down_layer_time - total_protected);
+                } else {
+                    for (auto it = cur_begin; it != by_slowdown_time.end(); ++ it)
+                        (*it)->slowdown_to_minimum_feedrate(true);
+                }
             } else {
                 // Slow down to maximum possible.
                 for (auto it = cur_begin; it != by_slowdown_time.end(); ++ it)
                     (*it)->slowdown_to_minimum_feedrate(true);
             }
+            // The protection is only valid within this slow down pass.
+            for (auto it = cur_begin; it != by_slowdown_time.end(); ++ it)
+                (*it)->protect_external = false;
         }
         elapsed_time_total0 += adj.elapsed_time_total();
     }
@@ -980,6 +1097,17 @@ std::string CoolingBuffer::apply_layer_cooldown(
         }
         else if (line->type & CoolingLine::TYPE_EXTRUDE_END) {
             // Just remove this comment.
+        } else if (line->type & CoolingLine::TYPE_TRANSITION_TAIL) {
+            // The end of a slowed down extrusion, which keeps its original feedrate. Restore the feedrate
+            // of the extrusion, unless the extrusion has not been slowed down.
+            const char *fpos = strstr(gcode.c_str() + line->feedrate_line_start + 2, " F");
+            assert(fpos != nullptr);
+            const int   tail_feedrate = fpos != nullptr ? atoi(fpos + 2) : current_feedrate;
+            if (tail_feedrate != current_feedrate) {
+                new_gcode += "G1 F" + std::to_string(tail_feedrate) + "\n";
+                current_feedrate = tail_feedrate;
+            }
+            new_gcode.append(line_start, line_end - line_start);
         } else if (line->type & (CoolingLine::TYPE_ADJUSTABLE | CoolingLine::TYPE_EXTERNAL_PERIMETER | CoolingLine::TYPE_WIPE | CoolingLine::TYPE_HAS_F)) {
             // Find the start of a comment, or roll to the end of line.
             const char *end = line_start;
@@ -1051,6 +1179,8 @@ std::string CoolingBuffer::apply_layer_cooldown(
                     boost::replace_all(comment, ";_EXTRUDE_SET_SPEED", "");
                     if (line->type & CoolingLine::TYPE_EXTERNAL_PERIMETER)
                         boost::replace_all(comment, ";_EXTERNAL_PERIMETER", "");
+                    if (line->type & CoolingLine::TYPE_FIRST_INTERNAL_PERIMETER)
+                        boost::replace_all(comment, ";_INTERNAL_PERIMETER1", "");
                     if (line->type & CoolingLine::TYPE_WIPE)
                         boost::replace_all(comment, ";_WIPE", "");
                     new_gcode += comment;
