@@ -86,7 +86,7 @@ body {
 }
 .palette-filter::-webkit-search-cancel-button { -webkit-appearance: none }
 .palette-filter:focus-visible{
-  background-color: var(--focus-bg-box);
+  background-color: var(--focus-bg);
 }
 
 .palette-search-button {
@@ -333,7 +333,7 @@ body {
 }
 .inline-field:focus-within { 
   border-color: var(--main-color); 
-  background: var(--focus-bg-box); 
+  background: var(--focus-bg); 
 }
 .inline-field:has(input:invalid) { 
   border-color: var(--control-invalid);

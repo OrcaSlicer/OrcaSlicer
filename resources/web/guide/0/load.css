@@ -1,3 +1,9 @@
+/* Just use required code instead loading multiple files for best performance */
+:root {--bg-color: #FFFFFF}
+@media (prefers-color-scheme: dark) { 
+:root {--bg-color: #2D2D31}
+}
+
 @keyframes rotate {
     from {
         transform: rotate(0deg);
@@ -7,11 +13,27 @@
     }
 }
 
+html
+{
+	height:100%;
+	background-color: var(--bg-color);
+}
+
 body
 {
+	height:100%;
+	width: 100%;
+	margin: 0;
+	background-color: var(--bg-color);
+    font-family: "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-sans;
+	user-select: none;
+	-webkit-user-select: none;
+	font-size: 14px;
+	line-height: 22px;
 	display:flex;
 	align-content: center;
 	justify-content: center;
+	flex-direction: column;
 }
 
 #LoadBlock

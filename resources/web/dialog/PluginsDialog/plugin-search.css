@@ -11,19 +11,18 @@
   height: 26px;
   padding: 0 6px;
   box-sizing: border-box;
-  background: var(--panel);
-  border: 1px solid var(--border);
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
 }
 
 .plugin-search:focus-within {
   border-color: var(--main-color);
-  box-shadow: 0 0 0 2px rgba(0, 150, 136, 0.25);
 }
 
 .plugin-search-icon {
   display: inline-flex;
-  color: var(--muted);
+  color: var(--icon-color);
 }
 
 .plugin-search-input {
@@ -36,8 +35,12 @@
   font: inherit;
 }
 
+.plugin-search:focus-within > .plugin-search-input {
+  outline: 0;
+}
+
 .plugin-search-input::placeholder {
-  color: var(--muted);
+  color: var(--dimmed-color);
 }
 
 /* why: compact squarish toggles - min-width keeps single-char W from collapsing while two-char Cc
@@ -133,6 +136,6 @@
    note: no padding/margin/border - a highlight must not change text width, else rows reflow. */
 mark.plugin-search-hit {
   border-radius: 2px;
-  background: var(--plugin-status-warn-bg);
-  color: var(--plugin-status-warn);
+  background: var(--tone-orange-12);
+  color: var(--tone-orange);
 }

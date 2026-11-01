@@ -6,12 +6,13 @@
     font-family: "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-sans;
 	user-select: none;
 	-webkit-user-select: none;
+	color:var(--fg-color-text);
 }
 
 html
 {
 	height:100%;
-	background-color: #626262;
+	background-color: var(--bg-color, "#626262");
 }
 
 body
@@ -23,41 +24,19 @@ body
 	border: 0;
 	margin: 0;	
 	overflow: hidden;
-	background-color: #fff;
+	background-color: var(--bg-color, "#626262");;
 	font-size: 14px;
 	line-height: 22px;
-}
-
-.TextPoint
-{
-	font-size:1px;
-}
-
-.ZScrol::-webkit-scrollbar {/*滚动条整体样式*/
-    width: 12px;     /*高宽分别对应横竖滚动条的尺寸*/
-    height: 12px;
-	padding: 2px;
-}
-
-.ZScrol::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
-    border-radius: 6px;
-    -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-	box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-    background-color: #AAAAAA;
-}
-
-.ZScrol::-webkit-scrollbar-track {/*滚动条里面轨道*/
-        -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-	    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-        border-radius: 10px;
-        background: #EDEDED;
-}
-
-/*----Three Part----*/
-body
-{
 	display:flex;
 	flex-direction: column;
+}
+
+.TextS1 {
+
+}
+
+.TextS2 {
+	color: var(--fg-color-label);
 }
 
 
@@ -74,10 +53,13 @@ body
 {
 	font-size:28px;
 	line-height: 28px;
-	color: #009688;
+	color: var(--main-color-fixed);
 	padding: 0px 10mm;
 }
 
+#Title div.TitleUnselected {
+	color: var(--dimmed-color);
+}
 
 #Content
 {
@@ -110,70 +92,6 @@ body
 	display: flex;
 	justify-content:flex-end;
 	align-items: center;	
-}
-
-/*---HyperLink---*/
-.HyperLink
-{
-	color: #009688;
-	text-decoration: underline;
-    font-weight: 700;
-	cursor: pointer;
-}
-
-/*---Checkboxes ORCA ---*/
-label:has(input[type="checkbox"]){
-	margin:0;
-	padding: 0;
-	margin-right: 20px;
-}
-
-label:has(input[type="checkbox"])>span{
-	vertical-align: middle;
-	line-height: 1.2em;
-	margin:0;
-}
-
-input[type="checkbox"] {
-	-webkit-appearance: none;
-	appearance: none;
-	margin:0;
-	margin-right: 6px;
-	width: 1em;
-	height: 1em;
-	border: 0.1em solid var(--border-color);;
-	border-radius: 0.15em;
-	display: inline-flex;
-	place-content: center;
-	background-color: var(--bg-color);;
-}
-
-input[type="checkbox"]::before {
-	content: "";
-	width: 0.8em;
-	height: 0.8em;
-	transform: scale(0);
-	box-shadow: inset 1em 1em #FFFFFF;
-}
-
-input[type="checkbox"]:is(:checked, :indeterminate) {
-	border-color:    var(--main-color);
-	background-color:var(--main-color);
-}
-
-input[type="checkbox"]:is(:checked, :indeterminate):hover {
-	border-color:    var(--main-color-hover);
-	background-color:var(--main-color-hover);
-}
-
-input[type="checkbox"]:checked::before {
-	transform: scale(1);
-	clip-path: polygon(7% 37%, 0 45%, 33% 78%, 100% 30%, 95% 21%, 33% 64%);
-}
-
-input[type="checkbox"]:indeterminate::before {
-	transform: scale(1);
-	clip-path: polygon(7% 44%, 93% 44%, 93% 56%, 7% 56%);
 }
 
 /*----------------Light Mode-------------------*/
