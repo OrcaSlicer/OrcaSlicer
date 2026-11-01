@@ -200,6 +200,7 @@ set(lisbslic3r_sources
     Fill/Lightning/Layer.hpp
     Fill/Lightning/TreeNode.cpp
     Fill/Lightning/TreeNode.hpp
+    Fill/VoronoiHash.hpp
     Fill/VoronoiInfill.cpp
     Fill/VoronoiInfill.hpp
     Fill/VoronoiInfillCgal.hpp
