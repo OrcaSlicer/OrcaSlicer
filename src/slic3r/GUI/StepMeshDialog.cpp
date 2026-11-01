@@ -87,7 +87,7 @@ bool StepMeshDialog:: validate_number_range(const wxString& value, double min, d
 StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double linear_init, double angle_init)
     : DPIDialog(parent ? parent : static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
-                _(L("Step file import parameters")),
+                _(L("STEP file import parameters")),
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxDEFAULT_DIALOG_STYLE /* | wxRESIZE_BORDER*/), m_file(file)
