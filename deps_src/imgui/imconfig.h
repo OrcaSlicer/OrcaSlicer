@@ -234,3 +234,9 @@ namespace ImGui
     const wchar_t FilamentGreen     = 0x0850;
 }
 
+
+// OrcaSlicer: the context is per thread, so ImGuiWrapper's font atlas worker, which has none,
+// never updates the GL thread's context (ImGui::MemAlloc counts allocations there).
+struct ImGuiContext;
+extern thread_local ImGuiContext* GImGuiTLS;
+#define GImGui GImGuiTLS

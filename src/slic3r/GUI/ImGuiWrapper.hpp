@@ -4,7 +4,10 @@
 #include "libslic3r/Technologies.hpp"
 #include <optional>
 #include <string>
+#include <atomic>
+#include <future>
 #include <map>
+#include <memory>
 #include <string_view>
 #include <tuple>
 #include <vector>
@@ -76,6 +79,13 @@ class ImGuiWrapper
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     std::map<wchar_t, int> m_custom_glyph_rects_ids;
     std::string m_clipboard_text;
+    // The complete font atlas is built on a worker thread, see init_font().
+    struct FontAtlas;
+    std::future<std::unique_ptr<FontAtlas>> m_font_atlas_build;
+    // Set by the worker once its atlas is built, before it wakes the idle loop; the future alone
+    // only turns ready after the worker returns, which can be after the woken idle pass has looked.
+    std::atomic<bool> m_font_atlas_built{ false };
+    bool m_font_atlas_complete{ false };
     // Keys held down, each with whether ImGui claimed its press.
     std::map<int, bool> m_key_claims;
     // Whether ImGui claimed the last key-down, for the char event that follows it.
@@ -435,14 +445,21 @@ public:
     static int TOOLBAR_WINDOW_FLAGS;
 
     bool display_initialized() const;
+    // A font atlas built in the background is waiting for the next frame.
+    bool has_font_atlas_ready() const;
+    // Starts building the fonts before the first frame needs them, see init_font().
+    void prepare_fonts();
 
 private:
     void init_font(bool compress);
+    void start_font_atlas_build(int gl_max_tex_size, bool dxt5);
+    static std::unique_ptr<FontAtlas> build_font_atlas(const ImWchar *glyph_ranges, bool complete, float font_size,
+                                                       bool font_cjk, bool large_display, int gl_max_tex_size, bool dxt5);
     void init_input();
     void init_style();
     void render_draw_data(ImDrawData *draw_data);
     void destroy_font();
-    std::vector<unsigned char> load_svg(const std::string& bitmap_name, unsigned target_width, unsigned target_height, unsigned *outwidth, unsigned *outheight);
+    static std::vector<unsigned char> load_svg(const std::string& bitmap_name, unsigned target_width, unsigned target_height, unsigned *outwidth, unsigned *outheight);
 
     static const char* clipboard_get(void* user_data);
     static void clipboard_set(void* user_data, const char* text);

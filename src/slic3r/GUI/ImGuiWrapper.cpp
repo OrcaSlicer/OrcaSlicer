@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <array>
+#include <future>
+#include <memory>
 #include <cassert>
 #include <cstdio>
 #include "libslic3r/Technologies.hpp"
@@ -41,6 +44,10 @@
 #include <wx/string.h>
 #include <wx/event.h>
 #include <wx/clipbrd.h>
+#include <wx/app.h>
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
+#include "stb_dxt/stb_dxt.h"
 #include <wx/debug.h>
 
 #include <glad/gl.h>
@@ -582,9 +589,9 @@ void ImGuiWrapper::new_frame()
         return;
     }
 
-    if (m_font_texture == 0) {
+    // No fonts yet (startup, language or scale change), or the worker finished the complete atlas.
+    if (m_font_texture == 0 || has_font_atlas_ready())
         init_font(true);
-    }
 
     ImGuiIO& io = ImGui::GetIO();
 
@@ -2953,32 +2960,56 @@ void ImGuiWrapper::pop_radio_style()
     ImGui::PopStyleVar(1);
 }
 
-void ImGuiWrapper::init_font(bool compress)
+// An ImGui font atlas built off the GL thread, not yet uploaded.
+struct ImGuiWrapper::FontAtlas
 {
-    destroy_font();
+    const ImWchar*         glyph_ranges{ nullptr }; // what it was built for
+    float                  font_size{ 0.f };
+    int                    max_tex_size{ 0 };
+    ImFontAtlas*           atlas{ IM_NEW(ImFontAtlas)() };
+    ImFont*                default_font{ nullptr };
+    ImFont*                bold_font{ nullptr };
+    std::map<wchar_t, int> rect_ids;
+    unsigned char*         pixels{ nullptr };      // owned by atlas
+    std::vector<unsigned char> dxt5;               // pixels compressed, when asked for
+    int                    width{ 0 };
+    int                    height{ 0 };
+    ~FontAtlas() { if (atlas != nullptr) IM_DELETE(atlas); }
+};
 
-    ImGuiIO& io = ImGui::GetIO();
-    io.Fonts->Clear();
+// Touches neither GL nor the ImGui context, so it runs on a worker thread; see init_font().
+std::unique_ptr<ImGuiWrapper::FontAtlas> ImGuiWrapper::build_font_atlas(const ImWchar *glyph_ranges, bool complete, float font_size,
+                                                                       [[maybe_unused]] bool font_cjk, bool large_display, int gl_max_tex_size, bool dxt5)
+{
+    auto font_atlas = std::make_unique<FontAtlas>();
+    font_atlas->glyph_ranges = glyph_ranges;
+    font_atlas->font_size    = font_size;
+    font_atlas->max_tex_size = gl_max_tex_size;
+    ImFontAtlas *atlas       = font_atlas->atlas;
+    ImFont *&default_font = font_atlas->default_font, *&bold_font = font_atlas->bold_font;
 
     // Create ranges of characters from m_glyph_ranges, possibly adding some OS specific special characters.
     ImVector<ImWchar> ranges;
     ImVector<ImWchar> basic_ranges;
     ImFontAtlas::GlyphRangesBuilder builder;
-    builder.AddRanges(m_glyph_ranges);
-    builder.AddRanges(ImGui::GetIO().Fonts->GetGlyphRangesDefault());
-    builder.AddRanges(ranges_language_independent);
+    // The quick atlas drawn while the complete one builds has Latin only.
+    builder.AddRanges(complete ? glyph_ranges : atlas->GetGlyphRangesEnglish());
+    if (complete) {
+        builder.AddRanges(atlas->GetGlyphRangesDefault());
+        builder.AddRanges(ranges_language_independent);
+    }
 #ifdef __APPLE__
-    if (m_font_cjk)
+    if (font_cjk)
         // Apple keyboard shortcuts are only contained in the CJK fonts.
         builder.AddRanges(ranges_keyboard_shortcuts);
 #endif
     builder.BuildRanges(&ranges); // Build the final result (ordered ranges with all the unique characters submitted)
 
-    io.Fonts->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
+    atlas->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
     // TexDesiredWidth will be increased adaptively below if the built height
     // exceeds GL_MAX_TEXTURE_SIZE. Leave it at 0 so ImGui picks the minimum
     // width for small glyph sets and we only widen when actually necessary.
-    io.Fonts->TexDesiredWidth = 0;
+    atlas->TexDesiredWidth = 0;
 
     ImFontConfig cfg = ImFontConfig();
     cfg.OversampleH = cfg.OversampleV = 1;
@@ -2991,18 +3022,18 @@ void ImGuiWrapper::init_font(bool compress)
     // The Korean and Thai fonts cover their own script and little else, so they need the
     // default font merged in behind them to reach the full range.
     bool needs_glyph_fallback = false;
-    if(m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesKorean()) {
+    if(glyph_ranges == atlas->GetGlyphRangesKorean()) {
         font_name_regular = "NanumGothic-Regular.ttf";
         font_name_bold = "NanumGothic-Bold.ttf";
         needs_glyph_fallback = true;
-    } else if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
+    } else if (glyph_ranges == atlas->GetGlyphRangesThai()) {
         font_name_regular = "Sarabun-Medium.ttf";
         font_name_bold = "Sarabun-SemiBold.ttf";
         needs_glyph_fallback = true;
     }
-    default_font = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_regular).c_str(), m_font_size, &cfg, ranges.Data);
+    default_font = atlas->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_regular).c_str(), font_size, &cfg, ranges.Data);
     if (default_font == nullptr) {
-        default_font = io.Fonts->AddFontDefault();
+        default_font = atlas->AddFontDefault();
         if (default_font == nullptr) {
             throw Slic3r::RuntimeError("ImGui: Could not load deafult font");
         }
@@ -3013,92 +3044,88 @@ void ImGuiWrapper::init_font(bool compress)
     if (needs_glyph_fallback) {
         ImFontConfig fallback_cfg = cfg;
         fallback_cfg.MergeMode = true;
-        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf").c_str(), m_font_size, &fallback_cfg, ranges.Data);
+        atlas->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf").c_str(), font_size, &fallback_cfg, ranges.Data);
     }
 
-    bold_font        = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_bold).c_str(), m_font_size, &cfg, ranges.Data);
+    bold_font        = atlas->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_bold).c_str(), font_size, &cfg, ranges.Data);
     if (bold_font == nullptr) {
-        bold_font = io.Fonts->AddFontDefault();
+        bold_font = atlas->AddFontDefault();
         if (bold_font == nullptr) { throw Slic3r::RuntimeError("ImGui: Could not load deafult font"); }
     }
 
     if (needs_glyph_fallback) {
         ImFontConfig fallback_cfg = cfg;
         fallback_cfg.MergeMode = true;
-        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Bold.ttf").c_str(), m_font_size, &fallback_cfg, ranges.Data);
+        atlas->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Bold.ttf").c_str(), font_size, &fallback_cfg, ranges.Data);
     }
 
-    if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
+    if (glyph_ranges == atlas->GetGlyphRangesThai()) {
         default_font->Scale *= 1.25f;
         bold_font->Scale *= 1.25f;
     }
 
-#ifdef _WIN32
     // Render the text a bit larger (see GLCanvas3D::_resize() and issue #3401), but only if the scale factor
-    // for the Display is greater than 300%.
-    if (wxGetApp().em_unit() > 30) {
+    // for the Display is greater than 300% (Windows only).
+    if (large_display) {
         default_font->Scale = 1.5f;
         bold_font->Scale    = 1.5f;
     }
-#endif
 
 #ifdef __APPLE__
     ImFontConfig config;
     config.MergeMode = true;
-    if (! m_font_cjk) {
+    if (! font_cjk) {
         // Apple keyboard shortcuts are only contained in the CJK fonts.
-        [[maybe_unused]]ImFont *font_cjk = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf").c_str(), m_font_size, &config, ranges_keyboard_shortcuts);
+        [[maybe_unused]]ImFont *font_cjk = atlas->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf").c_str(), font_size, &config, ranges_keyboard_shortcuts);
         assert(font_cjk != nullptr);
     }
 #endif
 
-    float font_scale = m_font_size/15;
+    float font_scale = font_size/15;
     int icon_sz = lround(16 * font_scale); // default size of icon is 16 px
 
-    int rect_id = io.Fonts->CustomRects.Size;  // id of the rectangle added next
+    int rect_id = atlas->CustomRects.Size;  // id of the rectangle added next
     // add rectangles for the icons to the font atlas
     for (auto& icon : font_icons) {
-        m_custom_glyph_rects_ids[icon.first] =
-        io.Fonts->AddCustomRectFontGlyph(default_font, icon.first, icon_sz, icon_sz, 3.0 * font_scale + icon_sz);
+        font_atlas->rect_ids[icon.first] =
+        atlas->AddCustomRectFontGlyph(default_font, icon.first, icon_sz, icon_sz, 3.0 * font_scale + icon_sz);
     }
     for (auto& icon : font_icons_large) {
-        m_custom_glyph_rects_ids[icon.first] =
-        io.Fonts->AddCustomRectFontGlyph(default_font, icon.first, icon_sz * 2, icon_sz * 2, 3.0 * font_scale + icon_sz * 2);
+        font_atlas->rect_ids[icon.first] =
+        atlas->AddCustomRectFontGlyph(default_font, icon.first, icon_sz * 2, icon_sz * 2, 3.0 * font_scale + icon_sz * 2);
     }
     for (auto& icon : font_icons_extra_large) {
-        m_custom_glyph_rects_ids[icon.first] =
-        io.Fonts->AddCustomRectFontGlyph(default_font, icon.first, icon_sz * 4, icon_sz * 4, 3.0 * font_scale + icon_sz * 4);
+        font_atlas->rect_ids[icon.first] =
+        atlas->AddCustomRectFontGlyph(default_font, icon.first, icon_sz * 4, icon_sz * 4, 3.0 * font_scale + icon_sz * 4);
     }
 
     // Build texture atlas, widening it if the height would exceed GL_MAX_TEXTURE_SIZE.
     // Increasing the width allows the packing algorithm to grow more horizontally which reduces the height.
-    io.Fonts->Build();
-    GLint gl_max_tex_size = 0;
-    glsafe(::glGetIntegerv(GL_MAX_TEXTURE_SIZE, &gl_max_tex_size));
+    atlas->Build();
     constexpr int max_retries = 6;
-    for (int attempt = 0; attempt < max_retries && io.Fonts->TexHeight > gl_max_tex_size; ++attempt) {
-        const int width = io.Fonts->TexDesiredWidth > 0 ? io.Fonts->TexDesiredWidth : io.Fonts->TexWidth;
+    for (int attempt = 0; attempt < max_retries && atlas->TexHeight > gl_max_tex_size; ++attempt) {
+        const int width = atlas->TexDesiredWidth > 0 ? atlas->TexDesiredWidth : atlas->TexWidth;
         // Both dimensions share the same limit, so widening past it would only trade an
         // illegal height for an illegal width.
         if (width * 2 > gl_max_tex_size)
             break;
-        io.Fonts->TexDesiredWidth = width * 2;
-        io.Fonts->Build();
+        atlas->TexDesiredWidth = width * 2;
+        atlas->Build();
     }
-    if (io.Fonts->TexHeight > gl_max_tex_size) {
+    if (atlas->TexHeight > gl_max_tex_size) {
         // Needs both a very large glyph set and a small GL_MAX_TEXTURE_SIZE.
-        BOOST_LOG_TRIVIAL(error) << "Font atlas " << io.Fonts->TexWidth << "x" << io.Fonts->TexHeight
+        BOOST_LOG_TRIVIAL(error) << "Font atlas " << atlas->TexWidth << "x" << atlas->TexHeight
             << " does not fit GL_MAX_TEXTURE_SIZE (" << gl_max_tex_size << ")"
             << " after " << max_retries << " attempts; rendering may be incomplete";
     }
 
-    unsigned char* pixels;
-    int width, height;
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
+    unsigned char *&pixels = font_atlas->pixels;
+    int &width = font_atlas->width, &height = font_atlas->height;
+    atlas->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
     BOOST_LOG_TRIVIAL(trace) << "Build default font texture done. width: " << width << ", height: " << height;
 
-    auto load_icon_from_svg = [this, &io, pixels, width, &rect_id](const std::pair<const wchar_t, std::string> icon, int icon_sz) {
-        if (const ImFontAtlas::CustomRect* rect = io.Fonts->GetCustomRectByIndex(rect_id)) {
+    auto load_icon_from_svg = [atlas, pixels, width, &rect_id](const std::pair<const wchar_t, std::string> icon, int icon_sz) {
+        if (const ImFontAtlas::CustomRect* rect = atlas->GetCustomRectByIndex(rect_id)) {
             assert(rect->Width == icon_sz);
             assert(rect->Height == icon_sz);
             unsigned                   outwidth, outheight;
@@ -3130,6 +3157,101 @@ void ImGuiWrapper::init_font(bool compress)
         load_icon_from_svg(icon, icon_sz);
     }
 
+    // Compressed here rather than by the driver during the upload, which would stall the GL thread
+    // (~100 ms for a 4096 x 3000 atlas). One block row is 4 pixel rows; the last one may be partial,
+    // which extractBlock() in stb_dxt pads by repeating the edge rows, and S3TC accepts any height
+    // as long as imageSize is ceil(width / 4) * ceil(height / 4) * 16, which is what this produces.
+    // ImGui's width is always a multiple of 4 (512, 1024, 2048, 4096, or a doubling of one).
+    if (dxt5) {
+        assert(width % 4 == 0);
+        const int block_rows = (height + 3) / 4;
+        font_atlas->dxt5.resize(size_t(width) * 4 * block_rows); // (width / 4) * block_rows * 16 bytes
+        tbb::parallel_for(tbb::blocked_range<int>(0, block_rows), [&](const tbb::blocked_range<int> &rows) {
+            int size;
+            rygCompress(&font_atlas->dxt5[size_t(rows.begin()) * 4 * width], &pixels[size_t(rows.begin()) * 16 * width],
+                        width, std::min(int(rows.size()) * 4, height - rows.begin() * 4), 1, size);
+        });
+    }
+    return font_atlas;
+}
+
+// Text is drawn a bit larger on Windows when the display scale is over 300%, see build_font_atlas().
+static bool is_large_display()
+{
+#ifdef _WIN32
+    return wxGetApp().em_unit() > 30;
+#else
+    return false;
+#endif
+}
+
+void ImGuiWrapper::start_font_atlas_build(int gl_max_tex_size, bool dxt5)
+{
+    m_font_atlas_built.store(false, std::memory_order_relaxed);
+    // `this` outlives the worker: the destructor of m_font_atlas_build waits for it.
+    m_font_atlas_build = std::async(std::launch::async, [this, glyph_ranges = m_glyph_ranges, font_size = m_font_size, font_cjk = m_font_cjk,
+                                                         large_display = is_large_display(), gl_max_tex_size, dxt5] {
+        auto built = build_font_atlas(glyph_ranges, true, font_size, font_cjk, large_display, gl_max_tex_size, dxt5);
+        m_font_atlas_built.store(true, std::memory_order_release);
+        wxWakeUpIdle(); // the canvases redraw with it, see GLCanvas3D::on_idle()
+        return built;
+    });
+}
+
+// Called once the window exists, so the build overlaps the rest of startup and the first frame can
+// use the complete atlas. With no GL context yet to ask, it assumes no texture size limit and DXT5
+// support; init_font() checks both before using the atlas.
+void ImGuiWrapper::prepare_fonts()
+{
+    if (m_glyph_ranges != nullptr && ! m_font_atlas_complete && ! m_font_atlas_build.valid())
+        start_font_atlas_build(std::numeric_limits<int>::max(), true);
+}
+
+bool ImGuiWrapper::has_font_atlas_ready() const
+{
+    return m_font_atlas_build.valid() && m_font_atlas_built.load(std::memory_order_acquire);
+}
+
+// Called at the start of a frame while the fonts are missing or incomplete. Building the complete atlas takes long enough to stall the GL
+// thread (every language gets the CJK ideographs), so it is built on a worker thread, and a Latin-only
+// atlas, built at once, is drawn until it is ready.
+void ImGuiWrapper::init_font(bool compress)
+{
+    std::unique_ptr<FontAtlas> font_atlas;
+    GLint gl_max_tex_size = 0;
+    glsafe(::glGetIntegerv(GL_MAX_TEXTURE_SIZE, &gl_max_tex_size));
+    if (has_font_atlas_ready()) {
+        m_font_atlas_built.store(false, std::memory_order_relaxed);
+        font_atlas = m_font_atlas_build.get(); // at most the worker's return still pending, see has_font_atlas_ready()
+        // Dropped if the language or the size changed while it was built, or if it was started before
+        // the GL context (prepare_fonts()) and is too large for this GPU.
+        if (font_atlas->glyph_ranges != m_glyph_ranges || font_atlas->font_size != m_font_size ||
+            (font_atlas->max_tex_size > gl_max_tex_size && std::max(font_atlas->width, font_atlas->height) > gl_max_tex_size))
+            font_atlas.reset();
+    }
+    const bool complete = font_atlas != nullptr;
+
+    const bool dxt5 = compress && GLAD_GL_EXT_texture_compression_s3tc;
+    if (font_atlas == nullptr && m_font_texture == 0)
+        font_atlas = build_font_atlas(m_glyph_ranges, false, m_font_size, m_font_cjk, is_large_display(), gl_max_tex_size, dxt5);
+    if (font_atlas != nullptr)
+        m_font_atlas_complete = complete;
+    if (! m_font_atlas_complete && ! m_font_atlas_build.valid())
+        start_font_atlas_build(gl_max_tex_size, dxt5);
+    if (font_atlas == nullptr)
+        return;
+
+    // The fonts point back at the atlas they live in, so the context takes the built atlas over.
+    destroy_font();
+    ImGuiIO& io = ImGui::GetIO();
+    IM_DELETE(io.Fonts);
+    io.Fonts                 = std::exchange(font_atlas->atlas, nullptr);
+    default_font             = font_atlas->default_font;
+    bold_font                = font_atlas->bold_font;
+    m_custom_glyph_rects_ids = std::move(font_atlas->rect_ids);
+    unsigned char* pixels    = font_atlas->pixels;
+    const int width = font_atlas->width, height = font_atlas->height;
+
     // Upload texture to graphics system
     GLint last_texture;
     glsafe(::glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture));
@@ -3138,13 +3260,16 @@ void ImGuiWrapper::init_font(bool compress)
     glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
     glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
     glsafe(::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
-    if (compress && GLAD_GL_EXT_texture_compression_s3tc)
-        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
+    // The data is there even when started by prepare_fonts() before the GL context, so S3TC is checked again here.
+    if (compress && GLAD_GL_EXT_texture_compression_s3tc && ! font_atlas->dxt5.empty())
+        glsafe(::glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, width, height, 0, GLsizei(font_atlas->dxt5.size()), font_atlas->dxt5.data()));
     else
         glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
 
     // Store our identifier
     io.Fonts->TexID = (ImTextureID)(intptr_t)m_font_texture;
+    // The GPU has it now; the CPU copies are ~60 MB for a CJK atlas.
+    io.Fonts->ClearTexData();
 
     // Restore state
     glsafe(::glBindTexture(GL_TEXTURE_2D, last_texture));
