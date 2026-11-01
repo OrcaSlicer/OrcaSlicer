@@ -4888,8 +4888,12 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     // inside ImGui. ImGui itself notices such a click only in a frame drawn while the button is still down, and the
     // canvas draws one only when the press changed something: a press on a plate changes nothing before the release,
     // so the dialog kept the focus, and the arrow keys, after a plate was picked on the canvas.
-    else if (evt.LeftDown() && imgui->display_initialized())
+    else if (evt.LeftDown() && imgui->display_initialized()) {
         ImGui::SetWindowFocus(nullptr);
+        // Shown by the next frame: a press on empty canvas draws none by itself, so the dialog would show as
+        // focused until the mouse moved.
+        _set_overlay_as_dirty();
+    }
 
     // Design tab: the interactive sketch tool owns the mouse whenever it has
     // something on screen — an active session OR committed sketch overlays that the user
