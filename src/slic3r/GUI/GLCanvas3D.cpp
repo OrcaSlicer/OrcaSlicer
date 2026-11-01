@@ -98,6 +98,7 @@
 #include "MainFrame.hpp"
 #include "WipeTowerDialog.hpp"
 #include "GUI_App.hpp"
+#include "Lazy.hpp"
 #include "PlateArrangementDialog.hpp"
 #include "Shortcuts.hpp"
 #include "GUI_ObjectList.hpp"
