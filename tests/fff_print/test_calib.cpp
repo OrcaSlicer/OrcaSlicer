@@ -1,9 +1,6 @@
-#include <catch2/catch_all.hpp>
-
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -14,9 +11,12 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Flow.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/Print.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/calib.hpp"
@@ -33,61 +33,24 @@ struct Move
     double e_per_mm;
 };
 
-// Extruding moves under a ";TYPE:<type>" tag: only the first one after each tag, or all of them. The PA line test prints
-// no object, so its fast segments are the first move after each ";TYPE:Outer wall" and the box under its numbers is
-// all of ";TYPE:Bottom surface".
-std::vector<Move> extrusions_of_type(const std::string &gcode, const std::string &type, bool first_only)
+// Extruding moves under a role tag: only the first one after each tag, or all of them.
+std::vector<Move> extrusions_of_type(const std::string &gcode, const std::string &type, bool first_only, const DynamicPrintConfig& config)
 {
-    const std::string  tag = ";TYPE:" + type;
-    std::vector<Move>  out;
-    std::istringstream lines(gcode);
-    std::string        line;
-    bool               relative = false;
-    bool               armed    = false;
-    double             x = 0., y = 0., e = 0., f = 0.;
-    while (std::getline(lines, line)) {
-        if (line.rfind(";TYPE:", 0) == 0) {
-            armed = line == tag;
-            continue;
-        }
-        if (line.rfind("M83", 0) == 0)
-            relative = true;
-        else if (line.rfind("M82", 0) == 0)
-            relative = false;
-        const bool is_move = line.rfind("G1 ", 0) == 0 || line.rfind("G0 ", 0) == 0;
-        if (!is_move && line.rfind("G92 ", 0) != 0)
-            continue;
-
-        std::istringstream words(line.substr(0, line.find(';')));
-        std::string        word;
-        words >> word; // the command
-        double nx = x, ny = y, ev = 0.;
-        bool   has_e = false;
-        while (words >> word) {
-            const double v = std::stod(word.substr(1));
-            switch (word[0]) {
-            case 'X': nx = v; break;
-            case 'Y': ny = v; break;
-            case 'E': ev = v; has_e = true; break;
-            case 'F': f = v; break;
-            default: break;
-            }
-        }
-        if (!is_move) { // G92
-            if (has_e)
-                e = ev;
-            continue;
-        }
-        const double length = std::hypot(nx - x, ny - y);
-        if (has_e && armed && length > 0.) {
-            out.push_back({f, (relative ? ev : ev - e) / length});
+    const std::string  prefix = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    const std::string  tag = prefix + type;
+    std::vector<Move> out;
+    bool armed = false;
+    GCodeReader reader;
+    reader.apply_config(config);
+    reader.parse_buffer(gcode, [&](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        if (line.raw().rfind(prefix, 0) == 0)
+            armed = line.raw() == tag;
+        const double length = line.dist_XY(self);
+        if (armed && line.cmd_is("G1") && line.has_e() && length > 0.) {
+            out.push_back({line.new_F(self), line.dist_E(self) / length});
             armed = !first_only;
         }
-        if (has_e)
-            e = relative ? e + ev : ev;
-        x = nx;
-        y = ny;
-    }
+    });
     return out;
 }
 
@@ -106,30 +69,33 @@ TEST_CASE("The PA line test prints with the speed and extrusion of the filament 
         {"filament_diameter", "1.75,2.85"},
         {"filament_flow_ratio", "1,0.9"},
         {"filament_max_volumetric_speed", "21,4"},
-        {"print_flow_ratio", "1"},
+        {"print_flow_ratio", "0.95"},
+        {"use_relative_e_distances", 0},
         {"outer_wall_speed", "200"},
         {"initial_layer_print_height", "0.2"},
         {"enable_prime_tower", 0},
         {"skirt_loops", 0},
         {"brim_type", "no_brim"},
     });
-    Print print;
     Model model;
-    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{"extruder", std::to_string(filament)}}};
-    Test::init_print({Test::cube(20)}, print, model, config, &overrides);
+    ModelObject* object = model.add_object("handle", "", make_cube(5, 5, 0.4));
+    object->config.set_key_value("extruder", new ConfigOptionInt(filament));
+    object->add_instance();
     Calib_Params params;
     params.mode          = CalibMode::Calib_PA_Line;
     params.start         = 0.;
     params.end           = 0.02;
     params.step          = 0.002;
     params.print_numbers = print_numbers;
-    print.set_calib_params(params);
-    const std::string       gcode    = Test::gcode(print);
-    const std::vector<Move> segments = extrusions_of_type(gcode, "Outer wall", true);
+    CalibPressureAdvanceLine line(params, config, false, *object, Vec3d::Zero());
+    const CustomGCode::Info custom = line.generate_custom_gcodes(config, false, *object, Vec3d::Zero());
+    REQUIRE(custom.gcodes.size() == 2);
+    const std::string       gcode    = "M82\n" + custom.gcodes.front().extra;
+    const std::vector<Move> segments = extrusions_of_type(gcode, "Outer wall", true, config);
     REQUIRE_FALSE(segments.empty());
     // The box under the numbers is drawn with the same line width and height as the PA lines.
-    const std::vector<Move> box = extrusions_of_type(gcode, "Bottom surface", false);
-    CHECK(box.empty() != print_numbers);
+    const std::vector<Move> box = extrusions_of_type(gcode, "Bottom surface", false, config);
+    REQUIRE_FALSE(box.empty());
 
     // The test prints 1.5 nozzle-wide lines on the 0.2 mm first layer (CalibPressureAdvanceLine).
     const size_t idx          = size_t(filament - 1);
@@ -139,11 +105,71 @@ TEST_CASE("The PA line test prints with the speed and extrusion of the filament 
     const double flow_ratio   = config.option<ConfigOptionFloatsNullable>("filament_flow_ratio")->get_at(idx);
     // Fast lines run at the outer wall speed (at least 100 mm/s), capped by the filament's volumetric speed.
     const double fast_speed   = std::floor(std::min(std::max(100., 200.), max_vol / mm3_per_mm));
-    const double e_per_mm     = mm3_per_mm * flow_ratio / (PI * diameter * diameter / 4.);
-    for (const Move &move : segments) {
-        CHECK_THAT(move.feedrate, Catch::Matchers::WithinAbs(fast_speed * 60., 1.));
-        CHECK_THAT(move.e_per_mm, Catch::Matchers::WithinRel(e_per_mm, 0.005));
-    }
-    for (const Move &move : box)
-        CHECK_THAT(move.e_per_mm, Catch::Matchers::WithinRel(e_per_mm, 0.005));
+    const double e_per_mm     = mm3_per_mm * flow_ratio * config.get_abs_value("print_flow_ratio") / (PI * diameter * diameter / 4.);
+    CAPTURE(fast_speed, e_per_mm, segments.front().feedrate, segments.front().e_per_mm, box.front().e_per_mm);
+    CHECK(std::all_of(segments.begin(), segments.end(), [&](const Move& move) {
+        return Catch::Matchers::WithinAbs(fast_speed * 60., 1.).match(move.feedrate);
+    }));
+    CHECK(std::all_of(segments.begin(), segments.end(), [&](const Move& move) {
+        return Catch::Matchers::WithinRel(e_per_mm, 0.005).match(move.e_per_mm);
+    }));
+    CHECK(std::all_of(box.begin(), box.end(), [&](const Move& move) {
+        return Catch::Matchers::WithinRel(e_per_mm, 0.005).match(move.e_per_mm);
+    }));
+}
+
+TEST_CASE("PA Line preserves selected parameters when regenerating G-code", "[Calib][PA Line][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"gcode_flavor", "klipper"},
+        {"outer_wall_speed", "120"},
+        {"outer_wall_acceleration", "4000"},
+        {"machine_max_acceleration_extruding", "10000"},
+        {"machine_max_acceleration_x", "10000"},
+        {"machine_max_acceleration_y", "10000"},
+        {"initial_layer_print_height", "0.2"},
+        {"initial_layer_speed", "30"},
+        {"layer_height", "0.2"},
+        {"nozzle_diameter", "0.4"},
+        {"filament_diameter", "1.75"},
+        {"filament_flow_ratio", "1"},
+        {"filament_max_volumetric_speed", "30"},
+        {"z_offset", "0"},
+    });
+
+    Model model;
+    ModelObject* object = model.add_object("handle", "", make_cube(5, 5, 0.4));
+    object->add_instance();
+
+    Calib_Params params;
+    params.mode          = CalibMode::Calib_PA_Line;
+    params.start         = 0.02;
+    params.end           = 0.03;
+    params.step          = 0.005;
+    params.print_numbers = false;
+
+    CalibPressureAdvanceLine line(params, config, false, *object, Vec3d::Zero());
+    const CustomGCode::Info initial = line.generate_custom_gcodes(config, false, *object, Vec3d::Zero());
+
+    REQUIRE(initial.gcodes.size() == 2);
+    CHECK(initial.gcodes.front().extra.find("SET_PRESSURE_ADVANCE ADVANCE=0.02") != std::string::npos);
+    CHECK(initial.gcodes.front().extra.find("SET_PRESSURE_ADVANCE ADVANCE=0.03") != std::string::npos);
+    CHECK(initial.gcodes.front().extra.find("ACCEL=4000") != std::string::npos);
+    CHECK(initial.gcodes.front().extra.find("F7200") != std::string::npos);
+    const std::string background = initial.gcodes.front().extra.substr(initial.gcodes.front().extra.find("Bottom surface"));
+    CHECK(background.find("\nG1 F1800") != std::string::npos);
+    CHECK(initial.gcodes.back().extra.find("Glyph:") != std::string::npos);
+
+    config.set_deserialize_strict({
+        {"initial_layer_print_height", "0.3"},
+        {"layer_height", "0.24"},
+        {"nozzle_diameter", "0.6"},
+    });
+    const CustomGCode::Info regenerated = line.generate_custom_gcodes(config, false, *object, Vec3d::Zero());
+
+    REQUIRE(regenerated.gcodes.size() == 2);
+    CHECK_THAT(regenerated.gcodes.front().print_z, Catch::Matchers::WithinAbs(0.3, 1e-9));
+    CHECK_THAT(regenerated.gcodes.back().print_z, Catch::Matchers::WithinAbs(0.3 + 0.24, 1e-9));
+    CHECK_THAT(line.line_width(), Catch::Matchers::WithinAbs(0.6 * 1.05, 1e-9));
 }

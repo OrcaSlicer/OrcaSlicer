@@ -1123,8 +1123,8 @@ private:
     // BBS: add project slice related functions
     int start_next_slice();
 
-    void _calib_pa_pattern(const Calib_Params& params);
-    void _calib_pa_pattern_gen_gcode();
+    void _calib_pa_batch(const Calib_Params& params);
+    void _calib_pa_batch_gen_gcode();
     void _calib_pa_tower(const Calib_Params& params);
     void _calib_pa_select_added_objects();
     void _calib_apply_belt_mode();
