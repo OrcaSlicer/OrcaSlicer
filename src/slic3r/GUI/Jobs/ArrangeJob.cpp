@@ -434,6 +434,79 @@ arrangement::ArrangePolygon estimate_wipe_tower_info(int plate_index, std::set<i
     return arrange_poly;
 }
 
+// Smooth timelapse needs a prime tower on every plate, even with a single filament.
+static bool wipe_tower_is_mandatory()
+{
+    const DynamicPrintConfig &cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    const auto *timelapse = cfg.option("timelapse_type");
+    return timelapse && timelapse->getInt() == TimelapseType::tlSmooth;
+}
+
+// Single-filament parts that the main pass could not place next to a tower placeholder need
+// no tower of their own: retry them on fresh plates, one plate group per filament.
+static void retry_unfit_single_color_items(ArrangePolygons &selected, const ArrangePolygons &unselected,
+                                           const Points &bedpts, const arrangement::ArrangeParams &params)
+{
+    // Without a tower in the way, the rejected parts really are too big.
+    if (std::none_of(unselected.begin(), unselected.end(), [](const ArrangePolygon &ap) { return ap.is_wipe_tower; }))
+        return;
+
+    // Virtual items stay out: finalize() applies no result for them, so a bed here would only open empty plates.
+    std::map<int, std::vector<size_t>> groups;
+    for (size_t i = 0; i < selected.size(); ++i) {
+        const ArrangePolygon &ap = selected[i];
+        if (ap.is_virt_object || ap.bed_idx >= 0 || ap.extrude_ids.empty())
+            continue;
+        const std::set<int> filaments(ap.extrude_ids.begin(), ap.extrude_ids.end());
+        if (filaments.size() == 1)
+            groups[*filaments.begin()].push_back(i);
+    }
+    if (groups.empty())
+        return;
+
+    ArrangePolygons fallback_unselected;
+    for (const ArrangePolygon &ap : unselected)
+        if (!ap.is_wipe_tower)
+            fallback_unselected.push_back(ap);
+
+    int base_bed = 0; // first plate no part has taken
+    for (const ArrangePolygon &ap : selected)
+        if (ap.bed_idx >= 0)
+            base_bed = std::max(base_bed, ap.bed_idx + 1);
+
+    // The progress counter of the main pass must not jump back.
+    arrangement::ArrangeParams fallback_params = params;
+    fallback_params.progressind                = nullptr;
+
+    for (const auto &[filament, indices] : groups) {
+        ArrangePolygons group;
+        for (size_t idx : indices) {
+            group.push_back(selected[idx]);
+            group.back().bed_idx = 0;
+        }
+        arrangement::arrange(group, fallback_unselected, bedpts, fallback_params);
+
+        int next_base = base_bed;
+        for (ArrangePolygon &ap : group) {
+            if (ap.bed_idx < 0)
+                continue; // still too big: stays outside
+            ap.bed_idx += base_bed;
+            if (ap.bed_idx >= MAX_NUM_PLATES)
+                ap.bed_idx = arrangement::UNARRANGED;
+            else
+                next_base = std::max(next_base, ap.bed_idx + 1);
+        }
+        base_bed = next_base;
+
+        // By index: arrange() overwrites itemid with the packing order.
+        for (size_t k = 0; k < indices.size() && k < group.size(); ++k) {
+            const int itemid = selected[indices[k]].itemid;
+            selected[indices[k]] = group[k];
+            selected[indices[k]].itemid = itemid;
+        }
+    }
+}
+
 // 准备料塔。逻辑如下：
 // 1. 以下几种情况不需要料塔：
 //    1）料塔被禁用，
@@ -459,10 +532,7 @@ void ArrangeJob::prepare_wipe_tower()
     if (params.is_belt)
         return;
 
-    bool smooth_timelapse = false;
-    auto sop = current_config.option("timelapse_type");
-    if (sop) { smooth_timelapse = sop->getInt() == TimelapseType::tlSmooth; }
-    if (smooth_timelapse) { need_wipe_tower = true; }
+    if (wipe_tower_is_mandatory()) { need_wipe_tower = true; }
 
     // estimate if we need wipe tower for all plates:
     // need wipe tower if some object has multiple extruders (has paint-on colors or support material)
@@ -862,6 +932,9 @@ void ArrangeJob::pack_tighter(Ctl &ctl, ArrangePolygons &selected, const Points 
         });
     };
     arrangement::arrange(selected, m_unselected, bedpts, pack);
+    // Stock places sparrow's leftovers around tower placeholders too, so they get the same retry.
+    if (!ctl.was_canceled() && !only_on_partplate && !wipe_tower_is_mandatory())
+        retry_unfit_single_color_items(selected, m_unselected, bedpts, params);
 
     // Fewer parts left out wins, then fewer plates. A stop falls back to the stock result.
     const int packed = score(selected, m_unselected), packed_unplaced = unplaced(selected);
@@ -948,6 +1021,10 @@ void ArrangeJob::process(Ctl &ctl)
     arrangement::arrange(m_selected, m_unselected, bedpts, params);
     if (!ctl.was_canceled())
         imex.finish(m_selected, before, m_unselected, params);
+
+    // Parts squeezed out by a tower placeholder get a second chance on tower-free plates.
+    if (!ctl.was_canceled() && !only_on_partplate && !params.is_seq_print && !params.is_belt && !wipe_tower_is_mandatory())
+        retry_unfit_single_color_items(m_selected, m_unselected, bedpts, params);
 
     m_stock_score    = score(m_selected, m_unselected);
     m_stock_unplaced = unplaced(m_selected);
@@ -1340,6 +1417,7 @@ arrangement::ArrangeParams init_arrange_params(Plater *p)
 
     // Decided after is_seq_print is final, so the outline flag and the "packer
     // skipped" toast in prepare() agree with what the pack tighter pass runs.
+    params.prime_tower_always = wipe_tower_is_mandatory();
     params.use_sparrow = arrangement::sparrow_available() && settings.arrange_use_sparrow && !params.is_seq_print && !params.is_belt;
     // Set before the ArrangePolygons are collected. The flag stays set until the
     // next arrange, so any get_arrange_polygon() caller in between sees it too.
