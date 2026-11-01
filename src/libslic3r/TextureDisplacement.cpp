@@ -91,12 +91,16 @@ bool DecodedHeightTexture::texel_tap(const Vec2f &uv, bool tile_enabled, Texture
     const float fy = v * float(height);
     const int   x0 = std::clamp(int(std::floor(fx)), 0, width - 1);
     const int   y0 = std::clamp(int(std::floor(fy)), 0, height - 1);
-    // Neighbour for bilinear filtering: wrap for tiling methods, clamp at the edge otherwise (a
-    // repeating neighbour would incorrectly blend against the opposite edge of the image).
+    // Neighbour for bilinear filtering. Repeat wraps, because its next tile really does start at the
+    // opposite edge. The other two clamp: an untiled placement has nothing past its border, and a
+    // mirrored tile folds back on itself there, so the texel past the edge is the edge again. Wrapping
+    // a mirrored seam blends the two opposite edges of the image together, which is both a visible
+    // line and a disagreement with the preview - the GPU path binds GL_MIRRORED_REPEAT, which folds.
+    const bool wrap_neighbour = tile_enabled && tile_method != TextureTileMethod::MirroredRepeat;
     tap.x0 = x0;
     tap.y0 = y0;
-    tap.x1 = tile_enabled ? (x0 + 1) % width  : std::min(x0 + 1, width - 1);
-    tap.y1 = tile_enabled ? (y0 + 1) % height : std::min(y0 + 1, height - 1);
+    tap.x1 = wrap_neighbour ? (x0 + 1) % width  : std::min(x0 + 1, width - 1);
+    tap.y1 = wrap_neighbour ? (y0 + 1) % height : std::min(y0 + 1, height - 1);
     tap.tx = fx - std::floor(fx);
     tap.ty = fy - std::floor(fy);
     return true;
@@ -694,7 +698,68 @@ TextureDetail analyze_texture_detail(const TextureDisplacementLayer &layer)
         for (int i = 0; i < 8; ++i)
             top += bins[size_t(i)];
         out.flat_share  = float(double(top) / double(npx));
-        out.flat_colors = out.flat_share >= 0.85f;
+
+        // How much of the principal colour axis carries pixels. Sampled rather than exhaustive: the
+        // axis is a bulk property, and a stride keeps this a few milliseconds on a large image.
+        {
+            constexpr size_t MAX_SAMPLES = size_t(1) << 16;
+            const size_t     stride      = std::max<size_t>(1, npx / MAX_SAMPLES);
+            std::vector<Vec3f> pts;
+            pts.reserve(npx / stride + 1);
+            for (size_t i = 0; i < npx; i += stride)
+                pts.push_back(tex.has_color() ?
+                                  Vec3f(float(tex.rgb[i * 3]), float(tex.rgb[i * 3 + 1]), float(tex.rgb[i * 3 + 2])) :
+                                  Vec3f::Constant(float(tex.pixels[i])));
+            if (pts.size() >= 16) {
+                Vec3f mean = Vec3f::Zero();
+                for (const Vec3f &p : pts)
+                    mean += p;
+                mean /= float(pts.size());
+                // Power iteration on the covariance: the axis, without forming the matrix.
+                Vec3f axis(1.f, 0.3f, 0.2f);
+                for (int it = 0; it < 24; ++it) {
+                    Vec3f next = Vec3f::Zero();
+                    for (const Vec3f &p : pts) {
+                        const Vec3f d = p - mean;
+                        next += d.dot(axis) * d;
+                    }
+                    const float n = next.norm();
+                    if (n < 1e-6f)
+                        break;
+                    axis = next / n;
+                }
+                std::vector<float> proj(pts.size());
+                for (size_t i = 0; i < pts.size(); ++i)
+                    proj[i] = (pts[i] - mean).dot(axis);
+                std::sort(proj.begin(), proj.end());
+                // Trimmed, so a handful of stray pixels cannot stretch the range and make a flat
+                // image look like it spans one.
+                const float lo   = proj[size_t(0.01 * double(proj.size()))];
+                const float hi   = proj[std::min(proj.size() - 1, size_t(0.99 * double(proj.size())))];
+                const float span = hi - lo;
+                if (span > 1e-3f) {
+                    constexpr int BUCKETS = 32;
+                    std::array<size_t, BUCKETS> hist{};
+                    for (const float s : proj)
+                        if (s >= lo && s <= hi)
+                            ++hist[size_t(std::min(BUCKETS - 1, int((s - lo) / span * BUCKETS)))];
+                    // A bucket counts as carrying pixels at a fifth of a percent of them, which is
+                    // above the noise a dithered image leaves between its colours.
+                    const size_t floor_count = size_t(0.002 * double(proj.size()));
+                    int          filled      = 0;
+                    for (const size_t c : hist)
+                        filled += c >= floor_count;
+                    out.axis_coverage = float(filled) / float(BUCKETS);
+                }
+            }
+        }
+
+        // Both signals, because either alone misreads a common case: the histogram calls a
+        // two-colour gradient flat (measured 0.90 on a green-to-red ramp, and 0.96 on a painted
+        // model texture), while coverage alone would call a noisy two-colour logo a gradient. An
+        // image whose axis could not be measured keeps coverage at 0, so the flat-share test decides
+        // alone - which is what an image of a single colour needs.
+        out.flat_colors = out.flat_share >= 0.85f && out.axis_coverage < 0.25f;
     }
     std::lock_guard<std::mutex> lock(g_texture_detail_cache.mutex);
     auto &entries = g_texture_detail_cache.entries;
