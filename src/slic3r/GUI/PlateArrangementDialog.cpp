@@ -17,6 +17,7 @@
 #include <vector>
 #include <utility>
 
+#include <wx/colour.h> // the WXK_* key codes, as misc-include-cleaner maps them
 #include <wx/event.h>
 #include <wx/string.h>
 
