@@ -3426,6 +3426,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("interlocking_beam_layer_count", "multimaterial_settings_advanced#interlocking-beam-layers");
         optgroup->append_single_option_line("interlocking_depth", "multimaterial_settings_advanced#interlocking-depth");
         optgroup->append_single_option_line("interlocking_boundary_avoidance", "multimaterial_settings_advanced#interlocking-boundary-avoidance");
+        optgroup->append_single_option_line("interlocking_skip_bottom_layers", "multimaterial_settings_advanced#interlocking-skip-bottom-layers");
 
     page = add_options_page(L("Others"), "custom-gcode_other"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Skirt"), L"param_skirt");
