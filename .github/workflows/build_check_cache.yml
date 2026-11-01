@@ -29,6 +29,10 @@ on:
         required: false
         type: string
         default: ps1
+      clean:
+        required: false
+        type: boolean
+        default: false
   
 # Read by scripts/ci_deps_cache.sh.
 env:
@@ -221,4 +225,5 @@ jobs:
       build-deps-only: ${{ inputs.build-deps-only }}
       force-build: ${{ inputs.force-build }}
       script: ${{ inputs.script }}
+      clean: ${{ inputs.clean }}
     secrets: inherit

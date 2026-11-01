@@ -30,6 +30,10 @@ on:
           required: false
           type: string
           default: ps1
+        clean:
+          required: false
+          type: boolean
+          default: false
         macos-combine-only:
           required: false
           type: boolean
@@ -565,8 +569,13 @@ jobs:
             $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
           }
           # Use build_win.ps1 by default; build_win.bat for baseline comparison
+          # The self-hosted workspace keeps the previous run's build tree, so a
+          # leg that does not clean is incremental and reports a fraction of its
+          # real cost. -Clean removes the slicer tree only; cached deps stay.
+          $cleanBuild = "${{ inputs.clean }}" -eq "true"
           if ("${{ inputs.script }}" -eq "bat") {
             $batArgs = @("-s", "--tests", "-i", "--arch", "${{ inputs.arch }}", "--build-dir", $env:BUILD_DIR, "--deps-dir", $deps) + $flags
+            if ($cleanBuild) { $batArgs += "--clean" }
             & "${{ github.workspace }}\build_win.bat" @batArgs
           } else {
             $useClangCl = $flags -contains "-l"
@@ -576,42 +585,9 @@ jobs:
             $useCache   = if ($flags -contains "--ccache") { "ccache" } else { $null }
             # Bind the switch directly: splatting a string binds it positionally and breaks
             # parameter binding on build_win.ps1.
-            & "${{ github.workspace }}\build_win.ps1" -Slicer -Tests -InstallSlicer -Arch ${{ inputs.arch }} -SlicerDir $env:BUILD_DIR -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild -Cache:$useCache
+            & "${{ github.workspace }}\build_win.ps1" -Slicer -Tests -InstallSlicer -Arch ${{ inputs.arch }} -SlicerDir $env:BUILD_DIR -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild -Cache:$useCache -Clean:$cleanBuild
           }
         shell: powershell
-
-      - name: Debug preset cache environment (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          Write-Host "=== Debug: Build directory state ==="
-          Write-Host "BUILD_DIR = $env:BUILD_DIR"
-          Write-Host "BUILD_DIR exists: $(Test-Path $env:BUILD_DIR)"
-          if (Test-Path $env:BUILD_DIR) {
-            Get-ChildItem $env:BUILD_DIR | Select-Object Name, LastWriteTime
-          }
-          Write-Host "=== Searching for generate_system_cache.exe ==="
-          $tools = Get-ChildItem -Path $env:BUILD_DIR -Filter "generate_system_cache.exe" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
-          if ($tools) {
-            $tools | ForEach-Object { Write-Host "Found: $($_.FullName) (LastWrite: $($_.LastWriteTime))" }
-          } else {
-            Write-Host "generate_system_cache.exe NOT FOUND"
-          }
-          Write-Host "=== Searching for TKernel.dll ==="
-          $tkernel = Get-ChildItem -Path $env:BUILD_DIR -Filter "TKernel.dll" -Recurse -ErrorAction SilentlyContinue
-          if ($tkernel) {
-            $tkernel | ForEach-Object { Write-Host "Found TKernel.dll: $($_.FullName)" }
-          } else {
-            Write-Host "TKernel.dll NOT FOUND"
-          }
-          Write-Host "=== Checking build directory structure ==="
-          if (Test-Path "$env:BUILD_DIR\OrcaSlicer\resources\profiles") {
-            Write-Host "Target dir exists: $env:BUILD_DIR\OrcaSlicer\resources\profiles"
-          } else {
-            Write-Host "Target dir NOT FOUND: $env:BUILD_DIR\OrcaSlicer\resources\profiles"
-          }
-          Write-Host "=== PATH ==="
-          Write-Host $env:PATH
 
       - name: Build system preset cache (Windows)
         if: runner.os == 'Windows'

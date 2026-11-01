@@ -39,6 +39,10 @@ on:
         required: false
         type: string
         default: ps1
+      clean:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build_deps:
@@ -249,4 +253,5 @@ jobs:
       preset: ${{ inputs.preset }}
       flags: ${{ inputs.flags }}
       script: ${{ inputs.script }}
+      clean: ${{ inputs.clean }}
     secrets: inherit
