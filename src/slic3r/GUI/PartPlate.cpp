@@ -2603,12 +2603,15 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
             } else
                 render_icon_texture(m_move_front_icon.model, m_partplate_list->m_move_front_texture);
 
-            if (hover_id == PLATE_MOVE_ID || m_partplate_list->get_dragged_plate() == m_plate_index) {
-                render_icon_texture(m_move_plate_icon.model, m_partplate_list->m_move_plate_hovered_texture);
-                if (hover_id == PLATE_MOVE_ID)
-                    set_hover_tooltip(_u8L("Drag to reorder plates"));
-            } else
-                render_icon_texture(m_move_plate_icon.model, m_partplate_list->m_move_plate_texture);
+            // Orca: nothing to reorder with one plate, or with the other plates hidden (focus mode).
+            if (m_partplate_list->get_plate_count() > 1 && !wxGetApp().focus_mode()) {
+                if (hover_id == PLATE_MOVE_ID || m_partplate_list->get_dragged_plate() == m_plate_index) {
+                    render_icon_texture(m_move_plate_icon.model, m_partplate_list->m_move_plate_hovered_texture);
+                    if (hover_id == PLATE_MOVE_ID)
+                        set_hover_tooltip(_u8L("Drag to reorder plates"));
+                } else
+                    render_icon_texture(m_move_plate_icon.model, m_partplate_list->m_move_plate_texture);
+            }
 
             // IDEX/IQEX mode icon — only when is_imex is active
             {

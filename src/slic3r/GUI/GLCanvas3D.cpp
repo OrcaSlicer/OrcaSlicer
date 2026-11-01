@@ -4831,6 +4831,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         }
         m_plate_drag.cancelled = false;
     }
+    // Orca: other buttons do nothing while a plate is dragged; their button-up would end the drag.
+    if (m_plate_drag.plate_idx != -1 && (evt.ButtonDown() || evt.ButtonUp() || evt.ButtonDClick()) &&
+        evt.GetButton() != wxMOUSE_BTN_LEFT)
+        return;
     if (m_tooltip.is_in_imgui() && evt.LeftUp())
         // ignore left up events coming from imgui windows and not processed by them
         m_mouse.ignore_left_up = true;
