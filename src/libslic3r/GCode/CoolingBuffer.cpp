@@ -95,6 +95,7 @@ struct CoolingLine
         // Belt printers: extrusions within the first-layer band above the belt.
         TYPE_BELT_BAND_START           = 1 << 21,
         TYPE_BELT_BAND_END             = 1 << 22,
+        TYPE_M106                      = 1 << 23,
     };
 
     CoolingLine(unsigned int type, size_t  line_start, size_t  line_end) :
@@ -559,6 +560,8 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             line.type = CoolingLine::TYPE_BELT_BAND_START;
         } else if (boost::starts_with(sline, ";_BELT_BAND_END")) {
             line.type = CoolingLine::TYPE_BELT_BAND_END;
+        } else if (boost::starts_with(sline, "M106 ")) {
+            line.type = CoolingLine::TYPE_M106;
         } else if (boost::starts_with(sline, "G4 ")) {
             // Parse the wait time.
             line.type = CoolingLine::TYPE_G4;
@@ -763,11 +766,44 @@ std::string CoolingBuffer::apply_layer_cooldown(
         &supp_interface_fan_control, &supp_interface_fan_speed,
         &ironing_fan_control, &ironing_fan_speed
     ](bool immediately_apply) {
-#define EXTRUDER_CONFIG(OPT) m_config.OPT.get_at(m_current_extruder)
-        // The per-variant options take the extruder variant the filament prints with on this layer
+        auto policy = CoolingPolicy::Default;
+        if (m_config.has("cooling_policy")) {
+            const auto* cp_opt = dynamic_cast<const ConfigOptionEnumsGeneric*>(m_config.option("cooling_policy"));
+            if (cp_opt && m_current_extruder < cp_opt->values.size())
+                policy = static_cast<CoolingPolicy>(cp_opt->get_at(m_current_extruder));
+        } else {
+            // Fallback for configs loaded without going through Preset::normalize
+            // (e.g. direct 3MF load). Read the legacy checkboxes via generic lookup.
+            const auto* fan_off_opt = dynamic_cast<const ConfigOptionBools*>(m_config.option("fan_always_off"));
+            const auto* freq_opt    = dynamic_cast<const ConfigOptionBools*>(m_config.option("reduce_fan_stop_start_freq"));
+
+            if (fan_off_opt && m_current_extruder < fan_off_opt->values.size() && fan_off_opt->get_at(m_current_extruder))
+                policy = CoolingPolicy::AlwaysOff;
+            else if (freq_opt && m_current_extruder < freq_opt->values.size() && freq_opt->get_at(m_current_extruder))
+                policy = CoolingPolicy::AlwaysOn;
+        }
+
+        if (policy == CoolingPolicy::AlwaysOff) {
+            m_fan_speed         = 0;
+            m_current_fan_speed = 0;
+            if (immediately_apply)
+                new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, 0, part_cooling_fan_min_pwm);
+
+            overhang_fan_control        = false;
+            internal_bridge_fan_control = false;
+            supp_interface_fan_control  = false;
+            ironing_fan_control         = false;
+            return;
+        }
+        // --- Standard Logic starts here ---
         const size_t config_index = m_gcodegen.get_filament_config_index(m_current_extruder, layer_id);
+
+#define EXTRUDER_CONFIG(OPT) m_config.OPT.get_at(m_current_extruder)
+        // Initialize base speeds from config using config_index for per-filament variants
         float fan_min_speed = m_config.fan_min_speed.get_at(config_index);
-        float fan_speed_new = EXTRUDER_CONFIG(reduce_fan_stop_start_freq) ? fan_min_speed : 0;
+        // Combine AlwaysOn policy and stop-start frequency logic
+        bool keep_fan_on    = (policy == CoolingPolicy::AlwaysOn) || EXTRUDER_CONFIG(reduce_fan_stop_start_freq);
+        float fan_speed_new = keep_fan_on ? fan_min_speed : 0;
         //BBS
         int additional_fan_speed_new = m_config.additional_cooling_fan_speed.get_at(config_index);
         int close_fan_the_first_x_layers = EXTRUDER_CONFIG(close_fan_the_first_x_layers);
@@ -922,6 +958,15 @@ std::string CoolingBuffer::apply_layer_cooldown(
                 }
             }
             new_gcode.append(line_start, line_end - line_start);
+        } else if (line->type & CoolingLine::TYPE_M106) {
+            auto policy = CoolingPolicy::Default;
+            if (!m_config.cooling_policy.values.empty()) {
+                policy = (CoolingPolicy) m_config.cooling_policy.get_at(m_current_extruder);
+            }
+            // Only append the existing M106 if the policy is NOT AlwaysOff
+            if (policy != CoolingPolicy::AlwaysOff) {
+                new_gcode.append(line_start, line_end - line_start);
+            }
         } else if (line->type & CoolingLine::TYPE_OVERHANG_FAN_START) {
             if (overhang_fan_control && !fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START]) {
                 need_set_fan = true;
