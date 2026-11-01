@@ -232,6 +232,7 @@ json describe_tools_core()
     return json{
         {"app", "Orca CAD"},
         {"protocol", "jsonrpc-2.0"},
+        {"common_params", json{{"bind", "ANY verb that adds a feature: {field: expression, ...} binds that feature's fields in the same command (as set_feature_expr); refusals are listed in bind_errors"}, {"as", "ANY verb that adds a feature: the feature's name in the same command"}, {"body_as", "ANY verb that makes or works on a body: names that body (rename_body in the same command)"}, {"face", "wherever a face id is taken: {normal:[x,y,z], pick:max_z|min_z|max_x|min_x|max_y|min_y|largest|smallest, body?} picks it by geometry, no query_topology needed"}}},
         {"slice", 5},
         // Read this before using any face or edge id.
         {"id_lifetime",
@@ -757,6 +758,12 @@ json describe_tools()
                      {{"op", "string", "scan|limit|seek"}, {"name", "string", "variable bound to the joint"}, {"mate", "integer", "or a Mate feature index (drives its angle, or offset for non-revolute; field overrides)"}, {"field", "string", "angle|offset"},
                       {"from", "number", "start value (deg for revolute, mm for slider)"}, {"to", "number", "end value"}, {"steps", "integer", "scan 10, limit/seek coarse 36"},
                       {"a", "any", "body (index or name) to restrict limit / required by seek"}, {"b", "any", "second body"}, {"target", "number", "seek: distance wanted, default 0"}, {"tol", "number", "bisection tolerance in joint units, default 0.001"}, {"min_volume", "number", "overlap volume that counts, default 1e-6 mm3"}}),
+        compact_tool("extrude_circle", "A circle at (x, y) extruded in ONE command: constrained sketch + diameter and position bound to expressions + extrude (all editable features).",
+                     {{"plane", "string", "XY|XZ|YZ|datum:N, default XY"}, {"diameter", "number", "mm"}, {"x", "number", "centre X in the plane, default 0"}, {"y", "number", "centre Y, default 0"}, {"distance", "number", "extrude depth, > 0"}, {"boolean", "string", "new|union|subtract|intersect"},
+                      {"diameter_expr", "string", "expression bound to the diameter"}, {"x_expr", "string", "expression bound to the centre X"}, {"y_expr", "string", "expression bound to the centre Y"}, {"sketch_as", "string", "name of the sketch feature"}}),
+        compact_tool("extrude_rect", "A centred rectangle extruded in ONE command: constrained sketch + sizes bound to expressions + extrude (all editable features). Use bind {distance: expr} and as for the extrude.",
+                     {{"plane", "string", "XY|XZ|YZ|datum:N, default XY"}, {"width", "number", "mm, X"}, {"height", "number", "mm, Y"}, {"distance", "number", "extrude depth, > 0"}, {"boolean", "string", "new|union|subtract|intersect"},
+                      {"width_expr", "string", "expression bound to the width (and half of it to the centring)"}, {"height_expr", "string", "same for the height"}, {"sketch_as", "string", "name of the sketch feature"}}),
         compact_tool("push_pull", "Move a planar face along its normal: + grows the body, - cuts into it.",
                      {{"face", "integer", "face id from query_topology"}, {"body", "integer", "owner body (default last)"}, {"distance", "number", "mm, signed"}}),
         compact_tool("sketch_op", "On the open sketch: trim / extend (at), fillet (a, b, radius) / chamfer (a, b, distance) a corner of two lines, linear_pattern (entities, count, step) / circular_pattern (entities, count, center, angle).",
@@ -3328,9 +3335,11 @@ json action_new_document(DesignPanel* panel, const json& params)
     doc.checkpoint();
     doc.features.clear();
     doc.variables.clear();   // a new document starts with no variables and no history marker
+    doc.drop_replay_cache();
     doc.rollback_index = -1;
     doc.recompute();
     panel->mcp_drop_selection();
+    panel->mcp_reset_feature_counter();
     panel->mcp_after_change();
     return json{{"ok", true}, {"features", 0}};
 }
@@ -3398,6 +3407,7 @@ json action_axis(DesignPanel* panel, const json& params)
     else if (t == "cylinder")      at = AxisType::CylinderCenterline;
     else if (t == "plane_intersection") at = AxisType::PlaneIntersection;
     else if (t == "along_edge")    at = AxisType::AlongEdge;
+    else if (t != "two_points")    throw std::runtime_error("axis type must be two_points | face_normal | cylinder | plane_intersection | along_edge (got '" + t + "')");
     doc.checkpoint();
     int idx = doc.add_axis(at, "Axis");
     CadFeature& f = doc.features[idx];
@@ -3426,6 +3436,7 @@ json action_coordsys(DesignPanel* panel, const json& params)
     std::string t = params.value("type", std::string("point_world"));
     CoordSysType ct = CoordSysType::PointWorld;
     if (t == "face_and_direction") ct = CoordSysType::FaceAndDirection;
+    else if (t != "point_world") throw std::runtime_error("coordsys type must be point_world | face_and_direction (got '" + t + "')");
     Vec3d pt(0, 0, 0);
     if (params.contains("point") && params["point"].is_array() && params["point"].size() >= 3)
         pt = Vec3d(jn(params["point"], 0), jn(params["point"], 1), jn(params["point"], 2));
@@ -3673,6 +3684,25 @@ json action_sweep_variable(DesignPanel* panel, const json& params)
 
 json action_set_variable(DesignPanel* panel, const json& params)
 {
+    // {variables: {name: expr, ...}}: any number of variables in one command and one rebuild (all or nothing).
+    if (params.contains("variables")) {
+        if (!params["variables"].is_object() || params["variables"].empty()) throw std::runtime_error("'variables' is an object {name: expression, ...}");
+        CadDocument& doc = panel->mcp_doc();
+        std::vector<std::pair<std::string, std::string>> todo;   // validated first: a refusal must leave the document untouched
+        for (const auto& [k, v] : params["variables"].items()) {
+            if (k.empty()) throw std::runtime_error("a variable needs a name");
+            if (v.is_string()) todo.emplace_back(k, v.get<std::string>());
+            else if (v.is_number()) { std::ostringstream os; os.imbue(std::locale::classic()); os.precision(15); os << v.get<double>(); todo.emplace_back(k, os.str()); }
+            else throw std::runtime_error("variable '" + k + "': the value is an expression string or a number");
+        }
+        doc.checkpoint();
+        for (const auto& kv : todo) doc.variables[kv.first] = kv.second;
+        bool ok = false;
+        try { ok = doc.recompute(); } catch (const std::exception& e) { doc.error = e.what(); }
+        if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
+        panel->mcp_after_change();
+        return json{{"ok", ok}, {"set", int(params["variables"].size())}, {"error", doc.error}};
+    }
     if (!params.contains("name")) throw std::runtime_error("set_variable needs 'name'");
     if (!params.contains("expr")) throw std::runtime_error("set_variable needs 'expr'");
     CadDocument& doc = panel->mcp_doc();
@@ -4248,6 +4278,12 @@ json action_primitive(DesignPanel* panel, const json& params)
 json action_coil(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
+    // No defaults: a spring is the heaviest thing a single command builds (a helical sweep keeps 100-300 MB), so empty or junk parameters
+    // are refused instead of quietly building a default coil (a loop of them took the app to 42 GB).
+    for (const char* k : {"radius", "pitch", "height"})
+        if (!params.contains(k) || !params[k].is_number()) throw std::runtime_error(std::string("coil needs '") + k + "' (mm); there is no default");
+    if (!((params.contains("wire_radius") && params["wire_radius"].is_number()) || (params.contains("wire_diameter") && params["wire_diameter"].is_number())))
+        throw std::runtime_error("coil needs 'wire_radius' or 'wire_diameter' (mm); there is no default");
     const double R = params.value("radius", 10.0), P = params.value("pitch", 5.0), H = params.value("height", 20.0);
     const double wr = params.contains("wire_radius") ? params.value("wire_radius", 1.0) : 0.5 * params.value("wire_diameter", 2.0);
     if (!(R > 0) || !(P > 0) || !(H > 0) || !(wr > 0)) throw std::runtime_error("radius, pitch, height and the wire size must be > 0");
@@ -4981,6 +5017,8 @@ json action_redo(DesignPanel* panel, const json&) { bool did; { PhaseLog t("redo
 
 // One call that answers "what is the state of this design": scene + variables + per-body mass properties and
 // topology counts (the numbers an agent checks after every step), plus undo depth and whether a sketch is open.
+long process_rss_mb();   // defined with memory_guard below
+
 json action_inspect_design(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
@@ -5006,6 +5044,7 @@ json action_inspect_design(DesignPanel* panel, const json& params)
     for (const auto& kv : doc.variables) vars[kv.first] = kv.second;
     out["variables"]     = std::move(vars);
     out["error_feature"] = doc.error_feature;
+    out["memory_mb"] = process_rss_mb();   // resident set of the whole app: a loop can watch it and stop before the guard does
     out["undo_depth"]    = int(doc.undo_depth());
     out["redo_depth"]    = int(doc.redo_depth());
     out["recompute"]     = {{"replayed", doc.replay_stats.replayed}, {"restored", doc.replay_stats.restored}, {"feature_ms", doc.replay_stats.feature_ms}, {"mesh_ms", doc.replay_stats.mesh_ms}};
@@ -5078,13 +5117,274 @@ json call_method_core(DesignPanel* panel, const std::string& method, const json&
 // The one dispatch point: the socket handler and `batch` both come through here. A call that changes the design
 // reports WHAT it changed - created/changed/removed bodies, features added, warnings - so a caller need not diff
 // describe_scene after every step.
+// {plane="XY"|"datum:N", width, height, distance, boolean, width_expr?, height_expr?, sketch_as?, + bind / as for the extrude}
+// A centred, fully constrained rectangle sketch, its two sizes bound to the expressions, extruded: one command for what takes
+// sketch_begin, sketch_add, sketch_constrain, sketch_commit, sketch_dimensions, a binding per size and the extrude. The sketch and
+// the extrude are ordinary features (editable, in the history). Nothing is left behind if any step is refused.
+json action_extrude_rect(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("width") || !params["width"].is_number() || !params.contains("height") || !params["height"].is_number())
+        throw std::runtime_error("extrude_rect needs 'width' and 'height' (mm)");
+    const double L = params["width"].get<double>(), W = params["height"].get<double>();
+    if (!(L > 0) || !(W > 0)) throw std::runtime_error("width and height must be > 0");
+    if (!params.contains("distance") || !params["distance"].is_number() || !(params["distance"].get<double>() > 0)) throw std::runtime_error("extrude_rect needs 'distance' > 0");
+    CadDocument& doc = panel->mcp_doc();
+    DesignCanvas* vp = panel->mcp_viewport();
+    if (vp == nullptr || vp->is_sketching()) throw std::runtime_error("a sketch is already open: commit or cancel it first");
+    const auto saved_features = doc.features;
+    const auto saved_variables = doc.variables;
+    auto undo_all = [&]() {
+        if (vp->is_sketching()) { try { action_sketch_cancel(panel, json::object()); } catch (const std::exception&) {} }
+        doc.features = saved_features; doc.variables = saved_variables;
+        try { doc.recompute(); } catch (const std::exception&) {}
+        panel->mcp_after_change();
+    };
+    try {
+        action_sketch_begin(panel, json{{"plane", params.value("plane", std::string("XY"))}});
+        action_sketch_add(panel, json{{"rect", json::array({-L / 2, -W / 2, L / 2, W / 2})}});
+        const json cons = json::array({
+            json{{"type", "distance"}, {"a", "0.start"}, {"b", "0.end"}, {"value", L}, {"orientation", "horizontal"}},
+            json{{"type", "distance"}, {"a", "1.start"}, {"b", "1.end"}, {"value", W}, {"orientation", "vertical"}},
+            json{{"type", "distance"}, {"a", "origin"}, {"b", "0.start"}, {"value", -L / 2}, {"orientation", "horizontal"}},
+            json{{"type", "distance"}, {"a", "origin"}, {"b", "0.start"}, {"value", -W / 2}, {"orientation", "vertical"}}});
+        action_sketch_constrain(panel, json{{"atomic", false}, {"constraints", cons}});
+        const json c = action_sketch_commit(panel, json::object());
+        const int si = c.at("sketch_index").get<int>();
+        if (params.contains("sketch_as") && params["sketch_as"].is_string() && !params["sketch_as"].get<std::string>().empty()) doc.features[size_t(si)].name = params["sketch_as"].get<std::string>();
+        const std::string we = params.value("width_expr", std::string()), he = params.value("height_expr", std::string());
+        if (!we.empty() || !he.empty()) {
+            const json dims = action_sketch_dimensions(panel, json{{"sketch", si}}).at("dimensions");
+            for (const json& d : dims) {
+                const double v = d.value("value", 0.0);
+                std::string e;
+                if (std::abs(v - L) < 1e-9) e = we;
+                else if (std::abs(v - W) < 1e-9) e = he;
+                else if (std::abs(v + L / 2) < 1e-9 && !we.empty()) e = "-(" + we + ")/2";
+                else if (std::abs(v + W / 2) < 1e-9 && !he.empty()) e = "-(" + he + ")/2";
+                if (e.empty()) continue;
+                const json b = action_set_feature_expr(panel, json{{"feature", si}, {"field", "dim:" + std::to_string(d.at("index").get<int>())}, {"expr", e}});
+                if (!b.value("ok", false)) throw std::runtime_error("binding a size failed: " + b.value("error", std::string("refused")));
+            }
+        }
+        json ep = json::object();
+        for (const char* k : {"distance", "boolean", "end", "distance2", "taper", "flip"})
+            if (params.contains(k)) ep[k] = params[k];
+        ep["sketch"] = si;
+        json r = action_extrude(panel, ep);
+        r["sketch_index"] = si;
+        if (r.contains("ok") && !r["ok"].get<bool>()) { undo_all(); }
+        return r;
+    } catch (...) { undo_all(); throw; }
+}
+
+// A face may be given by geometry instead of by id: {"normal":[x,y,z], "pick":"max_z|min_z|max_x|min_x|max_y|min_y|largest|smallest", "body":n}.
+// `normal` keeps the faces whose outward normal points that way (within ~2 deg); `pick` chooses among them by position or area; a
+// single match needs no pick. `body` defaults to the call's `body`, else the last one. Resolved to the id query_topology reports, before
+// the verb runs, for every parameter called face / face2 / up_to_face, so a call never needs a query_topology first.
+json resolve_face_selectors(DesignPanel* panel, const json& params)
+{
+    if (!params.is_object()) return params;
+    bool any = false;
+    for (const char* k : {"face", "face2", "up_to_face"}) if (params.contains(k) && params[k].is_object()) any = true;
+    if (!any) return params;
+    CadDocument& doc = panel->mcp_doc();
+    json out = params;
+    for (const char* k : {"face", "face2", "up_to_face"}) {
+        if (!params.contains(k) || !params[k].is_object()) continue;
+        const json& sel = params[k];
+        int body = sel.contains("body") && sel["body"].is_number_integer() ? sel["body"].get<int>()
+                 : params.contains("body") && params["body"].is_number_integer() ? params["body"].get<int>() : int(doc.bodies.size()) - 1;
+        if (body < 0 || body >= int(doc.bodies.size()) || doc.bodies[size_t(body)].shape.IsNull()) throw std::runtime_error(std::string("'") + k + "': no such body to pick a face from");
+        const std::vector<TopoDS_Face> faces = GeometryEngine::faces_of(doc.bodies[size_t(body)].shape);
+        Vec3d want(0, 0, 0); const bool use_n = sel.contains("normal") && sel["normal"].is_array() && sel["normal"].size() == 3;
+        if (use_n) { want = Vec3d(jn(sel["normal"], 0), jn(sel["normal"], 1), jn(sel["normal"], 2)); if (want.norm() < 1e-9) throw std::runtime_error("'normal' must not be zero"); want.normalize(); }
+        struct Cand { int id; Vec3d c; double area; };
+        std::vector<Cand> cands;
+        for (size_t i = 0; i < faces.size(); ++i) {
+            if (faces[i].IsNull()) continue;
+            if (use_n) { const Vec3d n = GeometryEngine::face_normal_world(faces[i]); if (n.norm() < 1e-9 || n.normalized().dot(want) < 0.9994) continue; }
+            GProp_GProps gp; BRepGProp::SurfaceProperties(faces[i], gp);
+            cands.push_back({int(i), GeometryEngine::face_centroid_world(faces[i]), std::abs(gp.Mass())});
+        }
+        if (cands.empty()) throw std::runtime_error(std::string("'") + k + "': no face of body " + std::to_string(body) + " has that normal");
+        const std::string pick = sel.value("pick", std::string());
+        auto best = [&](auto key) { return std::max_element(cands.begin(), cands.end(), [&](const Cand& a, const Cand& b) { return key(a) < key(b); })->id; };
+        int id = -1;
+        if (pick.empty()) { if (cands.size() > 1) throw std::runtime_error(std::string("'") + k + "': " + std::to_string(cands.size()) + " faces match; add \"pick\": max_z|min_z|max_x|min_x|max_y|min_y|largest|smallest"); id = cands[0].id; }
+        else if (pick == "max_z") id = best([](const Cand& c) { return c.c.z(); });
+        else if (pick == "min_z") id = best([](const Cand& c) { return -c.c.z(); });
+        else if (pick == "max_x") id = best([](const Cand& c) { return c.c.x(); });
+        else if (pick == "min_x") id = best([](const Cand& c) { return -c.c.x(); });
+        else if (pick == "max_y") id = best([](const Cand& c) { return c.c.y(); });
+        else if (pick == "min_y") id = best([](const Cand& c) { return -c.c.y(); });
+        else if (pick == "largest") id = best([](const Cand& c) { return c.area; });
+        else if (pick == "smallest") id = best([](const Cand& c) { return -c.area; });
+        else throw std::runtime_error("pick is max_z|min_z|max_x|min_x|max_y|min_y|largest|smallest");
+        out[k] = id;
+        if (!out.contains("body") && sel.contains("body")) out["body"] = body;   // the verb works on the body the face came from
+    }
+    return out;
+}
+
+// {plane, diameter, x, y, distance, boolean, diameter_expr?, x_expr?, y_expr?, sketch_as?} + bind / as / body_as for the extrude
+// The circle counterpart of extrude_rect: a circle of that diameter centred at (x, y) in the sketch plane, its three numbers bound to
+// the expressions, extruded. One command instead of ten; every piece an ordinary feature; nothing left behind if a step is refused.
+json action_extrude_circle(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("diameter") || !params["diameter"].is_number()) throw std::runtime_error("extrude_circle needs 'diameter' (mm)");
+    const double D = params["diameter"].get<double>();
+    const double X = params.contains("x") && params["x"].is_number() ? params["x"].get<double>() : 0.0;
+    const double Y = params.contains("y") && params["y"].is_number() ? params["y"].get<double>() : 0.0;
+    if (!(D > 0)) throw std::runtime_error("diameter must be > 0");
+    if (!params.contains("distance") || !params["distance"].is_number() || !(params["distance"].get<double>() > 0)) throw std::runtime_error("extrude_circle needs 'distance' > 0");
+    CadDocument& doc = panel->mcp_doc();
+    DesignCanvas* vp = panel->mcp_viewport();
+    if (vp == nullptr || vp->is_sketching()) throw std::runtime_error("a sketch is already open: commit or cancel it first");
+    const auto saved_features = doc.features;
+    const auto saved_variables = doc.variables;
+    auto undo_all = [&]() {
+        if (vp->is_sketching()) { try { action_sketch_cancel(panel, json::object()); } catch (const std::exception&) {} }
+        doc.features = saved_features; doc.variables = saved_variables;
+        try { doc.recompute(); } catch (const std::exception&) {}
+        panel->mcp_after_change();
+    };
+    try {
+        action_sketch_begin(panel, json{{"plane", params.value("plane", std::string("XY"))}});
+        action_sketch_add(panel, json{{"entities", json::array({json{{"type", "circle"}, {"center", json::array({X, Y})}, {"radius", D / 2}}})}});
+        json cons = json::array({json{{"type", "diameter"}, {"a", "0"}, {"value", D}}});
+        if (std::abs(X) > 1e-9) cons.push_back(json{{"type", "distance"}, {"a", "origin"}, {"b", "0.center"}, {"value", X}, {"orientation", "horizontal"}});
+        else cons.push_back(json{{"type", "vertical_points"}, {"a", "origin"}, {"b", "0.center"}});
+        if (std::abs(Y) > 1e-9) cons.push_back(json{{"type", "distance"}, {"a", "origin"}, {"b", "0.center"}, {"value", Y}, {"orientation", "vertical"}});
+        else cons.push_back(json{{"type", "horizontal_points"}, {"a", "origin"}, {"b", "0.center"}});
+        action_sketch_constrain(panel, json{{"atomic", false}, {"constraints", cons}});
+        const json c = action_sketch_commit(panel, json::object());
+        const int si = c.at("sketch_index").get<int>();
+        if (params.contains("sketch_as") && params["sketch_as"].is_string() && !params["sketch_as"].get<std::string>().empty()) doc.features[size_t(si)].name = params["sketch_as"].get<std::string>();
+        const std::string de = params.value("diameter_expr", std::string()), xe = params.value("x_expr", std::string()), ye = params.value("y_expr", std::string());
+        if (!de.empty() || !xe.empty() || !ye.empty()) {
+            const json dims = action_sketch_dimensions(panel, json{{"sketch", si}}).at("dimensions");
+            for (const json& d : dims) {
+                const double v = d.value("value", 0.0);
+                const std::string kind = d.value("kind", std::string());
+                std::string e;
+                if (kind == "diameter") e = de;
+                else if (kind == "distance_x") e = xe;
+                else if (kind == "distance_y") e = ye;
+                if (e.empty()) continue;
+                const json b = action_set_feature_expr(panel, json{{"feature", si}, {"field", "dim:" + std::to_string(d.at("index").get<int>())}, {"expr", e}});
+                if (!b.value("ok", false)) throw std::runtime_error("binding a size failed: " + b.value("error", std::string("refused")));
+                (void)v;
+            }
+        }
+        json ep = json::object();
+        for (const char* k : {"distance", "boolean", "end", "distance2", "taper", "flip"})
+            if (params.contains(k)) ep[k] = params[k];
+        ep["sketch"] = si;
+        json r = action_extrude(panel, ep);
+        r["sketch_index"] = si;
+        if (r.contains("ok") && !r["ok"].get<bool>()) { undo_all(); }
+        return r;
+    } catch (...) { undo_all(); throw; }
+}
+
+// Memory guard. A command that builds geometry can use hundreds of MB (a helical sweep keeps 100-300 MB of triangulation), and a loop of
+// them once took the app to 42 GB and an OOM kill. Past the limit, commands that add or rebuild geometry are refused with the reason;
+// reads, undo/redo, new_document, open, save and export keep working so the caller can recover. Limit: ORCA_CAD_MCP_MAX_RSS_MB (default 6144, 0 = off).
+long process_rss_mb()
+{
+    std::ifstream f("/proc/self/status");
+    std::string l;
+    while (std::getline(f, l)) if (l.rfind("VmRSS:", 0) == 0) return std::atol(l.c_str() + 6) / 1024;
+    return -1;
+}
+
+void memory_guard(const std::string& method, const CadDocument& doc)
+{
+    static const long limit = [] { const char* e = std::getenv("ORCA_CAD_MCP_MAX_RSS_MB"); return e ? std::atol(e) : 6144L; }();
+    if (limit <= 0 || read_only_method(method) || method == "undo" || method == "redo" || method == "new_document" || method == "open"
+        || method == "save" || method == "export" || method == "batch" || method == "suppress" || method.rfind("sketch_", 0) == 0 || method.rfind("ui.", 0) == 0) return;
+    const long rss = process_rss_mb();
+    if (rss > limit)
+        throw std::runtime_error("memory guard: the app is using " + std::to_string(rss) + " MB (limit " + std::to_string(limit)
+                                 + " MB, set by ORCA_CAD_MCP_MAX_RSS_MB). Undo, start a new document or restart before building more");
+    // The document's own size: a loop that keeps adding bodies or features grows the replay cost with every call (each rebuild replays the
+    // whole history) as well as the memory. Past a cap a call that could add more is refused; undo, redo, suppress, new_document and every
+    // read still pass, so the caller can always get back under it.
+    static const long max_bodies   = [] { const char* e = std::getenv("ORCA_CAD_MCP_MAX_BODIES");   return e ? std::atol(e) : 200L; }();
+    static const long max_features = [] { const char* e = std::getenv("ORCA_CAD_MCP_MAX_FEATURES"); return e ? std::atol(e) : 2000L; }();
+    if (method == "suppress" || method == "rollback" || method == "set_variable" || method == "set_parameter" || method == "set_feature_expr") return;
+    if (max_bodies > 0 && long(doc.bodies.size()) >= max_bodies)
+        throw std::runtime_error("size guard: the document has " + std::to_string(doc.bodies.size()) + " bodies (limit " + std::to_string(max_bodies)
+                                 + ", ORCA_CAD_MCP_MAX_BODIES). Undo, delete or start a new document before adding more");
+    if (max_features > 0 && long(doc.features.size()) >= max_features)
+        throw std::runtime_error("size guard: the document has " + std::to_string(doc.features.size()) + " features (limit " + std::to_string(max_features)
+                                 + ", ORCA_CAD_MCP_MAX_FEATURES). Undo or start a new document before adding more");
+}
+
+// Any verb that adds a feature accepts `bind: {field: expr, ...}` (an expression per field, as set_feature_expr) and `as: "name"`
+// (the feature's name): the new feature is bound and named in the same command, so building a parametric part is one command per
+// feature instead of three. Applied to the feature the verb added (doc.last_added); a refused binding is listed in `bind_errors`
+// and the feature stays. Works inside a batch too (batch calls call_method).
+void apply_feature_extras(DesignPanel* panel, const json& params, size_t features_before, size_t bodies_before, json& r)
+{
+    if (!params.is_object() || (!params.contains("bind") && !params.contains("as") && !params.contains("body_as"))) return;
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.features.size() <= features_before || doc.last_added < 0 || doc.last_added >= int(doc.features.size())) return;
+    const int idx = doc.last_added;
+    // `body_as`: names the body the command made (else the body it worked on), the same as rename_body
+    if (params.contains("body_as") && params["body_as"].is_string() && !params["body_as"].get<std::string>().empty()) {
+        const int nb = int(doc.bodies.size());
+        const int body = nb > int(bodies_before) ? nb - 1 : params.contains("body") && params["body"].is_number_integer() ? params["body"].get<int>() : -1;
+        if (body >= 0 && body < nb) call_method_core(panel, "rename_body", json{{"body", body}, {"name", params["body_as"]}});
+    }
+    if (params.contains("as") && params["as"].is_string()) {
+        const std::string n = params["as"].get<std::string>();
+        if (!n.empty() && n.size() <= 128) { doc.features[size_t(idx)].name = n; panel->mcp_after_change(); }
+    }
+    if (params.contains("bind") && params["bind"].is_object()) {
+        json errs = json::array();
+        for (const auto& [field, e] : params["bind"].items()) {
+            if (!e.is_string()) { errs.push_back(field + ": the expression must be a string"); continue; }
+            const json b = action_set_feature_expr(panel, json{{"feature", idx}, {"field", field}, {"expr", e.get<std::string>()}});
+            if (!b.value("ok", false)) errs.push_back(field + ": " + b.value("error", std::string("refused")));
+        }
+        if (!errs.empty()) r["bind_errors"] = errs;
+    }
+    r["bound_feature"] = idx;
+}
+
 json call_method(DesignPanel* panel, const std::string& method, const json& params)
 {
+    memory_guard(method, panel->mcp_doc());
     CadDocument& doc = panel->mcp_doc();
     auto bodies_now = [&]() { std::vector<const void*> v; for (const CadBody& b : doc.bodies) v.push_back(b.shape.IsNull() ? nullptr : b.shape.TShape().get()); return v; };
     const size_t nf = doc.features.size();
     const std::vector<const void*> before = bodies_now();
-    json r = call_method_core(panel, method, params);
+    const json resolved = resolve_face_selectors(panel, params);   // a face given by geometry becomes its id; a refusal throws before anything changed
+    // A refused call leaves the document as it was. Several verbs add their feature first and read a parameter afterwards, and a wrong type
+    // there throws (nlohmann type_error): the error then arrived with the feature already in the history (found by the fuzz: plane, axis,
+    // coordsys). Verbs that change the document checkpoint first, so a change in the undo depth says something was touched; then the
+    // features and variables saved here are put back before the error goes out.
+    const bool tx = !read_only_method(method) && method != "batch" && method != "undo" && method != "redo" && method != "open" && method != "new_document"
+                 && method.rfind("sketch_", 0) != 0 && method.rfind("ui.", 0) != 0 && method != "run_verb" && method != "execute";
+    std::vector<CadFeature> saved_features;
+    decltype(doc.variables) saved_vars;
+    const size_t depth0 = doc.undo_depth();
+    if (tx) { saved_features = doc.features; saved_vars = doc.variables; }
+    json r;
+    try { r = call_method_core(panel, method, resolved); }
+    catch (...) {
+        // Unconditional, not keyed on the undo depth: once the stack is full (200 steps) checkpoint() drops the oldest as it adds one, so the
+        // depth stops changing and a test on it would stop restoring in any long session. One recompute, on the error path only.
+        if (tx) {
+            doc.features = saved_features; doc.variables = saved_vars;
+            if (doc.undo_depth() > depth0) doc.drop_undo_to(depth0);   // the refused call leaves no undo step either
+            try { doc.recompute(); } catch (const std::exception&) {}
+            panel->mcp_after_change();
+        }
+        throw;
+    }
+    if (r.is_object() && r.value("ok", false) && !read_only_method(method)) apply_feature_extras(panel, resolved, nf, before.size(), r);
     if (!r.is_object() || !r.contains("ok") || read_only_method(method) || method.rfind("sketch_", 0) == 0 || method == "batch" || method == "undo" || method == "redo"
         || method == "open" || method == "new_document" || method == "run_verb" || method == "execute")
         return r;
@@ -5158,6 +5458,8 @@ json call_method_core(DesignPanel* panel, const std::string& method, const json&
     if (method == "plane")          return action_plane(panel, params);
     if (method == "ui_option")      return action_ui_option(panel, params);
     if (method == "sketch_constrain") return action_sketch_constrain(panel, params);
+    if (method == "extrude_rect")   return action_extrude_rect(panel, params);
+    if (method == "extrude_circle") return action_extrude_circle(panel, params);
     if (method == "export")         return action_export(panel, params);
     if (method == "list_commands")  return action_list_commands(panel, params);
     if (method == "execute")        return action_execute(panel, params);

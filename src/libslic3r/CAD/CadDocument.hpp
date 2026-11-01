@@ -946,6 +946,9 @@ public:
     bool attached_follow_moves{true};   // (also: carried_plane shows an attached sketch where its body was moved to)
     struct ReplayCache;
     std::shared_ptr<ReplayCache> m_replay_cache;
+    // A new document must not keep the old one's built bodies alive: every cached entry holds shapes and their triangulations (a helical
+    // sweep: 100-300 MB each), and the process stayed at its peak after new_document.
+    void drop_replay_cache() { m_replay_cache.reset(); m_seen_by_feature.clear(); }
 
     // v5: every feature is length-framed, so a reader can stop early on an older file and skip
     // the tail of a newer one. This is the LAST version that has to break anything — from here a

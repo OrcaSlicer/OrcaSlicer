@@ -143,6 +143,7 @@ public:
     // Rig driver for the wx feature cards: open one, set a field, commit it. Names: dressup extrude shell draft pattern.
     bool mcp_card_open(const std::string& card);
     bool mcp_card_set(const std::string& key, double value);
+    void mcp_reset_feature_counter() { m_feature_counter = 0; }   // a new document numbers its features from 1 again (names must not depend on the session's history)
     void mcp_drop_selection() { drop_selection(); }   // a replaced document must not keep the old pick (a stale body index poisons the next feature)
     bool mcp_card_confirm_enabled() const { return confirm_enabled(); }
     std::vector<int> mcp_tree_selection() const { return tree_selected_rows(); }
