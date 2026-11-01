@@ -207,6 +207,7 @@ private:
     void        append_menu_item_locked(wxMenu* menu, size_t pos = -1);
     void        append_menu_item_fill_bed(wxMenu *menu);
     void        append_menu_item_plate_name(wxMenu *menu, size_t pos = -1);
+    void        append_menu_item_move_plate(wxMenu *menu, size_t pos = -1);
     void        append_menu_item_plate_delete(wxMenu *menu, size_t pos = -1);
     wxMenu*     append_menu_item_transform(wxMenu* menu, bool multi_selection, bool show_mirror, bool is_scalable);
     wxMenu*     append_menu_item_modify(   wxMenu* menu, bool multi_selection, bool splittable, bool is_mesh, bool mesh_boolean);
