@@ -2824,6 +2824,12 @@ TopoDS_Wire CadDocument::loft_profile_wire(const CadFeature& f, size_t ri, bool 
         return w;
     }
     const CadFeature& sk = features[size_t(f.loft_profile_refs[ri])];
+    if (sk.type == CadFeatureType::Sketch3D) {   // a curve in space (an edge and its offset copy): the skin between two of them extends a sheet
+        std::string e3;
+        TopoDS_Wire w = build_sketch3d_wire(sk, e3);
+        if (w.IsNull()) throw std::runtime_error(format(_u8L("loft: %1%"), e3));
+        return w;
+    }
     if (ri >= f.loft_profile_loops.size() || f.loft_profile_loops[ri].empty()) return build_sketch_wire(sk, closed_only);
     CadFeature sub = sk;
     sub.entities.clear();
@@ -3320,7 +3326,8 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             if (!loft_profile_is_face(f, ri)
                 && (ref < 0 || ref >= int(features.size())
                     || (features[ref].type != CadFeatureType::Sketch
-                        && features[ref].type != CadFeatureType::Project)))
+                        && features[ref].type != CadFeatureType::Project
+                        && features[ref].type != CadFeatureType::Sketch3D)))
                 continue;
             profiles.push_back(loft_profile_wire(f, ri, false, context));
         }

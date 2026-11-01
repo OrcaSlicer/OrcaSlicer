@@ -11553,3 +11553,21 @@ TEST_CASE("a surface fill spans a non-planar 3D boundary", "[CadDocument][surfac
     CHECK_FALSE(doc.bodies[0].shape.IsNull());
     CHECK(GeometryEngine::face_by_index(doc.bodies[0].shape, 0).IsNull() == false);
 }
+
+TEST_CASE("a surface loft skins two 3D sketches: a cylinder rim extended along its axis", "[CadDocument][surface]")
+{
+    CadDocument doc;
+    std::vector<Vec3d> a, b;
+    for (int i = 0; i < 48; ++i) {
+        const double t = 2.0 * M_PI * i / 48.0;
+        a.emplace_back(10 * std::cos(t), 10 * std::sin(t), 10.0);
+        b.emplace_back(10 * std::cos(t), 10 * std::sin(t), 15.0);
+    }
+    const int s1 = doc.add_sketch3d(a, true, true, "Rim");
+    const int s2 = doc.add_sketch3d(b, true, true, "Moved");
+    doc.add_surface_loft({s1, s2}, true, "Strip");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    CHECK_THAT(GeometryEngine::mass_properties(doc.bodies[0].shape).surface_area, Catch::Matchers::WithinRel(2.0 * M_PI * 10.0 * 5.0, 0.01));
+}

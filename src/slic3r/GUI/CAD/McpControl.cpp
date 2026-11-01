@@ -82,6 +82,11 @@
 #include <BRepAlgoAPI_Section.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <BRepAdaptor_Curve.hxx>
+#include <BRep_Tool.hxx>
+#include <GeomAPI_ProjectPointOnSurf.hxx>
+#include <TopExp.hxx>
+#include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
+#include <TopTools_ListOfShape.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Edge.hxx>
@@ -748,6 +753,10 @@ json describe_tools()
                      {{"edge", "integer", "edge id from query_topology"}, {"distance", "number", "mm"}, {"body", "integer", "default last"}, {"face", "integer", "the sheet's face if several"}, {"stitch", "boolean", "default true"}, {"tolerance", "number", "stitch tolerance"}}),
         compact_tool("surface_patch", "Close a hole in a sheet: fill the loop of boundary edges (need not be planar) and stitch the patch on.",
                      {{"edges", "array", "edge ids bounding the hole, any order"}, {"body", "integer", "default last"}, {"samples", "integer", "points per curved edge, default 48"}, {"stitch", "boolean", "default true"}, {"tolerance", "number", "stitch tolerance"}}),
+        compact_tool("joint_motion", "Drive a joint through its range. op=scan: pose (centre of mass of every body) and overlaps per step. op=limit: the first value where a new overlap starts (free_to / contact, bisected). op=seek: the value where bodies a and b are `target` mm apart.",
+                     {{"op", "string", "scan|limit|seek"}, {"name", "string", "variable bound to the joint"}, {"mate", "integer", "or a Mate feature index (drives its angle, or offset for non-revolute; field overrides)"}, {"field", "string", "angle|offset"},
+                      {"from", "number", "start value (deg for revolute, mm for slider)"}, {"to", "number", "end value"}, {"steps", "integer", "scan 10, limit/seek coarse 36"},
+                      {"a", "any", "body (index or name) to restrict limit / required by seek"}, {"b", "any", "second body"}, {"target", "number", "seek: distance wanted, default 0"}, {"tol", "number", "bisection tolerance in joint units, default 0.001"}, {"min_volume", "number", "overlap volume that counts, default 1e-6 mm3"}}),
         compact_tool("push_pull", "Move a planar face along its normal: + grows the body, - cuts into it.",
                      {{"face", "integer", "face id from query_topology"}, {"body", "integer", "owner body (default last)"}, {"distance", "number", "mm, signed"}}),
         compact_tool("sketch_op", "On the open sketch: trim / extend (at), fillet (a, b, radius) / chamfer (a, b, distance) a corner of two lines, linear_pattern (entities, count, step) / circular_pattern (entities, count, center, angle).",
@@ -2847,6 +2856,66 @@ bool stitch_last_into(CadDocument& doc, int body, double tol)
     return false;
 }
 
+// The extension of a sheet past a CURVED free edge: the edge is sampled, at each point the direction across the edge in the surface's
+// tangent plane (away from the face) is taken, and a ruled loft joins the edge to its copy moved `dist` along those directions.
+// That is the tangent continuation of the sheet (a cylinder's rim goes on as a cylinder, a cone's as its straight generators), built
+// from two 3D sketches and a surface loft, so it stays an editable history.
+json extend_curved(DesignPanel* panel, CadDocument& doc, int body, const TopoDS_Edge& e, const json& params, double dist)
+{
+    const TopoDS_Shape sh = doc.bodies[body].shape;
+    TopoDS_Face fc;
+    if (params.contains("face")) fc = GeometryEngine::face_by_index(sh, params["face"].get<int>());
+    else {
+        TopTools_IndexedDataMapOfShapeListOfShape anc;
+        TopExp::MapShapesAndAncestors(sh, TopAbs_EDGE, TopAbs_FACE, anc);
+        const int ix = anc.FindIndex(e);
+        if (ix == 0) throw std::runtime_error("surface_extend: the edge is not part of that body");
+        const TopTools_ListOfShape& l = anc.FindFromIndex(ix);
+        if (l.Extent() != 1) throw std::runtime_error("surface_extend: the edge is shared by several faces, so it is not a free edge (pass 'face' to say which side)");
+        fc = TopoDS::Face(l.First());
+    }
+    if (fc.IsNull()) throw std::runtime_error("surface_extend: no such face");
+    BRepAdaptor_Curve cv(e);
+    BRepAdaptor_Surface bs(fc);
+    const Handle(Geom_Surface) gs = BRep_Tool::Surface(fc);
+    const bool closed = cv.IsClosed();
+    const int n = std::max(8, std::min(400, params.value("samples", 48)));
+    const double u0 = cv.FirstParameter(), u1 = cv.LastParameter();
+    const int cnt = closed ? n : n + 1;
+    std::vector<Vec3d> P, D;
+    for (int i = 0; i < cnt; ++i) {
+        gp_Pnt p; gp_Vec tv;
+        cv.D1(u0 + (u1 - u0) * i / double(n), p, tv);
+        GeomAPI_ProjectPointOnSurf pr(p, gs);
+        if (pr.NbPoints() < 1) throw std::runtime_error("surface_extend: the edge does not lie on its face's surface");
+        double su, sv; pr.LowerDistanceParameters(su, sv);
+        gp_Pnt sp; gp_Vec du, dv; bs.D1(su, sv, sp, du, dv);
+        const gp_Vec nrm = du.Crossed(dv);
+        if (nrm.Magnitude() < 1e-12 || tv.Magnitude() < 1e-12) throw std::runtime_error("surface_extend: the surface is degenerate at the edge (a cone's apex?)");
+        const Vec3d nv = Vec3d(nrm.X(), nrm.Y(), nrm.Z()).normalized(), tt = Vec3d(tv.X(), tv.Y(), tv.Z()).normalized();
+        const Vec3d d = nv.cross(tt);
+        if (d.norm() < 1e-9) throw std::runtime_error("surface_extend: the edge runs along the surface normal");
+        P.emplace_back(p.X(), p.Y(), p.Z()); D.push_back(d.normalized());
+    }
+    const Vec3d c = GeometryEngine::face_centroid_world(fc);
+    double s = 0; for (size_t i = 0; i < P.size(); ++i) s += D[i].dot(P[i] - c);
+    if (std::abs(s) < 1e-9) throw std::runtime_error("surface_extend: cannot tell which way is out of the face from this edge");
+    const double sg = s > 0 ? 1.0 : -1.0;
+    std::vector<Vec3d> Q;
+    for (size_t i = 0; i < P.size(); ++i) Q.push_back(P[i] + D[i] * (sg * dist));
+    doc.checkpoint();
+    const int s1 = doc.add_sketch3d(P, true, closed, "Edge");
+    const int s2 = doc.add_sketch3d(Q, true, closed, "Extension edge");
+    const int lf = doc.add_surface_loft({s1, s2}, true, "Extension");
+    if (!doc.recompute()) {
+        const std::string why = doc.error; doc.undo(); doc.error = why; panel->mcp_after_change();
+        return json{{"ok", false}, {"error", why}};
+    }
+    const bool stitched = params.value("stitch", true) && stitch_last_into(doc, body, params.value("tolerance", 0.05));
+    panel->mcp_after_change();
+    return json{{"ok", true}, {"curved", true}, {"feature_index", lf}, {"stitched", stitched}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 // {body?, edge, distance, face?, stitch=true, tolerance=0.05} -- grow a sheet past a straight free edge, in the plane of its (planar) face,
 // away from the face. A line sketch standing on the edge, perpendicular to that direction, extruded as a surface and stitched on.
 json action_surface_extend(DesignPanel* panel, const json& params)
@@ -2862,7 +2931,7 @@ json action_surface_extend(DesignPanel* panel, const json& params)
     const TopoDS_Edge e = GeometryEngine::edge_by_index(sh, params["edge"].get<int>());
     if (e.IsNull()) throw std::runtime_error("no such edge on that body (ids expire when the model rebuilds)");
     BRepAdaptor_Curve cv(e);
-    if (cv.GetType() != GeomAbs_Line) throw std::runtime_error("surface_extend: the edge must be straight (a curved edge needs a sweep along it)");
+    if (cv.GetType() != GeomAbs_Line) return extend_curved(panel, doc, body, e, params, dist);   // any other curve: tangent continuation by a ruled loft
     const gp_Pnt a = cv.Value(cv.FirstParameter()), b = cv.Value(cv.LastParameter());
     const Vec3d p0(a.X(), a.Y(), a.Z()), p1(b.X(), b.Y(), b.Z());
     const double len = (p1 - p0).norm();
@@ -2953,6 +3022,152 @@ json action_surface_patch(DesignPanel* panel, const json& params)
     const bool stitched = params.value("stitch", true) && stitch_last_into(doc, body, params.value("tolerance", 0.05));
     panel->mcp_after_change();
     return json{{"ok", true}, {"boundary_index", sk}, {"feature_index", fi}, {"stitched", stitched}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json distance_report(const TopoDS_Shape& a, const TopoDS_Shape& b);   // defined with the verification tools below
+
+// {op: scan|limit|seek, name | mate (+field), from, to, steps?, a?, b?, target?, tol?, min_volume?} -- drive a joint through its range and
+// ask the questions a mechanism needs answered. The driven value is a variable (`name`) or a mate feature's own angle / offset
+// (`mate`, field angle for a revolute, offset otherwise). Every probe rebuilds the real model, so the pose of every body in a chain
+// of mates is exact, and the design is put back as it was.
+//   scan:  `steps` equal steps from..to; per step the centre of mass of every body and the overlapping pairs.
+//   limit: from `from` toward `to`, the first value at which a pair NOT already overlapping at `from` starts to (restrict with a/b):
+//          `free_to` is the last clear value and `contact` the first overlapping one, bisected to `tol`.
+//   seek:  the value in from..to at which the distance between bodies a and b equals `target` (default 0, i.e. touching).
+json action_joint_motion(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    const std::string op = params.value("op", std::string("scan"));
+    if (op != "scan" && op != "limit" && op != "seek") throw std::runtime_error("joint_motion: op must be scan | limit | seek");
+    if (!params.contains("from") || !params.contains("to")) throw std::runtime_error("joint_motion needs 'from' and 'to' (degrees for a revolute joint, mm for a slider)");
+    const double v0 = params["from"].get<double>(), v1 = params["to"].get<double>();
+    if (v0 == v1) throw std::runtime_error("'from' and 'to' are the same value");
+    const std::string var = params.value("name", std::string());
+    const int mate = params.value("mate", -1);
+    std::string saved_expr;
+    std::function<void(double)> set;
+    if (!var.empty()) {
+        if (!doc.variables.count(var)) throw std::runtime_error("no variable '" + var + "'");
+        saved_expr = doc.variables[var];
+        set = [&doc, var](double v) { std::ostringstream os; os.imbue(std::locale::classic()); os.precision(15); os << v; doc.variables[var] = os.str(); };
+    } else if (mate >= 0) {
+        if (mate >= int(doc.features.size()) || doc.features[size_t(mate)].type != CadFeatureType::Mate) throw std::runtime_error("'mate' is not a Mate feature index");
+        const std::string field = params.value("field", doc.features[size_t(mate)].mate_kind == 2 ? std::string("angle") : std::string("offset"));
+        if (field != "angle" && field != "offset") throw std::runtime_error("field is angle | offset (a field bound to a variable is driven through that variable: pass 'name')");
+        set = [&doc, mate, field](double v) { (field == "angle" ? doc.features[size_t(mate)].mate_angle : doc.features[size_t(mate)].mate_offset) = v; };
+    } else throw std::runtime_error("joint_motion needs 'name' (a variable bound to the joint) or 'mate' (a Mate feature index)");
+    auto body_arg = [&](const char* k) -> int {
+        if (!params.contains(k)) return -1;
+        const json& v = params[k];
+        return v.is_string() ? body_by_name(doc, v.get<std::string>()) : v.get<int>();
+    };
+    const int pa = body_arg("a"), pb = body_arg("b");
+    const double min_vol = params.value("min_volume", 1e-6);   // as check_interference: a corner just past touching overlaps by ~1e-6 mm3
+    const double tol = params.value("tol", 1e-3);
+    auto eval = [&](double v) {
+        set(v);
+        try { return doc.recompute(); } catch (const std::exception& e) { doc.error = e.what(); return false; }
+    };
+    using Pair = std::pair<int, int>;
+    auto hits = [&]() {
+        std::map<Pair, double> m;
+        for (const auto& h : doc.check_interference(min_vol)) {
+            const Pair p(std::min(h.body_a, h.body_b), std::max(h.body_a, h.body_b));
+            if (pa >= 0 && pb >= 0 && p != Pair(std::min(pa, pb), std::max(pa, pb))) continue;
+            m[p] = h.volume;
+        }
+        return m;
+    };
+    auto at = [&](int k, int steps) { return v0 + (v1 - v0) * k / double(steps); };
+
+    doc.checkpoint();
+    auto run = [&]() -> json {
+        if (op == "scan") {
+            const int steps = std::max(1, std::min(200, params.value("steps", 10)));
+            json rows = json::array();
+            for (int k = 0; k <= steps; ++k) {
+                const double v = at(k, steps);
+                json row{{"value", v}};
+                if (!eval(v)) { row["rebuilt"] = false; row["error"] = doc.error; rows.push_back(row); continue; }
+                json bodies = json::array(), col = json::array();
+                for (int i = 0; i < int(doc.bodies.size()); ++i) {
+                    const auto mp = doc.body_mass_properties(i);
+                    bodies.push_back(json{{"index", i}, {"center_of_mass", json::array({mp.center_of_mass.x(), mp.center_of_mass.y(), mp.center_of_mass.z()})}});
+                }
+                for (const auto& [p, vol] : hits()) col.push_back(json{{"a", p.first}, {"b", p.second}, {"volume", vol}});
+                row["rebuilt"] = true; row["bodies"] = bodies; row["collisions"] = col;
+                rows.push_back(row);
+            }
+            return json{{"ok", true}, {"op", op}, {"rows", rows}};
+        }
+        const int steps = std::max(2, std::min(400, params.value("steps", 36)));
+        int evals = 0;
+        if (op == "limit") {
+            if (!eval(v0)) return json{{"ok", false}, {"error", "the model does not rebuild at 'from': " + doc.error}};
+            const auto initial = hits();
+            auto fresh = [&](double v, Pair& which, double& vol) {
+                ++evals;
+                if (!eval(v)) { which = Pair(-1, -1); vol = 0; return true; }   // a pose that cannot be built is a limit as well
+                for (const auto& [p, x] : hits()) if (!initial.count(p)) { which = p; vol = x; return true; }
+                return false;
+            };
+            Pair w; double vol = 0;
+            for (int k = 1; k <= steps; ++k) {
+                if (!fresh(at(k, steps), w, vol)) continue;
+                double lo = at(k - 1, steps), hi = at(k, steps);
+                for (int it = 0; it < 60 && std::abs(hi - lo) > tol; ++it) {
+                    const double mid = 0.5 * (lo + hi);
+                    Pair w2; double v2 = 0;
+                    if (fresh(mid, w2, v2)) hi = mid; else lo = mid;
+                }
+                fresh(hi, w, vol);
+                json ign = json::array();
+                for (const auto& [p, x] : initial) ign.push_back(json::array({p.first, p.second}));
+                return json{{"ok", true}, {"op", op}, {"free_to", lo}, {"contact", hi}, {"pair", json::array({w.first, w.second})},
+                            {"volume_at_contact", vol}, {"ignored_overlaps_at_from", ign}, {"evaluations", evals},
+                            {"note", w.first < 0 ? "the model stops rebuilding at 'contact'" : ""}};
+            }
+            return json{{"ok", true}, {"op", op}, {"contact", nullptr}, {"free_through_range", true}, {"evaluations", evals}};
+        }
+        // seek
+        if (pa < 0 || pb < 0 || pa == pb) throw std::runtime_error("seek needs two different bodies 'a' and 'b'");
+        const double target = params.value("target", 0.0);
+        auto f = [&](double v, bool& ok) {
+            ++evals; ok = eval(v);
+            if (!ok || pa >= int(doc.bodies.size()) || pb >= int(doc.bodies.size())) { ok = false; return 0.0; }
+            const json r = distance_report(doc.bodies[size_t(pa)].shape, doc.bodies[size_t(pb)].shape);
+            return (r["distance"].is_number() ? r["distance"].get<double>() : 0.0) - target;
+        };
+        bool ok; double prev = f(v0, ok);
+        if (!ok) return json{{"ok", false}, {"error", "the model does not rebuild at 'from': " + doc.error}};
+        for (int k = 1; k <= steps; ++k) {
+            const double cur = f(at(k, steps), ok);
+            if (!ok) continue;
+            if (prev * cur <= 0) {
+                double lo = at(k - 1, steps), hi = at(k, steps), flo = prev;
+                for (int it = 0; it < 60 && std::abs(hi - lo) > tol; ++it) {
+                    const double mid = 0.5 * (lo + hi), fm = f(mid, ok);
+                    if (!ok) break;
+                    if (flo * fm <= 0) hi = mid; else { lo = mid; flo = fm; }
+                }
+                const double v = 0.5 * (lo + hi), fv = f(v, ok);
+                return json{{"ok", true}, {"op", op}, {"value", v}, {"distance", fv + target}, {"target", target}, {"evaluations", evals}};
+            }
+            prev = cur;
+        }
+        return json{{"ok", true}, {"op", op}, {"value", nullptr}, {"error", "the distance does not reach the target within from..to"}, {"evaluations", evals}};
+    };
+    json out;
+    auto restore = [&]() {
+        if (!var.empty()) doc.variables[var] = saved_expr;
+        doc.undo();
+        if (!var.empty()) doc.variables[var] = saved_expr;
+        try { doc.recompute(); } catch (const std::exception&) {}
+        panel->mcp_after_change();
+    };
+    try { out = run(); } catch (...) { restore(); throw; }
+    restore();
+    return out;
 }
 
 // {face, body?, distance} -- press-pull: move a planar face along its normal. + grows the body out, - cuts it in (the kernel's face-extrude).
@@ -4967,6 +5182,7 @@ json call_method_core(DesignPanel* panel, const std::string& method, const json&
     if (method == "primitive")      return action_primitive(panel, params);
     if (method == "coil")           return action_coil(panel, params);
     if (method == "push_pull")      return action_push_pull(panel, params);
+    if (method == "joint_motion")   return action_joint_motion(panel, params);
     if (method == "stitch")         return action_stitch(panel, params);
     if (method == "surface_extend") return action_surface_extend(panel, params);
     if (method == "surface_patch")  return action_surface_patch(panel, params);
