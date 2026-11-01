@@ -226,9 +226,12 @@ ObjectList::ObjectList(wxWindow* parent) :
         if (!GetScreenRect().Contains(wxGetMousePosition())) {
             return;
         }
-#ifndef __WXOSX__
         const wxPoint mouse_pos = this->get_mouse_position_in_control();
-#endif
+#ifdef __WXOSX__
+        wxDataViewItem clicked_item;
+        wxDataViewColumn* clicked_column = nullptr;
+        HitTest(mouse_pos, clicked_item, clicked_column);
+#endif // __WXOSX__
 
 #ifndef __APPLE__
         // On Windows and Linux:
@@ -263,20 +266,6 @@ ObjectList::ObjectList(wxWindow* parent) :
         else {
   	      	wxDataViewItem    new_selected_item  = event.GetItem();
             // BBS: use wxDataViewCtrl's internal mechanism
-#if 0
-#ifdef __WXMSW__
-			// Workaround for entering the column editing mode on Windows. Simulate keyboard enter when another column of the active line is selected.
-		    wxDataViewItem    item;
-		    wxDataViewColumn *col;
-		    this->HitTest(this->get_mouse_position_in_control(), item, col);
-		    new_selected_column = (col == nullptr) ? -1 : (int)col->GetModelColumn();
-	        if (new_selected_item == m_last_selected_item && m_last_selected_column != -1 && m_last_selected_column != new_selected_column) {
-	        	// Mouse clicked on another column of the active row. Simulate keyboard enter to enter the editing mode of the current column.
-	        	wxUIActionSimulator sim;
-				sim.Char(WXK_RETURN);
-	        }
-#endif //__WXMSW__
-#endif
 	        m_last_selected_item = new_selected_item;
         }
 #ifdef __WXMSW__
@@ -295,8 +284,21 @@ ObjectList::ObjectList(wxWindow* parent) :
         else {
             selection_changed();
         }
+
+#ifdef __WXOSX__
+        if (GetSelectedItemsCount() == 1 && clicked_item == event.GetItem() && clicked_column != nullptr &&
+            clicked_column->GetModelColumn() == colFilament) {
+            CallAfter([this, clicked_item] {
+                if (GetSelectedItemsCount() != 1 || GetSelection() != clicked_item)
+                    return;
+
+                start_filament_editor(clicked_item);
+            });
+        }
+#endif // __WXOSX__
+
 #ifndef __WXMSW__
-        set_tooltip_for_item(this->get_mouse_position_in_control());
+        set_tooltip_for_item(mouse_pos);
 #endif //__WXMSW__
 
 #ifndef __WXOSX__
@@ -457,7 +459,7 @@ void ObjectList::create_objects_ctrl()
         wxALIGN_CENTER_HORIZONTAL, 0);
 
     // column Extruder of the view control:
-    BitmapChoiceRenderer* bmp_choice_renderer = new BitmapChoiceRenderer();
+    BitmapChoiceRenderer* bmp_choice_renderer = new BitmapChoiceRenderer(wxOSX ? wxDATAVIEW_CELL_EDITABLE : wxDATAVIEW_CELL_INERT);
     const auto get_filament_context_item = [this]() {
 #ifdef __WXOSX__
         return m_filament_editor_item.IsOk() ? m_filament_editor_item : GetSelection();
@@ -494,18 +496,10 @@ void ObjectList::create_objects_ctrl()
         wxALIGN_CENTER_HORIZONTAL, 0);
 
 
-    // On macOS, bypass wxDataViewCtrl::EditItem() for this custom renderer to avoid
-    // native text editing of wxCustomRendererObject.
     this->Bind(wxEVT_DATAVIEW_ITEM_ACTIVATED, [this](wxDataViewEvent& event) {
-        if (event.GetColumn() == colFilament) {
-#ifdef __WXOSX__
-            start_filament_editor(event.GetItem());
-#else
-            // Trigger the editor opening manually
-            this->EditItem(event.GetItem(), GetColumn(colFilament));
-#endif
+        // Do not treat a double-click on the filament cell as an object-row activation.
+        if (event.GetColumn() == colFilament)
             return;
-        }
 
         // Double-clicking an object/part/instance row frames it in the 3D view,
         // matching the "Fit camera to scene or selected object" canvas button.
@@ -703,6 +697,14 @@ void ObjectList::set_tooltip_for_item(const wxPoint& pt)
 #else
         tooltip = _(L("Click the icon to toggle printable properties of the object"));
 #endif //__WXMSW__
+    else if (col->GetModelColumn() == (unsigned int)colHeight) {
+        if (node->IsVaribaleHeight() == hiVariable)
+            tooltip = _L("Click the icon to edit variable layer height");
+    }
+    else if (col->GetModelColumn() == (unsigned int)colFilament) {
+        if (node->GetType() & (itObject | itVolume | itLayer))
+            tooltip = _L("Click to select filament color");
+    }
     // BBS
     else if (col->GetModelColumn() == (unsigned int)colSupportPaint) {
         if (node->HasSupportPainting())
@@ -1589,6 +1591,18 @@ void ObjectList::list_manipulation(const wxPoint& mouse_pos, bool evt_context_me
             enable_layers_editing();
         else if (col_num == colPrint)
 	        toggle_printable_state();
+        else if (col_num == colFilament && !evt_context_menu) {
+            CallAfter([this, item] {
+                if (GetSelectedItemsCount() == 1 && GetSelection() == item) {
+                    wxDataViewColumn* column = GetColumn(colFilament);
+                    wxDataViewRenderer* renderer = column->GetRenderer();
+                    const wxDataViewCellMode mode = renderer->GetMode();
+                    renderer->SetMode(wxDATAVIEW_CELL_EDITABLE);
+                    EditItem(item, column);
+                    renderer->SetMode(mode);
+                }
+            });
+        }
         else if (col_num == colSupportPaint) {
             ObjectDataViewModelNode* node = (ObjectDataViewModelNode*)item.GetID();
             if (node && node->HasSupportPainting()) {

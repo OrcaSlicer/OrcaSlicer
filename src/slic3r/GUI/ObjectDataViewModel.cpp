@@ -1100,6 +1100,11 @@ wxDataViewItem ObjectDataViewModel::Delete(const wxDataViewItem &item)
     // if there was last layer item, delete this one and layers root item
     if (node_parent->GetChildCount() == 0 && node_parent->m_type == itLayerRoot)
     {
+        // Notify removal of the final layer before deleting its parent. The layer was
+        // already removed from the root's child array above, so notifying only the
+        // root leaves wxDataViewCtrl with a stale child row.
+        delete node;
+        ItemDeleted(parent, item);
         ObjectDataViewModelNode* obj_node = node_parent->GetParent();
         obj_node->GetChildren().Remove(node_parent);
         // Wrapped before the delete because GCC's -Wuse-after-free flags reading a freed pointer.
