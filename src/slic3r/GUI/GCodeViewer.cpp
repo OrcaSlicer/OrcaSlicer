@@ -59,6 +59,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libvgcode/include/GCodeInputData.hpp"
 #include "libvgcode/include/ColorRange.hpp"
+#include <numeric>
 #include <optional>
 #include "libslic3r_version.h"
 #include <wx/busycursor.h>
@@ -1631,17 +1632,23 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // increases along the belt), numbered the way libvgcode::convert() numbers the
     // layers: consecutively over the moves that exist.
     m_belt_layer_zs.clear();
-    if (is_belt) {
+    m_layer_gcode_ids.clear();
+    m_layers_time_sums.clear();
+    {
         unsigned int src_layer_id = std::numeric_limits<unsigned int>::max();
         for (size_t i = 1; i < gcode_result.moves.size(); ++ i) {
             const GCodeProcessorResult::MoveVertex &mv = gcode_result.moves[i];
             if (mv.layer_id != src_layer_id) {
                 src_layer_id = mv.layer_id;
-                m_belt_layer_zs.emplace_back(double(mv.print_z));
+                m_layer_gcode_ids.emplace_back(mv.layer_id);
+                if (is_belt)
+                    m_belt_layer_zs.emplace_back(double(mv.print_z));
             }
         }
-        if (m_belt_layer_zs.size() != m_viewer.get_layers_count())
+        if (m_layer_gcode_ids.size() != m_viewer.get_layers_count()) {
+            m_layer_gcode_ids.clear();
             m_belt_layer_zs.clear();
+        }
     }
 
 // #if !VGCODE_ENABLE_COG_AND_TOOL_MARKERS
@@ -1741,6 +1748,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     std::vector<int>         filament_maps = print.get_filament_maps();
     std::vector<std::string> color_opt     = print.config().option<ConfigOptionStrings>("filament_colour")->values;
     std::vector<std::string> type_opt      = print.config().option<ConfigOptionStrings>("filament_type")->values;
+    m_filament_types = type_opt;
     std::vector<unsigned char> support_filament_opt = print.config().option<ConfigOptionBools>("filament_is_support")->values;
     for (auto extruder_id : m_viewer.get_used_extruders_ids()) {
         if (filament_maps[extruder_id] == 1) {
@@ -1921,6 +1929,8 @@ void GCodeViewer::reset()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": current result id %1% ")%m_last_result_id;
     m_last_result_id = -1;
     m_belt_layer_zs.clear();
+    m_layer_gcode_ids.clear();
+    m_layers_time_sums.clear();
     //BBS: add only gcode mode
     m_only_gcode_in_preview = false;
 
@@ -1946,6 +1956,7 @@ void GCodeViewer::reset()
     m_support_masses.clear();
     m_left_extruder_filament.clear();
     m_right_extruder_filament.clear();
+    m_filament_types.clear();
     m_sequential_view.gcode_window.reset();
     m_contained_in_bed = true;
 }
@@ -2409,6 +2420,78 @@ void GCodeViewer::render_markers(int canvas_width, int canvas_height)
             glsafe(::glDisable(GL_BLEND));
         }
     }
+}
+
+std::optional<double> GCodeViewer::visible_layers_volume(size_t extruder_id, PrintEstimatedStatistics::LayerVolumeKind kind) const
+{
+    const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
+    if (layers[0] > layers[1] || layers[1] >= m_layer_gcode_ids.size())
+        return std::nullopt;
+    return m_print_statistics.layers_volume(extruder_id, m_layer_gcode_ids[layers[0]], m_layer_gcode_ids[layers[1]], kind);
+}
+
+std::optional<float> GCodeViewer::visible_layers_time() const
+{
+    // get_layers_estimated_times() builds a new vector from every layer, so keep the running sums per time mode
+    const int mode = int(m_viewer.get_time_mode());
+    if (m_layers_time_sums_mode != mode || m_layers_time_sums.empty()) {
+        const std::vector<float> times = m_viewer.get_layers_estimated_times();
+        m_layers_time_sums.assign(times.size(), 0.0f);
+        std::partial_sum(times.begin(), times.end(), m_layers_time_sums.begin());
+        m_layers_time_sums_mode = mode;
+    }
+    const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
+    if (layers[0] > layers[1] || layers[1] >= m_layers_time_sums.size())
+        return std::nullopt;
+    return m_layers_time_sums[layers[1]] - (layers[0] > 0 ? m_layers_time_sums[layers[0] - 1] : 0.0f);
+}
+
+std::vector<std::string> GCodeViewer::get_layers_filament_labels() const
+{
+    std::vector<std::string> labels;
+    if (m_layer_gcode_ids.empty())
+        return labels;
+    const bool imperial_units = wxGetApp().app_config->get("use_inches") == "1";
+    // cumulative volume per filament of what the model, the support, the wipe tower and the flush used
+    struct Part
+    {
+        std::string                                         name;
+        const std::map<size_t, std::vector<double>>*        series;
+    };
+    const Part parts[] = { { _u8L("Model"), &m_print_statistics.layer_volumes_per_extruder },
+                           { _u8L("Support"), &m_print_statistics.layer_support_volumes_per_extruder },
+                           { _u8L("Tower"), &m_print_statistics.layer_wipe_tower_volumes_per_extruder },
+                           { _u8L("Flushed"), &m_print_statistics.layer_flush_volumes_per_extruder } };
+    labels.reserve(m_layer_gcode_ids.size());
+    for (const unsigned int gcode_id : m_layer_gcode_ids) {
+        double length = 0.0; // mm, all parts
+        double weight = 0.0; // g, all parts
+        std::string split;
+        size_t      parts_used = 0;
+        for (const Part& part : parts) {
+            double part_weight = 0.0;
+            for (const auto& [filament_id, cumulative] : *part.series) {
+                if (cumulative.empty() || filament_id >= m_filament_diameters.size() || filament_id >= m_filament_densities.size())
+                    continue;
+                // the entry after the layer's own: entry 0 is what was extruded before the first layer
+                const double volume = cumulative[std::min<size_t>(size_t(gcode_id) + 1, cumulative.size() - 1)];
+                length += volume / (PI * sqr(0.5 * m_filament_diameters[filament_id]));
+                part_weight += volume * m_filament_densities[filament_id] * 0.001;
+            }
+            weight += part_weight;
+            if (part_weight > 0.0) {
+                split += (parts_used++ > 0 ? " / " : "") + part.name + " " + format_compact_weight(part_weight, imperial_units);
+            }
+        }
+        char length_text[32];
+        ::sprintf(length_text, imperial_units ? "%.2f in" : "%.2f m", imperial_units ? length / GizmoObjectManipulation::in_to_mm : length * 0.001);
+        std::string label = _u8L("Filament") + ": " + format_compact_weight(weight, imperial_units) + " (" + length_text + ")";
+        // the split only says something when more than one part used filament
+        if (parts_used > 1)
+            label += "\n" + split;
+        labels.emplace_back(std::move(label));
+    }
+    return labels;
 }
 
 size_t GCodeViewer::shadow_casters_signature() const
@@ -4445,6 +4528,44 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     std::string travel_moves;
     std::vector<double> model_used_filaments_m;
     std::vector<double> model_used_filaments_g;
+    // " (PLA)": the filament's type, so extruders holding different materials can be told apart on any printer
+    auto filament_type_suffix = [this](size_t extruder_id) {
+        return extruder_id < m_filament_types.size() && !m_filament_types[extruder_id].empty() ? " (" + m_filament_types[extruder_id] + ")" : std::string();
+    };
+    // Filament used within the layers shown on the vertical slider, per used extruder as {length, weight};
+    // empty without per-layer data (e.g. G-code from another slicer). Support and wipe tower are
+    // there only for the extruders that printed them.
+    using LayerKind = PrintEstimatedStatistics::LayerVolumeKind;
+    struct VisibleLayersUsage
+    {
+        size_t                                         extruder_id;
+        std::pair<double, double>                      model;
+        std::optional<std::pair<double, double>>       support;
+        std::optional<std::pair<double, double>>       wipe_tower;
+        std::optional<std::pair<double, double>>       flush;
+        double length() const { return model.first + (support ? support->first : 0.0) + (wipe_tower ? wipe_tower->first : 0.0) + (flush ? flush->first : 0.0); }
+        double weight() const { return model.second + (support ? support->second : 0.0) + (wipe_tower ? wipe_tower->second : 0.0) + (flush ? flush->second : 0.0); }
+    };
+    auto visible_layers_usage = [&]() {
+        std::vector<VisibleLayersUsage> usage;
+        const auto from_volume = [&](size_t extruder_id, LayerKind kind) -> std::optional<std::pair<double, double>> {
+            const std::optional<double> volume = visible_layers_volume(extruder_id, kind);
+            return volume ? std::optional(get_used_filament_from_volume(*volume, int(extruder_id))) : std::nullopt;
+        };
+        for (uint8_t extruder_id : m_viewer.get_used_extruders_ids()) {
+            const auto model = from_volume(extruder_id, LayerKind::Model);
+            if (!model)
+                return std::vector<VisibleLayersUsage>();
+            usage.push_back({ extruder_id, *model, from_volume(extruder_id, LayerKind::Support), from_volume(extruder_id, LayerKind::WipeTower),
+                            from_volume(extruder_id, LayerKind::Flush) });
+        }
+        return usage;
+    };
+    // "[1->25]": the layers shown on the vertical slider, counted from 1 like the slider does
+    auto visible_layers_range = [this]() {
+        const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
+        return "[" + std::to_string(layers[0] + 1) + "->" + std::to_string(layers[1] + 1) + "]";
+    };
     double total_model_used_filament_m = 0, total_model_used_filament_g = 0;
     std::vector<double> flushed_filaments_m;
     std::vector<double> flushed_filaments_g;
@@ -4643,7 +4764,11 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             model_used_filaments_g.push_back(model_used_filament_g);
         }
 
-        offsets = calculate_offsets({ { "Extruder NNN", {""}}}, icon_size);
+        std::vector<std::string> tool_labels;
+        for (uint8_t extruder_id : used_extruders_ids)
+            tool_labels.emplace_back(_u8L("Extruder") + " " + std::to_string(extruder_id + 1) + filament_type_suffix(extruder_id));
+
+        offsets = calculate_offsets({ { "Extruder NNN", tool_labels }}, icon_size);
         append_headers({ {_u8L("Filament"), offsets[0]}, {_u8L("Usage"), offsets[1]} });
         break;
     }
@@ -4655,10 +4780,13 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buffer, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", ps.total_used_filament / /*1000*/koef, total_weight_text.c_str());
         total_filaments.push_back(buffer);
 
+        std::vector<std::string> filament_labels;
+        for (uint8_t extruder_id : m_viewer.get_used_extruders_ids())
+            filament_labels.emplace_back(std::to_string(extruder_id + 1) + filament_type_suffix(extruder_id));
 
         std::vector<std::pair<std::string, std::vector<std::string>>> title_columns;
         if (displayed_columns & ColumnData::Model) {
-            title_columns.push_back({ _u8L("Filament"), {""} });
+            title_columns.push_back({ _u8L("Filament"), filament_labels });
             title_columns.push_back({ _u8L("Model"), total_filaments });
         }
         if (displayed_columns & ColumnData::Support) {
@@ -4903,7 +5031,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         for (uint8_t extruder_id : used_extruders_ids) {
             const std::string weight_text = format_compact_weight(model_used_filaments_g[i], imperial_units);
             ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", model_used_filaments_m[i], weight_text.c_str());
-            append_item(EItemType::Rect, shown_filament_color(libvgcode::convert(m_viewer.get_tool_colors()[extruder_id])), { { _u8L("Extruder") + " " + std::to_string(extruder_id + 1), offsets[0]}, {buf, offsets[1]} });
+            append_item(EItemType::Rect, shown_filament_color(libvgcode::convert(m_viewer.get_tool_colors()[extruder_id])), { { _u8L("Extruder") + " " + std::to_string(extruder_id + 1) + filament_type_suffix(extruder_id), offsets[0]}, {buf, offsets[1]} });
             // append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), _u8L("Extruder") + " " + std::to_string(extruder_id + 1),
             // true, "", 0.0f, 0.0f, offsets, used_filaments_m[extruder_id], used_filaments_g[extruder_id]);
             i++;
@@ -4918,6 +5046,28 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         const std::string total_weight_text = format_compact_weight(ps.total_weight, imperial_units);
         ::sprintf(buf, imperial_units ? "%.2f in / %s" : "%.2f m / %s", ps.total_used_filament / koef, total_weight_text.c_str());
         imgui.text(buf);
+
+        // filament and time within the layers shown on the vertical slider
+        if (const std::vector<VisibleLayersUsage> layers_usage = visible_layers_usage(); !layers_usage.empty()) {
+            double layers_m = 0.0, layers_g = 0.0;
+            for (const VisibleLayersUsage& usage : layers_usage) {
+                layers_m += usage.length();
+                layers_g += usage.weight();
+            }
+            ImGui::Dummy({window_padding, window_padding});
+            ImGui::SameLine();
+            imgui.text(_u8L("Visible layers") + ": " + visible_layers_range());
+            ImGui::SameLine();
+            ::sprintf(buf, imperial_units ? "%.2f in / %s" : "%.2f m / %s", layers_m, format_compact_weight(layers_g, imperial_units).c_str());
+            imgui.text(buf);
+        }
+        if (const std::optional<float> layers_time = visible_layers_time()) {
+            ImGui::Dummy({window_padding, window_padding});
+            ImGui::SameLine();
+            imgui.text(_u8L("Layer Time") + ":");
+            ImGui::SameLine();
+            imgui.text(short_time(get_time_dhms(*layers_time)));
+        }
 
         ImGui::Dummy({window_padding, window_padding});
         ImGui::SameLine();
@@ -4956,7 +5106,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         for (auto extruder_idx : used_extruders_ids) {
             if (i < model_used_filaments_m.size() && i < model_used_filaments_g.size()) {
                 std::vector<std::pair<std::string, float>> columns_offsets;
-                columns_offsets.push_back({ std::to_string(extruder_idx + 1), color_print_offsets[_u8L("Filament")]});
+                columns_offsets.push_back({ std::to_string(extruder_idx + 1) + filament_type_suffix(extruder_idx), color_print_offsets[_u8L("Filament")]});
 
                 char buf[64];
                 float column_sum_m = 0.0f;
@@ -5007,8 +5157,61 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         if (need_scrollable)
             ImGui::EndChild();
 
-        // Sum of all rows
         char buf[64];
+
+        // filament within the layers shown on the vertical slider, listed above the sum of all rows: one row
+        // per extruder in the columns of the table above, parts that used nothing in these layers left blank
+        if (const std::vector<VisibleLayersUsage> layers_usage = visible_layers_usage(); !layers_usage.empty()) {
+            const bool multiple_columns = (displayed_columns & ~ColumnData::Model) > 0;
+            const auto cell = [&](const std::optional<std::pair<double, double>>& usage, const std::string& column,
+                                  std::vector<std::pair<std::string, float>>& columns_offsets) {
+                if (!usage || usage->first <= 0.0)
+                    return;
+                const std::string weight_text = format_compact_weight(usage->second, imperial_units);
+                ::sprintf(buf, multiple_columns ? (imperial_units ? "%.2f in\n%s" : "%.2f m\n%s") : (imperial_units ? "%.2f in    %s" : "%.2f m    %s"),
+                          usage->first, weight_text.c_str());
+                columns_offsets.push_back({ buf, color_print_offsets[column] });
+            };
+
+            std::vector<std::vector<std::pair<std::string, float>>> rows;
+            std::vector<size_t>                                    row_extruders;
+            double layers_g = 0.0;
+            for (const VisibleLayersUsage& usage : layers_usage) {
+                layers_g += usage.weight();
+                if (usage.length() <= 0.0)
+                    continue;
+                std::vector<std::pair<std::string, float>> columns_offsets;
+                columns_offsets.push_back({ std::to_string(usage.extruder_id + 1), color_print_offsets[_u8L("Filament")] });
+                if (displayed_columns & ColumnData::Model)
+                    cell(usage.model, _u8L("Model"), columns_offsets);
+                if (displayed_columns & ColumnData::Support)
+                    cell(usage.support, _u8L("Support"), columns_offsets);
+                if (displayed_columns & ColumnData::Flushed)
+                    cell(usage.flush, _u8L("Flushed"), columns_offsets);
+                if (displayed_columns & ColumnData::WipeTower)
+                    cell(usage.wipe_tower, _u8L("Tower"), columns_offsets);
+                if (multiple_columns)
+                    cell(std::pair(usage.length(), usage.weight()), _u8L("Total"), columns_offsets);
+                rows.emplace_back(std::move(columns_offsets));
+                row_extruders.push_back(usage.extruder_id);
+            }
+
+            if (!rows.empty()) {
+                // "Visible layers: [1->25] (45 %)": the share of the whole print's filament that these layers use
+                std::string title = _u8L("Visible layers") + ": " + visible_layers_range();
+                if (ps.total_weight > 0.0) {
+                    ::sprintf(buf, " (%.0f %%)", 100.0 * layers_g / ps.total_weight);
+                    title += buf;
+                }
+                ImGui::Dummy({window_padding, window_padding});
+                ImGui::SameLine();
+                imgui.text(title);
+                for (size_t row = 0; row < rows.size(); ++row)
+                    append_item(EItemType::Rect, shown_filament_color(libvgcode::convert(tool_colors[row_extruders[row]])), rows[row], false);
+            }
+        }
+
+        // Sum of all rows
         if (used_extruders_ids.size() > 1) {
             // Separator
             ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -5049,6 +5252,12 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Total")] });
             }
             append_item(EItemType::None, libvgcode::convert(tool_colors[0]), columns_offsets);
+        }
+
+        if (const std::optional<float> layers_time = visible_layers_time()) {
+            ImGui::Dummy({window_padding, window_padding});
+            ImGui::SameLine();
+            imgui.text(_u8L("Layer Time") + ": " + short_time(get_time_dhms(*layers_time)));
         }
 
         //BBS display filament change times
