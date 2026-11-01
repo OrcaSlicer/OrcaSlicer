@@ -7050,7 +7050,7 @@ void PartPlateList::update_all_plates_pos_and_size(bool adjust_position, bool wi
 int PartPlateList::reorder_plates(const std::vector<int>& new_order)
 {
 	const std::vector<PartPlate*> old_list = m_plate_list;
-	if (new_order.size() != old_list.size())
+	if (old_list.empty() || new_order.size() != old_list.size())
 		return -1;
 
 	reload_all_objects();

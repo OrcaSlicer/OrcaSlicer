@@ -4884,15 +4884,14 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         if (!m_mouse.dragging && m_tooltip.is_empty() && (m_gizmos.get_current_type() != GLGizmosManager::MmSegmentation || !evt.Moving()))
             return;
     }
-    // ORCA A left press on the canvas outside ImGui's windows takes the focus from them, as a click on the void does
-    // inside ImGui. ImGui itself notices such a click only in a frame drawn while the button is still down, and the
-    // canvas draws one only when the press changed something: a press on a plate changes nothing before the release,
-    // so the dialog kept the focus, and the arrow keys, after a plate was picked on the canvas.
+    // ORCA A left press on the canvas outside ImGui's windows releases their focus, as a click on the void does
+    // inside ImGui (focused window, active widget and popups are cleared). ImGui applies that rule only in a frame
+    // drawn while the button is down, and a press that changes nothing (one on a plate) draws none, so the dialog
+    // kept the focus and the arrow keys after a plate was picked on the canvas. For every ImGui window, not only
+    // the dialog, so a canvas click means the same thing whatever overlay is open.
     else if (evt.LeftDown() && imgui->display_initialized()) {
         ImGui::SetWindowFocus(nullptr);
-        // Shown by the next frame: a press on empty canvas draws none by itself, so the dialog would show as
-        // focused until the mouse moved.
-        _set_overlay_as_dirty();
+        _set_overlay_as_dirty(); // a press on empty canvas draws no frame by itself; show the change now
     }
 
     // Design tab: the interactive sketch tool owns the mouse whenever it has
@@ -8095,7 +8094,7 @@ void GLCanvas3D::_picking_pass()
         {
             // BBS: add plate picking logic
             int plate_hover_id = hit.raycaster_id;
-            // ORCA Prevent tooltips visible while an ImGui window over a plate, such as the arrange plates/simplify dialog, 
+            // ORCA Prevent tooltips visible while an ImGui window over a plate, such as the arrange plates/simplify dialog,
             // ImGui updated WantCaptureMouse in new_frame(), just before this pass.
             if (plate_hover_id >= 0 && plate_hover_id < PartPlateList::MAX_PLATES_COUNT * PartPlate::GRABBER_COUNT &&
                 !wxGetApp().imgui()->want_mouse()) {

@@ -19,6 +19,7 @@
 
 #include <wx/colour.h> // the WXK_* key codes, as misc-include-cleaner maps them
 #include <wx/event.h>
+#include <wx/glcanvas.h>
 #include <wx/string.h>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
@@ -224,13 +225,10 @@ void PlateArrangementDialog::render_title_bar()
     if (m_imgui->button(_L("Close"), ImVec2(cfg.close_width, cfg.title_height), true))
         set_open(false);
 
-    const float y  = std::round(p.y + cfg.title_height + cfg.v_spacing * .5f);
-    ImGui::GetWindowDrawList()->AddLine(
-        ImVec2(p.x, y),
-        ImVec2(p.x + cfg.grid_size, y),
-        m_focused ? ImGui::GetColorU32(ImGuiWrapper::COL_ORCA) : ImGui::GetColorU32(ImGuiCol_Separator),
-        m_focused ? 2.f : 1.f
-    );
+    const float t = m_focused ? 2.f : 1.f;
+    const float y = std::round(p.y + cfg.title_height + cfg.v_spacing * .5f) + (t < 2.f ? .5f : 0.f);
+    ImGui::GetWindowDrawList()->AddLine(ImVec2(p.x, y), ImVec2(p.x + cfg.grid_size, y),
+                                        m_focused ? ImGui::GetColorU32(ImGuiWrapper::COL_ORCA) : ImGui::GetColorU32(ImGuiCol_Separator), t);
     ImGui::SetCursorPos(ImVec2(start.x, start.y + cfg.title_height + cfg.v_spacing));
 }
 
