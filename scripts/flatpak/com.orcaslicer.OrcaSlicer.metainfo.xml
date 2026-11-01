@@ -45,6 +45,12 @@
         <color type="primary" scheme_preference="dark">#00695C</color>
     </branding>
     <releases>
+        <release version="2.5.0-rc" date="2026-11-01" type="development">
+            <url type="details">https://www.orcaslicer.com/wiki/releases/release_2_5_0_rc</url>
+            <description>
+                <p>See the release page for detailed changelog of OrcaSlicer 2.5.0-rc release.</p>
+            </description>
+        </release>
         <release version="2.5.0-beta" date="2026-10-27" type="development">
             <url type="details">https://www.orcaslicer.com/wiki/releases/release_2_5_0_beta</url>
             <description>
