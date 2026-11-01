@@ -73,6 +73,7 @@
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include <boost/filesystem.hpp>
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
@@ -2150,7 +2151,7 @@ void InputIpAddressDialog::on_check_ip_address_failed(wxCommandEvent& evt)
     }
     else {
         if (m_need_input_sn) {
-            update_test_msg(_L("Connection failed! If your IP and Access Code is correct, \nplease move to step 3 for troubleshooting network issues"), false);
+            update_test_msg(_L("Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"), false);
         }
         else {
             update_test_msg(_L("Connection failed! Please refer to the wiki page."), false);

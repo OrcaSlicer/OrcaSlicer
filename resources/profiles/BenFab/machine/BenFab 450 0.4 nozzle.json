@@ -1,0 +1,78 @@
+{
+	"type": "machine",
+	"name": "BenFab 450 0.4 nozzle",
+	"inherits": "fdm_klipper_common",
+	"from": "system",
+	"setting_id": "HE1ZuJ7ZacZm3WTk",
+	"instantiation": "true",
+	"host_type": "moonraker",
+	"printer_model": "BenFab 450",
+	"default_print_profile": "0.20mm Standard @BenFab 450 0.4 nozzle",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printer_variant": "0.4",
+	"printable_area": [
+		"0x0",
+		"426x0",
+		"426x426",
+		"0x426"
+	],
+	"printable_height": "480",
+	"retract_lift_below": [
+		"479"
+	],
+	"extruder_offset": [
+		"-1.5x2"
+	],
+	"machine_max_acceleration_extruding": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_retracting": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_x": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_y": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_z": [
+		"300",
+		"300"
+	],
+	"machine_max_acceleration_e": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_travel": [
+		"5000",
+		"5000"
+	],
+	"machine_max_speed_e": [
+		"60",
+		"60"
+	],
+	"machine_max_speed_x": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_y": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_z": [
+		"20",
+		"20"
+	],
+	"cooling_tube_length": "5",
+	"enable_filament_ramming": "1",
+	"nozzle_volume": "110",
+	"default_filament_profile": [
+		"Generic PLA @System"
+	]
+}

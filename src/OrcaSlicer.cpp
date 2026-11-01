@@ -325,7 +325,9 @@ typedef struct _cli_callback_mgr {
         else
             j["message"] = m_message;
 
-        std::string notify_message = j.dump();
+        // ORCA: m_message can carry an object name, which may be invalid UTF-8 on Linux.
+        //       This runs on the callback thread with no handler, so a throw would abort.
+        std::string notify_message = j.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
         //notify_message = "Plate "+ std::to_string(m_plate_index) + "/" +std::to_string(m_plate_count)+  ": Percent " + std::to_string(m_progress) + ": "+m_message;
 
         char pipe_message[PIPE_BUFFER_SIZE] = {0};
@@ -515,6 +517,21 @@ static void cli_record_warning(sliced_info_t &sliced_info, const std::string &cl
     sliced_info.warnings.push_back(std::move(details));
 }
 
+// Reports each config value that could not be parsed and was replaced.
+static void cli_report_config_substitutions(const std::string &file, const ConfigSubstitutions &substitutions,
+                                            sliced_info_t &sliced_info)
+{
+    for (const ConfigSubstitution &subst : substitutions) {
+        const std::string new_value = subst.new_value->serialize();
+        boost::nowide::cerr << "warning: " << file << ": value \"" << subst.old_value << "\" for "
+                            << subst.opt_def->opt_key << " is not valid, using \"" << new_value
+                            << "\" instead" << std::endl;
+        cli_record_warning(sliced_info, "config_value_substituted",
+                           nlohmann::json{{"file", file}, {"key", subst.opt_def->opt_key},
+                                          {"old_value", subst.old_value}, {"new_value", new_value}});
+    }
+}
+
 void record_exit_reson(std::string outputdir, int code, int plate_id, std::string error_message, sliced_info_t& sliced_info, std::map<std::string, std::string> key_values = std::map<std::string, std::string>())
 {
 #if defined(__linux__) || defined(__LINUX__)
@@ -558,7 +575,8 @@ void record_exit_reson(std::string outputdir, int code, int plate_id, std::strin
 
         boost::nowide::ofstream c;
         c.open(result_file, std::ios::out | std::ios::trunc);
-        c << j.dump(1, '\t') << std::endl;
+        // ORCA: names can be invalid UTF-8 on Linux, write U+FFFD instead of throwing.
+        c << j.dump(1, '\t', false, nlohmann::json::error_handler_t::replace) << std::endl;
         c.close();
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%result_file;
@@ -1146,6 +1164,38 @@ static bool is_hypervisor_guest()
 }
 #endif
 
+#if defined(__WXGTK__) && defined(__linux__)
+// Moves rendering to the discrete GPU of a dual-GPU system when the user asked for it in
+// Preferences. The PRIME variables have to be in the environment before GTK opens the display,
+// long before GUI_App loads the configuration, so the preference is read straight from the
+// saved editor configuration (the G-code viewer follows the editor's choice), in the data dir
+// GUI_App::init_app_config will pick: --datadir, else default_data_dir().
+static void apply_discrete_gpu_preference()
+{
+    const std::string dir = data_dir().empty() ? default_data_dir() : data_dir();
+    if (!AppConfig::peek_bool(dir, "prefer_discrete_gpu"))
+        return;
+    // A DRI_PRIME already in the environment wins over the preference, whatever its value: one
+    // start with DRI_PRIME=0 gets back to Preferences when the discrete GPU cannot open the window.
+    if (::getenv("DRI_PRIME") != nullptr) {
+        BOOST_LOG_TRIVIAL(info) << "Discrete GPU preference ignored: DRI_PRIME is already set.";
+        return;
+    }
+    BOOST_LOG_TRIVIAL(info) << "Rendering on the discrete GPU by preference; exporting the PRIME variables.";
+    // DRI_PRIME=1 selects the non-default GPU for the Mesa drivers (AMD, Intel, nouveau).
+    ::setenv("DRI_PRIME", "1", /* replace */ false);
+    // The NVIDIA proprietary driver has its own render-offload variables. Only when its kernel
+    // module is loaded, so systems without NVIDIA are untouched. This is the set switcheroo-control
+    // hands a launcher for the NVIDIA GPU; the Vulkan layer variable keeps Vulkan consumers such as
+    // zink on the same GPU as GL.
+    if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
+        ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
+        ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+        ::setenv("__VK_LAYER_NV_optimus", "NVIDIA_only", /* replace */ false);
+    }
+}
+#endif
+
 int CLI::run(int argc, char **argv)
 {
     // Mark the main thread for the debugger and for runtime checks.
@@ -1167,11 +1217,12 @@ int CLI::run(int argc, char **argv)
     //
     //   GDK_BACKEND=x11   (OPT-IN)     X11/XWayland mode. Applies the
     //                                  v2.3.2 workarounds that the X11
-    //                                  path benefits from: DRI_PRIME for
-    //                                  AMD/nouveau PRIME, NVIDIA PRIME
-    //                                  render offload (when nvidia.ko is
-    //                                  loaded), XInitThreads. 
+    //                                  path benefits from (XInitThreads).
     //                                  Multi monitor is compromised
+    //
+    // Which GPU renders on a dual-GPU system is independent of the backend:
+    // the "Render on the discrete GPU" preference exports the PRIME
+    // variables in apply_discrete_gpu_preference(), on both paths.
     //
     // WEBKIT_DISABLE_COMPOSITING_MODE is deliberately NOT set on the X11
     // opt-in path. The ~2020-era WebKit2GTK XWayland compositor bug it
@@ -1202,19 +1253,6 @@ int CLI::run(int argc, char **argv)
         if (x11_opt_in) {
             // ===== X11 / XWayland (opted in via GDK_BACKEND=x11) =====
             BOOST_LOG_TRIVIAL(info) << "GDK_BACKEND=x11 detected; applying v2.3.2 X11/XWayland workarounds.";
-
-            // On Linux dual-GPU systems, request the high-performance
-            // discrete GPU. DRI_PRIME=1 handles AMD and nouveau PRIME
-            // setups; harmless on single-GPU systems (Mesa ignores it).
-            ::setenv("DRI_PRIME", "1", /* replace */ false);
-
-            // For NVIDIA proprietary driver PRIME render offload, set
-            // additional variables. Only set if the NVIDIA kernel module
-            // is loaded to avoid breaking systems without NVIDIA.
-            if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
-                ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
-                ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
-            }
 
             // Tell Xlib we will be using threads, lest we crash when
             // GStreamer fires up. Safe to call here since the user has
@@ -1264,6 +1302,13 @@ int CLI::run(int argc, char **argv)
         }
     }
 #endif // __WXGTK__
+
+#ifdef _WIN32
+    // WebView2 152+ hides the pointer while typing and only restores it on a mouse event inside the
+    // webview, so closing one from the keyboard (e.g. Enter in the Speed Dial) leaves it hidden
+    // app-wide (WebView2Feedback#5687). Must be set before the first webview is created.
+    boost::nowide::setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--disable-features=HideCursorWhileTyping", /* replace */ false);
+#endif
 
 	// Switch boost::filesystem to utf8.
     try {
@@ -1436,6 +1481,9 @@ int CLI::run(int argc, char **argv)
             return 1;
         }
     #endif // some linux / unix system
+    #if defined(__WXGTK__) && defined(__linux__)
+        apply_discrete_gpu_preference();
+    #endif
         Slic3r::GUI::GUI_InitParams params;
         params.argc = argc;
         params.argv = argv;
@@ -1941,11 +1989,7 @@ int CLI::run(int argc, char **argv)
                     record_exit_reson(outfile_dir, CLI_INVALID_PRINTER_TECH, 0, cli_errors[CLI_INVALID_PRINTER_TECH], sliced_info);
                     flush_and_exit(CLI_INVALID_PRINTER_TECH);
                 }
-                if (!config_substitutions.substitutions.empty()) {
-                    BOOST_LOG_TRIVIAL(info) << "Found legacy configuration values, substituted when loading " << file << ":\n";
-                    for (const ConfigSubstitution &subst : config_substitutions.substitutions)
-                        BOOST_LOG_TRIVIAL(info) << "\tkey = \"" << subst.opt_def->opt_key << "\"\t old_value = \"" << subst.old_value << "\tnew_value = \"" << subst.new_value->serialize() << "\"\n";
-                }
+                cli_report_config_substitutions(file, config_substitutions.substitutions, sliced_info);
 
                 // config is applied to m_print_config before the current m_config values.
                 config += std::move(m_print_config);
@@ -2158,7 +2202,7 @@ int CLI::run(int argc, char **argv)
         return Slic3r::escape_strings_cstyle(keys);
     };
 
-    auto load_config_file = [&resolve_preset](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
+    auto load_config_file = [&resolve_preset, &sliced_info](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
             boost::nowide::cerr << __FUNCTION__<< ": can not find setting file: " << file << std::endl;
@@ -2216,9 +2260,7 @@ int CLI::run(int argc, char **argv)
             config.normalize_fdm();
 
             if (! config_substitutions.empty()) {
-                BOOST_LOG_TRIVIAL(info) << "Found legacy configuration values, substituted when loading " << file << ":\n";
-                for (const ConfigSubstitution &subst : config_substitutions)
-                    BOOST_LOG_TRIVIAL(info) << "\tkey = \"" << subst.opt_def->opt_key << "\"\t old_value = \"" << subst.old_value << "\tnew_value = \"" << subst.new_value->serialize() << "\"\n";
+                cli_report_config_substitutions(file, config_substitutions, sliced_info);
             }
             else {
                 BOOST_LOG_TRIVIAL(info) << "no substitutions performed from file " << file << "\n";
@@ -3807,16 +3849,21 @@ int CLI::run(int argc, char **argv)
     //compute the flush volume
     ConfigOptionStrings *selected_filament_colors_option = m_extra_config.option<ConfigOptionStrings>("filament_colour");
     ConfigOptionStrings *project_filament_colors_option = m_print_config.option<ConfigOptionStrings>("filament_colour");
-    if ((!project_filament_colors_option || (project_filament_colors_option->values.size() == 0)) && selected_filament_colors_option)
+    // Filament presets carry no colour, so loading filaments can leave the palette shorter than the
+    // filament count. Tool ordering sizes its per-filament tables from filament_colour, so a short
+    // palette makes every later filament index read out of bounds. Grow it and rebuild the flush matrix.
+    const bool filament_colors_grown = filament_count > 0 &&
+        (!project_filament_colors_option || project_filament_colors_option->values.size() < size_t(filament_count));
+    if (filament_colors_grown)
     {
-        BOOST_LOG_TRIVIAL(info) << boost::format("initial project_filament_colors is null, create it due to filament_colour set in cli");
+        BOOST_LOG_TRIVIAL(info) << boost::format("project filament_colour is shorter than the %1% filaments, padding it") % filament_count;
         project_filament_colors_option = m_print_config.option<ConfigOptionStrings>("filament_colour", true);
         std::vector<std::string>& project_filament_colors = project_filament_colors_option->values;
         project_filament_colors.resize(filament_count, "#FFFFFF");
     }
 
     if (project_filament_colors_option &&
-        (selected_filament_colors_option || !m_print_config.option<ConfigOptionFloats>("flush_volumes_matrix") || (current_extruder_count != new_extruder_count) || (new_nozzle_volume_type != current_nozzle_volume_type)))
+        (filament_colors_grown || selected_filament_colors_option || !m_print_config.option<ConfigOptionFloats>("flush_volumes_matrix") || (current_extruder_count != new_extruder_count) || (new_nozzle_volume_type != current_nozzle_volume_type)))
     {
         std::vector<std::string>  selected_filament_colors;
         if (selected_filament_colors_option) {
@@ -6603,7 +6650,8 @@ int CLI::run(int argc, char **argv)
                                                             // Only check for single-color object
                                                             for (size_t j = 0; j < inside_extruders.size(); ++j) {
                                                                 if (!inside_extruders[j]) {
-                                                                    std::vector<int> filaments = vol->get_extruders();
+                                                                    // A mixed filament prints with its component filaments.
+                                                                    const std::vector<int> filaments = expand_mixed_filament_ids(vol->get_extruders(), m_print_config);
                                                                     unprintable_filament_ids[j].insert(filaments.begin(), filaments.end());
                                                                 }
                                                             }

@@ -241,10 +241,15 @@ static beast::error_code ws_write(net::io_context& ioc, websocket::stream<beast:
     return run_until_done(ioc, [&](auto&& handler) { ws.async_write(net::buffer(text), handler); });
 }
 
+static void ws_send(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, const std::string& text)
+{
+    if (const auto ec = ws_write(ioc, ws, text))
+        throw beast::system_error{ec};
+}
+
 static void ws_send(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, const json& cmd)
 {
-    if (const auto ec = ws_write(ioc, ws, to_string(cmd)))
-        throw beast::system_error{ec};
+    ws_send(ioc, ws, to_string(cmd));
 }
 
 static beast::error_code ws_read(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, beast::flat_buffer& buffer)
@@ -289,13 +294,18 @@ static void ws_close(net::io_context& ioc, websocket::stream<beast::tcp_stream>&
 }
 
 // K1-family firmware stores gcodes under /usr/data and uses a stricter WebSocket
-// protocol (TEXT frames, heartbeat acks). Add verified K1-family model IDs here.
+// protocol (TEXT frames, heartbeat acks). The /info model is the literal name on
+// K1-family, including the *_CFS-C bundle variants. Add verified model IDs here.
 static bool is_k1_family(const std::string& model)
 {
     static const std::unordered_set<std::string> k1_models = {
         "K1",
+        "K1 Max",
+        "K1 Max_CFS-C",
         "K1 SE",
+        "K1 SE_CFS-C",
         "K1C",
+        "K1C_CFS-C",
         "K1_CFS-C",
     };
     return k1_models.count(model) > 0;
@@ -317,11 +327,16 @@ static const std::map<std::string, std::string>& cfs_capable_models()
     static const std::map<std::string, std::string> models = {
         {"F008", "K2 Plus"},
         {"F012", "K2 Pro"},
+        {"F016", "K2 SE"},
         {"F021", "K2"},
         {"F022", "SPARKX i7"},
         {"K1", "K1"},
+        {"K1 Max", "K1 Max"},
+        {"K1 Max_CFS-C", "K1 Max_CFS-C"},
         {"K1 SE", "K1 SE"},
+        {"K1 SE_CFS-C", "K1 SE_CFS-C"},
         {"K1C", "K1C"},
+        {"K1C_CFS-C", "K1C_CFS-C"},
         {"K1_CFS-C", "K1_CFS-C"},
     };
     return models;
@@ -373,100 +388,104 @@ std::string CrealityPrint::query_boxes_info() const
     }
 }
 
+std::vector<std::string> CrealityPrint::start_print_commands(bool                                      multi_color,
+                                                             const std::string&                        gcode_path,
+                                                             const std::map<std::string, std::string>& extended_info)
+{
+    // Build colorMatch list from the mapping provided by the dialog
+    bool use_spool_holder = false;
+    json color_list       = json::array();
+    int  enable_self_test = 0;
+    if (multi_color) {
+        for (int i = 0; ; i++) {
+            auto it = extended_info.find("colorMatch_" + std::to_string(i));
+            if (it == extended_info.end())
+                break;
+            // Value format: "toolId\ttype\tcolor\tboxId\tmaterialId"
+            auto val = it->second;
+            std::vector<std::string> parts;
+            std::istringstream iss(val);
+            std::string part;
+            while (std::getline(iss, part, '\t'))
+                parts.push_back(part);
+            if (parts.size() >= 5) {
+                int box_id = std::stoi(parts[3]);
+                if (box_id == 0)
+                    use_spool_holder = true;
+                color_list.push_back({
+                    {"id", parts[0]},
+                    {"type", parts[1]},
+                    {"color", parts[2]},
+                    {"boxId", box_id},
+                    {"materialId", std::stoi(parts[4])}
+                });
+            }
+        }
+        auto it = extended_info.find("enableSelfTest");
+        if (it != extended_info.end())
+            enable_self_test = std::stoi(it->second);
+    }
+
+    std::vector<std::string> commands;
+    // Only a mapping onto CFS slots starts a multi-color job. No mapping means the
+    // printer listed no slots (no CFS attached, or boxsInfo unanswered): start from
+    // the spool holder, as Creality Print does, instead of sending an empty
+    // colorMatch, which makes the firmware flag "no material" for the whole job.
+    if (multi_color && !use_spool_holder && !color_list.empty()) {
+        json color_match = {
+            {"method", "set"},
+            {"params", {
+                {"colorMatch", {
+                    {"path", gcode_path},
+                    {"list", color_list}
+                }}
+            }}
+        };
+        commands.push_back(to_string(color_match));
+
+        json multi_color_print = {
+            {"method", "set"},
+            {"params", {
+                {"multiColorPrint", {
+                    {"gcode", gcode_path},
+                    {"enableSelfTest", enable_self_test}
+                }}
+            }}
+        };
+        commands.push_back(to_string(multi_color_print));
+    } else {
+        json params = {{"opGcodeFile", "printprt:" + gcode_path}};
+        if (multi_color)
+            params["enableSelfTest"] = enable_self_test;
+        json cmd = {{"method", "set"}, {"params", params}};
+        commands.push_back(to_string(cmd));
+    }
+    return commands;
+}
+
 bool CrealityPrint::start_print(wxString &msg, const std::string &filename, const std::map<std::string, std::string>& extended_info) const
 {
     try {
-        const std::string data_root = is_k1_family(m_model) ? "/usr/data" : "/mnt/UDISK";
-        const std::string gcode_path = data_root + "/printer_data/gcodes/" + filename;
+        // Runs before the WebSocket opens and its reply deadline starts, since it can query the
+        // printer over HTTP. It also fills m_model.
+        const bool        multi_color = supports_multi_color_print();
+        const std::string data_root   = is_k1_family(m_model) ? "/usr/data" : "/mnt/UDISK";
+        const std::string gcode_path  = data_root + "/printer_data/gcodes/" + filename;
 
         net::io_context ioc;
         websocket::stream<beast::tcp_stream> ws{ioc};
         ws_connect(ioc, ws, m_host, ws_settings.port, ws_settings.connect);
-
-        // Runs before the reply deadline starts, since it can query the printer over HTTP.
-        const bool multi_color = supports_multi_color_print();
         beast::get_lowest_layer(ws).expires_after(ws_settings.reply);
-        if (multi_color) {
-            // Build colorMatch list from the mapping provided by the dialog
-            bool use_spool_holder = false;
-            json color_list = json::array();
-            for (int i = 0; ; i++) {
-                auto it = extended_info.find("colorMatch_" + std::to_string(i));
-                if (it == extended_info.end())
-                    break;
-                // Value format: "toolId\ttype\tcolor\tboxId\tmaterialId"
-                auto val = it->second;
-                std::vector<std::string> parts;
-                std::istringstream iss(val);
-                std::string part;
-                while (std::getline(iss, part, '\t'))
-                    parts.push_back(part);
-                if (parts.size() >= 5) {
-                    int box_id = std::stoi(parts[3]);
-                    if (box_id == 0)
-                        use_spool_holder = true;
-                    color_list.push_back({
-                        {"id", parts[0]},
-                        {"type", parts[1]},
-                        {"color", parts[2]},
-                        {"boxId", box_id},
-                        {"materialId", std::stoi(parts[4])}
-                    });
-                }
-            }
 
-            int enable_self_test = 0;
-            {
-                auto it = extended_info.find("enableSelfTest");
-                if (it != extended_info.end())
-                    enable_self_test = std::stoi(it->second);
-            }
-
-            if (use_spool_holder) {
-                json cmd = {
-                    {"method", "set"},
-                    {"params", {
-                        {"opGcodeFile", "printprt:" + gcode_path},
-                        {"enableSelfTest", enable_self_test}
-                    }}
-                };
-                ws_send(ioc, ws, cmd);
-            } else {
-                json color_match = {
-                    {"method", "set"},
-                    {"params", {
-                        {"colorMatch", {
-                            {"path", gcode_path},
-                            {"list", color_list}
-                        }}
-                    }}
-                };
-                ws_send(ioc, ws, color_match);
-
-                json multi_color_print = {
-                    {"method", "set"},
-                    {"params", {
-                        {"multiColorPrint", {
-                            {"gcode", gcode_path},
-                            {"enableSelfTest", enable_self_test}
-                        }}
-                    }}
-                };
-                ws_send(ioc, ws, multi_color_print);
-            }
-        } else {
-            json cmd = {
-                {"method", "set"},
-                {"params", {
-                    {"opGcodeFile", "printprt:" + gcode_path}
-                }}
-            };
+        const std::vector<std::string> commands = start_print_commands(multi_color, gcode_path, extended_info);
+        for (const std::string& cmd : commands)
             ws_send(ioc, ws, cmd);
 
-            // K1-family firmware closes the WebSocket right after accepting the
-            // start command, so a blocking read here surfaces a benign
-            // "End of file [asio.misc:2]" even though the print already started
-            // (ws_send() delivers the command). Read best-effort, ignore errors.
+        if (commands.size() == 1) {
+            // A plain start. K1-family firmware closes the WebSocket right after accepting it,
+            // so a read here surfaces a benign "End of file [asio.misc:2]" even though the print
+            // already started (ws_send() delivered the command). Read best-effort, ignore errors:
+            // it also keeps the close frame from following the command in the same burst.
             beast::flat_buffer buffer;
             ws_read(ioc, ws, buffer);
         }

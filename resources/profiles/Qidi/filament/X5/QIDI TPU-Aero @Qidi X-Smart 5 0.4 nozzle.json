@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "QIDI TPU-Aero @Qidi X-Smart 5 0.4 nozzle",
+	"inherits": "QIDI TPU-Aero@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "WUJyTMTs6yxw9NlG",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.4 nozzle"
+	]
+}

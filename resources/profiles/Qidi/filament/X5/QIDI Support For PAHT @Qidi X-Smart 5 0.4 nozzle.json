@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "QIDI Support For PAHT @Qidi X-Smart 5 0.4 nozzle",
+	"inherits": "QIDI Support For PAHT@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "7z3FV2SkYjSAchvg",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.4 nozzle"
+	]
+}

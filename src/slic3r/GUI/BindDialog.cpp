@@ -52,6 +52,8 @@
 #include "Widgets/WebView.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "HMS.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
 using json = nlohmann::json;
 
@@ -126,7 +128,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
     request_bind_panel->SetBackgroundColour(*wxWHITE);
     binding_panel->SetBackgroundColour(*wxWHITE);
 
-    m_status_text = new Label(request_bind_panel, _L("Please Find the Pin Code in Account page on printer screen,\n and type in the Pin Code below."));
+    m_status_text = new Label(request_bind_panel, _L("Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."));
     m_status_text->SetBackgroundColour(*wxWHITE);
     m_status_text->SetFont(Label::Body_14);
     m_status_text->SetMaxSize(wxSize(FromDIP(440), -1));
