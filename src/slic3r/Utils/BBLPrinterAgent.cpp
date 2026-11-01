@@ -9,16 +9,30 @@
 
 #include <algorithm>
 #include <array>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <exception>
 #include <functional>
+#include <mutex>
 #include <nlohmann/json.hpp>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
+#include <openssl/pemerr.h>
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
 #include <cmath>
+#include <cstddef>
+#include <set>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <utility>
 #include <vector>
 using json = nlohmann::json;
@@ -123,7 +137,64 @@ To as_abi(From fn)
     return reinterpret_cast<To>(reinterpret_cast<void (*)()>(fn));
 }
 
+std::string certificate_pem(X509* cert)
+{
+    std::unique_ptr<BIO, decltype(&BIO_free)> out(BIO_new(BIO_s_mem()), &BIO_free);
+    if (!out || PEM_write_bio_X509(out.get(), cert) != 1)
+        return {};
+    char*      data = nullptr;
+    const long size = BIO_get_mem_data(out.get(), &data);
+    return std::string(data, size_t(size));
+}
+
+const char* ca_file_error_text(BBLPrinterAgent::CaFileError error)
+{
+    switch (error) {
+    case BBLPrinterAgent::CaFileError::Unreadable: return "it cannot be read";
+    case BBLPrinterAgent::CaFileError::NoCertificate: return "it holds no certificate";
+    case BBLPrinterAgent::CaFileError::Damaged: return "it holds a damaged certificate";
+    case BBLPrinterAgent::CaFileError::NotCa: return "it holds a certificate that is not a CA";
+    case BBLPrinterAgent::CaFileError::None: break;
+    }
+    return "";
+}
+
+// Replaces path in one step and only when its content changes: the plug-in may read it at any time.
+void replace_file(const boost::filesystem::path& path, const std::string& content)
+{
+    if (boost::filesystem::exists(path)) {
+        std::string current;
+        load_string_file(path, current);
+        if (current == content)
+            return;
+    }
+    const boost::filesystem::path tmp = path.string() + ".tmp";
+    save_string_file(tmp, content);
+    if (const std::error_code ec = rename_file(tmp.string(), path.string()))
+        throw std::system_error(ec, "Cannot replace " + path.string());
+}
+
 } // namespace
+
+// The plug-in has one cert folder for all printers, and multi-printer sending talks to several at
+// once, so the folder trusts every CA file used this session. It is rebuilt and re-pointed on every
+// connect: restarting networking points the plug-in back at the bundled folder (GUI_App), and a
+// renewed CA file is picked up. Re-pointing after start() takes effect on the next connection.
+void BBLPrinterAgent::trust_ca_file(const std::string& ca_file)
+{
+    static std::mutex            mutex;
+    static std::set<std::string> ca_files;
+
+    auto& plugin        = BBLNetworkPlugin::instance();
+    auto  agent         = plugin.get_agent();
+    auto  set_cert_file = plugin.get_set_cert_file();
+    if (!agent || !set_cert_file)
+        return;
+
+    std::lock_guard<std::mutex> lock(mutex);
+    ca_files.insert(ca_file);
+    set_cert_file(agent, cert_dir_with_cas(resources_dir() + "/cert", data_dir() + "/cert", ca_files), "slicer_base64.cer");
+}
 
 std::string BBLPrinterAgent::to_orca_filament_id(const std::string& printer_filament_id) const
 {
@@ -296,9 +367,95 @@ int BBLPrinterAgent::connect_printer(const PrinterConnectionParams& params)
     }
 #endif
     if (func && agent) {
+        if (!params.ca_file.empty())
+            trust_ca_file(params.ca_file);
         return func(agent, params.dev_id, params.host, params.username, params.password, use_ssl_for_mqtt);
     }
     return -1;
+}
+
+BBLPrinterAgent::CaFileCheck BBLPrinterAgent::check_ca_file(const std::string& path)
+{
+    std::string pem;
+    try {
+        load_string_file(path, pem);
+    } catch (const std::exception&) {
+        return {CaFileError::Unreadable, {}};
+    }
+
+    std::unique_ptr<BIO, decltype(&BIO_free)> in(BIO_new_mem_buf(pem.data(), int(pem.size())), &BIO_free);
+    if (!in)
+        return {CaFileError::Unreadable, {}};
+
+    ERR_clear_error();
+    std::vector<std::string> certificates;
+    bool                     all_ca  = true;
+    bool                     written = true;
+    // Never prompt for a passphrase: an encrypted block counts as damaged.
+    pem_password_cb* const no_passphrase = [](char*, int, int, void*) { return 0; };
+    while (X509* cert = PEM_read_bio_X509(in.get(), nullptr, no_passphrase, nullptr)) {
+        all_ca = all_ca && X509_check_ca(cert) >= 1;
+        certificates.push_back(certificate_pem(cert));
+        written = written && !certificates.back().empty();
+        X509_free(cert);
+    }
+    // Reading ends with "no start line" at the end of the input; any other error is a broken certificate.
+    const unsigned long err    = ERR_peek_last_error();
+    const bool          at_end = ERR_GET_LIB(err) == ERR_LIB_PEM && ERR_GET_REASON(err) == PEM_R_NO_START_LINE;
+    ERR_clear_error();
+
+    if (!at_end || !written)
+        return {CaFileError::Damaged, {}};
+    if (certificates.empty())
+        return {CaFileError::NoCertificate, {}};
+    if (!all_ca)
+        return {CaFileError::NotCa, {}};
+    return {CaFileError::None, std::move(certificates)};
+}
+
+std::string BBLPrinterAgent::cert_dir_with_cas(const std::string& bundled_dir, const std::string& out_dir, const std::set<std::string>& extra_cas)
+{
+    namespace fs = boost::filesystem;
+
+    std::vector<std::string> certificates;
+    for (const std::string& ca_file : extra_cas) {
+        CaFileCheck check = check_ca_file(ca_file);
+        if (check.error != CaFileError::None) {
+            BOOST_LOG_TRIVIAL(warning) << "Ignoring CA file, " << ca_file_error_text(check.error) << ": " << ca_file;
+            continue;
+        }
+        for (std::string& certificate : check.certificates)
+            if (std::find(certificates.begin(), certificates.end(), certificate) == certificates.end())
+                certificates.push_back(std::move(certificate));
+    }
+    if (certificates.empty())
+        return bundled_dir;
+
+    std::string extra;
+    for (const std::string& certificate : certificates)
+        extra += certificate;
+
+    try {
+        std::string bundle;
+        load_string_file(fs::path(bundled_dir) / "printer.cer", bundle);
+        if (!bundle.empty() && bundle.back() != '\n')
+            bundle += '\n';
+
+        const fs::path out(out_dir);
+        fs::create_directories(out);
+        for (const fs::directory_entry& entry : fs::directory_iterator(bundled_dir)) {
+            if (!fs::is_regular_file(entry.status()) || entry.path().filename() == "printer.cer")
+                continue;
+            std::string content;
+            load_string_file(entry.path(), content);
+            replace_file(out / entry.path().filename(), content);
+        }
+        replace_file(out / "printer.cer", bundle + extra);
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "Cannot build cert folder with custom CAs, using the bundled one: " << e.what();
+        return bundled_dir;
+    }
+    return out_dir;
 }
 
 int BBLPrinterAgent::disconnect_printer()

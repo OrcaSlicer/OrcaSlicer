@@ -66,6 +66,14 @@ namespace {
         }
         return "";
     }
+
+    // Scoped to the agent like the access code above; there is no legacy flat key to fall back to.
+    std::string get_stored_ca_file(Slic3r::AppConfig* config, const std::string& dev_id, const std::string& agent_id)
+    {
+        const auto& machines = config->get_local_machines();
+        auto        it       = machines.find(dev_id);
+        return it != machines.end() && it->second.printer_agent_id == agent_id ? it->second.ca_file : "";
+    }
 }
 
 namespace Slic3r
@@ -110,6 +118,7 @@ namespace Slic3r
             obj->m_is_online         = true;
             obj->last_alive          = Slic3r::Utils::get_current_time_utc();
             obj->set_access_code(get_access_code_with_legacy_fallback(config, m.dev_id, obj->printer_agent_id), false);
+            obj->set_ca_file(m.ca_file, false);
             if (obj->has_access_right()) {
                 localMachineList.insert(std::make_pair(m.dev_id, obj));
             } else {
@@ -131,6 +140,7 @@ namespace Slic3r
                     local_machine.printer_type     = m.printer_type;
                     local_machine.printer_agent_id = m.printer_agent_id;
                     local_machine.access_code      = m.get_access_code();
+                    local_machine.ca_file          = m.get_ca_file();
                     config->update_local_machine(local_machine);
                 }
             } else {
@@ -446,6 +456,7 @@ namespace Slic3r
                 //load access code
                 if (config) {
                     obj->set_access_code(get_access_code_with_legacy_fallback(config, dev_id, obj->printer_agent_id), false);
+                    obj->set_ca_file(get_stored_ca_file(config, dev_id, obj->printer_agent_id), false);
                 }
                 localMachineList.insert(std::make_pair(dev_id, obj));
 
@@ -478,11 +489,13 @@ namespace Slic3r
         std::string version, std::string access_code)
     {
         MachineObject* obj;
-        auto           it = localMachineList.find(machine.dev_id);
+        bool           agent_changed = false;
+        auto           it            = localMachineList.find(machine.dev_id);
         if (it != localMachineList.end()) {
             obj = it->second;
             // insert_local_device is called by the active agent, so a reused entry must follow
             // that agent as well; otherwise the agent-scoped printer list hides it.
+            agent_changed         = obj->printer_agent_id != get_current_printer_agent_id();
             obj->printer_agent_id = get_current_printer_agent_id();
         } else {
             obj = new MachineObject(this, m_agent, machine.dev_name, machine.dev_id, machine.dev_ip);
@@ -500,6 +513,8 @@ namespace Slic3r
         obj->m_is_online = true;
         obj->last_alive = Slic3r::Utils::get_current_time_utc();
         obj->set_access_code(access_code, false);
+        if ((agent_changed || obj->get_ca_file().empty()) && get_app_config())
+            obj->set_ca_file(get_stored_ca_file(get_app_config(), machine.dev_id, obj->printer_agent_id), false);
 
         update_local_machine(*obj, get_app_config());
 
