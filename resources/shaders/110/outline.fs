@@ -44,6 +44,16 @@ bool covered(vec4 m)
     return m.g > 0.0;
 }
 
+// The texel and its eight neighbors are covered.
+bool inside_mask(ivec2 p)
+{
+    for (int y = -1; y <= 1; ++y)
+        for (int x = -1; x <= 1; ++x)
+            if (!covered(fetch_mask(p + ivec2(x, y))))
+                return false;
+    return true;
+}
+
 // Strength and crossing of an inner edge written by outline_edges.fs.
 vec2 unpack_edge(float c)
 {
@@ -113,8 +123,7 @@ void render_ring(ivec2 p)
     if (covered(m)) {
         // Only the silhouette of the mask may hold samples off the selection. Inside, a face the mask has and the
         // scene culled, say, would get no stencil bit and fill with the ring.
-        if (!use_stencil || (covered(fetch_mask(p - ivec2(1, 0))) && covered(fetch_mask(p + ivec2(1, 0))) &&
-                             covered(fetch_mask(p - ivec2(0, 1))) && covered(fetch_mask(p + ivec2(0, 1)))))
+        if (!use_stencil || inside_mask(p))
             discard;
         depth = surface_depth(p);
     }
