@@ -4861,7 +4861,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::istringstream(used_for_object) >> std::boolalpha >> filament_info.used_for_object;
             std::istringstream(used_for_support) >> std::boolalpha >> filament_info.used_for_support;
             filament_info.group_id = parse_int_list(group_id);
-            filament_info.nozzle_diameter = atof(nozzle_diameter.c_str());
+            filament_info.nozzle_diameter = string_to_double_decimal_point(nozzle_diameter);
             filament_info.nozzle_volume_type = volume_type;
             m_curr_plater->slice_filaments_info.push_back(filament_info);
         }
@@ -8808,7 +8808,7 @@ bool _BBS_3MF_Exporter::_add_model_config_file_to_archive(mz_zip_archive& archiv
 
                 if (plate_data->limit_filament_maps.size() > 0) {
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LIMIT_FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"";
-                    add_vector<int>(stream, plate_data->limit_filament_maps);
+                    add_vector<uint64_t>(stream, plate_data->limit_filament_maps);
                     stream << "\"/>\n";
                 }
 

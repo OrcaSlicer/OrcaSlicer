@@ -746,8 +746,12 @@ set(SLIC3R_GUI_SOURCES
     Utils/PaintCLI.hpp
     Utils/CalibUtils.cpp
     Utils/CalibUtils.hpp
+    Utils/CloudDeleteQueue.cpp
+    Utils/CloudDeleteQueue.hpp
     Utils/ColorSpaceConvert.cpp
     Utils/ColorSpaceConvert.hpp
+    Utils/CrealityCfs.cpp
+    Utils/CrealityCfs.hpp
     Utils/CrealityPrint.cpp
     Utils/CrealityPrint.hpp
     Utils/CrealityPrintAgent.cpp
@@ -899,6 +903,8 @@ if (APPLE)
             GUI/GUI_UtilsMac.mm
             GUI/MacIME.mm
             GUI/MacIME.hpp
+            GUI/Accessibility/AccessibilityMac.mm
+            GUI/Accessibility/AccessibilityMac.h
         )
     FIND_LIBRARY(DISKARBITRATION_LIBRARY DiskArbitration)
 endif ()

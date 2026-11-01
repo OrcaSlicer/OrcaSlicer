@@ -561,6 +561,40 @@ TEST_CASE("Print: {first_object_name} is not replaced by the saved-project file 
     CHECK(resolved_output_name(model, "{first_object_name}", "SavedProject") == "WidgetPart.gcode");
 }
 
+TEST_CASE("{printing_filament_types} lists the filament types really printed", "[Print]")
+{
+    // Two filaments of different types. The start G-code uses the placeholder too: it has to
+    // resolve there as well as in the file name.
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "filament_type", "ABS;PLA" },
+        { "enable_prime_tower", 0 },
+        { "filename_format", "{printing_filament_types}-{filament_type[initial_tool]}" },
+        { "machine_start_gcode", "; printing types: {printing_filament_types}" },
+    });
+
+    SECTION("only the filament the object is printed with, not filament 1") {
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", 2 } } };
+        Print print;
+        Model model;
+        init_print({ cube(20) }, print, model, config, &overrides);
+        const std::string gcode = Slic3r::Test::gcode(print);
+
+        CHECK(gcode.find("; printing types: PLA\n") != std::string::npos);
+        CHECK(print.output_filename() == "PLA-PLA.gcode");
+    }
+
+    SECTION("every type printed, joined with an underscore") {
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", 1 } }, { { "extruder", 2 } } };
+        Print print;
+        Model model;
+        init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+        const std::string gcode = Slic3r::Test::gcode(print);
+
+        CHECK(gcode.find("; printing types: ABS_PLA\n") != std::string::npos);
+        CHECK(print.output_filename() == "ABS_PLA-ABS.gcode");
+    }
+}
+
 TEST_CASE("Print::validate stacks independent warnings", "[Print][validate]")
 {
     // Two unrelated checks (region precise-wall + machine acceleration) must each
@@ -898,6 +932,38 @@ TEST_CASE("Plate name reaches the G-code once G-code export is invalidated", "[P
     CHECK(regenerated.find("; Plate First") == std::string::npos);
 }
 
+// The background thread drops its own export when an in-place edit of the file fails. The print's cancel
+// callback stops that thread and waits for it, so the invalidation must not call it.
+TEST_CASE("An export the background thread invalidates is written again without re-slicing", "[Print]")
+{
+    // Declared before the print, whose destructor calls the cancel callback too.
+    bool cancel_called = false;
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model);
+    print.set_status_silent();
+    print.set_cancel_callback([&cancel_called]() { cancel_called = true; });
+
+    ScopedTemporaryFile output(".gcode");
+    print.process();
+    print.export_gcode(output.string(), nullptr, nullptr);
+    REQUIRE(print.finished());
+    // What a post-processing script that failed half way leaves in the file.
+    std::ofstream(output.string(), std::ios::app) << "; half edited\n";
+
+    print.invalidate_gcode_export_from_worker();
+    CHECK_FALSE(print.finished());
+    CHECK_FALSE(cancel_called);
+    CHECK(print.objects().front()->is_step_done(posSlice));
+
+    print.process();
+    print.export_gcode(output.string(), nullptr, nullptr);
+    CHECK(print.finished());
+    std::ifstream in(output.string(), std::ios::binary);
+    const std::string gcode((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    CHECK(gcode.find("; half edited") == std::string::npos);
+}
+
 // The layer change G-code runs before its layer prints, so the layer mass it gets is the previous layer's.
 TEST_CASE("Layer change G-code gets the previous layer's mass under both placeholder names", "[Print]")
 {
@@ -1082,6 +1148,23 @@ TEST_CASE("Exporting a sliced print again gives the same G-code", "[Print][expor
     CHECK(first.size() == second.size());
 }
 
+// Peak Z of the first object printed in by-object G-code: the highest extrusion before Z drops back
+// to the first layer, which with by-object printing only happens at an object change.
+static double first_object_peak_z(const std::string &gcode)
+{
+    double first_object_peak_z = 0.0;
+    double running_peak        = 0.0;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&] (GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        if (first_object_peak_z != 0.0 || !line.extruding(self)) return; // ignore travels (e.g. start-gcode Z lift)
+        if (running_peak > 1.0 && self.z() < 1.0)
+            first_object_peak_z = running_peak;
+        else
+            running_peak = std::max(running_peak, static_cast<double>(self.z()));
+    });
+    return first_object_peak_z;
+}
+
 TEST_CASE("Sequential printing follows model order", "[Print]")
 {
     // Two objects of different heights, taller one added first. Orca prints
@@ -1093,21 +1176,89 @@ TEST_CASE("Sequential printing follows model order", "[Print]")
         { "z_hop",                      0 }
     });
 
-    // The first object's height is the peak Z reached before Z drops back to the
-    // first layer (the object change). With by-object printing only an object
-    // change returns Z to the bottom.
-    double first_object_peak_z = 0.0;
-    double running_peak        = 0.0;
-    GCodeReader reader;
-    reader.parse_buffer(gcode, [&] (GCodeReader& self, const GCodeReader::GCodeLine& line) {
-        if (first_object_peak_z != 0.0 || !line.extruding(self)) return; // ignore travels (e.g. start-gcode Z lift)
-        if (running_peak > 1.0 && self.z() < 1.0)
-            first_object_peak_z = running_peak;
-        else
-            running_peak = std::max(running_peak, static_cast<double>(self.z()));
-    });
+    REQUIRE_THAT(first_object_peak_z(gcode), Catch::Matchers::WithinAbs(20.0, 0.3));
+}
 
-    REQUIRE_THAT(first_object_peak_z, Catch::Matchers::WithinAbs(20.0, 0.3));
+// 20 mm boxes of the given heights, in list order, 60 mm apart in X at the same Y, so they share a
+// Y band but are far enough apart for the toolhead radius rule. The rod is lowered to 25 mm, so a
+// 30 mm box reaches above it and a 10 mm one does not.
+static void place_boxes_in_one_y_band(const std::vector<double> &heights, Print &print, Model &model)
+{
+    std::vector<TriangleMesh> meshes;
+    for (size_t i = 0; i < heights.size(); ++i) {
+        TriangleMesh box = make_cube(20, 20, heights[i]);
+        box.translate(float(80 + 80 * i), 80.f, 0.f);
+        meshes.push_back(std::move(box));
+    }
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "skirt_loops",                      0 },
+        { "layer_height",                     0.2 },
+        { "initial_layer_print_height",       0.2 },
+        { "z_hop",                            0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+}
+
+static const StringObjectException *find_order_warning(const std::vector<StringObjectException> &warnings)
+{
+    auto it = std::find_if(warnings.begin(), warnings.end(),
+        [](const StringObjectException &w) { return w.string.find("is printed later than its place in the object list") != std::string::npos; });
+    return it == warnings.end() ? nullptr : &*it;
+}
+
+TEST_CASE("Sequential printing accepts a taller object listed first and over the rod height", "[Print]")
+{
+    Print print;
+    Model model;
+    place_boxes_in_one_y_band({ 30, 10 }, print, model);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException error = print.validate(&warnings);
+    INFO(error.string);
+    REQUIRE(error.string.empty());
+
+    // The print no longer follows the object list, so the user is told about the taller object,
+    // which is held back to clear the rod, and the notification jumps to it.
+    const StringObjectException *order_warning = find_order_warning(warnings);
+    REQUIRE(order_warning != nullptr);
+    CHECK(order_warning->object == print.model().objects.front()->instances.front());
+    CHECK(order_warning->string.find('\n') == std::string::npos); // only the taller object is named
+}
+
+TEST_CASE("Sequential printing prints the shorter object first when the taller one is over the rod height", "[Print]")
+{
+    Print print;
+    Model model;
+    place_boxes_in_one_y_band({ 30, 10 }, print, model);
+
+    REQUIRE_THAT(first_object_peak_z(Test::gcode(print)), Catch::Matchers::WithinAbs(10.0, 0.3));
+}
+
+TEST_CASE("Sequential printing keeps a list order that already clears the rod", "[Print]")
+{
+    Print print;
+    Model model;
+    place_boxes_in_one_y_band({ 10, 30 }, print, model);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException error = print.validate(&warnings);
+    INFO(error.string);
+    REQUIRE(error.string.empty());
+    CHECK(find_order_warning(warnings) == nullptr);
+    REQUIRE_THAT(first_object_peak_z(Test::gcode(print)), Catch::Matchers::WithinAbs(10.0, 0.3));
+}
+
+TEST_CASE("Sequential printing still rejects two objects over the rod height that share a Y band", "[Print]")
+{
+    Print print;
+    Model model;
+    place_boxes_in_one_y_band({ 30, 30 }, print, model);
+
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("too tall"));
 }
 
 // A sequential (by-object) print must publish the print-level nozzle group result just
@@ -2103,4 +2254,61 @@ TEST_CASE("Changing G-code precision invalidates only G-code export", "[Print][R
     CHECK(print.is_step_done(psSkirtBrim));
     CHECK(print.objects().front()->is_step_done(posSlice));
     CHECK(print.objects().front()->is_step_done(posPerimeters));
+}
+
+namespace {
+
+// The slicing parameters of an object printed with one filament, on a printer whose first extruder
+// allows layers up to 0.32 mm and the second one up to 0.28 mm. The layers are 0.2 mm, within both.
+SlicingParameters slicing_parameters_on_filament(unsigned int filament)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "nozzle_diameter",  "0.4,0.4" },
+        { "min_layer_height", "0.08,0.08" },
+        { "max_layer_height", "0.32,0.28" },
+        { "layer_height",     0.2 },
+        { "enable_support",   0 },
+        { "raft_layers",      0 },
+    });
+    PrintConfig       print_config;
+    PrintObjectConfig object_config;
+    print_config.apply(config, true);
+    object_config.apply(config, true);
+    // The extruders of an object are 0-based.
+    return SlicingParameters::create_from_config(print_config, object_config, 20., { filament - 1 }, Vec3d(1., 1., 1.));
+}
+
+} // namespace
+
+TEST_CASE("An object takes the layer height limits of the extruder of its own filament", "[Print]")
+{
+    CHECK_THAT(slicing_parameters_on_filament(1).max_layer_height, Catch::Matchers::WithinAbs(0.32, EPSILON));
+    CHECK_THAT(slicing_parameters_on_filament(2).max_layer_height, Catch::Matchers::WithinAbs(0.28, EPSILON));
+}
+
+// The limits only bound a variable layer height, so with fixed 0.2 mm layers both objects share every layer.
+TEST_CASE("Objects on extruders with different layer height limits can share a prime tower", "[Print]")
+{
+    DynamicPrintConfig config = multifilament_config(3);
+    config.set_num_extruders(3);
+    config.set_deserialize_strict({
+        { "nozzle_diameter",    "0.4,0.4,0.4" },
+        { "min_layer_height",   "0.08,0.08,0.08" },
+        { "max_layer_height",   "0.32,0.28,0.28" },
+        { "layer_height",       0.2 },
+        { "enable_prime_tower", 1 },
+        { "wipe_tower_x",       150 }, // the default Y is off the default bed
+        { "wipe_tower_y",       20 },
+        { "layer_change_gcode", "G92 E0\n" }, // validate() relative-E reset
+    });
+    size_flush_to_nozzles(config);
+    const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides { { { "extruder", 1 } }, { { "extruder", 3 } } };
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{ cube(20), cube(20) }, print, model, config, &overrides);
+    const StringObjectException error = print.validate();
+    INFO(error.string);
+    CHECK(error.string.empty());
 }

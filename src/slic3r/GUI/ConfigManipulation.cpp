@@ -174,22 +174,18 @@ void ConfigManipulation::check_nozzle_temperature_initial_layer_range(DynamicPri
     }
 }
 
-void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfig* config)
+void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfig* config, unsigned int variant_index)
 {
     if (is_msg_dlg_already_exist || !config->has("adaptive_pressure_advance_model"))
         return;
 
     const auto* model = config->option<ConfigOptionStrings>("adaptive_pressure_advance_model");
-    if (model == nullptr)
+    if (model == nullptr || model->values.empty())
         return;
 
-    // Each extruder variant holds its own model.
-    std::string error;
-    for (const std::string& variant_model : model->values) {
-        error = AdaptivePAProcessor::validate_adaptive_pa_model(variant_model);
-        if (!error.empty())
-            break;
-    }
+    // Each extruder variant holds its own model; only the one being edited is checked, the
+    // others may still hold the default placeholder.
+    const std::string error = AdaptivePAProcessor::validate_adaptive_pa_model(model->get_at(variant_index));
     if (!error.empty()) {
         wxString msg_text = _L("Adaptive Pressure Advance model validation failed:\n");
         msg_text += from_u8(error);
@@ -1050,6 +1046,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("brim_ears_outer_only", have_auto_brim_ear || have_painted_brim_ear, -1, _L("Select automatic or painted brim ears on a printer without a tilted belt to use this setting."));
 
     // Hide Elephant foot compensation layers if elefant_foot_compensation is not enabled
+    // xgettext:no-c-format, no-boost-format
     toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0 || config->option<ConfigOptionPercent>("elefant_foot_layers_density")->get_abs_value(1.0f) < 1.0f, -1, _L("Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."));
 
     bool have_raft = config->opt_int("raft_layers") > 0 && !is_belt_printer;

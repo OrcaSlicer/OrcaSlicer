@@ -67,8 +67,12 @@ public:
 	bool		error() 	const { return m_status == Error; }
 	// Unhandled error produced by stdlib or a Win32 structured exception, or unhandled Slic3r's own critical exception.
 	bool 		critical_error() const;
-	// Critical errors does invalidate plater except CopyFileError.
+	// A critical error that leaves the sliced data unusable. A failed export (export_failed()) is critical too,
+	// but leaves the sliced data usable.
 	bool        invalidate_plater() const;
+	// Exporting or uploading the G-code failed (a copy, a post-processing script or plugin: an ExportError);
+	// the slice itself is intact.
+	bool        export_failed() const;
 	// Only valid if error()
 	void 		rethrow_exception() const { assert(this->error()); assert(m_exception); std::rethrow_exception(m_exception); }
 	// Produce a human readable message to be displayed by a notification or a message box.
@@ -166,7 +170,7 @@ public:
 	// Set print host upload job data to be enqueued to the PrintHostJobQueue
 	// after current print slicing is complete
 	void schedule_upload(Slic3r::PrintHostJob upload_job);
-	// Clear m_export_path.
+	// Clear m_export_path and drop a scheduled upload that was not handed to the print host job queue.
 	void reset_export();
 	// Once the G-code export is scheduled, the apply() methods will do nothing.
 	bool is_export_scheduled() const { return ! m_export_path.empty(); }

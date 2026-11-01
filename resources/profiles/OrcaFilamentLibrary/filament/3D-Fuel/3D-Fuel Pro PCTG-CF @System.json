@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "3D-Fuel Pro PCTG-CF @System",
+	"inherits": "3D-Fuel Pro PCTG-CF @base",
+	"from": "system",
+	"setting_id": "D48Q9Ulx7GcYM35J",
+	"instantiation": "true",
+	"compatible_printers": []
+}

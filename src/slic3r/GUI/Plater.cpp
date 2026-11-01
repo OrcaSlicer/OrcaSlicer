@@ -99,6 +99,7 @@
 #include <atomic>
 #include <mutex>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
@@ -2003,7 +2004,7 @@ static std::map<int, std::vector<DevNozzle>> deserialize_nozzle_config(const std
             boost::split(values, part, boost::is_any_of(","));
             if (values.size() == 2) {
                 DevNozzle nozzle;
-                nozzle.m_diameter = std::stof(values[0]);
+                nozzle.m_diameter = string_to_double_decimal_point(values[0]);
                 nozzle.m_nozzle_flow = static_cast<NozzleFlowType>(std::stoi(values[1]));
                 nozzles.push_back(nozzle);
             }
@@ -2409,7 +2410,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     std::vector<NozzleVolumeType> target_types(extruder_nums, NozzleVolumeType::nvtStandard);
     for (size_t index = 0; index < extruder_nums; ++index) {
         int extruder_id = extruder_map[index];
-        nozzle_diameters[extruder_id] = nozzle_option ? atof(nozzle_option->diameter.c_str()) : obj->GetExtderSystem()->GetNozzleDiameter(index);
+        nozzle_diameters[extruder_id] = nozzle_option ? string_to_double_decimal_point(nozzle_option->diameter) : obj->GetExtderSystem()->GetNozzleDiameter(index);
         NozzleVolumeType target_type = NozzleVolumeType::nvtStandard;
         std::optional<NozzleVolumeType> select_type;
         if (nozzle_option && nozzle_option->extruder_nozzle_stats.count(index)) {
@@ -3750,8 +3751,11 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
         }
         else {
             // SINGLE MATERIAL / MULTI EXTRUDER / TOOLCHANGER / IDEX Opens Dialog directly
-            p->editing_filament = filament_idx;
-            combobox->switch_to_tab();
+            // -1 first, like Sidebar::edit_filament(): switch_to_tab() can run select_preset(),
+            // whose on_presets_changed() cascade would otherwise write into this slot mid-switch.
+            p->editing_filament = -1;
+            if (combobox->switch_to_tab())
+                p->editing_filament = filament_idx;
         }
     });
     combobox->edit_btn = edit_btn;
@@ -6313,6 +6317,14 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
 
     auto & list = wxGetApp().preset_bundle->filament_ams_list;
     if (list.empty()) {
+        // Only an unreachable printer is "not connected". One that is online and has
+        // delivered at least one status push answered the request without listing any
+        // filament slot, and the message then names the machine that answered.
+        if (obj->is_connected() && obj->m_push_count > 0) {
+            p->plater->pop_warning_and_go_to_device_page(from_u8(obj->get_dev_name()), Plater::PrinterWarningType::NO_FILAMENT_SYSTEM,
+                                                         _L("Sync printer information"));
+            return;
+        }
         auto printer_name = p->plater->get_selected_printer_name_in_combox();
         p->plater->pop_warning_and_go_to_device_page(printer_name, Plater::PrinterWarningType::NOT_CONNECTED, _L("Sync printer information"));
         return;
@@ -6454,6 +6466,8 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     // For full sync, preset selection/list update may rebuild combo widgets.
     // For color-only, keep current presets untouched and refresh colors only.
     if (!sync_color_only) {
+        // Keep the printer's filaments in their slots after a restart, ticked or not.
+        wxGetApp().preset_bundle->install_slot_filaments(*wxGetApp().app_config);
         wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(wxGetApp().preset_bundle->filament_presets[0]);
         wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
         update_dynamic_filament_list();
@@ -7187,6 +7201,9 @@ struct Plater::priv
     bool                                        m_has_pending_published{false};
     std::vector<std::string>                    m_pending_published_keys;
     std::vector<Slic3r::PublishedMaterialEntry> m_pending_material_keys;
+    // The pending keys come from a file published before per-extruder process keys were exported:
+    // a "key#N" process entry then stands for the whole vector.
+    bool                                        m_pending_published_legacy_process{false};
 
     // Data
     Slic3r::DynamicPrintConfig *config;        // FIXME: leak?
@@ -8955,7 +8972,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     bool dlg_cont = true;
     bool is_user_cancel = false;
     bool translate_old = false;
-    int current_width = 0, current_depth = 0, project_filament_count = 1;
+    int current_width = 0, current_depth = 0;
     double current_height = 0;
 
     if (input_files.empty())
@@ -9036,6 +9053,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     const float LOAD_MODEL_RATIO             = 0.9;
 
     for (size_t i = 0; i < input_files.size(); ++i) {
+        int project_filament_count = 1;
 
 #ifdef _WIN32
         auto path = input_files[i];
@@ -9187,6 +9205,25 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 }
                             }
 
+                            auto layout_it = model.model_info->metadata_items.find(ORCA_PUBLISHED_LAYOUT_TAG);
+                            if (layout_it != model.model_info->metadata_items.end()) {
+                                try {
+                                    auto jl = nlohmann::json::parse(layout_it->second);
+                                    PublishedExtruderLayout layout;
+                                    layout.extruder_ids = jl.at("extruder_ids").get<std::vector<int>>();
+                                    layout.variants     = jl.at("variants").get<std::vector<std::string>>();
+                                    published_config.printer_layout = std::move(layout);
+                                    if (jl.contains("print_extruder_ids") && jl.contains("print_variants")) {
+                                        PublishedExtruderLayout print_layout;
+                                        print_layout.extruder_ids = jl.at("print_extruder_ids").get<std::vector<int>>();
+                                        print_layout.variants     = jl.at("print_variants").get<std::vector<std::string>>();
+                                        published_config.print_layout = std::move(print_layout);
+                                    }
+                                } catch (const nlohmann::json::exception&) {
+                                    // Malformed layout: the keys without a parsed layout fall back to the positional import.
+                                }
+                            }
+
                             // Rebuild the published values from the metadata payload: a published
                             // file carries no project_settings.config, so config_loaded is filled
                             // from here; a missing or malformed payload leaves it empty and the
@@ -9206,8 +9243,130 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         }
                     }
 
+                    std::string import_project_action = wxGetApp().app_config->get("import_project_action");
+                    LoadType load_type;
+                    if (import_project_action.empty())
+                        load_type = LoadType::Unknown;
+                    else
+                        load_type  = static_cast<LoadType>(std::stoi(import_project_action));
+
+                    // BBS: version check
+                    Semver app_version = *(Semver::parse(SoftFever_VERSION));
+                    const wxString load_3mf_title              = _L("Load 3MF");
+                    const wxString newer_3mf_title             = _L("Newer 3MF version");
+                    const wxString msg_unsupported_geometry    = _L("The 3MF is not supported by OrcaSlicer, loading geometry data only.");
+                    const wxString msg_old_orca_geometry       = _L("The 3MF file was generated by an old OrcaSlicer version, loading geometry data only.");
+                    const wxString msg_older_geometry          = _L("The 3MF file was generated by an older version, loading geometry data only.");
+                    const wxString msg_bambu_geometry          = _L("The 3MF file was generated by BambuStudio, loading geometry data only.");
+                    const wxString msg_no_project_settings     = _L("The 3MF file has no project settings that OrcaSlicer can import.");
+                    auto log_and_show_3mf_info = [&](const wxString& text, const wxString& title) {
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
+                                                << " "
+                                                << boost::format("3MF import message [%1%]: %2% | file: %3%") % into_u8(title) % into_u8(text) % path.string();
+                        show_info(q, text, title);
+                    };
+                    auto skip_project_config = [&](const wxString& geometry_msg) {
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
+                                                << boost::format(" 3MF project config not loaded, importing geometry only: %1%") % path.string();
+                        load_config = false;
+                        if (!load_model)
+                            log_and_show_3mf_info(msg_no_project_settings, load_3mf_title);
+                        else if (!geometry_msg.empty())
+                            log_and_show_3mf_info(geometry_msg, load_3mf_title);
+                    };
+                    auto migrate_2_3_1_alpha_rotate_template = [&]() {
+                        auto* rotate_template = config_loaded.option<ConfigOptionString>("sparse_infill_rotate_template");
+                        if (rotate_template == nullptr || rotate_template->value.empty())
+                            return;
+                        const auto* pattern_opt = config_loaded.option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern");
+                        const auto _sparse_infill_pattern =
+                            pattern_opt != nullptr ? pattern_opt->value : FullPrintConfig::defaults().sparse_infill_pattern.value;
+                        bool is_safe_to_rotate = _sparse_infill_pattern == ipRectilinear || _sparse_infill_pattern == ipLine ||
+                                                 _sparse_infill_pattern == ipZigZag || _sparse_infill_pattern == ipCrossZag ||
+                                                 _sparse_infill_pattern == ipLockedZag;
+                        if (!is_safe_to_rotate) {
+                            wxString msg_text = _(
+                                L("This project was created with an OrcaSlicer 2.3.1-alpha and uses "
+                                  "infill rotation template settings that may not work properly with your current infill pattern. "
+                                  "This could result in weak support or print quality issues."));
+                            msg_text += "\n\n" +
+                                        _(L("Would you like OrcaSlicer to automatically fix this by clearing the rotation template settings?"));
+                            MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxYES | wxNO);
+                            dialog.SetButtonLabel(wxID_YES, _L("Yes"));
+                            dialog.SetButtonLabel(wxID_NO, _L("No"));
+                            if (dialog.ShowModal() == wxID_YES) {
+                                rotate_template->value.clear();
+                            }
+                        }
+                    };
+                    // Untagged files up to 2.3.2 may also come from OrcaSlicer, which only started tagging its 3MFs after it.
+                    const bool is_bambu_studio_project = en_3mf_file_type == En3mfType::From_BBS && file_version > Semver(2, 3, 2);
+                    if (en_3mf_file_type == En3mfType::From_Prusa) {
+                        // do not reset the model config
+                        skip_project_config(load_type != LoadType::LoadGeometry ? msg_unsupported_geometry : wxString());
+                    }
+                    else if (en_3mf_file_type == En3mfType::From_Orca) {
+                        // OrcaSlicer file (has OrcaSlicer tag) - compare file_version with SoftFever_VERSION
+                        if (load_config && !config_loaded.empty() && (file_version < app_version) && file_version == Semver("2.3.1-alpha")) {
+                            migrate_2_3_1_alpha_rotate_template();
+                        } else if (load_config && (file_version > app_version)) {
+                            if (config_substitutions.unrecogized_keys.size() > 0) {
+                                wxString text  = wxString::Format(_L("The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"),
+                                                                 file_version.to_string_sf(), std::string(SLIC3R_APP_FULL_NAME), app_version.to_string_sf());
+                                text += "\n" + from_u8(boost::algorithm::join(config_substitutions.unrecogized_keys, ", ")) + "\n\n";
+                                text += _L("You should update your software.\n");
+                                log_and_show_3mf_info(text, newer_3mf_title);
+                            }
+                            else {
+                                //if the minor version is not matched
+                                if (file_version.min() != app_version.min()) {
+                                    wxString text  = wxString::Format(_L("The 3MF file version %s is newer than %s's version %s, we suggest to upgrade your software."),
+                                                     file_version.to_string_sf(), std::string(SLIC3R_APP_FULL_NAME), app_version.to_string_sf());
+                                    text += "\n";
+                                    log_and_show_3mf_info(text, newer_3mf_title);
+                                }
+                            }
+                            if (config_loaded.empty())
+                                skip_project_config(wxString());
+                        }
+                        else if (load_config && config_loaded.empty()) {
+                            skip_project_config(file_version < app_version ? msg_old_orca_geometry : wxString());
+                        }
+                    }
+                    else if (en_3mf_file_type == En3mfType::From_BBS) {
+                        // No OrcaSlicer tag - check Bambu/Application version
+                        if (!is_bambu_studio_project) {
+                            // Compatible old version (before OrcaSlicer tagging was introduced after 2.3.2).
+                            // Any version prior or equal to 2.3.2 is older than the current one, no version warnings needed.
+                            // Still apply migration fixes for known old versions.
+                            if (load_config && !config_loaded.empty() && (file_version == Semver("2.3.1-alpha"))) {
+                                migrate_2_3_1_alpha_rotate_template();
+                            }
+                            else if (load_config && config_loaded.empty()) {
+                                skip_project_config(msg_older_geometry);
+                            }
+                        } else {
+                            // BambuStudio project (version > 2.3.2 without OrcaSlicer tag)
+                            if (load_config && config_loaded.empty()) {
+                                skip_project_config(msg_bambu_geometry);
+                            }
+                            else if (load_config) {
+                                // Logged, not shown: it is the same for every BambuStudio project and needs no action.
+                                const std::string unrecognized = boost::algorithm::join(config_substitutions.unrecogized_keys, ", ");
+                                BOOST_LOG_TRIVIAL(info) << "BambuStudio " << file_version.to_string() << " project " << path.string()
+                                                        << ", unrecognized settings: " << (unrecognized.empty() ? "none" : unrecognized);
+                            }
+                        }
+                    }
+                    else if (en_3mf_file_type == En3mfType::From_Other) {
+                        // Generic CAD/other 3MF without slicer metadata: import geometry silently.
+                        if (load_config && config_loaded.empty()) {
+                            skip_project_config(wxString());
+                        }
+                    }
+
                     // 1. add extruder for prusa model if the number of existing extruders is not enough
-                    // 2. add extruder for BBS or Other model if only import geometry
+                    // 2. add extruder for BBS or Other model if only import geometry, by choice or by the checks above
                     if (en_3mf_file_type == En3mfType::From_Prusa || (load_model && !load_config)) {
                         std::set<int> extruderIds;
                         for (ModelObject *o : model.objects) {
@@ -9229,168 +9388,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             ++filament_size;
                         }
                         wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
-                    }
-
-                    std::string import_project_action = wxGetApp().app_config->get("import_project_action");
-                    LoadType load_type;
-                    if (import_project_action.empty())
-                        load_type = LoadType::Unknown;
-                    else
-                        load_type  = static_cast<LoadType>(std::stoi(import_project_action));
-
-                    // BBS: version check
-                    Semver app_version = *(Semver::parse(SoftFever_VERSION));
-                    const wxString load_3mf_title              = _L("Load 3MF");
-                    const wxString newer_3mf_title             = _L("Newer 3MF version");
-                    const wxString msg_unsupported_geometry    = _L("The 3MF is not supported by OrcaSlicer, loading geometry data only.");
-                    const wxString msg_old_orca_geometry       = _L("The 3MF file was generated by an old OrcaSlicer version, loading geometry data only.");
-                    const wxString msg_older_geometry          = _L("The 3MF file was generated by an older version, loading geometry data only.");
-                    const wxString msg_bambu_geometry          = _L("The 3MF file was generated by BambuStudio, loading geometry data only.");
-                    auto log_and_show_3mf_info = [&](const wxString& text, const wxString& title) {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
-                                                << " "
-                                                << boost::format("3MF import message [%1%]: %2% | file: %3%") % into_u8(title) % into_u8(text) % path.string();
-                        show_info(q, text, title);
-                    };
-                    // Untagged files up to 2.3.2 may also come from OrcaSlicer, which only started tagging its 3MFs after it.
-                    const bool is_bambu_studio_project = en_3mf_file_type == En3mfType::From_BBS && file_version > Semver(2, 3, 2);
-                    if (en_3mf_file_type == En3mfType::From_Prusa) {
-                        // do not reset the model config
-                        load_config = false;
-                        if (load_type != LoadType::LoadGeometry)
-                            log_and_show_3mf_info(msg_unsupported_geometry, load_3mf_title);
-                    }
-                    else if (en_3mf_file_type == En3mfType::From_Orca) {
-                        // OrcaSlicer file (has OrcaSlicer tag) - compare file_version with SoftFever_VERSION
-                        // Migration fix for OrcaSlicer 2.3.1-alpha sparse infill rotation template
-                        if (load_config && (file_version < app_version) && file_version == Semver("2.3.1-alpha")) {
-                            if (!config_loaded.opt_string("sparse_infill_rotate_template").empty()) {
-                                const auto _sparse_infill_pattern =
-                                    config_loaded.option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value;
-                                bool is_safe_to_rotate = _sparse_infill_pattern == ipRectilinear || _sparse_infill_pattern == ipLine ||
-                                                         _sparse_infill_pattern == ipZigZag || _sparse_infill_pattern == ipCrossZag ||
-                                                         _sparse_infill_pattern == ipLockedZag;
-                                if (!is_safe_to_rotate) {
-                                    wxString msg_text = _(
-                                        L("This project was created with an OrcaSlicer 2.3.1-alpha and uses "
-                                          "infill rotation template settings that may not work properly with your current infill pattern. "
-                                          "This could result in weak support or print quality issues."));
-                                    msg_text += "\n\n" +
-                                                _(L("Would you like OrcaSlicer to automatically fix this by clearing the rotation template settings?"));
-                                    MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxYES | wxNO);
-                                    dialog.SetButtonLabel(wxID_YES, _L("Yes"));
-                                    dialog.SetButtonLabel(wxID_NO, _L("No"));
-                                    if (dialog.ShowModal() == wxID_YES) {
-                                        config_loaded.opt_string("sparse_infill_rotate_template") = "";
-                                    }
-                                }
-                            }
-                        } else if (load_config && (file_version > app_version)) {
-                            if (config_substitutions.unrecogized_keys.size() > 0) {
-                                wxString text  = wxString::Format(_L("The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"),
-                                                                 file_version.to_string_sf(), std::string(SLIC3R_APP_FULL_NAME), app_version.to_string_sf());
-                                text += "\n" + from_u8(boost::algorithm::join(config_substitutions.unrecogized_keys, ", ")) + "\n\n";
-                                text += _L("You should update your software.\n");
-                                log_and_show_3mf_info(text, newer_3mf_title);
-                            }
-                            else {
-                                //if the minor version is not matched
-                                if (file_version.min() != app_version.min()) {
-                                    wxString text  = wxString::Format(_L("The 3MF file version %s is newer than %s's version %s, we suggest to upgrade your software."),
-                                                     file_version.to_string_sf(), std::string(SLIC3R_APP_FULL_NAME), app_version.to_string_sf());
-                                    text += "\n";
-                                    log_and_show_3mf_info(text, newer_3mf_title);
-                                }
-                            }
-                        }
-                        else if (load_config && config_loaded.empty()) {
-                            load_config = false;
-                            log_and_show_3mf_info(msg_old_orca_geometry, load_3mf_title);
-                        }
-                    }
-                    else if (en_3mf_file_type == En3mfType::From_BBS) {
-                        // No OrcaSlicer tag - check Bambu/Application version
-                        if (!is_bambu_studio_project) {
-                            // Compatible old version (before OrcaSlicer tagging was introduced after 2.3.2).
-                            // Any version prior or equal to 2.3.2 is older than the current one, no version warnings needed.
-                            // Still apply migration fixes for known old versions.
-                            if (load_config && (file_version == Semver("2.3.1-alpha"))) {
-                                if (!config_loaded.opt_string("sparse_infill_rotate_template").empty()) {
-                                    const auto _sparse_infill_pattern =
-                                        config_loaded.option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value;
-                                    bool is_safe_to_rotate = _sparse_infill_pattern == ipRectilinear || _sparse_infill_pattern == ipLine ||
-                                                             _sparse_infill_pattern == ipZigZag || _sparse_infill_pattern == ipCrossZag ||
-                                                             _sparse_infill_pattern == ipLockedZag;
-                                    if (!is_safe_to_rotate) {
-                                        wxString msg_text = _(
-                                            L("This project was created with an OrcaSlicer 2.3.1-alpha and uses "
-                                              "infill rotation template settings that may not work properly with your current infill pattern. "
-                                              "This could result in weak support or print quality issues."));
-                                        msg_text += "\n\n" +
-                                                    _(L("Would you like OrcaSlicer to automatically fix this by clearing the rotation template settings?"));
-                                        MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxYES | wxNO);
-                                        dialog.SetButtonLabel(wxID_YES, _L("Yes"));
-                                        dialog.SetButtonLabel(wxID_NO, _L("No"));
-                                        if (dialog.ShowModal() == wxID_YES) {
-                                            config_loaded.opt_string("sparse_infill_rotate_template") = "";
-                                        }
-                                    }
-                                }
-                            }
-                            else if (load_config && config_loaded.empty()) {
-                                load_config = false;
-                                log_and_show_3mf_info(msg_older_geometry, load_3mf_title);
-                            }
-                        } else {
-                            // BambuStudio project (version > 2.3.2 without OrcaSlicer tag)
-                            if (load_config && config_loaded.empty()) {
-                                load_config = false;
-                                log_and_show_3mf_info(msg_bambu_geometry, load_3mf_title);
-                            }
-                            else if (load_config) {
-                                // Logged, not shown: it is the same for every BambuStudio project and needs no action.
-                                const std::string unrecognized = boost::algorithm::join(config_substitutions.unrecogized_keys, ", ");
-                                BOOST_LOG_TRIVIAL(info) << "BambuStudio " << file_version.to_string() << " project " << path.string()
-                                                        << ", unrecognized settings: " << (unrecognized.empty() ? "none" : unrecognized);
-                            }
-                        }
-                    }
-                    else if (en_3mf_file_type == En3mfType::From_Other) {
-                        // Generic CAD/other 3MF without slicer metadata: import geometry silently.
-                        if (load_config && config_loaded.empty()) {
-                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
-                                                    << " "
-                                                    << boost::format("3MF has no slicer metadata/project config, importing geometry only: %1%") % path.string();
-                            load_config = false;
-                        }
-                    }
-                    else if (load_config && config_loaded.empty()) {
-                        load_config = false;
-                        log_and_show_3mf_info(msg_old_orca_geometry, load_3mf_title);
-                    }
-                    else if (!load_config) {
-                        // reset config except color
-                        for (ModelObject *model_object : model.objects) {
-                            bool has_extruder = model_object->config.has("extruder");
-                            int  extruder_id  = -1;
-                            // save the extruder information before reset
-                            if (has_extruder) { extruder_id = model_object->config.extruder(); }
-
-                            model_object->config.reset();
-
-                            // restore the extruder after reset
-                            if (has_extruder) { model_object->config.set("extruder", extruder_id); }
-
-                            // Is there any modifier or advanced config data?
-                            for (ModelVolume *model_volume : model_object->volumes) {
-                                has_extruder = model_volume->config.has("extruder");
-                                if (has_extruder) { extruder_id = model_volume->config.extruder(); }
-
-                                model_volume->config.reset();
-
-                                if (has_extruder) { model_volume->config.set("extruder", extruder_id); }
-                            }
-                        }
                     }
 
                     // ORCA: legacy feature-filament default migration (1 -> 0) is now handled
@@ -9420,7 +9417,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 //set the size back
                                 partplate_list.reset_size(current_width + Bed3D::Axes::DefaultTipRadius, current_depth + Bed3D::Axes::DefaultTipRadius, current_height, false);
                             }
-                            project_filament_count = config_loaded.option<ConfigOptionStrings>("filament_colour")->size();
+                            if (const auto* colours_opt = config_loaded.option<ConfigOptionStrings>("filament_colour"))
+                                project_filament_count = colours_opt->size();
                             partplate_list.load_from_3mf_structure(plate_data, project_filament_count);
                             partplate_list.update_slice_context_to_current_plate(background_process);
                             this->preview->update_gcode_result(partplate_list.get_current_slice_result());
@@ -9509,6 +9507,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_KEYS_TAG);
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_MATERIAL_TAG);
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_LAYOUT_TAG);
                 }
 
                 if (load_config) {
@@ -9665,6 +9664,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 this->m_has_pending_published = true;
                                 this->m_pending_published_keys = published_config.published_keys;
                                 this->m_pending_material_keys  = published_config.material_keys;
+                                this->m_pending_published_legacy_process = published_config.print_layout.extruder_ids.empty();
                             }
 
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
@@ -9803,7 +9803,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (!isUtf8StepFile) {
                                 const auto no_warn = wxGetApp().app_config->get_bool("step_not_utf8_no_warn");
                                 if (!no_warn) {
-                                    MessageDialog dlg(nullptr, _L("Component name(s) inside step file not in UTF-8 format!") + "\n\n" + _L("Because of unsupported text encoding, garbage characters may appear!"),
+                                    MessageDialog dlg(nullptr, _L("Component name(s) inside STEP file not in UTF-8 format!") + "\n\n" + _L("Because of unsupported text encoding, garbage characters may appear!"),
                                                       wxString(SLIC3R_APP_FULL_NAME " - ") + _L("Attention!"), wxOK | wxICON_INFORMATION);
                                     dlg.show_dsa_button(_L("Remember my choice."));
                                     dlg.ShowModal();
@@ -9955,7 +9955,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             }
 
              if (!is_project_file && model.looks_like_multipart_object()) {
-               MessageDialog msg_dlg(q, _L("This file contains several objects positioned at multiple heights.\nInstead of considering them as multiple objects, should \nthe file be loaded as a single object with multiple parts\?") + "\n",
+               MessageDialog msg_dlg(q, _L("This file contains several objects positioned at multiple heights.\nInstead of considering them as multiple objects, should the file be loaded as a single object with multiple parts\?") + "\n",
                     _L("Multi-part object detected"), wxICON_WARNING | wxYES | wxNO);
                 if (msg_dlg.ShowModal() == wxID_YES) {
                     model.convert_multipart_object(filaments_cnt);
@@ -10843,6 +10843,7 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
     m_has_pending_published   = false;
     m_pending_published_keys.clear();
     m_pending_material_keys.clear();
+    m_pending_published_legacy_process = false;
 
     set_project_filename("");
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " call set_project_filename: empty";
@@ -10877,13 +10878,6 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
     // clear_objects() only drops the ModelObjects; the CAD recipe is Model-level state and would
     // otherwise be written into every project saved for the rest of the session.
     model.cad_recipe.clear();
-#ifdef SLIC3R_CAD
-    // Same reason, one level up: the Design tab keeps the editable document, not the Model, so
-    // clearing the recipe alone leaves the tab showing the previous project's feature tree —
-    // and its next edit syncs that tree straight back into the new project.
-    if (DesignPanel* design = DesignPanel::if_built())
-        design->clear_document();
-#endif
     assemble_view->get_canvas3d()->reset_explosion_ratio();
     update();
 
@@ -10893,6 +10887,17 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
         sidebar->obj_list()->delete_all_objects_from_list();
         object_list_changed();
     }
+
+#ifdef SLIC3R_CAD
+    // Same reason as the recipe, one level up: the Design tab keeps the editable document, not
+    // the Model, so clearing the recipe alone leaves the tab showing the previous project's
+    // feature tree — and its next edit syncs that tree straight back into the new project.
+    // It runs only once the scene is rebuilt: clearing hands the keyboard to the Design canvas,
+    // and when the app has no focus that activates the main window, whose 3D view repaints on
+    // the spot. Before update() that repaint picks against the plates reinit() deleted.
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->clear_document();
+#endif
 
     project.reset();
 
@@ -13435,8 +13440,12 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     }
 
     //BBS: set the current plater's slice result to valid
-    if (!this->background_process.empty())
-        this->background_process.get_current_plate()->update_slice_result_valid_state(evt.success());
+    // A failed export or upload keeps a complete FFF slice valid, so Print and Export can be run again.
+    if (!this->background_process.empty()) {
+        const bool slice_valid = evt.success() ||
+                                 (evt.export_failed() && printer_technology == ptFFF && this->background_process.finished());
+        this->background_process.get_current_plate()->update_slice_result_valid_state(slice_valid);
+    }
 
     //BBS: update the action button according to the current plate's status
     bool ready_to_slice = !this->partplate_list.get_curr_plate()->is_slice_result_valid();
@@ -13892,7 +13901,12 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
     const bool use_printer_agents = wxGetApp().app_config->get_bool("use_printer_agents");
     const bool use_native_device_tab = wxGetApp().preset_bundle &&
         (wxGetApp().preset_bundle->use_bbl_device_tab() || use_printer_agents);
-    if (use_native_device_tab && new_name == TAB_ID_MONITOR) {
+    // Pointer test, not a name lookup: in printer-agents mode this page is TAB_ID_MONITOR_WEB
+    // while the native Device tab holds TAB_ID_MONITOR, and in legacy-web mode, or for an agent
+    // without the native tab, it holds TAB_ID_MONITOR itself.
+    const bool selecting_web_device_tab = main_frame->m_printer_view_page &&
+        main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view_page;
+    if (use_native_device_tab && new_name == TAB_ID_MONITOR && !selecting_web_device_tab) {
         // BBL network module is only required for BBL-vendor printers.
         // Non-BBL Python plugins (e.g. moonraker) drive the Device tab without it.
         if (!use_printer_agents && wxGetApp().preset_bundle->is_bbl_vendor() && !Slic3r::NetworkAgent::is_network_module_loaded()) {
@@ -13904,11 +13918,6 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
             }
         }
     } else {
-        // Pointer test, not a name lookup: in printer-agents mode this page is TAB_ID_MONITOR_WEB
-        // while the native Device tab holds TAB_ID_MONITOR, and in legacy-web mode it holds
-        // TAB_ID_MONITOR itself.
-        const bool selecting_web_device_tab = main_frame->m_printer_view_page &&
-            main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view_page;
         if (selecting_web_device_tab) {
             // Use the selected discovered machine when the preset has no host.
             main_frame->load_printer_url();
@@ -16311,6 +16320,13 @@ int Plater::save_project(bool saveAs)
     if (filename.empty())
         return wxID_NO;
     if (filename == "<cancel>")
+        return wxID_CANCEL;
+
+    // The project file records "name;uuid;capability" references for its plugin-backed settings. A
+    // value the resolver cannot map loses its reference when written. Ask before writing; Cancel
+    // leaves the project file, its dirty state and its lifecycle events untouched.
+    const DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config_secure();
+    if (!confirm_save_with_unresolved_plugins(this, full_config, SaveSubject::Project))
         return wxID_CANCEL;
 
     //BBS export 3mf without gcode
@@ -19222,12 +19238,10 @@ int GUI::Plater::close_with_confirm(std::function<bool(bool)> second_check)
             wxGetApp().app_config->set("save_project_choise", result == wxID_YES ? "yes" : "no");
         if (result == wxID_YES) {
             result = save_project();
-            if (result == wxID_CANCEL) {
-                if (choise.empty())
-                    return result;
-                else
-                    result = wxID_NO;
-            }
+            // A Cancel from the save (including the unresolved-plugin warning) must abort the close
+            // even when "Remember my choice" previously selected Save.
+            if (result == wxID_CANCEL)
+                return result;
         }
     }
 
@@ -19763,8 +19777,26 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     nlohmann::json j = nlohmann::json::array();
     for (const std::string& key : published_keys)
         j.push_back(key);
+    // A variant-bearing material key names a file column ("key#col"). Normalize the dialog's
+    // selection to the column each slot prints with before the metadata and the payload are built,
+    // so the receiver can put the value back on the same variant.
+    std::vector<Slic3r::PublishedMaterialEntry> material_entries = material_keys;
+    std::vector<std::string>                   publish_notices;
+    DynamicPrintConfig                         full_cfg;
+    try {
+        full_cfg = wxGetApp().preset_bundle->full_config_secure();
+        Slic3r::publish_normalize_material_entries(material_entries, full_cfg, &publish_notices);
+    } catch (...) {
+        MessageDialog(this, _L("Failed to export the published 3MF file.\nPlease check whether the folder exists online or if other programs "
+                               "have the file open."),
+                      _L("Publish"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        return wxID_CANCEL;
+    }
+    for (const std::string& notice : publish_notices)
+        BOOST_LOG_TRIVIAL(warning) << "publish: " << notice;
     nlohmann::json jm = nlohmann::json::array();
-    for (const Slic3r::PublishedMaterialEntry& e : material_keys)
+    for (const Slic3r::PublishedMaterialEntry& e : material_entries)
         jm.push_back({{"material",
                        {{"filament_type", e.filament_type},
                         {"filament_vendor", e.filament_vendor},
@@ -19823,6 +19855,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
                 model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = prev_payload;
             else
                 model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
+            model.model_info->metadata_items.erase(ORCA_PUBLISHED_LAYOUT_TAG);
         }
     };
     bool state_restored = false;
@@ -19848,8 +19881,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
         // filtered values are serialized into the published_config metadata payload instead, so
         // OrcaSlicer versions without the publish feature fall back to importing the geometry only
         // (keeping the receiver's presets) while new versions rebuild the config from the payload.
-        DynamicPrintConfig full_cfg     = wxGetApp().preset_bundle->full_config_secure();
-        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
+        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_entries);
         std::string payload;
         for (const std::string& key : filtered_cfg.keys()) {
             // A value containing a newline would break the INI written below (read_ini throws),
@@ -19864,6 +19896,17 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
             payload += key + " = " + value + "\n";
         }
         model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = std::move(payload);
+        // The author's extruder layouts, so the receiver can place each per-extruder key on the extruder with the same number.
+        const auto *layout_ids      = full_cfg.option<ConfigOptionInts>("printer_extruder_id");
+        const auto *layout_variants = full_cfg.option<ConfigOptionStrings>("printer_extruder_variant");
+        const auto *print_ids       = full_cfg.option<ConfigOptionInts>("print_extruder_id");
+        const auto *print_variants  = full_cfg.option<ConfigOptionStrings>("print_extruder_variant");
+        if (layout_ids != nullptr && layout_variants != nullptr && print_ids != nullptr && print_variants != nullptr)
+            model.model_info->metadata_items[ORCA_PUBLISHED_LAYOUT_TAG] =
+                nlohmann::json{{"extruder_ids", layout_ids->values},
+                               {"variants", layout_variants->values},
+                               {"print_extruder_ids", print_ids->values},
+                               {"print_variants", print_variants->values}}.dump();
 
         // Same file layout as save_project(), plus Silence (so export_3mf does not set the project
         // filename on success, keeping this a pure export like export_core_3mf()) and MinimalPublished.
@@ -19900,12 +19943,13 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
 }
 
 bool Plater::get_pending_published(std::vector<std::string>& out_keys,
-                                   std::vector<Slic3r::PublishedMaterialEntry>& out_material) const
+                                   std::vector<Slic3r::PublishedMaterialEntry>& out_material, bool& out_legacy_process) const
 {
     if (!p->m_has_pending_published)
         return false;
-    out_keys     = p->m_pending_published_keys;
-    out_material = p->m_pending_material_keys;
+    out_keys           = p->m_pending_published_keys;
+    out_material       = p->m_pending_material_keys;
+    out_legacy_process = p->m_pending_published_legacy_process;
     return true;
 }
 
@@ -19915,6 +19959,7 @@ void Plater::set_pending_published(const std::vector<std::string>& published_key
     p->m_has_pending_published = true;
     p->m_pending_published_keys = published_keys;
     p->m_pending_material_keys  = material_keys;
+    p->m_pending_published_legacy_process = false;
 }
 
 Preset *get_printer_preset(const MachineObject *obj)
@@ -20235,10 +20280,28 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
         case FT_DRC: ext = ".drc"; break;
         }
 
-        auto path = dir + name + ext;
+        // ORCA fix duplicate extensions, hidden files with leading dots ...
+        static const std::vector<std::string> model_exts{   // longest first
+            ".gcode.3mf", ".zip.amf",
+            ".stl", ".3mf", ".obj", ".step", ".stp", ".amf", ".xml", ".drc", ".ply", ".svg", ".oltp",
+            ".gltf", ".glb", ".fbx", ".usd", ".usda", ".usdc", ".usdz", ".abc"
+        };
+        std::string base_name = name;
+        for (bool stripped = true; stripped; ) {           // handles x.stl.stl
+            boost::algorithm::trim_if(base_name, boost::is_any_of(". "));   // leading/trailing dots & spaces
+            stripped = false;
+            for (const auto& e : model_exts)
+                if (boost::algorithm::iends_with(base_name, e)) {
+                    base_name.resize(base_name.size() - e.size());
+                    stripped = true;
+                    break;
+                }
+        }
+        if (base_name.empty()) base_name = "object";       // e.g. name was "..."
+        auto path = dir + base_name + ext;
         int n = 1;
         while (boost::filesystem::exists(path))
-            path = dir + name + "(" + std::to_string(n++) + ")"+ext;
+            path = dir + base_name + "(" + std::to_string(n++) + ")"+ext;
         return path;
     };
 
@@ -21113,7 +21176,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
                                                                    flashforge_host,
                                                                    supports_material_station,
                                                                    std::move(slots),
-                                                                   project_filaments);
+                                                                   project_filaments,
+                                                                   cfg.opt_bool("manual_filament_change"));
         } else {
             pDlg = std::make_unique<PrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
                                                          storage_paths, storage_names, config->get_bool("open_device_tab_post_upload"));
@@ -21506,7 +21570,7 @@ void Plater::config_change_notification(const DynamicPrintConfig &config, const 
         if (seq_print && view3d_canvas && view3d_canvas->is_initialized() && view3d_canvas->is_rendering_enabled()) {
             NotificationManager* notify_manager = get_notification_manager();
             if (seq_print->value == PrintSequence::ByObject) {
-                std::string info_text = _u8L("Print By Object: \nWe suggest using auto-arrange to avoid collisions when printing.");
+                std::string info_text = _u8L("Print By Object:\nWe suggest using auto-arrange to avoid collisions when printing.");
                 notify_manager->bbl_show_seqprintinfo_notification(info_text);
             }
             else
@@ -22387,6 +22451,9 @@ void Plater::pop_warning_and_go_to_device_page(wxString printer_name, PrinterWar
         content = _L("There are no filaments on the printer. Please load the filaments on the printer first.");
     } else if (type == PrinterWarningType::EMPTY_FILAMENT) {
         content = _L("The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type.");
+    } else if (type == PrinterWarningType::NO_FILAMENT_SYSTEM) {
+        // TRN %s is the connected printer's name.
+        content = wxString::Format(_L("%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."), printer_name);
     }
     MessageDialog dlg(this, content, title, wxOK | wxFORWARD | wxICON_WARNING, _L("Device Page"));
     auto          result = dlg.ShowModal();
