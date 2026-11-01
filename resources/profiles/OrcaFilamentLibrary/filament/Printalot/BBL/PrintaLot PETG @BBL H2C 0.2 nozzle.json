@@ -1,0 +1,69 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PETG @BBL H2C 0.2 nozzle",
+	"inherits": "PrintaLot PETG @base",
+	"from": "system",
+	"setting_id": "HsxTrwsTuhE9R6oe",
+	"instantiation": "true",
+	"filament_change_length": [
+		"4"
+	],
+	"filament_change_length_nc": [
+		"4"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_max_volumetric_speed": [
+		"1",
+		"1"
+	],
+	"filament_pre_cooling_temperature_nc": [
+		"215",
+		"215"
+	],
+	"filament_preheat_temperature_delta": [
+		"20",
+		"20"
+	],
+	"filament_prime_volume": [
+		"30"
+	],
+	"filament_prime_volume_nc": [
+		"30"
+	],
+	"filament_ramming_travel_time_nc": [
+		"1",
+		"1"
+	],
+	"filament_retract_length_nc": [
+		"18",
+		"18"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"long_retractions_when_ec": [
+		"1",
+		"1"
+	],
+	"temperature_vitrification": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"70"
+	],
+	"textured_plate_temp_initial_layer": [
+		"70"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2C 0.2 nozzle"
+	]
+}

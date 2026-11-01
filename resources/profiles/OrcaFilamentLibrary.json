@@ -625,6 +625,10 @@
 			"sub_path": "filament/Polymaker/PolyLite PETG @base.json"
 		},
 		{
+			"name": "PrintaLot PETG @base",
+			"sub_path": "filament/Printalot/PrintaLot PETG @base.json"
+		},
+		{
 			"name": "SUNLU PETG @base",
 			"sub_path": "filament/SUNLU/SUNLU PETG @base.json"
 		},
@@ -2379,6 +2383,102 @@
 		{
 			"name": "PolyLite PETG @System",
 			"sub_path": "filament/Polymaker/PolyLite PETG @System.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1M",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1M.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A2L",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A2L.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A2L 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A2L 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C 0.4 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2D.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2DP",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2DP.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2DP 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2DP 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2S.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P1P",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P1P.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P2S.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X1C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X1C.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D 0.4 nozzle.json"
 		},
 		{
 			"name": "SUNLU PETG @System",
