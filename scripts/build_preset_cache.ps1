@@ -33,11 +33,37 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+# $MyInvocation.MyCommand.Path is this script's own file, so its parent is
+# scripts\, not the repo: joining resources\profiles onto it found nothing and
+# the step died in two seconds. Siblings resolve the root from $PSScriptRoot.
+$RepoRoot = Split-Path -Parent $PSScriptRoot
+
+if (-not $BuildDir) { $BuildDir = "build" }
+# Resolve relative to the repo so the tree is found regardless of the caller's cwd.
+if (-not [IO.Path]::IsPathRooted($BuildDir)) { $BuildDir = Join-Path $RepoRoot $BuildDir }
 
 # Validate build tree exists
 if (-not (Test-Path $BuildDir -PathType Container)) {
     throw "ERROR: build tree not found: $BuildDir"
+}
+
+# Use the CMake that configured this tree. On the self-hosted Windows runner the
+# cmake on PATH is Strawberry Perl's (broken FindIconv, and it may not be on PATH
+# at all outside the build step), while build_win.ps1 may have downloaded its own.
+$Cmake = $null
+$cmakeCacheFile = Join-Path $BuildDir "CMakeCache.txt"
+if (Test-Path $cmakeCacheFile) {
+    $m = Select-String -Path $cmakeCacheFile -Pattern '^CMAKE_COMMAND:INTERNAL=(.+)$' | Select-Object -First 1
+    if ($m -and (Test-Path $m.Matches[0].Groups[1].Value.Trim())) {
+        $Cmake = $m.Matches[0].Groups[1].Value.Trim()
+    }
+}
+if (-not $Cmake) {
+    $cmd = Get-Command cmake -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($cmd) { $Cmake = $cmd.Source }
+}
+if (-not $Cmake) {
+    throw "ERROR: cmake not found. Run the build first so $BuildDir\CMakeCache.txt records it, or put cmake on PATH."
 }
 
 # Newest match wins: a stale binary silently produces a stale cache layout.
@@ -56,7 +82,7 @@ foreach ($c in @("Debug", "Release", "RelWithDebInfo", "MinSizeRel")) {
 }
 
 Write-Host "Building generate_system_cache in $BuildDir ($config)"
-& cmake --build $BuildDir --config $config --target generate_system_cache
+& $Cmake --build $BuildDir --config $config --target generate_system_cache
 if ($LASTEXITCODE -ne 0) {
     throw "ERROR: could not build generate_system_cache - configure the build tree with -DORCA_TOOLS=ON:`n       cmake -S $RepoRoot -B $BuildDir -DORCA_TOOLS=ON"
 }
