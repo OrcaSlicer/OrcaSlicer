@@ -72,23 +72,6 @@ TEST_CASE("A push that would run past the limit is refused", "[PlateLayout]")
     CHECK(PlateLayout::plan_drop(cells, 1, Cell(Limit - 1, 0), Limit).empty());
 }
 
-TEST_CASE("Closing gaps slides each row left and removes empty rows", "[PlateLayout]")
-{
-    const std::vector<Cell> cells{{3, 0}, {-1, 0}, {2, 2}, {5, 2}, {1, -1}};
-    const auto              closed = PlateLayout::close_gaps(cells);
-    CHECK(closed[4] == Cell(0, 0));
-    CHECK(closed[1] == Cell(0, 1));
-    CHECK(closed[0] == Cell(1, 1));
-    CHECK(closed[2] == Cell(0, 2));
-    CHECK(closed[3] == Cell(1, 2));
-}
-
-TEST_CASE("Reading order goes by row, then by column", "[PlateLayout]")
-{
-    const std::vector<Cell> cells{{1, 1}, {2, 0}, {0, 1}, {-1, 0}};
-    CHECK(PlateLayout::reading_order(cells) == std::vector<int>{3, 1, 2, 0});
-}
-
 TEST_CASE("The next free cell fills a hole before extending the top row", "[PlateLayout]")
 {
     CHECK(PlateLayout::next_free_cell({}) == Cell(0, 0));

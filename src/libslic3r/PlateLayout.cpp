@@ -1,9 +1,7 @@
 #include "PlateLayout.hpp"
 
-#include <algorithm>
 #include <cstdlib>
 #include <map>
-#include <numeric>
 #include <utility>
 #include <vector>
 
@@ -54,29 +52,6 @@ std::map<int, Cell> plan_drop(const std::vector<Cell>& cells, int index, const C
         }
     }
     return moves;
-}
-
-std::vector<Cell> close_gaps(const std::vector<Cell>& cells)
-{
-    std::vector<Cell> result(cells.size());
-    int               row = -1, col = 0, last_row = 0;
-    for (const int i : reading_order(cells)) {
-        if (row < 0 || cells[i].y() != last_row) {
-            ++row;
-            col      = 0;
-            last_row = cells[i].y();
-        }
-        result[i] = Cell(col++, row);
-    }
-    return result;
-}
-
-std::vector<int> reading_order(const std::vector<Cell>& cells)
-{
-    std::vector<int> order(cells.size());
-    std::iota(order.begin(), order.end(), 0);
-    std::stable_sort(order.begin(), order.end(), [&cells](int a, int b) { return key(cells[a]) < key(cells[b]); });
-    return order;
 }
 
 Cell next_free_cell(const std::vector<Cell>& cells)

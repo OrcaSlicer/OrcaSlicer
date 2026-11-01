@@ -1060,15 +1060,6 @@ public:
     // Move the plate and its objects to cell, making room as plan_plate_move() does; switches to the custom layout.
     // Returns 0 on success.
     int     move_plate_to_cell(int index, const Vec2i32& cell);
-    // The moves that slide each row left and remove empty rows (see PlateLayout::close_gaps()); empty when
-    // nothing would move or a plate would land on objects that are on no plate.
-    std::map<int, Vec2i32> plan_close_gaps();
-    // Returns 0 on success.
-    int     close_gaps();
-    // Whether plate numbers follow the reading order of the cells.
-    bool    is_numbered_by_position() const;
-    // Number the plates in reading order of their cells; plates and objects stay in place. Returns 0 on success.
-    int     renumber_plates_by_position();
     // Return to the automatic grid, moving plates and their objects.
     void    reset_layout();
     // Apply the layout read by load_from_3mf_structure(); returns true if plates moved.

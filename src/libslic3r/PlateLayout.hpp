@@ -18,12 +18,6 @@ using Cell = Vec2i32;
 // is impossible: the cell is the plate's own, or a cell would be `limit` or more cells from (0, 0).
 std::map<int, Cell> plan_drop(const std::vector<Cell>& cells, int index, const Cell& cell, int limit);
 
-// Every row's plates slid left with no holes, rows without plates removed, starting at cell (0, 0).
-std::vector<Cell> close_gaps(const std::vector<Cell>& cells);
-
-// Plate indices ordered by row, then by column.
-std::vector<int> reading_order(const std::vector<Cell>& cells);
-
 // The first free cell inside the layout's bounding box by reading order, or right of the layout on its top row.
 Cell next_free_cell(const std::vector<Cell>& cells);
 

@@ -23367,48 +23367,6 @@ int Plater::move_plate_to_cell(int plate_index, const Vec2i32& cell)
     return ret;
 }
 
-bool Plater::can_move_current_plate_by(int columns)
-{
-    PartPlateList& plate_list = p->partplate_list;
-    const int      index      = plate_list.get_curr_plate_index();
-    return plate_list.can_move_plate_to_cell(index, plate_list.get_plate_cell(index) + Vec2i32(columns, 0));
-}
-
-int Plater::move_current_plate_by(int columns)
-{
-    PartPlateList& plate_list = p->partplate_list;
-    const int      index      = plate_list.get_curr_plate_index();
-    return move_plate_to_cell(index, plate_list.get_plate_cell(index) + Vec2i32(columns, 0));
-}
-
-int Plater::close_plate_gaps()
-{
-    if (p->partplate_list.plan_close_gaps().empty())
-        return -1;
-    Plater::TakeSnapshot snapshot(this, "Close plate gaps");
-    const int ret = p->partplate_list.close_gaps();
-    p->on_plate_layout_changed(ret == 0);
-    return ret;
-}
-
-int Plater::renumber_plates_by_position()
-{
-    PartPlateList& plate_list = p->partplate_list;
-    if (plate_list.is_numbered_by_position())
-        return -1;
-    Plater::TakeSnapshot snapshot(this, "Renumber plates");
-    const int ret = plate_list.renumber_plates_by_position();
-    // As "Move to front" does: the slice results and the object list follow the new numbers.
-    plate_list.update_slice_context_to_current_plate(p->background_process);
-    p->preview->update_gcode_result(plate_list.get_current_slice_result());
-    p->sidebar->obj_list()->reload_all_plates();
-    plate_list.update_plates();
-    // Picking ids are made from plate numbers.
-    p->on_plate_layout_changed(ret == 0);
-    plate_list.select_plate(plate_list.get_curr_plate_index());
-    return ret;
-}
-
 void Plater::reset_plate_layout()
 {
     PartPlateList& plate_list = p->partplate_list;

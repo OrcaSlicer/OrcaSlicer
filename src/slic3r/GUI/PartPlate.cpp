@@ -7202,27 +7202,6 @@ int PartPlateList::move_plate_to_cell(int index, const Vec2i32& cell)
 	return move_plates_to_cells(plan_plate_move(index, cell));
 }
 
-std::map<int, Vec2i32> PartPlateList::plan_close_gaps()
-{
-	std::map<int, Vec2i32> moves;
-	if (!m_custom_layout)
-		return moves;
-	const std::vector<Vec2i32> cells  = get_plate_cells();
-	const std::vector<Vec2i32> closed = PlateLayout::close_gaps(cells);
-	for (int i = 0; i < (int)cells.size(); ++i)
-		if (closed[i] != cells[i])
-			moves.emplace(i, closed[i]);
-	if (!cells_clear_of_loose_objects(moves))
-		moves.clear();
-	return moves;
-}
-
-int PartPlateList::close_gaps()
-{
-	reload_all_objects();
-	return move_plates_to_cells(plan_close_gaps());
-}
-
 int PartPlateList::move_plates_to_cells(const std::map<int, Vec2i32>& moves)
 {
 	if (moves.empty())
@@ -7251,32 +7230,6 @@ int PartPlateList::move_plates_to_cells(const std::map<int, Vec2i32>& moves)
 		Vec2d pos = compute_shape_position(m_current_plate, m_plate_cols);
 		m_plater->set_bed_position(pos);
 	}
-	return 0;
-}
-
-bool PartPlateList::is_numbered_by_position() const
-{
-	const std::vector<int> order = PlateLayout::reading_order(get_plate_cells());
-	return std::is_sorted(order.begin(), order.end());
-}
-
-int PartPlateList::renumber_plates_by_position()
-{
-	const std::vector<int> order = PlateLayout::reading_order(get_plate_cells());
-	if (std::is_sorted(order.begin(), order.end()))
-		return -1;
-
-	// Plates keep their cells and objects; only their numbers change.
-	reload_all_objects();
-	const int               current = m_current_plate;
-	std::vector<PartPlate*> plates(m_plate_list.size());
-	for (int i = 0; i < (int)order.size(); ++i) {
-		plates[i] = m_plate_list[order[i]];
-		plates[i]->set_index(i);
-		if (order[i] == current)
-			m_current_plate = i;
-	}
-	std::copy(plates.begin(), plates.end(), m_plate_list.begin());
 	return 0;
 }
 
