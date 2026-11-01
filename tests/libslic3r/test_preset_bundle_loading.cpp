@@ -9122,6 +9122,39 @@ TEST_CASE("A disabled filament override is saved and reloaded column by column",
     CHECK(loaded->config.opt_serialize("filament_flow_ratio") == "1,1.1");
 }
 
+TEST_CASE("A printer preset saved against its parent keeps its plugin manifest under printer_plugins", "[Preset][Bundle][plugins]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+    ConfigBase::set_resolve_capability_fn([](const std::string& name, const std::string& type) {
+        return name.empty() ? std::string() : name + ";;" + type;
+    });
+
+    Preset &parent = add_inmemory_preset(bundle.printers, "Parent Printer @System");
+
+    // The manifest in memory is stale (it matches the parent's), so only the plugin-backed option is in the diff.
+    const fs::path file = data_dir.tmp.path() / PRESET_PRINTER_NAME / "Child Printer.json";
+    Preset         child(Preset::TYPE_PRINTER, "Child Printer");
+    child.file    = file.string();
+    child.version = *Semver::parse("1.0.0");
+    child.config  = parent.config;
+    child.config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = parent.name;
+    child.config.option<ConfigOptionString>("printer_agent", true)->value       = "agent";
+    const bool saved_ok = child.save(&parent.config);
+    ConfigBase::set_resolve_capability_fn(nullptr);
+    REQUIRE(saved_ok);
+
+    // "plugins" would be dropped as a key printer presets do not have.
+    DynamicPrintConfig                 saved;
+    std::map<std::string, std::string> key_values;
+    std::string                        reason;
+    saved.load_from_json(file.string(), ForwardCompatibilitySubstitutionRule::EnableSilent, key_values, reason);
+    REQUIRE(reason.empty());
+    CHECK(saved.option("plugins") == nullptr);
+    REQUIRE(saved.option<ConfigOptionStrings>("printer_plugins") != nullptr);
+    CHECK(saved.option<ConfigOptionStrings>("printer_plugins")->values == std::vector<std::string>{"agent;;printer-connection"});
+}
+
 TEST_CASE("The cloud diff force-emits a disabled override only where the cloud would fill a value in", "[Preset][Bundle]")
 {
     PresetBundle bundle;

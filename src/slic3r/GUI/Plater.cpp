@@ -23002,11 +23002,11 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
 bool Plater::refresh_missing_plugin_block(bool* block_toggled)
 {
     // PluginResolver owns the per-preset-type missing sets; rebuild them from each preset's own
-    // "plugins" manifest so the state is always fresh. A plugin is resolved when it is
+    // plugin manifest so the state is always fresh. A plugin is resolved when it is
     // installed/loaded, or when no active setting references it any more (refresh drops it then).
     // The block is derived solely from PluginResolver; snapshot it before the refresh to detect a
     // toggle (so the caller can refresh the Slice button).
-    const bool was_blocked = has_missing_plugins() || has_inactive_plugins() || has_broken_plugins();
+    const bool was_blocked = has_blocking_plugins();
     refresh_missing_plugins(*wxGetApp().preset_bundle);
 
     const auto missing_refs = [](const std::vector<MissingPlugin>& missing) {
@@ -23088,7 +23088,7 @@ bool Plater::refresh_missing_plugin_block(bool* block_toggled)
            _u8L("Find on OrcaCloud"),
            [broken_refs](wxEvtHandler*) { open_missing_plugins_on_cloud(broken_refs); return false; });
 
-    const bool blocked = has_missing_plugins() || has_inactive_plugins() || has_broken_plugins();
+    const bool blocked = has_blocking_plugins();
     if (block_toggled)
         *block_toggled = (was_blocked != blocked);
     return blocked;
@@ -23187,8 +23187,10 @@ void Plater::enable_inactive_plugins(const std::vector<std::string>& refs)
 bool Plater::plugins_block_slicing() const
 {
     // Single source of truth: slicing is blocked while PluginResolver still has unresolved plugin
-    // references — missing (download), inactive (activate), or broken (capability unavailable).
-    return has_missing_plugins() || has_inactive_plugins() || has_broken_plugins();
+    // references — missing (download), inactive (activate), or broken (capability unavailable) —
+    // from the process or filament presets. Printer preset plugins (e.g. printer agents) only prompt:
+    // they do not change the sliced result.
+    return has_blocking_plugins();
 }
 
 void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
