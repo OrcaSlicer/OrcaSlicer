@@ -29,7 +29,6 @@
 #include <cstring>
 #include <exception>
 #include "libslic3r/ParameterUtils.hpp"
-#include "libslic3r/PlateLayout.hpp"
 #include <imgui.h>
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Print.hpp"
@@ -1825,7 +1824,7 @@ void PartPlate::render_logo_texture(GLTexture &logo_texture, GLModel& logo_buffe
 		if (shader != nullptr) {
 			shader->start_using();
             const Camera &camera = wxGetApp().plater()->get_camera();
-            shader->set_uniform("view_model_matrix", preview_view_matrix(camera.get_view_matrix()));
+            shader->set_uniform("view_model_matrix", camera.get_view_matrix());
             shader->set_uniform("projection_matrix", camera.get_projection_matrix());
 			shader->set_uniform("transparent_background", 0);
 			shader->set_uniform("svg_source", 0);
@@ -2397,7 +2396,7 @@ void PartPlate::render_grid(bool bottom) {
 
     const Camera& camera = wxGetApp().plater()->get_camera();
     const std::array<int, 4>& viewport = camera.get_viewport();
-    const Transform3d view_matrix = preview_view_matrix(camera.get_view_matrix());
+    const Transform3d& view_matrix = camera.get_view_matrix();
     const Transform3d& projection_matrix = camera.get_projection_matrix();
 
     shader->set_uniform("view_model_matrix", view_matrix);
@@ -2528,7 +2527,7 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
 	if (shader != nullptr) {
 		shader->start_using();
         const Camera &camera = wxGetApp().plater()->get_camera();
-        shader->set_uniform("view_model_matrix", preview_view_matrix(camera.get_view_matrix()));
+        shader->set_uniform("view_model_matrix", camera.get_view_matrix());
         shader->set_uniform("projection_matrix", camera.get_projection_matrix());
 		shader->set_uniform("transparent_background", bottom);
 		//shader->set_uniform("svg_source", boost::algorithm::iends_with(m_partplate_list->m_del_texture.get_source(), ".svg"));
@@ -2604,9 +2603,10 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
             } else
                 render_icon_texture(m_move_front_icon.model, m_partplate_list->m_move_front_texture);
 
-            if (hover_id == PLATE_MOVE_ID) {
+            if (hover_id == PLATE_MOVE_ID || m_partplate_list->get_dragged_plate() == m_plate_index) {
                 render_icon_texture(m_move_plate_icon.model, m_partplate_list->m_move_plate_hovered_texture);
-                set_hover_tooltip(_u8L("Drag to rearrange plates"));
+                if (hover_id == PLATE_MOVE_ID)
+                    set_hover_tooltip(_u8L("Drag to reorder plates"));
             } else
                 render_icon_texture(m_move_plate_icon.model, m_partplate_list->m_move_plate_texture);
 
@@ -2711,7 +2711,7 @@ void PartPlate::render_only_numbers(bool bottom)
 	if (shader != nullptr) {
 		shader->start_using();
         const Camera &camera = wxGetApp().plater()->get_camera();
-        shader->set_uniform("view_model_matrix", preview_view_matrix(camera.get_view_matrix()));
+        shader->set_uniform("view_model_matrix", camera.get_view_matrix());
         shader->set_uniform("projection_matrix", camera.get_projection_matrix());
 		shader->set_uniform("transparent_background", bottom);
 		//shader->set_uniform("svg_source", boost::algorithm::iends_with(m_partplate_list->m_del_texture.get_source(), ".svg"));
@@ -4148,7 +4148,7 @@ void PartPlate::set_pos_and_size(Vec3d& origin, int width, int depth, double hei
 
 			//move this instance into the new plate's same position
 			Vec3d offset = instance->get_transformation().get_offset();
-			// Orca: not int, so objects keep their exact place on a plate whose origin is a fractional stride away.
+			// Orca: not int, so objects keep their exact place when the plate moves by a fractional stride.
 			double off_x, off_y;
 
 			if (size_changed)
@@ -5281,7 +5281,7 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
         glsafe(::glEnable(GL_BLEND));
         glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
-        shader->set_uniform("view_model_matrix", preview_view_matrix(view_matrix));
+        shader->set_uniform("view_model_matrix", view_matrix);
         shader->set_uniform("projection_matrix", projection_matrix);
 
         if (!bottom) {
@@ -5342,11 +5342,6 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
     }
 
     glsafe(::glDisable(GL_DEPTH_TEST));
-}
-
-Transform3d PartPlate::preview_view_matrix(const Transform3d& view_matrix) const
-{
-	return m_preview_offset.isZero() ? view_matrix : Transform3d(view_matrix * Geometry::translation_transform(m_preview_offset));
 }
 
 void PartPlate::set_selected() {
@@ -5969,10 +5964,13 @@ Vec3d PartPlateList::compute_origin(int i, int cols)
 Vec3d PartPlateList::compute_origin_using_new_size(int i, int new_width, int new_depth)
 {
 	Vec3d origin;
-	const Vec2i32 cell = compute_plate_cell(i, m_plate_cols);
+	int row, col;
 
-	origin(0) = cell.x() * (new_width * (1. + LOGICAL_PART_PLATE_GAP));
-	origin(1) = -cell.y() * (new_depth * (1. + LOGICAL_PART_PLATE_GAP));
+	row = i / m_plate_cols;
+	col = i % m_plate_cols;
+
+	origin(0) = col * (new_width * (1. + LOGICAL_PART_PLATE_GAP));
+	origin(1) = -row * (new_depth * (1. + LOGICAL_PART_PLATE_GAP));
 	origin(2) = 0;
 
 	return origin;
@@ -5982,65 +5980,26 @@ Vec3d PartPlateList::compute_origin_using_new_size(int i, int new_width, int new
 //compute the origin for printable plate with index i
 Vec3d PartPlateList::compute_origin_for_unprintable()
 {
-	Vec2i32 cell = compute_grid_cell_for_unprintable();
-	if (m_custom_layout) {
-		// Orca: right of the rightmost plate on the top row, so it never overlaps a plate.
-		cell = m_plate_list.empty() ? Vec2i32(0, 0) : m_plate_list.front()->m_layout_cell;
-		for (const PartPlate* plate : m_plate_list)
-			cell = Vec2i32(std::max(cell.x(), plate->m_layout_cell.x() + 1), std::min(cell.y(), plate->m_layout_cell.y()));
-	}
-	const Vec2d pos = compute_cell_position(cell);
-	return Vec3d(pos.x(), pos.y(), 0);
-}
-
-Vec2i32 PartPlateList::compute_grid_cell_for_unprintable() const
-{
-	const int max_count = m_plate_cols * m_plate_cols;
-	const int index     = m_plate_count == max_count ? max_count + m_plate_cols - 1 : m_plate_count;
-	const int cols      = m_plate_count == max_count ? m_plate_cols + 1 : m_plate_cols;
-	return Vec2i32(index % cols, index / cols);
-}
-
-BoundingBoxf PartPlateList::compute_cell_box(const Vec2i32& cell)
-{
-	// The plate covers its bed shape, which may not start at (0, 0), moved to the cell.
-	BoundingBoxf box = m_shape.empty() ? BoundingBoxf(Vec2d::Zero(), Vec2d(m_plate_width, m_plate_depth)) : BoundingBoxf(m_shape);
-	box.translate(compute_cell_position(cell));
-	return box;
+	int max_count = m_plate_cols * m_plate_cols;
+	if (m_plate_count == max_count)
+		return compute_origin(max_count + m_plate_cols - 1, m_plate_cols + 1);
+	else
+		return compute_origin(m_plate_count, m_plate_cols);
 }
 
 //compute shape position
 Vec2d PartPlateList::compute_shape_position(int index, int cols)
 {
-	return compute_cell_position(compute_plate_cell(index, cols));
-}
+	Vec2d pos;
+	int row, col;
 
-Vec2d PartPlateList::compute_cell_position(const Vec2i32& cell)
-{
-	return Vec2d(cell.x() * plate_stride_x(), -cell.y() * plate_stride_y());
-}
+	row = index / cols;
+	col = index % cols;
 
-Vec2i32 PartPlateList::compute_plate_cell(int index, int cols) const
-{
-	if (!m_custom_layout)
-		return Vec2i32(index % cols, index / cols);
-	if (index < (int)m_plate_list.size())
-		return m_plate_list[index]->m_layout_cell;
+	pos(0) = col * plate_stride_x();
+	pos(1) = -row * plate_stride_y();
 
-	// Plates not created yet take the next free cells.
-	std::vector<Vec2i32> cells = get_plate_cells();
-	while ((int)cells.size() <= index)
-		cells.push_back(PlateLayout::next_free_cell(cells));
-	return cells[index];
-}
-
-std::vector<Vec2i32> PartPlateList::get_plate_cells() const
-{
-	std::vector<Vec2i32> cells;
-	cells.reserve(m_plate_list.size());
-	for (int i = 0; i < (int)m_plate_list.size(); ++i)
-		cells.push_back(compute_plate_cell(i, m_plate_cols));
-	return cells;
+	return pos;
 }
 
 //generate icon textures
@@ -6466,8 +6425,6 @@ void PartPlateList::clear(bool delete_plates, bool release_print_list, bool exce
 		//also delete print related to the plate
 		m_plate_list.clear();
 		m_current_plate = 0;
-		m_custom_layout = false;
-		m_pending_layout.clear();
 	}
 
 	if (release_print_list)
@@ -6608,8 +6565,6 @@ int PartPlateList::create_plate(bool adjust_position)
 
 	plate->set_filament_count(m_filament_count);
 
-	if (m_custom_layout)
-		plate->m_layout_cell = compute_plate_cell(new_index, cols);
 	plate->set_index(new_index);
 	Vec2d pos = compute_shape_position(new_index, cols);
 	plate->set_shape(m_shape, m_exclude_areas, m_extruder_areas, m_extruder_heights, pos, m_height_to_lid, m_height_to_rod);
@@ -7153,159 +7108,6 @@ int PartPlateList::move_plate_to_index(int old_index, int new_index)
 	return ret;
 }
 
-Vec2i32 PartPlateList::get_cell_at(const Vec2d& origin)
-{
-	return Vec2i32((int)std::lround(origin.x() / plate_stride_x()), (int)std::lround(-origin.y() / plate_stride_y()));
-}
-
-std::map<int, Vec2i32> PartPlateList::plan_plate_move(int index, const Vec2i32& cell)
-{
-	std::map<int, Vec2i32> moves = PlateLayout::plan_drop(get_plate_cells(), index, cell, MAX_PLATES_COUNT);
-	if (!cells_clear_of_loose_objects(moves))
-		moves.clear();
-	return moves;
-}
-
-bool PartPlateList::cells_clear_of_loose_objects(const std::map<int, Vec2i32>& moves)
-{
-	if (m_model == nullptr)
-		return true;
-	// Plate membership is geometric, so a plate moved onto objects that are on no moving plate would take them.
-	for (const auto& [plate_index, plate_cell] : moves) {
-		const BoundingBoxf cell_box = compute_cell_box(plate_cell);
-		for (int obj_id = 0; obj_id < (int)m_model->objects.size(); ++obj_id) {
-			ModelObject* object = m_model->objects[obj_id];
-			for (int inst_id = 0; inst_id < (int)object->instances.size(); ++inst_id) {
-				if (std::any_of(moves.begin(), moves.end(), [this, obj_id, inst_id](const auto& move) {
-						return m_plate_list[move.first]->contain_instance(obj_id, inst_id);
-					}))
-					continue;
-				const BoundingBoxf3 box = object->instance_convex_hull_bounding_box(inst_id);
-				if (box.min.x() < cell_box.max.x() && box.max.x() > cell_box.min.x() && box.min.y() < cell_box.max.y() &&
-					box.max.y() > cell_box.min.y())
-					return false;
-			}
-		}
-	}
-	return true;
-}
-
-bool PartPlateList::can_move_plate_to_cell(int index, const Vec2i32& cell)
-{
-	return !plan_plate_move(index, cell).empty();
-}
-
-int PartPlateList::move_plate_to_cell(int index, const Vec2i32& cell)
-{
-	// Rebuild plate membership so each plate carries exactly the objects on it.
-	reload_all_objects();
-	return move_plates_to_cells(plan_plate_move(index, cell));
-}
-
-int PartPlateList::move_plates_to_cells(const std::map<int, Vec2i32>& moves)
-{
-	if (moves.empty())
-		return -1;
-
-	if (!m_custom_layout) {
-		// Freeze the automatic grid as the starting point of the custom layout.
-		for (int i = 0; i < (int)m_plate_list.size(); ++i)
-			m_plate_list[i]->m_layout_cell = compute_plate_cell(i, m_plate_cols);
-		m_custom_layout = true;
-	}
-
-	for (const auto& [plate_index, plate_cell] : moves) {
-		PartPlate* plate = m_plate_list[plate_index];
-		plate->m_layout_cell = plate_cell;
-		Vec3d origin = compute_origin(plate_index, m_plate_cols);
-		plate->set_pos_and_size(origin, m_plate_width, m_plate_depth, m_plate_height, true);
-		plate->set_shape(m_shape, m_exclude_areas, m_extruder_areas, m_extruder_heights, compute_shape_position(plate_index, m_plate_cols), m_height_to_lid, m_height_to_rod);
-	}
-
-	Vec3d unprintable_origin = compute_origin_for_unprintable();
-	unprintable_plate.set_pos_and_size(unprintable_origin, m_plate_width, m_plate_depth, m_plate_height, true);
-	calc_bounding_boxes();
-
-	if (m_plater && moves.count(m_current_plate) > 0) {
-		Vec2d pos = compute_shape_position(m_current_plate, m_plate_cols);
-		m_plater->set_bed_position(pos);
-	}
-	return 0;
-}
-
-void PartPlateList::reset_layout()
-{
-	if (!m_custom_layout)
-		return;
-
-	reload_all_objects();
-	m_custom_layout = false;
-	for (PartPlate* plate : m_plate_list)
-		plate->m_layout_cell = Vec2i32(-1, -1);
-	update_all_plates_pos_and_size(true, true);
-	set_shapes(m_shape, m_exclude_areas, m_wrapping_exclude_areas, m_extruder_areas, m_extruder_heights, m_logo_texture_filename, m_height_to_lid, m_height_to_rod);
-	if (m_plater) {
-		Vec2d pos = compute_shape_position(m_current_plate, m_plate_cols);
-		m_plater->set_bed_position(pos);
-	}
-}
-
-bool PartPlateList::apply_loaded_layout()
-{
-	std::vector<PendingLayoutPlate> pending;
-	pending.swap(m_pending_layout);
-	if (pending.empty() || pending.size() != m_plate_list.size() || m_model == nullptr)
-		return false;
-
-	std::set<std::pair<int, int>> cells;
-	for (const PendingLayoutPlate& p : pending)
-		if (std::abs(p.cell.x()) >= (int)MAX_PLATES_COUNT || std::abs(p.cell.y()) >= (int)MAX_PLATES_COUNT ||
-			!cells.emplace(p.cell.x(), p.cell.y()).second) {
-			BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": invalid plate layout in project, keep the automatic layout";
-			return false;
-		}
-
-	// The file holds the objects where the automatic grid would put them (see store_to_3mf_structure).
-	// Each plate's objects are listed rather than found by geometry, which objects left between
-	// plates could confuse; the objects on no plate move with the unprintable area.
-	std::map<std::pair<int, int>, Vec2d> offsets;
-	for (int i = 0; i < (int)m_plate_list.size(); ++i) {
-		const Vec2d offset = compute_cell_position(pending[i].cell) - compute_shape_position(i, m_plate_cols);
-		for (const auto& instance : pending[i].instances) {
-			const auto [obj_id, inst_id] = instance;
-			if (obj_id < 0 || obj_id >= (int)m_model->objects.size() || inst_id < 0 || inst_id >= (int)m_model->objects[obj_id]->instances.size()) {
-				BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": plate layout lists a missing object, keep the automatic layout";
-				return false;
-			}
-			offsets[instance] = offset;
-		}
-	}
-	const Vec3d grid_unprintable_origin = compute_origin_for_unprintable();
-	m_custom_layout = true;
-	for (int i = 0; i < (int)m_plate_list.size(); ++i)
-		m_plate_list[i]->m_layout_cell = pending[i].cell;
-	const Vec2d unplaced_offset = Vec2d((compute_origin_for_unprintable() - grid_unprintable_origin).head<2>());
-
-	for (int obj_id = 0; obj_id < (int)m_model->objects.size(); ++obj_id) {
-		ModelObject* object = m_model->objects[obj_id];
-		for (int inst_id = 0; inst_id < (int)object->instances.size(); ++inst_id) {
-			const auto  it     = offsets.find({obj_id, inst_id});
-			const Vec2d offset = it != offsets.end() ? it->second : unplaced_offset;
-			ModelInstance* instance = object->instances[inst_id];
-			instance->set_offset(instance->get_offset() + Vec3d(offset.x(), offset.y(), 0.));
-		}
-		object->invalidate_bounding_box();
-	}
-	update_all_plates_pos_and_size(false, false);
-	set_shapes(m_shape, m_exclude_areas, m_wrapping_exclude_areas, m_extruder_areas, m_extruder_heights, m_logo_texture_filename, m_height_to_lid, m_height_to_rod);
-	reload_all_objects();
-	if (m_plater) {
-		Vec2d pos = compute_shape_position(m_current_plate, m_plate_cols);
-		m_plater->set_bed_position(pos);
-	}
-	return true;
-}
-
 //lock plate
 int PartPlateList::lock_plate(int index, bool state)
 {
@@ -7777,9 +7579,8 @@ bool PartPlateList::preprocess_arrange_polygon(int obj_index, int instance_index
 			{
 				locked = true;
 				arrange_polygon.bed_idx = i;
-				const Vec2i32 cell = compute_plate_cell(i, m_plate_cols);
-				arrange_polygon.row = cell.y();
-				arrange_polygon.col = cell.x();
+				arrange_polygon.row = i / m_plate_cols;
+				arrange_polygon.col = i % m_plate_cols;
 				arrange_polygon.translation(X) -= scaled<double>(plate_stride_x() * arrange_polygon.col);
 				arrange_polygon.translation(Y) += scaled<double>(plate_stride_y() * arrange_polygon.row);
 			}
@@ -7789,9 +7590,8 @@ bool PartPlateList::preprocess_arrange_polygon(int obj_index, int instance_index
 				{
 					//will be treated as fixeditem later
 					arrange_polygon.bed_idx = i - lockplate_cnt;
-					const Vec2i32 cell = compute_plate_cell(i, m_plate_cols);
-					arrange_polygon.row = cell.y();
-					arrange_polygon.col = cell.x();
+					arrange_polygon.row = i / m_plate_cols;
+					arrange_polygon.col = i % m_plate_cols;
 					arrange_polygon.translation(X) -= scaled<double>(plate_stride_x() * arrange_polygon.col);
 					arrange_polygon.translation(Y) += scaled<double>(plate_stride_y() * arrange_polygon.row);
 				}
@@ -7828,9 +7628,8 @@ bool PartPlateList::preprocess_arrange_polygon_other_locked(int obj_index, int i
 			if (m_plate_list[i]->contain_instance(obj_index, instance_index))
 			{
 				arrange_polygon.bed_idx = i;
-				const Vec2i32 cell = compute_plate_cell(i, m_plate_cols);
-				arrange_polygon.row = cell.y();
-				arrange_polygon.col = cell.x();
+				arrange_polygon.row = i / m_plate_cols;
+				arrange_polygon.col = i % m_plate_cols;
 				arrange_polygon.translation(X) -= scaled<double>(plate_stride_x() * arrange_polygon.col);
 				arrange_polygon.translation(Y) += scaled<double>(plate_stride_y() * arrange_polygon.row);
 				//BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": obj_id %1% instance_id %2% in plate %3%, locked %4%, row %5%, col %6%\n") % obj_index % instance_index % i % locked % arrange_polygon.row % arrange_polygon.col;
@@ -8093,9 +7892,8 @@ void PartPlateList::postprocess_arrange_polygon(arrangement::ArrangePolygon& arr
 
 	if ((selected) || (arrange_polygon.bed_idx != PartPlateList::MAX_PLATES_COUNT))
 	{
-		const Vec2i32 cell = compute_plate_cell(arrange_polygon.bed_idx, m_plate_cols);
-		arrange_polygon.row = cell.y();
-		arrange_polygon.col = cell.x();
+		arrange_polygon.row = arrange_polygon.bed_idx / m_plate_cols;
+		arrange_polygon.col = arrange_polygon.bed_idx % m_plate_cols;
 		arrange_polygon.translation(X) += scaled<double>(plate_stride_x() * arrange_polygon.col);
 		arrange_polygon.translation(Y) -= scaled<double>(plate_stride_y() * arrange_polygon.row);
 	}
@@ -8595,14 +8393,6 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
 		plate_data_item->locked = m_plate_list[i]->m_locked;
 		plate_data_item->plate_index = m_plate_list[i]->m_plate_index;
 		plate_data_item->plate_name  = m_plate_list[i]->get_plate_name();
-		if (m_custom_layout) {
-			const Vec2i32 cell  = m_plate_list[i]->m_layout_cell;
-			const Vec2d   delta = compute_cell_position(Vec2i32(i % m_plate_cols, i / m_plate_cols)) - compute_cell_position(cell);
-			plate_data_item->layout_cell   = cell;
-			plate_data_item->layout_offset = Vec3d(delta.x(), delta.y(), 0.);
-			const Vec2d unplaced_delta = compute_cell_position(compute_grid_cell_for_unprintable()) - Vec2d(compute_origin_for_unprintable().head<2>());
-			plate_data_item->layout_unplaced_offset = Vec3d(unplaced_delta.x(), unplaced_delta.y(), 0.);
-		}
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": plate %1% before load, width %2%, height %3%, size %4%!")
 			%(i+1) %m_plate_list[i]->thumbnail_data.width %m_plate_list[i]->thumbnail_data.height %m_plate_list[i]->thumbnail_data.pixels.size();
 		plate_data_item->plate_thumbnail.load_from(m_plate_list[i]->thumbnail_data);
@@ -8856,10 +8646,6 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
 		}
 
 	}
-	// Orca: keep a custom layout for apply_loaded_layout(), which runs once the objects are loaded.
-	if (std::all_of(plate_data_list.begin(), plate_data_list.end(), [](const PlateData* plate_data) { return plate_data->layout_cell.has_value(); }))
-		for (const PlateData* plate_data : plate_data_list)
-			m_pending_layout.push_back({*plate_data->layout_cell, plate_data->objects_and_instances});
 	print();
 	ret = reload_all_objects();
 	print();

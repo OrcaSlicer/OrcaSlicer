@@ -224,7 +224,7 @@ void Bed3D::load_render_colors()
     RenderColor::colors[RenderCol_Axis_Z] = ImGuiWrapper::to_ImVec4(Bed3D::AXIS_Z_COLOR);
 }
 
-void Bed3D::Axes::render(const Vec3d& offset)
+void Bed3D::Axes::render()
 {
     auto render_axis = [this](GLShaderProgram* shader, const Transform3d& transform) {
         const Camera& camera = wxGetApp().plater()->get_camera();
@@ -251,15 +251,15 @@ void Bed3D::Axes::render(const Vec3d& offset)
 
     // x axis
     m_arrow.set_color(AXIS_X_COLOR);
-    render_axis(shader, Geometry::assemble_transform(m_origin + offset, { 0.0, 0.5 * M_PI, 0.0 }));
+    render_axis(shader, Geometry::assemble_transform(m_origin, { 0.0, 0.5 * M_PI, 0.0 }));
 
     // y axis
     m_arrow.set_color(AXIS_Y_COLOR);
-    render_axis(shader, Geometry::assemble_transform(m_origin + offset, { -0.5 * M_PI, 0.0, 0.0 }));
+    render_axis(shader, Geometry::assemble_transform(m_origin, { -0.5 * M_PI, 0.0, 0.0 }));
 
     // z axis
     m_arrow.set_color(AXIS_Z_COLOR);
-    render_axis(shader, Geometry::assemble_transform(m_origin + offset));
+    render_axis(shader, Geometry::assemble_transform(m_origin));
 
     shader->stop_using();
 
@@ -391,7 +391,7 @@ void Bed3D::on_change_color_mode(bool is_dark)
 
 void Bed3D::render(GLCanvas3D& canvas, const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, float scale_factor, bool show_axes)
 {
-    render_internal(canvas, view_matrix * Geometry::translation_transform(m_render_offset), projection_matrix, bottom, scale_factor, show_axes);
+    render_internal(canvas, view_matrix, projection_matrix, bottom, scale_factor, show_axes);
 }
 
 void Bed3D::render_internal(GLCanvas3D& canvas, const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, float scale_factor,
@@ -488,7 +488,7 @@ std::tuple<Bed3D::Type, std::string, std::string> Bed3D::detect_type(const Point
 void Bed3D::render_axes()
 {
     if (m_build_volume.valid())
-        m_axes.render(m_render_offset);
+        m_axes.render();
 }
 
 void Bed3D::render_system(GLCanvas3D& canvas, const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom)
@@ -713,7 +713,7 @@ void Bed3D::render_model(const Transform3d& view_matrix, const Transform3d& proj
 
     if (!m_model.get_filename().empty()) {
         const Camera &     camera      = wxGetApp().plater()->get_camera();
-        const Transform3d  view_matrix = camera.get_view_matrix() * Geometry::translation_transform(m_render_offset);
+        const Transform3d &view_matrix = camera.get_view_matrix();
         const Transform3d &projection_matrix = camera.get_projection_matrix();
         GLShaderProgram* shader = wxGetApp().get_shader("hotbed");
         if (shader != nullptr) {
@@ -801,7 +801,7 @@ void Bed3D::render_gravity_arrow(const Transform3d& view_matrix, const Transform
     shader->start_using();
 
     const Camera& camera = wxGetApp().plater()->get_camera();
-    Transform3d model_matrix = Eigen::Translation3d(m_axes.get_origin() + m_render_offset) * rot;
+    Transform3d model_matrix = Eigen::Translation3d(m_axes.get_origin()) * rot;
     shader->set_uniform("view_model_matrix", camera.get_view_matrix() * model_matrix);
     shader->set_uniform("projection_matrix", camera.get_projection_matrix());
 

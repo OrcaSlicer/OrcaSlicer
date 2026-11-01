@@ -3,7 +3,6 @@
 
 #include "../GCode/ThumbnailData.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
-#include "libslic3r/Point.hpp"
 #include "libslic3r/Format/ProjectStrategy.hpp"
 #include "libslic3r/Semver.hpp"
 #include "libslic3r/ProjectTask.hpp"
@@ -98,14 +97,6 @@ struct PlateData
 
     int plate_index;
     std::vector<std::pair<int, int>> objects_and_instances;
-    // Orca: custom plate layout. The plate's cell, empty for the automatic grid, and the translation
-    // that moves its instances from the cell to the grid position, applied on export so readers that
-    // don't know the layout still find every object on its plate. Cells may be negative.
-    std::optional<Vec2i32> layout_cell;
-    Vec3d   layout_offset{Vec3d::Zero()};
-    // Translation for instances on no plate, the same on every plate of a custom layout. It moves the
-    // area right of the custom layout, where unprintable objects wait, to the grid's unprintable area.
-    Vec3d   layout_unplaced_offset{Vec3d::Zero()};
     std::map<int, std::pair<int, int>> obj_inst_map;
     std::string     printer_model_id;
     std::string     nozzle_diameters;

@@ -2054,12 +2054,6 @@ void MenuFactory::create_plate_menu()
 
     m_plate_mods_pos = menu->GetMenuItemCount(); // pos for dynamic plate items (Edit Plate Name / Lock / Delete Plate)
 
-    menu->AppendSeparator();
-    // Orca: custom plate layout
-    append_menu_item(menu, wxID_ANY, _L("Reset Plate Layout"), _L("Place all plates in the default grid again"),
-        [](wxCommandEvent&) { plater()->reset_plate_layout(); }, "", nullptr,
-        []() { return plater()->get_partplate_list().has_custom_layout(); }, m_parent);
-
     // add shapes
     menu->AppendSeparator();
     wxMenu* sub_menu_primitives = append_submenu_add_generic(menu, ModelVolumeType::INVALID);
