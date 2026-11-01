@@ -1005,6 +1005,9 @@ PlaterPresetComboBox::~PlaterPresetComboBox()
     // BBS.
     if (clr_picker)
         clr_picker->Destroy();
+
+    if (remain_label)
+        remain_label->Destroy();
 }
 
 static void run_wizard(StartPage sp)
@@ -1059,6 +1062,22 @@ void PlaterPresetComboBox::set_sync_badge(bool show)
 {
     m_sync_badge = show;
     ShowBadge(show);
+    // The level belongs to the synced slot, so it goes when the filament stops being synced.
+    if (!show)
+        set_remain(-1);
+}
+
+void PlaterPresetComboBox::set_remain(int percent)
+{
+    if (!remain_label)
+        return;
+    const bool show = percent >= 0 && percent <= 100;
+    if (show)
+        remain_label->SetLabel(wxString::Format("%d%%", percent));
+    if (remain_label->IsShown() != show) {
+        remain_label->Show(show);
+        remain_label->GetParent()->Layout();
+    }
 }
 
 bool PlaterPresetComboBox::switch_to_tab()
@@ -2178,5 +2197,7 @@ void GUI::PlaterPresetComboBox::sys_color_changed()
     if (clr_picker) {
         clr_picker->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     }
+    if (remain_label)
+        remain_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
 }
 } // namespace Slic3r

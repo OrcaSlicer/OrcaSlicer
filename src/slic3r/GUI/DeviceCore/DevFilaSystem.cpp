@@ -19,6 +19,7 @@
 #include <utility>
 #include "DevFilaSystem.h"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
 
 // TODO: remove this include
@@ -382,6 +383,15 @@ bool DevFilaSystem::IsBBL_Filament(std::string tag_uid)
     }
 
     return false;
+}
+
+bool DevFilaSystem::IsRemainReliable(const MachineObject* obj, const std::string& tag_uid)
+{
+    if (IsBBL_Filament(tag_uid))
+        return true;
+
+    // An empty id is a machine no agent claimed yet; treat it like a Bambu one.
+    return obj && !obj->printer_agent_id.empty() && obj->printer_agent_id != BBL_PRINTER_AGENT_ID;
 }
 
 void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaSystem* system, bool key_field_only)

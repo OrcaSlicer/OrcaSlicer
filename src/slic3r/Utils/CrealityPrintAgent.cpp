@@ -5,6 +5,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 
 #include <boost/log/trivial.hpp>
 #include "libslic3r/Config.hpp"
@@ -282,6 +283,12 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
             s.filament_type = s_type;
             s.color_hex     = s_color.empty() ? "#FFFFFF" : s_color;
 
+            // Percentage left on the spool, as the CFS measures it. Boxes that do not
+            // report it leave the slot at -1 so the UI keeps showing an unknown level
+            // instead of an empty spool.
+            if (const auto percent = mat.find("percent"); percent != mat.end() && percent->is_number())
+                s.remain = percent->get<int>();
+
             // Creality reports colour as "#" + a digit + "RRGGBB". Drop the digit,
             // as Creality Print does, to get a standard "#RRGGBB".
             if (s.color_hex.size() == 8 && s.color_hex[0] == '#')
@@ -379,6 +386,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
             tray.has_filament = true;
             tray.tray_type    = normalize_filament_type(s.filament_type);
             tray.tray_color   = s.color_hex;
+            tray.remain       = s.remain;
 
             if (bundle) {
                 tray.tray_info_idx = match_filament_preset(
@@ -389,7 +397,9 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
         }
     }
 
-    build_ams_payload(box_count, max_slots - 1, trays);
+    // A CFS is a four-slot box like the AMS, and the AMS view draws each spool's level, which
+    // the AMS-Lite view the other Moonraker agents use does not.
+    build_ams_payload(box_count, max_slots - 1, trays, DevAmsType::AMS);
     return true;
 }
 

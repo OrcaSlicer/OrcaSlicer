@@ -3719,6 +3719,15 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
     combo_and_btn_sizer->Add((*combo)->clr_picker, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2)); // ElementSpacing - 2 (from combo box))
     combo_and_btn_sizer->Add(*combo, 1, wxALL | wxEXPAND, FromDIP(2))->SetMinSize({-1, 30 * wxGetApp().em_unit() / 10}); // ORCA ensure height matches with PlaterPresetComboBox
 
+    // Filament left in the synced slot. Hidden until a sync reports a level, so the row keeps its
+    // width for every printer that does not measure one.
+    auto remain_label = new Label(p->m_panel_filament_content, Label::Body_12);
+    remain_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+    remain_label->SetToolTip(_L("Filament left in this slot, as measured by the printer"));
+    remain_label->Hide();
+    (*combo)->remain_label = remain_label;
+    combo_and_btn_sizer->Add(remain_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2));
+
     /* BBS hide del_btn
     ScalableButton* del_btn = new ScalableButton(p->m_panel_filament_content, wxID_ANY, "delete_filament");
     del_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e){
@@ -6107,7 +6116,7 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         }
     }
 
-    auto build_tray_config = [](DevAmsTray const &tray, std::string const &name, std::string ams_id, std::string slot_id) {
+    auto build_tray_config = [obj](DevAmsTray const &tray, std::string const &name, std::string ams_id, std::string slot_id) {
         BOOST_LOG_TRIVIAL(info) << boost::format("build_filament_ams_list: name %1% setting_id %2% type %3% color %4%")
                     % name % tray.setting_id % tray.m_fila_type % tray.color;
         DynamicPrintConfig tray_config;
@@ -6122,6 +6131,10 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         tray_config.set_key_value("filament_colour_type", new ConfigOptionStrings{std::to_string(tray.ctype)});
         tray_config.set_key_value("filament_exist", new ConfigOptionBools{tray.is_exists});
         tray_config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{tray.is_slot_placeholder});
+        // Shown next to the synced filament (Sidebar::sync_ams_list) when the printer measures the spool.
+        const bool remain_known = obj->GetFilaSystem()->IsDetectRemainEnabled() &&
+                                  DevFilaSystem::IsRemainReliable(obj, tray.tag_uid);
+        tray_config.set_key_value("filament_remain", new ConfigOptionInts{remain_known ? tray.remain : -1});
         std::optional<FilamentBaseInfo> info;
         if (wxGetApp().preset_bundle) {
             info = wxGetApp().preset_bundle->get_filament_by_filament_id(tray.setting_id);
@@ -6507,6 +6520,8 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
                     p->combos_filament[combo_index]->set_sync_badge(false);
                 } else {
                     badge_combox_filament(p->combos_filament[combo_index]);
+                    if (tray.has("filament_remain"))
+                        p->combos_filament[combo_index]->set_remain(tray.opt_int("filament_remain", 0u));
                 }
                 ++combo_index;
             }

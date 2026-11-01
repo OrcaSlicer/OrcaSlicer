@@ -140,6 +140,7 @@ class StreamAgent : public ConnectAgent
 {
 public:
     using ConnectAgent::ConnectAgent;
+    using MoonrakerPrinterAgent::reports_filament_level;
     using MoonrakerPrinterAgent::start_status_stream;
     using MoonrakerPrinterAgent::stop_status_stream;
     using MoonrakerPrinterAgent::ws_timings;
@@ -788,6 +789,28 @@ TEST_CASE("Status reports tell the send dialog whether the gcodes storage has fr
     // MachineObject reads the storage state from "sdcard" and then again from home_flag bits 8-9.
     CHECK(print.at("sdcard") == has_storage);
     CHECK(((print.at("home_flag").get<int>() >> 8) & 0x3) == (has_storage ? DevStorage::HAS_SDCARD_NORMAL : DevStorage::NO_SDCARD));
+    CHECK(f.stops_within(3s));
+}
+
+TEST_CASE("Status reports keep the filament level display on once a slot reported a level", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    const bool reports_level = GENERATE(false, true);
+    CAPTURE(reports_level);
+
+    std::promise<std::string> first_report;
+    std::once_flag reported;
+    StreamFixture f(Behavior::AnswersPings);
+    f.agent.reports_filament_level.store(reports_level);
+    f.agent.set_on_local_message_fn([&](std::string, std::string payload) {
+        std::call_once(reported, [&] { first_report.set_value(payload); });
+    });
+    f.start();
+
+    auto report = first_report.get_future();
+    REQUIRE(report.wait_for(5s) == std::future_status::ready);
+    const nlohmann::json print = nlohmann::json::parse(report.get()).at("print");
+    // MachineObject sets the display from home_flag bit 7 on every report, so a clear bit hides the levels.
+    CHECK((((print.at("home_flag").get<int>() >> 7) & 0x1) == 1) == reports_level);
     CHECK(f.stops_within(3s));
 }
 
