@@ -107,6 +107,10 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
                                                         const std::string& plugin_root,
                                                         std::string& error);
 
+// Validated non-recursive .stl/.png/.svg files directly inside `dir` (a printer asset pack's asset folder), every
+// one contained in `plugin_root`, at most 16. Empty with `error` set on failure.
+std::vector<std::string> collect_printer_asset_files(const std::string& dir, const std::string& plugin_root, std::string& error);
+
 // Canonical writer: emits the .install_state.json schema for the given state.
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state);
 

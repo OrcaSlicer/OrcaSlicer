@@ -88,6 +88,7 @@
 #include "slic3r/GUI/Monitor.hpp"
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
+#include <slic3r/plugin/host/PluginPrinterAssets.hpp>
 #include <slic3r/plugin/PluginResolver.hpp>
 #include <utility>
 #include <sstream>
@@ -21807,6 +21808,12 @@ void Plater::set_bed_shape() const
             }
         }
     }
+    // A printer asset reference resolves to the installed pack's file; a missing pack leaves the value
+    // empty, so the vendor texture and model are drawn instead. PluginResolver offers to install the
+    // pack through the printer preset's manifest.
+    const std::string custom_texture = resolve_printer_asset_value(p->config->option<ConfigOptionString>("bed_custom_texture")->value);
+    const std::string custom_model   = resolve_printer_asset_value(p->config->option<ConfigOptionString>("bed_custom_model")->value);
+
     const ConfigOptionPoints *bed_exclude_area = p->config->option<ConfigOptionPoints>("bed_exclude_area");
     set_bed_shape(p->config->option<ConfigOptionPoints>("printable_area")->values,
         //BBS: add bed exclude areas
@@ -21815,14 +21822,17 @@ void Plater::set_bed_shape() const
         p->config->option<ConfigOptionFloat>("printable_height")->value,
         p->config->option<ConfigOptionPointsGroups>("extruder_printable_area")->values,
         p->config->option<ConfigOptionFloatsNullable>("extruder_printable_height")->values,
-        p->config->option<ConfigOptionString>("bed_custom_texture")->value.empty() ? texture_filename : p->config->option<ConfigOptionString>("bed_custom_texture")->value,
-        p->config->option<ConfigOptionString>("bed_custom_model")->value);
+        custom_texture.empty() ? texture_filename : custom_texture,
+        custom_model);
 }
 
 //BBS: add bed exclude area
 void Plater::set_bed_shape(const Pointfs& shape, const Pointfs& exclude_area, const Pointfs& wrapping_exclude_area, const double printable_height, std::vector<Pointfs> extruder_areas, std::vector<double> extruder_heights, const std::string& custom_texture, const std::string& custom_model, bool force_as_custom) const
 {
-    p->set_bed_shape(make_counter_clockwise(shape), exclude_area, wrapping_exclude_area, printable_height, extruder_areas, extruder_heights, custom_texture, custom_model, force_as_custom);
+    // Callers such as the G-code viewer pass raw preset values, which may be printer asset references.
+    p->set_bed_shape(make_counter_clockwise(shape), exclude_area, wrapping_exclude_area, printable_height, extruder_areas,
+                     extruder_heights, resolve_printer_asset_value(custom_texture), resolve_printer_asset_value(custom_model),
+                     force_as_custom);
 }
 
 void Plater::force_filament_colors_update()
@@ -23002,11 +23012,11 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
 bool Plater::refresh_missing_plugin_block(bool* block_toggled)
 {
     // PluginResolver owns the per-preset-type missing sets; rebuild them from each preset's own
-    // "plugins" manifest so the state is always fresh. A plugin is resolved when it is
+    // plugin manifest so the state is always fresh. A plugin is resolved when it is
     // installed/loaded, or when no active setting references it any more (refresh drops it then).
     // The block is derived solely from PluginResolver; snapshot it before the refresh to detect a
     // toggle (so the caller can refresh the Slice button).
-    const bool was_blocked = has_missing_plugins() || has_inactive_plugins() || has_broken_plugins();
+    const bool was_blocked = has_blocking_plugins();
     refresh_missing_plugins(*wxGetApp().preset_bundle);
 
     const auto missing_refs = [](const std::vector<MissingPlugin>& missing) {
@@ -23044,8 +23054,11 @@ bool Plater::refresh_missing_plugin_block(bool* block_toggled)
         const std::string sig = signature(missing);
         if (*shown_sig != sig || !p->notification_manager->has_notification_of_type(type)) {
             std::vector<JumpTo> body;
-            for (const auto& m : missing)
-                body.emplace_back(JumpTo{m.ref.capability_name, m.opt, m.opt_type});
+            for (const auto& m : missing) {
+                // printer_asset_plugins is not on a settings page: the Bed Shape dialog edits it.
+                const std::string jump_opt = m.opt == "printer_asset_plugins" ? "printable_area" : m.opt;
+                body.emplace_back(JumpTo{m.ref.capability_name, jump_opt, m.opt_type});
+            }
 
             p->notification_manager->push_plugin_missing_notification(
                 type, header, resolve_label, std::move(body), std::move(resolve_action));
@@ -23088,7 +23101,7 @@ bool Plater::refresh_missing_plugin_block(bool* block_toggled)
            _u8L("Find on OrcaCloud"),
            [broken_refs](wxEvtHandler*) { open_missing_plugins_on_cloud(broken_refs); return false; });
 
-    const bool blocked = has_missing_plugins() || has_inactive_plugins() || has_broken_plugins();
+    const bool blocked = has_blocking_plugins();
     if (block_toggled)
         *block_toggled = (was_blocked != blocked);
     return blocked;
@@ -23187,8 +23200,10 @@ void Plater::enable_inactive_plugins(const std::vector<std::string>& refs)
 bool Plater::plugins_block_slicing() const
 {
     // Single source of truth: slicing is blocked while PluginResolver still has unresolved plugin
-    // references — missing (download), inactive (activate), or broken (capability unavailable).
-    return has_missing_plugins() || has_inactive_plugins() || has_broken_plugins();
+    // references — missing (download), inactive (activate), or broken (capability unavailable) —
+    // from the process or filament presets. Printer preset plugins (printer agents, printer assets)
+    // only prompt: they do not change the sliced result.
+    return has_blocking_plugins();
 }
 
 void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
