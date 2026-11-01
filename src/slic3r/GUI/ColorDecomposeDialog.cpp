@@ -955,10 +955,13 @@ void ColorDecomposeDialog::update_basic_support_warning()
     if (!m_basic_warning_panel || !m_basic_warning_text)
         return;
 
-    const bool show = is_pla_family(m_preferred_type)
-        && (m_selected_mode == DecomposeMode::CMYW || m_selected_mode == DecomposeMode::RYBW);
+    // The note is only for CMYW and RYBW, but its room is kept while either card is offered, so
+    // switching between the cards does not make the dialog grow and shrink.
+    const bool note_mode = m_selected_mode == DecomposeMode::CMYW || m_selected_mode == DecomposeMode::RYBW;
+    const bool offered   = is_pla_family(m_preferred_type)
+        && ((m_card_cmyw && m_card_cmyw->IsShown()) || (m_card_rybw && m_card_rybw->IsShown()));
     const bool was_shown = m_basic_warning_panel->IsShown();
-    if (!show) {
+    if (!offered) {
         if (was_shown) {
             m_basic_warning_panel->Hide();
             Layout();
@@ -967,18 +970,27 @@ void ColorDecomposeDialog::update_basic_support_warning()
         return;
     }
 
-    const wxString text = (m_selected_mode == DecomposeMode::CMYW)
-        ? _L("A closer mix is calculated from four base colors: cyan, magenta, yellow, and white, using PLA Basic. If matching filaments are not in the project, they will be added automatically.")
-        : _L("A closer mix is calculated from four base colors: red, yellow, blue, and white, using PLA Basic. If matching filaments are not in the project, they will be added automatically.");
+    const wxString cmyw_text = _L("A closer mix is calculated from four base colors: cyan, magenta, yellow, and white, using PLA Basic. If matching filaments are not in the project, they will be added automatically.");
+    const wxString rybw_text = _L("A closer mix is calculated from four base colors: red, yellow, blue, and white, using PLA Basic. If matching filaments are not in the project, they will be added automatically.");
     // Show first so the panel gets the width of the dialog, then wrap the text to it.
     m_basic_warning_panel->Show();
-    m_basic_warning_text->SetLabel(text);
     Layout();
     const int avail = m_basic_warning_panel->GetClientSize().x;
-    if (avail > FromDIP(50))
+    const bool can_wrap = avail > FromDIP(50);
+    // The room is that of the taller of the two notes.
+    int note_height = 0;
+    for (const wxString &text : {cmyw_text, rybw_text}) {
+        m_basic_warning_text->SetLabel(text);
+        if (can_wrap)
+            m_basic_warning_text->Wrap(avail);
+        note_height = std::max(note_height, m_basic_warning_text->GetBestSize().GetHeight());
+    }
+    m_basic_warning_text->SetLabel(!note_mode ? wxString() : m_selected_mode == DecomposeMode::CMYW ? cmyw_text : rybw_text);
+    if (note_mode && can_wrap)
         m_basic_warning_text->Wrap(avail);
+    m_basic_warning_panel->SetMinSize(wxSize(-1, note_height));
     Layout();
-    // Only resize when the banner appears, so switching cards does not make the dialog jump.
+    // Only resize when the room appears, so switching cards does not make the dialog jump.
     if (!was_shown)
         fit_around_center();
 }
