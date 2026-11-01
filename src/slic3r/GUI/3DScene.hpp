@@ -48,9 +48,6 @@ extern Slic3r::ColorRGBA              adjust_color_for_rendering(const Slic3r::C
 
 
 namespace Slic3r {
-namespace GUI {
-    class Size;
-}
 
 class SLAPrintObject;
 enum  SLAPrintObjectStep : unsigned int;

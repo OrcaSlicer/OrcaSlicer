@@ -2171,7 +2171,7 @@ GCodeViewer::ImexMarkerPlan GCodeViewer::resolve_imex_marker_plan(const DynamicP
 void GCodeViewer::render_scene(int canvas_width, int canvas_height)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
-    render_shells(canvas_width, canvas_height);
+    render_shells();
 
     if (m_viewer.get_extrusion_roles_count() == 0)
         return;
@@ -3391,7 +3391,7 @@ void GCodeViewer::render_toolpaths()
 #endif // ENABLE_NEW_GCODE_VIEWER_DEBUG
 }
 
-void GCodeViewer::render_shells(int canvas_width, int canvas_height)
+void GCodeViewer::render_shells()
 {
     //BBS: add shell previewing logic
     if ((!m_shells.previewing && !m_shells.visible) || m_shells.volumes.empty())

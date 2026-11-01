@@ -78,6 +78,8 @@ float inner_edge(ivec2 q, ivec2 dir)
     vec3 na = covered(ma) ? normal_of(ma) : n1;
     float d0 = fetch_depth(q);
     float d1 = fetch_depth(q + dir);
+    float db = fetch_depth(q - dir);
+    float da = fetch_depth(q + 2 * dir);
     vec3 p0 = view_position(q, d0);
     vec3 p1 = view_position(q + dir, d1);
     // One surface hides the other: they are pixels apart off their planes.
@@ -88,9 +90,9 @@ float inner_edge(ivec2 q, ivec2 dir)
     // seen edge on does not.
     float off = 1e9;
     if (covered(mb))
-        off = length(p1 - (2.0 * p0 - view_position(q - dir, fetch_depth(q - dir))));
+        off = length(p1 - (2.0 * p0 - view_position(q - dir, db)));
     if (covered(ma))
-        off = min(off, length(p0 - (2.0 * p1 - view_position(q + 2 * dir, fetch_depth(q + 2 * dir)))));
+        off = min(off, length(p0 - (2.0 * p1 - view_position(q + 2 * dir, da))));
     if (off < 1e9)
         jump *= smoothstep(1.0, 2.0, off / px);
     // Nor a fillet, which turns a little at every texel on both sides.
@@ -104,8 +106,8 @@ float inner_edge(ivec2 q, ivec2 dir)
     // clearly along dir.
     float crossing = 0.5;
     if (covered(mb) && covered(ma) && dot(nb, n0) > 0.999 && dot(na, n1) > 0.999) {
-        float a = d0 - fetch_depth(q - dir);
-        float b = fetch_depth(q + 2 * dir) - d1;
+        float a = d0 - db;
+        float b = da - d1;
         float u = (d1 - d0 - b) / (a - b);
         if (abs(a - b) > 0.1 * (abs(a) + abs(b)) && u >= 0.0 && u <= 1.0)
             crossing = u;

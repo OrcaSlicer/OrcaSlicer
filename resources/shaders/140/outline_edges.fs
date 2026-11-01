@@ -132,14 +132,16 @@ float inner_edge(ivec2 q, ivec2 dir)
     n1 = surface_normal(m1, l1, r1);
     vec3 nb = covered(mb) ? normal_of(mb) : n0;
     vec3 na = covered(ma) ? normal_of(ma) : n1;
+    float db = fetch_depth(q - dir);
+    float da = fetch_depth(q + 2 * dir);
     float jump = jump_strength(n0, n1, d, px);
     // A step: the texel after the pair lies pixels off the surface before it carried on, both ways, which a surface
     // seen edge on does not.
     float off = 1e9;
     if (covered(mb))
-        off = length(p1 - (2.0 * p0 - view_position(q - dir, fetch_depth(q - dir))));
+        off = length(p1 - (2.0 * p0 - view_position(q - dir, db)));
     if (covered(ma))
-        off = min(off, length(p0 - (2.0 * p1 - view_position(q + 2 * dir, fetch_depth(q + 2 * dir)))));
+        off = min(off, length(p0 - (2.0 * p1 - view_position(q + 2 * dir, da))));
     if (off < 1e9)
         jump *= smoothstep(1.0, 2.0, off / px);
     // Nor a fillet, which turns a little at every texel on both sides.
@@ -157,8 +159,8 @@ float inner_edge(ivec2 q, ivec2 dir)
     // Where the depth planes of both sides meet, when each side is flat over two texels and the planes part
     // clearly along dir.
     if (covered(mb) && covered(ma) && dot(nb, n0) > 0.999 && dot(na, n1) > 0.999) {
-        float a = d0 - fetch_depth(q - dir);
-        float b = fetch_depth(q + 2 * dir) - d1;
+        float a = d0 - db;
+        float b = da - d1;
         float u = (d1 - d0 - b) / (a - b);
         if (abs(a - b) > 0.1 * (abs(a) + abs(b)) && u >= 0.0 && u <= 1.0)
             return pack_edge(strength, u);

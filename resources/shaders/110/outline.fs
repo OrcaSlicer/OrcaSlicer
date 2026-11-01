@@ -24,13 +24,6 @@ uniform vec4 depth_coef;
 // View space size of a pixel at view depth z: x * -z + y.
 uniform vec2 pixel_size_coef;
 
-vec2 unpack2(float c)
-{
-    float v = floor(c * 65535.0 + 0.5);
-    float hi = floor(v / 256.0);
-    return vec2(hi, v - hi * 256.0);
-}
-
 vec4 fetch_mask(ivec2 p)
 {
     return texture2D(mask_tex, (vec2(p) + 0.5) / tex_size);

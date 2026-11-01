@@ -27,13 +27,6 @@ out vec4 out_color;
 
 ivec2 tex_size;
 
-vec2 unpack2(float c)
-{
-    float v = floor(c * 65535.0 + 0.5);
-    float hi = floor(v / 256.0);
-    return vec2(hi, v - hi * 256.0);
-}
-
 vec4 fetch_mask(ivec2 p)
 {
     return texelFetch(mask_tex, clamp(p, ivec2(0), tex_size - 1), 0);
