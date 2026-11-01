@@ -1761,6 +1761,14 @@ void generate_support_toolpaths(
             const bool organic_tree = support_params.support_style == SupportMaterialStyle::smsTreeOrganic;
             const bool top_interfaces = support_params.num_top_interface_layers > 0;
             const bool bottom_interfaces = support_params.num_bottom_interface_layers > 0;
+            // Preserve provenance before upper and lower interfaces are merged.
+            Polygons upper_interface_polygons;
+            if (top_interfaces && !raft_layer) {
+                if (!top_contact_layer.empty())
+                    polygons_append(upper_interface_polygons, top_contact_layer.polygons_to_extrude());
+                if (!interface_layer.empty() && interface_layer.layer->layer_type != SupporLayerType::BottomInterface)
+                    polygons_append(upper_interface_polygons, interface_layer.polygons_to_extrude());
+            }
             if (!top_interfaces) {
                 // If no top interface layers were requested, we treat the contact layer exactly as a generic base layer.
                 // Don't merge the raft contact layer though.
@@ -1777,7 +1785,13 @@ void generate_support_toolpaths(
                     layer_cache.polys_to_iron = top_contact_layer.polygons_to_extrude();
                 }
 
+                Polygons contact_before_loops;
+                if (!raft_layer && config.support_interface_loop_pattern.value && !top_contact_layer.empty())
+                    contact_before_loops = top_contact_layer.polygons_to_extrude();
                 loop_interface_processor.generate(top_contact_layer, support_params.support_material_interface_flow);
+                if (!contact_before_loops.empty())
+                    append(support_layer.top_interface_polygons,
+                           diff_ex(contact_before_loops, top_contact_layer.polygons_to_extrude()));
                 // If no loops are allowed, we treat the contact layer exactly as a generic interface layer.
                 // Merge interface_layer into top_contact_layer, as the top_contact_layer is not synchronized and therefore it will be used
                 // to trim other layers.
@@ -1876,6 +1890,9 @@ void generate_support_toolpaths(
                     double density = raft_contact ? support_params.raft_interface_density :
                         interface_as_base ? support_params.support_density :
                         bottom_interface ? support_params.bottom_interface_density : support_params.top_interface_density;
+                    if (!interface_as_base && !raft_contact && !bottom_interface)
+                        append(support_layer.top_interface_polygons,
+                               intersection_ex(layer_ex.polygons_to_extrude(), upper_interface_polygons));
                     filler->spacing = raft_contact ? support_params.raft_interface_flow.spacing() :
                         interface_as_base ? support_params.support_material_flow.spacing() : support_params.support_material_interface_flow.spacing();
                     filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
