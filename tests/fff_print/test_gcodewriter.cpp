@@ -1264,7 +1264,7 @@ SCENARIO("set_pressure_advance emits RepRapFirmware form with D<N>", "[GCodeWrit
 
         WHEN("set_pressure_advance is called without a tool index") {
             std::string out = writer.set_pressure_advance(0.07);
-            THEN("Output keeps the historical D0 rather than depending on the selected tool") {
+            THEN("Output addresses D0 while no extruder is active") {
                 REQUIRE_THAT(out, Catch::Matchers::ContainsSubstring("M572 D0 S0.07"));
             }
         }
@@ -1281,6 +1281,41 @@ SCENARIO("set_pressure_advance emits RepRapFirmware form with D<N>", "[GCodeWrit
             }
         }
     }
+}
+
+TEST_CASE("RepRapFirmware pressure advance without a tool index goes to the active extruder's drive", "[GCodeWriter][PressureAdvance]") {
+    GCodeWriter writer;
+    writer.config.gcode_flavor.value       = gcfRepRapFirmware;
+    writer.config.filament_diameter.values = {1.75, 1.75};
+    writer.config.filament_map.values      = {1, 2}; // filament 0 on extruder 1, filament 1 on extruder 2
+    writer.set_extruders({0, 1});
+    const unsigned int filament = GENERATE(0u, 1u);
+    CAPTURE(filament);
+    writer.toolchange(filament, int(filament));
+    // Extruder N (1-based in filament_map) is drive N - 1.
+    CHECK_THAT(writer.set_pressure_advance(0.07), Catch::Matchers::ContainsSubstring("M572 D" + std::to_string(filament) + " S0.07"));
+    CHECK_THAT(writer.set_pressure_advance(0.08, 0), Catch::Matchers::ContainsSubstring("M572 D0 S0.08"));
+}
+
+TEST_CASE("Pressure advance outside RepRapFirmware ignores the printing extruder", "[GCodeWriter][PressureAdvance]") {
+    const std::string printer = GENERATE("Klipper", "Marlin", "BBL");
+    CAPTURE(printer);
+    auto setup = [&printer](GCodeWriter &writer) {
+        writer.config.gcode_flavor.value = printer == "Klipper" ? gcfKlipper : gcfMarlinFirmware;
+        writer.set_is_bbl_machine(printer == "BBL");
+        writer.config.filament_diameter.values = {1.75, 1.75};
+        writer.config.filament_map.values      = {1, 2};
+        writer.set_extruders({0, 1});
+    };
+    // the same PA with no extruder active and no extruder given
+    GCodeWriter idle;
+    setup(idle);
+    const std::string reference = idle.set_pressure_advance(0.05);
+    GCodeWriter writer;
+    setup(writer);
+    writer.toolchange(1, 1);
+    CHECK(writer.set_pressure_advance(0.05, -1, 1) == reference);
+    CHECK(writer.set_pressure_advance(0.05) == reference);
 }
 
 SCENARIO("set_pressure_advance emits Marlin 2.x form with optional T<N>", "[GCodeWriter][PressureAdvance]") {
