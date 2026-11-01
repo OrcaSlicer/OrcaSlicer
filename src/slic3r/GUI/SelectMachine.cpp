@@ -2036,6 +2036,192 @@ bool SelectMachineDialog::CheckWarningFilamentCrossExtruder(MachineObject* obj_)
     return true;
 }
 
+bool SelectMachineDialog::IsAllAmsSupportAccurateRemain(MachineObject* obj_) const
+{
+    if (!obj_) return false;
+    const auto& ams_list = obj_->GetFilaSystem()->GetAmsList();
+    if (ams_list.empty()) return false;
+    for (const auto& [ams_id, ams] : ams_list) {
+        if (!ams || ams->GetRemainEstimateVersion() != DevAms::RemainEstimateVersion::Accurate)
+            return false;
+    }
+    return true;
+}
+
+// Returns true when there is nothing to warn about.
+bool SelectMachineDialog::CheckWarningFilamentRemain(MachineObject* obj_)
+{
+    using SlotKey = std::pair<std::string, std::string>; // ams id, slot id
+
+    // Skip when the remain detection is off, it is not a normal send-print or the AMS cannot report the remain accurately.
+    if (!obj_ || m_print_type != PrintFromType::FROM_NORMAL || !obj_->GetFilaSystem()->IsDetectRemainEnabled() ||
+        !IsAllAmsSupportAccurateRemain(obj_))
+        return true;
+
+    GCodeProcessorResult* gcode_result = m_plater->background_process().get_current_gcode_result();
+    const auto* filament_densities = wxGetApp().preset_bundle->full_config().option<ConfigOptionFloats>("filament_density");
+    if (gcode_result == nullptr || filament_densities == nullptr)
+        return true;
+
+    // The remaining weight of every AMS slot that reports it.
+    std::map<SlotKey, double> fila_remain_map;
+    for (const auto& [ams_id, ams] : obj_->GetFilaSystem()->GetAmsList()) {
+        if (!ams) continue;
+        for (const auto& [slot_id, tray] : ams->GetTrays()) {
+            if (!tray) continue;
+            if (auto weight = tray->get_filament_remain_weight())
+                fila_remain_map[{ams_id, slot_id}] = *weight;
+        }
+    }
+
+    // The weight each mapped slot has to supply, from the volumes of the G-code and the filament density.
+    std::map<SlotKey, double> fila_used_map;
+    std::map<SlotKey, std::vector<int>> fila_ids_in_slot; // all filaments mapped to the same slot
+    const auto& volumes_map = gcode_result->print_statistics.total_volumes_per_extruder;
+    for (const auto& fila : m_ams_mapping_result) {
+        const auto volume_it = volumes_map.find(fila.id);
+        if (volume_it == volumes_map.end() || fila.id < 0 || size_t(fila.id) >= filament_densities->values.size()) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " no filament density or volume for filament " << fila.id;
+            return true;
+        }
+        const SlotKey key{fila.ams_id, fila.slot_id};
+        fila_used_map[key] += filament_densities->values[fila.id] * (volume_it->second / 1000.); // mm^3 -> cm^3
+        fila_ids_in_slot[key].push_back(fila.id);
+    }
+
+    const double tolerance = DevAmsTray::get_fila_remain_tolerance();
+    const auto   key_of = [](const DevAmsSlotId& slot) { return SlotKey{std::to_string(slot.first), std::to_string(slot.second)}; };
+
+    std::vector<int> filaments_not_enough;
+    // Slots of every insufficient auto refill group. A slot that belongs to no group is a group of its own,
+    // and only groups with more than one slot are named as groups.
+    std::vector<std::vector<DevAmsSlotId>> insufficient_groups;
+
+    // Compare the remaining weight with the used one for each mapped slot, and deduct the used weight
+    // from the remaining one when the slot itself or its refill group is enough.
+    for (const auto& [slot_key, fila_used] : fila_used_map) {
+        const auto remain_it = fila_remain_map.find(slot_key);
+        if (remain_it == fila_remain_map.end()) continue;
+
+        const double fila_remain = remain_it->second;
+        double remain_to_deduct = fila_used * (1 + tolerance);
+        if (fila_remain >= fila_used * (1 - tolerance)) {
+            remain_it->second = std::max(fila_remain - remain_to_deduct, 0.0);
+            continue;
+        }
+
+        // The slot itself is short.
+        DevAmsSlotId ams_slot_id;
+        try {
+            ams_slot_id = DevAmsSlotId{std::stoi(slot_key.first), std::stoi(slot_key.second)};
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " invalid ams id: " << slot_key.first << " or slot id: " << slot_key.second;
+            return true;
+        }
+
+        // When the auto refill is on, add up the remain of the whole refill group before warning.
+        std::vector<DevAmsSlotId> backup_slots;
+        if (obj_->GetFilaSystem()->IsAutoRefillEnabled() && obj_->GetExtderSystem()->HasFilamentBackup())
+            backup_slots = obj_->GetExtderSystem()->GetBackupAmsSlotInGroup(ams_slot_id);
+
+        double total_remain = fila_remain;
+        for (const DevAmsSlotId& backup : backup_slots) {
+            const auto backup_it = fila_remain_map.find(key_of(backup));
+            if (backup_it != fila_remain_map.end())
+                total_remain += backup_it->second;
+        }
+
+        if (!backup_slots.empty() && total_remain >= fila_used * (1 - tolerance)) {
+            // The group is enough: use this slot first, then the backup slots.
+            const auto consume = [&remain_to_deduct, &fila_remain_map](const SlotKey& key) {
+                auto it = fila_remain_map.find(key);
+                if (it == fila_remain_map.end() || it->second <= 0 || remain_to_deduct <= 0) return;
+                const double deduct = std::min(it->second, remain_to_deduct);
+                it->second -= deduct;
+                remain_to_deduct -= deduct;
+            };
+            consume(slot_key);
+            for (const DevAmsSlotId& backup : backup_slots)
+                consume(key_of(backup));
+            continue;
+        }
+
+        const auto& slot_ids = fila_ids_in_slot[slot_key];
+        filaments_not_enough.insert(filaments_not_enough.end(), slot_ids.begin(), slot_ids.end());
+        std::vector<DevAmsSlotId> group_slots{ams_slot_id};
+        group_slots.insert(group_slots.end(), backup_slots.begin(), backup_slots.end());
+        insufficient_groups.emplace_back(std::move(group_slots));
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " the filament is not enough in ams " << slot_key.first << " slot " << slot_key.second
+                                   << ", used: " << fila_used << ", available: " << total_remain;
+    }
+
+    // Mark the mapping cards of the insufficient filaments.
+    for (const auto& [id, material] : m_materialList) {
+        MaterialItem* item = material->item;
+        if (std::find(filaments_not_enough.begin(), filaments_not_enough.end(), material->id) != filaments_not_enough.end())
+            item->on_warning();
+        else if (item->is_selected())
+            item->on_selected();
+        else
+            item->on_normal();
+    }
+
+    if (filaments_not_enough.empty())
+        return true;
+
+    // Turn the insufficient groups into names: "A1+A3" for a group of slots, "A1" for a single slot.
+    const auto join_names = [](const std::vector<wxString>& names, const wxString& separator) {
+        wxString joined;
+        for (const wxString& name : names) {
+            if (!joined.empty())
+                joined += separator;
+            joined += name;
+        }
+        return joined;
+    };
+
+    std::vector<wxString> slot_names;
+    std::vector<wxString> group_names;
+    for (const auto& group_slots : insufficient_groups) {
+        std::vector<int> tray_ids;
+        for (const DevAmsSlotId& slot : group_slots) {
+            const int tray_id = obj_->GetFilaSystem()->GetTrayIdByAmsSlotId(slot.first, slot.second);
+            if (tray_id >= 0)
+                tray_ids.push_back(tray_id);
+        }
+        if (tray_ids.empty())
+            continue;
+
+        std::sort(tray_ids.begin(), tray_ids.end());
+        std::vector<wxString> tray_names;
+        for (int tray_id : tray_ids)
+            tray_names.push_back(wxGetApp().transition_tridid(tray_id));
+
+        std::vector<wxString>& target_names = tray_names.size() == 1 ? slot_names : group_names;
+        const wxString display_name = join_names(tray_names, "+");
+        if (std::find(target_names.begin(), target_names.end(), display_name) == target_names.end())
+            target_names.push_back(display_name);
+    }
+
+    wxString warning_msg;
+    if (!slot_names.empty())
+        warning_msg = wxString::Format(_L("The filament in %s may be insufficient for this print. Please refill or replace it."),
+                                       join_names(slot_names, ", "));
+    if (!group_names.empty()) {
+        if (!warning_msg.empty())
+            warning_msg += "\n";
+        const wxString joined_groups = join_names(group_names, ", ");
+        warning_msg += group_names.size() == 1 ?
+            wxString::Format(_L("The filament in auto refill group %s may be insufficient for this print. Please refill or replace it."), joined_groups) :
+            wxString::Format(_L("The filament in auto refill groups %s may be insufficient for this print. Please refill or replace it."), joined_groups);
+    }
+    if (warning_msg.empty())
+        warning_msg = _L("The filament in the AMS may be insufficient for this print. Please refill or replace it.");
+
+    show_status(PrintDialogStatus::PrintStatusFilamentWarningRemainNotEnough, {warning_msg});
+    return false;
+}
+
 // ===== Orca: pre-send checks + AMS best-position popup =====
 
 bool SelectMachineDialog::CheckWarningSmartNozzleBlobAuto(MachineObject* obj_)
@@ -5182,6 +5368,8 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
           //  return;
         }
     }
+    CheckWarningFilamentRemain(obj_);
+
     if (!CheckWarningFilamentCrossExtruder(obj_)) {
         wxString warning_msg = _L("Some filaments may switch between extruders during printing. Manual K-value calibration cannot be applied throughout the entire print, which "
                                   "may affect print quality. Enabling Flow Dynamics Calibration is recommended.");
