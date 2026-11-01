@@ -224,8 +224,13 @@ void PlateArrangementDialog::render_title_bar()
     if (m_imgui->button(_L("Close"), ImVec2(cfg.close_width, cfg.title_height), true))
         set_open(false);
 
-    const float y = std::round(p.y + cfg.title_height + cfg.v_spacing * .5f);
-    ImGui::GetWindowDrawList()->AddLine(ImVec2(p.x, y), ImVec2(p.x + cfg.grid_size, y), ImGui::GetColorU32(ImGuiCol_Separator), 1.f);
+    const float y  = std::round(p.y + cfg.title_height + cfg.v_spacing * .5f);
+    ImGui::GetWindowDrawList()->AddLine(
+        ImVec2(p.x, y),
+        ImVec2(p.x + cfg.grid_size, y),
+        m_focused ? ImGui::GetColorU32(ImGuiWrapper::COL_ORCA) : ImGui::GetColorU32(ImGuiCol_Separator),
+        m_focused ? 2.f : 1.f
+    );
     ImGui::SetCursorPos(ImVec2(start.x, start.y + cfg.title_height + cfg.v_spacing));
 }
 
