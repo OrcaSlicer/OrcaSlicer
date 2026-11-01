@@ -1627,11 +1627,11 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
     , m_in_render(false)
     , m_main_toolbar(GLToolbar::Normal, "Main")
     , m_separator_toolbar(GLToolbar::Normal, "Separator")
-    , m_plate_arrangement_dialog("plate_arrangement_dialog", -1, [this] {
+    , m_plate_arrangement_dialog(std::make_unique<Lazy<PlateArrangementDialog>>("plate_arrangement_dialog", -1, [this] {
         m_plate_arrangement_dialog_owner = std::make_unique<PlateArrangementDialog>(*this);
         m_plate_arrangement_dialog_owner->on_change_color_mode(m_is_dark);
         return m_plate_arrangement_dialog_owner.get();
-    })
+    }))
     , m_assemble_view_toolbar(GLToolbar::Normal, "Assembly_View")
     , m_return_toolbar()
     , m_canvas_type(ECanvasType::CanvasView3D)
@@ -1721,7 +1721,7 @@ GLCanvas3D::~GLCanvas3D()
 
 void GLCanvas3D::toggle_plate_arrangement_dialog()
 {
-    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.ensure())
+    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog->ensure())
         dialog->toggle();
 }
 
@@ -1815,7 +1815,7 @@ void GLCanvas3D::on_change_color_mode(bool is_dark, bool reinit) {
     m_moves_slider->on_change_color_mode(is_dark);
     // Partplate
     wxGetApp().plater()->get_partplate_list().on_change_color_mode(is_dark);
-    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get())
+    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog->get())
         dialog->on_change_color_mode(is_dark);
     // Plates toolbar - Reload All Stats button images
     _init_select_plate_toolbar();
@@ -4124,7 +4124,7 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
     auto       imgui         = wxGetApp().imgui();
     const bool imgui_claimed = imgui->claim_key_event(evt);
     // The char of a key the dialog took on key-down.
-    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get(); dialog != nullptr && dialog->on_key(evt))
+    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog->get(); dialog != nullptr && dialog->on_key(evt))
         return;
     if (imgui->update_key_data(evt) || imgui_claimed)
         render();
@@ -4278,7 +4278,6 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
         if (m_canvas_type != ECanvasType::CanvasView3D || m_design_canvas)
             return false;
         toggle_plate_arrangement_dialog();
-        m_dirty = true;
         break;
     case Shortcut::Mouse3DSettings: {
         Mouse3DController& controller = wxGetApp().plater()->get_mouse3d_controller();
@@ -4453,7 +4452,7 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
     const bool alt_wheel_released = evt.GetEventType() == wxEVT_KEY_UP && keyCode == WXK_ALT && std::exchange(m_alt_wheel_used, false);
 
     // The plate arrangement dialog takes its navigation keys before ImGui and the shortcuts, which move objects on arrows.
-    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get(); dialog != nullptr && dialog->on_key(evt)) {
+    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog->get(); dialog != nullptr && dialog->on_key(evt)) {
         render();
         return;
     }
@@ -4867,7 +4866,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // Hovering an ImGui window only changes the overlay.
         const bool overlay_only = evt.Moving() && !m_mouse.dragging;
         if (evt.LeftDClick())
-            if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get())
+            if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog->get())
                 dialog->on_double_click();
         // ImGui takes a press or a release only inside a frame. Motion is rendered from on_idle().
         if (evt.ButtonDown() || evt.ButtonUp() || evt.ButtonDClick())
@@ -10202,7 +10201,7 @@ void GLCanvas3D::_render_overlays()
     _render_imgui_select_plate_toolbar();
     _render_plate_switcher();
     // Plates are only edited on the Prepare canvas.
-    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get();
+    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog->get();
         dialog != nullptr && m_canvas_type == ECanvasType::CanvasView3D && !m_design_canvas)
         dialog->render_input_window();
     _render_return_toolbar();

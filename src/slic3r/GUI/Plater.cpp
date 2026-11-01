@@ -23555,8 +23555,6 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
     } else if ((action == 7) && (!right_click)) {
         // open the plate arrangement dialog
         get_view3D_canvas3D()->toggle_plate_arrangement_dialog();
-        get_view3D_canvas3D()->set_as_dirty();
-        get_view3D_canvas3D()->request_extra_frame();
     }
     else if (action == (int)PartPlate::PLATE_IMEX_MODE_ID)
     {

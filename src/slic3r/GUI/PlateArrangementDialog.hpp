@@ -56,12 +56,12 @@ private:
     enum class Move { First, Previous, Next, Last };
 
     // resources/images/plate_arrangement_<name>[_dark].svg
-    enum iconId {
+    enum IconId {
         First, Previous, Next, Last, ZoomIn, ZoomOut, Locked, Unlocked, Settings, Arrange, Orient, Count
     };
 
-    const char* const icon_names[iconId::Count] = {
-        "first", "previous", "next", "last", "zoom_in", "zoom_out", "locked", "unlocked", "settings", "arrange", "orient" 
+    static constexpr const char* icon_names[IconId::Count] = {
+        "first", "previous", "next", "last", "zoom_in", "zoom_out", "locked", "unlocked", "settings", "arrange", "orient"
     };
 
     // The actions of the icons on a plate, as Plater::select_plate_by_hover_id() numbers them.
@@ -77,7 +77,7 @@ private:
     void render_drag_preview() const;
     void render_bottom_bar();
     // A bottom bar button; `state` colours its background (locked, modified settings) like the plate's own icon.
-    bool render_icon_button(iconId icon, bool enabled, const std::string& tooltip, const ImVec4* state = nullptr);
+    bool render_icon_button(IconId icon, bool enabled, const std::string& tooltip, const ImVec4* state = nullptr);
 
     // Sizes from the ImGui font, so they follow the display scaling; made again when the font size changes.
     void  create_gui_cfg();

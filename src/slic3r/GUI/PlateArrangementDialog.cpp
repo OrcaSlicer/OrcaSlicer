@@ -462,17 +462,17 @@ void PlateArrangementDialog::render_bottom_bar()
     const bool   locked      = single != nullptr && single->is_locked();
     const bool   unlocked    = single != nullptr && !locked; // a locked plate keeps its objects where they are
     ImGui::SetCursorPos(ImVec2(actions, row1));
-    if (render_icon_button(iconId::Orient, unlocked, _u8L("Auto orient objects on current plate")))
+    if (render_icon_button(IconId::Orient, unlocked, _u8L("Auto orient objects on current plate")))
         plate_action(ActionOrient);
     ImGui::SameLine();
-    if (render_icon_button(iconId::Arrange, unlocked, _u8L("Arrange objects on current plate")))
+    if (render_icon_button(IconId::Arrange, unlocked, _u8L("Arrange objects on current plate")))
         plate_action(ActionArrange);
     ImGui::SameLine();
-    if (render_icon_button(locked ? iconId::Locked : iconId::Unlocked, single != nullptr,
+    if (render_icon_button(locked ? IconId::Locked : IconId::Unlocked, single != nullptr,
                            locked ? _u8L("Unlock current plate") : _u8L("Lock current plate"), locked ? &ImGuiWrapper::COL_ORCA : nullptr))
         plate_action(ActionLock);
     ImGui::SameLine();
-    if (render_icon_button(iconId::Settings, single != nullptr, _u8L("Customize current plate"),
+    if (render_icon_button(IconId::Settings, single != nullptr, _u8L("Customize current plate"),
                            single != nullptr && single->has_custom_settings() ? &ImGuiWrapper::COL_WARNING : nullptr))
         plate_action(ActionSettings);
 
@@ -498,12 +498,12 @@ void PlateArrangementDialog::render_bottom_bar()
     GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, shortcuts, m_window_pos.x, m_window_pos.y);
     m_info_button_size = ImGui::GetItemRectSize().y;
 
-    struct MoveButton { iconId icon; Move move; std::string tooltip; };
+    struct MoveButton { IconId icon; Move move; std::string tooltip; };
     const MoveButton moves[] = {
-        { iconId::First,    Move::First,    _u8L("Move to beginning") },
-        { iconId::Previous, Move::Previous, _u8L("Move to previous") },
-        { iconId::Next,     Move::Next,     _u8L("Move to next") },
-        { iconId::Last,     Move::Last,     _u8L("Move to end") },
+        { IconId::First,    Move::First,    _u8L("Move to beginning") },
+        { IconId::Previous, Move::Previous, _u8L("Move to previous") },
+        { IconId::Next,     Move::Next,     _u8L("Move to next") },
+        { IconId::Last,     Move::Last,     _u8L("Move to end") },
     };
     ImGui::SetCursorPos(ImVec2(x0 + ImGui::GetItemRectSize().x + group, row2));
     for (const MoveButton& b : moves) {
@@ -514,10 +514,10 @@ void PlateArrangementDialog::render_bottom_bar()
     }
 
     ImGui::SameLine(0.f, group);
-    if (render_icon_button(iconId::ZoomIn, true, _u8L("Zoom to selected plates")))
+    if (render_icon_button(IconId::ZoomIn, true, _u8L("Zoom to selected plates")))
         zoom_to_selection();
     ImGui::SameLine();
-    if (render_icon_button(iconId::ZoomOut, true, _u8L("Zoom out to all plates")))
+    if (render_icon_button(IconId::ZoomOut, true, _u8L("Zoom out to all plates")))
         m_parent.zoom_to_plate(REQUIRES_ZOOM_TO_ALL_PLATE);
 
     ImGui::SetCursorPos(ImVec2(x0 + cfg.grid_size - cfg.add_width - cfg.delete_width - group, row2));
@@ -544,7 +544,7 @@ void PlateArrangementDialog::render_bottom_bar()
     ImGui::PopStyleVar();
 }
 
-bool PlateArrangementDialog::render_icon_button(iconId icon, bool enabled, const std::string& tooltip, const ImVec4* state)
+bool PlateArrangementDialog::render_icon_button(IconId icon, bool enabled, const std::string& tooltip, const ImVec4* state)
 {
     const GuiCfg&            cfg  = *m_gui_cfg;
     const IconManager::Icon& i    = *m_icons[size_t(icon)].front();
@@ -592,7 +592,7 @@ void PlateArrangementDialog::create_gui_cfg()
     cfg.title_height    = px(26.f);
     cfg.close_width     = std::round(m_imgui->calc_text_size(_L("Close")).x  + px(20.f));
     cfg.add_width       = std::round(m_imgui->calc_text_size(_L("Add")).x    + px(20.f));
-    cfg.delete_width    = std::round(m_imgui->calc_text_size(_L("Delete")).x + px(20.f));
+    cfg.delete_width    = std::round(m_imgui->calc_text_size(_L("Remove")).x + px(20.f));
     cfg.button_size     = px(26.f);
     cfg.button_padding  = cfg.frame_rounding; // image_button() rounds its corners by at most the padding
     cfg.item_spacing    = px(4.f);

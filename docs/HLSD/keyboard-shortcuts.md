@@ -62,7 +62,7 @@ next frame starts, and is called only when the focus is on a visible canvas from
 `OpenGLManager::create_wxglcanvas()`.
 
 An ImGui overlay can take keys of its own ahead of everything else on the canvas. The plate
-reorder dialog (`PlateArrangementDialog::on_key`) takes the arrow keys, Home, End and Esc while its
+arrangement dialog (`PlateArrangementDialog::on_key`) takes the arrow keys, Home, End and Esc while its
 window has the ImGui focus and no InputText is active, before ImGui and the shortcuts see them,
 since the arrows would otherwise also move the selected objects. Like the canvas, it applies the
 key-down's decision to that key's char event and release.
