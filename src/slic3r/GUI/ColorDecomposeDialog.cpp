@@ -552,8 +552,8 @@ static void append_result_component(wxWindow* parent, wxBoxSizer* sizer, const w
                                     bool reserve_new_space)
 {
     auto* col = new wxBoxSizer(wxVERTICAL);
+    // A plain swatch stores its color as the background color, so this one must not be reset to `bg`.
     auto* swatch = create_result_component_swatch(parent, color, swatch_sz, filament_id, show_new, reserve_new_space);
-    swatch->SetBackgroundColour(bg);
     col->Add(swatch, 0, wxALIGN_CENTER_HORIZONTAL);
 
     auto* ratio_text = new wxStaticText(parent, wxID_ANY, wxString::Format("%d%%", ratio));
@@ -1264,6 +1264,8 @@ void ColorDecomposeDialog::update_matched_color_display()
 
     Layout();
     fit_around_center();
+    // The result card can get shorter (rows without a "New" badge); repaint what it vacated.
+    Refresh();
 }
 
 bool ColorDecomposeDialog::try_build_single_base_result(DecomposeMode mode, ColorDecomposeResult& out) const
