@@ -857,6 +857,11 @@ void PrintObject::ironing()
     }
 }
 
+bool PrintObject::precise_z_height() const
+{
+    return m_config.precise_z_height.value && !m_print->precise_z_height_overridden();
+}
+
 bool PrintObject::need_z_contouring() const
 {
     size_t num_regions = this->num_printing_regions();
