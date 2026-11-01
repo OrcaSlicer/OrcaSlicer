@@ -8085,7 +8085,10 @@ void GLCanvas3D::_picking_pass()
         {
             // BBS: add plate picking logic
             int plate_hover_id = hit.raycaster_id;
-            if (plate_hover_id >= 0 && plate_hover_id < PartPlateList::MAX_PLATES_COUNT * PartPlate::GRABBER_COUNT) {
+            // ORCA Prevent tooltips visible while an ImGui window over a plate, such as the arrange plates/simplify dialog, 
+            // ImGui updated WantCaptureMouse in new_frame(), just before this pass.
+            if (plate_hover_id >= 0 && plate_hover_id < PartPlateList::MAX_PLATES_COUNT * PartPlate::GRABBER_COUNT &&
+                !wxGetApp().imgui()->want_mouse()) {
                 wxGetApp().plater()->get_partplate_list().set_hover_id(plate_hover_id);
                 m_hover_plate_idxs.emplace_back(plate_hover_id);
             } else {
