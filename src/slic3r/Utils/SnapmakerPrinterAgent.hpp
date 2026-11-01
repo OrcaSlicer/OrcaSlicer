@@ -3,6 +3,7 @@
 #include "IPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 
+#include "nlohmann/json.hpp"
 #include <string>
 
 namespace Slic3r {
@@ -17,6 +18,8 @@ public:
     AgentInfo        get_agent_info() override { return get_agent_info_static(); }
 
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
+
+    static void apply_lane_data(const nlohmann::json& lanes, int slot, std::string& filament_id, std::string& vendor);
 
 private:
     // Combine filament_type + filament_sub_type into a unified type string
