@@ -114,7 +114,10 @@ void render_ring(ivec2 p)
     float alpha = 1.0;
     float depth;
     if (covered(m)) {
-        if (!use_stencil)
+        // Only the silhouette of the mask may hold samples off the selection. Inside, a face the mask has and the
+        // scene culled, say, would get no stencil bit and fill with the ring.
+        if (!use_stencil || (covered(fetch_mask(p - ivec2(1, 0))) && covered(fetch_mask(p + ivec2(1, 0))) &&
+                             covered(fetch_mask(p - ivec2(0, 1))) && covered(fetch_mask(p + ivec2(0, 1)))))
             discard;
         depth = surface_depth(p);
     }
