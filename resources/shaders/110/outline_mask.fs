@@ -2,7 +2,7 @@
 
 const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 
-// 1 to 255, told apart between neighboring volumes.
+// 1 to 65535, told apart between neighboring volumes.
 uniform float part_id;
 
 varying vec3 clipping_planes_dots;
@@ -33,5 +33,5 @@ void main()
         n = -n;
     vec2 e = oct_encode(n);
     // Without gl_VertexID there are no barycentrics to tell where the triangle ends.
-    gl_FragColor = vec4(pack2(e.x, e.y), pack2(part_id, 0.0), 0.0, 0.0);
+    gl_FragColor = vec4(pack2(e.x, e.y), (part_id + 0.25) / 65535.0, 0.0, 0.0);
 }

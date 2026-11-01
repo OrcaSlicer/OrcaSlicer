@@ -116,7 +116,7 @@ float inner_edge(ivec2 q, ivec2 dir)
     vec3 p1 = view_position(q + dir, d1);
     vec3 d = p1 - p0;
     float px = dot(pixel_size_coef, vec2(-max(p0.z, p1.z), 1.0));
-    bool same_part = unpack2(m0.g).x == unpack2(m1.g).x;
+    bool same_part = m0.g == m1.g;
     if (same_part && jump_strength(n0, n1, d, px) <= 0.0 && dot(n0, n1) >= CREASE_COS_START)
         return 0.0;
 

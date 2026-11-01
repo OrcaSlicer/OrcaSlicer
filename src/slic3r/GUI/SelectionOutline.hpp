@@ -27,6 +27,8 @@ public:
                 const std::array<double, 4>& clipping_plane, float scale, GLModel& quad);
     // Frees the targets.
     void reset();
+    // The stencil holds the bits above, so the outline marks DrawnBit.
+    bool uses_stencil() const { return m_stencil_bits >= 8; }
 
 private:
     bool update_targets(unsigned int width, unsigned int height);

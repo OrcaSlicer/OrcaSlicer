@@ -4,7 +4,7 @@ const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 // Farthest triangle edge distance stored, in pixels.
 const float EXIT_REACH = 4.0;
 
-// 1 to 255, told apart between neighboring volumes.
+// 1 to 65535, told apart between neighboring volumes.
 uniform float part_id;
 
 in vec3 clipping_planes_dots;
@@ -49,6 +49,6 @@ void main()
     vec2 e = oct_encode(n);
     vec3 bx = dFdx(barycentric);
     vec3 by = dFdy(barycentric);
-    out_color = vec4(pack2(e.x, e.y), pack2(part_id, 0.0),
+    out_color = vec4(pack2(e.x, e.y), (part_id + 0.25) / 65535.0,
                      pack2(exit_distance(bx), exit_distance(-bx)), pack2(exit_distance(by), exit_distance(-by)));
 }

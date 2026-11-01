@@ -96,5 +96,6 @@ opacity. Both have a smooth edge 1.2 pixels wide.
 
 The outline needs ARB framebuffer objects, a 16 bit RGBA color renderable texture and the outline
 shaders, and it is not drawn without them. Under GLSL 1.10 there is no `gl_VertexID`: crossings fall
-back on the depth planes and the half way point, and slivers are not detected. Without a stencil buffer
-the ring stays off the pixels the mask covers, and loses the exact inner edge.
+back on the depth planes and the half way point, and slivers are not detected. Without 8 stencil bits,
+which the two bits used need, the ring stays off the pixels the mask covers and loses the exact inner
+edge, and the occlusion pass shades the outline too.

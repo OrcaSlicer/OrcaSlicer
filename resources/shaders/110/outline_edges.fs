@@ -96,7 +96,7 @@ float inner_edge(ivec2 q, ivec2 dir)
     // Nor a fillet, which turns a little at every texel on both sides.
     jump *= 1.0 - gradual_turn(dot(nb, n0)) * gradual_turn(dot(n1, na));
     float crease = 1.0 - smoothstep(CREASE_COS_FULL, CREASE_COS_START, dot(n0, n1));
-    float strength = unpack2(m0.g).x == unpack2(m1.g).x ? max(jump, crease) : 1.0;
+    float strength = m0.g == m1.g ? max(jump, crease) : 1.0;
     if (strength <= 0.0)
         return 0.0;
 

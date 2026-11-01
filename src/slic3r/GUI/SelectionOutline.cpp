@@ -131,7 +131,7 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
         mask_shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
         mask_shader->set_uniform("view_normal_matrix", Matrix3d(view_matrix.matrix().block(0, 0, 3, 3) *
                                                                 model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose()));
-        mask_shader->set_uniform("part_id", float(i % 255 + 1));
+        mask_shader->set_uniform("part_id", float(i % 65535 + 1));
         if (volume.tverts_range == std::make_pair<size_t, size_t>(0, -1))
             volume.model.render(mask_shader);
         else
@@ -170,7 +170,7 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
     glsafe(::glDepthMask(GL_FALSE));
     glsafe(::glEnable(GL_BLEND));
     glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    const bool use_stencil = m_stencil_bits > 0;
+    const bool use_stencil = uses_stencil();
     if (use_stencil) {
         glsafe(::glEnable(GL_STENCIL_TEST));
         glsafe(::glStencilMask(DrawnBit));
