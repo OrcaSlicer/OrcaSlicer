@@ -587,3 +587,47 @@ TEST_CASE("Nested rings get space before their smaller contents", "[arrange][spa
     check_inside_opening(pieces[1], pieces[2]);
     check_inside_opening(pieces[0], pieces[1]);
 }
+
+TEST_CASE("Arrange results are scored by plates used and parts left out", "[Arrange][Sparrow]")
+{
+    ArrangePolygons sel{part(rectangle(0, 0, 10, 10), 0), part(rectangle(0, 0, 10, 10), 1), part(rectangle(0, 0, 10, 10), 2)};
+    sel[0].bed_idx = 0;
+    sel[1].bed_idx = 2;
+    sel[2].bed_idx = -1;
+    ArrangePolygon tower = part(rectangle(0, 0, 5, 5), 3);
+    tower.is_virt_object = true;
+    tower.bed_idx = 7;
+    sel.push_back(tower);
+
+    SECTION("virtual items and unplaced parts do not take a plate") {
+        CHECK(count_plates_used(sel, {}, false) == 2);
+        CHECK(count_unplaced(sel, false) == 1);
+    }
+    SECTION("a plate occupied by a fixed part counts") {
+        ArrangePolygons fixed{part(rectangle(0, 0, 10, 10), 9)};
+        fixed[0].bed_idx = 5;
+        CHECK(count_plates_used(sel, fixed, false) == 3);
+    }
+    SECTION("a plate arrange counts parts sent off the plate") {
+        CHECK(count_plates_used(sel, {}, true) == 2); // bed 2 and the unplaced one
+        CHECK(count_unplaced(sel, true) == 0);
+    }
+}
+
+TEST_CASE("Outline to hull ratio shows the room hull packing wastes", "[Arrange][Sparrow]")
+{
+    SECTION("a convex part wastes nothing") {
+        ArrangePolygons items{part(rectangle(0, 0, 10, 10), 0)};
+        double outline = 0.;
+        CHECK(outline_hull_ratio(items, &outline) == Catch::Approx(1.));
+        CHECK(outline == Catch::Approx(scale_(10.) * scale_(10.)));
+    }
+    SECTION("an L shape leaves a quarter of its hull empty") {
+        ArrangePolygon l = part(Polygon({Point(0, 0), Point(scale_(20), 0), Point(scale_(20), scale_(10)),
+                                         Point(scale_(10), scale_(10)), Point(scale_(10), scale_(20)), Point(0, scale_(20))}), 0);
+        CHECK(outline_hull_ratio({l}) == Catch::Approx(300. / 350.).margin(1e-6));
+    }
+    SECTION("nothing to measure is neutral") {
+        CHECK(outline_hull_ratio({}) == 1.);
+    }
+}

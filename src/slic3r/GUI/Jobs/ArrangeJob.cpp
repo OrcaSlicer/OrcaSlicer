@@ -6,7 +6,6 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/IMEXArrange.hpp"
-#include "libslic3r/Geometry/ConvexHull.hpp"
 
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -705,28 +704,12 @@ void ArrangeJob::check_unprintable()
 
 int ArrangeJob::score(const ArrangePolygons &selected, const ArrangePolygons &unselected) const
 {
-    std::set<int> beds;
-    int off_plate = 0;
-    for (const ArrangePolygon &ap : selected) {
-        if (ap.is_virt_object)
-            continue;
-        if (ap.bed_idx != 0)
-            ++off_plate; // a plate arrange sends what does not fit outside
-        if (ap.bed_idx >= 0)
-            beds.insert(ap.bed_idx);
-    }
-    // Plates the fixed parts occupy count too, or opening fresh plates would look like a win.
-    for (const ArrangePolygon &ap : unselected)
-        if (!ap.is_virt_object && ap.bed_idx >= 0)
-            beds.insert(ap.bed_idx);
-    return only_on_partplate ? off_plate : int(beds.size());
+    return arrangement::count_plates_used(selected, unselected, only_on_partplate);
 }
 
 int ArrangeJob::unplaced(const ArrangePolygons &aps) const
 {
-    if (only_on_partplate)
-        return 0; // counted by score()
-    return int(std::count_if(aps.begin(), aps.end(), [](const ArrangePolygon &ap) { return !ap.is_virt_object && ap.bed_idx < 0; }));
+    return arrangement::count_unplaced(aps, only_on_partplate);
 }
 
 // Stock arrange packs convex hulls, sparrow true outlines, so the area the hulls waste is
@@ -734,19 +717,14 @@ int ArrangeJob::unplaced(const ArrangePolygons &aps) const
 // a wrong yes costs a visible, stoppable search, a wrong no a missed plate.
 bool ArrangeJob::predict_better(int stock_score, double bed_area) const
 {
-    double hull = 0., outline = 0.;
-    for (const ArrangePolygon &ap : m_selected) {
-        if (ap.is_virt_object)
-            continue;
-        hull += Geometry::convex_hull(ap.poly.contour.points).area();
-        outline += ap.poly.area(); // openings count as free space
-    }
-    BOOST_LOG_TRIVIAL(info) << "arrange: " << "pack tighter check: stock score " << stock_score << ", unplaced " << m_stock_unplaced << ", outline/hull " << outline / hull;
+    double outline = 0.;
+    const double ratio = arrangement::outline_hull_ratio(m_selected, &outline);
+    BOOST_LOG_TRIVIAL(info) << "arrange: " << "pack tighter check: stock score " << stock_score << ", unplaced " << m_stock_unplaced << ", outline/hull " << ratio;
     // A plate arrange that left parts off tries whenever their outlines could fit the plate:
     // a miss costs one plate's search.
     if (only_on_partplate)
         return stock_score >= 1 && outline <= bed_area;
-    return (stock_score >= 2 || m_stock_unplaced > 0) && hull > 0. && outline / hull < 0.85;
+    return (stock_score >= 2 || m_stock_unplaced > 0) && ratio < 0.85;
 }
 
 std::string ArrangeJob::done_message(bool canceled) const
@@ -811,9 +789,11 @@ void ArrangeJob::pack_tighter(Ctl &ctl, ArrangePolygons &selected, const Points 
             plate_filaments[ap.bed_idx].insert(ap.extrude_ids.begin(), ap.extrude_ids.end());
     for (const auto &[bed, filaments] : plate_filaments)
         pack.sparrow_max_filaments_per_plate = std::max(pack.sparrow_max_filaments_per_plate, int(filaments.size()));
-    pack.on_layout = [this, alive, last](const std::vector<arrangement::ArrangeParams::Pose> &poses) {
+    // Each update reloads the scene, so big plates refresh less often.
+    const auto interval = std::chrono::milliseconds(std::clamp<long long>(5ll * (long long) m_live_aps.size(), 125, 1000));
+    pack.on_layout = [this, alive, last, interval](const std::vector<arrangement::ArrangeParams::Pose> &poses) {
         const auto now = std::chrono::steady_clock::now();
-        if (now - *last < std::chrono::milliseconds(125))
+        if (now - *last < interval)
             return;
         *last = now;
         wxGetApp().CallAfter([this, alive, poses] {
@@ -1170,7 +1150,16 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
     // The stock result first, as its own undo step: undo goes packed -> stock -> before.
     // Not with locked or skipped plates: applying unlocks those, and a second apply would
     // then map beds onto them.
-    if (m_packed_score >= 0 && m_locked.empty() && m_uncompatible_plates.empty()) {
+    // Nor when the user deleted a part meanwhile: restore_live() could not bring it back.
+    bool instances_intact = true;
+    {
+        std::set<const ModelInstance *> present;
+        for (const ModelObject *mo : m_plater->model().objects)
+            present.insert(mo->instances.begin(), mo->instances.end());
+        for (const auto &entry : m_live_restore)
+            instances_intact = instances_intact && present.count(entry.first);
+    }
+    if (m_packed_score >= 0 && instances_intact && m_locked.empty() && m_uncompatible_plates.empty()) {
         ArrangePolygons unselected = m_unselected, locked = m_locked, unprintable = m_unprintable;
         apply_result(m_stock_selected, unselected, locked, unprintable);
         m_plater->take_snapshot(_u8L("Pack tighter"));

@@ -262,6 +262,16 @@ inline void arrange(ArrangePolygons &items, const CircleBed &bed, const ArrangeP
 inline void arrange(ArrangePolygons &items, const Polygon &bed, const ArrangeParams &params = {}) { arrange(items, {}, bed, params); }
 inline void arrange(ArrangePolygons &items, const InfiniteBed &bed, const ArrangeParams &params = {}) { arrange(items, {}, bed, params); }
 
+// Measures of an arrange result, used to compare a stock result with a packed one.
+// Plates in use: those holding selected or fixed parts; for a plate arrange (only plate 0
+// is arranged) the parts sent off it. Virtual items are ignored.
+int count_plates_used(const ArrangePolygons &selected, const ArrangePolygons &unselected, bool only_on_partplate);
+// Parts left without a plate (bed_idx < 0); 0 for a plate arrange, which score covers.
+int count_unplaced(const ArrangePolygons &items, bool only_on_partplate);
+// Outline area over convex hull area of the real parts: how much room hull packing wastes.
+// Returns 1 when there is nothing to measure.
+double outline_hull_ratio(const ArrangePolygons &items, double *outline_area = nullptr);
+
 }} // namespace Slic3r::arrangement
 
 #endif // MODELARRANGE_HPP

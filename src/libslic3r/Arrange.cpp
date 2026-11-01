@@ -1331,5 +1331,45 @@ template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, c
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const Polygon &bed, const ArrangeParams &params);
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const InfiniteBed &bed, const ArrangeParams &params);
 
+int count_plates_used(const ArrangePolygons &selected, const ArrangePolygons &unselected, bool only_on_partplate)
+{
+    std::set<int> beds;
+    int off_plate = 0;
+    for (const ArrangePolygon &ap : selected) {
+        if (ap.is_virt_object)
+            continue;
+        if (ap.bed_idx != 0)
+            ++off_plate;
+        if (ap.bed_idx >= 0)
+            beds.insert(ap.bed_idx);
+    }
+    // Plates the fixed parts occupy count too, or opening fresh plates would look like a win.
+    for (const ArrangePolygon &ap : unselected)
+        if (!ap.is_virt_object && ap.bed_idx >= 0)
+            beds.insert(ap.bed_idx);
+    return only_on_partplate ? off_plate : int(beds.size());
+}
+
+int count_unplaced(const ArrangePolygons &items, bool only_on_partplate)
+{
+    if (only_on_partplate)
+        return 0;
+    return int(std::count_if(items.begin(), items.end(), [](const ArrangePolygon &ap) { return !ap.is_virt_object && ap.bed_idx < 0; }));
+}
+
+double outline_hull_ratio(const ArrangePolygons &items, double *outline_area)
+{
+    double hull = 0., outline = 0.;
+    for (const ArrangePolygon &ap : items) {
+        if (ap.is_virt_object)
+            continue;
+        hull += Geometry::convex_hull(ap.poly.contour.points).area();
+        outline += ap.poly.area(); // openings count as free space
+    }
+    if (outline_area)
+        *outline_area = outline;
+    return hull > 0. ? outline / hull : 1.;
+}
+
 } // namespace arr
 } // namespace Slic3r
