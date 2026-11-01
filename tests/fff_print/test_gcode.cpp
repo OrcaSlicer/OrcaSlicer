@@ -23,14 +23,17 @@
 #include "libslic3r/libslic3r.h"
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstddef>
 #include <fstream>
 #include <ios>
+#include <iterator>
 #include <regex>
 #include <set>
 #include <map>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -582,5 +585,131 @@ TEST_CASE("The temperature tower steps the temperature of the tool printing it",
         // Every 5 degree band from the start to the end temperature, and nothing else.
         CHECK(temperatures == std::set<int>{190, 195, 200, 205, 210, 215, 220, 225, 230});
         CHECK(tools == std::set<std::string>{multi_tool ? "1" : "none"});
+    }
+}
+
+// The islands each layer extrudes, in order, keyed by print height. island_at maps a G-code XY to an
+// island, or to a negative value for moves to ignore.
+template<typename IslandAt>
+static std::map<int, std::vector<int>> islands_per_layer(const std::string &gcode, IslandAt island_at)
+{
+    std::map<int, std::vector<int>> layers;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (!line.cmd_is("G1") || !line.extruding(self) || line.dist_XY(self) <= 0.f)
+            return;
+        const int island = island_at(line.new_X(self), line.new_Y(self));
+        if (island < 0)
+            return;
+        std::vector<int> &visits = layers[int(std::lround(self.z() * 1000.f))];
+        if (visits.empty() || visits.back() != island)
+            visits.push_back(island);
+    });
+    return layers;
+}
+
+// One object made of two 5 x 30 mm slabs 100 mm apart, so every layer has two islands, printed 4 mm tall
+// at 0.2 mm by layer with one filament. Two instances make four islands per layer.
+static std::string slice_two_slabs(int instances, const std::string &print_order = "default")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "print_sequence", "by layer" }, { "skirt_loops", 0 }, { "brim_type", "no_brim" },
+                                    { "layer_height", 0.2 }, { "initial_layer_print_height", 0.2 }, { "sparse_infill_density", "0%" },
+                                    { "print_order", print_order } });
+    Model model;
+    Print print;
+    ModelObject *object = model.add_object();
+    object->name += "object.stl";
+    TriangleMesh left = make_cube(5, 30, 4);
+    TriangleMesh right = make_cube(5, 30, 4);
+    right.translate(105, 0, 0);
+    object->add_volume(std::move(left));
+    object->add_volume(std::move(right));
+    for (int i = 0; i < instances; ++i)
+        object->add_instance()->set_offset(Vec3d(30, 30 + 60 * i, 0));
+    object->ensure_on_bed();
+    print.auto_assign_extruders(object);
+    print.apply(model, config);
+    print.set_status_silent();
+    return Test::gcode(print);
+}
+
+TEST_CASE("By layer printing starts each layer on the island the previous layer ended on", "[GCode]")
+{
+    // 30 + 55 is midway between the slabs; each instance spans 30 mm in Y.
+    const auto layers = islands_per_layer(slice_two_slabs(1), [](double x, double) { return x < 85. ? 0 : 1; });
+    REQUIRE(layers.size() == 20);
+    for (auto it = layers.begin(); it != layers.end(); ++it) {
+        INFO("layer at " << it->first << " um");
+        CHECK(it->second.size() == 2);
+        const auto next = std::next(it);
+        if (next != layers.end())
+            CHECK(next->second.front() == it->second.back());
+    }
+}
+
+TEST_CASE("By layer printing visits every island of every instance once per layer", "[GCode]")
+{
+    const auto layers = islands_per_layer(slice_two_slabs(2), [](double x, double y) { return (x < 85. ? 0 : 1) + (y < 75. ? 0 : 2); });
+    REQUIRE(layers.size() == 20);
+    for (auto it = layers.begin(); it != layers.end(); ++it) {
+        INFO("layer at " << it->first << " um");
+        const std::set<int> islands(it->second.begin(), it->second.end());
+        CHECK(it->second.size() == 4);
+        CHECK(islands.size() == 4);
+        const auto next = std::next(it);
+        if (next != layers.end())
+            CHECK(next->second.front() == it->second.back());
+    }
+}
+
+TEST_CASE("Snake and best-of orders keep the same island order on every layer", "[GCode]")
+{
+    const std::string print_order = GENERATE("snake", "best_of");
+    INFO(print_order);
+    const auto layers = islands_per_layer(slice_two_slabs(1, print_order), [](double x, double) { return x < 85. ? 0 : 1; });
+    REQUIRE(layers.size() == 20);
+    for (const auto &layer : layers)
+        CHECK(layer.second == layers.begin()->second);
+}
+
+TEST_CASE("With several filaments every layer prints a filament's islands in the same order", "[GCode]")
+{
+    const bool prime_tower = GENERATE(false, true);
+    INFO("prime tower " << prime_tower);
+    DynamicPrintConfig config = Test::multifilament_config(2, { { "print_sequence", "by layer" }, { "skirt_loops", 0 }, { "brim_type", "no_brim" },
+                                                                { "layer_height", 0.2 }, { "initial_layer_print_height", 0.2 },
+                                                                { "sparse_infill_density", "0%" }, { "enable_prime_tower", prime_tower ? 1 : 0 },
+                                                                { "wipe_tower_x", "15" }, { "wipe_tower_y", "120" } });
+    Model model;
+    Print print;
+    ModelObject *object = model.add_object();
+    object->name += "object.stl";
+    // Slabs of the first filament at X 0 and X 105 of the object. The second filament's, next to the
+    // last of them, hands the nozzle to that slab, which starting at the nozzle would print first.
+    TriangleMesh first = make_cube(5, 30, 4);
+    TriangleMesh last = make_cube(5, 30, 4);
+    TriangleMesh other_filament = make_cube(5, 30, 4);
+    last.translate(105, 0, 0);
+    other_filament.translate(90, 0, 0);
+    object->add_volume(std::move(first));
+    object->add_volume(std::move(last));
+    object->add_volume(std::move(other_filament))->config.set("extruder", 2);
+    object->add_instance()->set_offset(Vec3d(30, 30, 0));
+    object->ensure_on_bed();
+    print.apply(model, config);
+    print.set_status_silent();
+
+    // The instance is at X 30, Y 30..60. Anything outside that band is the tower; the band's X 60..130
+    // holds the second filament's slab.
+    const auto layers = islands_per_layer(Test::gcode(print), [](double x, double y) {
+        if (y < 25. || y > 65. || (x >= 60. && x < 130.))
+            return -1;
+        return x < 60. ? 0 : 1;
+    });
+    REQUIRE(layers.size() == 20);
+    for (const auto &layer : layers) {
+        CHECK(layer.second.size() == 2);
+        CHECK(layer.second == layers.begin()->second);
     }
 }

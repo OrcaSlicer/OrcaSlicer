@@ -34,6 +34,9 @@ std::vector<size_t> tsp_exact_cycle(const Points& centers);
 
 // Rotate the cycle so the closing edge (last -> first) is minimized.
 void tsp_rotate_minimize_closing(std::vector<size_t>& path, const Points& centers);
+// Cut a cycle into an open path that starts at the point closest to start_near and leaves out
+// the longer of the two cycle edges at that point.
+void tsp_open_cycle_near(std::vector<size_t>& path, const Points& centers, const Point& start_near);
 
 // Total Euclidean path length of a cycle (including closing edge).
 inline double tsp_cycle_path_length(const std::vector<size_t>& path, const Points& centers)
