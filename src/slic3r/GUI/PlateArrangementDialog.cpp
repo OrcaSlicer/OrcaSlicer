@@ -7,16 +7,19 @@
 #include <functional>
 #include <iterator>
 #include <numeric>
+#include <set>
 #include <string>
 #include <tuple>
 #include <utility>
 
+#include <wx/colour.h>
 #include <wx/event.h>
 #include <wx/string.h>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
+#include <imgui.h>
 #include <imgui/imgui_internal.h>
 
 #include "libslic3r/BoundingBox.hpp"
