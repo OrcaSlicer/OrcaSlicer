@@ -4,12 +4,17 @@
 #include <cfloat>
 #include <cmath>
 #include <cstring>
+#include <cstdint>
 #include <functional>
 #include <iterator>
+#include <map>
+#include <memory>
 #include <numeric>
 #include <set>
 #include <string>
 #include <tuple>
+#include <type_traits>
+#include <vector>
 #include <utility>
 
 #include <wx/colour.h>
@@ -25,7 +30,9 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/Utils.hpp"
+#include <libslic3r/Point.hpp>
 #include "libslic3r/format.hpp"
+#include <slic3r/GUI/IconManager.hpp>
 
 #include "3DScene.hpp"
 #include "Camera.hpp"
