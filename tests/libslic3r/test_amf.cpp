@@ -11,6 +11,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include "test_utils.hpp"
 
@@ -244,27 +245,76 @@ TEST_CASE("Unplaced excluded AMF assemblies keep their excluded instance", "[AMF
     CHECK_FALSE(model.objects.front()->instances.front()->printable);
 }
 
-TEST_CASE("Multi-part detection compares unplaced AMF groups by their own geometry", "[AMF][OriginalNames]")
+TEST_CASE("Multi-part detection compares unplaced AMF groups at zero height", "[AMF][OriginalNames]")
 {
-    // The GUI asks the Multi-part question before it adds instances to these objects.
+    // The GUI checks before it adds instances to unplaced objects, so they have no height on the bed yet;
+    // as before, they compare at zero and their mesh heights are ignored.
+    const bool placed = GENERATE(false, true);
     const bool raised = GENERATE(false, true);
+    const std::string placement = placed ? "<deltax>10</deltax>" : "";
+    // A placed object is raised by its placement; the GUI's centering moves the volumes, not the instance, so the rise stays.
+    const std::string raised_placement = placement + (placed && raised ? "<deltaz>10</deltaz>" : "");
     ScopedTemporaryFile tmp(".amf");
     write_file(tmp.string(), "<amf unit=\"millimeter\">" +
         named_amf_object(1, "ParentA", "LeafA") + named_amf_object(2, "ParentB", "LeafB") +
-        "<constellation id=\"3\"><instance objectid=\"1\"/></constellation>"
-        "<constellation id=\"4\"><instance objectid=\"2\"/></constellation></amf>");
+        "<constellation id=\"3\"><instance objectid=\"1\">" + placement + "</instance></constellation>"
+        "<constellation id=\"4\"><instance objectid=\"2\">" + raised_placement + "</instance></constellation></amf>");
     Model model;
     REQUIRE(load_amf_with_options(tmp.string(), model,
         LoadStrategy::LoadModel | LoadStrategy::AssembleParts | LoadStrategy::KeepOriginalNames));
     REQUIRE(model.objects.size() == 2);
-    if (raised) {
+    // An unplaced object can only be raised in its mesh.
+    if (raised && !placed) {
         model.objects[1]->volumes.front()->translate(Vec3d(0., 0., 10.));
         model.objects[1]->invalidate_bounding_box();
     }
-    CHECK(model.looks_like_multipart_object() == raised);
-    // The check must not place the objects; the GUI still centres them later.
-    CHECK(model.objects[0]->instances.empty());
-    CHECK(model.objects[1]->instances.empty());
+    CHECK(model.looks_like_multipart_object() == (placed && raised));
+    // The check must not place the objects; the GUI still centers unplaced ones later.
+    CHECK(model.objects[0]->instances.empty() == !placed);
+    CHECK(model.objects[1]->instances.empty() == !placed);
+}
+
+TEST_CASE("Multi-part detection of mixed and centered unplaced AMF objects", "[AMF][OriginalNames]")
+{
+    // Either object comes first, so the result does not depend on which one sets the reference height.
+    const bool swapped = GENERATE(false, true);
+    const size_t first = swapped ? 1 : 0;
+    const size_t second = swapped ? 0 : 1;
+    // A placed object stands at its placement, and an unplaced one compares at zero, so they differ.
+    SECTION("mixed placement asks") {
+        const std::string unplaced = "<instance objectid=\"1\"></instance>";
+        const std::string placed = "<instance objectid=\"2\"><deltax>10</deltax><deltaz>10</deltaz></instance>";
+        ScopedTemporaryFile tmp(".amf");
+        write_file(tmp.string(), "<amf unit=\"millimeter\">" +
+            named_amf_object(1, "ParentA", "LeafA") + named_amf_object(2, "ParentB", "LeafB") +
+            "<constellation id=\"3\">" + (swapped ? placed : unplaced) + "</constellation>"
+            "<constellation id=\"4\">" + (swapped ? unplaced : placed) + "</constellation></amf>");
+        Model model;
+        REQUIRE(load_amf_with_options(tmp.string(), model,
+            LoadStrategy::LoadModel | LoadStrategy::AssembleParts | LoadStrategy::KeepOriginalNames));
+        REQUIRE(model.objects.size() == 2);
+        CHECK(model.looks_like_multipart_object());
+        // The unplaced object comes from the first group unless swapped.
+        CHECK(model.objects[first]->instances.empty());
+        CHECK(model.objects[second]->instances.size() == 1);
+    }
+    // The reviewer's case: unplaced objects of different heights after the GUI's rotation, which centers them.
+    SECTION("unplaced objects of different heights do not ask") {
+        ScopedTemporaryFile tmp(".amf");
+        write_file(tmp.string(), "<amf unit=\"millimeter\">" +
+            named_amf_object(1, "ParentA", "LeafA") + named_amf_object(2, "ParentB", "LeafB") + "</amf>");
+        Model model;
+        REQUIRE(load_amf_with_options(tmp.string(), model, LoadStrategy::LoadModel | LoadStrategy::KeepOriginalNames));
+        REQUIRE(model.objects.size() == 2);
+        model.objects[first]->volumes.front()->scale(Vec3d(1., 1., 4.));
+        for (ModelObject *object : model.objects) {
+            object->invalidate_bounding_box();
+            object->rotate(0., Axis::Z);
+        }
+        CHECK_FALSE(model.looks_like_multipart_object());
+        CHECK(model.objects[0]->instances.empty());
+        CHECK(model.objects[1]->instances.empty());
+    }
 }
 
 TEST_CASE("AMF assemblies with any placement keep their position from the file", "[AMF][OriginalNames]")

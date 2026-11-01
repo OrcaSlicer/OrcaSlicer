@@ -293,7 +293,7 @@ bool show_geometry_import_options(wxWindow* parent, const std::string& format, G
     // Item 0 loads separate objects, item 1 an assembly, item 2 a single object.
     RadioGroup* load_mode = nullptr;
     if (format != "3mf") {
-        load_mode = add_radio_group(dialog, {_L("Separate objects (as before)"), _L("Load as an assembly"), _L("Load as a single object (can be split later)")},
+        load_mode = add_radio_group(dialog, {_L("Load as separate objects"), _L("Load as an assembly"), _L("Load as a single object (can be split later)")},
                                     options.separate_objects ? 0 : options.load_as_assembly ? 1 : 2, wxVERTICAL);
         load_mode->SetRadioTooltip(0, _L("Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."));
         load_mode->SetRadioTooltip(1, _L("The bodies of each group in the file become parts of one object, in their relative positions."));

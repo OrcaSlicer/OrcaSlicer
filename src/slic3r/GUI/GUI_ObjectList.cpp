@@ -2128,6 +2128,9 @@ void ObjectList::OnDrop(wxDataViewEvent &event)
         });
         ModelVolume* dragged_volume = volumes[visible_volume_indices[size_t(from_volume_id)]];
         if (imported_order) {
+            // The rebuild below deletes the rows, so a name editor still open on one of them must not write back.
+            if (wxDataViewRenderer* renderer = GetColumn(colName)->GetRenderer(); renderer->GetEditorCtrl())
+                renderer->CancelEditing();
             wxDataViewItemArray children;
             m_objects_model->GetChildren(m_objects_model->GetParent(item), children);
             std::vector<ModelVolume*> displayed;

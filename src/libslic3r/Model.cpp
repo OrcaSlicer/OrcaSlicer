@@ -908,8 +908,8 @@ bool Model::looks_like_multipart_object() const
         if (obj->volumes.size() > 1 || obj->config.keys().size() > 1)
             return false;
 
-        // Objects without instances (unplaced AMF definitions) are compared in their own coordinates.
-        double zmin_this = obj->instances.empty() ? obj->raw_mesh_bounding_box().min.z() : obj->min_z();
+        // Objects the file does not place have no instance yet; they read zero, as min_z() did in Release builds.
+        double zmin_this = obj->instances.empty() ? 0. : obj->min_z();
         if (zmin == std::numeric_limits<double>::max())
             zmin = zmin_this;
         else if (std::abs(zmin - zmin_this) > EPSILON)

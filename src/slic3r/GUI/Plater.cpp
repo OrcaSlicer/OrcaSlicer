@@ -10175,7 +10175,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             }
 
              // An AMF group with non-printable bodies was kept apart on purpose; merging it would make them printable.
-             const bool has_excluded_bodies = stage_geometry && std::any_of(model.objects.begin(), model.objects.end(), [](const ModelObject* object) {
+             // Only the assembly modes keep such groups apart; Separate objects asks as before.
+             const auto amf_options = import_options.find("amf");
+             const bool amf_assembly = stage_geometry && parsed_file.format == "amf" && amf_options != import_options.end() &&
+                                       !amf_options->second.separate_objects;
+             const bool has_excluded_bodies = amf_assembly && std::any_of(model.objects.begin(), model.objects.end(), [](const ModelObject* object) {
                  return std::any_of(object->instances.begin(), object->instances.end(), [](const ModelInstance* instance) { return !instance->printable; });
              });
              if (!is_project_file && !has_excluded_bodies && model.looks_like_multipart_object()) {
