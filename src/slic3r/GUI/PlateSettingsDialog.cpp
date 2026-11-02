@@ -4,6 +4,7 @@
 #include "Widgets/StaticLine.hpp"
 #include <climits>
 #include <wx/event.h>
+#include <functional>
 #include <wx/gdicmn.h>
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <wx/colour.h>
@@ -20,6 +21,7 @@
 #include <vector>
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
+#include <slic3r/GUI/Plater.hpp>
 #include <wx/sizer.h>
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "libslic3r/Config.hpp"

@@ -17,6 +17,7 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <wx/string.h>
 #include <wx/toplevel.h>
+#include <libslic3r/Config.hpp>
 #include "libslic3r/PrintConfig.hpp"
 #include <utility>
 #include "slic3r/GUI/Widgets/TextInput.hpp"
