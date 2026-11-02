@@ -5429,8 +5429,11 @@ void Sidebar::decompose_filament_color(int filament_idx)
         MixedFilamentResult mixed_result;
         std::vector<DecomposeMissingComponent> missing_components;
         if (!prepare_decompose_mixed_result(dialog_result, static_cast<size_t>(filament_idx), source_physical_idx,
-                                            color_strs, decompose_types, physical_config_indices, mixed_result, missing_components))
+                                            color_strs, decompose_types, physical_config_indices, mixed_result, missing_components)) {
+            if (dialog_result.mode == DecomposeMode::CMYKW)
+                show_cmykw_mix_dialog(this, dialog_result, target_color);
             return;
+        }
 
         if (!confirm_create_decompose_missing_components(this, missing_components))
             return;
