@@ -346,6 +346,101 @@ double configBrimWidthByVolumeGroups(double adhesion, double maxSpeed, const std
     return brim_width;
 }
 
+// ORCA: Detect mouse ear positions on one closed contour. Coordinates and ear_detection_length are scaled.
+// The direction change at a vertex is measured between the contour points ear_detection_length of arc length
+// before and after it, so the result does not depend on the contour's start vertex. Outer contours take convex
+// corners, inner contours concave ones; candidates on the same corner collapse to the sharpest.
+Points make_brim_ear_points(const Polygon &contour, coord_t ear_detection_length,
+                            coordf_t brim_ears_max_angle, bool is_outer_brim)
+{
+    Points ears;
+    const Points &pts = contour.points;
+    const size_t  n   = pts.size();
+    if (n < 3 || contour.length() <= 0 || brim_ears_max_angle <= 0)
+        return ears;
+
+    const coordf_t angle_threshold = (180 - brim_ears_max_angle) * PI / 180.0;
+    const double   cos_threshold   = cos(std::nextafter(angle_threshold, +INFINITY));
+    const coord_t  L = std::clamp<coord_t>(ear_detection_length, 0, coord_t(0.25 * contour.length()));
+
+    // Cumulative arc length of every vertex, used as the position of a candidate along the closed contour.
+    std::vector<double> cum(n + 1, 0.0);
+    for (size_t i = 0; i < n; ++i)
+        cum[i + 1] = cum[i] + (pts[(i + 1) % n] - pts[i]).cast<double>().norm();
+    const double perimeter = cum[n];
+
+    struct Candidate {
+        size_t idx;
+        double dot;
+        double arc;
+    };
+    std::vector<Candidate> candidates;
+
+    for (size_t i = 0; i < n; ++i) {
+        size_t k = i;
+        size_t j = i;
+        if (L > 0) {
+            // ORCA: walk ear_detection_length of arc length away from the vertex on both sides, so the
+            // measured turn is a property of the corner only, not of where the contour happens to start.
+            double dist = 0.;
+            for (size_t step = 0; step + 1 < n; ++step) {
+                const size_t prev = (k + n - 1) % n;
+                dist += (pts[k] - pts[prev]).cast<double>().norm();
+                k = prev;
+                if (dist >= L)
+                    break;
+            }
+            dist = 0.;
+            for (size_t step = 0; step + 1 < n; ++step) {
+                const size_t next = (j + 1) % n;
+                dist += (pts[next] - pts[j]).cast<double>().norm();
+                j = next;
+                if (dist >= L)
+                    break;
+            }
+        } else {
+            k = (i + n - 1) % n;
+            j = (i + 1) % n;
+        }
+
+        const Vec2d a = (pts[i] - pts[k]).cast<double>();
+        const Vec2d b = (pts[j] - pts[i]).cast<double>();
+        if (a.squaredNorm() == 0. || b.squaredNorm() == 0.)
+            continue;
+        if (is_outer_brim ? cross2(a, b) <= 0. : cross2(a, b) >= 0.)
+            continue;
+        const double dot = a.normalized().dot(b.normalized());
+        if (dot < cos_threshold)
+            candidates.push_back({i, dot, cum[i]});
+    }
+
+    // ORCA: take the sharpest candidate, drop everything on the same corner, repeat. Chaining neighbours
+    // would swallow a whole curved contour into a single ear.
+    // ORCA: cap the suppression by the perimeter so that small parts keep their separate corners.
+    const double suppress_distance = std::min(L > 0 ? double(2 * L) : double(std::max<coord_t>(1, scale_(0.01))),
+                                              perimeter / 8.);
+    while (!candidates.empty()) {
+        size_t best = 0;
+        for (size_t c = 1; c < candidates.size(); ++c)
+            if (candidates[c].dot < candidates[best].dot ||
+                (candidates[c].dot == candidates[best].dot && candidates[c].idx < candidates[best].idx))
+                best = c;
+        const Candidate picked = candidates[best];
+        ears.emplace_back(pts[picked.idx]);
+        std::vector<Candidate> remaining;
+        remaining.reserve(candidates.size() - 1);
+        for (size_t c = 0; c < candidates.size(); ++c) {
+            if (c == best)
+                continue;
+            const double ds = std::abs(candidates[c].arc - picked.arc);
+            if (std::min(ds, perimeter - ds) > suppress_distance)
+                remaining.push_back(candidates[c]);
+        }
+        candidates = std::move(remaining);
+    }
+    return ears;
+}
+
 // Generate ears
 // Ported from SuperSlicer: https://github.com/supermerill/SuperSlicer/blob/45d0532845b63cd5cefe7de7dc4ef0e0ed7e030a/src/libslic3r/Brim.cpp#L1116
 static ExPolygons make_brim_ears_auto(const ExPolygons& obj_expoly, coord_t size_ear, coord_t ear_detection_length,
@@ -355,24 +450,9 @@ static ExPolygons make_brim_ears_auto(const ExPolygons& obj_expoly, coord_t size
         return mouse_ears_ex;
     }
     // Detect places to put ears
-    const coordf_t angle_threshold = (180 - brim_ears_max_angle) * PI / 180.0;
     Points pt_ears;
-    for (const ExPolygon &poly : obj_expoly) {
-        Polygon decimated_polygon = poly.contour;
-        if (ear_detection_length > 0) {
-            // decimate polygon
-            Points points = poly.contour.points;
-            points.push_back(points.front());
-            points = MultiPoint::_douglas_peucker(points, ear_detection_length);
-            if (points.size() > 4) { // don't decimate if it's going to be below 4 points, as it's surely enough to fill everything anyway
-                points.erase(points.end() - 1);
-                decimated_polygon.points = points;
-            }
-        }
-
-        append(pt_ears, is_outer_brim ? decimated_polygon.convex_points(angle_threshold)
-                                      : decimated_polygon.concave_points(angle_threshold));
-    }
+    for (const ExPolygon &poly : obj_expoly)
+        append(pt_ears, make_brim_ear_points(poly.contour, ear_detection_length, brim_ears_max_angle, is_outer_brim));
 
     // Then add ears
     // create ear pattern

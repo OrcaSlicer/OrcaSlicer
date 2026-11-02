@@ -20,6 +20,7 @@
 #include "slic3r/GUI/Event.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/Brim.hpp"
 #include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/Geometry.hpp"
 #include <limits>
@@ -958,22 +959,9 @@ void GLGizmoBrimEars::reload_cache()
     find_single();
 }
 
-Points GLGizmoBrimEars::generate_points(Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer)
+Points GLGizmoBrimEars::generate_points(const Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer)
 {
-    const coordf_t angle_threshold = (180 - brim_ears_max_angle) * PI / 180.0;
-    Points         pt_ears;
-    if (ear_detection_length > 0) {
-        double detect_length = ear_detection_length / SCALING_FACTOR;
-        Points points = obj_polygon.points;
-        points.push_back(points.front());
-        points = MultiPoint::_douglas_peucker(points, detect_length);
-        if (points.size() > 4) {
-            points.erase(points.end() - 1);
-        }
-        obj_polygon.points = points;
-    }
-    append(pt_ears, is_outer ? obj_polygon.convex_points(angle_threshold) : obj_polygon.concave_points(angle_threshold));
-    return pt_ears;
+    return make_brim_ear_points(obj_polygon, scale_(ear_detection_length), brim_ears_max_angle, is_outer);
 }
 
 void GLGizmoBrimEars::first_layer_slicer()
