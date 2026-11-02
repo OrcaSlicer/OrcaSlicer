@@ -131,9 +131,9 @@ void DialogButtons::SetAlertButton(wxString translated_label) {
     }else
         btn = GetButtonFromLabel(translated_label);
 
-    if(btn == nullptr) return;
-
     m_alert = translated_label;
+
+    if(btn == nullptr) return;
 
     btn->SetStyle(ButtonStyle::Alert, ButtonType::Choice);
 }

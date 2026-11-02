@@ -94,6 +94,7 @@ private:
     std::vector<LayerNumberTextInput*> m_end_layer_input_list;
     std::vector<DragCanvas*> m_drag_canvas_list;
     std::vector<LayerSeqInfo> m_layer_seq_infos;
+    int m_to_txt_width;
 };
 
 class PlateSettingsDialog : public DPIDialog
@@ -119,6 +120,9 @@ public:
     void sync_first_layer_print_seq(int selection, const std::vector<int>& seq = std::vector<int>());
     void sync_other_layers_print_seq(int selection, const std::vector<LayerPrintSequence>& seq);
     void sync_spiral_mode(bool spiral_mode, bool as_global);
+    void sync_skirt_start_angle(const ConfigOptionFloat* plate_angle, double global_angle);
+    // false: use global value
+    bool get_skirt_start_angle(double& angle);
     wxString to_bed_type_name(BedType bed_type);
     wxString to_print_sequence_name(PrintSequence print_seq);
     void on_dpi_changed(const wxRect& suggested_rect) override;
@@ -185,6 +189,7 @@ protected:
     DragCanvas* m_drag_canvas;
     OtherLayersSeqPanel* m_other_layers_seq_panel;
     TextInput *m_ti_plate_name;
+    TextInput *m_skirt_start_angle;
 };
 
 class PlateNameEditDialog : public DPIDialog

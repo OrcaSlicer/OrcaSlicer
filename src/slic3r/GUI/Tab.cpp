@@ -147,6 +147,13 @@ static void validate_custom_gcode_cb(Tab* tab, const wxString& title, const t_co
 
 static const std::vector<std::string> plate_keys = { "curr_bed_type", "skirt_start_angle", "first_layer_print_sequence", "first_layer_sequence_choice", "other_layers_print_sequence", "other_layers_sequence_choice", "print_sequence", "spiral_mode"};
 
+// Plate print sequence choices, ByDefault is UI only
+static const t_config_enum_values s_plate_print_sequence_keys = {
+    { "same as global", int(PrintSequence::ByDefault) },
+    { "by layer",       int(PrintSequence::ByLayer) },
+    { "by object",      int(PrintSequence::ByObject) },
+};
+
 static std::pair<std::string, std::string> extruder_variant_keys[]{
     {},                                                  // invalid
     {"print_extruder_id", "print_extruder_variant"},     // Preset::TYPE_PRINT
@@ -3890,14 +3897,14 @@ void TabPrintModel::update_model_config()
                     m_config->set_key_value("first_layer_sequence_choice", new ConfigOptionEnum<LayerSeq>(flsAuto));
                 }
                 else {
-                    replace(m_all_keys.begin(), m_all_keys.end(), std::string("first_layer_print_sequence"), std::string("first_layer_sequence_choice"));
+                    m_all_keys.push_back("first_layer_sequence_choice"); // sequence keys are stored as "key#n"
                     m_config->set_key_value("first_layer_sequence_choice", new ConfigOptionEnum<LayerSeq>(flsCustomize));
                 }
                 if (!plate_config.has("other_layers_print_sequence")) {
                     m_config->set_key_value("other_layers_sequence_choice", new ConfigOptionEnum<LayerSeq>(flsAuto));
                 }
                 else {
-                    replace(m_all_keys.begin(), m_all_keys.end(), std::string("other_layers_print_sequence"), std::string("other_layers_sequence_choice"));
+                    m_all_keys.push_back("other_layers_sequence_choice"); // sequence keys are stored as "key#n"
                     m_config->set_key_value("other_layers_sequence_choice", new ConfigOptionEnum<LayerSeq>(flsCustomize));
                 }
                 notify_changed(plate_item.first);
@@ -3922,6 +3929,8 @@ void TabPrintModel::update_model_config()
             }
         }
     }
+    if (m_type == Preset::TYPE_PLATE)
+        static_cast<TabPrintPlate *>(this)->update_same_as_global_fields();
 }
 
 void TabPrintModel::reset_model_config()
@@ -3956,8 +3965,10 @@ void TabPrintModel::activate_selected_page(std::function<void()> throw_if_cancel
                 f->set_value(boost::any(), false);
         }
     }
-    if (m_type == Preset::TYPE_PLATE)
+    if (m_type == Preset::TYPE_PLATE) {
         static_cast<TabPrintPlate *>(this)->update_mixed_filament_seq_state();
+        static_cast<TabPrintPlate *>(this)->update_same_as_global_fields();
+    }
 }
 
 // A mixed-color slot resolves to a different physical filament per layer, so a
@@ -4123,9 +4134,16 @@ void TabPrintPlate::build()
 
     auto page = add_options_page(L("Plate Settings"), "empty");
     auto optgroup = page->new_optgroup("");
-    optgroup->append_single_option_line("curr_bed_type");
+    Option bed_type = optgroup->get_option("curr_bed_type");
+    bed_type.opt.enum_values.insert(bed_type.opt.enum_values.begin(), "Default Plate"); // btDefault
+    bed_type.opt.enum_labels.insert(bed_type.opt.enum_labels.begin(), L("Same as Global Plate Type"));
+    optgroup->append_single_option_line(bed_type);
     optgroup->append_single_option_line("skirt_start_angle");
-    optgroup->append_single_option_line("print_sequence");
+    Option print_seq = optgroup->get_option("print_sequence");
+    print_seq.opt.enum_keys_map = &s_plate_print_sequence_keys;
+    print_seq.opt.enum_values.insert(print_seq.opt.enum_values.begin(), "same as global");
+    print_seq.opt.enum_labels.insert(print_seq.opt.enum_labels.begin(), L("Same as Global Print Sequence"));
+    optgroup->append_single_option_line(print_seq);
     optgroup->append_single_option_line("spiral_mode");
     optgroup->append_single_option_line("first_layer_sequence_choice");
     optgroup->append_single_option_line("other_layers_sequence_choice");
@@ -4134,6 +4152,29 @@ void TabPrintPlate::build()
         line.undo_to_sys = true;
     }
     optgroup->have_sys_config = [this] { m_back_to_sys = true; return true; };
+
+    // needed for revert icons and modified labels
+    init_options_list();
+}
+
+// Show "Same as Global" for values not overridden by the plate
+void TabPrintPlate::update_same_as_global_fields()
+{
+    if (!m_active_page || m_object_configs.empty())
+        return;
+    auto set_default = [this](const std::string& key, int value) {
+        Field* field = m_active_page->get_field(key);
+        if (field && std::find(m_all_keys.begin(), m_all_keys.end(), key) == m_all_keys.end())
+            field->set_value(boost::any(value), false);
+    };
+    set_default("curr_bed_type", btDefault);
+    set_default("print_sequence", int(PrintSequence::ByDefault));
+}
+
+void TabPrintPlate::reload_config()
+{
+    TabPrintModel::reload_config();
+    update_same_as_global_fields();
 }
 
 void TabPrintPlate::reset_model_config()
@@ -4168,6 +4209,18 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
         return;
     if (!m_object_configs.empty())
         wxGetApp().plater()->take_snapshot((boost::format("Change Option %s") % k).str());
+
+    // "Same as Global" / "Auto" works like revert, keep the real global value in m_config
+    if (k == "curr_bed_type" && m_config->opt_enum<BedType>(k) == btDefault) {
+        m_back_to_sys = true;
+        if (auto opt = m_preset_bundle->project_config.option(k))
+            m_config->set_key_value(k, opt->clone());
+    } else if (k == "print_sequence" && m_config->opt_enum<PrintSequence>(k) == PrintSequence::ByDefault) {
+        m_back_to_sys = true;
+        m_config->set_key_value(k, m_parent_tab->m_config->option(k)->clone());
+    } else if ((k == "first_layer_sequence_choice" || k == "other_layers_sequence_choice") && m_config->opt_enum<LayerSeq>(k) == flsAuto)
+        m_back_to_sys = true;
+
     bool set = true;
     if (m_back_to_sys) {
         for (auto plate_item : m_object_configs) {

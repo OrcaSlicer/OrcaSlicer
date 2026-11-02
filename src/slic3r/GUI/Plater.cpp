@@ -23221,6 +23221,8 @@ void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
     }
 
     dlg.sync_spiral_mode(curr_plate->get_spiral_vase_mode(), !curr_plate->has_spiral_mode_config());
+    dlg.sync_skirt_start_angle(curr_plate->config()->option<ConfigOptionFloat>("skirt_start_angle"),
+                               wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_float("skirt_start_angle"));
 
     dlg.Bind(EVT_SET_BED_TYPE_CONFIRM, [this, plate_index, &dlg](wxCommandEvent& e) {
         PartPlate* curr_plate = p->partplate_list.get_curr_plate();
@@ -23232,6 +23234,12 @@ void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
             set_plater_dirty(true);
         }
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("select bed type %1% for plate %2% at plate side") % bt_sel % plate_index;
+
+        double skirt_start_angle;
+        if (dlg.get_skirt_start_angle(skirt_start_angle))
+            curr_plate->config()->set_key_value("skirt_start_angle", new ConfigOptionFloat(skirt_start_angle));
+        else
+            curr_plate->reset_skirt_start_angle();
 
         if (dlg.get_first_layer_print_seq_choice() != 0)
             curr_plate->set_first_layer_print_sequence(dlg.get_first_layer_print_seq());
