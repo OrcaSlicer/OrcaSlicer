@@ -40,6 +40,20 @@ native mouse-capture or browser behaviour.
    stuck mouse capture. Rebuild the main window through a language change and
    verify order restoration. Reordering must not create browsers for unvisited
    pages; an opened page must retain its state.
+8. Give a plugin tab keyboard focus. Ctrl+Shift+Left/Right moves it one visible
+   plugin tab in that direction (Command+Shift+Left/Right on macOS). Verify focus
+   stays on the moved tab, selection and browser input values are unchanged, and
+   moving at either end neither wraps nor crosses a built-in tab. Repeat from an
+   unselected tab, with overflow and compact labels, and with several rapid key
+   presses. Hidden/disabled page slots stay in place when exchanging visible
+   neighbours. Confirm ordinary arrow keys are left to normal tab navigation and
+   the chord does not reorder from a page input or the canvas. Quit normally and
+   restart to check that keyboard moves persist just like drags.
+
+When combined with the keyboard pane-navigation change, also verify F6/Shift+F6
+can reach the strip and Left/Right/Home/End follow its reordered buttons. Those
+navigation keys do not reorder tabs. Keyboard focus must retain its visible ring
+after a move.
 
 Repeat the native drag/capture and restart checks on Windows, Linux and macOS
 when those runtimes are available. Report unavailable platforms as untested.

@@ -27,7 +27,7 @@ class Button;
 
 // custom message the ButtonsListCtrl sends to its parent (Notebook) to notify a selection change:
 wxDECLARE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);
-// Drag intent only: the owner decides which pages may move and persists their order.
+// Reorder intent only: the owner decides which pages may move and persists their order.
 wxDECLARE_EVENT(wxCUSTOMEVT_NOTEBOOK_TAB_REORDER, wxCommandEvent);
 
 class ButtonsListCtrl : public wxControl
@@ -69,6 +69,7 @@ private:
     void OnTabMouseDown(Button* button, wxMouseEvent& event);
     void OnTabMouseMotion(Button* button, wxMouseEvent& event);
     void OnTabMouseUp(Button* button, wxMouseEvent& event);
+    void QueueTabReorder(size_t from, size_t to, bool before, bool from_keyboard = false);
 
     wxFlexGridSizer*                m_buttons_sizer;
     wxBoxSizer*                     m_sizer;

@@ -383,7 +383,8 @@ void PluginPages::on_tab_reorder(wxCommandEvent& event)
         static_cast<size_t>(source_index) >= m_parent->GetPageCount() ||
         static_cast<size_t>(target_index) >= m_parent->GetPageCount())
         return;
-    if (event.GetString() != "before" && event.GetString() != "after")
+    const bool from_keyboard = event.GetString() == "left" || event.GetString() == "right";
+    if (!from_keyboard && event.GetString() != "before" && event.GetString() != "after")
         return;
 
     wxWindow* source_page = m_parent->GetPage(static_cast<size_t>(source_index));
@@ -403,8 +404,21 @@ void PluginPages::on_tab_reorder(wxCommandEvent& event)
     for (const auto& [id, entry] : m_pages)
         if (entry.page == selected_page)
             selected = id;
-    if (!move_plugin_page(m_preferred_order, source->first, target->first, event.GetString() == "before"))
+    if (from_keyboard) {
+        const auto from = std::find(m_preferred_order.begin(), m_preferred_order.end(), source->first);
+        const auto to = std::find(m_preferred_order.begin(), m_preferred_order.end(), target->first);
+        if (from == m_preferred_order.end() || to == m_preferred_order.end() || from == to)
+            return;
+        // Exchange visible neighbours without shifting hidden/disabled slots.
+        // This keeps both the focused and selected page visible across overflow.
+        std::iter_swap(from, to);
+        if (m_swapped_in_id == source->first)
+            m_swapped_in_id = target->first;
+        else if (m_swapped_in_id == target->first)
+            m_swapped_in_id = source->first;
+    } else if (!move_plugin_page(m_preferred_order, source->first, target->first, event.GetString() == "before")) {
         return;
+    }
 
     order_plugin_pages(m_order, m_preferred_order);
     // Preserve the active page ahead of keeping the dragged page visible in overflow.

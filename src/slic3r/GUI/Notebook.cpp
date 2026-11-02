@@ -17,6 +17,7 @@
 #include <wx/button.h>
 #include <wx/colour.h>
 #include <wx/dcclient.h>
+#include <wx/defs.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
@@ -171,30 +172,47 @@ void ButtonsListCtrl::OnTabMouseUp(Button* button, wxMouseEvent& event)
     if (dragged) {
         if (target == wxNOT_FOUND || source == target)
             return;
-        auto* book = static_cast<Notebook*>(GetParent());
-        const wxWeakRef<wxWindow> source_page(book->GetPage(source));
-        const wxWeakRef<wxWindow> target_page(book->GetPage(target));
-        // Overflow can replace buttons. Finish this mouse event before relayout and resolve
-        // page pointers again so an intervening unload cannot reorder different pages.
-        book->CallAfter([book, source_page, target_page, before] {
-            if (!source_page || !target_page)
-                return;
-            const int from = book->FindPage(source_page.get());
-            const int to = book->FindPage(target_page.get());
-            if (from == wxNOT_FOUND || to == wxNOT_FOUND)
-                return;
-            wxCommandEvent reorder(wxCUSTOMEVT_NOTEBOOK_TAB_REORDER);
-            reorder.SetEventObject(book);
-            reorder.SetInt(from);
-            reorder.SetExtraLong(to);
-            reorder.SetString(before ? "before" : "after");
-            book->GetEventHandler()->ProcessEvent(reorder);
-        });
+        QueueTabReorder(static_cast<size_t>(source), static_cast<size_t>(target), before);
     } else if (clicked) {
         wxCommandEvent selected(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED);
         selected.SetId(source);
         wxPostEvent(GetParent(), selected);
     }
+}
+
+void ButtonsListCtrl::QueueTabReorder(size_t from, size_t to, bool before, bool from_keyboard)
+{
+    auto* book = static_cast<Notebook*>(GetParent());
+    const wxWeakRef<wxWindow> source_page(book->GetPage(from));
+    const wxWeakRef<wxWindow> target_page(book->GetPage(to));
+    // Overflow can replace buttons. Finish the input event before relayout, then
+    // resolve page identities again in case a plugin unloaded in the meantime.
+    book->CallAfter([book, source_page, target_page, before, from_keyboard] {
+        if (!source_page || (!from_keyboard && !target_page))
+            return;
+        const int source = book->FindPage(source_page.get());
+        if (source == wxNOT_FOUND)
+            return;
+        auto* strip = book->GetBtnsListCtrl();
+        const int target = from_keyboard ? source + (before ? -1 : 1) : book->FindPage(target_page.get());
+        if (target < 0 || static_cast<size_t>(target) >= book->GetPageCount())
+            return;
+        if (from_keyboard && (!strip->m_pageButtons[source]->HasFocus() ||
+            !strip->m_pageDraggable[source] || !strip->m_pageDraggable[target]))
+            return;
+
+        wxCommandEvent reorder(wxCUSTOMEVT_NOTEBOOK_TAB_REORDER);
+        reorder.SetEventObject(book);
+        reorder.SetInt(source);
+        reorder.SetExtraLong(target);
+        reorder.SetString(from_keyboard ? (before ? "left" : "right") : (before ? "before" : "after"));
+        book->GetEventHandler()->ProcessEvent(reorder);
+        if (from_keyboard && source_page) {
+            const int moved = book->FindPage(source_page.get());
+            if (moved != wxNOT_FOUND)
+                book->GetBtnsListCtrl()->m_pageButtons[moved]->SetFocusFromKbd();
+        }
+    });
 }
 
 void ButtonsListCtrl::OnPaint(wxPaintEvent&)
@@ -341,6 +359,26 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
         btn->Bind(wxEVT_MOTION, [this, btn](wxMouseEvent& event) { OnTabMouseMotion(btn, event); });
         btn->Bind(wxEVT_LEFT_UP, [this, btn](wxMouseEvent& event) { OnTabMouseUp(btn, event); });
         btn->Bind(wxEVT_MOUSE_CAPTURE_LOST, [this](wxMouseCaptureLostEvent&) { CancelDrag(); });
+        // Handle only the reorder chord here, before ordinary arrow-key tab
+        // navigation. Keys from the canvas or a plugin's browser never enter it.
+        btn->Bind(wxEVT_CHAR_HOOK, [this, btn](wxKeyEvent& event) {
+            const int key = event.GetKeyCode();
+            if (!btn->HasFocus() || event.GetModifiers() != (wxMOD_CONTROL | wxMOD_SHIFT) ||
+                (key != WXK_LEFT && key != WXK_RIGHT)) {
+                event.Skip();
+                return;
+            }
+            const auto it = std::find(m_pageButtons.begin(), m_pageButtons.end(), btn);
+            if (it == m_pageButtons.end())
+                return;
+            const int source = static_cast<int>(it - m_pageButtons.begin());
+            const int target = source + (key == WXK_LEFT ? -1 : 1);
+            // Consume the chord at either end; built-in tabs stay fixed.
+            if (target < 0 || static_cast<size_t>(target) >= m_pageButtons.size() || !m_pageDraggable[target])
+                return;
+            CancelDrag();
+            QueueTabReorder(static_cast<size_t>(source), static_cast<size_t>(target), key == WXK_LEFT, true);
+        });
         btn->Bind(wxEVT_KEY_DOWN, [this, btn](wxKeyEvent& event) {
             if (m_drag_button == btn && event.GetKeyCode() == WXK_ESCAPE)
                 CancelDrag();
