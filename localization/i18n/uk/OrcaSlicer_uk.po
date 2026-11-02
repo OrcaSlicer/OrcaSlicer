@@ -10014,7 +10014,7 @@ msgid "Some filament slots were changed:"
 msgstr "Деякі слоти філаменту було змінено:"
 
 # AI Translated
-msgid "Component name(s) inside step file not in UTF-8 format!"
+msgid "Component name(s) inside STEP file not in UTF-8 format!"
 msgstr "Назви компонентів усередині файлу STEP не у форматі UTF-8!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -24175,8 +24175,8 @@ msgid "Expecting a regular expression."
 msgstr "Очікується регулярний вираз."
 
 # AI Translated
-msgid "Invalid utf8 sequence"
-msgstr "Недійсна послідовність utf8"
+msgid "Invalid UTF-8 sequence"
+msgstr "Недійсна послідовність UTF-8"
 
 # AI Translated
 msgid "Non-ASCII7 characters are only allowed inside text blocks and string literals, not inside code blocks."
@@ -26986,7 +26986,7 @@ msgstr "c"
 msgid "Volumetric speed"
 msgstr "Обʼємна швидкість"
 
-msgid "Step file import parameters"
+msgid "STEP file import parameters"
 msgstr "Параметри імпорту STEP-файлу"
 
 # AI Translated
@@ -38592,18 +38592,18 @@ msgstr "Підозріло мала кількість значень конфі
 
 # AI Translated
 msgid ""
-"Load step file failed.\n"
+"Load STEP file failed.\n"
 "Cannot open file for reading.\n"
 msgstr ""
 "Не вдалося завантажити файл step.\n"
 "Не вдається відкрити файл для читання.\n"
 
 # AI Translated
-msgid "import svg failed: could not open svg."
+msgid "import SVG failed: could not open svg."
 msgstr "помилка імпорту svg: не вдалося відкрити svg."
 
 # AI Translated
-msgid "import svg failed: could not parse imported svg data."
+msgid "import SVG failed: could not parse imported svg data."
 msgstr "помилка імпорту svg: не вдалося розібрати імпортовані дані svg."
 
 # AI Translated

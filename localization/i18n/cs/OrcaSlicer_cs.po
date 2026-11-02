@@ -10032,7 +10032,7 @@ msgstr "Některá publikovaná nastavení nebylo možné použít:"
 msgid "Some filament slots were changed:"
 msgstr "Některé sloty filamentu byly změněny:"
 
-msgid "Component name(s) inside step file not in UTF-8 format!"
+msgid "Component name(s) inside STEP file not in UTF-8 format!"
 msgstr "Názvy komponent v souboru STEP nejsou ve formátu UTF-8!"
 
 # AI Translated
@@ -23923,8 +23923,8 @@ msgid "Expecting a regular expression."
 msgstr "Očekává se regulární výraz."
 
 # AI Translated
-msgid "Invalid utf8 sequence"
-msgstr "Neplatná sekvence utf8"
+msgid "Invalid UTF-8 sequence"
+msgstr "Neplatná sekvence UTF-8"
 
 # AI Translated
 msgid "Non-ASCII7 characters are only allowed inside text blocks and string literals, not inside code blocks."
@@ -26836,7 +26836,7 @@ msgid "Volumetric speed"
 msgstr "Objemová rychlost"
 
 # AI Translated
-msgid "Step file import parameters"
+msgid "STEP file import parameters"
 msgstr "Parametry importu souboru STEP"
 
 # AI Translated
@@ -38392,18 +38392,18 @@ msgstr "Podezřele nízký počet konfiguračních hodnot získaných z %1%: %2%
 
 # AI Translated
 msgid ""
-"Load step file failed.\n"
+"Load STEP file failed.\n"
 "Cannot open file for reading.\n"
 msgstr ""
 "Načtení souboru STEP se nezdařilo.\n"
 "Soubor nelze otevřít pro čtení.\n"
 
 # AI Translated
-msgid "import svg failed: could not open svg."
+msgid "import SVG failed: could not open svg."
 msgstr "import SVG selhal: soubor SVG nelze otevřít."
 
 # AI Translated
-msgid "import svg failed: could not parse imported svg data."
+msgid "import SVG failed: could not parse imported svg data."
 msgstr "import SVG selhal: importovaná data SVG nelze zpracovat."
 
 # AI Translated
