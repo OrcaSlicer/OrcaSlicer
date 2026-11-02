@@ -52,7 +52,8 @@ vertex indices and slider positions are distinct identifiers and cannot be inter
 Some non-motion commands have event vertices; other lines have no vertices at all. The G/M
 command name alone cannot determine whether a line has a corresponding preview position.
 
-`GCodeNavigation.hpp` resolves source lines through an accessor into the existing vertex data.
+The navigation helpers in `GCodeViewer.hpp/.cpp` resolve source lines through an accessor into
+the existing vertex data.
 For ordered source IDs it uses binary search and expands the selected consecutive group. A
 missing line resolves to the greatest preceding source ID, or the first positive source ID
 when no predecessor exists. The result retains both group endpoints; its last vertex matches

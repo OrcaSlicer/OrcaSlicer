@@ -1,6 +1,5 @@
 #include "libslic3r/libslic3r.h"
 #include "GCodeViewer.hpp"
-#include "GCodeNavigation.hpp"
 
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/Print.hpp"
@@ -29,6 +28,7 @@
 #include <boost/container_hash/hash.hpp>
 #include "slic3r/GUI/MeshUtils.hpp"
 #include <initializer_list>
+#include <algorithm>
 #include <set>
 #include <string>
 #include "libvgcode/include/Types.hpp"
@@ -870,6 +870,30 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar(2);
     }
+}
+
+void GCodeTextView::update(uint64_t line_count, uint64_t visible_count, uint64_t current_line)
+{
+    m_line_count = line_count;
+    m_visible_count = std::min(line_count, visible_count);
+    if (m_following) {
+        const uint64_t half = m_visible_count / 2;
+        m_first_line = current_line > half ? current_line - half : 1;
+    }
+    m_first_line = std::clamp(m_first_line, uint64_t(1), max_first_line());
+}
+
+void GCodeTextView::scroll_to(uint64_t first_line)
+{
+    m_following = false;
+    m_first_line = std::clamp(first_line, uint64_t(1), max_first_line());
+}
+
+void GCodeTextView::scroll(int lines)
+{
+    const uint64_t distance = lines < 0 ? -int64_t(lines) : lines;
+    scroll_to(lines < 0 ? m_first_line - std::min(distance, m_first_line - 1) :
+        m_first_line + std::min(distance, max_first_line() - m_first_line));
 }
 
 void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& filename, const std::vector<size_t> &lines_ends)
@@ -2601,6 +2625,20 @@ bool GCodeViewer::can_export_toolpaths() const
             return true;
     }
     return false;
+}
+
+void enable_gcode_navigation_categories(libvgcode::Viewer& viewer, const GCodeNavigationCategories& categories)
+{
+    for (size_t i = 0; i < categories.roles.size(); ++i) {
+        const auto role = static_cast<libvgcode::EGCodeExtrusionRole>(i);
+        if (categories.roles[i] && !viewer.is_extrusion_role_visible(role))
+            viewer.toggle_extrusion_role_visibility(role);
+    }
+    for (size_t i = 0; i < categories.options.size(); ++i) {
+        const auto option = static_cast<libvgcode::EOptionType>(i);
+        if (categories.options[i] && !viewer.is_option_visible(option))
+            viewer.toggle_option_visibility(option);
+    }
 }
 
 bool GCodeViewer::navigate_to_gcode_line(uint64_t line_id)

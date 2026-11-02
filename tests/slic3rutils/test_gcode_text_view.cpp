@@ -31,9 +31,6 @@
 #include "libvgcode/include/Viewer.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
-
-#include "slic3r/GUI/GCodeTextView.hpp"
-#include "slic3r/GUI/GCodeNavigation.hpp"
 #include "slic3r/GUI/IMSlider.hpp"
 
 using Slic3r::GUI::GCodeTextView;
