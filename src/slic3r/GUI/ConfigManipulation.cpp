@@ -1265,7 +1265,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     bool have_arachne = config->opt_enum<PerimeterGeneratorType>("wall_generator") == PerimeterGeneratorType::Arachne;
     for (auto el : {"wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle", "min_feature_size", "min_length_factor",
-        "min_bead_width", "wall_distribution_count", "initial_layer_min_bead_width", "wall_maximum_resolution", "wall_maximum_deviation"})
+        "min_bead_width", "wall_distribution_count", "initial_layer_min_bead_width", "wall_maximum_resolution", "wall_maximum_deviation", "wall_width_tolerance"})
         toggle_line(el, have_arachne, -1, _L("Select the Arachne wall generator to use this setting."));
     toggle_field("detect_thin_wall", !have_arachne, -1, _L("Thin wall detection is unavailable with the Arachne wall generator."));
 

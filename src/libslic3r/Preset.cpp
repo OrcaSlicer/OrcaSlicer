@@ -1398,6 +1398,7 @@ static std::vector<std::string> s_Preset_print_options{
     "min_length_factor",
     "wall_maximum_resolution",
     "wall_maximum_deviation",
+    "wall_width_tolerance",
     "small_perimeter_speed",
     "small_perimeter_threshold",
     "small_support_perimeter_speed",
