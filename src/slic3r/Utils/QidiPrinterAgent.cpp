@@ -52,6 +52,11 @@ AgentInfo QidiPrinterAgent::get_agent_info_static()
 
 bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
+    if (!ensure_device_info(dev_id))
+        return false;
+    if (fetch_afc_filament_info())
+        return true;
+
     std::string error;
 
     // 1. Fetch device info and infer series_id
@@ -267,6 +272,8 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
                 tray.tray_info_idx = setting_id;
             } else {
                 tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+                if (tray.tray_info_idx.empty())
+                    tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
             }
 
             // Look up color from dictionary

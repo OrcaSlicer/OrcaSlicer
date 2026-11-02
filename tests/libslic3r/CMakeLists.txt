@@ -34,6 +34,7 @@ add_executable(${_TEST_NAME}_tests
     test_toolordering_nozzle_group.cpp
     test_parallel_resolve.cpp
     test_preset_bundle_loading.cpp
+    test_preset_collection.cpp
     test_preset_setting_id.cpp
     test_preset_diff.cpp
     test_publish_settings.cpp
@@ -88,6 +89,7 @@ add_executable(${_TEST_NAME}_tests
     test_texture_displacement.cpp
     test_texture_import.cpp
     test_instance_lock.cpp
+    test_filament_inventory.cpp
     ../libnest2d/printer_parts.cpp
     )
 
