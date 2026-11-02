@@ -91,7 +91,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
                              Slic3r::GUI::GeometryImportOptions* import_options)
     : DPIDialog(parent ? parent : static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
-                _(L("Step file import parameters")),
+                _(L("STEP file import parameters")),
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxDEFAULT_DIALOG_STYLE /* | wxRESIZE_BORDER*/), m_import_options(import_options), m_file(file)

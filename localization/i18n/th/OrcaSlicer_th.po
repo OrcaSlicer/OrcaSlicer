@@ -9887,7 +9887,7 @@ msgstr "การตั้งค่าที่เผยแพร่บางส
 msgid "Some filament slots were changed:"
 msgstr "ช่องเส้นพลาสติกบางช่องมีการเปลี่ยนแปลง:"
 
-msgid "Component name(s) inside step file not in UTF-8 format!"
+msgid "Component name(s) inside STEP file not in UTF-8 format!"
 msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF-8!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -23774,8 +23774,8 @@ msgid "Expecting a regular expression."
 msgstr "คาดหวัง regex"
 
 # AI Translated
-msgid "Invalid utf8 sequence"
-msgstr "ลำดับ utf8 ไม่ถูกต้อง"
+msgid "Invalid UTF-8 sequence"
+msgstr "ลำดับ UTF-8 ไม่ถูกต้อง"
 
 # AI Translated
 msgid "Non-ASCII7 characters are only allowed inside text blocks and string literals, not inside code blocks."
@@ -26546,7 +26546,7 @@ msgstr "วินาที"
 msgid "Volumetric speed"
 msgstr "ความเร็วปริมาตร"
 
-msgid "Step file import parameters"
+msgid "STEP file import parameters"
 msgstr "พารามิเตอร์การนำเข้าไฟล์ขั้นตอน"
 
 msgid "Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."
@@ -37944,18 +37944,18 @@ msgstr "จำนวนค่าการกำหนดค่าที่ดึ
 
 # AI Translated
 msgid ""
-"Load step file failed.\n"
+"Load STEP file failed.\n"
 "Cannot open file for reading.\n"
 msgstr ""
 "โหลดไฟล์ STEP ล้มเหลว\n"
 "ไม่สามารถเปิดไฟล์เพื่ออ่านได้\n"
 
 # AI Translated
-msgid "import svg failed: could not open svg."
+msgid "import SVG failed: could not open svg."
 msgstr "นำเข้า SVG ล้มเหลว: ไม่สามารถเปิด SVG ได้"
 
 # AI Translated
-msgid "import svg failed: could not parse imported svg data."
+msgid "import SVG failed: could not parse imported svg data."
 msgstr "นำเข้า SVG ล้มเหลว: ไม่สามารถแยกวิเคราะห์ข้อมูล SVG ที่นำเข้าได้"
 
 # AI Translated

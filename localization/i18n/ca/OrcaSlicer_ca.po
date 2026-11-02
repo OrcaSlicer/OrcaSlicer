@@ -10022,7 +10022,7 @@ msgid "Some filament slots were changed:"
 msgstr "S'han canviat algunes ranures de filament:"
 
 # AI Translated
-msgid "Component name(s) inside step file not in UTF-8 format!"
+msgid "Component name(s) inside STEP file not in UTF-8 format!"
 msgstr "Els noms dels components dins del fitxer STEP no tenen format UTF-8!"
 
 # AI Translated
@@ -23917,8 +23917,8 @@ msgid "Expecting a regular expression."
 msgstr "S'esperava una expressió regular."
 
 # AI Translated
-msgid "Invalid utf8 sequence"
-msgstr "Seqüència utf8 no vàlida"
+msgid "Invalid UTF-8 sequence"
+msgstr "Seqüència UTF-8 no vàlida"
 
 # AI Translated
 msgid "Non-ASCII7 characters are only allowed inside text blocks and string literals, not inside code blocks."
@@ -26791,7 +26791,7 @@ msgstr "s"
 msgid "Volumetric speed"
 msgstr "Velocitat volumètrica"
 
-msgid "Step file import parameters"
+msgid "STEP file import parameters"
 msgstr "Paràmetres d'importació de fitxers STEP"
 
 msgid "Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."
@@ -38265,18 +38265,18 @@ msgstr "S'ha extret un nombre sospitosament baix de valors de configuració de %
 
 # AI Translated
 msgid ""
-"Load step file failed.\n"
+"Load STEP file failed.\n"
 "Cannot open file for reading.\n"
 msgstr ""
 "Ha fallat la càrrega del fitxer STEP.\n"
 "No es pot obrir el fitxer per llegir-lo.\n"
 
 # AI Translated
-msgid "import svg failed: could not open svg."
+msgid "import SVG failed: could not open svg."
 msgstr "ha fallat la importació de l'SVG: no s'ha pogut obrir l'SVG."
 
 # AI Translated
-msgid "import svg failed: could not parse imported svg data."
+msgid "import SVG failed: could not parse imported svg data."
 msgstr "ha fallat la importació de l'SVG: no s'han pogut analitzar les dades SVG importades."
 
 # AI Translated

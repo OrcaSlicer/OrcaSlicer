@@ -8963,7 +8963,7 @@ msgstr ""
 msgid "Some filament slots were changed:"
 msgstr ""
 
-msgid "Component name(s) inside step file not in UTF-8 format!"
+msgid "Component name(s) inside STEP file not in UTF-8 format!"
 msgstr ""
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -20651,7 +20651,7 @@ msgstr ""
 msgid "Expecting a regular expression."
 msgstr ""
 
-msgid "Invalid utf8 sequence"
+msgid "Invalid UTF-8 sequence"
 msgstr ""
 
 msgid "Non-ASCII7 characters are only allowed inside text blocks and string literals, not inside code blocks."
@@ -23149,7 +23149,7 @@ msgstr ""
 msgid "Volumetric speed"
 msgstr ""
 
-msgid "Step file import parameters"
+msgid "STEP file import parameters"
 msgstr ""
 
 msgid "Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."
@@ -31909,14 +31909,14 @@ msgid "Suspiciously low number of configuration values extracted from %1%: %2%"
 msgstr ""
 
 msgid ""
-"Load step file failed.\n"
+"Load STEP file failed.\n"
 "Cannot open file for reading.\n"
 msgstr ""
 
-msgid "import svg failed: could not open svg."
+msgid "import SVG failed: could not open svg."
 msgstr ""
 
-msgid "import svg failed: could not parse imported svg data."
+msgid "import SVG failed: could not parse imported svg data."
 msgstr ""
 
 msgid "Custom G-code reports negative z_retracted."

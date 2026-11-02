@@ -3357,7 +3357,7 @@ void TreeSupport::drop_nodes()
                     return; // from parallel_for_each lambda
                 }
                 const ExPolygons& next_collision = get_collision(0, obj_layer_nr_next);
-                const bool   to_buildplate  = !is_inside_ex(m_ts_data->m_layer_outlines[obj_layer_nr_next], next_layer_vertex);
+                const bool to_buildplate = !is_inside_ex(next_collision, next_layer_vertex);
                 // don't increase radius if next node will collide partially with the object (STUDIO-7883)
                 to_outside             = projection_onto(next_collision, next_layer_vertex);
                 direction_to_outer     = to_outside - node.position;

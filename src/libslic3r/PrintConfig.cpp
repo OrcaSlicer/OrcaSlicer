@@ -10371,25 +10371,6 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
         }
     }
 
-    if (this->has("sparse_infill_filament_id")) {
-        int sparse_infill_filament_id = this->option("sparse_infill_filament_id")->getInt();
-        if (sparse_infill_filament_id > 0 && (!this->has("internal_solid_filament_id") || this->option("internal_solid_filament_id")->getInt() == 0))
-            this->option("internal_solid_filament_id", true)->setInt(sparse_infill_filament_id);
-    }
-
-    const int internal_solid = this->has("internal_solid_filament_id") ? this->option("internal_solid_filament_id")->getInt() : 0;
-    const int top_surface    = this->has("top_surface_filament_id") ? this->option("top_surface_filament_id")->getInt() : 0;
-    const int bottom_surface = this->has("bottom_surface_filament_id") ? this->option("bottom_surface_filament_id")->getInt() : 0;
-
-    if (internal_solid == 0 && top_surface > 0)
-        this->option("internal_solid_filament_id", true)->setInt(top_surface);
-    if (internal_solid == 0 && bottom_surface > 0)
-        this->option("internal_solid_filament_id", true)->setInt(bottom_surface);
-    if (top_surface == 0 && internal_solid > 0)
-        this->option("top_surface_filament_id", true)->setInt(internal_solid);
-    if (bottom_surface == 0 && internal_solid > 0)
-        this->option("bottom_surface_filament_id", true)->setInt(internal_solid);
-
     if (this->has("spiral_mode") && this->opt<ConfigOptionBool>("spiral_mode", true)->value) {
         {
             // this should be actually done only on the spiral layers instead of all
@@ -10467,25 +10448,6 @@ void DynamicPrintConfig::normalize_fdm_1()
             //     this->option("support_interface_filament", true)->setInt(extruder);
         }
     }
-
-    if (this->has("sparse_infill_filament_id")) {
-        int sparse_infill_filament_id = this->option("sparse_infill_filament_id")->getInt();
-        if (sparse_infill_filament_id > 0 && (!this->has("internal_solid_filament_id") || this->option("internal_solid_filament_id")->getInt() == 0))
-            this->option("internal_solid_filament_id", true)->setInt(sparse_infill_filament_id);
-    }
-
-    const int internal_solid = this->has("internal_solid_filament_id") ? this->option("internal_solid_filament_id")->getInt() : 0;
-    const int top_surface    = this->has("top_surface_filament_id") ? this->option("top_surface_filament_id")->getInt() : 0;
-    const int bottom_surface = this->has("bottom_surface_filament_id") ? this->option("bottom_surface_filament_id")->getInt() : 0;
-
-    if (internal_solid == 0 && top_surface > 0)
-        this->option("internal_solid_filament_id", true)->setInt(top_surface);
-    if (internal_solid == 0 && bottom_surface > 0)
-        this->option("internal_solid_filament_id", true)->setInt(bottom_surface);
-    if (top_surface == 0 && internal_solid > 0)
-        this->option("top_surface_filament_id", true)->setInt(internal_solid);
-    if (bottom_surface == 0 && internal_solid > 0)
-        this->option("bottom_surface_filament_id", true)->setInt(internal_solid);
 
     if (this->has("spiral_mode") && this->opt<ConfigOptionBool>("spiral_mode", true)->value) {
         {
