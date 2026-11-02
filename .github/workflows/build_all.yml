@@ -104,21 +104,6 @@ jobs:
         shell: powershell
         run: .\scripts\test_prune_cached_presets.ps1
 
-  build_linux:
-    # TEMPORARILY DISABLED: Windows-only testing for build-performance matrix
-    if: false
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: ""
-            os: ubuntu-24.04
-    uses: ./.github/workflows/build_check_cache.yml
-    with:
-      os: ${{ matrix.os }}
-      arch: ${{ matrix.arch }}
-      build-deps-only: ${{ inputs.build-deps-only || false }}
-    secrets: inherit
   build_windows:
     name: Build Windows ${{ matrix.arch }} (${{ matrix.preset }})${{ matrix.script == 'bat' && ' (baseline - current main)' || matrix.preset == 'x64-clang-cache' && ' (top candidate - ps1)' || ' (candidate - ps1)' }}
     strategy:
