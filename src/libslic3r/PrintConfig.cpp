@@ -1030,6 +1030,15 @@ void PrintConfigDef::init_common_params()
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPointsGroups{});
 
+    def = this->add("extruder_movable_area", coPointsGroups);
+    def->label = L("Extruder movable area");
+    def->tooltip = L("Extruder movable area in XY plane. "
+        "The area is expressed as a polygon in the format \"XxY, XxY, ...\". "
+        "It restricts the generated G-code from exceeding the movable range of the machine. ");
+    def->mode = comAdvanced;
+    def->gui_type = ConfigOptionDef::GUIType::one_string;
+    def->set_default_value(new ConfigOptionPointsGroups{});
+
     def           = this->add("support_parallel_printheads", coBool);
     def->label    = L("Support parallel printheads");
     def->tooltip  = L("Enable printer settings for machines that can use multiple printheads in parallel.");
@@ -10228,6 +10237,7 @@ std::set<std::string> printer_extruder_options = {
     "default_nozzle_volume_type",
     "extruder_printable_area",
     "extruder_bed_exclude_volumes",
+    "extruder_movable_area",
     "extruder_printable_height",
     "min_layer_height",
     "max_layer_height",
@@ -13803,6 +13813,49 @@ Polygon get_shared_poly(const std::vector<Pointfs>& extruder_polys)
     }
     return result;
 }
+
+std::vector<Pointfs> effective_extruder_move_areas(const ConfigBase& config)
+{
+    const auto* printable_area = config.option<ConfigOptionPoints>("printable_area");
+
+    const auto* movable_area = config.option<ConfigOptionPointsGroups>("extruder_movable_area");
+
+    size_t extruder_count = 0;
+    const auto* extruder_types = config.option<ConfigOptionEnumsGeneric>("extruder_type");
+
+    if (extruder_types && !extruder_types->values.empty()) {
+        extruder_count = extruder_types->values.size();
+    } else if (movable_area) {
+        extruder_count = movable_area->values.size();
+    }
+
+    if (extruder_count == 0)
+        return {};
+
+    Pointfs default_area;
+    if (printable_area && !printable_area->values.empty()) {
+        float margin = 2.0; 
+        BoundingBoxf bbox(printable_area->values);
+        const Vec2d min_point = bbox.min - Vec2d(margin, margin);
+        const Vec2d max_point = bbox.max + Vec2d(margin, margin);
+        default_area = { Vec2d(min_point.x(), min_point.y()), Vec2d(max_point.x(), min_point.y()),
+                    Vec2d(max_point.x(), max_point.y()), Vec2d(min_point.x(), max_point.y()) };
+    }
+
+    std::vector<Pointfs> result;
+    result.reserve(extruder_count);
+
+    for (size_t i = 0; i < extruder_count; ++i) {
+        if (movable_area && i < movable_area->values.size() && !movable_area->values[i].empty()) {
+            result.push_back(movable_area->values[i]);
+        } else {
+            result.push_back(default_area);
+        }
+    }
+
+    return result;
+}
+
 Points get_bed_shape(const DynamicPrintConfig &config, bool use_share)
 {
     const ConfigOptionPoints *bed_shape_opt = config.opt<ConfigOptionPoints>("printable_area");
