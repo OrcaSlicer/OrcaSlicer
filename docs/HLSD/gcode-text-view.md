@@ -34,9 +34,9 @@ browsing G-code text and navigating to toolpath positions in Preview.
   `m_viewer.get_extrusion_roles().empty()`. This collection is populated when `Extrude` vertices
   are loaded, so files containing only Travel or other non-extrusion paths also fail this check.
 - `SequentialView::render_overlay()` renders the text window only when `has_render_path` is
-  true. This argument currently comes from `!m_no_render_path`.
-- `GCodeWindow::render()` requires the text visibility option to be enabled, a nonempty filename
-  and line-offset array, and `curr_line_id != 0`. It also skips rendering when no lines fit.
+  true and the text visibility option is enabled. The path argument comes from `!m_no_render_path`.
+- `GCodeWindow::render()` requires a nonempty filename and line-offset array, and
+  `curr_line_id != 0`. It also skips rendering when no lines fit.
 - These conditions remain in effect. A file with no navigable toolpaths does not get a text-only
   window. This differs from loaded extrusion data whose paths are hidden by global filters.
 
@@ -77,6 +77,11 @@ layers must update the layer range and slider mapping before applying the target
 The 3D scene is currently drawn before the text overlay. A click that changes the toolpath
 position must request a full scene refresh, rather than refreshing only the overlay.
 
+The canvas consumes text requests after applying pending slider updates, so a layer slider's
+range reset cannot overwrite a click target. `navigate_to_gcode_line()` updates both viewer
+progress and slider values before clearing their programmatic dirty flags. The canvas then
+updates volume clipping and requests the next full scene frame without changing the camera.
+
 ## Interaction and state
 
 ### State ownership
@@ -100,6 +105,11 @@ marks the toolpath line. These decorations are combined when both refer to the s
 The text panel returns a target line number or stores a request for its owner to consume.
 It does not depend directly on Plater or control the entire preview. The interface should make
 the smallest changes needed to support these behaviors.
+
+The owner supplies the panel's `ImGuiWrapper`; file reading, row hit testing and scrolling can
+run in CPU-only ImGui frames. Row and scrollbar IDs include a load revision, so a mouse press
+on an old result cannot turn into a click on a newly loaded result when released. Resetting
+the panel clears pending requests and selection as well as its viewport.
 
 ### Scrolling and rendering
 
@@ -217,6 +227,9 @@ the smallest changes needed to support these behaviors.
   selection, pending requests and navigation identities. Resume following the new preview's
   current path. Do not restore old browsing state when returning to a plate or file; global
   filters continue to follow the application's existing lifetime rules.
+- Plate selection resets the text view explicitly through `PartPlateList::select_plate()`.
+  This also covers visiting an unsliced plate and returning to a cached G-code result whose
+  file mapping is reused. Resetting only text state leaves that mapping and global filters intact.
 - Manual legend changes apply normally, including hiding the selected path if its category is
   turned off. This action does not reset the text viewport, text selection or following state.
   There is no special visibility rule that keeps the selected path visible against this change.
@@ -279,6 +292,8 @@ Relevant modules and responsibilities:
   scene refresh and input ownership.
 - `src/slic3r/GUI/IMSlider.hpp/.cpp`: add only a minimal interface if needed to reuse mapping
   functionality.
+- `src/slic3r/GUI/PartPlate.cpp`: reset text interaction state on an actual plate change,
+  including transitions that reuse the existing file mapping.
 - Reuse `ImGuiWrapper` wheel direction normalization. Do not redesign shared input handling for
   smooth scrolling.
 - Reuse the existing libvgcode visibility query/toggle APIs. No selected-line visibility API or

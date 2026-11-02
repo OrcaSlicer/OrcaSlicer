@@ -3,6 +3,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <array>
+
+#include "libvgcode/include/Types.hpp"
+#include "libvgcode/include/Viewer.hpp"
 
 namespace Slic3r::GUI {
 
@@ -12,6 +16,45 @@ struct GCodeNavigationTarget
     size_t first_vertex;
     size_t last_vertex;
 };
+
+struct GCodeNavigationCategories
+{
+    std::array<bool, libvgcode::GCODE_EXTRUSION_ROLES_COUNT> roles{};
+    std::array<bool, libvgcode::OPTION_TYPES_COUNT> options{};
+};
+
+inline void enable_gcode_navigation_categories(libvgcode::Viewer& viewer, const GCodeNavigationCategories& categories)
+{
+    for (size_t i = 0; i < categories.roles.size(); ++i) {
+        const auto role = static_cast<libvgcode::EGCodeExtrusionRole>(i);
+        if (categories.roles[i] && !viewer.is_extrusion_role_visible(role))
+            viewer.toggle_extrusion_role_visibility(role);
+    }
+    for (size_t i = 0; i < categories.options.size(); ++i) {
+        const auto option = static_cast<libvgcode::EOptionType>(i);
+        if (categories.options[i] && !viewer.is_option_visible(option))
+            viewer.toggle_option_visibility(option);
+    }
+}
+
+template<class VertexAt>
+GCodeNavigationCategories gcode_navigation_categories(const GCodeNavigationTarget& target, const VertexAt& vertex_at)
+{
+    GCodeNavigationCategories categories;
+    for (size_t i = target.first_vertex; i <= target.last_vertex; ++i) {
+        const auto& vertex = vertex_at(i);
+        if (vertex.type == libvgcode::EMoveType::Extrude) {
+            const size_t role = static_cast<size_t>(vertex.role);
+            if (role < categories.roles.size())
+                categories.roles[role] = true;
+        } else {
+            const size_t option = static_cast<size_t>(libvgcode::move_type_to_option(vertex.type));
+            if (option < categories.options.size())
+                categories.options[option] = true;
+        }
+    }
+    return categories;
+}
 
 // The accessor reads the viewer's existing vertices without copying a second line index.
 // The caller checks ordering once when loading a result; unusual order uses a linear fallback.

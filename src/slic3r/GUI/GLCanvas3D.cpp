@@ -10045,6 +10045,14 @@ void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
         m_gcode_viewer.update_sequential_view_current((moves_slider->GetLowerValueD() - 1.0), static_cast<unsigned int>(moves_slider->GetHigherValueD() - 1.0));
         post_event(SimpleEvent(EVT_GLCANVAS_UPDATE));
     }
+
+    if (const auto line = m_gcode_viewer.take_gcode_line_request()) {
+        if (m_gcode_viewer.navigate_to_gcode_line(*line)) {
+            set_volumes_z_range({layers_slider->GetLowerValueD(), layers_slider->GetHigherValueD()});
+            m_dirty = true;
+            post_event(SimpleEvent(EVT_GLCANVAS_UPDATE));
+        }
+    }
 }
 
 void GLCanvas3D::_render_selection()

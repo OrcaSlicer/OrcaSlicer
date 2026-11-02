@@ -86,6 +86,7 @@ public:
     void SetMaxValue(const int max_value);
     void SetKoefForLabels(const double koef) { m_label_koef = koef; }
     void SetSliderValues(const std::vector<double> &values);
+    int GetTickFromValue(double value) { return get_tick_from_value(value, true); }
     void SetSliderAlternateValues(const std::vector<double> &values) { m_alternate_values = values; }
 
     CustomGCode::Info GetTicksValues() const;
