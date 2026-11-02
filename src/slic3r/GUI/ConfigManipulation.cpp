@@ -18,6 +18,7 @@
 #include "slic3r/GUI/Field.hpp"
 #include "libslic3r/BeltBrim.hpp"
 #include <cstdlib>
+#include <optional>
 #include <set>
 #include <map>
 #include <sstream>
@@ -828,8 +829,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         toggle_line(el, have_infill, -1, _L("This setting is hidden because sparse infill density is zero."));
 
     // The sparse infill pattern is stored as a raw key so that plugin-provided patterns can be saved;
-    // the built-in keys map back to InfillPattern for the visibility rules below.
-    const InfillPattern pattern = infill_pattern_from_key(config->opt_string("sparse_infill_pattern"));
+    // the built-in keys map back to InfillPattern for the visibility rules below. A plugin pattern
+    // has no built-in value, so it is absent here and enables none of the built-in-specific rules.
+    const std::optional<InfillPattern> pattern = infill_pattern_from_key(config->opt_string("sparse_infill_pattern"));
 
     // Orca: the concentric patterns follow the surface outline instead of crossing it, so there is
     // nothing for an infill anchor to attach to. Hide the anchor settings for them.
@@ -924,7 +926,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     // Orca: Archimedean Chords and Octagram Spiral are the centered surface patterns that the
     // pattern-centering feature acts on.
-    auto is_centered_pattern = [](InfillPattern p) {
+    auto is_centered_pattern = [](const std::optional<InfillPattern> &p) {
         return p == InfillPattern::ipArchimedeanChords || p == InfillPattern::ipOctagramSpiral;
     };
     bool is_top_centered    = is_centered_pattern(infill_pattern_from_key(config->opt_string("top_surface_pattern")));
@@ -938,7 +940,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("separated_infills", is_separable_infill_pattern(pattern), -1, _L("The selected sparse infill pattern does not support separated infills."));
 
     // Fill order is only meaningful for the center-based surface fill patterns; hide it otherwise.
-    auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipSpiralInset || p == ipArchimedeanChords || p == ipOctagramSpiral; };
+    auto is_centered_fill = [](const std::optional<InfillPattern> &p) { return p == ipConcentric || p == ipSpiralInset || p == ipArchimedeanChords || p == ipOctagramSpiral; };
     toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(infill_pattern_from_key(config->opt_string("top_surface_pattern"))), -1, _L("Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."));
     toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(infill_pattern_from_key(config->opt_string("bottom_surface_pattern"))), -1, _L("Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."));
 

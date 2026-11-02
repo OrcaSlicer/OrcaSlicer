@@ -96,7 +96,8 @@ public:
         std::shared_ptr<const InfillInfo> m_info;
     };
 
-    // Stable config key of a built-in pattern, or empty for an internal-only fill (and for ipPlugin).
+    // Stable config key of a built-in pattern, or empty when the value has no config key (an
+    // internal-only fill, or a value that names no built-in pattern).
     // The key, display label and supported surfaces are all declared by the explicit built-in
     // metadata switch in the implementation; nothing is inferred from PrintConfig at runtime.
     static std::string builtin_infill_key(InfillPattern pattern);

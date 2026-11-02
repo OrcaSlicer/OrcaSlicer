@@ -55,13 +55,10 @@ generations can run concurrently. The adapter forwards supported fill semantics 
 and origin alignment. The per-call surface purpose is carried explicitly from the setting that selected
 the pattern; a plugin never infers it from density, extrusion role or pattern ID.
 
-The Python trampoline accepts both the current override signatures (`generate(pattern_id, request)`,
-`no_sort(pattern_id)`, `aligned_to_origin(pattern_id)`) and the pre-multi-pattern forms
-(`generate(request)`, `no_sort()`, `aligned_to_origin()`). It selects the form by asking
-`inspect.signature` whether the callable binds the current argument count, so a `TypeError` raised
-inside plugin logic is never treated as a signature mismatch and the plugin is only called once.
-`*args` overrides are treated as the current form; a callable whose signature cannot be inspected
-falls back to the current form, and the normal call then reports any mismatch.
+The Python trampoline calls `generate(pattern_id, request)`, `no_sort(pattern_id)` and
+`aligned_to_origin(pattern_id)`. The pattern ID is always passed positionally, so a `*args` override
+receives the same arguments, and an override declared with a different arity receives Python's normal
+`TypeError` rather than a fallback call.
 
 The request is a value snapshot in the host's scaled-coordinate convention. Plugin paths pass through
 the ordinary Fill conversion path, so the host applies flow and gap fill and emits the resulting G-code.
@@ -96,10 +93,11 @@ contributing region; the generated paths cover
 all of them and must not be attributed to `region_id` alone. Unavailable identities are `-1` and an
 empty `region_ids`.
 
-`pattern` is the host `InfillPattern`; plugin dispatch reports `InfillPattern.Plugin`, while
-`pattern_id` is the selected plugin pattern. `purpose` is the surface setting that selected the
-pattern for this call, never inferred from density, extrusion role or pattern ID. Enums cross the
-boundary as bound Python types (`InfillPattern`, `ExtrusionRole`, `AdaptiveInfillMode`,
+`pattern` is the host built-in `InfillPattern`, or `None` for plugin dispatch because a plugin
+pattern ID has no `InfillPattern` value; `pattern_id` is the selected plugin pattern. `purpose` is
+the surface setting that selected the pattern for this call, never inferred from density, extrusion
+role or pattern ID. Enums cross the boundary as bound Python types (`InfillPattern`,
+`ExtrusionRole`, `AdaptiveInfillMode`,
 `AdaptiveInfillGradient`, `SurfaceFillOrder`, `CenterOfSurfacePattern`, `SurfacePurpose`), never as
 raw integers. The flow is copied as scalars: `width`, `height`, `spacing`, `nozzle_diameter`,
 `bridge` and `mm3_per_mm`.

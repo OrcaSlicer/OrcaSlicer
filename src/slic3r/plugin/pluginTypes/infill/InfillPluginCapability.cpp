@@ -245,8 +245,8 @@ Polylines infill_paths_from_python(const pybind11::object& paths)
 
 std::vector<InfillPluginPattern> InfillPluginCapability::patterns() const
 {
-    // Compatibility default for plugins written before multi-pattern support: one sparse pattern
-    // whose stable ID is the capability name.
+    // Default for a plugin that does not declare patterns(): one sparse pattern whose stable ID is
+    // the capability name.
     return { InfillPluginPattern{ name(), name(), { InfillSurfacePurpose::Sparse } } };
 }
 
@@ -332,11 +332,13 @@ void InfillPluginCapability::RegisterBindings(pybind11::module_& module)
         .value("TopSurface", InfillSurfacePurpose::TopSurface)
         .value("BottomSurface", InfillSurfacePurpose::BottomSurface);
 
-    // Host fill pattern. A plugin call runs as Plugin; the concrete plugin pattern is generate()'s
-    // pattern_id. The built-in values are exposed so the field is semantic rather than a raw int.
+    // Host fill pattern. A plugin call has no built-in pattern (request.pattern is None); the
+    // concrete plugin pattern is generate()'s pattern_id. The built-in values are exposed so the
+    // field is semantic rather than a raw int.
     py::enum_<InfillPattern>(infill, "InfillPattern",
-                             "Host infill pattern of the call. Plugin dispatch reports Plugin; the "
-                             "selected plugin pattern is the pattern_id argument of generate().")
+                             "Host built-in infill pattern of the call. The request's pattern is "
+                             "None when the host dispatches a plugin pattern; the selected plugin "
+                             "pattern is the pattern_id argument of generate().")
         .value("Monotonic", ipMonotonic)
         .value("MonotonicLine", ipMonotonicLine)
         .value("Rectilinear", ipRectilinear)
@@ -367,8 +369,7 @@ void InfillPluginCapability::RegisterBindings(pybind11::module_& module)
         .value("ArchimedeanChords", ipArchimedeanChords)
         .value("OctagramSpiral", ipOctagramSpiral)
         .value("SupportBase", ipSupportBase)
-        .value("ConcentricInternal", ipConcentricInternal)
-        .value("Plugin", ipPlugin);
+        .value("ConcentricInternal", ipConcentricInternal);
 
     py::enum_<ExtrusionRole>(infill, "ExtrusionRole",
                              "Extrusion role this fill will be emitted as.")
@@ -531,9 +532,9 @@ void InfillPluginCapability::RegisterBindings(pybind11::module_& module)
         .def_readonly("lateral_lattice_angle_2", &InfillPluginRequest::lateral_lattice_angle_2,
                       "Lateral lattice tilt of the second wall, degrees.")
         .def_readonly("pattern", &InfillPluginRequest::pattern,
-                      "Host infill pattern of the call (orca.infill.InfillPattern). Plugin dispatch "
-                      "reports InfillPattern.Plugin; the selected plugin pattern is the pattern_id "
-                      "argument of generate().")
+                      "Host built-in infill pattern of the call (orca.infill.InfillPattern), or None "
+                      "for plugin dispatch; the selected plugin pattern is the pattern_id argument "
+                      "of generate().")
         .def_readonly("infill_overhang_angle", &InfillPluginRequest::infill_overhang_angle,
                       "Lateral honeycomb overhang angle, degrees.")
         .def_readonly("extrusion_role", &InfillPluginRequest::extrusion_role,
@@ -621,34 +622,47 @@ InfillPluginFill::InfillPluginFill(std::shared_ptr<InfillPluginCapability> capab
         throw InvalidArgument("InfillPluginFill requires a pattern ID");
 }
 
-bool InfillPluginFill::no_sort() const { return m_capability->no_sort(m_pattern_id); }
+namespace {
 
-bool InfillPluginFill::aligned_to_origin() const { return m_capability->aligned_to_origin(m_pattern_id); }
-
-Fill* InfillPluginFill::clone() const
+// Runs one capability callback that executes plugin code on the slicing path. Fill calls generate(),
+// no_sort() and aligned_to_origin() at different points, so every one of them translates a failure
+// the same way: cancellation stays a cancellation, and any other exception is recorded in the
+// plugin's diagnostic store and reported to the user as the same generic non-critical slicing error.
+template<typename Callback>
+auto run_infill_plugin_callback(const InfillPluginCapability& capability,
+                                const char*                   callback_name,
+                                Callback&&                    callback) -> decltype(callback())
 {
-    auto clone = std::make_unique<InfillPluginFill>(m_capability, m_pattern_id);
-    clone->layer_id                      = layer_id;
-    clone->object_id                     = object_id;
-    clone->layer_index                   = layer_index;
-    clone->region_id                     = region_id;
-    clone->region_ids                    = region_ids;
-    clone->z                             = z;
-    clone->spacing                       = spacing;
-    clone->overlap                       = overlap;
-    clone->angle                         = angle;
-    clone->fixed_angle                   = fixed_angle;
-    clone->link_max_length               = link_max_length;
-    clone->loop_clipping                 = loop_clipping;
-    clone->bounding_box                  = bounding_box;
-    clone->adapt_fill_octree             = adapt_fill_octree;
-    clone->adaptive_infill_field         = adaptive_infill_field;
-    clone->print_config                  = print_config;
-    clone->print_object_config           = print_object_config;
-    clone->no_overlap_expolygons         = no_overlap_expolygons;
-    clone->dont_alternate_fill_direction = dont_alternate_fill_direction;
-    return clone.release();
+    try {
+        return callback();
+    } catch (const CanceledException&) {
+        throw; // cancellation must reach the slicing job untouched
+    } catch (const std::exception& ex) {
+        const std::string& plugin_key = capability.audit_plugin_key();
+        if (!plugin_key.empty()) {
+            std::string detail = "Infill capability '" + capability.name() + "' failed in " + callback_name +
+                                 ": " + ex.what();
+            PluginManager::instance().report_plugin_diagnostic(plugin_key, std::move(detail));
+        }
+        throw SlicingError(PluginManager::plugin_infill_failure_message());
+    }
 }
+
+} // namespace
+
+bool InfillPluginFill::no_sort() const
+{
+    return run_infill_plugin_callback(*m_capability, "no_sort()",
+                                      [this] { return m_capability->no_sort(m_pattern_id); });
+}
+
+bool InfillPluginFill::aligned_to_origin() const
+{
+    return run_infill_plugin_callback(*m_capability, "aligned_to_origin()",
+                                      [this] { return m_capability->aligned_to_origin(m_pattern_id); });
+}
+
+Fill* InfillPluginFill::clone() const { return new InfillPluginFill(*this); }
 
 void InfillPluginFill::_fill_surface_single(const FillParams&                params,
                                             unsigned int                     thickness_layers,
@@ -659,20 +673,8 @@ void InfillPluginFill::_fill_surface_single(const FillParams&                par
     InfillPluginRequest request =
         make_infill_plugin_request(*this, params, thickness_layers, direction, std::move(expolygon));
 
-    Polylines generated;
-    try {
-        generated = m_capability->generate(m_pattern_id, request);
-    } catch (const CanceledException&) {
-        throw; // cancellation must reach the slicing job untouched
-    } catch (const std::exception& ex) {
-        // A plugin raise is a non-critical slicing failure. Keep the detailed cause in the plugin's
-        // diagnostic store and give the user the same generic message for every plugin infill fault.
-        const std::string &plugin_key = m_capability->audit_plugin_key();
-        if (!plugin_key.empty())
-            PluginManager::instance().report_plugin_diagnostic(
-                plugin_key, "Infill capability '" + m_capability->name() + "' failed: " + ex.what());
-        throw SlicingError(PluginManager::plugin_infill_failure_message());
-    }
+    Polylines generated = run_infill_plugin_callback(
+        *m_capability, "generate()", [&] { return m_capability->generate(m_pattern_id, request); });
 
     polylines_out.reserve(polylines_out.size() + generated.size());
     for (Polyline& path : generated) {

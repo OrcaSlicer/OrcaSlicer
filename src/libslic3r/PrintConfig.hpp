@@ -36,6 +36,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <cstddef>
 #include <cassert>
@@ -134,11 +135,9 @@ enum InfillPattern : int {
     ipCrossHatch, ipTpmsD, ipTpmsFK, ipGyroid,
     ipConcentric, ipSpiralInset, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
     ipSupportBase, ipConcentricInternal,
+    // One past the last built-in pattern. A pattern setting may also hold a plugin pattern ID,
+    // which has no InfillPattern value and is represented by std::nullopt where needed.
     ipCount,
-    // Not a built-in pattern: sparse_infill_pattern may hold a plugin-provided identifier (or a
-    // value no built-in pattern names). Kept after ipCount so ipCount still bounds the built-in
-    // patterns and the arrays sized by it.
-    ipPlugin,
 };
 
 // Orca: Infill patterns that the "separated_infills" option can center on each connected body.
@@ -202,6 +201,25 @@ inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 
     default:
         return false;
     }
+}
+
+// A plugin pattern has no built-in InfillPattern value (nullopt), so it supports none of the
+// built-in pattern capabilities the predicates above describe.
+inline bool is_separable_infill_pattern(const std::optional<InfillPattern> &pattern)
+{
+    return pattern && is_separable_infill_pattern(*pattern);
+}
+inline bool is_octree_infill_pattern(const std::optional<InfillPattern> &pattern)
+{
+    return pattern && is_octree_infill_pattern(*pattern);
+}
+inline bool is_adaptive_infill_pattern(const std::optional<InfillPattern> &pattern)
+{
+    return pattern && is_adaptive_infill_pattern(*pattern);
+}
+inline bool is_smoothable_infill_pattern(const std::optional<InfillPattern> &pattern, int multiline = 1)
+{
+    return pattern && is_smoothable_infill_pattern(*pattern, multiline);
 }
 
 enum class IroningType {
@@ -813,8 +831,9 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 // pattern, a stable pattern ID advertised by an infill capability. The capability name is the
 // provider identity in the project manifest; the pattern ID is the selection value. The plugin
 // registry needed to confirm that a pattern exists is not available in this layer, so any nonempty
-// key that does not name a built-in pattern is treated as plugin-provided (ipPlugin); existence,
-// provider ownership and surface purpose are validated by the infill registry before slicing.
+// key that does not name a built-in pattern is treated as plugin-provided; it has no InfillPattern
+// value. Existence, provider ownership and surface purpose are validated by the infill registry
+// before slicing.
 inline bool is_builtin_infill_pattern_key(const std::string &key)
 {
     const t_config_enum_values &builtin = ConfigOptionEnum<InfillPattern>::get_enum_values();
@@ -828,15 +847,17 @@ inline bool is_plugin_infill_pattern_key(const std::string &key)
     return !key.empty() && !is_builtin_infill_pattern_key(key);
 }
 
-// Maps a pattern setting's value to the built-in pattern it names, or ipPlugin when the key is not
+// Maps a pattern setting's value to the built-in pattern it names, or nullopt when the key is not
 // a built-in pattern. A nonempty non-builtin key is assumed to be a plugin pattern ID; fill creation
-// fails clearly for ipPlugin instead of guessing a built-in pattern. Callers must not index
-// built-in-only tables with ipPlugin.
-inline InfillPattern infill_pattern_from_key(const std::string &key)
+// fails clearly when the pattern is absent instead of guessing a built-in pattern. Callers must not
+// index built-in-only tables with a missing pattern.
+inline std::optional<InfillPattern> infill_pattern_from_key(const std::string &key)
 {
     const t_config_enum_values &builtin = ConfigOptionEnum<InfillPattern>::get_enum_values();
     const auto                  it      = builtin.find(key);
-    return it == builtin.end() ? ipPlugin : InfillPattern(it->second);
+    if (it == builtin.end())
+        return std::nullopt;
+    return InfillPattern(it->second);
 }
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)

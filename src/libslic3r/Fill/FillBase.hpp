@@ -5,6 +5,7 @@
 #include <functional>
 #include <map>
 #include <cstddef>
+#include <optional>
 #include <math.h>
 #include <memory.h>
 #include <float.h>
@@ -109,7 +110,10 @@ struct FillParams
     // For Lateral lattice
     coordf_t    lateral_lattice_angle_1    { 0.f };
     coordf_t    lateral_lattice_angle_2    { 0.f };
-    InfillPattern pattern{ ipRectilinear };
+    // Built-in pattern used to fill this surface, when the caller resolved one. nullopt when the
+    // caller left it unset or a plugin pattern is dispatched: a plugin pattern ID has no
+    // InfillPattern value and is carried separately by the caller.
+    std::optional<InfillPattern> pattern;
 
     // For Lateral Honeycomb
     float       infill_overhang_angle    { 60 };
@@ -204,17 +208,16 @@ public:
     virtual Fill* clone() const = 0;
 
     // Create a built-in or plugin fill by its stable config/pattern ID. Plugin callers need no
-    // special path: InfillFactory resolves the ID to the registered creator.
+    // special path: InfillFactory resolves the ID to the registered creator. Returns nullptr for
+    // an unknown ID, so the caller can report the failure in its own context.
     static Fill* new_from_type(const std::string& id);
     // Internal/support-only callers that have an enum rather than a config key use this overload.
-    // Plugin patterns have no enum value; ipPlugin throws.
+    // Plugin patterns have no enum value; create them with the ID overload. An enum value that
+    // names no built-in fill (ipCount) throws InvalidArgument.
     static Fill* new_from_type(const InfillPattern type);
-    static bool  use_bridge_flow(const InfillPattern type);
 
     void         set_bounding_box(const Slic3r::BoundingBox &bbox) { bounding_box = bbox; }
     BoundingBox  extended_object_bounding_box() const;
-    // Use bridge flow for the fill?
-    virtual bool use_bridge_flow() const { return false; }
 
     // Do not sort the fill lines to optimize the print head path?
     virtual bool no_sort() const { return false; }

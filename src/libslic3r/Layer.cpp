@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <optional>
 #include <vector>
 #include <cstddef>
 #include <utility>
@@ -439,7 +440,7 @@ coordf_t Layer::get_sparse_infill_max_void_area()
         Flow flow = layerm->flow(frInfill);
         const PrintRegionConfig &config = layerm->region().config();
         float density = config.sparse_infill_density;
-        InfillPattern pattern = infill_pattern_from_key(config.sparse_infill_pattern.value);
+        const std::optional<InfillPattern> pattern = infill_pattern_from_key(config.sparse_infill_pattern.value);
         if (density == 0.)
             return -1;
         // Orca: the adaptive TPMS infill is as sparse as its interior density.
@@ -448,7 +449,9 @@ coordf_t Layer::get_sparse_infill_max_void_area()
 
         //BBS: rough estimation and need to be optimized
         double spacing = flow.scaled_spacing() * (100 - density) / density;
-        switch (pattern) {
+        // A plugin pattern has no built-in void-size estimate; value_or(ipCount) routes it to the
+        // default estimate in the switch below.
+        switch (pattern.value_or(ipCount)) {
             case ipConcentric:
             case ipSpiralInset:
             case ipRectilinear:

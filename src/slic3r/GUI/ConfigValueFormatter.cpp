@@ -14,6 +14,7 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Fill/InfillFactory.hpp"
+#include "libslic3r/Fill/InfillPurpose.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include "I18N.hpp"
@@ -45,9 +46,11 @@ wxString get_string_from_key_choice(const std::string& opt_key, const DynamicPri
         return from_u8(_utf8(def->enum_labels[it - def->enum_values.begin()]));
     // A plugin pattern ID has no built-in label; use the provider's presentation name when the
     // pattern is still registered, so a preset comparison does not show a raw identifier.
-    if (const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill(key);
-        info != nullptr && info->is_plugin() && !info->display_name.empty())
-        return from_u8(info->display_name);
+    if (infill_purpose_for_option(opt_key)) {
+        if (const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill(key);
+            info != nullptr && info->is_plugin() && !info->display_name.empty())
+            return from_u8(info->display_name);
+    }
     return from_u8(key);
 }
 

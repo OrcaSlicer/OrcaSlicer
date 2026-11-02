@@ -74,8 +74,8 @@ struct ScopedPluginManager
 
 // A minimal infill plugin. `stem` distinguishes package, module and class names so two fixtures can
 // coexist in one discovery pass; `patterns_method` is the Python body of patterns(), or empty for a
-// legacy plugin that relies on the host's one-sparse-pattern default. `methods` replaces the default
-// modern generate() block when a test needs legacy or flexible override signatures.
+// plugin that relies on the host's one-sparse-pattern default. `methods` replaces the default
+// generate() block when a test needs a different override signature.
 std::string make_infill_plugin_source(const std::string& stem,
                                       const std::string& capability_name,
                                       const std::string& patterns_method = {},
@@ -235,6 +235,9 @@ TEST_CASE("The infill request mirrors every FillParams value as an owned snapsho
     CHECK_THAT(request.lateral_lattice_angle_1, WithinAbs(15.0, 1e-12));
     CHECK_THAT(request.lateral_lattice_angle_2, WithinAbs(30.0, 1e-12));
     CHECK(request.pattern == ipGyroid);
+    // A built-in pattern key still decodes to its enum value after plugin patterns became
+    // optional; the request mirrors that value unchanged.
+    CHECK(infill_pattern_from_key("gyroid") == ipGyroid);
     CHECK_THAT(request.infill_overhang_angle, WithinAbs(55.0, 1e-6));
     CHECK(request.extrusion_role == erTopSolidInfill);
     CHECK(request.using_internal_flow == true);
@@ -272,6 +275,8 @@ TEST_CASE("An unset flow in the infill request reports zero cross-section", "[Pl
     CHECK(request.layer_index == -1);
     CHECK(request.region_id == -1);
     CHECK(request.region_ids.empty());
+    // A plugin dispatch carries no built-in pattern, so a plugin request must not invent one.
+    CHECK_FALSE(request.pattern.has_value());
 }
 
 TEST_CASE("An infill capability advertises multiple patterns with per-pattern surface support", "[PluginInfill][Python]")
@@ -326,93 +331,58 @@ TEST_CASE("An infill capability advertises multiple patterns with per-pattern su
     CHECK_FALSE(InfillFactory::is_infill_registered("plugin-solid"));
 }
 
-TEST_CASE("Legacy infill overrides without a pattern ID still dispatch", "[PluginInfill][Python]")
+TEST_CASE("Infill overrides receive the pattern ID and the request", "[PluginInfill][Python]")
 {
     ScopedPluginManager plugin_system;
     if (!plugin_system.initialized)
         SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
 
-    ScopedDataDir data_dir_guard("infill-legacy-signatures");
-    const std::string methods =
-        "    def generate(self, request):\n"
-        "        assert isinstance(request, orca.infill.InfillPluginRequest)\n"
-        "        return [[orca.host.Point(0, 0), orca.host.Point(10, 0)]]\n"
-        "    def no_sort(self):\n"
-        "        return True\n"
-        "    def aligned_to_origin(self):\n"
-        "        return True\n";
-    write_plugin(data_dir_guard, "LegacySignaturesInfill", "Legacy Signatures Infill", {}, methods);
-
-    PluginManager& manager = PluginManager::instance();
-    manager.discover_plugins(/*async=*/false, /*clear=*/true);
-
-    std::string error;
-    REQUIRE(load_and_wait(manager, "LegacySignaturesInfill", error));
-    INFO("load error: " << error);
-
-    const auto capability = manager.get_plugin_capability("Legacy Signatures Infill",
-                                                          PluginCapabilityType::Infill, /*only_enabled=*/true);
-    REQUIRE(capability != nullptr);
-    auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
-    REQUIRE(infill != nullptr);
-
-    const InfillPluginRequest request;
-    Polylines                 paths;
-    REQUIRE_NOTHROW(paths = infill->generate("legacy-pattern", request));
-    REQUIRE(paths.size() == 1);
-    CHECK(paths.front().points.size() == 2);
-    CHECK(infill->no_sort("legacy-pattern"));
-    CHECK(infill->aligned_to_origin("legacy-pattern"));
-
-    manager.unload_plugin("LegacySignaturesInfill");
-}
-
-TEST_CASE("Modern infill overrides receive the pattern ID", "[PluginInfill][Python]")
-{
-    ScopedPluginManager plugin_system;
-    if (!plugin_system.initialized)
-        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
-
-    ScopedDataDir data_dir_guard("infill-modern-signatures");
+    ScopedDataDir data_dir_guard("infill-pattern-id-signatures");
     const std::string methods =
         "    def generate(self, pattern_id, request):\n"
-        "        assert pattern_id == 'modern-pattern'\n"
+        "        assert pattern_id == 'pattern-id'\n"
         "        assert isinstance(request, orca.infill.InfillPluginRequest)\n"
         "        assert request.object_id == -1\n"
         "        assert request.layer_index == -1\n"
         "        assert request.region_id == -1\n"
         "        assert list(request.region_ids) == []\n"
+        "        assert request.pattern is None\n"
         "        return [[orca.host.Point(0, 0), orca.host.Point(10, 0)]]\n"
         "    def no_sort(self, pattern_id):\n"
-        "        return pattern_id == 'modern-pattern'\n"
+        "        return pattern_id == 'pattern-id'\n"
         "    def aligned_to_origin(self, pattern_id):\n"
-        "        return pattern_id == 'modern-pattern'\n";
-    write_plugin(data_dir_guard, "ModernSignaturesInfill", "Modern Signatures Infill", {}, methods);
+        "        return pattern_id == 'pattern-id'\n";
+    write_plugin(data_dir_guard, "PatternIdInfill", "Pattern ID Infill", {}, methods);
 
     PluginManager& manager = PluginManager::instance();
     manager.discover_plugins(/*async=*/false, /*clear=*/true);
 
     std::string error;
-    REQUIRE(load_and_wait(manager, "ModernSignaturesInfill", error));
+    REQUIRE(load_and_wait(manager, "PatternIdInfill", error));
     INFO("load error: " << error);
 
-    const auto capability = manager.get_plugin_capability("Modern Signatures Infill",
-                                                          PluginCapabilityType::Infill, /*only_enabled=*/true);
+    const auto capability = manager.get_plugin_capability("Pattern ID Infill", PluginCapabilityType::Infill,
+                                                          /*only_enabled=*/true);
     REQUIRE(capability != nullptr);
     auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
     REQUIRE(infill != nullptr);
 
-    const InfillPluginRequest request;
-    Polylines                 paths;
-    REQUIRE_NOTHROW(paths = infill->generate("modern-pattern", request));
+    // A plugin dispatch has no built-in pattern; build the request the way the fill adapter does
+    // and let the Python override assert that it arrives as None.
+    RequestSnapshotFill fill;
+    const InfillPluginRequest request =
+        make_infill_plugin_request(fill, FillParams{}, 1,
+                                   std::pair<float, Point>{ 0.f, Point(0, 0) }, ExPolygon{});
+    Polylines paths;
+    REQUIRE_NOTHROW(paths = infill->generate("pattern-id", request));
     REQUIRE(paths.size() == 1);
-    CHECK(infill->no_sort("modern-pattern"));
-    CHECK(infill->aligned_to_origin("modern-pattern"));
+    CHECK(infill->no_sort("pattern-id"));
+    CHECK(infill->aligned_to_origin("pattern-id"));
 
-    manager.unload_plugin("ModernSignaturesInfill");
+    manager.unload_plugin("PatternIdInfill");
 }
 
-TEST_CASE("Flexible *args infill overrides receive the current signature", "[PluginInfill][Python]")
+TEST_CASE("Flexible *args infill overrides receive the pattern ID and the request", "[PluginInfill][Python]")
 {
     ScopedPluginManager plugin_system;
     if (!plugin_system.initialized)
@@ -454,85 +424,45 @@ TEST_CASE("Flexible *args infill overrides receive the current signature", "[Plu
     manager.unload_plugin("ArgsSignaturesInfill");
 }
 
-TEST_CASE("A legacy generate() that raises TypeError is called only once", "[PluginInfill][Python]")
-{
-    ScopedPluginManager plugin_system;
-    if (!plugin_system.initialized)
-        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
-
-    ScopedDataDir data_dir_guard("infill-legacy-typeerror");
-    const std::string methods =
-        "    def generate(self, request):\n"
-        "        self.calls = getattr(self, 'calls', 0) + 1\n"
-        "        raise TypeError('plugin logic, not a signature mismatch')\n";
-    write_plugin(data_dir_guard, "LegacyTypeErrorInfill", "Legacy TypeError Infill", {}, methods);
-
-    PluginManager& manager = PluginManager::instance();
-    manager.discover_plugins(/*async=*/false, /*clear=*/true);
-
-    std::string error;
-    REQUIRE(load_and_wait(manager, "LegacyTypeErrorInfill", error));
-    INFO("load error: " << error);
-
-    const auto capability = manager.get_plugin_capability("Legacy TypeError Infill",
-                                                          PluginCapabilityType::Infill, /*only_enabled=*/true);
-    REQUIRE(capability != nullptr);
-    auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
-    REQUIRE(infill != nullptr);
-
-    // Hold the GIL while the rethrown Python error and the instance attribute are alive.
-    {
-        pybind11::gil_scoped_acquire gil;
-        const InfillPluginRequest   request;
-        CHECK_THROWS(infill->generate("legacy-pattern", request));
-
-        const pybind11::object py_infill = pybind11::cast(infill);
-        REQUIRE(pybind11::hasattr(py_infill, "calls"));
-        CHECK(py_infill.attr("calls").cast<int>() == 1);
-    }
-
-    manager.unload_plugin("LegacyTypeErrorInfill");
-}
-
 TEST_CASE("An infill capability without patterns() defaults to one sparse pattern named after itself", "[PluginInfill][Python]")
 {
     ScopedPluginManager plugin_system;
     if (!plugin_system.initialized)
         SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
 
-    ScopedDataDir data_dir_guard("infill-legacy");
-    write_plugin(data_dir_guard, "LegacyInfill", "Legacy Infill");
+    ScopedDataDir data_dir_guard("infill-default-patterns");
+    write_plugin(data_dir_guard, "DefaultPatternsInfill", "Default Patterns Infill");
 
     PluginManager& manager = PluginManager::instance();
     manager.discover_plugins(/*async=*/false, /*clear=*/true);
 
     std::string error;
-    REQUIRE(load_and_wait(manager, "LegacyInfill", error));
+    REQUIRE(load_and_wait(manager, "DefaultPatternsInfill", error));
     INFO("load error: " << error);
 
-    const auto capability = manager.get_plugin_capability("Legacy Infill", PluginCapabilityType::Infill);
+    const auto capability = manager.get_plugin_capability("Default Patterns Infill", PluginCapabilityType::Infill);
     REQUIRE(capability != nullptr);
     auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
     REQUIRE(infill != nullptr);
     REQUIRE(infill->resolved_patterns().size() == 1);
-    CHECK(infill->resolved_patterns().front().id == "Legacy Infill");
+    CHECK(infill->resolved_patterns().front().id == "Default Patterns Infill");
     CHECK(infill_pattern_supports_surface(infill->resolved_patterns().front(), InfillSurfacePurpose::Sparse));
 
-    CHECK(InfillFactory::is_infill_registered("Legacy Infill"));
-    const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill("Legacy Infill");
+    CHECK(InfillFactory::is_infill_registered("Default Patterns Infill"));
+    const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill("Default Patterns Infill");
     REQUIRE(info != nullptr);
-    CHECK(info->plugin_key == "LegacyInfill");
-    CHECK(info->capability_name == "Legacy Infill");
-    // The descriptor default stays sparse-only, so plugins written before surface purposes existed
-    // keep exactly the surface they used to have.
+    CHECK(info->plugin_key == "DefaultPatternsInfill");
+    CHECK(info->capability_name == "Default Patterns Infill");
+    // The implicit pattern stays sparse-only, so a plugin that does not declare patterns() keeps
+    // exactly the one surface it used to have.
     CHECK(info->supports_surface(InfillSurfacePurpose::Sparse));
     CHECK_FALSE(info->supports_surface(InfillSurfacePurpose::TopSurface));
 
     // A plugin that defines neither optional method keeps the C++ Fill defaults.
-    CHECK_FALSE(infill->no_sort("Legacy Infill"));
-    CHECK_FALSE(infill->aligned_to_origin("Legacy Infill"));
+    CHECK_FALSE(infill->no_sort("Default Patterns Infill"));
+    CHECK_FALSE(infill->aligned_to_origin("Default Patterns Infill"));
 
-    manager.unload_plugin("LegacyInfill");
+    manager.unload_plugin("DefaultPatternsInfill");
 }
 
 TEST_CASE("Disabling an infill capability unregisters its patterns and re-enabling restores them", "[PluginInfill][Python]")

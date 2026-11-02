@@ -4075,7 +4075,7 @@ void PrintObject::bridge_over_infill()
                 };
                 for (const CandidateSurface &candidate : surfaces_by_layer[lidx]) {
                     const auto &region_config = candidate.region->region().config();
-                    const InfillPattern sparse_infill_pattern =
+                    const auto sparse_infill_pattern =
                         infill_pattern_from_key(region_config.sparse_infill_pattern.value);
                     const bool turning_pattern = sparse_infill_pattern == ipHilbertCurve ||
                                                  sparse_infill_pattern == ipOctagramSpiral;
@@ -5186,7 +5186,7 @@ void PrintObject::combine_infill()
         // Support internal solid infill when sparse_infill_density is 100%
         const bool          use_solid_infill = fabs(region.config().sparse_infill_density.value - 100.) < EPSILON;
         const SurfaceType   surface_type     = use_solid_infill ? stInternalSolid : stInternal;
-        const InfillPattern infill_pattern   = infill_pattern_from_key(
+        const auto          infill_pattern   = infill_pattern_from_key(
             use_solid_infill ? region.config().internal_solid_infill_pattern.value
                              : region.config().sparse_infill_pattern.value);
 

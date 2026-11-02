@@ -3819,7 +3819,8 @@ void PrintConfigDef::init_fff_params()
     // plugin-provided value is the stable pattern ID advertised by an infill capability;
     // plugin_type lets the manifest resolver turn it into the owning capability's full plugin
     // reference. enum_values/enum_labels still describe the built-in choices for the GUI;
-    // enum_keys_map lets the GUI resolve them back to InfillPattern. See infill_pattern_from_key().
+    // enum_keys_map lets the GUI resolve the built-in choices back to InfillPattern; a plugin ID
+    // has no enum value. See infill_pattern_from_key().
     def = this->add("sparse_infill_pattern", coString);
     def->plugin_type = "infill";
     def->label = L("Sparse infill pattern");

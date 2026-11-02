@@ -68,21 +68,24 @@ TEST_CASE("Adjusted solid distance", "[Fill]") {
 
 namespace {
 
-// A native plugin pattern that records the surface purpose each dispatch call carried. It stands in
-// for InfillPluginCapability::generate() without needing the Python plugin layer in this suite.
+// A native plugin pattern that records the surface purpose and whether a built-in pattern was set
+// for each dispatch call. It stands in for InfillPluginCapability::generate() without needing the
+// Python plugin layer in this suite.
 class PurposeRecordingFill final : public Fill
 {
 public:
     PurposeRecordingFill() = default;
-    PurposeRecordingFill(std::vector<InfillSurfacePurpose>& recorded, std::mutex& mutex)
-        : m_recorded(&recorded), m_mutex(&mutex)
+    PurposeRecordingFill(std::vector<InfillSurfacePurpose>& recorded, std::mutex& mutex,
+                         std::vector<bool>* pattern_present = nullptr)
+        : m_recorded(&recorded), m_mutex(&mutex), m_pattern_present(pattern_present)
     {}
 
     Fill*    clone() const override
     {
         auto* copy = new PurposeRecordingFill();
-        copy->m_recorded = m_recorded;
-        copy->m_mutex    = m_mutex;
+        copy->m_recorded        = m_recorded;
+        copy->m_mutex           = m_mutex;
+        copy->m_pattern_present = m_pattern_present;
         return copy;
     }
     bool     is_self_crossing() override { return false; }
@@ -97,13 +100,16 @@ protected:
         if (m_recorded != nullptr && m_mutex != nullptr) {
             std::lock_guard<std::mutex> lock(*m_mutex);
             m_recorded->push_back(params.purpose);
+            if (m_pattern_present != nullptr)
+                m_pattern_present->push_back(params.pattern.has_value());
         }
         polylines_out.clear();
     }
 
 private:
-    std::vector<InfillSurfacePurpose>* m_recorded = nullptr;
-    std::mutex*                        m_mutex    = nullptr;
+    std::vector<InfillSurfacePurpose>* m_recorded        = nullptr;
+    std::mutex*                        m_mutex           = nullptr;
+    std::vector<bool>*                 m_pattern_present = nullptr;
 };
 
 // Unregisters the fixture pattern on every exit path, including a failed REQUIRE.
@@ -117,12 +123,12 @@ struct ScopedPluginInfill
 
 } // namespace
 
-TEST_CASE("Plugin infill patterns cannot be created from an enum value", "[Fill]")
+TEST_CASE("An enum value without a built-in pattern cannot create a fill", "[Fill]")
 {
-    // Plugin patterns are created by InfillFactory from the stable ID selected by the project.
-    // Without that ID the InfillPattern enum carries no identity, so enum construction must fail
-    // rather than guess a provider.
-    CHECK_THROWS_AS(Fill::new_from_type(ipPlugin), Slic3r::SlicingError);
+    // Plugin patterns have no InfillPattern value: they are created by InfillFactory from the
+    // stable ID selected by the project. ipCount is one past the last built-in pattern, so the
+    // enum overload must reject it rather than guess a provider.
+    CHECK_THROWS_AS(Fill::new_from_type(ipCount), Slic3r::InvalidArgument);
 }
 
 TEST_CASE("A plugin pattern selected for a surface dispatches with that surface purpose", "[Fill][InfillPlugin]")
@@ -133,14 +139,15 @@ TEST_CASE("A plugin pattern selected for a surface dispatches with that surface 
     ScopedPluginInfill cleanup{plugin_key, capability};
 
     std::vector<InfillSurfacePurpose> recorded;
+    std::vector<bool>                 pattern_present;
     std::mutex                        mutex;
     REQUIRE(InfillFactory::register_plugin_infill(
         id, "Surface Pattern", plugin_key, capability,
         {InfillSurfacePurpose::InternalSolid, InfillSurfacePurpose::TopSurface,
          InfillSurfacePurpose::BottomSurface},
         {},
-        [&recorded, &mutex]() -> std::unique_ptr<Fill> {
-            return std::make_unique<PurposeRecordingFill>(recorded, mutex);
+        [&recorded, &pattern_present, &mutex]() -> std::unique_ptr<Fill> {
+            return std::make_unique<PurposeRecordingFill>(recorded, mutex, &pattern_present);
         }));
 
     auto config = DynamicPrintConfig::full_print_config();
@@ -179,6 +186,64 @@ TEST_CASE("A plugin pattern selected for a surface dispatches with that surface 
     }
     // The ID is selected for three solid surfaces only; it must never run as sparse infill.
     CHECK(std::find(recorded.begin(), recorded.end(), InfillSurfacePurpose::Sparse) == recorded.end());
+    // A plugin pattern has no built-in InfillPattern value, so no dispatch may invent one.
+    REQUIRE_FALSE(pattern_present.empty());
+    CHECK(std::none_of(pattern_present.begin(), pattern_present.end(), [](bool present) { return present; }));
+}
+
+TEST_CASE("A sparse plugin pattern dispatches without a built-in pattern while anchoring", "[Fill][InfillPlugin]")
+{
+    const std::string id         = "fff-anchor-sparse-pattern";
+    const std::string plugin_key = "fff-anchor-sparse-plugin";
+    const std::string capability = "FFF Anchor Sparse Infill";
+    ScopedPluginInfill cleanup{plugin_key, capability};
+
+    std::vector<InfillSurfacePurpose> recorded;
+    std::vector<bool>                 pattern_present;
+    std::mutex                        mutex;
+    REQUIRE(InfillFactory::register_plugin_infill(
+        id, "Anchor Sparse Pattern", plugin_key, capability, {InfillSurfacePurpose::Sparse}, {},
+        [&recorded, &pattern_present, &mutex]() -> std::unique_ptr<Fill> {
+            return std::make_unique<PurposeRecordingFill>(recorded, mutex, &pattern_present);
+        }));
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"sparse_infill_pattern", id},
+        {"sparse_infill_density", "15%"},
+        {"top_shell_layers", 0},
+        {"bottom_shell_layers", 0},
+        {"top_shell_thickness", 0},
+        {"bottom_shell_thickness", 0},
+        {"ensure_vertical_shell_thickness", "none"},
+        {"layer_height", 0.2},
+        {"initial_layer_print_height", 0.2},
+        {"plugins", plugin_key + ";;" + capability},
+    });
+
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({make_cube(20, 20, 1)}, print, model, config);
+    print.process();
+
+    const PrintObject *object = print.objects().front();
+    REQUIRE(object != nullptr);
+    REQUIRE(object->layers().size() > 1);
+    const Layer &layer = *object->get_layer(object->layers().size() / 2);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        recorded.clear();
+        pattern_present.clear();
+    }
+    layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr);
+
+    // The anchor path must dispatch the sparse plugin, and like the normal fill path it must not
+    // invent a built-in pattern for it.
+    std::lock_guard<std::mutex> lock(mutex);
+    REQUIRE_FALSE(recorded.empty());
+    REQUIRE_FALSE(pattern_present.empty());
+    CHECK(std::none_of(pattern_present.begin(), pattern_present.end(), [](bool present) { return present; }));
 }
 
 TEST_CASE("A plugin pattern selected for a surface it does not declare fails the slice", "[Fill][InfillPlugin]")
@@ -212,7 +277,7 @@ TEST_CASE("A plugin pattern selected for a surface it does not declare fails the
 }
 
 TEST_CASE("Pattern path length", "[Fill]") {
-    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipRectilinear));
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("rectilinear"));
     filler->angle = float(-(PI)/2.0);
 	FillParams fill_params;
 	filler->spacing = 5;
@@ -306,7 +371,7 @@ TEST_CASE("Pattern path length", "[Fill]") {
     SECTION("Rotated Square") {
         Slic3r::Points square { Point::new_scale(0,0), Point::new_scale(50,0), Point::new_scale(50,50), Point::new_scale(0,50)};
         Slic3r::ExPolygon expolygon(square);
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipRectilinear));
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("rectilinear"));
 		filler->bounding_box = get_extents(expolygon.contour);
         filler->angle = 0;
         
@@ -616,7 +681,7 @@ for my $pattern (qw(rectilinear honeycomb hilbertcurve concentric)) {
 
 bool test_if_solid_surface_filled(const ExPolygon& expolygon, double flow_spacing, double angle, double density)
 {
-    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipRectilinear));
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("rectilinear"));
 	filler->bounding_box = get_extents(expolygon.contour);
     filler->angle = float(angle);
 
@@ -1007,7 +1072,7 @@ namespace {
 
 Slic3r::Polylines spiral_inset_fill(const Slic3r::ExPolygon &surface_shape, double spacing)
 {
-    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipSpiralInset));
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("spiralinset"));
     filler->spacing = spacing;
     // Cancel the half-spacing contraction fill_surface() applies, so the filler sees the shape as given.
     filler->overlap = 0.5 * spacing;
@@ -1162,7 +1227,7 @@ TEST_CASE("Spiral inset fill closes the gaps with variable width walls", "[Fill]
     Slic3r::PrintConfig       print_config;
     Slic3r::PrintObjectConfig object_config;
     auto make_filler = [&]() {
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipSpiralInset));
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("spiralinset"));
         filler->spacing             = spacing;
         filler->overlap             = 0.5 * spacing; // cancel the contraction, so both see the same surface
         filler->print_config        = &print_config;
@@ -1213,7 +1278,7 @@ TEST_CASE("Honeycomb infill rounds its cell corners with the smooth factor", "[F
     const double spacing = 0.45;
     const double density = 0.1;
     auto         fill    = [spacing, density](double smooth_factor) {
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipHoneycomb));
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("honeycomb"));
         filler->spacing = spacing;
 
         FillParams params;
@@ -1573,7 +1638,7 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
     const ExPolygon region{ Slic3r::Points{ Point::new_scale(0., 0.), Point::new_scale(40., 0.),
                                             Point::new_scale(40., 40.), Point::new_scale(0., 40.) } };
     auto fill = [&region, spacing](int lines, double density, size_t layer_id, double z) {
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipCubic));
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("cubic"));
         filler->spacing  = spacing;
         filler->angle    = float(M_PI / 7.);
         filler->layer_id = layer_id;
@@ -1830,7 +1895,7 @@ TEST_CASE("Smoothed concentric infill stays inside the fill region", "[Fill][Reg
     CAPTURE(thin_region);
 
     auto fill = [&region](double smooth_factor) {
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipConcentric));
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("concentric"));
         filler->spacing = 0.45;
 
         FillParams params;

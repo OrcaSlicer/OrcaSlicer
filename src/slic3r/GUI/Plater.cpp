@@ -9279,7 +9279,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         if (rotate_template == nullptr || rotate_template->value.empty())
                             return;
                         const auto* pattern_opt = config_loaded.option<ConfigOptionString>("sparse_infill_pattern");
-                        const InfillPattern _sparse_infill_pattern = infill_pattern_from_key(
+                        const auto _sparse_infill_pattern = infill_pattern_from_key(
                             pattern_opt != nullptr ? pattern_opt->value : FullPrintConfig::defaults().sparse_infill_pattern.value);
                         bool is_safe_to_rotate = _sparse_infill_pattern == ipRectilinear || _sparse_infill_pattern == ipLine ||
                                                  _sparse_infill_pattern == ipZigZag || _sparse_infill_pattern == ipCrossZag ||

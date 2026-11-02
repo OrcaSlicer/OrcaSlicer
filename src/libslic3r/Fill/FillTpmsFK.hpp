@@ -16,9 +16,6 @@ public:
     FillTpmsFK() {}
     Fill* clone() const override { return new FillTpmsFK(*this); }
 
-    // require bridge flow since most of this pattern hangs in air
-    bool use_bridge_flow() const override { return false; }
-  
 
     // Correction applied to regular infill angle to maximize printing
     // speed in default configuration (degrees)

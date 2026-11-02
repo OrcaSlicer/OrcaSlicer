@@ -14,6 +14,7 @@
 #include <libslic3r/libslic3r.h>
 #include <libslic3r/ExtrusionEntity.hpp>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -61,8 +62,9 @@ struct InfillPluginFlow
 // graph.
 //
 // Apart from the internal PrintRegionConfig pointer, every FillParams value is mirrored here with
-// the same meaning. `pattern` is the host pattern enum (InfillPattern.Plugin for plugin dispatch);
-// the selected plugin pattern ID is the pattern_id argument of generate().
+// the same meaning. `pattern` is the host built-in InfillPattern, or empty for plugin dispatch: a
+// plugin pattern has no InfillPattern value, and the selected plugin pattern ID is the pattern_id
+// argument of generate().
 //
 // Identity: `object_id`, `layer_index`, `region_id` and `region_ids` are value copies of the Fill's
 // creation context. They let a plugin key a per-object cache without holding a Print/Object pointer.
@@ -146,7 +148,8 @@ struct InfillPluginRequest
     AdaptiveInfillGradient adaptive_infill_gradient{ AdaptiveInfillGradient::Linear };
     coordf_t lateral_lattice_angle_1{ 0. };
     coordf_t lateral_lattice_angle_2{ 0. };
-    InfillPattern pattern{ ipRectilinear };
+    // Built-in host pattern, or empty when the host dispatches a plugin pattern.
+    std::optional<InfillPattern> pattern;
     float infill_overhang_angle{ 60.f };
     ExtrusionRole extrusion_role{ ExtrusionRole(0) };
     bool using_internal_flow{ false };
@@ -206,23 +209,18 @@ public:
     // Describe every selectable pattern this provider implements. Surface-purpose support is
     // declared per pattern because patterns from one provider may support different surfaces.
     //
-    // Optional. The default keeps a plugin written before multi-pattern support working as one
-    // sparse pattern whose ID is the capability name.
+    // Optional. A plugin that does not implement it advertises one sparse pattern whose ID is the
+    // capability name.
     virtual std::vector<InfillPluginPattern> patterns() const;
 
     // Python contract: synchronous, called on the slicing worker thread from Fill's narrow
     // _fill_surface_single() hook. `pattern_id` is one of the IDs returned by patterns(). Return one
     // entry per open path, with vertices in scaled integer coordinates (the same units as
-    // request.expolygon). An empty list is a valid "no infill here". Exceptions abort this fill and
-    // are reported as a non-critical slicing error; do not call UI from here.
+    // request.expolygon). An empty list is a valid "no infill here". An exception aborts the slice as
+    // a non-critical slicing error; do not call UI from here.
     //
     // `request` is a value snapshot valid for the duration of the call (and owned by Python for as
     // long as the plugin keeps it). A concrete C++ provider may also implement this directly.
-    //
-    // Python compatibility: the current form is generate(self, pattern_id, request). A plugin
-    // written before multi-pattern support may keep generate(self, request); the trampoline decides
-    // from the callable's signature, without calling it twice. An override taking *args receives
-    // the current (pattern_id, request) form.
     virtual Polylines generate(const std::string& pattern_id, const InfillPluginRequest& request) = 0;
 
     // Optional Fill semantics, forwarded by InfillPluginFill and resolved through the trampoline
@@ -230,8 +228,9 @@ public:
     // the host may chain/sort the paths, and generate() runs in surface coordinates rather than in
     // an island frame shifted to the Fill bounding-box center.
     //
-    // Python compatibility: no_sort(self) and aligned_to_origin(self) (no pattern ID) remain
-    // accepted; *args overrides receive the current pattern_id argument.
+    // An exception here is handled exactly like one from generate(): cancellation stays a
+    // cancellation, and any other exception aborts the slice as the same non-critical slicing error,
+    // with the detailed cause in the plugin's diagnostic store for a plugin-backed capability.
     //
     // no_sort(): sets Fill::no_sort() on the extrusion collection Fill builds from generate()'s
     // paths, keeping this pattern's order through the G-code path planner.

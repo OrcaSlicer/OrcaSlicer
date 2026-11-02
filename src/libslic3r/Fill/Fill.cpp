@@ -9,6 +9,7 @@
 #include <map>
 #include <stdio.h>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 #include <queue>
@@ -30,6 +31,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/I18N.hpp"
 #include "ExtrusionEntity.hpp"
 #include "Fill.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
@@ -258,8 +260,10 @@ struct SurfaceFillParams
 {
 	// Zero based extruder ID.
     unsigned int 	extruder = 0;
-	// Infill pattern, adjusted for the density etc.
-    InfillPattern  	pattern = InfillPattern(0);
+	// Infill pattern, adjusted for the density etc. nullopt when the selection is not a built-in
+	// pattern (a plugin pattern ID, or a value the registry rejects); pattern_key then holds the
+	// selected value.
+    std::optional<InfillPattern> pattern;
     // Exact canonical key for the selected pattern value. Empty only for internal-only patterns
     // (and for the narrow-region reroute), so equality keeps different plugin patterns distinct.
     std::string     pattern_key;
@@ -336,6 +340,11 @@ struct SurfaceFillParams
     // Orca: forced print order of surface fill loops/fragments for center-based patterns.
     SurfaceFillOrder fill_order = SurfaceFillOrder::Default;
 
+    // A plugin pattern ID is shared by every surface it fills, so its purpose must distinguish the
+    // groups. A built-in pattern already implies its purpose through its key and extrusion role;
+    // ignoring the purpose for it keeps the existing built-in grouping and processing order.
+    bool groups_by_purpose() const { return !this->pattern; }
+
 	bool operator<(const SurfaceFillParams &rhs) const {
 #define RETURN_COMPARE_NON_EQUAL(KEY) if (this->KEY < rhs.KEY) return true; if (this->KEY > rhs.KEY) return false;
 #define RETURN_COMPARE_NON_EQUAL_TYPED(TYPE, KEY) if (TYPE(this->KEY) < TYPE(rhs.KEY)) return true; if (TYPE(this->KEY) > TYPE(rhs.KEY)) return false;
@@ -345,9 +354,17 @@ struct SurfaceFillParams
 		if (this->bridge_angle < rhs.bridge_angle) return false;
 
 		RETURN_COMPARE_NON_EQUAL(extruder);
-		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, pattern);
+		// A plugin pattern has no enum value, so it sorts after every built-in pattern. The set
+		// order determines the order surfaces are processed in, so keep it stable.
+		if (this->pattern != rhs.pattern) {
+			if (!this->pattern) return false;
+			if (!rhs.pattern) return true;
+			return *this->pattern < *rhs.pattern;
+		}
 		RETURN_COMPARE_NON_EQUAL(pattern_key);
-		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, purpose);
+		// Only a plugin pattern needs the purpose in the grouping key; see groups_by_purpose().
+		if (this->groups_by_purpose() && this->purpose != rhs.purpose)
+			return this->purpose < rhs.purpose;
 		RETURN_COMPARE_NON_EQUAL(spacing);
 		RETURN_COMPARE_NON_EQUAL(overlap);
 		RETURN_COMPARE_NON_EQUAL(angle);
@@ -386,7 +403,7 @@ struct SurfaceFillParams
 		return  this->extruder 			      == rhs.extruder                &&
 				this->pattern 			      == rhs.pattern                 &&
 				this->pattern_key 		      == rhs.pattern_key             &&
-				this->purpose 			      == rhs.purpose                 &&
+				(!this->groups_by_purpose() || this->purpose == rhs.purpose) &&
 				this->spacing 			      == rhs.spacing                 &&
 				this->overlap 			      == rhs.overlap                 &&
 				this->angle   			      == rhs.angle                   &&
@@ -436,20 +453,20 @@ struct SurfaceFill {
 // unloaded or disabled after preflight, so fail instead of silently falling back to a built-in.
 static std::unique_ptr<Fill> make_filler(const SurfaceFill& surface_fill)
 {
-    if (!surface_fill.params.pattern_key.empty()) {
-        try {
-            return std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern_key));
-        } catch (const InvalidArgument&) {
-            if (surface_fill.params.pattern == ipPlugin)
-                throw SlicingError("Plugin infill failed. Check the plugin's diagnostic details.");
-            throw;
-        }
-    }
+    std::unique_ptr<Fill> fill;
+    if (!surface_fill.params.pattern_key.empty())
+        fill.reset(Fill::new_from_type(surface_fill.params.pattern_key));
+    else if (surface_fill.params.pattern)
+        fill.reset(Fill::new_from_type(*surface_fill.params.pattern));
 
-    if (surface_fill.params.pattern == ipPlugin)
-        throw SlicingError("Plugin infill failed. Check the plugin's diagnostic details.");
+    if (fill)
+        return fill;
 
-    return std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
+    // A built-in key always resolves. An unresolved plugin ID means the provider was unloaded or
+    // disabled after preflight, so fail instead of silently falling back to a built-in.
+    if (!surface_fill.params.pattern)
+        throw SlicingError(_u8L("Plugin infill failed. Check the plugin's diagnostic details."));
+    throw Slic3r::InvalidArgument("unknown infill pattern id: " + surface_fill.params.pattern_key);
 }
 
 // Attach the creation context a plugin request reports as object identity, object-relative layer
@@ -1036,12 +1053,10 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         params.purpose = InfillSurfacePurpose::InternalSolid;
                         params.density = 100.f;
                     } else {
-                        const InfillPattern top_pattern = infill_pattern_from_key(region_config.top_surface_pattern.value);
-                        if (top_pattern == ipMonotonic || top_pattern == ipMonotonicLine)
-                            params.pattern = ipMonotonic;
-                        else
-                            params.pattern = ipRectilinear;
-                        params.pattern_key = InfillFactory::builtin_infill_key(params.pattern);
+                        const auto          top_pattern   = infill_pattern_from_key(region_config.top_surface_pattern.value);
+                        const InfillPattern solid_pattern = (top_pattern == ipMonotonic || top_pattern == ipMonotonicLine) ? ipMonotonic : ipRectilinear;
+                        params.pattern     = solid_pattern;
+                        params.pattern_key = InfillFactory::builtin_infill_key(solid_pattern);
                         params.purpose = InfillSurfacePurpose::InternalSolid;
                         params.density = 100.f;
                     }
@@ -1129,7 +1144,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 }
 
                 // Calculate the actual flow we'll be using for this infill.
-		        params.bridge = is_bridge || Fill::use_bridge_flow(params.pattern);
+		        params.bridge = is_bridge;
                 const bool is_thick_bridge = surface.is_bridge() && (surface.is_internal_bridge() ? object_config.thick_internal_bridges : object_config.thick_bridges);
 				params.flow   = params.bridge ?
 					//Orca: enable thick bridge based on config
@@ -1301,12 +1316,10 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 	        if (internal_solid_fill == nullptr) {
 	        	// Produce another solid fill.
 		        params.extruder 	 = layerm.region().extruder(frSolidInfill);
-                const auto top_pattern = infill_pattern_from_key(layerm.region().config().top_surface_pattern.value);
-                if(top_pattern == ipMonotonic || top_pattern == ipMonotonicLine)
-                    params.pattern = top_pattern;
-                else
-                    params.pattern 		 = ipRectilinear;
-                params.pattern_key = InfillFactory::builtin_infill_key(params.pattern);
+                const auto          top_pattern   = infill_pattern_from_key(layerm.region().config().top_surface_pattern.value);
+                const InfillPattern solid_pattern = (top_pattern == ipMonotonic || top_pattern == ipMonotonicLine) ? *top_pattern : ipRectilinear;
+                params.pattern   = solid_pattern;
+                params.pattern_key = InfillFactory::builtin_infill_key(solid_pattern);
                 // This fill is emitted as internal solid infill even when its pattern was chosen
                 // from the top-surface setting, so it is never dispatched as a plugin top surface.
                 params.purpose = InfillSurfacePurpose::InternalSolid;
@@ -1645,13 +1658,17 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
 			continue;
 		}
 
-        switch (surface_fill.params.pattern) {
-        case ipCount: continue; break;
-        case ipPlugin: break;
+        // A plugin pattern has no built-in anchor generator; it falls through to the registry below.
+        // Represent the missing enum value as ipCount so the built-in cases keep their layout; a
+        // present ipCount keeps its original behaviour of skipping the anchor generator.
+        switch (surface_fill.params.pattern.value_or(ipCount)) {
+        case ipCount:
+            if (surface_fill.params.pattern) continue;
+            break;
         case ipSupportBase: continue; break;
         case ipConcentricInternal: continue; break;
         case ipLightning:
-		case ipAdaptiveCubic:
+        case ipAdaptiveCubic:
         case ipSupportCubic:
         case ipRectilinear:
         case ipMonotonic:
@@ -1676,7 +1693,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         case ipOctagramSpiral:
         case ipZigZag:
         case ipCrossZag:
-		case ipLockedZag: break;
+        case ipLockedZag: break;
         }
 
         // Create the filler object from the selected pattern ID. Identity was enforced when the

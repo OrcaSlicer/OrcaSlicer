@@ -3,6 +3,7 @@
 #include <libslic3r/PrintConfig.hpp>
 #include <libslic3r/Fill/InfillPurpose.hpp>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "catch2/catch_test_macros.hpp"
@@ -26,9 +27,31 @@ TEST_CASE("Infill factory registers built-in patterns with explicit metadata", "
         std::unique_ptr<Fill> filler = InfillFactory::create_infill_by_id(info.id);
         CHECK(filler != nullptr);
 
-        const InfillPattern pattern = infill_pattern_from_key(info.id);
-        std::unique_ptr<Fill> enum_filler(Fill::new_from_type(pattern));
+        const auto pattern = infill_pattern_from_key(info.id);
+        REQUIRE(pattern.has_value());
+        std::unique_ptr<Fill> enum_filler(Fill::new_from_type(*pattern));
         CHECK(enum_filler != nullptr);
+    }
+}
+
+TEST_CASE("An unknown pattern ID returns no fill, while an invalid enum value throws", "[InfillFactory]")
+{
+    // Fill::new_from_type(string) keeps create_infill_by_id's nullptr contract, so the caller can
+    // report a missing plugin provider or an unknown key in its own context.
+    std::unique_ptr<Fill> builtin(Fill::new_from_type(std::string("rectilinear")));
+    CHECK(builtin != nullptr);
+    CHECK(Fill::new_from_type(std::string("not-a-built-in-or-plugin-pattern")) == nullptr);
+    CHECK_THROWS_AS(Fill::new_from_type(ipCount), Slic3r::InvalidArgument);
+}
+
+TEST_CASE("Internal-only fills are created from their enum value without being registered", "[InfillFactory]")
+{
+    // ipSupportBase and ipConcentricInternal have no config key and must stay out of the pattern
+    // settings. The enum overload creates them directly for the support and narrow-region paths.
+    for (const InfillPattern pattern : { ipSupportBase, ipConcentricInternal }) {
+        CHECK(InfillFactory::builtin_infill_key(pattern).empty());
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        CHECK(filler != nullptr);
     }
 }
 

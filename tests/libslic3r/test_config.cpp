@@ -1862,17 +1862,17 @@ TEST_CASE("Built-in sparse infill pattern keys map to their built-in patterns", 
     REQUIRE_FALSE(def->enum_values.empty());
     for (const std::string &key : def->enum_values) {
         INFO(key);
-        CHECK(infill_pattern_from_key(key) != ipPlugin);
+        CHECK(infill_pattern_from_key(key).has_value());
     }
 
     // Any nonempty key naming no built-in pattern is a plugin identifier; its spelling is the
-    // plugin's own and needs no namespace.
-    CHECK(infill_pattern_from_key("my-infill-capability") == ipPlugin);
+    // plugin's own and needs no namespace. It has no InfillPattern value.
+    CHECK_FALSE(infill_pattern_from_key("my-infill-capability").has_value());
     CHECK(is_plugin_infill_pattern_key("my-infill-capability"));
 
     // A typo or a case variant is not silently read as a built-in pattern either.
-    CHECK(infill_pattern_from_key("gyroidx") == ipPlugin);
-    CHECK(infill_pattern_from_key("Gyroid") == ipPlugin);
+    CHECK_FALSE(infill_pattern_from_key("gyroidx").has_value());
+    CHECK_FALSE(infill_pattern_from_key("Gyroid").has_value());
 }
 
 TEST_CASE("Every plugin-backed infill pattern setting stores a key and drives one surface purpose", "[Config]")
@@ -1900,7 +1900,7 @@ TEST_CASE("Every plugin-backed infill pattern setting stores a key and drives on
         for (const std::string &builtin_key : def->enum_values) {
             INFO(builtin_key);
             CHECK_FALSE(is_plugin_infill_pattern_key(builtin_key));
-            CHECK(infill_pattern_from_key(builtin_key) != ipPlugin);
+            CHECK(infill_pattern_from_key(builtin_key).has_value());
         }
 
         CHECK(infill_purpose_for_option(key) == setting.purpose);

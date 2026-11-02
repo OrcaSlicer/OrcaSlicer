@@ -1864,6 +1864,11 @@ public:
     //BBS: add auxiliary files temp path
     std::string   get_auxiliary_file_temp_path();
 
+    // Every object, volume and layer-range configuration: the places a plugin-backed print setting can
+    // be overridden outside the print preset. The 3MF exporter and the slicing preflight both fold
+    // their plugin references into the print-wide "plugins" manifest, so they share this traversal.
+    std::vector<const ConfigBase*> object_and_volume_configs() const;
+
     // BBS: backup
     std::string   get_backup_path();
     std::string   get_backup_path(const std::string &sub_path);

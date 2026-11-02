@@ -94,7 +94,6 @@ BuiltinFillInfo builtin_fill_info(const InfillPattern pattern)
     case ipSupportBase:
     case ipConcentricInternal:
     case ipCount:
-    case ipPlugin:
     default:                    return {};
     }
 }
@@ -260,9 +259,9 @@ void InfillFactory::Selection::reset()
 
 void InfillFactory::register_all_infills()
 {
-    // Registration stays lazy so a namespace-scope probe such as Fill::use_bridge_flow() cannot
-    // build the registry during static initialization. Registry lookups reach it on first use, and
-    // call_once keeps an explicit call and the lazy path idempotent.
+    // Registration stays lazy so a fill created during static initialization cannot build the
+    // registry before main(). Registry lookups reach it on first use, and call_once keeps an
+    // explicit call and the lazy path idempotent.
     std::call_once(builtin_registration_once(), register_all_builtin_patterns);
 }
 
