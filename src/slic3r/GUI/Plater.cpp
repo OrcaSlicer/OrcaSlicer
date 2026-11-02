@@ -227,6 +227,7 @@
 #include "Jobs/SLAImportJob.hpp"
 #include "Jobs/SLAImportDialog.hpp"
 #include "Jobs/PrintJob.hpp"
+#include "Jobs/PrinterAgentHandoffJob.hpp"
 #include "Jobs/NotificationProgressIndicator.hpp"
 #include "Jobs/PlaterWorker.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
@@ -7664,6 +7665,8 @@ struct Plater::priv
     void on_action_slice_all(SimpleEvent&);
     void on_action_print_plate(SimpleEvent&);
     void open_machine_select_dialog(int plate_idx, PrintFromType print_type = PrintFromType::FROM_NORMAL);
+    // False when the live printer agent leaves printer selection to Orca's dialogs.
+    bool hand_off_to_printer_agent(int plate_idx, PrinterAgentHandoffJob::Action action);
     void on_action_print_all(SimpleEvent&);
     void on_action_export_gcode(SimpleEvent&);
     void on_action_send_gcode(SimpleEvent&);
@@ -13846,7 +13849,9 @@ void Plater::priv::on_action_print_plate(SimpleEvent&)
 
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
     if (preset_bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents")) {
-        open_machine_select_dialog(partplate_list.get_curr_plate_index());
+        const int plate_idx = partplate_list.get_curr_plate_index();
+        if (!hand_off_to_printer_agent(plate_idx, PrinterAgentHandoffJob::Action::print))
+            open_machine_select_dialog(plate_idx);
     } else {
         q->send_gcode_legacy(PLATE_CURRENT_IDX, nullptr);
     }
@@ -13860,6 +13865,47 @@ void Plater::priv::open_machine_select_dialog(int plate_idx, PrintFromType print
     m_select_machine_dlg->set_print_type(print_type);
     m_select_machine_dlg->prepare(plate_idx);
     m_select_machine_dlg->ShowModal();
+}
+
+bool Plater::priv::hand_off_to_printer_agent(int plate_idx, PrinterAgentHandoffJob::Action action)
+{
+    NetworkAgent* agent = wxGetApp().getAgent();
+    if (!agent)
+        return false;
+    const DialogMode mode = action == PrinterAgentHandoffJob::Action::print ? agent->print_dialog_mode() : agent->send_dialog_mode();
+    if (mode != DialogMode::takeover)
+        return false;
+
+    PartPlate* plate = partplate_list.get_curr_plate();
+    const bool use_exported_file = q->using_exported_file();
+    if (!use_exported_file && (!plate->is_valid_gcode_file() || q->send_gcode(plate_idx) < 0)) {
+        show_error(q, _L("Abnormal print file data. Please slice again"));
+        return true;
+    }
+
+    const bool all_plates = plate_idx == PLATE_ALL_IDX;
+    wxString project_name = q->get_export_gcode_filename("", true, all_plates);
+    if (project_name.empty())
+        project_name = _L("Untitled");
+
+    PrintParams params{};
+    if (DeviceManager* dev = wxGetApp().getDeviceManager())
+        if (MachineObject* obj = dev->get_selected_machine())
+            params.dev_id = obj->get_dev_id();
+    params.project_name = filter_characters(into_u8(project_name), "<>[]:/\\|?*\"");
+    if (action == PrinterAgentHandoffJob::Action::send)
+        params.project_name += ".gcode.3mf";
+    params.filename = use_exported_file ? q->get_3mf_filename() : m_print_job_data._3mf_path.string();
+    // 0 stands for every plate in the file.
+    params.plate_index = all_plates ? 0 : plate_idx + 1;
+    params.connection_type = "lan";
+    params.print_type = "from_normal";
+    params.task_bed_type = bed_type_to_gcode_string(plate->get_bed_type(true));
+    params.task_bed_leveling = true;
+    params.task_layer_inspect = true;
+
+    queue_job(m_worker, std::make_unique<PrinterAgentHandoffJob>(action, std::move(params)));
+    return true;
 }
 
 void Plater::priv::on_action_send_to_multi_machine(SimpleEvent&)
@@ -13940,6 +13986,9 @@ int Plater::priv::update_print_required_data(Slic3r::DynamicPrintConfig config, 
 
 void Plater::priv::on_action_send_to_printer(bool isall)
 {
+    if (hand_off_to_printer_agent(isall ? PLATE_ALL_IDX : partplate_list.get_curr_plate_index(), PrinterAgentHandoffJob::Action::send))
+        return;
+
 	if (!m_send_to_sdcard_dlg) m_send_to_sdcard_dlg = new SendToPrinterDialog(q);
     if (isall) {
         m_send_to_sdcard_dlg->prepare(PLATE_ALL_IDX);
@@ -13969,7 +14018,8 @@ void Plater::priv::on_action_print_all(SimpleEvent&)
 
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
     if (preset_bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents")) {
-        open_machine_select_dialog(PLATE_ALL_IDX);
+        if (!hand_off_to_printer_agent(PLATE_ALL_IDX, PrinterAgentHandoffJob::Action::print))
+            open_machine_select_dialog(PLATE_ALL_IDX);
     } else {
         q->send_gcode_legacy(PLATE_ALL_IDX, nullptr);
     }
