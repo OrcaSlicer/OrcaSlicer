@@ -267,6 +267,14 @@ std::vector<NativeCommand> build_command_catalog()
             plater->export_core_3mf();
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
+    add_with_icon("publish_3mf", L("Publish 3MF"), L("Slice & Export"), "menu_publish", [](const std::string&) {
+        MainFrame* mf     = wxGetApp().mainframe;
+        Plater*    plater = wxGetApp().plater();
+        if (!mf || !plater || plater->model().objects.empty())
+            return AppActionRunResult{AppActionRunResult::Level::Info, _L("Add a model to the plate first.")};
+        mf->publish_project();
+        return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
     add_with_icon("export_sliced_file", L("Export Sliced File"), L("Slice & Export"), "save", [](const std::string&) {
         if (Plater* plater = wxGetApp().plater())
             plater->export_gcode_3mf(false);
