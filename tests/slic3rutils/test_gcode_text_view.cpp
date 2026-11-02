@@ -7,6 +7,8 @@
         #define NOMINMAX
     #endif
     #include <Windows.h>
+    // Match the GUI precompiled header: wx/msw/wrapcctl.h needs HDITEM from CommCtrl.h.
+    #include <CommCtrl.h>
 #endif
 
 // Keep navigation helpers internal while testing their production definitions in this TU.
