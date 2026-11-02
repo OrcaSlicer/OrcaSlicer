@@ -1,0 +1,413 @@
+{
+ "brand": "prusament",
+ "vendor": "Prusament",
+ "source": "OpenPrintTag material database",
+ "url": "https://github.com/OpenPrintTag/openprinttag-database",
+ "license": "MIT",
+ "copyright": "Copyright 2025 Prusa Research a.s.",
+ "unit": "mm",
+ "filaments": [
+  {
+   "name": "ASA Jet Black",
+   "type": "ASA",
+   "color": "#292824",
+   "td": 0.4
+  },
+  {
+   "name": "ASA Lipstick Red",
+   "type": "ASA",
+   "color": "#d02f37",
+   "td": 2.0
+  },
+  {
+   "name": "ASA Natural",
+   "type": "ASA",
+   "color": "#d6d6cd",
+   "td": 6.5
+  },
+  {
+   "name": "ASA Prusa Galaxy Black",
+   "type": "ASA",
+   "color": "#3e413f",
+   "td": 0.1
+  },
+  {
+   "name": "ASA Prusa Orange",
+   "type": "ASA",
+   "color": "#f55928",
+   "td": 4.4
+  },
+  {
+   "name": "ASA Sapphire Blue",
+   "type": "ASA",
+   "color": "#3b4468",
+   "td": 0.3
+  },
+  {
+   "name": "ASA Signal White",
+   "type": "ASA",
+   "color": "#e3dfd9",
+   "td": 2.4
+  },
+  {
+   "name": "PC Blend Carbon Fiber Black",
+   "type": "PC",
+   "color": "#262727",
+   "td": 0.1
+  },
+  {
+   "name": "PC Blend Jet Black",
+   "type": "PC",
+   "color": "#24292a",
+   "td": 0.4
+  },
+  {
+   "name": "PC Blend Natural",
+   "type": "PC",
+   "color": "#dfdfd3",
+   "td": 11.3
+  },
+  {
+   "name": "PC Blend Prusa Orange",
+   "type": "PC",
+   "color": "#ea5e1a",
+   "td": 6.4
+  },
+  {
+   "name": "PC Blend Urban Grey",
+   "type": "PC",
+   "color": "#999596",
+   "td": 0.5
+  },
+  {
+   "name": "PETG Anthracite Grey",
+   "type": "PETG",
+   "color": "#3f4647",
+   "td": 0.3
+  },
+  {
+   "name": "PETG Carbon Fiber Black",
+   "type": "PETG",
+   "color": "#3b353a",
+   "td": 0.3
+  },
+  {
+   "name": "PETG Carmine Red",
+   "type": "PETG",
+   "color": "#b54230",
+   "td": 6.2
+  },
+  {
+   "name": "PETG Chalky Blue",
+   "type": "PETG",
+   "color": "#6f9aaa",
+   "td": 0.6
+  },
+  {
+   "name": "PETG Clear",
+   "type": "PETG",
+   "color": "#e4e7e5",
+   "td": 100.0
+  },
+  {
+   "name": "PETG Jet Black",
+   "type": "PETG",
+   "color": "#292b2b",
+   "td": 0.3
+  },
+  {
+   "name": "PETG Jungle Green",
+   "type": "PETG",
+   "color": "#007249",
+   "td": 0.5
+  },
+  {
+   "name": "PETG Lipstick Red",
+   "type": "PETG",
+   "color": "#bb2e33",
+   "td": 2.8
+  },
+  {
+   "name": "PETG Mango Yellow",
+   "type": "PETG",
+   "color": "#f2b70a",
+   "td": 2.6
+  },
+  {
+   "name": "PETG Matte Black",
+   "type": "PETG",
+   "color": "#303635",
+   "td": 0.3
+  },
+  {
+   "name": "PETG Neon Green",
+   "type": "PETG",
+   "color": "#a6ec5f",
+   "td": 75.0
+  },
+  {
+   "name": "PETG Ocean Blue",
+   "type": "PETG",
+   "color": "#194c55",
+   "td": 3.0
+  },
+  {
+   "name": "PETG Pistachio Green",
+   "type": "PETG",
+   "color": "#93a683",
+   "td": 0.9
+  },
+  {
+   "name": "PETG Prusa Galaxy Black",
+   "type": "PETG",
+   "color": "#3d3e3d",
+   "td": 0.2
+  },
+  {
+   "name": "PETG Prusa Orange",
+   "type": "PETG",
+   "color": "#eb5405",
+   "td": 6.2
+  },
+  {
+   "name": "PETG Prusa Orange Transparent",
+   "type": "PETG",
+   "color": "#f17231",
+   "td": 44.2
+  },
+  {
+   "name": "PETG Signal White",
+   "type": "PETG",
+   "color": "#e5e0e3",
+   "td": 3.4
+  },
+  {
+   "name": "PETG Terracotta Light",
+   "type": "PETG",
+   "color": "#b87f6a",
+   "td": 1.5
+  },
+  {
+   "name": "PETG Tungsten 75%",
+   "type": "PETG",
+   "color": "#545252",
+   "td": 0.3
+  },
+  {
+   "name": "PETG Ultramarine Blue",
+   "type": "PETG",
+   "color": "#2b3b61",
+   "td": 8.2
+  },
+  {
+   "name": "PETG Urban Grey",
+   "type": "PETG",
+   "color": "#95908d",
+   "td": 0.5
+  },
+  {
+   "name": "PETG V0 Jet Black",
+   "type": "PETG",
+   "color": "#363331",
+   "td": 0.3
+  },
+  {
+   "name": "PETG V0 Natural",
+   "type": "PETG",
+   "color": "#dee2da",
+   "td": 10.4
+  },
+  {
+   "name": "PETG Yellow Gold",
+   "type": "PETG",
+   "color": "#9a8524",
+   "td": 9.2
+  },
+  {
+   "name": "PLA Army Green",
+   "type": "PLA",
+   "color": "#524f2f",
+   "td": 0.4
+  },
+  {
+   "name": "PLA Azure Blue",
+   "type": "PLA",
+   "color": "#008fbe",
+   "td": 5.5
+  },
+  {
+   "name": "PLA Blend Lime Green",
+   "type": "PLA",
+   "color": "#9eb426",
+   "td": 3.5
+  },
+  {
+   "name": "PLA Blend Ms. Pink",
+   "type": "PLA",
+   "color": "#ff36ac",
+   "td": 4.1
+  },
+  {
+   "name": "PLA Blend My Silverness",
+   "type": "PLA",
+   "color": "#8894a3",
+   "td": 1.0
+  },
+  {
+   "name": "PLA Blend Oh My Gold",
+   "type": "PLA",
+   "color": "#daa900",
+   "td": 4.1
+  },
+  {
+   "name": "PLA Blend Pearl White",
+   "type": "PLA",
+   "color": "#d1d8df",
+   "td": 5.4
+  },
+  {
+   "name": "PLA Blend Royal Blue",
+   "type": "PLA",
+   "color": "#0065aa",
+   "td": 0.8
+  },
+  {
+   "name": "PLA Blend Viva La Bronze",
+   "type": "PLA",
+   "color": "#bc8624",
+   "td": 1.9
+  },
+  {
+   "name": "PLA Galaxy Green",
+   "type": "PLA",
+   "color": "#334728",
+   "td": 3.2
+  },
+  {
+   "name": "PLA Galaxy Purple",
+   "type": "PLA",
+   "color": "#563b7c",
+   "td": 4.7
+  },
+  {
+   "name": "PLA Galaxy Silver",
+   "type": "PLA",
+   "color": "#a4a0a3",
+   "td": 6.4
+  },
+  {
+   "name": "PLA Gentleman's Grey",
+   "type": "PLA",
+   "color": "#294748",
+   "td": 0.3
+  },
+  {
+   "name": "PLA Gravity Grey",
+   "type": "PLA",
+   "color": "#a9a9b0",
+   "td": 0.7
+  },
+  {
+   "name": "PLA Jet Black",
+   "type": "PLA",
+   "color": "#222f2e",
+   "td": 0.3
+  },
+  {
+   "name": "PLA Lipstick Red",
+   "type": "PLA",
+   "color": "#c20019",
+   "td": 3.3
+  },
+  {
+   "name": "PLA Marble Grey",
+   "type": "PLA",
+   "color": "#c2c2c5",
+   "td": 3.5
+  },
+  {
+   "name": "PLA Mystic Brown",
+   "type": "PLA",
+   "color": "#582c2f",
+   "td": 1.8
+  },
+  {
+   "name": "PLA Mystic Green",
+   "type": "PLA",
+   "color": "#5f5d3d",
+   "td": 1.0
+  },
+  {
+   "name": "PLA Opal Green",
+   "type": "PLA",
+   "color": "#005d48",
+   "td": 4.0
+  },
+  {
+   "name": "PLA Pearl Mouse",
+   "type": "PLA",
+   "color": "#968d80",
+   "td": 2.3
+  },
+  {
+   "name": "PLA Pineapple Yellow",
+   "type": "PLA",
+   "color": "#eabd00",
+   "td": 7.6
+  },
+  {
+   "name": "PLA Pristine White",
+   "type": "PLA",
+   "color": "#e9e7e4",
+   "td": 5.1
+  },
+  {
+   "name": "PLA Prusa Galaxy Black",
+   "type": "PLA",
+   "color": "#4b4545",
+   "td": 0.2
+  },
+  {
+   "name": "PLA Prusa Orange",
+   "type": "PLA",
+   "color": "#ff7041",
+   "td": 6.6
+  },
+  {
+   "name": "PLA Simply Green",
+   "type": "PLA",
+   "color": "#6fa02d",
+   "td": 3.0
+  },
+  {
+   "name": "PLA Vanilla White",
+   "type": "PLA",
+   "color": "#e1d3c3",
+   "td": 7.1
+  },
+  {
+   "name": "rPLA Algae Pigment",
+   "type": "PLA",
+   "color": "#674b42",
+   "td": 4.2
+  },
+  {
+   "name": "rPLA Corn Pigment",
+   "type": "PLA",
+   "color": "#b37b47",
+   "td": 6.2
+  },
+  {
+   "name": "rPLA Risotto Pigment",
+   "type": "PLA",
+   "color": "#ccc9c0",
+   "td": 11.0
+  },
+  {
+   "name": "rPLA Wine Pigment",
+   "type": "PLA",
+   "color": "#5e4940",
+   "td": 2.8
+  }
+ ]
+}

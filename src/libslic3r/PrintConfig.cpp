@@ -3504,6 +3504,19 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
 
+    def = this->add("filament_transmission_distance", coFloats);
+    def->label = L("Transmission distance");
+    def->tooltip = L("How deep light gets into this filament, in millimeters, also called its transmission "
+                     "distance or TD: the thickness at which it stops showing what is printed underneath it. "
+                     "About 1 for an opaque filament, 4 to 7 for a usefully translucent one, 8 and above for a "
+                     "nearly clear one. It has no effect on slicing - it is a measured property of the filament, "
+                     "for tools that predict the color of a stack of translucent layers. Measure it with a step "
+                     "test print, or take the value the manufacturer publishes.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats { 4. });
+
     def = this->add("filament_type", coStrings);
     def->label = L("Type");
     def->tooltip = L("Filament material type");
