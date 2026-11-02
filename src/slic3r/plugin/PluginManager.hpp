@@ -181,8 +181,10 @@ public:
 
     // Record a runtime capability failure in the plugin's existing error store. The diagnostic is
     // deliberately verbose (plugin, capability, exception) and persists until the plugin is
-    // reloaded or unloaded; there is no clear-on-success path. The optional refresh callback is
-    // invoked after the store is updated and must not be called with the registry lock held.
+    // reloaded or unloaded; there is no clear-on-success path. This may be called from a generation
+    // worker, so it never waits for discovery: unload after discovery waits for the caller's job
+    // lease. The optional refresh callback runs on the GUI thread, after the store is updated, and
+    // never with the registry lock held.
     bool report_plugin_diagnostic(const std::string& plugin_key, std::string error);
     // Narrow GUI refresh hook: called with the plugin key after report_plugin_diagnostic() stores a
     // diagnostic. It is the only notification a runtime plugin failure emits.

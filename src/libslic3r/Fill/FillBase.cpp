@@ -26,8 +26,6 @@
 #include "../libslic3r.h"
 #include "../VariableWidth.hpp"
 
-#include <map>
-
 #include "FillBase.hpp"
 #include "InfillFactory.hpp"
 #include "libslic3r/Exception.hpp"

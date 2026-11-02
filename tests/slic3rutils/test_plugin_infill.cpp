@@ -2,8 +2,8 @@
 // host registers every advertised pattern in InfillFactory on load/enable together with the surface
 // purposes its descriptor declares, and removes them on disable/unload. The project manifest still
 // records the owning capability. Tests here cover the registry side of that identity, the owned
-// request snapshot handed to generate(), and the legacy/current Python override signatures, not
-// slicing.
+// request snapshot handed to generate(), the Python override signatures, and the pin/unload lifetime
+// of a selected provider across a slice.
 //
 // As in test_plugin_lifecycle.cpp, each Catch2 test case runs in its own process
 // (catch_discover_tests), so the PluginManager and interpreter come up at most once per test.
@@ -15,33 +15,40 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <pybind11/cast.h>
-#include <pybind11/gil.h>
+#include <libslic3r/Config.hpp>
 #include <pybind11/pybind11.h>
-#include <pybind11/pytypes.h>
 
+#include <atomic>
 #include <chrono>
 #include <fstream>
 #include <ios>
 #include <memory>
+#include <optional>
+#include <slic3r/plugin/PluginDescriptor.hpp>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
 #include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Exception.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Fill/InfillFactory.hpp"
 #include "libslic3r/Fill/InfillPurpose.hpp"
 #include "libslic3r/Flow.hpp"
+#include "libslic3r/Model.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polyline.hpp"
+#include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "pybind11/pytypes.h"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp"
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include "slic3r/plugin/pluginTypes/infill/InfillPluginCapability.hpp"
 
+#include "fff_print/test_helpers.hpp"
 #include "plugin_test_utils.hpp"
 
 using namespace Slic3r;
@@ -134,6 +141,17 @@ void write_plugin(const ScopedDataDir& data_dir_guard,
     std::ofstream out((plugin_dir / (stem + ".py")).string(), std::ios::binary);
     out << make_infill_plugin_source(stem, capability_name, patterns_method, methods);
     out.close();
+}
+
+// Reads a marker set by a plugin lifecycle hook. The marker lives on the host `orca` module, so it
+// is still observable after the plugin's own module is torn down.
+bool orca_module_flag(const char* name)
+{
+    PythonGILState gil;
+    if (!gil)
+        return false;
+    pybind11::module_ orca = pybind11::module_::import("orca");
+    return pybind11::hasattr(orca, name);
 }
 
 } // namespace
@@ -606,4 +624,120 @@ TEST_CASE("Two plugins cannot register the same infill capability name", "[Plugi
     CHECK(manager.get_plugin_capability("Shared Infill", PluginCapabilityType::Infill)->name() == "Shared Infill");
 
     manager.unload_plugin("FirstCapInfill");
+}
+
+// ── Provider lease lifetime ─────────────────────────────────────────────────────────────────────
+//
+// A pinned selection is the only thing that keeps an unload from tearing the provider module down
+// while a slice is still creating Fills. These two cases cover the lease from both ends: unload
+// must wait for it, and a fill failure must release it.
+
+TEST_CASE("Unloading waits for a pinned infill provider and never tears it down early", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-unload-pinned");
+    write_plugin(data_dir_guard, "LeaseInfill", "Lease Infill",
+                 "        return [orca.infill.PatternDescriptor('lease-pattern', 'Lease Pattern', "
+                 "[orca.infill.SurfacePurpose.Sparse])]\n",
+                 "    def generate(self, pattern_id, request):\n"
+                 "        return []\n"
+                 "    def on_cancelled(self):\n"
+                 "        import orca\n"
+                 "        orca._lease_cancelled_marker = True\n"
+                 "    def on_unload(self):\n"
+                 "        import orca\n"
+                 "        orca._lease_teardown_marker = True\n");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "LeaseInfill", error));
+    INFO("load error: " << error);
+    REQUIRE(InfillFactory::is_infill_registered("lease-pattern"));
+
+    std::string             select_error;
+    InfillFactory::Selection selection = InfillFactory::select_infill(
+        "lease-pattern", "LeaseInfill", "Lease Infill", {InfillSurfacePurpose::Sparse}, select_error);
+    REQUIRE(selection);
+    REQUIRE(InfillFactory::has_pinned_infills("LeaseInfill", "Lease Infill"));
+
+    std::atomic<bool> unloaded{false};
+    std::thread       unload_thread([&]() {
+        manager.unload_plugin("LeaseInfill");
+        unloaded.store(true, std::memory_order_release);
+    });
+
+    // Retraction happens before the wait: new selections see no entry, while the pinned one keeps
+    // the retired entry and its provider alive.
+    for (int i = 0; i < 500 && InfillFactory::find_infill("lease-pattern") != nullptr; ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    CHECK(InfillFactory::find_infill("lease-pattern") == nullptr);
+    CHECK(InfillFactory::is_infill_registered("lease-pattern"));
+
+    // The pinned job can still create its provider object after retraction.
+    CHECK(InfillFactory::create_infill_by_id("lease-pattern") != nullptr);
+
+    // Ordinary calls have a two-second bounded grace. A job lease is drained without a deadline:
+    // past that grace the unload must still be waiting, the module must still be live, and the
+    // provider must not have been told to cancel the job it is being allowed to finish.
+    std::this_thread::sleep_for(std::chrono::milliseconds(2300));
+    CHECK_FALSE(unloaded.load(std::memory_order_acquire));
+    CHECK(InfillFactory::has_pinned_infills("LeaseInfill", "Lease Infill"));
+    CHECK_FALSE(orca_module_flag("_lease_cancelled_marker"));
+    CHECK_FALSE(orca_module_flag("_lease_teardown_marker"));
+
+    selection.reset();
+    unload_thread.join();
+
+    CHECK(unloaded.load(std::memory_order_acquire));
+    CHECK_FALSE(InfillFactory::has_pinned_infills("LeaseInfill", "Lease Infill"));
+    CHECK_FALSE(InfillFactory::is_infill_registered("lease-pattern"));
+    // Teardown ran only after the pin was released.
+    CHECK(orca_module_flag("_lease_teardown_marker"));
+}
+
+TEST_CASE("A generate exception records a diagnostic and releases the pinned provider", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-generate-failure");
+    write_plugin(data_dir_guard, "FailingInfill", "Failing Infill",
+                 "        return [orca.infill.PatternDescriptor('failing-pattern', 'Failing Pattern', "
+                 "[orca.infill.SurfacePurpose.Sparse])]\n",
+                 "    def generate(self, pattern_id, request):\n"
+                 "        raise RuntimeError('boom from generate')\n");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "FailingInfill", error));
+    INFO("load error: " << error);
+    REQUIRE(InfillFactory::is_infill_registered("failing-pattern"));
+
+    Print print;
+    Model model;
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("plugins", new ConfigOptionStrings({"FailingInfill;;Failing Infill"}));
+    config.set_key_value("sparse_infill_pattern", new ConfigOptionString("failing-pattern"));
+    Slic3r::Test::init_print({Slic3r::Test::cube(20)}, print, model, config);
+
+    // The plugin raise aborts the slice as a non-critical slicing error...
+    CHECK_THROWS_AS(print.process(), Slic3r::SlicingError);
+
+    // ...the worker recorded the detailed cause in the plugin's diagnostic store...
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_plugin_descriptor("FailingInfill", descriptor));
+    CHECK(descriptor.error.find("boom from generate") != std::string::npos);
+
+    // ...and the failed fill phase released the provider lease.
+    CHECK_FALSE(InfillFactory::has_pinned_infills("FailingInfill", "Failing Infill"));
+
+    manager.unload_plugin("FailingInfill");
 }

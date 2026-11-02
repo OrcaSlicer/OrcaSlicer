@@ -16,6 +16,7 @@
 #include "libslic3r/Line.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include <libslic3r/Config.hpp>
 #include <libslic3r/Exception.hpp>
 #include <limits>
 #include "libslic3r/Model.hpp"
@@ -169,8 +170,10 @@ TEST_CASE("A plugin pattern selected for a surface dispatches with that surface 
         {"extra_solid_infills", "5"},
         {"layer_height", 0.4},
         {"initial_layer_print_height", 0.4},
-        {"plugins", plugin_key + ";;" + capability},
     });
+    // "plugins" holds one "plugin;uuid;capability" entry per reference. Setting it through the
+    // coStrings deserializer would split the entry on its semicolons.
+    config.set_key_value("plugins", new ConfigOptionStrings({plugin_key + ";;" + capability}));
 
     Print print;
     Model model;
@@ -218,8 +221,10 @@ TEST_CASE("A sparse plugin pattern dispatches without a built-in pattern while a
         {"ensure_vertical_shell_thickness", "none"},
         {"layer_height", 0.2},
         {"initial_layer_print_height", 0.2},
-        {"plugins", plugin_key + ";;" + capability},
     });
+    // "plugins" holds one "plugin;uuid;capability" entry per reference. Setting it through the
+    // coStrings deserializer would split the entry on its semicolons.
+    config.set_key_value("plugins", new ConfigOptionStrings({plugin_key + ";;" + capability}));
 
     Print print;
     Model model;
@@ -246,6 +251,32 @@ TEST_CASE("A sparse plugin pattern dispatches without a built-in pattern while a
     CHECK(std::none_of(pattern_present.begin(), pattern_present.end(), [](bool present) { return present; }));
 }
 
+TEST_CASE("An unknown pattern value is accepted at load and fails preflight with its ID", "[Fill][InfillPlugin]")
+{
+    // A stored value that names neither a built-in key nor a provider registered here is a possible
+    // plugin pattern installed on another computer (or a CLI project). Loading it and validation must
+    // keep it: rejecting the value would turn a project written elsewhere into a load failure instead
+    // of missing-plugin guidance. The slice preflight is where it is refused, with the ID in the error,
+    // rather than silently falling back to a built-in pattern.
+    const std::string id = "unavailable-plugin-pattern";
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", id}, {"sparse_infill_density", "15%"}});
+    CHECK(config.validate().count("sparse_infill_pattern") == 0);
+    CHECK(config.validate(/*under_cli=*/true).count("sparse_infill_pattern") == 0);
+
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({Slic3r::Test::cube(20.)}, print, model, config);
+
+    try {
+        print.process();
+        FAIL("the preflight must refuse a pattern that no registered provider resolves");
+    } catch (const SlicingError &error) {
+        CHECK(std::string(error.what()).find(id) != std::string::npos);
+    }
+}
+
 TEST_CASE("A plugin pattern selected for a surface it does not declare fails the slice", "[Fill][InfillPlugin]")
 {
     const std::string id         = "fff-print-sparse-only-pattern";
@@ -267,8 +298,10 @@ TEST_CASE("A plugin pattern selected for a surface it does not declare fails the
         {"bottom_shell_layers", 2},
         {"layer_height", 0.4},
         {"initial_layer_print_height", 0.4},
-        {"plugins", plugin_key + ";;" + capability},
     });
+    // "plugins" holds one "plugin;uuid;capability" entry per reference. Setting it through the
+    // coStrings deserializer would split the entry on its semicolons.
+    config.set_key_value("plugins", new ConfigOptionStrings({plugin_key + ";;" + capability}));
 
     Print print;
     Model model;

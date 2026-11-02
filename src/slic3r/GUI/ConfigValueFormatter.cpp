@@ -33,20 +33,23 @@ std::string get_pure_opt_key(const std::string& opt_key)
     return pure_key;
 }
 
-// A string option that lists its allowed keys stores the raw key; show the translated label that
-// matches it, or the key itself when no label matches (e.g. a plugin-provided infill pattern id).
-wxString get_string_from_key_choice(const std::string& opt_key, const DynamicPrintConfig& config)
+// The four pattern settings are key-choice strings: they store the raw built-in key or a plugin
+// pattern ID, and their enum_values/enum_labels describe the built-in choices. Show the label that
+// matches a built-in key, the provider's presentation name for a known plugin pattern, or the raw
+// value otherwise. Other key-choice string options keep showing their raw value, as before.
+wxString get_string_from_infill_pattern(const std::string& opt_key, const DynamicPrintConfig& config)
 {
-    const ConfigOptionDef* def = config.def()->get(opt_key);
-    const std::string      key = config.opt_string(opt_key);
-    if (!def || def->enum_values.empty() || def->enum_labels.size() != def->enum_values.size())
+    const std::string key = config.opt_string(opt_key);
+    if (!infill_purpose_for_option(opt_key))
         return from_u8(key);
-    auto it = std::find(def->enum_values.begin(), def->enum_values.end(), key);
-    if (it != def->enum_values.end())
-        return from_u8(_utf8(def->enum_labels[it - def->enum_values.begin()]));
-    // A plugin pattern ID has no built-in label; use the provider's presentation name when the
-    // pattern is still registered, so a preset comparison does not show a raw identifier.
-    if (infill_purpose_for_option(opt_key)) {
+
+    const ConfigOptionDef* def = config.def()->get(opt_key);
+    if (def != nullptr && !def->enum_values.empty() && def->enum_labels.size() == def->enum_values.size()) {
+        auto it = std::find(def->enum_values.begin(), def->enum_values.end(), key);
+        if (it != def->enum_values.end())
+            return from_u8(_utf8(def->enum_labels[it - def->enum_values.begin()]));
+        // A plugin pattern ID has no built-in label; use the provider's presentation name when the
+        // pattern is still registered, so a preset comparison does not show a raw identifier.
         if (const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill(key);
             info != nullptr && info->is_plugin() && !info->display_name.empty())
             return from_u8(info->display_name);
@@ -194,7 +197,7 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
         return _L("Undefined");
     }
     case coString:
-        return get_string_from_key_choice(pure_key, config);
+        return get_string_from_infill_pattern(pure_key, config);
     case coStrings: {
         const ConfigOptionStrings* strings = config.opt<ConfigOptionStrings>(pure_key);
         if (strings) {

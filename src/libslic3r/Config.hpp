@@ -2887,10 +2887,15 @@ public:
     void save(const std::string &file) const;
 
     //BBS: add json support
-    void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const;
+    // additional_configs carry plugin-backed settings stored outside this config (model object,
+    // volume and layer-range overrides); their references are folded into the same "plugins" manifest.
+    void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version,
+                      const std::vector<const ConfigBase*> &additional_configs = {}) const;
     // Same document, written to a stream. Invalid UTF-8 in a string value throws nlohmann's type_error unless
     // replace_invalid_utf8 is set, which writes U+FFFD instead (for callers such as stdout with no handler).
-    void save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8 = false) const;
+    void save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version,
+                      bool replace_invalid_utf8 = false,
+                      const std::vector<const ConfigBase*> &additional_configs = {}) const;
 
     // Rebuild the in-memory "plugins" manifest (the "name;uuid;capability" references the plugin
     // dispatchers consume) from the plugin-backed options via the registered resolver. save_to_json()
@@ -2929,6 +2934,10 @@ private:
     // preserved and values that do not resolve are dropped; returns empty without a resolver
     // (CLI/headless).
     std::vector<std::string> collect_plugin_manifest() const;
+    // Collect the same references for this config plus `additional_configs` (model object, volume and
+    // layer-range overrides), de-duplicated. Used where a project manifest is written from a config
+    // that does not own those overrides.
+    std::vector<std::string> collect_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs) const;
     // Calls fn(opt_key, plugin_type, capability_name) for every non-empty capability name held by a
     // plugin-backed option of this config, in key order. A built-in value of an "infill" option names
     // a built-in pattern rather than a plugin capability, so it is skipped: it has no reference to

@@ -2,7 +2,6 @@
 #define slic3r_FillBase_hpp_
 
 #include <assert.h>
-#include <functional>
 #include <map>
 #include <cstddef>
 #include <optional>

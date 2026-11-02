@@ -7249,6 +7249,7 @@ struct Plater::priv
     std::string m_cloud_missing_shown_sig;
     std::string m_inactive_shown_sig;
     std::string m_broken_shown_sig;
+    bool m_plugin_status_refresh_pending {false};
     bool auto_reslice_pending {false};
     bool auto_reslice_after_cancel {false};
     int m_is_RightClickInLeftUI{-1};
@@ -13548,6 +13549,10 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         update_fff_scene_only_shells();
         q->Thaw();
     }
+    // Plugin changes during a slice must not apply a new config to the running print. Once the
+    // whole job is done, revalidate and refresh the buttons using the current plugin state.
+    if (m_plugin_status_refresh_pending && !m_is_slicing && !background_process.running())
+        q->refresh_missing_plugin_notifications();
     if (auto_reslice_after_cancel) {
         auto_reslice_after_cancel = false;
         schedule_auto_reslice_if_needed();
@@ -23101,6 +23106,10 @@ void Plater::revalidate_current_plate_if_plugins_missing()
     if (p->m_local_missing_shown_sig.empty() && p->m_cloud_missing_shown_sig.empty() &&
         p->m_inactive_shown_sig.empty() && p->m_broken_shown_sig.empty())
         return;
+    if (p->background_process.running() || p->m_is_slicing) {
+        p->m_plugin_status_refresh_pending = true;
+        return;
+    }
     bool model_fits = true, validate_error = false;
     validate_current_plate(model_fits, validate_error);
 }
@@ -23108,10 +23117,42 @@ void Plater::revalidate_current_plate_if_plugins_missing()
 void Plater::refresh_missing_plugin_notifications()
 {
     bool block_toggled = false;
-    refresh_missing_plugin_block(&block_toggled);
-    // update() re-evaluates the Slice button, which honors plugins_block_slicing().
-    if (block_toggled)
-        update();
+    const bool blocked = refresh_missing_plugin_block(&block_toggled);
+
+    if (p->background_process.running() || p->m_is_slicing) {
+        // A running slice keeps the providers it pinned; retry from on_process_completed() once it
+        // ends. Nothing below may invalidate its steps now. The retry is unconditional: a provider
+        // can change behind a still-selected pattern ID without toggling the block, and only the
+        // identity check after the job can tell that the fills it cached belong to another provider.
+        p->m_plugin_status_refresh_pending = true;
+        if (blocked)
+            p->partplate_list.get_curr_plate()->update_slice_ready_status(false);
+        return;
+    }
+
+    // A completed slice whose selected pattern now resolves to a different provider (replaced,
+    // removed, or its descriptor changed) is stale. Drop the affected fills and the G-code that used
+    // them instead of resetting the background process, which would also stop an unrelated job.
+    if (Print* print = p->background_process.fff_print();
+        print != nullptr && print->plugin_infill_identity_changed() && print->invalidate_plugin_infill())
+        if (PartPlate* plate = p->background_process.get_current_plate())
+            plate->update_slice_result_valid_state(false);
+
+    if (!block_toggled && !p->m_plugin_status_refresh_pending)
+        return;
+
+    if (blocked)
+        p->partplate_list.get_curr_plate()->update_slice_ready_status(false);
+
+    p->m_plugin_status_refresh_pending = false;
+    bool model_fits = false;
+    if (!blocked) {
+        bool validate_error = false;
+        validate_current_plate(model_fits, validate_error);
+    }
+    // Re-evaluate the buttons without update(), which schedules a background config apply and
+    // could cancel a pinned slice or its export when a plugin is unloaded.
+    p->main_frame->update_slice_print_status(MainFrame::eEventObjectUpdate, model_fits);
 }
 
 void Plater::install_missing_cloud_plugins(const std::vector<std::string>& cloud_refs)

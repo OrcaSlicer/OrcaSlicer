@@ -56,3 +56,24 @@ TEST_CASE("A string list that is not serialized reads its first entry without an
 
     CHECK(get_string_value("filament_ids", config).utf8_string() == "GFA00");
 }
+
+TEST_CASE("A pattern setting shows its built-in label and keeps an unknown plugin ID", "[ConfigValueFormatter]")
+{
+    DynamicPrintConfig config;
+    config.set_key_value("sparse_infill_pattern", new ConfigOptionString("gyroid"));
+    CHECK(get_string_value("sparse_infill_pattern", config).utf8_string() == "Gyroid");
+
+    // A plugin pattern ID has no built-in label. Without the provider loaded there is nothing to
+    // resolve it against, so the raw ID is shown rather than an empty or unrelated label.
+    config.set_key_value("sparse_infill_pattern", new ConfigOptionString("unavailable-pattern"));
+    CHECK(get_string_value("sparse_infill_pattern", config).utf8_string() == "unavailable-pattern");
+}
+
+TEST_CASE("A non-infill string option keeps showing its raw value", "[ConfigValueFormatter]")
+{
+    // Only the four pattern settings changed from enum to key-choice string. Other string options
+    // must keep the formatter's previous behavior (the raw value), even if they list enum values.
+    DynamicPrintConfig config;
+    config.set_key_value("material_type", new ConfigOptionString("PLA"));
+    CHECK(get_string_value("material_type", config).utf8_string() == "PLA");
+}

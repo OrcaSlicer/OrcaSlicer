@@ -1549,6 +1549,21 @@ static std::vector<Choice*>& plugin_infill_choices()
     return choices;
 }
 
+static void append_builtin_choice_labels(choice_ctrl* ctrl, const ConfigOptionDef& opt)
+{
+    boost::filesystem::path image_path(Slic3r::resources_dir());
+    image_path /= "images";
+    for (size_t i = 0; i < opt.enum_labels.size(); ++i) {
+        const std::string icon_name = i < opt.enum_values.size() ? "param_" + opt.enum_values[i] : std::string();
+        if (!icon_name.empty() && boost::filesystem::exists(image_path / (icon_name + ".svg"))) {
+            ScalableBitmap bitmap(ctrl, icon_name, 24);
+            ctrl->Append(_(opt.enum_labels[i]), bitmap.bmp());
+        } else {
+            ctrl->Append(_(opt.enum_labels[i]));
+        }
+    }
+}
+
 void Choice::refresh_plugin_infill_choices()
 {
     for (Choice* choice : plugin_infill_choices()) {
@@ -1563,9 +1578,9 @@ void Choice::refresh_plugin_infill_choices()
         const boost::any current = choice->get_value();
         const std::string* current_value = boost::any_cast<std::string>(&current);
         const std::string value = current_value ? *current_value : choice->m_key_choice_value;
+        choice->m_disable_change_event = true;
         ctrl->Clear();
-        for (size_t i = 0; i < choice->m_opt.enum_labels.size(); ++i)
-            ctrl->Append(_(choice->m_opt.enum_labels[i]));
+        append_builtin_choice_labels(ctrl, choice->m_opt);
         const auto plugins = registered_infill_choices(*purpose);
         if (!plugins.empty()) {
             ctrl->Append(_L("Plugins"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM | DD_ITEM_STYLE_DISABLED);
@@ -1668,19 +1683,7 @@ void Choice::BUILD()
 				temp->Append(el);
 		} else {
 			// Append localized enum_labels
-            int i = 0;
-            boost::filesystem::path image_path(Slic3r::resources_dir());
-            image_path /= "images";
-            for (auto el : m_opt.enum_labels) {
-                auto icon_name = "param_" + m_opt.enum_values[i];
-                if (boost::filesystem::exists(image_path / (icon_name + ".svg"))) {
-                    ScalableBitmap bm(temp, icon_name, 24);
-				    temp->Append(_(el), bm.bmp());
-                } else {
-                    temp->Append(_(el));
-                }
-                ++i;
-            }
+            append_builtin_choice_labels(temp, m_opt);
 		}
 		if (const std::optional<InfillSurfacePurpose> purpose = infill_purpose_for_option(m_opt.opt_key)) {
 			// BUILD() can run again for the same field (theme/DPI rebuild); keep exactly one entry so

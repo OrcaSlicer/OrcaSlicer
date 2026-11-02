@@ -1543,18 +1543,20 @@ std::optional<PluginCapabilityRef> parse_capability_ref(const std::string& value
 }
 
 //BBS: add json support
-void ConfigBase::save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const
+void ConfigBase::save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version,
+                              const std::vector<const ConfigBase*> &additional_configs) const
 {
     // Serialize first: if that throws (invalid UTF-8), the existing file stays untouched.
     std::ostringstream ss;
-    this->save_to_json(ss, name, from, version);
+    this->save_to_json(ss, name, from, version, false, additional_configs);
     if (const std::error_code ec = write_file_atomically(file, ss.str()))
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(": failed to save config to %1%: %2%") % file % ec.message();
     else
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;
 }
 
-void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8) const
+void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version,
+                              bool replace_invalid_utf8, const std::vector<const ConfigBase*> &additional_configs) const
 {
     json j;
     //record the headers
@@ -1596,7 +1598,7 @@ void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const s
     // the resolver cannot map is omitted; unresolved_plugin_capabilities() reports it so a GUI save
     // entry point can prompt before writing.
     if (resolve_capability_fn) {
-        std::vector<std::string> unique_refs = this->collect_plugin_manifest();
+        std::vector<std::string> unique_refs = this->collect_plugin_manifest(additional_configs);
         if (unique_refs.empty())
             j.erase("plugins");
         else
@@ -1686,6 +1688,21 @@ std::vector<std::string> ConfigBase::collect_plugin_manifest() const
     return refs;
 }
 
+std::vector<std::string> ConfigBase::collect_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs) const
+{
+    std::vector<std::string> refs;
+    if (!resolve_capability_fn)
+        return refs;
+
+    refs = this->collect_plugin_manifest();
+    // Model object/volume overrides carry their own plugin-backed settings, so they feed the same
+    // resolved manifest, de-duplicated against the references collected above.
+    for (const ConfigBase* config : additional_configs)
+        if (config != nullptr)
+            config->append_plugin_refs(refs);
+    return refs;
+}
+
 std::vector<UnresolvedPluginCapability> ConfigBase::unresolved_plugin_capabilities() const
 {
     std::vector<UnresolvedPluginCapability> unresolved;
@@ -1725,15 +1742,8 @@ void ConfigBase::update_plugin_manifest(const std::vector<const ConfigBase*>& ad
     if (!resolve_capability_fn)
         return;
 
-    std::vector<std::string> refs = this->collect_plugin_manifest();
-    // Model object/volume overrides carry their own plugin-backed settings, so they feed the same
-    // resolved manifest, de-duplicated against the references collected above.
-    for (const ConfigBase* config : additional_configs)
-        if (config != nullptr)
-            config->append_plugin_refs(refs);
-
     if (auto* manifest = this->option<ConfigOptionStrings>("plugins", true))
-        manifest->values = std::move(refs);
+        manifest->values = this->collect_plugin_manifest(additional_configs);
 }
 
 DynamicConfig::DynamicConfig(const ConfigBase& rhs, const t_config_option_keys& keys)

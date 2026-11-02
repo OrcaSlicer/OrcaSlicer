@@ -397,6 +397,11 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
             // instances are left alone.
             if (!descriptor.install_state_valid)
                 descriptor.enabled = existing->descriptor.enabled;
+            // Keep a runtime diagnostic recorded while this scan ran: report_plugin_diagnostic()
+            // deliberately does not wait for discovery, and the scanned descriptor carries no
+            // runtime state of its own.
+            if (descriptor.error.empty())
+                descriptor.error = std::move(existing->descriptor.error);
             existing->descriptor = std::move(descriptor);
         }
 
@@ -809,12 +814,22 @@ void PluginManager::release_load_slot(const std::string& plugin_key)
 void PluginManager::cancel_and_wait_for_capabilities(
     const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities)
 {
+    const auto has_infill_job_lease = [](const std::shared_ptr<PluginCapabilityInterface>& capability) {
+        if (!capability || capability->type() != PluginCapabilityType::Infill)
+            return false;
+        const auto* infill = dynamic_cast<const InfillPluginCapability*>(capability.get());
+        return infill != nullptr &&
+               InfillFactory::has_pinned_infills(infill->audit_plugin_key(), infill->name());
+    };
+
     // Ask the plugin to cancel first, then schedule the async cancellation: on_cancelled() can
     // observe/record state while the run is still intact, and only afterwards is its asyncio task
     // cancelled. Draining of capability references still follows, so the module is not unloaded
-    // until the run has settled.
+    // until the run has settled. An infill capability with a live job lease is the exception: that
+    // slice is deliberately allowed to finish, so asking the provider to cancel it would defeat the
+    // whole point. Its work is drained by the lease instead.
     for (const auto& capability : capabilities) {
-        if (!capability || !capability->is_enabled())
+        if (!capability || !capability->is_enabled() || has_infill_job_lease(capability))
             continue;
 
         try {
@@ -837,19 +852,10 @@ void PluginManager::cancel_and_wait_for_capabilities(
     // plugin can no longer couple to this one (each invocation owns a thread). A Script worker is
     // drained without a deadline — forcing module unload while one is outstanding would leave Python
     // executing against a freed module, or let a blocking preset selection mutate presets after the
-    // plugin is gone. An infill job lease is drained the same way: it is released only when the
-    // slicing job stops creating Fills, and forcing the unload would leave that worker calling into a
-    // provider whose module was torn down. Non-Script synchronous calls keep the historical bounded
-    // grace. On the GUI thread the event loop is pumped so a modal selection can settle instead of
-    // being starved by a blocking wait.
-    const auto has_infill_job_lease = [](const std::shared_ptr<PluginCapabilityInterface>& capability) {
-        if (!capability || capability->type() != PluginCapabilityType::Infill)
-            return false;
-        const auto* infill = dynamic_cast<const InfillPluginCapability*>(capability.get());
-        return infill != nullptr &&
-               InfillFactory::has_pinned_infills(infill->audit_plugin_key(), infill->name());
-    };
-
+    // plugin is gone. An infill job lease (and a live infill call, pinned or not) is drained the same
+    // way: forcing the unload would leave that worker calling into a provider whose module was torn
+    // down. Other synchronous calls keep the historical bounded grace. On the GUI thread the event
+    // loop is pumped so a modal selection can settle instead of being starved by a blocking wait.
     const auto grace_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
     if (std::any_of(capabilities.begin(), capabilities.end(), has_infill_job_lease))
         BOOST_LOG_TRIVIAL(info) << "Unload is waiting for an active infill slice to release its provider lease";
@@ -859,8 +865,14 @@ void PluginManager::cancel_and_wait_for_capabilities(
         });
         // A cancellation that arrived before the invocation ran skips the ref counter, so an active
         // worker must also be gone: never unload the module while any Script thread is still live.
+        // An infill capability call is Python execution too (generate/no_sort/aligned_to_origin
+        // increment its ref counter), so a live one also blocks the bounded grace path: force
+        // unloading it would leave that caller running against a torn-down module.
         const bool invocation_active = std::any_of(capabilities.begin(), capabilities.end(), [](const auto& capability) {
-            return capability != nullptr && ScriptAsyncRuntime::instance().has_active_run(capability.get());
+            if (capability == nullptr)
+                return false;
+            return ScriptAsyncRuntime::instance().has_active_run(capability.get()) ||
+                   (capability->type() == PluginCapabilityType::Infill && capability->ref_count() > 0);
         });
         const bool job_lease_active = std::any_of(capabilities.begin(), capabilities.end(), has_infill_job_lease);
         if (all_released && !invocation_active && !job_lease_active)
@@ -1555,19 +1567,50 @@ bool PluginManager::clear_plugin_error(const std::string& plugin_key)
 bool PluginManager::report_plugin_diagnostic(const std::string& plugin_key, std::string error)
 {
     BOOST_LOG_TRIVIAL(error) << "Plugin runtime diagnostic [" << plugin_key << "]: " << error;
-    if (!set_plugin_error(plugin_key, std::move(error)))
+
+    // A generation worker can report here while it still holds an infill lease. Never wait for
+    // discovery: an unload that follows discovery waits for exactly that lease, so a worker blocked
+    // on discovery could never release it and the unload could never finish. Recording the
+    // diagnostic therefore only takes the registry lock, which discovery never holds while it runs.
+    // A scan that is already in progress preserves this error when it merges its descriptor.
+    bool stored = false;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        Plugin* plugin = find_plugin_locked(plugin_key);
+        if (plugin != nullptr) {
+            plugin->descriptor.set_error(std::move(error));
+            stored = true;
+        }
+    }
+    if (!stored)
         return false;
 
     // Copy the callbacks under the lock and invoke them without it: a GUI refresh may query the
-    // manager, and the registry lock must never be held across that re-entry.
+    // manager, and the registry lock must never be held across that re-entry. A subscriber runs on
+    // the GUI thread like every other lifecycle notification; a throw from one must not replace the
+    // SlicingError the caller is about to raise or escape the generation worker.
     std::vector<PluginLifecycleCompleteFn> callbacks;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         callbacks = m_runtime_error_callbacks;
     }
-    for (const PluginLifecycleCompleteFn& callback : callbacks)
-        if (callback)
-            callback(plugin_key);
+    auto notify = [callbacks = std::move(callbacks), plugin_key] {
+        for (const PluginLifecycleCompleteFn& callback : callbacks) {
+            if (!callback)
+                continue;
+            try {
+                callback(plugin_key);
+            } catch (const std::exception& ex) {
+                BOOST_LOG_TRIVIAL(error) << "Plugin runtime-error callback failed for " << plugin_key << ": " << ex.what();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "Plugin runtime-error callback failed for " << plugin_key;
+            }
+        }
+    };
+    if (wxTheApp == nullptr || wxIsMainThread())
+        notify();
+    else
+        GUI::wxGetApp().CallAfter(std::move(notify));
     return true;
 }
 

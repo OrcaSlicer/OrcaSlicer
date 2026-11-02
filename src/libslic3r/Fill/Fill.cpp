@@ -1144,6 +1144,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 }
 
                 // Calculate the actual flow we'll be using for this infill.
+                // Only a bridge surface uses bridge flow. The former Fill::use_bridge_flow() virtual
+                // returned false for every built-in filler and was never overridden, so the pattern
+                // cannot request it; a plugin pattern gets the ordinary infill flow.
 		        params.bridge = is_bridge;
                 const bool is_thick_bridge = surface.is_bridge() && (surface.is_internal_bridge() ? object_config.thick_internal_bridges : object_config.thick_bridges);
 				params.flow   = params.bridge ?
