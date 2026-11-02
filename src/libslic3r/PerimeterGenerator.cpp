@@ -2377,6 +2377,102 @@ static bool arachne_lines_touch(const Arachne::ExtrusionLine &a, const Arachne::
     return one_way(a, b) || one_way(b, a);
 }
 
+// ORCA: only_one_wall_top without top surface expansion generates the inner walls between the outer walls and the top
+// surface, numbered from both edges, so a wall along the top surface can be inset 1 with other walls between it and the
+// outer wall. Wall order follows these numbers: Inner/Outer and Outer/Inner order touching walls by inset,
+// Inner/Outer/Inner prints inset 2+ before the outer wall and inset 1 after it. Walls chained from the outer walls
+// (inset 1 touching one, inset k touching inset k - 1) keep their inset; any other wall takes one more than the deepest
+// wall it touches, if any.
+// outer_touch / inner_touch: the touching distance to an outer / an inner wall.
+static void renumber_inner_walls_by_depth(const Arachne::VariableWidthLines &outer_walls, std::vector<Arachne::VariableWidthLines> &inner_walls,
+                                          coord_t outer_touch, coord_t inner_touch)
+{
+    std::vector<Arachne::ExtrusionLine> lines;
+    for (Arachne::VariableWidthLines &group : inner_walls)
+        for (Arachne::ExtrusionLine &el : group)
+            if (!el.empty())
+                lines.emplace_back(std::move(el));
+    if (lines.empty())
+        return;
+
+    // Lines whose bounding boxes, grown by the widest bead, do not overlap cannot touch.
+    auto grown_bbox = [](const Arachne::ExtrusionLine &el) {
+        BoundingBox bbox;
+        coord_t     widest = 0;
+        for (const Arachne::ExtrusionJunction &j : el.junctions) {
+            bbox.merge(j.p);
+            widest = std::max(widest, j.w);
+        }
+        return bbox.inflated(widest);
+    };
+    std::vector<BoundingBox> line_bboxes;
+    line_bboxes.reserve(lines.size());
+    for (const Arachne::ExtrusionLine &el : lines)
+        line_bboxes.emplace_back(grown_bbox(el));
+    // Integer coordinates put walls generated exactly the touching distance apart up to a few nanometres further.
+    const double rounding        = double(scaled<coord_t>(0.001));
+    const double outer_threshold = double(outer_touch) + rounding;
+    const double inner_threshold = double(inner_touch) + rounding;
+    auto touch = [&lines, &line_bboxes, inner_threshold](size_t a, size_t b) {
+        return line_bboxes[a].overlap(line_bboxes[b]) && arachne_lines_touch(lines[a], lines[b], inner_threshold);
+    };
+
+    // Walls numbered from the outer walls.
+    std::vector<size_t> depth(lines.size(), 0);
+    std::vector<size_t> frontier;
+    for (const Arachne::ExtrusionLine &outer : outer_walls) {
+        const BoundingBox outer_bbox = grown_bbox(outer);
+        for (size_t i = 0; i < lines.size(); ++i)
+            if (depth[i] == 0 && lines[i].inset_idx == 1 && outer_bbox.overlap(line_bboxes[i]) && arachne_lines_touch(outer, lines[i], outer_threshold)) {
+                depth[i] = 1;
+                frontier.push_back(i);
+            }
+    }
+    std::vector<size_t> numbered = frontier;
+    for (size_t level = 1; !frontier.empty(); ++level) {
+        std::vector<size_t> next;
+        for (size_t i = 0; i < lines.size(); ++i)
+            if (depth[i] == 0 && lines[i].inset_idx == level + 1)
+                for (size_t f : frontier)
+                    if (touch(f, i)) {
+                        depth[i] = level + 1;
+                        next.push_back(i);
+                        break;
+                    }
+        numbered.insert(numbered.end(), next.begin(), next.end());
+        frontier = std::move(next);
+    }
+
+    // The other walls, working away from those.
+    frontier = std::move(numbered);
+    while (!frontier.empty()) {
+        std::vector<size_t> next;
+        for (size_t i = 0; i < lines.size(); ++i) {
+            if (depth[i] != 0)
+                continue;
+            size_t deepest = 0;
+            for (size_t f : frontier)
+                if (depth[f] > deepest && touch(f, i))
+                    deepest = depth[f];
+            if (deepest > 0) {
+                depth[i] = deepest + 1;
+                next.push_back(i);
+            }
+        }
+        frontier = std::move(next);
+    }
+
+    // Group g holds the walls of inset g + 1, as the caller expects.
+    inner_walls.clear();
+    for (size_t i = 0; i < lines.size(); ++i) {
+        if (depth[i] > 0)
+            lines[i].inset_idx = depth[i];
+        if (inner_walls.size() < lines[i].inset_idx)
+            inner_walls.resize(lines[i].inset_idx);
+        inner_walls[lines[i].inset_idx - 1].emplace_back(std::move(lines[i]));
+    }
+}
+
 /**
  * @brief Finds all perimeters touching a given set of reference lines, given as indexes.
  *
@@ -2430,8 +2526,10 @@ std::vector<PerimeterGeneratorArachneExtrusion> reorderPerimetersByProximity(std
 
     // Function to reorder perimeters starting from a given reference index
     auto reorderFromReference = [&](int referenceIndex) {
-        // Find first level touching perimeters. The odd centre line of a wall too narrow for two inner walls is shared
-        // by the outer walls on both sides, so those join this island and are printed before it too, holes first.
+        // Find first level touching perimeters. A first level line touching another outer wall is shared by both: the
+        // odd centre line of a wall too narrow for two inner walls, or an inner wall that turns where a narrow wall
+        // pinches and runs back along the other outer wall. Those outer walls join this island and are printed before
+        // it too, holes first.
         std::vector<int> outerIndices{referenceIndex};
         std::vector<int> firstLevelTouchingIndices;
         for (size_t next = 0; next < outerIndices.size(); ++next)
@@ -2439,8 +2537,6 @@ std::vector<PerimeterGeneratorArachneExtrusion> reorderPerimetersByProximity(std
                 if (std::find(firstLevelTouchingIndices.begin(), firstLevelTouchingIndices.end(), idx) != firstLevelTouchingIndices.end())
                     continue;
                 firstLevelTouchingIndices.push_back(idx);
-                if (!entities[idx].extrusion->is_odd)
-                    continue;
                 for (size_t i = 0; i < entities.size(); ++i)
                     if (entities[i].extrusion->inset_idx == 0 && includedIndices.count(int(i)) == 0 &&
                         std::find(outerIndices.begin(), outerIndices.end(), int(i)) == outerIndices.end() &&
@@ -2763,6 +2859,12 @@ void PerimeterGenerator::process_arachne()
                         for (Arachne::VariableWidthLines &inner_perimeter : inner_perimeters)
                             for (Arachne::ExtrusionLine &el : inner_perimeter)
                                 ++el.inset_idx;
+                    // The not-top region also starts walls at the top surface boundary, numbered from there.
+                    if (!clip_walls_over_top && perimeters.size() == 1)
+                        renumber_inner_walls_by_depth(perimeters.front(), inner_perimeters,
+                                                      apply_precise_outer_wall ? ext_perimeter_spacing + perimeter_spacing / 2
+                                                                               : (ext_perimeter_spacing + perimeter_spacing) / 2,
+                                                      perimeter_spacing);
 
                     perimeters.insert(perimeters.end(), inner_perimeters.begin(), inner_perimeters.end());
                     infill_contour = union_ex(top_expolygons, inner_wall_tool_paths.getInnerContour());

@@ -262,6 +262,8 @@ public:
 
     /**
      * Delete a remote preset.
+     * Returns 0 once the cloud holds no preset with this id for the signed-in account, whether this call
+     * deleted it or there was nothing to delete. Any other value means the delete should be tried again later.
      */
     virtual int delete_setting(std::string setting_id) = 0;
 

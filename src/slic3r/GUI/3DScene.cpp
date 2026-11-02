@@ -16,6 +16,7 @@
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/SLAPrint.hpp"
@@ -1583,9 +1584,10 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     //unprintable_filament_ids.resize(inside_extruders.size());
                     ModelObject *model_object = model_objects[volume->object_idx()];
                     ModelVolume *model_volume = model_object->volumes[volume->volume_idx()];
+                    // A mixed filament prints with its component filaments.
+                    const std::vector<int> filaments = expand_mixed_filament_ids(model_volume->get_extruders(), plate_project_config);
                     for (size_t i = 0; i < printable_area_inside_extruders.size(); ++i) {
                         if (!printable_area_inside_extruders[i]) {
-                            std::vector<int> filaments = model_volume->get_extruders();
                             unprintable_filament_ids[i].insert(filaments.begin(), filaments.end());
                             if (object_results) {
                                 std::map<int, std::set<int>>& obj_extruder_filament_maps = objects_unprintable_filaments[model_object];
@@ -1665,6 +1667,10 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     if (object_results && (extruder_count > 1))
     {
         object_results->mode = curr_plate->get_real_filament_map_mode(plate_project_config);
+        // Only Bambu printers regroup filaments; check the others against the map they print with.
+        const bool supports_filament_grouping = GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+        if (!supports_filament_grouping && object_results->mode < FilamentMapMode::fmmManual)
+            object_results->mode = FilamentMapMode::fmmManual;
         if (object_results->mode < FilamentMapMode::fmmManual)
         {
             std::vector<int> conflict_filament_vector;
@@ -1726,7 +1732,10 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
         else
         {
             std::set<int> conflict_filaments_set;
-            std::vector<int> filament_maps = curr_plate->get_real_filament_maps(plate_project_config);
+            std::vector<int> filament_maps = supports_filament_grouping ?
+                curr_plate->get_real_filament_maps(plate_project_config) :
+                curr_plate->get_effective_exclusion_filament_maps(plate_project_config, GUI::wxGetApp().preset_bundle->filament_presets.size(),
+                                                                  size_t(extruder_count));
             for (auto& object_map: objects_unprintable_filaments)
             {
                 ModelObject *model_object = object_map.first;

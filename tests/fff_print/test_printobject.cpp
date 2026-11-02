@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
 #include "libslic3r/libslic3r.h"
@@ -159,6 +160,24 @@ TEST_CASE("Initial layer height is honored", "[PrintObject]")
     REQUIRE(layer_zs.size() > 1);
     REQUIRE_THAT(*layer_zs.begin(),            Catch::Matchers::WithinAbs(0.3, 1e-4));
     REQUIRE_THAT(*std::next(layer_zs.begin()), Catch::Matchers::WithinAbs(0.5, 1e-4));
+}
+
+TEST_CASE("An object too thin for any layer fails with a slicing error", "[PrintObject][Regression]")
+{
+    const int  raft_layers      = GENERATE(0, 2);
+    const bool precise_z_height = GENERATE(false, true);
+    DYNAMIC_SECTION("raft_layers " << raft_layers << ", precise_z_height " << precise_z_height) {
+        Slic3r::Print print;
+        Slic3r::Model model;
+        Slic3r::Test::init_print({make_cube(20, 20, 0.002)}, print, model, {
+            { "layer_height",               0.2 },
+            { "initial_layer_print_height", 0.2 },
+            { "min_layer_height",           0.07 },
+            { "raft_layers",                raft_layers },
+            { "precise_z_height",           precise_z_height }
+        });
+        REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("No layers were detected"));
+    }
 }
 
 static TriangleMesh internal_bridge_step()

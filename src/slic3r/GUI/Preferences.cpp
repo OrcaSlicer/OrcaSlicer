@@ -416,6 +416,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         wxLANGUAGE_TURKISH,
         wxLANGUAGE_POLISH,
         wxLANGUAGE_CATALAN,
+        wxLANGUAGE_BASQUE,
         wxLANGUAGE_PORTUGUESE_BRAZILIAN,
         wxLANGUAGE_LITHUANIAN,
         wxLANGUAGE_VIETNAMESE,
@@ -509,6 +510,9 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_CATALAN)) {
             language_name = wxString::FromUTF8("Catalan");
         }
+        else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_BASQUE)) {
+            language_name = wxString::FromUTF8("Euskara");
+        }
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_PORTUGUESE_BRAZILIAN)) {
             language_name = wxString::FromUTF8("Português (Brasil)");
         }
@@ -557,7 +561,16 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
                         wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE).ShowModal();
 
                     if (result == wxID_YES) {
-                        wxGetApp().plater()->save_project();
+                        if (wxGetApp().plater()->save_project() != wxID_YES) {
+                            // The save was cancelled (e.g. the unresolved-plugin warning): do not
+                            // switch languages as if the project had been saved.
+                            combobox->SetSelection(m_current_language_selected);
+                            return;
+                        }
+                    } else if (result != wxID_NO) {
+                        // Cancel or ESC on the save prompt: keep the current language.
+                        combobox->SetSelection(m_current_language_selected);
+                        return;
                     }
                 }
 
@@ -2090,7 +2103,7 @@ void PreferencesDialog::create_items()
 
     auto item_scene_cache = create_item_checkbox(
         _L("Reuse the 3D scene while idle"),
-        _L("Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+        _L("Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, "
            "and reuses the previous frame's scene instead. Reduces GPU load.\n"
            "Disable it if the viewport shows stale or missing contents.\n\n"
            "Takes effect immediately."),
@@ -2211,7 +2224,7 @@ void PreferencesDialog::create_items()
     auto item_region           = create_item_region_combobox(_L("Login region"), "");
     g_sizer->Add(item_region);
  
-    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\nNote: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."), "stealth_mode");
+    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n\nNote: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."), "stealth_mode");
     g_sizer->Add(item_stealth_mode);
 
     auto item_hide_login_side_panel = create_item_checkbox(_L("Hide login side panel"), _L("Hide the login side panel on the home page."), "hide_login_side_panel");

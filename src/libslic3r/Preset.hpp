@@ -490,6 +490,9 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
 bool is_compatible_with_printer(const DynamicPrintConfig &preset_config, Preset::Type preset_type,
                                 const DynamicPrintConfig &printer_config, const std::string &printer_name);
 
+// True for a list option the settings tab edits as one value, so a change to it is reported for the whole list.
+bool is_edited_as_whole_list(const ConfigDef *def, const std::string &opt_key);
+
 // Where a preset is being loaded from. `Auto` lets load_presets() infer from the directory path.
 struct PresetOrigin {
     enum class Kind { Auto, User, LocalBundle, SubscribedBundle };
@@ -658,6 +661,12 @@ public:
                                     const DynamicConfig &     dynamic_config,
                                     const std::string &       compatible_printers,
                                     bool                      force_rewritten = false);
+
+    // User presets made for one printer alone, as clone_presets_for_printer() makes them: every entry of
+    // their compatible_printers is that printer. They are deleted together with that printer. Presets
+    // that also list other printers, or are not limited by printer name, are shared and kept, and so is
+    // every preset a kept preset inherits from.
+    std::vector<Preset const *> get_user_presets_for_printer(const std::string &printer_name) const;
 
     std::map<std::string, std::vector<Preset const *>> get_filament_presets() const;
 

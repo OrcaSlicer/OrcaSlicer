@@ -34,7 +34,9 @@
 #include <fstream>
 #include "libslic3r/PrintConfig.hpp"
 #include <memory>
+#include <new>
 #include "libslic3r/Print.hpp"
+#include "libslic3r/PrintBase.hpp"
 #include "libslic3r/Exception.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
@@ -265,7 +267,7 @@ void gcode_add_line_number(const std::string& path, const DynamicPrintConfig& co
 // seam. This is the same capability that runs at the geometry seams inside Print::process(); here it is
 // dispatched a final time on the exported G-code, so a plugin can edit slices AND the final G-code from
 // one class. Plugins are executed in-process through the embedded Python interpreter. Throws
-// Slic3r::RuntimeError on any failure; the caller removes the working copy (see run_post_process_scripts'
+// Slic3r::RuntimeError on any failure; the caller removes the working copy (see run_post_process_scripts_impl()'s
 // catch block). Entries are bare capability names; the top-level plugins manifest carries the full refs.
 // A geometry-only plugin simply returns success here (it filters on ctx.step), so it costs nothing beyond
 // one no-op call, but note any configured pipeline plugin still engages this post-process path (i.e. the
@@ -343,7 +345,7 @@ static void run_post_process_plugins(const ConfigOptionStrings& capabilities,
 // output_name is the final name of the G-code on SD card or when uploaded to PrusaLink or OctoPrint.
 // If uploading to PrusaLink or OctoPrint, then the file will be renamed to output_name first on the target host.
 // The post-processing script may change the output_name.
-bool run_post_process_scripts(
+static bool run_post_process_scripts_impl(
     std::string& src_path, bool make_copy, const std::string& host, std::string& output_name, const DynamicPrintConfig& config)
 {
     // post_process / slicing_pipeline_plugin are absent in SLA mode, hence the null checks. G-code
@@ -510,6 +512,27 @@ bool run_post_process_scripts(
 
     src_path = std::move(path);
     return true;
+}
+
+// Post-processing works on G-code that is already generated, so whatever fails in it (a script or plugin,
+// starting the shell, the file work around them) fails the export or upload, not the slice. It is reported
+// as an ExportError, which does not invalidate the plater, so the user can retry (see
+// SlicingProcessCompletedEvent::invalidate_plater()). A cancel, a fatal error and running out of memory keep
+// their own handling.
+bool run_post_process_scripts(
+    std::string& src_path, bool make_copy, const std::string& host, std::string& output_name, const DynamicPrintConfig& config)
+{
+    try {
+        return run_post_process_scripts_impl(src_path, make_copy, host, output_name, config);
+    } catch (const CanceledException&) {
+        throw;
+    } catch (const HardCrash&) {
+        throw;
+    } catch (const std::bad_alloc&) {
+        throw;
+    } catch (const std::exception& ex) {
+        throw ExportError(ex.what());
+    }
 }
 
 } // namespace Slic3r

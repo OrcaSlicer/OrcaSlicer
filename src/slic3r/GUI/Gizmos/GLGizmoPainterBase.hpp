@@ -300,6 +300,7 @@ protected:
 
     bool     m_paint_on_overhangs_only          = false;
     float    m_highlight_by_angle_threshold_deg = 0.f;
+    float    get_highlight_angle_limit_deg() const;
 
     // Returns the up direction accounting for build plate tilt (default: UnitZ)
     Vec3f get_tilt_up_direction() const;
