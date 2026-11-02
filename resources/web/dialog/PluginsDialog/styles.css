@@ -358,11 +358,19 @@ body {
 
 .plugin-expand-icon {
   --icon-url : var(--icon-expand-arrow);
-  --icon-fill: var(--dimmed-color);;
+  --icon-fill: var(--dimmed-color);
 }
 
 .plugin-expand-btn[aria-expanded="true"] .plugin-expand-icon {
   transform: rotate(90deg);
+}
+
+/* placeholder with the same footprint as .plugin-expand-btn (ButtonTypeIcon, 22x22) to align labels */
+.plugin-expand-spacer {
+  display: inline-block;
+  flex: none;
+  width: 22px;
+  height: 22px;
 }
 
 .plugin-name-text { /* Used for local plugins*/

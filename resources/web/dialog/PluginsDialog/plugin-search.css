@@ -31,7 +31,7 @@
   background: transparent;
   border: 0;
   outline: 0;
-  color: var(--text);
+  color: var(--fg-color-text);
   font: inherit;
 }
 
@@ -55,7 +55,7 @@
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
-  color: var(--muted);
+  color: var(--dimmed-color);
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
@@ -79,12 +79,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 10px;
-  height: 10px;
+  width: 16px;
+  height: 16px;
   padding: 0;
   border: 0;
   border-radius: 50%;
-  color: var(--muted);
+  color: var(--dimmed-color);
   cursor: pointer;
   visibility: hidden;
   background: rgba(127, 127, 127, 0.20);
@@ -95,13 +95,13 @@
 }
 
 .plugin-search-clear:hover {
-  color: var(--text);
-  background: rgba(127, 127, 127, 0.45);
+  color: var(--fg-color-text);
+  background: var(--button-bg-hover);
 }
 
 .plugin-search-toggle:hover {
-  color: var(--text);
-  background: var(--row-hover);
+  color: var(--fg-color-text);
+  background: var(--button-bg-hover);
 }
 
 .plugin-search-toggle.on {

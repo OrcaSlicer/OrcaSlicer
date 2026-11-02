@@ -644,10 +644,7 @@ function CheckCell(row, plugin) {
     checkbox.setAttribute("aria-checked", "mixed");
     checkbox.setAttribute("aria-label", T("mixed_capabilities", "Some plugin capabilities are enabled"));
   }
-  const checkboxMark = document.createElement("span");
-  checkboxMark.className = "CheckBoxStr";
   checkboxLabel.appendChild(checkbox);
-  checkboxLabel.appendChild(checkboxMark);
   checkCell.appendChild(checkboxLabel);
 
   return checkCell;
@@ -679,7 +676,7 @@ function LabelCell(plugin, isExpanded = false, capabilityCount = 0, nameRanges =
     labelCell.appendChild(expandButton);
   } else {
     const spacer = document.createElement("span");
-    spacer.className = "ButtonTypeIcon"; // empty block without icon to align labels
+    spacer.className = "plugin-expand-spacer"; // empty block matching the expand button width to align labels
     spacer.setAttribute("aria-hidden", "true");
     labelCell.appendChild(spacer);
   }
