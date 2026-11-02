@@ -771,6 +771,8 @@ std::string CoolingBuffer::apply_layer_cooldown(
         //BBS
         int additional_fan_speed_new = m_config.additional_cooling_fan_speed.get_at(config_index);
         int close_fan_the_first_x_layers = EXTRUDER_CONFIG(close_fan_the_first_x_layers);
+        // Part cooling fan speed during the first close_fan_the_first_x_layers layers, where the ramp starts from.
+        const int first_x_layer_part_fan_speed = EXTRUDER_CONFIG(first_x_layer_part_fan_speed);
         // Is the fan speed ramp enabled?
         int full_fan_speed_layer = EXTRUDER_CONFIG(full_fan_speed_layer);
         // ORCA: explicit per-filament first-layer override (-1 = disabled, 0-100 = forced PWM percent on layer 0).
@@ -837,9 +839,11 @@ std::string CoolingBuffer::apply_layer_cooldown(
                     overhang_fan_speed = std::clamp(int(anchor + t * (float(overhang_fan_speed) - anchor) + 0.5f), 0, 255);
                 } else {
                     // Ramp up the fan speed from close_fan_the_first_x_layers to full_fan_speed_layer.
+                    // The ramp starts from first_x_layer_part_fan_speed, which is zero unless set.
                     float factor = float(int(layer_id + 1) - close_fan_the_first_x_layers) / float(full_fan_speed_layer - close_fan_the_first_x_layers);
-                    fan_speed_new    = std::clamp(int(float(fan_speed_new) * factor + 0.5f), 0, 255);
-                    overhang_fan_speed = std::clamp(int(float(overhang_fan_speed) * factor + 0.5f), 0, 255);
+                    const float first_speed = float(first_x_layer_part_fan_speed);
+                    fan_speed_new    = std::clamp(int(first_speed * (1.f - factor) + float(fan_speed_new) * factor + 0.5f), 0, 255);
+                    overhang_fan_speed = std::clamp(int(first_speed * (1.f - factor) + float(overhang_fan_speed) * factor + 0.5f), 0, 255);
                 }
             }
             supp_interface_fan_speed = EXTRUDER_CONFIG(support_material_interface_fan_speed);
@@ -864,7 +868,7 @@ std::string CoolingBuffer::apply_layer_cooldown(
         } else {
             overhang_fan_control = false;
             overhang_fan_speed   = 0;
-            fan_speed_new      = 0;
+            fan_speed_new      = first_x_layer_part_fan_speed;
             additional_fan_speed_new = 0;
             supp_interface_fan_control = false; 
             supp_interface_fan_speed   = 0;
@@ -872,6 +876,23 @@ std::string CoolingBuffer::apply_layer_cooldown(
             internal_bridge_fan_speed = 0; // ORCA: Add support for separate internal bridge fan speed control
             ironing_fan_control = false; // ORCA: Add support for ironing fan speed control
             ironing_fan_speed = 0; // ORCA: Add support for ironing fan speed control
+        }
+        // Auxiliary fan linear ramp (opt-in). The auxiliary fan has its own schedule, independent of the part cooling
+        // fan: it runs at `first_x_layer_fan_speed` for the first `close_additional_fan_first_x_layers` layers, then
+        // rises linearly to `additional_cooling_fan_speed`, reaching it at layer `additional_fan_full_speed_layer`.
+        // An `additional_fan_full_speed_layer` not above the first-layers count means no ramp: full speed right after.
+        if (m_config.additional_cooling_fan_linear_ramp.get_at(m_current_extruder)) {
+            const int   aux_first_layers = m_config.close_additional_fan_first_x_layers.get_at(m_current_extruder);
+            const int   aux_full_layer   = m_config.additional_fan_full_speed_layer.get_at(m_current_extruder);
+            const float aux_target       = float(m_config.additional_cooling_fan_speed.get_at(config_index));
+            const float aux_first_speed  = float(m_config.first_x_layer_fan_speed.get_at(m_current_extruder));
+            if (int(layer_id) < aux_first_layers)
+                additional_fan_speed_new = std::clamp(int(aux_first_speed + 0.5f), 0, 100);
+            else if (int(layer_id) + 1 < aux_full_layer) {
+                const float t = float(int(layer_id) + 1 - aux_first_layers) / float(aux_full_layer - aux_first_layers);
+                additional_fan_speed_new = std::clamp(int(aux_first_speed + t * (aux_target - aux_first_speed) + 0.5f), 0, 100);
+            } else
+                additional_fan_speed_new = int(aux_target);
         }
         // A tool change may keep the same configured base fan speed while the physical fan is
         // still running at the previous filament's overhang speed. Restore the base speed before

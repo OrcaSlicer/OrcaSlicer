@@ -2406,6 +2406,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInts { 1 });
 
+    def = this->add("first_x_layer_part_fan_speed", coInts);
+    def->label = L("Fan speed");
+    def->tooltip = L("Part cooling fan speed for the first few layers, set by \"No cooling for the first\". "
+                     "Set to 0 to keep the part cooling fan off for better build plate adhesion. "
+                     "If \"Full fan speed at layer\" is set, the fan speed ramps linearly from this value to the target speed.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInts { 0 });
+
     def = this->add("bridge_no_support", coBool);
     def->label = L("Don't support bridges");
     def->category = L("Support");
@@ -5692,6 +5703,14 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInts { 0 });
+
+    def = this->add("additional_cooling_fan_linear_ramp", coBools);
+    def->label = L("Linear ramp");
+    def->tooltip = L("Give the auxiliary fan its own schedule, independent of the part cooling fan: it runs at the fan speed set below for the first "
+                     "layers, then ramps up linearly and reaches the auxiliary fan speed at the \"Full fan speed at layer\" below. "
+                     "This reduces the sudden temperature drop near the first layer, which helps against warping.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBools { false });
 
     def = this->add("close_additional_fan_first_x_layers", coInts);
     def->label = L("For the first");
