@@ -115,6 +115,8 @@ public:
     );
 
     ~PlateSettingsDialog();
+    // Editable combo box: the entry at "index" can't be typed over, clicking it opens the list
+    static void lock_entry(ComboBox* combo, int index);
     void sync_bed_type(BedType type);
     void sync_print_seq(int print_seq = 0);
     void sync_first_layer_print_seq(int selection, const std::vector<int>& seq = std::vector<int>());
@@ -189,7 +191,8 @@ protected:
     DragCanvas* m_drag_canvas;
     OtherLayersSeqPanel* m_other_layers_seq_panel;
     TextInput *m_ti_plate_name;
-    TextInput *m_skirt_start_angle;
+    ComboBox *m_skirt_start_angle;
+    double m_global_skirt_start_angle { 0. };
 };
 
 class PlateNameEditDialog : public DPIDialog

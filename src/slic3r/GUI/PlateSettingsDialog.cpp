@@ -59,6 +59,22 @@ static wxSizer* with_revert_icon(wxStaticText* label, wxWindow* ctrl, std::funct
     return sizer;
 }
 
+void PlateSettingsDialog::lock_entry(ComboBox* combo, int index)
+{
+    combo->GetTextCtrl()->Bind(wxEVT_TEXT, [combo, index](wxCommandEvent& e) {
+        if (combo->GetSelection() == index)
+            combo->GetTextCtrl()->ChangeValue(combo->GetString(index));
+        else
+            e.Skip();
+    });
+    combo->GetTextCtrl()->Bind(wxEVT_LEFT_DOWN, [combo, index](wxMouseEvent& e) {
+        if (combo->GetSelection() == index)
+            combo->ForceDropdownOpen();
+        else
+            e.Skip();
+    });
+}
+
 bool LayerSeqInfo::operator<(const LayerSeqInfo& another) const
 {
     if (this->begin_layer_number < MIN_LAYER_VALUE)
@@ -474,9 +490,17 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
                                     [this] { return m_bed_type_choice->GetSelection() > 0; },
                                     [this] { sync_bed_type(btDefault); }), 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
 
-    // Skirt start point, empty means same as global
-    m_skirt_start_angle = new TextInput(this, wxEmptyString, wxString::FromUTF8(u8"°"), "", wxDefaultPosition, wxSize(FromDIP(240), -1));
+    // Skirt start point, "Custom" turns the box into a number input like the layer range inputs
+    m_skirt_start_angle = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240), -1), 0, NULL);
+    m_skirt_start_angle->Append(_L("Same as Global"));
+    m_skirt_start_angle->Append(_L("Custom"));
+    m_skirt_start_angle->SetTextLabel(wxString::FromUTF8(u8"°"));
     m_skirt_start_angle->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    lock_entry(m_skirt_start_angle, 0);
+    m_skirt_start_angle->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+        if (e.GetSelection() == 1)
+            m_skirt_start_angle->GetTextCtrl()->SetValue(wxString::Format("%g", m_global_skirt_start_angle));
+    });
     {
         // same condition as the sidebar
         auto* belt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("belt_printer");
@@ -485,14 +509,9 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     wxStaticText* skirt_start_angle_txt = new wxStaticText(this, wxID_ANY, _L("Skirt start point"));
     skirt_start_angle_txt->SetFont(Label::Body_14);
     top_sizer->Add(skirt_start_angle_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
-    // disabled box may not draw the hint, so show it as text
-    auto clear_skirt_start_angle = [this] {
-        wxTextCtrl* ctrl = m_skirt_start_angle->GetTextCtrl();
-        ctrl->SetValue(m_skirt_start_angle->IsEnabled() ? wxString() : ctrl->GetHint());
-    };
     top_sizer->Add(with_revert_icon(skirt_start_angle_txt, m_skirt_start_angle,
                                     [this] { double angle; return get_skirt_start_angle(angle); },
-                                    clear_skirt_start_angle), 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
+                                    [this] { m_skirt_start_angle->SetSelection(0); }), 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
 
     // Print Sequence
     m_print_seq_choice = new ComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240),-1), 0, NULL, wxCB_READONLY );
@@ -596,13 +615,13 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
                  m_spiral_mode_choice->GetSelection() > 0 || m_first_layer_print_seq_choice->GetSelection() > 0 ||
                  get_other_layers_print_seq_choice() > 0 || get_skirt_start_angle(angle));
     });
-    reset_btn->Bind(wxEVT_BUTTON, [this, clear_skirt_start_angle](auto& e) {
+    reset_btn->Bind(wxEVT_BUTTON, [this](auto& e) {
         sync_bed_type(btDefault);
         sync_print_seq(0);
         sync_spiral_mode(false, true);
         sync_first_layer_print_seq(0);
         sync_other_layers_print_seq(0, {});
-        clear_skirt_start_angle();
+        m_skirt_start_angle->SetSelection(0);
     });
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, [this](auto& e) {
@@ -774,12 +793,10 @@ std::vector<int> PlateSettingsDialog::get_first_layer_print_seq()
 
 void PlateSettingsDialog::sync_skirt_start_angle(const ConfigOptionFloat* plate_angle, double global_angle)
 {
-    wxTextCtrl* ctrl = m_skirt_start_angle->GetTextCtrl();
-    ctrl->SetHint(wxString::Format(_L("Same as Global (%s)"), wxString::Format("%g", global_angle)));
+    m_global_skirt_start_angle = global_angle;
+    m_skirt_start_angle->SetSelection(plate_angle ? 1 : 0);
     if (plate_angle)
-        ctrl->SetValue(wxString::Format("%g", plate_angle->value));
-    else
-        ctrl->SetValue(m_skirt_start_angle->IsEnabled() ? wxString() : ctrl->GetHint());
+        m_skirt_start_angle->GetTextCtrl()->ChangeValue(wxString::Format("%g", plate_angle->value));
 }
 
 bool PlateSettingsDialog::get_skirt_start_angle(double& angle)
