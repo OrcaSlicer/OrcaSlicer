@@ -2706,7 +2706,10 @@ int MachineObject::connect()
     std::string host = Http::get_host_from_url(input, &port);
     // A Bambu printer's CA is chosen per device in the connect dialog. Never take it from the
     // selected preset: it may belong to another printer, or come from an imported profile.
-    const bool  is_bbl  = printer_agent_id == BBL_PRINTER_AGENT_ID || printer_agent_id.empty();
+    // A local machine saved before agent ids existed belongs to the agent that connects it now.
+    const std::string agent_id = !printer_agent_id.empty() ? printer_agent_id :
+                                 m_manager                 ? m_manager->get_current_printer_agent_id() : std::string();
+    const bool  is_bbl  = agent_id == BBL_PRINTER_AGENT_ID;
     std::string ca_file = is_bbl ? get_ca_file() : std::string();
 
     if (wxTheApp && GUI::wxGetApp().preset_bundle) {

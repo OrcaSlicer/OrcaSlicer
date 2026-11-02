@@ -18,6 +18,7 @@
 #include <boost/nowide/fstream.hpp>
 #include <exception>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <openssl/bio.h>
@@ -186,13 +187,14 @@ void replace_file(const boost::filesystem::path& path, const std::string& conten
 } // namespace
 
 // The plug-in has one cert folder for all printers, and multi-printer sending talks to several at
-// once, so the folder trusts every CA file used this session. It is rebuilt and re-pointed on every
-// connect: restarting networking points the plug-in back at the bundled folder (GUI_App), and a
-// renewed CA file is picked up. Re-pointing after start() takes effect on the next connection.
-void BBLPrinterAgent::trust_ca_file(const std::string& ca_file)
+// once, so the folder trusts the CA file of every printer connected this session. It is rebuilt and
+// re-pointed on every connect: restarting networking points the plug-in back at the bundled folder
+// (GUI_App), and a renewed, changed or cleared CA file is picked up. Re-pointing after start()
+// takes effect on the next connection.
+void BBLPrinterAgent::trust_ca_file(const std::string& dev_id, const std::string& ca_file)
 {
-    static std::mutex            mutex;
-    static std::set<std::string> ca_files;
+    static std::mutex                         mutex;
+    static std::map<std::string, std::string> ca_file_by_dev;
 
     auto& plugin        = BBLNetworkPlugin::instance();
     auto  agent         = plugin.get_agent();
@@ -201,8 +203,17 @@ void BBLPrinterAgent::trust_ca_file(const std::string& ca_file)
         return;
 
     std::lock_guard<std::mutex> lock(mutex);
-    ca_files.insert(ca_file);
-    set_cert_file(agent, cert_dir_with_cas(resources_dir() + "/cert", data_dir() + "/cert", ca_files), "slicer_base64.cer");
+    if (ca_file.empty() && ca_file_by_dev.erase(dev_id) == 0)
+        return; // a printer without a CA leaves the folder as it is
+    if (!ca_file.empty())
+        ca_file_by_dev[dev_id] = ca_file;
+
+    std::set<std::string> ca_files;
+    for (const auto& [id, file] : ca_file_by_dev)
+        ca_files.insert(file);
+    const std::string cert_dir = cert_dir_with_cas(resources_dir() + "/cert", data_dir() + "/cert", ca_files);
+    if (const int ret = set_cert_file(agent, cert_dir, "slicer_base64.cer"); ret != 0)
+        BOOST_LOG_TRIVIAL(warning) << "BBLPrinterAgent: set_cert_file(" << cert_dir << ") failed, ret = " << ret;
 }
 
 std::string BBLPrinterAgent::to_orca_filament_id(const std::string& printer_filament_id) const
@@ -376,8 +387,7 @@ int BBLPrinterAgent::connect_printer(const PrinterConnectionParams& params)
     }
 #endif
     if (func && agent) {
-        if (!params.ca_file.empty())
-            trust_ca_file(params.ca_file);
+        trust_ca_file(params.dev_id, params.ca_file);
         return func(agent, params.dev_id, params.host, params.username, params.password, use_ssl_for_mqtt);
     }
     return -1;

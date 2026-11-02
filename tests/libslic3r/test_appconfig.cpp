@@ -78,6 +78,7 @@ TEST_CASE("Local machine agent replacements survive save and reload", "[AppConfi
     saved.printer_type     = "test-model";
     saved.printer_agent_id = "orca";
     saved.access_code      = "old-key";
+    saved.ca_file          = "old-ca.crt";
     config.update_local_machine(saved);
     config.save();
     REQUIRE_FALSE(config.dirty());
@@ -85,6 +86,7 @@ TEST_CASE("Local machine agent replacements survive save and reload", "[AppConfi
     BBLocalMachine replacement = saved;
     replacement.printer_agent_id = "moonraker";
     replacement.access_code = GENERATE("", "new-key", "88888888");
+    replacement.ca_file     = GENERATE("", "new-ca.crt");
     config.update_local_machine(replacement);
     REQUIRE(config.dirty());
     REQUIRE(config.get_local_machines().at(saved.dev_id) == replacement);

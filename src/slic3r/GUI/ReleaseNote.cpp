@@ -1954,11 +1954,11 @@ void InputIpAddressDialog::init_cafile_input()
 
 bool InputIpAddressDialog::is_bbl_agent() const
 {
-    std::string agent_id;
-    if (m_obj)
-        agent_id = m_obj->printer_agent_id;
-    else if (DeviceManager* dev = wxGetApp().getDeviceManager())
-        agent_id = dev->get_current_printer_agent_id();
+    // Like MachineObject::connect: a printer without an agent id belongs to the current agent.
+    std::string agent_id = m_obj ? m_obj->printer_agent_id : std::string();
+    if (agent_id.empty())
+        if (DeviceManager* dev = wxGetApp().getDeviceManager())
+            agent_id = dev->get_current_printer_agent_id();
     return agent_id.empty() || agent_id == BBL_PRINTER_AGENT_ID;
 }
 
@@ -2025,24 +2025,33 @@ void InputIpAddressDialog::on_send_retry()
     m_send_job->set_check_mode();
     m_send_job->set_project_name("verify_job");
     // The check connects before the CA is saved.
-    if (bbl_agent && !ca_file.empty())
-        BBLPrinterAgent::trust_ca_file(ca_file);
+    if (bbl_agent)
+        BBLPrinterAgent::trust_ca_file(m_obj->get_dev_id(), ca_file);
 
     m_send_job->on_check_ip_address_fail([this](int result) {
         this->check_ip_address_failed(result);
     });
 
-    m_send_job->on_check_ip_address_success([this, ip, str_access_code, bbl_agent, ca_file]() {
-        if (bbl_agent)
-            m_obj->set_ca_file(ca_file);
+    // Runs on the job's worker thread.
+    m_send_job->on_check_ip_address_success([this, ip, str_access_code, bbl_agent, ca_file, dev_id = m_obj->get_dev_id()]() {
+        if (bbl_agent) {
+            wxGetApp().CallAfter([dev_id, ca_file]() {
+                if (DeviceManager* dev = wxGetApp().getDeviceManager())
+                    if (MachineObject* obj = dev->get_my_machine(dev_id))
+                        obj->set_ca_file(ca_file);
+                wxGetApp().app_config->save();
+            });
+        }
         wxString input_str = wxString::Format("%s|%s", ip, str_access_code);
         auto     event     = wxCommandEvent(EVT_ENTER_IP_ADDRESS);
         event.SetString(input_str);
         event.SetEventObject(this);
         wxPostEvent(this, event);
-        m_result = 0;
 
-        update_test_msg(_L("IP and Access Code Verified! You may close the window"), true);
+        CallAfter([this]() {
+            m_result = 0;
+            update_test_msg(_L("IP and Access Code Verified! You may close the window"), true);
+        });
     });
 
      replace_job(*m_worker, std::move(m_send_job));
