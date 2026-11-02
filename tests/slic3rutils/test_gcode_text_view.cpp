@@ -9,6 +9,10 @@
     #include <Windows.h>
 #endif
 
+// Keep navigation helpers internal while testing their production definitions in this TU.
+// This supplies GCodeViewer to the test executable instead of its object in libslic3r_gui.
+#include "slic3r/GUI/GCodeViewer.cpp"
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
@@ -19,6 +23,7 @@
 #include <vector>
 #include <string>
 #include <ios>
+#include <utility>
 
 #include <boost/nowide/fstream.hpp>
 #include <imgui/imgui.h>
@@ -33,7 +38,25 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/IMSlider.hpp"
 
-using Slic3r::GUI::GCodeTextView;
+namespace Slic3r::GUI {
+
+// Test-only access to the private viewport and selection, without public state getters.
+struct GCodeTextViewTestAccess
+{
+    using Window = GCodeViewer::SequentialView::GCodeWindow;
+    using Viewport = Window::GCodeTextView;
+
+    static std::pair<uint64_t, uint64_t> visible_lines(const Window& window)
+    {
+        return {window.m_viewport.first_line(), window.m_viewport.last_line()};
+    }
+    static uint64_t selected_line_id(const Window& window) { return window.m_selected_line_id; }
+};
+
+} // namespace Slic3r::GUI
+
+using Slic3r::GUI::GCodeTextViewTestAccess;
+using GCodeTextView = GCodeTextViewTestAccess::Viewport;
 
 TEST_CASE("G-code text bounds include the first and last source lines", "[GCodeTextView]")
 {
@@ -254,7 +277,7 @@ struct TextFrames
     ImVec2 row_point(size_t row) const
     {
         const ImGuiWindow* w = ImGui::FindWindowByName("G-code");
-        const auto [first, last] = window.visible_lines();
+        const auto [first, last] = GCodeTextViewTestAccess::visible_lines(window);
         const float count = float(last - first + 1);
         const float text_height = ImGui::CalcTextSize("0").y;
         const ImGuiStyle& style = ImGui::GetStyle();
@@ -269,7 +292,7 @@ struct TextFrames
 TEST_CASE("G-code row clicks emit one source request without moving the viewport", "[GCodeTextView][GCodeTextWidget]")
 {
     TextFrames f;
-    const auto before = f.window.visible_lines();
+    const auto before = GCodeTextViewTestAccess::visible_lines(f.window);
     ImGui::GetIO().MousePos = f.row_point(2);
     ImGui::GetIO().MouseDown[0] = true;
     f.frame();
@@ -279,31 +302,31 @@ TEST_CASE("G-code row clicks emit one source request without moving the viewport
     const auto request = f.window.take_requested_line();
     REQUIRE(request.has_value());
     CHECK(*request == before.first + 2);
-    CHECK(f.window.selected_line_id() == *request);
+    CHECK(GCodeTextViewTestAccess::selected_line_id(f.window) == *request);
     CHECK_FALSE(f.window.take_requested_line());
     f.frame(80);
-    CHECK(f.window.visible_lines() == before);
+    CHECK(GCodeTextViewTestAccess::visible_lines(f.window) == before);
     f.window.resume_following();
     f.frame(80);
-    CHECK(f.window.visible_lines().first > before.first);
+    CHECK(GCodeTextViewTestAccess::visible_lines(f.window).first > before.first);
 }
 
 TEST_CASE("G-code wheel browsing captures only input over the text window", "[GCodeTextView][GCodeTextWidget]")
 {
     TextFrames f;
-    const auto before = f.window.visible_lines();
+    const auto before = GCodeTextViewTestAccess::visible_lines(f.window);
     ImGui::GetIO().MousePos = f.row_point(2);
     ImGui::GetIO().MouseWheel = -1.f;
     f.frame();
     CHECK(ImGui::GetIO().WantCaptureMouse);
     f.frame(80);
-    CHECK(f.window.visible_lines().first == before.first + 3);
-    const auto scrolled = f.window.visible_lines();
+    CHECK(GCodeTextViewTestAccess::visible_lines(f.window).first == before.first + 3);
+    const auto scrolled = GCodeTextViewTestAccess::visible_lines(f.window);
     ImGui::GetIO().MousePos = ImVec2(0, 0);
     ImGui::GetIO().MouseWheel = -1.f;
     f.frame();
     CHECK_FALSE(ImGui::GetIO().WantCaptureMouse);
-    CHECK(f.window.visible_lines() == scrolled);
+    CHECK(GCodeTextViewTestAccess::visible_lines(f.window) == scrolled);
     CHECK_FALSE(f.window.take_requested_line());
 }
 
@@ -318,7 +341,7 @@ TEST_CASE("The G-code scrollbar reaches the last mapped source row", "[GCodeText
     f.frame();
     ImGui::GetIO().MouseDown[0] = false;
     f.frame();
-    CHECK(f.window.visible_lines().second == 100);
+    CHECK(GCodeTextViewTestAccess::visible_lines(f.window).second == 100);
     CHECK_FALSE(f.window.take_requested_line());
 }
 
@@ -333,29 +356,29 @@ TEST_CASE("Loading another G-code result cancels a row click that began on the o
     ImGui::GetIO().MouseDown[0] = false;
     f.frame();
     CHECK_FALSE(f.window.take_requested_line());
-    CHECK(f.window.selected_line_id() == 0);
+    CHECK(GCodeTextViewTestAccess::selected_line_id(f.window) == 0);
 }
 
 TEST_CASE("Short mapped G-code files render their first and last rows safely", "[GCodeTextView][GCodeTextWidget]")
 {
     TextFrames f(3);
-    CHECK(f.window.visible_lines().first == 1);
-    CHECK(f.window.visible_lines().second == 3);
+    CHECK(GCodeTextViewTestAccess::visible_lines(f.window).first == 1);
+    CHECK(GCodeTextViewTestAccess::visible_lines(f.window).second == 3);
 }
 
 TEST_CASE("Changing plates resets G-code browsing even when the file mapping is reused", "[GCodeTextView][GCodeTextWidget]")
 {
     TextFrames f;
-    const auto before = f.window.visible_lines();
+    const auto before = GCodeTextViewTestAccess::visible_lines(f.window);
     ImGui::GetIO().MousePos = f.row_point(2);
     ImGui::GetIO().MouseDown[0] = true;
     f.frame();
     ImGui::GetIO().MouseDown[0] = false;
     f.frame();
-    REQUIRE(f.window.selected_line_id() != 0);
+    REQUIRE(GCodeTextViewTestAccess::selected_line_id(f.window) != 0);
     f.window.reset_view();
-    CHECK(f.window.selected_line_id() == 0);
+    CHECK(GCodeTextViewTestAccess::selected_line_id(f.window) == 0);
     CHECK_FALSE(f.window.take_requested_line());
     f.frame(80);
-    CHECK(f.window.visible_lines().first > before.first);
+    CHECK(GCodeTextViewTestAccess::visible_lines(f.window).first > before.first);
 }
