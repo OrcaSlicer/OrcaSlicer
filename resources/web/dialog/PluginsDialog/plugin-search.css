@@ -35,6 +35,10 @@
   font: inherit;
 }
 
+.plugin-search:focus-within {
+  background: var(--focus-bg);
+}
+
 .plugin-search:focus-within > .plugin-search-input {
   outline: 0;
 }
@@ -87,7 +91,7 @@
   color: var(--dimmed-color);
   cursor: pointer;
   visibility: hidden;
-  background: rgba(127, 127, 127, 0.20);
+  background: var(--button-bg-normal);
 }
 
 .plugin-search-clear svg {
