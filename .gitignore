@@ -27,6 +27,7 @@ deps/build*/*
 **/.DS_Store
 install_*
 build_*/
+!scripts/build_win_steps/
 SVG
 src/OrcaSlicer-doc/
 .idea/

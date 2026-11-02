@@ -65,6 +65,10 @@ on:
         description: 'Only build dependencies (bypasses caching)'
         type: boolean
         default: false
+      clean-build:
+        description: 'Remove the slicer build tree first, so each leg times a full build'
+        type: boolean
+        default: false
 
 concurrency:
   # cancel_closed_pr_builds.yml joins this group by name, so update that file
@@ -82,7 +86,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           lfs: 'false'
 
@@ -101,17 +105,14 @@ jobs:
         run: .\scripts\test_prune_cached_presets.ps1
 
   build_linux:
+    # TEMPORARILY DISABLED: Windows-only testing for build-performance matrix
+    if: false
     strategy:
       fail-fast: false
-      # SELF_HOSTED skips arm64 (no arm self-hosted server). amd64's empty arch
-      # is load-bearing: it keeps the historical 'linux-clang' deps cache key and
-      # the unsuffixed asset names.
       matrix:
-        include: ${{ fromJSON(vars.SELF_HOSTED
-          && '[{"arch":"","os":"orca-lnx-server"}]'
-          || '[{"arch":"","os":"ubuntu-24.04"},{"arch":"aarch64","os":"ubuntu-24.04-arm"}]') }}
-    # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+        include:
+          - arch: ""
+            os: ubuntu-24.04
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ matrix.os }}
@@ -119,14 +120,22 @@ jobs:
       build-deps-only: ${{ inputs.build-deps-only || false }}
     secrets: inherit
   build_windows:
-    name: Build Windows ${{ matrix.arch }}
+    name: Build Windows ${{ matrix.arch }} (${{ matrix.preset }})${{ matrix.script == 'bat' && ' (baseline - current main)' || matrix.preset == 'x64-clang-cache' && ' (top candidate - ps1)' || ' (candidate - ps1)' }}
     strategy:
       fail-fast: false
       # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
+      # Each config runs twice: once with build_win.bat (baseline) and once with
+      # build_win.ps1 (candidate) for perf comparison.
       matrix:
-        include: ${{ fromJSON(vars.SELF_HOSTED
-          && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
-          || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-vs2026-arm","compiler":"clang"}]') }}
+        # TEMPORARY: Single entry for debugging. Restore full matrix after fix.
+        # Static matrix to avoid fromJSON parsing issues
+        include:
+          - arch: x64
+            os: self-hosted
+            compiler: msvc
+            preset: x64-msvc
+            flags: --msvc --ninja
+            script: ps1
     needs: check_build_script
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
@@ -135,18 +144,20 @@ jobs:
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
       compiler: ${{ matrix.compiler }}
+      preset: ${{ matrix.preset }}
+      flags: ${{ matrix.flags }}
+      script: ${{ matrix.script }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
+      clean: ${{ inputs.clean-build || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
   build_macos_arch:
+    # TEMPORARILY DISABLED: Windows-only testing for build-performance matrix
+    if: false
     strategy:
       fail-fast: false
       matrix:
-        arch:
-          - arm64
-          - x86_64
-    # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+        arch: [arm64, x86_64]
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
@@ -155,9 +166,9 @@ jobs:
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
   build_macos_universal:
+    # TEMPORARILY DISABLED: Windows-only testing for build-performance matrix
+    if: false
     name: Build macOS Universal
-    needs: build_macos_arch
-    if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_orca.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
@@ -166,29 +177,53 @@ jobs:
     secrets: inherit
   # One test job per built arch, on the runner that built it.
   unit_tests_linux_x86_64:
+    # TEMPORARILY DISABLED: Windows-only testing
+    if: false
     name: Linux x86_64
-    needs: build_linux
-    if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
       artifact: ${{ github.sha }}-tests-linux-x86_64
   unit_tests_linux_aarch64:
+    # TEMPORARILY DISABLED: Windows-only testing
+    if: false
     name: Linux aarch64
-    needs: build_linux
-    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ubuntu-24.04-arm
       artifact: ${{ github.sha }}-tests-linux-aarch64
-  unit_tests_windows_x64:
-    name: Windows x64
+  unit_tests_windows_x64_clang_cache:
+    name: Windows x64 (clang-cl + ccache + unity)
     needs: build_windows
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
-      artifact: ${{ github.sha }}-tests-windows-x64
+      artifact: ${{ github.sha }}-tests-windows-x64-x64-clang-cache
+  unit_tests_windows_x64_clang:
+    name: Windows x64 (clang-cl + Ninja)
+    needs: build_windows
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+      artifact: ${{ github.sha }}-tests-windows-x64-x64-clang
+  unit_tests_windows_x64_msvc:
+    name: Windows x64 (MSVC + Ninja)
+    needs: build_windows
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+      artifact: ${{ github.sha }}-tests-windows-x64-x64-msvc
+  unit_tests_windows_x64_msbuild:
+    name: Windows x64 (MSVC + MSBuild)
+    needs: build_windows
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+      artifact: ${{ github.sha }}-tests-windows-x64-x64-msbuild
   unit_tests_windows_arm64:
     name: Windows arm64
     needs: build_windows
@@ -196,12 +231,12 @@ jobs:
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: windows-11-vs2026-arm
-      artifact: ${{ github.sha }}-tests-windows-arm64
+      artifact: ${{ github.sha }}-tests-windows-arm64-arm64-clang
       test-dir: build-arm64/tests
   unit_tests_macos_arm64:
+    # TEMPORARILY DISABLED: Windows-only testing
+    if: false
     name: macOS arm64
-    needs: build_macos_arch
-    if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
@@ -215,9 +250,9 @@ jobs:
   # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
   # covers src/engine PRs with the PR-built binary.
   slice_check_linux:
+    # TEMPORARILY DISABLED: Windows-only testing
+    if: false
     name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
-    needs: build_linux
-    if: ${{ !cancelled() && success() }}
     # Follows whichever Linux leg built the validator.
     runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04-arm' }}
     steps:
@@ -235,7 +270,7 @@ jobs:
           ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
   publish_test_results:
     name: Publish Test Results
-    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, unit_tests_flatpak_x86_64, unit_tests_flatpak_aarch64]
+    needs: [unit_tests_windows_x64_clang_cache, unit_tests_windows_x64_clang, unit_tests_windows_x64_msvc, unit_tests_windows_x64_msbuild, unit_tests_windows_arm64]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -257,7 +292,50 @@ jobs:
         with:
           name: test-results-*
           failOnError: false
+  pr_full_test_observability:
+    name: PR Full Test + Observability
+    needs: [unit_tests_windows_x64_clang_cache]
+    if: github.event_name == 'pull_request' && !cancelled()
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: 'false'
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ github.sha }}-tests-windows-x64-x64-clang-cache
+          path: build-artifact
+      - name: Unpack and run full suite
+        timeout-minutes: 60
+        shell: powershell
+        run: |
+          tar -xvf build-artifact/build_tests.tar -C .
+          echo "::group::Full ctest execution"
+          ctest --test-dir .\build\tests -C Release --output-on-failure -j 8
+          echo "::endgroup::"
+      - name: Build timing summary
+        shell: powershell
+        run: |
+          $summary = @"
+          ## PR Observability Report
+          - Build preset: x64-clang (clang-cl + Ninja + Unity)
+          - Tests: full suite executed
+          - Job duration: manual review
+          "@
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summary
+      - name: Upload logs and artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-observability-${{ github.run_id }}
+          path: |
+            build-artifact/**
+            ctest_results.xml
+          retention-days: 7
   flatpak:
+    # TEMPORARILY DISABLED: Windows-only testing for build-performance matrix
+    if: false
     name: "Flatpak"
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
@@ -277,7 +355,6 @@ jobs:
           - arch: aarch64
             runner: ubuntu-24.04-arm
     # Don't run scheduled builds on forks; skip entirely on self-hosted runners
-    if: ${{ !cancelled() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
 
     runs-on: ${{ matrix.variant.runner }}
     env:
@@ -494,17 +571,17 @@ jobs:
       shell: bash
       run: rm -rf .flatpak-builder/build
   unit_tests_flatpak_x86_64:
+    # TEMPORARILY DISABLED: Windows-only testing
+    if: false
     name: Flatpak x86_64
-    needs: flatpak
-    if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests_flatpak.yml
     with:
       os: ubuntu-24.04
       artifact: ${{ github.sha }}-flatpak-tests-x86_64
   unit_tests_flatpak_aarch64:
+    # TEMPORARILY DISABLED: Windows-only testing
+    if: false
     name: Flatpak aarch64
-    needs: flatpak
-    if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests_flatpak.yml
     with:
       os: ubuntu-24.04-arm

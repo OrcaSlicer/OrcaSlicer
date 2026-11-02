@@ -4,6 +4,9 @@ on:
         cache-key:
           required: false
           type: string
+        cache-prefix:
+          required: false
+          type: string
         cache-path:
           required: false
           type: string
@@ -17,6 +20,20 @@ on:
           required: false
           type: string
           default: msvc
+        preset:
+          required: false
+          type: string
+        flags:
+          required: false
+          type: string
+        script:
+          required: false
+          type: string
+          default: ps1
+        clean:
+          required: false
+          type: boolean
+          default: false
         macos-combine-only:
           required: false
           type: boolean
@@ -42,12 +59,35 @@ jobs:
         with:
           lfs: 'false'
 
+      # A reused self-hosted workspace keeps .git/info/sparse-checkout from an earlier
+      # job, so the checkout above only materialises those paths. Clear it and expand
+      # the working tree, or build_win.ps1's dot-sourced steps are missing.
+      - name: Disable stale sparse-checkout
+        continue-on-error: true
+        run: git sparse-checkout disable
+
+      # Same as build_deps: actions/cache needs gzip, copied alone so Git's cygwin
+      # perl never lands on PATH ahead of Strawberry Perl.
+      - name: Put gzip on PATH for the cache archive
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $src = Join-Path $env:ProgramFiles 'Git\usr\bin'
+          $dst = Join-Path $env:RUNNER_TEMP 'cache-gzip'
+          New-Item -ItemType Directory -Path $dst -Force | Out-Null
+          foreach ($f in 'gzip.exe', 'msys-2.0.dll') {
+            $p = Join-Path $src $f
+            if (Test-Path $p) { Copy-Item $p $dst -Force }
+          }
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $dst
+
       - name: load cached deps
         if: ${{ !(runner.os == 'macOS' && inputs.macos-combine-only) }}
         uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
+          restore-keys: ${{ inputs.cache-prefix }}
           fail-on-cache-miss: true
 
       - uses: lukka/get-cmake@latest
@@ -62,11 +102,11 @@ jobs:
       # hits its own entries. A failed install costs the caching, not the build.
       - name: Name the compiler cache leg
         if: ${{ !inputs.macos-combine-only }}
-        shell: bash
+        shell: powershell
         run: |
-          leg="${{ runner.os }}-${{ inputs.arch || 'amd64' }}${{ runner.os == 'Windows' && format('-{0}', inputs.compiler) || '' }}"
-          echo "CCACHE_LEG=$leg" >> "$GITHUB_ENV"
-          echo "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
+          $leg = "${{ runner.os }}-${{ inputs.arch || 'amd64' }}${{ runner.os == 'Windows' && format('-{0}', inputs.compiler) || '' }}"
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "CCACHE_LEG=$leg"
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}"
 
       # The action only installs and configures ccache. Restore and save go
       # through actions/cache with one path string, since the cache service
@@ -95,7 +135,7 @@ jobs:
           restore-keys: ccache-${{ env.CCACHE_LEG }}-
 
       - name: Enable compiler cache
-        if: ${{ steps.ccache.outcome == 'success' }}
+        if: ${{ steps.ccache.outcome == 'success' && runner.os != 'Windows' }}
         shell: bash
         run: |
           echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
@@ -156,7 +196,7 @@ jobs:
           echo "date=$date" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           echo "git_commit_hash=$git_commit_hash" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           echo "date: ${{ env.date }} version: ${{ env.ver }}"
-        shell: pwsh
+        shell: powershell
 
 #   Mac
       - name: Install tools mac
@@ -419,7 +459,7 @@ jobs:
 # Windows
       - name: Set Windows build variables
         if: runner.os == 'Windows'
-        shell: pwsh
+        shell: powershell
         run: |
           if ("${{ inputs.arch }}" -eq "arm64") {
             "BUILD_DIR=build-arm64"  | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
@@ -448,7 +488,7 @@ jobs:
 
       - name: Install NSIS
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
-        shell: pwsh
+        shell: powershell
         run: |
           dir "C:/Program Files (x86)/Windows Kits/10/Include"
           $nsisDir = Join-Path $env:RUNNER_TEMP 'nsis'
@@ -473,36 +513,100 @@ jobs:
           path: ${{ runner.temp }}/nsis
           key: nsis-${{ env.NSIS_VERSION }}
 
+      - name: Download dep artifact (cold CI)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: OrcaSlicer_dep_win_${{ inputs.arch || 'x64' }}_${{ env.date }}
+          path: ${{ github.workspace }}/${{ inputs.cache-path }}
+          if-no-files-found: ignore
+
+      # A self-hosted laptop that suspends mid-build freezes the step: the job
+      # sat in "Build slicer Win" for 57h and the logs were never assembled.
+      # Keep the machine awake on AC and record headroom so an OOM/disk-full
+      # kill is distinguishable from a sleep.
+      - name: Keep runner awake and record headroom (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        continue-on-error: true
+        run: |
+          powercfg /change standby-timeout-ac 0
+          powercfg /change hibernate-timeout-ac 0
+          powercfg /change monitor-timeout-ac 30
+          Write-Host "standby/hibernate timeouts on AC disabled"
+          $os = Get-CimInstance Win32_OperatingSystem
+          Write-Host ("RAM total {0:N1} GB, free {1:N1} GB" -f ($os.TotalVisibleMemorySize/1MB), ($os.FreePhysicalMemory/1MB))
+          $c = Get-PSDrive C
+          Write-Host ("C: free {0:N1} GB of {1:N1} GB" -f ($c.Free/1GB), (($c.Used+$c.Free)/1GB))
+          Write-Host ("PROCESSOR_COUNT={0}" -f $env:NUMBER_OF_PROCESSORS)
+
       - name: Build slicer Win
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}
-        # --tests builds the unit tests too; the unit_tests_windows_* jobs run them.
+        timeout-minutes: 120
+        # Strawberry Perl is required by OpenSSL's Configure. Git for Windows
+        # ships a cygwin perl that shadows Strawberry Perl on PATH. Chocolatey
+        # has permission issues on this self-hosted runner, so download the
+        # portable zip directly and extract to the runner temp dir.
         run: |
+          $spUrl = "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54221_64bit/strawberry-perl-5.42.2.1-64bit-portable.zip"
+          $spZip = "$env:TEMP\strawberry-perl.zip"
+          $spDest = Join-Path $env:RUNNER_TEMP 'Strawberry'
+          if (-not (Test-Path (Join-Path $spDest 'perl\bin\perl.exe'))) {
+            Invoke-WebRequest -Uri $spUrl -OutFile $spZip -TimeoutSec 300
+            Expand-Archive -Path $spZip -DestinationPath $spDest -Force
+            Remove-Item $spZip -Force
+          }
+          # Prepend Strawberry Perl to PATH for THIS step so build_win.ps1 finds
+          # it before Git for Windows' cygwin perl.
+          $env:PATH = (Join-Path $spDest 'perl\bin') + ';' + (Join-Path $spDest 'c\bin') + ';' + $env:PATH
           # cache-path is the install directory inside the deps build directory.
           $deps = (Split-Path "${{ github.workspace }}/${{ inputs.cache-path }}").Replace('\', '/')
-          # -l compiles with Visual Studio's clang-cl and -x builds with Ninja; --msvc --msbuild is cl under the Visual Studio generator.
-          $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
-          .\build_win.bat -s --tests -i --arch ${{ inputs.arch }} --build-dir $env:BUILD_DIR --deps-dir $deps @flags
-        shell: pwsh
+          # Use flags from matrix if provided, otherwise fall back to compiler-based logic
+          $flags = @("${{ inputs.flags }}" -split '\s+' | Where-Object { $_ })
+          if (-not $flags) {
+            $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
+          }
+          # Use build_win.ps1 by default; build_win.bat for baseline comparison
+          # The self-hosted workspace keeps the previous run's build tree, so a
+          # leg that does not clean is incremental and reports a fraction of its
+          # real cost. -Clean removes the slicer tree only; cached deps stay.
+          $cleanBuild = "${{ inputs.clean }}" -eq "true"
+          if ("${{ inputs.script }}" -eq "bat") {
+            $batArgs = @("-s", "--tests", "-i", "--arch", "${{ inputs.arch }}", "--build-dir", $env:BUILD_DIR, "--deps-dir", $deps) + $flags
+            if ($cleanBuild) { $batArgs += "--clean" }
+            & "${{ github.workspace }}\build_win.bat" @batArgs
+          } else {
+            $useClangCl = $flags -contains "-l"
+            $useNinja   = $flags -contains "-x"
+            $useMsvc    = $flags -contains "--msvc"
+            $useMsbuild = $flags -contains "--msbuild"
+            $useCache   = if ($flags -contains "--ccache") { "ccache" } else { $null }
+            # Bind the switch directly: splatting a string binds it positionally and breaks
+            # parameter binding on build_win.ps1.
+            & "${{ github.workspace }}\build_win.ps1" -Slicer -Tests -InstallSlicer -Arch ${{ inputs.arch }} -SlicerDir $env:BUILD_DIR -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild -Cache:$useCache -Clean:$cleanBuild
+          }
+        shell: powershell
 
       - name: Build system preset cache (Windows)
         if: runner.os == 'Windows'
-        shell: cmd
+        shell: powershell
         # Shipped into both the already-installed tree (portable zip, MSIX) and
         # the checkout cpack re-installs from when it builds the NSIS installer.
-        run: scripts\build_preset_cache.bat --prune-source "%BUILD_DIR%" "resources\profiles" "%BUILD_DIR%\OrcaSlicer\resources\profiles"
+        run: .\scripts\build_preset_cache.ps1 -PruneSource -BuildDir $env:BUILD_DIR -TargetDir "resources\profiles", "$env:BUILD_DIR\OrcaSlicer\resources\profiles"
 
       - name: Pack unit tests Win
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}
-        shell: pwsh
+        shell: powershell
         run: tar -cvf build_tests.tar ${{ env.BUILD_DIR }}/tests
 
       - name: Upload Test Artifact Win
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ github.sha }}-tests-windows-${{ inputs.arch }}
+          name: ${{ github.sha }}-tests-windows-${{ inputs.arch }}-${{ inputs.preset || (inputs.compiler == 'clang' && 'x64-clang' || 'x64-msvc') }}
           overwrite: true
           path: build_tests.tar
           retention-days: 5
@@ -560,7 +664,7 @@ jobs:
         if: runner.os == 'Windows' && inputs.compiler == 'clang'
         working-directory: ${{ github.workspace }}
         # After the uploads, so a failure still leaves the build and its PDB to inspect, and before any deploy.
-        shell: pwsh
+        shell: powershell
         run: scripts\check_exception_throw_info.ps1 -BuildDir $env:BUILD_DIR
 
       - name: Deploy Windows release portable
@@ -590,7 +694,7 @@ jobs:
       - name: Build MSIX Store package Win
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         working-directory: ${{ github.workspace }}
-        shell: pwsh
+        shell: powershell
         run: |
           ./scripts/msix/build_msix.ps1 `
             -InstallDir "${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer" `
@@ -751,7 +855,7 @@ jobs:
       # The build has just touched everything it can use, so an object
       # untouched for a week is dead, usually orphaned by a flag change.
       - name: Compiler cache statistics
-        if: ${{ always() && steps.ccache.outcome == 'success' }}
+        if: ${{ always() && steps.ccache.outcome == 'success' && runner.os != 'Windows' }}
         shell: bash
         run: |
           ccache --evict-older-than 7d
@@ -771,7 +875,7 @@ jobs:
           key: ${{ env.CCACHE_ENTRY }}
 
       - name: Drop older compiler cache entries
-        if: ${{ always() && steps.ccache_save.outcome == 'success' }}
+        if: ${{ always() && steps.ccache_save.outcome == 'success' && runner.os != 'Windows' }}
         # A read-only token (fork PRs) cannot delete; that only costs storage.
         # Older means a lower run id, so two runs finishing close together keep
         # the newer entry whichever of them cleans up last.
