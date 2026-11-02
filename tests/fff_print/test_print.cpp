@@ -251,7 +251,7 @@ TEST_CASE("Objects whose center offsets differ do not share slices", "[Print][Re
     // A triangular prism: the center of its bounding box does not turn with the prism unless it is turned by
     // a multiple of 90 degrees.
     const std::vector<Vec3f> vertices{{0, 0, 0}, {30, 0, 0}, {0, 10, 0}, {0, 0, 10}, {30, 0, 10}, {0, 10, 10}};
-    const std::vector<Vec3i> faces{{0, 2, 1}, {3, 4, 5}, {0, 1, 4}, {0, 4, 3}, {1, 2, 5}, {1, 5, 4}, {2, 0, 3}, {2, 3, 5}};
+    const std::vector<Vec3i32> faces{{0, 2, 1}, {3, 4, 5}, {0, 1, 4}, {0, 4, 3}, {1, 2, 5}, {1, 5, 4}, {2, 0, 3}, {2, 3, 5}};
 
     Print print;
     Model model;
