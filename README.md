@@ -260,4 +260,4 @@ Windows release binaries are built by GitHub Actions from this repository and si
 - **OrcaSlicer** is licensed under the GNU Affero General Public License, version 3.
 - The **GNU Affero General Public License**, version 3 ensures that if you use any part of this software in any way (even behind a web server), your software must be released under the same license.
 - OrcaSlicer includes a **pressure advance calibration pattern test** adapted from Andrew Ellis' generator, which is licensed under GNU General Public License, version 3. Ellis' generator is itself adapted from a generator developed by Sineos for Marlin, which is licensed under GNU General Public License, version 3.
-- The **Bambu networking plugin** is based on non-free libraries from BambuLab. It is optional to the OrcaSlicer and provides extended functionalities for Bambulab printer users.
+- The **Bambu networking plugin** is based on non-free libraries from BambuLab. It is optional to OrcaSlicer and provides extended functionalities for Bambulab printer users.
