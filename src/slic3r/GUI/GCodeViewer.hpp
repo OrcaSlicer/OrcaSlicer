@@ -27,6 +27,7 @@
 #include <libvgcode/include/Types.hpp>
 
 #include <array>
+#include <optional>
 #include <cstdint>
 #include <float.h>
 #include <set>
@@ -198,6 +199,8 @@ public:
         int  print_id{-1};
         int  print_modify_count{-1};
         bool previewing{false};
+        // the prime tower was loaded with the objects, for the solid model
+        bool with_wipe_tower{false};
     };
     //BBS
     ConflictResultOpt m_conflict_result;
@@ -325,6 +328,59 @@ private:
 
     bool m_legend_visible{ true };
     bool m_legend_enabled{ true };
+    // what the preview draws while the user drags, as the preference has it
+    libvgcode::EReducedDetailMode m_reduced_detail_mode{ libvgcode::EReducedDetailMode::Off };
+    void read_reduced_detail_preferences();
+    static libvgcode::EReducedDetailMode reduced_detail_mode_from_string(const std::string& mode);
+    // in the solid model mode, the sliced objects are drawn as solid shapes instead of toolpaths
+    bool solid_model_enabled() const { return m_reduced_detail_mode == libvgcode::EReducedDetailMode::EndLayersOnly; }
+    // whether no layer is lower than the one before, as the solid model's cut needs
+    bool m_layers_z_rising{ true };
+    // the heights the solid model is cut at, unset where the toolpaths cover the whole range
+    std::optional<std::array<float, 2>> solid_model_z_range() const;
+    void render_solid_model(int canvas_width, int canvas_height);
+    void render_solid_model_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix);
+    void release_caster_depth();
+    // ORCA: realistic view. The shadow map and light the canvas last passed on, which the solid
+    // model samples through its own shader as the toolpaths do through theirs.
+    struct ShadowMap
+    {
+        int         texture_unit{ 0 };
+        Transform3d light_view_projection{ Transform3d::Identity() };
+        float       intensity{ 0.0f };
+        float       texel_size{ 0.0f };
+    };
+    ShadowMap m_shadow_map;
+    Vec3d     m_light_top_dir{ Vec3d::Zero() };
+    // the shells' front faces from the light, for the caster pass to tell a back face reached
+    // through a cut from one reached through a wall; see render_solid_model_casters()
+    unsigned int m_caster_fbo{ 0 };
+    unsigned int m_caster_depth{ 0 };
+    int          m_caster_width{ 0 };
+    int          m_caster_height{ 0 };
+    bool init_caster_depth(int width, int height);
+    // The solid model's colours in the current view, sampled from the toolpaths when the view
+    // colours them by something other than the filament; see update_solid_model_colors()
+    struct SolidModelColors
+    {
+        // cleared as a drag begins, see set_interacting()
+        bool valid{ false };
+        libvgcode::EViewType view_type{ libvgcode::EViewType::COUNT };
+        libvgcode::Interval  whole_layers{ 0, 0 };
+        // one per shell volume, from the toolpaths within its own footprint
+        struct Body
+        {
+            // unset where the view colours by filament, or no vertex of the role was found there
+            std::optional<ColorRGBA> body;
+            // the bottom and top caps
+            std::array<std::optional<ColorRGBA>, 2> caps;
+        };
+        std::vector<Body> bodies;
+    };
+    SolidModelColors m_solid_model_colors;
+    void update_solid_model_colors(const libvgcode::Interval& whole_layers);
+    // the prime tower is only among the shells for the solid model, so it is added or removed when that changes
+    void update_shell_wipe_tower(const Print& print, bool initialized);
 
     float m_legend_height;
     PrintEstimatedStatistics m_print_statistics;
@@ -347,7 +403,8 @@ mutable bool m_no_render_path { false };
     float m_belt_angle_deg = 0.f;
 
     libvgcode::Viewer m_viewer;
-    // ORCA: section view, as the viewer has it. What it cuts away casts no shadow.
+    // ORCA: section view, as the viewer has it: kept where the dot with it is positive, a zero
+    // normal when off. The solid model is cut by it too, and what it cuts away casts no shadow.
     std::array<float, 4> m_clipping_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
     bool m_loaded_as_preview{ false };
 
@@ -400,7 +457,7 @@ public:
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void render_calibration_thumbnail(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
-    bool has_data() const { return !m_viewer.get_extrusion_roles().empty(); }
+    bool has_data() const { return m_viewer.get_extrusion_roles_count() != 0; }
 
     bool can_export_toolpaths() const;
     std::vector<int> get_plater_extruder();
@@ -486,6 +543,14 @@ public:
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
     // ORCA: draw the toolpaths of translucent filament colors translucent
     void set_translucent_filaments(bool value) { m_viewer.set_translucent_filaments(value); }
+
+    // whether the mouse is holding either slider's handle
+    bool is_slider_dragging() const { return m_layers_slider->is_dragging() || m_moves_slider->is_dragging(); }
+    // while the user drags the camera or a slider, draw the reduced set, if the preference asks for one
+    void set_interacting(bool interacting);
+    bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }
+    // the preference's string value: "off", "solid" or "shell"
+    void set_reduced_detail_mode(const std::string& mode);
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 
