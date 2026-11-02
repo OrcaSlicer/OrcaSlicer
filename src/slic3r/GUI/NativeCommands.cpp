@@ -45,14 +45,6 @@ class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
-namespace {
-
-// Plate ops are an FFF feature: SLA has a single plate and no plate UI, gcode-only mode has no
-// editable project - so gate every plate op on FFF + the normal editor.
-bool is_fff_plater(Plater* plater) { return plater && plater->printer_technology() == ptFFF && !plater->only_gcode_mode(); }
-
-AppActionRunResult plate_unavailable() { return {AppActionRunResult::Level::Info, _L("Plates are a filament (FFF) feature.")}; }
-
 // Switch to the Prepare (3D) panel so object/calibration ops have a live canvas + selection, and
 // the notebook page label matches. A no-op when the 3D panel is already shown.
 void ensure_3d_view(Plater* plater)
@@ -63,6 +55,14 @@ void ensure_3d_view(Plater* plater)
             mf->select_tab(TAB_ID_PREPARE);
     }
 }
+
+namespace {
+
+// Plate ops are an FFF feature: SLA has a single plate and no plate UI, gcode-only mode has no
+// editable project - so gate every plate op on FFF + the normal editor.
+bool is_fff_plater(Plater* plater) { return plater && plater->printer_technology() == ptFFF && !plater->only_gcode_mode(); }
+
+AppActionRunResult plate_unavailable() { return {AppActionRunResult::Level::Info, _L("Plates are a filament (FFF) feature.")}; }
 
 // Object op guard + run: object ops read the Prepare canvas selection, so ensure that view first so
 // a launch from another tab doesn't report a spuriously empty selection.
