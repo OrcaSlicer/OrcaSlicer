@@ -3052,6 +3052,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wipe_inward", "quality_settings_seam#wipe-inward");
         optgroup->append_single_option_line("wipe_inward_distance", "quality_settings_seam#wipe-inward");
         optgroup->append_single_option_line("wipe_before_external_loop","quality_settings_seam#wipe-before-external");
+        optgroup->append_single_option_line("retract_after_outer_wall", "quality_settings_seam#retract-after-outer-wall");
 
 
         optgroup = page->new_optgroup(L("Precision"), L"param_precision");
