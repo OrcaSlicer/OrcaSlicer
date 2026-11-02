@@ -460,10 +460,18 @@ void DropDown::render(wxDC &dc)
             dc.DrawBitmap(item.action_icon, action_pt);
         }
 
+        // Optional right-aligned text is reserved at the row's right edge.
+        int right_text_w = 0;
+        if (!text_off && !item.text_right.IsEmpty()) {
+            dc.SetFont(GetFont());
+            right_text_w = dc.GetTextExtent(item.text_right).x;
+        }
+
         if (!text_off && !text.IsEmpty()) {
             wxSize tSize = dc.GetMultiLineTextExtent(text);
-            if (pt.x + tSize.x > rcContent.GetRight()) {
-                int max_text_width = rcContent.GetRight() - pt.x;
+            const int avail_right = rcContent.GetRight() - (right_text_w > 0 ? right_text_w + 8 : 0);
+            if (pt.x + tSize.x > avail_right) {
+                int max_text_width = avail_right - pt.x;
                 if (max_text_width <= 0) {
                     text.clear();
                 } else {
@@ -485,6 +493,15 @@ void DropDown::render(wxDC &dc)
                 pt.y = rcContent.y + (rcContent.height - szBmp.y) / 2;
                 dc.DrawBitmap(arrow_bitmap.bmp(), pt);
             }
+        }
+        if (right_text_w > 0) {
+            wxPoint rpt;
+            rpt.x = rcContent.GetRight() - right_text_w - 5;
+            rpt.y = rcContent.y + (rcContent.height - textSize.y) / 2;
+            dc.SetFont(GetFont());
+            const int right_states = (item.style & DD_ITEM_STYLE_DIMMED) ? (states2 & ~StateColor::Enabled) : states2;
+            dc.SetTextForeground(text_color.colorForStates(right_states));
+            dc.DrawText(item.text_right, rpt);
         }
         rcContent.y += rowSize.y;
     }
@@ -587,6 +604,8 @@ void DropDown::messureSize()
             size1 = dc.GetMultiLineTextExtent(text);
             if (group.IsEmpty() && !item.group_key.IsEmpty())
                 size1.x += 5 + arrow_bitmap.GetBmpWidth();
+            if (!item.text_right.IsEmpty())
+                size1.x += dc.GetTextExtent(item.text_right).x + 8;
         }
         if (item.icon.IsOk()) {
             wxSize size2 = GetBmpSize(item.icon);

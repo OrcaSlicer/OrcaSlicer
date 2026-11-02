@@ -428,7 +428,7 @@ void ObjectList::create_objects_ctrl()
     m_columns_width[colName] = 22;
     m_columns_width[colHeight] = 3;
     m_columns_width[colPrint] = 3;
-    m_columns_width[colFilament] = 5;
+    m_columns_width[colFilament] = 14; // wide enough for the filament name and the nozzle side
     m_columns_width[colSupportPaint] = 3;
     m_columns_width[colSinking] = 3;
     m_columns_width[colColorPaint] = 3;
@@ -479,7 +479,7 @@ void ObjectList::create_objects_ctrl()
                m_objects_model->GetItemType(item) == itLayer;
     });
     AppendColumn(new wxDataViewColumn(_L("Fila."), bmp_choice_renderer,
-        colFilament, m_columns_width[colFilament] * em, wxALIGN_CENTER_HORIZONTAL, 0));
+        colFilament, m_columns_width[colFilament] * em, wxALIGN_LEFT, wxDATAVIEW_COL_RESIZABLE));
 
     // BBS
     AppendBitmapColumn(" ", colSupportPaint, wxOSX ? wxDATAVIEW_CELL_EDITABLE : wxDATAVIEW_CELL_INERT, m_columns_width[colSupportPaint] * em,
@@ -718,6 +718,10 @@ void ObjectList::set_tooltip_for_item(const wxPoint& pt)
     else if (col->GetModelColumn() == (unsigned int)colSinking) {
         if (node->HasSinking())
             tooltip = _(L("Click the icon to shift this object to the bed"));
+    }
+    // Show the filament name, nozzle side and readable color name instead of the raw cell value.
+    else if (col->GetModelColumn() == (unsigned int)colFilament) {
+        tooltip = get_filament_column_tooltip(node->GetExtruder());
     }
     else if (col->GetModelColumn() == (unsigned int)colName && (pt.x >= 2 * wxGetApp().em_unit() && pt.x <= 4 * wxGetApp().em_unit()))
     {
