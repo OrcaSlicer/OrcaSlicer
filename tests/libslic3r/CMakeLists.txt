@@ -108,6 +108,11 @@ endif()
 
 # libslic3r links Draco privately; test_drc.cpp encodes its own fixtures.
 find_package(Draco REQUIRED)
+# The experimental Arrange packer is only built with -DSLIC3R_SPARROW_ARRANGE=ON.
+if (SLIC3R_SPARROW_ARRANGE)
+    target_sources(${_TEST_NAME}_tests PRIVATE test_arrange_sparrow.cpp)
+endif ()
+
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r draco::draco Catch2::Catch2WithMain)
 target_include_directories(${_TEST_NAME}_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)

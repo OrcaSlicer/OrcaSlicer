@@ -23,6 +23,7 @@
 #include <wx/timer.h>
 #include "slic3r/GUI/IMSlider.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/Arrange.hpp"
 #include "libslic3r/Model.hpp"
 #include <memory>
 #include "slic3r/GUI/SceneRaycaster.hpp"
@@ -1580,6 +1581,12 @@ void GLCanvas3D::load_arrange_settings()
     load_bool("allow_multi_materials_on_same_plate", m_arrange_settings_fff_seq_print.allow_multi_materials_on_same_plate);
     load_bool("avoid_extrusion_cali_region",         m_arrange_settings_fff.avoid_extrusion_cali_region);
     load_bool("avoid_extrusion_cali_region",         m_arrange_settings_fff_seq_print.avoid_extrusion_cali_region);
+
+    // BBS: one un-postfixed key each, applied to every settings variant
+    for (ArrangeSettings *settings : {&m_arrange_settings_fff, &m_arrange_settings_fff_seq_print, &m_arrange_settings_sla}) {
+        load_bool("arrange_use_sparrow", settings->arrange_use_sparrow);
+        load_float("arrange_sparrow_time", settings->arrange_sparrow_time);
+    }
 
     //BBS: add specific arrange settings
     m_arrange_settings_fff_seq_print.is_seq_print = true;
@@ -6725,6 +6732,8 @@ void GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
     std::string dist_key = "min_object_distance", rot_key = "enable_rotation";
     std::string multi_material_key = "allow_multi_materials_on_same_plate";
     std::string avoid_extrusion_key = "avoid_extrusion_cali_region";
+    std::string use_sparrow_key     = "arrange_use_sparrow";
+    std::string sparrow_time_key    = "arrange_sparrow_time";
     std::string postfix;
     //BBS:
     bool seq_print = false;
@@ -6756,6 +6765,26 @@ void GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
     ImGui::Separator();
     if (imgui->bbl_checkbox(_L("Auto rotate for arrangement"), settings_out.enable_rotation))
         appcfg->set("arrange", rot_key.c_str(), settings_out.enable_rotation);
+
+    if (arrangement::sparrow_available() && imgui->bbl_checkbox(_L("Use experimental packer"), settings_out.arrange_use_sparrow))
+        appcfg->set("arrange", use_sparrow_key.c_str(), settings_out.arrange_use_sparrow);
+
+    if (arrangement::sparrow_available() && settings_out.arrange_use_sparrow) {
+        // Label on its own line: it is wider than "Spacing", whose width sets the slider column.
+        imgui->text(_L("Search time per plate (s)"));
+        ImGui::AlignTextToFramePadding();
+        ImGui::Dummy(ImVec2(0, 0));
+        ImGui::SameLine(1.2 * cursor_slider_left);
+        ImGui::PushItemWidth(window_width - slider_icon_width);
+        bool b_sparrow_time = imgui->bbl_slider_float_style("##SparrowTime", &settings_out.arrange_sparrow_time, 2.0f, 60.0f, "%.0f");
+        ImGui::SameLine(window_width - slider_icon_width + 1.3 * cursor_slider_left);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        bool b_sparrow_time_input = ImGui::BBLDragFloat("##sparrow_time_input", &settings_out.arrange_sparrow_time, 1.0f, 0.0f, 0.0f, "%.0f");
+        if (b_sparrow_time || b_sparrow_time_input) {
+            settings_out.arrange_sparrow_time = std::round(std::min(60.f, std::max(2.f, settings_out.arrange_sparrow_time)));
+            appcfg->set("arrange", sparrow_time_key.c_str(), float_to_string_decimal_point(settings_out.arrange_sparrow_time));
+        }
+    }
 
     if (imgui->bbl_checkbox(_L("Allow multiple materials on same plate"), settings_out.allow_multi_materials_on_same_plate))
         appcfg->set("arrange", multi_material_key.c_str(), settings_out.allow_multi_materials_on_same_plate);
@@ -6807,6 +6836,8 @@ void GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
         appcfg->erase("arrange", rot_key);
         appcfg->erase("arrange", multi_material_key);
         appcfg->erase("arrange", avoid_extrusion_key);
+        appcfg->erase("arrange", use_sparrow_key);
+        appcfg->erase("arrange", sparrow_time_key);
     }
     ImGui::PopStyleVar(1);
     imgui->end();

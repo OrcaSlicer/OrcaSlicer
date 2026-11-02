@@ -1,8 +1,14 @@
 #include "Arrange.hpp"
+#include <atomic>
 #include "ClipperUtils.hpp"
 #include "ExPolygon.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
+#include "Geometry/ConvexHull.hpp"
+
+#ifdef SLIC3R_SPARROW_ARRANGE
+#include "ArrangeSparrow.hpp"
+#endif
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "PrintConfig.hpp"
@@ -102,6 +108,17 @@ namespace bgi = boost::geometry::index;
 using SpatElement = std::pair<Box, unsigned>;
 using SpatIndex = bgi::rtree< SpatElement, bgi::rstar<16, 4> >;
 using ItemGroup = std::vector<std::reference_wrapper<Item>>;
+
+std::atomic<bool> use_true_outline{false};
+
+bool sparrow_available()
+{
+#ifdef SLIC3R_SPARROW_ARRANGE
+    return true;
+#else
+    return false;
+#endif
+}
 
 // A coefficient used in separating bigger items and smaller items.
 const double BIG_ITEM_TRESHOLD = 0.02;
@@ -1242,7 +1259,11 @@ static CircleBed to_circle(const Point &center, const Points& points) {
 static void process_arrangeable(const ArrangePolygon &arrpoly,
                                 std::vector<Item> &   outp)
 {
+    // The stock NFP and rotating-calipers implementations require convex input,
+    // including when the experimental backend declines already collected outlines.
     Polygon        p        = arrpoly.poly.contour;
+    if (p.points.size() >= 3 && !polygon_is_convex(p))
+        p = Geometry::convex_hull(p.points);
     const Vec2crd &offs     = arrpoly.translation;
     double         rotation = arrpoly.rotation;
 
@@ -1317,6 +1338,65 @@ void arrange(ArrangePolygons &      arrangables,
     std::vector<Item> items, fixeditems;
     items.reserve(arrangables.size());
 
+#ifdef SLIC3R_SPARROW_ARRANGE
+    // BBS: sparrow handles rectangular beds only (every Bambu printer); other bed
+    // types and a failed sparrow run fall through to libnest2d. It has no notion of
+    // print order, height or belt geometry, so sequential print and belt printers also
+    // stay on libnest2d.
+    if (params.use_sparrow && !params.is_seq_print && !params.is_belt) {
+        if constexpr (std::is_same_v<BedT, BoundingBox>) {
+            if (arrange_sparrow(arrangables, excludes, bed, params)) {
+                // sparrow_only returns partial results: stock places what sparrow left out, on
+                // plates after sparrow's (whose gaps sparrow's cleanup already tried). Its
+                // near-bed-size rescue places parts sparrow's sampling rarely fits. Only the
+                // placeholders of those plates go along, rebased: stock stops opening plates
+                // once the last holds only fixed parts.
+                ArrangePolygons rest, placeholders;
+                std::vector<size_t> rest_src;
+                int next_bed = 0;
+                for (const ArrangePolygon &ap : excludes)
+                    if (!ap.is_virt_object)
+                        next_bed = std::max(next_bed, ap.bed_idx + 1);
+                for (size_t i = 0; i < arrangables.size(); ++i) {
+                    if (arrangables[i].bed_idx == UNARRANGED) {
+                        rest.push_back(arrangables[i]);
+                        rest.back().bed_idx = 0; // stock skips UNARRANGED items
+                        rest_src.push_back(i);
+                    } else if (!arrangables[i].is_virt_object)
+                        next_bed = std::max(next_bed, arrangables[i].bed_idx + 1);
+                }
+                if (rest.empty() || (params.stopcondition && params.stopcondition()))
+                    return;
+                auto rebase = [&](const ArrangePolygon &ap) {
+                    if (ap.is_virt_object && ap.bed_idx >= next_bed) {
+                        placeholders.push_back(ap);
+                        placeholders.back().bed_idx -= next_bed;
+                    }
+                };
+                std::for_each(excludes.begin(), excludes.end(), rebase);
+                std::for_each(arrangables.begin(), arrangables.end(), rebase); // pinned prime towers
+                ArrangeParams stock = params;
+                stock.use_sparrow   = false;
+                arrange(rest, placeholders, bed, stock);
+                for (size_t k = 0; k < rest.size(); ++k) {
+                    if (rest[k].bed_idx >= 0)
+                        rest[k].bed_idx += next_bed;
+                    if (rest[k].bed_idx >= MAX_NUM_PLATES)
+                        rest[k].bed_idx = UNARRANGED;
+                    rest[k].itemid = arrangables[rest_src[k]].itemid; // stock renumbers from 0
+                    arrangables[rest_src[k]] = rest[k];
+                }
+                return;
+            }
+            BOOST_LOG_TRIVIAL(warning) << "sparrow arrange unavailable, using libnest2d";
+        } else {
+            BOOST_LOG_TRIVIAL(warning) << "sparrow arrange needs a rectangular bed, using libnest2d";
+        }
+        if (params.sparrow_only)
+            return;
+    }
+#endif
+
     for (ArrangePolygon &arrangeable : arrangables)
         process_arrangeable(arrangeable, items);
 
@@ -1340,6 +1420,46 @@ template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, c
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const CircleBed &bed, const ArrangeParams &params);
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const Polygon &bed, const ArrangeParams &params);
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const InfiniteBed &bed, const ArrangeParams &params);
+
+int count_plates_used(const ArrangePolygons &selected, const ArrangePolygons &unselected, bool only_on_partplate)
+{
+    std::set<int> beds;
+    int off_plate = 0;
+    for (const ArrangePolygon &ap : selected) {
+        if (ap.is_virt_object)
+            continue;
+        if (ap.bed_idx != 0)
+            ++off_plate;
+        if (ap.bed_idx >= 0)
+            beds.insert(ap.bed_idx);
+    }
+    // Plates the fixed parts occupy count too, or opening fresh plates would look like a win.
+    for (const ArrangePolygon &ap : unselected)
+        if (!ap.is_virt_object && ap.bed_idx >= 0)
+            beds.insert(ap.bed_idx);
+    return only_on_partplate ? off_plate : int(beds.size());
+}
+
+int count_unplaced(const ArrangePolygons &items, bool only_on_partplate)
+{
+    if (only_on_partplate)
+        return 0;
+    return int(std::count_if(items.begin(), items.end(), [](const ArrangePolygon &ap) { return !ap.is_virt_object && ap.bed_idx < 0; }));
+}
+
+double outline_hull_ratio(const ArrangePolygons &items, double *outline_area)
+{
+    double hull = 0., outline = 0.;
+    for (const ArrangePolygon &ap : items) {
+        if (ap.is_virt_object)
+            continue;
+        hull += Geometry::convex_hull(ap.poly.contour.points).area();
+        outline += ap.poly.area(); // openings count as free space
+    }
+    if (outline_area)
+        *outline_area = outline;
+    return hull > 0. ? outline / hull : 1.;
+}
 
 } // namespace arr
 } // namespace Slic3r
