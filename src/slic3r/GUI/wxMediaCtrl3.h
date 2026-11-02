@@ -75,6 +75,14 @@ protected:
 
     void paintEvent(wxPaintEvent &evt);
 
+    void mouseWheelEvent(wxMouseEvent &evt);
+    void mouseLeftDown(wxMouseEvent &evt);
+    void mouseLeftUp(wxMouseEvent &evt);
+    void mouseMotion(wxMouseEvent &evt);
+    void mouseCaptureLost(wxMouseCaptureLostEvent &evt);
+    void end_pan();
+    void clamp_view_center(wxSize const &window, wxSize const &frame, double scale);
+
     wxSize DoGetBestSize() const override;
 
     void DoSetSize(int x, int y, int width, int height, int sizeFlags) override;
@@ -93,6 +101,14 @@ private:
     int m_error  = 0;
     wxSize m_video_size = wxDefaultSize;
     wxSize m_frame_size = wxDefaultSize;
+    // Digital zoom and pan of the live view (UI thread only).
+    double  m_zoom    = 1.0;  // 1 = fit, up to 5
+    double  m_view_cx = 0.5;  // frame point shown at the view centre, as a fraction of the frame size
+    double  m_view_cy = 0.5;
+    wxSize  m_paint_frame_size;      // frame size and fit scale used by the last paint
+    double  m_paint_fit_scale = 0.;
+    bool    m_panning = false;
+    wxPoint m_pan_last;
 #ifdef _WIN32
     wxBitmap m_frame;
 #else
