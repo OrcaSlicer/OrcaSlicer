@@ -10,6 +10,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "catch2/catch_test_macros.hpp"
+#include "catch2/catch_message.hpp"
 #include "catch2/generators/catch_generators.hpp"
 #include "libslic3r/Fill/VoronoiRouting.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
@@ -415,18 +416,28 @@ TEST_CASE("Floor rows use existing wall anchors without reversing their sweep", 
 
 TEST_CASE("Short rotated floor rows extend onto perimeter footprints", "[FillVoronoi][Floors][Anchors]")
 {
-    const double angle = 0.37;
+    const double angle = GENERATE(0., 0.03, 0.37, 1.1, 2.6, -0.37);
+    CAPTURE(angle);
     ExPolygon floor {Point::new_scale(-2.5, -0.35), Point::new_scale(0., -0.35),
                      Point::new_scale(0., 0.35), Point::new_scale(-2.5, 0.35)};
     ExPolygons support {
-        ExPolygon{Point::new_scale(-3., -0.8), Point::new_scale(1., -0.8), Point::new_scale(1., -0.35), Point::new_scale(-3., -0.35)},
-        ExPolygon{Point::new_scale(-3., 0.35), Point::new_scale(1., 0.35), Point::new_scale(1., 0.8), Point::new_scale(-3., 0.8)}};
+        ExPolygon{Point::new_scale(-3., -0.8), Point::new_scale(1., -0.8), Point::new_scale(1., -0.45), Point::new_scale(-3., -0.45)},
+        ExPolygon{Point::new_scale(-3., 0.45), Point::new_scale(1., 0.45), Point::new_scale(1., 0.8), Point::new_scale(-3., 0.8)}};
+    ExPolygon model {Point::new_scale(-3., -0.8), Point::new_scale(1., -0.8),
+                     Point::new_scale(1., 0.8), Point::new_scale(-3., 0.8)};
+    model.rotate(angle);
     floor.rotate(angle);
     for (auto &polygon : support) polygon.rotate(angle);
     FillParams params;
     params.flow = Flow(0.45f, 0.2f, 0.4f);
     FillVoronoi filler;
+    filler.angle = 0.f;
     filler.set_bounding_box(floor.contour.bounding_box());
+    // Set the model boundary without infill. The 0.1 mm gap must be crossed
+    // by extension, avoiding ambiguous containment on a rounded shared edge.
+    const Surface surface(stInternal, model);
+    params.density = 0.f;
+    filler.fill_surface(&surface, params);
     filler.set_floor_support(&support);
     const Vec2d side(std::cos(angle), std::sin(angle));
     const auto paths = filler.fill_band({floor, side, 0.}, params);
