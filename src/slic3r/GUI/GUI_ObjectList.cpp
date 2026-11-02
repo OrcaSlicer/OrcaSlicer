@@ -108,6 +108,9 @@
 #include "Gizmos/GLGizmosManager.hpp"
 
 #include "libslic3r/TriangleMeshDeal.hpp"
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
 
 class wxMenu;
 namespace Slic3r { class Step; }
@@ -347,11 +350,13 @@ ObjectList::ObjectList(wxWindow* parent) :
     //Bind(wxCUSTOMEVT_LAST_VOLUME_IS_DELETED, [this](wxCommandEvent& e)   { last_volume_is_deleted(e.GetInt()); });
 
     Bind(wxEVT_SIZE, ([this](wxSizeEvent &e) {
-             if (m_last_size == this->GetSize()) {
+             // ORCA: compare client size instead window size
+             // Name column stays wide that shows horizontal scrollbar when vertical scrollbar (dis)appears
+             if (m_last_size == this->GetClientSize()) {
                  e.Skip();
                  return;
              } else {
-                 m_last_size = this->GetSize();
+                 m_last_size = this->GetClientSize();
              }
 
         update_name_column_width();
@@ -361,7 +366,7 @@ ObjectList::ObjectList(wxWindow* parent) :
 
         e.Skip();
     }));
-    m_last_size = this->GetSize();
+    m_last_size = this->GetClientSize();
 }
 
 ObjectList::~ObjectList()
@@ -447,6 +452,11 @@ void ObjectList::create_objects_ctrl()
         colName, m_columns_width[colName] * em, wxALIGN_LEFT, wxDATAVIEW_COL_RESIZABLE);
     //name_col->SetBitmap(create_scaled_bitmap("organize", nullptr, FromDIP(18)));
     AppendColumn(name_col);
+#ifdef __WXGTK__
+    // ORCA: let GtkTreeView give the Name column all remaining width itself.
+    // Scrollbar toggling on GTK generates no size event and GetClientSize() does not account for a vertical scrollbar
+    gtk_tree_view_column_set_expand(GTK_TREE_VIEW_COLUMN(name_col->GetGtkHandle()), TRUE);
+#endif
 
     // column Variable height Property (Icon) of the view control:
     AppendBitmapColumn(" ", colHeight, wxOSX ? wxDATAVIEW_CELL_EDITABLE : wxDATAVIEW_CELL_INERT, 3 * em,
@@ -1102,6 +1112,12 @@ void ObjectList::update_filament_colors()
 
 void ObjectList::update_name_column_width() const
 {
+#ifdef __WXGTK__
+    // ORCA: Column expands natively (see create_objects_ctrl);
+    // Only keep a small minimum width so fixed part can never force a horizontal scrollbar
+    GetColumn(colName)->SetWidth(5 * em_unit(const_cast<ObjectList*>(this)));
+    return;
+#endif
     wxSize client_size = this->GetClientSize();
     bool p_vbar = this->GetParent()->HasScrollbar(wxVERTICAL);
     bool p_hbar = this->GetParent()->HasScrollbar(wxHORIZONTAL);
