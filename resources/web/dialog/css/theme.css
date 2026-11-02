@@ -111,8 +111,6 @@ body { background: var(--bg); color: var(--text); }
 #Content { color: var(--text); }
 #Title div, #Title div.TitleUnselected { color: var(--orca-accent); }
 .HyperLink { color: var(--orca-accent); }
-.ZScrol::-webkit-scrollbar-thumb { background-color: var(--border); }
-.ZScrol::-webkit-scrollbar-track { background: var(--bg); }
 input[type="checkbox"] { background-color: var(--bg); border-color: var(--border); }
 input[type="checkbox"]:checked { background-color: var(--orca-accent); border-color: var(--orca-accent); }
 input[type="checkbox"]::before { box-shadow: inset 1em 1em var(--orca-accent-fg); }
