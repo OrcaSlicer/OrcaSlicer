@@ -673,3 +673,38 @@ TEST_CASE("Without sparse layers the filament change starts at the tallest print
         CHECK(tower_z < printed_z - EPSILON);
     }
 }
+
+TEST_CASE("A toolchange on the type2 tower lifts the nozzle in place, without crossing the tower", "[WipeTower][Regression]")
+{
+    // Multi-tool ramming sends the head to the tower and moves it during the unload, before the
+    // change_filament_gcode lift. A lift drawn from where the head was before the unload starts
+    // with a straight move back there at layer height, which drags the nozzle across the tower.
+    // A lift that stays in place climbs within one spiral; 5 mm is well above any spiral and
+    // well below the tower's width.
+    const float z_hop = 0.4f;
+    DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
+    config.set_deserialize_strict({ { "wipe_tower_type",                "type2" },
+                                    { "single_extruder_multi_material", "0" },
+                                    { "filament_multitool_ramming",     "1" },
+                                    { "enable_arc_fitting",             "disabled" },
+                                    { "z_hop",                          "0.4" },
+                                    { "z_hop_types",                    "Normal Lift" } });
+
+    const std::string gcode = slice_with_prime_tower(config);
+    REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("; CP TOOLCHANGE UNLOAD"));
+
+    // Only the stretch from the unload to the wipe, where the tool is swapped.
+    bool  in_toolchange         = false;
+    float longest_climbing_move = 0.f;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.raw().find("; CP TOOLCHANGE UNLOAD") != std::string::npos)
+            in_toolchange = true;
+        if (line.raw().find("; CP TOOLCHANGE WIPE") != std::string::npos)
+            in_toolchange = false;
+        const float rise = line.dist_Z(self);
+        if (in_toolchange && line.cmd_is("G1") && rise > 0.f && rise <= z_hop + EPSILON)
+            longest_climbing_move = std::max(longest_climbing_move, line.dist_XY(self));
+    });
+    CHECK(longest_climbing_move < 5.f);
+}

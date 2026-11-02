@@ -1780,6 +1780,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 restore_layer_z_str += gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange");
                 check_add_eol(restore_layer_z_str);
             }
+            // Orca: the result replaces [change_filament_gcode] inside the tcr, after the unload
+            // moves have taken the head away from the position the writer still holds. The eager
+            // spiral lift in set_extruder would circle that stale point and drag the nozzle across
+            // the tower at layer height, so mark the position unknown to get a straight Z lift.
+            gcodegen.writer().set_current_position_clear(false);
             toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override,
                                                          WipeTower2::wait_for_temp_enabled(gcodegen.m_config)); // TODO: toolchange_z vs print_z
             if (!travel_to_tower_now && !tcr.priming && WipeTower2::use_gap_wall(gcodegen.m_config)) {
