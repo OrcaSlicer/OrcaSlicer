@@ -1,6 +1,7 @@
 #include "wxMediaCtrl3.h"
 #include "AVVideoDecoder.hpp"
 #include <algorithm>
+#include <cmath>
 #include <boost/log/trivial.hpp>
 #include "slic3r/GUI/Printer/BambuTunnel.h"
 #include <cassert>
@@ -19,6 +20,11 @@
 #include <wx/mediactrl.h>
 #include <wx/string.h>
 #include <wx/image.h>
+#include <wx/cursor.h>
+#include <wx/utils.h>
+#include <wx/region.h>
+#include <wx/brush.h>
+#include <wx/pen.h>
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/log.h>
@@ -51,10 +57,129 @@ wxMediaCtrl3::wxMediaCtrl3(wxWindow *parent)
     , m_thread([this] { PlayThread(); })
 {
     SetBackgroundColour("#000001ff");
+    // paintEvent covers every pixel; never erase first (that flickers on every frame).
+    SetBackgroundStyle(wxBG_STYLE_PAINT);
+    Bind(wxEVT_MOUSEWHEEL, &wxMediaCtrl3::mouseWheelEvent, this);
+    Bind(wxEVT_LEFT_DOWN, &wxMediaCtrl3::mouseLeftDown, this);
+    Bind(wxEVT_LEFT_DCLICK, &wxMediaCtrl3::mouseLeftDown, this);
+    Bind(wxEVT_LEFT_UP, &wxMediaCtrl3::mouseLeftUp, this);
+    Bind(wxEVT_MOTION, &wxMediaCtrl3::mouseMotion, this);
+    Bind(wxEVT_MOUSE_CAPTURE_LOST, &wxMediaCtrl3::mouseCaptureLost, this);
+}
+
+// Digital zoom of the live view, 1x (fit) up to 5x, towards the point under the cursor.
+// While zoomed in, dragging with the left button pans the view.
+void wxMediaCtrl3::mouseWheelEvent(wxMouseEvent &evt)
+{
+    if (evt.GetWheelAxis() != wxMOUSE_WHEEL_VERTICAL || evt.GetWheelRotation() == 0 || evt.GetWheelDelta() == 0) {
+        evt.Skip();
+        return;
+    }
+
+    // 1.1x per wheel notch; high-resolution wheels and touchpads send fractions of a notch.
+    const double notches = double(evt.GetWheelRotation()) / evt.GetWheelDelta();
+    const double zoom    = std::clamp(m_zoom * std::pow(1.1, notches), 1.0, 5.0);
+    if (zoom == m_zoom)
+        return;
+
+    // Keep the frame point under the cursor in place.
+    if (m_paint_fit_scale > 0. && m_paint_frame_size.x > 0 && m_paint_frame_size.y > 0) {
+        const wxSize  size  = GetSize();
+        const wxPoint pos   = evt.GetPosition();
+        const double  s_old = m_paint_fit_scale * m_zoom;
+        const double  s_new = m_paint_fit_scale * zoom;
+        const double  dx    = pos.x - size.x / 2.0;
+        const double  dy    = pos.y - size.y / 2.0;
+        m_view_cx += (dx / s_old - dx / s_new) / m_paint_frame_size.x;
+        m_view_cy += (dy / s_old - dy / s_new) / m_paint_frame_size.y;
+    }
+
+    m_zoom = zoom;
+    if (m_zoom <= 1.0)
+        end_pan();
+    SetCursor(m_zoom > 1.0 ? wxCursor(wxCURSOR_HAND) : wxNullCursor);
+    Refresh();
+}
+
+void wxMediaCtrl3::mouseLeftDown(wxMouseEvent &evt)
+{
+    evt.Skip();
+    if (m_zoom <= 1.0)
+        return;
+    m_panning  = true;
+    m_pan_last = evt.GetPosition();
+    if (!HasCapture())
+        CaptureMouse();
+}
+
+void wxMediaCtrl3::mouseLeftUp(wxMouseEvent &evt)
+{
+    evt.Skip();
+    end_pan();
+}
+
+void wxMediaCtrl3::mouseMotion(wxMouseEvent &evt)
+{
+    // Always let others see motion: the camera full screen frame shows its close button on it.
+    evt.Skip();
+    if (!m_panning)
+        return;
+
+#ifdef __APPLE__
+    // macOS never sends wxEVT_MOUSE_CAPTURE_LOST; read the real button state.
+    const bool left_down = wxGetMouseState().LeftIsDown();
+#else
+    const bool left_down = evt.LeftIsDown();
+#endif
+    if (!left_down) {
+        end_pan();
+        return;
+    }
+
+    if (m_paint_fit_scale <= 0. || m_paint_frame_size.x <= 0 || m_paint_frame_size.y <= 0)
+        return;
+    const double  scale = m_paint_fit_scale * m_zoom;
+    const wxPoint pos   = evt.GetPosition();
+    m_view_cx -= (pos.x - m_pan_last.x) / scale / m_paint_frame_size.x;
+    m_view_cy -= (pos.y - m_pan_last.y) / scale / m_paint_frame_size.y;
+    m_pan_last = pos;
+    Refresh();
+}
+
+void wxMediaCtrl3::mouseCaptureLost(wxMouseCaptureLostEvent &)
+{
+    m_panning = false;
+    Refresh();
+}
+
+void wxMediaCtrl3::end_pan()
+{
+    m_panning = false;
+    if (HasCapture())
+        ReleaseMouse();
+}
+
+// Keep the zoomed frame covering the view: clamp the frame point shown at the view centre.
+void wxMediaCtrl3::clamp_view_center(wxSize const &window, wxSize const &frame, double scale)
+{
+    if (m_zoom <= 1.0 || frame.x <= 0 || frame.y <= 0 || scale <= 0.) {
+        m_view_cx = m_view_cy = 0.5;
+        return;
+    }
+    auto clamp_axis = [scale](double center, int window_len, int frame_len) {
+        const double half = window_len / 2.0 / scale; // half the visible extent, in frame pixels
+        if (frame_len <= 2 * half)
+            return 0.5; // the frame is narrower than the view on this axis: keep it centred
+        return std::clamp(center * frame_len, half, frame_len - half) / frame_len;
+    };
+    m_view_cx = clamp_axis(m_view_cx, window.x, frame.x);
+    m_view_cy = clamp_axis(m_view_cy, window.y, frame.y);
 }
 
 wxMediaCtrl3::~wxMediaCtrl3()
 {
+    if (HasCapture())
+        ReleaseMouse();
     {
         std::unique_lock<std::mutex> lk(m_mutex);
         m_url.reset(new wxURI);
@@ -207,26 +332,55 @@ void wxMediaCtrl3::paintEvent(wxPaintEvent &evt)
     auto      size = GetSize();
     if (size.x <= 0 || size.y <= 0)
         return;
+
+    // The window uses wxBG_STYLE_PAINT, so this handler paints every pixel itself. It fills only
+    // the area the frame does not cover: erasing under the frame first shows a black flash before
+    // each frame is drawn, which makes the video flicker.
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    dc.SetBrush(wxBrush(GetBackgroundColour()));
+
     std::unique_lock<std::mutex> lk(m_mutex);
-    if (!m_frame.IsOk())
+    if (!m_frame.IsOk()) {
+        dc.DrawRectangle(0, 0, size.x, size.y);
         return;
+    }
     auto size2 = m_frame.GetSize();
     if (size2.x != m_frame_size.x && size2.y == m_frame_size.y)
         size2.x = m_frame_size.x;
-    auto size3 = (size - size2) / 2;
-    if (size2.x != size.x && size2.y != size.y) {
-        double scale = 1.;
-        if (size.x * size2.y > size.y * size2.x) {
-            size3 = {size.x * size2.y / size.y, size2.y};
-            scale = double(size.y) / size2.y;
-        } else {
-            size3 = {size2.x, size.y * size2.x / size.x};
-            scale = double(size.x) / size2.x;
-        }
-        dc.SetUserScale(scale, scale);
-        size3 = (size3 - size2) / 2;
-    }
-    dc.DrawBitmap(m_frame, size3.x, size3.y);
+    // Base "contain" fit scale, then apply the digital zoom factor.
+    // At m_zoom == 1 this is identical to the normal fitted rendering.
+    double scale = 1.0;
+    if (size2.x != size.x || size2.y != size.y)
+        scale = (size.x * size2.y > size.y * size2.x)
+            ? double(size.y) / size2.y
+            : double(size.x) / size2.x;
+
+    m_paint_frame_size = size2;
+    m_paint_fit_scale  = scale;
+
+    const double effective_scale = scale * m_zoom;
+
+    // Draw so that the frame point (m_view_cx, m_view_cy) lands on the view centre.
+    clamp_view_center(size, size2, effective_scale);
+    const int offset_x =
+        wxRound(size.x / 2.0 / effective_scale - m_view_cx * size2.x);
+    const int offset_y =
+        wxRound(size.y / 2.0 / effective_scale - m_view_cy * size2.y);
+
+    // Fill the letterbox bars around the frame. The frame rectangle is shrunk to whole pixels
+    // so the bars overlap its edges by at most a pixel, which the frame then paints over.
+    const int x0 = int(std::ceil(offset_x * effective_scale));
+    const int y0 = int(std::ceil(offset_y * effective_scale));
+    const int x1 = int(std::floor((offset_x + size2.x) * effective_scale));
+    const int y1 = int(std::floor((offset_y + size2.y) * effective_scale));
+    wxRegion background(0, 0, size.x, size.y);
+    if (x1 > x0 && y1 > y0)
+        background.Subtract(wxRect(x0, y0, x1 - x0, y1 - y0));
+    for (wxRegionIterator it(background); it; ++it)
+        dc.DrawRectangle(it.GetRect());
+
+    dc.SetUserScale(effective_scale, effective_scale);
+    dc.DrawBitmap(m_frame, offset_x, offset_y);
 }
 
 void wxMediaCtrl3::DoSetSize(int x, int y, int width, int height, int sizeFlags)

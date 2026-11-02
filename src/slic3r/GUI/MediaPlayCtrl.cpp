@@ -1114,6 +1114,12 @@ bool MediaPlayCtrl::get_stream_url(std::string *url)
 
 void wxMediaCtrl_OnSize(wxWindow * ctrl, wxSize const & videoSize, int width, int height)
 {
+    // Camera full screen clears this flag so the view fills the frame instead
+    // of being constrained (letterboxed) to the video's aspect ratio.
+    if (auto *media3 = dynamic_cast<wxMediaCtrl3 *>(ctrl)) {
+        if (!media3->GetConstrainByAspectRatio()) return;
+    }
+
     wxSize size = videoSize;
     if (!size.IsFullySpecified()) size = {16, 9};
     int maxHeight = (width * size.GetHeight() + size.GetHeight() - 1) / size.GetWidth();

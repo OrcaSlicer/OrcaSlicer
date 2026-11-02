@@ -135,6 +135,9 @@ void AppConfig::set_defaults()
             set_bool("autocenter", true);
 #endif
 
+        if (get("camera_fullscreen_active_monitor_only").empty())
+            set_bool("camera_fullscreen_active_monitor_only", true);
+
 #ifdef SUPPORT_BACKGROUND_PROCESSING
         // Disable background processing by default as it is not stable.
         if (get("background_processing").empty())

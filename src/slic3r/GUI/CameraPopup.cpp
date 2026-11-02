@@ -515,6 +515,12 @@ void CameraItem::msw_rescale() {
     m_bitmap_hover.msw_rescale();
 }
 
+void CameraItem::reset_hover()
+{
+    m_hover = false;
+    Refresh();
+}
+
 void CameraItem::on_enter_win(wxMouseEvent &evt)
 {
     m_hover = true;
@@ -559,11 +565,39 @@ void CameraItem::render(wxDC &dc)
 
 void CameraItem::doRender(wxDC &dc)
 {
-    if (m_hover) {
-        dc.DrawBitmap(m_bitmap_hover.bmp(), wxPoint((GetSize().x - m_bitmap_hover.GetBmpSize().x) / 2, (GetSize().y - m_bitmap_hover.GetBmpSize().y) / 2));
-    } else {
-        dc.DrawBitmap(m_bitmap_normal.bmp(), wxPoint((GetSize().x - m_bitmap_normal.GetBmpSize().x) / 2, (GetSize().y - m_bitmap_normal.GetBmpSize().y) / 2));
+    const bool            enabled = IsEnabled();
+    const ScalableBitmap &icon    = (m_hover && enabled) ? m_bitmap_hover : m_bitmap_normal;
+    const wxBitmap        bmp     = enabled ? icon.bmp() : make_disabled_bitmap(icon.bmp());
+    dc.DrawBitmap(bmp, wxPoint((GetSize().x - icon.GetBmpSize().x) / 2, (GetSize().y - icon.GetBmpSize().y) / 2));
+}
+
+bool CameraItem::Enable(bool enable)
+{
+    bool ret = wxPanel::Enable(enable);
+    m_hover  = false;
+    Refresh();
+    return ret;
+}
+
+wxBitmap CameraItem::make_disabled_bitmap(const wxBitmap &bmp) const
+{
+    if (!bmp.IsOk())
+        return bmp;
+
+    wxImage img = bmp.ConvertToImage();
+    std::vector<unsigned char> alpha;
+    if (img.HasAlpha()) {
+        unsigned char *alpha_data = img.GetAlpha();
+        alpha.assign(alpha_data, alpha_data + img.GetWidth() * img.GetHeight());
     }
+
+    wxImage gray = img.ConvertToGreyscale();
+    if (!alpha.empty()) {
+        if (!gray.HasAlpha())
+            gray.InitAlpha();
+        std::copy(alpha.begin(), alpha.end(), gray.GetAlpha());
+    }
+    return wxBitmap(gray);
 }
 
 }

@@ -905,6 +905,8 @@ if (APPLE)
             GUI/MacIME.hpp
             GUI/Accessibility/AccessibilityMac.mm
             GUI/Accessibility/AccessibilityMac.h
+            GUI/CameraFullscreenMac.mm
+            GUI/CameraFullscreenMac.hpp
         )
     FIND_LIBRARY(DISKARBITRATION_LIBRARY DiskArbitration)
 endif ()

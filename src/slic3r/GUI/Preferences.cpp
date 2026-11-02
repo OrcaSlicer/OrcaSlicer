@@ -1745,6 +1745,12 @@ void PreferencesDialog::create_items()
     auto item_downloads        = create_item_downloads(_L("Downloads folder"), _L("Target folder for downloaded items"));
     g_sizer->Add(item_downloads);
 
+    // Device camera (monitoring live view): open full screen on the active monitor only
+    auto item_camera_fullscreen = create_item_checkbox(_L("Open full screen camera view on active monitor only"),
+        _L("When enabled, the camera full screen view opens only on the monitor that shows OrcaSlicer."),
+        "camera_fullscreen_active_monitor_only");
+    g_sizer->Add(item_camera_fullscreen);
+
     //// GENERAL > Project
     g_sizer->Add(create_item_title(_L("Project")), 1, wxEXPAND);
 

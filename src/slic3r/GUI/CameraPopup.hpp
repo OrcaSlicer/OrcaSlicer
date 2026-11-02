@@ -122,11 +122,18 @@ public:
     ScalableBitmap m_bitmap_hover;
 
     void msw_rescale();
+    void reset_hover();
     void on_enter_win(wxMouseEvent &evt);
     void on_level_win(wxMouseEvent &evt);
     void paintEvent(wxPaintEvent &evt);
     void render(wxDC &dc);
     void doRender(wxDC &dc);
+
+    // Draws a greyed-out icon while disabled.
+    bool Enable(bool enable = true) override;
+
+private:
+    wxBitmap make_disabled_bitmap(const wxBitmap &bmp) const;
 };
 
 }

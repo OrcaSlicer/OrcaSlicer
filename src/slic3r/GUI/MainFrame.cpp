@@ -21,6 +21,7 @@
 #include <wx/bookctrl.h>
 #include "slic3r/GUI/LazyPage.hpp"
 #include "slic3r/GUI/Monitor.hpp"
+#include "slic3r/GUI/StatusPanel.hpp"
 #include "slic3r/GUI/PrinterWebView.hpp"
 #include "slic3r/GUI/MultiMachinePage.hpp"
 #include "slic3r/GUI/CalibrationPanel.hpp"
@@ -2172,6 +2173,23 @@ bool MainFrame::can_change_view() const
     }
 }
 
+bool MainFrame::can_toggle_camera_fullscreen() const
+{
+    MonitorPanel *monitor      = m_monitor_page ? m_monitor_page->get() : nullptr;
+    StatusPanel  *status_panel = monitor ? monitor->get_status_panel() : nullptr;
+    if (!status_panel) return false;
+    if (status_panel->is_camera_fullscreen()) return true;
+    return m_tabpanel && m_tabpanel->GetSelectedPageName() == TAB_ID_MONITOR && status_panel->can_show_camera_fullscreen();
+}
+
+void MainFrame::toggle_camera_fullscreen()
+{
+    MonitorPanel *monitor      = m_monitor_page ? m_monitor_page->get() : nullptr;
+    StatusPanel  *status_panel = monitor ? monitor->get_status_panel() : nullptr;
+    if (!status_panel || !can_toggle_camera_fullscreen()) return;
+    status_panel->toggle_camera_fullscreen();
+}
+
 bool MainFrame::can_clone() const {
     return can_select() && !m_plater->is_selection_empty();
 }
@@ -3453,6 +3471,18 @@ void MainFrame::init_menubar_as_editor()
     if (m_plater) {
         viewMenu = new wxMenu();
         add_common_view_menu_items(viewMenu, std::bind(&MainFrame::can_change_view, this));
+        viewMenu->AppendSeparator();
+
+        wxMenuItem *camera_fullscreen_item = append_menu_item(
+            viewMenu, wxID_ANY, _L("Enter Camera Full Screen"), _L("Show the Device camera in full screen"),
+            [this](wxCommandEvent &) { toggle_camera_fullscreen(); }, "", nullptr);
+        Bind(wxEVT_UPDATE_UI, [this, camera_fullscreen_item](wxUpdateUIEvent &evt) {
+            MonitorPanel *monitor      = m_monitor_page ? m_monitor_page->get() : nullptr;
+            StatusPanel  *status_panel = monitor ? monitor->get_status_panel() : nullptr;
+            const bool    active       = status_panel && status_panel->is_camera_fullscreen();
+            camera_fullscreen_item->SetItemLabel(active ? _L("Exit Camera Full Screen") : _L("Enter Camera Full Screen"));
+            evt.Enable(can_toggle_camera_fullscreen());
+        }, camera_fullscreen_item->GetId());
         viewMenu->AppendSeparator();
 
         //BBS perspective view
