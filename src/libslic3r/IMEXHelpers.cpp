@@ -194,18 +194,18 @@ std::string imex_multicolor_block_reason(const std::string& parallel_mode,
             continue;
         std::string tools;
         for (int head : color_heads)
-            tools += (tools.empty() ? "T" : "/T") + std::to_string(head);
-        // Filaments are numbered from 1 as the sidebar shows them, heads by their T index; the map
-        // decides which head a filament is on, so with MMU lanes the two numbers differ.
+            tools += (tools.empty() ? "T" : "/T") + std::to_string(head + 1);
+        // Filaments and heads are both numbered from 1 as the sidebar shows them; the map decides
+        // which head a filament is on, so with MMU lanes the two numbers differ.
         if (phys < 0)
-            // TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+            // TRN %1% is a list of tools such as "T1/T2", %2% a filament number.
             return (boost::format(L("In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any "
                                     "tool. Use filaments routed to %1%, or switch this plate to Primary mode.")) %
                     tools % (filament + 1)).str();
-        // TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+        // TRN %1% is a list of tools such as "T1/T2", %2% a filament number, %3% a tool number.
         return (boost::format(L("In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use "
                                 "filaments routed to %1%, or switch this plate to Primary mode.")) %
-                tools % (filament + 1) % phys).str();
+                tools % (filament + 1) % (phys + 1)).str();
     }
     return {};
 }
