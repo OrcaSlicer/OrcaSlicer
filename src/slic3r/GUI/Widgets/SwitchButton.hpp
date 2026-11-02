@@ -15,6 +15,7 @@
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/scrolwin.h>
+#include <wx/setup.h>
 #include <wx/string.h>
 #include <wx/tglbtn.h>
 #include "Button.hpp"

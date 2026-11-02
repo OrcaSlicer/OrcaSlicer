@@ -5,6 +5,7 @@
 #include "StateHandler.hpp"
 #include "WidgetAccessible.hpp"
 
+#include <wx/access.h>
 #include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <wx/gdicmn.h>
@@ -12,6 +13,7 @@
 #include <wx/colour.h>
 #include <wx/peninfobase.h>
 #include <wx/event.h>
+#include <wx/setup.h>
 #include <wx/window.h>
 
 class StaticBox : public wxWindow

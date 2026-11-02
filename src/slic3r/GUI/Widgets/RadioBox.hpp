@@ -3,6 +3,7 @@
 
 #include "../wxExtensions.hpp"
 
+#include <wx/setup.h>
 #include <wx/tglbtn.h>
 
 class wxWindow;

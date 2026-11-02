@@ -2,9 +2,11 @@
 #include "Button.hpp"
 #include "Label.hpp"
 #include "StaticBox.hpp"
+#include "WidgetAccessible.hpp"
 
 #include "../wxExtensions.hpp"
 
+#include <wx/access.h>
 #include <wx/event.h>
 #include <wx/checklst.h>
 #include <wx/gdicmn.h>
@@ -19,6 +21,7 @@
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
 #include <wx/scrolwin.h>
 #include <wx/settings.h>
+#include <wx/setup.h>
 #include <wx/tglbtn.h>
 #include <wx/string.h>
 #include <wx/types.h>

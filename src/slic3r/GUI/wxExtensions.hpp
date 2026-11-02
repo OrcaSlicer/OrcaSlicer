@@ -12,6 +12,7 @@
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/rtti.h>
+#include <wx/setup.h>
 #include <wx/sizer.h>
 #include <wx/menu.h>
 #include <wx/bmpcbox.h>

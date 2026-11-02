@@ -1,7 +1,10 @@
 #ifndef slic3r_GUI_WidgetAccessible_hpp_
 #define slic3r_GUI_WidgetAccessible_hpp_
 
+#include <utility>
 #include <wx/access.h>
+#include <wx/setup.h>
+#include <wx/string.h>
 #include <wx/window.h>
 
 #if wxUSE_ACCESSIBILITY

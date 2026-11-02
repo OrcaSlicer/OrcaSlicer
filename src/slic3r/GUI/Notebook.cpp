@@ -9,6 +9,7 @@
 
 //BBS set font size
 
+#include <wx/access.h>
 #include <wx/bookctrl.h>
 #include <cmath>
 #include <cstddef>
@@ -20,7 +21,9 @@
 #include <wx/dcclient.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
+#include <wx/setup.h>
 #include <wx/sizer.h>
+#include <wx/variant.h>
 #include <wx/window.h>
 
 wxDEFINE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);

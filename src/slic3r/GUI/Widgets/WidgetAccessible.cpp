@@ -1,8 +1,14 @@
 #include "WidgetAccessible.hpp"
 
+#include <wx/setup.h>
+
 #if wxUSE_ACCESSIBILITY
 
+#include <wx/access.h>
 #include <wx/control.h>
+#include <wx/defs.h>
+#include <wx/object.h>
+#include <wx/string.h>
 #include <wx/window.h>
 #include <utility>
 

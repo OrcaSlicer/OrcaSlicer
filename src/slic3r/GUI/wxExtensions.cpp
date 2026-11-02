@@ -7,9 +7,11 @@
 #include <cstddef>
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include "slic3r/GUI/Widgets/WidgetAccessible.hpp"
 #include <stdexcept>
 #include <cmath>
 
+#include <wx/access.h>
 #include <wx/event.h>
 #include <wx/checklst.h>
 #include <string>
@@ -24,6 +26,7 @@
 #include <wx/object.h>
 #include <wx/popupwin.h>
 #include <wx/panel.h>
+#include <wx/setup.h>
 #include <wx/sizer.h>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/log/trivial.hpp>

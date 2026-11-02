@@ -14,6 +14,7 @@
 #include <wx/debug.h>
 #include <wx/chartype.h>
 #include <wx/object.h>
+#include <wx/setup.h>
 #include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/withimages.h>

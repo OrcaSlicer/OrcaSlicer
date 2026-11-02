@@ -4,6 +4,7 @@
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include <utility>
 #include "slic3r/GUI/Widgets/DropDown.hpp"
+#include <wx/access.h>
 #include <wx/clntdata.h>
 #include <vector>
 #include <wx/arrstr.h>
@@ -11,6 +12,7 @@
 #include <wx/containr.h>
 #include <wx/dcgraph.h>
 #include <wx/textctrl.h>
+#include <wx/setup.h>
 #include <wx/string.h>
 #include <wx/gdicmn.h>
 #include <wx/event.h>

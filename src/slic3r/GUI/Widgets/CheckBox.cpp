@@ -2,9 +2,12 @@
 #include "WidgetAccessible.hpp"
 
 #include "../wxExtensions.hpp"
+#include <wx/access.h>
 #include <wx/anybutton.h>
 #include <wx/gdicmn.h>
 #include <wx/checklst.h>
+#include <wx/setup.h>
+#include <wx/string.h>
 #include <wx/tglbtn.h>
 
 #ifdef __WXGTK__
