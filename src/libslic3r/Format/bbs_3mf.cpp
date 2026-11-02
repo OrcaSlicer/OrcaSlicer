@@ -59,7 +59,9 @@
 #include <boost/thread/thread_time.hpp>
 #include <boost/core/ref.hpp>
 #include <boost/assign/list_of.hpp>
+#include <array>
 #include <cmath>
+#include <system_error>
 #include <limits>
 #include <miniz.h>
 #include <ostream>
@@ -362,6 +364,14 @@ static constexpr const char* TEXTURE_DISPLACEMENT_ATTRS[Slic3r::TEXTURE_DISPLACE
     "paint_texture_0", "paint_texture_1", "paint_texture_2", "paint_texture_3",
     "paint_texture_4", "paint_texture_5", "paint_texture_6", "paint_texture_7" };
 static constexpr const char* TEXTURE_DISPLACEMENT_KEY = "texture_displacement";
+// A part's own UV channel (ModelVolume::texture_uv), one attribute per triangle: the u, v pairs of its three
+// corners in the triangle's vertex order, "u1 v1 u2 v2 u3 v3". Written only for a part that has a channel. Readers
+// that do not know the attribute ignore it, as they do the paint attributes beside it.
+// The 3MF Materials and Properties extension (m:texture2dgroup of m:tex2coord, triangles naming pid/p1/p2/p3) is not
+// used: its texture2d must point at a real image in the package, and a part with UVs but no texture layer has none;
+// other programs would show that image as the surface colour, which is wrong for a height map; and a triangle carries
+// only one pid, which the existing colour and material resources already use.
+static constexpr const char* TEXTURE_UV_ATTR = "texture_uv";
 static constexpr const char* TEXTURE_DISPLACEMENT_DIR = "Metadata/texture_displacement/";
 // BBS
 static constexpr const char* FACE_PROPERTY_ATTR = "face_property";
@@ -547,6 +557,23 @@ float bbs_get_attribute_value_float(const char** attributes, unsigned int attrib
     if (const char *text = bbs_get_attribute_value_charptr(attributes, attributes_size, attribute_key); text != nullptr)
         fast_float::from_chars(text, text + strlen(text), value);
     return value;
+}
+
+// Parses "u1 v1 u2 v2 u3 v3". False if any of the six is missing or not a finite number, or if anything follows them.
+static bool parse_texture_uv(const char *text, std::array<float, 6> &out)
+{
+    const char *end = text + strlen(text);
+    for (float &value : out) {
+        while (text < end && (*text == ' ' || *text == '\t' || *text == '\n' || *text == '\r'))
+            ++text;
+        const auto result = fast_float::from_chars(text, end, value);
+        if (result.ec != std::errc() || !std::isfinite(value))
+            return false;
+        text = result.ptr;
+    }
+    while (text < end && (*text == ' ' || *text == '\t' || *text == '\n' || *text == '\r'))
+        ++text;
+    return text == end;
 }
 
 int bbs_get_attribute_value_int(const char** attributes, unsigned int attributes_size, const char* attribute_key)
@@ -859,6 +886,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             // One per texture displacement layer slot, indexed like `triangles` but stored only as far as the
             // slot's last painted triangle: empty when the slot has no paint, which is nearly every file.
             std::vector<std::string> texture_displacement[TEXTURE_DISPLACEMENT_MAX_LAYERS];
+            // The UV channel, three corners per triangle (indexed like `triangles`, zeros where a triangle carries
+            // none), and which triangles carried one: a channel is taken only when all of a part's triangles did.
+            std::vector<Vec2f> texture_uv;
+            std::vector<bool>  has_texture_uv;
             // BBS
             std::vector<std::string> face_properties;
 
@@ -881,6 +912,38 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 fuzzy_skin.clear();
                 for (std::vector<std::string> &slot : texture_displacement)
                     slot.clear();
+                texture_uv.clear();
+                has_texture_uv.clear();
+            }
+
+            // Reads the triangle just appended to `triangles`.
+            void add_texture_uv(const char *text)
+            {
+                std::array<float, 6> uv;
+                if (text == nullptr || !parse_texture_uv(text, uv))
+                    return;
+                const size_t triangle = triangles.size() - 1;
+                texture_uv.resize(triangles.size() * 3, Vec2f::Zero());
+                has_texture_uv.resize(triangles.size(), false);
+                for (size_t corner = 0; corner < 3; ++corner)
+                    texture_uv[triangle * 3 + corner] = Vec2f(uv[corner * 2], uv[corner * 2 + 1]);
+                has_texture_uv[triangle] = true;
+            }
+            // The channel of triangles [first, first + count) for a part whose mesh may have been flipped on load,
+            // or an empty vector when some of them carried none.
+            std::vector<Vec2f> texture_uv_of(size_t first, size_t count, bool flipped) const
+            {
+                std::vector<Vec2f> out;
+                if (count == 0 || first + count > has_texture_uv.size())
+                    return out;
+                for (size_t i = first; i < first + count; ++i)
+                    if (!has_texture_uv[i])
+                        return out;
+                out.assign(texture_uv.begin() + first * 3, texture_uv.begin() + (first + count) * 3);
+                if (flipped) // the mesh swapped corners 1 and 2 of every triangle
+                    for (size_t i = 0; i < count; ++i)
+                        std::swap(out[i * 3 + 1], out[i * 3 + 2]);
+                return out;
             }
         };
 
@@ -4047,6 +4110,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     mask.resize(m_curr_object->geometry.triangles.size());
                     mask.back() = paint;
                 }
+            m_curr_object->geometry.add_texture_uv(bbs_get_attribute_value_charptr(attributes, num_attributes, TEXTURE_UV_ATTR));
             // BBS
             m_curr_object->geometry.face_properties.push_back(bbs_get_attribute_value_string(attributes, num_attributes, FACE_PROPERTY_ATTR));
         }
@@ -5273,6 +5337,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             ModelVolume* volume = nullptr;
             ModelVolume *shared_volume = nullptr;
+            bool         uv_flipped    = false;
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": line %1%, subobject_id %2%, shared_mesh_id %3%")%__LINE__ %sub_object->id %shared_mesh_id;
             if (shared_mesh_id != -1) {
                 std::map<int, ModelVolume*>::iterator iter = m_shared_meshes.find(shared_mesh_id);
@@ -5340,8 +5405,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 //        //FIXME do the mesh fixing?
                 //    }
                 //}
-                if (triangle_mesh.volume() < 0)
+                if (triangle_mesh.volume() < 0) {
                     triangle_mesh.flip_triangles();
+                    uv_flipped = true;
+                }
 
                 volume = object.add_volume(std::move(triangle_mesh));
 
@@ -5411,6 +5478,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     facets.shrink_to_fit();
                     facets.touch();
                 }
+                // A volume sharing a mesh shares its channel (the exporter shares only equal ones).
+                volume->texture_uv = shared_volume ? shared_volume->texture_uv
+                                                   : sub_object->geometry.texture_uv_of(0, triangles_count, uv_flipped);
             }
 
             volume->set_type(volume_data->part_type);
@@ -5923,6 +5993,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     mask.resize(current_object->geometry.triangles.size());
                     mask.back() = paint;
                 }
+            current_object->geometry.add_texture_uv(bbs_get_attribute_value_charptr(attributes, num_attributes, TEXTURE_UV_ATTR));
             // BBS
             current_object->geometry.face_properties.push_back(bbs_get_attribute_value_string(attributes, num_attributes, FACE_PROPERTY_ATTR));
         }
@@ -7380,7 +7451,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                                     && (shared_volume->seam_facets.equals(volume->seam_facets))
                                     && (shared_volume->mmu_segmentation_facets.equals(volume->mmu_segmentation_facets))
                                     && (shared_volume->fuzzy_skin_facets.equals(volume->fuzzy_skin_facets))
-                                    && same_texture_paint)
+                                    && same_texture_paint
+                                    && shared_volume->texture_uv == volume->texture_uv)
                                 {
                                     auto data = iter->second.first;
                                     const_cast<_BBS_3MF_Exporter *>(this)->m_volume_paths.insert({volume, {data->sub_path, data->volumes_objectID.find(iter->second.second)->second}});
@@ -7807,6 +7879,20 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     output_buffer += TEXTURE_DISPLACEMENT_ATTRS[slot];
                     output_buffer += "=\"";
                     output_buffer += texture_paint;
+                    output_buffer += "\"";
+                }
+
+                // The part's own UV channel, three corners per triangle in the triangle's vertex order.
+                if (volume->has_texture_uv()) {
+                    output_buffer += " ";
+                    output_buffer += TEXTURE_UV_ATTR;
+                    output_buffer += "=\"";
+                    for (int corner = 0; corner < 3; ++corner) {
+                        const Vec2f &uv = volume->texture_uv[size_t(i) * 3 + corner];
+                        // 7 digits: a UV is a position on an image, finer than 1e-6 of it is not meaningful.
+                        snprintf(buf, sizeof(buf), corner < 2 ? "%.7g %.7g " : "%.7g %.7g", uv.x(), uv.y());
+                        output_buffer += buf;
+                    }
                     output_buffer += "\"";
                 }
 

@@ -981,7 +981,8 @@ public:
     // The model's own texture coordinates, as the file it was imported from carried them: three per
     // triangle of mesh().its, in its triangle order (corner k of triangle i at 3i+k), V already
     // flipped to the sampling convention (V = 0 is the image's top row). Empty when the source had
-    // none, which is every STL and every 3mf - only a textured OBJ brings one in today.
+    // none, which is every STL, and every 3mf saved without one. A textured OBJ brings one in, and a 3mf
+    // keeps it (the texture_uv attribute of each triangle).
     //
     // Per corner rather than per vertex because that is what a UV layout is: the two sides of a seam
     // are the same vertex with two different coordinates, and collapsing them would smear the texture
