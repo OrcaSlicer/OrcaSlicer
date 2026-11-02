@@ -3988,14 +3988,16 @@ void PublishSettingsDialog::refresh_page_indicators(size_t category_index)
     Tab*            tab      = category.publish_tab;
     if (tab == nullptr)
         return;
-    // One dot per page: it publishes something when any row drawn on that page is checked, of
-    // whichever variant column. Pages without rows are not visited, so they stay off.
+    // One dot per page: it publishes something when any row drawn on that page is checked and not
+    // disabled (a row the setting's rule hides, or a Full Publish row, publishes nothing). Pages
+    // without rows are not visited, so they stay off.
     std::map<wxString, bool> pages;
     for (const size_t r : category.rows) {
         const Row& row = m_rows[r];
         if (row.page_title.empty())
             continue;
-        pages[row.page_title] = pages[row.page_title] || m_selection.checked(row.id);
+        const bool publishes = m_selection.checked(row.id) && m_selection.enabled(row.id);
+        pages[row.page_title] = pages[row.page_title] || publishes;
     }
     for (const auto& [title, on] : pages)
         tab->set_publish_page_indicator(title, on);
