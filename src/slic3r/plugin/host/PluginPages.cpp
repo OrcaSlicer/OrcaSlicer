@@ -1,11 +1,14 @@
 #include "PluginPages.hpp"
+#include "PluginPageOrder.hpp"
 
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 
@@ -29,6 +32,7 @@
 #include <wx/app.h>
 #include <vector>
 #include <wx/bookctrl.h>
+#include <wx/colour.h>
 #include <wx/event.h>
 #include <wx/menu.h>
 #include <wx/sizer.h>
@@ -39,6 +43,8 @@
 
 namespace Slic3r {
 namespace {
+
+constexpr char PLUGIN_PAGES_ORDER_SETTING[] = "plugin_pages_order";
 
 constexpr char PLUGIN_PAGE_BRIDGE_JS[] = R"JS(
 (function () {
@@ -176,6 +182,15 @@ void PluginPages::initialize(Notebook* parent)
         return;
 
     m_visible_page_count = GUI::wxGetApp().app_config->get_plugin_pages_visible_count();
+    const std::string saved_order = GUI::wxGetApp().app_config->get(PLUGIN_PAGES_ORDER_SETTING);
+    if (const auto parsed = parse_plugin_page_order(saved_order))
+        m_preferred_order = *parsed;
+    else {
+        m_preferred_order.clear();
+        if (!saved_order.empty())
+            BOOST_LOG_TRIVIAL(warning) << "Ignoring malformed saved plugin page order";
+    }
+    m_parent->Bind(wxCUSTOMEVT_NOTEBOOK_TAB_REORDER, &PluginPages::on_tab_reorder, this);
 
     for (const auto& capability : PluginManager::instance().get_plugin_capabilities("", PluginCapabilityType::Pages)) {
         if (capability)
@@ -186,11 +201,20 @@ void PluginPages::initialize(Notebook* parent)
 
 void PluginPages::shutdown()
 {
-    // Removing the selected tab selects the tab to its left. In tab order that is a built-in tab,
-    // never an unbuilt plugin page that is removed next and would be built only to be destroyed.
+    if (m_parent != nullptr) {
+        m_parent->Unbind(wxCUSTOMEVT_NOTEBOOK_TAB_REORDER, &PluginPages::on_tab_reorder, this);
+        remove_notebook_pages();
+        if (m_overflow_button != nullptr) {
+            m_parent->SetOverflowButton(nullptr);
+            m_overflow_button->Destroy();
+            m_overflow_button = nullptr;
+        }
+    }
+    m_parent = nullptr;
+    m_swapped_in_id.reset();
+    // No relayout during teardown: it could insert a hidden page only to remove it next.
     for (const PluginCapabilityId& id : std::vector<PluginCapabilityId>(m_order))
         remove_page(id);
-    m_parent = nullptr;
 }
 
 void PluginPages::set_visible_page_count(int count)
@@ -256,6 +280,19 @@ bool PluginPages::create_page(const PluginCapabilityId& id)
 
     m_pages.emplace(id, Page{page, bitmap});
     m_order.push_back(id);
+    if (std::find(m_preferred_order.begin(), m_preferred_order.end(), id) == m_preferred_order.end())
+        m_preferred_order.push_back(id);
+    order_plugin_pages(m_order, m_preferred_order);
+    // A late registration at a saved position can push the active page into overflow.
+    const int visible_slots = std::max(1, m_visible_page_count);
+    if (static_cast<int>(m_order.size()) > visible_slots) {
+        wxWindow* selected_page = m_parent->GetCurrentPage();
+        for (auto it = m_order.begin() + (visible_slots - 1); it != m_order.end(); ++it)
+            if (m_pages.at(*it).page == selected_page) {
+                m_swapped_in_id = *it;
+                break;
+            }
+    }
     return true;
 }
 
@@ -316,6 +353,74 @@ wxString PluginPages::page_tab_id(const PluginCapabilityId& id)
     return wxString::FromUTF8("plugin." + id.plugin_key + "." + id.name);
 }
 
+void PluginPages::remove_notebook_pages()
+{
+    if (m_parent == nullptr)
+        return;
+
+    // Notebook order can differ from m_order after a drag or overflow selection.
+    // Removing left to right never selects/builds an unvisited plugin page to the left.
+    for (size_t index = 0; index < m_parent->GetPageCount();) {
+        wxWindow* page = m_parent->GetPage(index);
+        const bool is_plugin_page = std::any_of(m_pages.begin(), m_pages.end(), [page](const auto& entry) {
+            return entry.second.page == page;
+        });
+        if (is_plugin_page)
+            m_parent->RemovePage(index);
+        else
+            ++index;
+    }
+}
+
+void PluginPages::on_tab_reorder(wxCommandEvent& event)
+{
+    if (m_parent == nullptr || event.GetEventObject() != m_parent)
+        return;
+
+    const int source_index = event.GetInt();
+    const long target_index = event.GetExtraLong();
+    if (source_index < 0 || target_index < 0 ||
+        static_cast<size_t>(source_index) >= m_parent->GetPageCount() ||
+        static_cast<size_t>(target_index) >= m_parent->GetPageCount())
+        return;
+    if (event.GetString() != "before" && event.GetString() != "after")
+        return;
+
+    wxWindow* source_page = m_parent->GetPage(static_cast<size_t>(source_index));
+    wxWindow* target_page = m_parent->GetPage(static_cast<size_t>(target_index));
+    const auto source = std::find_if(m_pages.begin(), m_pages.end(), [source_page](const auto& entry) {
+        return entry.second.page == source_page;
+    });
+    const auto target = std::find_if(m_pages.begin(), m_pages.end(), [target_page](const auto& entry) {
+        return entry.second.page == target_page;
+    });
+    // Only actual, active plugin pages participate; built-in tabs are never movable.
+    if (source == m_pages.end() || target == m_pages.end())
+        return;
+
+    std::optional<PluginCapabilityId> selected;
+    wxWindow* selected_page = m_parent->GetCurrentPage();
+    for (const auto& [id, entry] : m_pages)
+        if (entry.page == selected_page)
+            selected = id;
+    if (!move_plugin_page(m_preferred_order, source->first, target->first, event.GetString() == "before"))
+        return;
+
+    order_plugin_pages(m_order, m_preferred_order);
+    // Preserve the active page ahead of keeping the dragged page visible in overflow.
+    const int visible_slots = std::max(1, m_visible_page_count);
+    if (static_cast<int>(m_order.size()) > visible_slots) {
+        const auto overflow_begin = m_order.begin() + (visible_slots - 1);
+        if (selected && std::find(overflow_begin, m_order.end(), *selected) != m_order.end())
+            m_swapped_in_id = *selected;
+        else if (std::find(overflow_begin, m_order.end(), source->first) != m_order.end())
+            m_swapped_in_id = source->first;
+    }
+    relayout();
+    // AppConfig marks the value dirty; the usual idle/exit save persists this user action.
+    GUI::wxGetApp().app_config->set(PLUGIN_PAGES_ORDER_SETTING, serialize_plugin_page_order(m_preferred_order));
+}
+
 void PluginPages::relayout()
 {
     if (m_parent == nullptr)
@@ -353,25 +458,37 @@ void PluginPages::relayout()
     // nothing, so only touch the notebook when the trailing slots don't already spell out
     // tab_ids — a rebuild destroys and recreates every tab button and rasterizes every icon.
     const size_t page_count = m_parent->GetPageCount();
-    bool up_to_date = page_count >= tab_ids.size();
-    for (size_t i = 0; up_to_date && i < tab_ids.size(); ++i)
-        up_to_date = m_parent->GetPageName(page_count - tab_ids.size() + i) == page_tab_id(tab_ids[i]);
+    bool same_membership = page_count >= tab_ids.size();
     for (const auto& [id, entry] : m_pages) {
-        if (!up_to_date)
+        if (!same_membership)
             break;
         const bool wanted = std::find(tab_ids.begin(), tab_ids.end(), id) != tab_ids.end();
-        up_to_date = entry.page->in_book() == wanted;
+        same_membership = entry.page->in_book() == wanted;
+    }
+    bool up_to_date = same_membership;
+    for (size_t i = 0; up_to_date && i < tab_ids.size(); ++i)
+        up_to_date = m_parent->GetPage(page_count - tab_ids.size() + i) == m_pages.at(tab_ids[i]).page;
+
+    bool reordered = false;
+    if (!up_to_date && same_membership) {
+        // A permutation can move the existing buttons/pages without selection events,
+        // flicker or rebuilding a browser. Membership changes still use the normal path.
+        reordered = true;
+        for (size_t i = 0; i < tab_ids.size(); ++i) {
+            const int source = m_parent->FindPage(m_pages.at(tab_ids[i]).page);
+            const size_t destination = page_count - tab_ids.size() + i;
+            if (source == wxNOT_FOUND || (static_cast<size_t>(source) != destination &&
+                !m_parent->MovePage(static_cast<size_t>(source), destination))) {
+                reordered = false;
+                break;
+            }
+        }
     }
 
-    if (!up_to_date) {
-        const wxString id_to_reselect = m_parent->GetSelectedPageName();
+    if (!up_to_date && !reordered) {
+        wxWindow* selected_page = m_parent->GetCurrentPage();
 
-        // In tab order, as in shutdown().
-        for (const auto& id : m_order) {
-            const int idx = m_parent->FindPage(m_pages.at(id).page);
-            if (idx != wxNOT_FOUND)
-                m_parent->RemovePage(idx);
-        }
+        remove_notebook_pages();
 
         for (const auto& id : tab_ids) {
             const Page& entry = m_pages.at(id);
@@ -379,15 +496,21 @@ void PluginPages::relayout()
                                  false, entry.icon);
         }
 
-        if (!id_to_reselect.empty())
-            m_parent->SelectPageByName(id_to_reselect);
+        if (const int selection = m_parent->FindPage(selected_page); selection != wxNOT_FOUND)
+            m_parent->SetSelection(static_cast<size_t>(selection));
     }
 
     const bool overflow_changed = need_overflow != (m_overflow_button != nullptr);
     if (need_overflow) {
         if (m_overflow_button == nullptr) {
-            auto* btn = new Button(m_parent->GetBtnsListCtrl(), wxString(L"\u25BE"), wxString(), wxNO_BORDER);
+            auto* btn = new Button(m_parent->GetBtnsListCtrl(), wxString(), "sidebutton_dropdown", wxNO_BORDER, 14);
+            btn->SetName(_L("More"));
+            btn->SetToolTip(_L("More"));
             btn->SetCornerRadius(0);
+            btn->SetBackgroundColor(StateColor(
+                std::pair{wxColour(107, 107, 107), int(StateColor::Hovered)},
+                std::pair{wxColour(59, 68, 70), int(StateColor::Normal)}));
+            btn->SetTextColor(StateColor(wxColour(254, 254, 254)));
             const int em = em_unit(m_parent);
             btn->SetMinSize({40 * em / 10, 36 * em / 10});
             btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { show_overflow_menu(); });
@@ -415,7 +538,8 @@ void PluginPages::select_page(const PluginCapabilityId& id)
     // Swap the page into the visible slot first when it lives behind the overflow menu.
     m_swapped_in_id = id;
     relayout();
-    m_parent->SelectPageByName(page_tab_id(id));
+    if (const int selection = m_parent->FindPage(m_pages.at(id).page); selection != wxNOT_FOUND)
+        m_parent->SetSelection(static_cast<size_t>(selection));
 }
 
 void PluginPages::show_overflow_menu()
@@ -439,9 +563,7 @@ void PluginPages::show_overflow_menu()
         const size_t index = static_cast<size_t>(evt.GetId() - (wxID_HIGHEST + 1));
         if (index >= overflow_ids.size())
             return;
-        m_swapped_in_id = overflow_ids[index];
-        relayout();
-        m_parent->SelectPageByName(page_tab_id(*m_swapped_in_id));
+        select_page(overflow_ids[index]);
     });
     m_overflow_button->PopupMenu(&menu);
 }

@@ -20,9 +20,14 @@
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
+#include <wx/cursor.h>
+#include <wx/panel.h>
+#include <wx/settings.h>
+#include <wx/weakref.h>
 #include <wx/window.h>
 
 wxDEFINE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);
+wxDEFINE_EVENT(wxCUSTOMEVT_NOTEBOOK_TAB_REORDER, wxCommandEvent);
 
 ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, wxBoxSizer* side_tools) :
     wxControl(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxTAB_TRAVERSAL)
@@ -68,6 +73,128 @@ ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, wxBoxSizer* side_tools) :
     //this->Bind(wxEVT_PAINT, &ButtonsListCtrl::OnPaint, this);
     Bind(wxEVT_SYS_COLOUR_CHANGED, [](auto& e){
     });
+}
+
+ButtonsListCtrl::~ButtonsListCtrl()
+{
+    CancelDrag();
+}
+
+void ButtonsListCtrl::CancelDrag()
+{
+    Button* button = std::exchange(m_drag_button, nullptr);
+    m_dragging = false;
+    if (m_drop_indicator != nullptr)
+        m_drop_indicator->Hide();
+    if (button != nullptr) {
+        button->SetCursor(wxNullCursor);
+        if (button->HasCapture())
+            button->ReleaseMouse();
+    }
+}
+
+int ButtonsListCtrl::DraggablePageAt(const wxPoint& position) const
+{
+    for (size_t i = 0; i < m_pageButtons.size(); ++i)
+        if (m_pageDraggable[i] && m_pageButtons[i]->GetRect().Contains(position))
+            return static_cast<int>(i);
+    return wxNOT_FOUND;
+}
+
+void ButtonsListCtrl::OnTabMouseDown(Button* button, wxMouseEvent& event)
+{
+    CancelDrag();
+    m_drag_button = button;
+    m_drag_start = event.GetPosition();
+    button->SetFocus();
+    button->CaptureMouse();
+    // Do not enter Button's click handling: losing capture there synthesises a click.
+}
+
+void ButtonsListCtrl::OnTabMouseMotion(Button* button, wxMouseEvent& event)
+{
+    if (m_drag_button != button) {
+        event.Skip();
+        return;
+    }
+    if (!event.LeftIsDown()) {
+        CancelDrag();
+        return;
+    }
+    const wxPoint delta = event.GetPosition() - m_drag_start;
+    if (!m_dragging) {
+        const int threshold_x = std::max(FromDIP(4), wxSystemSettings::GetMetric(wxSYS_DRAG_X, this));
+        const int threshold_y = std::max(FromDIP(4), wxSystemSettings::GetMetric(wxSYS_DRAG_Y, this));
+        if (std::abs(delta.x) < threshold_x && std::abs(delta.y) < threshold_y)
+            return;
+        m_dragging = true;
+    }
+
+    const wxPoint position = ScreenToClient(button->ClientToScreen(event.GetPosition()));
+    const int target = DraggablePageAt(position);
+    button->SetCursor(wxCursor(target == wxNOT_FOUND ? wxCURSOR_NO_ENTRY : wxCURSOR_HAND));
+    if (target == wxNOT_FOUND || m_pageButtons[target] == button) {
+        if (m_drop_indicator != nullptr)
+            m_drop_indicator->Hide();
+        return;
+    }
+    const wxRect rect = m_pageButtons[target]->GetRect();
+    const bool before = position.x < rect.x + rect.width / 2;
+    if (m_drop_indicator == nullptr)
+        m_drop_indicator = new wxPanel(this, wxID_ANY);
+    const int width = FromDIP(3);
+    const int edge = before ? rect.x : rect.x + rect.width;
+    m_drop_indicator->SetBackgroundColour(Slic3r::GUI::wxGetApp().get_color_hovered_btn_label());
+    m_drop_indicator->SetSize(std::max(0, edge - width / 2), rect.y, width, rect.height);
+    m_drop_indicator->Show();
+    m_drop_indicator->Raise();
+    m_drop_indicator->Refresh();
+}
+
+void ButtonsListCtrl::OnTabMouseUp(Button* button, wxMouseEvent& event)
+{
+    if (m_drag_button != button)
+        return;
+
+    const auto source_it = std::find(m_pageButtons.begin(), m_pageButtons.end(), button);
+    const int source = source_it == m_pageButtons.end() ? wxNOT_FOUND : static_cast<int>(source_it - m_pageButtons.begin());
+    const wxPoint position = ScreenToClient(button->ClientToScreen(event.GetPosition()));
+    const int target = DraggablePageAt(position);
+    const bool dragged = m_dragging;
+    const bool clicked = button->GetRect().Contains(position);
+    const bool before = target != wxNOT_FOUND &&
+                        position.x < m_pageButtons[target]->GetRect().x + m_pageButtons[target]->GetRect().width / 2;
+    CancelDrag();
+
+    if (source == wxNOT_FOUND)
+        return;
+    if (dragged) {
+        if (target == wxNOT_FOUND || source == target)
+            return;
+        auto* book = static_cast<Notebook*>(GetParent());
+        const wxWeakRef<wxWindow> source_page(book->GetPage(source));
+        const wxWeakRef<wxWindow> target_page(book->GetPage(target));
+        // Overflow can replace buttons. Finish this mouse event before relayout and resolve
+        // page pointers again so an intervening unload cannot reorder different pages.
+        book->CallAfter([book, source_page, target_page, before] {
+            if (!source_page || !target_page)
+                return;
+            const int from = book->FindPage(source_page.get());
+            const int to = book->FindPage(target_page.get());
+            if (from == wxNOT_FOUND || to == wxNOT_FOUND)
+                return;
+            wxCommandEvent reorder(wxCUSTOMEVT_NOTEBOOK_TAB_REORDER);
+            reorder.SetEventObject(book);
+            reorder.SetInt(from);
+            reorder.SetExtraLong(to);
+            reorder.SetString(before ? "before" : "after");
+            book->GetEventHandler()->ProcessEvent(reorder);
+        });
+    } else if (clicked) {
+        wxCommandEvent selected(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED);
+        selected.SetId(source);
+        wxPostEvent(GetParent(), selected);
+    }
 }
 
 void ButtonsListCtrl::OnPaint(wxPaintEvent&)
@@ -166,8 +293,10 @@ void ButtonsListCtrl::SetSelection(int sel)
     Refresh();
 }
 
-bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /* = false*/, const std::string &bmp_name /* = ""*/, const wxBitmap &bmp /* = wxNullBitmap */)
+bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /* = false*/, const std::string &bmp_name /* = ""*/, const wxBitmap &bmp /* = wxNullBitmap */,
+                                 bool draggable /* = false */)
 {
+    CancelDrag();
     Button * btn = new Button(this, text, bmp_name, wxNO_BORDER);
     btn->SetCornerRadius(0);
 
@@ -207,10 +336,28 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
             wxPostEvent(this->GetParent(), evt);
         }
     });
+    if (draggable) {
+        btn->Bind(wxEVT_LEFT_DOWN, [this, btn](wxMouseEvent& event) { OnTabMouseDown(btn, event); });
+        btn->Bind(wxEVT_MOTION, [this, btn](wxMouseEvent& event) { OnTabMouseMotion(btn, event); });
+        btn->Bind(wxEVT_LEFT_UP, [this, btn](wxMouseEvent& event) { OnTabMouseUp(btn, event); });
+        btn->Bind(wxEVT_MOUSE_CAPTURE_LOST, [this](wxMouseCaptureLostEvent&) { CancelDrag(); });
+        btn->Bind(wxEVT_KEY_DOWN, [this, btn](wxKeyEvent& event) {
+            if (m_drag_button == btn && event.GetKeyCode() == WXK_ESCAPE)
+                CancelDrag();
+            else
+                event.Skip();
+        });
+        btn->Bind(wxEVT_KILL_FOCUS, [this, btn](wxFocusEvent& event) {
+            if (m_drag_button == btn)
+                CancelDrag();
+            event.Skip();
+        });
+    }
     Slic3r::GUI::wxGetApp().UpdateDarkUI(btn);
     m_pageButtons.insert(m_pageButtons.begin() + n, btn);
     m_pageLabels.insert(m_pageLabels.begin() + n, text); // ORCA
     m_pageIcons.insert(m_pageIcons.begin() + n, bmp_name);
+    m_pageDraggable.insert(m_pageDraggable.begin() + n, draggable);
     m_buttons_sizer->Insert(n, new wxSizerItem(btn));
     m_buttons_sizer->SetCols(m_buttons_sizer->GetCols() + 1);
     m_sizer->Layout();
@@ -222,6 +369,7 @@ void ButtonsListCtrl::RemovePage(size_t n)
     if (n >= m_pageButtons.size())
         return;
 
+    CancelDrag();
     if (m_selection == static_cast<int>(n))
         m_selection = -1;
     else if (m_selection > static_cast<int>(n))
@@ -231,6 +379,7 @@ void ButtonsListCtrl::RemovePage(size_t n)
     m_pageButtons.erase(m_pageButtons.begin() + n);
     m_pageLabels.erase(m_pageLabels.begin() + n); // ORCA
     m_pageIcons.erase(m_pageIcons.begin() + n);
+    m_pageDraggable.erase(m_pageDraggable.begin() + n);
     m_buttons_sizer->Remove(n);
 #if __WXOSX__
     RemoveChild(btn);
@@ -239,6 +388,34 @@ void ButtonsListCtrl::RemovePage(size_t n)
 #endif
     btn->Destroy();
     m_sizer->Layout();
+}
+
+bool ButtonsListCtrl::MovePage(size_t from, size_t to)
+{
+    if (from >= m_pageButtons.size() || to >= m_pageButtons.size())
+        return false;
+    if (from == to)
+        return true;
+
+    CancelDrag();
+    Button* const selected = m_selection >= 0 && static_cast<size_t>(m_selection) < m_pageButtons.size()
+                                 ? m_pageButtons[m_selection] : nullptr;
+    Button* const moved = m_pageButtons[from];
+    const auto move = [from, to](auto& values) {
+        if (from < to)
+            std::rotate(values.begin() + from, values.begin() + from + 1, values.begin() + to + 1);
+        else
+            std::rotate(values.begin() + to, values.begin() + from, values.begin() + from + 1);
+    };
+    move(m_pageButtons);
+    move(m_pageLabels);
+    move(m_pageIcons);
+    move(m_pageDraggable);
+    m_buttons_sizer->Detach(moved);
+    m_buttons_sizer->Insert(to, new wxSizerItem(moved));
+    m_selection = selected == nullptr ? -1 : static_cast<int>(std::find(m_pageButtons.begin(), m_pageButtons.end(), selected) - m_pageButtons.begin());
+    m_sizer->Layout();
+    return true;
 }
 
 bool ButtonsListCtrl::SetPageImage(size_t n, const std::string& bmp_name) const
