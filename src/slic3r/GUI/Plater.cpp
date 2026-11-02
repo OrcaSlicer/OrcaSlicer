@@ -8092,6 +8092,24 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
             //BBS arrange from EVT set default state.
             this->q->set_prepare_state(Job::PREPARE_STATE_MENU);
             this->q->arrange(); });
+        view3D_canvas->Bind(EVT_GLCANVAS_ARRANGE_SELECTION, [this](SimpleEvent& evt) {
+            // The job only looks at the current plate: switch to the plate holding the selection first
+            int  plate_idx   = -1;
+            bool unassigned  = false;
+            for (const auto& [obj_idx, inst_idxs] : this->get_selection().get_content()) {
+                if (inst_idxs.empty())
+                    continue;
+                if ((plate_idx = this->partplate_list.find_instance(obj_idx, *inst_idxs.begin())) >= 0)
+                    break;
+                // An object on no plate at all joins the current plate (the wipe tower is no model object)
+                unassigned |= obj_idx >= 0 && obj_idx < int(this->model.objects.size());
+            }
+            if (plate_idx < 0 && !unassigned)
+                return; // nothing selected is on a plate or can be put on one (e.g. only the wipe tower)
+            if (plate_idx >= 0 && plate_idx != this->partplate_list.get_curr_plate_index())
+                this->partplate_list.select_plate(plate_idx);
+            this->q->set_prepare_state(Job::PREPARE_STATE_SELECTION);
+            this->q->arrange(); });
         view3D_canvas->Bind(EVT_GLCANVAS_ORIENT, [this](SimpleEvent& evt) {
             //BBS orient from EVT set default state.
             this->q->set_prepare_state(Job::PREPARE_STATE_DEFAULT);
