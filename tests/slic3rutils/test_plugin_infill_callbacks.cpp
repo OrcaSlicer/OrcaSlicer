@@ -16,9 +16,13 @@
 #include <fstream>
 #include <ios>
 #include <memory>
+#include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <slic3r/plugin/PluginDescriptor.hpp>
 #include <stdexcept>
 #include <string>
 
+#include "catch2/matchers/catch_matchers.hpp"
+#include "catch2/catch_message.hpp"
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Polyline.hpp"
