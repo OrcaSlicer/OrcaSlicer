@@ -3234,6 +3234,11 @@ void TabPrint::build()
         optgroup->append_single_option_line("initial_layer_infill_speed", "speed_settings_initial_layer_speed#initial-layer-infill", 0);
         optgroup->append_single_option_line("initial_layer_travel_speed", "speed_settings_initial_layer_speed#initial-layer-travel-speed", 0);
         optgroup->append_single_option_line("slow_down_layers", "speed_settings_initial_layer_speed#number-of-slow-layers");
+        optgroup = page->new_optgroup(L("Height slowdown"), L"param_speed", 15);
+        optgroup->append_single_option_line("automatic_height_slowdown");
+        optgroup->append_single_option_line("height_slowdown_initial_layers");
+        optgroup->append_single_option_line("height_slowdown_start_speed");
+        optgroup->append_single_option_line("height_slowdown_end_speed");
         optgroup = page->new_optgroup(L("Other layers speed"), L"param_speed", 15);
         optgroup->append_single_option_line("outer_wall_speed", "speed_settings_other_layers_speed#outer-wall", 0);
         optgroup->append_single_option_line("inner_wall_speed", "speed_settings_other_layers_speed#inner-wall", 0);
