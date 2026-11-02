@@ -65,6 +65,11 @@ public:
 
     wxSize GetVideoSize() const override;
 
+    // When false, the control is allowed to fill its parent instead of being
+    // letterboxed to the video's aspect ratio (used by camera full screen).
+    void SetConstrainByAspectRatio(bool constrain) { m_constrain_by_aspect_ratio = constrain; }
+    bool GetConstrainByAspectRatio() const { return m_constrain_by_aspect_ratio; }
+
 protected:
     DECLARE_EVENT_TABLE()
 
@@ -104,6 +109,7 @@ private:
     std::condition_variable m_cond;
     std::thread m_thread;
     std::atomic_bool m_refresh_pending{false};
+    bool m_constrain_by_aspect_ratio{true};
 };
 
 #endif /* wxMediaCtrl3_h */

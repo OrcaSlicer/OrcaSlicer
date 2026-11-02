@@ -68,6 +68,19 @@
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/Widgets/SwitchButton.hpp"
 #include "slic3r/GUI/wxMediaCtrl3.h"
+#include "slic3r/GUI/CameraFullscreenMac.hpp"
+#ifdef __WXMSW__
+#include <wx/msw/wrapwin.h>
+#endif
+#include <wx/popupwin.h>
+#include <wx/dcbuffer.h>
+#include <wx/dcgraph.h>
+#include <wx/accel.h>
+#include <wx/frame.h>
+#include <wx/cursor.h>
+#include <wx/weakref.h>
+#include <algorithm>
+#include <functional>
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include "slic3r/GUI/Widgets/TempInput.hpp"
 #include "slic3r/GUI/Widgets/StaticLine.hpp"
@@ -1377,6 +1390,450 @@ void PrintingTaskPanel::set_star_count(int star_count)
     }
 }
 
+class CameraFullscreenCloseButton : public wxPopupWindow
+{
+public:
+    CameraFullscreenCloseButton(wxWindow *parent, std::function<void()> close_cb, std::function<void(bool)> hover_cb)
+        : wxPopupWindow(parent, wxBORDER_NONE)
+        , m_close_cb(std::move(close_cb))
+        , m_hover_cb(std::move(hover_cb))
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+        SetCursor(wxCursor(wxCURSOR_HAND));
+        Bind(wxEVT_PAINT, &CameraFullscreenCloseButton::on_paint, this);
+        Bind(wxEVT_ENTER_WINDOW, &CameraFullscreenCloseButton::on_enter, this);
+        Bind(wxEVT_LEAVE_WINDOW, &CameraFullscreenCloseButton::on_leave, this);
+        Bind(wxEVT_LEFT_UP, &CameraFullscreenCloseButton::on_left_up, this);
+    }
+
+    void set_alpha(int alpha)
+    {
+        m_alpha = std::clamp(alpha, 0, 255);
+        Refresh();
+    }
+
+private:
+    void on_paint(wxPaintEvent &)
+    {
+        wxAutoBufferedPaintDC paint_dc(this);
+        paint_dc.SetBackground(wxBrush(wxColour(0, 0, 0, 0)));
+        paint_dc.Clear();
+
+        if (m_alpha <= 0) return;
+
+        wxGCDC       dc(paint_dc);
+        const wxSize size       = GetClientSize();
+        const int    inset      = FromDIP(1);
+        const int    x_pad      = FromDIP(14);
+        const int    line_width = FromDIP(2);
+        const int    bg_alpha   = m_hover ? std::min(255, m_alpha + 35) : m_alpha;
+
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(wxColour(18, 18, 18, bg_alpha)));
+        dc.DrawEllipse(inset, inset, size.x - 2 * inset, size.y - 2 * inset);
+
+        dc.SetPen(wxPen(wxColour(255, 255, 255, std::min(255, bg_alpha + 20)), line_width, wxPENSTYLE_SOLID));
+        dc.DrawLine(x_pad, x_pad, size.x - x_pad, size.y - x_pad);
+        dc.DrawLine(size.x - x_pad, x_pad, x_pad, size.y - x_pad);
+    }
+
+    void on_enter(wxMouseEvent &event)
+    {
+        m_hover = true;
+        if (m_hover_cb) m_hover_cb(true);
+        Refresh();
+        event.Skip();
+    }
+
+    void on_leave(wxMouseEvent &event)
+    {
+        m_hover = false;
+        if (m_hover_cb) m_hover_cb(false);
+        Refresh();
+        event.Skip();
+    }
+
+    void on_left_up(wxMouseEvent &)
+    {
+        if (m_close_cb) m_close_cb();
+    }
+
+    std::function<void()>     m_close_cb;
+    std::function<void(bool)> m_hover_cb;
+    int                       m_alpha{0};
+    bool                      m_hover{false};
+};
+
+class CameraFullscreenFrame : public wxFrame
+{
+public:
+    explicit CameraFullscreenFrame(StatusBasePanel *owner)
+        : wxFrame(owner, wxID_ANY, _L("Camera Full Screen"), wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP)
+        , m_owner(owner)
+    {
+        SetBackgroundColour(*wxBLACK);
+        EnableFullScreenView(true);
+
+        m_hide_timer.SetOwner(this, wxWindow::NewControlId());
+        m_fade_timer.SetOwner(this, wxWindow::NewControlId());
+
+        auto *root_sizer = new wxBoxSizer(wxVERTICAL);
+        m_video_host     = new wxPanel(this, wxID_ANY);
+        m_video_host->SetBackgroundColour(*wxBLACK);
+        m_video_sizer = new wxBoxSizer(wxVERTICAL);
+        m_video_host->SetSizer(m_video_sizer);
+        root_sizer->Add(m_video_host, 1, wxEXPAND);
+        SetSizer(root_sizer);
+
+        m_close_button = new CameraFullscreenCloseButton(
+            this,
+            [this] { request_close(); },
+            [this](bool hover) { on_close_hover_changed(hover); });
+        m_close_button->Hide();
+
+        Bind(wxEVT_CLOSE_WINDOW, &CameraFullscreenFrame::on_close, this);
+        Bind(wxEVT_ACTIVATE, &CameraFullscreenFrame::on_activate, this);
+        m_escape_accel_id = wxWindow::NewControlId();
+        Bind(wxEVT_MENU, &CameraFullscreenFrame::on_escape_accelerator, this, m_escape_accel_id);
+        Bind(wxEVT_CHAR_HOOK, &CameraFullscreenFrame::on_char_hook, this);
+        Bind(wxEVT_KEY_DOWN, &CameraFullscreenFrame::on_char_hook, this);
+        Bind(wxEVT_SIZE, &CameraFullscreenFrame::on_size, this);
+        Bind(wxEVT_MOTION, &CameraFullscreenFrame::on_mouse_motion, this);
+        Bind(wxEVT_TIMER, &CameraFullscreenFrame::on_hide_timer, this, m_hide_timer.GetId());
+        Bind(wxEVT_TIMER, &CameraFullscreenFrame::on_fade_timer, this, m_fade_timer.GetId());
+        wxAcceleratorEntry entries[1];
+        entries[0].Set(wxACCEL_NORMAL, WXK_ESCAPE, m_escape_accel_id);
+        SetAcceleratorTable(wxAcceleratorTable(1, entries));
+#ifdef __APPLE__
+        m_escape_monitor = install_camera_fullscreen_escape_monitor(
+            [](void *context) {
+                auto *frame = static_cast<CameraFullscreenFrame *>(context);
+                frame->CallAfter([frame] { frame->request_close(); });
+            },
+            this);
+#endif
+        m_video_host->Bind(wxEVT_KEY_DOWN, &CameraFullscreenFrame::on_char_hook, this);
+        m_video_host->Bind(wxEVT_MOTION, &CameraFullscreenFrame::on_mouse_motion, this);
+        m_close_button->Bind(wxEVT_CHAR_HOOK, &CameraFullscreenFrame::on_char_hook, this);
+        m_close_button->Bind(wxEVT_KEY_DOWN, &CameraFullscreenFrame::on_char_hook, this);
+
+        m_top_level = wxGetTopLevelParent(owner);
+        if (wxWindow *top = m_top_level.get())
+            top->Bind(wxEVT_CLOSE_WINDOW, &CameraFullscreenFrame::on_top_level_close, this);
+
+        wxDisplay display(wxDisplay::GetFromWindow(owner));
+        if (display.IsOk()) SetSize(display.GetGeometry());
+    }
+
+    ~CameraFullscreenFrame() override
+    {
+        if (wxWindow *top = m_top_level.get())
+            top->Unbind(wxEVT_CLOSE_WINDOW, &CameraFullscreenFrame::on_top_level_close, this);
+#ifdef __APPLE__
+        restore_camera_fullscreen_presentation(m_presentation_state);
+        uninstall_camera_fullscreen_escape_monitor(m_escape_monitor);
+#endif
+    }
+
+    wxWindow *video_parent() const { return m_video_host; }
+
+    void show_camera_view(bool active_monitor_only)
+    {
+        m_native_fullscreen = false;
+        if (active_monitor_only) {
+#ifdef __APPLE__
+            m_presentation_state = enter_camera_fullscreen_presentation(this);
+#endif
+            SetSize(display_geometry_for(m_owner ? static_cast<wxWindow *>(m_owner) : this));
+            Show();
+#ifdef __APPLE__
+            apply_camera_fullscreen_frame(this);
+#else
+            ShowFullScreen(true, wxFULLSCREEN_ALL);
+            m_native_fullscreen = true;
+#endif
+        } else {
+#ifdef __APPLE__
+            Show();
+            ShowFullScreen(true, wxFULLSCREEN_ALL);
+            m_native_fullscreen = true;
+#else
+            SetSize(all_display_geometry());
+            Show();
+#endif
+        }
+
+        Raise();
+        SetFocus();
+    }
+
+    void exit_camera_view()
+    {
+        if (m_native_fullscreen) ShowFullScreen(false);
+#ifdef __APPLE__
+        if (m_close_button)
+            detach_camera_fullscreen_overlay(this, m_close_button);
+        restore_camera_fullscreen_presentation(m_presentation_state);
+        m_presentation_state = nullptr;
+#endif
+        if (wxWindow *top = m_top_level.get(); top && !top->IsBeingDeleted()) {
+            if (auto *tlw = dynamic_cast<wxTopLevelWindow *>(top); tlw && tlw->IsIconized())
+                tlw->Iconize(false);
+#ifdef __APPLE__
+            raise_main_window_after_camera_fullscreen(top);
+#else
+            top->Raise();
+#endif
+        }
+    }
+
+    void attach_media(wxMediaCtrl3 *media_ctrl)
+    {
+        m_media_ctrl = media_ctrl;
+        m_saved_max_size = m_media_ctrl->GetMaxSize();
+        m_media_ctrl->SetConstrainByAspectRatio(false);
+        m_media_ctrl->SetMaxSize(wxDefaultSize);
+        m_video_sizer->Add(m_media_ctrl, 1, wxEXPAND);
+        m_media_ctrl->Bind(wxEVT_CHAR_HOOK, &CameraFullscreenFrame::on_char_hook, this);
+        m_media_ctrl->Bind(wxEVT_KEY_DOWN, &CameraFullscreenFrame::on_char_hook, this);
+        m_media_ctrl->Bind(wxEVT_MOTION, &CameraFullscreenFrame::on_mouse_motion, this);
+        Layout();
+        position_close_button();
+        CallAfter([this] {
+            show_close_button();
+            // Reclaim focus so ESC works immediately without clicking
+            SetFocus();
+        });
+    }
+
+    void detach_media()
+    {
+        if (!m_media_ctrl) return;
+        m_media_ctrl->Unbind(wxEVT_CHAR_HOOK, &CameraFullscreenFrame::on_char_hook, this);
+        m_media_ctrl->Unbind(wxEVT_KEY_DOWN, &CameraFullscreenFrame::on_char_hook, this);
+        m_media_ctrl->Unbind(wxEVT_MOTION, &CameraFullscreenFrame::on_mouse_motion, this);
+        m_video_sizer->Detach(m_media_ctrl);
+        m_media_ctrl->SetConstrainByAspectRatio(true);
+        m_media_ctrl->SetMaxSize(m_saved_max_size);
+        m_media_ctrl = nullptr;
+    }
+
+    void clear_owner() { m_owner = nullptr; }
+
+private:
+    void on_close(wxCloseEvent &event)
+    {
+        if (m_owner) {
+            m_owner->close_camera_fullscreen();
+            return;
+        }
+        event.Skip();
+    }
+
+    void on_activate(wxActivateEvent &event)
+    {
+        event.Skip();
+        if (!event.GetActive()) {
+#ifdef __WXMSW__
+            ::SetWindowPos(GetHWND(), HWND_NOTOPMOST, 0, 0, 0, 0,
+                           SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+#elif defined(__APPLE__)
+            if (!m_native_fullscreen)
+                suspend_camera_fullscreen_topmost(this);
+#endif
+        } else {
+#ifdef __WXMSW__
+            ::SetWindowPos(GetHWND(), HWND_TOPMOST, 0, 0, 0, 0,
+                           SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+#elif defined(__APPLE__)
+            if (!m_native_fullscreen)
+                resume_camera_fullscreen_topmost(this);
+#endif
+        }
+    }
+
+    void on_escape_accelerator(wxCommandEvent &)
+    {
+        request_close();
+    }
+
+    void on_top_level_close(wxCloseEvent &event)
+    {
+        event.Skip();
+        if (m_owner) {
+            m_owner->close_camera_fullscreen();
+        } else {
+            Destroy();
+        }
+    }
+
+    void on_char_hook(wxKeyEvent &event)
+    {
+        if (event.GetKeyCode() == WXK_ESCAPE) {
+            request_close();
+            return;
+        }
+        event.Skip();
+    }
+
+    void on_size(wxSizeEvent &event)
+    {
+        event.Skip();
+        position_close_button();
+    }
+
+    void on_mouse_motion(wxMouseEvent &event)
+    {
+        show_close_button();
+        event.Skip();
+    }
+
+    void on_hide_timer(wxTimerEvent &)
+    {
+        if (m_close_hover) return;
+        m_fade_elapsed_ms  = 0;
+        m_fade_start_alpha = m_close_alpha;
+        m_fade_timer.Start(30);
+    }
+
+    void on_fade_timer(wxTimerEvent &)
+    {
+        if (m_close_hover) {
+            m_fade_timer.Stop();
+            return;
+        }
+
+        m_fade_elapsed_ms += 30;
+        if (m_fade_elapsed_ms >= 300) {
+            m_fade_timer.Stop();
+            m_close_alpha = 0;
+            m_close_button->set_alpha(m_close_alpha);
+            m_close_button->Hide();
+            return;
+        }
+
+        m_close_alpha = m_fade_start_alpha * (300 - m_fade_elapsed_ms) / 300;
+        m_close_button->set_alpha(m_close_alpha);
+    }
+
+    void on_close_hover_changed(bool hover)
+    {
+        m_close_hover = hover;
+        if (hover) {
+            show_close_button(false);
+        } else {
+            start_hide_timer();
+        }
+    }
+
+    void request_close()
+    {
+        m_hide_timer.Stop();
+        m_fade_timer.Stop();
+        if (m_close_button) m_close_button->Hide();
+        if (m_owner) {
+            m_owner->close_camera_fullscreen();
+        } else {
+            Close();
+        }
+    }
+
+    static wxRect display_geometry_for(wxWindow *window)
+    {
+        const int display_index = window ? wxDisplay::GetFromWindow(window) : wxNOT_FOUND;
+        if (display_index != wxNOT_FOUND) {
+            wxDisplay display(static_cast<unsigned int>(display_index));
+            if (display.IsOk()) return display.GetGeometry();
+        }
+
+        wxDisplay primary_display(static_cast<unsigned int>(0));
+        return primary_display.IsOk() ? primary_display.GetGeometry() : wxGetClientDisplayRect();
+    }
+
+    static wxRect all_display_geometry()
+    {
+        wxRect             geometry;
+        bool               has_geometry  = false;
+        const unsigned int display_count = wxDisplay::GetCount();
+        for (unsigned int i = 0; i < display_count; ++i) {
+            wxDisplay display(i);
+            if (!display.IsOk()) continue;
+            if (!has_geometry) {
+                geometry     = display.GetGeometry();
+                has_geometry = true;
+            } else {
+                geometry.Union(display.GetGeometry());
+            }
+        }
+
+        return has_geometry ? geometry : wxGetClientDisplayRect();
+    }
+
+    void show_close_button(bool reset_idle_timer = true)
+    {
+        if (!m_close_button) return;
+        m_fade_timer.Stop();
+        m_close_alpha = m_close_hover ? 225 : 185;
+        m_close_button->set_alpha(m_close_alpha);
+        if (!m_close_button->IsShown()) m_close_button->Show();
+        position_close_button();
+        m_close_button->Raise();
+#ifdef __APPLE__
+        attach_camera_fullscreen_overlay(this, m_close_button);
+#endif
+        if (reset_idle_timer && !m_close_hover) start_hide_timer();
+    }
+
+    void start_hide_timer()
+    {
+        m_hide_timer.Stop();
+        m_hide_timer.StartOnce(3000);
+    }
+
+    void position_close_button()
+    {
+        if (!m_close_button) return;
+        const int button_size = FromDIP(44);
+        const int margin      = FromDIP(24);
+
+        wxRect target_rect;
+        wxPoint mouse_screen = wxGetMousePosition();
+        int display_idx = wxDisplay::GetFromPoint(mouse_screen);
+        if (display_idx != wxNOT_FOUND) {
+            wxDisplay display(static_cast<unsigned int>(display_idx));
+            target_rect = display.GetGeometry();
+        } else {
+            target_rect = wxRect(wxPoint(0, 0), GetClientSize());
+            target_rect.SetPosition(ClientToScreen(wxPoint(0, 0)));
+        }
+
+        int screen_x = target_rect.GetRight() - button_size - margin;
+        int screen_y = target_rect.GetTop() + margin;
+        m_close_button->SetSize(wxSize(button_size, button_size));
+        m_close_button->Move(wxPoint(screen_x, screen_y));
+    }
+
+    StatusBasePanel             *m_owner{nullptr};
+    wxWeakRef<wxWindow>          m_top_level;
+    wxPanel                     *m_video_host{nullptr};
+    wxBoxSizer                  *m_video_sizer{nullptr};
+    wxMediaCtrl3                *m_media_ctrl{nullptr};
+    wxSize                       m_saved_max_size{wxDefaultSize};
+    CameraFullscreenCloseButton *m_close_button{nullptr};
+    wxTimer m_hide_timer;
+    wxTimer m_fade_timer;
+#ifdef __APPLE__
+    void *m_escape_monitor{nullptr};
+    void *m_presentation_state{nullptr};
+#endif
+    wxWindowID m_escape_accel_id{ wxID_ANY };
+    int m_close_alpha{ 0 };
+    int m_fade_start_alpha{ 0 };
+    int m_fade_elapsed_ms{ 0 };
+    bool m_close_hover{ false };
+    bool m_native_fullscreen{ false };
+};
+
 StatusBasePanel::StatusBasePanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style, const wxString &name)
     : wxScrolledWindow(parent, id, pos, size, wxHSCROLL | wxVSCROLL)
 {
@@ -1467,12 +1924,79 @@ StatusBasePanel::StatusBasePanel(wxWindow *parent, wxWindowID id, const wxPoint 
 
 StatusBasePanel::~StatusBasePanel()
 {
+    close_camera_fullscreen();
     delete m_media_play_ctrl;
 
     if (m_custom_camera_view) {
         delete m_custom_camera_view;
         m_custom_camera_view = nullptr;
     }
+}
+
+bool StatusBasePanel::can_show_camera_fullscreen() const { return m_media_ctrl != nullptr && IsShownOnScreen(); }
+
+bool StatusBasePanel::is_camera_fullscreen() const { return m_camera_fullscreen_frame != nullptr; }
+
+void StatusBasePanel::toggle_camera_fullscreen()
+{
+    if (is_camera_fullscreen()) {
+        close_camera_fullscreen();
+    } else {
+        show_camera_fullscreen();
+    }
+}
+
+void StatusBasePanel::show_camera_fullscreen()
+{
+    if (!can_show_camera_fullscreen() || m_camera_fullscreen_frame || !m_camera_media_sizer) return;
+
+    m_camera_fullscreen_frame = new CameraFullscreenFrame(this);
+
+    // Insert a black placeholder so the sizer does not collapse
+    m_camera_placeholder = new wxPanel(this, wxID_ANY);
+    m_camera_placeholder->SetBackgroundColour(*wxBLACK);
+    m_camera_media_sizer->Replace(m_media_ctrl, m_camera_placeholder);
+
+    m_media_ctrl->Reparent(m_camera_fullscreen_frame->video_parent());
+    m_camera_fullscreen_frame->attach_media(m_media_ctrl);
+
+    Layout();
+    Refresh();
+
+    const bool active_monitor_only = wxGetApp().app_config == nullptr || wxGetApp().app_config->get_bool("camera_fullscreen_active_monitor_only");
+    m_camera_fullscreen_frame->show_camera_view(active_monitor_only);
+}
+
+void StatusBasePanel::close_camera_fullscreen()
+{
+    if (!m_camera_fullscreen_frame) return;
+
+    CameraFullscreenFrame *frame = m_camera_fullscreen_frame;
+    m_camera_fullscreen_frame    = nullptr;
+    frame->clear_owner();
+    frame->detach_media();
+
+    m_media_ctrl->Reparent(this);
+    if (m_camera_placeholder) {
+        m_camera_media_sizer->Replace(m_camera_placeholder, m_media_ctrl);
+        m_camera_placeholder->Destroy();
+        m_camera_placeholder = nullptr;
+    } else {
+        m_camera_media_sizer->Insert(1, m_media_ctrl, 1, wxEXPAND | wxALL, 0);
+    }
+    Layout();
+    Refresh();
+
+    frame->exit_camera_view();
+    frame->Destroy();
+}
+
+void StatusBasePanel::on_camera_fullscreen(wxMouseEvent &event)
+{
+    if (m_camera_fullscreen_button)
+        m_camera_fullscreen_button->reset_hover();
+    toggle_camera_fullscreen();
+    event.Skip();
 }
 
 void StatusBasePanel::init_bitmaps()
@@ -1575,6 +2099,10 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     m_bitmap_vcamera_img->SetMinSize(wxSize(FromDIP(38), FromDIP(24)));
     m_bitmap_vcamera_img->Hide();
 
+    m_camera_fullscreen_button = new CameraItem(m_panel_monitoring_title, "camera_fullscreen", "camera_fullscreen_hover");
+    m_camera_fullscreen_button->SetMinSize(wxSize(FromDIP(38), FromDIP(24)));
+    m_camera_fullscreen_button->SetBackgroundColour(STATUS_TITLE_BG);
+
     m_setting_button = new CameraItem(m_panel_monitoring_title, "camera_setting", "camera_setting_hover");
     m_setting_button->SetMinSize(wxSize(FromDIP(38), FromDIP(24)));
     m_setting_button->SetBackgroundColour(STATUS_TITLE_BG);
@@ -1595,6 +2123,7 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     m_bitmap_timelapse_img->SetToolTip(_L("Timelapse"));
     m_bitmap_recording_img->SetToolTip(_L("Video"));
     m_bitmap_vcamera_img->SetToolTip(_L("Go Live"));
+    m_camera_fullscreen_button->SetToolTip(_L("Enter Camera Full Screen"));
     m_setting_button->SetToolTip(_L("Camera Setting"));
     // m_camera_switch_button->SetToolTip(_L("Switch Camera View"));
 
@@ -1603,6 +2132,7 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     bSizer_monitoring_title->Add(m_bitmap_timelapse_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_recording_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_vcamera_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+    bSizer_monitoring_title->Add(m_camera_fullscreen_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_setting_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
 
     bSizer_monitoring_title->Add(FromDIP(13), 0, 0);
@@ -1627,6 +2157,7 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     m_custom_camera_view->Hide();
 
     sizer->Add(m_media_ctrl, 1, wxEXPAND | wxALL, 0);
+    m_camera_media_sizer = sizer;
     sizer->Add(m_custom_camera_view, 1, wxEXPAND | wxALL, 0);
     sizer->Add(m_media_play_ctrl, 0, wxEXPAND | wxALL, 0);
 //    media_ctrl_panel->SetSizer(bSizer_monitoring);
@@ -2506,6 +3037,15 @@ void StatusPanel::update_camera_state(MachineObject* obj)
         m_camera_popup->update(show_vcamera);
     }
 
+    // fullscreen button: enable only when media is playing
+    if (m_camera_fullscreen_button) {
+        bool playing = m_media_ctrl && m_media_ctrl->GetState() == wxMEDIASTATE_PLAYING;
+        if (m_camera_fullscreen_button->IsEnabled() != playing) {
+            m_camera_fullscreen_button->Enable(playing);
+            m_camera_fullscreen_button->Refresh();
+        }
+    }
+
     m_setting_button->Show(!use_webview);
 }
 
@@ -2577,6 +3117,8 @@ void StatusPanel::wire_controls()
 
     m_setting_button->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(StatusPanel::on_camera_enter), NULL, this);
     m_setting_button->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(StatusPanel::on_camera_enter), NULL, this);
+    m_camera_fullscreen_button->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(StatusBasePanel::on_camera_fullscreen), NULL, this);
+    m_camera_fullscreen_button->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(StatusBasePanel::on_camera_fullscreen), NULL, this);
     m_tempCtrl_bed->Connect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_bed_temp_kill_focus), NULL, this);
     m_tempCtrl_bed->Connect(wxEVT_SET_FOCUS, wxFocusEventHandler(StatusPanel::on_bed_temp_set_focus), NULL, this);
     m_tempCtrl_nozzle->Connect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_kill_focus), NULL, this);
@@ -2641,6 +3183,10 @@ StatusPanel::~StatusPanel()
 
         m_setting_button->Disconnect(wxEVT_LEFT_DOWN, wxMouseEventHandler(StatusPanel::on_camera_enter), NULL, this);
         m_setting_button->Disconnect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(StatusPanel::on_camera_enter), NULL, this);
+        if (m_camera_fullscreen_button) {
+            m_camera_fullscreen_button->Disconnect(wxEVT_LEFT_DOWN, wxMouseEventHandler(StatusBasePanel::on_camera_fullscreen), NULL, this);
+            m_camera_fullscreen_button->Disconnect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(StatusBasePanel::on_camera_fullscreen), NULL, this);
+        }
         m_tempCtrl_bed->Disconnect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_bed_temp_kill_focus), NULL, this);
         m_tempCtrl_bed->Disconnect(wxEVT_SET_FOCUS, wxFocusEventHandler(StatusPanel::on_bed_temp_set_focus), NULL, this);
         m_tempCtrl_nozzle->Disconnect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_kill_focus), NULL, this);
@@ -5246,6 +5792,7 @@ bool StatusPanel::is_stage_list_info_changed(MachineObject *obj)
 void StatusPanel::set_default()
 {
     BOOST_LOG_TRIVIAL(trace) << "status_panel: set_default";
+    close_camera_fullscreen();
     if (m_custom_camera_view->IsShown()) {
         m_custom_camera_view->Hide();
         m_media_ctrl->Show();
@@ -5339,6 +5886,7 @@ void StatusPanel::rescale_camera_icons()
     if (!m_setting_button || !m_media_play_ctrl || !m_bitmap_vcamera_img || !m_bitmap_sdcard_img || !m_bitmap_recording_img || !m_bitmap_timelapse_img) return;
 
     m_setting_button->msw_rescale();
+    if (m_camera_fullscreen_button) m_camera_fullscreen_button->msw_rescale();
 
 
     m_bitmap_sdcard_state_abnormal = ScalableBitmap(this, wxGetApp().dark_mode()?"sdcard_state_abnormal_dark":"sdcard_state_abnormal", 20);

@@ -515,6 +515,12 @@ void CameraItem::msw_rescale() {
     m_bitmap_hover.msw_rescale();
 }
 
+void CameraItem::reset_hover()
+{
+    m_hover = false;
+    Refresh();
+}
+
 void CameraItem::on_enter_win(wxMouseEvent &evt)
 {
     m_hover = true;

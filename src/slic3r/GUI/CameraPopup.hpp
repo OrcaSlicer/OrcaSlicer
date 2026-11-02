@@ -122,6 +122,7 @@ public:
     ScalableBitmap m_bitmap_hover;
 
     void msw_rescale();
+    void reset_hover();
     void on_enter_win(wxMouseEvent &evt);
     void on_level_win(wxMouseEvent &evt);
     void paintEvent(wxPaintEvent &evt);

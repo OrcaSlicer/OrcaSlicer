@@ -403,6 +403,8 @@ public:
     void paint(wxPaintEvent&);
 };
 
+class CameraFullscreenFrame;
+
 class StatusBasePanel : public wxScrolledWindow, public StagedBuild
 {
 protected:
@@ -433,6 +435,7 @@ protected:
 
 
     CameraItem *m_setting_button;
+    CameraItem *m_camera_fullscreen_button{nullptr};
 
     wxBitmap m_bitmap_camera;
     ScalableBitmap m_bitmap_sdcard_state_normal;
@@ -472,6 +475,11 @@ protected:
 
     wxMediaCtrl3 *  m_media_ctrl;
     MediaPlayCtrl * m_media_play_ctrl{nullptr};
+
+    // Camera full screen
+    CameraFullscreenFrame *m_camera_fullscreen_frame{nullptr};
+    wxPanel *              m_camera_placeholder{nullptr};
+    wxBoxSizer *           m_camera_media_sizer{nullptr};
 
     Label *         m_staticText_printing;
     wxStaticBitmap *m_bitmap_thumbnail;
@@ -640,6 +648,14 @@ public:
     void           show_ams_group(bool show = true);
     void show_filament_load_group(bool show = true);
     MediaPlayCtrl* get_media_play_ctrl() {return m_media_play_ctrl;};
+
+    // Camera full screen
+    bool can_show_camera_fullscreen() const;
+    bool is_camera_fullscreen() const;
+    void toggle_camera_fullscreen();
+    void show_camera_fullscreen();
+    void close_camera_fullscreen();
+    void on_camera_fullscreen(wxMouseEvent &event);
 
     void jump_to_Rack();
 
