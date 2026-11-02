@@ -53,6 +53,19 @@ Space counts as typing. The speed dial's default is the one bare Space, and
 `MainFrame` leaves it to a focused control that uses Space itself (text fields, buttons,
 combo boxes), so it opens the dial from the canvases and the tab strip only.
 
+F6 and Shift+F6 move the keyboard focus between the main panes (the top bar, the tab
+strip and the current page) through `MainFrame::focus_cycle_pane`. A web page holds the
+keys inside its own native window, so the homepage forwards F6 through the web shortcut
+bridge in `GUI_App::handle_web_request()`. The bridge forwards the key code itself, so
+moving the binding to a key the bridge does not forward leaves the focus stuck in the
+web view.
+
+A tab button shows a focus ring only when a key press moved the focus there (F6, Tab, the
+arrow keys, Enter or Space). A click also focuses the tab but draws no ring, as a browser's
+`:focus-visible` does; the next key pressed on it, other than a Ctrl or Alt shortcut, brings
+the ring back. Keyboard paths therefore move the focus with `SetFocusFromKbd()`, not
+`SetFocus()`; a new one that uses `SetFocus()` lands on a tab without a ring.
+
 `MainFrame::handle_global_shortcut` skips a chord that `KeyChord::edits_text()` reports
 while a text field has the focus (a wx text entry, spin control, web view or ImGui
 InputText), and skips every chord while an ImGui modal is open, as a wx modal dialog

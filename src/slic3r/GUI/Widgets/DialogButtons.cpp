@@ -9,6 +9,7 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/colour.h>
 #include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 #include <wx/event.h>
 #include <set>
 #include <wx/object.h>
@@ -195,8 +196,8 @@ void DialogButtons::on_keydown(wxKeyEvent& e) {
                 break;
         }
         // possible issue if button hidden
-        if      (key == WXK_LEFT)  {m_buttons[i - 1 < 0 ? (cnt - 1) : i - 1]->SetFocus();}
-        else if (key == WXK_RIGHT) {m_buttons[i + 1 > (cnt - 1) ? 0 : i + 1]->SetFocus();}
+        if (key == WXK_LEFT || key == WXK_RIGHT)
+            m_buttons[row_focus_target(i, cnt, key)]->SetFocus();
     }
     e.Skip();
 }
