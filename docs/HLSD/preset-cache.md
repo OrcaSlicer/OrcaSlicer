@@ -95,9 +95,25 @@ declaration order at static init — cannot: inserting one option into the middl
 *succeeds on the wrong option*, silently, wherever the two share a type. Because a
 name-keyed payload instead drops the individual options this build cannot place, the
 file as a whole stays readable, and there is no schema fingerprint — no checksum over
-the option schema that would reject every cache on every release. An option this build
-no longer defines, or now defines with a different type, gets exactly what it gets from
-a JSON profile: read, dropped, and the rest of the preset loads.
+the option schema that would reject every cache on every release. An option this build no
+longer defines gets exactly what it gets from a JSON profile: read, dropped, and the rest
+of the preset loads. An option this build now defines with a different type is read by the
+type the writer recorded and handed to `set_deserialize` as its text, again as a JSON
+profile's value would be: `handle_legacy` maps an old spelling (a bool's `1` onto an
+enum's `enabled`) and an enum name a bool cannot parse is substituted. Only a text this
+build cannot parse into the new type is dropped, that option alone. Dropping a retyped
+option outright would leave the key at the collection default in every preset that sets
+it, which is not what the JSON says, and an installed cache outlives the app upgrade that
+retyped the key.
+
+An enum is the one case where the name the writer recorded is itself the value the new
+type wants: an option that became a string — the four infill pattern settings did, so
+plugins can name their own patterns — reads the cached enum's name as text through the
+same legacy conversions as a JSON profile. A
+value the writer could not name is an ordinal, which has no string to place, and naming
+it from today's enum could restore a pattern the user never chose; the key is dropped
+instead. Its bytes are consumed all the same, so the options behind it in the entry still
+load.
 
 The ordinal-keyed cereal hooks in `PrintConfig.hpp` are untouched — they are also the
 undo/redo wire format, where the process cannot change underneath them. The cache has
@@ -365,8 +381,13 @@ The system is designed so that no cache problem is fatal:
 - **Corrupt, truncated or foreign file** — rejected at the header, vendor parsed. A
   cache is written to a temp file beside its target and moved into place, so a write
   that dies partway leaves the previous cache intact rather than a truncated one.
-- **An option this build no longer has, or now types differently** — that option alone
-  is dropped, exactly as a JSON profile's would be. The preset and the file load.
+- **An option this build no longer has** — that option alone is dropped, exactly as a
+  JSON profile's would be. The preset and the file load.
+- **An option this build now types differently** — its value is read as the writer
+  typed it and parsed from its text as a JSON profile's would be, legacy conversions
+  included; only a text this build cannot parse into the new type is dropped. An enum
+  that became a string uses its cached name as text; one the writer could not name is an
+  ordinal with no string form, so that option is dropped too.
 - **Cache from a build with a different cache layout** — rejected on `CACHE_VERSION`.
   A vendor with JSONs beside it is parsed and re-cached; a cache-only vendor reads as
   not installed and the updater reinstalls it.
@@ -393,7 +414,11 @@ enumerates only `*.json` will find no vendors at all in a packaged build.
 - **Adding, removing, retyping or reordering a config option** needs nothing. The
   payload names its keys and its enum values, so an option a cache carries and this
   build does not is dropped; one this build has and the cache does not is simply
-  absent, as it would be from a JSON that predates it.
+  absent, as it would be from a JSON that predates it. A retyped option is read
+  through `handle_legacy`, so give it the same conversion a JSON profile needs and the
+  cache follows; an installed cache survives the upgrade that retyped the key, so that
+  conversion is what every user who upgrades reads. An enum retyped to a string uses
+  its cached name as text, but an unnamed value cannot be carried across, by design.
 - **Changing a hand-written `serialize()`** — `VendorProfile` or its nested types — or
   the `CachedPreset` field list — written and read by `visit_entry` in
   `PresetCacheFormat.cpp`, one list for the save, the load and the name peek alike — or

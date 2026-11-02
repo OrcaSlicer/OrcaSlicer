@@ -61,17 +61,6 @@ static std::string enum_name_of(const ConfigOptionDef& def, int value)
     return {};
 }
 
-// An option that changed from coEnum to coString still has its value in a cache
-// written before the change: an enum travels by name (see enum_name_of), and that
-// name is exactly the string this build now stores. The four infill pattern
-// settings are the cases this exists for — they became strings so plugins can name
-// their own patterns — and the name is checked against the definition's own enum
-// keys before it is restored, so an option whose name set moved on is still dropped.
-static bool restores_enum_as_string(uint16_t written_type, const ConfigOptionDef& def)
-{
-    return written_type == uint16_t(coEnum) && def.type == coString;
-}
-
 void CacheDictionary::collect(const DynamicPrintConfig& config)
 {
     for (auto it = config.cbegin(); it != config.cend(); ++ it) {
@@ -127,12 +116,13 @@ void CacheDictionary::load(cereal::BinaryInputArchive& ar)
     if (m_enum_values.empty() || ! m_enum_values.front().empty())
         throw std::runtime_error("preset cache: dictionary is missing its unnamed-enum slot");
     // Resolved once per file: every option read after this is a vector index.
+    // The definition is kept even where this build's type differs from the one
+    // written: read_config reads the value by the written type and places a
+    // retyped key from its text.
     m_defs.resize(m_keys.size());
-    for (size_t i = 0; i < m_keys.size(); ++ i) {
-        const ConfigOptionDef* def = print_config_def.get(m_keys[i]);
-        m_defs[i] = (def != nullptr && (uint16_t(def->type) == m_types[i] || restores_enum_as_string(m_types[i], *def)))
-                        ? def : nullptr;
-    }
+    m_reported.assign(m_keys.size(), char(0));
+    for (size_t i = 0; i < m_keys.size(); ++ i)
+        m_defs[i] = print_config_def.get(m_keys[i]);
 }
 
 // ---- one config -----------------------------------------------------------
@@ -150,67 +140,77 @@ static void save_enum_option(cereal::BinaryOutputArchive& ar, const ConfigOption
     }
 }
 
-// `config` may be null, in which case the option is read and dropped.
-static void load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType type,
+// `config` may be null, in which case the option is read and dropped. With
+// `text` given, the value is also returned as the text a JSON profile would
+// carry — the names, comma-separated for a vector, with an int the writer
+// could not name as a number or "nil" — for read_config to place a key this
+// build types differently through handle_legacy. Returns false when there is
+// no usable text to place: an ordinal the writer could not name has no
+// spelling, and a string target must not receive one, since naming it from
+// today's enum could restore a value nobody chose. The bytes are consumed
+// either way, so whatever follows the option still loads.
+static bool load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType type,
                              const ConfigOptionDef* def, DynamicPrintConfig* config,
-                             const CacheDictionary& dict)
+                             const CacheDictionary& dict, std::string* text = nullptr,
+                             bool string_target = false)
 {
     uint32_t cnt = 0;
     ar(cnt);
     if (type == coEnum && cnt != 1)
         throw std::runtime_error("preset cache: a scalar enum carrying more than one value");
-    // A cached enum this build holds as a string (see restores_enum_as_string):
-    // the name the writer recorded is the string to store, not an int to map
-    // back through this build's enum.
-    const bool as_string = def != nullptr && type == coEnum && def->type == coString;
     // Every element is read whatever happens, so the stream stays in sync and
     // whatever follows this option still loads.
     bool usable = def != nullptr && config != nullptr;
+    bool text_ok = true;
     std::vector<int> values;
-    std::vector<std::string> names;
-    values.reserve(cnt);
+    if (usable)
+        values.reserve(cnt);
     for (uint32_t i = 0; i < cnt; ++ i) {
         uint16_t idx = 0;
         ar(idx);
         if (! dict.valid_enum_index(idx))
             throw std::runtime_error("preset cache: enum value index past the end of the dictionary");
-        if (idx == CacheDictionary::ENUM_UNNAMED) {
-            // An int the writer could not name — a nil, or an option whose
-            // definition carried no enum_keys_map. It travels verbatim.
-            int32_t raw = 0;
+        // An int the writer could not name — a nil, or an option whose
+        // definition carried no enum_keys_map — follows its index verbatim.
+        int32_t raw = 0;
+        if (idx == CacheDictionary::ENUM_UNNAMED)
             ar(raw);
-            // ...except into a string, which has nothing to spell. Naming the
-            // int from today's enum could restore a different value, so it is
-            // dropped instead.
-            if (as_string)
-                usable = false;
-            else
+        if (usable) {
+            if (idx == CacheDictionary::ENUM_UNNAMED) {
                 values.push_back(int(raw));
-            continue;
-        }
-        if (! usable)
-            continue;             // the index above was this element's whole payload
-        if (def->enum_keys_map == nullptr) {
-            usable = false;       // this build no longer maps this option's names
-            continue;
-        }
-        const std::string& name = dict.enum_name_at(idx);
-        const auto it = def->enum_keys_map->find(name);
-        if (it == def->enum_keys_map->end()) {
+                continue;
+            }
+            if (def->enum_keys_map != nullptr) {
+                const auto it = def->enum_keys_map->find(dict.enum_name_at(idx));
+                if (it != def->enum_keys_map->end()) {
+                    values.push_back(it->second);
+                    continue;
+                }
+            }
             usable = false;       // a value this build dropped: the option goes with it
-            continue;
         }
-        if (as_string)
-            names.push_back(name);
-        else
-            values.push_back(it->second);
+        if (text == nullptr)
+            continue;
+        if (idx == CacheDictionary::ENUM_UNNAMED) {
+            // ...except into a string, which has nothing to spell. Naming the
+            // int from today's enum could restore a different value, so the
+            // key is dropped instead.
+            if (string_target) {
+                text_ok = false;
+                continue;
+            }
+            if (! text->empty())
+                *text += ',';
+            *text += raw == ConfigOptionIntsNullable::nil_value() ? std::string("nil") : std::to_string(raw);
+        } else {
+            if (! text->empty())
+                *text += ',';
+            *text += dict.enum_name_at(idx);
+        }
     }
     if (! usable)
-        return;
-    if (as_string) {
-        // A scalar enum carries exactly one value, checked above.
-        config->set_key_value(def->opt_key, new ConfigOptionString(names.front()));
-    } else if (type == coEnum) {
+        return text_ok;
+    if (type == coEnum) {
         config->set_key_value(def->opt_key, new ConfigOptionEnumGeneric(def->enum_keys_map, values.front()));
     } else {
         auto* opt = def->nullable ? static_cast<ConfigOptionInts*>(new ConfigOptionEnumsGenericNullable(def->enum_keys_map))
@@ -218,6 +218,7 @@ static void load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType ty
         opt->values = std::move(values);
         config->set_key_value(def->opt_key, opt);
     }
+    return true;
 }
 
 void save_config(cereal::BinaryOutputArchive& ar, const DynamicPrintConfig& config, const CacheDictionary& dict)
@@ -239,6 +240,41 @@ void save_config(cereal::BinaryOutputArchive& ar, const DynamicPrintConfig& conf
     }
 }
 
+// The nullable form of a vector type reads the same bytes as the plain form
+// and serializes a nil entry as "nil", which a nullable option parses back.
+static bool has_nullable_form(ConfigOptionType type)
+{
+    return type == coFloats || type == coInts || type == coPercents || type == coBools || type == coFloatsOrPercents;
+}
+
+// Place the value of a key this build types differently from the writer, the
+// way a JSON profile's text is placed: handle_legacy maps the old spelling (a
+// bool's 1 onto an enum's enabled) and a bool or enum that still does not
+// parse is substituted, silently as for a system preset. The parse goes
+// through a scratch config: set_deserialize_raw creates an option before
+// parsing into it, so a failed parse must leave nothing behind, and the
+// placing of one key must not take the whole cache down.
+static void set_from_text(DynamicPrintConfig& config, const CacheDictionary& dict, uint16_t idx,
+                          const std::string& text, ConfigSubstitutionContext& substitutions)
+{
+    const std::string& key = dict.key_at(idx);
+    DynamicPrintConfig parsed;
+    bool placed = false;
+    try {
+        placed = parsed.set_deserialize_nothrow(key, text, substitutions);
+    } catch (const std::exception&) {
+        placed = false;
+    }
+    if (placed) {
+        config.apply(parsed);
+        return;
+    }
+    if (dict.first_report(idx))
+        // The key and the types only: the value may be a G-code template.
+        BOOST_LOG_TRIVIAL(warning) << "preset cache: dropped " << key << ", written as type " << int(dict.type_at(idx))
+                                   << ", which this build cannot read as type " << int(dict.def_at(idx)->type);
+}
+
 // `config` null means: read everything, keep nothing.
 static void read_config(cereal::BinaryInputArchive& ar, DynamicPrintConfig* config, const CacheDictionary& dict)
 {
@@ -246,26 +282,47 @@ static void read_config(cereal::BinaryInputArchive& ar, DynamicPrintConfig* conf
     ar(cnt);
     if (config != nullptr)
         config->clear();
-    // Reused across the loop: constructing a ConfigOptionDef per dropped option
-    // would allocate its strings and vectors for nothing.
+    // Reused across the loop: constructing a ConfigOptionDef per option read by
+    // the writer's type would allocate its strings and vectors for nothing.
     ConfigOptionDef scratch;
+    ConfigSubstitutionContext substitutions(ForwardCompatibilitySubstitutionRule::EnableSilent);
     for (uint32_t i = 0; i < cnt; ++ i) {
         uint16_t idx = 0;
         ar(idx);
         if (! dict.valid_key_index(idx))
             throw std::runtime_error("preset cache: option index past the end of the dictionary");
-        const ConfigOptionType type = dict.type_at(idx);
-        const ConfigOptionDef* def  = dict.def_at(idx);
+        const ConfigOptionType type       = dict.type_at(idx);
+        const ConfigOptionDef* def        = dict.def_at(idx);
+        const bool             as_written = def != nullptr && def->type == type;
+        // Built from the bytes where this build defines the key as written.
+        // Otherwise read by the type the writer recorded: dropped where this
+        // build has no such key, the same outcome a JSON profile gets, and
+        // placed from its text, as a JSON profile's value is, where it has the
+        // key under another type.
+        const bool   retyped  = def != nullptr && ! as_written && config != nullptr;
+        std::string  text;
+        std::string* text_out = retyped ? &text : nullptr;
         if (type == coEnum || type == coEnums) {
-            load_enum_option(ar, type, def, config, dict);
-        } else if (def != nullptr && config != nullptr) {
+            // An enum this build holds as a string keeps the name the writer
+            // recorded; an ordinal it could not name has no such spelling and
+            // drops the key (see load_enum_option).
+            const bool string_target = retyped && (def->type == coString || def->type == coStrings);
+            if (! load_enum_option(ar, type, as_written ? def : nullptr, config, dict, text_out, string_target))
+                continue;
+            if (! retyped)
+                continue;
+        } else if (as_written && config != nullptr) {
             config->set_key_value(def->opt_key, def->load_option_from_archive(ar));
+            continue;
         } else {
-            // Read by the type the writer recorded, then drop: the same outcome
-            // a JSON profile gets for an option this build no longer has.
-            scratch.type = type;
-            std::unique_ptr<ConfigOption> discard(scratch.load_option_from_archive(ar));
+            scratch.type     = type;
+            scratch.nullable = has_nullable_form(type);
+            std::unique_ptr<ConfigOption> value(scratch.load_option_from_archive(ar));
+            if (! retyped)
+                continue;
+            text = value->serialize();
         }
+        set_from_text(*config, dict, idx, text, substitutions);
     }
 }
 
