@@ -827,6 +827,21 @@ TEST_CASE("G-code lists the resolved extrusion-width settings", "[Print]")
     CHECK(with_first_layer.find("; first layer extrusion width") != std::string::npos);
 }
 
+// Firmware that scans the config block for "bed_temperature" (Anycubic Kobra) misreads bed_temperature_formula.
+TEST_CASE("The G-code config block omits bed_temperature_formula for non-BBL printers", "[Print]")
+{
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({cube(20)}, print, model);
+    CHECK(Slic3r::Test::gcode(print).find("; bed_temperature_formula") == std::string::npos);
+
+    Print bbl_print;
+    Model bbl_model;
+    Slic3r::Test::init_print({cube(20)}, bbl_print, bbl_model);
+    bbl_print.is_BBL_printer() = true;
+    CHECK(Slic3r::Test::gcode(bbl_print).find("; bed_temperature_formula") != std::string::npos);
+}
+
 // gcode_skip_config_block suppresses the resolved-settings block while leaving the
 // header and executable blocks intact.
 TEST_CASE("gcode_skip_config_block omits the resolved-settings comment block", "[Print]")
