@@ -567,7 +567,7 @@ Semver VendorCacheFile::usable_version(const std::string& path, const std::strin
 
 // static
 bool VendorCacheFile::carries_preset(const std::string& path, const std::string& vendor_name,
-                                     Preset::Type type, const std::string& preset_name)
+                                     Preset::Type type, const std::string& preset_name, bool renamed)
 {
     std::string blob;
     if (! read_cache_blob(path, blob))
@@ -581,7 +581,7 @@ bool VendorCacheFile::carries_preset(const std::string& path, const std::string&
         dict.load(ar);
         VendorMap vendors;
         ar(vendors);
-        // Reused: every entry overwrites it, and only its name is ever looked at.
+        // Reused: every entry overwrites it, and only its names are ever looked at.
         CachedPreset entry;
         // Written in this order by save. The list that could carry the preset
         // is the last one worth reading.
@@ -590,7 +590,8 @@ bool VendorCacheFile::carries_preset(const std::string& path, const std::string&
             ar(cnt);
             for (uint32_t i = 0; i < cnt; ++ i) {
                 visit_entry(ar, entry, [&] { skip_config(ar, dict); });
-                if (kind == type && entry.name == preset_name)
+                if (kind == type && (renamed ? std::find(entry.renamed_from.begin(), entry.renamed_from.end(), preset_name) != entry.renamed_from.end() :
+                                               entry.name == preset_name))
                     return true;
             }
             if (kind == type)

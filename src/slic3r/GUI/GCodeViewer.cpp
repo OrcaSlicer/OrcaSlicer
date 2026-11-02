@@ -24,10 +24,10 @@
 #include "FilamentGroupPopup.hpp"
 #include "GLToolbar.hpp"
 #include "libslic3r/BeltTransform.hpp"
-#include "libslic3r/GCode/MachineFrameTransform.hpp"
 #include "MsgDialog.hpp"
 #include <boost/container_hash/hash.hpp>
 #include "slic3r/GUI/MeshUtils.hpp"
+#include <initializer_list>
 #include <set>
 #include <string>
 #include "libvgcode/include/Types.hpp"
@@ -125,6 +125,18 @@ namespace GUI {
 //        _u8L("Tool"),
 //        _u8L("Filament")
 //    };
+
+// ORCA: a translucent filament swatch goes over the checkerboard of the sidebar's clear swatch
+static void add_swatch(ImDrawList* draw_list, const ImVec2& min, const ImVec2& max, const ColorRGBA& color)
+{
+    if (color.is_transparent()) {
+        for (int i = 0; i < 4; ++i)
+            for (int j = 0; j < 4; ++j)
+                draw_list->AddRectFilled(ImLerp(min, max, ImVec2(0.25f * i, 0.25f * j)), ImLerp(min, max, ImVec2(0.25f * (i + 1), 0.25f * (j + 1))),
+                                         (i + j) % 2 == 0 ? IM_COL32_WHITE : IM_COL32(217, 217, 217, 255));
+    }
+    draw_list->AddRectFilled(min, max, ImGuiWrapper::to_ImU32(color));
+}
 
 static std::string get_view_type_string(libvgcode::EViewType view_type)
 {
@@ -567,7 +579,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         // "ToolPosition" layout width calculation
         const float axes_spacing_x = ImGui::CalcTextSize("sp").x;                                  // Spacing between axes labels
-        const float axes_width     = ImGui::CalcTextSize("X 999.999").x;                           // Width of the longest possible axis label
+        const char* axes_sample    = m_high_precision_gcode ? "X 999.9999" : "X 999.999";          // The longest possible axis label, see the precision of the position below
+        const float axes_width     = ImGui::CalcTextSize(axes_sample).x;                           // Width of the longest possible axis label
         const float axes_content_w = 3.0f * axes_width + 2.0f * axes_spacing_x;                    // Three axes
         const float speed_width    = ImGui::CalcTextSize((_u8L("Speed: ") + "9999  ").c_str()).x;  // Width of the longest possible speed label
         const float detail_width   = ImGui::CalcTextSize(detail_buf).x;                            // Width of the detail text
@@ -767,10 +780,12 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         ImGui::BeginGroup(); // group contents to make information area more compact
 
-        // ORCA Use colorized axes labels & reduce precision on big scaled prints
-        auto pos       =vertex.position;
-        int  max_value = std::round(std::max(std::max(pos[0], pos[1]),pos[2]));
-        auto precision = max_value > 9999 ? "%.1f" : max_value > 999 ? "%.2f" : "%.3f";
+        // ORCA Use colorized axis labels & reduce precision on large-scale prints,
+        // show one more decimal when the G-code was exported with high precision
+        auto pos       = vertex.position;
+        int  max_value = std::round(std::max(std::max(pos[0], pos[1]), pos[2]));
+        auto precision = m_high_precision_gcode ? (max_value > 9999 ? "%.2f" : max_value > 999 ? "%.3f" : "%.4f")
+                                                : (max_value > 9999 ? "%.1f" : max_value > 999 ? "%.2f" : "%.3f");
 
         char xBuf[32];
         ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X ");
@@ -797,7 +812,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         char spdBuf[128];
         sprintf(spdBuf, "%s%.0f ", _u8L("Speed: ").c_str(), vertex.feedrate);
-        ImGuiWrapper::text(spdBuf); // render Speed as differrent item to keep next item in same place
+        ImGuiWrapper::text(spdBuf); // render Speed as different item to keep next item in same place
         
         if (detail_buf[0] != '\0') { // dont render if buffer empty
             ImGui::SameLine(speed_width);
@@ -1335,52 +1350,6 @@ std::vector<int> GCodeViewer::get_plater_extruder()
     return m_plater_extruder;
 }
 
-// Belt printers: compute the full machine->model back-transform from the print
-// config, so the "designed" (upright) G-code preview maps each toolpath vertex
-// back to Cartesian space. The G-code forward pipeline is (BeltKinematics::
-// to_machine_coords):  gcode = MachineFrame( AxisRemap( X ) ), with X the model
-// already un-rotated to Cartesian by the back-transform. So the inverse is:
-//   model = AxisRemap^-1 . MachineFrame^-1
-// (origin-snap is a per-instance translation that only shifts position, not
-// orientation, so it is intentionally omitted.)
-static Transform3d compute_belt_back_transform(const PrintConfig& cfg)
-{
-    if (!cfg.belt_printer.value)
-        return Transform3d::Identity();
-
-    MachineFrameTransform mft;
-    mft.init_from_config(cfg);
-    const Transform3d mf_inv = mft.is_active() ? Transform3d(mft.transform().inverse())
-                                               : Transform3d::Identity();
-
-    // Forward G-code axis remap as an affine matrix (out_i = sign * in[r_i % 3], plus a
-    // build-volume offset for Rev axes). This is the matrix form of the per-point
-    // GCodeWriter::apply_axis_remap (row convention: each OUTPUT axis selects an input
-    // axis + sign) and MUST stay in sync with it. The build-volume max matches what the
-    // writer is fed in GCode.cpp (printable_area max + printable_height). (Follow-up:
-    // precompute this matrix once in GCodeWriter and share it with apply_axis_remap to
-    // remove the parallel encoding.)
-    Transform3d ar = Transform3d::Identity();
-    const int rr[3] = { int(cfg.gcode_remap_x.value), int(cfg.gcode_remap_y.value), int(cfg.gcode_remap_z.value) };
-    if (rr[0] != 0 || rr[1] != 1 || rr[2] != 2) {
-        BoundingBoxf bbox_bed(cfg.printable_area.values);
-        const Vec3d vmax(bbox_bed.max.x(), bbox_bed.max.y(), cfg.printable_height.value);
-        Matrix3d M = Matrix3d::Zero();
-        Vec3d    t = Vec3d::Zero();
-        for (int i = 0; i < 3; ++i) {
-            const int axis = rr[i] % 3;
-            if (rr[i] < 3)      M(i, axis) =  1.0;
-            else if (rr[i] < 6) M(i, axis) = -1.0;
-            else              { M(i, axis) = -1.0; t[i] = vmax[axis]; }
-        }
-        ar.linear()      = M;
-        ar.translation() = t;
-    }
-    const Transform3d ar_inv = ar.inverse();
-
-    return ar_inv * mf_inv;
-}
-
 //BBS: always load shell at preview
 void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const Print& print, const std::vector<std::string>& str_tool_colors,
                 const std::vector<std::string>& str_color_print_colors, const BuildVolume& build_volume,
@@ -1397,6 +1366,10 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_belt_view_enabled = gcode_result.belt_tilt_angle > 0.f;
     m_belt_angle_deg    = gcode_result.belt_tilt_angle;
 
+    // The tool position readout shows coordinates with the precision the G-code was exported with.
+    // For a file opened from disk, print.config() holds the value from its config block as well.
+    m_sequential_view.marker.set_high_precision_gcode(print.config().high_precision_gcode.value);
+
     const bool current_top_layer_only = m_viewer.is_top_layer_only_view_range();
     const bool required_top_layer_only = get_app_config()->get_bool("seq_top_layer_only");
     if (current_top_layer_only != required_top_layer_only)
@@ -1405,6 +1378,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
     m_viewer.set_dim_previous_layers_brightness(0.01f * std::stoi(get_app_config()->get("preview_dim_previous_layers_brightness")));
+    m_viewer.set_translucent_filaments(get_app_config()->get_bool("preview_translucent_filaments"));
 
     // avoid processing if called with the same gcode_result.
     // On a belt printer the toolpath geometry fed to libvgcode also depends on the
@@ -1415,22 +1389,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         //BBS: add logs
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": the same id %1%, return directly, result %2% ") % m_last_result_id % (&gcode_result);
 
-        // collect tool colors
-        libvgcode::Palette tools_colors;
-        tools_colors.reserve(str_tool_colors.size());
-        for (const std::string& color : str_tool_colors) {
-            tools_colors.emplace_back(libvgcode::convert(color));
-        }
-        m_viewer.set_tool_colors(tools_colors);
-
-        // collect color print colors
-        libvgcode::Palette color_print_colors;
-        const std::vector<std::string>& str_colors = str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors;
-        color_print_colors.reserve(str_colors.size());
-        for (const std::string& color : str_colors) {
-            color_print_colors.emplace_back(libvgcode::convert(color));
-        }
-        m_viewer.set_color_print_colors(color_print_colors);
+        m_viewer.set_tool_colors(libvgcode::convert_filament_colors(str_tool_colors));
+        m_viewer.set_color_print_colors(libvgcode::convert_filament_colors(str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors));
         return;
     }
 
@@ -1463,7 +1423,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // raw machine-frame G-code is shown (useful for checking the transform itself).
     const bool is_belt = m_belt_view_enabled && print.config().belt_printer.value;
     Transform3d belt_inv = (is_belt && m_belt_show_designed)
-        ? compute_belt_back_transform(print.config()) : Transform3d::Identity();
+        ? BeltTransformPipeline::build_gcode_back_transform(print.config()) : Transform3d::Identity();
     // Belt: move positions are stored as gcode_Z + belt_z_origin (the start G-code's
     // purge-blob advance baked into the machine-Z origin by its G92 Z0 resets). Subtract
     // that constant before the linear back-transform so every toolpath maps to the model's
@@ -1559,6 +1519,11 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             const Vec3d d = model_bb.min - tp_bb.min;
             belt_inv = Transform3d(Eigen::Translation3d(d)) * belt_inv;
         }
+        // The masses into the toolpaths' frame.
+        m_plate_mass.transform(belt_inv);
+        for (std::vector<GCodeProcessorResult::ObjectMass>* masses : { &m_object_masses, &m_body_masses, &m_support_masses })
+            for (GCodeProcessorResult::ObjectMass& mass : *masses)
+                mass.transform(belt_inv);
     }
     libvgcode::GCodeInputData data = libvgcode::convert(gcode_result, str_tool_colors, str_color_print_colors, m_viewer,
         apply_belt ? &belt_inv : nullptr);
@@ -2212,7 +2177,13 @@ void GCodeViewer::render_scene(int canvas_width, int canvas_height)
         return;
 
     render_toolpaths();
+    // ORCA: the markers write depth, which would hide the translucent toolpaths behind them
+    if (!m_viewer.has_translucent_toolpaths())
+        render_markers(canvas_width, canvas_height);
+}
 
+void GCodeViewer::render_markers(int canvas_width, int canvas_height)
+{
     auto current = m_viewer.get_view_visible_range();
     auto endpoints = m_viewer.get_view_full_range();
     m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
@@ -2274,34 +2245,17 @@ void GCodeViewer::render_scene(int canvas_width, int canvas_height)
                 // Cache guard. The marker plan below is resolved from preset/plate state only,
                 // so it is rebuilt when that state moves and reused otherwise — the sequential
                 // slider is sticky, and re-resolving the zone layout on every frame of the rest
-                // of the session showed up as a measurable per-frame cost. The comparison is
-                // deliberately made against the live config rather than against a freshly built
-                // key, so an unchanged frame allocates nothing at all.
-                static const std::vector<std::string> s_no_strings;
-                auto* names_opt  = printer_cfg.opt<ConfigOptionStrings>("imex_mode_names");
-                auto* tools_opt  = printer_cfg.opt<ConfigOptionStrings>("imex_mode_active_tools");
-                const std::vector<std::string>& mode_names   = names_opt ? names_opt->values : s_no_strings;
-                const std::vector<std::string>& active_tools = tools_opt ? tools_opt->values : s_no_strings;
+                // of the session showed up as a measurable per-frame cost.
+                ImexMarkerKey::Plate plate;
+                plate.plate_index = plate_list.get_curr_plate_index();
+                plate.bed_min_x   = bed_extents.min.x();
+                plate.bed_min_y   = bed_extents.min.y();
+                plate.bed_max_x   = bed_extents.max.x();
+                plate.bed_max_y   = bed_extents.max.y();
 
-                ImexMarkerKey::Scalars key;
-                key.plate_index      = plate_list.get_curr_plate_index();
-                // Same accessor the plan is built from: a key holding a different fallback than
-                // the value actually laid out would compare equal across a real change.
-                key.gantry_count     = imex_cfg_int(printer_cfg, "imex_gantry_count");
-                key.tools_per_gantry = imex_cfg_int(printer_cfg, "imex_tools_per_gantry");
-                key.tool_layout      = (int)imex_cfg_enum<ImexToolLayout>(printer_cfg, "imex_tool_layout");
-                key.clearance_x      = imex_cfg_float(printer_cfg, "imex_nozzle_clearance_x");
-                key.clearance_y      = imex_cfg_float(printer_cfg, "imex_nozzle_clearance_y");
-                key.firmware_managed = imex_cfg_bool(printer_cfg, "imex_firmware_managed_zones");
-                key.bed_min_x        = bed_extents.min.x();
-                key.bed_min_y        = bed_extents.min.y();
-                key.bed_max_x        = bed_extents.max.x();
-                key.bed_max_y        = bed_extents.max.y();
-
-                if (!(m_imex_marker_key.s == key) || m_imex_marker_key.mode != mode ||
-                    m_imex_marker_key.mode_names != mode_names ||
-                    m_imex_marker_key.mode_active_tools != active_tools) {
-                    m_imex_marker_key = ImexMarkerKey{ key, mode, mode_names, active_tools };
+                const bool layout_changed = update_imex_layout_key(m_imex_marker_key.layout, &printer_cfg, mode);
+                if (layout_changed || !(m_imex_marker_key.plate == plate)) {
+                    m_imex_marker_key.plate = plate;
                     m_imex_marker_plan = resolve_imex_marker_plan(printer_cfg, mode, bed_extents);
                     // The carriage roster — and with it the marker count — can change with any
                     // of those inputs, so drop the markers and let the lazy init below rebuild
@@ -3236,13 +3190,32 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
         % m_shells.print_id % m_shells.print_modify_count % object_count %m_shells.volumes.volumes.size();
 }
 
+ColorRGBA GCodeViewer::shown_filament_color(ColorRGBA color) const
+{
+    if (!m_viewer.is_translucent_filaments())
+        color.a(1.0f);
+    return color;
+}
+
+void GCodeViewer::render_translucent_toolpaths(int canvas_width, int canvas_height)
+{
+    if (!m_viewer.has_translucent_toolpaths())
+        return;
+
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    m_viewer.render_translucent(libvgcode::convert(static_cast<Matrix4f>(camera.get_view_matrix().matrix().cast<float>())),
+                                libvgcode::convert(static_cast<Matrix4f>(camera.get_projection_matrix().matrix().cast<float>())));
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    render_markers(canvas_width, canvas_height);
+}
+
 void GCodeViewer::render_toolpaths()
 {
     const Camera& camera = wxGetApp().plater()->get_camera();
     Matrix4f view = camera.get_view_matrix().matrix().cast<float>();
     // Belt "designed" (upright) view is produced by back-transforming the toolpath
     // GEOMETRY into model space at load time (see load_as_gcode ->
-    // compute_belt_back_transform -> libvgcode::convert). The camera is left untouched
+    // BeltTransformPipeline::build_gcode_back_transform -> libvgcode::convert). The camera is left untouched
     // here; transforming the view as well would double-apply the inverse. Baking the
     // transform into the geometry (not the camera) also keeps the bed and toolpaths in
     // the same frame so they stay aligned.
@@ -3534,8 +3507,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         // render icon
         ImVec2 pos = ImVec2(ImGui::GetCursorScreenPos().x + window_padding * 3, ImGui::GetCursorScreenPos().y);
 
-        draw_list->AddRectFilled({ pos.x + 1.0f * m_scale, pos.y + 3.0f * m_scale }, { pos.x + icon_size - 1.0f * m_scale, pos.y + icon_size + 1.0f * m_scale },
-            ImGuiWrapper::to_ImU32(color));
+        add_swatch(draw_list, { pos.x + 1.0f * m_scale, pos.y + 3.0f * m_scale }, { pos.x + icon_size - 1.0f * m_scale, pos.y + icon_size + 1.0f * m_scale }, color);
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20.0 * m_scale, 6.0 * m_scale));
 
@@ -4139,8 +4111,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         switch (type) {
         default:
         case EItemType::Rect: {
-            draw_list->AddRectFilled({ pos.x + 1.0f * m_scale, pos.y + 3.0f * m_scale }, { pos.x + icon_size - 1.0f * m_scale, pos.y + icon_size + 1.0f * m_scale },
-                                     ImGuiWrapper::to_ImU32(color));
+            add_swatch(draw_list, { pos.x + 1.0f * m_scale, pos.y + 3.0f * m_scale }, { pos.x + icon_size - 1.0f * m_scale, pos.y + icon_size + 1.0f * m_scale }, color);
             break;
         }
         case EItemType::Circle: {
@@ -4932,7 +4903,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         for (uint8_t extruder_id : used_extruders_ids) {
             const std::string weight_text = format_compact_weight(model_used_filaments_g[i], imperial_units);
             ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", model_used_filaments_m[i], weight_text.c_str());
-            append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), { { _u8L("Extruder") + " " + std::to_string(extruder_id + 1), offsets[0]}, {buf, offsets[1]} });
+            append_item(EItemType::Rect, shown_filament_color(libvgcode::convert(m_viewer.get_tool_colors()[extruder_id])), { { _u8L("Extruder") + " " + std::to_string(extruder_id + 1), offsets[0]}, {buf, offsets[1]} });
             // append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), _u8L("Extruder") + " " + std::to_string(extruder_id + 1),
             // true, "", 0.0f, 0.0f, offsets, used_filaments_m[extruder_id], used_filaments_g[extruder_id]);
             i++;
@@ -5028,7 +4999,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 }
 
                 float checkbox_pos = std::max(predictable_icon_pos, color_print_offsets[_u8L("Display")]); // ORCA prefer predictable_icon_pos when header not reacing end
-                append_item(EItemType::Rect, libvgcode::convert(tool_colors[extruder_idx]), columns_offsets, false, checkbox_pos/*ORCA*/, true, []() {});
+                append_item(EItemType::Rect, shown_filament_color(libvgcode::convert(tool_colors[extruder_idx])), columns_offsets, false, checkbox_pos/*ORCA*/, true, []() {});
             }
             i++;
         }
@@ -5138,7 +5109,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             const size_t extruders_count = get_extruders_count();
             std::vector<ColorRGBA> last_color(extruders_count);
             for (size_t i = 0; i < extruders_count; ++i) {
-                last_color[i] = libvgcode::convert(m_viewer.get_tool_colors()[i]);
+                last_color[i] = shown_filament_color(libvgcode::convert(m_viewer.get_tool_colors()[i]));
             }
             int last_extruder_id = 1;
             int color_change_idx = 0;
@@ -5160,6 +5131,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                         items.push_back({ PartialTime::EType::Print, it->extruder, last_color[it->extruder - 1], ColorRGBA::BLACK(), time_rec.second, get_used_filament_from_volume(used_filaments[color_change_idx++], it->extruder - 1) });
                         ColorRGBA color;
                         decode_color(it->color, color);
+                        color = shown_filament_color(color);
                         items.push_back({ PartialTime::EType::ColorChange, it->extruder, last_color[it->extruder - 1], color, time_rec.second });
                         last_color[it->extruder - 1] = color;
                         last_extruder_id = it->extruder;
@@ -5186,11 +5158,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             ImVec2 pos = ImGui::GetCursorScreenPos();
             pos.x -= 0.5f * ImGui::GetStyle().ItemSpacing.x;
 
-            draw_list->AddRectFilled({ pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f },
-                ImGuiWrapper::to_ImU32(color1));
+            add_swatch(draw_list, { pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f }, color1);
             pos.x += icon_size;
-            draw_list->AddRectFilled({ pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f },
-                ImGuiWrapper::to_ImU32(color2));
+            add_swatch(draw_list, { pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f }, color2);
 
             ImGui::SameLine(offsets[0]);
             imgui.text(short_time(get_time_dhms(times.second - times.first)));
@@ -5205,8 +5175,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             ImVec2 pos = ImGui::GetCursorScreenPos();
             pos.x -= 0.5f * ImGui::GetStyle().ItemSpacing.x;
 
-            draw_list->AddRectFilled({ pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f },
-                ImGuiWrapper::to_ImU32(color));
+            add_swatch(draw_list, { pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f }, color);
 
             ImGui::SameLine(offsets[0]);
             imgui.text(short_time(get_time_dhms(times.second)));

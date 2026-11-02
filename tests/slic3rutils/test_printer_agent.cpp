@@ -57,6 +57,23 @@ TEST_CASE("unit: printer-agent registry register / lookup / duplicate-reject", "
     CHECK(count == 1);
 }
 
+TEST_CASE("The registry records whether the native Device tab applies to an agent", "[registry][unit]")
+{
+    // why: ids unique to this case, as the registry is process-global
+    auto stub_factory = [](std::shared_ptr<ICloudServiceAgent>, const std::string&)
+        -> std::shared_ptr<IPrinterAgent> { return nullptr; };
+
+    REQUIRE(NetworkAgentFactory::register_printer_agent("orca-test::native-tab-default-2c91", "Default", stub_factory));
+    REQUIRE(NetworkAgentFactory::register_printer_agent("orca-test::native-tab-off-2c91", "Web only", stub_factory, false));
+
+    const PrinterAgentInfo* with_tab = NetworkAgentFactory::get_printer_agent_info("orca-test::native-tab-default-2c91");
+    const PrinterAgentInfo* web_only = NetworkAgentFactory::get_printer_agent_info("orca-test::native-tab-off-2c91");
+    REQUIRE(with_tab != nullptr);
+    REQUIRE(web_only != nullptr);
+    CHECK(with_tab->native_device_tab);
+    CHECK_FALSE(web_only->native_device_tab);
+}
+
 // ===========================================================================
 // INTEGRATION - the orca.printer_agent Python binding surface.
 // Boots the embedded interpreter and asserts the C++ to Python contract that

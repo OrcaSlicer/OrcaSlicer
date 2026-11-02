@@ -2,11 +2,13 @@
 #include "Http.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
+#include "bambu_networking.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
@@ -44,7 +46,8 @@ QidiPrinterAgent::QidiPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(
 
 AgentInfo QidiPrinterAgent::get_agent_info_static()
 {
-    return AgentInfo{"qidi", "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent"};
+    // The native Device and Calibration tabs have nothing to show for Qidi printers yet, so Fluidd's web Device tab is the only one
+    return AgentInfo{"qidi", "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent", false};
 }
 
 bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
@@ -55,7 +58,7 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
     std::string series_id;
     {
         MoonrakerDeviceInfo info;
-        if (fetch_device_info(device_info.base_url, device_info.api_key, info, error)) {
+        if (fetch_device_info(device_info.base_url, device_info.api_key, info, error, {})) {
             series_id = infer_series_id(info.model_id, info.dev_name);
         }
     }
@@ -73,7 +76,14 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
     // 3. Fetch slot info and build AmsTrayData directly
     std::vector<AmsTrayData> trays;
     int                      box_count = 0;
-    if (!fetch_slot_info(device_info.base_url, device_info.api_key, dict, series_id, trays, box_count, error)) {
+    bool                     slots_ok  = false;
+    try {
+        slots_ok = fetch_slot_info(device_info.base_url, device_info.api_key, dict, series_id, trays, box_count, error);
+    } catch (const nlohmann::json::exception& e) {
+        // A slot value of an unexpected type fails the sync instead of escaping to the UI
+        error = e.what();
+    }
+    if (!slots_ok) {
         BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch slot info: " << error;
         return false;
     }
@@ -81,6 +91,55 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
     // 4. Build the AMS payload
     build_ams_payload(box_count, box_count * 4 - 1, trays);
     return true;
+}
+
+std::string QidiPrinterAgent::build_tool_slot_script(const std::string& ams_mapping)
+{
+    // The firmware has value_t0 to value_t15 and slots 0 to 15
+    constexpr int slot_count = 16;
+
+    // One entry per filament: its Box slot index, negative when no slot was chosen
+    const auto  mapping = nlohmann::json::parse(ams_mapping, nullptr, false);
+    std::string script;
+    if (!mapping.is_array()) {
+        return script;
+    }
+    for (int filament = 0; filament < int(mapping.size()) && filament < slot_count; ++filament) {
+        if (!mapping[filament].is_number_integer()) {
+            continue;
+        }
+        const int slot = mapping[filament].get<int>();
+        if (slot < 0 || slot >= slot_count) {
+            continue;
+        }
+        if (!script.empty()) {
+            script += '\n';
+        }
+        // SAVE_VARIABLE reads VALUE as a Python literal, so the slot name keeps its own quotes
+        script += "SAVE_VARIABLE VARIABLE=value_t" + std::to_string(filament) + " VALUE=\"'slot" + std::to_string(slot) + "'\"";
+    }
+    return script;
+}
+
+bool QidiPrinterAgent::print_uploaded_file(const PrintParams& params, const std::string& filename)
+{
+    const std::string script = build_tool_slot_script(params.ams_mapping);
+    if (!script.empty() && !send_gcode_sync(device_info.dev_id, script)) {
+        return false;
+    }
+
+    // On the X-Max 4 and Q2, Klipper only opens the copy Moonraker's print start makes, so SDCARD_PRINT_FILE can't find the upload
+    std::string response;
+    return send_jsonrpc_command(device_info.base_url, device_info.api_key, print_start_request(params, filename), response);
+}
+
+nlohmann::json QidiPrinterAgent::print_start_request(const PrintParams& params, const std::string& filename)
+{
+    nlohmann::json request{{"filename", filename}};
+    // Qidi's Moonraker prints Metadata/plate_<plateindex>.gcode from a 3MF, defaulting to plate 1
+    if (boost::iends_with(filename, ".3mf"))
+        request["plateindex"] = std::to_string(params.plate_index);
+    return request;
 }
 
 bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
@@ -91,7 +150,7 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
                                        int&                      box_count,
                                        std::string&              error)
 {
-    std::string url = join_url(base_url, "/printer/objects/query?save_variables=variables");
+    std::string url = join_url(base_url, "/printer/objects/query?save_variables=variables&multi_color_controller=box");
     for (int i = 0; i < 16; ++i) {
         url += "&box_stepper%20slot" + std::to_string(i) + "=runout_button";
     }
@@ -164,9 +223,12 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
         AmsTrayData tray;
         tray.slot_index = i;
 
-        // Read slot variables
-        const int color_index     = variables.value("color_slot" + std::to_string(i), 1);
-        const int filament_type   = variables.value("filament_slot" + std::to_string(i), 1);
+        // Read slot variables. Newer firmware stores a hex color list and a material id instead of dictionary
+        // indexes, and only in the slots it has rewritten, so each slot is checked for both forms.
+        const auto color_value    = variables.value("color_slot" + std::to_string(i), nlohmann::json(1));
+        const auto filament_value = variables.value("filament_slot" + std::to_string(i), nlohmann::json(1));
+        const int color_index     = color_value.is_number() ? color_value.get<int>() : 0;
+        const int filament_type   = filament_value.is_number() ? filament_value.get<int>() : 0;
         const int vendor_type     = variables.value("vendor_slot" + std::to_string(i), 0);
 
         // Check filament presence via runout sensor
@@ -187,6 +249,13 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
             if (filament_it != dict.filaments.end()) {
                 filament_name = filament_it->second;
             }
+            if (filament_value.is_string()) {
+                const nlohmann::json::json_pointer decoded_type("/multi_color_controller/box/box" + std::to_string(i / 4) +
+                                                                "_filament_info_" + std::to_string(i % 4) + "_filament_type");
+                if (status.contains(decoded_type) && status[decoded_type].is_string()) {
+                    filament_name = status[decoded_type].get<std::string>();
+                }
+            }
             tray.tray_type = normalize_filament_type(filament_name);
 
             // Try Qidi-specific setting ID first; fall back to visible preset by type
@@ -202,7 +271,9 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
 
             // Look up color from dictionary
             auto color_it = dict.colors.find(color_index);
-            if (color_it != dict.colors.end()) {
+            if (color_value.is_array() && !color_value.empty() && color_value[0].is_string()) {
+                tray.tray_color = color_value[0].get<std::string>();
+            } else if (color_it != dict.colors.end()) {
                 tray.tray_color = color_it->second;
             } else {
                 tray.tray_color = "FFFFFFFF";

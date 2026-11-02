@@ -1,7 +1,10 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
+#include "../BoundingBox.hpp"
+#include "../Point.hpp"
 #include "../Polygon.hpp"
 
 namespace Slic3r {
@@ -58,5 +61,12 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase               
 // has_mixed_filament: filament_is_mixed is a PROJECT option, so it is passed rather than read -
 //                 `config` only has to carry the print preset's own keys.
 bool prime_tower_is_printed(const ConfigBase &config, int used_filaments, int num_objects, bool has_mixed_filament);
+
+// Where to put a tower whose saved position no longer fits: of the anchors (the tower's
+// position) inside `anchor_bounds`, the one nearest `target` whose `footprint` touches none of
+// the `obstacles`. `footprint` is relative to the anchor, brim included; an obstacle is taken
+// as its convex hull. Empty when every anchor in bounds meets an obstacle. All coordinates scaled.
+std::optional<Point> nearest_clear_wipe_tower_anchor(const BoundingBox &anchor_bounds, const Polygon &footprint,
+                                                     const Polygons &obstacles, const Point &target);
 
 } // namespace Slic3r

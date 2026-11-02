@@ -427,6 +427,8 @@ wxGLContext* OpenGLManager::init_glcontext(wxGLCanvas& canvas, const std::pair<i
     return m_context;
 }
 
+static const char* const SCENE_CANVAS_NAME = "OrcaSceneCanvas";
+
 wxGLCanvas* OpenGLManager::create_wxglcanvas(wxWindow& parent)
 {
     int antialiasing_samples = 4;
@@ -470,10 +472,15 @@ wxGLCanvas* OpenGLManager::create_wxglcanvas(wxWindow& parent)
         attribList[samples_value_idx] = 0;
     }
 
-    wxGLCanvas* canvas = new wxGLCanvas(&parent, wxID_ANY, attribList, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS);
+    wxGLCanvas* canvas = new wxGLCanvas(&parent, wxID_ANY, attribList, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS, SCENE_CANVAS_NAME);
     // The GL canvas paints its entire surface, so background erasing is unnecessary.
     canvas->SetBackgroundStyle(wxBG_STYLE_PAINT);
     return canvas;
+}
+
+bool OpenGLManager::is_scene_canvas(const wxWindow* window)
+{
+    return window != nullptr && window->GetName() == SCENE_CANVAS_NAME;
 }
 
 void OpenGLManager::detect_multisample(int* attribList)

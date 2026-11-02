@@ -2,6 +2,15 @@
 
 // Shared embedded-interpreter bootstrap for slic3rutils tests that need a live Python
 // interpreter (test_plugin_host_api.cpp, test_slicing_pipeline_bindings.cpp, ...).
+//
+// The runtime is process-wide: once initialized it stays up for the rest of the test process.
+// CPython cannot be reinitialized after Py_Finalize (a second init aborts inside _datetime), and
+// the app likewise finalizes it only at exit, so nothing here tears it down.
+// slic3rutils_tests_main.cpp finalizes the production interpreter once, after the last test case.
+//
+// This bootstrap is separate from PythonInterpreter's runtime: whichever of the two brings Python
+// up first in a process owns it, and the other cannot initialize it again. ctest runs one case per
+// process, so that only matters if the binary is run directly.
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>

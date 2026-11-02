@@ -101,6 +101,8 @@ public:
     static bool are_framebuffers_supported() { return (s_framebuffers_type != EFramebufferType::Unknown); }
     static EFramebufferType get_framebuffers_type() { return s_framebuffers_type; }
     static wxGLCanvas* create_wxglcanvas(wxWindow& parent);
+    // True for a canvas made by create_wxglcanvas(), the kind a GLCanvas3D draws its scene and ImGui into.
+    static bool is_scene_canvas(const wxWindow* window);
     static const GLInfo& get_gl_info() { return s_gl_info; }
     static bool force_power_of_two_textures() { return s_force_power_of_two_textures; }
 

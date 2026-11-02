@@ -100,8 +100,14 @@ the active printer agent because a normal LAN agent represents one physical prin
 ## Agent registration and selection
 
 `NetworkAgentFactory` maintains the printer-agent registry. Each registry entry contains an agent ID,
-a display name, and a factory function. Built-in agents register during application initialization.
-Python printer-agent capabilities register dynamically and contribute an agent ID and factory entry.
+a display name, a factory function, and whether the native Device and Calibration tabs apply to the
+agent's printers. Built-in agents register during application initialization. Python printer-agent
+capabilities register dynamically and contribute an agent ID and factory entry.
+
+The tab flag is read from the registry rather than the live agent because the main window lays out its
+tabs before the newly selected preset's agent is installed. It defaults to true. An agent that clears
+it is one whose printers have their own web interface and nothing the Bambu-shaped Device and
+Calibration tabs can show; for those printers the web Device page takes the Device tab's place.
 
 The selected printer preset contains the printer-agent choice. If no explicit choice is stored, the
 application preserves the existing default behavior: Bambu presets select the Bambu agent and other

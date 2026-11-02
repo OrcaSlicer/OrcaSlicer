@@ -37,6 +37,7 @@
 #ifdef __linux__
 #include <gtk/gtk.h>
 #endif
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 

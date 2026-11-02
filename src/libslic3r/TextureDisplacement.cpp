@@ -283,7 +283,7 @@ bool height_texture_has_color(const TextureDisplacementLayer &layer)
     return decode_height_texture(layer).has_color();
 }
 
-DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer)
+DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer, bool keep_decoded)
 {
     DecodedHeightTexture result;
     if (layer.empty())
@@ -351,13 +351,15 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
                 }
         }
 
-        std::lock_guard<std::mutex> lock(g_decoded_texture_cache.mutex);
-        // Opportunistically drop entries for image_data that no longer exists anywhere, so the
-        // cache doesn't grow without bound across many add/remove-texture cycles in a long session.
-        auto &entries = g_decoded_texture_cache.entries;
-        for (auto it = entries.begin(); it != entries.end();)
-            it = it->second.first.expired() ? entries.erase(it) : std::next(it);
-        entries[key] = { std::weak_ptr<const std::vector<unsigned char>>(layer.image_data), result };
+        if (keep_decoded) {
+            std::lock_guard<std::mutex> lock(g_decoded_texture_cache.mutex);
+            // Opportunistically drop entries for image_data that no longer exists anywhere, so the
+            // cache doesn't grow without bound across many add/remove-texture cycles in a long session.
+            auto &entries = g_decoded_texture_cache.entries;
+            for (auto it = entries.begin(); it != entries.end();)
+                it = it->second.first.expired() ? entries.erase(it) : std::next(it);
+            entries[key] = { std::weak_ptr<const std::vector<unsigned char>>(layer.image_data), result };
+        }
     }
 
     // The image-adjustment panel's live edits, on top of the decode and before the smoothing. Before,
@@ -2722,7 +2724,8 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                                                    bool                                         flip_normals,
                                                    BakeStageRecorder                           *debug,
                                                    TextureBakeStats                            *stats,
-                                                   const std::vector<Vec2f>                    *model_uv)
+                                                   const std::vector<Vec2f>                    *model_uv,
+                                                   float                                        resting_drop)
 {
     HeightFieldSampler combined = make_combined_displacement_sampler(mesh, layers, facets_data, model_uv);
     if (!combined)
@@ -2869,6 +2872,9 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
         bounds.min = bounds.min.cwiseMin(v);
         bounds.max = bounds.max.cwiseMax(v);
     }
+    // The bottom the pipeline clamps and snaps to is the plane the whole object rests on, not this
+    // part's own: a part held off the plate by another keeps the relief on its underside.
+    bounds.min.z() -= resting_drop;
 
     const auto sample = [&combined](const Vec3f &pos, const Vec3f &, const Vec3f &blend_normal) {
         // The blend normal chooses the projection; the move itself is along the smooth normal, which
@@ -3028,7 +3034,8 @@ static indexed_triangle_set build_texture_displacement_in_place(
     bool                                         flip_normals,
     BakeStageRecorder                           *debug,
     TextureBakeStats                            *stats,
-    const std::vector<Vec2f>                    *model_uv)
+    const std::vector<Vec2f>                    *model_uv,
+    float                                        resting_drop)
 {
     // The classic path moves the vertices the mesh already has, so there is no budget to report on.
     (void) stats;
@@ -3065,7 +3072,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
 
     if (options.pipeline_v2)
         return build_texture_displacement_v2(mesh, layers, facets_data, options, progress, color, flip_normals,
-                                             debug, stats, model_uv);
+                                             debug, stats, model_uv, resting_drop);
 
     // Layers are combined in slot order, like stacked layers in an image editor: each one folds its
     // own displacement into the running total via its blend mode (see TextureBlendMode).
@@ -3397,10 +3404,12 @@ static indexed_triangle_set build_texture_displacement_in_place(
     if (!any_displacement)
         return mesh;
 
-    // The model's own resting plane, taken before anything moves - see the clamp after smoothing.
+    // The plane the model rests on, taken before anything moves - see the clamp after smoothing. That
+    // is this mesh's own bottom, lowered to the object's when another part of it sits lower.
     float resting_z = std::numeric_limits<float>::max();
     for (const Vec3f &v : mesh.vertices)
         resting_z = std::min(resting_z, v.z());
+    resting_z -= resting_drop;
 
     size_t moved_count = 0;
     for (size_t vi = 0; vi < mesh.vertices.size(); ++vi)
@@ -3492,17 +3501,20 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
                                                  const Transform3d                           &volume_to_world,
                                                  BakeStageRecorder                           *debug,
                                                  TextureBakeStats                            *stats,
-                                                 const std::vector<Vec2f>                    *model_uv)
+                                                 const std::vector<Vec2f>                    *model_uv,
+                                                 const Vec3d                                 *texture_anchor,
+                                                 float                                        resting_drop)
 {
     // An untransformed volume on an untransformed instance is by far the common case, and the round
     // trip costs two matrix multiplies per vertex on a mesh that can carry millions of them - so take
     // the identity out of the way rather than paying for it.
     // The texture is projected in the bake frame - world orientation and scale, anchored at the
-    // volume's origin (see texture_displacement_bake_frame()).
-    const Transform3d frame = texture_displacement_bake_frame(volume_to_world);
+    // texture's anchor (see texture_displacement_bake_frame()).
+    const Transform3d frame = texture_anchor != nullptr ? texture_displacement_bake_frame(volume_to_world, *texture_anchor) :
+                                                          texture_displacement_bake_frame(volume_to_world);
     if (frame.matrix().isApprox(Transform3d::Identity().matrix()))
         return build_texture_displacement_in_place(base_mesh, layers, facets_data, options, progress, color,
-                                                   false, debug, stats, model_uv);
+                                                   false, debug, stats, model_uv, resting_drop);
 
     const Transform3d to_local = frame.inverse();
     // A mirroring placement leaves the positions correct but every winding-derived normal pointing
@@ -3518,8 +3530,8 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
     const size_t         debug_mark = (debug != nullptr) ? debug->mark() : 0;
     // The UV channel rides along untouched: a uv is a coordinate in the texture, not on the model, so
     // the frame the mesh is measured in does not reach it.
-    indexed_triangle_set out = build_texture_displacement_in_place(world, layers, facets_data, options,
-                                                                   progress, color, mirrored, debug, stats, model_uv);
+    indexed_triangle_set out = build_texture_displacement_in_place(world, layers, facets_data, options, progress,
+                                                                   color, mirrored, debug, stats, model_uv, resting_drop);
     // Everything the bake recorded is in world millimetres, like `out` itself. The debug view draws in
     // the volume's local frame, so the stages are brought back the same way the result is.
     if (debug != nullptr)
@@ -3566,13 +3578,18 @@ void texture_displacement_patch_frame(const indexed_triangle_set &patch, const s
            (an.y() <= an.x() && an.y() <= an.z()) ? Vec3f::UnitY() : Vec3f::UnitZ();
 }
 
+Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world, const Vec3d &anchor)
+{
+    // World orientation and scale, but the origin moved onto the model: the texture then rides with
+    // the model when it is moved about the plate (and a single, untiled stamp starts on the model
+    // rather than at the plate's corner), while a tile is still `tiling_scale` printed millimetres
+    // whatever the instance's scale.
+    return Eigen::Translation3d(-anchor) * volume_to_world;
+}
+
 Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world)
 {
-    // World orientation and scale, but the origin moved to where the volume's own origin sits: the
-    // texture then rides with the model when it is moved about the plate (and a single, untiled stamp
-    // starts on the model rather than at the plate's corner), while a tile is still `tiling_scale`
-    // printed millimetres whatever the instance's scale.
-    return Eigen::Translation3d(-volume_to_world.translation()) * volume_to_world;
+    return texture_displacement_bake_frame(volume_to_world, volume_to_world.translation());
 }
 
 Transform3d texture_displacement_volume_to_world(const ModelVolume &volume)

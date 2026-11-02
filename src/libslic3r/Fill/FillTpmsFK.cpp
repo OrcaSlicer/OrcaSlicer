@@ -8,7 +8,7 @@
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "FillTpmsFK.hpp"
-#include "FillTpmsAdaptive.hpp"
+#include "AdaptiveInfillField.hpp"
 #include <cmath>
 #include <algorithm>
 #include <cstddef>
@@ -132,8 +132,8 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
                                       ExPolygon                      expolygon,
                                       Polylines&                     polylines_out)
 {
-    if (params.tpms_adaptive == TpmsAdaptiveMode::SteppedShells && this->tpms_radial_field != nullptr) {
-        fill_tpms_shells(*this->tpms_radial_field, expolygon, this->z - 0.5 * params.layer_height, params, this->spacing,
+    if (params.adaptive_infill_mode == AdaptiveInfillMode::SteppedShells && this->adaptive_infill_field != nullptr) {
+        fill_adaptive_infill_shells(*this->adaptive_infill_field, expolygon, this->z - 0.5 * params.layer_height, params, this->spacing,
                          [&](const FillParams &shell_params, const ExPolygon &shell) {
                              this->_fill_surface_single(shell_params, thickness_layers, direction, shell, polylines_out);
                          });
@@ -151,10 +151,10 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
     // Enlarge the bounding box by the multi-line width to avoid artifacts at the edges.
     bbox.offset(scale_((params.multiline + 1) * spacing));
     Polylines polylines;
-    if (params.tpms_adaptive != TpmsAdaptiveMode::Disabled && this->tpms_radial_field != nullptr) {
-        polylines = make_adaptive_tpms({fischer_koch, 2. * PI / period(params.density), 2. * PI / period(params.tpms_interior_density),
-                                        params.tpms_adaptive_gradient},
-                                       *this->tpms_radial_field, bbox, this->z, params.layer_height, spacing, infill_angle);
+    if (params.adaptive_infill_mode != AdaptiveInfillMode::Disabled && this->adaptive_infill_field != nullptr) {
+        polylines = make_adaptive_tpms({fischer_koch, 2. * PI / period(params.density), 2. * PI / period(params.adaptive_infill_interior_density),
+                                        params.adaptive_infill_gradient},
+                                       *this->adaptive_infill_field, bbox, this->z, params.layer_height, spacing, infill_angle);
     } else {
         marchsq::ScalarField sf = marchsq::ScalarField(bbox, this->z, period(params.density));
         // Get simplified lines using coarse tolerance of 0.1mm (this is infill).

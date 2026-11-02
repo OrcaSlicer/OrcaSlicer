@@ -26,8 +26,10 @@
 #include "Print.hpp"
 #include "GCode/OrderingStrategies.hpp"
 
+#include <array>
 #include <cmath>
 #include <cassert>
+#include <deque>
 #include "MultiMaterialSegmentation.hpp"
 
 namespace Slic3r {
@@ -96,6 +98,46 @@ std::vector<std::pair<size_t, bool>> chain_segments_closest_point(std::vector<En
 	return out;
 }
 
+// The shortest chain over every order and allowed reversal, by dynamic programming over the subsets of segments, so only
+// for a few of them. end_points holds the first and the last point of each segment; the chain starts at start when given
+// and its end is free. Return index and "reversed" flag.
+static std::vector<std::pair<size_t, bool>> chain_segments_exact(const std::vector<Vec2d> &end_points, const std::vector<char> &could_reverse, const Vec2d *start)
+{
+	const size_t n = could_reverse.size();
+	assert(n >= 1 && n <= 12 && end_points.size() == 2 * n);
+	// State (mask * n + j) * 2 + o: the segments of mask visited, the last one j, flipped when o.
+	const size_t        num_states = (size_t(1) << n) * n * 2;
+	std::vector<double> cost(num_states, std::numeric_limits<double>::max());
+	std::vector<size_t> from(num_states, size_t(-1));
+	auto entry = [&end_points](size_t j, size_t o) -> const Vec2d & { return end_points[2 * j + o]; };
+	auto exit  = [&end_points](size_t j, size_t o) -> const Vec2d & { return end_points[2 * j + 1 - o]; };
+	for (size_t j = 0; j < n; ++ j)
+		for (size_t o = 0; o <= size_t(could_reverse[j] != 0); ++ o)
+			cost[((size_t(1) << j) * n + j) * 2 + o] = start == nullptr ? 0. : (entry(j, o) - *start).norm();
+	for (size_t mask = 1; mask < (size_t(1) << n); ++ mask)
+		for (size_t s = mask * n * 2; s < (mask + 1) * n * 2; ++ s)
+			if (cost[s] < std::numeric_limits<double>::max())
+				for (size_t k = 0; k < n; ++ k)
+					if (! (mask >> k & 1))
+						for (size_t o = 0; o <= size_t(could_reverse[k] != 0); ++ o) {
+							const size_t next = (((mask | size_t(1) << k) * n) + k) * 2 + o;
+							const double c    = cost[s] + (entry(k, o) - exit(s / 2 % n, s & 1)).norm();
+							if (c < cost[next]) {
+								cost[next] = c;
+								from[next] = s;
+							}
+						}
+	const size_t full = (size_t(1) << n) - 1;
+	size_t       best = full * n * 2;
+	for (size_t s = best; s < num_states; ++ s)
+		if (cost[s] < cost[best])
+			best = s;
+	std::vector<std::pair<size_t, bool>> out(n);
+	for (size_t s = best, k = n; k -- > 0; s = from[s])
+		out[k] = { s / 2 % n, (s & 1) != 0 };
+	return out;
+}
+
 // Chain perimeters (always closed) and thin fills (closed or open) using a greedy algorithm.
 // Solving a Traveling Salesman Problem (TSP) with the modification, that the sites are not always points, but points and segments.
 // Solving using a greedy algorithm, where a shortest edge is added to the solution if it does not produce a bifurcation or a cycle.
@@ -104,6 +146,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_closest_point(std::vector<En
 // The algorithm builds a tour for the traveling salesman one edge at a time and thus maintains multiple tour fragments, each of which 
 // is a simple path in the complete graph of cities. At each stage, the algorithm selects the edge of minimal cost that either creates 
 // a new fragment, extends one of the existing paths or creates a cycle of length equal to the number of cities.
+// Orca: two to four segments are chained exactly instead.
 template<typename PointType, typename SegmentEndPointFunc, bool REVERSE_COULD_FAIL, typename CouldReverseFunc>
 std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals_(SegmentEndPointFunc end_point_func, CouldReverseFunc could_reverse_func, size_t num_segments, const PointType *start_near)
 {
@@ -118,6 +161,19 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		out.emplace_back(0, could_reverse_func(0) && start_near != nullptr && 
             (end_point_func(0, false) - *start_near).template cast<double>().squaredNorm() < (end_point_func(0, true) - *start_near).template cast<double>().squaredNorm());
 	} 
+	else if (num_segments <= 4)
+	{
+		// Orca: so few segments are cheap to chain exactly. The first one is then not always the one nearest start_near.
+		std::vector<Vec2d> end_points(2 * num_segments);
+		std::vector<char>  could_reverse(num_segments);
+		for (size_t i = 0; i < num_segments; ++ i) {
+			end_points[2 * i]     = end_point_func(i, true).template cast<double>();
+			end_points[2 * i + 1] = end_point_func(i, false).template cast<double>();
+			could_reverse[i]      = could_reverse_func(i);
+		}
+		const Vec2d start = start_near != nullptr ? Vec2d(start_near->template cast<double>()) : Vec2d::Zero();
+		out = chain_segments_exact(end_points, could_reverse, start_near != nullptr ? &start : nullptr);
+	}
 	else
 	{
 		// End points of segments for the KD tree closest point search.
@@ -1039,12 +1095,370 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy2(SegmentEndPointFunc 
 	return chain_segments_greedy_constrained_reversals2_<PointType, SegmentEndPointFunc, false, decltype(could_reverse_func)>(end_point_func, could_reverse_func, num_segments, start_near);
 }
 
+// The K points nearest to a query, nearest first, ties by index, from a uniform grid of about two points per cell.
+template<size_t K>
+class NearestPoints
+{
+public:
+	static constexpr size_t npos = size_t(-1);
+
+	explicit NearestPoints(const std::vector<Vec2d> &points) : m_points(points)
+	{
+		BoundingBoxf bbox;
+		for (const Vec2d &p : points)
+			bbox.merge(p);
+		const Vec2d  size  = bbox.size();
+		const double count = double(std::max<size_t>(points.size(), 1));
+		m_cell   = std::max(std::sqrt(2. * size.x() * size.y() / count), std::max(size.x(), size.y()) / count);
+		if (m_cell <= 0.)
+			m_cell = 1.;
+		m_origin = bbox.min;
+		m_cols   = int(size.x() / m_cell) + 1;
+		m_rows   = int(size.y() / m_cell) + 1;
+		m_first.assign(size_t(m_cols) * m_rows + 1, 0);
+		for (const Vec2d &p : points)
+			++ m_first[cell(p) + 1];
+		for (size_t c = 1; c < m_first.size(); ++ c)
+			m_first[c] += m_first[c - 1];
+		m_index.resize(points.size());
+		std::vector<size_t> next(m_first.begin(), m_first.end() - 1);
+		for (size_t i = 0; i < points.size(); ++ i)
+			m_index[next[cell(points[i])] ++] = i;
+	}
+
+	// Indices of the nearest points that filter accepts, npos past the last one.
+	template<typename Filter>
+	std::array<size_t, K> query(const Vec2d &q, Filter filter) const
+	{
+		std::array<std::pair<double, size_t>, K> best;
+		size_t found = 0;
+		const int cx = int(std::clamp(std::floor((q.x() - m_origin.x()) / m_cell), 0., double(m_cols - 1)));
+		const int cy = int(std::clamp(std::floor((q.y() - m_origin.y()) / m_cell), 0., double(m_rows - 1)));
+		auto visit = [&](int x, int y) {
+			if (x < 0 || y < 0 || x >= m_cols || y >= m_rows)
+				return;
+			const size_t c = size_t(y) * m_cols + x;
+			for (size_t k = m_first[c]; k < m_first[c + 1]; ++ k) {
+				const size_t i = m_index[k];
+				if (! filter(i))
+					continue;
+				const std::pair<double, size_t> candidate((m_points[i] - q).squaredNorm(), i);
+				if (found == K && ! (candidate < best[K - 1]))
+					continue;
+				auto it = std::upper_bound(best.begin(), best.begin() + found, candidate);
+				std::move_backward(it, best.begin() + std::min(found, K - 1), best.begin() + std::min(found + 1, K));
+				*it = candidate;
+				found = std::min(found + 1, K);
+			}
+		};
+		// Points beyond ring r are at least r cells away.
+		for (int r = 0; r <= std::max(m_cols, m_rows); ++ r) {
+			if (r == 0)
+				visit(cx, cy);
+			for (int d = -r; d <= r && r > 0; ++ d) {
+				visit(cx + d, cy - r);
+				visit(cx + d, cy + r);
+				if (d != -r && d != r) {
+					visit(cx - r, cy + d);
+					visit(cx + r, cy + d);
+				}
+			}
+			if (found == K && best[K - 1].first <= sqr(r * m_cell))
+				break;
+		}
+		std::array<size_t, K> out;
+		out.fill(npos);
+		for (size_t k = 0; k < found; ++ k)
+			out[k] = best[k].second;
+		return out;
+	}
+
+private:
+	size_t cell(const Vec2d &p) const
+	{
+		const int x = std::clamp(int((p.x() - m_origin.x()) / m_cell), 0, m_cols - 1);
+		const int y = std::clamp(int((p.y() - m_origin.y()) / m_cell), 0, m_rows - 1);
+		return size_t(y) * m_cols + x;
+	}
+
+	const std::vector<Vec2d> &m_points;
+	Vec2d                     m_origin;
+	double                    m_cell;
+	int                       m_cols;
+	int                       m_rows;
+	std::vector<size_t>       m_first;
+	std::vector<size_t>       m_index;
+};
+
+// Shortens the travel of a chain with 2-opt moves (reversing a run of segments) and or-opt moves (moving a run of up to
+// three segments elsewhere, or a longer one to the front, flipped or not). end_points holds the first and the last point
+// of each segment. The chain starts at start_near when given, and its end is free. A move that would flip a segment that
+// cannot reverse is skipped. Moves only create links between nearest neighbor end points, and after a move only the
+// segments next to a changed link are examined again, until a sweep of all segments finds no move. This keeps the search
+// close to linear.
+static void improve_chain_by_local_search(std::vector<std::pair<size_t, bool>> &chain, const std::vector<Vec2d> &end_points,
+                                          const std::vector<char> &could_reverse, const Vec2d *start_near)
+{
+	const size_t n = chain.size();
+	if (n < 2)
+		return;
+	assert(end_points.size() == 2 * n && could_reverse.size() == n);
+
+	std::vector<size_t> order(n), pos(n), fixed_before(n + 1, 0);
+	std::vector<char>   flipped(n);
+	for (size_t k = 0; k < n; ++ k) {
+		order[k] = chain[k].first;
+		flipped[order[k]] = chain[k].second;
+	}
+	// Updates positions lo..hi after a move, which keeps the number of segments that cannot reverse past hi.
+	auto refresh = [&](size_t lo, size_t hi) {
+		for (size_t k = lo; k <= hi; ++ k) {
+			pos[order[k]]       = k;
+			fixed_before[k + 1] = fixed_before[k] + ! could_reverse[order[k]];
+		}
+	};
+	refresh(0, n - 1);
+	auto entry_idx  = [&](size_t k) { return 2 * order[k] + flipped[order[k]]; };
+	auto exit_idx   = [&](size_t k) { return 2 * order[k] + 1 - flipped[order[k]]; };
+	auto entry      = [&](size_t k) -> const Vec2d& { return end_points[entry_idx(k)]; };
+	auto exit       = [&](size_t k) -> const Vec2d& { return end_points[exit_idx(k)]; };
+	auto is_exit    = [&](size_t e) { return char(e & 1) != flipped[e >> 1]; };
+	auto reversible = [&](size_t i, size_t j) { return fixed_before[j + 1] == fixed_before[i]; };
+	auto dist       = [](const Vec2d *a, const Vec2d *b) { return a == nullptr || b == nullptr ? 0. : (*a - *b).norm(); };
+	// Travel end points around position k, null where the chain is open.
+	auto prev_exit  = [&](size_t k) -> const Vec2d* { return k > 0 ? &exit(k - 1) : start_near; };
+	auto next_entry = [&](size_t k) -> const Vec2d* { return k + 1 < n ? &entry(k + 1) : nullptr; };
+
+	// The 32 nearest end points are the candidates, which covers every move on short chains; 8 missed much of the gain.
+	static constexpr size_t K = 32;
+	static constexpr size_t npos = NearestPoints<K>::npos;
+	const NearestPoints<K> nearest(end_points);
+	std::vector<std::array<size_t, K>> neighbors(end_points.size());
+	for (size_t e = 0; e < end_points.size(); ++ e)
+		neighbors[e] = nearest.query(end_points[e], [e](size_t idx) { return (idx >> 1) != (e >> 1); });
+	std::array<size_t, K> start_neighbors;
+	start_neighbors.fill(npos);
+	if (start_near != nullptr)
+		start_neighbors = nearest.query(*start_near, [](size_t) { return true; });
+
+	// Segments to examine, by id, each queued once.
+	std::deque<size_t> queue;
+	std::vector<char>  queued(n, 0);
+	auto enqueue = [&](size_t k) {
+		if (k < n && ! queued[order[k]]) {
+			queued[order[k]] = 1;
+			queue.push_back(order[k]);
+		}
+	};
+
+	const double min_gain = SCALED_EPSILON;
+	// Reverses positions i..j if that shortens the chain.
+	auto try_2opt = [&](size_t i, size_t j) {
+		if (! reversible(i, j))
+			return false;
+		const Vec2d *a = prev_exit(i), *b = next_entry(j);
+		if (dist(a, &exit(j)) + dist(&entry(i), b) > dist(a, &entry(i)) + dist(&exit(j), b) - min_gain)
+			return false;
+		std::reverse(order.begin() + i, order.begin() + j + 1);
+		for (size_t k = i; k <= j; ++ k)
+			flipped[order[k]] ^= 1;
+		refresh(i, j);
+		for (size_t k : { i - 1, i, j, j + 1 })
+			enqueue(k);
+		return true;
+	};
+	// Moves positions i..last after position gap (size_t(-1) for the front) if that shortens the chain.
+	auto try_oropt = [&](size_t i, size_t last, size_t gap) {
+		if (gap + 1 == i || (gap >= i && gap <= last))
+			return false;
+		const Vec2d *a = gap == size_t(-1) ? start_near : &exit(gap);
+		const Vec2d *b = gap + 1 < n ? &entry(gap + 1) : nullptr;
+		const double removal_gain = dist(prev_exit(i), &entry(i)) + dist(&exit(last), next_entry(last)) - dist(prev_exit(i), next_entry(last));
+		const double base = dist(a, b);
+		const double cost_kept = dist(a, &entry(i)) + dist(&exit(last), b) - base;
+		const double cost_flipped = reversible(i, last) ? dist(a, &exit(last)) + dist(&entry(i), b) - base : std::numeric_limits<double>::max();
+		if (std::min(cost_kept, cost_flipped) > removal_gain - min_gain)
+			return false;
+		const size_t len = last - i + 1;
+		// The run lands on first..first+len-1; lo..hi spans every position that changed.
+		const bool   forward = gap > last && gap != size_t(-1);
+		const size_t first   = forward ? gap + 1 - len : gap + 1;
+		const size_t lo      = forward ? i : first;
+		const size_t hi      = forward ? gap : last;
+		if (forward)
+			std::rotate(order.begin() + i, order.begin() + last + 1, order.begin() + gap + 1);
+		else
+			std::rotate(order.begin() + first, order.begin() + i, order.begin() + last + 1);
+		if (cost_flipped < cost_kept) {
+			std::reverse(order.begin() + first, order.begin() + first + len);
+			for (size_t k = first; k < first + len; ++ k)
+				flipped[order[k]] ^= 1;
+		}
+		refresh(lo, hi);
+		// The links around the run's new place, and the link closing its old place.
+		for (size_t k : { first - 1, first, first + len - 1, first + len, forward ? i - 1 : last, forward ? i : last + 1 })
+			enqueue(k);
+		return true;
+	};
+	// The gap before position k of the chain with positions i..last taken out.
+	auto gap_before = [](size_t k, size_t i, size_t last) { return k == last + 1 ? i - 1 : k - 1; };
+
+	// Applies the first move found that breaks a link next to position p.
+	// Candidates are tried nearest first, while closer than the link the move would replace at that end point.
+	auto closer = [&](const Vec2d &at, size_t q, double limit) { return q != npos && (end_points[q] - at).norm() < limit; };
+	auto improve_at = [&](size_t p) {
+		// 2-opt breaking the link into p, as the first or the last link of the reversed run.
+		if (const Vec2d *a = prev_exit(p); a != nullptr) {
+			const double old_link = dist(a, &entry(p));
+			for (size_t q : p > 0 ? neighbors[exit_idx(p - 1)] : start_neighbors) {
+				if (! closer(*a, q, old_link))
+					break;
+				if (is_exit(q) && pos[q >> 1] >= p && try_2opt(p, pos[q >> 1]))
+					return true;
+			}
+			if (p > 0)
+				for (size_t q : neighbors[entry_idx(p)]) {
+					if (! closer(entry(p), q, old_link))
+						break;
+					if (! is_exit(q) && pos[q >> 1] < p && try_2opt(pos[q >> 1], p - 1))
+						return true;
+				}
+		}
+		// 2-opt breaking the link out of p.
+		if (p + 1 < n) {
+			const double old_link = dist(&exit(p), &entry(p + 1));
+			for (size_t q : neighbors[exit_idx(p)]) {
+				if (! closer(exit(p), q, old_link))
+					break;
+				if (is_exit(q) && pos[q >> 1] > p && try_2opt(p + 1, pos[q >> 1]))
+					return true;
+			}
+			for (size_t q : neighbors[entry_idx(p + 1)]) {
+				if (! closer(entry(p + 1), q, old_link))
+					break;
+				if (! is_exit(q) && pos[q >> 1] <= p && try_2opt(pos[q >> 1], p))
+					return true;
+			}
+		}
+		// A run of any length that starts or ends next to the start point moves to the front.
+		if (p == 0)
+			for (size_t q : start_neighbors) {
+				if (q == npos)
+					break;
+				const size_t m = pos[q >> 1];
+				if (m == 0)
+					continue;
+				// Runs m..k enter next to the start, runs k..m leave there and go flipped.
+				const bool exit_near = is_exit(q);
+				for (size_t k = exit_near ? 1 : m; k < (exit_near ? m + 1 : n); ++ k)
+					if (try_oropt(exit_near ? k : m, exit_near ? m : k, size_t(-1)))
+						return true;
+			}
+		// Or-opt of the runs starting at p: next to an exit a run goes after that segment, next to an entry before it.
+		for (size_t last = p; last < std::min(p + 3, n); ++ last) {
+			if (try_oropt(p, last, size_t(-1)))
+				return true;
+			const double removal_gain = dist(prev_exit(p), &entry(p)) + dist(&exit(last), next_entry(last)) - dist(prev_exit(p), next_entry(last));
+			for (size_t e : { entry_idx(p), exit_idx(last) })
+				for (size_t q : neighbors[e]) {
+					if (! closer(end_points[e], q, removal_gain))
+						break;
+					const size_t m = pos[q >> 1];
+					if ((m < p || m > last) && try_oropt(p, last, is_exit(q) ? m : gap_before(m, p, last)))
+						return true;
+				}
+		}
+		return false;
+	};
+
+	// A new link can make room for a run that sits elsewhere, hence the sweeps until one finds no move. Every move shortens
+	// the chain, so the search ends; the cap only bounds its time.
+	for (size_t k = 0; k < n; ++ k)
+		enqueue(k);
+	bool moved_since_sweep = false;
+	for (size_t moves = 0; moves < 50 * n;) {
+		if (queue.empty()) {
+			if (! moved_since_sweep)
+				break;
+			moved_since_sweep = false;
+			for (size_t k = 0; k < n; ++ k)
+				enqueue(k);
+		}
+		const size_t segment = queue.front();
+		queue.pop_front();
+		queued[segment] = 0;
+		if (improve_at(pos[segment])) {
+			++ moves;
+			moved_since_sweep = true;
+			enqueue(pos[segment]);
+		}
+	}
+
+	for (size_t k = 0; k < n; ++ k)
+		chain[k] = { order[k], flipped[order[k]] != 0 };
+}
+
+// Chain that always goes on to the nearest free end point, from start.
+static std::vector<std::pair<size_t, bool>> chain_nearest_next(const std::vector<Vec2d> &end_points, const std::vector<char> &could_reverse, const Vec2d &start)
+{
+	const NearestPoints<1>               nearest(end_points);
+	std::vector<char>                    taken(could_reverse.size(), 0);
+	std::vector<std::pair<size_t, bool>> out;
+	out.reserve(could_reverse.size());
+	for (Vec2d at = start; out.size() < could_reverse.size();) {
+		const size_t e = nearest.query(at, [&](size_t idx) { return ! taken[idx >> 1] && ((idx & 1) == 0 || could_reverse[idx >> 1]); })[0];
+		taken[e >> 1] = 1;
+		out.emplace_back(e >> 1, (e & 1) != 0);
+		at = end_points[e ^ 1];
+	}
+	return out;
+}
+
+static double chain_travel(const std::vector<std::pair<size_t, bool>> &chain, const std::vector<Vec2d> &end_points, const Vec2d &start)
+{
+	double travel = 0.;
+	Vec2d  at     = start;
+	for (const std::pair<size_t, bool> &segment : chain) {
+		travel += (end_points[2 * segment.first + segment.second] - at).norm();
+		at = end_points[2 * segment.first + 1 - segment.second];
+	}
+	return travel;
+}
+
 template<typename EntityPtr>
-static std::vector<std::pair<size_t, bool>> chain_extrusion_entities_impl(const std::vector<EntityPtr> &entities, const Point *start_near)
+static std::vector<std::pair<size_t, bool>> chain_extrusion_entities_impl(const std::vector<EntityPtr> &entities, const Point *start_near, bool improve = false)
 {
 	auto segment_end_point = [&entities](size_t idx, bool first_point) -> Point { return first_point ? entities[idx]->first_point() : entities[idx]->last_point(); };
 	auto could_reverse = [&entities](size_t idx) { const ExtrusionEntity *ee = entities[idx]; return ee->is_loop() || ee->can_reverse(); };
 	std::vector<std::pair<size_t, bool>> out = chain_segments_greedy_constrained_reversals<Point, decltype(segment_end_point), decltype(could_reverse)>(segment_end_point, could_reverse, entities.size(), start_near);
+	if (improve && out.size() > 1) {
+		std::vector<Vec2d> end_points;
+		std::vector<char>  reversible;
+		end_points.reserve(2 * entities.size());
+		reversible.reserve(entities.size());
+		for (size_t idx = 0; idx < entities.size(); ++ idx) {
+			end_points.emplace_back(segment_end_point(idx, true).template cast<double>());
+			end_points.emplace_back(segment_end_point(idx, false).template cast<double>());
+			reversible.emplace_back(could_reverse(idx));
+		}
+		Vec2d start = Vec2d::Zero();
+		if (start_near != nullptr)
+			start = start_near->cast<double>();
+		if (entities.size() <= 8) {
+			// Few paths are chained exactly; the local search below can stop short of the shortest chain.
+			out = chain_segments_exact(end_points, reversible, start_near != nullptr ? &start : nullptr);
+		} else {
+			improve_chain_by_local_search(out, end_points, reversible, start_near != nullptr ? &start : nullptr);
+			if (start_near != nullptr) {
+				// The greedy chain can settle into a sweep that local moves cannot undo, which a nearest-next chain may avoid.
+				std::vector<std::pair<size_t, bool>> nearest_next = chain_nearest_next(end_points, reversible, start);
+				if (chain_travel(nearest_next, end_points, start) < chain_travel(out, end_points, start) - SCALED_EPSILON) {
+					improve_chain_by_local_search(nearest_next, end_points, reversible, &start);
+					out = std::move(nearest_next);
+				}
+			}
+		}
+	}
 	for (std::pair<size_t, bool> &segment : out) {
 		const ExtrusionEntity *ee = entities[segment.first];
 		if (ee->is_loop())
@@ -1086,7 +1500,8 @@ void reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const s
 
 void chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point &start_near)
 {
-	chain_and_reorder_extrusion_entities(entities, &start_near);
+    remove_entities_without_endpoints(entities);
+	reorder_extrusion_entities(entities, chain_extrusion_entities_impl(entities, &start_near, true));
 }
 
 void chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near)
@@ -1101,7 +1516,7 @@ void chain_and_reorder_extrusion_entities(std::vector<const ExtrusionEntity*> &e
     remove_entities_without_endpoints(entities);
     std::vector<const ExtrusionEntity*> out;
     out.reserve(entities.size());
-    for (const auto &[idx, reverse] : chain_extrusion_entities_impl(entities, &start_near)) {
+    for (const auto &[idx, reverse] : chain_extrusion_entities_impl(entities, &start_near, true)) {
         if (reverse) {
             ExtrusionEntity *clone = reversed_clones.emplace_back(entities[idx]->clone()).get();
             clone->reverse();
@@ -1159,16 +1574,74 @@ std::vector<size_t> chain_points(const Points &points, const Point *start_near)
 	return out;
 }
 
+// Moves runs of up to three points of the cycle next to one of the 8 points nearest to an end of the run, reversed or not,
+// while that shortens the cycle. path[0] stays first. Returns true if any move was made.
+static bool improve_cycle_by_or_opt(std::vector<size_t> &path, const Points &points)
+{
+	const size_t pn = path.size();
+	if (pn < 5)
+		return false;
+	std::vector<Vec2d> coords(points.size());
+	for (size_t i = 0; i < points.size(); ++ i)
+		coords[i] = points[i].cast<double>();
+	const NearestPoints<8> grid(coords);
+	std::vector<size_t>    pos(points.size());
+	auto refresh = [&]() { for (size_t k = 0; k < pn; ++ k) pos[path[k]] = k; };
+	refresh();
+	auto dist = [&](size_t a, size_t b) { return (coords[path[a % pn]] - coords[path[b % pn]]).norm(); };
+	bool improved = false;
+	for (bool moved = true; moved;) {
+		moved = false;
+		for (size_t len = 1; len <= 3; ++ len)
+			for (size_t i = 1; i + len <= pn; ++ i) {
+				// The run path[i..last] goes between path[k] and path[k + 1].
+				const size_t last    = i + len - 1;
+				const double removal = dist(i - 1, i) + dist(last, last + 1) - dist(i - 1, last + 1);
+				bool         applied = removal <= SCALED_EPSILON;
+				for (size_t end : { path[i], path[last] })
+					for (size_t q : grid.query(coords[end], [end](size_t idx) { return idx != end; }))
+						for (size_t k : { q == NearestPoints<8>::npos ? pn : (pos[q] + pn - 1) % pn, q == NearestPoints<8>::npos ? pn : pos[q] }) {
+							if (applied || k == pn || (k + 1 >= i && k <= last))
+								continue;
+							const double base     = dist(k, k + 1);
+							const double kept     = dist(k, i) + dist(last, k + 1) - base;
+							const double reversed = dist(k, last) + dist(i, k + 1) - base;
+							if (std::min(kept, reversed) > removal - SCALED_EPSILON)
+								continue;
+							std::vector<size_t> run(path.begin() + i, path.begin() + last + 1);
+							if (reversed < kept)
+								std::reverse(run.begin(), run.end());
+							path.erase(path.begin() + i, path.begin() + last + 1);
+							path.insert(path.begin() + (k < i ? k + 1 : k + 1 - len), run.begin(), run.end());
+							refresh();
+							applied = moved = improved = true;
+						}
+			}
+	}
+	return improved;
+}
+
 std::vector<size_t> chain_points_with_postprocessing(const Points &points, const Point *start_near)
 {
-	std::vector<size_t> path = chain_points(points, start_near);
-	// Alternate 2-opt and crossing removal until convergence.
-	// 2-opt can create new crossings, and crossing removal can create new
-	// opportunities for 2-opt improvement. Break early if neither improves.
-	for (int iter = 0; iter < 3; ++iter) {
-		bool improved = tsp_2opt_improve(path, points);
-		improved |= tsp_remove_crossings(path, points);
-		if (!improved) break;
+	std::vector<size_t> path;
+	if (points.size() <= 10) {
+		// Orca: few points are toured exactly, from the point nearest start_near toward its nearer neighbor.
+		path = tsp_exact_cycle(points);
+		if (start_near != nullptr && path.size() > 2) {
+			auto dist = [&points](size_t a, const Point &b) { return (points[a] - b).cast<double>().squaredNorm(); };
+			std::rotate(path.begin(), std::min_element(path.begin(), path.end(), [&](size_t a, size_t b) { return dist(a, *start_near) < dist(b, *start_near); }), path.end());
+			if (dist(path.back(), points[path.front()]) < dist(path[1], points[path.front()]))
+				std::reverse(path.begin() + 1, path.end());
+		}
+	} else {
+		path = chain_points(points, start_near);
+		// Alternate 2-opt, or-opt and crossing removal: each can open moves for the others. Break early if none improves.
+		for (int iter = 0; iter < 3; ++iter) {
+			bool improved = tsp_2opt_improve(path, points);
+			improved |= improve_cycle_by_or_opt(path, points);
+			improved |= tsp_remove_crossings(path, points);
+			if (!improved) break;
+		}
 	}
     if (start_near == nullptr)
         tsp_rotate_minimize_closing(path, points);
