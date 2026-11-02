@@ -425,6 +425,7 @@ public:
     // Return the list of layers time for the current time mode.
     //
     std::vector<float> get_layers_estimated_times() const;
+    std::vector<double> get_layers_extrusion_volumes() const;
     //
     // Return the axes aligned bounding box containing all the given types.
     //

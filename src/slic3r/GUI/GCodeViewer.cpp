@@ -2454,6 +2454,45 @@ void GCodeViewer::set_light_top_dir(const Vec3d& direction)
     m_viewer.set_light_top_dir(libvgcode::convert(static_cast<Vec3f>(direction.cast<float>())));
 }
 
+std::vector<double> GCodeViewer::get_layers_filament_mm() const
+{
+    const std::vector<double> volumes = m_viewer.get_layers_extrusion_volumes();
+    if (volumes.empty())
+        return {};
+
+    // Use first extruder diameter for the conversion; fall back to 1.75 mm if not available.
+    const float diameter = m_filament_diameters.empty() ? 1.75f : m_filament_diameters[0];
+    const double radius = static_cast<double>(diameter) * 0.5;
+    const double cross_section = M_PI * radius * radius; // mm²
+
+    std::vector<double> result;
+    result.reserve(volumes.size());
+    double cumulative = 0.0;
+    for (const double vol : volumes) {
+        cumulative += vol / cross_section; // mm³ / mm² = mm of filament
+        result.push_back(cumulative);
+    }
+    return result;
+}
+
+std::vector<double> GCodeViewer::get_layers_filament_g() const
+{
+    const std::vector<double> volumes = m_viewer.get_layers_extrusion_volumes();
+    if (volumes.empty())
+        return {};
+
+    const float density = m_filament_densities.empty() ? 1.24f : m_filament_densities[0];
+
+    std::vector<double> result;
+    result.reserve(volumes.size());
+    double cumulative = 0.0;
+    for (const double vol : volumes) {
+        cumulative += vol * static_cast<double>(density) * 0.001; // mm³ × g/cm³ × 0.001 = g
+        result.push_back(cumulative);
+    }
+    return result;
+}
+
 void GCodeViewer::set_tone(float exposure, float saturation)
 {
     m_viewer.set_tone(exposure, saturation);

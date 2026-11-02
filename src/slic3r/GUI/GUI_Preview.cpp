@@ -601,6 +601,7 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool kee
 
     auto print_mode_stat = m_gcode_result->print_statistics.modes.front();
     m_layers_slider->SetLayersTimes(m_canvas->get_gcode_layers_times_cache(), print_mode_stat.time);
+    m_layers_slider->SetLayersFilament(m_canvas->get_gcode_layers_filament_cache(), m_canvas->get_gcode_layers_filament_g_cache());
 
     // Suggest the auto color change, if model looks like sign
     if (m_layers_slider->IsNewPrint()) {
