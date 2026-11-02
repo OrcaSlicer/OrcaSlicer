@@ -9160,6 +9160,7 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
     std::vector<std::string> previous_opengl_render_settings;
     for (const char* key : opengl_render_setting_keys)
         previous_opengl_render_settings.emplace_back(app_config->get(key));
+    const std::vector<std::string> previous_favorite_patterns = app_config->get_favorite_sparse_infill_patterns();
 
     bool need_recreate_gui = false;
     std::string pending_language;
@@ -9207,6 +9208,11 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
         this->plater_->set_current_canvas_as_dirty();
         this->plater_->get_current_canvas3D()->force_set_focus();
     }
+
+    // The Favorites pattern group of the print settings lists the favorite patterns.
+    if (!need_recreate_gui && app_config->get_favorite_sparse_infill_patterns() != previous_favorite_patterns)
+        if (auto* tab = dynamic_cast<TabPrint*>(get_tab(Preset::TYPE_PRINT)))
+            tab->filter_sparse_infill_patterns();
 
     if (!pending_language.empty()) {
         const std::string previous_language = app_config->get("language");

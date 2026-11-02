@@ -171,8 +171,6 @@ set(lisbslic3r_sources
     Fill/Fill.cpp
     Fill/FillCrossHatch.cpp
     Fill/FillCrossHatch.hpp
-    Fill/FillGyroid.cpp
-    Fill/FillGyroid.hpp
     Fill/FillHoneycomb.cpp
     Fill/FillHoneycomb.hpp
     Fill/Fill.hpp
@@ -186,10 +184,10 @@ set(lisbslic3r_sources
     Fill/FillRectilinear.hpp
     Fill/AdaptiveInfillField.cpp
     Fill/AdaptiveInfillField.hpp
-    Fill/FillTpmsD.cpp
-    Fill/FillTpmsD.hpp
-    Fill/FillTpmsFK.cpp
-    Fill/FillTpmsFK.hpp
+    Fill/FillTpms.cpp
+    Fill/FillTpms.hpp
+    Fill/TpmsField.cpp
+    Fill/TpmsField.hpp
     Fill/Lightning/DistanceField.cpp
     Fill/Lightning/DistanceField.hpp
     Fill/Lightning/Generator.cpp

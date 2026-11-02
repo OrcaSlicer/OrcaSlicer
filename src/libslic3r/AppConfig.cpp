@@ -36,7 +36,10 @@
 #include <boost/nowide/fstream.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/format/format_fwd.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -1517,6 +1520,20 @@ void AppConfig::set_recent_projects(const std::vector<std::string>& recent_proje
         else if (n.length() == 2) n = "0" + n;
         it->second[n] = recent_projects[i];
     }
+}
+
+std::vector<std::string> AppConfig::get_favorite_sparse_infill_patterns() const
+{
+    std::vector<std::string> patterns;
+    const std::string        value = get(SETTING_FAVORITE_SPARSE_INFILL_PATTERNS);
+    if (!value.empty())
+        boost::split(patterns, value, boost::is_any_of(";"));
+    return patterns;
+}
+
+void AppConfig::set_favorite_sparse_infill_patterns(const std::vector<std::string>& patterns)
+{
+    set("app", SETTING_FAVORITE_SPARSE_INFILL_PATTERNS, boost::join(patterns, ";"));
 }
 
 void AppConfig::set_mouse_device(const std::string& name, double translation_speed, double translation_deadzone,

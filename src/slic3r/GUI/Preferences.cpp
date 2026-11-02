@@ -1,4 +1,5 @@
 #include "Preferences.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "CloudProvider.hpp"
 #include "OptionsGroup.hpp"
 #include "GUI_App.hpp"
@@ -9,9 +10,11 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Config.hpp"
 #include "libslic3r/Format/DRC.hpp"
 #include <wx/gdicmn.h>
 #include <wx/arrstr.h>
+#include <wx/sizer.h>
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include <wx/event.h>
 #include <wx/dcclient.h>
@@ -1254,6 +1257,43 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
     return m_sizer;
 }
 
+wxBoxSizer* PreferencesDialog::create_item_favorite_patterns()
+{
+    const ConfigOptionDef* def     = print_config_def.get("sparse_infill_pattern");
+    const wxString         tooltip = _L("Shows the pattern in the Favorites group of the sparse infill pattern list.");
+    auto*                  grid    = new wxFlexGridSizer(0, 3, FromDIP(4), FromDIP(20));
+    const std::vector<std::string> favorites = app_config->get_favorite_sparse_infill_patterns();
+    for (size_t i = 0; i < def->enum_values.size(); ++i) {
+        const std::string key      = def->enum_values[i];
+        auto*             checkbox = new ::CheckBox(m_parent);
+        checkbox->SetValue(std::find(favorites.begin(), favorites.end(), key) != favorites.end());
+        checkbox->SetToolTip(tooltip);
+        auto* label = new wxStaticText(m_parent, wxID_ANY, _(def->enum_labels[i]));
+        label->SetForegroundColour(DESIGN_GRAY900_COLOR);
+        label->SetFont(::Label::Body_14);
+        label->SetToolTip(tooltip);
+        // Saved in the order of the pattern list.
+        checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, def, key, checkbox](wxCommandEvent& e) {
+            const std::vector<std::string> old = app_config->get_favorite_sparse_infill_patterns();
+            std::vector<std::string>       favorites;
+            for (const std::string& value : def->enum_values)
+                if (value == key ? checkbox->GetValue() : std::find(old.begin(), old.end(), value) != old.end())
+                    favorites.push_back(value);
+            app_config->set_favorite_sparse_infill_patterns(favorites);
+            app_config->save();
+            e.Skip();
+        });
+        auto* item = new wxBoxSizer(wxHORIZONTAL);
+        item->Add(checkbox, 0, wxALIGN_CENTER_VERTICAL);
+        item->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+        grid->Add(item);
+    }
+    auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+    sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+    sizer->Add(grid, 0, wxTOP | wxBOTTOM, FromDIP(3));
+    return sizer;
+}
+
 wxBoxSizer* PreferencesDialog::create_item_button(wxString title, wxString title2, wxString tooltip, wxString tooltip2, std::function<void()> onclick, const wxString wiki_url)
 {
     auto tip = tooltip.IsEmpty() ? tooltip2 : tooltip; // use button tooltip if label tooltip empty
@@ -2206,6 +2246,21 @@ void PreferencesDialog::create_items()
         "preview_translucent_filaments"
     );
     g_sizer->Add(item_translucent_filaments);
+
+    g_sizer->AddSpacer(FromDIP(10));
+    sizer_page->Add(g_sizer, 0, wxEXPAND);
+
+    //////////////////////////
+    //// FAVORITES TAB
+    /////////////////////////////////////
+    m_tab_index[PreferencesTab::Favorites] = m_pref_tabs->AppendItem(_L("Favorites"));
+    f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
+    g_sizer = f_sizers.back();
+    g_sizer->AddGrowableCol(0, 1);
+
+    //// FAVORITES > Sparse Infill Patterns
+    g_sizer->Add(create_item_title(_L("Sparse Infill Patterns")), 1, wxEXPAND);
+    g_sizer->Add(create_item_favorite_patterns());
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
