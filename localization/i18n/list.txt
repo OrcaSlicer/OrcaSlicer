@@ -294,6 +294,7 @@ src/slic3r/GUI/FilamentPickerDialog.cpp
 src/slic3r/GUI/NetworkPluginDialog.cpp
 src/slic3r/GUI/RammingChart.cpp
 src/slic3r/GUI/StepMeshDialog.cpp
+src/slic3r/GUI/GeometryImportDialog.cpp
 src/slic3r/GUI/FilamentPickerDialog.hpp
 src/slic3r/GUI/PresetBundleDialog.cpp
 src/slic3r/GUI/ExportPresetBundleDialog.cpp

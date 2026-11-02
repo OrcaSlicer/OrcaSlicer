@@ -217,6 +217,8 @@ set(lisbslic3r_sources
     Format/3mf.hpp
     Format/AMF.cpp
     Format/AMF.hpp
+    Format/ImportNames.cpp
+    Format/ImportNames.hpp
     Format/AssembleList.cpp
     Format/AssembleList.hpp
     Format/DRC.cpp

@@ -1,6 +1,8 @@
 #ifndef slic3r_Format_AMF_hpp_
 #define slic3r_Format_AMF_hpp_
 
+#include "ProjectStrategy.hpp"
+
 namespace Slic3r {
 
 class Model;
@@ -8,7 +10,8 @@ class DynamicPrintConfig;
 struct ConfigSubstitutionContext;
 
 // Load the content of an amf file into the given model and configuration.
-extern bool load_amf(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, bool* use_inches);
+extern bool load_amf(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, bool* use_inches,
+                     LoadStrategy options = LoadStrategy::Default);
 
 //BBS: remove amf export
 // Save the given model and the config data into an amf file.

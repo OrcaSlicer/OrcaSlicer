@@ -298,6 +298,10 @@
 #include "../Utils/Http.hpp"
 #include "../Utils/OrcaCloudServiceAgent.hpp"
 #include "StepMeshDialog.hpp"
+#include "GeometryImportDialog.hpp"
+#include "libslic3r/Format/ImportNames.hpp"
+#include "libslic3r/Utils.hpp"
+#include <stdexcept>
 #include "FilamentMapDialog.hpp"
 #include "CloneDialog.hpp"
 #include "PurgeModeDialog.hpp"
@@ -427,12 +431,12 @@ bool Plater::has_illegal_filename_characters(const wxString& wxs_name)
 
 bool Plater::has_illegal_filename_characters(const std::string& name)
 {
-    const char* illegal_characters = "<>:/\\|?*\"";
-    for (size_t i = 0; i < std::strlen(illegal_characters); i++)
-        if (name.find_first_of(illegal_characters[i]) != std::string::npos)
-            return true;
-
-    return false;
+    try {
+        return has_unsupported_name_characters(name);
+    } catch (const std::invalid_argument&) {
+        // Invalid Unicode is not a valid editable project name either.
+        return true;
+    }
 }
 
 void Plater::show_illegal_characters_warning(wxWindow* parent)
@@ -7456,8 +7460,11 @@ struct Plater::priv
                                    LoadStrategy strategy,
                                    bool ask_multi      = false,
                                    bool* published_out = nullptr,
-                                   bool* config_loaded_out = nullptr);
-    std::vector<size_t> load_model_objects(const ModelObjectPtrs& model_objects, bool allow_negative_z = false, bool split_object = false, bool auto_drop = true);
+                                   bool* config_loaded_out = nullptr,
+                                   // Runs once the import dialogs were answered and the files read, before the model changes.
+                                   const std::function<void()>& before_publish = nullptr);
+    std::vector<size_t> load_model_objects(const ModelObjectPtrs& model_objects, bool allow_negative_z = false, bool split_object = false,
+        bool auto_drop = true, const std::map<ObjectID, bool>* import_display_options = nullptr);
 
     // Texture-to-color import: a mesh loaded with UVs + a texture map gets its faces clustered
     // into printable colours, which are then matched against (or added to) the filament list.
@@ -8963,7 +8970,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                              LoadStrategy strategy,
                                              bool ask_multi,
                                              bool* published_out,
-                                             bool* config_loaded_out)
+                                             bool* config_loaded_out,
+                                             const std::function<void()>& before_publish)
 {
     if (config_loaded_out != nullptr)
         *config_loaded_out = false;
@@ -8978,11 +8986,30 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     if (input_files.empty())
         return std::vector<size_t>();
 
-    if (!input_files.empty())
-       q->m_3mf_path = input_files[0].string();
-    
-    // SoftFever: ugly fix so we can exist pa calib mode
-    background_process.fff_print()->calib_mode() = CalibMode::Calib_None;
+    const bool previous_thumbnail_state = q->skip_thumbnail_invalid;
+    ScopeGuard restore_thumbnail_state([this, previous_thumbnail_state]() {
+        // In particular, parser errors and cancelled preparation must restore this flag.
+        q->skip_thumbnail_invalid = previous_thumbnail_state;
+    });
+
+    if ((strategy & LoadStrategy::LoadModel) && (strategy & LoadStrategy::LoadConfig) && !(strategy & LoadStrategy::Restore)) {
+        const bool has_3mf = std::any_of(input_files.begin(), input_files.end(), [](const fs::path& file) {
+            return boost::algorithm::iends_with(file.string(), ".3mf");
+        });
+        const bool geometry_only = has_3mf && std::all_of(input_files.begin(), input_files.end(), [](const fs::path& file) {
+            return !boost::algorithm::iends_with(file.string(), ".3mf") || is_geometry_only_3mf(file.string());
+        });
+        if (geometry_only) {
+            // A plain CAD 3MF has no project to restore, even if its caller used default load flags.
+            const int project_flags = static_cast<int>(LoadStrategy::LoadConfig) | static_cast<int>(LoadStrategy::LoadAuxiliary);
+            strategy = static_cast<LoadStrategy>(static_cast<int>(strategy) & ~project_flags);
+        }
+    }
+    // New import dialogs run before any project path, calibration or material changes.
+    const bool stage_geometry = (strategy & LoadStrategy::LoadModel) && !(strategy & LoadStrategy::LoadConfig) &&
+        std::any_of(input_files.begin(), input_files.end(), [](const fs::path& file) {
+            return !geometry_import_format(file.string()).empty();
+        });
 
 
     // BBS
@@ -9008,7 +9035,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     ProgressDialog dlg(loading, "", 100, find_toplevel_parent(q), wxPD_AUTO_HIDE | wxPD_CAN_ABORT | wxPD_APP_MODAL);
     wxBusyCursor busy;
 
-    auto *new_model = (!load_model || one_by_one) ? nullptr : new Slic3r::Model();
+    // Owned here so that early returns of the import preparation do not leak it.
+    std::unique_ptr<Slic3r::Model> new_model_owner((!load_model || one_by_one) ? nullptr : new Slic3r::Model());
+    auto *new_model = new_model_owner.get();
     std::vector<size_t> obj_idxs;
 
     std::string  designer_model_id;
@@ -9052,6 +9081,189 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
     const float LOAD_MODEL_RATIO             = 0.9;
 
+    struct StagedGeometryFile {
+        // Reader outputs have one owner even when parsing throws or the user cancels.
+        Model model;
+        DynamicPrintConfig config;
+        ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Enable};
+        PlateDataPtrs plates;
+        std::vector<Preset*> presets;
+        Semver version;
+        En3mfType file_type = En3mfType::From_BBS;
+        bool is_inches = false;
+        std::string format;
+        // Keep original names actually applied to this file, not only the remembered preference.
+        bool names_kept = false;
+        // A 3MF without project data; only its CAD part labels are offered as original names.
+        bool cad_3mf = false;
+        std::string designer_id;
+        std::string country_code;
+        ~StagedGeometryFile() {
+            release_PlateData_list(plates);
+            for (Preset* preset : presets)
+                delete preset;
+        }
+    };
+    std::vector<std::unique_ptr<StagedGeometryFile>> staged_files;
+    std::map<std::string, GeometryImportOptions> import_options;
+    GeometryImportNamePolicy name_policy = geometry_import_name_policy(*wxGetApp().app_config);
+    std::map<ObjectID, bool> import_display_options;
+    // Applies the presentation choices; returns true when part settings keep a single object shown as an assembly.
+    auto apply_import_presentation = [&import_display_options](ModelObject& object, bool single_object, bool sort) {
+        const bool has_part_settings = object.has_individual_part_settings();
+        // Never hide effective part-specific print controls in the single-object mode.
+        object.imported_parts_hidden = single_object && object.volumes.size() > 1 && !has_part_settings;
+        import_display_options[object.id()] = sort;
+        return single_object && object.volumes.size() > 1 && has_part_settings;
+    };
+    // Staged files are read before the load loop: the reading takes this share of the bar and the loop the rest.
+    const int staged_read_share = stage_geometry ? static_cast<int>(INPUT_FILES_RATIO * 100) : 0;
+    auto loop_progress = [staged_read_share](int percent) { return staged_read_share + percent * (100 - staged_read_share) / 100; };
+    if (stage_geometry) {
+        staged_files.reserve(input_files.size());
+        bool visible_part_settings = false;
+        try {
+            auto file_options = [&](const StagedGeometryFile& file) -> GeometryImportOptions* {
+                return file.format.empty() ? nullptr : &import_options.at(file.format);
+            };
+            // Keep original names is applied by the readers, so every choice is made before a file is read.
+            auto read_staged = [&](size_t index, StagedGeometryFile& target) {
+                const fs::path& file_path = input_files[index];
+                // Readers restart their count at each stage, so the bar keeps the furthest point of this file.
+                int file_percent = 0;
+                auto progress = [&](int percent) {
+                    file_percent = std::max(file_percent, std::clamp(percent, 0, 100));
+                    const int overall = static_cast<int>(staged_read_share * (static_cast<double>(index) + file_percent / 100.0) / input_files.size());
+                    return dlg.Update(overall, format_wxstr(_L("Loading file: %s"), from_path(file_path.filename())));
+                };
+                if (!progress(0))
+                    return false;
+                GeometryImportOptions* options = file_options(target);
+                LoadStrategy read_strategy = strategy;
+                if (options != nullptr) {
+                    // Assembly modes keep each group's bodies together as one object; the presentation is chosen separately.
+                    if (!options->separate_objects)
+                        read_strategy = read_strategy | LoadStrategy::AssembleParts;
+                    // Project part names already win in a 3MF project, so only a CAD 3MF takes its labels.
+                    if (options->keep_names && (target.format != "3mf" || target.cad_3mf))
+                        read_strategy = read_strategy | LoadStrategy::KeepOriginalNames;
+                }
+                if (target.format == "step") {
+                    target.model = Model::read_from_step(file_path.string(), read_strategy,
+                        [&](int, int current, int total, bool& cancel) {
+                            cancel = !progress(total > 0 ? current * 100 / total : 0);
+                            is_user_cancel = is_user_cancel || cancel;
+                        }, nullptr,
+                        [&](Step& file, double& linear, double& angle, bool& split) {
+                            if (!options->chosen) {
+                                if (options->show_dialog) {
+                                    StepMeshDialog mesh_dialog(q, file, options->linear_deflection, options->angle_deflection, options);
+                                    if (mesh_dialog.ShowModal() != wxID_OK) {
+                                        is_user_cancel = true;
+                                        return -1;
+                                    }
+                                }
+                                options->chosen = true;
+                            }
+                            linear = options->linear_deflection;
+                            angle = options->angle_deflection;
+                            split = options->split_compound;
+                            // Names of bodies merged by an unsplit compound cannot be kept, so that file gets Orca's names.
+                            file.set_keep_original_names(options->keep_names && file.has_original_names() &&
+                                                         (split || !file.has_multi_body_compound()));
+                            target.names_kept = file.keep_original_names();
+                            return 1;
+                        }, options->linear_deflection, options->angle_deflection, options->split_compound);
+                } else if (target.format == "3mf") {
+                    target.model = Model::read_from_archive(file_path.string(), &target.config, &target.substitutions,
+                        target.file_type, read_strategy, &target.plates, &target.presets, &target.version,
+                        [&](int, int current, int total, bool& cancel) {
+                            cancel = !progress(total > 0 ? current * 100 / total : 0);
+                            is_user_cancel = is_user_cancel || cancel;
+                        });
+                } else {
+                    target.model = Model::read_from_file(file_path.string(), nullptr, nullptr, read_strategy,
+                        &target.plates, &target.presets, &target.is_inches, &target.version, nullptr,
+                        [&](int current, int total, bool& cancel, std::string& designer, std::string& country) {
+                            target.designer_id = designer;
+                            target.country_code = country;
+                            cancel = !progress(total > 0 ? current * 100 / total : 0);
+                            is_user_cancel = is_user_cancel || cancel;
+                        });
+                }
+                return !is_user_cancel && !dlg.WasCancelled();
+            };
+
+            for (size_t index = 0; index < input_files.size(); ++index) {
+                auto staged = std::make_unique<StagedGeometryFile>();
+                staged->format = geometry_import_format(input_files[index].string());
+                if (!staged->format.empty()) {
+                    auto inserted = import_options.emplace(staged->format, geometry_import_options(*wxGetApp().app_config, staged->format));
+                    if (silence)
+                        inserted.first->second.show_dialog = false;
+                }
+                staged->cad_3mf = staged->format == "3mf" && is_geometry_only_3mf(input_files[index].string());
+                // One AMF/3MF dialog per format, at its first file; a 3MF project has nothing to choose.
+                // The STEP dialog runs inside the reader, which needs the document for its triangle count.
+                if ((staged->format == "amf" || staged->cad_3mf) &&
+                    !show_geometry_import_options(q, staged->format, import_options.at(staged->format)))
+                    return empty_result;
+                if (!read_staged(index, *staged))
+                    return empty_result;
+                staged_files.push_back(std::move(staged));
+            }
+
+            for (const auto& staged : staged_files) {
+                const GeometryImportOptions* options = file_options(*staged);
+                if (options == nullptr)
+                    continue;
+                if (staged->format != "step")
+                    // A 3MF project keeps its own part names; only a CAD 3MF takes the labels from the file.
+                    staged->names_kept = options->keep_names && (staged->format != "3mf" || staged->cad_3mf);
+                // Orca's own names carry no order worth sorting by.
+                for (ModelObject* object : staged->model.objects)
+                    visible_part_settings = apply_import_presentation(*object, options->single_object(),
+                                                                      options->keep_names && options->sort_names) || visible_part_settings;
+            }
+            std::vector<Model*> named_models;
+            for (const auto& staged : staged_files)
+                if (staged->names_kept)
+                    named_models.push_back(&staged->model);
+            if (silence)
+                name_policy.show_dialog = false;
+            if (!prepare_geometry_import_names(q, named_models, name_policy))
+                return empty_result;
+            if (visible_part_settings && !silence)
+                MessageDialog(q, _L("Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."),
+                              _L("Geometry import"), wxOK | wxICON_INFORMATION).ShowModal();
+        } catch (const std::exception& error) {
+            if (!is_user_cancel && !dlg.WasCancelled())
+                GUI::show_error(q, error.what());
+            return empty_result;
+        }
+    }
+
+    // The new import dialogs and the staged reading are done: a deferred project replacement starts here.
+    if (before_publish) {
+        // Only a CAD 3MF defers the replacement, and it always takes the staged path.
+        assert(stage_geometry);
+        // Replacing the project needs something to load; objects below this volume are dropped while loading,
+        // as in Model::removed_objects_with_zero_volume().
+        const bool has_geometry = std::any_of(staged_files.begin(), staged_files.end(), [](const auto& staged) {
+            return std::any_of(staged->model.objects.begin(), staged->model.objects.end(), [](const ModelObject* object) {
+                return object->get_object_stl_stats().volume >= 0.0000000001;
+            });
+        });
+        if (!has_geometry) {
+            GUI::show_error(q, _L("The file does not contain any geometry data."));
+            return empty_result;
+        }
+        before_publish();
+    }
+    q->m_3mf_path = input_files.front().string();
+    // Leave the previous calibration mode intact when preparation was cancelled.
+    background_process.fff_print()->calib_mode() = CalibMode::Calib_None;
+
     for (size_t i = 0; i < input_files.size(); ++i) {
         int project_filament_count = 1;
 
@@ -9068,7 +9280,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         const auto real_filename    = (strategy & LoadStrategy::Restore) ? input_files[++i].filename() : filename;
         const auto dlg_info         = _L("Loading file") + ": " + from_path(real_filename);
         BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << boost::format(": load file %1%") % filename;
-        dlg_cont = dlg.Update(progress_percent, dlg_info);
+        dlg_cont = dlg.Update(loop_progress(progress_percent), dlg_info);
         if (!dlg_cont) return empty_result;
 
         const bool type_3mf = std::regex_match(path.string(), pattern_3mf);
@@ -9077,6 +9289,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         // const bool type_prusa   = std::regex_match(path.string(), pattern_prusa);
 
         Slic3r::Model model;
+        StagedGeometryFile legacy_read;
+        StagedGeometryFile& parsed_file = stage_geometry ? *staged_files[i] : legacy_read;
         // BBS: add auxiliary files related logic
         bool load_aux = strategy & LoadStrategy::LoadAuxiliary, load_old_project = false;
         if (load_model && load_config && type_3mf) {
@@ -9089,23 +9303,26 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         try {
             if (type_3mf) {
                 DynamicPrintConfig config;
-                Semver             file_version;
-                En3mfType          en_3mf_file_type = En3mfType::From_BBS;
+                Semver&            file_version = parsed_file.version;
+                En3mfType&         en_3mf_file_type = parsed_file.file_type;
                 // BBS: a "published" 3MF carries a flag plus the author-selected setting keys;
                 // on load keep the user's current presets and overlay only those keys. Declared
                 // here (outside the config block below) so it stays alive for the embedded-preset
                 // gate, the metadata strip and the preset overlay after the block closes.
                 PublishedConfig published_config;
                 {
-                    DynamicPrintConfig config_loaded;
+                    DynamicPrintConfig& config_loaded = parsed_file.config;
 
-                    // BBS: add part plate related logic
-                    PlateDataPtrs             plate_data;
-                    ConfigSubstitutionContext config_substitutions{ForwardCompatibilitySubstitutionRule::Enable};
-                    std::vector<Preset *>     project_presets;
+                    // Reader outputs remain owned through every downstream early return.
+                    PlateDataPtrs& plate_data = parsed_file.plates;
+                    ConfigSubstitutionContext& config_substitutions = parsed_file.substitutions;
+                    std::vector<Preset*>& project_presets = parsed_file.presets;
                     // BBS: backup & restore
                     q->skip_thumbnail_invalid = true;
-                    model = Slic3r::Model::read_from_archive(path.string(), &config_loaded, &config_substitutions, en_3mf_file_type, strategy, &plate_data, &project_presets,
+                    if (stage_geometry) {
+                        model = std::move(parsed_file.model);
+                    } else {
+                        model = Slic3r::Model::read_from_archive(path.string(), &config_loaded, &config_substitutions, en_3mf_file_type, strategy, &plate_data, &project_presets,
                                                              &file_version,
                                                              [&dlg, real_filename, &progress_percent, stage_percent, INPUT_FILES_RATIO, total_files, i,
                                                               &is_user_cancel](int import_stage, int current, int total, bool &cancel) {
@@ -9119,6 +9336,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                                  if (cancel)
                                                                      is_user_cancel = cancel;
                                                              });
+                    }
                           BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
                                       << boost::format(", plate_data.size %1%, project_preset.size %2%, is_bbs_or_orca_3mf %3%, file_version %4% \n") % plate_data.size() %
                                           project_presets.size() % (en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) % file_version.to_string();
@@ -9398,7 +9616,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     if (plate_data.size() > 0) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", import 3mf UPDATE_GCODE_RESULT \n");
                         wxString msg = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
-                        dlg_cont     = dlg.Update(progress_percent, msg);
+                        dlg_cont     = dlg.Update(loop_progress(progress_percent), msg);
                         if (!dlg_cont) {
                             q->skip_thumbnail_invalid = false;
                             return empty_result;
@@ -9451,7 +9669,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     if (load_config && !config_loaded.empty()) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", import 3mf IMPORT_LOAD_CONFIG \n");
                         wxString msg = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
-                        dlg_cont     = dlg.Update(progress_percent, msg);
+                        dlg_cont     = dlg.Update(loop_progress(progress_percent), msg);
                         if (!dlg_cont) {
                             q->skip_thumbnail_invalid = false;
                             return empty_result;
@@ -9775,13 +9993,17 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 }
             } else {
                 // BBS: add plate data related logic
-                PlateDataPtrs plate_data;
-                // BBS: project embedded settings
-                std::vector<Preset *> project_presets;
-                bool                  is_xxx;
-                Semver                file_version;
+                PlateDataPtrs& plate_data = parsed_file.plates;
+                // Reader outputs stay alive through the existing import branches.
+                std::vector<Preset*>& project_presets = parsed_file.presets;
+                bool& is_xxx = parsed_file.is_inches;
+                Semver& file_version = parsed_file.version;
 
-                if (boost::iends_with(path.string(), ".stp") ||
+                if (stage_geometry) {
+                    model = std::move(parsed_file.model);
+                    designer_model_id = parsed_file.designer_id;
+                    designer_country_code = parsed_file.country_code;
+                } else if (boost::iends_with(path.string(), ".stp") ||
                     boost::iends_with(path.string(), ".step")) {
                         double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_deflection"));
                         if (linear <= 0) linear = 0.003;
@@ -9894,7 +10116,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         }
 
         progress_percent = 100.0f * (float)i / (float)total_files + INIT_MODEL_RATIO * 100.0f / (float)total_files;
-        dlg_cont = dlg.Update(progress_percent);
+        dlg_cont = dlg.Update(loop_progress(progress_percent));
         if (!dlg_cont) {
             q->skip_thumbnail_invalid = false;
             return empty_result;
@@ -9954,11 +10176,25 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 // convert_model_if(model, answer_convert_from_imperial_units == wxID_YES);
             }
 
-             if (!is_project_file && model.looks_like_multipart_object()) {
+             // An AMF group with non-printable bodies was kept apart on purpose; merging it would make them printable.
+             // Only the assembly modes keep such groups apart; Separate objects asks as before.
+             const auto amf_options = import_options.find("amf");
+             const bool amf_assembly = stage_geometry && parsed_file.format == "amf" && amf_options != import_options.end() &&
+                                       !amf_options->second.separate_objects;
+             const bool has_excluded_bodies = amf_assembly && std::any_of(model.objects.begin(), model.objects.end(), [](const ModelObject* object) {
+                 return std::any_of(object->instances.begin(), object->instances.end(), [](const ModelInstance* instance) { return !instance->printable; });
+             });
+             if (!is_project_file && !has_excluded_bodies && model.looks_like_multipart_object()) {
                MessageDialog msg_dlg(q, _L("This file contains several objects positioned at multiple heights.\nInstead of considering them as multiple objects, should the file be loaded as a single object with multiple parts\?") + "\n",
                     _L("Multi-part object detected"), wxICON_WARNING | wxYES | wxNO);
                 if (msg_dlg.ShowModal() == wxID_YES) {
-                    model.convert_multipart_object(filaments_cnt);
+                    // Kept original part names survive Orca's own merge; other files keep its naming.
+                    model.convert_multipart_object(filaments_cnt, parsed_file.names_kept);
+                    // The merged object is new, so the choices of this file's import dialog apply to it again.
+                    if (auto options = import_options.find(parsed_file.format); stage_geometry && options != import_options.end())
+                        for (ModelObject* object : model.objects)
+                            apply_import_presentation(*object, options->second.single_object(),
+                                                      options->second.keep_names && options->second.sort_names);
                 }
             }
         }
@@ -9974,7 +10210,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         //}
 
         progress_percent = 100.0f * (float)i / (float)total_files + CENTER_AROUND_ORIGIN_RATIO * 100.0f / (float)total_files;
-        dlg_cont = dlg.Update(progress_percent);
+        dlg_cont = dlg.Update(loop_progress(progress_percent));
         if (!dlg_cont) {
             q->skip_thumbnail_invalid = false;
             return empty_result;
@@ -9989,7 +10225,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << " " << boost::format("import 3mf IMPORT_LOAD_MODEL_OBJECTS \n");
             wxString msg = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
             model_idx++;
-            dlg_cont = dlg.Update(progress_percent, msg);
+            dlg_cont = dlg.Update(loop_progress(progress_percent), msg);
             if (!dlg_cont) {
                 q->skip_thumbnail_invalid = false;
                 return empty_result;
@@ -10002,7 +10238,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         tolal_model_count += model_idx;
 
         progress_percent = 100.0f * (float)i / (float)total_files + LOAD_MODEL_RATIO * 100.0f / (float)total_files;
-        dlg_cont = dlg.Update(progress_percent);
+        dlg_cont = dlg.Update(loop_progress(progress_percent));
         if (!dlg_cont) {
             q->skip_thumbnail_invalid = false;
             return empty_result;
@@ -10025,9 +10261,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             if (model.texture_mesh && has_importable_texture(*model.texture_mesh)) {
                 TextureImportResult texture_import_result;
                 auto cancel_cb   = [&dlg, &dlg_cont]() { return !dlg_cont || dlg.WasCancelled(); };
-                auto progress_cb = [&dlg, &dlg_cont, &progress_percent](int percent) {
+                auto progress_cb = [&dlg, &dlg_cont, &progress_percent, &loop_progress](int percent) {
                     progress_percent = std::clamp(percent, 0, 100);
-                    dlg_cont = dlg.Update(progress_percent, _L("Matching textures to filaments"));
+                    dlg_cont = dlg.Update(loop_progress(progress_percent), _L("Matching textures to filaments"));
                     return dlg_cont;
                 };
                 if (!run_textured_mesh_import_dialog(model, texture_import_result, cancel_cb, progress_cb)) {
@@ -10042,8 +10278,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 if (!texture_import_result.painted.face_colors.empty()) {
                     std::vector<size_t> texture_object_idxs(model.objects.size());
                     std::iota(texture_object_idxs.begin(), texture_object_idxs.end(), 0);
-                    auto apply_progress_cb = [&dlg](int percent, const wxString& msg) {
-                        dlg.Update(std::clamp(percent, 0, 100), msg);
+                    auto apply_progress_cb = [&dlg, &loop_progress](int percent, const wxString& msg) {
+                        dlg.Update(loop_progress(std::clamp(percent, 0, 100)), msg);
                         return true;
                     };
                     apply_textured_mesh_import_result(model, texture_object_idxs, texture_import_result,
@@ -10052,7 +10288,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             }
 
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", before load_model_objects, count %1%")%model.objects.size();
-            auto loaded_idxs = load_model_objects(model.objects, is_project_file);
+            auto loaded_idxs = load_model_objects(model.objects, is_project_file, false, true,
+                stage_geometry ? &import_display_options : nullptr);
             obj_idxs.insert(obj_idxs.end(), loaded_idxs.begin(), loaded_idxs.end());
 
             // load_model_objects only transfers ModelObjects; carry the Model-level CAD recipe
@@ -10067,7 +10304,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", finished load_model_objects");
             wxString msg = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
-            dlg_cont     = dlg.Update(progress_percent, msg);
+            dlg_cont     = dlg.Update(loop_progress(progress_percent), msg);
             if (!dlg_cont) {
                 q->skip_thumbnail_invalid = false;
                 return empty_result;
@@ -10075,11 +10312,14 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         } else {
             // This must be an .stl or .obj file, which may contain a maximum of one volume.
             for (const ModelObject *model_object : model.objects) {
-                new_model->add_object(*model_object);
+                ModelObject* copied_object = new_model->add_object(*model_object);
+                const auto display = import_display_options.find(model_object->id());
+                if (display != import_display_options.end())
+                    import_display_options.emplace(copied_object->id(), display->second);
 
                 BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":" << __LINE__ << boost::format(", added object %1%")%model_object->name;
                 wxString msg = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
-                dlg_cont     = dlg.Update(progress_percent, msg);
+                dlg_cont     = dlg.Update(loop_progress(progress_percent), msg);
                 if (!dlg_cont) {
                     q->skip_thumbnail_invalid = false;
                     return empty_result;
@@ -10105,8 +10345,24 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
             // convert to multipart and split after load_model_objects
             // to keep relative positioning if auto_drop == false
-            if (single_object_answer == wxID_YES || new_model_auto_drop == false)
-                new_model->convert_multipart_object(filaments_cnt);
+            if (single_object_answer == wxID_YES || new_model_auto_drop == false) {
+                // Parts keep their imported names when any geometry import asked to keep them.
+                new_model->convert_multipart_object(filaments_cnt, std::any_of(staged_files.begin(), staged_files.end(),
+                    [](const auto& staged) { return staged->names_kept; }));
+                // Files of several kinds share the merged object; it takes a choice only when every file made it.
+                const bool all_staged = stage_geometry && std::all_of(staged_files.begin(), staged_files.end(),
+                    [](const auto& staged) { return !staged->format.empty(); });
+                bool single_object = all_staged;
+                bool sort = all_staged;
+                for (const auto& staged : staged_files)
+                    if (const auto options = import_options.find(staged->format); options != import_options.end()) {
+                        single_object = single_object && options->second.single_object();
+                        sort = sort && options->second.keep_names && options->second.sort_names;
+                    }
+                if (stage_geometry)
+                    for (ModelObject* object : new_model->objects)
+                        apply_import_presentation(*object, single_object, sort);
+            }
         }
 
         // TODO
@@ -10116,7 +10372,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         // DONE when manually split to object ask users if looks_like_multipart and none have auto_drob disabled if they want to disable auto_drop for all resulting objects.
         // - add icon in object list, similar to fuzzy painting, etc.
 
-        auto loaded_idxs = load_model_objects(new_model->objects, false, false, new_model_auto_drop);
+        auto loaded_idxs = load_model_objects(new_model->objects, false, false, new_model_auto_drop,
+            stage_geometry ? &import_display_options : nullptr);
         obj_idxs.insert(obj_idxs.end(), loaded_idxs.begin(), loaded_idxs.end());
 
         if (single_object_answer == wxID_NO && new_model_auto_drop == false) {
@@ -10168,7 +10425,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         }
     }
 
-    if (new_model) delete new_model;
 
     //BBS: translate old 3mf to correct positions
     if (translate_old) {
@@ -10306,6 +10562,12 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             msg.ShowModal();
         }
     }
+    if (stage_geometry && !obj_idxs.empty()) {
+        // Save only after all new questions succeeded and the prepared models were published.
+        for (const auto& entry : import_options)
+            save_geometry_import_options(*wxGetApp().app_config, entry.first, entry.second);
+        save_geometry_import_name_policy(*wxGetApp().app_config, name_policy);
+    }
     q->schedule_background_process(true);
     q->mark_plate_toolbar_image_dirty();
     return obj_idxs;
@@ -10313,7 +10575,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
  #define AUTOPLACEMENT_ON_LOAD
 
-std::vector<size_t> Plater::priv::load_model_objects(const ModelObjectPtrs& model_objects, bool allow_negative_z, bool split_object, bool auto_drop)
+std::vector<size_t> Plater::priv::load_model_objects(const ModelObjectPtrs& model_objects, bool allow_negative_z, bool split_object,
+    bool auto_drop, const std::map<ObjectID, bool>* import_display_options)
 {
     const Vec3d bed_size = Slic3r::to_3d(this->bed.build_volume().bounding_volume2d().size(), 1.0) - 2.0 * Vec3d::Ones();
 
@@ -10329,6 +10592,12 @@ std::vector<size_t> Plater::priv::load_model_objects(const ModelObjectPtrs& mode
 #endif /* AUTOPLACEMENT_ON_LOAD */
     for (ModelObject *model_object : model_objects) {
         auto *object = model.add_object(*model_object);
+        if (import_display_options != nullptr) {
+            const auto display = import_display_options->find(model_object->id());
+            if (display != import_display_options->end())
+                // The final clone has fresh IDs but still has the source volume order here.
+                set_import_volume_order(*object, display->second);
+        }
         object->sort_volumes(true);
         std::string object_name = object->name.empty() ? fs::path(object->input_file).filename().string() : object->name;
         obj_idxs.push_back(obj_count++);
@@ -16159,9 +16428,6 @@ LoadType determine_load_type(std::string filename, std::string override_setting 
 void Plater::load_project(wxString const& filename2,
     wxString const& originfile)
 {
-    model().calib_pa_pattern.reset(nullptr);
-    model().plates_custom_gcodes.clear();
-
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "filename is: " << filename2 << "and originfile is: " << originfile;
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__;
     auto filename = filename2;
@@ -16178,7 +16444,9 @@ void Plater::load_project(wxString const& filename2,
 
     // BSS: save project, force close
     int result;
-    if ((result = close_with_confirm(check)) == wxID_CANCEL) {
+    // Run by replace_project(), so a load that stops before it leaves the current project unchanged.
+    std::function<void()> close_project;
+    if ((result = close_with_confirm(check, &close_project)) == wxID_CANCEL) {
         return;
     }
 
@@ -16192,17 +16460,6 @@ void Plater::load_project(wxString const& filename2,
 
     m_loading_project = true;
     ScopeGuard loading_project_sc([this]() { m_loading_project = false; }); // Make sure state restored on any early return
-
-    m_only_gcode = false;
-    m_exported_file = false;
-    get_notification_manager()->bbl_close_plateinfo_notification();
-    get_notification_manager()->bbl_close_preview_only_notification();
-    get_notification_manager()->bbl_close_3mf_warn_notification();
-    get_notification_manager()->close_notification_of_type(NotificationType::PlaterError);
-    get_notification_manager()->close_notification_of_type(NotificationType::PlaterWarning);
-    get_notification_manager()->close_notification_of_type(NotificationType::SlicingError);
-    get_notification_manager()->close_notification_of_type(NotificationType::SlicingSeriousWarning);
-    get_notification_manager()->close_notification_of_type(NotificationType::SlicingWarning);
 
     auto path     = into_path(filename);
 
@@ -16222,10 +16479,32 @@ void Plater::load_project(wxString const& filename2,
     }
     bool load_restore = strategy & LoadStrategy::Restore;
 
-    // Take the Undo / Redo snapshot.
-    reset();
-
-    Plater::TakeSnapshot snapshot(this, "Load Project", UndoRedo::SnapshotType::ProjectSeparator);
+    std::optional<Plater::TakeSnapshot> snapshot;
+    auto replace_project = [&]() {
+        // close_with_confirm() sets it on every path that does not cancel.
+        assert(close_project);
+        close_project();
+        get_notification_manager()->bbl_close_plateinfo_notification();
+        get_notification_manager()->bbl_close_preview_only_notification();
+        get_notification_manager()->bbl_close_3mf_warn_notification();
+        get_notification_manager()->close_notification_of_type(NotificationType::PlaterError);
+        get_notification_manager()->close_notification_of_type(NotificationType::PlaterWarning);
+        get_notification_manager()->close_notification_of_type(NotificationType::SlicingError);
+        get_notification_manager()->close_notification_of_type(NotificationType::SlicingSeriousWarning);
+        get_notification_manager()->close_notification_of_type(NotificationType::SlicingWarning);
+        model().calib_pa_pattern.reset(nullptr);
+        model().plates_custom_gcodes.clear();
+        m_only_gcode = false;
+        m_exported_file = false;
+        reset();
+        // Take the Undo / Redo snapshot.
+        snapshot.emplace(this, "Load Project", UndoRedo::SnapshotType::ProjectSeparator);
+    };
+    // A CAD 3MF passes its import dialogs first: the project is replaced only once the file is ready,
+    // so a Cancel there keeps the current project.
+    const bool replace_when_ready = !load_restore && is_geometry_only_3mf(path.string());
+    if (!replace_when_ready)
+        replace_project();
 
     std::vector<fs::path> input_paths;
     input_paths.push_back(path);
@@ -16233,7 +16512,11 @@ void Plater::load_project(wxString const& filename2,
         input_paths.push_back(into_u8(originfile));
 
     bool loaded_published   = false;
-    std::vector<size_t> res = load_files(input_paths, strategy, false, &loaded_published);
+    std::vector<size_t> res = load_files(input_paths, strategy, false, &loaded_published,
+                                         replace_when_ready ? replace_project : std::function<void()>());
+    // The import was cancelled or failed before the project was replaced.
+    if (!snapshot)
+        return;
 
     reset_project_dirty_initial_presets();
     update_project_dirty_from_presets();
@@ -18423,13 +18706,25 @@ void Plater::force_update_all_plate_thumbnails()
 }
 
 // BBS: backup
-std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi, bool* published_out) {
-    //BBS: wish to reset state when load a new file
-    p->m_slice_all_only_has_gcode = false;
-    //BBS: wish to reset all plates stats item selected state when load a new file
-    p->preview->get_canvas3d()->reset_select_plate_toolbar_selection();
+std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi, bool* published_out,
+                                       const std::function<void()>& before_publish) {
+    auto reset_load_state = [this]() {
+        //BBS: wish to reset state when load a new file
+        p->m_slice_all_only_has_gcode = false;
+        //BBS: wish to reset all plates stats item selected state when load a new file
+        p->preview->get_canvas3d()->reset_select_plate_toolbar_selection();
+    };
+    // A deferred project replacement also defers this reset, so a cancelled import keeps the preview state.
+    std::function<void()> publish;
+    if (before_publish)
+        publish = [&]() {
+            reset_load_state();
+            before_publish();
+        };
+    else
+        reset_load_state();
     bool config_loaded = false;
-    std::vector<size_t> result = p->load_files(input_files, strategy, ask_multi, published_out, &config_loaded);
+    std::vector<size_t> result = p->load_files(input_files, strategy, ask_multi, published_out, &config_loaded, publish);
     if (config_loaded && !is_loading_project())
         normalize_bed_types(false);
     return result;
@@ -18767,6 +19062,17 @@ void ProjectDropDialog::on_dpi_changed(const wxRect& suggested_rect)
     Refresh();
 }
 
+LoadType determine_load_type(std::string filename, std::string override_setting);
+
+static LoadType choose_3mf_load_type(Plater& plater, const fs::path& file)
+{
+    if (is_geometry_only_3mf(file.string()))
+        return LoadType::LoadGeometry;
+    const std::string filename = encode_path(file.filename().string().c_str());
+    const bool ask_when_relevant = wxGetApp().app_config->get(SETTING_PROJECT_LOAD_BEHAVIOUR) == OPTION_PROJECT_LOAD_BEHAVIOUR_ASK_WHEN_RELEVANT;
+    return determine_load_type(filename, !plater.model().objects.empty() && ask_when_relevant ? OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK : "");
+}
+
 //BBS: remove GCodeViewer as seperate APP logic
 bool Plater::load_files(const wxArrayString& filenames)
 {
@@ -18875,9 +19181,27 @@ bool Plater::load_files(const wxArrayString& filenames)
         return res;
     };
 
+    const auto first_3mf = std::find_if(normal_paths.begin(), normal_paths.end(), [](const fs::path& path) {
+        return boost::algorithm::iends_with(path.string(), ".3mf");
+    });
+    LoadType first_3mf_action = LoadType::Unknown;
+    if (first_3mf != normal_paths.end()) {
+        first_3mf_action = choose_3mf_load_type(*this, *first_3mf);
+        if (first_3mf_action == LoadType::Unknown)
+            return false;
+        const bool contains_zip = std::any_of(normal_paths.begin(), normal_paths.end(), [](const fs::path& path) {
+            return boost::algorithm::iends_with(path.string(), ".zip");
+        });
+        if (first_3mf_action == LoadType::LoadGeometry && !contains_zip) {
+            // Do not split a geometry operation into several imports: Cancel applies to the entire set.
+            Plater::TakeSnapshot snapshot(this, snapshot_label);
+            return !load_files(normal_paths, LoadStrategy::LoadModel, false).empty();
+        }
+    }
+
     switch (loadfiles_type) {
     case LoadFilesType::Single3MF:
-        open_3mf_file(normal_paths[0]);
+        res = open_3mf_file(normal_paths[0], first_3mf_action);
         break;
 
     case LoadFilesType::SingleOther: {
@@ -18892,7 +19216,7 @@ bool Plater::load_files(const wxArrayString& filenames)
             if (i > 0) { other_file.push_back(normal_paths[i]); }
         };
 
-        open_3mf_file(first_file[0]);
+        if (!open_3mf_file(first_file[0], first_3mf_action)) return false;
         if (load_files(other_file, LoadStrategy::LoadModel).empty()) {  res = false;  }
         break;
 
@@ -18917,7 +19241,7 @@ bool Plater::load_files(const wxArrayString& filenames)
             }
         }
 
-        open_3mf_file(first_file[0]);
+        if (!open_3mf_file(first_file[0], first_3mf_action)) return false;
         if (load_files(tmf_file, LoadStrategy::LoadModel).empty()) {  res = false;  }
         if (res && handle_zips(other_file)) {
             if (normal_paths.empty()) return true;
@@ -18962,39 +19286,30 @@ LoadType determine_load_type(std::string filename, std::string override_setting)
 
 bool Plater::open_3mf_file(const fs::path &file_path)
 {
-    std::string filename = encode_path(file_path.filename().string().c_str());
-    if (!boost::algorithm::iends_with(filename, ".3mf")) {
+    if (!boost::algorithm::iends_with(file_path.string(), ".3mf"))
         return false;
-    }
+    return open_3mf_file(file_path, choose_3mf_load_type(*this, file_path));
+}
 
-    bool not_empty_plate = !model().objects.empty();
-    bool load_setting_ask_when_relevant = wxGetApp().app_config->get(SETTING_PROJECT_LOAD_BEHAVIOUR) == OPTION_PROJECT_LOAD_BEHAVIOUR_ASK_WHEN_RELEVANT;
-    LoadType load_type = determine_load_type(filename, (not_empty_plate && load_setting_ask_when_relevant) ? OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK : "");
-
-    if (load_type == LoadType::Unknown) return false;
-
+bool Plater::open_3mf_file(const fs::path &file_path, LoadType load_type)
+{
     switch (load_type) {
-        case LoadType::OpenProject: {
-            if (wxGetApp().can_load_project())
-                load_project(from_path(file_path), "<loadall>");
-            break;
-        }
+        case LoadType::OpenProject:
+            if (!wxGetApp().can_load_project())
+                return false;
+            load_project(from_path(file_path), "<loadall>");
+            return true;
         case LoadType::LoadGeometry: {
             Plater::TakeSnapshot snapshot(this, "Import Object");
-            load_files({file_path}, LoadStrategy::LoadModel);
-            break;
+            return !load_files({file_path}, LoadStrategy::LoadModel).empty();
         }
-        case LoadType::LoadConfig: {
+        case LoadType::LoadConfig:
             load_files({file_path}, LoadStrategy::LoadConfig);
-            break;
-        }
-        case LoadType::Unknown: {
-            assert(false);
-            break;
-        }
+            return true;
+        case LoadType::Unknown:
+            return false;
     }
-
-    return true;
+    return false;
 }
 
 int Plater::get_3mf_file_count(std::vector<fs::path> paths)
@@ -19029,6 +19344,28 @@ void Plater::add_file()
         snapshot_label += encode_path(paths[i].filename().string().c_str());
     }
 
+    const auto first_3mf = std::find_if(paths.begin(), paths.end(), [](const fs::path& path) {
+        return boost::algorithm::iends_with(path.string(), ".3mf");
+    });
+    LoadType first_3mf_action = LoadType::Unknown;
+    if (first_3mf != paths.end()) {
+        first_3mf_action = choose_3mf_load_type(*this, *first_3mf);
+        if (first_3mf_action == LoadType::Unknown)
+            return;
+        if (first_3mf_action == LoadType::LoadGeometry) {
+            Plater::TakeSnapshot snapshot(this, snapshot_label);
+            if (!load_files(paths, LoadStrategy::LoadModel, false).empty()) {
+                if (get_project_name() == _L("Untitled"))
+                    p->set_project_name(from_u8(paths.front().stem().string()));
+                wxGetApp().mainframe->update_title();
+                if (wxGetApp().app_config->get("recent_models") == "true")
+                    for (const fs::path& file : paths)
+                        wxGetApp().mainframe->add_to_recent_projects(file.wstring());
+            }
+            return;
+        }
+    }
+
     // BBS: check file types
     auto loadfiles_type  = LoadFilesType::NoFile;
     auto amf_files_count = get_3mf_file_count(paths);
@@ -19046,7 +19383,7 @@ void Plater::add_file()
     switch (loadfiles_type)
     {
     case LoadFilesType::Single3MF:
-        open_3mf_file(paths[0]);
+        open_3mf_file(paths[0], first_3mf_action);
     	break;
 
     case LoadFilesType::SingleOther: {
@@ -19068,7 +19405,7 @@ void Plater::add_file()
             if (i > 0) { other_file.push_back(paths[i]); }
         };
 
-        open_3mf_file(first_file[0]);
+        if (!open_3mf_file(first_file[0], first_3mf_action)) return;
         if (!load_files(other_file, LoadStrategy::LoadModel).empty()) { wxGetApp().mainframe->update_title(); }
         break;
 
@@ -19098,7 +19435,7 @@ void Plater::add_file()
             }
         }
 
-        open_3mf_file(first_file[0]);
+        if (!open_3mf_file(first_file[0], first_3mf_action)) return;
         load_files(tmf_file, LoadStrategy::LoadModel);
         if (!load_files(other_file, LoadStrategy::LoadModel, false).empty()) {
             wxGetApp().mainframe->update_title();
@@ -19218,11 +19555,18 @@ void Plater::reset_with_confirm()
 }
 
 // BBS: save logic
-int GUI::Plater::close_with_confirm(std::function<bool(bool)> second_check)
+int GUI::Plater::close_with_confirm(std::function<bool(bool)> second_check, std::function<void()>* deferred_close)
 {
+    // A caller that may still keep the current project runs these steps itself once it is replaced.
+    auto close = [deferred_close](std::function<void()> steps) {
+        if (deferred_close != nullptr)
+            *deferred_close = std::move(steps);
+        else
+            steps();
+    };
     if (up_to_date(false, false)) {
         if (second_check && !second_check(false)) return wxID_CANCEL;
-        model().set_backup_path("");
+        close([this]() { model().set_backup_path(""); });
         return wxID_NO;
     }
 
@@ -19247,9 +19591,11 @@ int GUI::Plater::close_with_confirm(std::function<bool(bool)> second_check)
 
     if (second_check && !second_check(result == wxID_YES)) return wxID_CANCEL;
 
-    model().set_backup_path("");
-    up_to_date(true, false);
-    up_to_date(true, true);
+    close([this]() {
+        model().set_backup_path("");
+        up_to_date(true, false);
+        up_to_date(true, true);
+    });
 
     return result;
 }
