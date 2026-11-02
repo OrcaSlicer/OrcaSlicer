@@ -523,7 +523,7 @@ TEST_CASE("Mouse ears stay on the same corners when the object rotates", "[Skirt
         const Transform3d about_pivot = Geometry::translation_transform(Vec3d(pivot.x(), pivot.y(), 0.)) *
             Geometry::rotation_transform(Vec3d(0., 0., Geometry::deg2rad(rotation))) *
             Geometry::translation_transform(Vec3d(-pivot.x(), -pivot.y(), 0.));
-        model.objects.front()->instances.front()->set_transformation(about_pivot);
+        model.objects.front()->instances.front()->set_transformation(Geometry::Transformation(about_pivot));
         print.apply(model, config);
         print.process();
         return std::make_pair(brim_loop_count(print), brim_ear_centres(print));
