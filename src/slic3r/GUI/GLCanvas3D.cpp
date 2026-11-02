@@ -2600,6 +2600,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     camera.apply_projection(_max_bounding_box(true, true, true));
 
+    const ImGuiID active_id = ImGui::GetActiveID();
     wxGetApp().imgui()->new_frame();
 
     if (_update_inactive_plates_visibility())
@@ -2754,6 +2755,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     m_frame_profiler.mark("notifications");
 
     ImDrawData* draw_data = wxGetApp().imgui()->end_frame();
+    m_overlay_dirty |= active_id != ImGui::GetActiveID();
 
     std::optional<size_t> signature;
     if (_is_frame_skipping_enabled())
@@ -4084,8 +4086,10 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     if (m_extra_frame_requested || mouse3d_controller_applied) {
         m_dirty = true;
         m_extra_frame_requested = false;
-        evt.RequestMore();
     }
+
+    if (m_dirty)
+        evt.RequestMore();
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     else if (imgui_requires_extra_frame || wxGetApp().imgui()->requires_extra_frame()) {
         // ImGui settling a window or fading a tooltip.
@@ -9846,7 +9850,10 @@ void GLCanvas3D::_render_section_view_caps()
         // No cut face below the plate.
         if (m_canvas_type != CanvasAssembleView)
             clipper.set_limiting_plane(ClippingPlane(Vec3d::UnitZ(), -SINKING_Z_THRESHOLD));
-        clipper.render_cut({ 0.25f, 0.25f, 0.25f, 1.0f });
+        // The part's own color, below the 30-85% of it its lit faces show, or above them on a dark part.
+        const ColorRGB color = to_rgb(volume->render_color);
+        const float    luma  = 0.299f * color.r() + 0.587f * color.g() + 0.114f * color.b();
+        clipper.render_cut(to_rgba(luma > 0.3f ? 0.35f * color : lerp(color, ColorRGB::WHITE(), 0.4f)));
     }
     m_section_view_caps = std::move(caps);
 }
