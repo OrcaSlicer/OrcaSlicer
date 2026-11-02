@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Pro PCTG Matte Black @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Pro PCTG Matte Black @base",
+    "compatible_printers": []
+}

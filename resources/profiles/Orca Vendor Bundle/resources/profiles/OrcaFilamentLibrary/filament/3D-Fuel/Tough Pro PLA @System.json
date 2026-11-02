@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Tough Pro PLA @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Tough Pro PLA @base",
+    "compatible_printers": []
+}

@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Pro PETG @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Pro PETG @base",
+    "compatible_printers": []
+}

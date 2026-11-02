@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Pro PCTG @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Pro PCTG @base",
+    "compatible_printers": []
+}
