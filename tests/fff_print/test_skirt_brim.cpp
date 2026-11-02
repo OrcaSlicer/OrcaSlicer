@@ -457,7 +457,9 @@ static TriangleMesh triangle_with_rounded_apex()
         vertices.emplace_back(float(p.x()), float(p.y()), 0.f);
         vertices.emplace_back(float(p.x()), float(p.y()), height);
     }
-    for (size_t i = 0; i + 1 < n; ++ i) {
+    // Fan from rim vertex 0, so the first triangle is i = 1; starting at 0 would emit a face with a
+    // repeated vertex on both caps.
+    for (size_t i = 1; i + 1 < n; ++ i) {
         faces.emplace_back(0, int(2 * (i + 1)), int(2 * i));            // bottom cap, facing down
         faces.emplace_back(1, int(2 * i + 1), int(2 * (i + 1) + 1));    // top cap, facing up
     }
@@ -469,8 +471,9 @@ static TriangleMesh triangle_with_rounded_apex()
     return TriangleMesh(vertices, faces);
 }
 
-// Distinct ear centres: every brim loop of an ear is a ring around that ear, so a ring's bounding box
-// centre is the ear centre and the concentric rings of one ear collapse onto a single entry.
+// One entry per ear. The slicer clips each ear disc against the object, so an ear is a half disc, not a
+// ring; its axis-aligned bounding box centre still identifies it, and that centre stays valid under the
+// 90 and 180 degree turns used below. Coordinates are scaled, hence scaled() tolerances.
 static std::vector<Vec2d> brim_ear_centres(Print &print)
 {
     std::vector<Vec2d> centres;
