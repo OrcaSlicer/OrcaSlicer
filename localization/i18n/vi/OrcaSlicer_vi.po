@@ -25376,10 +25376,10 @@ msgstr "Phiên bản Klipper => 0.9.0"
 
 # AI Translated
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
-"Phiên bản RepRap firmware => 3.4.0\n"
+"Phiên bản RepRapFirmware => 3.4.0\n"
 "Hãy xem tài liệu firmware của bạn để biết các loại shaper được hỗ trợ."
 
 # AI Translated
@@ -25398,8 +25398,8 @@ msgid "Frequency settings"
 msgstr "Cài đặt tần số"
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency range for both axes."
-msgstr "RepRap firmware dùng cùng một dải tần số cho cả hai trục."
+msgid "RepRapFirmware uses the same frequency range for both axes."
+msgstr "RepRapFirmware dùng cùng một dải tần số cho cả hai trục."
 
 msgid "Damp: "
 msgstr "Giảm chấn: "
@@ -25442,8 +25442,8 @@ msgid "Damp (Start / End): "
 msgstr "Giảm chấn (Bắt đầu / Kết thúc): "
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency for both axes."
-msgstr "RepRap firmware dùng cùng một tần số cho cả hai trục."
+msgid "RepRapFirmware uses the same frequency for both axes."
+msgstr "RepRapFirmware dùng cùng một tần số cho cả hai trục."
 
 msgid "Note: Use previously calculated frequencies."
 msgstr "Lưu ý: Sử dụng tần số đã tính trước đó."
