@@ -2934,6 +2934,11 @@ int GUI_App::OnExit()
     if (m_startup_cloud_plugin_fetch_thread.joinable())
         m_startup_cloud_plugin_fetch_thread.join();
 
+    // Stop discovery before freeing either the agent or the managers its callbacks use. Deleting the
+    // agent does not stop the plugin's SSDP receiver threads on macOS, which then read freed memory.
+    if (m_agent)
+        m_agent->start_discovery(false, false);
+
     if (m_device_manager) {
         delete m_device_manager;
         m_device_manager = nullptr;
@@ -2951,10 +2956,6 @@ int GUI_App::OnExit()
 
     if (m_agent) {
         stop_orca_health_check(m_agent);
-        // BBS avoid a crash on mac platform
-#ifdef __WINDOWS__
-        m_agent->start_discovery(false, false);
-#endif
         delete m_agent;
         m_agent = nullptr;
     }
