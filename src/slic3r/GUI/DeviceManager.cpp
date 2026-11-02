@@ -2695,13 +2695,19 @@ int MachineObject::connect()
 
     // This strips out the http/https prefix
     std::string host = Http::get_host_from_url(input, &port);
+    // Bambu printers keep the CA per device, because the plug-in has one trust store and the
+    // selected printer preset may belong to a different printer. Other agents still use curl.
+    const bool  is_bbl = printer_agent_id == BBL_PRINTER_AGENT_ID || printer_agent_id.empty();
     std::string ca_file;
+    if (is_bbl && wxTheApp && GUI::wxGetApp().app_config)
+        ca_file = GUI::wxGetApp().app_config->get("printer_ca_file", get_dev_id());
 
     if (wxTheApp && GUI::wxGetApp().preset_bundle) {
         const auto& config = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
         if (port.empty())
             port = config.opt_string("printhost_port");
-        ca_file = config.opt_string("printhost_cafile");
+        if (!is_bbl)
+            ca_file = config.opt_string("printhost_cafile");
 
         // Refresh credentials from the matching preset for connections that bypass GUI_App::select_machine().
         const std::string print_host = config.opt_string("print_host");
