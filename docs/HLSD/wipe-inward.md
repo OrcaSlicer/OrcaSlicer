@@ -135,21 +135,19 @@ Joins that already backtrack across the seam gap are not adjusted this way.
 
 ## Execution and retraction
 
-Regular stored wipe paths use a sentinel first point, replaced by the actual
-nozzle position during execution. An accepted inward path instead records its
-actual starting position in that first point and advances the logical nozzle
-position to its executable endpoint. Seam selection and travel planning therefore
-use the position after wiping while the move waits for the retraction decision.
-The stored path, endpoint and wipe-length calculation use the same clipped
-geometry, including after a Wipe on loop move.
+Regular and inward wipe paths use a sentinel first point, replaced by the
+actual nozzle position during execution. Selecting an inward path changes only
+the stored wipe geometry. Seam selection and travel planning retain the actual
+post-extrusion position, including any Wipe on loop move.
 
 The next travel applies the normal minimum-travel threshold and retraction/lift
-rules from that endpoint. If retraction is needed, the ordinary retract operation
-executes the inward wipe with the configured before/during/after split. Otherwise
-the wipe executes without retracting or Z-hopping. It also executes when the next
-extrusion starts at its endpoint and needs no travel. A consumed or replaced path
-clears its pending state, so it cannot execute twice. Regular fallback wipes
-remain deferred until a normal retraction uses them.
+rules from that position. If retraction is needed, the ordinary retract operation
+executes the selected wipe with the configured before/during/after split, then
+replans travel from the wipe's endpoint when necessary. If a regular wipe would
+be skipped, the inward wipe is skipped too. In particular, a short travel or an
+extrusion starting at the current position does not execute an inward move,
+retract or Z-hop. A consumed or replaced path is cleared so it cannot execute
+twice. Layer and tool-change retractions can also consume the stored path.
 
 Retraction is divided into portions before, during and after wiping. The amount
 that can be retracted during the wipe depends on its executable length, wipe
@@ -159,8 +157,8 @@ speed of 25.5 mm/s, the wipe can retract 0.51 mm. With a total retraction of 0.8
 and both before/after percentages set to zero, the remaining 0.29 mm is retracted
 before wiping. This split applies to regular and inward wipes whenever normal
 travel planning or an explicit layer/tool-change retraction calls for a retract.
-An inward wipe preceding a travel that needs no retraction has zero retraction
-in all three portions, irrespective of the configured percentages.
+A travel that needs no retraction does not execute either wipe geometry,
+irrespective of the configured retraction percentages.
 
 ## Implementation and verification
 
@@ -177,7 +175,9 @@ in all three portions, irrespective of the configured percentages.
   fallback, minimum-travel retraction and Z-hop rules, and export invalidation.
   Inward-wipe checks cover before/during/after retraction splits, including 100%
   before or after wiping, with both E modes and Wipe on loop. Short travels
-  still wipe with zero retraction and no Z-hop for every split.
+  skip the wipe, retraction and Z-hop for every split. A threshold between the
+  original travel length and the distance from an inward wipe's endpoint also
+  verifies that selecting the inward path cannot create a retraction.
   With Wipe inward disabled, they check the loop move's direction and magnitude
   for Classic and Arachne, the subsequent wipe's start and length, and fractional
   retraction splitting in absolute and relative E modes.

@@ -81,9 +81,6 @@ class Wipe {
 public:
     bool enable;
     Polyline path;
-    // An inward path waits for the ordinary retraction decision. Its first
-    // point stores the actual start while GCode plans from its destination.
-    bool inward = false;
 
     // Orca: retraction portions emitted before, during, and after the wipe move.
     struct RetractionValues{
@@ -94,7 +91,7 @@ public:
 
     Wipe() : enable(false) {}
     bool has_path() const { return !this->path.points.empty(); }
-    void reset_path() { this->path = Polyline(); this->inward = false; }
+    void reset_path() { this->path = Polyline(); }
     std::string wipe(GCode &gcodegen, double length, bool toolchange = false, bool is_last = false);
 
     // Orca: calculate the retraction portions that can be emitted at wipe speed.

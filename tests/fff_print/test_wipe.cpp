@@ -187,12 +187,12 @@ TEST_CASE("Wipe retraction preserves fractional speed with inward wipe disabled"
     CHECK_THAT(before_wipe, Catch::Matchers::WithinAbs(0.8 - expected_during, 0.00005));
 }
 
-TEST_CASE("Inward wipe preserves retraction splits and minimum travel for Z hop", "[Wipe][RetractionSplit][Regression]")
+TEST_CASE("Inward wipe preserves retraction splits and minimum travel", "[Wipe][RetractionSplit][Regression]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
     const char *relative_e = GENERATE("0", "1");
     const char *reduce_crossing_wall = GENERATE("0", "1");
-    const char *minimum_travel = GENERATE("5", "0");
+    const char *minimum_travel = GENERATE("5", "1", "0");
     const bool wipe_on_loops = GENERATE(false, true);
     const auto split = GENERATE(table<const char *, const char *>({
         {"0%", "50%"}, {"25%", "25%"}, {"100%", "0%"}, {"0%", "100%"}, {"0%", "0%"}
@@ -221,79 +221,96 @@ TEST_CASE("Inward wipe preserves retraction splits and minimum travel for Z hop"
     });
     config.set_key_value("z_hop_types", new ConfigOptionEnumsGeneric{zhtNormal});
     config.set_key_value("retract_lift_enforce", new ConfigOptionEnumsGeneric{rletAllSurfaces});
-    const std::string output = slice({make_cube(10., 10., 1.)}, config);
-    const auto &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
-    const auto &start_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start);
-    const auto &end_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End);
-    ExtrusionRole role = erNone;
-    bool after_outer_wall = false;
-    bool in_wipe = false;
-    bool wipe_seen = false;
-    size_t transitions = 0;
-    size_t same_layer_transitions = 0;
-    size_t inward_wipes = 0;
-    double before_wipe = 0.;
-    double during_wipe = 0.;
-    double after_wipe = 0.;
-    double wipe_length = 0.;
-    double lift = 0.;
-    double outer_z = 0.;
-    GCodeReader parser;
-    parser.apply_config(config);
-    parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        if (line.comment().find(role_tag) == 0)
-            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
-        if (line.comment().find(start_tag) == 0) {
-            in_wipe = true;
-            wipe_seen = true;
-            if (after_outer_wall)
-                ++inward_wipes;
-        } else if (line.comment().find(end_tag) == 0) {
-            in_wipe = false;
-        }
-        if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
-            if (role == erExternalPerimeter) {
-                after_outer_wall = true;
-                before_wipe = during_wipe = after_wipe = wipe_length = lift = 0.;
-                wipe_seen = false;
-                outer_z = line.new_Z(self);
+    std::vector<bool> regular_wipes;
+    for (bool inward : {false, true}) {
+        config.set_key_value("wipe_inward", new ConfigOptionBool(inward));
+        const std::string output = slice({make_cube(10., 10., 1.)}, config);
+        const auto &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+        const auto &start_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start);
+        const auto &end_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End);
+        ExtrusionRole role = erNone;
+        bool after_outer_wall = false;
+        bool in_wipe = false;
+        bool wipe_seen = false;
+        size_t transitions = 0;
+        size_t same_layer_transitions = 0;
+        size_t outer_wipes = 0;
+        double before_wipe = 0.;
+        double during_wipe = 0.;
+        double after_wipe = 0.;
+        double wipe_length = 0.;
+        double lift = 0.;
+        double outer_z = 0.;
+        GCodeReader parser;
+        parser.apply_config(config);
+        parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+            if (line.comment().find(role_tag) == 0)
+                role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+            if (line.comment().find(start_tag) == 0) {
+                in_wipe = true;
+                wipe_seen = true;
+                if (after_outer_wall)
+                    ++outer_wipes;
+            } else if (line.comment().find(end_tag) == 0) {
+                in_wipe = false;
+            }
+            if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+                if (role == erExternalPerimeter) {
+                    after_outer_wall = true;
+                    before_wipe = during_wipe = after_wipe = wipe_length = lift = 0.;
+                    wipe_seen = false;
+                    outer_z = line.new_Z(self);
+                } else if (after_outer_wall) {
+                    REQUIRE(role == erPerimeter);
+                    const bool retract = inward ? regular_wipes.at(transitions) : wipe_seen;
+                    if (!inward)
+                        regular_wipes.push_back(wipe_seen);
+                    CHECK(wipe_seen == retract);
+                    if (retract)
+                        REQUIRE(wipe_length > EPSILON);
+                    else
+                        CHECK_THAT(wipe_length, Catch::Matchers::WithinAbs(0., EPSILON));
+                    ++transitions;
+                    const double layer_rise = std::max(0., double(self.z()) - outer_z);
+                    if (layer_rise < EPSILON)
+                        ++same_layer_transitions;
+                    // Inward wiping must use the same retraction decisions as
+                    // regular wiping, including a longer first-layer transition.
+                    // The 1 mm threshold also catches a wipe endpoint that would
+                    // make an otherwise short travel long enough to retract.
+                    // Otherwise the configured split is limited by the time available
+                    // at 100 mm/s, with any excess retracted before the wipe.
+                    const double expected_after = retract ? 0.8 * std::stod(after_percent) / 100. : 0.;
+                    const double requested_before = retract ? 0.8 * std::stod(before_percent) / 100. : 0.;
+                    const double expected_during = retract ? std::min(0.8 - requested_before - expected_after,
+                                                                      25.5 * wipe_length / 100.) : 0.;
+                    const double expected_before = retract ? 0.8 - expected_during - expected_after : 0.;
+                    CHECK_THAT(before_wipe, Catch::Matchers::WithinAbs(expected_before, 0.0001));
+                    CHECK_THAT(during_wipe, Catch::Matchers::WithinAbs(expected_during, 0.0001));
+                    CHECK_THAT(after_wipe, Catch::Matchers::WithinAbs(expected_after, 0.0001));
+                    CHECK_THAT(lift - layer_rise, Catch::Matchers::WithinAbs(retract ? 0.4 : 0., 0.001));
+                    after_outer_wall = false;
+                }
             } else if (after_outer_wall) {
-                REQUIRE(role == erPerimeter);
-                REQUIRE(wipe_seen);
-                REQUIRE(wipe_length > EPSILON);
-                ++transitions;
-                const double layer_rise = std::max(0., double(self.z()) - outer_z);
-                if (layer_rise < EPSILON)
-                    ++same_layer_transitions;
-                // A short travel must still wipe without retracting or hopping.
-                // Otherwise the configured split is limited by the time available
-                // at 100 mm/s, with any excess retracted before the wipe.
-                const bool retract = std::stod(minimum_travel) == 0.;
-                const double expected_after = retract ? 0.8 * std::stod(after_percent) / 100. : 0.;
-                const double requested_before = retract ? 0.8 * std::stod(before_percent) / 100. : 0.;
-                const double expected_during = retract ? std::min(0.8 - requested_before - expected_after,
-                                                                  25.5 * wipe_length / 100.) : 0.;
-                const double expected_before = retract ? 0.8 - expected_during - expected_after : 0.;
-                CHECK_THAT(before_wipe, Catch::Matchers::WithinAbs(expected_before, 0.0001));
-                CHECK_THAT(during_wipe, Catch::Matchers::WithinAbs(expected_during, 0.0001));
-                CHECK_THAT(after_wipe, Catch::Matchers::WithinAbs(expected_after, 0.0001));
-                CHECK_THAT(lift - layer_rise, Catch::Matchers::WithinAbs(retract ? 0.4 : 0., 0.001));
-                after_outer_wall = false;
+                if (line.retracting(self)) {
+                    double &portion = in_wipe ? during_wipe : (wipe_seen ? after_wipe : before_wipe);
+                    portion -= line.dist_E(self);
+                }
+                if (in_wipe)
+                    wipe_length += line.dist_XY(self);
+                lift += std::max(0., double(line.dist_Z(self)));
             }
-        } else if (after_outer_wall) {
-            if (line.retracting(self)) {
-                double &portion = in_wipe ? during_wipe : (wipe_seen ? after_wipe : before_wipe);
-                portion -= line.dist_E(self);
-            }
-            if (in_wipe)
-                wipe_length += line.dist_XY(self);
-            lift += std::max(0., double(line.dist_Z(self)));
-        }
-    });
-    // The 1 mm cube has five 0.2 mm layers: every outer wall must still wipe.
-    REQUIRE(transitions == 5);
-    REQUIRE(same_layer_transitions >= 4);
-    REQUIRE(inward_wipes == transitions);
+        });
+        // The 1 mm cube has five 0.2 mm layers. Inward wiping follows the
+        // ordinary retraction decision at every outer-to-inner wall transition.
+        REQUIRE(transitions == 5);
+        REQUIRE(same_layer_transitions >= 4);
+        REQUIRE(outer_wipes == std::count(regular_wipes.begin(), regular_wipes.end(), true));
+        if (std::stod(minimum_travel) == 0.)
+            REQUIRE(outer_wipes == transitions);
+        else
+            REQUIRE(outer_wipes < transitions);
+    }
 }
 
 TEST_CASE("Changing inward wipe settings preserves the sliced geometry", "[Wipe][Regression]")
@@ -464,8 +481,10 @@ TEST_CASE("Inward wipe is retained across layers with a back seam", "[Wipe][Regr
     const char *wall_generator = GENERATE("classic", "arachne");
     INFO("wall generator: " << wall_generator);
 
-    const DynamicPrintConfig inward_config = wipe_config(
+    DynamicPrintConfig inward_config = wipe_config(
         wall_generator, true, "50%", "0%", false, "3", "inner-outer-inner wall", false, "0%", "back");
+    // Exercise the offset on every layer independently of the travel threshold.
+    inward_config.set_deserialize_strict({{"retraction_minimum_travel", "0"}});
     const std::vector<WipeTrajectory> inward = wipe_trajectories(slice({make_cube(27., 27., 1.)}, inward_config));
 
     REQUIRE_FALSE(inward.empty());
