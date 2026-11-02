@@ -22,6 +22,7 @@
 #include "GCode/WipeTower.hpp"
 #include "GCode/SeamPlacer.hpp"
 #include "GCode/GCodeProcessor.hpp"
+#include "GCode/OverhangSeamLoops.hpp"
 #include "GCode/ThumbnailData.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
@@ -917,6 +918,13 @@ protected:
 
     // Processor
     GCodeProcessor m_processor;
+    // Orca: layer change tags written so far; they key the packets of m_overhang_seam_loops.
+    size_t m_layer_change_tags{0};
+    // Orca: outer walls of the current layer that start on an overhang, for the processor's
+    // seam detector (GCode/OverhangSeamLoops.hpp).
+    std::vector<OverhangSeamLoop> m_overhang_seam_loops;
+    // Orca: layers with such walls excluded by the command Z 0 limit.
+    std::set<int> m_overhang_seam_zero_z_layers;
     // Command-space endpoint after startup G-code. The processor sees direct
     // file writes synchronously, while the generator has not established its
     // first model-space point yet.

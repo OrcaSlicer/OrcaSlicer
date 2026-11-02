@@ -274,6 +274,8 @@ set(lisbslic3r_sources
     GCode/GCodeProcessor.hpp
     GCode/GCodeStatistics.cpp
     GCode/GCodeStatistics.hpp
+    GCode/OverhangSeamLoops.cpp
+    GCode/OverhangSeamLoops.hpp
     GCode/ElegooGCodeProcessorHelper.cpp
     GCode.hpp
     GCode/PchipInterpolatorHelper.cpp
