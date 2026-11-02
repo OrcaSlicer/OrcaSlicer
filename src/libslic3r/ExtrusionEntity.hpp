@@ -538,8 +538,9 @@ public:
             append(dst, to_points(p.polyline.points));
     }
     double total_volume() const override { double volume =0.; for (const auto& path : paths) volume += path.total_volume(); return volume; }
-    // check if the loop is smooth, angle_threshold is in radians, default is 10 degrees
-    bool is_smooth(double angle_threshold = 0.174, double min_arm_length = 0.025) const;
+    // check if the loop is smooth, angle_threshold is in radians, default is 10 degrees.
+    // Only vertices within max_length (mm) of the loop start are checked; negative means the whole loop.
+    bool is_smooth(double angle_threshold = 0.174, double min_arm_length = 0.025, double max_length = -1.) const;
     //static inline std::string role_to_string(ExtrusionLoopRole role);
 
 #ifndef NDEBUG
