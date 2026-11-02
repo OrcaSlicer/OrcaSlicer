@@ -200,7 +200,6 @@ private:
     bool m_show_go_to_layer_dialog = false; //menu
     bool m_force_mode_apply   = true;
     bool m_is_wipe_tower      = false; // This flag indicates that there is multiple extruder print with wipe tower
-    bool m_is_spiral_vase     = false;
 
     /* BBS slider images */
     void *m_one_layer_on_id;
