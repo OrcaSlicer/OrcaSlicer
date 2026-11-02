@@ -10,6 +10,7 @@
 #include "McpTypes.hpp"
 #include "UiInvoker.hpp"
 
+#include <boost/filesystem/path.hpp>
 #include <nlohmann/json.hpp>
 
 #include <atomic>
@@ -116,8 +117,23 @@ public:
     // unless the run already did.
     void begin_script_scope(const std::string& job);
     void end_script_scope(const std::string& job, bool wait_recording = true);
-    // The job of the nearest running script in `ancestry`, or "" for a client's own call. Any thread.
+    // The job of the nearest running script in `ancestry`, else the scope of the plugin whose call it is,
+    // or "" for a client's own call. Any thread.
     std::string script_owner(const std::vector<std::string>& ancestry) const;
+    // Keeps the service from being destroyed while a caller outside the core uses it: a plugin's call holds
+    // a lease from the moment the UI thread hands it the service until the call returns, and drain() waits
+    // for every lease. False once the service is stopping. Any thread.
+    bool acquire_lease();
+    void release_lease();
+    // A plugin's calls own what they leave behind (auto-answer rules, a recording, a held press) as a
+    // script's do, until the plugin unloads: begin is called before each of its calls (idempotent), end when
+    // it unloads. Any thread.
+    // begin returns false for a plugin whose scope ended (it unloaded) until plugin_loaded() is called for
+    // it again; end also stops the plugin's running calls, and a call of its that would leave something
+    // behind after that is refused (script_owner, set_auto_answer throw).
+    bool begin_plugin_scope(const std::string& plugin_key);
+    void end_plugin_scope(const std::string& plugin_key);
+    void plugin_loaded(const std::string& plugin_key);
     // Whether clients can reach the server: false from stop_serving() until the endpoint opens again.
     // A client's call still running then must not leave state behind that the closing ended. Any thread.
     bool endpoint_open() const;
@@ -140,6 +156,14 @@ public:
     // the service is not started or is stopping. UI thread.
     std::shared_ptr<ScriptRun> start_script_run(Script script, ScriptContext sctx, std::optional<std::size_t> only_step,
                                                 bool discard_authorized, ScriptRun::Events events);
+    // Runs a Python script for the script runner dialog: run_python as an unjournaled job of a person's run,
+    // whose result `events.finished` gets as for a JSON script (no steps are reported). `file` names the
+    // script in its tracebacks; empty for an unsaved one. nullptr when the service is not started or is
+    // stopping. UI thread.
+    std::shared_ptr<ScriptRun> start_python_run(std::string code, const boost::filesystem::path& file, ScriptRun::Events events);
+    // True when a run a person started (the script runner dialog, --mcp-script) is in `lineage`: a
+    // run_python there runs as the person's script, not an agent's. Any thread.
+    bool person_run(const std::set<std::string>& lineage) const;
     // Stops `job` and what it runs: every call it and its descendants make sees itself cancelled
     // (JobRegistry::request_stop). Any thread.
     void request_stop(const std::string& job);
@@ -166,6 +190,8 @@ private:
     ~McpService();
 
     void register_tools();
+    // `def` with a handler that marks its job as a person's run while it runs (person_run()).
+    ToolDef as_person(const ToolDef& def);
     // Calls `def` and follows the job it starts to its end; nullopt when the service stops first. A thread
     // the service owns calls it.
     std::optional<ToolResult> call_to_end(const ToolDef& def, const nlohmann::json& args);
@@ -206,6 +232,7 @@ private:
     std::unique_ptr<wxTimer> m_ready_timer;
     std::atomic<bool>     m_suspended{false};
     std::atomic<bool>     m_stopping{false};
+    std::atomic<int>      m_leases{0};
     std::atomic<uint64_t> m_generation{1};
     std::thread           m_script_thread;
 
@@ -226,6 +253,13 @@ private:
     std::vector<EncodeThread> m_encode_threads; // under m_runs_mutex
     mutable std::mutex     m_run_state_mutex;
     std::set<std::string>  m_discard_jobs;
+    std::set<std::string>  m_person_jobs;
+    std::set<std::string>  m_unloaded_plugins; // under m_rules_mutex
 };
+
+// Lets plugins call the tools through orca.host.tools: a call from a Script worker of a plugin holding the
+// tools permission runs as McpCore::call_plugin(), starting the service in its catalog-only mode when MCP
+// is off, and is logged. Called once by GUI_App as it sets up plugins.
+void install_plugin_tool_caller();
 
 }}} // namespace Slic3r::GUI::Mcp

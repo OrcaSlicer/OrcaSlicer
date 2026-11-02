@@ -83,6 +83,26 @@ when a step fails and 2 when the script is invalid. The run leaves `result.json`
 screenshots in the output directory. `tests/script_basic.json` is the smallest such check: load,
 change a setting, slice and capture.
 
+`test_plugin_tools.py` checks a plugin's calls into the tools in the running app: it side-loads
+`tests/plugins/mcp_tools_fixture` into a fresh data folder and launches three times: over MCP without the
+plugin's tools permission (its calls are refused; its operation is still reached through `api_describe`
+and `api_call`, and stays out of `tools/list`); over MCP with it granted (calls from its Script worker and a
+thread it starts reach the tools, an auto-answer rule it sets is the plugin's, `export_script` is refused,
+nothing it calls is journaled, a script is refused its progress dialog handle's methods,
+`tests/plugins/mcp_tools_broken`, whose load fails, offers none of its granted operations, and unticking the
+plugin in the Plugins dialog withdraws its operation and ends its rule); and without MCP,
+where a `--mcp-script` runs the plugin's script and its rule is still the plugin's. Run it as `python tools/mcp/test_plugin_tools.py`. The permission's own
+prompt opens while the app starts, before MCP can answer it, so the first launch sets
+`ORCA_MCP_TOOLS_FIXTURE_ASK=0` and the plugin doesn't ask; the prompt is covered by the unit tests. The
+script runner's `.py` files are not driven from here: the dialog is hidden from automation and opens its
+files through a file picker, so how it reads and saves them is covered by the unit tests of
+`decode_python_source()` and `encode_python_source()`.
+
+A `.py` file given to `--mcp-script` runs as a Python script (`run_python`) instead, exiting 0 when it
+finishes and 1 when it raises, is cancelled or runs out of time; its traceback goes to the log. Python
+scripts run only once the setting allows them: set `"mcp_python_scripts": "true"` in the `app` section
+of the datadir's `OrcaSlicer.conf` before the launch, since no tool can turn it on.
+
 `tests/gizmos.json` drives every gizmo through the GUI tools, the way a person does: each one's icon,
 its panel's fields, combos, toggles and links, and clicks or strokes at points of the model, then
 checks what it left on the model (`list_objects`), with an undo and redo and a canvas screenshot per

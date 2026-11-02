@@ -14,7 +14,37 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-std::string JobRegistry::create(const std::string& tool, const std::string& parent)
+bool JobRegistry::unloaded(const std::string& parent, const std::string& owner) const
+{
+    std::string plugin = owner;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (plugin.empty() && !parent.empty())
+            if (const auto it = m_jobs.find(parent); it != m_jobs.end())
+                plugin = it->second.owner;
+        if (plugin.empty())
+            return false;
+        if (m_blocked_owners.count(plugin) != 0)
+            return true;
+    }
+    // The hook takes the plugin manager's lock, so it is asked without this registry's.
+    return m_owner_loaded && !m_owner_loaded(plugin);
+}
+
+std::string JobRegistry::create(const std::string& tool, const std::string& parent, const std::string& owner)
+{
+    const std::string id = register_job(tool, parent, owner);
+    if (unloaded(id, {})) {
+        // Never started: nothing waits for it, and a stop the unload asked for it meanwhile goes with it.
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_jobs.erase(id);
+        m_stop_requests.erase(id);
+        throw ToolFailure(kPluginUnloaded);
+    }
+    return id;
+}
+
+std::string JobRegistry::register_job(const std::string& tool, const std::string& parent, const std::string& owner)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     const std::size_t running = std::count_if(m_jobs.begin(), m_jobs.end(), [](const auto& kv) { return !kv.second.finished; });
@@ -24,14 +54,55 @@ std::string JobRegistry::create(const std::string& tool, const std::string& pare
     Job job;
     job.tool    = tool;
     job.parent  = parent;
+    job.owner   = owner;
     job.created = std::chrono::steady_clock::now();
     if (!parent.empty()) {
         job.ancestors.push_back(parent);
-        if (auto it = m_jobs.find(parent); it != m_jobs.end())
+        if (auto it = m_jobs.find(parent); it != m_jobs.end()) {
             job.ancestors.insert(job.ancestors.end(), it->second.ancestors.begin(), it->second.ancestors.end());
+            if (job.owner.empty())
+                job.owner = it->second.owner;
+        }
     }
+    if (!job.owner.empty() && m_blocked_owners.count(job.owner) != 0)
+        throw ToolFailure(kPluginUnloaded);
     m_jobs.emplace(id, std::move(job));
     return id;
+}
+
+void JobRegistry::block_owner(const std::string& owner)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_blocked_owners.insert(owner);
+}
+
+void JobRegistry::unblock_owner(const std::string& owner)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_blocked_owners.erase(owner);
+}
+
+std::vector<std::string> JobRegistry::running_owned_by(const std::string& owner) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<std::string>    out;
+    for (const auto& [id, job] : m_jobs)
+        if (!job.finished && !owner.empty() && job.owner == owner)
+            out.push_back(id);
+    return out;
+}
+
+void require_own_job(const ToolContext& ctx, const JobRegistry& jobs, const std::string& job, const char* what)
+{
+    if (!ctx.caller_plugin().empty() && jobs.owner(job) != ctx.caller_plugin())
+        throw ToolFailure(std::string("A plugin ") + what + " only the jobs of its own calls");
+}
+
+std::string JobRegistry::owner(const std::string& id) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto                  it = m_jobs.find(id);
+    return it == m_jobs.end() ? std::string() : it->second.owner;
 }
 
 void JobRegistry::finish(const std::string& id, ToolResult result)

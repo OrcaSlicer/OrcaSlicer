@@ -15,7 +15,9 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include "slic3r/GUI/Mcp/McpOptions.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
+#include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
 
 #include "libslic3r/AppConfig.hpp"
@@ -718,6 +720,16 @@ TEST_CASE("the preferences scope reads the keys it is given, as stored, and list
     CHECK_THROWS_WITH(preferences_settings(config, json::object()), ContainsSubstring("keys"));
     CHECK_THROWS_AS(preferences_settings(config, json{{"query", "flush"}}), ToolFailure);
     CHECK_THROWS_AS(preferences_settings(config, json{{"keys", {"region"}}, {"compare", ":saved"}}), ToolFailure);
+}
+
+TEST_CASE("the Python scripts setting is off unless a person turned it on", "[Mcp]")
+{
+    AppConfig config;
+    CHECK_FALSE(python_scripts_allowed(config));
+    config.set_bool(kPythonScriptsKey, true);
+    CHECK(python_scripts_allowed(config));
+    config.set_bool(kPythonScriptsKey, false);
+    CHECK_FALSE(python_scripts_allowed(config));
 }
 
 namespace {

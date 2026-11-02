@@ -1,5 +1,6 @@
 #include "McpCore.hpp"
 
+#include "JobRegistry.hpp"
 #include "McpJournal.hpp"
 #include "McpTypes.hpp"
 #include "UiInvoker.hpp"
@@ -43,12 +44,13 @@ std::string busy_message(const std::string& op)
 class CallContext final : public ToolContext
 {
 public:
-    CallContext(McpCore& core, const ToolDef& def, std::string job, std::string parent, Journal* journal, uint64_t journal_seq,
-                CallObserver* observer, uint64_t call)
+    CallContext(McpCore& core, const ToolDef& def, std::string job, std::string parent, std::string plugin, Journal* journal,
+                uint64_t journal_seq, CallObserver* observer, uint64_t call)
         : m_core(core)
         , m_def(def)
         , m_job(std::move(job))
         , m_parent(std::move(parent))
+        , m_plugin(std::move(plugin))
         , m_journal(journal)
         , m_seq(journal_seq)
         , m_observer(observer)
@@ -89,23 +91,30 @@ public:
         });
     }
     const std::string& job_id() const override { return m_job; }
+    // A plugin's call reads as cancelled the moment the plugin unloads, before the unload's stop request comes;
+    // a handler that waits or polls then ends, one that does neither runs to its end.
     bool cancelled() const override
     {
-        return m_core.ui().is_shutdown() || m_core.jobs().stop_requested(m_job.empty() ? m_parent : m_job);
+        return m_core.ui().is_shutdown() || m_core.jobs().stop_requested(m_job.empty() ? m_parent : m_job) ||
+               (!m_plugin.empty() && m_core.jobs().unloaded({}, m_plugin));
     }
 
     ToolResult call_child(const std::string& tool, const nlohmann::json& raw_args) override
     {
-        const ToolDef* def = m_core.registry().find(tool);
+        std::shared_ptr<const ToolDef> def = m_core.registry().lookup(tool);
         if (def == nullptr)
             return ToolResult::error("Unknown tool: " + tool);
         nlohmann::json args = raw_args;
         normalize_arguments(def->input_schema, args);
         if (std::string err = validate_arguments(def->input_schema, args); !err.empty())
             return ToolResult::error("Invalid arguments: " + err);
+        if (std::string err = resolve_api_call(m_core.registry(), def, args); !err.empty())
+            return ToolResult::error(err);
         // An inline caller has no job of its own; its children are rooted at its parent.
-        return m_core.call_child(*def, args, m_job.empty() ? m_parent : m_job);
+        return m_core.call_child(*def, args, m_job.empty() ? m_parent : m_job, m_plugin);
     }
+
+    const std::string& caller_plugin() const override { return m_plugin; }
 
     std::set<std::string> lineage() const override
     {
@@ -146,6 +155,7 @@ private:
     const ToolDef& m_def;
     std::string    m_job;
     std::string    m_parent;
+    std::string    m_plugin;
     Journal*       m_journal;
     uint64_t       m_seq;
     CallObserver*  m_observer;
@@ -198,21 +208,27 @@ void McpCore::leave()
     m_threads_cv.notify_all();
 }
 
-ToolResult McpCore::call(const ToolDef& def, const nlohmann::json& args) { return run(def, args, {}); }
+ToolResult McpCore::call(const ToolDef& def, const nlohmann::json& args) { return run(def, args, {}, {}); }
 
-ToolResult McpCore::call_child(const ToolDef& def, const nlohmann::json& args, const std::string& parent_job)
+ToolResult McpCore::call_child(const ToolDef& def, const nlohmann::json& args, const std::string& parent_job, const std::string& plugin)
 {
-    return run(def, args, parent_job);
+    return run(def, args, parent_job, plugin);
 }
 
-ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const std::string& parent)
+ToolResult McpCore::call_plugin(const ToolDef& def, const nlohmann::json& args, const std::string& plugin_key)
+{
+    return run(def, args, {}, plugin_key);
+}
+
+ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin)
 {
     if (m_ui.is_shutdown() || !enter())
         return ToolResult::error("OrcaSlicer is shutting down");
     struct Leave { McpCore* core; ~Leave() { core->leave(); } } leave_on_return{this};
 
-    // Only client calls are journaled; a script's own steps replay through the script.
-    const bool     journal = m_journal != nullptr && parent.empty() && def.journal;
+    // Only client calls are journaled; a script's own steps replay through the script, and a plugin's calls
+    // are not the agent's.
+    const bool     journal = m_journal != nullptr && parent.empty() && plugin.empty() && def.journal;
     const uint64_t seq     = journal ? m_journal->begin(def.name, args, def.guard == GuardClass::Recover && !m_ui.open_dialogs().empty()) : 0;
     auto           finish  = [&](ToolResult r) {
         if (journal)
@@ -220,9 +236,15 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
         return r;
     };
 
+    // A call of a plugin that has unloaded, or a child of one of its jobs, never runs. An inline call
+    // creates no job, so this is its last check before its handler; it is cancelled once the plugin
+    // unloads (CallContext::cancelled()).
+    if (m_jobs.unloaded(parent, plugin))
+        return finish(ToolResult::error(kPluginUnloaded));
+
     const uint64_t call = m_next_call++;
     if (def.inline_call) {
-        CallContext ctx(*this, def, {}, parent, m_journal, seq, m_observer, call);
+        CallContext ctx(*this, def, {}, parent, plugin, m_journal, seq, m_observer, call);
         // Any inline call can wait for the UI thread, so each holds a blocking slot.
         if (!acquire_slot())
             return finish(ToolResult::ok({{"status", "pending"}, {"note", "Too many calls are waiting right now; try again shortly."}}));
@@ -241,7 +263,7 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
 
     std::string job;
     try {
-        job = m_jobs.create(def.name, parent);
+        job = m_jobs.create(def.name, parent, plugin);
     } catch (const ToolFailure& f) {
         return finish(ToolResult::error(f.what()));
     }
@@ -255,11 +277,17 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     // The job thread owns copies of what it needs; the core outlives it, as the owner destroys the
     // core only once drain() has seen every job thread leave.
     try {
-        std::thread([this, def, args, job, parent, seq, call]() {
-            CallContext ctx(*this, def, job, parent, m_journal, seq, m_observer, call);
-            notify(m_observer, [&](CallObserver& o) { o.call_started(call, def, args, parent); });
-            ToolResult result = await_worker(job, def.name, invoke(def, args, ctx));
-            notify(m_observer, [&](CallObserver& o) { o.call_ended(call, result); });
+        std::thread([this, def, args, job, parent, plugin, seq, call]() {
+            CallContext ctx(*this, def, job, parent, plugin, m_journal, seq, m_observer, call);
+            ToolResult  result;
+            // The plugin may have unloaded since the job was registered; its handler then never starts.
+            if (m_jobs.unloaded(job, {})) {
+                result = ToolResult::error(kPluginUnloaded);
+            } else {
+                notify(m_observer, [&](CallObserver& o) { o.call_started(call, def, args, parent); });
+                result = await_worker(job, def.name, invoke(def, args, ctx));
+                notify(m_observer, [&](CallObserver& o) { o.call_ended(call, result); });
+            }
             // Before finish(): an export_script right after the wait that sees the result must know it.
             if (seq != 0)
                 m_journal->job_ended(seq, result);

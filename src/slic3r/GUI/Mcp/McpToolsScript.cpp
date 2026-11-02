@@ -121,7 +121,8 @@ void register_script_tools(McpService& service)
         "the step is optional. Writes result.json to out_dir (default: <script name>.out next to a script file). "
         "dialog_auto_answer rules a script registers end with it. export_script turns this session into a script.",
         object_schema({{"path", prop("string", "Absolute path of a script file.")},
-                       {"script", {{"type", "object"}, {"description", "The script itself, instead of path."}}},
+                       {"script", {{"type", json::array({"object", "string"})},
+                                   {"description", "The script itself, as an object or as its JSON text, instead of path."}}},
                        {"out_dir", prop("string", "Absolute directory for result.json and screenshots; created if missing.")},
                        {"vars", {{"type", "object"}, {"description", "Values that override the script's vars."}}}}),
         [&service](const json& args, ToolContext& ctx) {
@@ -148,13 +149,13 @@ void register_script_tools(McpService& service)
                 default_out     = path->parent_path() / path->stem();
                 default_out += ".out";
             } else {
-                script      = parse_script(args["script"].dump(), err);
+                script      = parse_script(inline_script_text(args["script"]), err);
                 default_out = output_dir() / ("script-" + timestamp());
             }
             if (!script)
                 return invalid(err);
             for (const ScriptStep& step : script->steps)
-                if (service.registry().find(step.tool) == nullptr)
+                if (service.registry().lookup(step.tool) == nullptr)
                     return invalid("unknown tool " + step.tool);
             if (args.contains("vars"))
                 for (const auto& [key, value] : args["vars"].items())
@@ -181,7 +182,9 @@ void register_script_tools(McpService& service)
                        {"path", prop("string", "Absolute .json path to write.")},
                        {"overwrite", prop("boolean", "Replace an existing file.")},
                        {"clear", prop("boolean", "Forget the calls recorded so far once exported.")}}),
-        [&service](const json& args, ToolContext&) {
+        [&service](const json& args, ToolContext& ctx) {
+            if (!ctx.caller_plugin().empty())
+                throw ToolFailure("export_script exports the agent's session, which a plugin's calls are not part of");
             json running;
             json script = service.journal().to_script(arg_string(args, "name", "session " + timestamp()), &running);
             json out{{"steps", script["steps"].size()}};

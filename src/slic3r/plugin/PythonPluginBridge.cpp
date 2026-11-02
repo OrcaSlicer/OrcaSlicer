@@ -1,6 +1,7 @@
 #include "PythonPluginBridge.hpp"
 
 #include <algorithm>
+#include <optional>
 #include <boost/log/trivial.hpp>
 #include <exception>
 #include "libslic3r/LifecycleEvents.hpp"
@@ -18,6 +19,9 @@
 #include <utility>
 
 #include "PythonInterpreter.hpp"
+#include "PluginJsonPy.hpp"
+#include "PluginOperations.hpp"
+#include "host/PluginHostTools.hpp"
 #include "PluginFsUtils.hpp"
 #include "PluginConfig.hpp"
 #include "host/PluginHost.hpp"
@@ -51,6 +55,8 @@ std::mutex g_registry_mutex;
 std::unordered_map<std::string, std::vector<py::object>> g_pending_capabilities;
 std::unordered_map<std::string, py::object> g_pending_package;
 std::unordered_map<std::string, PluginPermissions> g_pending_permissions;
+// Operations a loading plugin declares with register_operation(); their handlers release under the GIL.
+std::unordered_map<std::string, std::vector<PluginOperation>> g_pending_operations;
 struct PluginInstanceHandle
 {
     // The C++ plugin interface points into a Python object. Keep both alive through one
@@ -90,6 +96,8 @@ void discard_pending_capture_without_python(const std::string& plugin_key)
     }
 
     g_pending_permissions.erase(plugin_key);
+
+    g_pending_operations.erase(plugin_key);
 }
 
 } // namespace
@@ -115,6 +123,7 @@ void PythonPluginBridge::begin_plugin_capture(const std::string& plugin_key)
         g_pending_capabilities.erase(plugin_key);
         g_pending_package.erase(plugin_key);
         g_pending_permissions.erase(plugin_key);
+        g_pending_operations.erase(plugin_key);
     }
     // From now until finalize/cancel, @orca.plugin and register_capability() calls made by
     // Python code on this thread are attributed to this plugin.
@@ -146,6 +155,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             g_pending_capabilities.erase(capture_key);
             g_pending_package.erase(capture_key);
             g_pending_permissions.erase(capture_key);
+            g_pending_operations.erase(capture_key);
         };
 
         try {
@@ -205,6 +215,39 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
                     return {};
                 }
             }
+            // Calling tools is asked on its own, after the rest: a refusal leaves the plugin loading without it.
+            if (requested_permissions.tools) {
+                bool granted = false;
+                {
+                    py::gil_scoped_release release;
+                    granted = PluginAuditManager::instance().request_tools_permission(plugin_key);
+                }
+                if (!granted)
+                    BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin_key << " loads without the tools permission";
+            }
+            std::vector<PluginOperation> declared;
+            {
+                std::lock_guard<std::mutex> lock(g_registry_mutex);
+                auto it = g_pending_operations.find(capture_key);
+                if (it != g_pending_operations.end()) {
+                    declared = std::move(it->second);
+                    g_pending_operations.erase(it);
+                }
+            }
+            std::vector<PluginOperation> granted_operations;
+            for (PluginOperation& op : declared) {
+                bool granted = false;
+                {
+                    py::gil_scoped_release release;
+                    granted = PluginAuditManager::instance().request_operation_permission(plugin_key, op.name, op.description);
+                }
+                if (granted) {
+                    op.plugin_key = plugin_key;
+                    granted_operations.push_back(std::move(op));
+                } else
+                    BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin_key << " does not offer its operation " << op.name;
+            }
+            PluginOperations::instance().stage(plugin_key, std::move(granted_operations));
         } catch (py::error_already_set& err) {
             log_python_exception_keep(err);
             error = err.what();
@@ -328,6 +371,7 @@ void PythonPluginBridge::cancel_plugin_capture(const std::string& plugin_key)
         g_pending_capabilities.erase(plugin_key);
         g_pending_package.erase(plugin_key);
         g_pending_permissions.erase(plugin_key);
+        g_pending_operations.erase(plugin_key);
     }
 
     if (g_active_plugin_key == plugin_key)
@@ -355,6 +399,7 @@ void PythonPluginBridge::clear_pending_captures()
         }
         g_pending_package.clear();
         g_pending_permissions.clear();
+        g_pending_operations.clear();
         g_active_plugin_key.clear();
         return;
     }
@@ -562,6 +607,45 @@ void bind_python_api(pybind11::module_& m)
         R"pbdoc(Register a PluginCapability subclass while OrcaSlicer loads your module.)pbdoc");
 
     m.def(
+        "register_operation",
+        [](const std::string& name, const std::string& description, const py::object& schema, const py::object& handler, bool changes) {
+            if (g_active_plugin_key.empty())
+                throw py::value_error("register_operation() called outside plugin discovery context");
+            if (name.empty() || name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") != std::string::npos)
+                throw py::value_error("register_operation() takes a name of letters, digits and underscores");
+            if (!PyCallable_Check(handler.ptr()))
+                throw py::type_error("register_operation() takes a callable handler");
+            PluginOperation op;
+            op.name        = name;
+            op.description = description;
+            op.changes     = changes;
+            if (!schema.is_none()) {
+                op.schema = py_to_json(schema);
+                if (!op.schema.is_object() || op.schema.value("type", "") != "object")
+                    throw py::value_error("register_operation() takes an object schema: {\"type\": \"object\", \"properties\": ...}");
+            }
+            // The last reference may go on any thread: released under the GIL, or abandoned once Python is gone.
+            op.handler = std::shared_ptr<py::object>(new py::object(handler), [](py::object* held) {
+                PythonGILState gil;
+                if (!gil)
+                    (void) held->release();
+                delete held;
+            });
+            std::lock_guard<std::mutex> lock(g_registry_mutex);
+            auto& pending = g_pending_operations[g_active_plugin_key];
+            pending.erase(std::remove_if(pending.begin(), pending.end(), [&](const PluginOperation& o) { return o.name == name; }),
+                          pending.end());
+            pending.push_back(std::move(op));
+        },
+        py::arg("name"), py::arg("description"), py::arg("schema") = py::none(), py::arg("handler"), py::arg("changes") = true,
+        R"pbdoc(Offer an operation to AI agents and scripts while OrcaSlicer loads your module.
+
+The person is asked whether to allow each operation; an allowed one is reached as
+"plugin.<plugin>.<name>" through api_call and orca.host.tools.call. handler(args) receives the
+arguments as a dict, validated against schema (a JSON Schema object), runs under the plugin's identity
+and permissions, and returns a JSON value. changes=False marks an operation that only reads.)pbdoc");
+
+    m.def(
         "request_permissions",
         [](const std::vector<std::string>& fs_read,
            const std::vector<std::string>& fs_readwrite,
@@ -569,7 +653,8 @@ void bind_python_api(pybind11::module_& m)
            const std::vector<std::string>& network_socket,
            const std::vector<std::string>& process,
            bool                            threading,
-           const std::vector<std::string>& network) {
+           const std::vector<std::string>& network,
+           bool                            tools) {
             if (g_active_plugin_key.empty())
                 throw py::value_error("request_permissions() called outside plugin discovery context");
 
@@ -621,6 +706,7 @@ void bind_python_api(pybind11::module_& m)
             if (threading && std::find(requested.threading.begin(), requested.threading.end(),
                                        kThreadPermissionTarget) == requested.threading.end())
                 requested.threading.emplace_back(kThreadPermissionTarget);
+            requested.tools = requested.tools || tools;
         },
         py::arg("fs_read") = std::vector<std::string>{},
         py::arg("fs_readwrite") = std::vector<std::string>{},
@@ -629,12 +715,16 @@ void bind_python_api(pybind11::module_& m)
         py::arg("process") = std::vector<std::string>{},
         py::arg("threading") = false,
         py::arg("network") = std::vector<std::string>{},
+        py::arg("tools") = false,
         R"pbdoc(Request permissions while OrcaSlicer loads your module.
 
 Each bucket takes the target strings the plugin expects the corresponding audit event to
 report: filesystem paths for fs_read and fs_readwrite, URLs for network_http, socket addresses
 for network_socket, and commands for process. threading=True requests permission to start
 threads. Targets already granted to the plugin are not asked for again.
+
+tools=True asks, on its own, for permission to call OrcaSlicer's tools through orca.host.tools,
+with what an AI agent can do; when it is refused the plugin still loads and its tool calls fail.
 
 A filesystem target may end in "/*" to grant a whole directory tree, for example
 "/path/to/folder/*". That covers the folder itself and every path beneath it, at any depth.
@@ -711,11 +801,16 @@ void install_python_thread_audit_shim()
                     // Not called from a plugin: preserve the stock implementation untouched.
                     return kwargs.is_none() ? original(function, args) : original(function, args, kwargs);
                 }
-                const std::string capability = PluginAuditManager::instance().current_capability();
+                const std::string capability  = PluginAuditManager::instance().current_capability();
+                // A thread a Script worker starts may call tools as the worker may.
+                const bool        tool_caller = tool_caller_thread();
 
                 py::object guarded = py::cpp_function(
-                    [function, plugin_key, capability](py::args call_args, py::kwargs call_kwargs) -> py::object {
-                        ScopedPluginAuditContext audit_scope(plugin_key, capability);
+                    [function, plugin_key, capability, tool_caller](py::args call_args, py::kwargs call_kwargs) -> py::object {
+                        ScopedPluginAuditContext              audit_scope(plugin_key, capability);
+                        std::optional<ScopedToolCallerThread> caller;
+                        if (tool_caller)
+                            caller.emplace();
                         PyObject* result = PyObject_Call(function.ptr(), call_args.ptr(), call_kwargs.ptr());
                         if (result == nullptr)
                             throw py::error_already_set();

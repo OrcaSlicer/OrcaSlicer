@@ -50,6 +50,7 @@ private:
     bool confirm_unsaved();
     void parse(const nlohmann::json& payload);
     void run(const nlohmann::json& payload);
+    void run_python();
     void refuse(const std::string& message, const std::string& detail = {});
     void on_close(wxCloseEvent& event);
 
@@ -74,6 +75,11 @@ private:
     boost::filesystem::path         m_file;
     mutable boost::filesystem::path m_draft_out_dir;
     nlohmann::json                  m_jobs = nlohmann::json::object(); // jobs earlier runs saved
+
+    // The source is a Python script (a .py file), run as one run_python step, not a JSON script.
+    bool                            m_python = false;
+    // The codec a .py was read in and is saved back in: its BOM's or declaration's, else UTF-8.
+    std::string                     m_python_encoding = "utf-8";
 
     std::shared_ptr<Mcp::ScriptRun>       m_run;
     std::optional<std::size_t>            m_single;

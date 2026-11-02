@@ -404,3 +404,83 @@ TEST_CASE("broken JSON says where", "[Mcp]")
     CHECK_FALSE(parse_script("{\n  \"orca_script\": 1,\n  \"steps\": [ {\"tool\": \"a\",, } ]\n}", err).has_value());
     CHECK(err.find("line 3, column") != std::string::npos);
 }
+
+TEST_CASE("a Python step's code runs as written while its other arguments substitute", "[Mcp]")
+{
+    const Script s = parse_ok(R"({"orca_script": 1, "vars": {"a": "seven"}, "steps": [
+        {"tool": "run_python", "args": {"code": "label = '${vars.a}'", "args": {"label": "${vars.a}"}}}]})");
+    FakeHost fake;
+    fake.tools["run_python"] = [](const json&) { return ToolResult::ok({{"status", "finished"}, {"result", nullptr}, {"output", ""}}); };
+    ScriptContext ctx;
+    const json    out = run_script(s, ctx, fake.host(), std::nullopt);
+    CHECK(out["passed"] == true);
+    REQUIRE(fake.calls.size() == 1);
+    CHECK(fake.calls[0].second["code"] == "label = '${vars.a}'");
+    CHECK(fake.calls[0].second["args"]["label"] == "seven");
+}
+
+TEST_CASE("a Python step that did not finish fails its script", "[Mcp]")
+{
+    const Script s = parse_ok(R"S({"orca_script": 1, "steps": [
+        {"tool": "run_python", "args": {"code": "raise ValueError('x')"}},
+        {"tool": "get_state"}]})S");
+    FakeHost fake;
+    fake.tools["run_python"] = [](const json&) {
+        return ToolResult::ok({{"status", "raised"}, {"message", "ValueError: x"}, {"traceback", "..."}, {"output", ""}});
+    };
+    fake.tools["get_state"] = [](const json&) { return ToolResult::ok(); };
+    ScriptContext ctx;
+    const json    out = run_script(s, ctx, fake.host(), std::nullopt);
+    CHECK(out["passed"] == false);
+    CHECK(out["failed_step"] == 1);
+    CHECK(out["steps"][0]["error"] == "ValueError: x");
+    CHECK(out["steps"][0]["reason"]["kind"] == "python");
+    CHECK(out["steps"][0]["reason"]["status"] == "raised");
+    CHECK(fake.calls.size() == 1);
+}
+
+TEST_CASE("a Python step left running with await false keeps its job for later steps", "[Mcp]")
+{
+    const Script s = parse_ok(R"({"orca_script": 1, "steps": [
+        {"tool": "run_python", "args": {"code": "x = 1"}, "await": false, "save_as": "py"},
+        {"tool": "get_state"}]})");
+    FakeHost fake;
+    fake.tools["run_python"] = [](const json&) { return ToolResult::ok({{"status", "running"}, {"job", "j5"}}); };
+    fake.tools["get_state"]  = [](const json&) { return ToolResult::ok(); };
+    ScriptContext ctx;
+    const json    out = run_script(s, ctx, fake.host(), std::nullopt);
+    CHECK(out["passed"] == true);
+    CHECK(ctx.jobs["py"] == "j5");
+}
+
+TEST_CASE("Python reached through api_call or a nested script follows the Python step rules", "[Mcp]")
+{
+    // Its code runs as written however the step reaches it.
+    const Script s = parse_ok(R"S({"orca_script": 1, "vars": {"a": "seven"}, "steps": [
+        {"tool": "api_call", "args": {"tool": "run_python", "args": {"code": "x = '${vars.a}'", "args": {"v": "${vars.a}"}}}},
+        {"tool": "run_script", "args": {"script": {"orca_script": 1, "steps": [
+            {"tool": "run_python", "args": {"code": "y = '${vars.a}'"}},
+            {"tool": "set_settings", "args": {"note": "${vars.a}"}}]}}}]})S");
+    FakeHost fake;
+    fake.tools["api_call"]   = [](const json&) { return ToolResult::ok({{"status", "finished"}, {"result", nullptr}, {"output", ""}}); };
+    fake.tools["run_script"] = [](const json&) { return ToolResult::ok({{"passed", true}}); };
+    ScriptContext ctx;
+    const json    out = run_script(s, ctx, fake.host(), std::nullopt);
+    CHECK(out["passed"] == true);
+    REQUIRE(fake.calls.size() == 2);
+    CHECK(fake.calls[0].second["args"]["code"] == "x = '${vars.a}'");
+    CHECK(fake.calls[0].second["args"]["args"]["v"] == "seven");
+    const json nested = fake.calls[1].second["script"]["steps"];
+    CHECK(nested[0]["args"]["code"] == "y = '${vars.a}'");
+    CHECK(nested[1]["args"]["note"] == "seven");
+
+    // A run that raised through api_call fails its step.
+    const Script failing = parse_ok(R"({"orca_script": 1, "steps": [
+        {"tool": "api_call", "args": {"tool": "run_python", "args": {"code": "x"}}}]})");
+    FakeHost raising;
+    raising.tools["api_call"] = [](const json&) { return ToolResult::ok({{"status", "raised"}, {"message", "NameError: x"}}); };
+    ScriptContext ctx2;
+    const json    failed = run_script(failing, ctx2, raising.host(), std::nullopt);
+    CHECK(failed["passed"] == false);
+    CHECK(failed["steps"][0]["reason"]["kind"] == "python");
+}

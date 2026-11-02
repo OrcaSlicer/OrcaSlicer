@@ -508,6 +508,10 @@ int ModalTracker::Enter(wxDialog* dialog)
 {
     // An exception must never escape into ShowModal().
     try {
+        // A window hidden from automation (the Python scripts setting) is the person's alone: no rule
+        // answers it, and leaving it off the stack keeps it out of the dialog tools and get_state.
+        if (dialog != nullptr && dialog->GetName() == kHiddenFromAutomation)
+            return wxID_NONE;
         const json        info    = describe_dialog(dialog);
         const std::string title   = info["title"].get<std::string>();
         const std::string message = info["message"].get<std::string>();

@@ -78,7 +78,12 @@ public:
     ToolResult call(const ToolDef& def, const nlohmann::json& args) override;
     // A call made by a running job (a script step). The new job's parent is `parent_job`, so a
     // `wait {for:"idle"}` from that job does not wait for it, and the journal leaves it out.
-    ToolResult call_child(const ToolDef& def, const nlohmann::json& args, const std::string& parent_job);
+    ToolResult call_child(const ToolDef& def, const nlohmann::json& args, const std::string& parent_job,
+                          const std::string& plugin = {});
+    // A call a plugin's code makes through orca.host.tools: run as a client's call is, its job owned by
+    // `plugin_key` (JobRegistry::owner, ToolContext::caller_plugin), and never journaled, since the journal
+    // is the agent's session.
+    ToolResult call_plugin(const ToolDef& def, const nlohmann::json& args, const std::string& plugin_key);
 
     // Refuses new calls. The owner wakes UiInvoker and JobRegistry, which makes running calls return.
     void shutdown();
@@ -108,7 +113,7 @@ public:
 
 private:
     std::uint64_t dialog_of(const std::string& job) const;
-    ToolResult run(const ToolDef& def, const nlohmann::json& args, const std::string& parent);
+    ToolResult run(const ToolDef& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin);
     // On `job`'s thread once its handler returned: when it holds the UI job worker, waits until the
     // worker is idle, cancelling the job after CoreTiming::worker_timeout, and then lets it go. The
     // result becomes a failure when the job was cancelled or timed out.

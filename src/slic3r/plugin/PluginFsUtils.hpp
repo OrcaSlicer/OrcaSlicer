@@ -29,6 +29,11 @@ struct PluginPermissions
     // Grants for audit events that expose no target, keyed "<category>:<event>" (e.g.
     // "Socket:socket.__new__"). Matched verbatim; the filesystem wildcard does not apply.
     std::vector<std::string> events;
+    // The plugin may call OrcaSlicer's MCP tools through orca.host.tools, with the app's authority: what
+    // an agent can do, GUI and dialogs included. Asked on its own at load (request_tools_permission).
+    bool tools = false;
+    // The operations (orca.register_operation names) the person let the plugin offer to agents and scripts.
+    std::vector<std::string> operations;
 };
 
 struct PluginInstallState {

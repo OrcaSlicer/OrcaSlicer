@@ -201,6 +201,12 @@ TEST_CASE("nested scripts join their steps' descriptions", "[Mcp]")
     CHECK(replacing.replace == "checked");
     CHECK(replacing.what == json{{"kind", "script"}, {"steps", 1}});
 
+    // An inline script given as JSON text, comments included, reads as its object does.
+    const std::string     text    = "// starts over\n" R"({"orca_script": 1, "steps": [{"tool": "new_project", "args": {"discard_changes": true}}]})";
+    const StepDescription as_text = describe(json{{"tool", "run_script"}, {"args", {{"script", text}}}}.dump());
+    CHECK(flags_of(as_text) == Flags{"replaces_project"});
+    CHECK(as_text.what == json{{"kind", "script"}, {"steps", 1}});
+
     const StepDescription own_output = describe(
         R"({"tool": "run_script", "args": {"script": {"orca_script": 1, "steps": [{"tool": "screenshot", "args": {"save_path": "${out_dir}/n.png"}}]}}})");
     CHECK(flags_of(own_output).empty());
@@ -244,6 +250,11 @@ TEST_CASE("nested scripts join their steps' descriptions", "[Mcp]")
     CHECK(flags_of(invalid) == kEveryFlag);
     REQUIRE(invalid.what.value("kind", "") == "value");
     CHECK(invalid.what.value("text", "").find("step 1") != std::string::npos);
+
+    const StepDescription broken_text = describe(json{{"tool", "run_script"}, {"args", {{"script", "{\"orca_script\": 1,\n \"steps\": ["}}}}.dump());
+    CHECK(flags_of(broken_text) == kEveryFlag);
+    REQUIRE(broken_text.what.value("kind", "") == "value");
+    CHECK(broken_text.what.value("text", "").find("line 2") != std::string::npos);
 
     const StepDescription missing = describe(R"({"tool": "run_script", "args": {"path": "C:/no/such/script.json"}})");
     CHECK(flags_of(missing) == kEveryFlag);

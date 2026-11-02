@@ -10,11 +10,47 @@
 #include <iterator>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
+
+using nlohmann::json;
+
+json without_expected_ids(const std::string& tool, json args)
+{
+    // The tools that take expected ids; any other tool's arguments (a plugin operation's own fields among
+    // them) are recorded as given.
+    static const std::set<std::string> takes_ids{"set_settings", "transform", "add_part", "set_layer_ranges",
+                                                 "set_layer_height_profile", "select"};
+    if (!args.is_object())
+        return args;
+    if (tool == "api_call") {
+        if (args.contains("args") && args["args"].is_object())
+            args["args"] = without_expected_ids(args.value("tool", std::string()), std::move(args["args"]));
+        return args;
+    }
+    if (tool == "run_script") {
+        // An inline script given as JSON text is recorded as the object it parses to, so its steps are
+        // stripped too. Text that doesn't parse stays as given: the call fails, and no replay keeps it.
+        if (args.contains("script") && args["script"].is_string()) {
+            json parsed = json::parse(args["script"].get<std::string>(), nullptr, /*allow_exceptions=*/false, /*ignore_comments=*/true);
+            if (parsed.is_object())
+                args["script"] = std::move(parsed);
+        }
+        if (args.contains("script") && args["script"].is_object() && args["script"].contains("steps") && args["script"]["steps"].is_array())
+            for (json& step : args["script"]["steps"])
+                if (step.is_object() && step.contains("args"))
+                    step["args"] = without_expected_ids(step.value("tool", std::string()), std::move(step["args"]));
+        return args;
+    }
+    if (takes_ids.count(tool) != 0)
+        for (const char* key : {"object_id", "volume_id", "object_ids", "volume_ids", "instance_object_ids"})
+            args.erase(key);
+    return args;
+}
 
 uint64_t Journal::begin(const std::string& tool, const nlohmann::json& args, bool answers_dialog)
 {
@@ -26,7 +62,7 @@ uint64_t Journal::begin(const std::string& tool, const nlohmann::json& args, boo
     Entry e;
     e.seq            = m_next++;
     e.tool           = tool;
-    e.args           = args;
+    e.args           = without_expected_ids(tool, args);
     e.answers_dialog = answers_dialog;
     m_entries.push_back(std::move(e));
     // A session kept open for days must not grow without bound; a script is exported from the
@@ -45,7 +81,7 @@ void Journal::set_args(uint64_t seq, nlohmann::json args)
     std::lock_guard<std::mutex> lock(m_mutex);
     for (Entry& e : m_entries)
         if (e.seq == seq)
-            e.args = std::move(args);
+            e.args = without_expected_ids(e.tool, std::move(args));
 }
 
 void Journal::end(uint64_t seq, const ToolResult& result)

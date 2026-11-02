@@ -78,6 +78,7 @@ void require_main_thread(const char* function_name)
 
 void export_3mf_copy(GUI::Plater& plater, const std::string& path)
 {
+    host_bindings::require_plugin_caller("app.export_3mf_copy");
     require_main_thread("export_3mf_copy");
     if (!boost::iends_with(path, ".3mf"))
         throw py::value_error("export_3mf_copy() needs a path ending in .3mf");

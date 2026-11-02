@@ -357,6 +357,7 @@ json transform_part(Plater& plater, int oi, const json& args)
     const int    vi     = arg_int(args, "volume", 0);
     if (vi >= int(object->volumes.size()))
         throw ToolFailure("volume index out of range");
+    check_expected_ids(*object, object->volumes[size_t(vi)], args);
     // A single part has no row of its own in the object list, so the panel can't select it.
     if (object->volumes.size() == 1)
         throw ToolFailure("object " + std::to_string(oi) + " has one part; transform the instance");
@@ -577,6 +578,7 @@ json add_part(Plater& plater, const json& args)
     const int              oi      = arg_int(args, "object", -1);
     if (oi < 0 || oi >= int(objects.size()))
         throw ToolFailure("object index out of range");
+    check_expected_ids(*objects[size_t(oi)], nullptr, args);
     const ModelVolumeType type = volume_type_from_name(arg_string(args, "type"));
     if (type == ModelVolumeType::INVALID)
         throw ToolFailure("type must be part, negative, modifier, support_blocker, support_enforcer or precise_seam");
@@ -704,6 +706,7 @@ json object_info(const ModelObject& object, std::size_t index)
     for (const std::string& key : object.config.keys())
         overrides.push_back(key);
     json out{{"index", index},
+             {"id", object.id().id},
              {"name", object.name},
              {"filament", object_filament(object)},
              {"auto_drop", object.auto_drop},
@@ -724,6 +727,7 @@ json volume_info(const ModelVolume& v, std::size_t index)
     const TriangleMesh& mesh        = v.mesh();
     const double        mesh_volume = its_volume(mesh.its);
     json out{{"index", index},
+             {"id", v.id().id},
              {"name", v.name},
              {"type", volume_type_name(v.type())},
              {"rotation_deg", degrees(v.get_rotation())},
@@ -908,6 +912,13 @@ void register_scene_tools(McpService& service)
         object_schema({{"objects", array_prop({{"type", "integer"}}, "Object indices.")},
                        {"instances", array_prop({{"type", "array"}}, "[[object, instance], ...]")},
                        {"volumes", array_prop({{"type", "array"}}, "[[object, part], ...]")},
+                       {"object_ids", array_prop({{"type", "integer"}}, "The ids list_objects reports for objects, one per "
+                                                                         "entry: refused when an index names another object now.")},
+                       {"volume_ids", array_prop({{"type", "integer"}}, "The ids list_objects reports for the parts of volumes, "
+                                                                         "one per entry: refused when a pair names another part now.")},
+                       {"instance_object_ids", array_prop({{"type", "integer"}}, "The ids list_objects reports for the objects of "
+                                                                                  "instances, one per entry: refused when a pair names "
+                                                                                  "another object now.")},
                        {"add", prop("boolean", "Add to the selection instead of replacing it.")},
                        {"all", prop("boolean", "Select all objects.")},
                        {"none", prop("boolean", "Clear the selection.")}}),
@@ -949,7 +960,38 @@ void register_scene_tools(McpService& service)
                         throw ToolFailure("object " + std::to_string(o) + " has no " + (instance ? "instance " : "part ") +
                                           std::to_string(i) + " (list_objects lists them)");
                 };
-                for (const json& o : args.value("objects", json::array())) {
+                // Expected ids are checked for every entry before the selection changes.
+                const json objects = args.value("objects", json::array()), volumes = args.value("volumes", json::array());
+                if (args.contains("object_ids")) {
+                    if (args["object_ids"].size() != objects.size())
+                        throw ToolFailure("object_ids takes one id per entry of objects");
+                    for (std::size_t k = 0; k < objects.size(); ++k) {
+                        check_obj(objects[k].get<int>());
+                        check_expected_ids(*plater.model().objects[size_t(objects[k].get<int>())], nullptr,
+                                           json{{"object_id", args["object_ids"][k]}});
+                    }
+                }
+                const json instances = args.value("instances", json::array());
+                if (args.contains("instance_object_ids")) {
+                    if (args["instance_object_ids"].size() != instances.size())
+                        throw ToolFailure("instance_object_ids takes one id per entry of instances");
+                    for (std::size_t k = 0; k < instances.size(); ++k) {
+                        check_in(instances[k], true);
+                        check_expected_ids(*plater.model().objects[size_t(instances[k].at(0).get<int>())], nullptr,
+                                           json{{"object_id", args["instance_object_ids"][k]}});
+                    }
+                }
+                if (args.contains("volume_ids")) {
+                    if (args["volume_ids"].size() != volumes.size())
+                        throw ToolFailure("volume_ids takes one id per entry of volumes");
+                    for (std::size_t k = 0; k < volumes.size(); ++k) {
+                        check_in(volumes[k], false);
+                        const ModelObject& object = *plater.model().objects[size_t(volumes[k].at(0).get<int>())];
+                        check_expected_ids(object, object.volumes[size_t(volumes[k].at(1).get<int>())],
+                                           json{{"volume_id", args["volume_ids"][k]}});
+                    }
+                }
+                for (const json& o : objects) {
                     check_obj(o.get<int>());
                     sel.add_object(unsigned(o.get<int>()), first);
                     first = false;
@@ -986,6 +1028,8 @@ void register_scene_tools(McpService& service)
         object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
                        {"instance", {{"type", "integer"}, {"minimum", 0}, {"description", "Default 0."}}},
                        {"volume", {{"type", "integer"}, {"minimum", 0}, {"description", "Transform this part instead of the instance."}}},
+                       {"object_id", expected_id_prop("object")},
+                       {"volume_id", expected_id_prop("part")},
                        {"translate", array_prop({{"type", "number"}}, "[x, y, z] mm")},
                        {"position", array_prop({{"type", "number"}}, "[x, y, z] mm: the position to move to. Not with translate.")},
                        {"rotate", array_prop({{"type", "number"}}, "[x, y, z] degrees; relative only for a part")},
@@ -1006,6 +1050,7 @@ void register_scene_tools(McpService& service)
                     throw ToolFailure("give scale or size, not both");
                 if (args.contains("translate") && args.contains("position"))
                     throw ToolFailure("give translate or position, not both");
+                check_expected_ids(*plater.model().objects[size_t(oi)], nullptr, args);
                 return args.contains("volume") ? transform_part(plater, oi, args) : transform_instance(plater, oi, args);
             });
             settle(ctx);
@@ -1022,6 +1067,7 @@ void register_scene_tools(McpService& service)
         "may ask for mesh options (blocked_by_dialog). The new part is selected; one undo step. Replies with its index, which is not always the last (parts are ordered by type), "
         "the object's part count and the part's list_objects entry (volume_info).",
         object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
+                       {"object_id", expected_id_prop("object")},
                        {"type", enum_prop({"part", "negative", "modifier", "support_blocker", "support_enforcer", "precise_seam"},
                                           "What the new part is.")},
                        {"shape", enum_prop({"cube", "cylinder", "sphere", "cone", "disc", "torus"}, "A primitive shape.")},
@@ -1230,6 +1276,11 @@ void register_scene_tools(McpService& service)
         object_schema({{"job", prop("string", "The operation's job to cancel, e.g. \"j12\".")}}),
         [&service](const json& args, ToolContext& ctx) {
             const auto ops = service.jobs().running_operations();
+            // A plugin stops only what its own calls started, so it names the job.
+            if (!ctx.caller_plugin().empty() && !args.contains("job"))
+                throw ToolFailure("A plugin cancels only the jobs of its own calls: give the job");
+            if (args.contains("job"))
+                require_own_job(ctx, service.jobs(), arg_string(args, "job"), "cancels");
             if (args.contains("job")) {
                 const std::string job = arg_string(args, "job");
                 if (std::find(ops.begin(), ops.end(), job) == ops.end()) {

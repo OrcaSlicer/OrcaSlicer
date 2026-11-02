@@ -19,6 +19,7 @@
 #include <cctype>
 #include <cstddef>
 #include <cstdlib>
+#include <slic3r/GUI/format.hpp>
 #include <future>
 #include <mutex>
 #include <memory>
@@ -733,6 +734,8 @@ AuditDecision PluginAuditManager::check_path_access(const boost::filesystem::pat
                                    << " plugin=" << plugin_key << " reason=denied path keyword";
         return {false, "denied path keyword"};
     }
+    if (is_script_identity(plugin_key))
+        return {true, ""};
 
     namespace fs = boost::filesystem;
     fs::path candidate = path;
@@ -1502,6 +1505,20 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
         }
     }
 
+    // A person's or an agent's script is unrestricted: past the denied paths above, every audited access
+    // is allowed, and logged under its identity.
+    if (is_script_identity(mgr.current_plugin())) {
+        std::string listed;
+        for (const auto& target : targets)
+            listed += (listed.empty() ? "" : ", ") + target;
+        // Reads at debug: every import reads module files.
+        if (event_type == AuditEventCategory::FsRead)
+            BOOST_LOG_TRIVIAL(debug) << "[AUDIT] script=" << mgr.current_plugin() << " event=" << event_name << " targets=[" << listed << "]";
+        else
+            BOOST_LOG_TRIVIAL(info) << "[AUDIT] script=" << mgr.current_plugin() << " event=" << event_name << " targets=[" << listed << "]";
+        return 0;
+    }
+
     // A nested event of an operation already granted, e.g. socket.connect inside an approved
     // urlopen(), is not asked again. urllib.Request is always judged on its own URL, so a
     // redirect or a nested urlopen() inside a running request is not covered by it.
@@ -1660,6 +1677,96 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
                 permission_list->push_back(target);
     }
 
+    return write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+}
+
+bool PluginAuditManager::request_tools_permission(const std::string& plugin_key)
+{
+    PluginDescriptor descriptor;
+    if (plugin_key.empty() || !PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) ||
+        descriptor.plugin_root.empty())
+        return false;
+    PluginInstallState state;
+    read_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+    if (state.permissions.tools)
+        return true;
+
+    const auto build_message = [](const std::string& plugin_name) {
+        // TRN %1% is a plugin's name.
+        return GUI::format_wxstr(_L("%1% asks to use OrcaSlicer's tools, as an AI agent can. With this permission it can change "
+                                    "your project, presets and files, work in OrcaSlicer's window while you use it, and answer "
+                                    "its dialogs, other plugins' permission requests included.\n\nAllow it?"),
+                                 plugin_name);
+    };
+    bool granted = false;
+    if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
+        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(build_message(descriptor.name).utf8_string());
+    } else if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
+        return false;
+    } else if (wxIsMainThread()) {
+        granted = PluginAuditDetail::prompt_for_permission_message(build_message(descriptor.name));
+    } else {
+        auto result = std::make_shared<std::promise<bool>>();
+        auto future = result->get_future();
+        GUI::wxGetApp().CallAfter([result, plugin_name = descriptor.name, build_message]() {
+            result->set_value(PluginAuditDetail::prompt_for_permission_message(build_message(plugin_name)));
+        });
+        granted = future.get();
+    }
+    if (!granted)
+        return false;
+
+    PluginInstallState latest_state;
+    if (read_install_state(boost::filesystem::path(descriptor.plugin_root), latest_state))
+        state = std::move(latest_state);
+    PluginAuditDetail::seed_install_metadata(descriptor, state);
+    state.permissions.tools = true;
+    return write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+}
+
+bool PluginAuditManager::request_operation_permission(const std::string& plugin_key, const std::string& name,
+                                                      const std::string& description)
+{
+    PluginDescriptor descriptor;
+    if (plugin_key.empty() || !PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) ||
+        descriptor.plugin_root.empty())
+        return false;
+    PluginInstallState state;
+    read_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+    const auto& granted_ops = state.permissions.operations;
+    if (std::find(granted_ops.begin(), granted_ops.end(), name) != granted_ops.end())
+        return true;
+
+    const auto build_message = [name, description](const std::string& plugin_name) {
+        // TRN %1% is a plugin's name, %2% the name of an operation it offers, %3% the plugin's description of it.
+        return GUI::format_wxstr(_L("%1% offers the operation \"%2%\" to AI agents and scripts:\n\n%3%\n\nLet them call it? "
+                                    "It runs the plugin's code with the plugin's permissions."),
+                                 plugin_name, name, description);
+    };
+    bool granted = false;
+    if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
+        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(build_message(descriptor.name).utf8_string());
+    } else if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
+        return false;
+    } else if (wxIsMainThread()) {
+        granted = PluginAuditDetail::prompt_for_permission_message(build_message(descriptor.name));
+    } else {
+        auto result = std::make_shared<std::promise<bool>>();
+        auto future = result->get_future();
+        GUI::wxGetApp().CallAfter([result, plugin_name = descriptor.name, build_message]() {
+            result->set_value(PluginAuditDetail::prompt_for_permission_message(build_message(plugin_name)));
+        });
+        granted = future.get();
+    }
+    if (!granted)
+        return false;
+
+    PluginInstallState latest_state;
+    if (read_install_state(boost::filesystem::path(descriptor.plugin_root), latest_state))
+        state = std::move(latest_state);
+    PluginAuditDetail::seed_install_metadata(descriptor, state);
+    if (std::find(state.permissions.operations.begin(), state.permissions.operations.end(), name) == state.permissions.operations.end())
+        state.permissions.operations.push_back(name);
     return write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
 }
 

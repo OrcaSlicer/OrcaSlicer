@@ -232,6 +232,7 @@ void register_app_tools(McpService& service)
                 const std::string job = arg_string(args, "job");
                 if (job.empty())
                     throw ToolFailure("job is required for \"job\"");
+                require_own_job(ctx, service.jobs(), job, "waits for");
                 if (auto r = service.jobs().wait(job, timeout, [&ctx] { return ctx.cancelled(); }))
                     return *r;
                 return ToolResult::ok({{"status", "running"}, {"job", job}, {"note", "Still running; wait again."}});

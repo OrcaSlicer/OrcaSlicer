@@ -133,6 +133,7 @@ public:
     wxBoxSizer *create_item_mcp_address(wxString title, wxString tooltip);
     wxBoxSizer *create_item_mcp_transport(wxString title, wxString tooltip);
     wxBoxSizer *create_item_mcp_connect(wxString title, wxString tooltip);
+    wxBoxSizer *create_item_mcp_python(wxString title, wxString tooltip);
     wxBoxSizer *with_mcp_hint(wxBoxSizer *row, ::Label *hint);
     void        update_mcp_status(const std::string& note = {});
     wxBoxSizer *create_item_network_plugin_version(wxString title, wxString tooltip);

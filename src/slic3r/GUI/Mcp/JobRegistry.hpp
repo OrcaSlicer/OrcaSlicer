@@ -15,9 +15,13 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
+
+// What a call of a plugin that has unloaded fails with.
+inline constexpr char kPluginUnloaded[] = "The plugin that made this call has been unloaded";
 
 // Bookkeeping for mutate tool calls that run on their own threads. A call that outlives its reply
 // budget stays here until it finishes, so a later `wait {for:"job"}` can return its result; the
@@ -30,8 +34,28 @@ public:
     static constexpr std::size_t kKeepFinished = 64;
     static constexpr std::size_t kKeepFinishedMax = 1024;
 
-    // Registers a running job. Throws ToolFailure when kMaxRunning jobs are already running.
-    std::string create(const std::string& tool, const std::string& parent);
+    // Registers a running job. `owner` is the plugin whose call it is ("" for a client's or a script's);
+    // a child job takes its parent's. Throws ToolFailure when kMaxRunning jobs are already running, and
+    // kPluginUnloaded when its plugin is unloaded(), which is asked once the job is registered: a plugin
+    // found loaded then was loaded while the job was there for its unload to find, so every job of the
+    // plugin is either refused or one the unload finds running.
+    std::string create(const std::string& tool, const std::string& parent, const std::string& owner = {});
+    // Whether the call's plugin (`owner`, else the owner of the job `parent`) is blocked or, by the liveness
+    // hook, no longer loaded. False for a call that is not a plugin's.
+    bool unloaded(const std::string& parent, const std::string& owner) const;
+    // Whether a plugin is loaded, asked on the calling thread without the registry's lock held. It is the
+    // plugin manager's own state, so it changes the moment the plugin unloads, while the block comes later
+    // from the UI thread. Set once, before any job is created.
+    void set_owner_liveness(std::function<bool(const std::string&)> loaded) { m_owner_loaded = std::move(loaded); }
+    // The plugin that owns `id`, or "" for a client's or script's job, or one no longer known.
+    std::string owner(const std::string& id) const;
+    // The running jobs `owner` (a plugin) owns.
+    std::vector<std::string> running_owned_by(const std::string& owner) const;
+    // While `owner` (an unloaded plugin) is blocked, create() refuses its jobs and its jobs' children. The
+    // block is checked as the job is registered, so a job registered just before it is among the jobs
+    // running_owned_by() returns, which the unload then stops.
+    void block_owner(const std::string& owner);
+    void unblock_owner(const std::string& owner);
     void        finish(const std::string& id, ToolResult result);
 
     // The job's result once it has finished; nullopt when it is still running after `timeout` or
@@ -67,10 +91,14 @@ public:
     void wake_all();
 
 private:
+    // create() without the liveness check.
+    std::string register_job(const std::string& tool, const std::string& parent, const std::string& owner);
+
     struct Job
     {
         std::string                           tool;
         std::string                           parent;
+        std::string                           owner;
         // The parent chain, nearest first, recorded at creation: a finished ancestor may be forgotten
         // while this job still runs, and the chain must still reach the root (a stop asked for it).
         std::vector<std::string>              ancestors;
@@ -85,8 +113,14 @@ private:
     std::map<std::string, Job>  m_jobs;
     std::deque<std::string>     m_finished_order;
     std::set<std::string>       m_stop_requests;
+    std::set<std::string>       m_blocked_owners;
+    std::function<bool(const std::string&)> m_owner_loaded;
     uint64_t                    m_next = 1;
     bool                        m_woken = false;
 };
+
+// Refuses a plugin's call (ToolContext::caller_plugin()) about a job its own calls did not start: the
+// session tools act only on a plugin's own jobs. `what` names the action, as in "waits for".
+void require_own_job(const ToolContext& ctx, const JobRegistry& jobs, const std::string& job, const char* what);
 
 }}} // namespace Slic3r::GUI::Mcp

@@ -394,7 +394,27 @@ the UI thread.
 | | `webview_eval` | run JavaScript in a web view (the topmost dialog's while a modal is open), with a page element as `el`, and return the result |
 | Scripts | `run_script` | run a script file or inline script, with results per step |
 | | `export_script` | write the session journal as a script that can be replayed; calls whose job is still running are left out and listed |
+| | `run_python` | run Python code against `orca.host`, calling tools through `orca.host.tools`; needs the Python setting (see Python scripts); cancellable |
+| | `python_api` | search `orca.host` in the running build: names, signatures and documentation |
+| API | `api_describe` | look up any registered tool or plugin operation: its schema by name, matches by words, or every name |
+| | `api_call` | call a registered tool or plugin operation by name; runs and is journaled as that tool's own call |
 | CAD | `cad_call` | a method of the Design tab: sketches, features, reads and measurements, feature and body edits, undo, commit to plate; `describe_tools` lists them (CAD builds, Design tab enabled) |
+
+Each tool has a lane, the way it acts, set by `ToolRegistry::add()` from `tool_lane()`: core (the
+session, recovery and Python), API (project data by index and name, JSON in and out) and UI (the GUI
+itself). Every caller reaches every tool; the lane is a hint for the agent choosing one. It starts each
+description (`[core]`, `[api]`, `[ui]`), orders `tools/list` (core, then API, then UI) and orders the
+server instructions. The access label is `read_only`: the tool reads and writes nothing.
+
+The tools that take an object index (`set_settings` object and volume scopes, `transform`, `add_part`,
+`set_layer_ranges`, `set_layer_height_profile`) also take an optional `object_id`, and where they take a
+part index a `volume_id`; `select` takes `object_ids`, `instance_object_ids` and `volume_ids`, one per
+entry of `objects`, `instances` and `volumes`: the `ObjectID` values `list_objects` reports as `id`, which `orca.host` shows
+too. `check_expected_ids()` refuses the call before anything changes when the index names another object
+or part now, so a script addresses what it read. Ids are allocated per process, so the journal leaves
+them out of those tools' calls (`without_expected_ids()`), through `api_call` and inline `run_script` steps
+too, and a replay addresses by index; a `run_python` step's code and `args`, and a plugin operation's own
+arguments, are kept as written.
 
 Each tool family registers itself from its own `McpTools*.cpp` through `register_*_tools()`.
 List tools take `limit` and `offset` and report `total` and `next_offset`. `McpPaths.hpp` requires
@@ -2212,9 +2232,13 @@ thread's progress and error events go to, so the row exists before any of them i
 
 A script is JSON with comments allowed. `run_script` runs a file or an inline script as a job whose
 steps call tools as its children (`ToolContext::call_child()`), so steps are not journaled and a
-script's `wait {for: "idle"}` doesn't wait for the script. Every string is substituted recursively
+script's `wait {for: "idle"}` doesn't wait for the script. An inline script is the script object or
+its JSON text, comments included, so a caller holding a script file's text passes it as read; the
+journal records the text as the object it parses to. Every string is substituted recursively
 with `${script_dir}`, `${out_dir}`, `${env:NAME}`, `${vars.NAME}` and `${jobs.NAME}`; a string that
-is just one placeholder becomes the referenced JSON value. A step that returns a job is awaited,
+is just one placeholder becomes the referenced JSON value. A JSON script's own `run_script` step
+gives its nested script as an object: the outer run splices placeholders into a text script as plain
+text, so a value holding a quote or a backslash, such as a Windows path, breaks its JSON. A step that returns a job is awaited,
 up to `timeout_s` (default 120), before its `expect` is checked; a wait that times out with a dialog
 open names the topmost one, since a step can't answer a dialog it opened. `"await": false` returns the job
 at once and stores it under `save_as`, so later steps can answer a dialog it opened and then
@@ -2252,7 +2276,11 @@ GUI changes it. wx ignores `OnExit()`'s return value, so `GUI_Run()` returns
 ### Script runner dialog
 
 File › Run Script… and the Speed Dial command `open_script_runner` open `ScriptRunnerDialog`, where a
-person opens or writes a script, reads its steps and runs it whole or one step at a time. It is a
+person opens or writes a script, reads its steps and runs it whole or one step at a time. A `.py` file is a
+Python script, shown and run as one step through `McpService::start_python_run()`: its printed output, its
+result or its traceback show in that step. With the Python setting off it does not parse, so Run stays
+off and the page says why. The editor holds UTF-8 text: a `.py` file is decoded as Python reads it and
+saved back in the encoding it was read in, BOM included; text that encoding can't hold is not saved. It is a
 `WebViewHostDialog` page (`resources/web/dialog/ScriptRunner/`), modeless and one at a time
 (`MainFrame::show_script_runner()`). The page's editor starts from a commented draft and suggests the
 script's keys, tool names, a tool's arguments and their allowed values, and `${…}` placeholders; the
@@ -2328,6 +2356,128 @@ job, as a step with `"await": false`. Its replayed reply can come before the dia
 call that acted with a modal open is preceded in the script by `wait {"for": "dialog"}`, expected to
 be satisfied. Only the call's own job counts as its job: a
 `wait` that timed out names the job it waits on in its reply, and stays a plain step.
+
+## Python scripts
+
+A Python script is a `.py` file or a code string that runs on the plugin interpreter against `orca.host`,
+the plugin API, without being packaged as a plugin. A person runs one from the Run Script dialog or with
+`--mcp-script file.py`; an agent sends one with `run_python {code, args, timeout_s}`; a plugin's code may
+call `run_python` too. The code computes next to the data (meshes as numpy, settings, presets) and changes
+the project only through the tools.
+
+**Entry contract.** `run_python_code()` (`plugin/PythonScriptRunner.cpp`) runs the code as a module body
+on the calling thread, the MCP job that runs `run_python`, in a fresh namespace with `args` bound and
+`orca` importable. The code is text, compiled as Python compiles any code string, so a coding line in it
+changes nothing; a file's bytes are decoded first as Python reads a source file, by its BOM or its PEP 263
+declaration, else as UTF-8 (`decode_python_source()`), and `filename` (a `.py` file's path) names it in
+tracebacks. It holds an interpreter lease and the GIL for the run. The value left in `result` is
+read once when the body returns; one that is not JSON (a dict with string keys, a list, a string, a
+finite number, a boolean or None, nested) makes the run `raised`, and `SystemExit` with code 0 or None
+finishes it. What the run's own thread prints to stdout and stderr is captured, up to 256 KiB, by a
+stream installed once over `sys.stdout` and `sys.stderr` that routes writes by thread; other threads
+print through. The outcome is `finished`, `raised` (with the traceback), `cancelled` or `timed_out`,
+reported in a successful result, as `run_script` reports a failed step. Everything that can run the
+script's Python, its body and also a result's or an exception's own methods (iteration, `__str__`) and the
+finalizers of what its namespace and traceback hold, runs inside the script's audit scope and under the
+watcher; the capture functions the runner calls are the ones it installed, held from then on. A
+finalizer that runs on past the budget or a cancel while the namespace is cleared makes the run
+`timed_out` or `cancelled`, though Python swallows the interrupt it raises there.
+
+**Cancellation.** A watcher thread interrupts the run with `PyThreadState_SetAsyncExc` when `cancel
+{job}` stops the job (`run_python` is `cancellable`) or the time budget (default 300 s) runs out, again
+every second until the code ends; code blocked inside a C call stops once the call returns. A pending
+interrupt is cleared before the thread runs anything else.
+
+**Identity.** A person's script runs under the audit identity `script`, an agent's under `mcp`
+(`kScriptIdentityPerson`, `kScriptIdentityAgent`); `McpService::person_run()` tells them apart by the
+run's lineage, since the dialog's and `--mcp-script`'s jobs are marked as a person's (`as_person()`).
+Every audited access is allowed to these identities and logged under them (reads at debug level), apart
+from the categorical denies every plugin has (`is_denied_path()`): nothing contains the code, and the
+setting is the boundary. Threads the code starts keep the identity through the interpreter's thread
+shim, but outlive the run. A run owns what its calls leave behind, as a JSON script does
+(`begin_script_scope()`): auto-answer rules, a recording and a held press end with it. The identities are reserved: a plugin whose key equals one is refused before any of its code runs. A
+plugin's `run_python` runs under the plugin's own identity and grants instead.
+
+**The setting.** One switch, `mcp_python_scripts`, off by default, lets both a person's scripts and an
+agent's `run_python` run; with it off they are refused (a plugin's `run_python` needs none). It is
+changed only in `PythonScriptsDialog`, opened from Preferences › AI features › Python scripts, which is
+named `kHiddenFromAutomation`: the UI tools never see it and `ModalTracker` leaves it off the stack, so
+no dialog tool or auto-answer rule reaches it. No tool writes the key.
+
+**The host surface and the bridge.** A script reads through `orca.host` as a plugin does. The functions
+that change state outside the tools (the staged preset update, bundle reload, the 3MF copy, plugin UI,
+plugin storage) call `require_plugin_caller()` and refuse a script identity; the test "every orca.host
+function is classified" lists every function as script-callable or plugin-only, so a new binding is
+plugin-only until someone classifies it. `orca.host.tools.call(name, args)` and `run_script(script,
+vars)`, whose script is a dict or its JSON text (`plugin/host/PluginHostTools.cpp`), reach the tools through the `ToolBridge` bound to the calling
+thread: a run binds one whose calls are `ToolContext::call_child()` of the `run_python` job, so each has
+its tool's guards, admission and undo, and the GIL is released while it waits. An error result raises
+`orca.host.tools.ToolError` with its data as `details`. A thread a script starts has no bridge and is
+refused, and code with no audit identity at all is refused.
+
+**Journal and replay.** `run_python` is journaled as one step holding its code, kept when the code failed
+partway; its tool calls are not journaled. In a JSON script a `run_python` step's `code` is never
+substituted, and a step whose outcome is not `finished` fails. `python_api` searches the reference built
+from the running build's `orca.host`.
+
+## Plugins and the tools
+
+A plugin's code calls the tools through `orca.host.tools` once it holds the `tools` permission
+(`PluginPermissions::tools`), which it declares with `request_permissions(tools=True)`. The person answers
+it at load in its own prompt (`request_tools_permission()`), apart from the plugin's other permissions,
+and a refusal leaves the plugin loading without it. With the permission a plugin can do what an agent can:
+work in the GUI, answer dialogs, replace the project, write presets and files; the prompt says so.
+
+A plugin's call waits for the UI thread, so it comes only from a thread nothing there waits for: a Script
+worker, a Python thread one starts (the thread shim carries the mark) or MCP's own thread running a plugin
+operation (`ScopedToolCallerThread`). A call from the UI thread, a slicing hook or another plugin callback
+is refused before anything waits. `install_plugin_tool_caller()` routes a permitted plugin's calls. The UI
+thread, which owns the service and runs the plugin's unload, admits each one: the plugin must still be
+loaded and its scope not ended, and the service is started in its catalog-only mode when MCP is off; the
+call then holds a lease the service's drain waits for. A caller that stops waiting because the app closes
+marks its admission abandoned, so no lease is taken that nobody releases. The call runs as
+`McpCore::call_plugin()`: a top-level job owned by the plugin
+(`JobRegistry::owner()`), never journaled, whose children inherit the plugin
+(`ToolContext::caller_plugin()`). The session tools are scoped to the plugin: `export_script` is refused,
+and `cancel {job}` and `wait {for: "job"}` act only on its own jobs (`require_own_job()`). What its calls
+leave behind (auto-answer rules, a recording, a held press) belongs to the plugin's scope
+(`begin_plugin_scope()`), which ends when the plugin unloads. From the moment the plugin manager unloads
+it, no call of the plugin starts, inline or as a job, nor a child of one of its jobs, a call admitted just
+before included (`JobRegistry::unloaded()`, which asks the plugin manager itself, since the scope ends later
+from the UI thread). A job is checked once it is registered and again on its thread before its handler,
+so it is either refused or registered while the plugin was loaded, where the unload finds it. A running
+call of the plugin reads as cancelled at once (`ToolContext::cancelled()`), so a handler that waits or
+polls ends; one that does neither (a screenshot, a settings change) runs to its end, as a call does that
+started just before the unload. Ending the scope then stops the
+plugin's running jobs and blocks new ones (`JobRegistry::block_owner()`) until it loads again; one still
+running that would leave something behind (a rule, a recording, a press) is refused. The wait for admission also ends
+when the plugins shut down, which on macOS's end of session happens without the app closing. The handlers raise no audit events,
+so each call is logged as `[MCP plugin] plugin=… tool=… outcome=… paths=[…]`; the record is best effort,
+since plugin code may write the log folder. A plugin's window callbacks run without its audit identity,
+so their calls are refused.
+
+**Plugin operations.** A plugin may offer operations to agents and scripts with
+`orca.register_operation(name, description, schema, handler, changes)` while it loads. The person grants
+each one in its own prompt (`request_operation_permission()`, saved in `PluginPermissions::operations`);
+a refused one is not offered. Granted operations are staged and offered once the plugin's load has committed
+(`PluginOperations::activate()`, in one step under the lock an unload's withdrawal takes); any exit of a
+load that did not commit, an exception included, drops them, and they are withdrawn when the plugin
+unloads. An operation is reached as
+`plugin.<plugin key>.<name>` through `api_call`, `orca.host.tools.call` and script steps, and never
+appears in `tools/list`: `ToolRegistry::set_dynamic()` resolves those names (`ToolRegistry::lookup()`).
+It runs as a job, under the mutate guard and journaled when it changes something, under the inspect guard
+otherwise; its handler runs under the plugin's identity and grants, and each call is logged with the
+plugin and the caller. A call is refused once the plugin has unloaded, by the plugin manager's state, and
+by `PluginOperations::invoke()` when the operation found is no longer the one offered (withdrawn, or
+offered again by a new load). The call's job is the caller's, so an operation already running when its
+plugin unloads runs to its end; its own tool calls are refused from then on.
+
+**`api_describe` and `api_call`.** `api_describe` gives the schema of any registered tool or operation,
+searches them by words (each match with its schema), or lists every name; for `cad_call` it points to
+`describe_tools`, which lists the Design tab's methods. `api_call {tool, args}` is dispatched before it runs
+(`resolve_api_call()`, in the protocol, in child calls and in the plugin caller): the target's arguments
+are normalized and validated, and the call runs as the target's own, with its guard, mode, budget and
+journal flag, so the journal records the target.
 
 ## stdio bridge
 

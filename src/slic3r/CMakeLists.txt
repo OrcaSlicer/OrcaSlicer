@@ -179,12 +179,15 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpTools.hpp
     GUI/Mcp/McpPaths.cpp
     GUI/Mcp/McpPaths.hpp
+    GUI/Mcp/McpPluginCaller.cpp
     GUI/Mcp/McpToolsActions.cpp
+    GUI/Mcp/McpToolsApi.cpp
     GUI/Mcp/McpToolsApp.cpp
     GUI/Mcp/McpToolsCommon.cpp
     GUI/Mcp/McpToolsConfig.cpp
     GUI/Mcp/McpToolsLayers.cpp
     GUI/Mcp/McpToolsProject.cpp
+    GUI/Mcp/McpToolsPython.cpp
     GUI/Mcp/McpToolsRecord.cpp
     GUI/Mcp/McpToolsScene.cpp
     GUI/Mcp/McpToolsScript.cpp
@@ -193,6 +196,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/ScreenCapture.cpp
     GUI/Mcp/ScreenCapture.hpp
     GUI/Mcp/McpTypes.hpp
+    GUI/Mcp/PythonScriptsDialog.cpp
+    GUI/Mcp/PythonScriptsDialog.hpp
     GUI/Mcp/MkvWriter.cpp
     GUI/Mcp/MkvWriter.hpp
     GUI/Mcp/ModalTracker.cpp
@@ -756,6 +761,10 @@ set(SLIC3R_GUI_SOURCES
     plugin/PythonPluginBridge.cpp
     plugin/PythonPluginBridge.hpp
     plugin/PythonPluginInterface.hpp
+    plugin/PluginOperations.cpp
+    plugin/PluginOperations.hpp
+    plugin/PythonScriptRunner.cpp
+    plugin/PythonScriptRunner.hpp
     plugin/PyPluginPackage.hpp
     plugin/PluginBindingUtils.hpp
     plugin/host/PluginHost.cpp
@@ -768,6 +777,8 @@ set(SLIC3R_GUI_SOURCES
     plugin/host/PluginHostModel.cpp
     plugin/host/PluginHostPresets.cpp
     plugin/host/PluginHostSlicing.cpp
+    plugin/host/PluginHostTools.cpp
+    plugin/host/PluginHostTools.hpp
     plugin/host/PluginHostUi.cpp
     plugin/host/PluginHostUi.hpp
     plugin/host/PluginPages.cpp

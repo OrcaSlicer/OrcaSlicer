@@ -45,6 +45,7 @@
 #include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/GUI/Mcp/McpSetup.hpp"
 #include "slic3r/GUI/Mcp/McpToken.hpp"
+#include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
 #include <exception>
 #include <wx/clipbrd.h>
 #include <wx/sizer.h>
@@ -1613,6 +1614,31 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_connect(wxString title, wxString 
     return with_mcp_hint(m_sizer, m_mcp_agent_hint);
 }
 
+// The setting itself is changed only in its own window, which automation can't reach: this page is
+// reachable by the UI tools, so a switch here could be turned on by an agent.
+wxBoxSizer *PreferencesDialog::create_item_mcp_python(wxString title, wxString tooltip)
+{
+    wxBoxSizer *m_sizer = create_item_label(title, tooltip);
+
+    auto state      = new ::Label(m_parent, wxEmptyString);
+    auto show_state = [this, state] {
+        state->SetLabel(Mcp::python_scripts_allowed(*app_config) ? _L("Allowed") : _L("Not allowed"));
+    };
+    show_state();
+
+    auto button = new Button(m_parent, _L("Change"));
+    button->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+    button->SetToolTip(tooltip);
+    button->Bind(wxEVT_BUTTON, [this, show_state](wxCommandEvent &) {
+        if (Mcp::show_python_scripts_dialog(this))
+            show_state();
+    });
+
+    m_sizer->Add(state, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
+    m_sizer->Add(button, 0, wxALIGN_CENTER_VERTICAL);
+    return m_sizer;
+}
+
 wxBoxSizer *PreferencesDialog::create_item_bambu_cloud(wxString title, wxString tooltip)
 {
     wxBoxSizer *m_sizer = create_item_label(title, tooltip);
@@ -2215,6 +2241,11 @@ void PreferencesDialog::create_items()
     auto item_mcp_connect = create_item_mcp_connect(_L("Add to an agent"),
         _L("Copy the setup that connects the chosen agent to OrcaSlicer."));
     g_sizer->Add(item_mcp_connect);
+
+    auto item_mcp_python = create_item_mcp_python(_L("Python scripts"),
+        _L("Whether you can run Python scripts and connected agents can send them. Python code runs with OrcaSlicer's full "
+           "access to your computer."));
+    g_sizer->Add(item_mcp_python);
     update_mcp_status();
 
 #if 0

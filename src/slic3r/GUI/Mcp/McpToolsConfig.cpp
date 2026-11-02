@@ -715,6 +715,7 @@ ConfigTarget resolve_target(const json& args, bool for_write)
         } else {
             t.config = &t.object->config.get();
         }
+        check_expected_ids(*t.object, t.volume, args);
         const bool is_part = t.volume != nullptr;
         t.options          = model_scope_options(SettingsFactory::get_options(is_part), is_part, wxGetApp().filaments_cnt());
         if (!for_write) {
@@ -2061,6 +2062,8 @@ void register_config_tools(McpService& service)
                                                                      "saved preset (default) or the preset it inherits from.")},
                        {"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (object/volume scope)."}}},
                        {"volume", {{"type", "integer"}, {"minimum", 0}, {"description", "Part index (volume scope)."}}},
+                       {"object_id", expected_id_prop("object")},
+                       {"volume_id", expected_id_prop("part")},
                        {"plate", plate_prop},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}}}),
         [](const json& args, ToolContext& ctx) {

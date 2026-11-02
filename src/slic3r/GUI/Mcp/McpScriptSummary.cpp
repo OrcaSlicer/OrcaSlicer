@@ -200,8 +200,8 @@ void describe_nested(Builder& b, const json& args, const ScriptContext& outer, i
     std::optional<Script> nested;
     ScriptContext         ctx;
     std::string           err;
-    if (args.contains("script") && args["script"].is_object()) {
-        nested = parse_script(args["script"].dump(), err);
+    if (args.contains("script") && (args["script"].is_object() || args["script"].is_string())) {
+        nested = parse_script(inline_script_text(args["script"]), err);
         // An inline script is part of the step's args, which the outer script substitutes before the
         // nested run starts: its placeholders are the outer script's, already applied to `args`, and
         // its files land where the outer ${out_dir} points. A placeholder left is one the run fails on,

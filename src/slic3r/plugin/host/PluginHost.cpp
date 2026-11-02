@@ -12,6 +12,13 @@
 namespace Slic3r {
 
 namespace host_bindings {
+void require_plugin_caller(const char* function)
+{
+    if (is_script_identity(PluginAuditManager::instance().current_plugin()))
+        throw std::runtime_error(std::string("orca.host.") + function +
+                                 " is for plugins; a script changes the project through orca.host.tools");
+}
+
 void register_plugin(pybind11::module_& host)
 {
     auto plugin_host = host.def_submodule("plugin", "Plugin host API");
@@ -19,6 +26,7 @@ void register_plugin(pybind11::module_& host)
     plugin_host.def(
         "storage",
         []() -> std::string {
+            require_plugin_caller("plugin.storage");
             const std::string plugin_key = PluginAuditManager::instance().current_plugin();
             if (plugin_key.empty())
                 throw std::runtime_error("plugin.storage() must be called from a plugin callback");
@@ -41,6 +49,7 @@ void PluginHost::RegisterBindings(pybind11::module_& module)
     host_bindings::register_model(host);
     host_bindings::register_app(host);
     host_bindings::register_plugin(host);
+    host_bindings::register_tools(host);
 
     // UI: native dialogs and interactive HTML windows for plugins.
     PluginHostUi::RegisterBindings(host);

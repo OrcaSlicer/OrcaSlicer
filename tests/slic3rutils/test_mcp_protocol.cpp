@@ -8,7 +8,9 @@
 
 #include <functional>
 #include <set>
+#include <memory>
 #include <string>
+#include <vector>
 
 using namespace Slic3r::GUI::Mcp;
 using nlohmann::json;
@@ -19,8 +21,11 @@ namespace {
 class DirectCaller final : public ToolCaller
 {
 public:
+    std::vector<std::string> called; // the tools it ran, in order
+
     ToolResult call(const ToolDef& def, const json& args) override
     {
+        called.push_back(def.name);
         struct Context final : ToolContext
         {
             std::string id;
@@ -119,6 +124,24 @@ TEST_CASE("tools/list keeps registration order and maps annotations", "[Mcp]")
     CHECK(tools[0]["annotations"]["idempotentHint"] == true);
     CHECK(tools[1]["annotations"]["destructiveHint"] == false);
     CHECK(tools[0]["inputSchema"]["required"][0] == "text");
+}
+
+TEST_CASE("tools/list lists the core tools, then the API lane, then the UI lane", "[Mcp]")
+{
+    Fixture f;
+    for (const char* name : {"ui_click", "get_state"}) {
+        ToolDef def;
+        def.name    = name;
+        def.handler = [](const json&, ToolContext&) { return ToolResult::ok(); };
+        f.registry.add(def);
+    }
+    const json tools = body(f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}}))["result"]["tools"];
+    REQUIRE(tools.size() == 4);
+    CHECK(tools[0]["name"] == "get_state");
+    CHECK(tools[1]["name"] == "echo");
+    CHECK(tools[2]["name"] == "fail");
+    CHECK(tools[3]["name"] == "ui_click");
+    CHECK(tools[3]["description"] == "[ui] ");
 }
 
 TEST_CASE("tools/call returns the result as a JSON text block", "[Mcp]")
@@ -375,4 +398,53 @@ TEST_CASE("argument normalization moves a value outside its enum to the argument
     json unknown{{"view", "sideways"}};
     normalize_arguments(schema, unknown);
     CHECK(unknown == json{{"view", "sideways"}});
+}
+
+TEST_CASE("api_call runs and is journaled as the tool it names", "[Mcp]")
+{
+    Fixture f;
+    ToolDef api;
+    api.name         = "api_call";
+    api.input_schema = {{"type", "object"},
+                        {"properties", {{"tool", {{"type", "string"}}}, {"args", {{"type", "object"}}}}},
+                        {"required", {"tool"}}};
+    api.handler      = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); };
+    f.registry.add(api);
+
+    const json result = body(f.post({{"jsonrpc", "2.0"}, {"id", 4}, {"method", "tools/call"},
+                                     {"params", {{"name", "api_call"}, {"arguments", {{"tool", "echo"}, {"args", {{"text", "hi"}}}}}}}}))["result"];
+    CHECK(json::parse(result["content"][0]["text"].get<std::string>()) == json{{"echo", "hi"}});
+    REQUIRE(f.caller.called.size() == 1);
+    CHECK(f.caller.called.back() == "echo");
+
+    // The target's arguments are checked against its schema, and an unknown tool is named.
+    const json invalid = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"},
+                                      {"params", {{"name", "api_call"}, {"arguments", {{"tool", "echo"}, {"args", json::object()}}}}}}))["result"];
+    CHECK(invalid["isError"] == true);
+    const json unknown = body(f.post({{"jsonrpc", "2.0"}, {"id", 6}, {"method", "tools/call"},
+                                      {"params", {{"name", "api_call"}, {"arguments", {{"tool", "ech"}}}}}}))["result"];
+    CHECK(unknown["isError"] == true);
+    CHECK(unknown["content"][0]["text"].get<std::string>().find("did you mean echo") != std::string::npos);
+}
+
+TEST_CASE("a name the table lacks resolves through the dynamic resolver, without being listed", "[Mcp]")
+{
+    Fixture f;
+    f.registry.set_dynamic([](const std::string& name) -> std::shared_ptr<const ToolDef> {
+        if (name != "plugin.measure.area")
+            return nullptr;
+        auto def     = std::make_shared<ToolDef>();
+        def->name    = name;
+        def->handler = [](const json&, ToolContext&) { return ToolResult::ok({{"area", 12.5}}); };
+        return def;
+    });
+    REQUIRE(f.registry.lookup("plugin.measure.area") != nullptr);
+    CHECK(f.registry.lookup("plugin.measure.volume") == nullptr);
+    CHECK(f.registry.lookup("echo")->name == "echo");
+    const json tools = body(f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}}))["result"]["tools"];
+    for (const json& t : tools)
+        CHECK(t["name"] != "plugin.measure.area");
+    const json result = body(f.post({{"jsonrpc", "2.0"}, {"id", 3}, {"method", "tools/call"},
+                                     {"params", {{"name", "plugin.measure.area"}, {"arguments", json::object()}}}}))["result"];
+    CHECK(json::parse(result["content"][0]["text"].get<std::string>()) == json{{"area", 12.5}});
 }

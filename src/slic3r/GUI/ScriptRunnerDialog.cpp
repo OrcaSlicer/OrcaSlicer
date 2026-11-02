@@ -15,6 +15,8 @@
 #include "Mcp/McpScriptSummary.hpp"
 #include "Mcp/McpService.hpp"
 #include "Mcp/McpTypes.hpp"
+#include "Mcp/PythonScriptsDialog.hpp"
+#include "slic3r/plugin/PythonScriptRunner.hpp"
 #include "Widgets/WebViewHostDialog.hpp"
 #include "libslic3r/Utils.hpp"
 #ifdef __APPLE__
@@ -84,7 +86,9 @@ std::string file_name_for(const std::string& text)
     return (name.empty() ? std::string("script") : name) + ".json";
 }
 
-wxString script_wildcard() { return format_wxstr("%1% (*.json)|*.json", _L("Script files")); }
+wxString script_wildcard() { return format_wxstr("%1% (*.json;*.py)|*.json;*.py", _L("Script files")); }
+
+bool is_python_file(const fs::path& path) { return boost::iequals(path.extension().string(), ".py"); }
 
 // A value as a person reads it: a string as its text, anything else as compact JSON.
 std::string value_text(const json& v) { return v.is_string() ? v.get<std::string>() : v.dump(); }
@@ -431,9 +435,24 @@ void ScriptRunnerDialog::open_file()
     }
     std::ostringstream text;
     text << in.rdbuf();
-    m_file = path;
-    m_jobs = json::object();
-    call_web_handler({{"command", "source"}, {"file_name", Mcp::path_to_utf8(path.filename())}, {"text", text.str()}});
+    std::string source = text.str();
+    std::string encoding = "utf-8";
+    if (is_python_file(path)) {
+        // The page edits UTF-8 text: the file is decoded as Python reads it, and saved back in its encoding.
+        std::string decoded, error;
+        if (!decode_python_source(source, decoded, encoding, error)) {
+            // TRN %1% is a script's file name, %2% why it can't be read.
+            call_web_handler({{"command", "error"},
+                              {"message", format(_u8L("%1% can't be read as Python source: %2%"), Mcp::path_to_utf8(path.filename()), error)}});
+            return;
+        }
+        source = std::move(decoded);
+    }
+    m_python_encoding = encoding;
+    m_file   = path;
+    m_python = is_python_file(path);
+    m_jobs   = json::object();
+    call_web_handler({{"command", "source"}, {"file_name", Mcp::path_to_utf8(path.filename())}, {"text", source}});
 }
 
 // Writes the source to its file, or to one the person picks when it has none or `pick` asks for another.
@@ -453,8 +472,9 @@ bool ScriptRunnerDialog::save(bool pick)
             return false;
         path = into_path(dialog.GetPath());
         // GTK's file dialog doesn't add the filter's extension, so it never asked about the file adding it names.
-        if (!boost::iequals(path.extension().string(), ".json")) {
-            path += ".json";
+        const char* extension = m_python ? ".py" : ".json";
+        if (!boost::iequals(path.extension().string(), extension)) {
+            path += extension;
             boost::system::error_code ec;
             if (fs::exists(path, ec)) {
                 MessageDialog confirm(this, wxString::Format(_L("The file %s already exists.\nDo you want to replace it?"), from_path(path)),
@@ -467,10 +487,21 @@ bool ScriptRunnerDialog::save(bool pick)
     }
     // Written beside the file, then renamed over it. Unlike write_file_atomically() nothing is ever written
     // in place, so a save that fails (a full disk, a folder that refuses new files) leaves the file as it was.
-    const std::string       target = Mcp::path_to_utf8(path);
-    const std::string       temp   = target + ".saving";
+    const std::string target = Mcp::path_to_utf8(path);
+    // A Python script goes back in the encoding it was read in.
+    std::string contents = m_text;
+    if (m_python) {
+        std::string error;
+        if (!encode_python_source(m_text, m_python_encoding, contents, error)) {
+            // TRN %1% is a file name, %2% the text encoding it is in (such as cp1252), %3% why the text doesn't fit it.
+            call_web_handler({{"command", "error"},
+                              {"message", format(_u8L("Can't save %1% in its encoding, %2%: %3%"), target, m_python_encoding, error)}});
+            return false;
+        }
+    }
+    const std::string       temp = target + ".saving";
     boost::nowide::ofstream out(temp.c_str(), std::ios::binary | std::ios::trunc);
-    out << m_text;
+    out << contents;
     out.close();
     const bool written = bool(out);
     if (!written || rename_file(temp, target)) {
@@ -567,6 +598,24 @@ json ScriptRunnerDialog::describe(const Mcp::Script& script) const
 void ScriptRunnerDialog::parse(const nlohmann::json& payload)
 {
     json reply{{"command", "parsed"}, {"seq", payload.value("seq", 0)}, {"ok", false}};
+    if (m_python && !Mcp::python_scripts_allowed(*wxGetApp().app_config)) {
+        // The page keeps Run off while a script doesn't parse, and says why.
+        reply["error"] = _u8L("Python scripts are off. You can turn them on in Preferences > AI features > Python scripts.");
+        call_web_handler(reply);
+        return;
+    }
+    if (m_python) {
+        // Python is checked when it runs; the page shows it as one step that runs the whole file.
+        json step{{"index", 1},          {"tool", "run_python"}, {"title", _u8L("Run Python code")}, {"flags", json::array()},
+                  {"checks_result", false}, {"optional", false},  {"args", json::object()},          {"expect", json::object()},
+                  {"checks", json::array()}};
+        reply.update({{"ok", true},
+                      {"name", Mcp::path_to_utf8(m_file.stem())},
+                      {"steps", json::array({std::move(step)})},
+                      {"count_text", _u8L("Python script")}});
+        call_web_handler(reply);
+        return;
+    }
     try {
         Mcp::McpService* s = service();
         std::string      err;
@@ -577,7 +626,7 @@ void ScriptRunnerDialog::parse(const nlohmann::json& payload)
             reply["error"] = err;
         else {
             for (std::size_t i = 0; i < script->steps.size() && !reply.contains("error"); ++i)
-                if (s->registry().find(script->steps[i].tool) == nullptr)
+                if (s->registry().lookup(script->steps[i].tool) == nullptr)
                     // TRN %1% is a step number, %2% the name of the tool the script asks for.
                     reply["error"] = format(_u8L("Step %1% uses a tool this version of OrcaSlicer doesn't have: %2%"), i + 1,
                                             script->steps[i].tool);
@@ -607,6 +656,10 @@ void ScriptRunnerDialog::run(const nlohmann::json& payload)
     Mcp::McpService* s = service();
     if (s == nullptr || !s->ready()) {
         refuse(_u8L("Scripts can't run while OrcaSlicer is starting or closing."));
+        return;
+    }
+    if (m_python) {
+        run_python();
         return;
     }
     std::string err;
@@ -747,6 +800,14 @@ json ScriptRunnerDialog::step_view(const json& entry) const
                 view["failure_text"] = format(_u8L("This step needs the job saved by step %1%. Run that step first."), reason["saved_by"].get<int>());
             else
                 view["failure_text"] = _u8L("This step needs a job that no step of this script saves.");
+        } else if (kind == "python") {
+            const std::string status = reason.value("status", "");
+            view["failure_text"]     = status == "cancelled" ? _u8L("The script was stopped.") :
+                                       status == "timed_out" ? _u8L("The script ran out of time.") :
+                                                               _u8L("The script raised an exception.");
+            const json result      = entry.value("result", json::object());
+            view["failure_detail"] = result.value("traceback", std::string()).empty() ? entry.value("error", std::string()) :
+                                                                                       result.value("traceback", std::string());
         } else {
             // A tool's own refusal is the only account of what went wrong; it is agent-facing English.
             view["failure_text"]   = _u8L("This step failed.");
@@ -756,6 +817,21 @@ json ScriptRunnerDialog::step_view(const json& entry) const
 
     const json result = entry.value("result", json());
     json       lines  = json::array();
+    if (tool == "run_python" && result.is_object()) {
+        // What the script printed, then what it returned.
+        std::istringstream output(result.value("output", std::string()));
+        std::string        line;
+        int                shown = 0;
+        while (std::getline(output, line))
+            if (shown++ < 40)
+                lines.push_back(line);
+        if (shown > 40)
+            // TRN %1% is how many more lines of a script's output there are.
+            lines.push_back(format(_L_PLURAL("(%1% more line)", "(%1% more lines)", shown - 40), shown - 40));
+        if (result.contains("result") && !result["result"].is_null())
+            // TRN %1% is the value a Python script returned, as JSON.
+            lines.push_back(format(_u8L("Result: %1%"), result["result"].dump()));
+    }
     const json summary = Mcp::describe_result(tool, result);
     if (summary.is_object()) {
         const std::string kind = summary.value("kind", "");
@@ -782,6 +858,54 @@ json ScriptRunnerDialog::step_view(const json& entry) const
             view["thumbnail"] = url;
     view["files"] = std::move(files);
     return view;
+}
+
+void ScriptRunnerDialog::run_python()
+{
+    if (!Mcp::python_scripts_allowed(*wxGetApp().app_config)) {
+        refuse(_u8L("Python scripts are off. You can turn them on in Preferences > AI features > Python scripts."));
+        return;
+    }
+    // The script acts on the main window, as a JSON script's steps do.
+    if (MainFrame* frame = wxGetApp().mainframe)
+        frame->Raise();
+
+    Mcp::ScriptRun::Events events;
+    auto                   alive = m_alive;
+    events.finished = [this, alive](const json& result, const json&) {
+        if (!alive->load())
+            return;
+        // The run's outcome as the one step it is shown as.
+        json entry{{"index", 1}, {"tool", "run_python"}, {"duration_ms",
+                   std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_started).count()}};
+        const bool ok = !result.contains("error") && result.value("status", "") == "finished";
+        entry["ok"]   = ok;
+        if (result.contains("error"))
+            entry.update({{"error", result["error"]}, {"reason", {{"kind", "tool"}}}});
+        else {
+            entry["result"] = result;
+            if (!ok)
+                entry.update({{"error", result.value("message", std::string())},
+                              {"reason", {{"kind", "python"}, {"status", result.value("status", "")}}},
+                              {"cancelled", result.value("status", "") == "cancelled"}});
+        }
+        call_web_handler(step_view(entry));
+        json script_result{{"passed", ok}, {"steps", json::array({entry})}};
+        if (!ok)
+            script_result["failed_step"] = 1;
+        call_web_handler(finished_view(script_result));
+        restore_z_order();
+    };
+    m_single  = std::nullopt;
+    m_total   = 1;
+    m_started = std::chrono::steady_clock::now();
+    m_run     = service()->start_python_run(m_text, m_file, std::move(events));
+    if (!m_run) {
+        refuse(_u8L("Scripts can't run while OrcaSlicer is starting or closing."));
+        return;
+    }
+    call_web_handler({{"command", "run_started"}, {"total", 1}});
+    call_web_handler({{"command", "step_started"}, {"index", 1}});
 }
 
 json ScriptRunnerDialog::finished_view(const json& result) const

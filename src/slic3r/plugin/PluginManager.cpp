@@ -13,6 +13,8 @@
 #include "PluginFsUtils.hpp"
 #include "PluginHooks.hpp"
 #include "PluginAuditManager.hpp"
+#include "PluginOperations.hpp"
+#include "host/PluginHostTools.hpp"
 #include "PyPluginTrampoline.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
@@ -967,6 +969,13 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
         fail(GUI::format(_u8L("Plugin manifest not found: %1%"), plugin_key));
         return;
     }
+    // Python scripts run under these identities; a plugin of the same key would pass for a script, so none of
+    // its code may run, not even while it loads.
+    if (is_script_identity(plugin_key)) {
+        // TRN %1% is a plugin's file name without extension, such as "script".
+        fail(GUI::format(_u8L("The plugin name %1% is reserved; rename the plugin file"), plugin_key));
+        return;
+    }
 
     // Reject a duplicate package or a capability-name collision BEFORE on_load() runs, so a
     // rejected load costs no on_load/on_unload cycle. Also the point at which a cancellation that
@@ -977,6 +986,18 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
             return LOAD_CANCELLED;
         return check_registry_locked(plugin_key, candidate);
     };
+
+    // Whatever ends the load before it commits, an exception included, drops the operations it staged.
+    struct StagedOperations
+    {
+        const std::string& plugin_key;
+        bool               committed = false;
+        ~StagedOperations()
+        {
+            if (!committed)
+                PluginOperations::instance().discard_staged(plugin_key);
+        }
+    } staged{plugin_key};
 
     Plugin plugin;
     std::string error;
@@ -1042,6 +1063,8 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
         m_load_errors.erase(plugin_key);
     }
 
+    staged.committed = true;
+    PluginOperations::instance().activate(plugin_key);
     BOOST_LOG_TRIVIAL(info) << "[load_plugin_impl] SUCCESS plugin=" << plugin_key;
 }
 
@@ -2168,6 +2191,8 @@ void ScriptAsyncRuntime::Impl::run_invocation(const std::shared_ptr<Run>& run)
                 std::optional<ScopedPluginAuditContext> audit_scope;
                 if (!run->capability->audit_plugin_key().empty())
                     audit_scope.emplace(run->capability->audit_plugin_key(), run->capability->name());
+                // A Script worker is where a plugin's synchronous tool calls belong.
+                ScopedToolCallerThread tool_caller;
 
                 // Detection and execution both happen here, on the worker: a synchronous
                 // `def execute` runs to completion off the UI thread, exactly like an `async def`.

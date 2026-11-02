@@ -19,6 +19,14 @@ struct PluginPermissions;
 // request_permissions(threading=True) declaration use this fixed target.
 inline constexpr const char* kThreadPermissionTarget = "thread";
 
+// The audit identities of a Python script a person (the Run Script dialog, --mcp-script) or an agent
+// (run_python) starts. Every audited access is allowed to them and logged under them, apart from the
+// categorical denies (is_denied_path). They are reserved: no plugin key may equal them, so code running
+// under one is never taken for a plugin, and the orca.host functions only plugins may call refuse them.
+inline constexpr char kScriptIdentityPerson[] = "script";
+inline constexpr char kScriptIdentityAgent[]  = "mcp";
+inline bool           is_script_identity(const std::string& key) { return key == kScriptIdentityPerson || key == kScriptIdentityAgent; }
+
 struct AuditDecision {
     bool        allowed = true;
     std::string reason;
@@ -165,6 +173,16 @@ public:
     // it would create the link's target rather than the path the grant describes. Exact
     // (non-tree) grants keep their verbatim string comparison.
     bool request_permissions(const std::string& plugin_key, const PluginPermissions& requested);
+
+    // Asks the user, on its own, whether the plugin may call OrcaSlicer's tools (PluginPermissions::tools),
+    // saying what that lets it do, and saves a Yes. True when it is granted, now or earlier. A plugin that
+    // is refused still loads; its tool calls fail. Marshals to the UI thread like request_permissions.
+    bool request_tools_permission(const std::string& plugin_key);
+
+    // Asks the user whether the plugin may offer its operation `name` to agents and scripts, showing its
+    // description, and saves a Yes in PluginPermissions::operations. True when it is granted, now or
+    // earlier. A refused operation is not offered; the plugin still loads.
+    bool request_operation_permission(const std::string& plugin_key, const std::string& name, const std::string& description);
 
     // Ask the user to grant network access to the given http(s) URLs. Each URL is reduced to its
     // scheme and host before prompting and persisting, so one approval covers every path, query

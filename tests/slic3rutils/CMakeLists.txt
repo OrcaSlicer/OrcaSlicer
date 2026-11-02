@@ -63,6 +63,8 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_sort.cpp
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
+    test_python_script_runner.cpp
+    test_plugin_operations.cpp
     test_plugin_json_depth.cpp
     test_shortcuts.cpp
     test_texture_color_palette.cpp

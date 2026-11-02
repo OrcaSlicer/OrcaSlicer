@@ -809,6 +809,9 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
             read_string_list("process", parsed.permissions.process);
             read_string_list("threading", parsed.permissions.threading);
             read_string_list("events", parsed.permissions.events);
+            read_string_list("operations", parsed.permissions.operations);
+            if (permissions.contains("tools") && permissions["tools"].is_boolean())
+                parsed.permissions.tools = permissions["tools"].get<bool>();
         }
 
         if (state.contains("enabled") && state["enabled"].is_boolean())
@@ -877,6 +880,8 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         {"process", state.permissions.process},
         {"threading", state.permissions.threading},
         {"events", state.permissions.events},
+        {"tools", state.permissions.tools},
+        {"operations", state.permissions.operations},
     };
 
     nlohmann::json capabilities = nlohmann::json::array();

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <memory>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -16,14 +17,22 @@
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 // The name of a top-level window the MCP GUI tools never see: ui_snapshot and locators skip it, web
-// view scripts never pick it, keys sent without a target never go to it, and window screenshots
-// leave it out. The script runner dialog carries it, so a script it runs can't act on it.
+// view scripts never pick it, keys sent without a target never go to it, window screenshots leave it
+// out, and as a modal dialog it is not tracked, so the dialog tools and auto-answer rules never reach
+// it. The script runner dialog carries it, so a script it runs can't act on it, and so does the
+// window that changes the Python scripts setting, so no agent or script can turn it on.
 inline constexpr char kHiddenFromAutomation[] = "OrcaHiddenFromMcp";
 
 // What a tool may do while the app is inside another call's nested event loop or behind a modal
 // dialog. Inspect tools only read; Recover tools act on the topmost modal dialog to unblock the
 // app; everything else is Mutate and is refused in both situations.
 enum class GuardClass { Inspect, Recover, Mutate };
+
+// Which way a tool acts, for the agent choosing one: Core tools run the session and recover from
+// dialogs, Api tools act on project data by index and name with JSON in and out, Ui tools drive
+// the GUI itself (refs, pixels, GUI commands). Every caller reaches every tool; the lane is a hint,
+// shown at the start of each description and ordering tools/list and the server instructions.
+enum class ToolLane { Core, Api, Ui };
 
 // A tool's outcome in protocol-neutral form. `data` is the JSON the model receives as text (and a
 // script evaluates `expect` against); `content` carries extra MCP content blocks such as images.
@@ -95,6 +104,13 @@ public:
     // topmost dialog, since a page can take longer than a widget to answer. Any thread; no-op for
     // inline calls.
     virtual void works_in_dialog(std::uint64_t /*dialog*/) {}
+    // The plugin whose code made this call, directly or through a call it made (a step of its script);
+    // empty for a client's call and a person's or an agent's script.
+    virtual const std::string& caller_plugin() const
+    {
+        static const std::string none;
+        return none;
+    }
 };
 
 using ToolHandler = std::function<ToolResult(const nlohmann::json& args, ToolContext& ctx)>;
@@ -105,6 +121,10 @@ struct ToolDef
     std::string    title;
     std::string    description;
     nlohmann::json input_schema = {{"type", "object"}, {"properties", nlohmann::json::object()}};
+    // ToolRegistry::add sets it from tool_lane().
+    ToolLane       lane        = ToolLane::Api;
+    // The tool's access label: it reads and writes nothing. Tools that only observe but write a
+    // file (screenshot, export_script) are not read-only.
     bool           read_only   = false;
     bool           destructive = false;
     bool           idempotent  = false;
@@ -125,18 +145,38 @@ struct ToolDef
     ToolHandler    handler;
 };
 
+// The lane of the tool `name`: the session and recovery tools and Python are Core, the GUI-driving
+// tools Ui, everything else (the typed tools, api_call, plugin operations) Api.
+ToolLane tool_lane(const std::string& name);
+// "core", "api" or "ui": the tag that starts each tool's description.
+const char* lane_name(ToolLane lane);
+
 class ToolRegistry
 {
 public:
+    // Adds or replaces a tool, setting its lane from tool_lane() and starting its description with the
+    // lane's tag in brackets.
     void add(ToolDef def);
     const ToolDef* find(const std::string& name) const;
     const std::vector<ToolDef>& tools() const { return m_tools; }
+    // Resolves names the table does not hold (plugin operations), which tools/list never shows. Set once,
+    // before any call.
+    void set_dynamic(std::function<std::shared_ptr<const ToolDef>(const std::string&)> resolver) { m_dynamic = std::move(resolver); }
+    // A registered tool, else one the resolver gives, or nullptr. The pointer keeps a resolved tool alive
+    // through its call.
+    std::shared_ptr<const ToolDef> lookup(const std::string& name) const;
     // Up to `limit` registered names closest to `name`, for "did you mean" errors.
     std::vector<std::string> similar(const std::string& name, std::size_t limit = 3) const;
 
 private:
-    std::vector<ToolDef> m_tools;
+    std::vector<ToolDef>                                                     m_tools;
+    std::function<std::shared_ptr<const ToolDef>(const std::string&)>        m_dynamic;
 };
+
+// For a call of api_call ({tool, args}): replaces `def` and `args` with its target's, normalized and
+// validated, so the call runs and is journaled as the target's own. Returns an error message, or "" (also
+// for any other tool, which it leaves as it is).
+std::string resolve_api_call(const ToolRegistry& registry, std::shared_ptr<const ToolDef>& def, nlohmann::json& args);
 
 // Executes a tool for the protocol layer: the service implementation adds jobs, budgets, guards
 // and the journal; tests call the handler directly.

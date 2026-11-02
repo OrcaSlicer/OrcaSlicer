@@ -1,4 +1,5 @@
 #include "PluginHostUi.hpp"
+#include "PluginHostBindings.hpp"
 
 #include <pybind11/pytypes.h>
 #include <pybind11/gil.h>
@@ -346,6 +347,7 @@ std::string button_to_string(int rc)
 std::string ui_message(const std::string& text, const std::string& title,
                        const std::string& buttons, const std::string& icon)
 {
+    host_bindings::require_plugin_caller("ui.message");
     const long style = message_style(buttons, icon);
     return run_on_ui_blocking([&]() -> std::string {
         GUI::MessageDialog dlg(nullptr, wxString::FromUTF8(text), wxString::FromUTF8(title), style);
@@ -373,6 +375,7 @@ struct UiProgressHandle
 py::object ui_create_window(const std::string& html, const std::string& title, int width, int height,
                             py::object on_message, py::object on_close, long style, py::object on_submit)
 {
+    host_bindings::require_plugin_caller("ui.create_window");
     auto              msg_adapter    = make_message_adapter(std::move(on_message));
     auto              submit_adapter = make_submit_adapter(std::move(on_submit));
     CallablePtr       close_holder   = make_holder(std::move(on_close));
@@ -489,6 +492,7 @@ void run_when_plater_shown(std::function<void(GUI::Plater*)> fn)
 py::object ui_create_dock_panel(const std::string& html, const std::string& title, int width, int height,
                                 py::object on_message, py::object on_close, const std::string& dock)
 {
+    host_bindings::require_plugin_caller("ui.create_dock_panel");
     if (std::find(std::begin(DOCK_POSITIONS), std::end(DOCK_POSITIONS), dock) == std::end(DOCK_POSITIONS))
         throw std::invalid_argument("orca.host.ui.create_dock_panel dock must be \"left\", \"right\", \"bottom\" or \"float\"");
 
@@ -529,6 +533,7 @@ py::object ui_create_dock_panel(const std::string& html, const std::string& titl
 
 void handle_post(int id, py::object data)
 {
+    host_bindings::require_plugin_caller("ui.UiWindow.post");
     if (wxTheApp == nullptr)
         return;
     json j = py_to_json(data); // GIL held (binding body)
@@ -543,6 +548,7 @@ void handle_post(int id, py::object data)
 
 void handle_close(int id)
 {
+    host_bindings::require_plugin_caller("ui.UiWindow.close");
     if (wxTheApp == nullptr)
         return;
     GUI::wxGetApp().CallAfter([id]() {
@@ -556,6 +562,7 @@ void handle_close(int id)
 
 void handle_show(int id, bool show)
 {
+    host_bindings::require_plugin_caller("ui.UiDockPanel.show");
     if (wxTheApp == nullptr)
         return;
     GUI::wxGetApp().CallAfter([id, show]() {
@@ -568,6 +575,7 @@ void handle_show(int id, bool show)
 
 UiProgressHandle ui_create_progress_dialog(const std::string& title, const std::string& message, int maximum, int style)
 {
+    host_bindings::require_plugin_caller("ui.create_progress_dialog");
     const std::string plugin_key = PluginAuditManager::instance().current_plugin();
     const int         max_value  = maximum > 0 ? maximum : 100;
 
@@ -587,6 +595,7 @@ UiProgressHandle ui_create_progress_dialog(const std::string& title, const std::
 
 UiProgressHandle* new_progress_dialog(const std::string& title, const std::string& message, int maximum, int style)
 {
+    host_bindings::require_plugin_caller("ui.ProgressDialog");
     return new UiProgressHandle(ui_create_progress_dialog(title, message, maximum, style));
 }
 
@@ -597,6 +606,7 @@ bool progress_is_open(int id)
 
 bool progress_pulse(int id, const std::string& message)
 {
+    host_bindings::require_plugin_caller("ui.ProgressDialog.pulse");
     return run_on_ui_blocking([&]() {
         auto* d = UiRegistry::instance().get_as<GUI::PluginProgressDialog>(id);
         return GUI::PluginProgressDialog::pulse(d, wxString::FromUTF8(message));
@@ -605,6 +615,7 @@ bool progress_pulse(int id, const std::string& message)
 
 bool progress_update(int id, int value, const std::string& message)
 {
+    host_bindings::require_plugin_caller("ui.ProgressDialog.update");
     return run_on_ui_blocking([&]() {
         auto* d = UiRegistry::instance().get_as<GUI::PluginProgressDialog>(id);
         return GUI::PluginProgressDialog::update(d, value, wxString::FromUTF8(message));
@@ -613,6 +624,7 @@ bool progress_update(int id, int value, const std::string& message)
 
 void progress_start_pulse(int id, int interval_ms, const std::string& message)
 {
+    host_bindings::require_plugin_caller("ui.ProgressDialog.start_pulse");
     run_on_ui_blocking([&]() {
         auto* d = UiRegistry::instance().get_as<GUI::PluginProgressDialog>(id);
         GUI::PluginProgressDialog::start_pulse(d, interval_ms, wxString::FromUTF8(message));
@@ -621,6 +633,7 @@ void progress_start_pulse(int id, int interval_ms, const std::string& message)
 
 void progress_stop_pulse(int id)
 {
+    host_bindings::require_plugin_caller("ui.ProgressDialog.stop_pulse");
     run_on_ui_blocking([&]() {
         auto* d = UiRegistry::instance().get_as<GUI::PluginProgressDialog>(id);
         GUI::PluginProgressDialog::stop_pulse(d);
@@ -629,6 +642,7 @@ void progress_stop_pulse(int id)
 
 void progress_close(int id)
 {
+    host_bindings::require_plugin_caller("ui.ProgressDialog.close");
     run_on_ui_blocking([&]() {
         auto* d = UiRegistry::instance().get_as<GUI::PluginProgressDialog>(id);
         GUI::PluginProgressDialog::request_close(d);
@@ -638,6 +652,7 @@ void progress_close(int id)
 void plater_notification(GUI::NotificationManager::NotificationLevel notification_level, const std::string& text,
                          const std::string& hypertext, py::object on_click)
 {
+    host_bindings::require_plugin_caller("ui.push_notification");
     const std::string plugin_key = PluginAuditManager::instance().current_plugin();
     CallablePtr        holder    = make_holder(std::move(on_click));
     if (holder)

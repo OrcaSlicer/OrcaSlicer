@@ -287,6 +287,40 @@ TEST_CASE("an auto-answer rule presses a wx dialog's button, and answers a nativ
     }
 }
 
+TEST_CASE("a dialog hidden from automation is neither tracked nor auto-answered", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        ModalTracker tracker;
+        tracker.push_rules({make_rule("Python", "ok")});
+
+        wxDialog hidden(nullptr, wxID_ANY, "Python scripts", wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE,
+                        kHiddenFromAutomation);
+        int pressed = 0;
+        auto* ok    = new wxButton(&hidden, wxID_OK, "OK");
+        ok->Bind(wxEVT_BUTTON, [&pressed](wxCommandEvent&) { ++pressed; });
+        CHECK(wxModalDialogHook::CallEnter(&hidden) == wxID_NONE);
+        CHECK(tracker.top() == nullptr);
+        CHECK(tracker.snapshot().empty());
+        wxTheApp->ProcessPendingEvents();
+        CHECK(pressed == 0);
+        wxModalDialogHook::CallExit(&hidden);
+
+        // A dialog of the same title without the name is tracked, and its rule answers it.
+        wxDialog plain(nullptr, wxID_ANY, "Python scripts");
+        CHECK(wxModalDialogHook::CallEnter(&plain) == wxID_NONE);
+        CHECK(tracker.top() == &plain);
+        wxModalDialogHook::CallExit(&plain);
+    }
+}
+
 TEST_CASE("a plate summary lists every filament slot by use, and its totals count the flush", "[Mcp]")
 {
     // Slots 1 and 3 of three print; slot 1 also prints the support. At 1.25 g/cm3, 1000 mm3 weigh 1.25 g.

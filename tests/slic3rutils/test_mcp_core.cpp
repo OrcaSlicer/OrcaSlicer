@@ -1,8 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include "slic3r/GUI/Mcp/JobRegistry.hpp"
 #include "slic3r/GUI/Mcp/McpCore.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
+#include "slic3r/GUI/Mcp/McpProtocol.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/Mcp/UiInvoker.hpp"
 
@@ -1158,4 +1160,201 @@ TEST_CASE("only client calls of journaled tools reach the journal", "[Mcp]")
     REQUIRE(steps.size() == 2);
     CHECK(steps[0]["tool"] == "wait");
     CHECK(steps[1]["args"]["scope"] == "print");
+}
+
+TEST_CASE("a plugin's call runs as the plugin's own job and never reaches the journal", "[Mcp]")
+{
+    Harness h;
+    std::string seen, child_seen;
+    h.registry.add(tool("get_state", GuardClass::Inspect, [&child_seen](const json&, ToolContext& ctx) {
+        child_seen = ctx.caller_plugin();
+        return ToolResult::ok();
+    }));
+    h.registry.add(tool("set_settings", GuardClass::Mutate, [&seen](const json&, ToolContext& ctx) {
+        seen = ctx.caller_plugin();
+        // A call it makes, as a script step does, is the plugin's too.
+        ctx.call_child("get_state", json::object());
+        return ToolResult::ok({{"job", ctx.job_id()}});
+    }));
+    h.start();
+    const ToolResult r = h.core->call_plugin(*h.registry.find("set_settings"), json::object(), "measure-plugin");
+    REQUIRE_FALSE(r.is_error);
+    CHECK(seen == "measure-plugin");
+    CHECK(child_seen == "measure-plugin");
+    CHECK(h.jobs.owner(r.data["job"].get<std::string>()) == "measure-plugin");
+    CHECK(h.journal.to_script("x")["steps"].empty());
+
+    // A client's call has no plugin.
+    h.call("set_settings");
+    CHECK(seen.empty());
+    CHECK(h.journal.to_script("x")["steps"].size() == 1);
+}
+
+TEST_CASE("api_call is journaled as the tool it calls", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("set_settings", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    ToolDef api = tool("api_call", GuardClass::Mutate, [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); });
+    api.input_schema = {{"type", "object"}, {"properties", {{"tool", {{"type", "string"}}}, {"args", {{"type", "object"}}}}}};
+    h.registry.add(api);
+    h.start();
+    McpProtocol protocol(h.registry, *h.core, ServerInfo{"orcaslicer", "OrcaSlicer", "9.9.9", ""});
+    const PostReply reply = protocol.handle_post(PostRequest{json{{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"},
+        {"params", {{"name", "api_call"}, {"arguments", {{"tool", "set_settings"}, {"args", {{"values", {{"wall_loops", 3}}}}}}}}}}.dump()});
+    CHECK(json::parse(reply.body)["result"].value("isError", false) == false);
+    const json steps = h.journal.to_script("x")["steps"];
+    REQUIRE(steps.size() == 1);
+    CHECK(steps[0]["tool"] == "set_settings");
+    CHECK(steps[0]["args"]["values"]["wall_loops"] == 3);
+}
+
+TEST_CASE("a plugin's session tools act only on the jobs of its own calls", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("make", GuardClass::Mutate, [](const json&, ToolContext& ctx) { return ToolResult::ok({{"job", ctx.job_id()}}); }));
+    h.registry.add(tool("peek", GuardClass::Mutate, [&h](const json& args, ToolContext& ctx) {
+        require_own_job(ctx, h.jobs, args.value("job", std::string()), "waits for");
+        return ToolResult::ok();
+    }));
+    h.start();
+    const std::string clients = h.call("make").data["job"].get<std::string>();
+    const std::string plugins = h.core->call_plugin(*h.registry.find("make"), json::object(), "measure").data["job"].get<std::string>();
+
+    const ToolResult foreign = h.core->call_plugin(*h.registry.find("peek"), json{{"job", clients}}, "measure");
+    CHECK(foreign.is_error);
+    CHECK(foreign.message.find("only the jobs of its own calls") != std::string::npos);
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("peek"), json{{"job", plugins}}, "measure").is_error);
+    // A client's call is not a plugin's, whoever's job it names.
+    CHECK_FALSE(h.call("peek", json{{"job", plugins}}).is_error);
+}
+
+TEST_CASE("an unloaded plugin's calls start no job, nor do the children of one already running", "[Mcp]")
+{
+    Harness h;
+    std::atomic<bool> release{false};
+    ToolResult        child;
+    h.registry.add(tool("make", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.registry.add(tool("slow", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        while (!release)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        child = ctx.call_child("make", json::object());
+        return ToolResult::ok();
+    }));
+    h.timing.soft_budget = std::chrono::milliseconds(10000);
+    h.start();
+    // A call that was admitted before the unload and is still running when it comes.
+    std::thread running([&] { h.core->call_plugin(*h.registry.find("slow"), json::object(), "measure"); });
+    while (h.jobs.running_owned_by("measure").empty())
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+    h.jobs.block_owner("measure");
+    const ToolResult late = h.core->call_plugin(*h.registry.find("make"), json::object(), "measure");
+    CHECK(late.is_error);
+    CHECK(late.message.find("unloaded") != std::string::npos);
+    release = true;
+    running.join();
+    CHECK(child.is_error);
+
+    // Another plugin's calls and a client's are not affected; a load lifts the block.
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("make"), json::object(), "other").is_error);
+    CHECK_FALSE(h.call("make").is_error);
+    h.jobs.unblock_owner("measure");
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("make"), json::object(), "measure").is_error);
+}
+
+TEST_CASE("a plugin's calls are refused once it unloads, before the block comes, inline calls included", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> loaded{true};
+    std::atomic<bool> release{false};
+    std::atomic<int>  looks{0};
+    ToolResult        inline_child;
+    ToolResult        job_child;
+    // The plugin manager's state, which changes as the plugin unloads; end_plugin_scope()'s block comes later.
+    h.jobs.set_owner_liveness([&](const std::string& plugin) { return plugin != "measure" || loaded; });
+    ToolDef look = tool("look", GuardClass::Inspect, [&](const json&, ToolContext&) { ++looks; return ToolResult::ok(); });
+    look.inline_call = true;
+    h.registry.add(look);
+    h.registry.add(tool("make", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.registry.add(tool("slow", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        while (!release)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        inline_child = ctx.call_child("look", json::object());
+        job_child    = ctx.call_child("make", json::object());
+        return ToolResult::ok();
+    }));
+    h.timing.soft_budget = std::chrono::milliseconds(10000);
+    h.start();
+    std::thread running([&] { h.core->call_plugin(*h.registry.find("slow"), json::object(), "measure"); });
+    while (h.jobs.running_owned_by("measure").empty())
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+    loaded = false;
+    const ToolResult inline_call = h.core->call_plugin(*h.registry.find("look"), json::object(), "measure");
+    CHECK(inline_call.is_error);
+    CHECK(inline_call.message.find("unloaded") != std::string::npos);
+    CHECK(h.core->call_plugin(*h.registry.find("make"), json::object(), "measure").is_error);
+    release = true;
+    running.join();
+    CHECK(inline_child.is_error);
+    CHECK(job_child.is_error);
+    CHECK(looks == 0);
+
+    // Another plugin's calls and a client's still run, and so do the plugin's once it is loaded again.
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("look"), json::object(), "other").is_error);
+    CHECK_FALSE(h.call("look").is_error);
+    loaded = true;
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("look"), json::object(), "measure").is_error);
+    CHECK(looks == 3);
+}
+
+TEST_CASE("a plugin's job never starts once the plugin unloads, as it registers or right before its handler", "[Mcp]")
+{
+    // The liveness hook is asked as the call comes in, once its job is registered, and on the job's thread right
+    // before its handler starts: the plugin unloads just before the asking given here.
+    const int        unload_at = GENERATE(1, 2, 3);
+    Harness          h;
+    std::atomic<int> asked{0};
+    std::atomic<int> ran{0};
+    std::atomic<bool> loaded{true};
+    h.jobs.set_owner_liveness([&](const std::string&) {
+        if (++asked == unload_at)
+            loaded = false;
+        return loaded.load();
+    });
+    h.registry.add(tool("make", GuardClass::Mutate, [&](const json&, ToolContext&) { ++ran; return ToolResult::ok(); }));
+    h.timing.soft_budget = std::chrono::milliseconds(10000);
+    h.start();
+    const ToolResult r = h.core->call_plugin(*h.registry.find("make"), json::object(), "measure");
+    CHECK(r.is_error);
+    CHECK(r.message.find("unloaded") != std::string::npos);
+    CHECK(ran == 0);
+    CHECK(h.jobs.running_owned_by("measure").empty());
+}
+
+TEST_CASE("a plugin's running call is cancelled the moment the plugin unloads", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> loaded{true};
+    std::atomic<bool> started{false};
+    h.jobs.set_owner_liveness([&](const std::string&) { return loaded.load(); });
+    h.registry.add(tool("spin", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        started = true;
+        const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        while (!ctx.cancelled() && std::chrono::steady_clock::now() < end)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        return ToolResult::ok({{"cancelled", ctx.cancelled()}});
+    }));
+    h.timing.soft_budget = std::chrono::milliseconds(10000);
+    h.start();
+    // No block and no stop request: only the plugin manager's state changes.
+    std::thread unload([&] {
+        while (!started)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        loaded = false;
+    });
+    const ToolResult r = h.core->call_plugin(*h.registry.find("spin"), json::object(), "measure");
+    unload.join();
+    CHECK_FALSE(r.is_error);
+    CHECK(r.data.value("cancelled", false));
 }

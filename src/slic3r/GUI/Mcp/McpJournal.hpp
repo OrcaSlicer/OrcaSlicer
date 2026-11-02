@@ -26,6 +26,11 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 // its reply or before it, and the answer depends on it. Such a job replays with `await:false`, and a
 // call that answered a dialog replays after a `wait {for:"dialog"}`, since the dialog may open later
 // than the job's replayed reply. Thread-safe.
+// `args` of a `tool` call as the journal records them: expected object_id and volume_id are left out,
+// as ids are allocated per process and a replay addresses by index. Inside a run_script's inline steps
+// too; a run_python call's code and args stay as written, since a script reads the ids it uses.
+nlohmann::json without_expected_ids(const std::string& tool, nlohmann::json args);
+
 class Journal
 {
 public:

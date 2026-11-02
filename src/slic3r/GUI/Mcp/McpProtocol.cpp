@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -241,8 +243,38 @@ void normalize_arguments(const json& schema, json& args)
 
 // ---- ToolRegistry ------------------------------------------------------------
 
+ToolLane tool_lane(const std::string& name)
+{
+    static const std::set<std::string> core{"get_state",   "wait",          "cancel",          "get_log",
+                                            "run_script",  "export_script", "dialog_respond",  "dialog_auto_answer",
+                                            "run_python",  "python_api"};
+    static const std::set<std::string> ui{"ui_snapshot",     "ui_click",       "ui_input",         "ui_key",       "ui_mouse",
+                                          "gizmo_file",      "webview_eval",   "set_view",         "screenshot",   "start_recording",
+                                          "stop_recording",  "encode_recording", "list_actions",   "run_action",   "select"};
+    if (core.count(name) != 0)
+        return ToolLane::Core;
+    if (ui.count(name) != 0)
+        return ToolLane::Ui;
+    return ToolLane::Api;
+}
+
+const char* lane_name(ToolLane lane)
+{
+    switch (lane) {
+    case ToolLane::Core: return "core";
+    case ToolLane::Ui: return "ui";
+    case ToolLane::Api: break;
+    }
+    return "api";
+}
+
 void ToolRegistry::add(ToolDef def)
 {
+    def.lane                 = tool_lane(def.name);
+    const std::string tag    = std::string("[") + lane_name(def.lane) + "] ";
+    // A def copied from the registry and added again already has its tag.
+    if (def.description.compare(0, tag.size(), tag) != 0)
+        def.description.insert(0, tag);
     auto it = std::find_if(m_tools.begin(), m_tools.end(), [&](const ToolDef& t) { return t.name == def.name; });
     if (it != m_tools.end())
         *it = std::move(def);
@@ -254,6 +286,36 @@ const ToolDef* ToolRegistry::find(const std::string& name) const
 {
     auto it = std::find_if(m_tools.begin(), m_tools.end(), [&](const ToolDef& t) { return t.name == name; });
     return it == m_tools.end() ? nullptr : &*it;
+}
+
+std::shared_ptr<const ToolDef> ToolRegistry::lookup(const std::string& name) const
+{
+    if (const ToolDef* def = find(name))
+        return std::shared_ptr<const ToolDef>(std::shared_ptr<const ToolDef>(), def);
+    return m_dynamic ? m_dynamic(name) : nullptr;
+}
+
+std::string resolve_api_call(const ToolRegistry& registry, std::shared_ptr<const ToolDef>& def, json& args)
+{
+    if (!def || def->name != "api_call")
+        return {};
+    const std::string target = args.value("tool", std::string());
+    std::shared_ptr<const ToolDef> inner = registry.lookup(target);
+    if (!inner) {
+        std::string message = "Unknown tool: " + target;
+        if (const auto close = registry.similar(target); !close.empty())
+            message += " (did you mean " + close.front() + "?)";
+        return message;
+    }
+    if (inner->name == "api_call")
+        return "api_call calls another tool, not itself";
+    json inner_args = args.contains("args") && args["args"].is_object() ? args["args"] : json::object();
+    normalize_arguments(inner->input_schema, inner_args);
+    if (std::string err = validate_arguments(inner->input_schema, inner_args); !err.empty())
+        return "Invalid arguments for " + target + ": " + err;
+    def  = std::move(inner);
+    args = std::move(inner_args);
+    return {};
 }
 
 std::vector<std::string> ToolRegistry::similar(const std::string& name, std::size_t limit) const
@@ -335,17 +397,20 @@ json McpProtocol::result_to_json(const ToolResult& result)
 
 json McpProtocol::tools_list() const
 {
+    // Core first, then the API lane an agent should prefer, then the UI lane; registration order within each.
     json tools = json::array();
-    for (const ToolDef& def : m_registry.tools())
-        tools.push_back(tool_to_json(def));
+    for (const ToolLane lane : {ToolLane::Core, ToolLane::Api, ToolLane::Ui})
+        for (const ToolDef& def : m_registry.tools())
+            if (def.lane == lane)
+                tools.push_back(tool_to_json(def));
     return tools;
 }
 
 json McpProtocol::call_tool(const json& params, bool& unknown_tool, std::string& unknown_name)
 {
     unknown_tool          = false;
-    const std::string name = params.value("name", "");
-    const ToolDef*    def  = m_registry.find(name);
+    const std::string              name = params.value("name", "");
+    std::shared_ptr<const ToolDef> def  = m_registry.lookup(name);
     if (def == nullptr) {
         unknown_tool = true;
         unknown_name = name;
@@ -357,6 +422,8 @@ json McpProtocol::call_tool(const json& params, bool& unknown_tool, std::string&
     normalize_arguments(def->input_schema, args);
     if (std::string err = validate_arguments(def->input_schema, args); !err.empty())
         return result_to_json(ToolResult::error("Invalid arguments: " + err));
+    if (std::string err = resolve_api_call(m_registry, def, args); !err.empty())
+        return result_to_json(ToolResult::error(err));
     try {
         return result_to_json(m_caller.call(*def, args));
     } catch (const ToolFailure& f) {

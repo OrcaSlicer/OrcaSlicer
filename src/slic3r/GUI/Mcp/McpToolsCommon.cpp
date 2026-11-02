@@ -1,5 +1,7 @@
 #include "McpTools.hpp"
 
+#include "libslic3r/Model.hpp"
+
 #include "McpTypes.hpp"
 #include "UiInspector.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -223,6 +225,28 @@ json poll_ui(ToolContext& ctx, const std::function<json()>& poll, std::chrono::m
         throw ToolFailure("Cancelled: OrcaSlicer is closing or the script was stopped");
     const std::string undrawn = undrawn_window(ctx);
     throw ToolFailure("Timed out waiting for " + what + (undrawn.empty() ? "" : ": " + undrawn));
+}
+
+json expected_id_prop(const char* of)
+{
+    return {{"type", "integer"},
+            {"minimum", 0},
+            {"description", std::string("The id list_objects reports for this ") + of +
+                                ": the call is refused when the index names another one now."}};
+}
+
+void check_expected_ids(const ModelObject& object, const ModelVolume* volume, const json& args)
+{
+    if (args.contains("object_id") && args["object_id"].get<std::size_t>() != object.id().id)
+        throw ToolFailure("The object at this index is now \"" + object.name + "\" (id " + std::to_string(object.id().id) +
+                              "), not the expected id " + std::to_string(args["object_id"].get<std::size_t>()) +
+                              ": list_objects again",
+                          {{"id", object.id().id}});
+    if (volume != nullptr && args.contains("volume_id") && args["volume_id"].get<std::size_t>() != volume->id().id)
+        throw ToolFailure("The part at this index is now \"" + volume->name + "\" (id " + std::to_string(volume->id().id) +
+                              "), not the expected id " + std::to_string(args["volume_id"].get<std::size_t>()) +
+                              ": list_objects again",
+                          {{"id", volume->id().id}});
 }
 
 }}} // namespace Slic3r::GUI::Mcp

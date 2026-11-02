@@ -257,6 +257,7 @@
 #include "slic3r/GUI/HttpServer.hpp"
 #include "slic3r/GUI/Mcp/McpOptions.hpp"
 #include "slic3r/GUI/Mcp/McpService.hpp"
+#include "slic3r/plugin/PluginOperations.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/ParamsDialog.hpp"
 #include "slic3r/GUI/ParamsPanel.hpp"
@@ -3112,6 +3113,24 @@ void GUI_App::init_plugin_gui_wiring()
     };
 
     plugin_mgr.subscribe_on_unload_callback(PluginHostUi::close_windows_for_plugin);
+    Mcp::install_plugin_tool_caller();
+    // A plugin loaded again may make tool calls again.
+    plugin_mgr.subscribe_on_load_callback([](const std::string& plugin_key) {
+        if (wxTheApp != nullptr)
+            wxGetApp().CallAfter([plugin_key] {
+                if (Mcp::McpService* service = wxGetApp().mcp_service(); service != nullptr && service->started())
+                    service->plugin_loaded(plugin_key);
+            });
+    });
+    plugin_mgr.subscribe_on_unload_callback([](const std::string& plugin_key) {
+        PluginOperations::instance().remove_plugin(plugin_key);
+        // What the plugin's tool calls left behind (rules, a recording, a held press) ends with it.
+        if (wxTheApp != nullptr)
+            wxGetApp().CallAfter([plugin_key] {
+                if (Mcp::McpService* service = wxGetApp().mcp_service(); service != nullptr && service->started())
+                    service->end_plugin_scope(plugin_key);
+            });
+    });
     plugin_mgr.subscribe_on_load_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_unload_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_load_callback(NetworkAgentFactory::register_python_plugin);

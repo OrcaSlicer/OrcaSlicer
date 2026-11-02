@@ -23,12 +23,15 @@
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
+#include "slic3r/plugin/PythonScriptRunner.hpp"
 
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r_version.h"
 #include "UiInvoker.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
@@ -47,10 +50,13 @@
 #include <cstdint>
 #include <exception>
 #include <functional>
+#include <ios>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <set>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <utility>
@@ -130,24 +136,18 @@ WorkerHooks ui_job_worker_hooks()
 }
 
 // Server instructions shown to the model; clients truncate them at 4096 characters.
+// The scope key of a plugin's calls, which no job id ("j<n>") can equal.
+std::string plugin_scope_key(const std::string& plugin_key) { return "plugin:" + plugin_key; }
+
 const char* kInstructions =
     "OrcaSlicer, a 3D-printing slicer, driven through its GUI.\n"
+    "Each tool's description starts with its lane: [core] runs the session and recovers from dialogs, [api] acts on "
+    "project data by index and name with JSON in and out, [ui] drives the GUI itself. Every tool is callable; prefer "
+    "[api] tools, and use [ui] tools for what no [api] tool reaches or to see what a person sees.\n"
     "Workflow: get_state (is it ready? which presets, plates, dialogs?) -> act -> check the result with the reading "
     "tools (list_objects, list_plates, get_settings, slice's reply, get_preview); screenshot only to see what they "
     "do not report.\n"
-    "- Prefer typed tools (open_files, select_preset, set_settings, slice, export) and run_action (every Speed Dial "
-    "command: list_actions to search) over GUI clicks.\n"
-    "- What a setting does, or which one controls an effect: get_settings with keys, or query with a few words; "
-    "each setting's meta has its description and where (its settings page and group).\n"
-    "- For anything else use the GUI tools: ui_snapshot lists widgets, menus, 3D toolbar items, gizmos and ImGui "
-    "items with refs; ui_click / ui_input / ui_key / ui_mouse act on refs from the latest snapshot.\n"
-    "- Gizmos (Cut, Text, SVG, the painting tools...): ui_click {target: {gizmo: \"Cut\"}} opens one; its panel's "
-    "fields and buttons are ImGui items for ui_input / ui_click, and painting is a ui_mouse drag starting on the "
-    "object. Turn the camera with set_view camera or orbit, never a drag: what a drag does follows the user's mouse "
-    "settings. gizmo_file only "
-    "stands in for a file picker inside an open gizmo.\n"
-    "- Objects, parts and plates are 0-based indices, as list_objects and list_plates give them; filament slots and "
-    "Preview layers are 1-based.\n"
+    "Core:\n"
     "- A call that takes long or opens a dialog returns {status:\"running\"|\"blocked_by_dialog\", job}. It keeps "
     "running: never retry it. Answer dialogs with dialog_respond (see get_state.dialogs), then wait {for:\"job\"}. "
     "A native message box (native: true) is answered with dialog_respond by one of the buttons listed for it; a file or "
@@ -155,12 +155,28 @@ const char* kInstructions =
     "before the step that opens one.\n"
     "- While an operation (slice, export, arrange or another background job) runs, other changes are refused; use wait "
     "or cancel.\n"
+    "- export_script saves this session's calls as a replayable script; run_script replays one.\n"
+    "- run_python runs Python against orca.host, the plugin API (python_api searches it), computing over meshes and "
+    "settings and calling tools through orca.host.tools, once the person has allowed Python scripts in Preferences.\n"
+    "API lane:\n"
+    "- Typed tools: open_files, select_preset, set_settings, slice, export and the rest.\n"
+    "- What a setting does, or which one controls an effect: get_settings with keys, or query with a few words; "
+    "each setting's meta has its description and where (its settings page and group).\n"
+    "- Objects, parts and plates are 0-based indices, as list_objects and list_plates give them; filament slots and "
+    "Preview layers are 1-based.\n"
     "- Paths are absolute. Outputs never overwrite an existing file unless overwrite is true.\n"
+    "UI lane:\n"
+    "- run_action runs every Speed Dial command (list_actions to search): prefer it to GUI clicks.\n"
+    "- ui_snapshot lists widgets, menus, 3D toolbar items, gizmos and ImGui items with refs; ui_click / ui_input / "
+    "ui_key / ui_mouse act on refs from the latest snapshot.\n"
+    "- Gizmos (Cut, Text, SVG, the painting tools...): ui_click {target: {gizmo: \"Cut\"}} opens one; its panel's "
+    "fields and buttons are ImGui items for ui_input / ui_click, and painting is a ui_mouse drag starting on the "
+    "object. Turn the camera with set_view camera or orbit, never a drag: what a drag does follows the user's mouse "
+    "settings. gizmo_file only stands in for a file picker inside an open gizmo.\n"
     "- screenshot returns a downscaled image plus the full-size PNG path; target \"canvas\" is the 3D view.\n"
     "- start_recording / stop_recording record a video (MJPEG .mkv), with the tool calls as captions and the pointer "
     "highlighted when captions and pointer ask for them; with encode, stop_recording then encodes it to an MP4 with "
-    "the system ffmpeg as a job to wait for, and encode_recording encodes any recording later.\n"
-    "- export_script saves this session's calls as a replayable script; run_script replays one.";
+    "the system ffmpeg as a job to wait for, and encode_recording encodes any recording later.";
 
 } // namespace
 
@@ -213,6 +229,8 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
         m_invoker    = std::make_unique<UiInvoker>(*m_dispatcher, [this] { return guards_on_ui(); }, [this] { return m_generation.load(); },
                                                 [this] { return m_modals->snapshot(); },
                                                 [this](const std::string& tool, bool running) { m_inspector->ui_activity(tool, running); });
+        // A plugin's calls are refused from the moment it unloads, before end_plugin_scope() comes.
+        m_jobs.set_owner_liveness([](const std::string& plugin) { return PluginManager::instance().is_plugin_loaded(plugin); });
         m_core       = std::make_unique<McpCore>(m_registry, *m_invoker, m_jobs, &m_journal, CoreTiming{}, ui_job_worker_hooks(),
                                                  m_recorder.get());
         m_web_presses = std::make_shared<WebPresses>();
@@ -370,11 +388,32 @@ void McpService::stop()
             imgui->set_item_recording(false);
 }
 
+bool McpService::acquire_lease()
+{
+    if (m_stopping)
+        return false;
+    ++m_leases;
+    // A stop that came meanwhile may already be draining: give the lease back rather than race it.
+    if (m_stopping) {
+        --m_leases;
+        return false;
+    }
+    return true;
+}
+
+void McpService::release_lease() { --m_leases; }
+
 bool McpService::drain(std::chrono::milliseconds timeout)
 {
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    // A lease's holder finds the core stopped and returns at once.
+    while (m_leases.load() > 0) {
+        if (std::chrono::steady_clock::now() >= deadline)
+            return false;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
     if (m_core == nullptr)
         return true;
-    const auto deadline = std::chrono::steady_clock::now() + timeout;
     if (m_gate) {
         std::unique_lock<std::mutex> lock(m_gate->mutex);
         m_gate->protocol = nullptr;
@@ -387,6 +426,8 @@ bool McpService::drain(std::chrono::milliseconds timeout)
 
 std::string McpService::set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry)
 {
+    // A plugin's call is owned by its plugin's scope when no script in its chain is nearer.
+    const std::string plugin = ancestry.empty() ? std::string() : m_jobs.owner(ancestry.front());
     std::lock_guard<std::mutex> lock(m_rules_mutex);
     // The nearest running script in the caller's job chain owns the rules.
     for (const std::string& job : ancestry)
@@ -395,6 +436,15 @@ std::string McpService::set_auto_answer(std::vector<AutoAnswerRule> rules, const
                 it->second.push_back(m_modals->push_rules(std::move(rules)));
             return "script";
         }
+    if (!plugin.empty()) {
+        if (auto it = m_script_rule_layers.find(plugin_scope_key(plugin)); it != m_script_rule_layers.end()) {
+            if (!rules.empty())
+                it->second.push_back(m_modals->push_rules(std::move(rules)));
+            return "plugin";
+        }
+        if (m_unloaded_plugins.count(plugin) != 0)
+            throw ToolFailure("The plugin that made this call has been unloaded; its rules were not applied");
+    }
     // A call that was running when the endpoint closed must not bring its client's rules back.
     if (!m_endpoint_open)
         throw ToolFailure("The MCP server was turned off while the rules were being set; they were not applied");
@@ -441,11 +491,50 @@ void McpService::end_script_scope(const std::string& job, bool wait_recording)
 
 std::string McpService::script_owner(const std::vector<std::string>& ancestry) const
 {
+    const std::string           plugin = ancestry.empty() ? std::string() : m_jobs.owner(ancestry.front());
     std::lock_guard<std::mutex> lock(m_rules_mutex);
     for (const std::string& job : ancestry)
         if (m_script_rule_layers.count(job) != 0)
             return job;
+    if (!plugin.empty() && m_script_rule_layers.count(plugin_scope_key(plugin)) != 0)
+        return plugin_scope_key(plugin);
+    // A call of an unloaded plugin must not leave anything nothing would end.
+    if (!plugin.empty() && m_unloaded_plugins.count(plugin) != 0)
+        throw ToolFailure("The plugin that made this call has been unloaded");
     return {};
+}
+
+bool McpService::begin_plugin_scope(const std::string& plugin_key)
+{
+    std::lock_guard<std::mutex> lock(m_rules_mutex);
+    if (m_unloaded_plugins.count(plugin_key) != 0)
+        return false;
+    m_script_rule_layers.emplace(plugin_scope_key(plugin_key), std::vector<int>{});
+    return true;
+}
+
+void McpService::end_plugin_scope(const std::string& plugin_key)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_rules_mutex);
+        m_unloaded_plugins.insert(plugin_key);
+    }
+    // No call of the plugin starts from now on, one it was admitted for included, and the ones running stop,
+    // as a stopped script's steps do.
+    m_jobs.block_owner(plugin_key);
+    for (const std::string& job : m_jobs.running_owned_by(plugin_key))
+        m_jobs.request_stop(job);
+    // Not waited for: an unloading plugin's recording is closed by the recorder's own threads.
+    end_script_scope(plugin_scope_key(plugin_key), false);
+}
+
+void McpService::plugin_loaded(const std::string& plugin_key)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_rules_mutex);
+        m_unloaded_plugins.erase(plugin_key);
+    }
+    m_jobs.unblock_owner(plugin_key);
 }
 
 bool McpService::endpoint_open() const
@@ -572,6 +661,41 @@ void McpService::register_tools()
 #ifdef SLIC3R_CAD
     register_cad_tools(*this);
 #endif
+    register_python_tools(*this);
+    register_api_tools(*this);
+}
+
+ToolDef McpService::as_person(const ToolDef& def)
+{
+    ToolDef person = def;
+    person.handler = [this, handler = def.handler](const json& args, ToolContext& ctx) {
+        const std::string job = ctx.job_id();
+        {
+            std::lock_guard<std::mutex> lock(m_run_state_mutex);
+            m_person_jobs.insert(job);
+        }
+        struct Forget
+        {
+            McpService& service;
+            std::string job;
+            ~Forget()
+            {
+                std::lock_guard<std::mutex> lock(service.m_run_state_mutex);
+                service.m_person_jobs.erase(job);
+            }
+        } forget{*this, job};
+        return handler(args, ctx);
+    };
+    return person;
+}
+
+bool McpService::person_run(const std::set<std::string>& lineage) const
+{
+    std::lock_guard<std::mutex> lock(m_run_state_mutex);
+    for (const std::string& job : lineage)
+        if (m_person_jobs.count(job) != 0)
+            return true;
+    return false;
 }
 
 void McpService::run_launch_script()
@@ -579,11 +703,26 @@ void McpService::run_launch_script()
     m_script_thread = std::thread([this] {
         int code = 2;
         try {
-            json args{{"path", m_options.script}};
-            if (!m_options.script_out.empty())
-                args["out_dir"] = m_options.script_out;
-            const ToolDef* def = m_registry.find("run_script");
-            ToolResult     r   = m_core->call(*def, args);
+            const fs::path script = path_from_utf8(m_options.script);
+            const bool     python = boost::algorithm::iequals(path_to_utf8(script.extension()), ".py");
+            json           args;
+            if (python) {
+                boost::nowide::ifstream in(m_options.script.c_str(), std::ios::binary);
+                if (!in)
+                    throw std::runtime_error("Cannot read " + m_options.script);
+                std::ostringstream raw;
+                raw << in.rdbuf();
+                std::string text, encoding, error;
+                if (!decode_python_source(raw.str(), text, encoding, error))
+                    throw std::runtime_error("Cannot read " + m_options.script + " as Python source: " + error);
+                args = {{"code", text}, {"filename", m_options.script}};
+            } else {
+                args = {{"path", m_options.script}};
+                if (!m_options.script_out.empty())
+                    args["out_dir"] = m_options.script_out;
+            }
+            const ToolDef def = as_person(*m_registry.find(python ? "run_python" : "run_script"));
+            ToolResult    r   = m_core->call(def, args);
             // A script that opened a dialog and answers it itself replies blocked_by_dialog first.
             const std::string status = r.is_error ? std::string() : r.data.value("status", "");
             if ((status == "running" || status == "blocked_by_dialog") && r.data.contains("job")) {
@@ -595,7 +734,13 @@ void McpService::run_launch_script()
             }
             if (r.is_error)
                 BOOST_LOG_TRIVIAL(error) << "MCP script: " << r.message;
-            code = r.is_error ? (r.data.value("invalid", false) ? 2 : 1) : (r.data.value("passed", false) ? 0 : 1);
+            if (python) {
+                if (!r.is_error && r.data.value("status", "") != "finished")
+                    BOOST_LOG_TRIVIAL(error) << "MCP script: " << r.data.value("message", std::string()) << "\n"
+                                             << r.data.value("traceback", std::string());
+                code = !r.is_error && r.data.value("status", "") == "finished" ? 0 : 1;
+            } else
+                code = r.is_error ? (r.data.value("invalid", false) ? 2 : 1) : (r.data.value("passed", false) ? 0 : 1);
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(error) << "MCP script: " << e.what();
         }
@@ -764,6 +909,7 @@ std::shared_ptr<ScriptRun> McpService::start_script_run(Script script, ScriptCon
         options.step_finished = [run](const json& entry) { run->post_step_finished(entry); };
         return ToolResult::ok(run_script_job(*this, ctx, *shared, *ctx_held, options));
     };
+    def = as_person(def);
 
     std::lock_guard<std::mutex> lock(m_runs_mutex);
     m_run_threads.push_back({std::thread([this, run, def, ctx_held] {
@@ -776,6 +922,48 @@ std::shared_ptr<ScriptRun> McpService::start_script_run(Script script, ScriptCon
                                  // and replaces none.
                                  run->post_finished(r->is_error ? json{{"error", r->message}} : r->data,
                                                     run->job().empty() ? json() : ctx_held->jobs);
+                             }),
+                             run});
+    return run;
+}
+
+std::shared_ptr<ScriptRun> McpService::start_python_run(std::string code, const fs::path& file, ScriptRun::Events events)
+{
+    const ToolDef* run_python = started() ? m_registry.find("run_python") : nullptr;
+    if (run_python == nullptr || m_stopping)
+        return nullptr;
+    {
+        // Threads whose run has ended are done or about to be; joining them keeps the list short.
+        std::lock_guard<std::mutex> lock(m_runs_mutex);
+        for (auto it = m_run_threads.begin(); it != m_run_threads.end();) {
+            if (it->run->running()) {
+                ++it;
+                continue;
+            }
+            if (it->thread.joinable())
+                it->thread.join();
+            it = m_run_threads.erase(it);
+        }
+    }
+    auto run = std::make_shared<ScriptRun>(*this, std::move(events));
+    // run_python's properties, outside the session journal, as a person's run.
+    ToolDef def = as_person(*run_python);
+    def.journal = false;
+    def.handler = [run, handler = def.handler](const json& args, ToolContext& ctx) {
+        run->set_job(ctx.job_id());
+        return handler(args, ctx);
+    };
+    json args{{"code", std::move(code)}};
+    if (!file.empty())
+        args["filename"] = path_to_utf8(file);
+
+    std::lock_guard<std::mutex> lock(m_runs_mutex);
+    m_run_threads.push_back({std::thread([this, run, def, args] {
+                                 const std::optional<ToolResult> r = call_to_end(def, args);
+                                 run->mark_ended();
+                                 if (!r || m_stopping)
+                                     return;
+                                 run->post_finished(r->is_error ? json{{"error", r->message}} : r->data, json());
                              }),
                              run});
     return run;

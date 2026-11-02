@@ -196,6 +196,8 @@ std::optional<std::string> check_matcher(const std::string& pointer, const json&
 
 } // namespace
 
+std::string inline_script_text(const json& script) { return script.is_string() ? script.get<std::string>() : script.dump(); }
+
 std::optional<Script> parse_script(const std::string& text, std::string& err)
 {
     json doc;
@@ -287,6 +289,50 @@ std::optional<Script> parse_script(const std::string& text, std::string& err)
     return script;
 }
 
+// A step's arguments with their placeholders filled in, except Python source, which runs as written (D7):
+// the code of a run_python call, of one an api_call makes, and of the Python steps of an inline script.
+json substitute_args(const std::string& tool, const json& args, const Script& script, const ScriptContext& ctx, Substitution& sub)
+{
+    if (!args.is_object())
+        return substitute_value(args, script, ctx, sub, 0);
+    json out = json::object();
+    for (auto it = args.begin(); it != args.end(); ++it) {
+        const std::string& key = it.key();
+        if (tool == "run_python" && key == "code") {
+            out[key] = it.value();
+        } else if (tool == "api_call" && key == "args" && it.value().is_object()) {
+            const json target = substitute_value(args.value("tool", json()), script, ctx, sub, 0);
+            out[key]          = substitute_args(target.is_string() ? target.get<std::string>() : std::string(), it.value(), script, ctx, sub);
+        } else if (tool == "run_script" && key == "script" && it.value().is_object() && it.value().contains("steps") &&
+                   it.value()["steps"].is_array()) {
+            json nested = json::object();
+            for (auto field = it.value().begin(); field != it.value().end(); ++field) {
+                if (field.key() != "steps") {
+                    nested[field.key()] = substitute_value(field.value(), script, ctx, sub, 0);
+                    continue;
+                }
+                json steps = json::array();
+                for (const json& step : field.value()) {
+                    if (!step.is_object()) {
+                        steps.push_back(substitute_value(step, script, ctx, sub, 0));
+                        continue;
+                    }
+                    json done = json::object();
+                    for (auto part = step.begin(); part != step.end(); ++part)
+                        done[part.key()] = part.key() == "args" ? substitute_args(step.value("tool", std::string()), part.value(), script, ctx, sub) :
+                                                                  substitute_value(part.value(), script, ctx, sub, 0);
+                    steps.push_back(std::move(done));
+                }
+                nested["steps"] = std::move(steps);
+            }
+            out[key] = std::move(nested);
+        } else {
+            out[key] = substitute_value(it.value(), script, ctx, sub, 0);
+        }
+    }
+    return out;
+}
+
 json substitute(const json& value, const Script& script, const ScriptContext& ctx, std::string& err)
 {
     Substitution sub;
@@ -372,7 +418,7 @@ json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host
             host.step_started(i + 1);
         const auto   start = std::chrono::steady_clock::now();
         Substitution sub;
-        const json   args = substitute_value(step.args, script, ctx, sub, 0);
+        const json   args = substitute_args(step.tool, step.args, script, ctx, sub);
         ToolResult   result;
         json         reason;
         if (!sub.err.empty()) {
@@ -417,7 +463,15 @@ json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host
         bool ok       = !result.is_error;
         if (ok) {
             entry["result"] = result.data;
-            if (!step.expect.empty())
+            // run_python reports a script that raised, was cancelled or ran out of time in a successful
+            // result, as run_script reports a failed step; inside a script that fails the step, also when an
+            // api_call made the call. A job left running (await: false) has no outcome yet.
+            const std::string target = step.tool == "api_call" ? args.value("tool", std::string()) : step.tool;
+            if (target == "run_python" && !is_job_envelope(result) && result.data.value("status", "") != "finished") {
+                entry["error"] = result.data.value("message", "the Python script did not finish");
+                reason         = {{"kind", "python"}, {"status", result.data.value("status", "")}};
+                ok             = false;
+            } else if (!step.expect.empty())
                 if (auto failure = check_expect_detail(result.data, step.expect)) {
                     entry["expect_failure"] = failure->message;
                     reason = failure->op.empty() ? json{{"kind", "expect_invalid"}} :

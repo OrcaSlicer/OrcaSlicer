@@ -111,6 +111,7 @@ ModelObject& layer_object(Plater& plater, const json& args)
         throw ToolFailure("object index out of range");
     if (plater.printer_technology() != ptFFF)
         throw ToolFailure("Height range modifiers and variable layer heights are for FFF printers");
+    check_expected_ids(*objects[std::size_t(oi)], nullptr, args);
     return *objects[std::size_t(oi)];
 }
 
@@ -591,6 +592,7 @@ void register_layer_tools(McpService& service)
         "object's height and its ranges as list_objects shows them, and warnings, such as a variable layer height profile "
         "deciding the layer heights instead.",
         object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
+                       {"object_id", expected_id_prop("object")},
                        {"layer_config_ranges", array_prop(range, "The object's ranges afterwards, in any order.")}},
                       {"object", "layer_config_ranges"}),
         [](const json& args, ToolContext& ctx) {
@@ -607,6 +609,7 @@ void register_layer_tools(McpService& service)
         "the object is selected. Replies with the object's height, its layer_height_profile {points, min_height, "
         "max_height} as list_objects shows it (absent after reset), and warnings.",
         object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
+                       {"object_id", expected_id_prop("object")},
                        {"action", enum_prop({"adaptive", "smooth", "reset"}, "The panel's button.")},
                        {"quality", {{"type", "number"}, {"minimum", 0}, {"maximum", 1},
                                     {"description", "adaptive: 0 = quality .. 1 = speed (default 0.5, as the panel)."}}},

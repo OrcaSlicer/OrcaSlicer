@@ -43,6 +43,9 @@ struct ScriptContext
 // Parses a script (JSON with // and /* */ comments). nullopt with `err` set when invalid.
 std::optional<Script> parse_script(const std::string& text, std::string& err);
 
+// The text of a run_script inline script, which is given as the script object or as its JSON text.
+std::string inline_script_text(const nlohmann::json& script);
+
 // Replaces ${script_dir}, ${out_dir}, ${env:NAME}, ${vars.NAME} and ${jobs.NAME} in every string of
 // `value`. A string that is exactly one placeholder takes the referenced JSON value (so a var can
 // hold a number or an array); otherwise the placeholder's text is spliced in. Unknown placeholders

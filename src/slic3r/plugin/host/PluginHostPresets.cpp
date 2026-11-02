@@ -217,6 +217,7 @@ std::string resolved_slot_preset(PresetBundle& bundle, int slot_number)
 
 void PresetTransaction::set(const std::string& key, const std::string& value)
 {
+    host_bindings::require_plugin_caller("preset.PresetTransaction.set");
     if (committed)
         throw std::runtime_error("This preset transaction has already been committed; start a new begin_update()");
     if (key.empty())
@@ -230,6 +231,7 @@ void PresetTransaction::set(const std::string& key, const std::string& value)
 
 PresetUpdateResult PresetTransaction::commit()
 {
+    host_bindings::require_plugin_caller("preset.PresetTransaction.commit");
     if (committed)
         throw std::runtime_error("This preset transaction has already been committed; start a new begin_update()");
     if (type == Preset::TYPE_INVALID)
@@ -346,6 +348,7 @@ void bind_preset_target(Preset::Type type, const std::string& preset_name, Prese
 // Blocking form used by begin_update() and update().
 PresetTransaction begin_preset_update(Preset::Type type, const std::string& preset_name)
 {
+    host_bindings::require_plugin_caller("preset.begin_update");
     PresetTransaction transaction;
     PluginHostUi::run_on_ui_thread([&] { bind_preset_target(type, preset_name, transaction); });
     return transaction;
@@ -504,6 +507,7 @@ void bind_filament_target(int slot_number, const std::string& preset_name, Prese
 // Blocking form used by begin_update() and update().
 PresetTransaction begin_filament_update(int slot_number, const std::string& preset_name)
 {
+    host_bindings::require_plugin_caller("preset.filament.begin_update");
     PresetTransaction transaction;
     PluginHostUi::run_on_ui_thread([&] { bind_filament_target(slot_number, preset_name, transaction); });
     return transaction;
@@ -513,6 +517,7 @@ PresetTransaction begin_filament_update(int slot_number, const std::string& pres
 // begin_update()/set()/commit() path, so targeting, selection, validation and commit are shared.
 void update_edited_preset(Preset::Type type, const std::string& key, const std::string& value)
 {
+    host_bindings::require_plugin_caller("preset.update");
     PresetTransaction transaction = begin_preset_update(type, std::string());
     transaction.set(key, value);
     transaction.commit();
@@ -520,6 +525,7 @@ void update_edited_preset(Preset::Type type, const std::string& key, const std::
 
 void update_filament_slot(int slot_number, const std::string& key, const std::string& value)
 {
+    host_bindings::require_plugin_caller("preset.filament.update");
     PresetTransaction transaction = begin_filament_update(slot_number, std::string());
     transaction.set(key, value);
     transaction.commit();
@@ -527,6 +533,7 @@ void update_filament_slot(int slot_number, const std::string& key, const std::st
 
 void reload_local_bundle(const std::string& bundle_id)
 {
+    host_bindings::require_plugin_caller("preset.bundles.reload_local");
     bool        reloaded = false;
     std::string error;
     PluginHostUi::run_on_ui_thread([&] {

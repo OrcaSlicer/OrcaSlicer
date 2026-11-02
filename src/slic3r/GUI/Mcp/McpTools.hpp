@@ -56,6 +56,8 @@ void register_ui_tools(McpService& service);
 void register_script_tools(McpService& service);
 void register_record_tools(McpService& service);
 void register_cad_tools(McpService& service);
+void register_python_tools(McpService& service);
+void register_api_tools(McpService& service);
 
 // How run_script_job() runs a script beyond what the script says.
 struct ScriptRunOptions
@@ -90,6 +92,16 @@ ToolDef inspect_tool(std::string name, std::string title, std::string descriptio
 // Anything that changes the app: a job under the mutate guard, journaled.
 ToolDef mutate_tool(std::string name, std::string title, std::string description, nlohmann::json schema, ToolHandler handler,
                     bool destructive = false);
+
+// ---- expected object IDs ---------------------------------------------------------------------
+
+// The schema of an expected ID argument: the id list_objects reports for an object or part (`of`), which
+// orca.host shows too, so a script addresses what it read.
+nlohmann::json expected_id_prop(const char* of);
+// Refuses the call when `args` names an expected object_id, or volume_id, that is not the id of `object`,
+// or `volume`, which its index names now: the model changed since the caller read the index. Call it
+// before the tool changes anything.
+void check_expected_ids(const ModelObject& object, const ModelVolume* volume, const nlohmann::json& args);
 
 // ---- handler helpers -------------------------------------------------------------------------
 
