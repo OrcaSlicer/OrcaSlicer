@@ -353,7 +353,12 @@ void main()
     // Only the albedo - the specular term (intensity.y) stays white - so a coloured fragment reads as
     // the same material under the same light, and the relief this preview exists to show is unaffected.
     vec3 albedo = uniform_color.rgb;
-    if (palette_count > 0 && has_color_tex && have_uv && weight > 0.0)
-        albedo = palette_rgb[nearest_palette_entry(texture2D(color_tex, color_uv).rgb)];
+    // The fourth channel is coverage: where the picture is not there, the surface keeps its own
+    // colour rather than being painted the black that a transparent texel's rgb reads as.
+    if (palette_count > 0 && has_color_tex && have_uv && weight > 0.0) {
+        vec4 tex_rgba = texture2D(color_tex, color_uv);
+        if (tex_rgba.a >= 0.5)
+            albedo = palette_rgb[nearest_palette_entry(tex_rgba.rgb)];
+    }
     gl_FragColor = vec4(vec3(intensity.y) + albedo * intensity.x, uniform_color.a);
 }
