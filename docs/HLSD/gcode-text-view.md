@@ -52,6 +52,14 @@ vertex indices and slider positions are distinct identifiers and cannot be inter
 Some non-motion commands have event vertices; other lines have no vertices at all. The G/M
 command name alone cannot determine whether a line has a corresponding preview position.
 
+`GCodeNavigation.hpp` resolves source lines through an accessor into the existing vertex data.
+For ordered source IDs it uses binary search and expands the selected consecutive group. A
+missing line resolves to the greatest preceding source ID, or the first positive source ID
+when no predecessor exists. The result retains both group endpoints; its last vertex matches
+the move slider's command endpoint. Source ID zero is not a navigable file line. Nonmonotonic
+data uses a linear fallback; repeated disjoint groups with the same source ID resolve to the
+last occurrence. Ordering is checked once when a result is loaded, not on every click.
+
 ### Input and refresh
 
 `GLCanvas3D::on_mouse()` and `on_mouse_wheel()` forward input through
