@@ -16,6 +16,8 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
 
+#include <algorithm>
+
 wxDEFINE_EVENT(wxEVT_TAB_SEL_CHANGING, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_TAB_SEL_CHANGED, wxCommandEvent);
 
@@ -52,6 +54,9 @@ TabCtrl::TabCtrl(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSi
     hsizer->Add(sizer, 0, wxEXPAND | wxBOTTOM, border_width * 4);
     SetSizer(hsizer);
     Bind(wxEVT_COMMAND_BUTTON_CLICKED, &TabCtrl::buttonClicked, this);
+#if wxUSE_ACCESSIBILITY
+    SetAccessibleRole(wxROLE_SYSTEM_PAGETABLIST);
+#endif
     // wxString reason;
     // IsTransparentBackgroundSupported(&reason);
 }
@@ -110,6 +115,13 @@ int TabCtrl::AppendItem(const wxString& item, int image, int selImage, void* cli
     btn->SetBackgroundColor(StateColor());
     btn->SetCornerRadius(0);
     btn->SetPaddingSize({TAB_BUTTON_PADDING});
+#if wxUSE_ACCESSIBILITY
+    // ORCA: this Button is a tab, not a plain pushbutton - override Button's default role
+    btn->SetAccessibleRole(wxROLE_SYSTEM_PAGETAB, [this, btn] {
+        auto it = std::find(btns.begin(), btns.end(), btn);
+        return (it != btns.end() && int(it - btns.begin()) == sel) ? wxACC_STATE_SYSTEM_SELECTED : 0;
+    });
+#endif
     btns.push_back(btn);
     if (btns.size() > 1)
         sizer->GetItem(sizer->GetItemCount() - 1)->SetMinSize({0, 0});

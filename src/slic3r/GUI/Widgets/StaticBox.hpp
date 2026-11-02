@@ -3,6 +3,7 @@
 
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
+#include "WidgetAccessible.hpp"
 
 #include <wx/anybutton.h>
 #include <wx/checklst.h>
@@ -52,7 +53,25 @@ public:
 
     void ShowBadge(bool show);
 
+    // ORCA: give this widget a real MSAA/IAccessible role instead of the
+    // generic fallback custom-drawn windows get by default. extra_state is
+    // an optional callback for widget-specific state bits (e.g. selected,
+    // checked, expanded) on top of the focus/enabled/visible state that's
+    // always derived automatically.
+#if wxUSE_ACCESSIBILITY
+    void SetAccessibleRole(wxAccRole role, WidgetAccessible::ExtraStateGetter extra_state = nullptr);
+
+    // ORCA: let assistive technology operate this widget, not just read it. name is the
+    // verb MSAA reports for the action (e.g. "Open"); handler runs it in process, on the
+    // UI thread, and must go through the widget's normal code path.
+    void SetAccessibleDefaultAction(wxString name, WidgetAccessible::DefaultActionHandler handler);
+#endif
+
 protected:
+#if wxUSE_ACCESSIBILITY
+    wxAccessible* CreateAccessible() override;
+#endif
+
     void eraseEvent(wxEraseEvent& evt);
 
     void sizeEvent(wxSizeEvent& evt);
@@ -73,6 +92,13 @@ protected:
     StateColor   background_color;
     StateColor   background_color2;
     ScalableBitmap badge;
+
+#if wxUSE_ACCESSIBILITY
+    wxAccRole                              m_a11y_role = wxROLE_SYSTEM_CLIENT;
+    WidgetAccessible::ExtraStateGetter     m_a11y_extra_state;
+    wxString                               m_a11y_default_action_name;
+    WidgetAccessible::DefaultActionHandler m_a11y_default_action;
+#endif
 
     DECLARE_EVENT_TABLE()
 };

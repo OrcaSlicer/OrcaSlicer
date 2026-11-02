@@ -48,11 +48,47 @@ StaticBox::StaticBox(wxWindow* parent,
     Create(parent, id, pos, size, style);
 }
 
+#if wxUSE_ACCESSIBILITY
+void StaticBox::SetAccessibleRole(wxAccRole role, WidgetAccessible::ExtraStateGetter extra_state)
+{
+    m_a11y_role        = role;
+    m_a11y_extra_state = std::move(extra_state);
+    // If the OS already queried us, the cached accessible object carries the
+    // previous role - replace it. Otherwise stay lazy and let wx create one
+    // on the first WM_GETOBJECT query, as it does for every other window.
+    // (The wxWindowAccessible constructor already calls SetAccessible() with
+    // the new object, deleting the old one; passing it again here is a no-op
+    // because wxWindowBase::SetAccessible only deletes a *different* pointer.)
+    if (GetAccessible())
+        SetAccessible(CreateAccessible());
+}
+
+void StaticBox::SetAccessibleDefaultAction(wxString name, WidgetAccessible::DefaultActionHandler handler)
+{
+    m_a11y_default_action_name = std::move(name);
+    m_a11y_default_action      = std::move(handler);
+    if (GetAccessible())
+        SetAccessible(CreateAccessible());
+}
+
+wxAccessible* StaticBox::CreateAccessible()
+{
+    auto* acc = new WidgetAccessible(this, m_a11y_role, m_a11y_extra_state);
+    if (m_a11y_default_action)
+        acc->SetDefaultAction(m_a11y_default_action_name, m_a11y_default_action);
+    return acc;
+}
+#endif // wxUSE_ACCESSIBILITY
+
 bool StaticBox::Create(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
 {
     if (style & wxBORDER_NONE)
         border_width = 0;
     wxWindow::Create(parent, id, pos, size, style);
+    // ORCA: wx defaults an unnamed window's GetName() to "panel" (wxPanelNameStr),
+    // not empty - clear it so WidgetAccessible's "no name set" check (and its
+    // tooltip fallback) works correctly for every StaticBox-derived widget.
+    SetName(wxEmptyString);
     state_handler.attach({&border_color, &background_color, &background_color2});
     state_handler.update_binds();
     SetBackgroundColour(GetParentBackgroundColor(parent));

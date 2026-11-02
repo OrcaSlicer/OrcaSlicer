@@ -27,6 +27,12 @@ public:
 #endif
 
 protected:
+#if wxUSE_ACCESSIBILITY
+    // ORCA: a checkbox rendered purely as bitmap swaps (on/half/off) has no
+    // accessible role/state/name of its own by default.
+    wxAccessible* CreateAccessible() override;
+#endif
+
 #ifdef __WXMSW__
     virtual State GetNormalState() const wxOVERRIDE;
 #endif

@@ -1022,6 +1022,10 @@ ScalableButton::ScalableButton( wxWindow *          parent,
 {
     SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
     Create(parent, id, label, pos, size, style);
+    // ORCA: wx defaults an unnamed wxButton's GetName() to the literal string
+    // "button" (wxButtonNameStr), not empty - clear it so WidgetAccessible's
+    // "no name set" check (and its tooltip fallback) works correctly.
+    SetName(wxEmptyString);
     Slic3r::GUI::wxGetApp().UpdateDarkUI(this);
 
     if (!icon_name.empty()) {
@@ -1056,6 +1060,7 @@ ScalableButton::ScalableButton( wxWindow *          parent,
     m_has_border(!(style& wxNO_BORDER))
 {
     Create(parent, id, label, wxDefaultPosition, wxDefaultSize, style);
+    SetName(wxEmptyString); // ORCA: see other constructor - wx defaults GetName() to "button", not empty
     Slic3r::GUI::wxGetApp().UpdateDarkUI(this);
 
     SetBitmap(bitmap.bmp());
@@ -1108,6 +1113,13 @@ void ScalableButton::UseDefaultBitmapDisabled()
     m_use_default_disabled_bitmap = true;
     SetBitmapDisabled(create_scaled_bitmap(m_current_icon_name, m_parent, m_px_cnt, true));
 }
+
+#if wxUSE_ACCESSIBILITY
+wxAccessible* ScalableButton::CreateAccessible()
+{
+    return new WidgetAccessible(this, wxROLE_SYSTEM_PUSHBUTTON);
+}
+#endif
 
 void ScalableButton::msw_rescale()
 {
