@@ -2,6 +2,7 @@
 #define slic3r_Model_hpp_
 
 #include "BoundingBox.hpp"
+#include "Config.hpp"
 #include "Polygon.hpp"
 #include "Semver.hpp"
 #include "libslic3r.h"

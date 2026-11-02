@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <libslic3r/Exception.hpp>
 #include <libslic3r/PrintConfig.hpp>
 #include <libslic3r/Fill/InfillPurpose.hpp>
 #include <memory>
