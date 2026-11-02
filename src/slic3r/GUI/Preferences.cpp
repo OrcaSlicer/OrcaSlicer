@@ -1011,40 +1011,6 @@ wxBoxSizer *PreferencesDialog::create_item_auto_reslice(wxString title, wxString
     return m_sizer;
 }
 
-wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tooltip, std::string param)
-{
-    auto tip = tooltip.IsEmpty() ? title : tooltip; // auto fill tooltips with title if its empty
-
-    wxBoxSizer *m_sizer = create_item_label(title, tip);
-
-    auto checkbox = new ::CheckBox(m_parent);
-    checkbox->SetValue((app_config->get(param) == "1") ? true : false);
-    checkbox->SetToolTip(tip);
-    m_dark_mode_ckeckbox = checkbox;
-
-    m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
-
-    //// save config
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, param](wxCommandEvent& e) {
-        app_config->set(param, checkbox->GetValue() ? "1" : "0");
-        app_config->save();
-        wxGetApp().Update_dark_mode_flag();
-
-        //dark mode
-#ifdef _MSW_DARK_MODE
-        wxGetApp().force_colors_update();
-        wxGetApp().update_ui_from_settings();
-        set_dark_mode();
-#endif
-        SimpleEvent evt = SimpleEvent(EVT_GLCANVAS_COLOR_MODE_CHANGED);
-        wxPostEvent(wxGetApp().plater(), evt);
-        e.Skip();
-        });
-
-    
-    return m_sizer;
-}
-
 void PreferencesDialog::set_dark_mode()
 {
 #ifdef __WINDOWS__
@@ -1707,7 +1673,20 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_default_page);
 
 #ifdef _WIN32
-    auto item_darkmode         = create_item_darkmode(_L("Enable dark Mode"), "", "dark_color_mode");
+    // The option values are the item indices: "0" follows the system theme, "1" is dark, "2" is light.
+    std::vector<wxString> ColorTheme = {_L("Follow system"), _L("Dark"), _L("Light")};
+    auto item_darkmode = create_item_combobox(_L("Color theme"), _L("Set the color theme of the application. \"Follow system\" switches with the operating system theme."),
+                                              "dark_color_mode", ColorTheme, [this](wxString) {
+        app_config->save();
+        wxGetApp().Update_dark_mode_flag();
+#ifdef _MSW_DARK_MODE
+        wxGetApp().force_colors_update();
+        wxGetApp().update_ui_from_settings();
+        set_dark_mode();
+#endif
+        SimpleEvent evt = SimpleEvent(EVT_GLCANVAS_COLOR_MODE_CHANGED);
+        wxPostEvent(wxGetApp().plater(), evt);
+    });
     g_sizer->Add(item_darkmode);
 #endif
 

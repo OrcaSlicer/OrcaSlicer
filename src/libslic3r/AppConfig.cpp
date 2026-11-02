@@ -435,6 +435,7 @@ void AppConfig::set_defaults()
 //#endif
 
 #ifdef SUPPORT_DARK_MODE
+    // "0" follows the system theme, "1" forces dark, "2" forces light
     if (get("dark_color_mode").empty())
         set("dark_color_mode", "0");
 #endif

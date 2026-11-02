@@ -46,6 +46,7 @@
 #include <sstream>
 #include <wx/base64.h>
 #include <ctime>
+#include <cwchar>
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/calib_dlg.hpp"
 #include "slic3r/GUI/ParamsPanel.hpp"
@@ -1154,6 +1155,12 @@ WXLRESULT MainFrame::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam
         AdjustWorkingAreaForAutoHide(hWnd, mmi);
         return 0;
     }
+
+    case WM_SETTINGCHANGE:
+        // Windows broadcasts "ImmersiveColorSet" when the user switches the system light/dark theme.
+        if (lParam != 0 && wcscmp(reinterpret_cast<LPCWSTR>(lParam), L"ImmersiveColorSet") == 0)
+            wxGetApp().CallAfter([] { wxGetApp().refresh_system_theme(); });
+        break;
     }
     return wxFrame::MSWWindowProc(nMsg, wParam, lParam);
 }

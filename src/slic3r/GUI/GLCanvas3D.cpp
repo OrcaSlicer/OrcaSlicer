@@ -1728,7 +1728,7 @@ bool GLCanvas3D::init()
         return false;
 
     // init dark mode status
-    on_change_color_mode(wxGetApp().app_config->get("dark_color_mode") == "1", false);
+    on_change_color_mode(wxGetApp().dark_mode(), false);
 
     m_show_world_axes = wxGetApp().app_config->get("show_axes") == "true";
     

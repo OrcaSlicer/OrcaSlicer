@@ -175,8 +175,7 @@ TroubleshootDialog::TroubleshootDialog()
     SetBackgroundColour(*wxWHITE);
 
     auto data_dir   = boost::filesystem::path(Slic3r::data_dir());
-    auto app_config = wxGetApp().app_config;
-    bool is_dark    = app_config->get("dark_color_mode") == "1";
+    bool is_dark    = wxGetApp().dark_mode();
  
     // LEFT SIZER //////////////////////
 
