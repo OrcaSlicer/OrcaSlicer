@@ -3092,10 +3092,19 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
                 copy_option_whole(*dependent_target, key, *tab->m_config, before_handling) || dependents_copied;
         }
     if (dependent_tab != nullptr && (!dependent_tab_only_on_copy || dependents_copied || edited_key_restaged)) {
-        // The real preset changed behind the tab: repaint it.
+        // The real preset changed behind the tab: repaint it. update() re-runs the rules and rewrites
+        // each Line's toggle_visible, but only Page::update_visibility() turns that into shown and
+        // hidden rows; the sidebar's own change path does the same two steps.
         dependent_tab->update_dirty();
         dependent_tab->reload_config();
         dependent_tab->update();
+        if (dependent_tab->m_active_page != nullptr)
+            dependent_tab->m_active_page->update_visibility(dependent_tab->m_mode, true);
+        if (wxScrolledWindow* page_view = dependent_tab->m_page_view) {
+            page_view->Layout();
+            if (wxWindow* view_host = page_view->GetParent())
+                view_host->Layout();
+        }
     }
 
     if (plater_refresh)
