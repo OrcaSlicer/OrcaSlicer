@@ -793,6 +793,11 @@ void PrintObject::prepare_infill()
     this->combine_infill();
     m_print->throw_if_canceled();
 
+    // defines the first continuous layer under the top surface.
+    // ensures reliable anchoring of the perimeters if they are attached to a sparse infill.
+    this->discover_sub_top_surfaces();
+    m_print->throw_if_canceled();
+
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
         for (const Layer *layer : m_layers) {
@@ -1494,8 +1499,7 @@ bool PrintObject::invalidate_state_by_config_options(
                     steps.emplace_back(posPerimeters);
             }
         } else if (
-               opt_key == "wall_loops"
-            || opt_key == "alternate_extra_wall"
+               opt_key == "alternate_extra_wall"
             || opt_key == "top_one_wall_type"
             || opt_key == "min_width_top_surface"
             || opt_key == "only_one_wall_first_layer"
@@ -1745,7 +1749,7 @@ bool PrintObject::invalidate_state_by_config_options(
             assert(old_density && new_density);
             if (is_approx(old_density->value, 0.) || is_approx(new_density->value, 0.))
                 steps.emplace_back(posPerimeters);
-            steps.emplace_back(posInfill);
+            steps.emplace_back(posPrepareInfill);
         } else if (opt_key == "top_surface_expansion") {
             // ORCA: without the expansion the top fill never reaches the space freed by only_one_wall_top, so the
             // walls over top surfaces are kept. Only crossing zero matters; posPerimeters cascades to posPrepareInfill.
@@ -1788,7 +1792,8 @@ bool PrintObject::invalidate_state_by_config_options(
             steps.emplace_back(posInfill);
             steps.emplace_back(posSupportMaterial);
         } else if (
-                opt_key == "wall_generator"
+               opt_key == "wall_loops"
+            || opt_key == "wall_generator"
             || opt_key == "wall_transition_length"
             || opt_key == "wall_transition_filter_deviation"
             || opt_key == "wall_transition_angle"
@@ -5079,6 +5084,106 @@ void PrintObject::combine_infill()
                 }
             }
         }
+    }
+}
+
+// A top island that an erosion of this radius wipes out is too narrow to justify a sub-top band
+// underneath it. Eroding rather than measuring the area also rejects long thin slivers, whose area
+// can be large while no part of them is wide enough to matter.
+static constexpr double SUB_TOP_MIN_TOP_EROSION_MM = 1.5;
+
+void PrintObject::discover_sub_top_surfaces()
+{
+    BOOST_LOG_TRIVIAL(trace) << "discover_sub_top_surfaces()";
+    if (m_layers.size() < 2)
+        return;
+
+    auto process_layer = [this](size_t idx_layer) {
+        m_print->throw_if_canceled();
+        const Layer *upper = m_layers[idx_layer + 1];
+        Layer       *layer = m_layers[idx_layer];
+
+        ExPolygons top_mask;
+        for (const LayerRegion *upper_region : upper->regions())
+            for (const Surface &s : upper_region->fill_surfaces.surfaces)
+                if (s.surface_type == stTop)
+                    top_mask.emplace_back(s.expolygon);
+        if (top_mask.empty())
+            return;
+
+        const auto    erosion    = float(scale_(SUB_TOP_MIN_TOP_EROSION_MM));
+        const coord_t min_extent = coord_t(scale_(2. * SUB_TOP_MIN_TOP_EROSION_MM));
+        ExPolygons    large_tops;
+        for (ExPolygon &top : union_ex(top_mask)) {
+            // An island narrower than the erosion diameter cannot survive it, and its extents are a
+            // linear scan against a boolean, so check them before paying for the offset.
+            const Point extents = get_extents(top).size();
+            if (extents.x() < min_extent || extents.y() < min_extent)
+                continue;
+            if (! offset_ex(top, - erosion).empty())
+                large_tops.emplace_back(std::move(top));
+        }
+        if (large_tops.empty())
+            return;
+        top_mask = std::move(large_tops);
+
+        // The vertex cull below runs once per island of every region, and it walks the points of
+        // every mask polygon. Caching the extents here lets a polygon whose box misses the island
+        // be dropped without touching its points at all.
+        std::vector<BoundingBox> top_extents;
+        top_extents.reserve(top_mask.size());
+        for (const ExPolygon &top : top_mask)
+            top_extents.emplace_back(get_extents(top));
+
+        for (LayerRegion *layerm : layer->m_regions) {
+            const float min_width = float(layerm->flow(frSolidInfill).scaled_spacing());
+            ExPolygons crop_mask = layerm->fill_no_overlap_expolygons;
+            // A claimed island keeps its geometry and every other field, only its type changes, so
+            // retype in place rather than rebuilding the collection.
+
+            Surfaces new_surfaces;
+            for (Surface &surface : layerm->fill_surfaces.surfaces) {
+                //if (surface.surface_type != stInternalSolid) // to crop all surfaces
+                //    continue;
+                // Trim the mask to the island first, so one island does not have to face the whole
+                // layer's top geometry. Opening then drops what only grazes the mask: an island is
+                // claimed on real overlap, not on a shared edge.
+                const BoundingBox island_bbox = get_extents(surface.expolygon).inflated(SCALED_EPSILON);
+                Polygons          local_mask;
+                for (size_t i = 0; i < top_mask.size(); ++ i)
+                    if (top_extents[i].overlap(island_bbox))
+                        append(local_mask, ClipperUtils::clip_clipper_polygons_with_subject_bbox(top_mask[i], island_bbox));
+                if (! local_mask.empty() && ! opening_ex(intersection_ex(surface.expolygon, local_mask, ApplySafetyOffset::Yes), 0.5f * min_width).empty()) {
+                    int number_of_walls    = layerm->m_region->config().wall_loops; // number of internal walls+1 if perimeters will be used
+                    float offset_distance  = (layerm->flow(frPerimeter).scaled_width()) * number_of_walls;
+                    ExPolygons walls_solid   = offset_ex(local_mask, offset_distance);
+                    SurfaceType surface_type = surface.surface_type;
+                    surfaces_append(new_surfaces, diff_ex(surface.expolygon, walls_solid, ApplySafetyOffset::Yes), surface_type);
+                    surface.clear();
+                    if (layerm->m_region->config().top_surface_density.value < 100) {
+                        surfaces_append(new_surfaces, intersection_ex(local_mask, crop_mask, ApplySafetyOffset::Yes), stInternalSolid); // Fix to stSubTop if this type will be used.
+                        surfaces_append(new_surfaces, intersection_ex(diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), crop_mask, ApplySafetyOffset::Yes), stInternalBridge);
+                    } else
+                        surfaces_append(new_surfaces, intersection_ex(walls_solid, crop_mask, ApplySafetyOffset::Yes), stInternalSolid);
+                }
+            }
+            layerm->fill_surfaces.append(new_surfaces);
+        }
+    };
+
+    // A layer reads the tops of the layer above and retypes its own fill surfaces, so neighbours
+    // must not run together. Splitting the sweep by parity keeps every pair of concurrent layers
+    // two apart, which leaves the read and write sets disjoint.
+    const size_t num_to_process = m_layers.size() - 1;
+    for (size_t parity = 0; parity < 2; ++ parity) {
+        if (num_to_process <= parity)
+            continue;
+        const size_t count = (num_to_process - parity + 1) / 2;
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, count),
+            [&process_layer, parity](const tbb::blocked_range<size_t> &range) {
+                for (size_t k = range.begin(); k < range.end(); ++ k)
+                    process_layer(parity + 2 * k);
+            });
     }
 }
 
