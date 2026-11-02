@@ -7,6 +7,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <cctype>
 #include <functional>
+#include <initializer_list>
 #include <cstddef>
 #include <cstdlib>
 #include <iomanip>
@@ -470,6 +471,7 @@ static const char* CONFIG_KEY_STORAGE = "printhost_storage";
 PrintHostSendDialog::PrintHostSendDialog(const fs::path &path, PrintHostPostUploadActions post_actions, const wxArrayString &groups, const wxArrayString& storage_paths, const wxArrayString& storage_names, bool switch_to_device_tab)
     : MsgDialog(static_cast<wxWindow*>(wxGetApp().mainframe), _L("Send G-code to printer host"), _L("Upload to Printer Host with the following filename:"), 0) // Set style = 0 to avoid default creation of the "OK" button. 
                                                                                                                                                                // All buttons will be added later in this constructor 
+    , m_force_filename_entry(wxGetApp().app_config->get_bool("force_filename_entry"))
     , txt_filename(new wxTextCtrl(this, wxID_ANY))
     , combo_groups(!groups.IsEmpty() ? new wxComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, groups, wxCB_READONLY) : nullptr)
     , combo_storage(storage_names.GetCount() > 1 ? new wxComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, storage_names, wxCB_READONLY) : nullptr)
@@ -484,6 +486,67 @@ PrintHostSendDialog::PrintHostSendDialog(const fs::path &path, PrintHostPostUplo
     txt_filename->OSXDisableAllSmartSubstitutions();
 #endif
 }
+
+// Orca: the extension an upload keeps: ".gcode", or ".gcode.3mf" for a sliced 3MF.
+static wxString upload_extension(const fs::path& path)
+{
+    const wxString name = path.filename().wstring();
+    return name.Lower().EndsWith(".gcode.3mf") ? name.Right(10) : wxString(path.extension().wstring());
+}
+
+// The filename to pre-fill, none when filename entry is forced.
+wxString PrintHostSendDialog::suggested_filename() const
+{
+    return m_force_filename_entry ? wxString() : wxString(m_path.filename().wstring());
+}
+
+// The entered filename, without folder or extension.
+wxString PrintHostSendDialog::entered_name() const
+{
+    wxString       name = txt_filename->GetValue().AfterLast('/');
+    const wxString ext  = upload_extension(m_path);
+    if (name.Lower().EndsWith(ext.Lower()))
+        name.RemoveLast(ext.Length());
+    return name.Trim().Trim(false);
+}
+
+bool PrintHostSendDialog::appends_print_time() const
+{
+    return m_force_filename_entry && !m_print_time.empty() && wxGetApp().app_config->get_bool("append_print_time_to_filename");
+}
+
+void PrintHostSendDialog::add_print_time_hint()
+{
+    if (!appends_print_time())
+        return;
+    // TRN: %s is the estimated print time, e.g. "1h23m".
+    auto* hint = new wxStaticText(this, wxID_ANY, wxString::Format(_L("The print time (%s) will be appended to the filename."), from_u8(m_print_time)));
+    hint->Wrap(CONTENT_WIDTH * wxGetApp().em_unit());
+    content_sizer->Add(hint);
+}
+
+// Keeps the upload buttons disabled until a filename is entered, when Preferences force filename entry.
+void PrintHostSendDialog::disable_upload_until_named(std::initializer_list<wxWindow*> upload_buttons)
+{
+    if (!m_force_filename_entry)
+        return;
+    txt_filename->SetHint(_L("Enter a filename"));
+    std::vector<wxWindow*> buttons;
+    for (wxWindow* button : upload_buttons)
+        if (button != nullptr)
+            buttons.push_back(button);
+    auto update = [this, buttons]() {
+        const bool named = !entered_name().IsEmpty();
+        for (wxWindow* button : buttons)
+            button->Enable(named);
+    };
+    txt_filename->Bind(wxEVT_TEXT, [update](wxCommandEvent& e) {
+        update();
+        e.Skip();
+    });
+    update();
+}
+
 void PrintHostSendDialog::init()
 {
     const auto& path = m_path;
@@ -498,6 +561,7 @@ void PrintHostSendDialog::init()
 
     content_sizer->Add(txt_filename, 0, wxEXPAND);
     content_sizer->Add(label_dir_hint);
+    add_print_time_hint();
     content_sizer->AddSpacer(VERT_SPACING);
     
     if (combo_groups != nullptr) {
@@ -527,14 +591,14 @@ void PrintHostSendDialog::init()
     }
 
 
-    wxString recent_path = from_u8(app_config->get("recent", CONFIG_KEY_PATH));
+    wxString recent_path = m_force_filename_entry ? wxString() : from_u8(app_config->get("recent", CONFIG_KEY_PATH));
     if (recent_path.Length() > 0 && recent_path[recent_path.Length() - 1] != '/') {
         recent_path += '/';
     }
     const auto recent_path_len = recent_path.Length();
-    recent_path += path.filename().wstring();
+    recent_path += suggested_filename();
     wxString stem(path.stem().wstring());
-    const auto stem_len = stem.Length();
+    const auto stem_len = m_force_filename_entry ? 0 : stem.Length();
 
     txt_filename->SetValue(recent_path);
 
@@ -585,8 +649,9 @@ void PrintHostSendDialog::init()
     //         });
     // }
 
+    Button* btn_print = nullptr;
     if (post_actions.has(PrintHostPostUploadAction::StartPrint)) {
-        auto* btn_print = add_button(wxID_YES, false, _L("Upload and Print"));
+        btn_print = add_button(wxID_YES, false, _L("Upload and Print"));
         btn_print->Bind(wxEVT_BUTTON, [this, validate_path](wxCommandEvent&) {
             if (validate_path(txt_filename->GetValue())) {
                 post_upload_action = PrintHostPostUploadAction::StartPrint;
@@ -594,6 +659,7 @@ void PrintHostSendDialog::init()
             }
         });
     }
+    disable_upload_until_named({btn_ok, btn_print});
 
     // if (post_actions.has(PrintHostPostUploadAction::StartSimulation)) {
     //     // Using wxID_MORE as a button identifier to be different from the other buttons, wxID_MORE has no other meaning here.
@@ -632,7 +698,16 @@ void PrintHostSendDialog::init()
 
 fs::path PrintHostSendDialog::filename() const
 {
-    return into_path(txt_filename->GetValue());
+    wxString name = txt_filename->GetValue();
+    if (m_force_filename_entry) {
+        // Orca: the filename starts empty, so add the extension if it wasn't entered, then the print time before it.
+        const wxString ext = upload_extension(m_path);
+        if (!name.Lower().EndsWith(ext.Lower()))
+            name += ext;
+        if (appends_print_time())
+            name.insert(name.Length() - ext.Length(), "_" + from_u8(m_print_time));
+    }
+    return into_path(name);
 }
 
 PrintHostPostUploadAction PrintHostSendDialog::post_action() const
@@ -671,7 +746,9 @@ void PrintHostSendDialog::EndModal(int ret)
             path = path.SubString(0, last_slash);
                 
 		AppConfig *app_config = wxGetApp().app_config;
-		app_config->set("recent", CONFIG_KEY_PATH, into_u8(path));
+		// Orca: forced filename entry starts empty, so keep the folder remembered for the usual pre-filled name.
+		if (!m_force_filename_entry)
+			app_config->set("recent", CONFIG_KEY_PATH, into_u8(path));
 
         if (combo_groups != nullptr) {
             wxString group = combo_groups->GetValue();
@@ -732,15 +809,16 @@ void FlashforgePrintHostSendDialog::init()
     label_dir_hint->Wrap(CONTENT_WIDTH * wxGetApp().em_unit());
     content_sizer->Add(txt_filename, 0, wxEXPAND);
     content_sizer->Add(label_dir_hint);
+    add_print_time_hint();
     content_sizer->AddSpacer(VERT_SPACING);
 
-    wxString recent_path = from_u8(app_config->get("recent", CONFIG_KEY_PATH));
+    wxString recent_path = m_force_filename_entry ? wxString() : from_u8(app_config->get("recent", CONFIG_KEY_PATH));
     if (recent_path.Length() > 0 && recent_path[recent_path.Length() - 1] != '/')
         recent_path += '/';
     const auto recent_path_len = recent_path.Length();
-    recent_path += path.filename().wstring();
+    recent_path += suggested_filename();
     wxString stem(path.stem().wstring());
-    const auto stem_len = stem.Length();
+    const auto stem_len = m_force_filename_entry ? 0 : stem.Length();
     txt_filename->SetValue(recent_path);
 
     {
@@ -848,8 +926,9 @@ void FlashforgePrintHostSendDialog::init()
         }
     });
 
+    Button* btn_print = nullptr;
     if (m_post_actions.has(PrintHostPostUploadAction::StartPrint)) {
-        auto* btn_print = add_button(wxID_YES, false, _L("Upload and Print"));
+        btn_print = add_button(wxID_YES, false, _L("Upload and Print"));
         btn_print->Bind(wxEVT_BUTTON, [this, validate_path](wxCommandEvent&) {
             if (validate_path(txt_filename->GetValue())) {
                 post_upload_action = PrintHostPostUploadAction::StartPrint;
@@ -857,6 +936,7 @@ void FlashforgePrintHostSendDialog::init()
             }
         });
     }
+    disable_upload_until_named({btn_ok, btn_print});
 
     add_button(wxID_CANCEL, false, _L("Cancel"));
     finalize();
@@ -1633,6 +1713,7 @@ void ElegooPrintHostSendDialog::init() {
     content_sizer->Add(txt_filename, flags);
     content_sizer->AddSpacer(4);
     content_sizer->Add(label_dir_hint);
+    add_print_time_hint();
     content_sizer->AddSpacer(VERT_SPACING);
 
     if (combo_groups != nullptr) {
@@ -1661,14 +1742,14 @@ void ElegooPrintHostSendDialog::init() {
         m_preselected_storage = m_paths.front();
     }
 
-    wxString recent_path = from_u8(app_config->get("recent", CONFIG_KEY_PATH));
+    wxString recent_path = m_force_filename_entry ? wxString() : from_u8(app_config->get("recent", CONFIG_KEY_PATH));
     if (recent_path.Length() > 0 && recent_path[recent_path.Length() - 1] != '/') {
         recent_path += '/';
     }
     const auto recent_path_len = recent_path.Length();
-    recent_path += path.filename().wstring();
+    recent_path += suggested_filename();
     wxString   stem(path.stem().wstring());
-    const auto stem_len = stem.Length();
+    const auto stem_len = m_force_filename_entry ? 0 : stem.Length();
 
     txt_filename->SetValue(recent_path);
 
@@ -1841,6 +1922,7 @@ void ElegooPrintHostSendDialog::init() {
             EndDialog(wxID_OK);
         }
     });
+    disable_upload_until_named({btn_ok});
     txt_filename->SetFocus();
 
     add_button(wxID_CANCEL, false, _L("Cancel"));

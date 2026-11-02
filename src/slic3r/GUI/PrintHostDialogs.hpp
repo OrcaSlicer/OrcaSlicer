@@ -3,6 +3,7 @@
 
 #include <map>
 #include <cstddef>
+#include <initializer_list>
 #include <string>
 #include <utility>
 #include <vector>
@@ -45,12 +46,23 @@ public:
     std::string group() const;
     std::string storage() const;
     bool switch_to_device_tab() const {return m_switch_to_device_tab;}
+    // Orca: the estimated print time, appended to the entered filename when Preferences ask for it. Set before init().
+    void set_print_time(const std::string& print_time) { m_print_time = print_time; }
 
     virtual void EndModal(int ret) override;
     virtual void init();
     virtual std::map<std::string, std::string> extendedInfo() const { return {}; }
 
 protected:
+    // Orca: Preferences > "Force filename entry on upload" and "Append print time to filename".
+    wxString suggested_filename() const;
+    wxString entered_name() const;
+    bool     appends_print_time() const;
+    void     add_print_time_hint();
+    void     disable_upload_until_named(std::initializer_list<wxWindow*> upload_buttons);
+
+    bool        m_force_filename_entry;
+    std::string m_print_time;
     wxTextCtrl *txt_filename;
     wxComboBox *combo_groups;
     wxComboBox* combo_storage;
