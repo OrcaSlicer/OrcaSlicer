@@ -9,6 +9,7 @@
 #include <limits>
 #include "../libslic3r.h"
 #include "../Flow.hpp"
+#include "../Geometry.hpp"
 #include "../Layer.hpp"
 #include "../Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -77,6 +78,8 @@ struct SupportParameters {
         this->ironing_flow = support_material_interface_flow.with_height(support_material_interface_flow.height() * 0.01 * object_config.support_ironing_flow.value);
         this->ironing_spacing = std::max(IRONING_SPACING_MIN, object_config.support_ironing_spacing.value);
         this->ironing_pattern = object_config.support_ironing_pattern;
+        this->ironing_inset = float(object_config.support_ironing_inset.value);
+        this->ironing_direction = float(Geometry::deg2rad(object_config.support_ironing_direction.value));
 
         // Calculate a minimum support layer height as a minimum over all extruders, but not smaller than 10um.
         this->support_layer_height_min = scaled<coord_t>(0.01);
@@ -334,6 +337,8 @@ struct SupportParameters {
     Flow          ironing_flow; // Flow at the interface ironing.
     InfillPattern ironing_pattern;
     float         ironing_spacing;
+    float         ironing_inset;     // [mm] Distance kept from the edges of the ironed area, 0 = none.
+    float         ironing_direction; // [rad] Added to the support interface angle to get the ironing angle.
 };
 
 } // namespace Slic3r
