@@ -5,6 +5,7 @@
 #include "ObjectID.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
+#include "libslic3r.h"
 
 #include<map>
 #include <utility>

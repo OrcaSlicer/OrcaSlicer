@@ -7,6 +7,7 @@
 #include <iterator>
 #include <vector>
 
+#include "catch2/catch_test_macros.hpp"
 #include "libslic3r/Brim.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
