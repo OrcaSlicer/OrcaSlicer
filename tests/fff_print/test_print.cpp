@@ -237,6 +237,58 @@ TEST_CASE("An object that starts sharing another object's slices keeps its own l
     CHECK(print_b->support_layers() == print_a->support_layers());
 }
 
+// Layers are stored relative to a PrintObject's center_offset(), which is derived from the first instance of its
+// ModelObject. Two objects with the same trafo can therefore have different offsets, and sharing the layers of one
+// with the other would print it shifted.
+TEST_CASE("Objects whose center offsets differ do not share slices", "[Print][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+
+    // A triangular prism: the center of its bounding box does not turn with the prism unless it is turned by
+    // a multiple of 90 degrees.
+    const std::vector<Vec3f> vertices{{0, 0, 0}, {30, 0, 0}, {0, 10, 0}, {0, 0, 10}, {30, 0, 10}, {0, 10, 10}};
+    const std::vector<Vec3i> faces{{0, 2, 1}, {3, 4, 5}, {0, 1, 4}, {0, 4, 3}, {1, 2, 5}, {1, 5, 4}, {2, 0, 3}, {2, 3, 5}};
+
+    Print print;
+    Model model;
+    init_print({TriangleMesh(vertices, faces)}, print, model, config);
+    ModelObject *object_a = model.objects.front();
+    // add_object() gives the copy extruder 1, and objects only share slices when their configs match.
+    object_a->config.set_key_value("extruder", new ConfigOptionInt(1));
+    const Vec3d origin = object_a->instances.front()->get_offset();
+    ModelObject *object_b = model.add_object(*object_a); // shares object_a's mesh
+
+    // The first instance of object_b is turned, the second one is as straight as object_a's.
+    ModelInstance *turned = object_b->instances.front();
+    turned->set_offset(origin + Vec3d(60., 0., 0.));
+    turned->set_rotation(Vec3d(0., 0., PI / 3.));
+    ModelInstance *straight = object_b->add_instance();
+    straight->set_offset(origin + Vec3d(120., 0., 0.));
+
+    print.apply(model, config);
+    print.process();
+
+    const PrintObject *print_a        = nullptr;
+    const PrintObject *print_straight = nullptr;
+    for (const PrintObject *object : print.objects())
+        if (object->model_object()->id() == object_a->id())
+            print_a = object;
+    REQUIRE(print_a != nullptr);
+    for (const PrintObject *object : print.objects())
+        if (object->model_object()->id() == object_b->id() && object->trafo().matrix() == print_a->trafo().matrix())
+            print_straight = object;
+    REQUIRE(print_straight != nullptr);
+
+    // What makes the objects differ, otherwise the checks below would not test anything.
+    REQUIRE(print_a->center_offset() != print_straight->center_offset());
+    CHECK(print_a->get_shared_object() == nullptr);
+    CHECK(print_straight->get_shared_object() == nullptr);
+}
+
 // ---------------------------------------------------------------------------
 // Print::validate() warning collection
 //
