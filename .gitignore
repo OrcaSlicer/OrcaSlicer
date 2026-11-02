@@ -1,6 +1,5 @@
 Build
 Build.bat
-.slim/deepwork/
 /build*/
 /out/
 CMakeLists.txt.user
