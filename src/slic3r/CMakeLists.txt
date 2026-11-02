@@ -886,6 +886,7 @@ if (WIN32)
             GUI/dark_mode/UAHMenuBar.hpp
             GUI/dark_mode.hpp
             GUI/dark_mode.cpp
+            GUI/MSWHiddenChildParking.hpp
         )
 endif ()
 
