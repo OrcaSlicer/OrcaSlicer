@@ -32,6 +32,7 @@ struct AgentInfo {
     std::string name;       ///< Human-readable agent name, e.g. "Orca", "Bambu Lab"
     std::string version;    ///< Agent version string, e.g. "1.0.0"
     std::string description; ///< Brief description of the agent's capabilities, e.g. "Orca printer agent"
+    bool        native_device_tab = true; ///< False when the native Device and Calibration tabs don't apply to the agent's printers
 };
 
 struct PrinterConnectionParams

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 17:19+0800\n"
+"POT-Creation-Date: 2026-10-30 11:58-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -2059,16 +2059,16 @@ msgstr "所選項目 1"
 
 # AI Translated
 msgid ""
-"Select 2 faces on objects and \n"
-" make objects assemble together."
+"Select 2 faces on objects and\n"
+"make objects assemble together."
 msgstr ""
 "選取物件上的 2 個面，\n"
 "使物件組裝在一起。"
 
 # AI Translated
 msgid ""
-"Select 2 points or circles on objects and \n"
-" specify distance between them."
+"Select 2 points or circles on objects and\n"
+"specify distance between them."
 msgstr ""
 "選取物件上的 2 個點或圓，\n"
 "並指定兩者之間的距離。"
@@ -2168,7 +2168,7 @@ msgstr "警告：請選取點或圓特徵。"
 # AI Translated
 msgid ""
 "It is recommended to assemble objects first,\n"
-"because they are restricted to the bed \n"
+"because they are restricted to the bed\n"
 "and only parts can be lifted."
 msgstr ""
 "建議先組裝物件，\n"
@@ -2373,6 +2373,18 @@ msgstr "密碼不正確"
 #, c-format, boost-format
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "無法連線至 %s！[SN:%s, code=%s]"
+
+# AI Translated
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr "請確認列印裝置與這台電腦位於相同網路，且其 IP 位址正確。"
+
+# AI Translated
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr "如果仍無法連線，請在偏好設定中嘗試其他版本的網路外掛程式。"
+
+# AI Translated
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr "'printer.cer' 中的 TLS/CA 憑證遺失或損毀，也可能導致此錯誤。"
 
 # AI Translated
 msgid ""
@@ -3397,6 +3409,16 @@ msgstr "自動旋轉方向"
 msgid "Auto rotate current plate"
 msgstr "自動旋轉此列印板上的物件方向"
 
+msgid "Name"
+msgstr "名稱"
+
+msgid "All Plates"
+msgstr "所有列印板"
+
+# AI Translated
+msgid "Order By"
+msgstr "排序方式"
+
 # AI Translated
 msgid "Fix All"
 msgstr "全部修復"
@@ -3449,8 +3471,9 @@ msgstr "複製"
 msgid "Simplify Model"
 msgstr "簡化模型"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "細分網格（失去顏色）"
+# AI Translated
+msgid "Subdivision mesh"
+msgstr "細分網格"
 
 # AI Translated
 msgid "Center"
@@ -3501,9 +3524,6 @@ msgstr "刪除列印板"
 
 msgid "Remove the selected plate"
 msgstr "刪除所選列印板"
-
-msgid "Name"
-msgstr "名稱"
 
 # AI Translated
 msgid "Fila."
@@ -3615,6 +3635,25 @@ msgstr "錯誤！"
 
 msgid "Failed to get the model data in the current file."
 msgstr "取得目前檔案中的模型資料失敗。"
+
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+# AI Translated
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr "內徑"
+
+# AI Translated
+msgid "Tube diameter"
+msgstr "管徑"
 
 # AI Translated
 msgid "Add primitive"
@@ -4585,8 +4624,9 @@ msgstr "傳送 G-code 檔案到 SD 記憶卡"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "傳送成功。將於 %s 秒後關閉目前頁面"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "傳送到列印裝置前需要插入儲存空間。"
+# AI Translated
+msgid "Insert storage or free up space before sending to the printer."
+msgstr "傳送到列印裝置前，請插入儲存裝置或釋放儲存空間。"
 
 # AI Translated
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
@@ -5598,11 +5638,563 @@ msgstr ""
 "否：停用 Arachne 牆產生器，並將絨毛表面設為 [位移] 模式"
 
 # AI Translated
+msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
+msgstr "將「平滑擠出率」設為大於 0 後，才能使用此設定。"
+
+# AI Translated
+msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
+msgstr "輸送帶列印裝置或已啟用擠出率平滑時，無法使用圓弧擬合。"
+
+# AI Translated
+msgid "Set wall loops above zero to use this setting."
+msgstr "將「牆層數」設為大於 0 後，才能使用此設定。"
+
+# AI Translated
+msgid "This setting is hidden because sparse infill density is zero."
+msgstr "「稀疏填充密度」為 0，因此已隱藏此設定。"
+
+# AI Translated
+msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
+msgstr "填充錨線需要「稀疏填充密度」不為 0，且圖案不是「同心」或「螺旋內縮」。"
+
+# AI Translated
+msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
+msgstr "啟用「合併填充」並將「稀疏填充密度」設為非零值後，才會顯示此設定。"
+
+# AI Translated
+msgid "Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
+msgstr "選擇「螺旋體」、「TPMS-D 結構」或「TPMS-FK 結構」填充，並將「稀疏填充密度」設為大於 0 且小於 100%。"
+
+# AI Translated
+msgid "Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
+msgstr "為「螺旋體」、「TPMS-D 結構」或「TPMS-FK 結構」填充啟用適應性密度，並將「稀疏填充密度」設為大於 0 且小於 100%。"
+
+# AI Translated
+msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
+msgstr "選擇「螺旋體」填充，將「稀疏填充密度」設為非零值並關閉適應性密度後，才能使用此設定。"
+
+# AI Translated
+msgid "The selected sparse infill pattern does not support multiline infill."
+msgstr "所選的稀疏填充圖案不支援多線填充。"
+
+# AI Translated
+msgid "The Line infill pattern does not support infill anchors."
+msgstr "「線」填充圖案不支援填充錨線。"
+
+# AI Translated
+msgid "Select an infill pattern other than Line and set the maximum infill anchor length above zero."
+msgstr "選擇「線」以外的填充圖案，並將「填充錨線的最大長度」設為大於 0。"
+
+# AI Translated
+msgid "Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."
+msgstr "將稀疏填充圖案設為「交叉之字」或「限定之字」後，才能使用此設定。"
+
+# AI Translated
+msgid "Select the Locked Zag sparse infill pattern to use this setting."
+msgstr "將稀疏填充圖案設為「限定之字」後，才能使用此設定。"
+
+# AI Translated
+msgid "Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."
+msgstr "將稀疏填充圖案設為「之字形」、「交叉之字」或「限定之字」後，才能使用此設定。"
+
+# AI Translated
+msgid "Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."
+msgstr "選擇「3D 蜂窩」填充並將「稀疏填充密度」設為非零值後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable spiral vase mode to use this setting."
+msgstr "啟用螺旋花瓶模式後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable spiral vase mode and spiral smoothing to use this setting."
+msgstr "啟用螺旋花瓶模式和「平滑螺旋」後，才能使用此設定。"
+
+# AI Translated
+msgid "This setting requires top shell layers, or more than one bottom shell layer in spiral vase mode."
+msgstr "此設定需要頂部外殼層；在螺旋花瓶模式下，則需要多於一層的底部外殼層。"
+
+# AI Translated
+msgid "This setting requires a top shell with nonzero top surface density."
+msgstr "此設定需要頂部外殼，且「頂面密度」不為 0。"
+
+# AI Translated
+msgid "Set bottom shell layers above zero to use this setting."
+msgstr "將「底部外殼層數」設為大於 0 後，才能使用此設定。"
+
+# AI Translated
+msgid "Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."
+msgstr "需要將「稀疏填充密度」設為非零值，並選用支援填充平滑的填充圖案與「多線填充」設定。"
+
+# AI Translated
+msgid "Set top surface expansion above zero to use this setting."
+msgstr "將「頂面擴展」設為大於 0 後，才能使用此設定。"
+
+# AI Translated
+msgid "Use a top or bottom shell with the Archimedean Chords or Octagram Spiral surface pattern."
+msgstr "需要頂部或底部外殼，並使用「阿基米德和弦」或「八角螺旋」表面圖案。"
+
+# AI Translated
+msgid "The selected sparse infill pattern does not support separated infills."
+msgstr "所選的稀疏填充圖案不支援分離填充。"
+
+# AI Translated
+msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
+msgstr "需要「頂面密度」不為 0 的頂部外殼，並使用「同心」、「螺旋內縮」、「阿基米德和弦」或「八角螺旋」表面圖案。"
+
+# AI Translated
+msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
+msgstr "需要底部外殼層，並使用「同心」、「螺旋內縮」、「阿基米德和弦」或「八角螺旋」表面圖案。"
+
+# AI Translated
+msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
+msgstr "將「稀疏填充密度」設為非零值，或設定頂部或底部外殼層後，才能編輯此設定。"
+
+# AI Translated
+msgid "Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."
+msgstr "關閉螺旋花瓶模式並將「頂部外殼層數」設為大於 0 後，才能編輯「頂部外殼厚度」。"
+
+# AI Translated
+msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
+msgstr "關閉螺旋花瓶模式並將「底部外殼層數」設為大於 0 後，才能編輯「底部外殼厚度」。"
+
+# AI Translated
+msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
+msgstr "將預設加速度設為大於 0 後，才能分別編輯各擠出類型的加速度。"
+
+# AI Translated
+msgid "This setting requires the Marlin firmware G-code flavor."
+msgstr "此設定需要將「G-code 風格」設為 Marlin 2。"
+
+# AI Translated
+msgid "Jerk settings are unavailable while the printer uses junction deviation."
+msgstr "列印裝置使用轉角偏差時，無法使用急衝速度設定。"
+
+# AI Translated
+msgid "Set the printer junction deviation limit above zero with the Marlin firmware G-code flavor to edit this setting."
+msgstr "將「G-code 風格」設為 Marlin 2，並將列印裝置的「最大轉角偏差」設為大於 0 後，才能編輯此設定。"
+
+# AI Translated
+msgid "Set default jerk above zero to edit jerk for individual extrusion roles."
+msgstr "將預設急衝速度設為大於 0 後，才能分別編輯各擠出類型的急衝速度。"
+
+# AI Translated
+msgid "Use a non-belt printer with skirt loops above zero to use this setting."
+msgstr "使用非輸送帶列印裝置，並將「Skirt 圈數」設為大於 0 後，才能使用此設定。"
+
+# AI Translated
+msgid "Use a non-belt printer with skirt loops above zero and disable the full-height draft shield to edit skirt height."
+msgstr "使用非輸送帶列印裝置，將「Skirt 圈數」設為大於 0 並關閉全高防風罩後，才能編輯「Skirt 高度」。"
+
+# AI Translated
+msgid "Skirts are unavailable for belt printers."
+msgstr "輸送帶列印裝置無法使用 Skirt。"
+
+# AI Translated
+msgid "Select a brim type other than No brim to use this setting."
+msgstr "將「Brim 類型」設為「無 Brim」以外的選項後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable a brim on a printer without a tilted belt to use this setting."
+msgstr "在沒有傾斜輸送帶的列印裝置上啟用 Brim 後，才能使用此設定。"
+
+# AI Translated
+msgid "Select a brim type with an editable width, or enable a brim on a tilted belt printer."
+msgstr "請選擇寬度可編輯的 Brim 類型，或在傾斜輸送帶列印裝置上啟用 Brim。"
+
+# AI Translated
+msgid "This setting requires a belt printer with a tilted slicing plane."
+msgstr "此設定需要切片平面傾斜的輸送帶列印裝置。"
+
+# AI Translated
+msgid "Enable a brim on a belt printer with a tilted slicing plane to use this setting."
+msgstr "在切片平面傾斜的輸送帶列印裝置上啟用 Brim 後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable walls or a brim to select the wall filament."
+msgstr "啟用牆或 Brim 後，才能選擇牆的線材。"
+
+# AI Translated
 msgid "Brim ear radius"
 msgstr "耳狀 Brim 半徑"
 
 msgid "Brim width"
 msgstr "Brim 寬度"
+
+# AI Translated
+msgid "Set brim width above zero to edit brim ear detection."
+msgstr "將「Brim 寬度」設為大於 0 後，才能編輯耳狀 Brim 偵測。"
+
+# AI Translated
+msgid "Use painted brim ears or set brim width above zero to edit this setting."
+msgstr "使用繪製的耳狀 Brim，或將「Brim 寬度」設為大於 0 後，才能編輯此設定。"
+
+# AI Translated
+msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
+msgstr "在沒有傾斜輸送帶的列印裝置上將「Brim 類型」設為「圓盤」後，才能使用此設定。"
+
+# AI Translated
+msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
+msgstr "在沒有傾斜輸送帶的列印裝置上將「Brim 類型」設為「圓盤」或「繪製」後，才能使用此設定。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
+msgstr "啟用「象腳補償」，或將「象腳層密度」設為小於 100% 後，才能使用此設定。"
+
+# AI Translated
+msgid "Rafts are unavailable for belt printers."
+msgstr "輸送帶列印裝置無法使用筏層。"
+
+# AI Translated
+msgid "Enable support to edit this setting."
+msgstr "啟用支撐後，才能編輯此設定。"
+
+# AI Translated
+msgid "Enable support or add raft layers to edit this setting."
+msgstr "啟用支撐或加入筏層後，才能編輯此設定。"
+
+# AI Translated
+msgid "Select an automatic support type to edit the threshold angle."
+msgstr "選擇自動支撐類型後，才能編輯「臨界值角度」。"
+
+# AI Translated
+msgid "Select an automatic support type and set the threshold angle to zero to edit threshold overlap."
+msgstr "選擇自動支撐類型並將「臨界值角度」設為 0 後，才能編輯「重疊臨界值」。"
+
+# AI Translated
+msgid "Threshold overlap is unavailable for tree supports."
+msgstr "樹狀支撐無法使用「重疊臨界值」。"
+
+# AI Translated
+msgid "Enable tree supports and select a style other than Organic or Default to show this setting."
+msgstr "啟用樹狀支撐並選擇「有機樹」和「預設」以外的樣式後，才會顯示此設定。"
+
+# AI Translated
+msgid "Enable tree supports with the Organic or Default style to show this setting."
+msgstr "啟用樹狀支撐並將樣式設為「有機樹」或「預設」後，才會顯示此設定。"
+
+# AI Translated
+msgid "Independent support layer height is unavailable for organic tree supports."
+msgstr "有機樹狀支撐無法使用「獨立支撐層高」。"
+
+# AI Translated
+msgid "Enable tree supports and turn off automatic brim width to edit the tree support brim width."
+msgstr "啟用樹狀支撐並關閉「自動 Brim 寬度」後，才能編輯「樹狀支撐 Brim 寬度」。"
+
+# AI Translated
+msgid "Enable tree supports to show the maximum bridge length."
+msgstr "啟用樹狀支撐後，才會顯示「最大橋接長度」。"
+
+# AI Translated
+msgid "Tree supports use maximum bridge length instead of the bridge support setting."
+msgstr "樹狀支撐使用「最大橋接長度」，而非「不支撐橋接」設定。"
+
+# AI Translated
+msgid "Enable automatic tree supports to show this setting."
+msgstr "啟用自動樹狀支撐後，才會顯示此設定。"
+
+# AI Translated
+msgid "Set top or bottom support interface layers above zero to edit this setting."
+msgstr "將「頂部支撐面層數」或「底部支撐面層數」設為大於 0 後，才能編輯此設定。"
+
+# AI Translated
+msgid "Enable a raft, or enable supports with top interface layers, to use support ironing."
+msgstr "啟用筏層，或啟用具有頂部支撐面層的支撐後，才能使用支撐面熨燙。"
+
+# AI Translated
+msgid "Enable support ironing with a raft or top support interface layers to show this setting."
+msgstr "在有筏層或頂部支撐面層時啟用「支撐面熨燙」後，才會顯示此設定。"
+
+# AI Translated
+msgid "Set top or bottom support interface layers above zero to edit interface spacing."
+msgstr "將「頂部支撐面層數」或「底部支撐面層數」設為大於 0 後，才能編輯支撐面間距。"
+
+# AI Translated
+msgid "Support ironing requires a solid interface, so interface spacing cannot be edited."
+msgstr "支撐面熨燙需要實心支撐面，因此無法編輯支撐面間距。"
+
+# AI Translated
+msgid "Enable walls, a skirt or a brim to edit inner wall line width."
+msgstr "啟用牆、Skirt 或 Brim 後，才能編輯內牆線寬。"
+
+# AI Translated
+msgid "Enable support, a raft, or a skirt to select the support filament."
+msgstr "啟用支撐、筏層或 Skirt 後，才能選擇支撐線材。"
+
+# AI Translated
+msgid "Add raft layers to show raft contact distance."
+msgstr "加入筏層後，才會顯示「筏層 Z 間距」。"
+
+# AI Translated
+msgid "Raft contact distance is unavailable when the top support Z distance is zero."
+msgstr "支撐的「頂部 Z 間距」為 0 時，無法使用「筏層 Z 間距」。"
+
+# AI Translated
+msgid "Add raft layers to show raft expansion."
+msgstr "加入筏層後，才會顯示「筏層擴展」。"
+
+# AI Translated
+msgid "Slim, Strong and Hybrid tree supports use first layer expansion instead of raft expansion."
+msgstr "「苗條樹」、「粗壯樹」和「混合樹」樣式的樹狀支撐使用「首層擴展」，而非「筏層擴展」。"
+
+# AI Translated
+msgid "Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."
+msgstr "加入筏層，或選擇「苗條樹」和「粗壯樹」以外的樹狀支撐樣式後，才能編輯「首層擴展」。"
+
+# AI Translated
+msgid "Enable ironing to use this setting."
+msgstr "啟用熨燙後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable ironing with the Rectilinear pattern to edit ironing angles."
+msgstr "啟用熨燙並使用「直線」圖案後，才能編輯熨燙角度。"
+
+# AI Translated
+msgid "Enable ironing or support ironing to edit ironing speed."
+msgstr "啟用熨燙或支撐面熨燙後，才能編輯「熨燙速度」。"
+
+# AI Translated
+msgid "Enable Z contouring to use this setting."
+msgstr "啟用 Z 輪廓處理後，才能使用此設定。"
+
+# AI Translated
+msgid "Print order cannot be edited when the print sequence is By object."
+msgstr "「列印順序」為「逐件」時，無法編輯「單層順序」。"
+
+# AI Translated
+msgid "This setting is unavailable for Bambu Lab printers."
+msgstr "此設定不適用於 Bambu Lab 列印裝置。"
+
+# AI Translated
+msgid "This setting is unavailable in single extruder multimaterial mode."
+msgstr "單擠出機多線材模式下無法使用此設定。"
+
+# AI Translated
+msgid "Enable ooze prevention to use this setting."
+msgstr "啟用防漏料後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable ooze prevention and use a positive number of preheat steps to show this setting."
+msgstr "啟用防漏料並將「預熱階段」設為正數後，才會顯示此設定。"
+
+# AI Translated
+msgid "Enable the belt purge tower in the belt printer settings to use this setting."
+msgstr "在輸送帶列印裝置設定中啟用輸送帶清理塔後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable the prime tower on a non-belt printer to use this setting."
+msgstr "在非輸送帶列印裝置上啟用換料塔後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable the prime tower and tower interface features on a non-belt printer to use this setting."
+msgstr "在非輸送帶列印裝置上啟用換料塔和換料塔介面功能後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable the prime tower and select wipe tower Type 2 on a non-Bambu, non-belt printer."
+msgstr "在非 Bambu、非輸送帶列印裝置上啟用換料塔，並將「換料塔類型」設為「類型 2」。"
+
+# AI Translated
+msgid "Enable the prime tower on a non-belt printer and turn off skipping sparse tower layers to use layer combination."
+msgstr "在非輸送帶列印裝置上啟用換料塔並關閉「取消稀疏層」後，才能使用「合併稀疏層」。"
+
+# AI Translated
+msgid "Enable the prime tower with Rib walls on a non-belt printer to use this setting."
+msgstr "在非輸送帶列印裝置上啟用換料塔並將「牆體類型」設為「肋條」後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable a Type 2 prime tower with Cone walls on a non-Bambu, non-belt printer."
+msgstr "在非 Bambu、非輸送帶列印裝置上啟用「類型 2」換料塔，並將「牆體類型」設為「錐體」。"
+
+# AI Translated
+msgid "Enable the prime tower on a non-belt printer and choose a wall type other than Rib to edit tower width."
+msgstr "在非輸送帶列印裝置上啟用換料塔並選擇「肋條」以外的牆體類型後，才能編輯換料塔寬度。"
+
+# AI Translated
+msgid "Enable a Type 2 prime tower on a non-Bambu, non-belt printer and disable single extruder multimaterial mode."
+msgstr "在非 Bambu、非輸送帶列印裝置上啟用「類型 2」換料塔，並關閉單擠出機多線材模式。"
+
+# AI Translated
+msgid "Select Cyclic tool change ordering to use this setting."
+msgstr "將「換工具順序」設為「循環」後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
+msgstr "啟用換料塔，並關閉「在換料塔中清理」或單擠出機多線材模式。"
+
+# AI Translated
+msgid "Enable the prime tower to use this setting."
+msgstr "啟用換料塔後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable avoiding crossing walls to edit the maximum travel detour distance."
+msgstr "啟用「避免跨越外牆」後，才能編輯最大繞行長度。"
+
+# AI Translated
+msgid "Enable setting other flow ratios to use this setting."
+msgstr "啟用「設定其他流量比例」後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable slowing down for overhangs to use this setting."
+msgstr "啟用「懸空處降速」後，才能使用此設定。"
+
+# AI Translated
+msgid "This setting is available in object settings rather than global print settings."
+msgstr "此設定只能在物件設定中修改，全域列印設定中沒有此項。"
+
+# AI Translated
+msgid "Select a specific support interface filament and use the default support filament to show this setting."
+msgstr "為支撐面指定線材，並讓支撐主體使用預設線材後，才會顯示此設定。"
+
+# AI Translated
+msgid "Enable fuzzy skin to use this setting."
+msgstr "啟用絨毛表面後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable fuzzy skin with Ripple noise to use this setting."
+msgstr "啟用絨毛表面並使用「漣漪」雜訊後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable fuzzy skin and select a noise type other than Classic or Ripple to edit noise scale."
+msgstr "啟用絨毛表面並選擇「經典」和「漣漪」以外的雜訊類型後，才能編輯「絨毛表面特徵尺寸」。"
+
+# AI Translated
+msgid "Enable fuzzy skin and select a noise type other than Classic, Voronoi or Ripple to edit noise octaves."
+msgstr "啟用絨毛表面並選擇「經典」、「沃羅諾伊」和「漣漪」以外的雜訊類型後，才能編輯「絨毛表面雜訊倍頻」。"
+
+# AI Translated
+msgid "Enable fuzzy skin with Perlin or Billow noise to edit persistence."
+msgstr "啟用絨毛表面並使用「柏林」或「波狀」雜訊後，才能編輯「絨毛表面雜訊持續度」。"
+
+# AI Translated
+msgid "Select the Arachne wall generator to use this setting."
+msgstr "將「牆產生器」設為 Arachne 後，才能使用此設定。"
+
+# AI Translated
+msgid "Thin wall detection is unavailable with the Arachne wall generator."
+msgstr "使用 Arachne 牆產生器時，無法使用「偵測薄壁」。"
+
+# AI Translated
+msgid "Disable role-based wipe speed to edit wipe speed manually."
+msgstr "關閉「依擠出類型的擦拭速度」後，才能手動編輯「擦拭速度」。"
+
+# AI Translated
+msgid "Enable inward wiping to edit inward wipe distance."
+msgstr "啟用「向內擦拭」後，才能編輯「向內擦拭距離」。"
+
+# AI Translated
+msgid "This setting requires the Klipper G-code flavor."
+msgstr "此設定需要將「G-code 風格」設為 Klipper。"
+
+# AI Translated
+msgid "Enable acceleration to deceleration to edit its factor."
+msgstr "啟用 accel_to_decel 後，才能編輯其係數。"
+
+# AI Translated
+msgid "Enable excluding objects with the Klipper G-code flavor to edit the outline tolerance."
+msgstr "將「G-code 風格」設為 Klipper 並啟用「物件排除」後，才能編輯「輪廓線公差」。"
+
+# AI Translated
+msgid "Enable making overhangs printable to use this setting."
+msgstr "啟用「使懸空可列印」後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5."
+msgstr "在有頂部外殼層時啟用「頂面單層牆」，或使用 Arachne 並將「最短牆長」設為大於 0.5。"
+
+# AI Translated
+msgid "Enable converting holes to polyholes to use this setting."
+msgstr "啟用「將圓孔轉換為多邊形孔」後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable overhang wall detection to use this setting."
+msgstr "啟用「偵測懸空牆」後，才能使用此設定。"
+
+# AI Translated
+msgid "Reverse overhang direction is unavailable in spiral vase mode."
+msgstr "螺旋花瓶模式下無法使用「偶數層反向」。"
+
+# AI Translated
+msgid "Disable spiral vase mode and enable reverse overhang direction to use this setting."
+msgstr "關閉螺旋花瓶模式並啟用「偶數層反向」後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."
+msgstr "啟用「偵測懸空牆」和「偶數層反向」，關閉螺旋花瓶模式，並關閉「僅反向內牆」。"
+
+# AI Translated
+msgid "This setting requires a Bambu Lab printer."
+msgstr "此設定僅適用於 Bambu Lab 列印裝置。"
+
+# AI Translated
+msgid "Enable small area infill flow compensation to edit its model."
+msgstr "啟用「小面積流量補償」後，才能編輯「流量補償模型」。"
+
+# AI Translated
+msgid "Scarf seams are unavailable in spiral vase mode and for belt printers."
+msgstr "螺旋花瓶模式下和輸送帶列印裝置上無法使用斜拼接縫。"
+
+# AI Translated
+msgid "Enable scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
+msgstr "在非輸送帶列印裝置上關閉螺旋花瓶模式並啟用斜拼接縫後，才能使用此設定。"
+
+# AI Translated
+msgid "Disable scarfing the entire loop to edit the minimum scarf length."
+msgstr "關閉「環繞整個牆體的斜拼接縫」後，才能編輯「斜拼接縫長度」。"
+
+# AI Translated
+msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
+msgstr "在非輸送帶列印裝置上關閉螺旋花瓶模式並啟用「條件式斜拼接縫」後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable beam interlocking to use this setting."
+msgstr "啟用梁式互鎖後，才能使用此設定。"
+
+# AI Translated
+msgid "Disable beam interlocking to edit segmented region interlocking depth."
+msgstr "關閉梁式互鎖後，才能編輯「分隔區域的互鎖深度」。"
+
+# AI Translated
+msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
+msgstr "將稀疏填充圖案設為「側向晶格」後，才能使用此設定。"
+
+# AI Translated
+msgid "Select the Lightning sparse infill pattern to use this setting."
+msgstr "將稀疏填充圖案設為「閃電」後，才能使用此設定。"
+
+# AI Translated
+msgid "Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."
+msgstr "「適應性立方體」和「支撐立方體」填充無法使用填充旋轉範本。"
+
+# AI Translated
+msgid "Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."
+msgstr "清除「稀疏填充旋轉範本」，並選擇「適應性立方體」和「支撐立方體」以外的圖案後，才能編輯「稀疏填充方向」。"
+
+# AI Translated
+msgid "Clear the solid infill rotation template to edit solid infill direction."
+msgstr "清除「實心填充旋轉範本」後，才能編輯「實心填充方向」。"
+
+# AI Translated
+msgid "Select the Lateral Honeycomb sparse infill pattern to use this setting."
+msgstr "將稀疏填充圖案設為「側向蜂窩」後，才能使用此設定。"
+
+# AI Translated
+msgid "The selected printer does not support wrapping detection."
+msgstr "所選列印裝置不支援結塊偵測。"
+
+# AI Translated
+# Needs human review: SLA-only string; check that 底座 matches how the SLA pad is named elsewhere.
+msgid "Enable the pad to edit this setting."
+msgstr "啟用底座後，才能編輯此設定。"
+
+# AI Translated
+# Needs human review: SLA-only string; check that 底座 matches how the SLA pad is named elsewhere.
+msgid "Enable the pad around the object to edit this setting."
+msgstr "啟用物件周圍的底座後，才能編輯此設定。"
+
+# AI Translated
+# Needs human review: SLA-only string; check the pad (底座) and object elevation wording.
+msgid "Enable support and disable the pad around the object to edit object elevation."
+msgstr "啟用支撐並關閉物件周圍的底座後，才能編輯物件抬升高度。"
 
 # AI Translated
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
@@ -6661,6 +7253,10 @@ msgstr "左噴嘴：X:%1%-%2%、Y:%3%-%4%、Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "右噴嘴：X:%1%-%2%、Y:%3%-%4%、Z:%5%-%6%"
 
+# AI Translated
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr "某些模型的位置或尺寸超出所指派擠出機的列印範圍。請檢查並調整零件的位置或尺寸以符合可列印範圍。"
+
 msgid "Mirror object"
 msgstr "鏡像物件"
 
@@ -6807,9 +7403,6 @@ msgstr "切片所有列印板"
 msgid "Failed"
 msgstr "失敗"
 
-msgid "All Plates"
-msgstr "所有列印板"
-
 msgid "Stats"
 msgstr "統計"
 
@@ -6938,7 +7531,7 @@ msgid "Size:"
 msgstr "尺寸："
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "在第 %d 層（Z = %.2lf mm）發現 G-code 路徑衝突。請將有衝突的物件分開得更遠（%s <-> %s）。"
 
@@ -7816,6 +8409,10 @@ msgstr "下載"
 msgid "Download selected files from printer."
 msgstr "從列印裝置中下載選取的檔案。"
 
+# AI Translated
+msgid "Select all files in the list for batch management."
+msgstr "選取清單中的所有檔案以進行批次管理。"
+
 msgid "Batch manage files."
 msgstr "批次管理檔案。"
 
@@ -8100,7 +8697,7 @@ msgstr "清除"
 
 # AI Translated
 msgid ""
-"You have completed printing the mall model, \n"
+"You have completed printing the mall model,\n"
 "but synchronizing rating information has failed."
 msgstr ""
 "您已完成商城模型的列印，\n"
@@ -8374,7 +8971,7 @@ msgid "You can select up to 16 images."
 msgstr "您最多可以選擇 16 張圖片。"
 
 msgid ""
-"At least one successful print record of this print profile is required \n"
+"At least one successful print record of this print profile is required\n"
 "to give a positive rating (4 or 5 stars)."
 msgstr ""
 "若要給予正面評價（4 或 5 星），\n"
@@ -9006,6 +9603,24 @@ msgstr ""
 "請啟用或安裝後使用。"
 
 # AI Translated
+msgid "Hidden by the current configuration."
+msgstr "目前設定下已隱藏。"
+
+# AI Translated
+#, boost-format
+msgid "Hidden: %1%"
+msgstr "已隱藏：%1%"
+
+# AI Translated
+msgid "Disabled by the current configuration."
+msgstr "目前設定下已停用。"
+
+# AI Translated
+#, boost-format
+msgid "Disabled: %1%"
+msgstr "已停用：%1%"
+
+# AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
 msgstr "目前的列印作業中含有易牽絲的線材。此時啟用噴嘴結塊偵測可能會降低列印品質。您確定要啟用嗎？"
 
@@ -9227,6 +9842,10 @@ msgid "Material settings"
 msgstr "材料設定"
 
 # AI Translated
+msgid "The process flow ratio cannot be edited in this panel."
+msgstr "無法在此面板中編輯列印參數的流量比例。"
+
+# AI Translated
 msgid "Each mode names the tool heads that take part and the role each one plays. Click a tool button to cycle its role — hover a color below for what each role does."
 msgstr "每個模式會指定參與的工具頭及各自扮演的角色。點選工具頭按鈕可循環切換其角色；將滑鼠停留在下方的顏色上可查看各角色的作用。"
 
@@ -9235,6 +9854,7 @@ msgid "Add Mode"
 msgstr "新增模式"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "工具"
 
@@ -9251,8 +9871,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "參與此模式的工具頭及各自扮演的角色。點選方塊可循環切換其角色。"
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "列印開始時執行的 G-code，用於將列印裝置切換至此模式（例如呼叫 Klipper 的 SET_PRINT_MODE）。切片軟體只會產生主（Primary）工具頭的路徑，其餘工具頭由韌體驅動。"
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"列印開始時執行的 G-code，用於將列印裝置切換至此模式（例如呼叫 Klipper 的 SET_PRINT_MODE）。\n"
+"\n"
+"切片軟體只會產生主（Primary）工具頭的路徑，其餘工具頭由韌體驅動。"
 
 # AI Translated
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -9313,8 +9939,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "此並行模式在列印板的 IDEX/IQEX 模式選擇器中顯示的名稱。專案以名稱記錄所用的模式，因此重新命名已被列印板使用的模式，會使這些列印板回退至主模式。不可為空，空白名稱會被替換為自動產生的名稱。"
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "在使用此模式的列印開始時輸出一次的 G-code，位於列印裝置起始 G-code 之前。列印裝置會在此切換至對應的韌體模式（例如呼叫 Klipper 的 SET_PRINT_MODE 或 RepRapFirmware 的 M567），因為切片軟體只會產生主（Primary）工具頭的路徑，複製（Copy）／鏡像（Mirror）工具頭則由韌體驅動。支援占位符，可使用編輯按鈕瀏覽。若此模式不需要韌體設定，請留空。"
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"在使用此模式的列印開始時輸出一次的 G-code，位於列印裝置起始 G-code 之前。列印裝置會在此切換至對應的韌體模式（例如呼叫 Klipper 的 SET_PRINT_MODE 或 RepRapFirmware 的 M567），因為切片軟體只會產生主（Primary）工具頭的路徑，複製（Copy）／鏡像（Mirror）工具頭則由韌體驅動。\n"
+"\n"
+"支援占位符，可使用編輯按鈕瀏覽。若此模式不需要韌體設定，請留空。"
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -9710,7 +10342,7 @@ msgstr "部分已發布的設定無法套用："
 msgid "Some filament slots were changed:"
 msgstr "部分線材槽位已變更："
 
-msgid "Component name(s) inside step file not in UTF-8 format!"
+msgid "Component name(s) inside STEP file not in UTF-8 format!"
 msgstr "STEP 檔案內部元件的名稱不是 UTF-8 格式！"
 
 # AI Translated
@@ -9746,12 +10378,10 @@ msgstr "物件尺寸過小"
 # AI Translated
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
+"Instead of considering them as multiple objects, should the file be loaded as a single object with multiple parts?"
 msgstr ""
 "該檔案包含多個位於不同高度的物件。\n"
-"要將檔案載入為一個由多個零件組成的物件，\n"
-"而非多個單獨的物件嗎？"
+"要將檔案載入為一個由多個零件組成的物件，而非多個單獨的物件嗎？"
 
 # AI Translated
 msgid "Multi-part object detected"
@@ -10330,7 +10960,7 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "列印檔案資料異常，請重新切片"
 
 msgid ""
-"Print By Object: \n"
+"Print By Object:\n"
 "We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
 "逐件列印：\n"
@@ -10367,6 +10997,12 @@ msgstr "列印裝置上沒有線材。請先在列印裝置上載入線材。"
 
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "列印裝置上的線材均為未知類型。請前往列印裝置螢幕或軟體裝置頁面設定線材類型。"
+
+# AI Translated
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr "%s 已連線，但未在其上找到供料系統（AMS、CFS 或其他多線材單元），因此沒有可同步的線材。"
 
 msgid "Device Page"
 msgstr "裝置頁面"
@@ -10698,6 +11334,16 @@ msgstr "將視窗按鈕置於左側"
 msgid "(Requires restart)"
 msgstr "（需要重新啟動）"
 
+# AI Translated
+#. TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
+msgid "Render on the discrete GPU"
+msgstr "使用獨立顯示卡渲染"
+
+# AI Translated
+#. TRN DRI_PRIME is an environment variable name and must stay as it is.
+msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
+msgstr "在有兩張顯示卡的電腦上，使用獨立顯示卡而非負責顯示輸出的顯示卡執行 OrcaSlicer。部分 Wayland 系統無法顯示另一張顯示卡渲染的畫面，甚至無法開啟視窗。若 3D 視圖一直空白，請關閉此選項；若 OrcaSlicer 無法再啟動，請在環境變數中設定 DRI_PRIME=0 啟動一次，即可回到此處。"
+
 msgid "Downloads folder"
 msgstr "下載資料夾"
 
@@ -10927,6 +11573,14 @@ msgstr "選取的值變更時，自動計算清理體積"
 # AI Translated
 msgid "Auto arrange plate after cloning"
 msgstr "複製後自動擺放列印板"
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "新增標準模型時顯示選項"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "啟用後，新增標準模型前會顯示對話框，詢問其尺寸。"
 
 msgid "Auto slice after changes"
 msgstr "變更後自動切片"
@@ -11208,14 +11862,12 @@ msgstr "閒置時重複使用 3D 場景"
 
 # AI Translated
 msgid ""
-"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, and reuses the previous frame's scene instead. Reduces GPU load.\n"
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
 msgstr ""
-"當只有滑鼠游標在視埠上移動時，略過重新繪製 3D 場景，\n"
-"改為重複使用上一影格的場景。可降低 GPU 負載。\n"
+"當只有滑鼠游標在視埠上移動時，略過重新繪製 3D 場景，改為重複使用上一影格的場景。可降低 GPU 負載。\n"
 "若視埠顯示過時或缺少的內容，請停用此選項。\n"
 "\n"
 "立即生效。"
@@ -11344,9 +11996,11 @@ msgstr "無痕模式"
 
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+"\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
 "這會停用所有雲端功能，包括 Orca Cloud 設定檔同步。偏好完全離線工作的使用者可以啟用此選項。\n"
+"\n"
 "注意：啟用無痕模式時，您的使用者設定檔將不會備份到 Orca Cloud。"
 
 msgid "Hide login side panel"
@@ -11666,6 +12320,30 @@ msgid "The selected preset is null!"
 msgstr "選擇的預設為空！"
 
 # AI Translated
+msgid "Changing one dimension changes the others in proportion."
+msgstr "變更其中一個尺寸時，其他尺寸會依比例隨之變更。"
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "將這些設定儲存為預設"
+
+# AI Translated
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr "啟用後，此形狀今後將使用這些尺寸，未顯示此對話框時亦同。"
+
+# AI Translated
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr "啟用後，將直接以預設尺寸新增形狀，不再詢問。可在偏好設定中重新開啟此對話框。"
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "尺寸必須大於零"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "無效的數值輸入。"
+
+# AI Translated
 msgctxt "Layer range"
 msgid "End"
 msgstr "結束"
@@ -11849,6 +12527,18 @@ msgstr "預設「%1%」已存在，並且和目前列印裝置不相容。"
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "請注意，儲存將會覆蓋此預設。"
+
+# AI Translated
+msgid "control characters are not allowed."
+msgstr "不允許使用控制字元。"
+
+# AI Translated
+msgid "The name is a reserved system name."
+msgstr "此名稱為系統保留名稱。"
+
+# AI Translated
+msgid "The name is too long."
+msgstr "名稱過長。"
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "名稱不能和一個預設的別名相同。"
@@ -12557,8 +13247,8 @@ msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "儲存空間處於異常狀態或為唯讀模式。"
 
 # AI Translated
-msgid "Storage needs to be inserted before printing."
-msgstr "列印前需要插入儲存裝置。"
+msgid "Insert storage or free up space before printing."
+msgstr "列印前，請插入儲存裝置或釋放儲存空間。"
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "列印裝置需要更新韌體才能接收列印作業。"
@@ -12637,10 +13327,6 @@ msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "所選列印裝置與選擇的列印裝置預設不相容。"
 
 # AI Translated
-msgid "Storage needs to be inserted before send to printer."
-msgstr "傳送至列印裝置前需要插入儲存裝置。"
-
-# AI Translated
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "列印裝置需要與 Orca Slicer 位於同一個 LAN。"
 
@@ -12699,12 +13385,8 @@ msgid "Unknown Failure"
 msgstr "未知錯誤"
 
 # AI Translated
-msgid ""
-"Please Find the Pin Code in Account page on printer screen,\n"
-" and type in the Pin Code below."
-msgstr ""
-"請在列印裝置螢幕上的帳戶頁面找到 Pin 碼，\n"
-"並在下方輸入 Pin 碼。"
+msgid "Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."
+msgstr "請在列印裝置螢幕上的帳戶頁面找到 Pin 碼，並在下方輸入 Pin 碼。"
 
 # AI Translated
 msgid "Can't find Pin Code?"
@@ -12888,12 +13570,10 @@ msgstr ""
 # AI Translated
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
-"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
-"and use soluble materials for both support interface and support base."
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height and use soluble materials for both support interface and support base."
 msgstr ""
 "支撐面使用可溶線材時，建議使用以下設定：\n"
-"頂部 Z 間距為 0、頂部支撐面間距為 0、交錯直線圖案、停用獨立支撐層高，\n"
-"並在支撐面和支撐主體都使用可溶線材。"
+"頂部 Z 間距為 0、頂部支撐面間距為 0、交錯直線圖案、停用獨立支撐層高，並在支撐面和支撐主體都使用可溶線材。"
 
 # AI Translated
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
@@ -12916,12 +13596,12 @@ msgid "Experimental feature: Retracting and cutting off the filament at a greate
 msgstr "實驗性功能：換料時以較長的距離回抽並切斷線材，以減少清理量。雖然這能顯著減少清理量，但也可能增加噴嘴堵塞或其他列印問題的風險。請搭配最新的列印裝置韌體使用。"
 
 # AI Translated
-msgid ""
-"When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr ""
-"錄製無工具頭的縮時攝影時，建議新增「縮時攝影換料塔」：\n"
-"在列印板的空白位置按一下右鍵，選擇「新增標準模型」->「縮時攝影換料塔」。"
+msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+msgstr "錄製無工具頭的縮時攝影時，建議新增「縮時攝影換料塔」：在列印板的空白位置按一下右鍵，選擇「新增標準模型」->「縮時攝影換料塔」。"
+
+# AI Translated
+msgid "Setting unavailable"
+msgstr "設定無法使用"
 
 # AI Translated
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
@@ -13107,8 +13787,16 @@ msgstr "外掛設定"
 msgid "Notes"
 msgstr "備註"
 
+# AI Translated
+msgid "The selected printer does not support multiple bed types."
+msgstr "所選列印裝置不支援多種列印板類型。"
+
 msgid "Frequent"
 msgstr "常用"
+
+# AI Translated
+msgid "Custom filament print order is unavailable while the plate contains mixed-color filaments."
+msgstr "列印板上有混合線材時，無法自訂線材列印順序。"
 
 #, c-format, boost-format
 msgid ""
@@ -13132,6 +13820,18 @@ msgstr "參數覆蓋"
 
 msgid "Retraction when switching material"
 msgstr "切換線材時的回抽量"
+
+# AI Translated
+msgid "Set the filament retraction length above zero, or use the printer's value, to edit this setting."
+msgstr "將線材的回抽長度設為大於 0，或使用列印裝置的設定值後，才能編輯此設定。"
+
+# AI Translated
+msgid "The printer profile must allow filament overrides for long retraction when cutting."
+msgstr "列印裝置設定檔必須允許線材覆寫切斷時的長回抽設定。"
+
+# AI Translated
+msgid "Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."
+msgstr "在列印裝置設定檔中允許切斷時的長回抽，並在線材設定檔中啟用後，才能使用此設定。"
 
 msgid "Basic information"
 msgstr "基本資訊"
@@ -13276,6 +13976,78 @@ msgstr "相容的列印裝置"
 msgid "Compatible process profiles"
 msgstr "相容的列印參數設定檔"
 
+# AI Translated
+msgid "Enable cooling for overhangs and bridges to edit this setting."
+msgstr "啟用「強制冷卻懸空與橋接結構」後，才能編輯此設定。"
+
+# AI Translated
+msgid "Enable slowing down for layer cooling to use this setting."
+msgstr "啟用「降低列印速度以改善層冷卻」後，才能使用此設定。"
+
+# AI Translated
+msgid "Set the number of initial layers without cooling to zero to override the first layer fan speed."
+msgstr "將關閉冷卻的初始層數設為 0 後，才能覆寫「首層風扇速度」。"
+
+# AI Translated
+msgid "Enable the auxiliary fan in the printer profile to use this setting."
+msgstr "在列印裝置設定檔中啟用「輔助物件冷卻風扇」後，才能使用此設定。"
+
+# AI Translated
+msgid "The selected printer does not support air filtration."
+msgstr "所選列印裝置不支援空氣過濾。"
+
+# AI Translated
+msgid "Activate air filtration to edit this setting."
+msgstr "啟用空氣過濾後，才能編輯此設定。"
+
+# AI Translated
+msgid "Activate air filtration and enable it during printing to edit the exhaust fan speed."
+msgstr "啟用空氣過濾並勾選「列印期間」後，才能編輯排風扇速度。"
+
+# AI Translated
+msgid "Activate air filtration and enable it on completion to edit the exhaust fan speed."
+msgstr "啟用空氣過濾並勾選「完成時」後，才能編輯排風扇速度。"
+
+# AI Translated
+msgid "Enable pressure advance to use this setting."
+msgstr "啟用 Pressure Advance 後，才能使用此設定。"
+
+# AI Translated
+msgid "Select this bed type or enable support for multiple bed types in the printer profile to show its temperature settings."
+msgstr "選擇此列印板類型，或在列印裝置設定檔中啟用「支援多種熱床類型」後，才會顯示其溫度設定。"
+
+# AI Translated
+msgid "Enable pressure advance and adaptive pressure advance to use this setting."
+msgstr "啟用 Pressure Advance 和適應性 Pressure Advance 後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable the pellet printer option in the printer profile to use this setting."
+msgstr "在列印裝置設定檔中啟用「顆粒改裝列印裝置」後，才能使用此設定。"
+
+# AI Translated
+msgid "Filament diameter is unavailable for pellet printers."
+msgstr "顆粒列印裝置無法使用線材直徑。"
+
+# AI Translated
+msgid "The selected printer does not support chamber temperature control."
+msgstr "所選列印裝置不支援腔體溫度控制。"
+
+# AI Translated
+msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
+msgstr "請先將「最大體積流量多項式係數」設為非零值，再啟用適應性體積流量。"
+
+# AI Translated
+msgid "Enable multitool ramming to edit this setting."
+msgstr "啟用多工具尖端成型後，才能編輯此設定。"
+
+# AI Translated
+msgid "This setting requires a Bambu Lab printer with multiple extruders."
+msgstr "此設定僅適用於多擠出機的 Bambu Lab 列印裝置。"
+
+# AI Translated
+msgid "Use a Bambu Lab printer with multiple extruders and enable long retraction when the extruder changes."
+msgstr "使用多擠出機的 Bambu Lab 列印裝置，並啟用「更換擠出機時長回抽」。"
+
 msgid "Printable space"
 msgstr "可列印區域"
 
@@ -13394,12 +14166,10 @@ msgstr "列印裝置擠出機數量。"
 
 # AI Translated
 msgid ""
-"Single Extruder Multi Material is selected,\n"
-"and all extruders must have the same diameter.\n"
+"Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
 msgstr ""
-"已選擇「單擠出機多線材」，\n"
-"且所有擠出機的直徑必須相同。\n"
+"已選擇「單擠出機多線材」，且所有擠出機的直徑必須相同。\n"
 "是否要將所有擠出機的直徑變更為第一個擠出機的噴嘴直徑？"
 
 msgid "Nozzle diameter"
@@ -13444,6 +14214,82 @@ msgid "Z-Hop"
 msgstr "Z 抬升"
 
 # AI Translated
+msgid "Power loss recovery requires a Bambu Lab printer or the Marlin firmware G-code flavor."
+msgstr "斷電還原需要 Bambu Lab 列印裝置，或將「G-code 風格」設為 Marlin 2。"
+
+# AI Translated
+msgid "Build plate tilt is derived from the belt tilt on belt printers."
+msgstr "輸送帶列印裝置的列印板傾斜由輸送帶傾斜角度推算而來。"
+
+# AI Translated
+msgid "Enable belt printer mode to use this setting."
+msgstr "啟用輸送帶列印後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable belt printer mode and select a belt rotation axis to edit its angle."
+msgstr "啟用輸送帶列印並選擇「輸送帶傾斜軸」後，才能編輯其角度。"
+
+# AI Translated
+msgid "Enable belt printer mode and select Expert or Developer settings visibility to use this setting."
+msgstr "啟用輸送帶列印並將設定模式切換為「專家」或「開發者」後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable belt printer mode, select Expert or Developer settings visibility, and decouple the machine frame tilt to edit its angle."
+msgstr "啟用輸送帶列印，將設定模式切換為「專家」或「開發者」，並啟用「分離機器座標系傾角」後，才能編輯其角度。"
+
+# AI Translated
+msgid "Enable support for parallel printheads to edit their count."
+msgstr "啟用「支援並行列印頭」後，才能編輯其數量。"
+
+# AI Translated
+msgid "Collision volume mode selection requires multiple extruders."
+msgstr "多擠出機列印裝置才能選擇「碰撞體積行為」。"
+
+# AI Translated
+msgid "Select a shared collision volume mode or use a single-extruder printer to edit this setting."
+msgstr "選擇共用的碰撞體積行為，或使用單擠出機列印裝置後，才能編輯此設定。"
+
+# AI Translated
+msgid "Enable the auxiliary fan to edit its direction."
+msgstr "啟用輔助物件冷卻風扇後，才能編輯其方向。"
+
+# AI Translated
+msgid "Air filtration and the cooling filter are alternative accessories; disable cooling filter support to use air filtration."
+msgstr "空氣過濾與冷卻過濾器是二擇一的配件；請關閉冷卻過濾器支援以使用空氣過濾。"
+
+# AI Translated
+msgid "Enable cooling filter support in the printer profile to use this setting."
+msgstr "在列印裝置設定檔中啟用冷卻過濾器支援後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable belt printer mode to use the belt purge tower."
+msgstr "啟用輸送帶列印後，才能使用輸送帶清理塔。"
+
+# AI Translated
+msgid "Wipe tower type selection is unavailable for Bambu Lab printers and belt printers."
+msgstr "Bambu Lab 列印裝置和輸送帶列印裝置無法選擇換料塔類型。"
+
+# AI Translated
+msgid "Select wipe tower Type 2 on a non-Bambu printer to use this setting."
+msgstr "在非 Bambu 列印裝置上將「換料塔類型」設為「類型 2」後，才能使用此設定。"
+
+# AI Translated
+msgid "Extruder count cannot be edited in single extruder multimaterial mode."
+msgstr "單擠出機多線材模式下無法編輯擠出機數量。"
+
+# AI Translated
+msgid "Enable single extruder multimaterial mode to use manual filament changes."
+msgstr "啟用單擠出機多線材模式後，才能使用「手動更換線材」。"
+
+# AI Translated
+msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
+msgstr "在非 Bambu 列印裝置上啟用單擠出機多線材模式並將「換料塔類型」設為「類型 2」後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable IDEX/IQEX printer mode to use this setting."
+msgstr "啟用「IDEX/IQEX 列印裝置」後，才能使用此設定。"
+
+# AI Translated
 msgid "Front-left"
 msgstr "左前"
 
@@ -13459,6 +14305,48 @@ msgstr "左後"
 msgid "Rear-right"
 msgstr "右後"
 
+# AI Translated
+msgid "Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode."
+msgstr "在非 Bambu 列印裝置上使用多個擠出機並將「換料塔類型」設為「類型 2」，同時關閉單擠出機多線材模式。"
+
+# AI Translated
+msgid "Set retraction length above zero or enable firmware retraction to use this setting."
+msgstr "將回抽長度設為大於 0 或啟用韌體回抽後，才能使用此設定。"
+
+# AI Translated
+msgid "The extruder printable area and height are fixed by the printer profile."
+msgstr "擠出機可列印區域和高度由列印裝置設定檔決定，無法修改。"
+
+# AI Translated
+msgid "This setting is shown for printers with exactly two extruders."
+msgstr "此設定僅在恰好有兩個擠出機的列印裝置上顯示。"
+
+# AI Translated
+msgid "Select per-extruder collision volumes on a printer with multiple extruders to edit this setting."
+msgstr "在多擠出機列印裝置上將「碰撞體積行為」設為「每個擠出機個別設定」後，才能編輯此設定。"
+
+# AI Translated
+msgid "Retraction length is controlled by the firmware while firmware retraction is enabled."
+msgstr "啟用韌體回抽時，回抽長度由韌體控制。"
+
+# AI Translated
+msgid "Enable retraction and set Z hop above zero to use this setting."
+msgstr "啟用回抽並將「Z 抬升高度」設為大於 0 後，才能使用此設定。"
+
+# AI Translated
+msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
+msgstr "將回抽長度設為大於 0 並關閉韌體回抽後，才能編輯此設定。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
+msgstr "啟用回抽和擦拭，並將「擦拭後的回抽量」設為小於 100% 後，才能編輯「擦拭前的回抽量」。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
+msgstr "啟用回抽和擦拭，並將「擦拭前的回抽量」設為小於 100% 後，才能編輯「擦拭後的回抽量」。"
+
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
 "\n"
@@ -13470,6 +14358,62 @@ msgstr ""
 
 msgid "Firmware Retraction"
 msgstr "韌體回抽"
+
+# AI Translated
+msgid "Enable retraction and wiping to edit wipe distance."
+msgstr "啟用回抽和擦拭後，才能編輯「擦拭距離」。"
+
+# AI Translated
+msgid "This setting requires multiple extruders."
+msgstr "此設定需要多個擠出機。"
+
+# AI Translated
+msgid "Use multiple extruders and set tool change retraction length above zero to edit this setting."
+msgstr "使用多個擠出機並將「回抽長度（換工具）」設為大於 0 後，才能編輯此設定。"
+
+# AI Translated
+msgid "Disable firmware retraction and allow long retraction when cutting to use this setting."
+msgstr "關閉韌體回抽並允許切斷時的長回抽後，才能使用此設定。"
+
+# AI Translated
+msgid "Enable long retraction when cutting to edit the retraction distance."
+msgstr "啟用切斷時的長回抽後，才能編輯「切斷時的回抽距離」。"
+
+# AI Translated
+msgid "Select a Z hop type other than Normal to edit travel slope."
+msgstr "將「Z 抬升類型」設為「普通」以外的選項後，才能編輯「空駛角度」。"
+
+# AI Translated
+msgid "Travel acceleration limits are unavailable for the Marlin legacy and Klipper G-code flavors."
+msgstr "「G-code 風格」為 Marlin（舊版）或 Klipper 時，無法使用空駛加速度限制。"
+
+# AI Translated
+msgid "Jerk limits are unavailable while Marlin uses nonzero junction deviation."
+msgstr "Marlin 使用非零轉角偏差時，無法使用急衝速度限制。"
+
+# AI Translated
+msgid "Emitting machine limits requires the Marlin legacy, Marlin or RepRapFirmware G-code flavor."
+msgstr "「G-code 風格」為 Marlin（舊版）、Marlin 2 或 RepRapFirmware 時，才能輸出機器限制參數。"
+
+# AI Translated
+msgid "Enable resonance avoidance to edit its speed range."
+msgstr "啟用「共振規避」後，才能編輯其速度範圍。"
+
+# AI Translated
+msgid "This input shaping setting requires the Marlin or RepRapFirmware G-code flavor."
+msgstr "此輸入整形設定需要將「G-code 風格」設為 Marlin 2 或 RepRapFirmware。"
+
+# AI Translated
+msgid "Enable emitting machine limits to G-code to emit input shaping settings."
+msgstr "啟用「將限制參數輸出至 G-code」後，才能輸出輸入整形設定。"
+
+# AI Translated
+msgid "Enable emitting machine limits and input shaping to G-code to edit this setting."
+msgstr "啟用「將限制參數輸出至 G-code」和「寫入輸入整形」後，才能編輯此設定。"
+
+# AI Translated
+msgid "Enable emitting machine limits and input shaping to G-code with the Marlin firmware G-code flavor to edit separate Y-axis values."
+msgstr "將「G-code 風格」設為 Marlin 2，並啟用「將限制參數輸出至 G-code」和「寫入輸入整形」後，才能分別編輯 Y 軸的值。"
 
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
 msgstr "切換至具有不同擠出機類型或數量的列印裝置時，將捨棄或重設擠出機或多噴嘴相關參數的變更。"
@@ -13525,6 +14469,10 @@ msgstr ""
 # AI Translated
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "確定要刪除所選預設嗎？"
+
+# AI Translated
+msgid "Select \"All\" to edit the compatibility condition instead of using an explicit profile list."
+msgstr "勾選「所有」（不使用指定的設定檔清單）後，才能編輯相容條件。"
 
 msgid "Select printers"
 msgstr "選擇列印裝置"
@@ -13636,6 +14584,10 @@ msgstr "點選該圖示，還原到全域的設定數值，並與全域設定同
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "放棄目前的修改，還原到上次儲存的數值。"
 
+# AI Translated
+msgid "Material print speed cannot be edited for the SL1 printer."
+msgstr "SL1 列印裝置無法編輯材料列印速度。"
+
 msgid "Process Settings"
 msgstr "列印參數設定"
 
@@ -13721,7 +14673,7 @@ msgstr "將所選項目遷移到新的預設中。"
 
 #, boost-format
 msgid ""
-"Save the selected options to preset \n"
+"Save the selected options to preset\n"
 "\"%1%\"."
 msgstr ""
 "將所選的選項儲存到預設\n"
@@ -13729,7 +14681,7 @@ msgstr ""
 
 #, boost-format
 msgid ""
-"Transfer the selected options to the newly selected preset \n"
+"Transfer the selected options to the newly selected preset\n"
 "\"%1%\"."
 msgstr ""
 "將所選的選項轉移至新選擇的預設\n"
@@ -14610,12 +15562,8 @@ msgstr "正在連線至列印裝置...對話框稍後將會關閉"
 msgid "Connection failed, please double check IP and Access Code"
 msgstr "連線失敗，請再次檢查 IP 和存取代碼"
 
-msgid ""
-"Connection failed! If your IP and Access Code is correct, \n"
-"please move to step 3 for troubleshooting network issues"
-msgstr ""
-"連線失敗！如果 IP 和存取代碼正確，\n"
-"請進入第 3 步進行網路問題排解"
+msgid "Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"
+msgstr "連線失敗！如果 IP 和存取代碼正確，請進入第 3 步進行網路問題排解"
 
 msgid "Connection failed! Please refer to the wiki page."
 msgstr "連線失敗！請參考 wiki 頁面。"
@@ -15138,6 +16086,11 @@ msgstr "%1% 與擠出機 %2% 的碰撞體積相交。"
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% 離其它物件太近，可能會發生碰撞。"
 
+# AI Translated
+#, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr "為避免碰撞，%1% 的列印順序會晚於其在物件清單中的位置。"
+
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% 太高，會發生碰撞。"
@@ -15475,8 +16428,20 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "當「牆列印順序」為「外牆/內牆」或「內牆/外牆/內牆」時，將忽略「精準外牆尺寸」選項。"
 
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "一個或多個擠出機的適應性 Pressure Advance 模型可能包含無效值。"
+# AI Translated
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr "一個或多個擠出機已啟用適應性 Pressure Advance，但其適應性 Pressure Advance 模型中尚未輸入任何測量值。"
+
+# AI Translated
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
+"線材 %1% 的適應性 Pressure Advance 模型包含無效值。\n"
+"%2%"
 
 # AI Translated
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
@@ -16255,8 +17220,14 @@ msgid "Precise wall"
 msgstr "精準外牆尺寸"
 
 # AI Translated
-msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr "透過調整外牆間距來提高外殼精度，同時改善層間一致性。注意：當牆順序為「外牆/內牆」或「內牆/外牆/內牆」時，此選項將被忽略。"
+msgid ""
+"Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n"
+"\n"
+"Note: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgstr ""
+"透過調整外牆間距來提高外殼精度，同時改善層間一致性。\n"
+"\n"
+"注意：當牆順序為「外牆/內牆」或「內牆/外牆/內牆」時，此選項將被忽略。"
 
 msgid "Only one wall on top surfaces"
 msgstr "頂面單層牆"
@@ -16273,9 +17244,11 @@ msgstr "單層牆臨界值"
 #, no-c-format, no-boost-format
 msgid ""
 "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+"\n"
 "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
 msgstr ""
 "當需要列印頂面，而該表面有一部分被另一層覆蓋時，寬度小於此值的部分不會被視為頂層。這可避免「頂面單層牆」在只應由牆覆蓋的表面上觸發。此值可以是 mm，或牆線寬的百分比（%）。\n"
+"\n"
 "警告：啟用後，若下一層有細小特徵（例如文字），可能會產生缺陷。將此值設為 0 可消除這些缺陷。"
 
 msgid "Only one wall on first layer"
@@ -16382,7 +17355,7 @@ msgid ""
 "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
 "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 "\n"
-"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen.\n"
 "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
 "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
 "\n"
@@ -16397,7 +17370,7 @@ msgstr ""
 "啟用此選項可在牆可能向上捲曲的區域降低列印速度。\n"
 "例如，在列印像 Benchy 船體前端這類尖角上的懸空時，會套用額外的減速，以減少在多個層上不斷累積的捲曲。\n"
 "\n"
-"一般建議開啟此選項，除非您的列印裝置冷卻能力夠強，或列印速度夠慢，使得牆不會發生捲曲。 \n"
+"一般建議開啟此選項，除非您的列印裝置冷卻能力夠強，或列印速度夠慢，使得牆不會發生捲曲。\n"
 "若以較高的外牆速度列印，此參數在減速時可能會產生牆面缺陷，這是因為列印速度的差異可能過大，導致擠出機無法跟上所要求的流量變化。\n"
 "這些缺陷的根本原因很可能是 PA 調校略有偏差，尤其是搭配較高的 PA 平滑時間時。\n"
 "\n"
@@ -16681,8 +17654,12 @@ msgid "Activate air filtration"
 msgstr "啟用空氣過濾器/排風扇"
 
 # AI Translated
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "啟用以獲得更好的空氣過濾。G-code 指令：M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"啟用以獲得更好的空氣過濾。\n"
+"G-code 指令：M106 P3 S(0-255)"
 
 msgid "Enable this to override the fan speed set in custom G-code during print."
 msgstr "啟用此選項可覆寫列印期間在自訂 G-code 中設定的風扇速度。"
@@ -17150,15 +18127,27 @@ msgid "Bed mesh min"
 msgstr "熱床網格最小值"
 
 # AI Translated
-msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "此選項設定允許的熱床網格區域的最小值。由於探測器的 XY 偏移，大多數列印裝置無法探測整個熱床。為確保探測點不超出熱床區域，應適當設定熱床網格的最小值和最大值。OrcaSlicer 會確保 adaptive_bed_mesh_min/adaptive_bed_mesh_max 的值不超出這些最小值/最大值。此資訊通常可從列印裝置製造商處取得。預設設定為 (-99999, -99999)，表示無限制，允許探測整個熱床。"
+msgid ""
+"This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"此選項設定允許的熱床網格區域的最小值。由於探測器的 XY 偏移，大多數列印裝置無法探測整個熱床。為確保探測點不超出熱床區域，應適當設定熱床網格的最小值和最大值。OrcaSlicer 會確保 adaptive_bed_mesh_min/adaptive_bed_mesh_max 的值不超出這些最小值/最大值。此資訊通常可從列印裝置製造商處取得。\n"
+"\n"
+"預設設定為 (-99999, -99999)，表示無限制，允許探測整個熱床。"
 
 msgid "Bed mesh max"
 msgstr "熱床網格最大值"
 
 # AI Translated
-msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "此選項設定允許的熱床網格區域的最大值。由於探測器的 XY 偏移，大多數列印裝置無法探測整個熱床。為確保探測點不超出熱床區域，應適當設定熱床網格的最小值和最大值。OrcaSlicer 會確保 adaptive_bed_mesh_min/adaptive_bed_mesh_max 的值不超出這些最小值/最大值。此資訊通常可從列印裝置製造商處取得。預設設定為 (99999, 99999)，表示無限制，允許探測整個熱床。"
+msgid ""
+"This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"此選項設定允許的熱床網格區域的最大值。由於探測器的 XY 偏移，大多數列印裝置無法探測整個熱床。為確保探測點不超出熱床區域，應適當設定熱床網格的最小值和最大值。OrcaSlicer 會確保 adaptive_bed_mesh_min/adaptive_bed_mesh_max 的值不超出這些最小值/最大值。此資訊通常可從列印裝置製造商處取得。\n"
+"\n"
+"預設設定為 (99999, 99999)，表示無限制，允許探測整個熱床。"
 
 msgid "Probe point distance"
 msgstr "探測間距"
@@ -17285,13 +18274,11 @@ msgstr "橋接的靜態 Pressure Advance"
 
 # AI Translated
 msgid ""
-"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
-"equivalent walls (using adaptive settings if enabled).\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"橋接的靜態 Pressure Advance 值。設為 0 可套用與\n"
-"對等牆體相同的 Pressure Advance（若已啟用則使用適應性設定）。\n"
+"橋接的靜態 Pressure Advance 值。設為 0 可套用與對等牆體相同的 Pressure Advance（若已啟用則使用適應性設定）。\n"
 "\n"
 "列印橋接時使用較低的 PA 值，有助於減少橋接後立即出現的輕微擠出不足。這是由於在空中列印時噴嘴內壓力下降所造成，較低的 PA 有助於抵消此現象。"
 
@@ -18519,8 +19506,12 @@ msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "自動擺放的最佳位置，範圍為 [0,1]，相對於列印板形狀。"
 
 # AI Translated
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "如果列印裝置配有輔助物件冷卻風扇，請啟用此選項。G-code 指令：M106 P2 S(0-255)。"
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"如果列印裝置配有輔助物件冷卻風扇，請啟用此選項。\n"
+"G-code 指令：M106 P2 S(0-255)。"
 
 # AI Translated
 msgid "Fan direction"
@@ -18638,8 +19629,14 @@ msgid "Skip G-code config block"
 msgstr "略過 G-code 設定區塊"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "不將 CONFIG_BLOCK（切片軟體設定的鍵值對）寫入 G-code 檔案。這對於韌體在解析這些註解行時會當機的列印裝置（例如 Anycubic go-klipper）有幫助。注意：G-code 檔案將不再包含切片設定，因此重新匯入 OrcaSlicer 時無法還原設定。"
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"不將 CONFIG_BLOCK（切片軟體設定的鍵值對）寫入 G-code 檔案。這對於韌體在解析這些註解行時會當機的列印裝置（例如 Anycubic go-klipper）有幫助。\n"
+"\n"
+"注意：G-code 檔案將不再包含切片設定，因此重新匯入 OrcaSlicer 時無法還原設定。"
 
 msgid "Pellet Modded Printer"
 msgstr "顆粒改裝列印裝置"
@@ -18660,8 +19657,14 @@ msgstr "標註物件"
 
 # AI Translated
 # Needs human review: English names Prusa's Wipe into Object / Wipe into Infill; translation quotes Orca's Flush into this object / Flush into objects' infill labels (printconfig3) instead
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "啟用此選項會在 G-code 中加入註解，標示每段列印移動所屬的物件，適用於 Octoprint CancelObject 外掛程式。此設定與「單擠出機多線材」設定以及「將換料的廢料使用在這個物件」/「將換料的廢料使用在物件的填充」不相容。"
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"啟用此選項會在 G-code 中加入註解，標示每段列印移動所屬的物件，適用於 Octoprint CancelObject 外掛程式。\n"
+"\n"
+"此設定與「單擠出機多線材」設定以及「將換料的廢料使用在這個物件」/「將換料的廢料使用在物件的填充」不相容。"
 
 msgid "Exclude objects"
 msgstr "物件排除"
@@ -18682,8 +19685,28 @@ msgid "Verbose G-code"
 msgstr "詳細 G-code"
 
 # AI Translated
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "啟用此選項可產生附有註解的 G-code 檔案，每一行都以描述文字說明。如果您從 SD 卡列印，檔案增加的大小可能會使韌體變慢。"
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"啟用此選項可產生附有註解的 G-code 檔案，每一行都以描述文字說明。\n"
+"\n"
+"如果您從 SD 卡列印，檔案增加的大小可能會使韌體變慢。"
+
+# AI Translated
+msgid "High precision G-code (experimental)"
+msgstr "高精度 G-code（實驗性）"
+
+# AI Translated
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+msgstr ""
+"將 X、Y、Z、I 和 J 寫成 4 位小數（而非 3 位），將 E 寫成 6 位小數（而非 5 位），以減少 G-code 中的捨入誤差。使用相對 E 距離時，每次移動的捨入誤差還會累積到下一次移動。支撐在列印後會拆除，因此維持標準精度。使用小噴嘴（例如 0.2 mm）和薄層（例如 0.08 mm 或更薄）時，每次移動的擠出量很少，捨入誤差的影響最大，此選項可能有助於穩定擠出。效果在很大程度上取決於其他設定的調校情況；除非列印設定檔已充分校正，否則可能難以察覺。\n"
+"\n"
+"G-code 檔案會增大約 10%，可能使解析 G-code 較慢的列印裝置變慢。"
 
 msgid "Infill combination"
 msgstr "合併填充"
@@ -18702,15 +19725,35 @@ msgid "Sparse infill rotation template"
 msgstr "稀疏填充旋轉範本"
 
 # AI Translated
-msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr "依角度範本逐層旋轉稀疏填充方向。請輸入以逗號分隔的角度（例如 '0,30,60,90'）。角度依層序套用，清單用完後重複。支援進階語法：'+5' 表示每層旋轉 +5°；'+5#5' 表示每 5 層旋轉 +5°。詳情請參閱 Wiki。設定範本後，標準的填充方向設定將被忽略。注意：部分填充圖案（例如螺旋體）會自行控制旋轉，請謹慎使用。"
+msgid ""
+"Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends.\n"
+"\n"
+"Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n"
+"\n"
+"When a template is set, the standard infill direction setting is ignored.\n"
+"\n"
+"Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+msgstr ""
+"依角度範本逐層旋轉稀疏填充方向。請輸入以逗號分隔的角度（例如 '0,30,60,90'）。角度依層序套用，清單用完後重複。\n"
+"\n"
+"支援進階語法：'+5' 表示每層旋轉 +5°；'+5#5' 表示每 5 層旋轉 +5°。詳情請參閱 Wiki。\n"
+"\n"
+"設定範本後，標準的填充方向設定將被忽略。\n"
+"\n"
+"注意：部分填充圖案（例如螺旋體）會自行控制旋轉，請謹慎使用。"
 
 msgid "Solid infill rotation template"
 msgstr "實心填充旋轉範本"
 
 # AI Translated
-msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr "此參數依指定的範本，為每一層加上實心填充方向的旋轉。範本是以逗號分隔的角度清單（單位為度），例如 '0,90'。第一個角度套用於第一層，第二個角度套用於第二層，依此類推。如果層數多於角度數，角度會重複使用。請注意，並非所有實心填充圖案都支援旋轉。"
+msgid ""
+"This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated.\n"
+"\n"
+"Note that not all solid infill patterns support rotation."
+msgstr ""
+"此參數依指定的範本，為每一層加上實心填充方向的旋轉。範本是以逗號分隔的角度清單（單位為度），例如 '0,90'。第一個角度套用於第一層，第二個角度套用於第二層，依此類推。如果層數多於角度數，角度會重複使用。\n"
+"\n"
+"請注意，並非所有實心填充圖案都支援旋轉。"
 
 msgid "Skeleton infill density"
 msgstr "骨架填充密度"
@@ -19488,10 +20531,12 @@ msgstr "物件冷卻風扇的最小轉速。"
 # AI Translated
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "輔助物件冷卻風扇的轉速。列印期間輔助風扇會以此速度運轉，但設為不冷卻的前幾層除外。\n"
-"請在列印裝置設定中啟用「輔助物件冷卻風扇」才能使用此功能。G-code 指令：M106 P2 S(0-255)"
+"請在列印裝置設定中啟用「輔助物件冷卻風扇」才能使用此功能。\n"
+"G-code 指令：M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "在最初的"
@@ -19588,8 +20633,14 @@ msgid "Reduce infill retraction"
 msgstr "減小填充回抽"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "當空駛完全位於填充區域內時不回抽，因為漏料不會被看見。對於複雜模型，這可減少回抽次數並節省列印時間，但會使切片與 G-code 產生變慢。請注意，在略過回抽的區域也不會執行 Z 抬升。"
+msgid ""
+"Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n"
+"\n"
+"Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr ""
+"當空駛完全位於填充區域內時不回抽，因為漏料不會被看見。對於複雜模型，這可減少回抽次數並節省列印時間，但會使切片與 G-code 產生變慢。\n"
+"\n"
+"請注意，在略過回抽的區域也不會執行 Z 抬升。"
 
 # AI Translated
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -20084,8 +21135,14 @@ msgid "Scarf joint speed"
 msgstr "斜拼接縫速度"
 
 # AI Translated
-msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "此選項設定斜拼接縫的列印速度。建議以較慢的速度（小於 100 mm/s）列印斜拼接縫。若設定的速度與外牆或內牆速度差異較大，也建議啟用「平滑擠出率」。若此處設定的速度高於外牆或內牆速度，列印裝置會採用兩者中較慢的速度。以百分比（例如 80%）指定時，速度將以對應的外牆或內牆速度為基準計算。預設值為 100%。"
+msgid ""
+"This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
+"\n"
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+msgstr ""
+"此選項設定斜拼接縫的列印速度。建議以較慢的速度（小於 100 mm/s）列印斜拼接縫。若設定的速度與外牆或內牆速度差異較大，也建議啟用「平滑擠出率」。\n"
+"\n"
+"若此處設定的速度高於外牆或內牆速度，列印裝置會採用兩者中較慢的速度。以百分比（例如 80%）指定時，速度將以對應的外牆或內牆速度為基準計算。預設值為 100%。"
 
 # AI Translated
 msgid "Scarf joint flow ratio"
@@ -20355,8 +21412,14 @@ msgid "Sets the finishing flow ratio while ending the spiral. Normally the spira
 msgstr "設定螺旋結束時的收尾流量比例。通常，螺旋過渡會在最後一圈內將流量比例從 100% 逐步減少到 0%，在某些情況下可能導致螺旋結束時擠出不足。"
 
 # AI Translated
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "選擇平滑或傳統模式時，每次列印都會產生縮時影片。每列印完一層，攝影機就會拍攝一張快照。列印完成後，這些快照會合成為縮時影片。若選擇平滑模式，工具頭會在每層列印完成後移動到廢料槽再拍攝快照。由於拍攝快照時熔融的線材可能從噴嘴漏出，平滑模式需要換料塔來擦拭噴嘴。"
+msgid ""
+"If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n"
+"\n"
+"If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+msgstr ""
+"選擇平滑或傳統模式時，每次列印都會產生縮時影片。每列印完一層，攝影機就會拍攝一張快照。列印完成後，這些快照會合成為縮時影片。\n"
+"\n"
+"若選擇平滑模式，工具頭會在每層列印完成後移動到廢料槽再拍攝快照。由於拍攝快照時熔融的線材可能從噴嘴漏出，平滑模式需要換料塔來擦拭噴嘴。"
 
 msgid "Traditional"
 msgstr "傳統模式"
@@ -20580,16 +21643,28 @@ msgid "Tool change on wipe tower"
 msgstr "在換料塔上換工具"
 
 # AI Translated
-msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
-msgstr "強制工具頭在發出換工具指令（Tx）之前先空駛到換料塔。僅適用於使用類型 2 換料塔的多擠出機（多工具頭）列印裝置。預設情況下，Orca 會在多工具頭列印裝置上略過此空駛，因為韌體會處理工具頭交換，這可能導致 Tx 指令在已列印的零件上方發出。若您希望換工具一律改在換料塔上方發出，請啟用此選項。"
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+msgstr ""
+"強制工具頭在發出換工具指令（Tx）之前先空駛到換料塔。\n"
+"\n"
+"僅適用於使用類型 2 換料塔的多擠出機（多工具頭）列印裝置。預設情況下，Orca 會在多工具頭列印裝置上略過此空駛，因為韌體會處理工具頭交換，這可能導致 Tx 指令在已列印的零件上方發出。若您希望換工具一律改在換料塔上方發出，請啟用此選項。"
 
 # AI Translated
 msgid "Wait for temperature on wipe tower"
 msgstr "在換料塔上等待溫度"
 
 # AI Translated
-msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr "取用新工具時不等待其達到列印溫度，先空駛到換料塔，並在清理前於換料塔上等待溫度。升溫過程中漏出的線材會落在換料塔上而非模型上，且空駛時間與加熱過程重疊。僅適用於使用類型 2 換料塔的多擠出機（多工具頭）列印裝置。韌體或換工具巨集本身不得等待溫度。停用時，等待溫度的指令會在換工具指令之後立即發出。"
+msgid ""
+"Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating.\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
+"取用新工具時不等待其達到列印溫度，先空駛到換料塔，並在清理前於換料塔上等待溫度。升溫過程中漏出的線材會落在換料塔上而非模型上，且空駛時間與加熱過程重疊。\n"
+"\n"
+"僅適用於使用類型 2 換料塔的多擠出機（多工具頭）列印裝置。韌體或換工具巨集本身不得等待溫度。停用時，等待溫度的指令會在換工具指令之後立即發出。"
 
 msgid "No sparse layers (beta)"
 msgstr "取消稀疏層（Beta）"
@@ -20919,10 +21994,16 @@ msgstr "支撐的列印速度。"
 
 # AI Translated
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"支撐的樣式與形狀。普通支撐將支撐投影到規則網格上，可產生更穩定的支撐（預設）；緊貼的支撐塔則能節省材料並減少物件表面的瑕疵。\n"
+"支撐的樣式與形狀。\n"
+"\n"
+"普通支撐將支撐投影到規則網格上，可產生更穩定的支撐（預設）；緊貼的支撐塔則能節省材料並減少物件表面的瑕疵。\n"
+"\n"
 "樹狀支撐中，「苗條樹」與「有機樹」樣式會更積極地合併分支並節省大量材料（預設為有機樹）；「混合樹」樣式則會在大面積平坦懸空下產生與普通支撐類似的結構。"
 
 # AI Translated
@@ -20956,9 +22037,11 @@ msgstr "臨界值角度"
 # AI Translated
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
 "會為傾斜角度低於此臨界值的懸空產生支撐。數值越小，不需支撐即可列印的懸空就越陡。\n"
+"\n"
 "注意：若設為 0，普通支撐會改用「重疊臨界值」，樹狀支撐則會改用預設值 30。"
 
 # AI Translated
@@ -21008,16 +22091,6 @@ msgstr "輸送帶傾斜軸"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "切片前網格旋轉所繞的軸。這就是輸送帶列印裝置的傾斜：一種等距（無變形）旋轉，同時用於列印板渲染與支撐的重力傾斜；G-code 反向轉換會先還原此旋轉，再進行機器座標系的剪切／縮放與重新映射。X 是典型的龍門傾斜軸（輸送帶沿 Y 方向移動）。"
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -21235,13 +22308,11 @@ msgstr "啟動溫度控制"
 
 # AI Translated
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"啟用此選項可自動控制腔體溫度。此選項會在 \"machine_start_gcode\" 之前發出 M191 指令，\n"
-"用於設定腔體溫度並等待達到該溫度。此外，若裝有腔體加熱器，還會在列印結束時發出 M141 指令將其關閉。\n"
+"啟用此選項可自動控制腔體溫度。此選項會在 \"machine_start_gcode\" 之前發出 M191 指令，用於設定腔體溫度並等待達到該溫度。此外，若裝有腔體加熱器，還會在列印結束時發出 M141 指令將其關閉。\n"
 "\n"
 "此選項需要韌體以巨集或原生方式支援 M191 和 M141 指令，通常用於裝有主動式腔體加熱器的情況。"
 
@@ -21251,25 +22322,31 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "對於 ABS、ASA、PC 和 PA 等高溫材料，較高的腔體溫度有助於抑制或減少翹曲，並可能提升層間結合強度。但同時，較高的腔體溫度也會降低 ABS 和 ASA 的空氣過濾效率。\n"
 "\n"
 "對於 PLA、PETG、TPU、PVA 等低溫材料，應停用此選項（設為 0），因為腔體溫度應保持較低，以免材料在喉管處軟化而導致擠出機堵塞。\n"
 "\n"
-"啟用時，此參數也會設定一個名為 chamber_temperature 的 G-code 變數，可用於將所需的腔體溫度傳給列印開始巨集或熱浸泡巨集，例如：PRINT_START (其他變數) CHAMBER_TEMP=[chamber_temperature]。若您的列印裝置不支援 M141/M191 指令，或未安裝主動式腔體加熱器而想在列印開始巨集中處理熱浸泡，這會很有用。"
+"啟用時，此參數也會設定一個名為 chamber_temperature 的 G-code 變數，可用於將所需的腔體溫度傳給列印開始巨集或熱浸泡巨集，例如：\n"
+"PRINT_START (其他變數) CHAMBER_TEMP=[chamber_temperature]\n"
+"若您的列印裝置不支援 M141/M191 指令，或未安裝主動式腔體加熱器而想在列印開始巨集中處理熱浸泡，這會很有用。"
 
 # AI Translated
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
-"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this:\n"
+"PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
 "這是開始列印時的腔體溫度，此時腔體會持續朝「目標」腔體溫度加熱。例如，將「目標」設為 60、「最低」設為 50，腔體達到 50℃ 時即開始列印，無需等到完整的 60℃。\n"
 "\n"
-"它會設定一個名為 chamber_minimal_temperature 的 G-code 變數，可傳給您的列印開始巨集或熱浸泡巨集，例如：PRINT_START (其他變數) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]。\n"
+"它會設定一個名為 chamber_minimal_temperature 的 G-code 變數，可傳給您的列印開始巨集或熱浸泡巨集，例如：\n"
+"PRINT_START (其他變數) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "與「目標」腔體溫度不同，此選項不會發出任何 M141/M191 指令，只會將此數值提供給您的自訂 G-code。此值不應超過「目標」腔體溫度。"
 
@@ -21739,8 +22816,18 @@ msgid "Wall transitioning filter margin"
 msgstr "牆過渡過濾間距"
 
 # AI Translated
-msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
-msgstr "防止牆體數量在多出一層與少一層之間頻繁切換。此邊界將擠出寬度的範圍擴展為 [最小牆寬 - 邊界, 2 倍最小牆寬 + 邊界]。增大邊界可以減少切換次數，從而減少擠出啟停和空駛時間。但過大的擠出寬度變化可能引發擠出不足或過度擠出問題。此值以噴嘴直徑的百分比表示。"
+msgid ""
+"Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin].\n"
+"\n"
+"Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems.\n"
+"\n"
+"It's expressed as a percentage over nozzle diameter."
+msgstr ""
+"防止牆體數量在多出一層與少一層之間頻繁切換。此邊界將擠出寬度的範圍擴展為 [最小牆寬 - 邊界, 2 倍最小牆寬 + 邊界]。\n"
+"\n"
+"增大邊界可以減少切換次數，從而減少擠出啟停和空駛時間。但過大的擠出寬度變化可能引發擠出不足或過度擠出問題。\n"
+"\n"
+"此值以噴嘴直徑的百分比表示。"
 
 msgid "Wall transitioning threshold angle"
 msgstr "牆過渡臨界值角度"
@@ -21831,8 +22918,14 @@ msgid "The maximum volumetric speed for ramming before extruder change, where -1
 msgstr "換出擠出機前尖端成型的最大體積流量，-1 表示使用最大體積流量。"
 
 # AI Translated
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "為防止漏料，尖端成型過程中會降低噴嘴溫度。注意：僅觸發冷卻指令並啟動風扇，不保證達到目標溫度。0 表示停用。"
+msgid ""
+"To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n"
+"\n"
+"Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed."
+msgstr ""
+"為防止漏料，尖端成型過程中會降低噴嘴溫度。0 表示停用。\n"
+"\n"
+"注意：僅觸發冷卻指令並啟動風扇，不保證達到目標溫度。"
 
 # AI Translated
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
@@ -22514,6 +23607,14 @@ msgstr "以正常模式（非靜音模式）列印時的預估列印時間。與
 # AI Translated
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "以正常模式（非靜音模式）列印時的預估列印時間。與 normal_print_time 相同。"
+
+# AI Translated
+msgid "Used filament types"
+msgstr "使用的線材類型"
+
+# AI Translated
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr "列印期間使用的所有線材類型清單，以底線分隔。"
 
 msgid "Print time (silent mode)"
 msgstr "列印時間（靜音模式）"
@@ -23835,8 +24936,8 @@ msgid "Expecting a regular expression."
 msgstr "預期為正規表示式。"
 
 # AI Translated
-msgid "Invalid utf8 sequence"
-msgstr "無效的 utf8 序列"
+msgid "Invalid UTF-8 sequence"
+msgstr "無效的 UTF-8 序列"
 
 # AI Translated
 msgid "Non-ASCII7 characters are only allowed inside text blocks and string literals, not inside code blocks."
@@ -24306,6 +25407,10 @@ msgstr ""
 "- 可共用相同熱床溫度的線材\n"
 "- 不同的線材品牌和系列（品牌 = Bambu，系列 = Basic、Matte）"
 
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "線"
+
 # AI Translated
 msgid "Pattern"
 msgstr "圖案"
@@ -24446,11 +25551,11 @@ msgstr "依噴嘴自動縮放"
 
 # AI Translated
 msgid ""
-"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
-"此模型是以 0.4 mm 噴嘴與 0.2 mm 層高為基準設計的。 \n"
+"此模型是以 0.4 mm 噴嘴與 0.2 mm 層高為基準設計的。\n"
 "啟用縮放選項後（建議），模型會依目前的噴嘴直徑與合適的層高動態調整尺寸，使測試既準確又容易判讀。\n"
 "只有在您想完全按原樣列印參考模型時，才關閉縮放。"
 
@@ -24645,12 +25750,12 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
-" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
 "\n"
 "%s"
 msgstr ""
 "結束速度（%.0f mm/s）超過線材的最大體積流量（%.1f mm³/s），在目前的線寬與層高下，外牆被限制在約 %.0f mm/s。\n"
-" 超過該值的速度會被箝制，因此塔的上部區塊不會以要求的速度列印。\n"
+"超過該值的速度會被箝制，因此塔的上部區塊不會以要求的速度列印。\n"
 "\n"
 "%s"
 
@@ -25326,13 +26431,11 @@ msgstr "您在第一頁的可列印區域中輸入了不允許的字元，請僅
 # AI Translated
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
+"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "您建立的列印裝置預設已有同名的預設。是否要覆蓋？\n"
-"\t是：覆蓋同名的列印裝置預設，並重新建立同名的線材和列印參數預設，\n"
-"名稱不同的線材和列印參數預設將會保留。\n"
+"\t是：覆蓋同名的列印裝置預設，並重新建立同名的線材和列印參數預設，名稱不同的線材和列印參數預設將會保留。\n"
 "\t取消：不建立預設，返回建立介面。"
 
 # AI Translated
@@ -25377,7 +26480,7 @@ msgstr "輸入的噴嘴直徑無效，請重新輸入：\n"
 
 # AI Translated
 msgid ""
-"The system preset does not allow creation. \n"
+"The system preset does not allow creation.\n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
 "系統預設不允許建立。\n"
@@ -25532,7 +26635,7 @@ msgstr "僅顯示具有使用者列印裝置預設的列印裝置名稱，您選
 
 # AI Translated
 msgid ""
-"Only the filament names with user filament presets will be displayed, \n"
+"Only the filament names with user filament presets will be displayed,\n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "僅顯示具有使用者線材預設的線材名稱，\n"
@@ -25540,7 +26643,7 @@ msgstr ""
 
 # AI Translated
 msgid ""
-"Only printer names with changed process presets will be displayed, \n"
+"Only printer names with changed process presets will be displayed,\n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "僅顯示列印參數預設有變更的列印裝置名稱，\n"
@@ -26802,7 +27905,7 @@ msgstr "秒"
 msgid "Volumetric speed"
 msgstr "體積流量"
 
-msgid "Step file import parameters"
+msgid "STEP file import parameters"
 msgstr "STEP 檔案匯入參數"
 
 msgid "Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."
@@ -26828,10 +27931,6 @@ msgstr "三角面片數量"
 
 msgid "Calculating, please wait..."
 msgstr "正在計算，請稍候..."
-
-# AI Translated
-msgid "Save these settings as default"
-msgstr "將這些設定儲存為預設"
 
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
@@ -30754,10 +31853,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "這兩條直線未相交於角點，請選取兩條相交於角點的直線"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "尺寸必須大於零"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "圓角：半徑超出其中一邊的長度，或兩條直線未相交於角點"
 
@@ -30829,21 +31924,43 @@ msgstr "請輸入數字"
 msgid "Not a number"
 msgstr "不是數字"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "建立"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "增加材料"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "移除"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "圓角 / 倒角 / 拔模"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "重複"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "變換"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "參考"
+
+# AI Translated
+msgctxt "Design"
+msgid "Modify"
+msgstr "修改"
 
 # AI Translated
 msgctxt "Design"
@@ -31177,6 +32294,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "角點矩形"
 
+msgctxt "Design"
+msgid "Rectangle"
+msgstr "矩形"
+
 # AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
@@ -31197,6 +32318,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "中心圓"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "圓形"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -31211,6 +32336,11 @@ msgstr "三點圓"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "三點圓弧"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "圓弧"
 
 # AI Translated
 msgctxt "Design"
@@ -31251,6 +32381,11 @@ msgstr "雲形線"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "三角形"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "多邊形"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -31358,6 +32493,7 @@ msgid "Linear array"
 msgstr "線性陣列"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "陣列"
 
@@ -31700,6 +32836,46 @@ msgstr "在「準備」與「預覽」之間切換"
 # AI Translated
 msgid "Collapse/Expand the sidebar"
 msgstr "摺疊/展開側邊欄"
+
+# AI Translated
+msgid "Go to the Home tab"
+msgstr "前往「首頁」分頁"
+
+# AI Translated
+msgid "Go to the Design tab"
+msgstr "前往「設計」分頁"
+
+# AI Translated
+msgid "Go to the Prepare tab"
+msgstr "前往「準備」分頁"
+
+# AI Translated
+msgid "Go to the Preview tab"
+msgstr "前往「預覽」分頁"
+
+# AI Translated
+msgid "Go to the Device tab"
+msgstr "前往「裝置」分頁"
+
+# AI Translated
+msgid "Go to the Multi-device tab"
+msgstr "前往「多臺裝置」分頁"
+
+# AI Translated
+msgid "Go to the Project tab"
+msgstr "前往「專案」分頁"
+
+# AI Translated
+msgid "Go to the Calibration tab"
+msgstr "前往「校正」分頁"
+
+# AI Translated
+msgid "Switch to the next tab"
+msgstr "切換到下一個分頁"
+
+# AI Translated
+msgid "Switch to the previous tab"
+msgstr "切換到上一個分頁"
 
 # AI Translated
 msgid "Reload the device page"
@@ -32686,6 +33862,10 @@ msgstr "儲存目前顏色"
 # AI Translated
 msgid "Palettes"
 msgstr "調色盤"
+
+# AI Translated
+msgid "Pick color from screen"
+msgstr "從螢幕取色"
 
 # AI Translated
 msgid "Search colors"
@@ -34376,10 +35556,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "設定列印裝置的熱床形狀。"
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "無效的數值輸入。"
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "線材與噴嘴直徑"
 
@@ -34608,6 +35784,71 @@ msgstr "Wiki 說明->"
 # AI Translated
 msgid "Note:"
 msgstr "備註："
+
+# AI Translated
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr "• %1%：%2%"
+
+# AI Translated
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr "• %1% — %2%：%3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"以下設定參照了 Orca Slicer 無法在這台電腦上識別的外掛：\n"
+"\n"
+"%1%\n"
+"\n"
+"如果仍要儲存，預設將不會保留這些設定的外掛參照。在其他電腦上，Orca Slicer 將無法得知該提供哪些外掛，這些設定也可能無法正常運作。"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"以下設定參照了 Orca Slicer 無法在這台電腦上識別的外掛：\n"
+"\n"
+"%1%\n"
+"\n"
+"如果仍要儲存，專案將不會保留這些設定的外掛參照。在其他電腦上，Orca Slicer 將無法得知該提供哪些外掛，這些設定也可能無法正常運作。"
+
+# AI Translated
+msgid "Plugin Not Identified"
+msgstr "無法識別外掛"
+
+# AI Translated
+msgid "Save anyway"
+msgstr "仍要儲存"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"要儲存的預設參照了 Orca Slicer 無法在這台電腦上識別的外掛：\n"
+"\n"
+"%1%\n"
+"\n"
+"如果仍要儲存，這些預設將不會保留這些設定的外掛參照。在其他電腦上，Orca Slicer 將無法得知該提供哪些外掛，這些設定也可能無法正常運作。"
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -35398,6 +36639,10 @@ msgstr "在繪製區域上重複紋理。關閉時則以「平鋪尺寸」設定
 # AI Translated
 msgid "Turn Tile on to choose how the texture repeats."
 msgstr "開啟「平鋪」以選擇紋理的重複方式。"
+
+# AI Translated
+msgid "Repeat"
+msgstr "重複"
 
 # AI Translated
 msgid "Mirrored repeat"
@@ -37141,6 +38386,10 @@ msgid "Forward"
 msgstr "前進"
 
 # AI Translated
+msgid "Tools"
+msgstr "工具"
+
+# AI Translated
 msgid "View Source"
 msgstr "檢視原始碼"
 
@@ -38088,18 +39337,18 @@ msgstr "從 %1% 擷取到的設定值數量異常偏少：%2%"
 
 # AI Translated
 msgid ""
-"Load step file failed.\n"
+"Load STEP file failed.\n"
 "Cannot open file for reading.\n"
 msgstr ""
 "載入 STEP 檔案失敗。\n"
 "無法開啟檔案進行讀取。\n"
 
 # AI Translated
-msgid "import svg failed: could not open svg."
+msgid "import SVG failed: could not open svg."
 msgstr "匯入 SVG 失敗：無法開啟 SVG。"
 
 # AI Translated
-msgid "import svg failed: could not parse imported svg data."
+msgid "import SVG failed: could not parse imported svg data."
 msgstr "匯入 SVG 失敗：無法解析匯入的 SVG 資料。"
 
 # AI Translated

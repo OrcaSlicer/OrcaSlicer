@@ -1974,7 +1974,7 @@ bool GLGizmoTextureDisplacement::render_painted_colors(bool whole_stack)
     shader->set_uniform("volume_mirrored", trafo_matrix.matrix().determinant() < 0.);
     shader->set_uniform("slope.actived", m_parent.is_using_slope());
     shader->set_uniform("slope.volume_world_normal_matrix", Matrix3f(normal_matrix.cast<float>()));
-    shader->set_uniform("slope.normal_z", float(-std::cos(Geometry::deg2rad(m_highlight_by_angle_threshold_deg))));
+    shader->set_uniform("slope.normal_z", float(-std::cos(Geometry::deg2rad(get_highlight_angle_limit_deg()))));
     shader->set_uniform("slope.up_direction", get_tilt_up_direction());
     shader->set_uniform("show_wireframe", false);
     // Pulled forward and without depth writes, as the tint is (see render_paint_overlay()). The tint is

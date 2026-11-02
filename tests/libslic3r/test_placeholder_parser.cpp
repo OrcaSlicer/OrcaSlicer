@@ -449,3 +449,34 @@ TEST_CASE("Placeholder parser deferred values can be printed but not computed wi
         CHECK(process("{if regex_replace(label, /X/, total_weight) == \"W\"}yes{endif}") == "yes");
     }
 }
+
+SCENARIO("Placeholder parser unindexed vector access with filament_map", "[PlaceholderParser]") {
+    DynamicPrintConfig external_config;
+    external_config.set_key_value("filament_map", new ConfigOptionInts({ 1, 1 }));
+
+    PlaceholderParser parser(&external_config);
+    DynamicPrintConfig config;
+    config.set_key_value("z_hop", new ConfigOptionFloats({ 0.4, 3.0 }));
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({ 0.4, 0.6 }));
+    parser.apply_config(config);
+
+    SECTION("Retraction option (z_hop) resolves per filament") {
+        CHECK(parser.process("{z_hop}", 0) == "0.4");
+        CHECK(parser.process("{z_hop}", 1) == "3");
+    }
+
+    SECTION("Non-retraction option (nozzle_diameter) resolves to physical extruder 0 via filament_map") {
+        CHECK(parser.process("{nozzle_diameter}", 0) == "0.4");
+        CHECK(parser.process("{nozzle_diameter}", 1) == "0.4");
+    }
+
+    SECTION("Multi-extruder printer with filament_map {1, 2} resolves nozzle_diameter per extruder") {
+        DynamicPrintConfig idex_config;
+        idex_config.set_key_value("filament_map", new ConfigOptionInts({ 1, 2 }));
+        PlaceholderParser idex_parser(&idex_config);
+        idex_parser.apply_config(config);
+
+        CHECK(idex_parser.process("{nozzle_diameter}", 0) == "0.4");
+        CHECK(idex_parser.process("{nozzle_diameter}", 1) == "0.6");
+    }
+}

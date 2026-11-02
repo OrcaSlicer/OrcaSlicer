@@ -4,6 +4,7 @@
 #include "libslic3r/PrintConfig.hpp"
 
 #include <cstdint>
+#include <memory>
 #include "libslic3r/Config.hpp"
 #include "slic3r/GUI/Lazy.hpp"
 #include <wx/event.h>
@@ -543,7 +544,7 @@ public:
     //BBS
     SettingsDialog        m_settings_dialog;
     // The Compare presets dialog, built on first use or at idle through its holder.
-    Lazy<DiffPresetDialog> m_diff_dialog;
+    std::unique_ptr<Lazy<DiffPresetDialog>> m_diff_dialog;
     wxWindow*             m_plater_page{ nullptr };
     PrintHostQueueDialog* m_printhost_queue_dlg;
 
