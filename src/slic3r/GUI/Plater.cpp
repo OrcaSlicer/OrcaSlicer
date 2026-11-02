@@ -17357,6 +17357,19 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
     } else
         calib_name = wxString::Format(_L("Flowrate Test - Pass%d"), pass);
 
+    // The patches are scaled by the filament flow ratio, so zero or a non-finite value makes the
+    // generated flow ratios nan or inf and slicing then fails without any message. Refuse before
+    // the current project is replaced.
+    const auto *filament_flow_ratio = wxGetApp().preset_bundle->filaments.get_edited_preset().config.option<ConfigOptionFloats>("filament_flow_ratio");
+    if (filament_flow_ratio && !(std::isfinite(filament_flow_ratio->get_at(0)) && filament_flow_ratio->get_at(0) > 0.)) {
+        MessageDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe),
+                          _L("The flow ratio of the selected filament must be greater than 0 for this calibration. "
+                             "Set it in the filament settings (1.0 unless you have calibrated it) and try again."),
+                          _L("Flow ratio calibration"), wxICON_ERROR | wxOK);
+        dlg.ShowModal();
+        return;
+    }
+
     if (new_project(false, false, calib_name) == wxID_CANCEL)
         return;
 

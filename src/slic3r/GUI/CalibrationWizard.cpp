@@ -1163,7 +1163,11 @@ void FlowRateWizard::on_cali_action(wxCommandEvent& evt)
         else if (m_cali_method == CalibrationMethod::CALI_METHOD_MANUAL) {
             CaliPresetStage stage = CaliPresetStage::CALI_MANULA_STAGE_NONE;
             float cali_value = 0.0f;
-            static_cast<CalibrationPresetPage*>(preset_step->page)->get_cali_stage(stage, cali_value);
+            if (!static_cast<CalibrationPresetPage*>(preset_step->page)->get_cali_stage(stage, cali_value)) {
+                MessageDialog msg_dlg(nullptr, _L("Please input a valid value (0.0 < flow ratio < 2.0)"), wxEmptyString, wxICON_WARNING | wxOK);
+                msg_dlg.ShowModal();
+                return;
+            }
             on_cali_start(stage, cali_value, FlowRatioCaliSource::FROM_PRESET_PAGE);
             if (stage == CaliPresetStage::CALI_MANUAL_STAGE_2) {
                 // set next step page

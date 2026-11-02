@@ -180,10 +180,19 @@ void CaliPresetCaliStagePanel::set_cali_stage(CaliPresetStage stage, float value
     }
 }
 
-void CaliPresetCaliStagePanel::get_cali_stage(CaliPresetStage& stage, float& value)
+bool CaliPresetCaliStagePanel::get_cali_stage(CaliPresetStage& stage, float& value)
 {
     stage = m_stage;
-    value = (m_stage == CALI_MANUAL_STAGE_2) ? m_flow_ratio_value : value;
+    if (m_stage != CALI_MANUAL_STAGE_2)
+        return true;
+
+    // The cached value only follows the text box on Enter or focus loss, so read what is shown.
+    float flow_ratio = 0.0f;
+    if (!CalibUtils::validate_input_flow_ratio(flow_ratio_input->GetTextCtrl()->GetValue(), &flow_ratio))
+        return false;
+    m_flow_ratio_value = flow_ratio;
+    value              = flow_ratio;
+    return true;
 }
 
 void CaliPresetCaliStagePanel::set_flow_ratio_value(float flow_ratio)
@@ -2574,9 +2583,10 @@ void CalibrationPresetPage::get_preset_info(float& nozzle_dia, BedType& plate_ty
         plate_type = static_cast<BedType>(m_displayed_bed_types[m_comboBox_bed_type->GetSelection()]);
 }
 
-void CalibrationPresetPage::get_cali_stage(CaliPresetStage& stage, float& value)
+bool CalibrationPresetPage::get_cali_stage(CaliPresetStage& stage, float& value)
 {
-    m_cali_stage_panel->get_cali_stage(stage, value);
+    if (!m_cali_stage_panel->get_cali_stage(stage, value))
+        return false;
 
     if (stage != CaliPresetStage::CALI_MANUAL_STAGE_2) {
         std::map<int, Preset*> selected_filaments = get_selected_filaments();
@@ -2588,6 +2598,7 @@ void CalibrationPresetPage::get_cali_stage(CaliPresetStage& stage, float& value)
             }
         }
     }
+    return true;
 }
 
 void CalibrationPresetPage::update_multi_extruder_filament_combobox(const std::string &ams_id, int nozzle_id)
