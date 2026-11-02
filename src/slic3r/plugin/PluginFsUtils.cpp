@@ -10,6 +10,9 @@
 #include <boost/filesystem/file_status.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/beast/core/detail/base64.hpp>
+#include <boost/date_time/gregorian/greg_date.hpp>
+#include <boost/date_time/gregorian/parsers.hpp>
 #include <boost/nowide/fstream.hpp>
 
 #include "PluginAuditManager.hpp"
@@ -383,7 +386,7 @@ bool read_zip_text_file(mz_zip_archive& archive, const char* filename, std::stri
 }
 
 // TOML section parsing states.
-enum class TomlSection { Root, OrcaPlugin, OrcaPluginSettings, InDepsArray };
+enum class TomlSection { Root, OrcaPlugin, OrcaPluginSettings, OrcaPluginChangelog, InDepsArray };
 
 // Strip a quoted string value: "foo" → foo, 'foo' → foo.
 // Returns the unquoted value or the input unchanged if not quoted.
@@ -392,6 +395,32 @@ std::string unquote_toml_string(const std::string& val)
     if (val.size() >= 2 && ((val.front() == '"' && val.back() == '"') || (val.front() == '\'' && val.back() == '\'')))
         return val.substr(1, val.size() - 2);
     return val;
+}
+
+// Turn a header's inline SVG into the data: URI the Plugins dialog shows in an <img>, where an SVG
+// runs no script and loads nothing external. The header is read before the plugin is activated, so
+// anything else, such as a URL or a path, is refused, and showing a local plugin stays offline.
+std::string header_thumbnail_uri(const std::string& svg)
+{
+    constexpr size_t max_size = 256 * 1024;
+    if (svg.rfind("<svg", 0) != 0 || svg.size() > max_size) {
+        BOOST_LOG_TRIVIAL(warning) << "Ignoring plugin thumbnail: expected inline <svg> of at most " << max_size << " bytes";
+        return {};
+    }
+    std::string encoded(boost::beast::detail::base64::encoded_size(svg.size()), '\0');
+    encoded.resize(boost::beast::detail::base64::encode(encoded.data(), svg.data(), svg.size()));
+    return "data:image/svg+xml;base64," + encoded;
+}
+
+// Convert a YYYY-MM-DD changelog date to UTC seconds. Returns 0, which the dialog shows as "-", if invalid.
+long long header_changelog_time(const std::string& date)
+{
+    try {
+        const boost::gregorian::date day = boost::gregorian::from_simple_string(date);
+        return (day - boost::gregorian::date(1970, 1, 1)).days() * 86400LL;
+    } catch (const std::exception&) {
+        return 0;
+    }
 }
 
 // Split a TOML inline array: ["a", "b"] → {"a", "b"}.
@@ -433,6 +462,12 @@ std::vector<std::string> parse_toml_inline_array(const std::string& val)
 //   description = "Does things."
 //   author = "Author"
 //   version = "1.0.0"
+//   thumbnail = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">...</svg>'
+//
+//   [[tool.orcaslicer.plugin.changelog]]
+//   version = "1.0.0"
+//   date = "2026-11-01"
+//   changes = "First release."
 //
 // Returns false only on parse errors; missing block is not an error.
 bool parse_pep723_toml(const std::string& toml_content,
@@ -442,6 +477,8 @@ bool parse_pep723_toml(const std::string& toml_content,
                        std::string& out_description,
                        std::string& out_author,
                        std::string& out_version,
+                       std::string& out_thumbnail,
+                       std::vector<PluginChangelog>& out_changelog,
                        std::string& error)
 {
     out_deps.clear();
@@ -450,6 +487,8 @@ bool parse_pep723_toml(const std::string& toml_content,
     out_description.clear();
     out_author.clear();
     out_version.clear();
+    out_thumbnail.clear();
+    out_changelog.clear();
 
     TomlSection section = TomlSection::Root;
 
@@ -478,6 +517,9 @@ bool parse_pep723_toml(const std::string& toml_content,
                 // rather than falling through to Root, where a stray dependencies/requires-python
                 // key inside it would be parsed as package metadata.
                 section = TomlSection::OrcaPluginSettings;
+            } else if (trimmed == "[[tool.orcaslicer.plugin.changelog]]") {
+                section = TomlSection::OrcaPluginChangelog;
+                out_changelog.emplace_back();
             } else {
                 section = TomlSection::Root; // Unknown section — skip.
             }
@@ -530,8 +572,14 @@ bool parse_pep723_toml(const std::string& toml_content,
             else if (key == "description")  out_description = unquote_toml_string(val);
             else if (key == "author")       out_author = unquote_toml_string(val);
             else if (key == "version")      out_version = unquote_toml_string(val);
+            else if (key == "thumbnail")    out_thumbnail = header_thumbnail_uri(unquote_toml_string(val));
+        } else if (section == TomlSection::OrcaPluginChangelog) {
+            if (key == "version")           out_changelog.back().version = unquote_toml_string(val);
+            else if (key == "date")         out_changelog.back().created_time = header_changelog_time(unquote_toml_string(val));
+            else if (key == "changes")      out_changelog.back().changelog = unquote_toml_string(val);
         }
     }
+    sort_plugin_changelog(out_changelog);
 
     // Check for unclosed arrays.
     if (section == TomlSection::InDepsArray) {
@@ -978,6 +1026,8 @@ bool read_python_plugin_metadata(const boost::filesystem::path& py_path, PluginD
                                pep_desc,
                                pep_author,
                                pep_version,
+                               descriptor.thumbnail_url,
+                               descriptor.changelog,
                                pep723_error)) {
             error = "Failed to parse PEP 723 metadata: " + pep723_error;
             return false;

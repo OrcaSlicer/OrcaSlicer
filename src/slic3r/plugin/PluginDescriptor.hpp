@@ -41,7 +41,8 @@ struct PluginChangelog {
 
 inline void sort_plugin_changelog(std::vector<PluginChangelog>& changelog)
 {
-    std::sort(changelog.begin(), changelog.end(), [](const PluginChangelog& lhs, const PluginChangelog& rhs) {
+    // Stable, so that several entries for one version keep the order they were written in.
+    std::stable_sort(changelog.begin(), changelog.end(), [](const PluginChangelog& lhs, const PluginChangelog& rhs) {
         if (lhs.created_time != rhs.created_time)
             return lhs.created_time > rhs.created_time;
         return lhs.version > rhs.version;
@@ -63,7 +64,7 @@ struct PluginDescriptor
     std::string entry_path;                             // Full path to the installed plugin entry file
     std::string entry_package;                          // Import package/module used for package-based loading
     std::vector<std::string> dependencies;              // Python dependency requirements declared by plugin package metadata
-    std::vector<PluginChangelog> changelog;             // Cloud release changelog, sorted newest-first when available.
+    std::vector<PluginChangelog> changelog;             // Cloud release changelog, or a local plugin's header changelog; sorted newest-first when available.
 
     std::string error;                     // Blocking error message. Non-empty means the plugin is in an error state.
     std::optional<CloudPluginState> cloud; // Extra cloud state layered on top of a normal plugin descriptor.
@@ -77,7 +78,7 @@ struct PluginDescriptor
     // be loaded at startup. Installing a package writes the sidecar with enabled = true.
     bool enabled = false;
     std::string sharing_token;             // Use BASE_URL/p/SHARING_TOKEN to open relevant plugin in browser.
-    std::string thumbnail_url;             // Cloud main_image pre-signed (access_url) thumbnail; empty for local plugins. Display-only.
+    std::string thumbnail_url;             // Cloud main_image pre-signed (access_url) thumbnail, or a data: URI from a local plugin's header. Display-only.
 
     bool is_cloud_plugin() const { return cloud.has_value(); }
     std::string cloud_uuid() const { return cloud.has_value() ? cloud->uuid : std::string{}; }
