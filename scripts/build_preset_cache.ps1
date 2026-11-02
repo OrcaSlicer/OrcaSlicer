@@ -139,7 +139,8 @@ if ($exitCode -ne 0) { exit $exitCode }
 # Process each target directory
 foreach ($target in $TargetDir) {
     if (-not (Test-Path $target -PathType Container)) {
-        throw "ERROR: profiles directory not found: $target"
+        Write-Host ("WARNING: target profiles directory not found, skipping: $target")
+        continue
     }
     $target = (Get-Item $target).FullName
 
