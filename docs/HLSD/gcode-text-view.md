@@ -21,12 +21,12 @@ browsing G-code text and navigating to toolpath positions in Preview.
 `src/slic3r/GUI/GCodeViewer.hpp/.cpp`.
 
 - `load_gcode()` receives a filename and `lines_ends`, and accesses the file through a memory map.
-- `render()` currently derives the visible lines from the current toolpath's `gcode_id` and
-  recenters them on every frame. It has no independent browsing position or line click handling.
+- `render()` reads its visible interval from `GCodeTextView`. Following centers that interval
+  on the current toolpath's `gcode_id`; manual browsing keeps an independent first visible line.
 - Line numbers, commands, parameters and comments have separate colors. Long lines are
   currently truncated to 55 characters.
-- The existing cache is invalidated by the current toolpath line number and visible line count.
-  Independent scrolling requires invalidation based on the actual displayed line interval.
+- The line cache is invalidated by the displayed interval's first line and line count, so path
+  changes during manual browsing do not trigger unnecessary reads or move the viewport.
 
 ### Existing window visibility conditions
 
@@ -56,6 +56,11 @@ command name alone cannot determine whether a line has a corresponding preview p
 
 `GLCanvas3D::on_mouse()` and `on_mouse_wheel()` forward input through
 `ImGuiWrapper::update_mouse_data()`. The text panel reuses this event path.
+
+The panel uses a scrollbar over source-line offsets and disables ImGui's automatic wheel
+scrolling. It reads only the visible rows, without creating a full-file pixel-height list.
+`IMSlider` reports user interaction separately from its dirty state, so programmatic range
+updates do not resume text following. Preview keyboard slider operations resume it explicitly.
 
 `GLCanvas3D::_render_gcode_overlay()` processes the layer slider's dirty state before the move
 slider's. Setting the layer range resets the visible toolpath range, so navigation across

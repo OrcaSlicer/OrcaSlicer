@@ -4198,6 +4198,7 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
             apply_selection_rotate(angle_z_rad);
     };
     auto step_slider = [this, held](auto&& step) {
+        get_gcode_viewer().resume_gcode_text_following();
         IMSlider* layers = get_gcode_viewer().get_layers_slider();
         IMSlider* moves  = get_gcode_viewer().get_moves_slider();
         step(layers, moves, held != 0 ? 5 : 1);

@@ -5,6 +5,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "IMSlider.hpp"
+#include "GCodeTextView.hpp"
 #include "GLModel.hpp"
 #include "I18N.hpp"
 
@@ -140,8 +141,8 @@ public:
                 std::string comment;
             };
             bool m_is_dark = false;
-            uint64_t m_selected_line_id{ 0 };
-            size_t m_last_lines_size{ 0 };
+            GCodeTextView m_viewport;
+            uint64_t m_cached_first_line{0};
             std::string m_filename;
             boost::iostreams::mapped_file_source m_file;
             // map for accessing data in file by line number
@@ -155,6 +156,8 @@ public:
             ~GCodeWindow() { stop_mapping_file(); }
             void load_gcode(const std::string& filename, const std::vector<size_t> &lines_ends);
             void reset() {
+                m_viewport.reset();
+                m_cached_first_line = 0;
                 stop_mapping_file();
                 m_lines_ends.clear();
                 m_lines_ends.shrink_to_fit();
@@ -164,9 +167,8 @@ public:
                 m_filename.shrink_to_fit();
             }
 
-            //BBS: GUI refactor: add canvas size
-            //void render(float top, float bottom, uint64_t curr_line_id) const;
-            void render(float top, float bottom, float right, uint64_t curr_line_id) const;
+            void render(float top, float bottom, float right, uint64_t curr_line_id);
+            void resume_following() { m_viewport.resume_following(); }
             void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
 
             void stop_mapping_file();
@@ -434,6 +436,7 @@ public:
 
     const SequentialView& get_sequential_view() const { return m_sequential_view; }
     void update_sequential_view_current(unsigned int first, unsigned int last);
+    void resume_gcode_text_following() { m_sequential_view.gcode_window.resume_following(); }
 
     /* BBS IMSlider */
     IMSlider *get_moves_slider() { return m_moves_slider; }

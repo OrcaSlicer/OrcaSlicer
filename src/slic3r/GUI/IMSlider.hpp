@@ -126,6 +126,12 @@ public:
     //BBS update scroll value changed
     bool is_dirty() { return m_dirty; }
     void set_as_dirty(bool dirty = true) { m_dirty = dirty; }
+    bool consume_user_interaction()
+    {
+        const bool interacted = m_user_interaction;
+        m_user_interaction = false;
+        return interacted;
+    }
     bool is_need_post_tick_event() { return m_is_need_post_tick_changed_event; }
     void reset_post_tick_event(bool val = false) {
         m_is_need_post_tick_changed_event = val;
@@ -189,6 +195,7 @@ private:
     int  m_higher_value;
     int  m_one_layer_value; // ORCA
     bool m_dirty = false;
+    bool m_user_interaction = false;
 
     bool m_render_as_disabled{ false };
 

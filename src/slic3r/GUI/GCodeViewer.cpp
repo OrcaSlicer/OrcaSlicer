@@ -880,8 +880,8 @@ void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& fil
     m_filename   = filename;
     m_lines_ends = lines_ends;
 
-    m_selected_line_id = 0;
-    m_last_lines_size = 0;
+    m_viewport.reset();
+    m_cached_first_line = 0;
 
     try
     {
@@ -909,7 +909,7 @@ static size_t utf8_offset(const std::string& str, size_t count)
 }
 
 //BBS: GUI refactor: move to right
-void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, float right, uint64_t curr_line_id) const
+void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, float right, uint64_t curr_line_id)
 {
     // Orca: truncate long lines(>55 characters), add "..." at the end
     auto update_lines = [this](uint64_t start_id, uint64_t end_id) {
@@ -974,33 +974,28 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
     // number of visible lines
     const float text_height = ImGui::CalcTextSize("0").y;
     const ImGuiStyle& style = ImGui::GetStyle();
-    const uint64_t lines_count = static_cast<uint64_t>((wnd_height - 2.0f * style.WindowPadding.y + style.ItemSpacing.y) / (text_height + style.ItemSpacing.y));
+    const uint64_t lines_count = static_cast<uint64_t>(std::max(0.f,
+        (wnd_height - 2.0f * style.WindowPadding.y + style.ItemSpacing.y) / (text_height + style.ItemSpacing.y)));
 
     if (lines_count == 0)
         return;
 
-    // visible range
-    const uint64_t half_lines_count = lines_count / 2;
-    uint64_t start_id = (curr_line_id >= half_lines_count) ? curr_line_id - half_lines_count : 0;
-    uint64_t end_id = start_id + lines_count - 1;
-    if (end_id >= static_cast<uint64_t>(m_lines_ends.size())) {
-        end_id = static_cast<uint64_t>(m_lines_ends.size()) - 1;
-        start_id = end_id - lines_count + 1;
-    }
+    m_viewport.update(m_lines_ends.size(), lines_count, curr_line_id);
+    const uint64_t start_id = m_viewport.first_line();
+    const uint64_t end_id = m_viewport.last_line();
 
     // updates list of lines to show, if needed
-    if (m_selected_line_id != curr_line_id || m_last_lines_size != end_id - start_id + 1) {
+    if (m_cached_first_line != start_id || m_lines.size() != end_id - start_id + 1) {
         try
         {
-            *const_cast<std::vector<Line>*>(&m_lines) = update_lines(start_id, end_id);
+            m_lines = update_lines(start_id, end_id);
         }
         catch (...)
         {
             BOOST_LOG_TRIVIAL(error) << "Error while loading from file " << m_filename << ". Cannot show G-code window.";
             return;
         }
-        *const_cast<uint64_t*>(&m_selected_line_id) = curr_line_id;
-        *const_cast<size_t*>(&m_last_lines_size) = m_lines.size();
+        m_cached_first_line = start_id;
     }
 
     // line number's column width
@@ -1028,8 +1023,11 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
                 max_text_width = w;
         }
 
-        required_width = id_width + max_text_width;
+        required_width = id_width + max_text_width + 2.f * style.WindowPadding.x;
     }
+
+    const float scrollbar_width = m_lines_ends.size() > m_viewport.visible_count() ? style.ScrollbarSize : 0.f;
+    required_width += scrollbar_width + style.ItemSpacing.x;
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
 
@@ -1038,10 +1036,10 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
     ImGui::SetNextWindowSize(ImVec2(required_width, wnd_height), ImGuiCond_Always);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * m_scale); // ORCA add window rounding to modernize / match style
     ImGui::SetNextWindowBgAlpha(0.8f);
-    imgui.begin(std::string("G-code"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    imgui.begin(std::string("G-code"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse);
 
     // center the text in the window by pushing down the first line
-    const float f_lines_count = static_cast<float>(lines_count);
+    const float f_lines_count = static_cast<float>(m_viewport.visible_count());
     ImGui::SetCursorPosY(0.5f * (wnd_height - f_lines_count * text_height - (f_lines_count - 1.0f) * style.ItemSpacing.y));
 
     // render text lines
@@ -1059,7 +1057,7 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
             //    { ImGui::GetCurrentWindow()->Size.x - half_padding_x, pos_y + text_height + half_ItemSpacing_y },
             //    ImGui::GetColorU32(SELECTION_RECT_COLOR));
             ImGui::GetWindowDrawList()->AddRect({ pos_x - half_ItemSpacing_x, pos_y - half_ItemSpacing_y },
-                { right - half_ItemSpacing_x, pos_y + text_height + half_ItemSpacing_y },
+                { right - style.WindowPadding.x - scrollbar_width - style.ItemSpacing.x, pos_y + text_height + half_ItemSpacing_y },
                 ImGui::GetColorU32(SELECTION_RECT_COLOR));
         }
 
@@ -1097,6 +1095,23 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
             ImGui::PushStyleColor(ImGuiCol_Text, COMMENT_COLOR);
             imgui.text(line.comment);
             ImGui::PopStyleColor();
+        }
+    }
+
+    // Keep the text at whole source lines; do not create a full-file pixel-height ImGui list.
+    if (ImGui::IsWindowHovered() && ImGui::GetIO().MouseWheel != 0.f) {
+        m_viewport.scroll(ImGui::GetIO().MouseWheel > 0.f ? -3 : 3);
+        imgui.set_requires_extra_frame();
+    }
+    if (scrollbar_width > 0.f) {
+        const ImVec2 pos = ImGui::GetWindowPos();
+        const ImRect bounds(ImVec2(right - style.WindowPadding.x - scrollbar_width, pos.y + style.WindowPadding.y),
+            ImVec2(right - style.WindowPadding.x, pos.y + wnd_height - style.WindowPadding.y));
+        float offset = static_cast<float>(m_viewport.first_line() - 1);
+        if (ImGui::ScrollbarEx(bounds, ImGui::GetID("##gcode_scroll"), ImGuiAxis_Y, &offset,
+                static_cast<float>(m_viewport.visible_count()), static_cast<float>(m_lines_ends.size()), 0)) {
+            m_viewport.scroll_to(static_cast<uint64_t>(std::max(0.f, offset)) + 1);
+            imgui.set_requires_extra_frame();
         }
     }
 
@@ -2471,6 +2486,11 @@ void GCodeViewer::set_clipping_plane(const ClippingPlane& plane)
 
 void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
 {
+    const bool layer_interaction = m_layers_slider->consume_user_interaction();
+    const bool move_interaction = m_moves_slider->consume_user_interaction();
+    if (layer_interaction || move_interaction)
+        resume_gcode_text_following();
+
     if (m_viewer.get_extrusion_roles().empty())
         return;
 
