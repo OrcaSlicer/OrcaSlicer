@@ -247,7 +247,6 @@ static std::vector<VolumeSlices> slice_volumes_inner(
                     });
                 }
             } else {
-                assert(! print_config.spiral_mode);
                 slicing_ranges.clear();
                 for (const PrintObjectRegions::LayerRangeRegions &layer_range : layer_ranges)
                     if (layer_range.has_volume(model_volume->id()))
