@@ -105,12 +105,9 @@ jobs:
         run: .\scripts\test_prune_cached_presets.ps1
 
   build_windows:
-    name: Build Windows ${{ matrix.arch }} (${{ matrix.preset }})${{ matrix.script == 'bat' && ' (baseline - current main)' || matrix.preset == 'x64-clang-cache' && ' (top candidate - ps1)' || ' (candidate - ps1)' }}
+    name: Build Windows ${{ matrix.arch }} (${{ matrix.preset }})${{ matrix.script == 'bat' && ' (baseline - current main)' || ' (candidate - ps1)' }}
     strategy:
       fail-fast: false
-      # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
-      # Each config runs twice: once with build_win.bat (baseline) and once with
-      # build_win.ps1 (candidate) for perf comparison.
       matrix:
         include:
           - arch: x64
@@ -124,42 +121,6 @@ jobs:
             compiler: msvc
             preset: x64-msvc
             flags: --msvc --ninja
-            script: bat
-          - arch: x64
-            os: self-hosted
-            compiler: clang
-            preset: x64-clang
-            flags: -l -x
-            script: ps1
-          - arch: x64
-            os: self-hosted
-            compiler: clang
-            preset: x64-clang
-            flags: -l -x
-            script: bat
-          - arch: x64
-            os: self-hosted
-            compiler: clang
-            preset: x64-clang-cache
-            flags: -l -x --ccache
-            script: ps1
-          - arch: x64
-            os: self-hosted
-            compiler: clang
-            preset: x64-clang-cache
-            flags: -l -x --ccache
-            script: bat
-          - arch: x64
-            os: self-hosted
-            compiler: msvc
-            preset: x64-msbuild
-            flags: --msvc --msbuild
-            script: ps1
-          - arch: x64
-            os: self-hosted
-            compiler: msvc
-            preset: x64-msbuild
-            flags: --msvc --msbuild
             script: bat
     needs: check_build_script
     # Don't run scheduled builds on forks:
