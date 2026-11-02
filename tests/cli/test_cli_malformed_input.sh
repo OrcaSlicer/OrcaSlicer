@@ -8,6 +8,7 @@
 # - An assemble list object with an empty filament list, or a negative filament id, is rejected
 #   as a config error.
 # - --assemble with no input model is rejected as invalid parameters.
+# - Standalone filament presets, which set neither a diameter nor a colour, export and slice.
 #
 # usage: test_cli_malformed_input.sh <orca-slicer binary> <python3>
 set -u
@@ -154,6 +155,12 @@ echo "== a one-filament project exported by the CLI is the base for the project 
 run_presets export --slice 0 --export-3mf project.3mf "$WORK/cube.stl"
 expect_status export $CLI_SUCCESS
 [ -f "$WORK/export/project.3mf" ] || { echo "FAIL: project export failed"; tail -n 40 "$WORK/export/log"; exit 1; }
+
+echo "== two standalone filaments without a diameter or a colour slice"
+run two_filaments --load-settings "$WORK/machine.json;$WORK/process.json" \
+    --load-filaments "$WORK/filament.json;$WORK/filament.json" --slice 0 "$WORK/cube.stl"
+expect_status two_filaments $CLI_SUCCESS
+expect_gcode two_filaments
 
 echo "== an inherits_group of the wrong length still loads"
 for group in '[]' '[""]' '["", "", "", "", ""]'; do
