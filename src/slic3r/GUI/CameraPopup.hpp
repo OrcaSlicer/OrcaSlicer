@@ -128,6 +128,12 @@ public:
     void paintEvent(wxPaintEvent &evt);
     void render(wxDC &dc);
     void doRender(wxDC &dc);
+
+    // Draws a greyed-out icon while disabled.
+    bool Enable(bool enable = true) override;
+
+private:
+    wxBitmap make_disabled_bitmap(const wxBitmap &bmp) const;
 };
 
 }
