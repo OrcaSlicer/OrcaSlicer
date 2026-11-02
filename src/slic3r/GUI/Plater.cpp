@@ -23342,6 +23342,20 @@ void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
 
 
 //BBS: select Plate by hover_id
+// Orca: the plate dropped by its move handle; as Move to front, but to any position.
+int Plater::reorder_plate(int from, int to)
+{
+    take_snapshot("Reorder plates");
+    const int ret = p->partplate_list.move_plate_to_index(from, to);
+    p->partplate_list.update_slice_context_to_current_plate(p->background_process);
+    p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
+    p->sidebar->obj_list()->reload_all_plates();
+    p->partplate_list.update_plates();
+    update();
+    p->partplate_list.select_plate(to);
+    return ret;
+}
+
 int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModidyPlateName)
 {
     int ret;
@@ -23545,6 +23559,10 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
         p->partplate_list.update_plates();
         update();
         p->partplate_list.select_plate(0);
+    }
+    else if (action == (int)PartPlate::PLATE_MOVE_ID && !right_click) {
+        // A click on the move handle without dragging just selects the plate.
+        ret = select_plate(plate_index);
     }
     else if (action == (int)PartPlate::PLATE_IMEX_MODE_ID)
     {

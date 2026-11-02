@@ -3414,6 +3414,9 @@ void MainFrame::init_menubar_as_editor()
         // BBS Deslect All
         append_menu_item(editMenu, wxID_ANY, _L("Deselect All") + sep + _L_CONTEXT("Esc", "Keyboard Shortcut"),
             _L("Deselects all objects"), [this, handle_key_event](wxCommandEvent&) {
+                // Orca: Esc is this item's accelerator, so it arrives here rather than at the canvas.
+                if (GLCanvas3D* canvas = m_plater->get_view3D_canvas3D(); canvas != nullptr && canvas->cancel_plate_drag())
+                    return;
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
                 e.m_keyCode = WXK_ESCAPE;

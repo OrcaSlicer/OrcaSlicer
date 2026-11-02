@@ -657,6 +657,29 @@ private:
     bool m_fps_overlay_tick{ false };
     LayersEditing m_layers_editing;
     Mouse m_mouse;
+    // Orca: a plate dragged by its move handle to another place in the plate order.
+    struct PlateDrag
+    {
+        // A drop line in the gap beside a plate, standing for an order position.
+        struct Marker
+        {
+            BoundingBoxf box;
+            int          insert; // position the plate goes before
+            int          row;    // grid row the line is in
+        };
+        int     plate_idx{-1};
+        Point   start;      // mouse position when the button went down
+        Point   last_mouse; // latest mouse position, also where the view pans toward near the canvas edge
+        int     insert{-1}; // position the plate goes before; -1 when the drop would not change the order
+        int     marker{-1}; // highlighted marker, -1 for none
+        std::vector<Marker> markers;
+        GLModel lines;      // the markers that would change the order, built when the drag starts
+        GLModel highlight;  // the highlighted marker
+        GLModel outline;    // border of the dragged plate
+        std::unique_ptr<IMToolbarItem> thumbnail; // the plate as the preview card shows it
+        bool    cancelled{false}; // the drag was cancelled; the rest of the press does nothing
+        std::chrono::steady_clock::time_point last_frame; // for panning at the canvas edge
+    } m_plate_drag;
     // Orca: Gesture pans have their own lifecycle and stable world-space anchor.
     std::optional<Vec3d> m_gesture_pan_anchor;
     GLGizmosManager m_gizmos;
@@ -1402,6 +1425,9 @@ public:
     void export_toolpaths_to_obj(const char* filename) const { m_gcode_viewer.export_toolpaths_to_obj(filename); }
 
     void mouse_up_cleanup();
+    // Orca: Esc, a lost mouse capture or focus end a plate drag without moving the plate, and the rest of the
+    // press does nothing. Returns false if no plate is being dragged.
+    bool cancel_plate_drag();
 
     bool are_labels_shown() const { return m_labels.is_shown(); }
     void show_labels(bool show) { m_labels.show(show); }
@@ -1539,6 +1565,9 @@ private:
     void _render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add part plate related logic
     void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
+    void _render_plate_drag_markers(const Transform3d& view_matrix, const Transform3d& projection_matrix);
+    // Orca: the card that follows the cursor while a plate is dragged; part of the ImGui overlay.
+    void _render_plate_drag_card();
     bool _hides_inactive_plates() const;
     // Returns whether what the scene shows changed.
     bool _update_inactive_plates_visibility();
@@ -1615,6 +1644,14 @@ private:
 
     // Convert the screen space coordinate to world coordinate on the bed.
     Vec3d _mouse_to_bed_3d(const Point& mouse_pos);
+    // Orca: the plate whose move handle is hovered, if a drag can start there; -1 otherwise.
+    int  _hovered_plate_handle() const;
+    // Orca: start dragging a plate when the left button goes down on its move handle.
+    bool _start_plate_drag(const Point& mouse_pos);
+    void _build_plate_drag_markers();
+    void _update_plate_drag(const Point& mouse_pos);
+    // Orca: pan the view while a dragged plate is held near the edge of the canvas; once per frame.
+    void _pan_plate_drag_at_edge();
 
     // Orca: Navigation type selects the legacy pivot policy used when no visible surface is hit.
     enum class ECameraNavigationType : unsigned char

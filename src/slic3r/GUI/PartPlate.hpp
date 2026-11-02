@@ -210,6 +210,7 @@ private:
     PickingModel m_plate_filament_map_icon;
     PickingModel m_plate_name_edit_icon;
     PickingModel m_move_front_icon;
+    PickingModel m_move_plate_icon;
     PickingModel m_imex_mode_icon;
     GLModel      m_imex_warn_icon;   // warning badge: IMEX parallel mode + multi-material conflict
     GLModel m_plate_idx_icon;
@@ -303,7 +304,8 @@ public:
     static constexpr unsigned int PLATE_NAME_HOVER_ID = 6;
     static constexpr unsigned int PLATE_FILAMENT_MAP_ID = 8;
     static constexpr unsigned int PLATE_IMEX_MODE_ID = 9;
-    static constexpr unsigned int GRABBER_COUNT = 10;
+    static constexpr unsigned int PLATE_MOVE_ID = 10;
+    static constexpr unsigned int GRABBER_COUNT = 11;
 
     // Sentinel encoded into GLVolume::composite_id.object_id for IMEX ghost volumes.
     // Real object_ids are small non-negative ints, so a large-negative base is unambiguous.
@@ -792,6 +794,8 @@ class PartPlateList : public ObjectBase
     std::mutex m_plates_mutex;
     int m_plate_count;
     int m_plate_cols;
+    // Orca: plate dragged by its move handle, whose handle is drawn highlighted; -1 when none.
+    int m_dragged_plate{-1};
     int m_current_plate;
     int m_print_index;
 
@@ -817,6 +821,8 @@ class PartPlateList : public ObjectBase
     GLTexture m_del_hovered_texture;
     GLTexture m_move_front_hovered_texture;
     GLTexture m_move_front_texture;
+    GLTexture m_move_plate_hovered_texture;
+    GLTexture m_move_plate_texture;
     GLTexture m_arrange_texture;
     GLTexture m_arrange_hovered_texture;
     GLTexture m_orient_texture;
@@ -1014,6 +1020,9 @@ public:
 
     //move the plate to position index
     int move_plate_to_index(int old_index, int new_index);
+    // Orca: the plate dragged by its move handle, or -1.
+    void set_dragged_plate(int index) { m_dragged_plate = index; }
+    int  get_dragged_plate() const { return m_dragged_plate; }
 
     //lock plate
     int lock_plate(int index, bool state);

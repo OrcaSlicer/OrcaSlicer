@@ -775,7 +775,7 @@ void PartPlate::refresh_imex_icon()
     bool dual_bbl = preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2;
     auto* is_imex_opt = preset->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
     if (is_imex_opt && is_imex_opt->value) {
-        int imex_slot = dual_bbl ? 7 : 6;
+        int imex_slot = dual_bbl ? 8 : 7;
         calc_vertex_for_icons(imex_slot, m_imex_mode_icon);
         calc_vertex_for_imex_warn_badge(imex_slot, m_imex_warn_icon);
 
@@ -1724,7 +1724,7 @@ void PartPlate::calc_vertex_for_icons(int index, PickingModel &model)
     p += Vec2d(gap_left,-1 * (index * (size + gap_y) + gap_top));
 
     if (m_plater && m_plater->get_build_volume_type() == BuildVolume_Type::Circle)
-        p[1] -= std::max(0.0, (bed_ext.size()(1) - (size + gap_y) * 6 /* bed_icon_count */) / 2);
+        p[1] -= std::max(0.0, (bed_ext.size()(1) - (size + gap_y) * 7 /* bed_icon_count */) / 2);
 
     poly.contour.append({ scale_(p(0))       , scale_(p(1) - size) });
     poly.contour.append({ scale_(p(0) + size), scale_(p(1) - size) });
@@ -2604,6 +2604,16 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
             } else
                 render_icon_texture(m_move_front_icon.model, m_partplate_list->m_move_front_texture);
 
+            // Orca: nothing to reorder with one plate, or with the other plates hidden (focus mode).
+            if (m_partplate_list->get_plate_count() > 1 && !wxGetApp().focus_mode()) {
+                if (hover_id == PLATE_MOVE_ID || m_partplate_list->get_dragged_plate() == m_plate_index) {
+                    render_icon_texture(m_move_plate_icon.model, m_partplate_list->m_move_plate_hovered_texture);
+                    if (hover_id == PLATE_MOVE_ID)
+                        set_hover_tooltip(_u8L("Drag to reorder plates"));
+                } else
+                    render_icon_texture(m_move_plate_icon.model, m_partplate_list->m_move_plate_texture);
+            }
+
             // IDEX/IQEX mode icon — only when is_imex is active
             {
                 PresetBundle* pb = wxGetApp().preset_bundle;
@@ -2974,6 +2984,7 @@ void PartPlate::register_raycasters_for_picking(GLCanvas3D &canvas)
 	if (m_plate_name_edit_icon.mesh_raycaster != nullptr)
 		register_model_for_picking(canvas, m_plate_name_edit_icon, picking_id_component(6));
     register_model_for_picking(canvas, m_move_front_icon, picking_id_component(7));
+    register_model_for_picking(canvas, m_move_plate_icon, picking_id_component(PLATE_MOVE_ID));
 
     // Only register filament map button for H2D (dual-extruder Bambu Lab) printers
     PresetBundle* preset = wxGetApp().preset_bundle;
@@ -4141,7 +4152,8 @@ void PartPlate::set_pos_and_size(Vec3d& origin, int width, int depth, double hei
 
 			//move this instance into the new plate's same position
 			Vec3d offset = instance->get_transformation().get_offset();
-			int off_x, off_y;
+			// Orca: not int, so objects keep their exact place when the plate moves by a fractional stride.
+			double off_x, off_y;
 
 			if (size_changed)
 			{
@@ -5158,10 +5170,11 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
 			dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
 			calc_vertex_for_icons(dual_bbl ? 5 : 6, m_plate_filament_map_icon);
 			calc_vertex_for_icons(dual_bbl ? 6 : 5, m_move_front_icon);
+			calc_vertex_for_icons(dual_bbl ? 7 : 6, m_move_plate_icon);
 			{
 				auto* is_imex_opt = preset->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
 				if (is_imex_opt && is_imex_opt->value) {
-					int imex_slot = dual_bbl ? 7 : 6;
+					int imex_slot = dual_bbl ? 8 : 7;
 					calc_vertex_for_icons(imex_slot, m_imex_mode_icon);
 					calc_vertex_for_imex_warn_badge(imex_slot, m_imex_warn_icon);
 				}
@@ -6037,6 +6050,20 @@ void PartPlateList::generate_icon_textures()
         }
     }
 
+    {
+        file_name = path + (m_is_dark ? "plate_move_dark.svg" : "plate_move.svg");
+        if (!m_move_plate_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(":load file %1% failed") % file_name;
+        }
+    }
+
+    {
+        file_name = path + (m_is_dark ? "plate_move_hover_dark.svg" : "plate_move_hover.svg");
+        if (!m_move_plate_hovered_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(":load file %1% failed") % file_name;
+        }
+    }
+
 	//if (m_arrange_texture.get_id() == 0)
 	{
 		file_name = path + (m_is_dark ? "plate_arrange_dark.svg" : "plate_arrange.svg");
@@ -6212,6 +6239,8 @@ void PartPlateList::release_icon_textures()
 	m_del_hovered_texture.reset();
     m_move_front_hovered_texture.reset();
     m_move_front_texture.reset();
+    m_move_plate_hovered_texture.reset();
+    m_move_plate_texture.reset();
 	m_arrange_texture.reset();
 	m_arrange_hovered_texture.reset();
 	m_orient_texture.reset();

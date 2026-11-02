@@ -867,6 +867,8 @@ public:
     //BBS: update progress result
     void apply_background_progress();
     //BBS: select the plate by hover_id
+    // Orca: move a plate to another position in the plate order, as one undo step.
+    int reorder_plate(int from, int to);
     int select_plate_by_hover_id(int hover_id, bool right_click = false, bool isModidyPlateName = false);
     //BBS: add an empty plate and switch to it (the toolbar's Add Plate). Returns the new
     // plate index, or -1 when the plate cap is reached.
