@@ -23,6 +23,7 @@
 #include <wx/cursor.h>
 #include <wx/utils.h>
 #include <wx/region.h>
+#include <wx/math.h>
 #include <wx/brush.h>
 #include <wx/pen.h>
 extern "C" {

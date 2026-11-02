@@ -79,6 +79,9 @@
 #include <wx/frame.h>
 #include <wx/cursor.h>
 #include <wx/weakref.h>
+#include <wx/peninfobase.h>
+#include <wx/timer.h>
+#include <wx/mediactrl.h>
 #include <algorithm>
 #include <functional>
 #include "slic3r/GUI/Widgets/StaticBox.hpp"

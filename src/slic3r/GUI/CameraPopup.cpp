@@ -26,6 +26,7 @@
 #include <wx/sizer.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
+#include <wx/image.h>
 #include "GUI_App.hpp"
 #include <slic3r/GUI/StatusPanel.hpp>
 
