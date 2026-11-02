@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include <cmath>
 #include <cstdlib>
 #include <vector>
 
@@ -189,5 +190,54 @@ TEST_CASE("Scarf loop drops the micro segments the seam insertion leaves at both
         REQUIRE(loop.paths.size() == 1);
         CHECK_THAT(unscale_(loop.starts.front().polyline.lines().front().length()), WithinAbs(0.3, 1e-3));
         CHECK_THAT(unscale_(loop.paths.front().polyline.lines().back().length()), WithinAbs(0.3, 1e-3));
+    }
+}
+
+// A teardrop with radius 20: a 270 degree arc in 5 degree steps, closed by two straight 20 mm edges
+// that meet in a single 90 degree corner at index 0. Every other vertex is close to 180 degrees.
+static std::vector<Vec2d> teardrop_outline()
+{
+    const double radius = 20.;
+    std::vector<Vec2d> outline{Vec2d(radius * std::sqrt(2.), 0.)};
+    for (int deg = 45; deg <= 315; deg += 5)
+        outline.emplace_back(radius * std::cos(deg * PI / 180.), radius * std::sin(deg * PI / 180.));
+    return outline;
+}
+
+// A closed loop whose first point, the seam, is outline[seam_idx].
+static ExtrusionLoop loop_from_seam(std::vector<Vec2d> outline, size_t seam_idx)
+{
+    std::rotate(outline.begin(), outline.begin() + seam_idx, outline.end());
+    ExtrusionPath path{erExternalPerimeter, 1.0, 0.45f, 0.2f};
+    for (const Vec2d &p : outline)
+        path.polyline.append(Point3::new_scale(p.x(), p.y(), 0.));
+    path.polyline.append(Point3::new_scale(outline.front().x(), outline.front().y(), 0.));
+    return ExtrusionLoop(path);
+}
+
+TEST_CASE("Loop smoothness only considers the corners within the requested length of the seam", "[ExtrusionEntity][Regression]")
+{
+    const double threshold = 155. * PI / 180.;
+    const double arm       = 0.4;
+    const std::vector<Vec2d> outline = teardrop_outline();
+
+    SECTION("a corner beyond the length is ignored, one within it is not") {
+        // Index 49 is the arc at 285 degrees: about 10.5 mm of arc and a 20 mm edge lead to the corner, about 30.5 mm away.
+        const ExtrusionLoop loop = loop_from_seam(outline, 49);
+        CHECK_FALSE(loop.is_smooth(threshold, arm));
+        CHECK(loop.is_smooth(threshold, arm, 20.));
+        CHECK_FALSE(loop.is_smooth(threshold, arm, 40.));
+    }
+
+    SECTION("a seam on the corner is never smooth") {
+        CHECK_FALSE(loop_from_seam(outline, 0).is_smooth(threshold, arm, 20.));
+    }
+
+    SECTION("a corner just behind the seam is caught through the backward arm") {
+        // The seam is 0.2 mm past the corner, within the 0.4 mm arm.
+        std::vector<Vec2d> with_seam = outline;
+        const Vec2d seam = outline[0] + 0.2 * (outline[1] - outline[0]).normalized();
+        with_seam.insert(with_seam.begin() + 1, seam);
+        CHECK_FALSE(loop_from_seam(with_seam, 1).is_smooth(threshold, arm, 20.));
     }
 }

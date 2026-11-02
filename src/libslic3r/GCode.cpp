@@ -8575,7 +8575,9 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         layer_id() > 0;
     const auto nozzle_diameter = EXTRUDER_CONFIG(nozzle_diameter);
     if (enable_seam_slope && m_config.seam_slope_conditional.value) {
-        enable_seam_slope = loop.is_smooth(m_config.scarf_angle_threshold.value * M_PI / 180., nozzle_diameter);
+        // Only the stretch the scarf ramp covers has to be smooth.
+        const double scarf_length = m_config.seam_slope_entire_loop ? -1. : m_config.seam_slope_min_length.value;
+        enable_seam_slope = loop.is_smooth(m_config.scarf_angle_threshold.value * M_PI / 180., nozzle_diameter, scarf_length);
     }
 
     if (enable_seam_slope && m_config.seam_slope_conditional.value && m_config.scarf_overhang_threshold.value > 0.0f) {
