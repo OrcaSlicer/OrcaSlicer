@@ -180,6 +180,13 @@ jobs:
             # Prepend Strawberry Perl to PATH for THIS step so build_win.ps1 finds
             # it before Git for Windows' cygwin perl (which shadows it).
             $env:PATH = (Join-Path $spDest 'perl\bin') + ';' + (Join-Path $spDest 'c\bin') + ';' + $env:PATH
+
+            # Install clang-cl component when compiler is clang (needed for deps build)
+            if ("${{ inputs.compiler }}" -eq "clang") {
+              Write-Host "Installing VS clang-cl component..."
+              winget install --id Microsoft.VisualStudio.Component.VC.Llvm.Clang --source winget --accept-source-agreements --accept-package-agreements --silent 2>&1 | Write-Host
+            }
+
             # cache-path is the install directory inside the deps build directory.
             $deps = (Split-Path "${{ github.workspace }}/${{ inputs.cache-path }}").Replace('\', '/')
             # Use flags from matrix if provided, otherwise fall back to compiler-based logic
