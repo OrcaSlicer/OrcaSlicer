@@ -3602,6 +3602,8 @@ void PublishSettingsDialog::apply_visibility()
         // A hosted slot's rows hide and show through the tab's own lines: the row of the column
         // the switch shows owns its line's visibility, on top of the Tab's own hide rule.
         bool tab_rows = false;
+        // A Full Publish slot serializes its preset whole, so none of its rows publishes per key.
+        const bool full = category.section == Section::Material && m_selection.full_publish(int(category.filament_slot));
         // The lines that show a row on the selected variant. A line with none of them belongs to
         // another column and must be hidden, or the column shown before would stay drawn.
         std::set<const Line*> drawn_lines;
@@ -3612,8 +3614,14 @@ void PublishSettingsDialog::apply_visibility()
             tab_rows = true;
             // Read the tab's own rule now rather than a cached copy: the filter must never make a
             // row the Tab hid reappear.
+            const bool rule_visible = tab_line_visible(*category.publish_tab, row);
+            // The Tab's rule, never the filter, decides whether a row publishes: a rule-hidden row
+            // is disabled and leaves the payload and the tab dot, while its tick survives so the
+            // row publishes again when its rule shows it.
+            if (m_selection.enabled(row.id) != (!full && rule_visible))
+                set_row_enabled(r, !full && rule_visible);
             if (row_on_selected_variant(r)) {
-                row.tab_line->toggle_visible = row.matches_filter && tab_line_visible(*category.publish_tab, row);
+                row.tab_line->toggle_visible = row.matches_filter && rule_visible;
                 drawn_lines.insert(row.tab_line);
             }
         }
@@ -3943,9 +3951,9 @@ bool PublishSettingsDialog::category_has_selection(const Category& cat) const
     // physical slot when a checked row carries a key or a non-empty colour/type, or Full Publish.
     if (cat.section == Section::Material)
         return m_selection.owner_publishes(int(cat.filament_slot), m_row_ids);
-    // Print/Printer categories have no gate: any checked row counts.
+    // Print/Printer categories have no gate: a checked row that is not disabled publishes.
     for (const size_t r : cat.rows)
-        if (m_selection.checked(m_rows[r].id))
+        if (m_selection.checked(m_rows[r].id) && m_selection.enabled(m_rows[r].id))
             return true;
     return false;
 }
