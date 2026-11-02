@@ -625,7 +625,8 @@ public:
     /* -1: send current gcode if not specified
      * -2: send all gcode to target machine */
     int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
-    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
+    // Orca: upload_only skips the profile's print-start dialog; the job is started on the printer.
+    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool upload_only = false);
     int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
     //BBS jump to nonitor after print job finished
     void send_calibration_job_finished(wxCommandEvent &evt);
@@ -680,7 +681,9 @@ public:
     // editor previews rather than a straight blend of two endpoints. A slot that is not a
     // gradient mixed filament gets an empty ramp. Cached; recomputed when the config changes.
     const std::vector<std::vector<wxColour>>& get_filament_gradient_ramps() const;
-    std::vector<std::string> get_colors_for_color_print(const GCodeProcessorResult* const result = nullptr) const;
+    // `filament_colors` are the palette's leading per-tool entries: a compacted plate renumbers
+    // tools away from project slots.
+    std::vector<std::string> get_colors_for_color_print(const GCodeProcessorResult* const result, std::vector<std::string> filament_colors) const;
 
     void set_global_filament_map_mode(FilamentMapMode mode);
     void set_global_filament_map(const std::vector<int>& filament_map);

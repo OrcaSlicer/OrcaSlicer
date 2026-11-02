@@ -4,6 +4,7 @@
 	"inherits": "fdm_machine_common",
 	"from": "system",
 	"instantiation": "false",
+	"host_type": "moonraker",
 	"nozzle_diameter": [
 		"0.4"
 	],

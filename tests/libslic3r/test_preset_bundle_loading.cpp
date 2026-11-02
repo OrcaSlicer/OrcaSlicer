@@ -1950,6 +1950,171 @@ TEST_CASE("Every printer variant has a compatible default material", "[Preset][V
     CHECK(bundle.has_errors() == expected_errors);
 }
 
+namespace {
+// A system printer with `nozzles` tools.
+Preset &add_mapped_printer(PresetCollection &printers, const std::string &name, size_t nozzles,
+                           FilamentMappingProtocol protocol, bool semm = false)
+{
+    Preset &printer   = add_inmemory_preset(printers, name);
+    printer.is_system = true;
+    printer.config.option<ConfigOptionFloats>("nozzle_diameter", true)->values.assign(nozzles, 0.4);
+    printer.config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = semm;
+    printer.config.option<ConfigOptionEnum<FilamentMappingProtocol>>("filament_mapping_protocol", true)->value = protocol;
+    return printer;
+}
+
+// System filament presets "Test Filament 0" .. "Test Filament <count - 1>"; returns their names.
+std::vector<std::string> add_filaments(PresetBundle &bundle, size_t count)
+{
+    std::vector<std::string> names;
+    for (size_t i = 0; i < count; ++i) {
+        names.push_back("Test Filament " + std::to_string(i));
+        add_inmemory_preset(bundle.filaments, names.back()).is_system = true;
+    }
+    return names;
+}
+} // namespace
+
+TEST_CASE("Filament preset selections round-trip for a mapped multi-tool printer", "[Preset][Bundle][FilamentMapping]")
+{
+    // Five filaments on a four-nozzle mapped printer: more filaments than tools.
+    AppConfig    config;
+    PresetBundle bundle;
+
+    const Preset &printer = add_mapped_printer(bundle.printers, "Test Mapped Printer", 4, FilamentMappingProtocol::fmpSnapmaker);
+    bundle.printers.select_preset_by_name("Test Mapped Printer", true);
+    REQUIRE(device_resolves_filament_mapping(printer.config));
+
+    const std::vector<std::string> filament_names = add_filaments(bundle, 5);
+    bundle.filaments.select_preset_by_name(filament_names[0], true);
+    bundle.filament_presets = filament_names;
+
+    bundle.export_selections(config);
+
+    PresetBundle bundle2;
+    add_mapped_printer(bundle2.printers, "Test Mapped Printer", 4, FilamentMappingProtocol::fmpSnapmaker);
+    add_filaments(bundle2, 5);
+
+    bundle2.load_selections(config);
+
+    CHECK(bundle2.filament_presets == filament_names);
+
+    // Several UI surfaces count filaments from these project_config arrays.
+    CHECK(bundle2.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 5);
+    CHECK(bundle2.project_config.option<ConfigOptionStrings>("filament_multi_colour")->values.size() == 5);
+    CHECK(bundle2.project_config.option<ConfigOptionStrings>("filament_colour_type")->values.size() == 5);
+}
+
+// Where the filament count isn't bound to the nozzle count, the project's list replaces the
+// printer's remembered snapshot.
+TEST_CASE("Switching to a printer that can take them keeps the project's filaments", "[Preset][Bundle][FilamentMapping]")
+{
+    struct Case { const char* name; bool semm; bool mapped; size_t remembered; size_t expected; };
+    const Case c = GENERATE(
+        Case{ "a mapped toolchanger remembering four keeps all six",      false, true,  4, 6 },
+        Case{ "an AMS/MMU printer remembering one keeps all six",         true,  false, 1, 6 },
+        Case{ "a plain single-nozzle printer still restores its snapshot", false, false, 1, 1 },
+        Case{ "a toolchanger remembering eight does not override the six", false, true,  8, 6 });
+
+    DYNAMIC_SECTION(c.name) {
+        AppConfig    config;
+        PresetBundle bundle;
+
+        const std::vector<std::string> filament_names = add_filaments(bundle, 8);
+        add_mapped_printer(bundle.printers, "Target Printer", c.mapped ? 4 : 1,
+                           c.mapped ? FilamentMappingProtocol::fmpSnapmaker : FilamentMappingProtocol::fmpNone, c.semm);
+        config.set_printer_setting("Target Printer", PRESET_FILAMENT_NAME, filament_names[0]);
+        for (size_t i = 1; i < c.remembered; ++i)
+            config.set_printer_setting("Target Printer", "filament_" + std::string(i < 10 ? "0" : "") + std::to_string(i), filament_names[i]);
+
+        bundle.filament_presets.assign(filament_names.begin(), filament_names.begin() + 6);
+        std::vector<std::string> project_colours;
+        for (int i = 0; i < 6; ++i)
+            project_colours.push_back("#00000" + std::to_string(i));
+        bundle.project_config.option<ConfigOptionStrings>("filament_colour", true)->values = project_colours;
+        bundle.project_config.option<ConfigOptionStrings>("filament_multi_colour", true)->values = project_colours;
+        bundle.project_config.option<ConfigOptionStrings>("filament_colour_type", true)->values.assign(6, "1");
+        bundle.project_config.option<ConfigOptionBools>("filament_is_mixed", true)->values = { 0, 0, 0, 0, 0, 1 };
+        bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components", true)->values = { "", "", "", "", "", "1,2" };
+
+        bundle.printers.select_preset_by_name("Target Printer", true);
+        bundle.update_selections(config);
+
+        REQUIRE(bundle.filament_presets.size() == c.expected);
+        const auto &colours = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+        REQUIRE(colours.size() == c.expected);
+        if (c.expected == 6) {
+            CHECK(std::vector<std::string>(bundle.filament_presets.begin(), bundle.filament_presets.end()) ==
+                  std::vector<std::string>(filament_names.begin(), filament_names.begin() + 6));
+            CHECK(colours == project_colours);
+            CHECK(bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values[5] == true);
+            CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values[5] == "1,2");
+        }
+        CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_multi_colour")->values.size() == c.expected);
+        CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour_type")->values.size() == c.expected);
+    }
+}
+
+// A 3mf from a slicer without mixed filaments leaves filament_is_mixed at its one-element default,
+// and num_physical_filaments() counts those flags.
+TEST_CASE("Restoring a project with default-length mixed metadata still counts every filament", "[Preset][Bundle][FilamentMapping]")
+{
+    AppConfig    config;
+    PresetBundle bundle;
+
+    const std::vector<std::string> filament_names = add_filaments(bundle, 6);
+    add_mapped_printer(bundle.printers, "Target Printer", 4, FilamentMappingProtocol::fmpSnapmaker);
+    config.set_printer_setting("Target Printer", PRESET_FILAMENT_NAME, filament_names[0]);
+    for (size_t i = 1; i < 4; ++i)
+        config.set_printer_setting("Target Printer", "filament_0" + std::to_string(i), filament_names[i]);
+
+    bundle.filament_presets.assign(filament_names.begin(), filament_names.end());
+    bundle.project_config.option<ConfigOptionStrings>("filament_colour", true)->values.assign(6, "#123456");
+    bundle.project_config.option<ConfigOptionStrings>("filament_multi_colour", true)->values.assign(6, "#123456");
+    bundle.project_config.option<ConfigOptionStrings>("filament_colour_type", true)->values.assign(6, "1");
+    bundle.project_config.option<ConfigOptionBools>("filament_is_mixed", true)->values = { 0 };
+    bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components", true)->values = { "" };
+
+    bundle.printers.select_preset_by_name("Target Printer", true);
+    bundle.update_selections(config);
+
+    REQUIRE(bundle.filament_presets.size() == 6);
+    CHECK(bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values.size() == 6);
+    CHECK(bundle.num_physical_filaments() == 6);
+}
+
+// load_config_file_config takes the filament count from filament_colour and pads a shorter
+// filament_settings_id with empty names.
+TEST_CASE("A damaged project's short filament_settings_id doesn't leave a blank filament slot", "[Preset][Bundle][FilamentMapping]")
+{
+    PresetBundle bundle;
+
+    const Preset &printer = add_mapped_printer(bundle.printers, "Test Mapped Printer", 4, FilamentMappingProtocol::fmpSnapmaker);
+    bundle.printers.select_preset_by_name("Test Mapped Printer", true);
+
+    const std::vector<std::string> filament_names = add_filaments(bundle, 4);
+    bundle.filaments.select_preset_by_name(filament_names[0], true);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.apply(printer.config);
+    config.option<ConfigOptionStrings>("filament_colour", true)->values =
+        { "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF" };
+    config.option<ConfigOptionStrings>("filament_settings_id", true)->values = filament_names; // only 4
+    config.option<ConfigOptionString>("printer_settings_id", true)->value = "Test Mapped Printer";
+    // load_config_file_config re-derives these only when absent; the single-filament defaults
+    // would trip its filament_extruder_variant guard.
+    config.erase("filament_self_index");
+    config.erase("filament_extruder_variant");
+
+    bundle.load_config_model("DamagedProject.3mf", std::move(config));
+
+    CHECK(bundle.filament_presets.size() == 5);
+    for (size_t i = 0; i < bundle.filament_presets.size(); ++i) {
+        CAPTURE(i);
+        CHECK_FALSE(bundle.filament_presets[i].empty());
+    }
+}
+
 // Under a shared override key, the last preset merged into the full config overwrote the others', so an
 // edited slicing-pipeline override never reached Print::apply's diff and re-configuring a plugin never
 // re-sliced. Per-type keys make that collision impossible; guard the scoping here.

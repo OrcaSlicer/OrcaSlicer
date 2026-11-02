@@ -18,6 +18,7 @@
 #include "slic3r/Utils/BBLCloudServiceAgent.hpp"
 #include "slic3r/Utils/CloudDeleteQueue.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "ActivePrinterSession.hpp"
 #include "GUI_Init.hpp"
 #include "GUI_ObjectList.hpp"
 #include "slic3r/GUI/UserManager.hpp"
@@ -4395,13 +4396,13 @@ void GUI_App::switch_printer_agent()
         // preset targets a different host, otherwise filament sync keeps hitting the old
         // printer. (#12506)
         if (effective_agent_id != BBL_PRINTER_AGENT_ID && m_device_manager && preset_bundle) {
-            const std::string print_host = config.opt_string("print_host");
-            if (!print_host.empty()) {
-                const std::string dev_id = MachineObject::dev_id_from_address(print_host, config.opt_string("printhost_port"));
+            const auto conn = active_printer_session().connection();
+            if (conn.configured()) {
                 MachineObject* sel = m_device_manager->get_selected_machine();
+                //ORCA: a changed Moonraker API key also needs a re-select; Moonraker stores the raw key.
                 const bool access_code_changed = effective_agent_id == MOONRAKER_PRINTER_AGENT_ID && sel &&
-                                                 sel->get_access_code() != config.opt_string("printhost_apikey");
-                if (!sel || sel->get_dev_id() != dev_id || access_code_changed)
+                                                 sel->get_access_code() != conn.api_key;
+                if (!sel || sel->get_dev_id() != conn.dev_id || access_code_changed)
                     select_machine(effective_agent_id);
             }
         }
@@ -4452,9 +4453,8 @@ void GUI_App::select_machine(const std::string& agent_id)
         return;
     }
 
-    // Get config source (preset or physical printer)
-    const auto& preset = preset_bundle->printers.get_edited_preset();
-    const DynamicPrintConfig* host_cfg = &preset.config;
+    const ActivePrinterSession&            session = active_printer_session();
+    const ActivePrinterSession::Connection conn    = session.connection();
 
     // Hands the machine to the Device tab's full selection flow (UI updates, callbacks, etc.).
     auto select_dev = [this](const std::string& dev_id) {
@@ -4468,8 +4468,7 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
     };
 
-    std::string print_host = host_cfg->opt_string("print_host");
-    if (print_host.empty()) {
+    if (!conn.configured()) {
         // Orca: a printer bound from the Device tab is kept as a device of the agent rather than in
         // the preset's print_host. Select it when it is the agent's only one, as
         // MainFrame::load_printer_url() does; otherwise nothing is selected until the print dialog
@@ -4479,13 +4478,8 @@ void GUI_App::select_machine(const std::string& agent_id)
             select_dev(machines.begin()->second->get_dev_id());
         return;
     }
-    std::string port = host_cfg->opt_string("printhost_port");
-    std::string access_code = host_cfg->opt_string("printhost_apikey");
-    if (access_code.empty() && agent_id != MOONRAKER_PRINTER_AGENT_ID)
-        access_code = "88888888";
-
-    // Generate dev_id from host and port
-    std::string dev_id = MachineObject::dev_id_from_address(print_host, port);
+    const std::string& dev_id      = conn.dev_id;
+    const std::string  access_code = conn.access_code(agent_id);
 
     // Check if already exists by dev_id
     MachineObject* existing = m_device_manager->get_local_machine(dev_id);
@@ -4501,6 +4495,13 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
     }
 
+    // Same-printer checks compare printer_type with Preset::get_printer_type(), the vendor model
+    // id, which need not equal the display name ("Snapmaker U1" vs "797581801").
+    const bool        device_resolved = device_resolves_filament_mapping(session.profile().config);
+    const std::string model_name = session.profile().config.opt_string("printer_model");
+    const std::string model_id   = device_resolved ? session.printer_type() : std::string();
+    const std::string machine_type = model_id.empty() ? model_name : model_id;
+
     // If machine doesn't exist, create it first
     if (!existing) {
         BBLocalMachine machine;
@@ -4508,7 +4509,7 @@ void GUI_App::select_machine(const std::string& agent_id)
         // We use dev_id as dev_ip to store the address (host:port)
         machine.dev_ip = dev_id;
         machine.dev_name = dev_id;
-        machine.printer_type = preset.config.opt_string("printer_model");
+        machine.printer_type = machine_type;
 
         existing = m_device_manager->insert_local_device(
             machine, "lan", "free", "", access_code);
@@ -4522,7 +4523,15 @@ void GUI_App::select_machine(const std::string& agent_id)
                (!existing->has_access_right() || existing->get_access_code() != access_code)) {
         existing->set_access_code(access_code);
     }
-    existing->local_use_ssl = boost::istarts_with(print_host, "https://");
+    existing->local_use_ssl = conn.use_ssl;
+    // A machine created earlier under the display name.
+    if (existing->printer_type == model_name && machine_type != model_name)
+        existing->printer_type = machine_type;
+
+    // The machine's dev_ip may be stale from a previous session; the agent dials the preset's.
+    if (device_resolved)
+        session.bind_agent();
+
     select_dev(dev_id);
 }
 
@@ -5355,6 +5364,11 @@ wxString GUI_App::transition_tridid(int trid_id) const
         int id_suffix = trid_id % 4 + 1;
         return wxString::Format("%s%d", maping_dict[id_index], id_suffix);
     }
+}
+
+wxString GUI_App::tray_display_label(int tray_id, bool is_toolchanger) const
+{
+    return is_toolchanger ? wxString::Format("T%d", tray_id + 1) : transition_tridid(tray_id);
 }
 
 //BBS
@@ -9467,7 +9481,9 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
     PrinterTechnology printer_technology = edited_printer_preset.printer_technology();
     // ORCA: Sync filament count with the printer's nozzle count before loading presets for multi-tool printers.
     // This ensures filament_presets vector is properly sized when combo boxes are created/updated.
-    if (printer_technology == ptFFF && !edited_printer_preset.config.opt_bool("single_extruder_multi_material")) {
+    // Mapped printers keep their own filament count; resyncing would delete mapped slots.
+    if (printer_technology == ptFFF && !edited_printer_preset.config.opt_bool("single_extruder_multi_material")
+        && !device_resolves_filament_mapping(edited_printer_preset.config)) {
         auto* nozzle_diameter = edited_printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
         if (nozzle_diameter) {
             // Mixed-color slots are virtual filaments kept at the tail of the list, so they have no

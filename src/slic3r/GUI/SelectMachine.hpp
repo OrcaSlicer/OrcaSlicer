@@ -309,6 +309,7 @@ private:
 };
 
 class PrinterInfoBox;
+class SlotPickPopup;
 class SelectMachineDialog : public DPIDialog
 {
 private:
@@ -374,6 +375,7 @@ private:
 protected:
     PrintFromType                       m_print_type{FROM_NORMAL};
     AmsMapingPopup                      m_mapping_popup{ nullptr };
+    SlotPickPopup*                      m_slot_picker{ nullptr };
     AmsMapingTipPopup                   m_mapping_tip_popup{ nullptr };
     AmsTutorialPopup                    m_mapping_tutorial_popup{ nullptr };
     MaterialHash                        m_materialList;

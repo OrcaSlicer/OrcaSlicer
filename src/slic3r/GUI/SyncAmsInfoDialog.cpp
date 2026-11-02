@@ -40,6 +40,8 @@
 #include <wx/busycursor.h>
 #include <wx/chartype.h>
 #include <wx/arrstr.h>
+#include <algorithm>
+#include <wx/display.h>
 #include <wx/event.h>
 #include <wx/image.h>
 #include <wx/gdicmn.h>
@@ -83,6 +85,10 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "ActivePrinterSession.hpp"
+#include "FilamentInventoryStore.hpp"
+#include "SlotGridPanel.hpp"
+#include "libslic3r/FilamentInventory.hpp"
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
@@ -90,9 +96,24 @@ using json = nlohmann::json;
 #define OK_BUTTON_SIZE wxSize(FromDIP(90), FromDIP(24))
 #define CANCEL_BUTTON_SIZE wxSize(FromDIP(58), FromDIP(24))
 #define SyncAmsInfoDialogWidth  FromDIP(675)
-#define SyncAmsInfoDialogHeightMIN FromDIP(620)
-#define SyncAmsInfoDialogHeightMIDDLE FromDIP(630)
-#define SyncAmsInfoDialogHeightMAX FromDIP(700)
+static bool selected_printer_is_toolchanger()
+{
+    Slic3r::DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+    Slic3r::MachineObject *obj = dev ? dev->get_selected_machine() : nullptr;
+    return obj && obj->GetFilaSystem() && obj->GetFilaSystem()->IsAllToolchanger();
+}
+// Orca: a toolchanger gets the taller `dip` for its slot rows, clamped to the display; the
+// reserve covers the title bar, bottom buttons and taskbar. Others keep `default_dip`.
+static int sync_dialog_scrolled_height(wxWindow *w, int default_dip, int dip)
+{
+    if (!selected_printer_is_toolchanger())
+        return w->FromDIP(default_dip);
+    const int avail = wxDisplay(wxDisplay::GetFromWindow(w)).GetClientArea().GetHeight() - w->FromDIP(160);
+    return std::min(w->FromDIP(dip), avail);
+}
+#define SyncAmsInfoDialogHeightMIN sync_dialog_scrolled_height(this, 620, 700)
+#define SyncAmsInfoDialogHeightMIDDLE sync_dialog_scrolled_height(this, 630, 920)
+#define SyncAmsInfoDialogHeightMAX sync_dialog_scrolled_height(this, 700, 960)
 #define SyncLabelWidth FromDIP(640)
 #define SyncAttentionTipWidth FromDIP(550)
 namespace Slic3r { namespace GUI {
@@ -979,6 +1000,21 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         tip_sizer->AddSpacer(FromDIP(20));
         bSizer->Add(tip_sizer, 0, wxEXPAND | wxLEFT, FromDIP(25));
 
+        {
+            wxBoxSizer *map_btns  = new wxBoxSizer(wxHORIZONTAL);
+            m_clear_btn = new Button(m_scrolledWindow, _L("Clear"));
+            m_clear_btn->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
+            m_clear_btn->SetToolTip(_L("Unassign every tool so no filament is mapped."));
+            m_clear_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { clear_all_ams_info(); });
+            map_btns->Add(m_clear_btn, 0);
+            m_auto_btn = new Button(m_scrolledWindow, _L("Automatic"));
+            m_auto_btn->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
+            m_auto_btn->SetToolTip(_L("Restore the automatic match: same material family and closest color."));
+            m_auto_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { reset_all_ams_info(); });
+            map_btns->Add(m_auto_btn, 0, wxLEFT, FromDIP(8));
+            bSizer->Add(map_btns, 0, wxLEFT | wxTOP, FromDIP(25));
+        }
+
         add_two_image_control();
 
         wxBoxSizer * more_setting_sizer = new wxBoxSizer(wxVERTICAL);
@@ -1144,6 +1180,13 @@ void SyncAmsInfoDialog::reinit_dialog()
     m_ams_mapping_result.clear();
     m_preview_colors_in_thumbnail.clear();
 
+    // The dialog is reused across printer switches.
+    if (m_clear_btn && m_auto_btn) {
+        const bool resolved = selected_printer_is_toolchanger();
+        m_clear_btn->Show(resolved);
+        m_auto_btn->Show(resolved);
+    }
+
     show_status(PrintDialogStatus::PrintStatusInit);
     update_show_status();
 }
@@ -1222,6 +1265,16 @@ void SyncAmsInfoDialog::finish_mode()
 
 void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &result)
 {
+    // Orca: toolchangers get "T%d" labels instead of transition_tridid()'s AMS lettering.
+    DeviceManager *dev            = Slic3r::GUI::wxGetApp().getDeviceManager();
+    MachineObject *obj_           = dev ? dev->get_selected_machine() : nullptr;
+    const bool     is_toolchanger = obj_ && obj_->GetFilaSystem()->IsAllToolchanger();
+
+    // Includes rows the result loop below never visits.
+    for (auto &kv : m_materialList)
+        if (kv.second->item)
+            kv.second->item->set_toolchanger(is_toolchanger);
+
     m_back_ams_mapping_result = result;
     if (result.empty()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "ams_mapping result is empty";
@@ -1250,7 +1303,7 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
                 }
 
                 else if (f->tray_id >= 0) {
-                    ams_id = wxGetApp().transition_tridid(f->tray_id);
+                    ams_id = wxGetApp().tray_display_label(f->tray_id, is_toolchanger);
                     // ams_id = wxString::Format("%02d", f->tray_id + 1);
                 } else {
                     ams_id = "-";
@@ -1363,20 +1416,22 @@ void SyncAmsInfoDialog::deal_only_exist_ext_spool(MachineObject *obj_) {
         return;
     if (!m_append_color_text) { return; }
     bool only_exist_ext_spool_flag = m_only_exist_ext_spool_flag = !obj_->GetFilaSystem()->HasAms();
-    SetTitle(only_exist_ext_spool_flag ? _L("Synchronize Filament Information") : _L("Synchronize AMS Filament Information"));
-    m_append_color_text->SetLabel(only_exist_ext_spool_flag ? _L("Add unused filaments to filaments list.") :
+    // Orca: toolchangers report per-tool AMS units, so only_exist_ext_spool_flag is false for them.
+    bool is_toolchanger = obj_->GetFilaSystem()->IsAllToolchanger();
+    SetTitle((only_exist_ext_spool_flag || is_toolchanger) ? _L("Synchronize Filament Information") : _L("Synchronize AMS Filament Information"));
+    m_append_color_text->SetLabel((only_exist_ext_spool_flag || is_toolchanger) ? _L("Add unused filaments to filaments list.") :
                                                               _L("Add unused AMS filaments to filaments list."));
     if (m_map_mode == MapModeEnum::ColorMap) {
-        m_tip_attention_color_map = only_exist_ext_spool_flag ? _L("Only synchronize filament type and color, not including slot information.") :
+        m_tip_attention_color_map = (only_exist_ext_spool_flag || is_toolchanger) ? _L("Only synchronize filament type and color, not including slot information.") :
                                                                 _L("Only synchronize filament type and color, not including AMS slot information.");
         m_tip_text->SetLabel(m_tip_attention_color_map);
 
     }
     if (m_ams_or_ext_text_in_colormap) {
-        m_ams_or_ext_text_in_colormap->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : _L("AMS")) + ":");
+        m_ams_or_ext_text_in_colormap->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : is_toolchanger ? _L("Tool") : _L("AMS")) + ":");
     }
     if (m_ams_or_ext_text_in_override) {
-        m_ams_or_ext_text_in_override->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : _L("AMS")) + ":");
+        m_ams_or_ext_text_in_override->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : is_toolchanger ? _L("Tool") : _L("AMS")) + ":");
     }
 }
 
@@ -2058,6 +2113,17 @@ void SyncAmsInfoDialog::on_refresh(wxCommandEvent &event)
     update_user_machine_list();
 }
 
+void SyncAmsInfoDialog::open_slot_picker(wxWindow *anchor, int filament_id)
+{
+    if (!m_slot_picker)
+        m_slot_picker = new SlotPickPopup(this);
+    int current_slot = -1;
+    for (const FilamentInfo &f : m_ams_mapping_result)
+        if (f.id == filament_id)
+            current_slot = f.tray_id;
+    m_slot_picker->PopupForFilament(this, anchor, filament_id, current_slot);
+}
+
 void SyncAmsInfoDialog::on_set_finish_mapping(wxCommandEvent &evt)
 {
     auto selection_data     = evt.GetString();
@@ -2463,6 +2529,19 @@ void SyncAmsInfoDialog::reset_ams_material()
     }
 }
 
+void SyncAmsInfoDialog::clear_all_ams_info()
+{
+    // No sync_ams_mapping_result here: it would re-label the cleared rows from tray_id and
+    // overwrite the backup that Automatic restores.
+    for (int i = 0; i < (int) m_ams_mapping_result.size(); i++) {
+        reset_one_ams_material(std::to_string(i + 1), false);
+    }
+    update_final_thumbnail_data();
+    if (m_reset_all_btn && !m_reset_all_btn->IsShown())
+        m_reset_all_btn->Show();
+    Refresh();
+}
+
 void SyncAmsInfoDialog::reset_all_ams_info()
 {
     for (int i = 0; i < m_ams_mapping_result.size(); i++) {
@@ -2496,6 +2575,11 @@ void SyncAmsInfoDialog::reset_one_ams_material(const std::string &index_str, boo
                     m_ams_mapping_result[index].ams_id = "";
                     m_ams_mapping_result[index].slot_id = "";
                     m_ams_mapping_result[index].color = "";
+                    // -1 = unmapped; sync_ams_mapping_result renders the tool label from tray_id.
+                    if (selected_printer_is_toolchanger()) {
+                        m_ams_mapping_result[index].tray_id = -1;
+                        m_ams_mapping_result[index].colors.clear();
+                    }
                 }
             }
             break;
@@ -2730,6 +2814,13 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
             DeviceManager *dev_manager = Slic3r::GUI::wxGetApp().getDeviceManager();
             if (!dev_manager) return;
             MachineObject *obj_        = dev_manager->get_selected_machine();
+            // Orca: toolchangers pick from the slot grid, which reads the live printer's stored
+            // inventory; BBL and any other machine keep the AMS popup.
+            if (obj_ && obj_->GetFilaSystem() && obj_->GetFilaSystem()->IsAllToolchanger() &&
+                obj_ == active_printer_session().live_machine() && m_checkbox_list["use_ams"]->getValue() == "on") {
+                open_slot_picker(item, extruder);
+                return;
+            }
             bool is_selector = false;
             if (get_is_double_extruder()) {
                 if (has_selector(obj_)) { // FTS combined view — one dynamic panel when a switch is installed+ready

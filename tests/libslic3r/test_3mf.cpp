@@ -470,7 +470,8 @@ static void store_painted_cube(const std::string& path)
 
 // Loads `path` through the BBS importer into `model`, releasing the plates it returns. The
 // importer stages metadata through `backup_dir`, which has to outlive the model.
-static bool load_project(const std::string& path, Model& model, const ScopedTemporaryDir& backup_dir)
+static bool load_project(const std::string& path, Model& model, const ScopedTemporaryDir& backup_dir,
+                         DynamicPrintConfig* config_out = nullptr)
 {
     model.set_backup_path(backup_dir.string());
     DynamicPrintConfig        config;
@@ -482,6 +483,8 @@ static bool load_project(const std::string& path, Model& model, const ScopedTemp
     const bool loaded = load_bbs_3mf(path.c_str(), &config, &ctxt, &model, &plates, &project_presets, &is_bbl_3mf,
                                      &is_orca_3mf, &file_version, nullptr, LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
     release_PlateData_list(plates);
+    if (config_out != nullptr)
+        *config_out = config;
     return loaded;
 }
 
@@ -1157,6 +1160,87 @@ SCENARIO("Legacy project loads crash-safe via load_bbs_3mf", "[3mf][MultiNozzle]
             release_PlateData_list(plates);
         }
     }
+}
+
+// filament_settings_id can be absent from the project config (see
+// PresetBundle::load_config_file_config); the clamp must still be bounded.
+TEST_CASE("Object extruder id is clamped against filament_colour when filament_settings_id is absent", "[3mf]")
+{
+    Model       model;
+    std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+    REQUIRE(load_stl(src_file.c_str(), &model));
+    model.add_default_instances();
+    model.objects.front()->config.set_key_value("extruder", new ConfigOptionInt(7));
+
+    ScopedTemporaryDir src_backup("orca_ex_src");
+    model.set_backup_path(src_backup.string());
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filament_colour", new ConfigOptionStrings({ "#FF0000", "#00FF00" }));
+    config.erase("filament_settings_id");
+
+    PlateData plate;
+    plate.plate_index     = 0;
+    plate.is_sliced_valid = true;
+    plate.filament_maps   = { 1 };
+
+    const std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/extruder_clamp_roundtrip.3mf";
+    StoreParams       store_params;
+    store_params.path     = test_file.c_str();
+    store_params.model    = &model;
+    store_params.config   = &config;
+    store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+    store_params.plate_data_list.push_back(&plate);
+    REQUIRE(store_bbs_3mf(store_params));
+
+    ScopedTemporaryDir dst_backup("orca_ex_dst");
+    Model              dst_model;
+    DynamicPrintConfig dst_config;
+    const bool         loaded = load_project(test_file, dst_model, dst_backup, &dst_config);
+    boost::filesystem::remove(test_file);
+
+    REQUIRE(loaded);
+    REQUIRE(dst_config.option("filament_settings_id") == nullptr);
+    REQUIRE(dst_model.objects.size() >= 1);
+    CHECK(dst_model.objects.front()->config.opt_int("extruder") == 1);
+}
+
+// The clamp bounds against whichever filament array is longer.
+TEST_CASE("Object extruder id survives import when filament_settings_id outnumbers filament_colour", "[3mf][Regression]")
+{
+    Model       model;
+    std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+    REQUIRE(load_stl(src_file.c_str(), &model));
+    model.add_default_instances();
+    model.objects.front()->config.set_key_value("extruder", new ConfigOptionInt(2));
+
+    ScopedTemporaryDir src_backup("orca_ex2_src");
+    model.set_backup_path(src_backup.string());
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filament_settings_id", new ConfigOptionStrings({ "A", "B" }));
+    REQUIRE(config.opt<ConfigOptionStrings>("filament_colour")->size() == 1);
+
+    PlateData plate;
+    plate.plate_index = 0;
+
+    const std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/extruder_clamp_settings_ids.3mf";
+    StoreParams       store_params;
+    store_params.path     = test_file.c_str();
+    store_params.model    = &model;
+    store_params.config   = &config;
+    store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+    store_params.plate_data_list.push_back(&plate);
+    REQUIRE(store_bbs_3mf(store_params));
+
+    ScopedTemporaryDir dst_backup("orca_ex2_dst");
+    Model              dst_model;
+    const bool         loaded = load_project(test_file, dst_model, dst_backup);
+    boost::filesystem::remove(test_file);
+
+    REQUIRE(loaded);
+    REQUIRE(dst_model.objects.size() >= 1);
+    CHECK(dst_model.objects.front()->config.opt_int("extruder") == 2);
 }
 
 // Device-side nozzle-grouping serialization surface.
