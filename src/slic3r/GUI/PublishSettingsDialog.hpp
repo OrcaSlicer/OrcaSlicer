@@ -145,10 +145,11 @@ private:
         // The slot's colour swatch, a button in the sidebar's style: a click writes the colour
         // to the project at once, and the badge and the tab strip show it.
         wxBitmapButton* filament_color_chip{nullptr};
-        // A physical slot's two publish flags, below the picker, each a checkbox with a read-only
-        // value: the colour it prints with and its normalised material type. Both start off and
-        // follow the picked preset and the picked colour. A flag's label is its own wxStaticText,
-        // so it is kept to dim alongside a disabled checkbox.
+        // A physical slot's publish flags, on one row below the picker, in this order: Full
+        // Publish, then the colour it prints with and its normalised material type, each a
+        // checkbox with a read-only value where it has one. All start off and follow the picked
+        // preset and the picked colour. A flag's label is its own wxStaticText, so it is kept to
+        // dim alongside a disabled checkbox.
         ::CheckBox*     color_check{nullptr};
         wxStaticText*   color_label{nullptr};
         wxStaticBitmap* color_value{nullptr};
@@ -156,17 +157,18 @@ private:
         wxStaticText*   type_label{nullptr};
         wxStaticText*   type_value{nullptr};
         // One publish switch per owner, never null after build. A physical slot has none: its
-        // colour and type are the flag rows above, and its key rows publish independently. A mixed
+        // colour and type are the flags above, and its key rows publish independently. A mixed
         // slot's checkbox sits above its definition page and publishes the mix definition,
         // auto-Full-Publishing its component filaments.
         ::CheckBox* owner_check{nullptr};
-        wxSizerItem* full_line_item{nullptr}; // sizer item of the Full Publish line (physical slots only)
+        // Sizer item of the merged Full Publish/Color/Type row (physical slots only).
+        wxSizerItem* flags_item{nullptr};
         // "Full Publish": while checked, the whole slot preset is serialized and its rows are
         // disabled.
         ::CheckBox* full_check{nullptr};
         // The slot's filament preset picker (the sidebar's own combo), on its own line above the
-        // colour/type rows, with the slot's colour badge on its left as the sidebar places its
-        // swatch. Selecting a preset assigns it to the slot at once.
+        // Full Publish/Color/Type row, with the slot's colour badge on its left as the sidebar
+        // places its swatch. Selecting a preset assigns it to the slot at once.
         PublishFilamentPicker* filament_picker{nullptr};
         wxSizerItem*           filament_picker_item{nullptr};
         // True for a mixed-color filament slot: no Material/Retraction rows; its publish checkbox

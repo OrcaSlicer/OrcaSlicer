@@ -1078,16 +1078,16 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
 
 // Size the window to its content: width follows the widest tab strip so no filament tab is
 // hidden (TabCtrl::relayout hides overflowing buttons), height scales proportionally. Both
-// are floored at the 530x530 base and capped at hard DIP limits - deliberately not the whole
-// display - with one last-resort clamp so the dialog can never open larger than the screen.
+// are floored at BASE and capped at CAP - deliberately not the whole display - with one
+// last-resort clamp so the dialog can never open larger than the screen.
 // Also owns the resize floor: the window cannot be resized below what the tabs need, so
 // shrinking never re-hides a filament tab. The cap wins over the tab width: a project whose
 // strip needs more than the cap cannot show every tab at once, and relayout hides the
 // overflowing ones rather than growing the dialog past the cap.
 void PublishSettingsDialog::fit_to_content()
 {
-    static const wxSize BASE{850, 650}; // base size in DIP, the minimum the dialog can shrink to
-    static const wxSize CAP{1300, 850}; // hard cap in DIP, the maximum the dialog can grow to
+    static const wxSize BASE{850, 750}; // base size in DIP, the minimum the dialog can shrink to
+    static const wxSize CAP{1300, 950}; // hard cap in DIP, the maximum the dialog can grow to
     // TabCtrl separates its buttons with proportional stretch spacers, which collapse to zero
     // when the strip is sized to its bare width - the selection dot on a tab would sit flush
     // against the next slot's colour chip. Reserve this much per tab item as slack.
@@ -1275,7 +1275,7 @@ void PublishSettingsDialog::build_option_model()
     const std::set<std::string> dirty_material_keys(dirty_material.begin(), dirty_material.end());
     for (size_t r = 0; r < m_rows.size(); ++r) {
         Row& row = m_rows[r];
-        // Only key rows are "dirty overrides": the Color/Type flag rows carry no key to look up.
+        // Only key rows are "dirty overrides": the Color/Type flags carry no key to look up.
         if (row.id.kind != Slic3r::PublishRowKind::Key)
             continue;
         // A row is one publish unit, so any of its keys being modified marks the whole row.
@@ -1504,38 +1504,37 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
             picker_sizer->Add(category.filament_picker, 1, wxEXPAND);
             category.filament_picker->update();
             category.filament_picker_item =
-                page_sizer->Add(picker_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
+                page_sizer->Add(picker_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(4));
 
-            // Lines 2 and 3: the slot's two publish flags, each with its own checkbox and a
-            // read-only value that follows the slot. "Color" shows the colour the slot prints
-            // with; "Type" shows its normalised material type. Both start off.
-            auto* color_sizer = new wxBoxSizer(wxHORIZONTAL);
+            // The slot's publish flags on one wrapping row, in this order: Full Publish, then
+            // Color (checkbox and a read-only chip showing the colour the slot prints with), then
+            // Type (checkbox and the normalised material type). Full Publish serializes the preset
+            // whole, which ships the colour and type itself, so Color/Type are disabled while it
+            // is on. All start off. Wrapping keeps a long translation of any label from clipping.
+            auto* flags_sizer   = new wxWrapSizer(wxHORIZONTAL);
+            category.full_check = new ::CheckBox(category.page, wxID_ANY);
+            add_checkbox_label(category.page, flags_sizer, category.full_check, _L("Full Publish"),
+                               _L("Embed the entire filament of this slot in the 3MF file"));
+            flags_sizer->AddSpacer(FromDIP(24));
+
             category.color_check = new ::CheckBox(category.page, wxID_ANY);
             category.color_label =
-                add_checkbox_label(category.page, color_sizer, category.color_check, _L_CONTEXT("Color", "Publish"),
+                add_checkbox_label(category.page, flags_sizer, category.color_check, _L_CONTEXT("Color", "Publish"),
                                    _L("Publish this filament slot's color in the 3MF file"));
             category.color_value = make_color_value_chip(category.page, hex, chip_label, FromDIP(16));
             if (category.color_value != nullptr)
-                color_sizer->Add(category.color_value, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
-            page_sizer->Add(color_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
+                flags_sizer->Add(category.color_value, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
+            flags_sizer->AddSpacer(FromDIP(24));
 
-            auto* type_sizer    = new wxBoxSizer(wxHORIZONTAL);
             category.type_check = new ::CheckBox(category.page, wxID_ANY);
             category.type_label =
-                add_checkbox_label(category.page, type_sizer, category.type_check, _L_CONTEXT("Type", "Publish"),
+                add_checkbox_label(category.page, flags_sizer, category.type_check, _L_CONTEXT("Type", "Publish"),
                                    _L("Publish this filament slot's material type in the 3MF file"));
             category.type_value = new wxStaticText(category.page, wxID_ANY, from_u8(normalize_filament_type(category.filament_type)));
             category.type_value->SetFont(Label::Body_13);
             category.type_value->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
-            type_sizer->Add(category.type_value, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
-            page_sizer->Add(type_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
-
-            // Line 4: the "Full Publish" toggle, after the material controls it disables.
-            auto* full_sizer    = new wxBoxSizer(wxHORIZONTAL);
-            category.full_check = new ::CheckBox(category.page, wxID_ANY);
-            add_checkbox_label(category.page, full_sizer, category.full_check, _L("Full Publish"),
-                               _L("Embed the entire filament of this slot in the 3MF file"));
-            category.full_line_item = page_sizer->Add(full_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
+            flags_sizer->Add(category.type_value, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
+            category.flags_item = page_sizer->Add(flags_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(2));
         }
     }
 
@@ -3590,8 +3589,8 @@ void PublishSettingsDialog::apply_visibility()
             category.publish_host->Show(shown);
         if (category.scroll != nullptr)
             category.scroll->Show(shown);
-        if (category.full_line_item != nullptr)
-            category.full_line_item->Show(shown);
+        if (category.flags_item != nullptr)
+            category.flags_item->Show(shown);
         if (category.filament_picker_item != nullptr)
             category.filament_picker_item->Show(shown);
         bool category_any = false;
