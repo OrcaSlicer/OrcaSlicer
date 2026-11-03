@@ -679,6 +679,13 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 if (tray->nozzle_temp > 0) {
                     tray_json["nozzle_temp_max"] = std::to_string(tray->nozzle_temp);
                 }
+                // A spool that resolved to no preset (the printer cannot name it, or no preset
+                // of its type is installed) gives the project no filament, so the sync keeps
+                // the project filament in that position as it does for an empty slot. The
+                // tray still exists, so the mapping dialog shows it in its colour.
+                if (tray->tray_info_idx.empty()) {
+                    tray_json["tray_slot_placeholder"] = "1";
+                }
             } else {
                 tray_json["tray_info_idx"] = "";
                 tray_json["tray_type"] = "";

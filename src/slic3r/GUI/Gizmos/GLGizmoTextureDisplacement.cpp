@@ -2582,10 +2582,6 @@ void GLGizmoTextureDisplacement::update_uv_editor()
 {
     Plater         *plater    = wxGetApp().plater();
     UVEditorCanvas *uv_canvas = plater->get_uv_editor_canvas();
-    if (uv_canvas == nullptr)
-        return;
-    // Wired on every call rather than with the first unwrap: Unwrap itself is one of the pane's commands.
-    uv_canvas->set_command_callback([this](UVEditorCanvas::Command cmd, float value) { on_uv_command(int(cmd), value); });
 
     const ModelVolume        *mv    = texture_volume();
     TextureDisplacementLayer *layer = active_layer();
@@ -2600,6 +2596,15 @@ void GLGizmoTextureDisplacement::update_uv_editor()
         plater->show_uv_editor(false);
         return;
     }
+    if (uv_canvas == nullptr) {
+        // The pane does not exist yet: show_uv_editor() builds it after this frame. Run again right
+        // after that - both are queued on the plater, so they run in this order.
+        plater->show_uv_editor(true);
+        plater->CallAfter([this]() { update_uv_editor(); });
+        return;
+    }
+    // Wired on every call rather than with the first unwrap: Unwrap itself is one of the pane's commands.
+    uv_canvas->set_command_callback([this](UVEditorCanvas::Command cmd, float value) { on_uv_command(int(cmd), value); });
 
     // A vertex/edge edit committing (or an undo reverting one) changes the per-vertex UV overrides
     // without going through the Unwrap button. Detect that and force a re-solve, so the pane's geometry
