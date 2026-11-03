@@ -52,6 +52,7 @@ jobs:
               'build-flatpak',
               'build-macos-x86_64',
               'build-windows-arm64',
+              'build-windows-msvc',
               'build-all'
             ];
             const pr = context.payload.pull_request;
@@ -86,7 +87,7 @@ jobs:
                   `${greeting} manage the labels for this PR by \`/bot add-label\` and \`/bot remove-label\`.\n\n` +
                   `Allowed labels are:\n${labelsList}\n\n` +
                   `The \`build-\` labels start the builds a PR does not get by default: the Flatpak, ` +
-                  `the Intel Mac app and Windows arm64. A maintainer may first have to approve the run.\n\n` +
+                  `the Intel Mac app, Windows arm64 and a Windows build with MSVC's compiler. A maintainer may first have to approve the run.\n\n` +
                   `Examples:\n${examplesText}`
               });
             } catch (error) {
@@ -253,6 +254,7 @@ jobs:
               'build-flatpak',
               'build-macos-x86_64',
               'build-windows-arm64',
+              'build-windows-msvc',
               'build-all'
             ];
 

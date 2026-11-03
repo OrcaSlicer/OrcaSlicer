@@ -62,8 +62,10 @@ jobs:
       # restore it and discard what they compiled. Objects are keyed on the
       # preprocessed source, the compiler and the flags, so a leg only ever
       # hits its own entries. A failed install costs the caching, not the build.
+      # cl under the Visual Studio generator takes no launcher, so that build
+      # runs without one.
       - name: Name the compiler cache leg
-        if: ${{ !inputs.macos-combine-only }}
+        if: ${{ !inputs.macos-combine-only && !(runner.os == 'Windows' && inputs.compiler != 'clang') }}
         shell: bash
         run: |
           leg="${{ runner.os }}-${{ inputs.arch || 'amd64' }}${{ runner.os == 'Windows' && format('-{0}', inputs.compiler) || '' }}"
@@ -76,7 +78,7 @@ jobs:
       # spells it differently on Windows.
       - name: Compiler cache
         id: ccache
-        if: ${{ !inputs.macos-combine-only }}
+        if: ${{ !inputs.macos-combine-only && !(runner.os == 'Windows' && inputs.compiler != 'clang') }}
         continue-on-error: true
         uses: hendrikmuhs/ccache-action@v1.2.24
         with:
@@ -466,14 +468,14 @@ jobs:
       # PATH also makes cpack use it over the NSIS preinstalled on some images.
       - name: Restore NSIS
         id: nsis-cache
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: actions/cache/restore@v6
         with:
           path: ${{ runner.temp }}/nsis
           key: nsis-${{ env.NSIS_VERSION }}
 
       - name: Install NSIS
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         shell: pwsh
         run: |
           dir "C:/Program Files (x86)/Windows Kits/10/Include"
@@ -493,7 +495,7 @@ jobs:
           $nsisDir | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Save NSIS
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED && steps.nsis-cache.outputs.cache-hit != 'true'
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED && steps.nsis-cache.outputs.cache-hit != 'true' && inputs.compiler == 'clang'
         uses: actions/cache/save@v6
         with:
           path: ${{ runner.temp }}/nsis
@@ -539,6 +541,7 @@ jobs:
           # cache-path is the install directory inside the deps build directory.
           $deps = (Split-Path "${{ github.workspace }}/${{ inputs.cache-path }}").Replace('\', '/')
           # -l compiles with Visual Studio's clang-cl and -x builds with Ninja; --msvc --msbuild is cl under the Visual Studio generator.
+          # The clang build is the one that ships; a cl build stops after this step and uploads nothing.
           $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
           .\build_win.bat -s --tests -i --arch ${{ inputs.arch }} --build-dir $env:BUILD_DIR --deps-dir $deps @flags
         shell: pwsh
@@ -578,13 +581,13 @@ jobs:
           ./scripts/sign_windows.ps1 -Path $paths
 
       - name: Pack unit tests Win
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && inputs.compiler == 'clang'
         working-directory: ${{ github.workspace }}
         shell: pwsh
         run: tar -cvf build_tests.tar ${{ env.BUILD_DIR }}/tests
 
       - name: Upload Test Artifact Win
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && inputs.compiler == 'clang'
         uses: actions/upload-artifact@v7
         with:
           name: ${{ github.sha }}-tests-windows-${{ inputs.arch }}
@@ -596,7 +599,7 @@ jobs:
       # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's
       # x86 emulation, packaging the native arm64 payload from build-arm64.
       - name: Create installer Win
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}
         # Read by scripts/sign_windows.ps1 when CMake wired signing into the installer.
         env:
@@ -631,40 +634,40 @@ jobs:
           ./scripts/sign_windows.ps1 -Verify -Path $paths
 
       - name: Pack app
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && inputs.compiler == 'clang'
         working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}
         shell: cmd
         run: '"C:/Program Files/7-Zip/7z.exe" a -tzip OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}_portable.zip ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer'
 
       - name: Pack PDB
-        if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}/src/Release
         shell: cmd
         run: '"C:/Program Files/7-Zip/7z.exe" a -m0=lzma2 -mx9 Debug_PDB_${{ env.ver }}_for_developers_only.7z  *.pdb'
 
       - name: Upload artifacts Win zip
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && inputs.compiler == 'clang'
         uses: actions/upload-artifact@v7
         with:
           name: OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}_portable
           path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer
 
       - name: Upload artifacts Win installer
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: actions/upload-artifact@v7
         with:
           name: OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}
           path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer*.exe
 
       - name: Upload artifacts Win PDB
-        if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: actions/upload-artifact@v7
         with:
           name: PDB
           path: ${{ github.workspace }}/build/src/Release/Debug_PDB_${{ env.ver }}_for_developers_only.7z
 
       - name: Upload OrcaSlicer_profile_validator Win
-        if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: actions/upload-artifact@v7
         with:
           name: OrcaSlicer_profile_validator_Windows_${{ env.ver }}
@@ -678,7 +681,7 @@ jobs:
         run: scripts\check_exception_throw_info.ps1 -BuildDir $env:BUILD_DIR
 
       - name: Deploy Windows release portable
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: ./.github/actions/deploy-nightly
         with:
           asset_path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}_portable.zip
@@ -686,7 +689,7 @@ jobs:
           content_type: application/x-zip-compressed
 
       - name: Deploy Windows release installer
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: ./.github/actions/deploy-nightly
         with:
           asset_path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_Installer_${{ env.ver }}${{ env.ARCH_SUFFIX }}.exe
@@ -694,7 +697,7 @@ jobs:
           content_type: application/x-msdownload
 
       - name: Deploy Windows OrcaSlicer_profile_validator release
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: ./.github/actions/deploy-nightly
         with:
           asset_path: ${{ github.workspace }}/build/src/Release/OrcaSlicer_profile_validator.exe
@@ -702,7 +705,7 @@ jobs:
           content_type: application/x-msdownload
 
       - name: Build MSIX Store package Win
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         working-directory: ${{ github.workspace }}
         shell: pwsh
         run: |
@@ -715,7 +718,7 @@ jobs:
             -PublisherDisplayName "${{ vars.ORCA_MSIX_PUBLISHER_DISPLAY_NAME || 'OrcaSlicer' }}"
 
       - name: Upload artifacts Win MSIX
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: actions/upload-artifact@v7
         with:
           name: OrcaSlicer_Windows_MSIX_${{ env.ver }}${{ env.ARCH_SUFFIX }}
