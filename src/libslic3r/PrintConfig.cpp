@@ -5917,10 +5917,11 @@ void PrintConfigDef::init_fff_params()
     def = this->add("overhang_wall_overlap", coPercent);
     def->label = L("Overhang wall overlap");
     def->category = L("Quality");
-    def->tooltip = L("Maximum extra overlap between adjacent Arachne walls, controlled by the unsupported "
-                     "percentage of the outer wall of each pair. The outermost wall stays in place. "
-                     "The overlap percentage is relative to the smaller wall spacing. Inner walls follow "
-                     "the displacement of outer walls to preserve their spacing. Zero disables this adjustment.");
+    def->tooltip = L("Sets the maximum extra overlap between adjacent walls in overhang areas. "
+                     "Higher values allow inner walls to move closer to their outer neighbors, increasing overlap. "
+                     "The outermost wall stays in place.\n"
+                     "Set to 0 to disable. "
+                     "Requires the Arachne wall generator and 'Detect overhang walls'.");
     def->sidetext = "%";
     def->mode = comAdvanced;
     def->min = 0;
@@ -5928,13 +5929,12 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionPercent(0));
 
     def = this->add("overhang_wall_overlap_start", coPercent);
-    def->label = L("Overhang wall overlap start");
+    def->label = L("Overlap activation threshold");
+    def->full_label = L("Overhang wall overlap activation threshold");
     def->category = L("Quality");
-    def->tooltip = L("Unsupported percentage that triggers extra overlap with the next inner wall. "
-                     "At each end of a triggered region, the transition extends along the wall to the first fully supported point "
-                     "or five inner-wall nozzle diameters, whichever is closer. Extra overlap increases linearly with distance "
-                     "from this zero-overlap endpoint to the full-overlap point. "
-                     "Unsupported percentage is estimated from the original wall position and its local line width.");
+    def->tooltip = L("Extra overlap adjustment is enabled in regions where the overhang percentage exceeds this value.\n"
+                     "For a smooth transition, the adjustment extends into nearby regions below this threshold. "
+                     "This threshold therefore does not mark the position where extra overlap starts increasing from zero.");
     def->sidetext = "%";
     def->mode = comAdvanced;
     def->min = 0;
@@ -5942,13 +5942,13 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionPercent(25));
 
     def = this->add("overhang_wall_overlap_full", coPercent);
-    def->label = L("Overhang wall overlap full");
+    def->label = L("Overlap full threshold");
+    def->full_label = L("Overhang wall overlap full threshold");
     def->category = L("Quality");
-    def->tooltip = L("Unsupported percentage of a wall at which the next inner wall receives the maximum extra overlap. "
-                     "Transitions increase linearly with distance along the wall. If a triggered region never reaches this threshold, "
-                     "its highest unsupported percentage determines a proportional target overlap. "
-                     "If this threshold is equal to or lower than the start threshold, the target is the maximum overlap "
-                     "and the entry and exit transitions still apply.");
+    def->tooltip = L("Sets the overhang percentage at which extra overlap reaches its limit. "
+                     "Lower values reach the limit at milder overhangs.\n"
+                     "If this value is at or below the activation threshold, extra overlap gradually increases to the limit "
+                     "once the adjustment is triggered.");
     def->sidetext = "%";
     def->mode = comAdvanced;
     def->min = 0;

@@ -20432,6 +20432,50 @@ msgid "This detects the overhang percentage relative to line width and uses a di
 msgstr "この設定により、線幅に対するオーバーハングの割合を検出し、異なる速度で造形します。100%のオーバーハングの場合、ブリッジの速度が使用されます。"
 
 # AI Translated
+msgid "Overhang wall overlap"
+msgstr "オーバーハング壁面のオーバーラップ"
+
+# AI Translated
+msgid ""
+"Sets the maximum extra overlap between adjacent walls in overhang areas. Higher values allow inner walls to move closer to their outer neighbors, increasing overlap. The outermost wall stays in place.\n"
+"Set to 0 to disable. Requires the Arachne wall generator and 'Detect overhang walls'."
+msgstr ""
+"オーバーハング領域で、隣接する壁面間に追加できるオーバーラップの最大量を設定します。値を大きくすると、内壁がその外側の隣接する壁面に近づき、オーバーラップが増えます。最も外側の壁面の位置は変わりません。\n"
+"0 に設定すると無効になります。Arachne 壁面生成器を使用し、「オーバーハングを検出」を有効にする必要があります。"
+
+# AI Translated
+msgid "Overlap activation threshold"
+msgstr "オーバーラップ有効化しきい値"
+
+# AI Translated
+msgid "Overhang wall overlap activation threshold"
+msgstr "オーバーハング壁面のオーバーラップ有効化しきい値"
+
+# AI Translated
+msgid ""
+"Extra overlap adjustment is enabled in regions where the overhang percentage exceeds this value.\n"
+"For a smooth transition, the adjustment extends into nearby regions below this threshold. This threshold therefore does not mark the position where extra overlap starts increasing from zero."
+msgstr ""
+"オーバーハングの割合がこの値を超える領域で、追加オーバーラップの調整が有効になります。\n"
+"滑らかに移行するように、調整範囲はこのしきい値を下回る周辺の領域にも広がります。そのため、このしきい値は追加オーバーラップ量がゼロから増え始める位置を示すものではありません。"
+
+# AI Translated
+msgid "Overlap full threshold"
+msgstr "オーバーラップ上限到達しきい値"
+
+# AI Translated
+msgid "Overhang wall overlap full threshold"
+msgstr "オーバーハング壁面のオーバーラップ上限到達しきい値"
+
+# AI Translated
+msgid ""
+"Sets the overhang percentage at which extra overlap reaches its limit. Lower values reach the limit at milder overhangs.\n"
+"If this value is at or below the activation threshold, extra overlap gradually increases to the limit once the adjustment is triggered."
+msgstr ""
+"追加オーバーラップ量が上限に達するオーバーハングの割合を設定します。値を小さくすると、より軽度のオーバーハングでも上限に達します。\n"
+"この値が有効化しきい値以下の場合、調整が有効になると追加オーバーラップ量が徐々に上限まで増加します。"
+
+# AI Translated
 msgid "Print unsupported walls last"
 msgstr "支えのない壁を最後に造形"
 

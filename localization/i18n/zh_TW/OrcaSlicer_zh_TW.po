@@ -20505,6 +20505,50 @@ msgid "This detects the overhang percentage relative to line width and uses a di
 msgstr "偵測懸空相對於線寬的百分比，並套用不同的速度列印。100% 的懸空將使用橋接速度。"
 
 # AI Translated
+msgid "Overhang wall overlap"
+msgstr "懸空牆重疊"
+
+# AI Translated
+msgid ""
+"Sets the maximum extra overlap between adjacent walls in overhang areas. Higher values allow inner walls to move closer to their outer neighbors, increasing overlap. The outermost wall stays in place.\n"
+"Set to 0 to disable. Requires the Arachne wall generator and 'Detect overhang walls'."
+msgstr ""
+"設定懸空處相鄰牆之間最多可增加多少重疊。數值越大，允許內牆向外側牆靠得越近，增加更多重疊。最外牆的位置不變。\n"
+"設為 0 可停用。需使用 Arachne 牆產生器，並啟用「偵測懸空牆」。"
+
+# AI Translated
+msgid "Overlap activation threshold"
+msgstr "重疊啟用門檻"
+
+# AI Translated
+msgid "Overhang wall overlap activation threshold"
+msgstr "懸空牆重疊啟用門檻"
+
+# AI Translated
+msgid ""
+"Extra overlap adjustment is enabled in regions where the overhang percentage exceeds this value.\n"
+"For a smooth transition, the adjustment extends into nearby regions below this threshold. This threshold therefore does not mark the position where extra overlap starts increasing from zero."
+msgstr ""
+"懸空比例超過此值的區域會啟用額外重疊調整。\n"
+"為使過渡平順，調整範圍會延伸至鄰近低於此門檻的區域。因此，此值並非額外重疊量從零開始增加的位置。"
+
+# AI Translated
+msgid "Overlap full threshold"
+msgstr "重疊上限臨界值"
+
+# AI Translated
+msgid "Overhang wall overlap full threshold"
+msgstr "懸空牆重疊上限臨界值"
+
+# AI Translated
+msgid ""
+"Sets the overhang percentage at which extra overlap reaches its limit. Lower values reach the limit at milder overhangs.\n"
+"If this value is at or below the activation threshold, extra overlap gradually increases to the limit once the adjustment is triggered."
+msgstr ""
+"設定懸空比例達到多少時，額外重疊量會達到上限。數值越小，較輕微的懸空就能達到重疊上限。\n"
+"若此值小於或等於啟用門檻，觸發調整後就會逐漸增加到上限。"
+
+# AI Translated
 msgid "Print unsupported walls last"
 msgstr "最後列印無支撐的牆"
 

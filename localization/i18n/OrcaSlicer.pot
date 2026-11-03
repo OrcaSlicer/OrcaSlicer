@@ -17198,6 +17198,36 @@ msgstr ""
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
 msgstr ""
 
+msgid "Overhang wall overlap"
+msgstr ""
+
+msgid ""
+"Sets the maximum extra overlap between adjacent walls in overhang areas. Higher values allow inner walls to move closer to their outer neighbors, increasing overlap. The outermost wall stays in place.\n"
+"Set to 0 to disable. Requires the Arachne wall generator and 'Detect overhang walls'."
+msgstr ""
+
+msgid "Overlap activation threshold"
+msgstr ""
+
+msgid "Overhang wall overlap activation threshold"
+msgstr ""
+
+msgid ""
+"Extra overlap adjustment is enabled in regions where the overhang percentage exceeds this value.\n"
+"For a smooth transition, the adjustment extends into nearby regions below this threshold. This threshold therefore does not mark the position where extra overlap starts increasing from zero."
+msgstr ""
+
+msgid "Overlap full threshold"
+msgstr ""
+
+msgid "Overhang wall overlap full threshold"
+msgstr ""
+
+msgid ""
+"Sets the overhang percentage at which extra overlap reaches its limit. Lower values reach the limit at milder overhangs.\n"
+"If this value is at or below the activation threshold, extra overlap gradually increases to the limit once the adjustment is triggered."
+msgstr ""
+
 msgid "Print unsupported walls last"
 msgstr ""
 
