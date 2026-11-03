@@ -6875,7 +6875,8 @@ void GLCanvas3D::_render_3d_navigator()
     }
 
     // Fix stealing capture event from other drag events
-    const bool other_drag_active = !m_navigator_dragging && (m_moving || m_rectangle_selection.is_dragging() || m_gizmos.is_dragging() || m_layers_editing.state == LayersEditing::Editing);
+    const bool other_drag_active = !m_navigator_dragging && (m_moving || m_rectangle_selection.is_dragging() || m_gizmos.is_dragging() || m_layers_editing.state == LayersEditing::Editing ||
+                                                         m_plate_drag.plate_idx != -1);
 
     ImGuiIO& io = ImGui::GetIO();
     const bool saved_mouse_down0 = io.MouseDown[0];

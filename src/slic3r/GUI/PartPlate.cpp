@@ -2540,7 +2540,12 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
         glsafe(::glEnable(GL_BLEND));
         glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
-        if (!only_name) {
+        // Orca: while a plate is dragged, the other plates show only their number, so the drop lines stand out.
+        const int dragged_plate = m_partplate_list->get_dragged_plate();
+        if (!only_name && dragged_plate >= 0 && dragged_plate != m_plate_index) {
+            if (m_plate_index >= 0 && m_plate_index < MAX_PLATE_COUNT)
+                render_icon_texture(m_plate_idx_icon, m_partplate_list->m_idx_textures[m_plate_index]);
+        } else if (!only_name) {
             if (hover_id == 1) {
                 render_icon_texture(m_del_icon.model, m_partplate_list->m_del_hovered_texture);
                 set_hover_tooltip(_u8L("Remove current plate (if not last one)"));
@@ -7941,7 +7946,8 @@ void PartPlateList::render(const Transform3d& view_matrix, const Transform3d& pr
 
 void PartPlateList::render_hover_tooltip() const
 {
-    if (m_hover_tooltip.empty())
+    // Orca: no icon tooltips while a plate is dragged.
+    if (m_hover_tooltip.empty() || m_dragged_plate >= 0)
         return;
 
     const auto scale = m_plater->get_current_canvas3D()->get_scale();
