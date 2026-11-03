@@ -47,7 +47,9 @@ jobs:
               'build',
               'test',
               'dependencies',
-              'documentation'
+              'documentation',
+              // optional builds (build_optional.yml)
+              'build-flatpak'
             ];
             const pr = context.payload.pull_request;
             // First-time contributors also get a link to the contributing guide
@@ -217,7 +219,9 @@ jobs:
               'build',
               'test',
               'dependencies',
-              'documentation'
+              'documentation',
+              // optional builds (build_optional.yml)
+              'build-flatpak'
             ];
 
             const issue = context.payload.issue;
