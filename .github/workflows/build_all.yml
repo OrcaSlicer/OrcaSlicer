@@ -136,6 +136,50 @@ jobs:
       clean: ${{ inputs.clean-build || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
+  build_windows_clang:
+    name: Build Windows ${{ matrix.arch }} (${{ matrix.preset }})${{ matrix.script == 'bat' && ' (baseline - current main)' || ' (candidate - ps1)' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            os: windows-latest
+            compiler: clang
+            preset: x64-clang
+            flags: -l -x
+            script: ps1
+          - arch: x64
+            os: windows-latest
+            compiler: clang
+            preset: x64-clang
+            flags: -l -x
+            script: bat
+          - arch: x64
+            os: windows-latest
+            compiler: clang
+            preset: x64-clang-cache
+            flags: -l -x --ccache
+            script: ps1
+          - arch: x64
+            os: windows-latest
+            compiler: clang
+            preset: x64-clang-cache
+            flags: -l -x --ccache
+            script: bat
+    needs: check_build_script
+    if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: ${{ matrix.os }}
+      arch: ${{ matrix.arch }}
+      compiler: ${{ matrix.compiler }}
+      preset: ${{ matrix.preset }}
+      flags: ${{ matrix.flags }}
+      script: ${{ matrix.script }}
+      build-deps-only: ${{ inputs.build-deps-only || false }}
+      clean: ${{ inputs.clean-build || false }}
+      force-build: ${{ github.event_name == 'schedule' }}
+    secrets: inherit
   build_macos_arch:
     strategy:
       fail-fast: false
