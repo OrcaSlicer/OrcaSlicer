@@ -10633,7 +10633,7 @@ msgstr "Sommige gepubliceerde instellingen konden niet worden toegepast:"
 msgid "Some filament slots were changed:"
 msgstr "Sommige filamentsleuven zijn gewijzigd:"
 
-msgid "Component name(s) inside step file not in UTF-8 format!"
+msgid "Component name(s) inside STEP file not in UTF-8 format!"
 msgstr "Naam van componenten in step-bestand is niet UTF-8-formaat!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -25576,8 +25576,8 @@ msgid "Expecting a regular expression."
 msgstr "Regex verwacht."
 
 # AI Translated
-msgid "Invalid utf8 sequence"
-msgstr "Ongeldige utf8-reeks"
+msgid "Invalid UTF-8 sequence"
+msgstr "Ongeldige UTF-8-reeks"
 
 # AI Translated
 msgid "Non-ASCII7 characters are only allowed inside text blocks and string literals, not inside code blocks."
@@ -26444,10 +26444,10 @@ msgstr "Klipper-versie => 0.9.0"
 
 # AI Translated
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
-"RepRap-firmwareversie => 3.4.0\n"
+"RepRapFirmware-versie => 3.4.0\n"
 "Raadpleeg de documentatie van uw firmware voor de ondersteunde shapertypes."
 
 # AI Translated
@@ -26467,8 +26467,8 @@ msgid "Frequency settings"
 msgstr "Frequentie-instellingen"
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency range for both axes."
-msgstr "RepRap-firmware gebruikt hetzelfde frequentiebereik voor beide assen."
+msgid "RepRapFirmware uses the same frequency range for both axes."
+msgstr "RepRapFirmware gebruikt hetzelfde frequentiebereik voor beide assen."
 
 # AI Translated
 msgid "Damp: "
@@ -26515,8 +26515,8 @@ msgid "Damp (Start / End): "
 msgstr "Demping (Start / Einde): "
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency for both axes."
-msgstr "RepRap-firmware gebruikt dezelfde frequentie voor beide assen."
+msgid "RepRapFirmware uses the same frequency for both axes."
+msgstr "RepRapFirmware gebruikt dezelfde frequentie voor beide assen."
 
 # AI Translated
 msgid "Note: Use previously calculated frequencies."
@@ -28634,7 +28634,7 @@ msgid "Volumetric speed"
 msgstr "Volumetrische snelheid"
 
 # AI Translated
-msgid "Step file import parameters"
+msgid "STEP file import parameters"
 msgstr "Importparameters voor STEP-bestanden"
 
 # AI Translated
@@ -40153,18 +40153,18 @@ msgstr "Verdacht laag aantal configuratiewaarden uit %1% gehaald: %2%"
 
 # AI Translated
 msgid ""
-"Load step file failed.\n"
+"Load STEP file failed.\n"
 "Cannot open file for reading.\n"
 msgstr ""
 "Laden van STEP-bestand mislukt.\n"
 "Kan het bestand niet openen om te lezen.\n"
 
 # AI Translated
-msgid "import svg failed: could not open svg."
+msgid "import SVG failed: could not open svg."
 msgstr "svg importeren mislukt: svg kon niet worden geopend."
 
 # AI Translated
-msgid "import svg failed: could not parse imported svg data."
+msgid "import SVG failed: could not parse imported svg data."
 msgstr "svg importeren mislukt: de geïmporteerde svg-gegevens konden niet worden geparseerd."
 
 # AI Translated
