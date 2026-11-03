@@ -676,6 +676,8 @@ private:
         GLModel lines;      // the markers that would change the order, built when the drag starts
         GLModel highlight;  // the highlighted marker
         GLModel outline;    // border of the dragged plate
+        GLModel drop_fill;  // the plate shape where the dragged plate would land
+
         std::unique_ptr<IMToolbarItem> thumbnail; // the plate as the preview card shows it
         bool    cancelled{false}; // the drag was cancelled; the rest of the press does nothing
         std::chrono::steady_clock::time_point last_frame; // for panning at the canvas edge

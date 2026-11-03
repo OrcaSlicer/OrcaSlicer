@@ -12223,6 +12223,32 @@ bool GLCanvas3D::_start_plate_drag(const Point& mouse_pos)
     return true;
 }
 
+// Orca: plate bed contour in scaled coordinates.
+static Polygon plate_drag_contour(const PartPlate& plate)
+{
+    Polygon contour;
+    const Pointfs& shape = plate.get_shape();
+    contour.points.reserve(shape.size());
+    for (const Vec2d& p : shape)
+        contour.points.emplace_back(scale_(p.x()), scale_(p.y()));
+    if (contour.points.size() >= 3)
+        contour.make_counter_clockwise();
+    return contour;
+}
+
+// Orca: triangulate polygons into a triangle geometry at height z.
+static void add_plate_drag_expolygons(GLModel::Geometry& data, const ExPolygons& polys, float z)
+{
+    const std::vector<Vec3d> tris = triangulate_expolygons_3d(polys, z);
+    for (size_t i = 0; i + 2 < tris.size(); i += 3) {
+        const unsigned int first = (unsigned int)data.vertices_count();
+        data.add_vertex(Vec3f(tris[i].cast<float>()));
+        data.add_vertex(Vec3f(tris[i + 1].cast<float>()));
+        data.add_vertex(Vec3f(tris[i + 2].cast<float>()));
+        data.add_triangle(first, first + 1, first + 2);
+    }
+}
+
 void GLCanvas3D::_build_plate_drag_markers()
 {
     PartPlateList& plate_list = wxGetApp().plater()->get_partplate_list();
@@ -12237,8 +12263,8 @@ void GLCanvas3D::_build_plate_drag_markers()
     for (int i = 0; i < count; ++i) {
         const BoundingBoxf3& box   = plate_list.get_plate(i)->get_bounding_box();
         const double         gap   = plate_list.plate_stride_x() - box.size().x();
-        const double         half  = gap / 12.;
-        const double         inset = box.size().y() * 0.05;
+        const double         half  = gap / 16.;
+        const double         inset = box.size().y() * 0.2;
         const auto add = [&](double x, int insert) {
             if (PlateReorder::index_after_insert(from, insert) < 0)
                 return;
@@ -12246,8 +12272,15 @@ void GLCanvas3D::_build_plate_drag_markers()
             m_plate_drag.markers.push_back({ line, insert, i / cols });
             add_plate_drag_rect(lines, line, 0.05f);
         };
-        add(box.min.x() - gap * 0.5, i);
-        if (i % cols == cols - 1 || i == count - 1)
+
+        // The gap after the last plate of a row and the gap before the first plate of the next row are
+        // the same insert position. Show only the one where the plate actually ends up.
+        const bool row_start = i > 0 && i % cols == 0;
+        const bool row_end   = i % cols == cols - 1 && i != count - 1;
+
+        if (!(row_start && i > from))       // moving forward: it lands at the end of the previous row
+            add(box.min.x() - gap * 0.5, i);
+        if (i == count - 1 || (row_end && i + 1 > from))   // moving forward: it lands at the end of this row
             add(box.max.x() + gap * 0.5, i + 1);
     }
     m_plate_drag.lines.reset();
@@ -12255,12 +12288,19 @@ void GLCanvas3D::_build_plate_drag_markers()
         m_plate_drag.lines.init_from(std::move(lines));
     m_plate_drag.highlight.reset();
 
-    const BoundingBoxf3& box     = plate_list.get_plate(from)->get_bounding_box();
-    GLModel::Geometry    outline = plate_drag_geometry(GLModel::Geometry::EPrimitiveType::Lines);
-    add_plate_drag_rect(outline, BoundingBoxf(box.min.head<2>(), box.max.head<2>()), 0.3f);
+    PartPlate*           plate   = plate_list.get_plate(from);
+    const BoundingBoxf3& box     = plate->get_bounding_box();
+    const Polygon        contour = plate_drag_contour(*plate);
+    GLModel::Geometry    outline = plate_drag_geometry(GLModel::Geometry::EPrimitiveType::Triangles);
+    if (contour.points.size() >= 3) {
+        const float half = float(scale_(box.size().x() * 0.025 * 0.5));
+        add_plate_drag_expolygons(outline, diff_ex(offset(contour, half), offset(contour, -half)), 0.3f);
+    }
     m_plate_drag.outline.reset();
-    m_plate_drag.outline.init_from(std::move(outline));
+    if (!outline.is_empty())
+        m_plate_drag.outline.init_from(std::move(outline));
     m_plate_drag.outline.set_color(PLATE_DRAG_TEAL);
+    m_plate_drag.drop_fill.reset();
 }
 
 void GLCanvas3D::_update_plate_drag(const Point& mouse_pos)
@@ -12282,18 +12322,30 @@ void GLCanvas3D::_update_plate_drag(const Point& mouse_pos)
                                                             (box.max.y() - pos.y()) / sy, box.size().x() / sx);
     int marker = -1;
     for (size_t i = 0; i < m_plate_drag.markers.size(); ++i)
-        if (m_plate_drag.markers[i].insert == target.insert && m_plate_drag.markers[i].row == target.plate / cols)
+        if (m_plate_drag.markers[i].insert == target.insert)
             marker = int(i);
     m_plate_drag.insert = marker < 0 ? -1 : target.insert;
     if (marker == m_plate_drag.marker)
         return;
     m_plate_drag.marker = marker;
     m_plate_drag.highlight.reset();
+    m_plate_drag.drop_fill.reset();
     if (marker >= 0) {
         GLModel::Geometry data = plate_drag_geometry(GLModel::Geometry::EPrimitiveType::Triangles);
         add_plate_drag_rect(data, m_plate_drag.markers[marker].box, 0.1f);
         m_plate_drag.highlight.init_from(std::move(data));
         m_plate_drag.highlight.set_color(PLATE_DRAG_TEAL);
+
+        const int to = PlateReorder::index_after_insert(m_plate_drag.plate_idx, target.insert);
+        if (PartPlate* dest = plate_list.get_plate(to)) {
+            const Polygon contour = plate_drag_contour(*dest);
+            if (contour.points.size() >= 3) {
+                GLModel::Geometry fill = plate_drag_geometry(GLModel::Geometry::EPrimitiveType::Triangles);
+                add_plate_drag_expolygons(fill, ExPolygons{ ExPolygon(contour) }, 0.05f);
+                m_plate_drag.drop_fill.init_from(std::move(fill));
+                m_plate_drag.drop_fill.set_color(ColorRGBA(PLATE_DRAG_TEAL.r(), PLATE_DRAG_TEAL.g(), PLATE_DRAG_TEAL.b(), 0.15f));
+            }
+        }
     }
 }
 
@@ -12350,9 +12402,8 @@ void GLCanvas3D::_render_plate_drag_markers(const Transform3d& view_matrix, cons
     shader->set_uniform("view_model_matrix", view_matrix);
     m_plate_drag.lines.render();
     m_plate_drag.highlight.render();
-    glsafe(::glLineWidth(2.0f));
+    m_plate_drag.drop_fill.render();
     m_plate_drag.outline.render();
-    glsafe(::glLineWidth(1.0f));
     glsafe(::glDepthMask(GL_TRUE));
     glsafe(::glDisable(GL_BLEND));
     shader->stop_using();
