@@ -1882,7 +1882,7 @@ public:
     // Checks if any of objects is painted using the fuzzy skin painting gizmo.
     bool          is_fuzzy_skin_painted() const;
 
-    std::unique_ptr<CalibPressureAdvancePattern> calib_pa_pattern;
+    std::unique_ptr<CalibPressureAdvanceBatch> calib_pa_batch;
 
 private:
     explicit Model(int) : ObjectBase(-1)
