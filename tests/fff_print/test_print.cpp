@@ -1261,6 +1261,38 @@ TEST_CASE("Sequential printing still rejects two objects over the rod height tha
     CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("too tall"));
 }
 
+TEST_CASE("Sequential printing keeps copies of one object in their list order", "[Print]")
+{
+    // Every copy of an object shares its object index, so ordering by that alone leaves the copies to
+    // the sort, which shuffles them once there are enough. Nothing here comes near the rod: 200 copies
+    // of a part lower than the nozzle, on a grid, so nothing needs reordering.
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(make_cube(5, 5, 2));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",     "by object" },
+        { "skirt_loops",        0 },
+        { "layer_change_gcode", "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false, /*instances=*/200);
+    const ModelInstancePtrs &instances = model.objects.front()->instances;
+    for (size_t k = 0; k < instances.size(); ++k)
+        instances[k]->set_offset(Vec3d(10. + 12. * double(k % 15), 10. + 12. * double(k / 15), instances[k]->get_offset().z()));
+    print.apply(model, config);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException error = print.validate(&warnings);
+    INFO(error.string);
+    REQUIRE(error.string.empty());
+    CHECK(find_order_warning(warnings) == nullptr);
+    // validate() records the print order on the print's own copy of the model.
+    const ModelInstancePtrs &copies = print.model().objects.front()->instances;
+    CHECK(std::is_sorted(copies.begin(), copies.end(),
+                         [](const ModelInstance *l, const ModelInstance *r) { return l->arrange_order < r->arrange_order; }));
+}
+
 // A sequential (by-object) print must publish the print-level nozzle group result just
 // like a by-layer print, so custom g-code can index the per-nozzle placeholder tables
 // (e.g. nozzle_diameter_at_nozzle_id[]) instead of failing on an empty vector.
