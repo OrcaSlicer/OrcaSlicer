@@ -94,6 +94,7 @@
 #include <regex>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/find.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
@@ -286,7 +287,7 @@ static std::vector<double> get_nozzle_diameters_by_nozzle_id(const MultiNozzleUt
         auto nozzle = group_result->get_nozzle_from_id(id);
         if (!nozzle)
             break;
-        diameters.push_back(std::stod(nozzle->diameter));
+        diameters.push_back(string_to_double_decimal_point(nozzle->diameter));
     }
     return diameters;
 }
@@ -1259,6 +1260,17 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         end_filament_gcode_str = toolchange_retract_str + object_end_label_temp + end_filament_gcode_str;
 
+        // Lift to the layer Z so the toolchange can't hit taller printed parts. Only a custom macro or
+        // a switch to another physical extruder (whose firmware Tn may dock) can travel. The
+        // compacted_below_object descent below brings Z back down once over the tower.
+        const bool tool_may_travel = !change_filament_gcode.empty()
+            || (gcodegen.writer().filament() != nullptr && gcodegen.writer().filament()->extruder_id() != unsigned(new_extruder_id));
+        std::string restore_layer_z_str;
+        if (compacted_below_object && tool_may_travel && gcodegen.writer().get_position().z() < current_z - EPSILON) {
+            restore_layer_z_str += gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange");
+            check_add_eol(restore_layer_z_str);
+        }
+
         std::string wipe_next_start_point_str;
         bool        need_travel_after_change_filament_gcode = false; // travel need be after the filament changed to get the correct "m_curr_extruder_id"
         if (! change_filament_gcode.empty()) {
@@ -1613,6 +1625,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         // Insert the end filament, toolchange, and start filament gcode into the generated gcode.
         DynamicConfig config;
         config.set_key_value("filament_end_gcode", new ConfigOptionString(end_filament_gcode_str));
+        config.set_key_value("restore_layer_z_before_toolchange", new ConfigOptionString(restore_layer_z_str));
         config.set_key_value("change_filament_gcode", new ConfigOptionString(toolchange_gcode_str));
         config.set_key_value("filament_start_gcode", new ConfigOptionString(start_filament_gcode_str));
         std::string tcr_gcode, tcr_escaped_gcode = gcodegen.placeholder_parser_process("tcr_rotated_gcode", tcr_rotated_gcode, new_filament_id, &config);
@@ -1746,6 +1759,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         std::string toolchange_gcode_str;
         std::string deretraction_str;
+        std::string restore_layer_z_str;
         int toolchange_temp_override = -1;
         int interface_temp = -1;
         if (tcr.priming || (new_extruder_id >= 0 && needs_toolchange)) {
@@ -1756,6 +1770,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 if (interface_temp == -1)
                     interface_temp = gcodegen.config().nozzle_temperature_range_high.get_at(gcodegen.get_filament_config_index(new_extruder_id));
                 toolchange_temp_override = interface_temp;
+            }
+            // Lift to the layer Z so the toolchange can't hit taller printed parts. Only a custom macro
+            // or a switch to another physical extruder (whose firmware Tn may dock) can travel.
+            const bool tool_may_travel = !gcodegen.config().change_filament_gcode.value.empty()
+                || (gcodegen.writer().filament() != nullptr
+                    && gcodegen.writer().filament()->extruder_id() != get_extruder_index(*m_print_config, new_extruder_id));
+            if (will_go_down && tool_may_travel && gcodegen.config().enable_prime_tower) {
+                restore_layer_z_str += gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange");
+                check_add_eol(restore_layer_z_str);
             }
             toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override,
                                                          WipeTower2::wait_for_temp_enabled(gcodegen.m_config)); // TODO: toolchange_z vs print_z
@@ -1914,6 +1937,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         DynamicConfig config;
         config.set_key_value("change_filament_gcode", new ConfigOptionString(toolchange_gcode_str));
         config.set_key_value("deretraction_from_wipe_tower_generator", new ConfigOptionString(deretraction_str));
+        config.set_key_value("restore_layer_z_before_toolchange", new ConfigOptionString(restore_layer_z_str));
         config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
         config.set_key_value("layer_z", new ConfigOptionFloat(tcr.print_z));
         config.set_key_value("toolchange_z", new ConfigOptionFloat(z));
@@ -3465,9 +3489,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // Undo what point_to_gcode() added (m_origin, minus the extruder offset) and
             // what the writer then took off (its XY offset, the plate origin).
             const Vec2d plate_offset = m_writer.get_xy_offset().cast<double>();
+            // Judged like the path the travel leads to (see belt_path_height()).
+            if (m_belt_travel_target != nullptr && m_belt_travel_target->role() == erBrim)
+                return true;
             return this->on_first_layer(Vec3d(point_logical.x() - (m_origin.x() - plate_offset.x()) + extruder_offset.x(),
                                               point_logical.y() - (m_origin.y() - plate_offset.y()) + extruder_offset.y(),
-                                              point_logical.z()));
+                                              point_logical.z()),
+                                        m_belt_travel_target != nullptr ? m_belt_travel_target->width : 0.);
         });
     }
 
@@ -3713,6 +3741,20 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("first_filaments", new ConfigOptionInts(first_filaments));
     this->placeholder_parser().set("initial_tool", initial_extruder_id);
     this->placeholder_parser().set("initial_extruder", initial_extruder_id);
+    // Orca: filament types really extruded on this plate, deduplicated, in filament id order.
+    // Joined with '_': safe in URLs and on print hosts, and unlike '-' it does not clash with
+    // types that already contain a hyphen (PLA-CF, TPU-95A).
+    std::string printing_filament_types;
+    {
+        std::vector<std::string> types;
+        for (const Extruder &extruder : m_writer.extruders()) {
+            std::string type = m_config.filament_type.get_at(extruder.id());
+            if (std::find(types.begin(), types.end(), type) == types.end())
+                types.emplace_back(std::move(type));
+        }
+        printing_filament_types = boost::algorithm::join(types, "_");
+    }
+    this->placeholder_parser().set("printing_filament_types", printing_filament_types);
     //BBS
     match_physical_extruder_for_each_filament(first_non_support_filaments, m_config);
 
@@ -4914,6 +4956,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         print.tool_ordering()));
     print.m_print_statistics.initial_tool = initial_extruder_id;
     print.m_print_statistics.initial_no_support_tool = initial_non_support_extruder_id;
+    // Set again here: update_print_stats_and_format_filament_stats() above cleared the statistics.
+    print.m_print_statistics.printing_filament_types = printing_filament_types;
     if (!is_bbl_printers) {
         file.write_format("; total filament used [g] = %.2lf\n",
             print.m_print_statistics.total_weight);
@@ -9190,6 +9234,89 @@ static bool overhang_fan_active(float overlap, int overhang_fan_threshold, Extru
 
 std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_description, double speed)
 {
+    std::vector<std::vector<double>> uncut_line_lengths;
+    const ExtrusionPaths pieces = this->belt_cut_at_band_edges(path, uncut_line_lengths);
+    if (pieces.size() < 2)
+        return this->_extrude_piece(path, path_description, speed);
+    std::string gcode;
+    for (size_t i = 0; i < pieces.size(); ++ i) {
+        m_belt_uncut_line_lengths = &uncut_line_lengths[i];
+        gcode += this->_extrude_piece(pieces[i], path_description, speed);
+    }
+    m_belt_uncut_line_lengths = nullptr;
+    return gcode;
+}
+
+// Belt printers: whether a path is on the first layer, and its step of the slow_down_layers
+// ramp, set its speed, flow and acceleration as a whole.  A wall loop runs from the belt up
+// the part, so a path is cut where it crosses the edge of the first-layer band above the belt
+// or of a band of the ramp, and each piece is judged on its own.  Otherwise the loop would
+// take the settings of wherever its seam is all the way round.  Returns no pieces when the
+// path stays in one band, and else, for each piece, the length of the uncut line each of its
+// lines comes from, so that small-area flow compensation sees the line as it was.
+ExtrusionPaths GCode::belt_cut_at_band_edges(const ExtrusionPath &path, std::vector<std::vector<double>> &uncut_line_lengths) const
+{
+    ExtrusionPaths pieces;
+    // A sloped seam carries its slope along it, and a contoured path scales each line's
+    // extrusion by the Z offset at the line's end, which a cut would move; both are judged
+    // whole.
+    if (! m_config.belt_printer.value || path.z_contoured || dynamic_cast<const ExtrusionPathSloped*>(&path) != nullptr)
+        return pieces;
+    // Band 0 is the first layer as on_first_layer() has it, band k > 0 the heights the ramp
+    // gives step k (effective_layer_index_for_point()), the last one everything above it.
+    const double first    = m_config.initial_layer_print_height.value;
+    const double band     = this->first_layer_band_mm();
+    const int    last     = std::max(1, m_config.slow_down_layers.value);
+    auto         band_of  = [this, first, last](double h) {
+        return h <= first + EPSILON ? 0 : std::clamp(this->belt_band_index(h), 1, last);
+    };
+    auto         band_top = [first, band](int k) { return k == 0 ? first : (k + 1) * band; };
+    const Points3 &points = path.polyline.points;
+    double         h_prev;
+    if (points.size() < 2 || ! this->belt_path_height(path, points.front(), h_prev))
+        return pieces;
+    int                 band_prev = band_of(h_prev);
+    Points3             current{ points.front() };
+    std::vector<double> current_lengths;
+    auto                extend = [&current, &current_lengths](const Point3 &p, double uncut_length) {
+        if (p != current.back()) {
+            current.push_back(p);
+            current_lengths.push_back(uncut_length);
+        }
+    };
+    for (size_t i = 1; i < points.size(); ++ i) {
+        double h;
+        this->belt_path_height(path, points[i], h);
+        const int    band_i = band_of(h);
+        const double length = unscale<double>((points[i] - points[i - 1]).cast<double>().norm());
+        // Cut at each edge the segment crosses.  The belt is a plane, so the height is
+        // linear along the segment.
+        for (int k = band_prev; k != band_i; k += band_i > band_prev ? 1 : -1) {
+            const double edge  = band_top(band_i > band_prev ? k : k - 1);
+            const double t     = std::clamp((edge - h_prev) / (h - h_prev), 0., 1.);
+            const Vec3d  cut   = points[i - 1].cast<double>() + t * (points[i] - points[i - 1]).cast<double>();
+            const Point3 cut_point(cut.x(), cut.y(), cut.z());
+            extend(cut_point, length);
+            if (current.size() > 1) {
+                pieces.emplace_back(Polyline3(current), path);
+                uncut_line_lengths.emplace_back(std::move(current_lengths));
+            }
+            current = { cut_point };
+            current_lengths.clear();
+        }
+        extend(points[i], length);
+        h_prev    = h;
+        band_prev = band_i;
+    }
+    if (! pieces.empty() && current.size() > 1) {
+        pieces.emplace_back(Polyline3(current), path);
+        uncut_line_lengths.emplace_back(std::move(current_lengths));
+    }
+    return pieces;
+}
+
+std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &path_description, double speed)
+{
     std::string gcode;
 
     const std::string  bridge_description = is_bridge(path.role()) ? path_description + " (bridge)" : std::string();
@@ -9200,15 +9327,29 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     // evaluator is inactive (non-belt printers, or belt printers without
     // a Z-axis shear) `path_on_first_layer` falls back to the legacy
     // layer-id check, so behavior is bit-identical to the pre-feature path.
-    // A belt brim apron band has no Layer of its own, so it publishes its Z
-    // through m_belt_brim_z instead; without that the plane would be probed at
-    // Z=0 and the apron mis-classified for fan and speed.
     const Vec3d path_point_mm{
         unscale<double>(path.first_point().x()),
         unscale<double>(path.first_point().y()),
         m_layer ? m_layer->print_z : (m_belt_brim_z ? *m_belt_brim_z : 0.0)
     };
-    const bool path_on_first_layer = this->on_first_layer(path_point_mm);
+    bool path_on_first_layer = this->on_first_layer(path_point_mm);
+    // On a belt a path is judged by how high above the belt all of it is: it is on the first
+    // layer when all of it is, and takes the slow_down_layers step of its middle.  A piece cut
+    // at the edge of a band (see belt_cut_at_band_edges()) starts or ends on the edge, so
+    // neither of its ends would do.
+    int belt_layer = -1;
+    if (m_config.belt_printer.value) {
+        double lo = std::numeric_limits<double>::max(), hi = std::numeric_limits<double>::lowest(), h;
+        for (const Point3 &p : path.polyline.points)
+            if (this->belt_path_height(path, p, h)) {
+                lo = std::min(lo, h);
+                hi = std::max(hi, h);
+            }
+        if (lo <= hi) {
+            path_on_first_layer = hi <= m_config.initial_layer_print_height.value + EPSILON;
+            belt_layer = path_on_first_layer ? 0 : std::max(1, this->belt_band_index(0.5 * (lo + hi)));
+        }
+    }
 
     const ExtrusionPathSloped* sloped = dynamic_cast<const ExtrusionPathSloped*>(&path);
 
@@ -9237,7 +9378,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
             z = unscale_(path.polyline.lines().begin()->a.z()) + m_nominal_z;
         }
 
+        // The writer's first-layer test judges the travel like the path it leads to.
+        m_belt_travel_target = &path;
         gcode += this->travel_to(first_point, path.role(), "move to first " + description + " point", z);
+        m_belt_travel_target = nullptr;
 
         // Orca: ensure Z matches planned layer height
         if (!slope_need_z_travel && (_last_pos_undefined || m_need_change_layer_lift_z)) {
@@ -9443,16 +9587,18 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     // Use the belt-aware effective layer index when on a belt printer so
     // the speed fade tracks perpendicular distance from the plane on
     // belt printers; otherwise this falls back to the slicing layer id.
-    const int _layer = this->effective_layer_index_for_point(path_point_mm);
+    const int _layer = belt_layer >= 0 ? belt_layer : this->effective_layer_index_for_point(path_point_mm);
     // Belt printers: a tilted layer runs from the belt to the top of the part, so the
     // "first layers" the fan stays off for are a band along the belt. Mark where the
     // extrusion enters and leaves it, per segment, for the cooling buffer.
     const bool belt_band_tags   = m_enable_cooling_markers && m_config.belt_printer.value;
     const int  belt_band_layers = belt_band_tags ? m_config.close_fan_the_first_x_layers.get_at(m_writer.filament()->id()) : 0;
-    auto tag_belt_band = [this, &gcode, belt_band_tags, belt_band_layers, z = path_point_mm.z()](coord_t x, coord_t y) {
+    auto tag_belt_band = [this, &gcode, &path, &path_point_mm, belt_band_tags, belt_band_layers](const Point3 &p) {
         if (! belt_band_tags)
             return;
-        const bool in_band = this->effective_layer_index_for_point(Vec3d(unscale<double>(x), unscale<double>(y), z)) < belt_band_layers;
+        double     h;
+        const int  layer   = this->belt_path_height(path, p, h) ? this->belt_band_index(h) : this->effective_layer_index_for_point(path_point_mm);
+        const bool in_band = layer < belt_band_layers;
         if (in_band != m_belt_in_band) {
             gcode += in_band ? ";_BELT_BAND_START\n" : ";_BELT_BAND_END\n";
             m_belt_in_band = in_band;
@@ -9580,6 +9726,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                 fan_overlap_threshold = overhang_fan_overlap_threshold(FILAMENT_CONFIG(overhang_fan_threshold));
 
             if (NOZZLE_CONFIG(slowdown_for_curled_perimeters)){
+                const FloatOrPercent fully_unsupported_speed = path.role() == erBridgeInfill ?
+                    FloatOrPercent{NOZZLE_CONFIG(bridge_speed) * 100 / ref_speed, true} :
+                    (NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) < 0.5 ?
+                         FloatOrPercent{100, true} :
+                         FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true});
                 ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
                     {FloatOrPercent{100, true},
                      (NOZZLE_CONFIG(overhang_1_4_speed).get_abs_value(ref_speed) < 0.5) ?
@@ -9594,9 +9745,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                      (NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) < 0.5) ?
                          FloatOrPercent{100, true} :
                          FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
-                     (NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) < 0.5) ?
-                         FloatOrPercent{100, true} :
-                         FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true}});
+                     fully_unsupported_speed});
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
                                                                               ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
@@ -9920,7 +10069,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                 double total_length = sloped == nullptr ? 0. : path.polyline.length() * SCALING_FACTOR;
                 double saved_z      = m_writer.get_position().z();
 
+                size_t line_idx = 0;
                 for (const Line3& line : path.polyline.lines()) {
+                    // A line cut at a band edge above a belt is compensated as the line it was.
+                    const double uncut_length = m_belt_uncut_line_lengths != nullptr ? (*m_belt_uncut_line_lengths)[line_idx] : 0.;
+                    ++ line_idx;
                     std::string flow_description;
                     const double line_length = line.length() * SCALING_FACTOR;
                     if (line_length < EPSILON)
@@ -9929,13 +10082,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                     auto dE = e_per_mm * line_length;
                     if (_needSAFC(path)) {
                         auto oldE = dE;
-                        dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
+                        dE = m_small_area_infill_flow_compensator->modify_flow(m_belt_uncut_line_lengths != nullptr ? uncut_length : line_length, dE, path.role());
 
                         if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
                             flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
                         }
                     }
-                    tag_belt_band((line.a.x() + line.b.x()) / 2, (line.a.y() + line.b.y()) / 2);
+                    tag_belt_band(line.midpoint());
                     if (path.z_contoured) {
                         // ZAA: Z anti-aliased extrusion with variable Z per point
                         Vec2d dest2d = this->point_to_gcode(line.b.to_point());
@@ -10066,7 +10219,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
             const ProcessedPoint &processed_point = new_points[i];
             const ProcessedPoint &pre_processed_point = new_points[i-1];
             Vec3d                 p                   = this->point_to_gcode_quantized(processed_point.p);
-            tag_belt_band((pre_processed_point.p.x() + processed_point.p.x()) / 2, (pre_processed_point.p.y() + processed_point.p.y()) / 2);
+            tag_belt_band(Point3((pre_processed_point.p + processed_point.p) / 2));
             if (m_enable_cooling_markers) {
                 if (enable_overhang_bridge_fan) {
                     cur_fan_enabled = overhang_fan_active(processed_point.overlap, overhang_fan_threshold, path.role());
@@ -10386,7 +10539,7 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
             jerk_to_set = initial_layer_travel_jerk;
         }
     } else { // ORCA: Handle short-travel acceleration and jerk for outer perimeters (if applicable)
-        const bool is_short_travel = travel.length() < scale_(EXTRUDER_CONFIG(retraction_minimum_travel));
+        const bool is_short_travel = travel.length() < scale_(FILAMENT_CONFIG(retraction_minimum_travel));
 
         if (NOZZLE_CONFIG(default_acceleration) > 0) {
             if (role == erOverhangPerimeter && is_short_travel) {
@@ -10719,7 +10872,7 @@ std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType li
 
     gcode += m_writer.reset_e();
     // Orca: check if should + can lift (roughly from SuperSlicer)
-    RetractLiftEnforceType retract_lift_type = RetractLiftEnforceType(EXTRUDER_CONFIG(retract_lift_enforce));
+    RetractLiftEnforceType retract_lift_type = RetractLiftEnforceType(FILAMENT_CONFIG(retract_lift_enforce));
 
     bool needs_lift = toolchange
         || m_writer.filament()->retraction_length() > 0
@@ -11453,7 +11606,22 @@ int GCode::belt_layer_past_first_layer_band(const Layer *object_layer) const
     return min_height >= this->first_layer_band_mm() - EPSILON ? 1 : 0;
 }
 
-bool GCode::belt_height_above_floor(const Vec3d &point_slicing_mm, double &height_mm) const
+bool GCode::belt_path_height(const ExtrusionPath &path, const Point3 &p, double &height_mm) const
+{
+    // A belt brim apron band has no Layer of its own, so it publishes its Z through
+    // m_belt_brim_z; without that the belt would be probed at Z=0 and the apron
+    // misjudged for fan and speed.
+    const double z = m_layer ? m_layer->print_z : (m_belt_brim_z ? *m_belt_brim_z : 0.0);
+    const Vec3d  point(unscale<double>(p.x()), unscale<double>(p.y()), path.z_contoured ? z + unscale<double>(p.z()) : z);
+    if (! this->belt_height_above_floor(point, height_mm, path.width))
+        return false;
+    // The brim's lines are as wide as the bands are far apart, not as the bead they lay.
+    if (path.role() == erBrim)
+        height_mm = 0.;
+    return true;
+}
+
+bool GCode::belt_height_above_floor(const Vec3d &point_slicing_mm, double &height_mm, double width) const
 {
     // The owning object, which is what carries the belt description.  During
     // object-brim and coincident-apron emission m_layer still points at whichever
@@ -11477,7 +11645,7 @@ bool GCode::belt_height_above_floor(const Vec3d &point_slicing_mm, double &heigh
     // horizontal slabs in the sliced frame, so the slab holding the material that
     // rests on the belt at this point is the one within one layer height of it.
     // A perpendicular measure would shrink the band by 1/cos(tilt).
-    height_mm = point_slicing_mm.z() - floor_z;
+    height_mm = point_slicing_mm.z() - floor_z - 0.5 * width * std::abs(sp.belt_floor_shear_factor);
     return true;
 }
 

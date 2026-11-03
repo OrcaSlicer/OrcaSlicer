@@ -2245,34 +2245,17 @@ void GCodeViewer::render_markers(int canvas_width, int canvas_height)
                 // Cache guard. The marker plan below is resolved from preset/plate state only,
                 // so it is rebuilt when that state moves and reused otherwise — the sequential
                 // slider is sticky, and re-resolving the zone layout on every frame of the rest
-                // of the session showed up as a measurable per-frame cost. The comparison is
-                // deliberately made against the live config rather than against a freshly built
-                // key, so an unchanged frame allocates nothing at all.
-                static const std::vector<std::string> s_no_strings;
-                auto* names_opt  = printer_cfg.opt<ConfigOptionStrings>("imex_mode_names");
-                auto* tools_opt  = printer_cfg.opt<ConfigOptionStrings>("imex_mode_active_tools");
-                const std::vector<std::string>& mode_names   = names_opt ? names_opt->values : s_no_strings;
-                const std::vector<std::string>& active_tools = tools_opt ? tools_opt->values : s_no_strings;
+                // of the session showed up as a measurable per-frame cost.
+                ImexMarkerKey::Plate plate;
+                plate.plate_index = plate_list.get_curr_plate_index();
+                plate.bed_min_x   = bed_extents.min.x();
+                plate.bed_min_y   = bed_extents.min.y();
+                plate.bed_max_x   = bed_extents.max.x();
+                plate.bed_max_y   = bed_extents.max.y();
 
-                ImexMarkerKey::Scalars key;
-                key.plate_index      = plate_list.get_curr_plate_index();
-                // Same accessor the plan is built from: a key holding a different fallback than
-                // the value actually laid out would compare equal across a real change.
-                key.gantry_count     = imex_cfg_int(printer_cfg, "imex_gantry_count");
-                key.tools_per_gantry = imex_cfg_int(printer_cfg, "imex_tools_per_gantry");
-                key.tool_layout      = (int)imex_cfg_enum<ImexToolLayout>(printer_cfg, "imex_tool_layout");
-                key.clearance_x      = imex_cfg_float(printer_cfg, "imex_nozzle_clearance_x");
-                key.clearance_y      = imex_cfg_float(printer_cfg, "imex_nozzle_clearance_y");
-                key.firmware_managed = imex_cfg_bool(printer_cfg, "imex_firmware_managed_zones");
-                key.bed_min_x        = bed_extents.min.x();
-                key.bed_min_y        = bed_extents.min.y();
-                key.bed_max_x        = bed_extents.max.x();
-                key.bed_max_y        = bed_extents.max.y();
-
-                if (!(m_imex_marker_key.s == key) || m_imex_marker_key.mode != mode ||
-                    m_imex_marker_key.mode_names != mode_names ||
-                    m_imex_marker_key.mode_active_tools != active_tools) {
-                    m_imex_marker_key = ImexMarkerKey{ key, mode, mode_names, active_tools };
+                const bool layout_changed = update_imex_layout_key(m_imex_marker_key.layout, &printer_cfg, mode);
+                if (layout_changed || !(m_imex_marker_key.plate == plate)) {
+                    m_imex_marker_key.plate = plate;
                     m_imex_marker_plan = resolve_imex_marker_plan(printer_cfg, mode, bed_extents);
                     // The carriage roster — and with it the marker count — can change with any
                     // of those inputs, so drop the markers and let the lazy init below rebuild
