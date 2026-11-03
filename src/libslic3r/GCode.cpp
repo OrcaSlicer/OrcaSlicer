@@ -10654,7 +10654,11 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
             // A lifted nozzle keeps its height over the whole detour and descends only at the last
             // point, so it never sinks over the print.
             const bool stay_lifted = m_writer.get_zhop() > EPSILON && m_writer.get_position().z() > target_z + EPSILON;
-            if (exclusion_volume_travel_rerouted && z != DBL_MAX && !stay_lifted) {
+            // A lift left pending by the retraction happens on the first leg, so that detour is lifted too.
+            const Vec2d first2d = this->point_to_gcode(travel.points[1]);
+            const bool lift_pending =
+                m_writer.planned_travel_z(Vec3d(first2d.x(), first2d.y(), target_z), m_need_change_layer_lift_z).second > target_z + EPSILON;
+            if (exclusion_volume_travel_rerouted && z != DBL_MAX && !stay_lifted && !lift_pending) {
                 // Preserve the original sloped-Z move over the longer detour.
                 // The router activates every volume touched by the complete Z
                 // range, so this interpolation remains conservative.

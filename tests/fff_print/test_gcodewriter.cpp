@@ -7,6 +7,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Extruder.hpp"
 #include "libslic3r/Flow.hpp"
@@ -2138,6 +2139,40 @@ TEST_CASE("A lifted nozzle keeps its height over a detour around a concave part"
 
     const std::string gcode = Test::gcode(print);
     CHECK(count_descending_travels(gcode) == 0);
+    CHECK(count_travels_after_descent(gcode) == 0);
+}
+
+TEST_CASE("A lifted nozzle keeps its height over an exclusion-volume detour", "[GCodeWriter]") {
+    // A collision volume stands between two parts, so the travel between them is rerouted around it.
+    // The retraction before that travel leaves its lift pending, and the scarf seam of the outer wall,
+    // printed first, gives the travel an explicit Z below the layer.
+    const int lift = GENERATE(int(zhtNormal), int(zhtSlope), int(zhtSpiral));
+    CAPTURE(lift);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"bed_exclude_volumes", "0..10;45x10,55x10,55x90,45x90"},
+        {"z_hop", "0.4"},
+        {"retract_lift_below", "0"},
+        {"seam_slope_type", "all"},
+        {"seam_slope_conditional", 0},
+        {"wall_sequence", "outer wall/inner wall"},
+        {"enable_arc_fitting", "disabled"},
+        {"skirt_loops", 0},
+        {"brim_type", "no_brim"},
+    });
+    config.option<ConfigOptionEnumsGeneric>("z_hop_types", true)->values = {lift};
+    std::vector<TriangleMesh> meshes;
+    for (const float x : {20.f, 70.f}) {
+        TriangleMesh mesh = make_cube(10., 10., 2.);
+        mesh.translate(x, 45.f, 0.f);
+        meshes.push_back(std::move(mesh));
+    }
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, false);
+
+    const std::string gcode = Test::gcode(print);
+    // Short unlifted travels still slope down to a scarf start, so only travels after a descent are checked.
     CHECK(count_travels_after_descent(gcode) == 0);
 }
 
