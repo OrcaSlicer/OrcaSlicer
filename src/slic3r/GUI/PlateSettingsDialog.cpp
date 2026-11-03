@@ -827,25 +827,21 @@ PlateNameEditDialog::PlateNameEditDialog(wxWindow *parent, wxWindowID id, const 
     auto        m_line_top   = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(400), -1));
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
     m_sizer_main->Add(m_line_top, 0, wxEXPAND, 0);
-    m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(5));
 
-    wxFlexGridSizer *top_sizer = new wxFlexGridSizer(0, 2, FromDIP(5), 0);
-    top_sizer->AddGrowableCol(0, 1);
-    top_sizer->SetFlexibleDirection(wxBOTH);
-    top_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+    wxBoxSizer *top_sizer = new wxBoxSizer(wxVERTICAL);
 
     auto plate_name_txt = new wxStaticText(this, wxID_ANY, _L("Plate name"));
     plate_name_txt->SetFont(Label::Body_14);
     plate_name_txt->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
-    m_ti_plate_name = new TextInput(this, wxString::FromDouble(0.0), "", "", wxDefaultPosition, wxSize(PLATE_SETTING_INPUT_WIDTH, -1), wxTE_PROCESS_ENTER);
+    m_ti_plate_name = new TextInput(this, wxString::FromDouble(0.0), "", "", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
     m_ti_plate_name->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent &e) {
         if (this->IsModal())
             EndModal(wxID_YES);
         else
             this->Close();
     });
-    top_sizer->Add(plate_name_txt , 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
-    top_sizer->Add(m_ti_plate_name, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT);
+    top_sizer->Add(plate_name_txt , 0, wxBOTTOM, PLATE_SETTING_V_SPACING);
+    top_sizer->Add(m_ti_plate_name, 1, wxEXPAND);
     m_ti_plate_name->GetTextCtrl()->SetMaxLength(250);
 
     m_sizer_main->Add(top_sizer, 0, wxEXPAND | wxALL, PLATE_SETTING_CONTENT_MARGIN);
@@ -866,7 +862,7 @@ PlateNameEditDialog::PlateNameEditDialog(wxWindow *parent, wxWindowID id, const 
             this->Close();
     });
 
-    m_sizer_main->Add(dlg_btns, 0, wxEXPAND | wxALL, FromDIP(5));
+    m_sizer_main->Add(dlg_btns, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(5));
 
     SetSizer(m_sizer_main);
     Layout();
