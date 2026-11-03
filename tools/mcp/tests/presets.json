@@ -35,6 +35,25 @@
     {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C"}},
     {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1}},
 
+    // ---- A hidden filament (one the setup wizard has not added) is shown and selected by name ----
+    {"tool": "list_presets", "args": {"type": "filament", "query": "Generic PLA High Speed @BBL X1C", "include_hidden": true},
+     "expect": {"/items/0/name": {"eq": "Generic PLA High Speed @BBL X1C"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Generic PLA High Speed @BBL X1C", "filament_slot": 1},
+     "expect": {"/selected": {"eq": "Generic PLA High Speed @BBL X1C"}}},
+    {"tool": "list_presets", "args": {"type": "filament", "query": "Generic PLA High Speed @BBL X1C"},
+     "expect": {"/items/0/selected": {"eq": true}, "/items/0/visible": {"exists": false}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1},
+     "expect": {"/selected": {"eq": "Bambu PLA Basic @BBL X1C"}}},
+    // A hidden printer is shown with its model's default filaments, as the wizard adds them, so the switch lands on
+    // one of those rather than on the default filament.
+    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab A1 mini 0.4 nozzle", "changes": "discard"},
+     "expect": {"/selected": {"eq": "Bambu Lab A1 mini 0.4 nozzle"}}},
+    {"tool": "get_state", "expect": {"/presets/filaments/0": {"regex": "@BBL A1M$"}}},
+    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle", "changes": "discard"}},
+    {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "changes": "discard"}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1},
+     "expect": {"/selected": {"eq": "Bambu PLA Basic @BBL X1C"}}},
+
     // ---- What a setting does: get_settings' meta, with its description and its place on the tabs ----
     // An advanced setting has its page in Simple mode too.
     {"tool": "get_settings", "args": {"scope": "process", "keys": ["seam_slope_type", "no_such_key"]},

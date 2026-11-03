@@ -366,7 +366,7 @@ the UI thread.
 | | `save_project` | save the project as `.3mf` to a path (a `.gcode.3mf` path is refused: that is `export` `sliced_3mf`) |
 | | `export` | `gcode`, `sliced_3mf`, `3mf` or `stl` to a path, by default the one its extension names; `gcode` is an export operation |
 | Presets | `list_presets` | printer, process or filament presets with flags (system, user, inside the project, the preset inherited from), paged |
-| | `select_preset` | select by name through the selector (filament per slot); `changes` transfers or discards unsaved changes without the prompt |
+| | `select_preset` | select by name through the selector (filament per slot), showing a hidden preset first; `changes` transfers or discards unsaved changes without the prompt |
 | | `get_settings` | values and metadata (description, settings page and group, enum labels, per-variant entries) by key, by page or group, or found by words matched in keys, labels and descriptions, of the edited or any saved preset, of an object's or part's overrides with the values they print with, of the project's own settings (plate type, slot colours, flushing volumes, purge mode, prime tower positions, mixed slots), of a plate's (plate type, print sequence, spiral vase, filament orders, name, lock), or of named preferences (read only); `compare` lists only what differs from another preset, the saved one or the parent |
 | | `set_settings` | set values the way the settings tab does, all or none; one entry of a per-variant value; object and part overrides and filaments; the project's and a plate's own settings through their controls' and dialogs' code; `null` takes a preset's key back to its saved or parent value, `reset_all` drops a preset's unsaved changes first; replies with every setting that `changed` |
 | | `save_preset` | save the preset being edited under a name, as a user preset or inside the project |
@@ -786,6 +786,18 @@ arrow does, and with `reset_to: "parent"` to the value of the preset it inherits
 of `compare`), as its lock icon does. The value joins the call's other values in the tab's
 transaction, so its handling runs as for a typed value. `reset_to` without a null value, and in the
 object and volume scopes, is refused.
+
+`select_preset` finds the name in the selector the GUI picks from: the sidebar's filament combo of the
+slot, or the tab's combo, by the label shown or the internal name. A selector lists the visible,
+compatible presets, and a hidden one is a system filament or printer the setup wizard has not added,
+which a fresh data folder has for all but a few. Such a name is shown first (`show_hidden_preset()`):
+the preset becomes visible in memory and the selectors are rebuilt, as they show the selected preset and
+the filaments an AMS holds, so the wizard's list in `OrcaSlicer.conf`, and what the next start shows,
+stays as it is; the reply names it in `shown`. A printer shown this way also shows its model's default
+filaments when no shown filament suits it, as adding the printer in the wizard does
+(`PresetBundle::load_installed_filaments()`), so the switch lands on one of them rather than on the
+default filament. A preset's own name wins over another's alias that reads the same. An incompatible preset is refused as such, since no selector lists it, and an unknown name with
+the closest names.
 
 `Tab::select_preset()` asks about unsaved changes through `Tab::may_discard_current_dirty_preset()`:
 for the preset it leaves, and for each modified preset a process or printer switch may replace (the

@@ -193,6 +193,70 @@ json similar_presets(const PresetCollection& presets, const std::string& name)
     return out;
 }
 
+// The presets `name` names, by name or alias, that `keep` accepts. The real presets, not the edited copy. UI thread.
+template<class Keep> std::vector<Preset*> presets_named(PresetCollection& presets, const std::string& name, Keep keep)
+{
+    const std::string    want = Preset::remove_suffix_modified(name);
+    std::vector<Preset*> found;
+    for (std::size_t i = 0; i < presets.size(); ++i)
+        if (Preset& p = presets.preset(i, true); (p.name == want || p.alias == want) && keep(p))
+            found.push_back(&p);
+    return found;
+}
+
+// Shows the hidden preset `name` names in the selectors, as they show the preset selected and the filaments an AMS
+// holds: in memory, so the setup wizard's list, and with it what the next start shows, stays as it is. A hidden
+// preset is one the wizard has not added (a filament, a printer model), not a refusal, so selecting one by name
+// needs no detour through the wizard. Only a compatible one, as the selectors list no other. Returns its name, empty
+// when `name` names no hidden compatible preset. UI thread.
+std::string show_hidden_preset(PresetCollection& presets, const std::string& name)
+{
+    std::vector<Preset*> hidden = presets_named(presets, name, [](const Preset& p) { return !p.is_visible && p.is_compatible; });
+    // A preset's own name wins over another's alias that reads the same ("Generic PLA").
+    const std::string want  = Preset::remove_suffix_modified(name);
+    const auto        exact = std::find_if(hidden.begin(), hidden.end(), [&want](const Preset* p) { return p->name == want; });
+    if (exact != hidden.end())
+        hidden = {*exact};
+    if (hidden.size() > 1) {
+        json names = json::array();
+        for (const Preset* p : hidden)
+            names.push_back(p->name);
+        throw ToolFailure("\"" + name + "\" names several hidden presets; use the internal name", {{"presets", std::move(names)}});
+    }
+    if (hidden.empty())
+        return {};
+    hidden.front()->is_visible = true;
+    return hidden.front()->name;
+}
+
+// Shows the default filaments of a printer show_hidden_preset() showed when no shown filament suits it, as adding the
+// printer in the setup wizard does (PresetBundle::load_installed_filaments()), so selecting the printer lands on
+// one of them rather than on the default filament. In memory, as the printer is. UI thread.
+void show_default_filaments(PresetBundle& bundle, const std::string& printer_name)
+{
+    const Preset*                      printer = bundle.printers.find_preset(printer_name, false);
+    const VendorProfile::PrinterModel* model   = printer != nullptr ? PresetUtils::system_printer_model(*printer) : nullptr;
+    if (model == nullptr)
+        return;
+    const PresetWithVendorProfile with_vendor = bundle.printers.get_preset_with_vendor_profile(*printer);
+    for (const Preset& filament : bundle.filaments)
+        if (filament.is_visible && is_compatible_with_printer(bundle.filaments.get_preset_with_vendor_profile(filament), with_vendor))
+            return;
+    for (const std::string& name : model->default_materials)
+        if (Preset* filament = bundle.filaments.find_preset(name, false, true); filament != nullptr && filament->is_system)
+            filament->is_visible = true;
+}
+
+// The refusal of a name `selector` does not list: incompatible with the printer, or no preset's name, with the
+// closest names. UI thread.
+ToolFailure not_offered(PresetCollection& presets, const std::string& name, const std::string& selector)
+{
+    if (!presets_named(presets, name, [](const Preset& p) { return !p.is_compatible; }).empty())
+        return ToolFailure("\"" + name + "\" is not compatible with the selected printer (list_presets include_incompatible "
+                                         "lists such presets)");
+    return ToolFailure(selector + " does not offer \"" + name + "\" (see list_presets)", {{"similar", similar_presets(presets, name)}});
+}
+
 struct ConfigTarget
 {
     Preset::Type        type = Preset::TYPE_INVALID; // preset scopes
@@ -1831,7 +1895,8 @@ void register_config_tools(McpService& service)
     reg.add(inspect_tool(
         "list_presets", L("List presets"),
         "Printer, process or filament presets with flags: system or user, selected (and modified), compatible with the "
-        "selected printer, and for filaments the slots using them. Only compatible, visible presets unless asked.",
+        "selected printer, and for filaments the slots using them. Only compatible, visible presets unless asked: a fresh "
+        "install hides most system filaments and printers (visible: false), and select_preset takes those too.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
                        {"query", prop("string", "Case-insensitive part of the name.")},
                        {"include_incompatible", prop("boolean", "Also list presets incompatible with the printer.")},
@@ -1844,9 +1909,11 @@ void register_config_tools(McpService& service)
     reg.add(mutate_tool(
         "select_preset", L("Select a preset"),
         "Select a printer, process or filament preset by the name its selector shows (or its internal name), as a person "
-        "would. With unsaved changes the Transfer-or-discard prompt opens (blocked_by_dialog) unless changes answers it. A "
-        "filament is assigned to filament_slot (1-based, default 1). Reply: selected; when presets had or have unsaved "
-        "changes, discarded and modified list per preset the keys dropped and the keys still unsaved.",
+        "would. A hidden one (list_presets include_hidden) is shown in the selectors first, until the app restarts. With "
+        "unsaved changes the Transfer-or-discard prompt opens (blocked_by_dialog) unless changes answers it. A "
+        "filament is assigned to filament_slot (1-based, default 1). Reply: selected, shown (a hidden preset it showed); "
+        "when presets had or have unsaved changes, discarded and modified list per preset the keys dropped and the keys "
+        "still unsaved.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
                        {"name", prop("string", "Preset name as list_presets shows it.")},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}},
@@ -1868,24 +1935,37 @@ void register_config_tools(McpService& service)
                 PlaterPresetComboBox* filament_combo = nullptr;
                 int                   filament_item  = -1;
                 std::string           target         = name;
+                std::string           shown;
                 if (type == Preset::TYPE_FILAMENT) {
                     auto& combos = plater.sidebar().combos_filament();
                     if (slot < 1 || slot > int(combos.size()) || combos[size_t(slot - 1)] == nullptr)
                         throw ToolFailure("filament_slot must be 1.." + std::to_string(combos.size()));
-                    filament_combo   = combos[size_t(slot - 1)];
-                    const auto match = filament_combo->find_by_name(name);
+                    filament_combo = combos[size_t(slot - 1)];
+                    auto match     = filament_combo->find_by_name(name);
+                    if (match.item < 0 && !match.ambiguous && !(shown = show_hidden_preset(bundle.filaments, name)).empty()) {
+                        for (PlaterPresetComboBox* combo : combos)
+                            if (combo != nullptr)
+                                combo->update();
+                        match = filament_combo->find_by_name(shown);
+                    }
                     if (match.ambiguous)
                         throw ToolFailure("\"" + name + "\" is ambiguous in filament slot " + std::to_string(slot) + "'s selector; use the internal name");
                     if (match.item < 0)
-                        throw ToolFailure("Filament slot " + std::to_string(slot) + " does not offer \"" + name + "\" (see list_presets)");
+                        throw not_offered(bundle.filaments, name, "Filament slot " + std::to_string(slot));
                     filament_item = match.item;
                     target        = match.internal_name;
                 } else if (TabPresetComboBox* combo = tab->get_combo_box(); combo != nullptr && combo->GetCount() > 0) {
-                    const auto match = combo->find_by_name(name);
+                    auto match = combo->find_by_name(name);
+                    if (match.item < 0 && !match.ambiguous && !(shown = show_hidden_preset(collection(type), name)).empty()) {
+                        if (type == Preset::TYPE_PRINTER)
+                            show_default_filaments(bundle, shown);
+                        combo->update();
+                        match = combo->find_by_name(shown);
+                    }
                     if (match.ambiguous)
                         throw ToolFailure("\"" + name + "\" is ambiguous; use the internal name");
                     if (match.item < 0)
-                        throw ToolFailure("The selector does not offer \"" + name + "\" (see list_presets)");
+                        throw not_offered(collection(type), name, "The selector");
                     target = match.internal_name;
                 }
                 // The prompt about the tab's own changes offers Transfer only where can_transfer_changes_to() says;
@@ -1916,6 +1996,8 @@ void register_config_tools(McpService& service)
                         throw ToolFailure("Selecting \"" + target + "\" was cancelled");
                     out = {{"type", arg_string(args, "type")}, {"selected", collection(type).get_selected_preset_name()}};
                 }
+                if (!shown.empty())
+                    out["shown"] = shown;
                 out.update(unsaved_changes_outcome(before));
                 return out;
             });

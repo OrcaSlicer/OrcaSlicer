@@ -191,8 +191,8 @@ diagonal, a tower off the plate), and moves the prime tower with an undo, before
 
 `tests/presets.json` saves filament, process and printer presets with `save_preset` (a user preset,
 one inside the project that a saved and reopened project keeps, a detached one, and the overwrite
-rule), and drops unsaved edits with `set_settings {"reset_all": true}`. It reads presets that are not
-selected and compares presets (`get_settings` `preset` and `compare`), writes one entry of a
+rule), and drops unsaved edits with `set_settings {"reset_all": true}`. It selects a hidden filament,
+one the setup wizard has not added, by name. It reads presets that are not selected and compares presets (`get_settings` `preset` and `compare`), writes one entry of a
 per-variant value, and checks `set_settings`' `changed` after the spiral vase dialog. It reads what
 settings do from `get_settings`' meta (`description`, `where`): by key, for one group, and found by
 the words of their descriptions, in one scope and in all three. Keys named without a scope are read
