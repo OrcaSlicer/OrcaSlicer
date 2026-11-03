@@ -8786,6 +8786,10 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
     if (m_wipe.enable && FILAMENT_CONFIG(wipe)) {
         m_wipe.update_path(paths);
 
+        // A loop's role is its first path's role. An overhanging start must
+        // not hide ordinary external-wall segments elsewhere in the loop.
+        const auto external_path = std::find_if(paths.begin(), paths.end(),
+            [](const ExtrusionPath &path) { return is_external_perimeter(path.role()); });
         // Orca: loop wipe paths retain print direction. Their material side is
         // therefore left for CCW contours and right for CW contours, with the
         // result inverted for holes. Only external perimeters are eligible.
@@ -8793,16 +8797,13 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         // context was created. Check the effective setting again at execution.
         if (m_config.wipe_inward && m_config.wipe_inward_distance.value > 0. &&
             wipe_support != nullptr && !wipe_support->inner_lines.empty() &&
-            // A loop's role is its first path's role. An overhanging start must
-            // not hide ordinary external-wall segments elsewhere in the loop.
-            std::any_of(paths.begin(), paths.end(),
-                [](const ExtrusionPath &path) { return is_external_perimeter(path.role()); }) &&
-            m_wipe.path.points.size() >= 2) {
-            // Orca: use the actual extrusion width from the path, not the config
+            external_path != paths.end() && m_wipe.path.points.size() >= 2) {
+            // Orca: use the actual extrusion width of the external wall, not the config
             // value — outer_wall_line_width=0 (Auto) would make get_abs_value
             // return 0 and silently disable the feature, and Arachne may produce
-            // a different width than the config default.
-            const double outer_wall_line_width = paths.front().width;
+            // a different width than the config default. An overhanging start
+            // may have another width, so it does not set the offset.
+            const double outer_wall_line_width = external_path->width;
             const double requested_offset = m_config.wipe_inward_distance.get_abs_value(outer_wall_line_width);
             // Outer/Inner and sandwich order print the adjacent inner wall after
             // this one. Only the outer bead's own inner half is available for wiping now.

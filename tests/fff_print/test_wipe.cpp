@@ -417,6 +417,7 @@ TEST_CASE("Inward wipe recognizes an external wall starting on an overhang", "[W
     init_print({make_cube(10., 10., 1.)}, print, model, config);
     print.process();
     size_t mixed_loops = 0;
+    double external_width = 0.;
     const auto mark_overhangs = [&](auto &&self, ExtrusionEntity *entity) -> void {
         if (auto *collection = dynamic_cast<ExtrusionEntityCollection *>(entity)) {
             for (ExtrusionEntity *child : collection->entities)
@@ -433,6 +434,11 @@ TEST_CASE("Inward wipe recognizes an external wall starting on an overhang", "[W
                     path.polyline.points = {source.polyline.points[i - 1], source.polyline.points[i]};
                     const bool overhang = path.polyline.points.front().y() > 0 || path.polyline.points.back().y() > 0;
                     path.set_extrusion_role(overhang ? erOverhangPerimeter : erExternalPerimeter);
+                    // A wider overhang bead at the seam must not widen the inward offset.
+                    if (overhang)
+                        path.width *= 2.f;
+                    else
+                        external_width = std::max(external_width, double(path.width));
                     has_overhang |= overhang;
                     has_external |= !overhang;
                     paths.push_back(std::move(path));
@@ -455,8 +461,11 @@ TEST_CASE("Inward wipe recognizes an external wall starting on an overhang", "[W
         if (trajectory.destinations.empty())
             continue;
         const Vec2d move = trajectory.destinations.front() - trajectory.start;
-        if (trajectory.start.x() > 4. && trajectory.start.y() > 4. && move.x() < -0.05 && move.y() < -0.05)
+        if (trajectory.start.x() > 4. && trajectory.start.y() > 4. && move.x() < -0.05 && move.y() < -0.05) {
             has_inward_wipe = true;
+            // The 50% offset of the external wall reaches at most its miter at this square corner.
+            CHECK(move.norm() < 0.5 * external_width * std::sqrt(2.) + 0.01);
+        }
     }
     CHECK(has_inward_wipe == inward);
 }
