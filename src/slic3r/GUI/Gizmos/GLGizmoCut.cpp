@@ -3040,7 +3040,7 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
 
     if (mode == CutMode::cutPlanar) {
         ImGui::SameLine();
-        m_imgui->disabled_begin(is_cut_plane_init && !has_connectors);
+        m_imgui->disabled_begin(is_cut_plane_init && !has_connectors && !m_part_selection.valid());
         if (m_imgui->button(_L("Reset"), _L("Reset cutting plane and remove connectors"))) {
             Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Reset Cut"), UndoRedo::SnapshotType::GizmoAction);
             reset_cut_plane();
