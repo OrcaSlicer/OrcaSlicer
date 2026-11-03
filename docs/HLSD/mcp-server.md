@@ -438,13 +438,16 @@ The tools that take an object index (`set_settings` object and volume scopes, `t
 part index a `volume_id`; `select` takes `object_ids`, `instance_object_ids` and `volume_ids`, one per
 entry of `objects`, `instances` and `volumes`: the `ObjectID` values `list_objects` reports as `id`, which `orca.host` shows
 too. `check_expected_ids()` refuses the call before anything changes when the index names another object
-or part now, so a script addresses what it read. Ids are allocated per process, so the journal leaves
-them out of those tools' calls (`without_expected_ids()`), through `api_call` and inline `run_script` steps
-too, and a replay addresses by index; a `run_python` step's code and `args`, and a plugin operation's own
-arguments, are kept as written.
+or part now, so a script addresses what it read. `list_objects`' description says what the ids are for
+and names the tools that take them, so each property only points back at it. Ids are allocated per
+process, so the journal leaves them out of those tools' calls (`without_expected_ids()`), through
+`api_call` and inline `run_script` steps too, and a replay addresses by index; a `run_python` step's code
+and `args`, and a plugin operation's own arguments, are kept as written.
 
 Each tool family registers itself from its own `McpTools*.cpp` through `register_*_tools()`.
-List tools take `limit` and `offset` and report `total` and `next_offset`. `McpPaths.hpp` requires
+List tools take `limit` and `offset` and reply `{items, offset, total}` (`page()`), with `next_offset` while
+more remain; `list_actions` names its items `actions`. The server instructions give that shape once, rather
+than every description, and each `limit` states its default. `McpPaths.hpp` requires
 absolute paths, since a relative one would resolve against `<datadir>/log`, the GUI's working
 directory; an output's directory must exist, and an existing file is replaced only with
 `overwrite: true`. Paths arrive and leave as UTF-8 text, and so does Orca's `data_dir()`;

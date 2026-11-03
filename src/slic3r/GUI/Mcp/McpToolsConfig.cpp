@@ -1901,7 +1901,7 @@ void register_config_tools(McpService& service)
                        {"query", prop("string", "Case-insensitive part of the name.")},
                        {"include_incompatible", prop("boolean", "Also list presets incompatible with the printer.")},
                        {"include_hidden", prop("boolean", "Also list hidden presets.")},
-                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}}},
+                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 100."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}},
                       {"type"}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_presets(args); })); }));
@@ -2176,7 +2176,7 @@ void register_config_tools(McpService& service)
                                                   "(the preset it inherits from).")},
                        {"include_meta", prop("boolean", "Include labels, types and ranges. Default true, false for a preset "
                                                        "scope's whole listing and with compare.")},
-                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}}},
+                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 100, or 20 with query."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) {
             return ToolResult::ok(ctx.run_ui([&] {
@@ -2361,7 +2361,7 @@ void register_config_tools(McpService& service)
         "lists those the plate sets itself (set_settings scope plate). Also sliced (an up-to-date slice), wipe_tower [x, y] "
         "and layer_gcode: the plate's pauses, custom G-code, templates and filament changes, each {z, layer, type, "
         "filament, color, gcode}; layer is the Preview slider's number, given while the plate's slice is up to date.",
-        object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}}},
+        object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 100."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_plates(args); })); }));
 }

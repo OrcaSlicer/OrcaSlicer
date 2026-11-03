@@ -910,10 +910,14 @@ void register_scene_tools(McpService& service)
         "part's file); its height range modifiers when it has any (layer_config_ranges: [{min_z, max_z, values}], as "
         "set_layer_ranges takes them) and its variable layer height profile when it has one (layer_height_profile: "
         "{points, min_height, max_height}). A bbox is {min, max, size} in mm of model parts only, so unlike the panel's Size it "
-        "leaves out modifiers. Indices are what select, transform, ui_mouse targets and the object/volume settings scopes take.",
+        "leaves out modifiers. Indices are what select, transform, ui_mouse targets and the object/volume settings scopes take. "
+        "Each object and part also has an id, which stays with it when a delete, split or assemble shifts the indices: pass "
+        "it as object_id / volume_id to transform, add_part, set_settings, set_layer_ranges and set_layer_height_profile "
+        "(object_ids, volume_ids and instance_object_ids to select), and a call whose index names another one now is "
+        "refused instead of acting on it.",
         object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Only objects on this plate."}}},
                        {"screen", prop("boolean", "Add each instance's rectangle in the shown 3D view, logical pixels [x, y, w, h].")},
-                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}}},
+                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 200."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_objects(args); })); }));
 

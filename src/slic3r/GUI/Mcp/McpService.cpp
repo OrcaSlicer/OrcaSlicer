@@ -170,6 +170,8 @@ const char* kInstructions =
     "group).\n"
     "- Objects, parts and plates are 0-based indices, as list_objects and list_plates give them; filament slots and "
     "Preview layers are 1-based.\n"
+    "- Lists come in pages: {items, offset, total}, with next_offset while more remain (list_actions names its items "
+    "actions); call again with that offset to read on.\n"
     "- Paths are absolute. Outputs never overwrite an existing file unless overwrite is true.\n"
     "UI lane:\n"
     "- run_action runs every Speed Dial command (list_actions to search): prefer it to GUI clicks.\n"
