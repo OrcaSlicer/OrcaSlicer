@@ -1304,6 +1304,15 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_detect_overhang_wall = config->opt_bool("detect_overhang_wall");
     bool has_overhang_reverse     = config->opt_bool("overhang_reverse");
     bool allow_overhang_reverse   = !has_spiral_vase;
+    const bool show_overhang_wall_overlap = has_detect_overhang_wall && have_arachne;
+    toggle_line("overhang_wall_overlap", show_overhang_wall_overlap);
+    toggle_line("overhang_wall_overlap_start", show_overhang_wall_overlap);
+    toggle_line("overhang_wall_overlap_full", show_overhang_wall_overlap);
+    const auto *overhang_wall_overlap = config->option<ConfigOptionPercent>("overhang_wall_overlap");
+    const bool has_overhang_wall_overlap = show_overhang_wall_overlap &&
+                                          overhang_wall_overlap != nullptr && overhang_wall_overlap->value > 0;
+    toggle_field("overhang_wall_overlap_start", has_overhang_wall_overlap);
+    toggle_field("overhang_wall_overlap_full", has_overhang_wall_overlap);
     toggle_line("unsupported_wall_last", has_detect_overhang_wall, -1, _L("Enable overhang wall detection to use this setting."));
     toggle_line("overhang_reverse", allow_overhang_reverse, -1, _L("Reverse overhang direction is unavailable in spiral vase mode."));
     toggle_line("overhang_reverse_internal_only", allow_overhang_reverse && has_overhang_reverse, -1, _L("Disable spiral vase mode and enable reverse overhang direction to use this setting."));

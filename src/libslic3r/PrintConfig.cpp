@@ -5914,6 +5914,47 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    def = this->add("overhang_wall_overlap", coPercent);
+    def->label = L("Overhang wall overlap");
+    def->category = L("Quality");
+    def->tooltip = L("Maximum extra overlap between adjacent Arachne walls, controlled by the unsupported "
+                     "percentage of the outer wall of each pair. The outermost wall stays in place. "
+                     "The overlap percentage is relative to the smaller wall spacing. Inner walls follow "
+                     "the displacement of outer walls to preserve their spacing. Zero disables this adjustment.");
+    def->sidetext = "%";
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 20;
+    def->set_default_value(new ConfigOptionPercent(0));
+
+    def = this->add("overhang_wall_overlap_start", coPercent);
+    def->label = L("Overhang wall overlap start");
+    def->category = L("Quality");
+    def->tooltip = L("Unsupported percentage that triggers extra overlap with the next inner wall. "
+                     "At each end of a triggered region, the transition extends along the wall to the first fully supported point "
+                     "or five inner-wall nozzle diameters, whichever is closer. Extra overlap increases linearly with distance "
+                     "from this zero-overlap endpoint to the full-overlap point. "
+                     "Unsupported percentage is estimated from the original wall position and its local line width.");
+    def->sidetext = "%";
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionPercent(25));
+
+    def = this->add("overhang_wall_overlap_full", coPercent);
+    def->label = L("Overhang wall overlap full");
+    def->category = L("Quality");
+    def->tooltip = L("Unsupported percentage of a wall at which the next inner wall receives the maximum extra overlap. "
+                     "Transitions increase linearly with distance along the wall. If a triggered region never reaches this threshold, "
+                     "its highest unsupported percentage determines a proportional target overlap. "
+                     "If this threshold is equal to or lower than the start threshold, the target is the maximum overlap "
+                     "and the entry and exit transitions still apply.");
+    def->sidetext = "%";
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionPercent(75));
+
     def = this->add("unsupported_wall_last", coBool);
     def->label = L("Print unsupported walls last");
     def->category = L("Quality");

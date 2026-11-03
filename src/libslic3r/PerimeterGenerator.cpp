@@ -2628,6 +2628,14 @@ void PerimeterGenerator::process_arachne()
             Arachne::WallToolPathsParams input_params = Arachne::make_paths_params(this->layer_id, *object_config, *print_config);
             // Set params is_top_or_bottom_layer for adjusting short-wall removal sensitivity.
             input_params.is_top_or_bottom_layer = (is_bottom_layer || is_topmost_layer) ? true : false;
+            if (this->config->detect_overhang_wall && this->config->overhang_wall_overlap.value > 0 &&
+                this->lower_slices != nullptr && this->layer_id > this->object_config->raft_layers) {
+                input_params.overhang_support = this->lower_slices;
+                input_params.overhang_wall_overlap = 0.01 * this->config->overhang_wall_overlap.value;
+                input_params.overhang_wall_overlap_start = 0.01 * this->config->overhang_wall_overlap_start.value;
+                input_params.overhang_wall_overlap_full = 0.01 * this->config->overhang_wall_overlap_full.value;
+                input_params.overhang_wall_overlap_transition_length = 5. * this->perimeter_flow.nozzle_diameter();
+            }
 
             coord_t wall_0_inset = 0;
             if (apply_precise_outer_wall)
@@ -2747,7 +2755,12 @@ void PerimeterGenerator::process_arachne()
                     const Polygons inner_region        = to_polygons(offset_ex(clip_walls_over_top ? infill_contour
                                                                                                    : diff_ex(infill_contour, top_expolygons),
                                                                               wall_0_inset));
-                    Arachne::WallToolPaths inner_wall_tool_paths(inner_region, perimeter_spacing, perimeter_spacing, coord_t(inner_loop_number + 1), 0, layer_height, input_params_tmp);
+                    Arachne::WallToolPathsParams inner_params = input_params_tmp;
+                    if (inner_params.overhang_support != nullptr && !perimeters.empty()) {
+                        inner_params.outer_wall_anchor = perimeters.front();
+                        inner_params.outer_wall_anchor_spacing = ext_perimeter_spacing;
+                    }
+                    Arachne::WallToolPaths inner_wall_tool_paths(inner_region, perimeter_spacing, perimeter_spacing, coord_t(inner_loop_number + 1), 0, layer_height, inner_params);
                     std::vector<Arachne::VariableWidthLines> inner_perimeters = inner_wall_tool_paths.getToolPaths();
 
                     if (clip_walls_over_top) {
