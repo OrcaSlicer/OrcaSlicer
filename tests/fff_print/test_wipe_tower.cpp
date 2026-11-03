@@ -960,6 +960,35 @@ TEST_CASE("Smooth timelapse prints each tower layer's wall once when a layer joi
     CHECK(count_joined_layers(print) > 0);
 }
 
+// A type 2 tower toolchange on two tools with a 0.4 mm z hop. Arc fitting is off, so a spiral
+// lift is written as short G1 moves that climb while moving in XY.
+static std::string slice_type2_toolchange(bool multitool_ramming)
+{
+    DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
+    config.set_deserialize_strict({ { "wipe_tower_type",                "type2" },
+                                    { "single_extruder_multi_material", "0" },
+                                    { "filament_multitool_ramming",     multitool_ramming ? "1" : "0" },
+                                    { "enable_arc_fitting",             "disabled" },
+                                    { "z_hop",                          "0.4" },
+                                    { "z_hop_types",                    "Normal Lift" } });
+    return slice_with_prime_tower(config);
+}
+
+// Calls on_line for each line from the unload to the wipe, the stretch where the tool is swapped.
+static void for_each_toolchange_line(const std::string &gcode, const GCodeReader::callback_t &on_line)
+{
+    bool in_toolchange = false;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.raw().find("; CP TOOLCHANGE UNLOAD") != std::string::npos)
+            in_toolchange = true;
+        if (line.raw().find("; CP TOOLCHANGE WIPE") != std::string::npos)
+            in_toolchange = false;
+        if (in_toolchange)
+            on_line(self, line);
+    });
+}
+
 TEST_CASE("A toolchange on the type2 tower lifts the nozzle in place, without crossing the tower", "[WipeTower][Regression]")
 {
     // Multi-tool ramming sends the head to the tower and moves it during the unload, before the
@@ -968,29 +997,29 @@ TEST_CASE("A toolchange on the type2 tower lifts the nozzle in place, without cr
     // A lift that stays in place climbs within one spiral; 5 mm is well above any spiral and
     // well below the tower's width.
     const float z_hop = 0.4f;
-    DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
-    config.set_deserialize_strict({ { "wipe_tower_type",                "type2" },
-                                    { "single_extruder_multi_material", "0" },
-                                    { "filament_multitool_ramming",     "1" },
-                                    { "enable_arc_fitting",             "disabled" },
-                                    { "z_hop",                          "0.4" },
-                                    { "z_hop_types",                    "Normal Lift" } });
-
-    const std::string gcode = slice_with_prime_tower(config);
+    const std::string gcode = slice_type2_toolchange(true);
     REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("; CP TOOLCHANGE UNLOAD"));
 
-    // Only the stretch from the unload to the wipe, where the tool is swapped.
-    bool  in_toolchange         = false;
     float longest_climbing_move = 0.f;
-    GCodeReader reader;
-    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        if (line.raw().find("; CP TOOLCHANGE UNLOAD") != std::string::npos)
-            in_toolchange = true;
-        if (line.raw().find("; CP TOOLCHANGE WIPE") != std::string::npos)
-            in_toolchange = false;
+    for_each_toolchange_line(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
         const float rise = line.dist_Z(self);
-        if (in_toolchange && line.cmd_is("G1") && rise > 0.f && rise <= z_hop + EPSILON)
+        if (line.cmd_is("G1") && rise > 0.f && rise <= z_hop + EPSILON)
             longest_climbing_move = std::max(longest_climbing_move, line.dist_XY(self));
     });
     CHECK(longest_climbing_move < 5.f);
+}
+
+TEST_CASE("A toolchange on the type2 tower without ramming keeps the spiral lift", "[WipeTower]")
+{
+    // Without ramming nothing moves the head before the change_filament_gcode lift, so the
+    // writer still knows where it is and the lift can spiral.
+    const std::string gcode = slice_type2_toolchange(false);
+    REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("; CP TOOLCHANGE UNLOAD"));
+
+    size_t spiral_steps = 0;
+    for_each_toolchange_line(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.cmd_is("G1") && line.dist_Z(self) > 0.f && line.dist_XY(self) > 0.f)
+            ++spiral_steps;
+    });
+    CHECK(spiral_steps > 0);
 }
