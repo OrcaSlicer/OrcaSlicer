@@ -1252,9 +1252,11 @@ void GLCanvas3D::_resolve_pathtrace_image(GLShaderProgram& shader, bool interact
 {
     // Progressive images follow the variance of each pixel, which limits the filter by itself: it
     // blends what is still noisy and leaves converged edges and texture alone. Interactive frames do
-    // not keep that variance and are filtered at full strength; with a single sample, the luminance
-    // edge stop is wide enough to smooth isolated bright pixels. The bed term has no variance and
-    // fades out as the samples converge.
+    // not keep that variance and are filtered at full strength, and so is the first progressive
+    // sample, whose variance is zero. With a single sample, the luminance edge stop is wide enough
+    // to smooth isolated bright pixels. The bed term has no variance and fades out as the samples
+    // converge.
+    const bool use_variance = !interactive && samples >= 2;
     const float sqrt_samples = std::sqrt(float(std::max(1u, samples)));
     const float strength = interactive ? 1.0f : std::min(1.0f, 4.0f / sqrt_samples);
     // Steps 1, 2 and 4: a step of 8 leaves blocks around sharp highlights.
@@ -1281,10 +1283,10 @@ void GLCanvas3D::_resolve_pathtrace_image(GLShaderProgram& shader, bool interact
     shader.set_uniform("color_in_tex", 4);
     shader.set_uniform("bed_in_tex", 5);
     shader.set_uniform("moment_tex", 6);
-    shader.set_uniform("use_variance", !interactive);
+    shader.set_uniform("use_variance", use_variance);
     shader.set_uniform("image_size", std::array<int, 2>{ int(width), int(height) });
     shader.set_uniform("strength", strength);
-    shader.set_uniform("luminance_sigma", interactive && samples <= 1 ? 6.0f : 0.05f + 1.5f / sqrt_samples);
+    shader.set_uniform("luminance_sigma", samples <= 1 ? 6.0f : 0.05f + 1.5f / sqrt_samples);
     for (int pass = 0; pass < passes; ++pass) {
         // Ping-pong: each pass writes one set of images and reads the other.
         const size_t out_set = size_t(pass % 2);
