@@ -198,10 +198,11 @@ bool SketchInlineEditor::render(ImGuiWrapper& imgui, float scale)
         }
     }
 
-    if (m_focus_pending) {
+    // Keep asking until the field is actually active. A one-shot request is lost when the window is
+    // still auto-sizing (its first frame is hidden and drops the request), and then the field sits
+    // there taking nothing until the user clicks it. Cleared below, once ImGui reports it active.
+    if (m_focus_pending)
         ImGui::SetKeyboardFocusHere();
-        m_focus_pending = false;
-    }
     ImGui::PushItemWidth(90.0f * scale);
     // EnterReturnsTrue so Enter commits from inside the widget; AutoSelectAll so the prefill is
     // replaced by the first digit typed, which is what "pre-selected" meant when this was a
@@ -218,6 +219,7 @@ bool SketchInlineEditor::render(ImGuiWrapper& imgui, float scale)
                                           ImGuiInputTextFlags_EnterReturnsTrue
                                               | ImGuiInputTextFlags_AutoSelectAll);
     m_active = ImGui::IsItemActive();
+    if (m_active) m_focus_pending = false;
     // Tab accepts the value like Enter does (and moves on to the next queued field, if any).
     const bool tabbed = m_active && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab));
     // MEASUREMENT, not a fix: one line per frame saying whether ImGui believes it owns the
