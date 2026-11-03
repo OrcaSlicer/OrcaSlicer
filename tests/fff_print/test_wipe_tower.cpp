@@ -753,6 +753,28 @@ TEST_CASE("A layer less than the minimum layer height above another prints its t
         if (std::none_of(tower_layer_z.begin(), tower_layer_z.end(), [z](double t) { return std::abs(z - t) < 0.002; }))
             ++off_layer;
     CHECK(off_layer == 0);
+
+    // The nozzle goes below the object layer only over the tower: descending anywhere else drags it
+    // through the layer just printed.
+    BoundingBox tower_box(print.first_layer_wipe_tower_corners());
+    tower_box.offset(scaled(5.));
+    size_t descents = 0, off_tower = 0;
+    double layer_z  = 0.;
+    GCodeReader parser;
+    parser.parse_buffer(out, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view raw = line.raw();
+        if (raw.rfind(";Z:", 0) == 0)
+            layer_z = std::stod(std::string(raw.substr(3)));
+        else if (line.has_z() && ! line.has_x() && ! line.has_y() && line.z() < layer_z - 1e-3) {
+            ++descents;
+            if (! tower_box.contains(Point(scaled(self.x()), scaled(self.y())))) {
+                INFO("descent to Z " << line.z() << " at X " << self.x() << " Y " << self.y() << ", layer Z " << layer_z);
+                ++off_tower;
+            }
+        }
+    });
+    CHECK(descents > 0);
+    CHECK(off_tower == 0);
 }
 
 TEST_CASE("Layers sliced at the printer's minimum layer height keep their own tower layers", "[WipeTower]")

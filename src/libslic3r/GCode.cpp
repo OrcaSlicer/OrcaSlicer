@@ -1513,6 +1513,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (position_before_toolchange)
             gcodegen.synchronize_toolchange_position(*position_before_toolchange, toolchange_gcode_str);
 
+        // A joined layer descends to the tower layer below it. With no macro and no nozzle change
+        // nothing has moved the head off the part yet, so travel over the tower before that descent.
+        if (joined_below_layer && !need_travel_after_change_filament_gcode && !is_nozzle_change) {
+            std::string start_pos_str = gcodegen.travel_to(wipe_tower_point_to_object_point(gcodegen, tool_change_start_pos + plate_origin_2d), erMixed, "Move to start pos");
+            check_add_eol(start_pos_str);
+            wipe_next_start_point_str = start_pos_str;
+        }
+
         if (need_travel_after_change_filament_gcode) {
             // move to start_pos for wiping after toolchange
             if (!is_used_travel_avoid_perimeter) {

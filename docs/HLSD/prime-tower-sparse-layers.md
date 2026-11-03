@@ -38,8 +38,11 @@ height; a purge sized for a layer a few microns thick would run hundreds of mm.
 A joined layer takes `wipe_tower_print_z` and `wipe_tower_layer_height` from the
 tower layer below, and its purges print down at that tower layer's z: the emitter
 travels over the tower first, descends, and climbs back to the object layer, the
-same sequence it uses for a tower compacted below the objects. Layers from the
-minimum layer height up stay tower layers of their own, sized for their height.
+same sequence it uses for a tower compacted below the objects. After a custom
+`change_filament_gcode` the descent happens wherever the macro leaves the head, so
+a macro has to end over the tower, as it already must for the compacted tower.
+Layers from the minimum layer height up stay tower layers of their own, sized for
+their height.
 
 The emitter takes one tower result per toolchange, and a layer without one takes
 a result only to finish the tower layer. So `wipe_tower_layer_ends` marks the last
