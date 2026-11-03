@@ -500,7 +500,8 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_skirt_start_angle->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     lock_entry(m_skirt_start_angle, 0);
     m_skirt_start_angle->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
-        if (e.GetSelection() == 1)
+        double angle;
+        if (e.GetSelection() == 1 && !get_skirt_start_angle(angle)) // "Custom" starts from the global value
             m_skirt_start_angle->GetTextCtrl()->SetValue(wxString::Format("%g", m_global_skirt_start_angle));
     });
     {
@@ -607,9 +608,9 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
 
     auto dlg_btns = new DialogButtons(this, {"Reset", "OK", "Cancel"}, "", 1);
     dlg_btns->SetAlertButton("none"); // keep Reset neutral
-    dlg_btns->UpdateButtons();
 
     auto reset_btn = dlg_btns->GetButtonFromID(wxID_RESET);
+    reset_btn->SetStyle(::ButtonStyle::Regular, ::ButtonType::Choice);
     reset_btn->Show(!only_layer_seq);
     reset_btn->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) {
         double angle;

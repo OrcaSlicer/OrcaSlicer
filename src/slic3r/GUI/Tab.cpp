@@ -4246,7 +4246,7 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
         m_config->set_key_value(k, m_parent_tab->m_config->option(k)->clone());
     } else if (k == "skirt_start_angle" && m_config->opt_float(k) == std::stod(s_plate_skirt_angle_custom)) {
         // "Custom" starts from the current value
-        const ConfigOption* current = m_object_configs.begin()->second->get().option(k);
+        const ConfigOption* current = m_object_configs.empty() ? nullptr : m_object_configs.begin()->second->get().option(k);
         m_config->set_key_value(k, (current ? current : m_parent_tab->m_config->option(k))->clone());
     } else if (k == "spiral_mode_choice" && m_config->opt_enum<SpiralModeChoice>(k) == smcSameAsGlobal) {
         m_back_to_sys = true;
