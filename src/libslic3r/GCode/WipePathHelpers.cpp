@@ -34,7 +34,7 @@ void WipeInwardSupport::append(const ExtrusionEntity &entity)
         is_internal_perimeter(entity.role());
     const Lines lines = entity.as_polyline().lines();
     printed_lines.insert(printed_lines.end(), lines.begin(), lines.end());
-    if (is_inner)
+    if (is_inner && ! inner_lines_complete)
         inner_lines.insert(inner_lines.end(), lines.begin(), lines.end());
 }
 

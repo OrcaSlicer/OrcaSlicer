@@ -601,12 +601,13 @@ TEST_CASE("Sandwich wall order limits inward wipe to half the outer wall width",
 TEST_CASE("Inward wipe is not applied without an adjacent wall", "[Wipe][Regression]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
-    INFO("wall generator: " << wall_generator);
+    const char *wall_sequence = GENERATE("inner wall/outer wall", "outer wall/inner wall", "inner-outer-inner wall");
+    INFO("wall generator: " << wall_generator << ", wall sequence: " << wall_sequence);
 
-    const std::vector<Vec2d> regular = wipe_destinations(
-        slice({make_cube(10., 10., 1.)}, wipe_config(wall_generator, false, "50%", "10%", false, "1")));
-    const std::vector<Vec2d> inward = wipe_destinations(
-        slice({make_cube(10., 10., 1.)}, wipe_config(wall_generator, true, "50%", "10%", false, "1")));
+    const std::vector<Vec2d> regular = wipe_destinations(slice({make_cube(10., 10., 1.)},
+        wipe_config(wall_generator, false, "50%", "10%", false, "1", wall_sequence)));
+    const std::vector<Vec2d> inward = wipe_destinations(slice({make_cube(10., 10., 1.)},
+        wipe_config(wall_generator, true, "50%", "10%", false, "1", wall_sequence)));
 
     REQUIRE_FALSE(regular.empty());
     REQUIRE_FALSE(trajectories_differ(regular, inward));
@@ -631,20 +632,27 @@ TEST_CASE("Inward wipe uses an alternate extra wall when the configured wall cou
     REQUIRE(trajectories_differ(regular, inward));
 }
 
-TEST_CASE("Inward wipe is not applied before the adjacent wall is printed", "[Wipe][Regression]")
+TEST_CASE("Outer wall first limits inward wipe to half the outer wall width", "[Wipe][Regression]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
     INFO("wall generator: " << wall_generator);
 
-    const std::vector<Vec2d> regular = wipe_destinations(
-        slice({make_cube(10., 10., 1.)}, wipe_config(
-            wall_generator, false, "50%", "10%", false, "2", "outer wall/inner wall")));
-    const std::vector<Vec2d> inward = wipe_destinations(
-        slice({make_cube(10., 10., 1.)}, wipe_config(
-            wall_generator, true, "50%", "10%", false, "2", "outer wall/inner wall")));
+    // The adjacent inner wall is printed after the outer wall. It still sets the
+    // inward side, but only the outer bead's own inner half is available.
+    const auto destinations = [wall_generator](bool wipe_inward, const char *distance) {
+        DynamicPrintConfig config = wipe_config(
+            wall_generator, wipe_inward, distance, "10%", false, "2", "outer wall/inner wall");
+        // Wipe after every outer wall, including the short travel to its inner wall.
+        config.set_deserialize_strict({{"retraction_minimum_travel", "0"}});
+        return wipe_destinations(slice({make_cube(10., 10., 1.)}, config));
+    };
+    const std::vector<Vec2d> regular = destinations(false, "50%");
+    const std::vector<Vec2d> half_width = destinations(true, "50%");
 
     REQUIRE_FALSE(regular.empty());
-    REQUIRE_FALSE(trajectories_differ(regular, inward));
+    REQUIRE_FALSE(half_width.empty());
+    REQUIRE(trajectories_differ(regular, half_width));
+    CHECK_FALSE(trajectories_differ(half_width, destinations(true, "100%")));
 }
 
 TEST_CASE("Wipe on loops preserves the corner move with inward wipe disabled", "[Wipe][Regression]")

@@ -8819,11 +8819,10 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
                 // from points[1]. The helper preserves that sentinel and atomically
                 // replaces the remaining points, or leaves the path untouched.
                 // Orca: a configured wall count does not guarantee that Arachne
-                // generated an adjacent wall for this particular loop. Only
-                // earlier entities are considered because later walls have
-                // not been printed yet (for example with Outer/Inner order).
-                // Inner walls determine the material side; every earlier wall
-                // remains available to validate the executable wipe path.
+                // generated an adjacent wall for this particular loop. Inner walls
+                // determine the material side; with Outer/Inner and sandwich order
+                // they include walls printed later. Only printed walls validate
+                // the executable wipe path.
                 const double support_distance = scale_(std::max(nozzle_diameter, outer_wall_line_width));
                 Polyline inward_path = m_wipe.path;
                 if (offset_wipe_path_toward_support(
@@ -8951,6 +8950,18 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
                 m_config.wipe_inward_distance.value > 0. &&
                 scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON)
                 wipe_support.emplace();
+
+            // Outer/Inner and sandwich order print the adjacent inner wall after the
+            // external wall. Its geometry still identifies the inward side and whether
+            // the external wall has a neighbour, while the half-width limit in
+            // extrude_loop() keeps the wipe on the outer bead.
+            if (wipe_support && m_config.wall_sequence != WallSequence::InnerOuter) {
+                WipeInwardSupport all_walls;
+                for (const ExtrusionEntity* ee : region.perimeters)
+                    all_walls.append(*ee);
+                wipe_support->inner_lines = std::move(all_walls.inner_lines);
+                wipe_support->inner_lines_complete = true;
+            }
 
             // ORCA: loops flagged as extruded in mid air, out of reach of the layer below, are held back
             // for a second pass after the infill that anchors them. Infill already precedes infill first walls.

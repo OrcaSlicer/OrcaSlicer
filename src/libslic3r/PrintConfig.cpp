@@ -6670,12 +6670,11 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wipe_inward", coBool);
     def->label = L("Wipe inward");
     def->category = L("Quality");
-    def->tooltip = L("Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed "
+    def->tooltip = L("Applies only to external walls, including hole boundaries. Moves the hot nozzle toward the "
                      "inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n\n"
                      "Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n\n"
-                     "Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or "
-                     "Outer/Inner wall order), or if no supported inward path can be found, for example at tight "
-                     "corners or seam gaps.");
+                     "Uses the regular wipe where the outer wall has no adjacent inner wall, such as in single-wall "
+                     "areas, or if no supported inward path can be found, for example at tight corners or seam gaps.");
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 

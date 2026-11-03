@@ -24,19 +24,20 @@ millimeters. Using the path width makes Auto width and Arachne's variable widths
 meaningful. The effective offset is limited by that width and the spacing to the
 adjacent wall. A zero distance disables the offset.
 
-Only external perimeters with a suitable, previously printed inner perimeter
-are eligible. A configured wall count alone cannot establish eligibility:
-the local geometry may contain fewer walls, and walls scheduled later do not
-provide support. Outer/Inner wall order therefore normally retains the regular
-wipe path.
+Only external perimeters with an adjacent inner perimeter are eligible. A
+configured wall count alone cannot establish eligibility: the local geometry
+may contain fewer walls. With Inner/Outer order the adjacent wall must already
+be printed. Walls scheduled later never support the path.
 
 Outer/Inner and Inner/Outer/Inner wall orders print the adjacent inner wall
-after the external wall. An inward wipe can then use the external bead's own
-material only up to half its actual width. Larger requested offsets are limited
-to this half-width, even if a more distant inner perimeter was printed earlier:
-the third wall in Inner/Outer/Inner order, or the inner wall of another loop
-across a thin section in Outer/Inner order. The limit follows the configured
-order, so it also applies on the first layer, where sandwich order is not used.
+after the external wall. Its geometry still identifies the inward side and the
+presence of an adjacent wall, but an inward wipe can then use the external
+bead's own material only up to half its actual width. Larger requested offsets
+are limited to this half-width, even if a more distant inner perimeter was
+printed earlier: the third wall in Inner/Outer/Inner order, or the inner wall
+of another loop across a thin section in Outer/Inner order. The limit follows
+the configured order, so it also applies on the first layer, where sandwich
+order is not used.
 It applies to percentages and equivalent absolute distances, using the actual
 extrusion width rather than the configured Auto width.
 
@@ -68,6 +69,8 @@ Each region of an island accumulates its printed perimeter prefix once, in
 extrusion order. Every entity contributes its geometry only after it is printed,
 and the prefix is discarded when that region of the island ends. This collection
 is skipped when inward wiping is disabled or its configured distance is zero.
+With Outer/Inner and Inner/Outer/Inner order, all inner walls of the region are
+collected as targets before printing; they do not support the path until printed.
 A mixed inner-wall loop remains an eligible target even when its first path is
 an overhang: ordinary inner-wall
 paths elsewhere in the loop identify it. Likewise, an external loop with an
@@ -80,7 +83,7 @@ checks around the seam, so an island with many holes does not rebuild trees of
 its whole printed prefix for every loop.
 
 Material-side validation applies with or without a seam gap. Along each
-candidate, local wall normals point toward the adjacent printed inner wall;
+candidate, local wall normals point toward the adjacent inner wall;
 samples on the opposite side are rejected even when they remain close enough
 to the external wall to pass the support check. This uses the open wall geometry
 without treating it as a closed polygon. Full paths at a zero-gap seam also
@@ -102,9 +105,10 @@ when its distance to the target inner wall is no worse within tolerance.
 
 The original wipe path is retained when:
 
-- No suitable adjacent inner wall has already been printed near the seam. This
-  includes single-wall areas, locally missing inner walls and normally Outer/Inner
-  wall order. A distant wall or a wall on the air side does not qualify.
+- The external wall has no suitable adjacent inner wall near the seam, as in
+  single-wall areas or where inner walls are locally missing. With Inner/Outer
+  order it must already be printed. A distant wall or a wall on the air side
+  does not qualify.
 - The requested or available offset, or the configured wipe distance, is zero
   or too small at the geometry's coordinate precision.
 - Degenerate geometry prevents construction of a usable candidate, or all
