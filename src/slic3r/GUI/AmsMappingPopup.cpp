@@ -931,7 +931,6 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
 
      m_reset_btn = new ScalableButton(m_scrolled_window, wxID_ANY, wxGetApp().dark_mode() ? "erase_dark" : "erase", wxEmptyString, wxDefaultSize, wxDefaultPosition,
                                       wxBU_EXACTFIT | wxNO_BORDER, true, 14);
-     m_reset_btn->SetName(wxGetApp().dark_mode() ? "erase_dark" : "erase");
      m_reset_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { reset_ams_info(); });
      m_reset_btn->SetBackgroundColour(*wxWHITE);
      m_reset_btn->SetToolTip(_L("Reset current filament mapping"));

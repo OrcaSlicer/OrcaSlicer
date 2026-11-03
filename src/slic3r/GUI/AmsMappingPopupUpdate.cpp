@@ -106,13 +106,9 @@ void AmsMapingPopup::update(MachineObject* obj,
     update_rack_select(obj, use_dynamic_switch, print_type);
     update_flush_waste(obj);
 
-    if (wxGetApp().dark_mode() && m_reset_btn->GetName() != "erase_dark") {
-        m_reset_btn->SetName("erase_dark");
-        m_reset_btn->SetBitmap(ScalableBitmap(m_right_first_text_panel, "erase_dark", 14).bmp());
-    } else if (!wxGetApp().dark_mode() && m_reset_btn->GetName() != "erase") {
-        m_reset_btn->SetName("erase");
-        m_reset_btn->SetBitmap(ScalableBitmap(m_right_first_text_panel, "erase", 14).bmp());
-    }
+    // ORCA: SetBitmap_ skips an icon that is already set. Not tracked in the window name,
+    // which a screen reader reads as the button's name.
+    m_reset_btn->SetBitmap_(wxGetApp().dark_mode() ? "erase_dark" : "erase");
 
     size_t extruder_num = obj->GetExtderSystem()->GetTotalExtderCount();
     if (extruder_num == 1) {
@@ -390,13 +386,9 @@ void AmsMapingPopup::update_ams_data_multi_machines()
     m_amsmapping_container_sizer_list.clear();
     m_mapping_item_list.clear();
 
-    if (wxGetApp().dark_mode() && m_reset_btn->GetName() != "erase_dark") {
-        m_reset_btn->SetName("erase_dark");
-        m_reset_btn->SetBitmap(ScalableBitmap(m_right_first_text_panel, "erase_dark", 14).bmp());
-    } else if (!wxGetApp().dark_mode() && m_reset_btn->GetName() != "erase") {
-        m_reset_btn->SetName("erase");
-        m_reset_btn->SetBitmap(ScalableBitmap(m_right_first_text_panel, "erase", 14).bmp());
-    }
+    // ORCA: SetBitmap_ skips an icon that is already set. Not tracked in the window name,
+    // which a screen reader reads as the button's name.
+    m_reset_btn->SetBitmap_(wxGetApp().dark_mode() ? "erase_dark" : "erase");
 
     size_t nozzle_nums = 1;
     m_show_type = ShowType::RIGHT;

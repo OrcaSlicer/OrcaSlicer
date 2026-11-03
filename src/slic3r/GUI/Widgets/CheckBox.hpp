@@ -5,6 +5,7 @@
 
 #include <wx/anybutton.h>
 #include <wx/checklst.h>
+#include <wx/setup.h>
 #include <wx/tglbtn.h>
 
 class CheckBox : public wxBitmapToggleButton
@@ -27,6 +28,12 @@ public:
 #endif
 
 protected:
+#if wxUSE_ACCESSIBILITY
+    // ORCA: a checkbox rendered purely as bitmap swaps (on/half/off) has no
+    // accessible role/state/name of its own by default.
+    wxAccessible* CreateAccessible() override;
+#endif
+
 #ifdef __WXMSW__
     virtual State GetNormalState() const wxOVERRIDE;
 #endif

@@ -243,7 +243,14 @@ static StaticBox* make_card(wxWindow* parent)
 // hover colour (macOS ignores a button background, MSW turns the button owner-drawn), while
 // ::Button paints itself the same on every platform. Its sizes are in pixels, and the panel
 // background is a Design token the dark map does not know, so refresh_icons() re-applies this
-// after a DPI or theme change to every button named "design_icon_btn".
+// after a DPI or theme change to every SidebarIconButton. They are told apart by type, not by
+// window name: a screen reader reads the name, and these are named by their tooltip.
+class SidebarIconButton : public ::Button
+{
+public:
+    using ::Button::Button;
+};
+
 static void style_sidebar_icon_btn(::Button* b)
 {
     b->SetPaddingSize(b->FromDIP(wxSize(2, 2)));
@@ -256,8 +263,7 @@ static void style_sidebar_icon_btn(::Button* b)
 
 static ::Button* sidebar_icon_btn(wxWindow* parent, const char* icon, const wxString& tip, int px = 20)
 {
-    auto* b = new ::Button(parent, "", icon, wxBORDER_NONE, px);
-    b->SetName("design_icon_btn");
+    auto* b = new SidebarIconButton(parent, "", icon, wxBORDER_NONE, px);
     b->SetCanFocus(false);
     b->SetIconSpacing(0);   // off macOS an empty label still reserves the icon-text gap
     b->SetBorderColor(StateColor());
@@ -7360,7 +7366,7 @@ void DesignPanel::refresh_icons()
             b->msw_rescale();
         else if (auto* b = dynamic_cast<::Button*>(w)) {
             b->Rescale();
-            if (b->GetName() == "design_icon_btn")
+            if (dynamic_cast<SidebarIconButton*>(b))
                 style_sidebar_icon_btn(b);   // pixel sizes and the panel colour, for the new scale and theme
         } else if (auto* l = dynamic_cast<DesignRowList*>(w))
             l->Rescale();
