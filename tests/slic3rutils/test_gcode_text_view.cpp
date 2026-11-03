@@ -25,6 +25,8 @@
 #include <vector>
 #include <string>
 #include <ios>
+#include <iterator>
+#include <optional>
 #include <utility>
 
 #include <boost/nowide/fstream.hpp>
@@ -249,7 +251,7 @@ struct TextFrames
     Slic3r::GUI::GCodeViewer::SequentialView::GCodeWindow window;
     std::vector<size_t> line_ends;
 
-    explicit TextFrames(size_t count = 100)
+    explicit TextFrames(size_t count = 100, const std::string& suffix = {}, const std::string& newline = "\n")
     {
         imgui.set_display_size(800.f, 600.f);
         unsigned char* pixels = nullptr;
@@ -258,7 +260,7 @@ struct TextFrames
         boost::nowide::ofstream output(file.string(), std::ios::binary);
         size_t offset = 0;
         for (size_t i = 1; i <= count; ++i) {
-            const std::string line = "G1 X" + std::to_string(i) + " ; source row\n";
+            const std::string line = "G1 X" + std::to_string(i) + " ; source row" + suffix + newline;
             output << line;
             offset += line.size();
             line_ends.push_back(offset);
@@ -269,10 +271,21 @@ struct TextFrames
         frame();
     }
 
-    void frame(uint64_t current = 50)
+    void frame(uint64_t current = 50, std::string* rendered_text = nullptr)
     {
         ImGui::NewFrame();
+        std::optional<ScopedTemporaryFile> log;
+        if (rendered_text != nullptr) {
+            log.emplace(".log");
+            // EndTooltip() finishes logging and clears the memory buffer; retain the output in a file.
+            ImGui::LogToFile(-1, log->string().c_str());
+        }
         window.render(imgui, 20.f, 580.f, 750.f, current);
+        if (rendered_text != nullptr) {
+            ImGui::LogFinish();
+            boost::nowide::ifstream input(log->string(), std::ios::binary);
+            rendered_text->assign(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
+        }
         ImGui::EndFrame();
     }
 
@@ -311,6 +324,67 @@ TEST_CASE("G-code row clicks emit one source request without moving the viewport
     f.window.resume_following();
     f.frame(80);
     CHECK(GCodeTextViewTestAccess::visible_lines(f.window).first > before.first);
+}
+
+TEST_CASE("Only truncated G-code rows show full source tooltips independently of selection", "[GCodeTextView][GCodeTextWidget]")
+{
+    const std::string suffix = GENERATE(std::string(), std::string(240, 'x') + u8"  100% original spacing  完整注释");
+    TextFrames f(100, suffix);
+    const auto before = GCodeTextViewTestAccess::visible_lines(f.window);
+    const auto has_tooltip = [] {
+        const auto& windows = ImGui::GetCurrentContext()->Windows;
+        return std::any_of(windows.begin(), windows.end(), [](const ImGuiWindow* window) {
+            return window->Active && (window->Flags & ImGuiWindowFlags_Tooltip) != 0;
+        });
+    };
+    const auto source = [&](size_t row) {
+        return "G1 X" + std::to_string(before.first + row) + " ; source row" + suffix;
+    };
+    std::string rendered;
+    ImGui::GetIO().MousePos = f.row_point(1);
+    f.frame();
+    f.frame(50, &rendered);
+    CHECK(has_tooltip() == !suffix.empty());
+    if (!suffix.empty())
+        CHECK(rendered.find(source(1)) != std::string::npos);
+    CHECK(GCodeTextViewTestAccess::selected_line_id(f.window) == 0);
+    CHECK_FALSE(f.window.take_requested_line());
+
+    ImGui::GetIO().MouseDown[0] = true;
+    f.frame();
+    ImGui::GetIO().MouseDown[0] = false;
+    f.frame();
+    REQUIRE(f.window.take_requested_line() == before.first + 1);
+
+    // Hover the empty right edge of another row rather than its rendered text.
+    ImGui::GetIO().MousePos = ImVec2(750.f - ImGui::GetStyle().WindowPadding.x -
+        ImGui::GetStyle().ScrollbarSize - ImGui::GetStyle().ItemSpacing.x - 2.f, f.row_point(3).y);
+    f.frame();
+    f.frame(50, &rendered);
+    CHECK(has_tooltip() == !suffix.empty());
+    if (!suffix.empty())
+        CHECK(rendered.find(source(3)) != std::string::npos);
+    CHECK(GCodeTextViewTestAccess::selected_line_id(f.window) == before.first + 1);
+    CHECK_FALSE(f.window.take_requested_line());
+    CHECK(GCodeTextViewTestAccess::visible_lines(f.window) == before);
+
+    ImGui::GetIO().MousePos = ImVec2(0, 0);
+    f.frame();
+    CHECK_FALSE(has_tooltip());
+}
+
+TEST_CASE("G-code tooltips retain the complete last line with any line ending", "[GCodeTextView][GCodeTextWidget]")
+{
+    const std::string newline = GENERATE(std::string("\n"), std::string("\r\n"), std::string());
+    const std::string suffix = std::string(240, 'x') + " 100% END_OF_LINE";
+    TextFrames f(1, suffix, newline);
+    ImGui::GetIO().MousePos = f.row_point(0);
+    f.frame();
+    std::string rendered;
+    f.frame(50, &rendered);
+    CHECK(rendered.find("G1 X1 ; source row" + suffix) != std::string::npos);
+    CHECK(GCodeTextViewTestAccess::selected_line_id(f.window) == 0);
+    CHECK_FALSE(f.window.take_requested_line());
 }
 
 TEST_CASE("G-code wheel browsing captures only input over the text window", "[GCodeTextView][GCodeTextWidget]")

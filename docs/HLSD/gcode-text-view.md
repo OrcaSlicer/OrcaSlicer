@@ -7,6 +7,7 @@ browsing G-code text and navigating to toolpath positions in Preview.
 
 - Browse the G-code text window in Preview with the mouse wheel.
 - Click a text line to navigate the preview to its corresponding toolpath position.
+- Inspect the full source of any hovered truncated text line through an ImGui tooltip.
 - Extend the existing ImGui panel, retaining syntax colors, memory-mapped file access and
   reading visible lines on demand.
 - Keep the existing panel rather than introducing a native wx text control or a full editor.
@@ -121,8 +122,13 @@ the panel clears pending requests and selection as well as its viewport.
   demand. They do not change toolpath progress, the layer range or the camera.
 - Reuse the existing directional wheel steps and scroll by lines. Do not add smooth pixel
   scrolling or change scrolling behavior in other ImGui controls or preview sliders.
-- Retain the current truncation and ellipsis for lines longer than 55 characters. Do not add
-  full-line hover tooltips or a horizontal scrollbar.
+- Retain the current truncation and ellipsis for lines longer than 55 characters in the panel.
+  Hovering a truncated row, including its line number or empty space, shows the complete source
+  line through the existing `ImGuiWrapper::tooltip()`, with wrapping and no text truncation.
+  Rows already displayed in full do not show a tooltip.
+  The tooltip reads the hovered line on demand from the bounded memory mapping, preserving
+  source spacing and comments without caching full lines. It does not depend on selection or
+  change the viewport, selection or toolpath position. There is no horizontal scrollbar.
 - Create interactive regions only for visible rows. The line number and all colored text
   fragments share one hit region covering the entire row.
 - Clamp the displayed interval to valid line numbers. Handle empty data, short files and
@@ -311,7 +317,9 @@ Verification covers:
 - Existing visibility conditions when extrusion vertices are absent, only Travel exists, or
   the current line number is unavailable. Independent browsing must not accidentally enable
   text-only mode.
-- Existing truncation at 55 characters and UTF-8 handling. Wheel scrolling uses line steps;
+- Existing truncation at 55 characters and UTF-8 handling, with full source text in hover
+  tooltips only for truncated selected and unselected rows, including comments and a final
+  line without a newline. Wheel scrolling uses line steps;
   horizontal and zero-delta events do not cause additional vertical scrolling.
 - Ordinary moves, multiple vertices sharing a line, arcs, added vertices, events and seams.
 - Clicking a line with vertices resolves to the same position as its existing slider step,

@@ -920,9 +920,9 @@ void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& fil
 }
 
 // Byte offset just past the first count characters of str, or its length if it is shorter.
-static size_t utf8_offset(const std::string& str, size_t count)
+static size_t utf8_offset(std::string_view str, size_t count)
 {
-    const char* const begin = str.c_str();
+    const char* const begin = str.data();
     const char* const end   = begin + str.size();
     const char*       pos   = begin;
     for (size_t i = 0; i < count && pos < end; ++i) {
@@ -935,27 +935,30 @@ static size_t utf8_offset(const std::string& str, size_t count)
 //BBS: GUI refactor: move to right
 void GCodeViewer::SequentialView::GCodeWindow::render(ImGuiWrapper& imgui, float top, float bottom, float right, uint64_t curr_line_id)
 {
-    // Orca: truncate long lines(>55 characters), add "..." at the end
-    auto update_lines = [this](uint64_t start_id, uint64_t end_id) {
-        std::vector<Line> ret;
-        ret.reserve(end_id - start_id + 1);
+    auto source_line = [this](uint64_t id) {
         // Orca: m_lines_ends indexes into a memory mapping, so it must be clamped to the mapping. If the
         // file was modified behind our back (an in-place post-processing script that shrank it), an
         // unchecked read is an access violation, which the caller's try/catch cannot catch on Windows.
         const size_t file_size = m_file.size();
+        const size_t start = id == 1 ? 0 : std::min(m_lines_ends[id - 2], file_size);
+        const size_t end   = std::min(m_lines_ends[id - 1], file_size);
+        return std::string_view(m_file.data() + start, end > start ? end - start : 0);
+    };
+
+    // Orca: truncate long lines(>55 characters), add "..." at the end
+    auto update_lines = [&source_line](uint64_t start_id, uint64_t end_id) {
+        std::vector<Line> ret;
+        ret.reserve(end_id - start_id + 1);
         for (uint64_t id = start_id; id <= end_id; ++id) {
             // read line from file
             // Keep one entry per id: render() indexes m_lines by (id - start_id).
-            const size_t start = id == 1 ? 0 : std::min(m_lines_ends[id - 2], file_size);
-            const size_t end   = std::min(m_lines_ends[id - 1], file_size);
-            const size_t original_len = end > start ? end - start : 0;
+            const std::string_view source = source_line(id);
             // A character is four bytes at most, so 55 of them always fit in 220.
-            const size_t len          = std::min(original_len, (size_t) 55 * 4);
-            std::string  gline(m_file.data() + start, len);
+            std::string gline(source.substr(0, 55 * 4));
 
             // If original line is longer than 55 characters, truncate and append "...".
             // The cut must land on a character boundary or it leaves half a character behind.
-            if (len < original_len || utf8_offset(gline, 55) < gline.size())
+            if (gline.size() < source.size() || utf8_offset(gline, 55) < gline.size())
                 gline = gline.substr(0, utf8_offset(gline, 52)) + "...";
 
             std::string command, parameters, comment;
@@ -1079,6 +1082,14 @@ void GCodeViewer::SequentialView::GCodeWindow::render(ImGuiWrapper& imgui, float
             imgui.set_requires_extra_frame();
         }
         ImGui::PopID();
+        if (ImGui::IsItemHovered()) {
+            std::string_view source = source_line(id);
+            if (utf8_offset(source, 55) < source.size()) {
+                while (!source.empty() && (source.back() == '\r' || source.back() == '\n'))
+                    source.remove_suffix(1);
+                imgui.tooltip(std::string(source), ImGui::GetFontSize() * 20.f);
+            }
+        }
         ImGui::SetCursorScreenPos(row_pos);
         if (id == m_selected_line_id) {
             ImVec4 color = ImGuiWrapper::COL_ORANGE_LIGHT;
