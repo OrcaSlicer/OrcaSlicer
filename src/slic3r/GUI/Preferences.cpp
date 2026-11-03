@@ -1742,12 +1742,60 @@ void PreferencesDialog::create_items()
     //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");
     //g_sizer->Add(item_hints);
 
-    auto item_downloads        = create_item_downloads(_L("Downloads folder"), _L("Target folder for downloaded items"));
-    g_sizer->Add(item_downloads);
+    //// GENERAL > Features
+    g_sizer->Add(create_item_title(_L("Features")), 1, wxEXPAND);
 
-    //// GENERAL > Project
+    auto item_multi_machine    = create_item_checkbox(_L("Multi device management"), _L("With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."), "enable_multi_machine", _L("(Requires restart)"));
+    g_sizer->Add(item_multi_machine);
+
+#ifdef SLIC3R_CAD
+    auto item_cad_feature      = create_item_checkbox(_L("CAD feature (experimental)"),
+        _L("With this option enabled, the Design tab is shown, where models can be built and edited "
+           "parametrically. This feature is experimental and still under development."),
+        "enable_cad_feature", _L("(Requires restart)"));
+    g_sizer->Add(item_cad_feature);
+#endif
+
+#if 0
+    g_sizer->Add(create_item_title(_L("Filament Grouping")), 1, wxEXPAND);
+    //temporarily disable it
+    //auto item_ignore_ext_filament = create_item_checkbox(_L("Ignore ext filament when auto grouping"), _L("Ignore ext filament when auto grouping"), 50, "ignore_ext_filament_when_group");
+    auto item_pop_up_filament_map_dialog = create_item_checkbox(_L("Pop up to select filament grouping mode"), _L("Pop up to select filament grouping mode"), 50, "pop_up_filament_map_dialog");
+    g_sizer->Add(item_pop_up_filament_map_dialog);
+#endif
+
+
+    //// GENERAL > Clear my choice on ...
+    g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
+
+    auto item_save_choise      = create_item_button(_L("Unsaved projects"), _L("Clear"), "", _L("Clear my choice on the unsaved projects."), []() {
+        wxGetApp().app_config->set("save_project_choise", "");
+    });
+    g_sizer->Add(item_save_choise);
+
+    auto item_save_presets     = create_item_button(_L("Unsaved presets"), _L("Clear"), "", _L("Clear my choice on the unsaved presets."), []() {
+        wxGetApp().app_config->set("save_preset_choise", "");
+    });
+    g_sizer->Add(item_save_presets);
+
+    auto item_restore_hide_pop_ups = create_item_button(_L("Synchronizing printer preset"), _L("Clear"), L"", _L("Clear my choice for synchronizing printer preset after loading the file."), []() {
+        wxGetApp().app_config->erase("app", "sync_after_load_file_show_flag");
+    });
+    g_sizer->Add(item_restore_hide_pop_ups);
+
+    g_sizer->AddSpacer(FromDIP(10));
+    sizer_page->Add(g_sizer, 0, wxEXPAND);
+
+    //////////////////////////
+    //// FILES TAB 
+    /////////////////////////////////////
+    m_tab_index[PreferencesTab::Files] = m_pref_tabs->AppendItem(_L("Files"));
+    f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
+    g_sizer = f_sizers.back();
+    g_sizer->AddGrowableCol(0, 1);
+
+    //// FILES > Project
     g_sizer->Add(create_item_title(_L("Project")), 1, wxEXPAND);
-
     std::vector<wxString> projectLoadSettingsBehaviourOptions = {_L("Load All"), _L("Ask When Relevant"), _L("Always Ask"), _L("Load Geometry Only")};
     std::vector<std::string> projectLoadSettingsConfigOptions    = { OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_ALL, OPTION_PROJECT_LOAD_BEHAVIOUR_ASK_WHEN_RELEVANT, OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK, OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY };
     auto item_project_load     = create_item_combobox(_L("Load behavior"), _L("Should printer/filament/process settings be loaded when opening a 3MF file?"), SETTING_PROJECT_LOAD_BEHAVIOUR, projectLoadSettingsBehaviourOptions, projectLoadSettingsConfigOptions);
@@ -1756,6 +1804,15 @@ void PreferencesDialog::create_items()
     auto item_backup           = create_item_backup(_L("Auto backup"), _L("Backup your project periodically to help with restoring from an occasional crash."));
     g_sizer->Add(item_backup); 
 
+    auto item_full_source_paths = create_item_checkbox(_L("Store full source file paths in projects"),
+        _L("If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so "
+           "\"Reload from disk\" still works when the source file is kept in a different folder than the project. "
+           "If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."),
+        "export_sources_full_pathnames");
+    g_sizer->Add(item_full_source_paths);
+
+    //// FILES > Recent files
+    g_sizer->Add(create_item_title(_L("Recent files")), 1, wxEXPAND);
     auto item_max_recent_count = create_item_input(_L("Maximum recent files"), "", _L("Maximum count of recent files"), "max_recent_count", [](wxString value) {
         long max = 0;
         if (value.ToLong(&max))
@@ -1766,24 +1823,35 @@ void PreferencesDialog::create_items()
     auto item_recent_models    = create_item_checkbox(_L("Add STL/STEP files to recent files list"), "", "recent_models");
     g_sizer->Add(item_recent_models);
 
+    //// FILES > Folder paths
+    g_sizer->Add(create_item_title(_L("Folder paths")), 1, wxEXPAND);
+    auto item_downloads        = create_item_downloads(_L("Downloads folder"), _L("Target folder for downloaded items"));
+    g_sizer->Add(item_downloads);
+
+    //// FILES > 3MF import
+    g_sizer->Add(create_item_title(_L("3MF import")), 1, wxEXPAND);
     auto item_gcodes_warning   = create_item_checkbox(_L("Don't warn when loading 3MF with modified G-code"), "", "no_warn_when_modified_gcodes");
     g_sizer->Add(item_gcodes_warning);
 
+    //// FILES > STEP import
+    g_sizer->Add(create_item_title(_L("STEP import")), 1, wxEXPAND);
     auto item_step_dialog = create_item_checkbox(
         _L("Show options when importing STEP file"), _L("If enabled, a parameter settings dialog will appear during STEP file import."), 
         "enable_step_mesh_setting", wxEmptyString, "import_export#dont-show-again"
     );
     g_sizer->Add(item_step_dialog);
 
-    auto item_step_linear      = create_item_decimal_input(_L("STEP importing: linear deflection"), "mm", _L("Linear deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: 0.003 mm."), "linear_deflection", 0.001, 0.1, 3);
+    auto item_step_linear      = create_item_decimal_input(_L("Linear deflection"), "mm", _L("Linear deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: 0.003 mm."), "linear_deflection", 0.001, 0.1, 3);
     g_sizer->Add(item_step_linear);
 
-    auto item_step_angle       = create_item_decimal_input(_L("STEP importing: angle deflection"), "", _L("Angle deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: 0.5."), "angle_deflection", 0.01, 1.0, 2);
+    auto item_step_angle       = create_item_decimal_input(_L("Angle deflection"), "", _L("Angle deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: 0.5."), "angle_deflection", 0.01, 1.0, 2);
     g_sizer->Add(item_step_angle);
 
-    auto item_step_split       = create_item_checkbox(_L("STEP importing: Split into multiple objects"), _L("If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: disabled."), "is_split_compound");
+    auto item_step_split       = create_item_checkbox(_L("Split compound and compsolid into multiple objects"), _L("If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: disabled."), "is_split_compound");
     g_sizer->Add(item_step_split);
 
+    //// FILES > DRC export
+    g_sizer->Add(create_item_title(_L("DRC export")), 1, wxEXPAND);
     auto item_draco_bits = create_item_spinctrl(_L("Quality level for Draco export"), "",
         _L("bits"),
         _L("Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
@@ -1793,14 +1861,136 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_draco_bits);
 
-    auto item_full_source_paths = create_item_checkbox(_L("Store full source file paths in projects"),
-        _L("If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so "
-           "\"Reload from disk\" still works when the source file is kept in a different folder than the project. "
-           "If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."),
-        "export_sources_full_pathnames");
-    g_sizer->Add(item_full_source_paths);
+#ifdef _WIN32
+    // MSIX: associations are declared in the package manifest and defaults are
+    // managed by Windows Settings; the runtime registry toggles below cannot work.
+    // Show a minimal page that sends the user to Windows' Default Apps settings instead.
+    if (is_running_in_msix()) {
+        g_sizer->Add(create_item_title(_L("Associate files to OrcaSlicer")), 1, wxEXPAND);
 
-    //// GENERAL > Preset
+        auto item_open_default_apps = create_item_button(
+            _L("File associations for the Microsoft Store version are managed by Windows Settings."),
+            _L("Open Windows Default Apps Settings"), "", "",
+            []() { wxLaunchDefaultBrowser("ms-settings:defaultapps"); });
+        g_sizer->Add(item_open_default_apps);
+    } else {
+        //// FILES > Extensions
+        g_sizer->Add(create_item_title(_L("Associate files to OrcaSlicer")), 1, wxEXPAND);
+
+        auto item_associate_3mf    = create_item_checkbox(_L("Associate 3MF files to OrcaSlicer"), _L("If enabled, this sets OrcaSlicer as the default application to open 3MF files.") , "associate_3mf");
+        g_sizer->Add(item_associate_3mf);
+
+        auto item_associate_drc    = create_item_checkbox(_L("Associate DRC files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open DRC files."), "associate_drc");
+        g_sizer->Add(item_associate_drc);
+
+        auto item_associate_stl    = create_item_checkbox(_L("Associate STL files to OrcaSlicer"), _L("If enabled, this sets OrcaSlicer as the default application to open STL files.") , "associate_stl");
+        g_sizer->Add(item_associate_stl);
+
+        auto item_associate_step   = create_item_checkbox(_L("Associate STEP files to OrcaSlicer"), _L("If enabled, this sets OrcaSlicer as the default application to open STEP files."), "associate_step");
+        g_sizer->Add(item_associate_step);
+
+        //// FILES > WebLinks
+        g_sizer->Add(create_item_title(_L("Associate web links to OrcaSlicer")), 1, wxEXPAND);
+
+        auto associate_url_prusa   = create_item_link_association(L"prusaslicer", "Printables.com");
+        g_sizer->Add(associate_url_prusa);
+
+        auto associate_url_bambu   = create_item_link_association(L"bambustudio", "Makerworld.com");
+        g_sizer->Add(associate_url_bambu);
+
+        auto associate_url_cura    = create_item_link_association(L"cura", "Thingiverse.com");
+        g_sizer->Add(associate_url_cura);
+    }
+#endif // _WIN32
+
+    g_sizer->AddSpacer(FromDIP(10));
+    sizer_page->Add(g_sizer, 0, wxEXPAND);
+
+    //////////////////////////
+    //// BEHAVIOUR TAB
+    /////////////////////////////////////
+    m_tab_index[PreferencesTab::Behaviour] = m_pref_tabs->AppendItem(_L("Behaviour"));
+    f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
+    g_sizer = f_sizers.back();
+    g_sizer->AddGrowableCol(0, 1);
+
+    //// BEHAVIOUR > Prepare
+    g_sizer->Add(create_item_title(_L("Prepare")), 1, wxEXPAND);
+
+    std::vector<wxString> FlushOptionLabels = {_L("All"),_L("Color"),_L("None")};
+    std::vector<std::string> FlushOptionValues = { "all","color change","disabled" };
+    auto item_auto_flush = create_item_combobox(_L("Auto flush after changing..."), _L("Auto calculate flushing volumes when selected values changed"), "auto_calculate_flush", FlushOptionLabels, FlushOptionValues);
+    g_sizer->Add(item_auto_flush);
+
+    auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
+    g_sizer->Add(item_auto_arrange);
+
+    auto item_auto_reslice = create_item_auto_reslice(
+        _L("Auto slice after changes"),
+        _L("If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."),
+        _L("Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."));
+    g_sizer->Add(item_auto_reslice);
+
+    auto item_primitive_dialog = create_item_checkbox(_L("Show options when adding a primitive"),
+        _L("If enabled, a dialog asks for the dimensions of a primitive shape before it is added."), "enable_primitive_size_dialog");
+    g_sizer->Add(item_primitive_dialog);
+
+    auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
+    g_sizer->Add(item_mix_print_high_low_temperature);
+
+    auto item_remember_print_action = create_item_checkbox(_L("Remember last print action"), _L("If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."), "remember_print_action");
+    g_sizer->Add(item_remember_print_action);
+
+    //// BEHAVIOUR > Preview
+    g_sizer->Add(create_item_title(_L("Preview")), 1, wxEXPAND);
+
+    // ORCA: view type the preview opens with
+    std::vector<wxString>    PreviewViewTypeLabels;
+    std::vector<std::string> PreviewViewTypeValues;
+    for (const auto& [value, label] : GCodeViewer::default_view_type_choices()) {
+        PreviewViewTypeValues.push_back(value);
+        PreviewViewTypeLabels.push_back(from_u8(label));
+    }
+    auto item_preview_view_type = create_item_combobox(
+        _L("Default view type"),
+        _L("The color scheme the sliced preview opens with.\n"
+           "Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+           "Last used: the view type you selected last.\n"
+           "Any other value always opens that view type.\n"
+           "You can still switch the view type in the preview afterwards."),
+        "preview_default_view_type", PreviewViewTypeLabels, PreviewViewTypeValues);
+    g_sizer->Add(item_preview_view_type);
+
+    auto item_dim_previous_layers = create_item_checkbox(
+        _L("Dim lower layers"),
+        _L("When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."),
+        "preview_dim_previous_layers"
+    );
+    g_sizer->Add(item_dim_previous_layers);
+
+    auto item_dim_previous_layers_brightness = create_item_spinctrl(
+        _L("Dimmed layer brightness"),
+        "",
+        _L("%"),
+        _L("How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+           "99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."),
+        "preview_dim_previous_layers_brightness",
+        0,
+        99,
+        // ORCA: apply the new brightness immediately to the currently loaded preview
+        [](int value) {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_dim_previous_layers_brightness(0.01f * value);
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
+    );
+    g_sizer->Add(item_dim_previous_layers_brightness);
+
+    //// BEHAVIOUR > Preset
     g_sizer->Add(create_item_title(_L("Preset")), 1, wxEXPAND);
 
     auto item_remember_printer = create_item_checkbox(_L("Remember printer configuration"), _L("If enabled, Orca will remember and switch filament/process configuration for each printer automatically."), "remember_printer_config");
@@ -1822,11 +2012,47 @@ void PreferencesDialog::create_items()
     auto item_shared_profiles  = create_item_checkbox(_L("Show shared profiles notification"), _L("Show a notification with a link to browse shared profiles when the selected printer is changed."), "show_shared_profiles_notification");
     g_sizer->Add(item_shared_profiles);
 
-    //// GENERAL > Features
-    g_sizer->Add(create_item_title(_L("Features")), 1, wxEXPAND);
+    //// BEHAVIOUR > Plugins
+    g_sizer->Add(create_item_title(_L("Plugins")), 1, wxEXPAND);
 
-    auto item_multi_machine    = create_item_checkbox(_L("Multi device management"), _L("With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."), "enable_multi_machine", _L("(Requires restart)"));
-    g_sizer->Add(item_multi_machine);
+    auto item_plugin_pages_visible_count = create_item_spinctrl(
+        _L("Visible plugin pages"),
+        "",
+        _L("pages"),
+        _L("Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."),
+        SETTING_PLUGIN_PAGES_VISIBLE_COUNT,
+        PLUGIN_PAGES_VISIBLE_COUNT_MIN,
+        PLUGIN_PAGES_VISIBLE_COUNT_MAX,
+        [](int value) { wxGetApp().mainframe->plugin_pages().set_visible_page_count(value); }
+    );
+    g_sizer->Add(item_plugin_pages_visible_count);
+
+    //// BEHAVIOUR > Design
+#ifdef SLIC3R_CAD
+    // Design-tab only, so it stays out of the way while the CAD feature is switched off.
+    if (wxGetApp().is_enable_cad_feature()) {
+        g_sizer->Add(create_item_title(_L("Design")), 1, wxEXPAND);
+        auto item_connector_face_glyph = create_item_checkbox(_L("Draw mate connectors as a face"),
+            _L("In the Design tab, draw a mate connector as a small face instead of the conventional "
+               "disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. "
+               "Turn this off for the conventional CAD representation."), "design_connector_face_glyph");
+        g_sizer->Add(item_connector_face_glyph);
+
+        // Saved WITH each design (it decides which loops are closed, i.e. what solid a project
+        // rebuilds into), so it applies to designs started from now on; an open design keeps
+        // the rule it was made with.
+        auto item_auto_close_sketch_loops = create_item_checkbox(_L("Auto-close sketch loops"),
+            _L("Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. "
+               "Off: only exactly coincident endpoints join, so a loop with a tiny gap is "
+               "shown as open instead of being closed for you. Saved with each design; "
+               "applies to designs started after the change."),
+            "auto_close_sketch_loops");
+        g_sizer->Add(item_auto_close_sketch_loops);
+    }
+#endif
+
+    //// BEHAVIOUR > Speed dial
+    g_sizer->Add(create_item_title(_L("Speed dial")), 1, wxEXPAND);
 
     auto item_speed_dial = create_item_checkbox(_L("Open the Speed Dial from the keyboard"),
         _L("When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."),
@@ -1844,37 +2070,6 @@ void PreferencesDialog::create_items()
         SPEED_DIAL_RECENT_COUNT_MAX);
     g_sizer->Add(item_speed_dial_recents);
 
-#ifdef SLIC3R_CAD
-    auto item_cad_feature      = create_item_checkbox(_L("CAD feature (experimental)"),
-        _L("With this option enabled, the Design tab is shown, where models can be built and edited "
-           "parametrically. This feature is experimental and still under development."),
-        "enable_cad_feature", _L("(Requires restart)"));
-    g_sizer->Add(item_cad_feature);
-#endif
-
-#if 0
-    g_sizer->Add(create_item_title(_L("Filament Grouping")), 1, wxEXPAND);
-    //temporarily disable it
-    //auto item_ignore_ext_filament = create_item_checkbox(_L("Ignore ext filament when auto grouping"), _L("Ignore ext filament when auto grouping"), 50, "ignore_ext_filament_when_group");
-    auto item_pop_up_filament_map_dialog = create_item_checkbox(_L("Pop up to select filament grouping mode"), _L("Pop up to select filament grouping mode"), 50, "pop_up_filament_map_dialog");
-    g_sizer->Add(item_pop_up_filament_map_dialog);
-#endif
-
-    //// GENERAL > Plugins
-    g_sizer->Add(create_item_title(_L("Plugins")), 1, wxEXPAND);
-
-    auto item_plugin_pages_visible_count = create_item_spinctrl(
-        _L("Visible plugin pages"),
-        "",
-        _L("pages"),
-        _L("Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."),
-        SETTING_PLUGIN_PAGES_VISIBLE_COUNT,
-        PLUGIN_PAGES_VISIBLE_COUNT_MIN,
-        PLUGIN_PAGES_VISIBLE_COUNT_MAX,
-        [](int value) { wxGetApp().mainframe->plugin_pages().set_visible_page_count(value); }
-    );
-    g_sizer->Add(item_plugin_pages_visible_count);
-
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
@@ -1885,36 +2080,6 @@ void PreferencesDialog::create_items()
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
-
-    //// CONTROL > Behaviour
-    g_sizer->Add(create_item_title(_L("Behavior")), 1, wxEXPAND);
-
-    std::vector<wxString> FlushOptionLabels = {_L("All"),_L("Color"),_L("None")};
-    std::vector<std::string> FlushOptionValues = { "all","color change","disabled" };
-    auto item_auto_flush = create_item_combobox(_L("Auto flush after changing..."), _L("Auto calculate flushing volumes when selected values changed"), "auto_calculate_flush", FlushOptionLabels, FlushOptionValues);
-    g_sizer->Add(item_auto_flush);
-
-    auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
-    g_sizer->Add(item_auto_arrange);
-
-    auto item_primitive_dialog = create_item_checkbox(_L("Show options when adding a primitive"),
-        _L("If enabled, a dialog asks for the dimensions of a primitive shape before it is added."), "enable_primitive_size_dialog");
-    g_sizer->Add(item_primitive_dialog);
-
-    //// CONTROL > Slicing
-    g_sizer->Add(create_item_title(_L("Slicing")), 1, wxEXPAND);
-
-    auto item_auto_reslice = create_item_auto_reslice(
-        _L("Auto slice after changes"),
-        _L("If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."),
-        _L("Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."));
-    g_sizer->Add(item_auto_reslice);
-
-    auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
-    g_sizer->Add(item_mix_print_high_low_temperature);
-
-    auto item_remember_print_action = create_item_checkbox(_L("Remember last print action"), _L("If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."), "remember_print_action");
-    g_sizer->Add(item_remember_print_action);
 
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
@@ -1935,28 +2100,6 @@ void PreferencesDialog::create_items()
     auto reverse_mouse_zoom    = create_item_checkbox(_L("Reverse mouse zoom"), _L("If enabled, reverses the direction of zoom with mouse wheel."), "reverse_mouse_wheel_zoom");
     g_sizer->Add(reverse_mouse_zoom);
 
-#ifdef SLIC3R_CAD
-    // Design-tab only, so it stays out of the way while the CAD feature is switched off.
-    if (wxGetApp().is_enable_cad_feature()) {
-        auto item_connector_face_glyph = create_item_checkbox(_L("Draw mate connectors as a face"),
-            _L("In the Design tab, draw a mate connector as a small face instead of the conventional "
-               "disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. "
-               "Turn this off for the conventional CAD representation."), "design_connector_face_glyph");
-        g_sizer->Add(item_connector_face_glyph);
-
-        // Saved WITH each design (it decides which loops are closed, i.e. what solid a project
-        // rebuilds into), so it applies to designs started from now on; an open design keeps
-        // the rule it was made with.
-        auto item_auto_close_sketch_loops = create_item_checkbox(_L("Auto-close sketch loops"),
-            _L("Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. "
-               "Off: only exactly coincident endpoints join, so a loop with a tiny gap is "
-               "shown as open instead of being closed for you. Saved with each design; "
-               "applies to designs started after the change."),
-            "auto_close_sketch_loops");
-        g_sizer->Add(item_auto_close_sketch_loops);
-    }
-#endif
-
     std::vector<wxString> ButtonDragActions = {_L("None"), _L("Pan"), _L("Rotate")};
     auto item_left_mouse_drag  = create_item_combobox(_L("Left Mouse Drag"), _L("Set the action that dragging the left mouse button should perform."), "left_mouse_drag_action", ButtonDragActions);
     g_sizer->Add(item_left_mouse_drag);
@@ -1972,24 +2115,6 @@ void PreferencesDialog::create_items()
         wxGetApp().keyboard_shortcuts(ShortcutContext::Global, this);
     });
     g_sizer->Add(item_shortcuts);
-
-    //// CONTROL > Clear my choice on ...
-    g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
-
-    auto item_save_choise      = create_item_button(_L("Unsaved projects"), _L("Clear"), "", _L("Clear my choice on the unsaved projects."), []() {
-        wxGetApp().app_config->set("save_project_choise", "");
-    });
-    g_sizer->Add(item_save_choise);
-
-    auto item_save_presets     = create_item_button(_L("Unsaved presets"), _L("Clear"), "", _L("Clear my choice on the unsaved presets."), []() {
-        wxGetApp().app_config->set("save_preset_choise", "");
-    });
-    g_sizer->Add(item_save_presets);
-
-    auto item_restore_hide_pop_ups = create_item_button(_L("Synchronizing printer preset"), _L("Clear"), L"", _L("Clear my choice for synchronizing printer preset after loading the file."), []() {
-        wxGetApp().app_config->erase("app", "sync_after_load_file_show_flag");
-    });
-    g_sizer->Add(item_restore_hide_pop_ups);
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
@@ -2012,6 +2137,13 @@ void PreferencesDialog::create_items()
         SETTING_OPENGL_PHONG_SMOOTH_NORMALS
     );
     g_sizer->Add(smooth_normals);
+
+    auto item_translucent_filaments = create_item_checkbox(
+        _L("Translucent filaments"),
+        _L("Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."),
+        "preview_translucent_filaments"
+    );
+    g_sizer->Add(item_translucent_filaments);
 
     //// GRAPHICS > Realistic view
     g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
@@ -2151,62 +2283,6 @@ void PreferencesDialog::create_items()
         g_sizer->Add(item_benchmark);
     }
 
-    //// GRAPHICS > G-code Preview
-    g_sizer->Add(create_item_title(_L("G-code Preview")), 1, wxEXPAND);
-
-    // ORCA: view type the preview opens with
-    std::vector<wxString>    PreviewViewTypeLabels;
-    std::vector<std::string> PreviewViewTypeValues;
-    for (const auto& [value, label] : GCodeViewer::default_view_type_choices()) {
-        PreviewViewTypeValues.push_back(value);
-        PreviewViewTypeLabels.push_back(from_u8(label));
-    }
-    auto item_preview_view_type = create_item_combobox(
-        _L("Default view type"),
-        _L("The color scheme the sliced preview opens with.\n"
-           "Automatic: Filament for multi material prints, Line Type for single material ones.\n"
-           "Last used: the view type you selected last.\n"
-           "Any other value always opens that view type.\n"
-           "You can still switch the view type in the preview afterwards."),
-        "preview_default_view_type", PreviewViewTypeLabels, PreviewViewTypeValues);
-    g_sizer->Add(item_preview_view_type);
-
-    auto item_dim_previous_layers = create_item_checkbox(
-        _L("Dim lower layers"),
-        _L("When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."),
-        "preview_dim_previous_layers"
-    );
-    g_sizer->Add(item_dim_previous_layers);
-
-    auto item_dim_previous_layers_brightness = create_item_spinctrl(
-        _L("Dimmed layer brightness"),
-        "",
-        _L("%"),
-        _L("How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
-           "99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."),
-        "preview_dim_previous_layers_brightness",
-        0,
-        99,
-        // ORCA: apply the new brightness immediately to the currently loaded preview
-        [](int value) {
-            if (Plater* plater = wxGetApp().plater()) {
-                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
-                    canvas->get_gcode_viewer().set_dim_previous_layers_brightness(0.01f * value);
-                    canvas->set_as_dirty();
-                    canvas->request_extra_frame();
-                }
-            }
-        }
-    );
-    g_sizer->Add(item_dim_previous_layers_brightness);
-
-    auto item_translucent_filaments = create_item_checkbox(
-        _L("Translucent filaments"),
-        _L("Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."),
-        "preview_translucent_filaments"
-    );
-    g_sizer->Add(item_translucent_filaments);
-
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
@@ -2282,67 +2358,6 @@ void PreferencesDialog::create_items()
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
-
-    //////////////////////////
-    //// ASSOCIATE TAB 
-    /////////////////////////////////////
-#ifdef _WIN32
-    // MSIX: associations are declared in the package manifest and defaults are
-    // managed by Windows Settings; the runtime registry toggles below cannot work.
-    // Show a minimal page that sends the user to Windows' Default Apps settings instead.
-    if (is_running_in_msix()) {
-        m_pref_tabs->AppendItem(_L("Associate"));
-        f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
-        g_sizer = f_sizers.back();
-        g_sizer->AddGrowableCol(0, 1);
-
-        g_sizer->Add(create_item_title(_L("Associate files to OrcaSlicer")), 1, wxEXPAND);
-
-        auto item_open_default_apps = create_item_button(
-            _L("File associations for the Microsoft Store version are managed by Windows Settings."),
-            _L("Open Windows Default Apps Settings"), "", "",
-            []() { wxLaunchDefaultBrowser("ms-settings:defaultapps"); });
-        g_sizer->Add(item_open_default_apps);
-
-        g_sizer->AddSpacer(FromDIP(10));
-        sizer_page->Add(g_sizer, 0, wxEXPAND);
-    } else {
-    m_pref_tabs->AppendItem(_L("Associate"));
-    f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
-    g_sizer = f_sizers.back();
-    g_sizer->AddGrowableCol(0, 1);
-
-    //// ASSOCIATE > Extensions
-    g_sizer->Add(create_item_title(_L("Associate files to OrcaSlicer")), 1, wxEXPAND);
-
-    auto item_associate_3mf    = create_item_checkbox(_L("Associate 3MF files to OrcaSlicer"), _L("If enabled, this sets OrcaSlicer as the default application to open 3MF files.") , "associate_3mf");
-    g_sizer->Add(item_associate_3mf);
-
-    auto item_associate_drc = create_item_checkbox(_L("Associate DRC files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open DRC files."), "associate_drc");
-    g_sizer->Add(item_associate_drc);
-
-    auto item_associate_stl    = create_item_checkbox(_L("Associate STL files to OrcaSlicer"), _L("If enabled, this sets OrcaSlicer as the default application to open STL files.") , "associate_stl");
-    g_sizer->Add(item_associate_stl);
-
-    auto item_associate_step   = create_item_checkbox(_L("Associate STEP files to OrcaSlicer"), _L("If enabled, this sets OrcaSlicer as the default application to open STEP files."), "associate_step");
-    g_sizer->Add(item_associate_step);
-
-    //// ASSOCIATE > WebLinks
-    g_sizer->Add(create_item_title(_L("Associate web links to OrcaSlicer")), 1, wxEXPAND);
-
-    auto associate_url_prusa   = create_item_link_association(L"prusaslicer", "Printables.com");
-    g_sizer->Add(associate_url_prusa);
-
-    auto associate_url_bambu   = create_item_link_association(L"bambustudio", "Makerworld.com");
-    g_sizer->Add(associate_url_bambu);
-
-    auto associate_url_cura    = create_item_link_association(L"cura", "Thingiverse.com");
-    g_sizer->Add(associate_url_cura);
-
-    g_sizer->AddSpacer(FromDIP(10));
-    sizer_page->Add(g_sizer, 0, wxEXPAND);
-    }
-#endif // _WIN32
 
     //////////////////////////
     //// DEVELOPER TAB

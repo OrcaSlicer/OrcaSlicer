@@ -441,6 +441,9 @@ bool ExtrusionLoop::is_smooth(double angle_threshold, double min_arm_length) con
 // scarf extrudes through both ends, and the planner nearly halts on a block that short. Drop the
 // vertex next to the seam point instead, so the loop still starts and ends at the seam. A trimmed
 // path loses its arc fitting; its geometry is unchanged, it just prints as line segments.
+// An eighth of a common line width: the path moves by less than that where a vertex is dropped.
+const double seam_path_tolerance = scale_(0.05);
+
 static void trim_seam_ends(ExtrusionPaths &paths, double tolerance)
 {
     const auto shorter = [tolerance](const Point3 &a, const Point3 &b) { return (b - a).cast<double>().norm() < tolerance; };
@@ -480,10 +483,13 @@ static void trim_seam_ends(ExtrusionPaths &paths, double tolerance)
     }
 }
 
-// Split `polyline` where the scarf ramp ends. When the split would leave a remainder shorter
-// than half a slope step before the next vertex, the ramp is extended to that vertex instead:
-// a stub that short makes the motion planner slow down at the end of the ramp. Planners treat
-// moves of a millimetre and more as ordinary, so the ramp never grows by more than that.
+// Split `polyline` where the scarf ramp ends. A remainder shorter than half a slope step before
+// the next vertex would be a flat stub that makes the motion planner slow down at the end of the
+// ramp. Where that vertex lies within `seam_path_tolerance` of the straight line from the exact
+// ramp end to the vertex after it, the flat path skips it: the ramp keeps its exact length, so it
+// ends at the same place on every layer however the loop's vertices fall there. At a corner, or
+// when the vertex ends the path, the ramp is extended to the vertex instead. Planners treat moves
+// of a millimetre and more as ordinary, so the ramp never grows by more than that.
 static void split_at_slope_end(const Polyline3 &polyline, double length, double slope_max_segment_length, Polyline3 &slope, Polyline3 &flat)
 {
     const double snap_distance = std::min(0.5 * slope_max_segment_length, scale_(1.));
@@ -493,6 +499,21 @@ static void split_at_slope_end(const Polyline3 &polyline, double length, double 
         const double end_length = acc_length + line.length();
         if (end_length >= length) {
             if (end_length - length < snap_distance) {
+                const size_t after = line_idx + 2;
+                if (length >= SCALED_EPSILON && after < polyline.size()) {
+                    // Distance of the skipped vertex from the chord, in 3D so that a Z contour is kept too.
+                    const Vec3d a = lerp(line.a, line.b, (length - acc_length) / line.length()).cast<double>();
+                    const Vec3d b = polyline.points[after].cast<double>();
+                    const Vec3d p = line.b.cast<double>();
+                    const double t = (b - a).squaredNorm() > 0. ? std::clamp((p - a).dot(b - a) / (b - a).squaredNorm(), 0., 1.) : 0.;
+                    if ((p - a - t * (b - a)).norm() <= seam_path_tolerance) {
+                        Polyline3 rest;
+                        polyline.split_at_length(length, &slope, &rest);
+                        polyline.split_at_index(after, &rest, &flat);
+                        flat.append_before(slope.last_point());
+                        return;
+                    }
+                }
                 polyline.split_at_index(line_idx + 1, &slope, &flat);
                 return;
             }
@@ -512,8 +533,7 @@ ExtrusionLoopSloped::ExtrusionLoopSloped(ExtrusionPaths&   original_paths,
                                          ExtrusionLoopRole role)
     : ExtrusionLoop(role)
 {
-    // An eighth of a common line width: the path moves by less than that at the seam.
-    trim_seam_ends(original_paths, scale_(0.05));
+    trim_seam_ends(original_paths, seam_path_tolerance);
     // The caller measured the loop before the trim; a scarf that covers the whole loop must still end at 1.
     double trimmed_length = 0.;
     for (const ExtrusionPath &path : original_paths)
