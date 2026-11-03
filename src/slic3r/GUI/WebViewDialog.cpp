@@ -48,6 +48,7 @@
 #include <webkit2/webkit2.h>
 #endif
 #include <wx/infobar.h>
+#include <wx/menu.h>
 
 namespace pt = boost::property_tree;
 using json = nlohmann::json;
