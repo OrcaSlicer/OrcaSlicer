@@ -2476,75 +2476,126 @@ void GCodeViewer::render_shadow_casters(const Transform3d& light_view_matrix, co
         render_solid_model_casters(light_view_matrix, light_projection_matrix);
 }
 
+// The stencil count that tells where a body cut at one cap alone is open: with the depth test off,
+// its back faces add one and its front faces take one away, so a pixel where the ray leaves the
+// body through the opening ends nonzero. The caller draws the body between the two.
+static void begin_cap_count()
+{
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
+    glsafe(::glStencilFunc(GL_ALWAYS, 0, 0xFF));
+    glsafe(::glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_DECR_WRAP));
+    glsafe(::glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_INCR_WRAP));
+    glsafe(::glDepthMask(GL_FALSE));
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    glsafe(::glDisable(GL_CULL_FACE));
+}
+
+// After the count, what is drawn next lands only where the body was open.
+static void end_cap_count()
+{
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    glsafe(::glDepthMask(GL_TRUE));
+    glsafe(::glStencilFunc(GL_NOTEQUAL, 0, 0xFF));
+    glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
+    glsafe(::glStencilMask(0x00));
+}
+
 // The solid casts as the toolpaths it stands in for would: the shells, cut at the same heights,
-// drawn depth-only into the shadow map the canvas has bound. The cut faces cast too: an open
-// body's far wall closes its outline from the light, but not its depth, and the end band's lines
-// would throw their shadow through the hollow onto the flank. So a back face that a ray reached
-// through a cut is drawn at the depth of that cut, by the shader; a back face reached through a
-// wall facing the light keeps out of the way, which takes the front faces drawn on their own
-// first, into a depth texture of the viewer's, for the shader to look up.
+// drawn depth-only into the shadow map the canvas has bound, and the cut faces with them. Without
+// its cut faces an open body lets the light through: down onto the bed through a band cut at both
+// ends, or onto its own far wall, with the end band's lines throwing their shadow through the
+// hollow. The cut faces are counted and drawn as render_solid_model() draws them, which takes a
+// stencil the map has not got, so they go into a depth target of the viewer's first, the map's
+// size, and are copied into the map from there.
 void GCodeViewer::render_solid_model_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix)
 {
     const std::optional<std::array<float, 2>> z_range = solid_model_z_range();
-    GLShaderProgram* wall_shader = wxGetApp().get_shader("flat_clip");
-    GLShaderProgram* cut_shader = wxGetApp().get_shader("cut_caster");
-    if (m_shells.volumes.empty() || !z_range.has_value() || wall_shader == nullptr || cut_shader == nullptr)
+    GLShaderProgram* shader = wxGetApp().get_shader("flat_clip");
+    if (m_shells.volumes.empty() || !z_range.has_value() || shader == nullptr)
         return;
 
-    auto draw_shells = [&](GLShaderProgram* shader) {
-        shader->start_using();
-        shader->set_uniform("projection_matrix", light_projection_matrix);
-        // cut by the section view as the camera sees it, so what it cuts away casts nothing
-        shader->set_uniform("clipping_plane", m_clipping_plane);
-        shader->set_uniform("z_range", *z_range);
-        for (GLVolume* volume : m_shells.volumes.volumes) {
-            const Transform3d world_matrix = volume->world_matrix();
+    // the walls, cut by the section view as the camera sees it, so what it cuts away casts nothing
+    shader->start_using();
+    shader->set_uniform("projection_matrix", light_projection_matrix);
+    shader->set_uniform("clipping_plane", m_clipping_plane);
+    shader->set_uniform("z_range", *z_range);
+    for (GLVolume* volume : m_shells.volumes.volumes) {
+        const Transform3d world_matrix = volume->world_matrix();
+        shader->set_uniform("volume_world_matrix", world_matrix);
+        shader->set_uniform("view_model_matrix", light_view_matrix * world_matrix);
+        volume->render();
+    }
+    shader->stop_using();
+
+    GLShaderProgram* copy_shader = wxGetApp().get_shader("depth_copy");
+    GLint viewport[4] = { 0, 0, 0, 0 };
+    glsafe(::glGetIntegerv(GL_VIEWPORT, viewport));
+    // without a target of its own the body casts open
+    if (copy_shader == nullptr || !init_caster_depth(viewport[2], viewport[3]))
+        return;
+    std::array<SolidModelCap, 3> caps;
+    init_solid_model_caps(*z_range, caps);
+
+    GLint map_fbo = 0;
+    glsafe(::glGetIntegerv(GL_FRAMEBUFFER_BINDING, &map_fbo));
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_caster_fbo));
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
+    glsafe(::glEnable(GL_STENCIL_TEST));
+    shader->start_using();
+    shader->set_uniform("projection_matrix", light_projection_matrix);
+    for (GLVolume* volume : m_shells.volumes.volumes) {
+        const Transform3d world_matrix = volume->world_matrix();
+        for (SolidModelCap& cap : caps) {
+            if (!cap.quad.is_initialized())
+                continue;
+            begin_cap_count();
+            shader->set_uniform("z_range", cap.count_z_range);
+            shader->set_uniform("clipping_plane", cap.count_plane);
             shader->set_uniform("volume_world_matrix", world_matrix);
             shader->set_uniform("view_model_matrix", light_view_matrix * world_matrix);
             volume->render();
+            end_cap_count();
+            shader->set_uniform("z_range", cap.quad_z_range);
+            shader->set_uniform("clipping_plane", cap.quad_plane);
+            shader->set_uniform("volume_world_matrix", Transform3d::Identity());
+            shader->set_uniform("view_model_matrix", light_view_matrix);
+            cap.quad.render();
         }
-        shader->stop_using();
-    };
-
-    GLint viewport[4] = { 0, 0, 0, 0 };
-    glsafe(::glGetIntegerv(GL_VIEWPORT, viewport));
-    GLint map_fbo = 0;
-    glsafe(::glGetIntegerv(GL_FRAMEBUFFER_BINDING, &map_fbo));
-    if (!init_caster_depth(viewport[2], viewport[3])) {
-        // without a texture of its own the body casts open, as before
-        draw_shells(wall_shader);
-        return;
     }
+    shader->stop_using();
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glDisable(GL_STENCIL_TEST));
 
-    // The walls facing the light, on their own, for the back faces to look up. A volume's render
-    // sets the cull face to the back faces itself, so only the enable is this pass's.
-    glsafe(::glEnable(GL_CULL_FACE));
-    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_caster_fbo));
-    glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
-    draw_shells(wall_shader);
+    // into the map, where nearer than what is there
     glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(map_fbo)));
-    // Both faces into the map, as the canvas draws the casters: the shader leaves a front face at
-    // its own depth and moves a back face reached through a cut to the depth of that cut.
-    glsafe(::glDisable(GL_CULL_FACE));
+    GLModel screen;
+    GLModel::Geometry data;
+    data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+    data.add_vertex(Vec3f(-1.0f, -1.0f, 0.0f));
+    data.add_vertex(Vec3f(1.0f, -1.0f, 0.0f));
+    data.add_vertex(Vec3f(1.0f, 1.0f, 0.0f));
+    data.add_vertex(Vec3f(-1.0f, 1.0f, 0.0f));
+    data.add_triangle(0, 1, 2);
+    data.add_triangle(0, 2, 3);
+    screen.init_from(std::move(data));
     // bound on a unit of its own, with the volumes' own bindings left to unit 0
     glsafe(::glActiveTexture(GL_TEXTURE6));
     glsafe(::glBindTexture(GL_TEXTURE_2D, m_caster_depth));
     glsafe(::glActiveTexture(GL_TEXTURE0));
-    cut_shader->start_using();
-    cut_shader->set_uniform("front_depth", 6);
-    cut_shader->set_uniform("map_size", std::array<float, 2>{ static_cast<float>(viewport[2]), static_cast<float>(viewport[3]) });
-    cut_shader->set_uniform("light_view_projection", Transform3d(light_projection_matrix * light_view_matrix));
-    // the light looks down its own z axis
-    cut_shader->set_uniform("to_light", Vec3f(light_view_matrix.linear().row(2).transpose().cast<float>()));
-    cut_shader->stop_using();
-    draw_shells(cut_shader);
+    copy_shader->start_using();
+    copy_shader->set_uniform("depth_texture", 6);
+    copy_shader->set_uniform("map_size", std::array<float, 2>{ static_cast<float>(viewport[2]), static_cast<float>(viewport[3]) });
+    screen.render();
+    copy_shader->stop_using();
     glsafe(::glActiveTexture(GL_TEXTURE6));
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
     glsafe(::glActiveTexture(GL_TEXTURE0));
 }
 
-// The depth texture the caster pass draws the shells' front faces into, the size of the shadow
-// map it is drawn alongside.
+// The depth and stencil target the caster pass draws the cut faces into, the size of the shadow
+// map they are copied into.
 bool GCodeViewer::init_caster_depth(int width, int height)
 {
     if (OpenGLManager::get_framebuffers_type() != OpenGLManager::EFramebufferType::Arb || width <= 0 || height <= 0)
@@ -2561,7 +2612,7 @@ bool GCodeViewer::init_caster_depth(int width, int height)
     }
     else
         glsafe(::glBindTexture(GL_TEXTURE_2D, m_caster_depth));
-    glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+    glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr));
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
     m_caster_width = width;
     m_caster_height = height;
@@ -2571,7 +2622,7 @@ bool GCodeViewer::init_caster_depth(int width, int height)
     if (m_caster_fbo == 0)
         glsafe(::glGenFramebuffers(1, &m_caster_fbo));
     glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_caster_fbo));
-    glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_caster_depth, 0));
+    glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_caster_depth, 0));
     glsafe(::glDrawBuffer(GL_NONE));
     glsafe(::glReadBuffer(GL_NONE));
     const bool complete = ::glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
@@ -3681,6 +3732,60 @@ std::optional<std::array<float, 2>> GCodeViewer::solid_model_z_range() const
     return std::array<float, 2>{ z_bottom, z_top };
 }
 
+void GCodeViewer::init_solid_model_caps(const std::array<float, 2>& z_range, std::array<SolidModelCap, 3>& caps) const
+{
+    const auto [z_bottom, z_top] = z_range;
+    auto init_quad = [](SolidModelCap& cap, const Vec3f& center, const Vec3f& u, const Vec3f& v) {
+        GLModel::Geometry data;
+        data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+        data.reserve_vertices(4);
+        data.reserve_indices(6);
+        data.add_vertex(Vec3f(center - u - v));
+        data.add_vertex(Vec3f(center + u - v));
+        data.add_vertex(Vec3f(center + u + v));
+        data.add_vertex(Vec3f(center - u + v));
+        data.add_triangle(0, 1, 2);
+        data.add_triangle(0, 2, 3);
+        cap.quad.init_from(std::move(data));
+    };
+    const Vec3f box_min = m_paths_bounding_box.min.cast<float>();
+    const Vec3f box_max = m_paths_bounding_box.max.cast<float>();
+    const Vec3f box_center = 0.5f * (box_min + box_max);
+    const float margin = 1.0f;
+    const Vec3f half_x(0.5f * (box_max.x() - box_min.x()) + margin, 0.0f, 0.0f);
+    const Vec3f half_y(0.0f, 0.5f * (box_max.y() - box_min.y()) + margin, 0.0f);
+    if (m_viewer.get_layers_view_range()[0] > 0) {
+        SolidModelCap& cap = caps[0];
+        init_quad(cap, Vec3f(box_center.x(), box_center.y(), z_bottom), half_x, half_y);
+        cap.count_z_range = { z_bottom, FLT_MAX };
+        cap.quad_plane = m_clipping_plane;
+        cap.color_index = 0;
+    }
+    if (z_top > -FLT_MAX) {
+        SolidModelCap& cap = caps[1];
+        init_quad(cap, Vec3f(box_center.x(), box_center.y(), z_top), half_x, half_y);
+        cap.count_z_range = { -FLT_MAX, z_top };
+        cap.quad_plane = m_clipping_plane;
+        cap.color_index = 1;
+    }
+    // the section view cuts the solid as it cuts the toolpaths; nothing else sets a plane on the shells
+    if (m_clipping_plane[0] != 0.0f || m_clipping_plane[1] != 0.0f || m_clipping_plane[2] != 0.0f) {
+        SolidModelCap& cap = caps[2];
+        const Vec3f normal(m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2]);
+        const Vec3f on_plane = box_center - (normal.dot(box_center) + m_clipping_plane[3]) * normal;
+        // the in-plane axes, turned from the unit axis the normal leans on least
+        const Vec3f leaning = normal.cwiseAbs();
+        const Vec3f axis = (leaning.x() <= leaning.y() && leaning.x() <= leaning.z()) ? Vec3f::UnitX() :
+                           (leaning.y() <= leaning.z()) ? Vec3f::UnitY() : Vec3f::UnitZ();
+        const Vec3f u = normal.cross(axis).normalized();
+        const Vec3f v = normal.cross(u);
+        const float reach = 0.5f * (box_max - box_min).norm() + margin;
+        init_quad(cap, on_plane, reach * u, reach * v);
+        cap.count_plane = m_clipping_plane;
+        cap.quad_z_range = { z_bottom, z_top };
+    }
+}
+
 void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
 {
     if (m_shells.volumes.empty())
@@ -3732,8 +3837,7 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
         volume->set_render_color();
     }
     m_shells.volumes.set_z_range(z_bottom, z_top);
-    // the section view cuts the solid as it cuts the toolpaths; nothing else sets a plane on the shells
-    const bool sectioned = m_clipping_plane[0] != 0.0f || m_clipping_plane[1] != 0.0f || m_clipping_plane[2] != 0.0f;
+    // the section view cuts the solid as it cuts the toolpaths
     m_shells.volumes.set_clipping_plane({ m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2], m_clipping_plane[3] });
 
     shader->start_using();
@@ -3765,85 +3869,18 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     // other two, and theirs are drawn on its kept side.
     GLShaderProgram* cap_shader = wxGetApp().get_shader("flat_clip");
     if (cap_shader != nullptr) {
-        struct Cap
-        {
-            GLModel quad;
-            // the body as the count sees it: cut at this cap alone
-            std::array<float, 2> count_z_range{ -FLT_MAX, FLT_MAX };
-            std::array<float, 4> count_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
-            // the quad, cut by the other caps
-            std::array<float, 2> quad_z_range{ -FLT_MAX, FLT_MAX };
-            std::array<float, 4> quad_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
-            // which of the sampled cap colours it takes, none for the body's own
-            std::optional<size_t> color_index;
-        };
-        auto init_quad = [](Cap& cap, const Vec3f& center, const Vec3f& u, const Vec3f& v) {
-            GLModel::Geometry data;
-            data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
-            data.reserve_vertices(4);
-            data.reserve_indices(6);
-            data.add_vertex(Vec3f(center - u - v));
-            data.add_vertex(Vec3f(center + u - v));
-            data.add_vertex(Vec3f(center + u + v));
-            data.add_vertex(Vec3f(center - u + v));
-            data.add_triangle(0, 1, 2);
-            data.add_triangle(0, 2, 3);
-            cap.quad.init_from(std::move(data));
-        };
-        const Vec3f box_min = m_paths_bounding_box.min.cast<float>();
-        const Vec3f box_max = m_paths_bounding_box.max.cast<float>();
-        const Vec3f box_center = 0.5f * (box_min + box_max);
-        const float margin = 1.0f;
-        const Vec3f half_x(0.5f * (box_max.x() - box_min.x()) + margin, 0.0f, 0.0f);
-        const Vec3f half_y(0.0f, 0.5f * (box_max.y() - box_min.y()) + margin, 0.0f);
-        // the bottom cap, then the top one, as the colours are indexed, then the section view's
-        std::array<Cap, 3> caps;
-        if (layers[0] > 0) {
-            Cap& cap = caps[0];
-            init_quad(cap, Vec3f(box_center.x(), box_center.y(), z_bottom), half_x, half_y);
-            cap.count_z_range = { z_bottom, FLT_MAX };
-            cap.quad_plane = m_clipping_plane;
-            cap.color_index = 0;
-        }
-        if (z_top > -FLT_MAX) {
-            Cap& cap = caps[1];
-            init_quad(cap, Vec3f(box_center.x(), box_center.y(), z_top), half_x, half_y);
-            cap.count_z_range = { -FLT_MAX, z_top };
-            cap.quad_plane = m_clipping_plane;
-            cap.color_index = 1;
-        }
-        if (sectioned) {
-            Cap& cap = caps[2];
-            const Vec3f normal(m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2]);
-            const Vec3f on_plane = box_center - (normal.dot(box_center) + m_clipping_plane[3]) * normal;
-            // the in-plane axes, turned from the unit axis the normal leans on least
-            const Vec3f leaning = normal.cwiseAbs();
-            const Vec3f axis = (leaning.x() <= leaning.y() && leaning.x() <= leaning.z()) ? Vec3f::UnitX() :
-                               (leaning.y() <= leaning.z()) ? Vec3f::UnitY() : Vec3f::UnitZ();
-            const Vec3f u = normal.cross(axis).normalized();
-            const Vec3f v = normal.cross(u);
-            const float reach = 0.5f * (box_max - box_min).norm() + margin;
-            init_quad(cap, on_plane, reach * u, reach * v);
-            cap.count_plane = m_clipping_plane;
-            cap.quad_z_range = { z_bottom, z_top };
-        }
-
+        std::array<SolidModelCap, 3> caps;
+        init_solid_model_caps(*z_range, caps);
         glsafe(::glEnable(GL_STENCIL_TEST));
         for (size_t n = 0; n < m_shells.volumes.volumes.size(); ++n) {
             GLVolume* volume = m_shells.volumes.volumes[n];
             const auto* tower = dynamic_cast<const GLWipeTowerVolume*>(volume);
             const Transform3d world_matrix = volume->world_matrix();
-            for (Cap& cap : caps) {
+            for (SolidModelCap& cap : caps) {
                 if (!cap.quad.is_initialized())
                     continue;
-                glsafe(::glStencilMask(0xFF));
-                glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
-                glsafe(::glStencilFunc(GL_ALWAYS, 0, 0xFF));
-                glsafe(::glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_DECR_WRAP));
-                glsafe(::glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_INCR_WRAP));
+                begin_cap_count();
                 glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
-                glsafe(::glDepthMask(GL_FALSE));
-                glsafe(::glDisable(GL_DEPTH_TEST));
                 // The body is drawn directly, on the uniforms the pass above left on the program: the
                 // collection's render would build the full preset config and sort every volume, per body.
                 shader->start_using();
@@ -3851,16 +3888,10 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
                 shader->set_uniform("clipping_plane", cap.count_plane);
                 shader->set_uniform("volume_world_matrix", world_matrix);
                 shader->set_uniform("view_model_matrix", camera.get_view_matrix() * world_matrix);
-                glsafe(::glDisable(GL_CULL_FACE));
                 volume->render();
-                glsafe(::glEnable(GL_CULL_FACE));
                 shader->stop_using();
-                glsafe(::glEnable(GL_DEPTH_TEST));
-                glsafe(::glDepthMask(GL_TRUE));
                 glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
-                glsafe(::glStencilFunc(GL_NOTEQUAL, 0, 0xFF));
-                glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
-                glsafe(::glStencilMask(0x00));
+                end_cap_count();
 
                 ColorRGBA inside = volume->color;
                 if (tower != nullptr && !tower->colors().empty())
@@ -3876,13 +3907,12 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
                 cap_shader->set_uniform("volume_world_matrix", Transform3d::Identity());
                 cap_shader->set_uniform("z_range", cap.quad_z_range);
                 cap_shader->set_uniform("clipping_plane", cap.quad_plane);
-                glsafe(::glDisable(GL_CULL_FACE));
                 cap.quad.set_color(inside);
                 cap.quad.render();
-                glsafe(::glEnable(GL_CULL_FACE));
                 cap_shader->stop_using();
             }
         }
+        glsafe(::glEnable(GL_CULL_FACE));
         glsafe(::glStencilMask(0xFF));
         glsafe(::glDisable(GL_STENCIL_TEST));
     }

@@ -340,6 +340,23 @@ private:
     std::optional<std::array<float, 2>> solid_model_z_range() const;
     void render_solid_model(int canvas_width, int canvas_height);
     void render_solid_model_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix);
+    // A cut face of the solid model: a quad in the cut plane, drawn where a body cut at it alone is
+    // open; see render_solid_model()
+    struct SolidModelCap
+    {
+        GLModel quad;
+        // the body as the count sees it: cut at this cap alone
+        std::array<float, 2> count_z_range{ -FLT_MAX, FLT_MAX };
+        std::array<float, 4> count_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
+        // the quad, cut by the other caps
+        std::array<float, 2> quad_z_range{ -FLT_MAX, FLT_MAX };
+        std::array<float, 4> quad_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
+        // which of the sampled cap colours it takes, none for the body's own
+        std::optional<size_t> color_index;
+    };
+    // the bottom cap, then the top one, as the colours are indexed, then the section view's; a cap
+    // the solid is not cut at is left without a quad
+    void init_solid_model_caps(const std::array<float, 2>& z_range, std::array<SolidModelCap, 3>& caps) const;
     void release_caster_depth();
     // ORCA: realistic view. The shadow map and light the canvas last passed on, which the solid
     // model samples through its own shader as the toolpaths do through theirs.
@@ -352,8 +369,8 @@ private:
     };
     ShadowMap m_shadow_map;
     Vec3d     m_light_top_dir{ Vec3d::Zero() };
-    // the shells' front faces from the light, for the caster pass to tell a back face reached
-    // through a cut from one reached through a wall; see render_solid_model_casters()
+    // the cut faces from the light, counted and drawn apart from the shadow map, which has no
+    // stencil, then copied into it; see render_solid_model_casters()
     unsigned int m_caster_fbo{ 0 };
     unsigned int m_caster_depth{ 0 };
     int          m_caster_width{ 0 };
