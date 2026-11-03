@@ -479,6 +479,9 @@ bool install_packages(const std::vector<std::string>& pkgs, std::string& error)
 {
     if (pkgs.empty())
         return true;
+    // A plugin's load and a script's run can install at once; both write the one shared package folder.
+    static std::mutex           install_mutex;
+    std::lock_guard<std::mutex> install_lock(install_mutex);
 
     const std::string uv_path = PythonInterpreter::bundled_uv_path();
     if (uv_path.empty()) {

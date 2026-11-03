@@ -80,6 +80,12 @@ public:
     // removed when the final plugin using it is unloaded.
     bool add_plugin_sys_path(const std::string& path, std::string& error);
 
+    // Whether a loaded plugin's records hold the module `name`, so it belongs to that plugin. GIL held.
+    bool plugin_uses_module(const std::string& name) const;
+    // Whether a plugin's module import is under way. A plugin records the modules it imported only after its import
+    // returns, so until then nothing says that a module it took is its. Any thread.
+    bool plugin_import_in_progress() const { return m_plugin_imports.load() > 0; }
+
     // Load a Python module from file path
     PyObject* load_module_from_file(const std::string& file_path,
                                     std::string&       error,
@@ -131,6 +137,7 @@ private:
     std::unordered_map<std::string, bool>        m_plugin_path_owned;
     std::unordered_map<std::string, std::size_t> m_plugin_module_users;
     std::unordered_map<std::string, bool>        m_plugin_module_owned;
+    std::atomic<int>                             m_plugin_imports{0};
 };
 
 class PythonRuntimeLease

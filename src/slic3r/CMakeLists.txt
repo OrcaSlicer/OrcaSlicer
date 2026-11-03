@@ -763,6 +763,8 @@ set(SLIC3R_GUI_SOURCES
     plugin/PythonPluginInterface.hpp
     plugin/PluginOperations.cpp
     plugin/PluginOperations.hpp
+    plugin/PythonRunScope.cpp
+    plugin/PythonRunScope.hpp
     plugin/PythonScriptRunner.cpp
     plugin/PythonScriptRunner.hpp
     plugin/PyPluginPackage.hpp

@@ -827,6 +827,22 @@ TEST_CASE("idle ignores the caller and its ancestors", "[Mcp]")
     CHECK(jobs.running_operations() == std::vector<std::string>{step});
 }
 
+TEST_CASE("idle skips a job set idle, but not the calls it makes", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string run = jobs.create("run_python", "");
+    jobs.set_idle(run);
+    const std::string child = jobs.create("slice", run);
+    CHECK(jobs.any_running_except({}));
+    bool listed_idle = false;
+    for (const nlohmann::json& job : jobs.list())
+        if (job["id"] == run)
+            listed_idle = job.value("idle", false);
+    CHECK(listed_idle);
+    jobs.finish(child, ToolResult::ok());
+    CHECK_FALSE(jobs.any_running_except({}));
+}
+
 TEST_CASE("the job registry caps running jobs and forgets old finished ones", "[Mcp]")
 {
     JobRegistry jobs;

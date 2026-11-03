@@ -4,6 +4,10 @@
 #include <pybind11/pybind11.h>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
+#include <slic3r/plugin/PythonRunScope.hpp>
+
+#include <boost/filesystem/path.hpp>
+#include <boost/nowide/convert.hpp>
 
 #include <stdexcept>
 #include <string>
@@ -12,12 +16,19 @@
 namespace Slic3r {
 
 namespace host_bindings {
-void require_plugin_caller(const char* function)
+namespace {
+
+// A native path as UTF-8: narrowed from wide on Windows, where boost's narrow form uses the ANSI code page.
+std::string path_utf8(const boost::filesystem::path& path)
 {
-    if (is_script_identity(PluginAuditManager::instance().current_plugin()))
-        throw std::runtime_error(std::string("orca.host.") + function +
-                                 " is for plugins; a script changes the project through orca.host.tools");
+#ifdef _WIN32
+    return boost::nowide::narrow(path.wstring());
+#else
+    return path.string();
+#endif
 }
+
+} // namespace
 
 void register_plugin(pybind11::module_& host)
 {
@@ -26,14 +37,20 @@ void register_plugin(pybind11::module_& host)
     plugin_host.def(
         "storage",
         []() -> std::string {
-            require_plugin_caller("plugin.storage");
             const std::string plugin_key = PluginAuditManager::instance().current_plugin();
+            // A script's own folder is its storage, as a plugin's installed folder is the plugin's.
+            if (is_script_identity(plugin_key)) {
+                const PythonRunBinding& binding = current_python_run();
+                if (!binding.run || binding.run->file().empty())
+                    throw std::runtime_error("orca.host.plugin.storage() is the folder of a script's file; code sent as text has no folder");
+                return path_utf8(binding.run->file().parent_path());
+            }
             if (plugin_key.empty())
                 throw std::runtime_error("plugin.storage() must be called from a plugin callback");
 
             return PluginManager::instance().get_storage_dir(plugin_key);
         },
-        "Return the installed folder of the current plugin.");
+        "Return the installed folder of the current plugin; for a script, the folder of its file.");
 }
 } // namespace host_bindings
 

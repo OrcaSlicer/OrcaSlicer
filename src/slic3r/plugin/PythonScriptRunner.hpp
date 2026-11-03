@@ -4,9 +4,17 @@
 
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <string>
+#include <vector>
+
+namespace pybind11 {
+class handle;
+}
 
 namespace Slic3r {
+
+class PythonRunScope;
 
 // A Python script a person or an agent starts (run_python, a .py in the Run Script dialog or
 // --mcp-script), or a plugin's run_python: code run on the plugin interpreter without being packaged
@@ -22,12 +30,16 @@ struct PythonRunRequest
     // person's or an agent's script, which every audited access is allowed to apart from the categorical
     // denies, or a plugin's key, whose grants then apply.
     std::string    identity;
-    // Shown in tracebacks.
+    // Shown in tracebacks. An existing file's path makes it a file run, which runs as `python file.py` would run
+    // it: `__file__` and `sys.argv` name it, and its folder serves its imports. Any other name, such as the default
+    // <run_python>, is code sent as text.
     std::string    filename = "<run_python>";
     // The run is interrupted as timed_out once it has run this long.
     std::chrono::milliseconds budget{std::chrono::minutes(5)};
     // Polled while the code runs, from another thread; true interrupts it as cancelled.
     std::function<bool()> cancelled;
+    // Called once, from another thread, at the run's first stop or time-out, to cancel its tool calls in flight.
+    std::function<void()> stop_calls;
 };
 
 struct PythonRunOutcome
@@ -37,8 +49,8 @@ struct PythonRunOutcome
     // The value the code left in `result`, read once when the module body returned; null when it set
     // none or the run did not finish.
     nlohmann::json result;
-    // What the run's own thread printed to stdout and stderr, in order. Threads the code starts print
-    // to the app's streams instead.
+    // What the run printed to stdout and stderr, in order: its own thread, the threads it starts and its window
+    // callbacks.
     std::string    output;
     // The formatted traceback of a raised run.
     std::string    traceback;
@@ -46,14 +58,33 @@ struct PythonRunOutcome
     std::string    message;
 };
 
-// Runs `request.code` as a module body on the calling thread and returns how it ended. Holds an
-// interpreter lease and the GIL for the run, under `request.identity`'s audit scope, in a fresh
-// namespace where `args` is bound and `orca` is importable. Cancellation and the budget raise an
+// Runs `request.code` as the main program on the calling thread and returns how it ended. Holds an
+// interpreter lease and the GIL for the run, under `request.identity`'s audit scope, in a fresh `__main__`
+// module of its own where `args` is bound and `orca` is importable. Cancellation and the budget raise an
 // exception in the running code at its next bytecode, again every second until it ends, so code
 // blocked inside a C call stops once the call returns. A `result` that is not JSON (a dict with str
 // keys, a list, a str, a finite number, a bool or None, nested) makes the run raised; SystemExit with
 // code 0 or None finishes it.
 PythonRunOutcome run_python_code(const PythonRunRequest& request);
+
+// Installs a file run's PEP 723 dependencies; false with `error` when that fails. plugin_loader::install_packages
+// unless a test sets another; nullptr restores it.
+using PythonDependencyInstaller = std::function<bool(const std::vector<std::string>& packages, std::string& error)>;
+void set_python_dependency_installer_for_testing(PythonDependencyInstaller installer);
+
+// For the thread shim, with the GIL held. Whether `function`, the callable _thread.start_new_thread was given,
+// starts a concurrent.futures pool's worker; and whether a run waits for the thread it starts before it ends: a
+// non-daemon threading.Thread that isn't a pool worker. Python's own exit doesn't wait for a raw _thread thread.
+bool python_run_is_pool_worker(const pybind11::handle& function);
+bool python_run_waits_for(const pybind11::handle& function);
+// For a pool worker a thread of `run` starts: the worker stays unbound, as pools are shared across runs, but the
+// pool's initializer, which runs on it before any task, runs inside `run` as the task it was started for does (its
+// binding, its identity, one of its interrupt targets), counted as the run's work from now until it returns, so the
+// run waits for it even when that task is cancelled. Counted: the caller uncounts it with PythonRunScope::task_done()
+// if the thread then fails to start. Refused: the run's admission has closed, so the worker must not start, since its
+// initializer would run outside any run and identity.
+enum class PoolInitializerBinding { None, Counted, Refused };
+PoolInitializerBinding python_run_bind_pool_initializer(const pybind11::handle& function, const std::shared_ptr<PythonRunScope>& run);
 
 // A .py file's bytes as UTF-8 text, decoded as Python reads a source file: by its BOM, else its PEP 263
 // encoding declaration, else as UTF-8. Sets `encoding` to the codec used, which encode_python_source() takes

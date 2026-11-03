@@ -29,7 +29,7 @@ bool load(const PluginDescriptor&                          descriptor,
 void unload(Plugin& plugin);
 
 // Install Python dependencies into the shared packages directory via the bundled uv. Blocks, with
-// a 120 s cap.
+// a 120 s cap. Installs are serialized: plugins' loads and scripts' runs share the folder.
 bool install_packages(const std::vector<std::string>& pkgs, std::string& error);
 
 // Read a local .py/.whl package's metadata without installing it, and report whether a package is

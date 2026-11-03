@@ -160,6 +160,8 @@ const char* kInstructions =
     "settings and calling tools through orca.host.tools, once the person has allowed Python scripts in Preferences.\n"
     "API lane:\n"
     "- Typed tools: open_files, select_preset, set_settings, slice, export and the rest.\n"
+    "- Plugins may offer operations (plugin.<plugin>.<name>) that the tool list does not show: api_describe lists and "
+    "searches them with their schemas, api_call runs them.\n"
     "- What a setting does, or which one controls an effect: get_settings with keys, or query with a few words; "
     "each setting's meta has its description and where (its settings page and group).\n"
     "- Objects, parts and plates are 0-based indices, as list_objects and list_plates give them; filament slots and "
@@ -953,7 +955,8 @@ std::shared_ptr<ScriptRun> McpService::start_python_run(std::string code, const 
         run->set_job(ctx.job_id());
         return handler(args, ctx);
     };
-    json args{{"code", std::move(code)}};
+    // No time limit: the person has the dialog's Stop.
+    json args{{"code", std::move(code)}, {"timeout_s", 0}};
     if (!file.empty())
         args["filename"] = path_to_utf8(file);
 

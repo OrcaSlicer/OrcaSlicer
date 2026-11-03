@@ -1,6 +1,8 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
 #include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 
 #include <functional>
 #include <string>
@@ -25,6 +27,18 @@ public:
     // Lifecycle hook: close and tear down every UI window owned by a plugin. PluginManager invokes
     // this after plugin teardown and also for bulk unload during application shutdown.
     static void close_windows_for_plugin(const std::string& plugin_key);
+
+    // From a script run's thread, with the GIL held: tears down what the run owns (`owner`, its ui_owner()) on the UI
+    // thread and returns once that is done, so none of its callbacks runs after. Does nothing while the app closes.
+    static void close_run_windows(const std::string& owner);
+
+    // The handler create_window() and create_dock_panel() give a page for its on_message and on_submit: calls `fn`
+    // with the page's data under the GIL. Made in a script's run, it runs inside that run, which waits for it, and does
+    // nothing once the run's UI has closed.
+    static std::function<void(const nlohmann::json&)> message_callback(pybind11::object fn);
+    // The same for a callable that takes no arguments (on_close, a notification's link): true unless it returned a
+    // false value.
+    static std::function<bool()> event_callback(pybind11::object fn);
 };
 
 } // namespace Slic3r

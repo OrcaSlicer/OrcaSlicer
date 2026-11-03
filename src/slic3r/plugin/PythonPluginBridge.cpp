@@ -9,6 +9,7 @@
 #include <mutex>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
@@ -19,6 +20,8 @@
 #include <utility>
 
 #include "PythonInterpreter.hpp"
+#include "PythonRunScope.hpp"
+#include "PythonScriptRunner.hpp"
 #include "PluginJsonPy.hpp"
 #include "PluginOperations.hpp"
 #include "host/PluginHostTools.hpp"
@@ -796,27 +799,74 @@ void install_python_thread_audit_shim()
 
         py::object shim = py::cpp_function(
             [original](py::object function, py::object args, py::object kwargs) -> py::object {
+                const auto start = [&](const py::object& target) {
+                    return kwargs.is_none() ? original(target, args) : original(target, args, kwargs);
+                };
+                // A script's run reaches the threads it starts. A pool's worker is the exception: pools are reused
+                // across runs, so a worker carries neither run nor identity, and each task brings its own, as the
+                // pool's initializer does from the run that started the worker.
+                std::shared_ptr<PythonRunScope> run = current_python_run().run;
+                if (run && python_run_is_pool_worker(function)) {
+                    const PoolInitializerBinding initializer = python_run_bind_pool_initializer(function, run);
+                    if (initializer == PoolInitializerBinding::Refused)
+                        throw std::runtime_error("can't start a new thread: the script's run has ended");
+                    try {
+                        return start(function);
+                    } catch (...) {
+                        if (initializer == PoolInitializerBinding::Counted)
+                            run->task_done();
+                        throw;
+                    }
+                }
                 const std::string plugin_key  = PluginAuditManager::instance().current_plugin();
-                if (plugin_key.empty()) {
+                if (plugin_key.empty() && !run) {
                     // Not called from a plugin: preserve the stock implementation untouched.
-                    return kwargs.is_none() ? original(function, args) : original(function, args, kwargs);
+                    return start(function);
                 }
                 const std::string capability  = PluginAuditManager::instance().current_capability();
                 // A thread a Script worker starts may call tools as the worker may.
                 const bool        tool_caller = tool_caller_thread();
+                // Counted before the OS thread exists, so the run never misses a thread started late.
+                const bool waited = run && python_run_waits_for(function);
+                if (run && !run->thread_starting(waited))
+                    throw std::runtime_error("can't start a new thread: the script's run has ended");
 
                 py::object guarded = py::cpp_function(
-                    [function, plugin_key, capability, tool_caller](py::args call_args, py::kwargs call_kwargs) -> py::object {
-                        ScopedPluginAuditContext              audit_scope(plugin_key, capability);
+                    [function, plugin_key, capability, tool_caller, run, waited](py::args call_args, py::kwargs call_kwargs) -> py::object {
+                        std::optional<ScopedPluginAuditContext> audit_scope;
+                        if (!plugin_key.empty())
+                            audit_scope.emplace(plugin_key, capability);
                         std::optional<ScopedToolCallerThread> caller;
                         if (tool_caller)
                             caller.emplace();
+                        std::optional<ScopedPythonRun> bound;
+                        struct Ended
+                        {
+                            PythonRunScope* scope;
+                            unsigned long   ident;
+                            ~Ended()
+                            {
+                                if (scope != nullptr)
+                                    scope->thread_ended(ident);
+                            }
+                        } ended{nullptr, PyThread_get_thread_ident()};
+                        if (run) {
+                            bound.emplace(run, PythonRunThread::Started);
+                            run->thread_started(ended.ident, waited);
+                            ended.scope = run.get();
+                        }
                         PyObject* result = PyObject_Call(function.ptr(), call_args.ptr(), call_kwargs.ptr());
                         if (result == nullptr)
                             throw py::error_already_set();
                         return py::reinterpret_steal<py::object>(result);
                     });
-                return kwargs.is_none() ? original(guarded, args) : original(guarded, args, kwargs);
+                try {
+                    return start(guarded);
+                } catch (...) {
+                    if (run)
+                        run->thread_start_failed(waited);
+                    throw;
+                }
             },
             py::arg("function"), py::arg("args"), py::arg("kwargs") = py::none());
 

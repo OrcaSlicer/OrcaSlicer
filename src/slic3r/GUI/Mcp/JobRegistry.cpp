@@ -199,7 +199,14 @@ bool JobRegistry::any_running_except(const std::set<std::string>& excluded) cons
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return std::any_of(m_jobs.begin(), m_jobs.end(),
-                       [&](const auto& kv) { return !kv.second.finished && excluded.count(kv.first) == 0; });
+                       [&](const auto& kv) { return !kv.second.finished && !kv.second.idle && excluded.count(kv.first) == 0; });
+}
+
+void JobRegistry::set_idle(const std::string& id)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (auto it = m_jobs.find(id); it != m_jobs.end())
+        it->second.idle = true;
 }
 
 std::string JobRegistry::begin_operation(const std::string& id)
@@ -248,6 +255,8 @@ nlohmann::json JobRegistry::list() const
                          {"age_ms", std::chrono::duration_cast<std::chrono::milliseconds>(now - job.created).count()}};
         if (!job.parent.empty())
             j["parent"] = job.parent;
+        if (job.idle && !job.finished)
+            j["idle"] = true;
         out.push_back(std::move(j));
     }
     return out;

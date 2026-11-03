@@ -1,13 +1,16 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
+#include <slic3r/plugin/PythonRunScope.hpp>
 #include <slic3r/plugin/PythonScriptRunner.hpp>
 #include <slic3r/plugin/host/PluginHostTools.hpp>
+#include <slic3r/plugin/host/PluginHostUi.hpp>
 #include <slic3r/plugin/PluginOperations.hpp>
 
 #include <pybind11/eval.h>
@@ -19,12 +22,22 @@
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/nowide/convert.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <nlohmann/json.hpp>
 
 #include <chrono>
+#include <ctime>
 #include <memory>
+#include <algorithm>
+#include <atomic>
 #include <functional>
+#include <initializer_list>
+#include <ios>
+#include <mutex>
+#include <optional>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -69,6 +82,122 @@ PythonRunOutcome run(const std::string& code, json args = json::object(), std::c
     return run_python_code(request);
 }
 
+// UTF-8 text to a native path and back: wide on Windows, where boost's narrow conversion uses the ANSI code page.
+boost::filesystem::path utf8_path(const std::string& utf8)
+{
+#ifdef _WIN32
+    return boost::filesystem::path(boost::nowide::widen(utf8));
+#else
+    return boost::filesystem::path(utf8);
+#endif
+}
+
+std::string path_utf8(const boost::filesystem::path& path)
+{
+#ifdef _WIN32
+    return boost::nowide::narrow(path.wstring());
+#else
+    return path.string();
+#endif
+}
+
+// A folder of script files whose name holds a non-ASCII character, removed at the end.
+struct MacroDir
+{
+    boost::filesystem::path dir;
+
+    MacroDir() : dir(boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca-macro-%%%%-%%%%"))
+    {
+        dir += utf8_path("-\xC3\xBC");
+        boost::filesystem::create_directories(dir);
+    }
+    ~MacroDir()
+    {
+        boost::system::error_code ec;
+        boost::filesystem::remove_all(dir, ec);
+    }
+    MacroDir(const MacroDir&)            = delete;
+    MacroDir& operator=(const MacroDir&) = delete;
+
+    // Writes `text` as `name` ('/'-separated) and returns the file's path as UTF-8.
+    std::string write(const std::string& name, const std::string& text) const
+    {
+        const boost::filesystem::path path = dir / utf8_path(name);
+        boost::filesystem::create_directories(path.parent_path());
+        boost::nowide::ofstream out(path_utf8(path).c_str(), std::ios::binary);
+        out << text;
+        return path_utf8(path);
+    }
+    std::string folder() const { return path_utf8(dir); }
+};
+
+// Runs `code` as the person's script read from the file `path`, which holds the same text.
+PythonRunOutcome run_file(const std::string& path, const std::string& code, std::chrono::milliseconds budget = std::chrono::minutes(1),
+                          std::function<bool()> cancelled = {})
+{
+    PythonRunRequest request;
+    request.code      = code;
+    request.identity  = kScriptIdentityPerson;
+    request.filename  = path;
+    request.budget    = budget;
+    request.cancelled = std::move(cancelled);
+    return run_python_code(request);
+}
+
+// Evaluates `expr` outside any run and returns its value as JSON.
+json py_json(const std::string& expr)
+{
+    PythonGILState gil;
+    py::dict       scope;
+    py::exec("import json, sys", scope);
+    return json::parse(py::eval("json.dumps(" + expr + ")", scope).cast<std::string>());
+}
+
+// A module the test shares with its scripts, holding threading.Events and the values they leave; removed at the end.
+struct SharedModule
+{
+    std::string name;
+    SharedModule(std::string module_name, std::initializer_list<const char*> events);
+    ~SharedModule();
+    SharedModule(const SharedModule&)            = delete;
+    SharedModule& operator=(const SharedModule&) = delete;
+    void set(const char* event) const;
+    bool wait(const char* event, double seconds) const;
+    // A value a script left at `path` below the module ("pool._shutdown"), as JSON; null when there is none.
+    json get(const std::string& path) const;
+};
+
+// Runs `code` outside any run, for the state a test sets up or clears.
+void py_run(const std::string& code)
+{
+    PythonGILState gil;
+    py::dict       scope;
+    py::exec(code, scope);
+}
+
+SharedModule::SharedModule(std::string module_name, std::initializer_list<const char*> events) : name(std::move(module_name))
+{
+    std::string code = "import sys, types, threading\nm = types.ModuleType('" + name + "')\n";
+    for (const char* event : events)
+        code += std::string("m.") + event + " = threading.Event()\n";
+    py_run(code + "sys.modules['" + name + "'] = m\n");
+}
+
+SharedModule::~SharedModule() { py_run("import sys\nsys.modules.pop('" + name + "', None)\n"); }
+
+void SharedModule::set(const char* event) const { py_run("import " + name + "\n" + name + "." + event + ".set()\n"); }
+
+bool SharedModule::wait(const char* event, double seconds) const
+{
+    return py_json("__import__('" + name + "')." + event + ".wait(" + std::to_string(seconds) + ")").get<bool>();
+}
+
+json SharedModule::get(const std::string& path) const
+{
+    return py_json("(lambda m: eval('m.' + '" + path + "', {'m': m}) if hasattr(m, '" + path.substr(0, path.find('.')) +
+                   "') else None)(__import__('" + name + "'))");
+}
+
 } // namespace
 
 TEST_CASE("a script returns the result it sets, computed from its args", "[PythonScript][Python]")
@@ -86,6 +215,363 @@ TEST_CASE("a script returns the result it sets, computed from its args", "[Pytho
     const PythonRunOutcome none = run("x = 1");
     CHECK(none.status == "finished");
     CHECK(none.result.is_null());
+}
+
+TEST_CASE("code run from a file sees the file's path as __file__, and code under a <name> sees none", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    MacroDir          macro;
+    const std::string code = "result = {'file': globals().get('__file__'), 'name': __name__}";
+    const std::string path = macro.write("report.py", code);
+    const PythonRunOutcome from_file = run_file(path, code);
+    REQUIRE(from_file.status == "finished");
+    CHECK(from_file.result == json{{"file", path}, {"name", "__main__"}});
+
+    const PythonRunOutcome from_name = run_file("<run_python>", code);
+    REQUIRE(from_name.status == "finished");
+    CHECK(from_name.result["file"].is_null());
+}
+
+TEST_CASE("a script file runs as the main program, with its folder importable", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    MacroDir macro;
+    macro.write("helper.py", "VALUE = 1\n");
+    const std::string code = "import sys, helper\n"
+                             "result = {'name': __name__, 'argv': list(sys.argv), 'file': __file__, 'value': helper.VALUE,\n"
+                             "          'main': sys.modules['__main__'].__dict__ is globals()}\n";
+    const std::string path = macro.write("main.py", code);
+    const PythonRunOutcome out = run_file(path, code);
+    REQUIRE(out.status == "finished");
+    CHECK(out.result["name"] == "__main__");
+    CHECK(out.result["argv"] == json::array({path}));
+    CHECK(out.result["file"] == path);
+    CHECK(out.result["value"] == 1);
+    CHECK(out.result["main"] == true);
+}
+
+TEST_CASE("a file run's sys.argv is a list of its own", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const json        app_argv = py_json("list(sys.argv)");
+    MacroDir          macro;
+    const std::string code = "import sys\n"
+                             "sys.argv[0] += '!'\n"
+                             "sys.argv.append('x')\n"
+                             "ne = sys.argv != [__file__]\n"
+                             "sys.argv = sys.argv + ['y']\n"
+                             "result = [list(sys.argv), ne]\n";
+    const std::string path = macro.write("argv.py", code);
+    const PythonRunOutcome out = run_file(path, code);
+    REQUIRE(out.status == "finished");
+    CHECK(out.result == json::array({json::array({path + "!", "x", "y"}), true}));
+    CHECK(py_json("list(sys.argv)") == app_argv);
+}
+
+TEST_CASE("a run leaves sys.path, sys.argv and the app's __main__ as it found them", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string state = "[list(sys.path), list(sys.argv), id(sys.modules['__main__'].__dict__)]";
+    const json        before = py_json(state);
+    MacroDir          macro;
+    macro.write("helper.py", "VALUE = 1\n");
+    const std::string code = "import helper\nresult = helper.VALUE\n";
+    REQUIRE(run_file(macro.write("main.py", code), code).status == "finished");
+    CHECK(py_json(state) == before);
+}
+
+TEST_CASE("a helper module edited between runs is imported afresh", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    MacroDir          macro;
+    const std::string helper = macro.write("helper.py", "VALUE = 1\n");
+    const std::time_t written = boost::filesystem::last_write_time(utf8_path(helper));
+    const std::string code    = "import helper\nresult = helper.VALUE\n";
+    const std::string path    = macro.write("main.py", code);
+    REQUIRE(run_file(path, code).result == 1);
+
+    // Same size and the first write's time, so only reading the source again shows the edit.
+    macro.write("helper.py", "VALUE = 2\n");
+    boost::filesystem::last_write_time(utf8_path(helper), written);
+    CHECK(run_file(path, code).result == 2);
+    CHECK(py_json("'helper' in sys.modules") == false);
+}
+
+TEST_CASE("a namespace package beside the script imports as Python would", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    MacroDir macro;
+    macro.write("nspkg/mod.py", "X = 3\n");
+    const std::string code = "import nspkg.mod\nresult = nspkg.mod.X\n";
+    const PythonRunOutcome out = run_file(macro.write("main.py", code), code);
+    REQUIRE(out.status == "finished");
+    CHECK(out.result == 3);
+    CHECK(py_json("'nspkg.mod' in sys.modules") == false);
+}
+
+TEST_CASE("a module the script reaches through another path entry stays imported", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    MacroDir macro;
+    macro.write("lib/libmod_kept.py", "Y = 4\n");
+    const std::string code = "import os, sys\n"
+                             "sys.path.append(os.path.join(os.path.dirname(__file__), 'lib'))\n"
+                             "import libmod_kept\nresult = libmod_kept.Y\n";
+    REQUIRE(run_file(macro.write("main.py", code), code).result == 4);
+    CHECK(py_json("'libmod_kept' in sys.modules") == true);
+    py_run("import sys\nsys.modules.pop('libmod_kept', None)\n"
+           "sys.path[:] = [p for p in sys.path if not p.endswith('lib') or 'orca-macro-' not in p]\n");
+}
+
+TEST_CASE("a package the script reaches through another path entry keeps its submodules", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // The package lies below the script's folder, as one installed anywhere under a broad folder does.
+    MacroDir macro;
+    macro.write("lib/libpkg_kept/__init__.py", "");
+    macro.write("lib/libpkg_kept/part.py", "Z = 5\n");
+    const std::string code = "import os, sys\n"
+                             "sys.path.append(os.path.join(os.path.dirname(__file__), 'lib'))\n"
+                             "import libpkg_kept.part\nresult = libpkg_kept.part.Z\n";
+    REQUIRE(run_file(macro.write("main.py", code), code).result == 5);
+    CHECK(py_json("'libpkg_kept.part' in sys.modules") == true);
+    py_run("import sys\nfor name in ('libpkg_kept.part', 'libpkg_kept'):\n    sys.modules.pop(name, None)\n"
+           "sys.path[:] = [p for p in sys.path if 'orca-macro-' not in p]\n");
+}
+
+TEST_CASE("a script's folder shadows a standard module not imported yet, but not a built-in one", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    REQUIRE(py_json("'colorsys' in sys.modules") == false);
+    const json builtin = py_json("next((n for n in sorted(sys.builtin_module_names) if n not in sys.modules and n.isidentifier() "
+                                 "and not n.startswith('_')), None)");
+    if (builtin.is_null())
+        SKIP("Every built-in module is imported already");
+    MacroDir macro;
+    macro.write("colorsys.py", "SHADOW = True\n");
+    macro.write(builtin.get<std::string>() + ".py", "SHADOW = True\n");
+    const std::string code = "import importlib\nresult = [getattr(importlib.import_module(name), 'SHADOW', False) "
+                             "for name in ('colorsys', '" + builtin.get<std::string>() + "')]\n";
+    const PythonRunOutcome out = run_file(macro.write("main.py", code), code);
+    REQUIRE(out.status == "finished");
+    CHECK(out.result == json::array({true, false}));
+    CHECK(py_json("'colorsys' in sys.modules") == false);
+}
+
+TEST_CASE("a helper a plugin also loaded stays imported after the run", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    py_run("import sys, types, threading\nm = types.ModuleType('_overlap')\nm.started = threading.Event()\nm.go = threading.Event()\n"
+           "sys.modules['_overlap'] = m\n");
+    MacroDir macro;
+    macro.write("helper_shared.py", "VALUE = 5\n");
+    const std::string plugmod = macro.write("plugmod_shared.py", "import helper_shared\n");
+    const std::string code    = "import _overlap, helper_shared\n_overlap.started.set()\n_overlap.go.wait(10)\nresult = helper_shared.VALUE\n";
+    const std::string path    = macro.write("main.py", code);
+    PythonRunOutcome  out;
+    std::thread       a([&] { out = run_file(path, code); });
+    py_run("import _overlap\n_overlap.started.wait(10)\n");
+
+    std::string              error;
+    std::vector<std::string> paths, modules;
+    PyObject*                module = PythonInterpreter::instance().load_module_from_file(plugmod, error, &paths, &modules);
+    py_run("import _overlap\n_overlap.go.set()\n");
+    a.join();
+    CHECK(out.status == "finished");
+    CHECK(module != nullptr);
+    CHECK(py_json("'helper_shared' in sys.modules") == true);
+    PythonInterpreter::instance().unload_module(module, "plugmod_shared", paths, modules);
+    py_run("import sys\nsys.modules.pop('_overlap', None)\n");
+}
+
+TEST_CASE("a run that replaces the routers or __main__ leaves the next run its own", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const json        app_main = py_json("id(sys.modules['__main__'])");
+    MacroDir          macro;
+    const std::string first  = "import sys, types\nsys.__class__ = types.ModuleType\nsys.modules['__main__'] = types.ModuleType('x')\n";
+    REQUIRE(run_file(macro.write("first.py", first), first).status == "finished");
+    CHECK(py_json("id(sys.modules['__main__'])") == app_main);
+
+    const std::string second = "import sys\nresult = [list(sys.argv), sys.modules['__main__'].__dict__ is globals()]\n";
+    const std::string path   = macro.write("second.py", second);
+    const PythonRunOutcome out = run_file(path, second);
+    REQUIRE(out.status == "finished");
+    CHECK(out.result == json::array({json::array({path}), true}));
+}
+
+TEST_CASE("overlapping runs each see their own __main__ and argv while both run", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    py_run("import sys, types, threading\nm = types.ModuleType('_overlap')\nm.b_started = threading.Event()\n"
+           "m.a_read = threading.Event()\nsys.modules['_overlap'] = m\n");
+    MacroDir          macro;
+    const std::string a_code = "import sys, _overlap\n_overlap.b_started.wait(10)\nsys.argv.append('a')\n"
+                               "result = [list(sys.argv), sys.modules['__main__'].__dict__ is globals()]\n_overlap.a_read.set()\n";
+    const std::string b_code = "import sys, _overlap\n_overlap.b_started.set()\n_overlap.a_read.wait(10)\n"
+                               "result = [list(sys.argv), sys.modules['__main__'].__dict__ is globals()]\n";
+    const std::string a_path = macro.write("a.py", a_code);
+    const std::string b_path = macro.write("b.py", b_code);
+    PythonRunOutcome  a_out;
+    std::thread       a([&] { a_out = run_file(a_path, a_code); });
+    const PythonRunOutcome b_out = run_file(b_path, b_code);
+    a.join();
+    CHECK(a_out.result == json::array({json::array({a_path, "a"}), true}));
+    CHECK(b_out.result == json::array({json::array({b_path}), true}));
+    py_run("import sys\nsys.modules.pop('_overlap', None)\n");
+}
+
+TEST_CASE("runs from one folder evict its helpers only when the last of them ends", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const bool a_ends_first = GENERATE(true, false);
+    py_run("import sys, types, threading\nm = types.ModuleType('_overlap')\n"
+           "m.a_started, m.b_started, m.go_a, m.go_b = (threading.Event() for _ in range(4))\nsys.modules['_overlap'] = m\n");
+    MacroDir          macro;
+    macro.write("helper_two.py", "VALUE = 6\n");
+    const std::string a_code = "import _overlap, helper_two\n_overlap.a_started.set()\n_overlap.go_a.wait(10)\n";
+    const std::string b_code = "import _overlap\n_overlap.b_started.set()\n_overlap.go_b.wait(10)\n";
+    const std::string a_path = macro.write("a.py", a_code);
+    const std::string b_path = macro.write("b.py", b_code);
+    std::thread       a([&] { run_file(a_path, a_code); });
+    std::thread       b([&] { run_file(b_path, b_code); });
+    py_run("import _overlap\n_overlap.a_started.wait(10)\n_overlap.b_started.wait(10)\n");
+    CHECK(py_json("'helper_two' in sys.modules") == true);
+
+    py_run(std::string("import _overlap\n_overlap.") + (a_ends_first ? "go_a" : "go_b") + ".set()\n");
+    (a_ends_first ? a : b).join();
+    CHECK(py_json("'helper_two' in sys.modules") == true);
+    py_run(std::string("import _overlap\n_overlap.") + (a_ends_first ? "go_b" : "go_a") + ".set()\n");
+    (a_ends_first ? b : a).join();
+    CHECK(py_json("'helper_two' in sys.modules") == false);
+    py_run("import sys\nsys.modules.pop('_overlap', None)\n");
+}
+
+TEST_CASE("a run entering a folder while its last run's teardown runs keeps the helpers it imports", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // A's teardown waits in the helper's atexit function, without the GIL, while B enters the folder and imports.
+    SharedModule shared("_td", {"in_exit", "go_exit", "b_imported", "go_b"});
+    MacroDir     macro;
+    macro.write("helper_td.py", "import atexit, _td\nfrom concurrent.futures import ThreadPoolExecutor\nVALUE = _td.version\n"
+                                "POOL = ThreadPoolExecutor(1)\ndef _bye():\n    _td.in_exit.set()\n    _td.go_exit.wait(10)\n"
+                                "atexit.register(_bye)\n");
+    const std::string a_code = "import _td\n_td.version = 1\nimport helper_td\n";
+    const std::string b_code = "import _td\n_td.version = 2\nimport helper_td\n_td.b_value = helper_td.VALUE\n_td.b_imported.set()\n"
+                               "_td.go_b.wait(10)\nresult = helper_td.POOL.submit(int, '9').result(5)\n";
+    const std::string a_path = macro.write("a.py", a_code);
+    const std::string b_path = macro.write("b.py", b_code);
+    PythonRunOutcome  b_out;
+    std::thread       a([&] { run_file(a_path, a_code); });
+    REQUIRE(shared.wait("in_exit", 10));
+    std::thread b([&] { b_out = run_file(b_path, b_code); });
+    REQUIRE(shared.wait("b_imported", 10));
+    shared.set("go_exit");
+    a.join();
+    CHECK(shared.get("b_value") == 2);
+    CHECK(py_json("getattr(sys.modules.get('helper_td'), 'VALUE', None)") == 2);
+    shared.set("go_b");
+    b.join();
+    CHECK(b_out.status == "finished");
+    CHECK(b_out.result == 9);
+    CHECK(py_json("'helper_td' in sys.modules") == false);
+}
+
+TEST_CASE("a helper's finalizers run when its folder's last run ends, inside that run", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // The helper's functions hold its globals, which hold KEEP: only clearing them frees it before a later collection.
+    MacroDir macro;
+    macro.write("helper_cycle.py", "class Bye:\n    def __del__(self):\n        print('helper finalized')\nKEEP = Bye()\n");
+    const std::string      code = "import helper_cycle\n";
+    const PythonRunOutcome out  = run_file(macro.write("main.py", code), code);
+    CHECK(out.status == "finished");
+    CHECK_THAT(out.output, ContainsSubstring("helper finalized"));
+}
+
+TEST_CASE("a filename that is not an existing file runs as code sent as text", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const json             app_argv = py_json("list(sys.argv)");
+    const std::string      code     = "import sys\nresult = {'name': __name__, 'file': globals().get('__file__'), 'argv': list(sys.argv)}\n";
+    const PythonRunOutcome out      = run_file("report", code);
+    REQUIRE(out.status == "finished");
+    CHECK(out.result["name"] == "__main__");
+    CHECK(out.result["file"].is_null());
+    CHECK(out.result["argv"] == app_argv);
+}
+
+TEST_CASE("a thread a script starts prints into the run's output", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const PythonRunOutcome out = run("import threading\nt = threading.Thread(target=lambda: print('from thread'))\nt.start()\nt.join()\n");
+    REQUIRE(out.status == "finished");
+    CHECK_THAT(out.output, ContainsSubstring("from thread"));
+}
+
+TEST_CASE("a non-JSON result in a file run comes back as no result, with a note", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    MacroDir          macro;
+    const std::string code = "result = object()\n";
+    const PythonRunOutcome out = run_file(macro.write("main.py", code), code);
+    CHECK(out.status == "finished");
+    CHECK(out.result.is_null());
+    CHECK_THAT(out.output, ContainsSubstring("not JSON"));
 }
 
 TEST_CASE("a script's printed output comes back with its result", "[PythonScript][Python]")
@@ -190,10 +676,30 @@ struct FakeBridge : ToolBridge
 {
     std::vector<std::string> calls;
     json                     last_args;
+    // Answers a call in place of the canned results when it returns a value; `after` sees each call once answered.
+    std::function<std::optional<json>(const std::string&, const json&)> hook;
+    std::function<void(const std::string&)>                             after;
+    std::mutex                                                          mutex;
     json call(const std::string& tool, const json& args) override
     {
-        calls.push_back(tool);
-        last_args = args;
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            calls.push_back(tool);
+            last_args = args;
+        }
+        struct After
+        {
+            FakeBridge&        bridge;
+            const std::string& tool;
+            ~After()
+            {
+                if (bridge.after)
+                    bridge.after(tool);
+            }
+        } after_call{*this, tool};
+        if (hook)
+            if (std::optional<json> answer = hook(tool, args))
+                return *answer;
         if (tool == "get_state")
             return json{{"ready", true}, {"args", args}};
         if (tool == "run_script")
@@ -248,7 +754,7 @@ result = orca.host.tools.run_script(text, {"part": "lid"})
     CHECK(bridge.last_args == json{{"script", R"({"orca_script": 1, "steps": []}  // replayed)"}, {"vars", {{"part", "lid"}}}});
 }
 
-TEST_CASE("a thread a script starts reads but can't call tools", "[PythonScript][Python]")
+TEST_CASE("a run waits for the non-daemon threads it starts, which call tools through it", "[PythonScript][Python]")
 {
     RunnerHarness harness;
     if (!harness.initialized)
@@ -256,49 +762,1130 @@ TEST_CASE("a thread a script starts reads but can't call tools", "[PythonScript]
 
     FakeBridge             bridge;
     ScopedToolBridge       bound(bridge);
-    const PythonRunOutcome out = run(R"PY(
-import orca, threading
-seen = {}
-def work():
-    try:
-        orca.host.tools.call("get_state")
-        seen["called"] = True
-    except RuntimeError as e:
-        seen["error"] = str(e)
-worker = threading.Thread(target=work)
-worker.start()
-worker.join()
-result = seen
-)PY");
-    REQUIRE(out.status == "finished");
-    CHECK_THAT(out.result.value("error", ""), ContainsSubstring("run's own worker"));
-    CHECK(bridge.calls.empty());
+    const PythonRunOutcome out = run("import orca, threading, time\n"
+                                     "def work():\n    time.sleep(0.2)\n    orca.host.tools.call('get_state')\n"
+                                     "threading.Thread(target=work).start()\n");
+    CHECK(out.status == "finished");
+    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
 }
 
-TEST_CASE("a script is refused the orca.host functions only plugins may call", "[PythonScript][Python]")
+TEST_CASE("a run on a thread Python didn't start waits for the threads it starts", "[PythonScript][Python]")
 {
     RunnerHarness harness;
     if (!harness.initialized)
         SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
 
+    // The app runs a script on an MCP job thread, which Python sees as a daemon dummy thread.
+    FakeBridge       bridge;
+    PythonRunOutcome out;
+    std::thread      job([&] {
+        ScopedToolBridge bound(bridge);
+        out = run("import orca, threading, time\n"
+                  "def work(orca=orca, time=time):\n    time.sleep(0.2)\n    orca.host.tools.call('get_state')\n"
+                  "threading.Thread(target=work).start()\n");
+    });
+    job.join();
+    CHECK(out.status == "finished");
+    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+}
+
+TEST_CASE("a thread started just before the code returns is waited for", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    FakeBridge       bridge;
+    ScopedToolBridge bound(bridge);
+    CHECK(run("import orca, threading\nthreading.Thread(target=lambda: orca.host.tools.call('get_state')).start()\n").status == "finished");
+    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+}
+
+TEST_CASE("a thread started by another of the run's threads after the code returned is waited for", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    FakeBridge       bridge;
+    ScopedToolBridge bound(bridge);
+    CHECK(run("import orca, threading, time\n"
+              "def second():\n    time.sleep(0.3)\n    orca.host.tools.call('get_state')\n"
+              "def first():\n    time.sleep(0.3)\n    threading.Thread(target=second).start()\n"
+              "threading.Thread(target=first).start()\n")
+              .status == "finished");
+    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+}
+
+TEST_CASE("a callback already running when the code returns is waited for, and the thread it starts too", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // The script's code hands its run to the test through the bridge, the way a window callback captures it.
+    SharedModule                    shared("_cb", {"entered"});
+    std::shared_ptr<PythonRunScope> run_scope;
+    FakeBridge                      bridge;
+    bridge.hook = [&](const std::string& tool, const json&) -> std::optional<json> {
+        if (tool != "capture_run")
+            return std::nullopt;
+        run_scope = current_python_run().run;
+        return json::object();
+    };
+    ScopedToolBridge bound(bridge);
+    std::thread      callback;
+    bridge.after = [&](const std::string& tool) {
+        if (tool != "capture_run")
+            return;
+        callback = std::thread([&] {
+            ScopedPythonRun in_run(run_scope, PythonRunThread::Callback);
+            if (!run_scope->callback_entering())
+                return;
+            py_run("import orca, threading, time, _cb\n_cb.entered.set()\ntime.sleep(0.3)\n"
+                   "threading.Thread(target=lambda: orca.host.tools.call('get_state')).start()\n");
+            run_scope->callback_left();
+        });
+    };
+    const PythonRunOutcome out = run("import orca, _cb\norca.host.tools.call('capture_run')\n_cb.entered.wait(10)\n");
+    callback.join();
+    CHECK(out.status == "finished");
+    CHECK(bridge.calls == std::vector<std::string>{"capture_run", "get_state"});
+}
+
+TEST_CASE("a raw thread can't start a thread after its run has ended", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule     shared("_late", {"done"});
+    FakeBridge       bridge;
+    ScopedToolBridge bound(bridge);
+    REQUIRE(run("import _thread, threading, time, _late\n"
+                "def raw(time=time, threading=threading, late=_late):\n    time.sleep(0.3)\n    try:\n"
+                "        threading.Thread(target=print).start()\n    except RuntimeError as e:\n        late.error = str(e)\n"
+                "    late.done.set()\n"
+                "_thread.start_new_thread(raw, ())\n")
+                .status == "finished");
+    REQUIRE(shared.wait("done", 5));
+    CHECK_THAT(shared.get("error").get<std::string>(), ContainsSubstring("run has ended"));
+}
+
+TEST_CASE("a script that exits with sys.exit(0) still waits for its threads", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    FakeBridge       bridge;
+    ScopedToolBridge bound(bridge);
+    CHECK(run("import orca, sys, threading, time\n"
+              "def work():\n    time.sleep(0.2)\n    orca.host.tools.call('get_state')\n"
+              "threading.Thread(target=work).start()\nsys.exit(0)\n")
+              .status == "finished");
+    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+}
+
+TEST_CASE("a daemon thread still running after its run is refused tool calls", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule     shared("_late", {"go", "done"});
+    FakeBridge       bridge;
+    ScopedToolBridge bound(bridge);
+    REQUIRE(run("import orca, threading, _late\n"
+                "def work(orca=orca, late=_late):\n    late.go.wait(10)\n    try:\n        orca.host.tools.call('get_state')\n"
+                "    except RuntimeError as e:\n        late.error = str(e)\n    late.done.set()\n"
+                "threading.Thread(target=work, daemon=True).start()\n")
+                .status == "finished");
+    shared.set("go");
+    REQUIRE(shared.wait("done", 5));
+    CHECK_THAT(shared.get("error").get<std::string>(), ContainsSubstring("run has ended"));
+    CHECK(bridge.calls.empty());
+}
+
+TEST_CASE("a tool call in flight when the run ends finishes before the run does", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_late", {"in_call"});
+    FakeBridge   bridge;
+    bridge.hook = [&](const std::string&, const json&) -> std::optional<json> {
+        shared.set("in_call");
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        return json{{"ready", true}};
+    };
+    ScopedToolBridge bound(bridge);
+    const auto       start = std::chrono::steady_clock::now();
+    REQUIRE(run("import orca, threading, _late\n"
+                "def work(orca=orca, late=_late):\n    late.result = orca.host.tools.call('get_state')\n"
+                "threading.Thread(target=work, daemon=True).start()\n_late.in_call.wait(10)\n")
+                .status == "finished");
+    CHECK(std::chrono::steady_clock::now() - start >= std::chrono::seconds(1));
+    CHECK(shared.get("result") == json{{"ready", true}});
+}
+
+TEST_CASE("a stop during the in-flight wait still ends the run as cancelled", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const bool        by_budget = GENERATE(false, true);
+    SharedModule      shared("_late", {"in_call"});
+    std::atomic<bool> stop{false};
+    FakeBridge        bridge;
+    bridge.hook = [&](const std::string&, const json&) -> std::optional<json> {
+        shared.set("in_call");
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        stop = true;
+        std::this_thread::sleep_for(std::chrono::seconds(2)); // ignores the cancel
+        return json::object();
+    };
+    ScopedToolBridge bound(bridge);
+    int              stops = 0;
+    PythonRunRequest request;
+    request.code       = "import orca, threading, _late\n"
+                         "threading.Thread(target=lambda: orca.host.tools.call('get_state'), daemon=True).start()\n"
+                         "_late.in_call.wait(10)\n";
+    request.identity   = kScriptIdentityAgent;
+    request.budget     = by_budget ? std::chrono::milliseconds(1000) : std::chrono::minutes(1);
+    request.cancelled  = [&] { return !by_budget && stop.load(); };
+    request.stop_calls = [&] { ++stops; };
+    const PythonRunOutcome out = run_python_code(request);
+    CHECK(out.status == (by_budget ? "timed_out" : "cancelled"));
+    CHECK(stops == 1);
+}
+
+TEST_CASE("a task the run submits is waited for and runs inside the run", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string where = GENERATE("module", "list", "function", "helper", "library");
+    SharedModule      shared("_kept", {});
+    MacroDir          macro;
+    const std::string pool_source = "from concurrent.futures import ThreadPoolExecutor\nPOOL = ThreadPoolExecutor(1)\n";
+    macro.write("helper_pool.py", pool_source);
+    macro.write("lib/libpool_task.py", pool_source);
+    std::string make;
+    if (where == "module")
+        make = "from concurrent.futures import ThreadPoolExecutor\npool = ThreadPoolExecutor(1)\n";
+    else if (where == "list")
+        make = "from concurrent.futures import ThreadPoolExecutor\npools = [ThreadPoolExecutor(1)]\npool = pools[0]\n";
+    else if (where == "function")
+        make = "from concurrent.futures import ThreadPoolExecutor\ndef make():\n    _kept.pool = ThreadPoolExecutor(1)\n"
+               "    return _kept.pool\npool = make()\n";
+    else if (where == "helper")
+        make = "import helper_pool\npool = helper_pool.POOL\n";
+    else
+        make = "import os, sys\nsys.path.append(os.path.join(os.path.dirname(__file__), 'lib'))\nimport libpool_task\n"
+               "pool = libpool_task.POOL\n";
+    const std::string code = "import orca, time, _kept\n" + make +
+                             "_kept.pool = pool\n"
+                             "def task():\n    time.sleep(0.3)\n    orca.host.tools.call('get_state')\n"
+                             "pool.submit(task)\n";
+    FakeBridge             bridge;
+    ScopedToolBridge       bound(bridge);
+    const PythonRunOutcome out = run_file(macro.write("main.py", code), code, std::chrono::seconds(20));
+    CHECK(out.status == "finished");
+    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK(shared.get("pool._shutdown") == (where != "library"));
+    if (where == "library") {
+        CHECK(py_json("__import__('_kept').pool.submit(int, '3').result()") == 3);
+        py_run("import sys, _kept\n_kept.pool.shutdown()\nsys.modules.pop('libpool_task', None)\n"
+               "sys.path[:] = [p for p in sys.path if 'orca-macro-' not in p]\n");
+    }
+}
+
+TEST_CASE("a pool worker another run started runs this run's task inside this run", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_kept", {});
+    py_run("import _kept\nfrom concurrent.futures import ThreadPoolExecutor\n_kept.pool = ThreadPoolExecutor(1)\n");
+    FakeBridge bridge_a, bridge_b;
+    {
+        ScopedToolBridge bound(bridge_a);
+        REQUIRE(run("import _kept\n_kept.pool.submit(int).result()\n").status == "finished");
+    }
+    {
+        ScopedToolBridge bound(bridge_b);
+        REQUIRE(run("import orca, _kept\n_kept.pool.submit(lambda: orca.host.tools.call('get_state')).result()\n").status ==
+                "finished");
+    }
+    CHECK(bridge_a.calls.empty());
+    CHECK(bridge_b.calls == std::vector<std::string>{"get_state"});
+    py_run("import _kept\n_kept.pool.shutdown()\n");
+}
+
+TEST_CASE("a submit to a shut-down pool does not hang the run", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const bool caught = GENERATE(true, false);
+    const auto start  = std::chrono::steady_clock::now();
+    const PythonRunOutcome out = run(std::string("from concurrent.futures import ThreadPoolExecutor\npool = ThreadPoolExecutor(1)\n"
+                                                 "pool.shutdown()\n") +
+                                     (caught ? "try:\n    pool.submit(int)\nexcept RuntimeError:\n    pass\n" : "pool.submit(int)\n"));
+    CHECK(out.status == (caught ? "finished" : "raised"));
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(5));
+}
+
+TEST_CASE("Stop interrupts a task the run submitted", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_stop", {"returned", "ended"});
+    py_run("import _stop\nfrom concurrent.futures import ThreadPoolExecutor\n_stop.pool = ThreadPoolExecutor(1)\n");
+    std::atomic<bool> stop{false};
+    std::thread       stopper([&] {
+        shared.wait("returned", 10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        stop = true;
+    });
+    const PythonRunOutcome out = run("import _stop\n"
+                                     "def task():\n    try:\n        while True:\n            pass\n    finally:\n        _stop.ended.set()\n"
+                                     "_stop.pool.submit(task)\n_stop.returned.set()\n",
+                                     json::object(), std::chrono::minutes(1), [&] { return stop.load(); });
+    stopper.join();
+    CHECK(out.status == "cancelled");
+    CHECK(shared.wait("ended", 5));
+    CHECK(py_json("__import__('_stop').pool.submit(int, '5').result()") == 5);
+    py_run("import _stop\n_stop.pool.shutdown()\n");
+}
+
+TEST_CASE("a task queued when the run is stopped never runs", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule      shared("_stop", {"ran"});
+    std::atomic<bool> stop{false};
+    std::thread       stopper([&] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        stop = true;
+    });
+    const PythonRunOutcome out = run("import time, _stop\nfrom concurrent.futures import ThreadPoolExecutor\n"
+                                     "pool = ThreadPoolExecutor(1)\n"
+                                     "def spin():\n    while True:\n        time.sleep(0.01)\n"
+                                     "pool.submit(spin)\n_stop.second = pool.submit(_stop.ran.set)\n",
+                                     json::object(), std::chrono::minutes(1), [&] { return stop.load(); });
+    stopper.join();
+    CHECK(out.status == "cancelled");
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    CHECK(py_json("__import__('_stop').ran.is_set()") == false);
+    CHECK_THAT(py_json("str(__import__('_stop').second.exception(5))").get<std::string>(), ContainsSubstring("run has ended"));
+}
+
+TEST_CASE("a task's done callbacks run inside the run that submitted it, and it waits for them", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const bool   warmed = GENERATE(false, true);
+    SharedModule shared("_cb", {"release"});
+    py_run("import _cb\nfrom concurrent.futures import ThreadPoolExecutor\n_cb.pool = ThreadPoolExecutor(1)\n");
+    if (warmed) {
+        FakeBridge       other;
+        ScopedToolBridge bound(other);
+        REQUIRE(run("import _cb\n_cb.pool.submit(int).result()\n").status == "finished");
+    }
+    FakeBridge       bridge;
+    ScopedToolBridge bound(bridge);
+    std::thread      releaser([&] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        shared.set("release");
+    });
+    const PythonRunOutcome out = run("import orca, time, _cb\n"
+                                     "def cb(future):\n    time.sleep(0.3)\n    print('callback ran')\n    orca.host.tools.call('get_state')\n"
+                                     "_cb.pool.submit(_cb.release.wait, 10).add_done_callback(cb)\n");
+    releaser.join();
+    CHECK(out.status == "finished");
+    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK_THAT(out.output, ContainsSubstring("callback ran"));
+    py_run("import _cb\n_cb.pool.shutdown()\n");
+}
+
+TEST_CASE("Stop reaches a task's done callback and the pool keeps working", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_cb", {"release", "first"});
+    py_run("import _cb\nfrom concurrent.futures import ThreadPoolExecutor\n_cb.pool = ThreadPoolExecutor(1)\n");
+    std::atomic<bool> stop{false};
+    std::thread       driver([&] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        shared.set("release");
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        stop = true;
+    });
+    const PythonRunOutcome out = run("import _cb\n"
+                                     "def first(future):\n    try:\n        while True:\n            pass\n    finally:\n        _cb.first.set()\n"
+                                     "f = _cb.pool.submit(_cb.release.wait, 10)\nf.add_done_callback(first)\n",
+                                     json::object(), std::chrono::minutes(1), [&] { return stop.load(); });
+    driver.join();
+    CHECK(out.status == "cancelled");
+    CHECK(shared.wait("first", 5));
+    CHECK(py_json("__import__('_cb').pool.submit(int, '6').result(5)") == 6);
+    py_run("import _cb\n_cb.pool.shutdown()\n");
+}
+
+TEST_CASE("a SystemExit in a task's done callback leaves a shared pool working", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // One worker: had the SystemExit ended it, the pool would never run another task.
+    SharedModule shared("_cb", {});
+    py_run("import _cb\nfrom concurrent.futures import ThreadPoolExecutor\n_cb.pool = ThreadPoolExecutor(1)\n");
+    const PythonRunOutcome out = run("import threading, _cb\nrelease = threading.Event()\n"
+                                     "def bye(future):\n    raise SystemExit(3)\n"
+                                     "f = _cb.pool.submit(release.wait, 10)\nf.add_done_callback(bye)\nrelease.set()\n");
+    CHECK(out.status == "finished");
+    CHECK_THAT(out.output, ContainsSubstring("SystemExit"));
+    CHECK(py_json("__import__('_cb').pool.submit(int, '6').result(5)") == 6);
+    py_run("import _cb\n_cb.pool.shutdown()\n");
+}
+
+TEST_CASE("a task's future completed by hand while queued leaves a shared pool working", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_cb", {});
+    py_run("import _cb\nfrom concurrent.futures import ThreadPoolExecutor\n_cb.pool = ThreadPoolExecutor(1)\n");
+    const PythonRunOutcome out = run("import threading, _cb\nhold = threading.Event()\n_cb.pool.submit(hold.wait, 10)\n"
+                                     "f = _cb.pool.submit(int)\nf.set_result(7)\nhold.set()\nresult = f.result()\n");
+    CHECK(out.status == "finished");
+    CHECK(out.result == 7);
+    CHECK(py_json("__import__('_cb').pool.submit(int, '6').result(5)") == 6);
+    py_run("import _cb\n_cb.pool.shutdown()\n");
+}
+
+TEST_CASE("a submit whose accounting callback can't be added does not hang the run", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const auto             start = std::chrono::steady_clock::now();
+    const PythonRunOutcome out   = run("import concurrent.futures\npool = concurrent.futures.ThreadPoolExecutor(1)\n"
+                                       "original = concurrent.futures.Future.add_done_callback\n"
+                                       "def refuse(self, fn):\n    raise MemoryError('no room')\n"
+                                       "concurrent.futures.Future.add_done_callback = refuse\n"
+                                       "try:\n    pool.submit(int)\nexcept MemoryError as e:\n    result = str(e)\n"
+                                       "finally:\n    concurrent.futures.Future.add_done_callback = original\n",
+                                       json::object(), std::chrono::seconds(20));
+    CHECK(out.status == "finished");
+    CHECK(out.result == "no room");
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(10));
+}
+
+TEST_CASE("a pool's initializer runs inside the run that started its worker", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    FakeBridge             bridge;
+    ScopedToolBridge       bound(bridge);
+    const PythonRunOutcome out = run("import orca\nfrom concurrent.futures import ThreadPoolExecutor\n"
+                                     "def init():\n    print('init ran')\n    orca.host.tools.call('get_state')\n"
+                                     "pool = ThreadPoolExecutor(1, initializer=init)\nresult = pool.submit(int, '5').result(10)\n");
+    CHECK(out.status == "finished");
+    CHECK(out.result == 5);
+    CHECK_THAT(out.output, ContainsSubstring("init ran"));
+    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+}
+
+TEST_CASE("a pool's initializer in a plugin's run runs under the plugin's identity", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // The plugin may start its pool's thread: the test grants what it asks for.
+    PluginAuditManager::set_permission_prompt_for_testing([](const std::string&, const std::vector<std::string>&) { return true; });
+    PythonRunRequest request;
+    request.code     = "import orca\nfrom concurrent.futures import ThreadPoolExecutor\n"
+                       "def init():\n    try:\n        orca.host.plugin.storage()\n    except RuntimeError as e:\n        print('storage:', e)\n"
+                       "pool = ThreadPoolExecutor(1, initializer=init)\npool.submit(int).result(10)\n";
+    request.identity = "test_plugin_init";
+    const PythonRunOutcome out = run_python_code(request);
+    INFO(out.message << "\n" << out.traceback);
+    CHECK(out.status == "finished");
+    CHECK_THAT(out.output, ContainsSubstring("not registered"));
+}
+
+TEST_CASE("a run waits for a pool's initializer whose task it cancelled", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule     shared("_ini", {"entered", "go"});
+    FakeBridge       bridge;
+    ScopedToolBridge bound(bridge);
+    std::thread      releaser([&] {
+        shared.wait("entered", 10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        shared.set("go");
+    });
+    const PythonRunOutcome out = run("import orca, _ini\nfrom concurrent.futures import ThreadPoolExecutor\n"
+                                     "def init():\n    _ini.entered.set()\n    _ini.go.wait(10)\n    print('init done')\n"
+                                     "    orca.host.tools.call('get_state')\n"
+                                     "pool = ThreadPoolExecutor(1, initializer=init)\nf = pool.submit(int)\n_ini.entered.wait(10)\n"
+                                     "cancelled = f.cancel()\n");
+    releaser.join();
+    CHECK(out.status == "finished");
+    CHECK_THAT(out.output, ContainsSubstring("init done"));
+    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+}
+
+TEST_CASE("a thread of an ended run can't start a pool worker whose initializer would run outside it", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // The daemon thread starts a second worker after the run ended, as a submit whose task the first worker already
+    // ran does when it then spins up another worker.
+    SharedModule shared("_k", {"go", "done"});
+    py_run("import _k\n_k.inits = []\ndef init(k=_k):\n    k.inits.append(1)\n"
+           "from concurrent.futures import ThreadPoolExecutor\n_k.pool = ThreadPoolExecutor(2, initializer=init)\n");
+    REQUIRE(run("import threading, _k\n_k.pool.submit(int).result(5)\n"
+                "def late(pool=_k.pool, k=_k):\n    k.go.wait(10)\n"
+                "    while pool._idle_semaphore.acquire(timeout=0):\n        pass\n"
+                "    try:\n        pool._adjust_thread_count()\n    except RuntimeError as e:\n        k.error = str(e)\n"
+                "    k.done.set()\n"
+                "threading.Thread(target=late, daemon=True).start()\n")
+                .status == "finished");
+    shared.set("go");
+    REQUIRE(shared.wait("done", 10));
+    CHECK_THAT(shared.get("error").get<std::string>(), ContainsSubstring("run has ended"));
+    CHECK(shared.get("inits") == json::array({1}));
+    py_run("import _k\n_k.pool.shutdown()\n");
+}
+
+TEST_CASE("a pool shutdown an interrupt cut short is done again", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // The first shutdown is cut as an interrupt would cut CPython's: after _shutdown is set, before the workers' wake-up.
+    SharedModule           shared("_k", {});
+    const PythonRunOutcome out = run("import sys, _k\nfrom concurrent.futures import ThreadPoolExecutor\n"
+                                     "Interrupted = sys.modules['_orca_run_capture'].RunInterrupted\n"
+                                     "class Pool(ThreadPoolExecutor):\n    cut = True\n"
+                                     "    def shutdown(self, wait=True, *, cancel_futures=False):\n"
+                                     "        if Pool.cut:\n            Pool.cut = False\n            self._shutdown = True\n"
+                                     "            raise Interrupted()\n"
+                                     "        super().shutdown(wait=wait, cancel_futures=cancel_futures)\n"
+                                     "_k.pool = Pool(1)\n_k.pool.submit(int).result(5)\n");
+    CHECK(out.status == "finished");
+    CHECK(py_json("(lambda p: [t.join(5) for t in p._threads] and [t.is_alive() for t in p._threads])(__import__('_k').pool)") ==
+          json::array({false}));
+}
+
+TEST_CASE("Stop reaches a pool's initializer", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule      shared("_stop", {"ended"});
+    std::atomic<bool> stop{false};
+    std::thread       stopper([&] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        stop = true;
+    });
+    const PythonRunOutcome out = run("import time, _stop\nfrom concurrent.futures import ThreadPoolExecutor\n"
+                                     "def init():\n    try:\n        while True:\n            time.sleep(0.05)\n"
+                                     "    finally:\n        _stop.ended.set()\n"
+                                     "pool = ThreadPoolExecutor(1, initializer=init)\npool.submit(int).result()\n",
+                                     json::object(), std::chrono::minutes(1), [&] { return stop.load(); });
+    stopper.join();
+    CHECK(out.status == "cancelled");
+    CHECK(shared.wait("ended", 5));
+}
+
+TEST_CASE("a task cancelled while queued is done to wait()", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const PythonRunOutcome out = run("import threading\nfrom concurrent.futures import ThreadPoolExecutor, wait\n"
+                                     "pool = ThreadPoolExecutor(1)\nrelease = threading.Event()\n"
+                                     "pool.submit(release.wait, 10)\nsecond = pool.submit(int)\nsecond.cancel()\nrelease.set()\n"
+                                     "done, _ = wait([second], timeout=5)\nresult = second in done\n",
+                                     json::object(), std::chrono::seconds(30));
+    CHECK(out.status == "finished");
+    CHECK(out.result == true);
+}
+
+TEST_CASE("a task a broken pool fails does not hang the run", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const auto             start = std::chrono::steady_clock::now();
+    const PythonRunOutcome out   = run("from concurrent.futures import ThreadPoolExecutor\n"
+                                       "def boom():\n    raise ValueError('no start')\n"
+                                       "pool = ThreadPoolExecutor(1, initializer=boom)\nf = pool.submit(int)\n"
+                                       "result = type(f.exception(5)).__name__\n",
+                                       json::object(), std::chrono::seconds(20));
+    CHECK(out.status == "finished");
+    CHECK(out.result == "BrokenThreadPool");
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(10));
+}
+
+TEST_CASE("a submit that raises after queueing its task does not hang the run", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // The task is queued, but the pool can't start the worker that would run it.
+    const auto             start = std::chrono::steady_clock::now();
+    const PythonRunOutcome out   = run("from concurrent.futures import ThreadPoolExecutor\npool = ThreadPoolExecutor(1)\n"
+                                       "def no_thread():\n    raise RuntimeError('no thread')\npool._adjust_thread_count = no_thread\n"
+                                       "try:\n    pool.submit(int)\nexcept RuntimeError as e:\n    result = str(e)\n",
+                                       json::object(), std::chrono::seconds(20));
+    CHECK(out.status == "finished");
+    CHECK(out.result == "no thread");
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(10));
+}
+
+TEST_CASE("a cancelled task is uncounted once", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const bool   by_shutdown = GENERATE(false, true);
+    SharedModule shared("_cb", {"release"});
+    std::thread  releaser([&] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        shared.set("release");
+    });
+    const auto start = std::chrono::steady_clock::now();
+    const PythonRunOutcome out = run(std::string("import _cb\nfrom concurrent.futures import ThreadPoolExecutor\n"
+                                                 "pool = ThreadPoolExecutor(1)\npool.submit(_cb.release.wait, 10)\n"
+                                                 "second = pool.submit(int)\n") +
+                                     (by_shutdown ? "pool.shutdown(wait=False, cancel_futures=True)\n" : "second.cancel()\n"));
+    releaser.join();
+    CHECK(out.status == "finished");
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(5));
+}
+
+TEST_CASE("an untagged pool is still a pool to a run", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_kept", {});
+    py_run("import _kept\nfrom concurrent.futures import ThreadPoolExecutor\n_kept.pool = ThreadPoolExecutor(1)\n"
+           "_kept.pool.__dict__.pop('_orca_origin', None)\n");
+    FakeBridge       bridge;
+    ScopedToolBridge bound(bridge);
+    const auto       start = std::chrono::steady_clock::now();
+    CHECK(run("import orca, _kept\n_kept.pool.submit(lambda: orca.host.tools.call('get_state'))\n").status == "finished");
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(5));
+    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    py_run("import _kept\n_kept.pool.shutdown()\n");
+}
+
+TEST_CASE("a submit from a thread of an ended run is refused", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_late", {"go", "done"});
+    py_run("import _late\nfrom concurrent.futures import ThreadPoolExecutor\n_late.pool = ThreadPoolExecutor(1)\n");
+    REQUIRE(run("import threading, _late\n"
+                "def work(late=_late):\n    late.go.wait(10)\n    try:\n        late.pool.submit(int)\n"
+                "    except RuntimeError as e:\n        late.error = str(e)\n    late.done.set()\n"
+                "threading.Thread(target=work, daemon=True).start()\n")
+                .status == "finished");
+    shared.set("go");
+    REQUIRE(shared.wait("done", 5));
+    CHECK_THAT(shared.get("error").get<std::string>(), ContainsSubstring("run has ended"));
+    py_run("import _late\n_late.pool.shutdown()\n");
+}
+
+TEST_CASE("runs from one folder share a helper's pool and atexit until the last of them ends", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_overlap", {"a_started", "b_started", "go_a", "go_b"});
+    MacroDir     macro;
+    macro.write("helper_atexit.py", "import atexit\nfrom concurrent.futures import ThreadPoolExecutor\nPOOL = ThreadPoolExecutor(1)\n"
+                                    "atexit.register(print, 'helper done')\n");
+    const std::string a_code = "import _overlap, helper_atexit\n_overlap.pool = helper_atexit.POOL\n_overlap.a_started.set()\n"
+                               "_overlap.go_a.wait(10)\n";
+    const std::string b_code = "import _overlap, helper_atexit\n_overlap.b_started.set()\n_overlap.go_b.wait(10)\n"
+                               "result = helper_atexit.POOL.submit(int, '4').result(5)\n";
+    const std::string a_path = macro.write("a.py", a_code);
+    const std::string b_path = macro.write("b.py", b_code);
+    PythonRunOutcome  a_out, b_out;
+    std::thread       a([&] { a_out = run_file(a_path, a_code); });
+    REQUIRE(shared.wait("a_started", 10));
+    std::thread b([&] { b_out = run_file(b_path, b_code); });
+    REQUIRE(shared.wait("b_started", 10));
+    shared.set("go_a");
+    a.join();
+    shared.set("go_b");
+    b.join();
+    CHECK_THAT(a_out.output, !ContainsSubstring("helper done"));
+    CHECK(b_out.result == 4);
+    CHECK_THAT(b_out.output, ContainsSubstring("helper done"));
+    CHECK(shared.get("pool._shutdown") == true);
+}
+
+TEST_CASE("a folder's teardown waits for a plugin import in progress, at the end and at the next entry", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_overlap", {"a_imported", "go_a", "imported", "release"});
+    MacroDir     macro;
+    macro.write("helper_import.py", "from concurrent.futures import ThreadPoolExecutor\nPOOL = ThreadPoolExecutor(1)\n");
+    const std::string plugmod = macro.write("plugmod_import.py", "import _overlap, helper_import\n_overlap.imported.set()\n"
+                                                                 "_overlap.release.wait(10)\n"
+                                                                 "_overlap.value = helper_import.POOL.submit(int, '7').result(5)\n");
+    const std::string a_code = "import _overlap, helper_import\n_overlap.a_imported.set()\n_overlap.go_a.wait(10)\n";
+    const std::string a_path = macro.write("a.py", a_code);
+    const std::string b_code = "x = 1\n";
+    const std::string b_path = macro.write("b.py", b_code);
+
+    // Run A imports the helper; a plugin's import takes it and pauses; A ends, then B enters and ends.
+    PythonRunOutcome a_out;
+    std::thread      a([&] { a_out = run_file(a_path, a_code); });
+    REQUIRE(shared.wait("a_imported", 10));
+    std::string              error;
+    std::vector<std::string> paths, modules;
+    PyObject*                module = nullptr;
+    std::thread              plugin([&] { module = PythonInterpreter::instance().load_module_from_file(plugmod, error, &paths, &modules); });
+    REQUIRE(shared.wait("imported", 10));
+    shared.set("go_a");
+    a.join();
+    const PythonRunOutcome b_out = run_file(b_path, b_code);
+    shared.set("release");
+    plugin.join();
+    CHECK(a_out.status == "finished");
+    CHECK(b_out.status == "finished");
+    REQUIRE(module != nullptr);
+    CHECK(shared.get("value") == 7);
+    CHECK(py_json("'helper_import' in sys.modules") == true);
+    CHECK(std::find(modules.begin(), modules.end(), "helper_import") != modules.end());
+
+    // A later run tears the folder down: the plugin's helper and its pool stay.
+    REQUIRE(run_file(b_path, b_code).status == "finished");
+    CHECK(py_json("'helper_import' in sys.modules") == true);
+    CHECK(py_json("__import__('helper_import').POOL.submit(int, '8').result(5)") == 8);
+    PythonInterpreter::instance().unload_module(module, "plugmod_import", paths, modules);
+}
+
+TEST_CASE("atexit functions a script registers run when its run ends, last first", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // A first run installs the run helper, whose imports register the standard library's own atexit hooks.
+    REQUIRE(run("x = 1").status == "finished");
+    const json             before = py_json("__import__('atexit')._ncallbacks()");
+    const PythonRunOutcome out    = run("import atexit, functools\natexit.register(print, 'one')\n"
+                                        "atexit.register(functools.partial(print, 'two'))\nprint('body')\n");
+    REQUIRE(out.status == "finished");
+    CHECK(out.output == "body\ntwo\none\n");
+    CHECK(py_json("__import__('atexit')._ncallbacks()") == before);
+}
+
+TEST_CASE("a library's atexit registration made during a run stays for the process", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    REQUIRE(run("x = 1").status == "finished");
+    const json        before = py_json("__import__('atexit')._ncallbacks()");
+    MacroDir          macro;
+    macro.write("lib/libexit.py", "import atexit\nCALLED = []\ndef _bye():\n    CALLED.append(1)\natexit.register(_bye)\n");
+    const std::string code = "import os, sys\nsys.path.append(os.path.join(os.path.dirname(__file__), 'lib'))\nimport libexit\n";
+    REQUIRE(run_file(macro.write("main.py", code), code).status == "finished");
+    CHECK(py_json("__import__('libexit').CALLED") == json::array());
+    CHECK(py_json("__import__('atexit')._ncallbacks()") == before.get<int>() + 1);
+    py_run("import atexit, sys, libexit\natexit.unregister(libexit._bye)\nsys.modules.pop('libexit', None)\n"
+           "sys.path[:] = [p for p in sys.path if 'orca-macro-' not in p]\n");
+}
+
+TEST_CASE("atexit.unregister in one run leaves another run's registration", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_ae", {"a_registered", "go_a"});
+    py_run("import _ae\n_ae.calls = []\ndef mark(tag, calls=_ae.calls):\n    calls.append(tag)\n_ae.mark = mark\n");
+    PythonRunOutcome a_out;
+    std::thread      a([&] { a_out = run("import atexit, _ae\natexit.register(_ae.mark, 'a')\n_ae.a_registered.set()\n_ae.go_a.wait(10)\n"); });
+    REQUIRE(shared.wait("a_registered", 10));
+    const PythonRunOutcome b_out = run("import atexit, _ae\natexit.register(_ae.mark, 'b')\natexit.unregister(_ae.mark)\n");
+    shared.set("go_a");
+    a.join();
+    CHECK(b_out.status == "finished");
+    CHECK(a_out.status == "finished");
+    CHECK(shared.get("calls") == json::array({"a"}));
+}
+
+TEST_CASE("a helper a plugin also loaded keeps its atexit functions for the process", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    REQUIRE(run("x = 1").status == "finished");
+    const json   before = py_json("__import__('atexit')._ncallbacks()");
+    SharedModule shared("_overlap", {"started", "go"});
+    MacroDir     macro;
+    macro.write("helper_ae.py", "import atexit\nCLOSED = []\ndef _close():\n    CLOSED.append(1)\n    print('helper closed')\n"
+                                "atexit.register(_close)\n");
+    const std::string plugmod = macro.write("plugmod_ae.py", "import helper_ae\n");
+    const std::string code    = "import _overlap, helper_ae\n_overlap.started.set()\n_overlap.go.wait(10)\n";
+    const std::string path    = macro.write("main.py", code);
+    PythonRunOutcome  out;
+    std::thread       a([&] { out = run_file(path, code); });
+    REQUIRE(shared.wait("started", 10));
+    std::string              error;
+    std::vector<std::string> paths, modules;
+    PyObject*                module = PythonInterpreter::instance().load_module_from_file(plugmod, error, &paths, &modules);
+    shared.set("go");
+    a.join();
+    CHECK(out.status == "finished");
+    REQUIRE(module != nullptr);
+    CHECK(py_json("__import__('helper_ae').CLOSED") == json::array());
+    CHECK_THAT(out.output, !ContainsSubstring("helper closed"));
+    CHECK(py_json("__import__('atexit')._ncallbacks()") == before.get<int>() + 1);
+    py_run("import atexit, helper_ae\natexit.unregister(helper_ae._close)\n");
+    PythonInterpreter::instance().unload_module(module, "plugmod_ae", paths, modules);
+}
+
+TEST_CASE("Stop interrupts the threads a run started", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule      shared("_stop", {"ended"});
+    std::atomic<bool> stop{false};
+    std::thread       stopper([&] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        stop = true;
+    });
+    const PythonRunOutcome out = run("import threading, time, _stop\n"
+                                     "def spin():\n    try:\n        while True:\n            time.sleep(0.05)\n"
+                                     "    finally:\n        _stop.ended.set()\n"
+                                     "threading.Thread(target=spin).start()\n",
+                                     json::object(), std::chrono::minutes(1), [&] { return stop.load(); });
+    stopper.join();
+    CHECK(out.status == "cancelled");
+    CHECK(shared.wait("ended", 5));
+}
+
+TEST_CASE("Stop does not hang on a thread that ignores it", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    std::atomic<bool> stop{false};
+    std::thread       stopper([&] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        stop = true;
+    });
+    const auto             start = std::chrono::steady_clock::now();
+    const PythonRunOutcome out   = run("import threading, time\nthreading.Thread(target=time.sleep, args=(30,)).start()\n",
+                                       json::object(), std::chrono::minutes(1), [&] { return stop.load(); });
+    stopper.join();
+    CHECK(out.status == "cancelled");
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(15));
+}
+
+TEST_CASE("a stopped run's atexit functions still run and the app's state is restored", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const json        state = py_json("[list(sys.argv), id(sys.modules['__main__'].__dict__)]");
+    MacroDir          macro;
+    macro.write("helper_stop.py", "VALUE = 1\n");
+    const std::string code = "import atexit, helper_stop\natexit.register(print, 'goodbye')\nwhile True:\n    pass\n";
+    std::atomic<bool> stop{false};
+    std::thread       stopper([&] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        stop = true;
+    });
+    const PythonRunOutcome out = run_file(macro.write("main.py", code), code, std::chrono::minutes(1), [&] { return stop.load(); });
+    stopper.join();
+    CHECK(out.status == "cancelled");
+    CHECK_THAT(out.output, ContainsSubstring("goodbye"));
+    CHECK(py_json("[list(sys.argv), id(sys.modules['__main__'].__dict__)]") == state);
+    const std::string next = "x = 1\n";
+    REQUIRE(run_file(macro.write("next.py", next), next).status == "finished");
+    CHECK(py_json("'helper_stop' in sys.modules") == false);
+}
+
+TEST_CASE("a finalizer of what a script left in sys.argv is still stopped by the run's time limit", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const auto             start = std::chrono::steady_clock::now();
+    const PythonRunOutcome out   = run("import sys\nclass Loop:\n    def __del__(self):\n        while True:\n            pass\n"
+                                       "sys.argv.append(Loop())\n",
+                                       json::object(), std::chrono::seconds(1));
+    CHECK(out.status == "timed_out");
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(10));
+}
+
+TEST_CASE("a run with no time limit runs past what a limit would allow", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string code = "import time\ntime.sleep(1.5)\nresult = 1\n";
+    CHECK(run(code, json::object(), std::chrono::milliseconds(0)).status == "finished");
+    CHECK(run(code, json::object(), std::chrono::milliseconds(1000)).status == "timed_out");
+}
+
+TEST_CASE("a window callback of a run is refused tool calls", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    FakeBridge      bridge;
+    auto            scope = std::make_shared<PythonRunScope>(0, kScriptIdentityPerson, boost::filesystem::path(), &bridge);
+    ScopedPythonRun in_run(scope, PythonRunThread::Callback);
+    PythonGILState  gil;
+    py::dict        ns;
+    py::exec("import orca\ntry:\n    orca.host.tools.call('get_state')\n    error = None\nexcept RuntimeError as e:\n    error = str(e)\n", ns);
+    CHECK_THAT(ns["error"].cast<std::string>(), ContainsSubstring("window callbacks"));
+    CHECK(bridge.calls.empty());
+}
+
+TEST_CASE("a script passes every plugin gate it can reach without an app", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // Without an app every one of these fails further on; none may fail at a plugins-only gate. A gate left anywhere
+    // would not compile: require_plugin_caller() is gone.
     const PythonRunOutcome out = run(R"PY(
 import orca
-refusals = []
+messages = []
 for attempt in (lambda: orca.host.preset.process.begin_update(),
                 lambda: orca.host.preset.process.update("layer_height", "0.2"),
+                lambda: orca.host.preset.filament.begin_update(1),
+                lambda: orca.host.preset.filament.update(1, "filament_flow_ratio", "0.98"),
+                lambda: orca.host.preset.bundles.reload_local("x"),
+                lambda: orca.host.plater().export_3mf_copy("x.3mf"),
                 lambda: orca.host.ui.message("hello"),
-                lambda: orca.host.plugin.storage()):
+                lambda: orca.host.ui.create_window("<p>x</p>"),
+                lambda: orca.host.ui.create_dock_panel("<p>x</p>"),
+                lambda: orca.host.ui.create_progress_dialog("t", "m"),
+                lambda: orca.host.ui.push_notification("n")):
     try:
         attempt()
-        refusals.append("allowed")
-    except RuntimeError as e:
-        refusals.append(str(e))
-result = refusals
+        messages.append("allowed")
+    except Exception as e:
+        messages.append(str(e))
+result = messages
 )PY");
     REQUIRE(out.status == "finished");
-    REQUIRE(out.result.size() == 4);
-    for (const json& refusal : out.result)
-        CHECK_THAT(refusal.get<std::string>(), ContainsSubstring("is for plugins"));
+    REQUIRE(out.result.size() == 11);
+    for (const json& message : out.result)
+        CHECK_THAT(message.get<std::string>(), !ContainsSubstring("is for plugins"));
+}
+
+TEST_CASE("storage() is the folder of a script's file", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    MacroDir               macro;
+    const std::string      code = "import orca\nresult = orca.host.plugin.storage()\n";
+    const PythonRunOutcome out  = run_file(macro.write("main.py", code), code);
+    REQUIRE(out.status == "finished");
+    CHECK(utf8_path(out.result.get<std::string>()) == macro.dir);
+
+    const PythonRunOutcome text = run("import orca\ntry:\n    orca.host.plugin.storage()\nexcept RuntimeError as e:\n    result = str(e)\n");
+    REQUIRE(text.status == "finished");
+    CHECK_THAT(text.result.get<std::string>(), ContainsSubstring("no folder"));
+}
+
+TEST_CASE("a window callback runs inside the script's run", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // The script hands its callback to the host through the bridge, as create_window does; the test then delivers a
+    // page message to it from another thread while the run lasts.
+    SharedModule                              shared("_cb", {"done"});
+    std::function<void(const nlohmann::json&)> handler;
+    FakeBridge                                bridge;
+    bridge.hook = [&](const std::string& tool, const json&) -> std::optional<json> {
+        if (tool != "take_callback")
+            return std::nullopt;
+        PythonGILState gil;
+        handler = PluginHostUi::message_callback(py::module_::import("_cb").attr("on_message"));
+        return json::object();
+    };
+    std::thread delivery;
+    bridge.after = [&](const std::string& tool) {
+        if (tool == "take_callback")
+            delivery = std::thread([&] { handler(json{{"x", 1}}); });
+    };
+    ScopedToolBridge  bound(bridge);
+    MacroDir          macro;
+    const std::string code = R"PY(
+import orca, threading, _cb
+def on_message(data):
+    _cb.storage = orca.host.plugin.storage()
+    try:
+        orca.host.tools.call("get_state")
+    except RuntimeError as e:
+        _cb.refused = str(e)
+    worker = threading.Thread(target=lambda: orca.host.tools.call("get_state"))
+    worker.start()
+    worker.join()
+    _cb.done.set()
+_cb.on_message = on_message
+orca.host.tools.call("take_callback")
+_cb.done.wait(10)
+)PY";
+    REQUIRE(run_file(macro.write("main.py", code), code).status == "finished");
+    delivery.join();
+    CHECK(utf8_path(shared.get("storage").get<std::string>()) == macro.dir);
+    CHECK_THAT(shared.get("refused").get<std::string>(), ContainsSubstring("window callbacks"));
+    CHECK(bridge.calls == std::vector<std::string>{"take_callback", "get_state"});
+}
+
+TEST_CASE("a run's callbacks do nothing and its threads open no UI once its UI is closed", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule                               shared("_cb", {"called"});
+    auto                                       scope = std::make_shared<PythonRunScope>(1, kScriptIdentityPerson, boost::filesystem::path(), nullptr);
+    std::function<void(const nlohmann::json&)> handler;
+    {
+        ScopedPythonRun in_run(scope, PythonRunThread::Main);
+        PythonGILState  gil;
+        handler = PluginHostUi::message_callback(py::eval("lambda data: __import__('_cb').called.set()"));
+    }
+    scope->mark_ui_closed();
+    handler(json::object());
+    CHECK(shared.wait("called", 0.2) == false);
+
+    ScopedPythonRun in_run(scope, PythonRunThread::Started);
+    PythonGILState  gil;
+    py::dict        ns;
+    py::exec("import orca\ntry:\n    orca.host.ui.message('x')\n    error = None\nexcept RuntimeError as e:\n    error = str(e)\n", ns);
+    CHECK_THAT(ns["error"].cast<std::string>(), ContainsSubstring("run has ended"));
+}
+
+TEST_CASE("a plugin's run leaves its window callbacks and its storage to the plugin", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule                               shared("_cb", {"entered", "go"});
+    MacroDir                                   macro;
+    const std::string                          path  = macro.write("main.py", "x = 1\n");
+    auto                                       scope = std::make_shared<PythonRunScope>(2, "test_plugin_ui", utf8_path(path), nullptr);
+    std::function<void(const nlohmann::json&)> handler;
+    {
+        ScopedPythonRun in_run(scope, PythonRunThread::Main);
+        PythonGILState  gil;
+        handler = PluginHostUi::message_callback(py::eval("lambda data: (__import__('_cb').entered.set(), __import__('_cb').go.wait(10))"));
+    }
+    // A script's run counts a running callback and drops one that comes after it ended; a plugin's does neither.
+    std::thread delivery([&] { handler(json::object()); });
+    REQUIRE(shared.wait("entered", 10));
+    CHECK(scope->close_admission_if_quiet());
+    shared.set("go");
+    delivery.join();
+    py_run("import _cb\n_cb.entered.clear()\n");
+    std::thread later([&] { handler(json::object()); });
+    CHECK(shared.wait("entered", 10));
+    later.join();
+
+    ScopedPythonRun          in_run(scope, PythonRunThread::Main);
+    ScopedPluginAuditContext audit("test_plugin_ui");
+    PythonGILState           gil;
+    py::dict                 ns;
+    py::exec("import orca\ntry:\n    orca.host.plugin.storage()\n    error = None\nexcept RuntimeError as e:\n    error = str(e)\n", ns);
+    CHECK_THAT(ns["error"].cast<std::string>(), ContainsSubstring("not registered"));
+}
+
+TEST_CASE("a stopped run opens no more UI", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    std::atomic<bool> stop{false};
+    std::thread       stopper([&] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        stop = true;
+    });
+    PythonRunRequest request;
+    request.code      = "import atexit, orca\n"
+                        "def later():\n    try:\n        orca.host.ui.message('x')\n    except RuntimeError as e:\n        print(e)\n"
+                        "atexit.register(later)\nwhile True:\n    pass\n";
+    request.identity  = kScriptIdentityPerson;
+    request.cancelled = [&] { return stop.load(); };
+    const PythonRunOutcome out = run_python_code(request);
+    stopper.join();
+    CHECK(out.status == "cancelled");
+    CHECK_THAT(out.output, ContainsSubstring("run has ended"));
 }
 
 TEST_CASE("orca.host.tools refuses code that is neither a plugin nor a script", "[PythonScript][Python]")
@@ -464,6 +2051,118 @@ def handler(args):
     CHECK(out == json{{"wrote", false}, {"sum", 2}});
     // Judged as the plugin's code: its write needed a grant, which was asked for and refused.
     CHECK_FALSE(harness.prompts.empty());
+}
+
+namespace {
+
+// Records what a run asks to install, in place of uv, for the test's lifetime.
+struct InstallerHook
+{
+    std::vector<std::vector<std::string>> installs;
+    bool                                  succeed = true;
+    std::string                           error   = "no network";
+    InstallerHook()
+    {
+        set_python_dependency_installer_for_testing([this](const std::vector<std::string>& packages, std::string& message) {
+            installs.push_back(packages);
+            if (!succeed)
+                message = error;
+            return succeed;
+        });
+    }
+    ~InstallerHook() { set_python_dependency_installer_for_testing(nullptr); }
+    InstallerHook(const InstallerHook&)            = delete;
+    InstallerHook& operator=(const InstallerHook&) = delete;
+};
+
+// `text` with its line ends made CRLF.
+std::string crlf(const std::string& text)
+{
+    std::string out;
+    for (const char c : text) {
+        if (c == '\n')
+            out += '\r';
+        out += c;
+    }
+    return out;
+}
+
+} // namespace
+
+TEST_CASE("a script file's dependencies are installed before its code runs", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const bool        windows_lines = GENERATE(false, true);
+    InstallerHook     hook;
+    MacroDir          macro;
+    std::string       code = "# /// script\n"
+                             "# dependencies = [\n"
+                             "#   \"requests>=2,<3\",  # pinned\n"
+                             "#   \"rich\",\n"
+                             "# ]\n"
+                             "# ///\n"
+                             "result = 1\n";
+    if (windows_lines)
+        code = crlf(code);
+    const std::string path = macro.write("deps.py", code);
+    // The text as the dialog hands it over: read back and decoded as Python reads a source file.
+    std::string text, encoding, error;
+    REQUIRE(decode_python_source(code, text, encoding, error));
+    const PythonRunOutcome out = run_file(path, text);
+    CHECK(out.status == "finished");
+    REQUIRE(hook.installs.size() == 1);
+    CHECK(hook.installs[0] == std::vector<std::string>{"requests>=2,<3", "rich"});
+}
+
+TEST_CASE("a failed install stops the run before its code", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    InstallerHook hook;
+    hook.succeed = false;
+    MacroDir          macro;
+    const std::string code = "# /// script\n# dependencies = [\"rich\"]\n# ///\n"
+                             "import os\nopen(os.path.join(os.path.dirname(__file__), 'ran.txt'), 'w').close()\n";
+    const PythonRunOutcome out = run_file(macro.write("deps.py", code), code);
+    CHECK(out.status == "raised");
+    CHECK_THAT(out.message, ContainsSubstring("no network"));
+    CHECK_FALSE(boost::filesystem::exists(macro.dir / "ran.txt"));
+}
+
+TEST_CASE("a malformed PEP 723 block stops the run before its code", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string block = GENERATE(std::string("# /// script\n# dependencies = [\"x\",\n# ///\n"),
+                                       std::string("# /// script\n# dependencies = []\n# ///\n# /// script\n# dependencies = []\n# ///\n"),
+                                       std::string("# /// script\n# dependencies = \"x\"\n# ///\n"));
+    InstallerHook     hook;
+    MacroDir          macro;
+    const std::string code = block + "import os\nopen(os.path.join(os.path.dirname(__file__), 'ran.txt'), 'w').close()\n";
+    const PythonRunOutcome out = run_file(macro.write("deps.py", code), code);
+    CHECK(out.status == "raised");
+    CHECK_THAT(out.message, ContainsSubstring("PEP 723"));
+    CHECK(hook.installs.empty());
+    CHECK_FALSE(boost::filesystem::exists(macro.dir / "ran.txt"));
+}
+
+TEST_CASE("code sent as text installs nothing", "[PythonScript][Python]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    InstallerHook          hook;
+    const PythonRunOutcome out = run("# /// script\n# dependencies = [\"rich\"]\n# ///\nresult = 2\n");
+    CHECK(out.status == "finished");
+    CHECK(hook.installs.empty());
 }
 
 TEST_CASE("an agent's code is compiled as the text it sent, whatever coding line it holds", "[PythonScript][Python]")

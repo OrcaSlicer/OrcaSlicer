@@ -4,12 +4,17 @@
 
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginJsonPy.hpp>
+#include <slic3r/plugin/PythonRunScope.hpp>
 
 #include <pybind11/eval.h>
 #include <pybind11/gil.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 
+#include <wx/app.h>
+#include <wx/thread.h>
+
+#include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -48,15 +53,27 @@ json call_tool(py::module_& tools, const std::string& name, const py::object& ar
     const json  arguments = args.is_none() ? json::object() : py_to_json(args);
     if (!arguments.is_object())
         throw py::type_error("orca.host.tools.call takes its arguments as a dict");
-    ToolBridge*       bridge   = current_tool_bridge();
-    const std::string identity = PluginAuditManager::instance().current_plugin();
+    ToolBridge*             bridge   = current_tool_bridge();
+    const std::string       identity = PluginAuditManager::instance().current_plugin();
+    const PythonRunBinding& binding  = current_python_run();
     try {
+        // A tool call waits for the UI thread, so a window callback, which runs there, can't make one. wx reports
+        // every thread as its main one until it has started, hence the app check.
+        if (binding.run && (binding.kind == PythonRunThread::Callback || (wxTheApp != nullptr && wxIsMainThread())))
+            throw std::runtime_error("A script's window callbacks run on the UI thread and call no tools; hand the message to the "
+                                     "script's own code, which can");
+        // Any thread of a run calls through the run, while the run lasts.
+        if (binding.run && (binding.run->has_tools() || binding.run->tools_closed())) {
+            std::shared_ptr<PythonRunScope> run = binding.run;
+            py::gil_scoped_release          release;
+            return run->call_tool(name, arguments);
+        }
         if (bridge != nullptr) {
             py::gil_scoped_release release;
             return bridge->call(name, arguments);
         }
         if (is_script_identity(identity))
-            throw std::runtime_error("Only the run's own worker calls tools: a thread a script starts can read but not call tools");
+            throw std::runtime_error("A script calls tools only while its run lasts");
         if (identity.empty())
             throw std::runtime_error("orca.host.tools needs a plugin or a script: call it from a Script capability or a script's own code");
         // A plugin's call waits for the UI thread, so it comes only from a thread nothing there waits for.
@@ -110,8 +127,9 @@ void register_tools(py::module_& host)
         "Call the MCP tool `name` with `args` (a dict) and return its result as a dict. A call that outlives its "
         "reply budget returns {status: \"running\" | \"blocked_by_dialog\", job}, as it does for an agent; follow it "
         "with call(\"wait\", {\"for\": \"job\", \"job\": ...}). An error result raises ToolError, whose details "
-        "hold the result's data. A person's or an agent's script calls tools from its own code, not from threads it "
-        "starts; a plugin needs the tools permission and calls from a Script worker, never the UI thread.");
+        "hold the result's data. A person's or an agent's script calls tools from its own code and from the threads and "
+        "pool tasks it starts, while its run lasts, but not from its window callbacks; a plugin needs the tools "
+        "permission and calls from a Script worker, never the UI thread.");
     tools.def(
         "run_script",
         [tools](const py::object& script, const py::object& vars) mutable {

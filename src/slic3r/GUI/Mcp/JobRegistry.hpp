@@ -75,8 +75,11 @@ public:
     void request_stop(const std::string& id);
     // True when a stop was asked for `id` or one of its ancestors.
     bool stop_requested(const std::string& id) const;
-    // True when a running job exists that is not in `excluded`.
+    // True when a running job exists that is not in `excluded` and isn't set idle.
     bool any_running_except(const std::set<std::string>& excluded) const;
+    // Marks a running job as one that leaves `wait {for: "idle"}` to the calls it makes: a run_python run, which may
+    // wait for a person in its window for minutes. list() shows it as idle.
+    void set_idle(const std::string& id);
     // Operation admission: a job marked as an operation holds the project until it finishes.
     // Marks `id` unless another operation is running, whose id it then returns ("" on success).
     std::string              begin_operation(const std::string& id);
@@ -104,6 +107,7 @@ private:
         std::vector<std::string>              ancestors;
         bool                                  finished  = false;
         bool                                  operation = false;
+        bool                                  idle      = false;
         ToolResult                            result;
         std::chrono::steady_clock::time_point created;
     };

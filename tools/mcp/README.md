@@ -103,6 +103,41 @@ finishes and 1 when it raises, is cancelled or runs out of time; its traceback g
 scripts run only once the setting allows them: set `"mcp_python_scripts": "true"` in the `app` section
 of the datadir's `OrcaSlicer.conf` before the launch, since no tool can turn it on.
 
+A `.py` file runs as Python runs it (`python file.py`), with the whole plugin API: `__name__` is
+`"__main__"`, `__file__` and `sys.argv` name it, the modules beside it import (afresh each run, so an edit
+shows), and the packages its PEP 723 block lists are installed first. It may open windows and progress
+dialogs, which close when the run ends, and its threads and pool tasks call the tools too. The run ends once
+its code and the non-daemon threads and pool tasks it started are done:
+
+```python
+# /// script
+# dependencies = ["numpy"]
+# ///
+import queue, threading
+import orca
+import helper                                    # helper.py beside this file
+
+def main():
+    progress = orca.host.ui.create_progress_dialog("Measuring", "Starting", 3)
+    for step in range(3):
+        progress.update(step + 1, helper.describe(step))
+    # A window's callbacks run on the UI thread and call no tools; they hand the work to the script.
+    pages = queue.Queue()
+    window = orca.host.ui.create_window("<button onclick='window.orca.postMessage({go: 1})'>Go</button>",
+                                        on_message=pages.put)
+    pages.get()                                  # the person pressed Go
+    worker = threading.Thread(target=lambda: print(orca.host.tools.call("get_state")["ready"]))
+    worker.start()                               # waited for before the run ends
+
+if __name__ == "__main__":
+    main()
+```
+
+A window that stays open is closed with the run, so a script that wants the person to work in it waits, as
+the `pages.get()` above does. While a modal it opened is up, tool calls that change the project are refused,
+so interactive scripts use modeless windows. `docs/HLSD/mcp-server.md` ("Python scripts") has the rules for
+overlapping runs, imports, pools, `atexit` and Stop.
+
 `tests/gizmos.json` drives every gizmo through the GUI tools, the way a person does: each one's icon,
 its panel's fields, combos, toggles and links, and clicks or strokes at points of the model, then
 checks what it left on the model (`list_objects`), with an undo and redo and a canvas screenshot per

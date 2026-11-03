@@ -190,6 +190,16 @@ std::string executable_name(const char* base)
 #endif
 }
 
+// Counts a plugin's module import from its start until its modules are recorded.
+struct ScopedPluginImport
+{
+    std::atomic<int>& count;
+    explicit ScopedPluginImport(std::atomic<int>& count) : count(count) { ++count; }
+    ~ScopedPluginImport() { --count; }
+    ScopedPluginImport(const ScopedPluginImport&)            = delete;
+    ScopedPluginImport& operator=(const ScopedPluginImport&) = delete;
+};
+
 bool add_sys_path_entry(const boost::filesystem::path& path, std::string& error, bool* inserted = nullptr)
 {
     if (inserted)
@@ -807,6 +817,11 @@ int PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds timeout
     }
 }
 
+bool PythonInterpreter::plugin_uses_module(const std::string& name) const
+{
+    return m_plugin_module_users.count(name) != 0;
+}
+
 bool PythonInterpreter::add_plugin_sys_path(const std::string& path, std::string& error)
 {
     if (!m_initialized.load(std::memory_order_acquire)) {
@@ -1130,7 +1145,8 @@ PyObject* PythonInterpreter::load_module_from_file(const std::string&       file
     // Ensure module is re-imported fresh by removing any cached instance.
     remove_module_tree_locked(module_name);
 
-    // Import the module
+    // Import the module. Until its modules are recorded, a script's run leaves alone a module the import took.
+    const ScopedPluginImport importing(m_plugin_imports);
     PyObject* module = PyImport_ImportModule(module_name.c_str());
     record_plugin_modules_locked(module_name, plugin_paths ? *plugin_paths : std::vector<std::string>{}, plugin_modules);
     if (!module) {
@@ -1179,6 +1195,7 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
 
     remove_module_tree_locked(pkg_name);
 
+    const ScopedPluginImport importing(m_plugin_imports);
     PyObject* module = PyImport_ImportModule(pkg_name.c_str());
     record_plugin_modules_locked(pkg_name, plugin_paths ? *plugin_paths : std::vector<std::string>{}, plugin_modules);
     if (!module) {

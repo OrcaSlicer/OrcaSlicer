@@ -120,10 +120,12 @@ void register_python_tools(McpService& service)
 
     ToolDef run = mutate_tool(
         "run_python", L("Run Python code"),
-        "Run Python code inside OrcaSlicer against orca.host, the plugin API (python_api searches it): read objects, meshes "
-        "(numpy) and settings, compute, and change the project through orca.host.tools.call(name, args), which calls these "
-        "same tools with their guards and undo. The code is a module body: `args` holds the args you pass, set `result` to "
-        "a JSON value to return it; print() output comes back as output. Returns {status: finished | raised | cancelled | "
+        "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin "
+        "API (python_api searches it): read objects, meshes (numpy) and settings, compute, use orca.host.ui and the preset "
+        "API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args), from the code "
+        "and from the threads and pool tasks it starts while the run lasts. The run ends once its code and the non-daemon "
+        "threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` "
+        "to a JSON value to return it; print() output comes back as output. Returns {status: finished | raised | cancelled | "
         "timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. Python runs "
         "with OrcaSlicer's full access to the computer, so a person must allow Python scripts in Preferences first. Recorded "
         "by export_script as one step with its code, which a replay runs again against the project as it is then.",
@@ -131,7 +133,9 @@ void register_python_tools(McpService& service)
                        {"args", {{"type", "object"}, {"description", "Bound to the name `args` in the code."}}},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 1}, {"maximum", 3600},
                                       {"description", "The run is stopped as timed_out after this many seconds (default 300)."}}},
-                       {"filename", prop("string", "The name tracebacks show for the code, such as its file's (default <run_python>).")}},
+                       {"filename", prop("string", "The name tracebacks show for the code (default <run_python>). An existing file's "
+                                                   "path makes it a file run, as `python file.py` runs it: __file__, sys.argv, imports "
+                                                   "from its folder and its PEP 723 dependencies; any other name only names it.")}},
                       {"code"}),
         [&service](const json& args, ToolContext& ctx) {
             const std::string& plugin = ctx.caller_plugin();
@@ -150,6 +154,8 @@ void register_python_tools(McpService& service)
             // A run owns what its calls leave behind (auto-answer rules, a recording, a held press) as a JSON
             // script does: it all ends with the run.
             const std::string job = ctx.job_id();
+            // A run may wait for a person in its window: `wait {for: "idle"}` counts only the calls it makes.
+            service.jobs().set_idle(job);
             service.begin_script_scope(job);
             struct ScopeEnd
             {
@@ -165,8 +171,12 @@ void register_python_tools(McpService& service)
             request.args      = args.value("args", json::object());
             request.identity  = identity;
             request.filename  = arg_string(args, "filename", "<run_python>");
+            // 0, below the schema's minimum, is passed only in process, by the Run Script dialog, whose Stop ends a run:
+            // every external path validates the arguments. It means no time limit.
             request.budget    = std::chrono::seconds(arg_int(args, "timeout_s", 300));
             request.cancelled = [&ctx] { return ctx.cancelled(); };
+            // A stop or time-out cancels the run's tool calls in flight too, so one that waits returns at once.
+            request.stop_calls = [&service, job] { service.request_stop(job); };
             const PythonRunOutcome out = run_python_code(request);
             if (out.status == "unavailable")
                 throw ToolFailure(out.message);

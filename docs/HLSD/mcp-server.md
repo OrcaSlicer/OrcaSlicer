@@ -84,7 +84,9 @@ act, then check the result with the reading tools, keeping screenshots for what 
 They say to prefer typed tools over clicks and never retry a call that returned a job, point to
 `get_settings`' meta and search for what a setting does, say how a gizmo opens and is driven (and that
 `gizmo_file` only stands in for a file picker inside one, since its name draws agents to it for any
-gizmo work), that the camera turns with `set_view` rather than a drag, and which indices are 0-based. Clients that defer tools load only their names and the
+gizmo work), that the camera turns with `set_view` rather than a drag, and which indices are 0-based.
+They also point to `api_describe` for the operations plugins offer, which `tools/list` never shows, so
+nothing else tells an agent they exist. Clients that defer tools load only their names and the
 instructions at first, so the instructions are how an agent without a skill learns which tool to
 load.
 
@@ -2277,8 +2279,8 @@ GUI changes it. wx ignores `OnExit()`'s return value, so `GUI_Run()` returns
 
 File › Run Script… and the Speed Dial command `open_script_runner` open `ScriptRunnerDialog`, where a
 person opens or writes a script, reads its steps and runs it whole or one step at a time. A `.py` file is a
-Python script, shown and run as one step through `McpService::start_python_run()`: its printed output, its
-result or its traceback show in that step. With the Python setting off it does not parse, so Run stays
+Python script, shown and run as one step through `McpService::start_python_run()`, with no time limit, since
+Stop ends it: its printed output, its result or its traceback show in that step. With the Python setting off it does not parse, so Run stays
 off and the page says why. The editor holds UTF-8 text: a `.py` file is decoded as Python reads it and
 saved back in the encoding it was read in, BOM included; text that encoding can't hold is not saved. It is a
 `WebViewHostDialog` page (`resources/web/dialog/ScriptRunner/`), modeless and one at a time
@@ -2359,61 +2361,186 @@ be satisfied. Only the call's own job counts as its job: a
 
 ## Python scripts
 
-A Python script is a `.py` file or a code string that runs on the plugin interpreter against `orca.host`,
-the plugin API, without being packaged as a plugin. A person runs one from the Run Script dialog or with
-`--mcp-script file.py`; an agent sends one with `run_python {code, args, timeout_s}`; a plugin's code may
-call `run_python` too. The code computes next to the data (meshes as numpy, settings, presets) and changes
-the project only through the tools.
+A Python script is a `.py` file or a code string that runs on the plugin interpreter as an embedded macro: the
+main program of a run inside OrcaSlicer, with the whole plugin API (`orca.host`), without being packaged as a
+plugin. A person runs one from the Run Script dialog or with `--mcp-script file.py`; an agent sends one with
+`run_python {code, args, timeout_s, filename}`; a plugin's code may call `run_python` too. A script that runs
+under `python file.py` runs the same way here, and code written for a plugin's `execute()` (windows, progress,
+presets, storage) runs from a script unchanged. A script is not a plugin: it gets no permission prompt and no
+grants, is never in the Plugins list, and ends when its work ends, leaving nothing loaded.
 
-**Entry contract.** `run_python_code()` (`plugin/PythonScriptRunner.cpp`) runs the code as a module body
-on the calling thread, the MCP job that runs `run_python`, in a fresh namespace with `args` bound and
-`orca` importable. The code is text, compiled as Python compiles any code string, so a coding line in it
-changes nothing; a file's bytes are decoded first as Python reads a source file, by its BOM or its PEP 263
-declaration, else as UTF-8 (`decode_python_source()`), and `filename` (a `.py` file's path) names it in
-tracebacks. It holds an interpreter lease and the GIL for the run. The value left in `result` is
-read once when the body returns; one that is not JSON (a dict with string keys, a list, a string, a
-finite number, a boolean or None, nested) makes the run `raised`, and `SystemExit` with code 0 or None
-finishes it. What the run's own thread prints to stdout and stderr is captured, up to 256 KiB, by a
-stream installed once over `sys.stdout` and `sys.stderr` that routes writes by thread; other threads
-print through. The outcome is `finished`, `raised` (with the traceback), `cancelled` or `timed_out`,
-reported in a successful result, as `run_script` reports a failed step. Everything that can run the
-script's Python, its body and also a result's or an exception's own methods (iteration, `__str__`) and the
-finalizers of what its namespace and traceback hold, runs inside the script's audit scope and under the
-watcher; the capture functions the runner calls are the ones it installed, held from then on. A
-finalizer that runs on past the budget or a cancel while the namespace is cleared makes the run
-`timed_out` or `cancelled`, though Python swallows the interrupt it raises there.
+**Entry contract.** `run_python_code()` (`plugin/PythonScriptRunner.cpp`) runs the code on the calling thread, the
+MCP job that runs `run_python`, holding an interpreter lease and the GIL. The code is text, compiled as Python
+compiles any code string, so a coding line in it changes nothing; a file's bytes are decoded first as Python reads
+a source file, by its BOM or its PEP 263 declaration, else as UTF-8 (`decode_python_source()`). It runs as the main
+program, in a `types.ModuleType("__main__")` of its own, with `args` bound and `orca` importable. A run is a *file
+run* when `filename` names an existing file (the dialog's and `--mcp-script`'s always do): `__file__` and
+`sys.argv` (`[path]`) name it, its folder serves its imports, and its PEP 723 dependencies are installed first.
+Any other name (the default `<run_python>`, a bare traceback name) is code sent as text, which gets none of that;
+`filename` still names it in tracebacks. The value left in `result` is read once when the body returns; in code
+sent as text, one that is not JSON (a dict with string keys, a list, a string, a finite number, a boolean or None,
+nested) makes the run `raised`, while in a file run, where a standalone script may well have a variable of that
+name, it is no result, and the output ends with a line saying it was not JSON. `SystemExit` with code 0 or None
+finishes the run. Output is captured up to 256 KiB by a stream installed once over `sys.stdout` and `sys.stderr`
+that routes writes by the run bound to the writing thread: the run's own thread, the threads it starts, its pool
+tasks and its window callbacks; other threads print through. The outcome is `finished`, `raised` (with the
+traceback), `cancelled` or `timed_out`, reported in a successful result, as `run_script` reports a failed step.
 
-**Cancellation.** A watcher thread interrupts the run with `PyThreadState_SetAsyncExc` when `cancel
-{job}` stops the job (`run_python` is `cancellable`) or the time budget (default 300 s) runs out, again
-every second until the code ends; code blocked inside a C call stops once the call returns. A pending
-interrupt is cleared before the thread runs anything else.
+**The run scope.** `PythonRunScope` (`plugin/PythonRunScope.hpp`) is the run's state that its threads, pool tasks
+and window callbacks share: identity, file, tool bridge, the work it waits for, admission, and whether its UI is
+closed. It is bound thread-locally (`ScopedPythonRun`, `current_python_run()`) to the run's thread, carried by the
+interpreter's thread shim into the threads it starts, by a wrapper of `concurrent.futures.thread._WorkItem.run`
+into its pool tasks, and captured by its window callbacks. Lock order: the GIL before the scope's mutex; nothing
+holding the mutex waits for the GIL.
+
+**One interpreter, many runs.** Runs overlap (an agent's beside a person's), so everything a run changes is keyed
+by the run bound to the calling thread (`_run_id()`), in the helper module `_orca_run_capture` the runner installs
+once (under a lock taken without the GIL, since its imports release the GIL). The interpreter's own `__main__`
+module and the `sys` module get a `ModuleType` subclass (module `__class__` assignment): attribute access on
+`__main__` goes to the bound run's module, so `typing.get_type_hints`, `dataclasses` and pickling find a script's
+globals, and `sys.argv` to the bound run's own list, so every list operation and reassignment stays in the run;
+code outside runs sees the app's. C code that reads the modules' dicts directly (`PyModule_GetDict`,
+`PySys_GetObject`) sees the app's too. Routing `argv` costs every Python attribute read on `sys` about 70 ns. A
+script that puts a plain class back is undone at the next run's entry, and one that replaces
+`sys.modules["__main__"]` gets the original back when it leaves. No run changes `sys.path`: a finder in
+`sys.meta_path`, just before the path finder and so after the built-in and frozen importers as `sys.path[0]` is
+under `python file.py`, serves the threads of an active file run from the script's folder through `FileFinder`
+(source, extension modules, sourceless `.pyc`, namespace packages), and the submodules of the packages it served
+there, never those of a package found elsewhere, even one installed below the folder. It compiles source afresh
+each run, never from or to a cached `.pyc`, so an edit shows on the next run whatever the file's timestamp. What it
+served for a folder is evicted when the last active run from that folder ends, each module only while
+`sys.modules` still holds the module it found (by its spec), never an extension module, which can't load twice,
+nor one a plugin's load recorded as its own. `sys.modules` stays one cache: a script's `import utils` gets a `utils` the app or a plugin
+already imported, and two overlapping scripts in different folders with a helper of the same name share whichever
+came first, so helpers want distinct names. Modules a script imports through folders it adds to `sys.path` itself
+stay cached, as Python's cache keeps them.
+
+**Threads, pools and the end of a run.** Like `python file.py`, a run ends once its work is done: its code, the
+non-daemon `threading.Thread`s it starts, its window callbacks while they run, and the pool tasks it submits. Its
+code runs on a thread Python didn't start (an MCP job thread), which Python sees as a daemon dummy thread, so the
+body runs with that thread's daemon flag cleared: as on `python file.py`'s main thread, a thread it starts is
+non-daemon unless it says otherwise. Unlike there, `threading.main_thread()` is still the app's main thread, and
+the run's own thread is named `Dummy-N`. The shim counts a thread on the run in the starting thread, before the OS
+thread exists, so a thread started late,
+even by another of the run's threads, is never missed; raw `_thread` threads are not waited for, as Python's exit
+doesn't wait for them. A pool's workers are reused across runs, so they carry no run and are never waited for,
+though the pool's initializer, which runs on a new worker before any task, runs inside the run whose thread started
+the worker, as the task it was started for does (its binding and identity, one of its interrupt targets), counted
+as the run's work from before the worker's thread starts until it returns, so the run waits for it even when that
+task is cancelled. Once the run's admission has closed, such a worker doesn't start (a thread of the run gets the
+same error as for any thread), since its initializer would run outside any run and identity. A work
+item created from a thread of a run (a wrapped `_WorkItem.__init__`; `submit` creates exactly one per task it
+accepts) gets a tag of that run, a C++ object that counts its task on the run and uncounts it once, and the
+`_WorkItem.run` wrapper runs the whole item (the task, the future's completion and the done callbacks the pool calls
+from there) inside the submitting run, whichever run started the worker, with the worker as one of its interrupt
+targets; no `BaseException` gets past it, so neither a Stop nor a `SystemExit` in a callback, nor the stock `run`
+refusing a future completed by hand, ends a worker other runs share. A done callback therefore runs in the run
+that submitted the task, whoever added it; the callbacks of a future no pool runs (a bare `Future` another thread
+completes), and those `cancel()` runs on the cancelling thread, run in that thread's own context, as in CPython. A
+Stop in one done callback ends that future's later callbacks too, as any `BaseException` does in CPython's callback
+loop. A future completed without its item running (cancelled, or failed by a broken pool) is uncounted by its
+callback, the tag making sure only one of the two uncounts the item; the worker that later takes a cancelled item
+still marks its future notified, which `wait()` and `as_completed()` need. A `submit` that raises after creating
+its item (a wrapped `submit`) cancels it: the caller got no future, and the item may sit queued with no worker to
+run it. The callback and that hand-off are in place before the count is taken, so no count is ever left without
+them. The run waits in C++,
+without the GIL, never through `Thread.join()`, whose interrupted wait marks a live thread stopped, and closes its
+admission in the same locked step that sees nothing left: from then on a thread of the run can't start a thread
+(it raises, as at interpreter shutdown), a submit from one raises, and a callback does nothing. Then it shuts down
+the pools its own `__main__` code created (`ThreadPoolExecutor.__init__` records the creating frame: the run's
+`__main__`, a module the finder served for a folder, or neither); a folder's pools are shut down when the modules
+that made them are evicted, so one run never shuts down a pool another run from the folder still uses, and other
+pools (`from library import POOL`) keep working. `atexit.register` called from a run's `__main__` code records on
+the run, called from a folder's helper (at its import, say) records on the folder, and anything else (`logging`,
+`multiprocessing`) registers with the process; `atexit.unregister` removes only from the caller's own
+registrations, filed the same way. The run takes its functions once, as Python's exit does (one registered while
+they run is not called), and calls them last first once it is quiet. A folder's teardown, when its last run ends,
+first takes what the folder holds, evicts its modules and lists the pools they made, as host bookkeeping no
+interrupt reaches, so a run that enters the folder while the rest runs imports its helpers afresh and keeps them and
+their pools. A module that stays (a plugin's, an extension) has its `atexit` functions handed to the process's exit
+there. Then, as Python ends a program, it runs the evicted modules' `atexit` functions, clears their globals (so
+what they hold, cycles included, finalizes there, under the run's watcher, while their pools still work) and shuts
+down the pools it listed. Each of these cleanup steps (the run's pools and `atexit` functions too) works through
+what was taken piece by piece, removing a piece as it starts (an `atexit` function) or once it is done (a module's
+globals, a pool), and the runner resumes the step after an interrupt, so an interrupt cuts only the piece it lands
+in. A pool is shut down again on a resume even when its `_shutdown` flag is set, since an interrupt may have cut its
+shutdown between setting the flag and waking its workers. The teardown
+waits while a plugin's import is in progress (`PythonInterpreter::plugin_import_in_progress()`, since a plugin
+records its modules only after its import returns), and then runs at the next entry from that folder, before that
+run's code, on its thread, under its identity and watcher, with the output in its capture. A daemon thread still
+running after the run sees the run's globals, and its evicted helpers', cleared, and is refused tool calls.
+
+**Cancellation.** A watcher thread interrupts the run with `PyThreadState_SetAsyncExc` when `cancel {job}` stops
+the job (`run_python` is `cancellable`) or the time budget (`timeout_s`, default 300 s; the dialog's run has none,
+since its Stop ends it) runs out, again every second until it ends. What it interrupts follows the run's phase,
+which is set, and read before each interrupt, under the GIL: in *Body* (the code) and *Exit* (`atexit` functions,
+the result's own code, the UI teardown, the namespace's finalizers, the folder's teardown, dropping what the script
+left in its routes, its `sys.argv` or in place of `__main__`) the run's thread and its interrupt targets (its
+threads, and the workers running its items or its pools' initializers); in *Threads* (the wait) the targets only;
+in *Drain* (the host's bookkeeping: entering the run and its folder, taking the run's `atexit` functions, releasing
+the folder and taking what its teardown evicts, detaching the run's routes, the output, closing the tools) nothing,
+so no interrupt breaks the host's own bookkeeping, though a stop or time-out there is still recorded. The runner
+switches to *Drain* for each piece of bookkeeping and back to *Exit* for the cleanup it hands over, so what the
+script left finalizes only where a stop can still reach it. At the first stop or time-out it also cancels the
+run's tool calls in flight (`PythonRunRequest::stop_calls`, the job's stop request), so a waiting tool returns at
+once, marks the run stopped, so its queued pool tasks don't run, and closes its UI. Five seconds after a stop the
+run stops waiting for its work and closes its admission anyway. Code blocked inside a C call, or a tool call that
+can't be interrupted, holds the run until it returns. A pending interrupt is cleared before the thread runs
+anything else.
+
+**Dependencies.** A file run's PEP 723 block (`# /// script` … `# ///`) is found, after normalizing line ends, with
+the PEP's reference expression, and read with `tomllib`, so quoted commas, multi-line arrays and comments read as
+TOML says; a malformed block, two `script` blocks or a `dependencies` that isn't a list of strings make the run
+`raised` before its code. Its dependencies are installed before the code, without the GIL, through
+`plugin_loader::install_packages()` into the shared package folder plugins use; installs are serialized, so a
+script's and a plugin's never write the folder at once. An install that fails makes the run `raised` before its
+code. The install isn't covered by the watcher; uv's 120 s timeout bounds it.
 
 **Identity.** A person's script runs under the audit identity `script`, an agent's under `mcp`
-(`kScriptIdentityPerson`, `kScriptIdentityAgent`); `McpService::person_run()` tells them apart by the
-run's lineage, since the dialog's and `--mcp-script`'s jobs are marked as a person's (`as_person()`).
-Every audited access is allowed to these identities and logged under them (reads at debug level), apart
-from the categorical denies every plugin has (`is_denied_path()`): nothing contains the code, and the
-setting is the boundary. Threads the code starts keep the identity through the interpreter's thread
-shim, but outlive the run. A run owns what its calls leave behind, as a JSON script does
-(`begin_script_scope()`): auto-answer rules, a recording and a held press end with it. The identities are reserved: a plugin whose key equals one is refused before any of its code runs. A
-plugin's `run_python` runs under the plugin's own identity and grants instead.
+(`kScriptIdentityPerson`, `kScriptIdentityAgent`); `McpService::person_run()` tells them apart by the run's
+lineage, since the dialog's and `--mcp-script`'s jobs are marked as a person's (`as_person()`). Every audited
+access is allowed to these identities and logged under them (reads at debug level), apart from the categorical
+denies every plugin has (`is_denied_path()`): nothing contains the code, and the setting is the boundary. The
+threads, pool tasks and window callbacks of a run carry its identity. A run owns what its calls leave behind, as a
+JSON script does (`begin_script_scope()`): auto-answer rules, a recording and a held press end with it. The
+identities are reserved: a plugin whose key equals one is refused before any of its code runs. A plugin's
+`run_python` runs under the plugin's own identity and grants instead, with the same main-program environment, but
+its windows, callbacks and storage stay the plugin's.
 
-**The setting.** One switch, `mcp_python_scripts`, off by default, lets both a person's scripts and an
-agent's `run_python` run; with it off they are refused (a plugin's `run_python` needs none). It is
-changed only in `PythonScriptsDialog`, opened from Preferences › AI features › Python scripts, which is
-named `kHiddenFromAutomation`: the UI tools never see it and `ModalTracker` leaves it off the stack, so
-no dialog tool or auto-answer rule reaches it. No tool writes the key.
+**The setting.** One switch, `mcp_python_scripts`, off by default, lets both a person's scripts and an agent's
+`run_python` run; with it off they are refused (a plugin's `run_python` needs none). It is changed only in
+`PythonScriptsDialog`, opened from Preferences › AI features › Python scripts, which is named
+`kHiddenFromAutomation`: the UI tools never see it and `ModalTracker` leaves it off the stack, so no dialog tool or
+auto-answer rule reaches it. No tool writes the key.
 
-**The host surface and the bridge.** A script reads through `orca.host` as a plugin does. The functions
-that change state outside the tools (the staged preset update, bundle reload, the 3MF copy, plugin UI,
-plugin storage) call `require_plugin_caller()` and refuse a script identity; the test "every orca.host
-function is classified" lists every function as script-callable or plugin-only, so a new binding is
-plugin-only until someone classifies it. `orca.host.tools.call(name, args)` and `run_script(script,
-vars)`, whose script is a dict or its JSON text (`plugin/host/PluginHostTools.cpp`), reach the tools through the `ToolBridge` bound to the calling
-thread: a run binds one whose calls are `ToolContext::call_child()` of the `run_python` job, so each has
-its tool's guards, admission and undo, and the GIL is released while it waits. An error result raises
-`orca.host.tools.ToolError` with its data as `details`. A thread a script starts has no bridge and is
-refused, and code with no audit identity at all is refused.
+**The host surface and the bridge.** A script reaches the whole `orca.host`, as a plugin does: reads, `orca.host.ui`
+(message boxes, progress dialogs, HTML windows, dock panels, notifications), the staged preset update, bundle
+reload and the 3MF copy; nothing is plugin-only. `orca.host.plugin.storage()` is a script's own folder, the folder
+of its file; code sent as text has none. `orca.host.tools.call(name, args)` and `run_script(script, vars)`, whose
+script is a dict or its JSON text (`plugin/host/PluginHostTools.cpp`), reach the tools from any thread of the run
+while it lasts, through the run's bridge: its calls are `ToolContext::call_child()` of the `run_python` job, so
+each has its tool's guards, admission and undo, and the GIL is released while it waits. At the end the bridge
+closes, and the run waits for calls already inside it before its `ToolContext` goes. An error result raises
+`orca.host.tools.ToolError` with its data as `details`. Code with no audit identity at all is refused.
+
+**A script's UI.** What a script's run opens (windows, dock panels, progress dialogs, message boxes, notification
+links) is registered under a run-unique owner (`script/<id>`; a plugin key never holds `/`), and closes with the
+run: after its `atexit` functions and before its namespace is cleared, the run marks its UI closed and tears it
+down on the UI thread, waiting for that (`PluginHostUi::close_run_windows()`), so none of its callbacks runs after
+its globals go. At the first stop or time-out the watcher does the same at once (posted only while the app isn't
+closing), which ends a modal loop the run waits in: a script's `ui.message` box is registered while it is shown and
+ended with `EndModal`. From then on a creation from a thread of the run raises, and one already posted checks the
+run on the UI thread and creates nothing, so nothing the run opens outlives it. A window callback (`on_message`,
+`on_submit`, `on_close`, a notification's `on_click`) captures the run when it is made and runs inside it,
+counted as active work; it runs on the UI thread, so it is refused tool calls (the tools wait for the UI thread),
+and hands its work to the script's own code, through a `queue.Queue` say, which can call them. While a modal the
+run opened is up, tool calls that change the project are refused by the modal guard, the run's own included, so
+interactive macros use modeless windows. A script's dock panel keeps its saved layout under the script identity and
+its title. A plugin's `run_python` leaves all of this to the plugin.
+
+**Idle.** A `run_python` job doesn't count as busy for `wait {for: "idle"}` (`JobRegistry::set_idle()`); the
+calls it makes, and what they start, do. A macro waiting for the person in its window would otherwise hold every
+agent's idle wait, and a `tools/mcp` driver run from the dialog against the same app would wait on its own run.
 
 **Journal and replay.** `run_python` is journaled as one step holding its code, kept when the code failed
 partway; its tool calls are not journaled. In a JSON script a `run_python` step's `code` is never
@@ -2426,7 +2553,9 @@ A plugin's code calls the tools through `orca.host.tools` once it holds the `too
 (`PluginPermissions::tools`), which it declares with `request_permissions(tools=True)`. The person answers
 it at load in its own prompt (`request_tools_permission()`), apart from the plugin's other permissions,
 and a refusal leaves the plugin loading without it. With the permission a plugin can do what an agent can:
-work in the GUI, answer dialogs, replace the project, write presets and files; the prompt says so.
+work in the GUI, answer dialogs, replace the project, write presets and files; the prompt says so. A plugin's
+`run_python` is the plugin's own code: its identity and grants, its windows and storage, though it runs as a main
+program as any script does.
 
 A plugin's call waits for the UI thread, so it comes only from a thread nothing there waits for: a Script
 worker, a Python thread one starts (the thread shim carries the mark) or MCP's own thread running a plugin
