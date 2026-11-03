@@ -4037,7 +4037,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
         auto diameter = printer_preset.config.opt_string("printer_variant");
         auto extruder_max_nozzle_count = printer_preset.config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
         const bool has_flow_variant = preset_bundle.support_different_extruders();
-        auto update_extruder_variant = [printer_model, extruders_def, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,diameter,extruder_max_nozzle_count,has_flow_variant](ExtruderGroup & extruder, size_t row, int index) {
+        auto update_extruder_variant = [printer_model, extruders_def, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,diameter,extruder_max_nozzle_count,has_flow_variant, &printer_preset](ExtruderGroup & extruder, size_t row, int index) {
             ComboBox *combo_flow = extruder.rows[row].flow;
             combo_flow->Clear();
             // A profile may leave the per-extruder lists shorter than the nozzle count (they are
@@ -4053,7 +4053,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
                 // get_at falls back to the first entry when a profile defines no per-extruder value,
                 // so extruders without an explicit sub-nozzle count never offer Hybrid. A nullable-int
                 // nil is INT_MAX (> 1) and would otherwise falsely pass the gate, so exclude it too.
-                if (boost::algorithm::contains(extruder_variants->values[index], type + " " + nozzle_volumes_def->enum_labels[i]) ||
+                if (boost::algorithm::contains(get_extruder_variant_list(printer_preset.config, index), type + " " + nozzle_volumes_def->enum_labels[i]) ||
                     (extruder_max_nozzle_count->get_at(index) > 1 && extruder_max_nozzle_count->get_at(index) != ConfigOptionIntsNullable::nil_value() &&
                     nozzle_volumes_def->enum_keys_map->at(nozzle_volumes_def->enum_values[i]) == nvtHybrid)) {
                     auto cur_volume_type = nozzle_volumes_def->enum_keys_map->at(nozzle_volumes_def->enum_values[i]);

@@ -695,6 +695,8 @@ static std::set<NozzleVolumeType> get_valid_nozzle_volume_type() {
 // profile's extruder_variant_list. An empty set means the profile could not be read and must be
 // treated as "unknown", not as "none". nvtHybrid is never reported: it describes an extruder
 // holding a mix of nozzles, not a nozzle the profile can offer.
+// Profile variants plus user-enabled interchangeable nozzle types.
+extern std::string get_extruder_variant_list(const DynamicPrintConfig &printer_config, int extruder_id);
 extern std::set<NozzleVolumeType> get_extruder_supported_nozzle_volume_types(const DynamicPrintConfig &printer_config, int extruder_id);
 
 std::string get_nozzle_volume_type_string(NozzleVolumeType nozzle_volume_type);

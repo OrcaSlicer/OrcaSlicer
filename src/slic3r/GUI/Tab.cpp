@@ -5515,6 +5515,7 @@ void TabPrinter::build_fff()
 
         optgroup = page->new_optgroup(L("Advanced"), L"param_advanced");
 
+        optgroup->append_single_option_line("allow_different_nozzles");
         optgroup->append_single_option_line("printer_structure", "printer_basic_information_advanced#printer-structure");
         optgroup->append_single_option_line("gcode_flavor", "printer_basic_information_advanced#g-code-flavor");
         optgroup->append_single_option_line("gcode_skip_config_block", "printer_basic_information_advanced#skip-g-code-config-block");
@@ -7085,6 +7086,9 @@ void TabPrinter::on_value_change(const std::string& opt_key, const boost::any& v
 {
     if (wxGetApp().plater() == nullptr || m_config_manipulation.is_applying())
         return;
+
+    if (opt_key == "allow_different_nozzles")
+        m_presets->get_edited_preset().set_num_extruders(m_extruders_count);
 
     const int pos = opt_key.find("#");
     // Orca: fields of the single Extruder page keep index 0 but edit the selected extruder.

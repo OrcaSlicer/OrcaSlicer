@@ -837,6 +837,27 @@ int get_config_index_base(NozzleVolumeType volume_type, ExtruderType extruder_ty
     return std::max(index, 0);
 }
 
+std::string get_extruder_variant_list(const DynamicPrintConfig &printer_config, int extruder_id)
+{
+    const auto *variants = printer_config.option<ConfigOptionStrings>("extruder_variant_list");
+    std::string result = variants ? variants->get_at(extruder_id) : "";
+    const auto *allow = printer_config.option<ConfigOptionBool>("allow_different_nozzles");
+    const auto *diameters = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    const auto *types = printer_config.option<ConfigOptionEnumsGeneric>("extruder_type");
+    if (allow && allow->value && diameters && diameters->size() > 1 && types) {
+        // Keep the profile's drive type and vendor-specific variants. Hybrid requires
+        // physical sub-nozzle inventory and is deliberately not added here.
+        for (NozzleVolumeType volume : {nvtStandard, nvtHighFlow, nvtExtraHighFlow}) {
+            const std::string variant = get_extruder_variant_string(ExtruderType(types->get_at(extruder_id)), volume);
+            if (!variant.empty() && result.find(variant) == std::string::npos) {
+                if (!result.empty()) result += ",";
+                result += variant;
+            }
+        }
+    }
+    return result;
+}
+
 std::set<NozzleVolumeType> get_extruder_supported_nozzle_volume_types(const DynamicPrintConfig &printer_config, int extruder_id)
 {
     std::set<NozzleVolumeType> supported_types;
@@ -851,7 +872,7 @@ std::set<NozzleVolumeType> get_extruder_supported_nozzle_volume_types(const Dyna
     for (NozzleVolumeType volume_type : get_valid_nozzle_volume_type()) {
         // An unsupported extruder type yields an empty name, which would match any list.
         const std::string variant = get_extruder_variant_string(extruder_type, volume_type);
-        if (!variant.empty() && variant_list->values[extruder_id].find(variant) != std::string::npos)
+        if (!variant.empty() && get_extruder_variant_list(printer_config, extruder_id).find(variant) != std::string::npos)
             supported_types.insert(volume_type);
     }
     return supported_types;
@@ -7010,6 +7031,12 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings { " " });
 
+    def = this->add("allow_different_nozzles", coBool);
+    def->label = L("Allow different nozzles");
+    def->tooltip = L("Allow printers with multiple extruders to select standard, high flow, or extra high flow nozzles independently for each extruder.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("single_extruder_multi_material", coBool);
     def->label = L("Single Extruder Multi Material");
     def->tooltip = L("Use single nozzle to print multi filament.");
@@ -10611,7 +10638,7 @@ static void extend_extruder_variant(DynamicPrintConfig& config, const unsigned i
     for (int i = 0; i < num_extruders; i++) {
         // `extruder_variant_list` specifies supported variant of each nozzle/extruder,
         // each item is a comma separated list of variants (extruder type + nozzle flow type) this extruder supported
-        std::string variant = extruder_variant_opt->get_at(i);
+        std::string variant = get_extruder_variant_list(config, i);
         std::vector<std::string> variants_list;
         boost::split(variants_list, variant, boost::is_any_of(","), boost::token_compress_on);
 
@@ -10631,6 +10658,10 @@ static void extend_extruder_variant(DynamicPrintConfig& config, const unsigned i
 
 void DynamicPrintConfig::set_num_extruders(unsigned int num_extruders)
 {
+    // Capability expansion depends on the new tool count, including transitions
+    // between one and several extruders.
+    if (auto *diameters = option<ConfigOptionFloats>("nozzle_diameter"))
+        diameters->resize(num_extruders, FullPrintConfig::defaults().option("nozzle_diameter"));
     extend_extruder_variant(*this, num_extruders);
 
     const auto &defaults = FullPrintConfig::defaults();
@@ -10813,7 +10844,7 @@ bool DynamicPrintConfig::support_different_extruders(int& extruder_count) const
         auto extruder_variant_opt = dynamic_cast<const ConfigOptionStrings*>(this->option("extruder_variant_list"));
         if (extruder_variant_opt != nullptr) {
             for (int index = 0; index < size; index++) {
-                std::string variant = extruder_variant_opt->get_at(index);
+                std::string variant = get_extruder_variant_list(*this, index);
                 std::vector<std::string> variants_list;
                 boost::split(variants_list, variant, boost::is_any_of(","), boost::token_compress_on);
                 if (!variants_list.empty())

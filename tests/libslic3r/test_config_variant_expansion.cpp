@@ -883,3 +883,36 @@ TEST_CASE("The mixed filament metadata is sized to the filament count", "[Config
     REQUIRE(config.option<ConfigOptionBools>("filament_is_mixed")->values == std::vector<unsigned char>({false, false, false, false}));
     REQUIRE(config.option<ConfigOptionStrings>("filament_mixed_components")->values == std::vector<std::string>({"", "", "", ""}));
 }
+
+TEST_CASE("Different nozzles add independent flow variants without changing profile capabilities", "[Config][FilamentVariants]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.option<ConfigOptionStrings>("extruder_variant_list")->values = {"Direct Drive Standard"};
+    config.set_num_extruders(2);
+    const auto profile_variants = config.option<ConfigOptionStrings>("extruder_variant_list")->values;
+    int count = 0;
+    REQUIRE_FALSE(config.support_different_extruders(count));
+    REQUIRE(count == 2);
+
+    config.option<ConfigOptionBool>("allow_different_nozzles")->value = true;
+    config.set_num_extruders(2);
+    REQUIRE(config.support_different_extruders(count));
+    for (int tool = 0; tool < count; ++tool) {
+        const auto supported = get_extruder_supported_nozzle_volume_types(config, tool);
+        REQUIRE(supported.count(nvtHighFlow) == 1);
+        REQUIRE(supported.count(nvtExtraHighFlow) == 1);
+        REQUIRE(supported.count(nvtHybrid) == 0);
+        REQUIRE(config.get_index_for_extruder(tool + 1, "printer_extruder_id", etDirectDrive,
+                                            nvtHighFlow, "printer_extruder_variant") >= 0);
+    }
+    REQUIRE(config.option<ConfigOptionStrings>("extruder_variant_list")->values == profile_variants);
+
+    config.option<ConfigOptionBool>("allow_different_nozzles")->value = false;
+    config.set_num_extruders(2);
+    REQUIRE_FALSE(config.support_different_extruders(count));
+    REQUIRE(config.option<ConfigOptionStrings>("printer_extruder_variant")->size() == 2);
+
+    config.option<ConfigOptionBool>("allow_different_nozzles")->value = true;
+    config.set_num_extruders(1);
+    REQUIRE_FALSE(config.support_different_extruders(count));
+}
