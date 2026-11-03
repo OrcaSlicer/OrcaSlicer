@@ -804,6 +804,12 @@ void FlashforgePrintHostSendDialog::init()
                             sync_mapping_section_visibility();
                         }, &m_checkbox_ifs);
 
+    const std::string printer_model = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("printer_model");
+    if (printer_model == "Flashforge Creator 5" || printer_model == "Flashforge Creator 5 Pro") {
+        add_option_checkbox(m_flashforge_options_sizer, _L("Flow Calibration"), m_flow_calibration,
+                            [this](bool checked) { m_flow_calibration = checked; });
+    }
+
     if (m_checkbox_ifs != nullptr && !m_supports_material_station)
         m_checkbox_ifs->Enable(false);
 
@@ -924,6 +930,7 @@ std::map<std::string, std::string> FlashforgePrintHostSendDialog::extendedInfo()
         {"levelingBeforePrint", m_leveling_before_print ? "1" : "0"},
         {"timeLapseVideo", m_time_lapse_video ? "1" : "0"},
         {"useMatlStation", m_use_material_station ? "1" : "0"},
+        {"flowCalibration", m_flow_calibration ? "1" : "0"},
         {"gcodeToolCnt", std::to_string(mapped_count)},
         {"materialMappings", mappings.dump()}
     };
