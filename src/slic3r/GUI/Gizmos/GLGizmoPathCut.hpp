@@ -107,8 +107,8 @@ private:
     Vec3d              m_view_dir{Vec3d::UnitY()}; // locked at the first point (view path mode)
     float              m_kerf{0.2f};             // clearance between parts [mm]
     float              m_margin{1.5f};           // loop: how far the cut may run from the loop (exact) / min. cap reach past it (flat) [mm]
-    bool               m_flat_cap{false};        // loop: flat cut face through the mean plane (a slab) instead of exactly along the loop
-    bool               m_follow_creases{true};   // loop: follow the model's creases between the picked points
+    bool               m_flat_cap{true};         // loop: flat cut face through the mean plane (a slab) instead of exactly along the loop
+    bool               m_follow_creases{false};  // loop: follow the model's creases between the picked points
     std::vector<Vec3d> m_loop_pts;               // ... that loop, world coordinates (empty: use the picked points)
     std::shared_ptr<PathCut::CreaseGraph> m_creases; // edges of the object and how sharply it bends across them
     const ModelObject *m_creases_object{nullptr};

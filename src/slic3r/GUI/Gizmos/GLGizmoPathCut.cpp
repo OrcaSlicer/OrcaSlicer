@@ -10,6 +10,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoCut.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoUtils.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include <optional>
@@ -675,21 +676,6 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
     };
     const float scale = m_parent.get_scale();
     ImGuiWrapper::push_toolbar_style(scale);
-    // Drop-down lists: dark text on white, in either theme. (Under the toolbar style the open list was
-    // drawn black with dark green text, unreadable until hovered.)
-    auto push_list_style = []() {
-        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(1.f, 1.f, 1.f, 1.f));
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(1.f, 1.f, 1.f, 1.f));
-        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.92f, 0.92f, 0.92f, 1.f));
-        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.88f, 0.88f, 0.88f, 1.f));
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.12f, 0.12f, 0.12f, 1.f));
-        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.f, 0.59f, 0.53f, 0.30f));
-        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.f, 0.59f, 0.53f, 0.18f));
-        ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.f, 0.59f, 0.53f, 0.45f));
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.92f, 0.92f, 0.92f, 1.f)); // the arrow box
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.65f, 0.65f, 0.65f, 1.f));
-    };
-    auto pop_list_style = []() { ImGui::PopStyleColor(10); };
 
     // Keep the window inside the canvas: move it up when it gets taller, and scroll beyond that.
     y = std::max(0.f, std::min(y, bottom_limit - m_window_height));
@@ -741,25 +727,8 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
     ImGui::SameLine();
     if (m_imgui->bbl_radio_button(_u8L("Closed loop on surface").c_str(), m_mode == Mode::Loop) && m_mode != Mode::Loop)
         switch_mode(Mode::Loop);
-
-    ImGui::Separator();
-    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 26.f);
-    if (m_mode == Mode::ViewPath)
-        m_imgui->text(_u8L("Click points on the object along the line where it should be split. The path is extended past the "
-                           "object and cut straight through it in the direction you were looking when you placed the first point."));
-    else
-        m_imgui->text(_u8L("Click points on the surface all the way around the part to detach (e.g. an arm). The loop closes "
-                           "itself; a curved cap spanning it separates only that part."));
-    m_imgui->text(_u8L("Click to add a point, right click removes the last one. Drag to rotate the view."));
-    ImGui::PopTextWrapPos();
     m_imgui->disabled_end();
 
-    // The actions come first so they stay in view however long the settings below get.
-    ImGui::Separator();
-    m_imgui->text(GUI::format(_u8L("Points: %1%"), m_points.size()));
-
-    // (button() disables itself, so these take !m_busy as their enable flag rather than nesting
-    // inside the disabled block above)
     // Moving the object (or editing it elsewhere) while its preview is shown drops the preview: only
     // what is shown may be applied.
     if (m_pending && !m_busy && !job_object_unchanged(*m_pending)) {
@@ -768,64 +737,28 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
         m_message_is_error = true;
         m_preview_dirty    = true;
     }
-    const size_t min_pts = m_mode == Mode::Loop ? 3 : 2;
-    if (!previewing() && !m_placing) {
-        // Editing: place points, then compute the preview. The cut is only performed from the preview.
-        if (m_imgui->button(_L("Undo point"), ImVec2(0, 0), !m_points.empty() && !m_busy)) {
-            clear_pending();
-            m_points.pop_back();
-            settings_changed();
-        }
-        ImGui::SameLine();
-        if (m_imgui->button(_L("Clear"), ImVec2(0, 0), !m_points.empty() && !m_busy))
-            reset_path();
-        ImGui::SameLine();
-        if (m_imgui->button(_L("Preview cut"), ImVec2(0, 0), m_points.size() >= min_pts && !m_busy))
-            wxGetApp().CallAfter([this]() { perform_cut(); });
-        ImGui::SameLine();
-        m_imgui->button(_L("Perform cut"), ImVec2(0, 0), false);
-    } else if (previewing() && !m_busy) {
-        if (m_imgui->button(_L("Edit cut")))
-            back_to_edit();
-        ImGui::SameLine();
-        if (m_imgui->button(_L("Perform cut")))
-            wxGetApp().CallAfter([this]() { if (previewing()) apply_cut(m_pending); });
-    }
-    if (m_busy) {
-        ImGui::SameLine();
-        // Frees the tool at once, whatever the cut is doing: its result is dropped when it ends.
-        if (m_imgui->button(_L("Cancel"))) {
-            if (m_running)
-                abort_job(*m_running);
-            m_running.reset();
-            ++m_generation;
-            m_busy             = false;
-            m_message          = _u8L("Cut cancelled.");
-            m_message_is_error = false;
-        }
-    }
 
+    ImGui::Separator();
+    // (button() disables itself, so the buttons take !m_busy as their enable flag)
+    ImGui::AlignTextToFramePadding();
     if (m_placing && m_pending && !m_busy) {
         // Manual connectors: the cut is computed, the user clicks on the cut face where each one goes.
-        ImGui::Separator();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 26.f);
-        m_imgui->text(_u8L("Click on the cut face (orange) where each connector should go. Right click removes the last one. "
-                           "Then apply the cut."));
-        ImGui::PopTextWrapPos();
         m_imgui->text(GUI::format(_L_PLURAL("%1% connector placed", "%1% connectors placed", m_spots.size()), m_spots.size()));
+        ImGui::SameLine();
         if (m_imgui->button(_L("Undo connector"), ImVec2(0, 0), !m_spots.empty())) {
             m_spots.pop_back();
             rebuild_connector_preview();
             m_message.clear();
         }
-        ImGui::SameLine();
-        if (m_imgui->button(_L("Apply cut")))
-            wxGetApp().CallAfter([this]() { if (m_pending && m_placing) apply_cut(m_pending); });
-        ImGui::SameLine();
-        if (m_imgui->button(_L("Cancel"))) {
-            clear_pending();
-            m_message.clear();
-            m_preview_dirty = true;
+    } else {
+        m_imgui->text(GUI::format(_u8L("Points: %1%"), m_points.size()));
+        if (!previewing()) {
+            ImGui::SameLine();
+            if (m_imgui->button(_L("Undo point"), ImVec2(0, 0), !m_points.empty() && !m_busy)) {
+                clear_pending();
+                m_points.pop_back();
+                settings_changed();
+            }
         }
     }
     if (!m_message.empty()) {
@@ -865,28 +798,17 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
     } else {
         // Direction the path is swept along: as seen when placing the first point, forced level with the
         // bed (a cut parallel to the bed for a path drawn from the front), vertical, or set by hand.
-        ImGui::AlignTextToFramePadding();
-        m_imgui->text(_u8L("Cut direction"));
-        ImGui::SameLine(field_x);
         const std::vector<std::string> sweeps{_u8L("From the view"), _u8L("Level with the bed"), _u8L("Vertical"), _u8L("Custom")};
-        const int sweep = int(m_sweep);
-        ImGui::PushItemWidth(input_w * 2.2f);
-        push_list_style();
-        if (ImGui::BeginCombo("##pathcut_sweep", sweeps[size_t(sweep)].c_str())) {
-            for (int i = 0; i < int(sweeps.size()); ++i)
-                if (ImGui::Selectable(sweeps[size_t(i)].c_str(), i == sweep) && i != sweep) {
-                    if (Sweep(i) == Sweep::Custom) { // start from the current direction
-                        const Vec3d d = sweep_dir();
-                        m_turn = float(std::atan2(d.y(), d.x()) * 180. / PI);
-                        m_tilt = float(std::asin(std::clamp(-d.z(), -1., 1.)) * 180. / PI);
-                    }
-                    m_sweep         = Sweep(i);
-                    settings_changed();
-                }
-            ImGui::EndCombo();
+        int sweep = int(m_sweep);
+        if (render_combo(_u8L("Cut direction"), sweeps, sweep, field_x, input_w * 2.2f)) {
+            if (Sweep(sweep) == Sweep::Custom) { // start from the current direction
+                const Vec3d d = sweep_dir();
+                m_turn = float(std::atan2(d.y(), d.x()) * 180. / PI);
+                m_tilt = float(std::asin(std::clamp(-d.z(), -1., 1.)) * 180. / PI);
+            }
+            m_sweep = Sweep(sweep);
+            settings_changed();
         }
-        pop_list_style();
-        ImGui::PopItemWidth();
         if (m_sweep == Sweep::Custom) {
             ImGui::AlignTextToFramePadding();
             m_imgui->text(_u8L("Turn (deg)"));
@@ -902,20 +824,23 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
             m_tilt = std::clamp(m_tilt, -90.f, 90.f);
         }
         // How far the wall reaches: through everything unless limited, each side on its own.
-        auto limit_row = [&](const wxString &label, Limit &lim, const char *id) {
-            if (m_imgui->bbl_checkbox(label, lim.on))
-                settings_changed();
-            if (lim.on) {
-                ImGui::SameLine(check_x);
-                if (ImGui::InputFloat(id, &lim.mm, 0.5f, 5.f, "%.1f"))
+        if (ImGui::TreeNodeEx(_u8L("Limits").c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding)) {
+            auto limit_row = [&](const wxString &label, Limit &lim, const char *id) {
+                if (m_imgui->bbl_checkbox(label, lim.on))
                     settings_changed();
-                lim.mm = std::clamp(lim.mm, 0.f, 1000.f);
-            }
-        };
-        limit_row(_L("Limit in front (mm)"), m_lim_front, "##pathcut_front");
-        limit_row(_L("Limit behind (mm)"), m_lim_back, "##pathcut_back");
-        limit_row(_L("Limit past the first point (mm)"), m_lim_start, "##pathcut_start");
-        limit_row(_L("Limit past the last point (mm)"), m_lim_end, "##pathcut_end");
+                if (lim.on) {
+                    ImGui::SameLine(check_x);
+                    if (ImGui::InputFloat(id, &lim.mm, 0.5f, 5.f, "%.1f"))
+                        settings_changed();
+                    lim.mm = std::clamp(lim.mm, 0.f, 1000.f);
+                }
+            };
+            limit_row(_L("Limit in front (mm)"), m_lim_front, "##pathcut_front");
+            limit_row(_L("Limit behind (mm)"), m_lim_back, "##pathcut_back");
+            limit_row(_L("Limit past the first point (mm)"), m_lim_start, "##pathcut_start");
+            limit_row(_L("Limit past the last point (mm)"), m_lim_end, "##pathcut_end");
+            ImGui::TreePop();
+        }
     }
 
     // Connectors: straight, along the direction the pieces come apart in, placed where they fit. Edited while
@@ -927,24 +852,13 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
             settings_changed();
     };
     ImGui::Separator();
-    ImGui::AlignTextToFramePadding();
-    m_imgui->text(_u8L("Connectors"));
-    ImGui::SameLine(field_x);
     {
         const std::vector<std::string> types{_u8L("None"), _u8L("Peg and hole"), _u8L("Separate pin")};
-        const int                      type = std::clamp(int(m_conn.type), 0, int(types.size()) - 1);
-        ImGui::PushItemWidth(input_w * 2.2f);
-        push_list_style();
-        if (ImGui::BeginCombo("##pathcut_conn_type", types[size_t(type)].c_str())) {
-            for (int i = 0; i < int(types.size()); ++i)
-                if (ImGui::Selectable(types[size_t(i)].c_str(), i == type) && i != type) {
-                    m_conn.type = PathCut::ConnectorType(i);
-                    conn_changed();
-                }
-            ImGui::EndCombo();
+        int                            type = std::clamp(int(m_conn.type), 0, int(types.size()) - 1);
+        if (render_combo(_u8L("Connectors"), types, type, field_x, input_w * 2.2f)) {
+            m_conn.type = PathCut::ConnectorType(type);
+            conn_changed();
         }
-        pop_list_style();
-        ImGui::PopItemWidth();
     }
     if (m_conn.type != PathCut::ConnectorType::None) {
         ImGui::AlignTextToFramePadding();
@@ -1011,18 +925,69 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
                                       "Its hole is still cut with the clearance set. Check the pieces before printing."),
                                  ImGui::GetFontSize() * 20.f);
         }
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 26.f);
-        if (m_conn_manual)
-            m_imgui->text(_u8L("Straight connectors along the mean direction of the cut face. After the cut is computed, click on "
-                               "the cut face where each one should go: each spot is checked for room in both parts. Two or more "
-                               "also keep the parts from turning."));
-        else
-            m_imgui->text(_u8L("Straight connectors along the mean direction of the cut face, placed automatically where both parts "
-                               "have room for them. Two or more also keep the parts from turning."));
-        ImGui::PopTextWrapPos();
     }
     ImGui::PopItemWidth();
     m_imgui->disabled_end();
+
+    // Bottom bar, as in the Cut tool: the tips button with what the mouse does, then the actions.
+    ImGui::Separator();
+    const bool placing = m_placing && m_pending && !m_busy;
+    std::vector<std::pair<wxString, wxString>> tips;
+    if (placing)
+        tips = {{_L("Left mouse button"), _L("Place a connector on the cut face")},
+                {_L("Right mouse button"), _L("Remove the last connector")}};
+    else
+        tips = {{_L("Left mouse button"), m_mode == Mode::Loop ? _L("Add a point around the part to detach") :
+                                                                 _L("Add a point along the line to cut")},
+                {_L("Right mouse button"), _L("Remove the last point")},
+                {_L("Drag"), _L("Rotate the view")}};
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, tips, x, y);
+    ImGui::SameLine();
+    const size_t min_pts = m_mode == Mode::Loop ? 3 : 2;
+    if (m_busy) {
+        GLGizmoUtils::begin_right_aligned_buttons({_L("Cancel")});
+        // Frees the tool at once, whatever the cut is doing: its result is dropped when it ends.
+        if (m_imgui->button(_L("Cancel"))) {
+            if (m_running)
+                abort_job(*m_running);
+            m_running.reset();
+            ++m_generation;
+            m_busy             = false;
+            m_message          = _u8L("Cut cancelled.");
+            m_message_is_error = false;
+        }
+    } else if (placing) {
+        GLGizmoUtils::begin_right_aligned_buttons({_L("Apply cut"), _L("Cancel")});
+        GLGizmoUtils::push_orca_button_style();
+        if (m_imgui->button(_L("Apply cut")))
+            wxGetApp().CallAfter([this]() { if (m_pending && m_placing) apply_cut(m_pending); });
+        GLGizmoUtils::pop_orca_button_style();
+        ImGui::SameLine();
+        if (m_imgui->button(_L("Cancel"))) {
+            clear_pending();
+            m_message.clear();
+            m_preview_dirty = true;
+        }
+    } else if (previewing()) {
+        GLGizmoUtils::begin_right_aligned_buttons({_L("Edit cut"), _L("Perform cut")});
+        if (m_imgui->button(_L("Edit cut")))
+            back_to_edit();
+        ImGui::SameLine();
+        GLGizmoUtils::push_orca_button_style();
+        if (m_imgui->button(_L("Perform cut")))
+            wxGetApp().CallAfter([this]() { if (previewing()) apply_cut(m_pending); });
+        GLGizmoUtils::pop_orca_button_style();
+    } else {
+        // Editing: place points, then compute the preview. The cut is only performed from the preview.
+        GLGizmoUtils::begin_right_aligned_buttons({_L("Clear"), _L("Preview cut"), _L("Perform cut")});
+        if (m_imgui->button(_L("Clear"), ImVec2(0, 0), !m_points.empty()))
+            reset_path();
+        ImGui::SameLine();
+        if (m_imgui->button(_L("Preview cut"), ImVec2(0, 0), m_points.size() >= min_pts))
+            wxGetApp().CallAfter([this]() { perform_cut(); });
+        ImGui::SameLine();
+        m_imgui->button(_L("Perform cut"), ImVec2(0, 0), false);
+    }
 
     m_window_height = ImGui::GetWindowHeight();
     GizmoImguiEnd();
