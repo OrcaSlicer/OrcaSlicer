@@ -1,5 +1,6 @@
 #include "PlateSettingsDialog.hpp"
 #include "MsgDialog.hpp"
+#include "Tab.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/StaticLine.hpp"
 #include <climits>
@@ -541,6 +542,15 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_spiral_mode_choice->Append(_L("Enable"));
     m_spiral_mode_choice->Append(_L("Disable"));
     m_spiral_mode_choice->SetSelection(0);
+    m_spiral_mode_choice->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+        // "Enable" asks for confirmation once, declined goes back to "Same as Global"
+        if (e.GetSelection() != 1 || m_spiral_vase_confirmed)
+            return;
+        if (static_cast<TabPrintPlate*>(wxGetApp().plate_tab)->show_spiral_mode_settings_dialog(false) == wxID_YES)
+            m_spiral_vase_confirmed = true;
+        else
+            m_spiral_mode_choice->SetSelection(0);
+    });
     wxStaticText* spiral_mode_txt = new wxStaticText(this, wxID_ANY, _L("Spiral vase"));
     spiral_mode_txt->SetFont(Label::Body_14);
     top_sizer->Add(spiral_mode_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);

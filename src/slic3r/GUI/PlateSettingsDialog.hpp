@@ -194,6 +194,7 @@ protected:
     TextInput *m_ti_plate_name;
     ComboBox *m_skirt_start_angle;
     double m_global_skirt_start_angle { 0. };
+    bool m_spiral_vase_confirmed { false };
 };
 
 class PlateNameEditDialog : public DPIDialog
