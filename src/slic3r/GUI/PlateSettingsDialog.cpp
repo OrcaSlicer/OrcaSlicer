@@ -851,7 +851,7 @@ PlateNameEditDialog::PlateNameEditDialog(wxWindow *parent, wxWindowID id, const 
             this->Close();
     });
     top_sizer->Add(plate_name_txt , 0, wxBOTTOM, PLATE_SETTING_V_SPACING);
-    top_sizer->Add(m_ti_plate_name, 1, wxEXPAND);
+    top_sizer->Add(m_ti_plate_name, 0, wxEXPAND);
     m_ti_plate_name->GetTextCtrl()->SetMaxLength(250);
 
     m_sizer_main->Add(top_sizer, 0, wxEXPAND | wxALL, PLATE_SETTING_CONTENT_MARGIN);
