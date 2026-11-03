@@ -4362,6 +4362,7 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
 
     wxGetApp().params_panel()->notify_object_config_changed();
     update();
+    wxGetApp().plater()->get_current_canvas3D()->set_as_dirty(); // plate settings icon
 }
 
 void TabPrintPlate::notify_changed(ObjectBase* object)
