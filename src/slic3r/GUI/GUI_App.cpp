@@ -4326,7 +4326,9 @@ void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
     }
 
     m_agent->set_printer_agent(agent);
-    sidebar().update_all_preset_comboboxes();
+    // Before mainframe is shown this runs from load_current_presets(), right after
+    // printer refilled the filament combos; no printer is connected yet, so they would not change
+    sidebar().update_all_preset_comboboxes(mainframe == nullptr || mainframe->IsShown());
 }
 
 std::string GUI_App::resolve_printer_agent_id(const std::string& stored_id) const
