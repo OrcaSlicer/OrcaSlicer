@@ -73,7 +73,10 @@ paths elsewhere in the loop identify it. Likewise, an external loop with an
 overhanging start remains eligible when other segments identify the external
 wall. It is available for support checks but is not an inner-wall target.
 Candidate-specific support filtering and AABB trees are built only for eligible
-external loops, then reused across their candidate paths.
+external loops, then reused across their candidate paths. They contain only the
+printed walls within the wipe length plus twice the corner reach of the support
+checks around the seam, so an island with many holes does not rebuild trees of
+its whole printed prefix for every loop.
 
 Material-side validation applies with or without a seam gap. Along each
 candidate, local wall normals point toward the adjacent printed inner wall;

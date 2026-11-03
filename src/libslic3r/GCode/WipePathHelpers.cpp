@@ -1,6 +1,7 @@
 #include "WipePathHelpers.hpp"
 
 #include "../AABBTreeLines.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Point.hpp"
@@ -700,14 +701,34 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
         max_wipe_length <= SCALED_EPSILON || max_support_distance <= SCALED_EPSILON)
         return false;
 
+    // Orca: the executable path stays within the wipe length of its start, and
+    // support and side queries reach at most twice the corner reach beyond it.
+    // Keep only the printed walls in that area, so an island with many holes
+    // does not build trees of its whole printed prefix for every external loop.
+    BoundingBox seam_area(Points{seam_start, seam_end, wipe_start});
+    seam_area.offset(max_wipe_length + 2. * miter_limit * max_support_distance);
+    const auto lines_near_seam = [&seam_area](const Lines &lines) {
+        Lines result;
+        for (const Line &line : lines)
+            if (std::max(line.a.x(), line.b.x()) >= seam_area.min.x() &&
+                std::min(line.a.x(), line.b.x()) <= seam_area.max.x() &&
+                std::max(line.a.y(), line.b.y()) >= seam_area.min.y() &&
+                std::min(line.a.y(), line.b.y()) <= seam_area.max.y())
+                result.push_back(line);
+        return result;
+    };
+    const Lines target_lines = lines_near_seam(target_perimeter_lines);
+    if (target_lines.empty())
+        return false;
+
     Lines material_support_lines;
-    const Lines *candidate_support_lines = &target_perimeter_lines;
+    const Lines *candidate_support_lines = &target_lines;
     if (seam_start == seam_end) {
         // Orca: another contour may have a geometrically closer inner wall on
         // this loop's air side. Restrict zero-gap support using the local seam
         // normals before choosing the nearest wall.
         material_support_lines = material_side_support_lines(
-            polyline, seam_start, preferred_dir, target_perimeter_lines);
+            polyline, seam_start, preferred_dir, target_lines);
         if (material_support_lines.empty())
             return false;
         candidate_support_lines = &material_support_lines;
@@ -729,7 +750,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
     // Orca: every candidate is validated against the same generated geometry.
     // Build these AABB trees once per loop instead of rebuilding them for each
     // preferred, alternate, translated, direct, or reversed candidate.
-    Lines all_support_lines = printed_perimeter_lines;
+    Lines all_support_lines = lines_near_seam(printed_perimeter_lines);
     all_support_lines.insert(all_support_lines.end(), current_perimeter_lines.begin(), current_perimeter_lines.end());
     AABBTreeLines::LinesDistancer<Line> all_support_distancer(std::move(all_support_lines));
     AABBTreeLines::LinesDistancer<Line> current_perimeter_distancer(current_perimeter_lines);
