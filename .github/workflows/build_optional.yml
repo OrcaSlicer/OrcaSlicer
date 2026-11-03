@@ -4,8 +4,9 @@
 # runners for an hour, and Windows arm64 doubles the Windows legs.
 #
 # A label asks for one, from the moment it is added and on every later push to
-# the pull request: build-flatpak, build-macos-x86_64, build-windows-arm64.
-# Removing and adding a label again rebuilds the same commit.
+# the pull request: build-flatpak, build-macos-x86_64, build-windows-arm64, or
+# build-all for every one of them. Removing and adding a label again rebuilds
+# the same commit.
 #
 # A pull request that changes anything but sources, tests, profiles,
 # translations and docs builds the Flatpak and Windows arm64 without a label:
@@ -26,6 +27,30 @@ on:
     branches:
      - main
      - release/*
+    # Build all's pull_request paths, plus the Flatpak packaging: a pull request
+    # that Build all skips has nothing for these builds to check either, and
+    # the filter applies to labeled too. Keep the two lists in step.
+    paths:
+     - 'deps/**'
+     - 'deps_src/**'
+     - 'cmake/**'
+     - 'src/**'
+     - '**/CMakeLists.txt'
+     - 'version.inc'
+     - ".github/workflows/build_*.yml"
+     - ".github/workflows/unit_tests*.yml"
+     - 'build_linux.sh'
+     - 'build_win.bat'
+     - 'scripts/test_build_win.ps1'
+     - 'scripts/check_exception_throw_info.ps1'
+     - 'scripts/test_check_exception_throw_info.ps1'
+     - 'build_release_macos.sh'
+     - 'scripts/build_preset_cache.*'
+     - 'scripts/prune_cached_presets.ps1'
+     - 'scripts/test_prune_cached_presets.ps1'
+     - 'scripts/flatpak/**'
+     - 'scripts/msix/**'
+     - 'tests/**'
     # labeled, so adding a label starts the build it asks for.
     types: [opened, reopened, synchronize, labeled]
 
@@ -61,7 +86,7 @@ jobs:
           fi
           pick() {
             local build=$1 label=$2 auto=$3 on=false
-            if has_label "$label" || { [ "$auto" = true ] && [ "$infra" = true ]; }; then
+            if has_label "$label" || has_label build-all || { [ "$auto" = true ] && [ "$infra" = true ]; }; then
               on=true
             fi
             echo "$build=$on" >> "$GITHUB_OUTPUT"

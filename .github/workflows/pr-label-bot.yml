@@ -51,7 +51,8 @@ jobs:
               // optional builds (build_optional.yml)
               'build-flatpak',
               'build-macos-x86_64',
-              'build-windows-arm64'
+              'build-windows-arm64',
+              'build-all'
             ];
             const pr = context.payload.pull_request;
             // First-time contributors also get a link to the contributing guide
@@ -251,7 +252,8 @@ jobs:
               // optional builds (build_optional.yml)
               'build-flatpak',
               'build-macos-x86_64',
-              'build-windows-arm64'
+              'build-windows-arm64',
+              'build-all'
             ];
 
             const issue = context.payload.issue;
