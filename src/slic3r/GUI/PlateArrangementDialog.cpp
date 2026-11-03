@@ -312,8 +312,9 @@ void PlateArrangementDialog::render_plate_grid()
 
         if (m_drag.insert_index >= 0) { // drop marker, in the gap next to the target cell
             const ImVec2 cmin = cell_min(idx);
-            const float  x    = after ? cmin.x + cell + bleed : cmin.x - bleed;
             const float  t    = cfg.marker;
+            // At the outer columns the gap's centre is the child window's edge, where the child clips: kept inside it.
+            const float  x = std::clamp(after ? cmin.x + cell + bleed : cmin.x - bleed, origin.x - bleed + t * .5f, origin.x + cfg.grid_size + bleed - t * .5f);
             dl->AddLine(ImVec2(x, cmin.y + t), ImVec2(x, cmin.y + cell - t), ImGui::ColorConvertFloat4ToU32(ImGuiWrapper::COL_ORCA), t);
         }
     }
