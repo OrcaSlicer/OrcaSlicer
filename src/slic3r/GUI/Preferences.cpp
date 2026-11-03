@@ -1756,6 +1756,12 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_cad_feature);
 #endif
 
+    auto item_ams_edit_printing = create_item_checkbox(_L("Allow editing AMS slots while printing (experimental)"),
+        _L("Edit AMS and external spool settings during a print even when the printer does not report support for it. "
+           "Some printers accept these edits although their firmware does not advertise them."),
+        "allow_ams_edit_while_printing");
+    g_sizer->Add(item_ams_edit_printing);
+
 #if 0
     g_sizer->Add(create_item_title(_L("Filament Grouping")), 1, wxEXPAND);
     //temporarily disable it

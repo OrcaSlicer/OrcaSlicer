@@ -2558,6 +2558,14 @@ bool MachineObject::is_in_printing_status(std::string status)
 }
 
 
+bool MachineObject::can_edit_filament_while_printing() const
+{
+    if (is_support_filament_setting_inprinting)
+        return true;
+    AppConfig* config = m_manager ? m_manager->get_app_config() : nullptr;
+    return config != nullptr && config->get_bool("allow_ams_edit_while_printing");
+}
+
 bool MachineObject::is_in_printing()
 {
     /* use print_status if print_status is valid */
