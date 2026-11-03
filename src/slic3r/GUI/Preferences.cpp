@@ -1827,16 +1827,27 @@ void PreferencesDialog::create_items()
     g_sizer->Add(create_item_title(_L("Folder paths")), 1, wxEXPAND);
     auto item_downloads        = create_item_downloads(_L("Downloads folder"), _L("Target folder for downloaded items"));
     g_sizer->Add(item_downloads);
+  
+    //// FILES > File import
+    g_sizer->Add(create_item_title(_L("File import")), 1, wxEXPAND);
+    g_sizer->Add(create_item_checkbox(_L("Ask how to handle unsupported characters in imported names"),
+        _L("Show the removal or replacement choices when original names contain unsupported characters."),
+        "import_names_cleanup_show_dialog"));
 
     //// FILES > 3MF import
     g_sizer->Add(create_item_title(_L("3MF import")), 1, wxEXPAND);
+    g_sizer->Add(create_item_checkbox(_L("Show options when importing"),
+        _L("Show original-name and sorting options when importing a 3MF without project settings into the current project."),
+        "import_names_3mf_show_dialog"));
+    g_sizer->Add(create_item_checkbox(_L("Keep original names"),
+        _L("Use the body names stored in the imported file when it contains them."), "import_names_3mf_keep"));
     auto item_gcodes_warning   = create_item_checkbox(_L("Don't warn when loading 3MF with modified G-code"), "", "no_warn_when_modified_gcodes");
     g_sizer->Add(item_gcodes_warning);
 
     //// FILES > STEP import
     g_sizer->Add(create_item_title(_L("STEP import")), 1, wxEXPAND);
     auto item_step_dialog = create_item_checkbox(
-        _L("Show options when importing STEP file"), _L("If enabled, a parameter settings dialog will appear during STEP file import."), 
+        _L("Show options when importing"), _L("If enabled, a parameter settings dialog will appear during STEP file import."), 
         "enable_step_mesh_setting", wxEmptyString, "import_export#dont-show-again"
     );
     g_sizer->Add(item_step_dialog);
@@ -1847,8 +1858,19 @@ void PreferencesDialog::create_items()
     auto item_step_angle       = create_item_decimal_input(_L("Angle deflection"), "", _L("Angle deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: 0.5."), "angle_deflection", 0.01, 1.0, 2);
     g_sizer->Add(item_step_angle);
 
-    auto item_step_split       = create_item_checkbox(_L("Split compound and compsolid into multiple objects"), _L("If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: disabled."), "is_split_compound");
+    auto item_step_split       = create_item_checkbox(_L("Split into multiple objects"), _L("If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: enabled."), "is_split_compound");
     g_sizer->Add(item_step_split);
+  
+    g_sizer->Add(create_item_checkbox(_L("Keep original names"),
+        _L("Use the body names stored in the imported file when it contains them."), "import_names_step_keep"));
+  
+    //// FILES > AMF import
+    g_sizer->Add(create_item_title(_L("AMF import")), 1, wxEXPAND);
+    g_sizer->Add(create_item_checkbox(_L("Show options when importing"),
+        _L("Show body grouping, original-name and sorting options when importing geometry into the current project."),
+        "import_names_amf_show_dialog"));
+    g_sizer->Add(create_item_checkbox(_L("Keep original names"),
+        _L("Use the body names stored in the imported file when it contains them."), "import_names_amf_keep"));
 
     //// FILES > DRC export
     g_sizer->Add(create_item_title(_L("DRC export")), 1, wxEXPAND);
