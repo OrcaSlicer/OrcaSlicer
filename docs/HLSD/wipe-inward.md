@@ -64,11 +64,12 @@ complete executable path, including its connector from the nozzle position,
 against the current and earlier printed perimeters. Nearby endpoints alone do
 not establish support across a gap.
 
-Each region accumulates its printed perimeter prefix once, in extrusion order.
-Every entity contributes its geometry only after it is printed, and the prefix
-is discarded when the region ends. This collection is skipped when inward wiping
-is disabled or its configured distance is zero. A mixed inner-wall loop remains
-an eligible target even when its first path is an overhang: ordinary inner-wall
+Each region of an island accumulates its printed perimeter prefix once, in
+extrusion order. Every entity contributes its geometry only after it is printed,
+and the prefix is discarded when that region of the island ends. This collection
+is skipped when inward wiping is disabled or its configured distance is zero.
+A mixed inner-wall loop remains an eligible target even when its first path is
+an overhang: ordinary inner-wall
 paths elsewhere in the loop identify it. Likewise, an external loop with an
 overhanging start remains eligible when other segments identify the external
 wall. It is available for support checks but is not an inner-wall target.

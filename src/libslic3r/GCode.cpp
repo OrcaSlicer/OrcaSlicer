@@ -8830,6 +8830,8 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
                         wipe_offset_direction(is_ccw, is_hole), offset_dist, max_wipe_length,
                         wipe_support->inner_lines, wipe_support->printed_lines,
                         m_wipe.path.lines(), support_distance)) {
+                    // Only the stored geometry changes. Like the regular wipe, the path
+                    // runs when travel planning retracts and is skipped on short travels.
                     m_wipe.path = std::move(inward_path);
                 }
             }
@@ -8842,10 +8844,6 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
             this->point_to_gcode(*wipe_on_loops_dest), 0, "move inwards before travel", true);
         this->set_last_pos(*wipe_on_loops_dest);
     }
-
-    // Keep the actual nozzle position until normal travel planning decides
-    // whether to retract. An inward path only replaces a regular wipe; it must
-    // not lengthen a short travel enough to trigger retraction or Z-hop.
 
     return gcode;
 }
