@@ -19,6 +19,10 @@ let selectedPluginId = "";
 let contextPluginId = "";
 let activeDetailTab = "plugin-info";
 let selectedInstallAction = "explore";
+let permissionPlaceholderPluginId = "";
+let permissionPlaceholderChecked = false;
+let renderedPermissionsSignature = null;
+const permissionDrafts = new Map();
 // Config tab: the capability whose config is shown. Name and type together address it natively.
 let selectedCapabilityName = "";
 let selectedCapabilityType = "";
@@ -273,6 +277,7 @@ function ActivateDetailTab(tabId, focusTab = false) {
   if (!tabs.some((tab) => tab.dataset.tab === tabId))
     return;
 
+  const enteringPermissions = tabId === "permissions" && activeDetailTab !== tabId;
   activeDetailTab = tabId;
   tabs.forEach((tab) => {
     const isActive = tab.dataset.tab === activeDetailTab;
@@ -286,6 +291,8 @@ function ActivateDetailTab(tabId, focusTab = false) {
   document.querySelectorAll("[role='tabpanel'][data-panel]").forEach((panel) => {
     panel.hidden = panel.dataset.panel !== activeDetailTab;
   });
+  if (enteringPermissions)
+    RequestPlugins();
 }
 
 function OnDetailTabKeyDown(event) {
@@ -892,6 +899,7 @@ function RenderDetails() {
   RenderThumbnail(plugin);
   RenderDescription(plugin);
   RenderChangelog(plugin);
+  RenderPermissions(plugin);
 
   if (detailStatusBody)
     RenderDetailSummary(detailStatusBody, plugin);
@@ -901,6 +909,294 @@ function RenderDetails() {
     ApplyDetailUpdateButton(detailUpdateBtn, plugin);
 
   RenderConfig(plugin);
+}
+
+function RenderPermissions(plugin) {
+  const content = document.getElementById("permissionsContent");
+  if (!content)
+    return;
+
+  if (!plugin) {
+    renderedPermissionsSignature = null;
+    content.replaceChildren();
+    content.textContent = T("select_plugin", "Select a plugin to view its status and details.");
+    return;
+  }
+
+  const pluginKey = String(plugin.plugin_key || "");
+  const sourceSignature = JSON.stringify(plugin.permissions ?? null);
+  let draft = permissionDrafts.get(pluginKey);
+  if (!draft || (!draft.dirty && draft.sourceSignature !== sourceSignature)) {
+    const values = {};
+    const pending = {};
+    for (const [key, entries] of Object.entries(plugin.permissions || {})) {
+      if (Array.isArray(entries)) {
+        values[key] = entries.map(String);
+        pending[key] = entries.map(String);
+      }
+    }
+    draft = { sourceSignature, values, pending, additions: {}, dirty: false };
+    permissionDrafts.set(pluginKey, draft);
+  }
+
+  // Keep focused inputs intact when a refresh does not affect the displayed state.
+  const signature = JSON.stringify([pluginKey, plugin.installed, sourceSignature, draft.sourceSignature]);
+  if (signature === renderedPermissionsSignature)
+    return;
+  renderedPermissionsSignature = signature;
+  content.replaceChildren();
+
+  const categories = [
+    ["fs_read", "permissions_fs_read", "File system read"],
+    ["fs_readwrite", "permissions_fs_readwrite", "File system read and write"],
+    ["network_http", "permissions_network_http", "HTTP network"],
+    ["network_socket", "permissions_network_socket", "Network sockets"],
+    ["process", "permissions_process", "Processes"],
+    ["threading", "permissions_threading", "Threading"],
+    ["events", "permissions_events", "Events"]
+  ];
+  const categoryGuidance = {
+    fs_read: [T("permissions_filesystem_help", "Enter an absolute path. Add /* at the end to include its subtree."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
+    fs_readwrite: [T("permissions_filesystem_help", "Enter an absolute path. Add /* at the end to include its subtree."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
+    network_http: [T("permissions_network_help", "Enter an HTTP or HTTPS URL. Only the scheme and host are saved; the path, port, and query are discarded. The grant covers the whole host for the chosen HTTP scheme and for socket access."), T("permissions_network_placeholder", "https://example.com")],
+    network_socket: [T("permissions_network_help", "Enter an HTTP or HTTPS URL. Only the scheme and host are saved; the path, port, and query are discarded. The grant covers the whole host for the chosen HTTP scheme and for socket access."), T("permissions_network_placeholder", "https://example.com")],
+    process: [T("permissions_process_help", "Enter the exact value recorded by the audit. It may be a Python representation of the command."), T("permissions_process_placeholder", "Exact audited value")],
+    threading: [T("permissions_threading_help", "The only valid value is the literal thread."), "thread"],
+    events: [T("permissions_events_help", "Enter a category and event separated by a colon, such as Socket:socket.__new__."), T("permissions_events_placeholder", "Socket:socket.__new__")]
+  };
+  if (permissionPlaceholderPluginId !== pluginKey) {
+    permissionPlaceholderPluginId = pluginKey;
+    permissionPlaceholderChecked = false;
+  }
+
+  const placeholder = document.createElement("label");
+  placeholder.className = "permission-placeholder";
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = permissionPlaceholderChecked;
+  const checkboxInset = document.createElement("span");
+  checkboxInset.className = "permission-checkbox-inset";
+  checkboxInset.appendChild(checkbox);
+  const placeholderText = document.createElement("span");
+  placeholderText.textContent = T("permissions_full_access_placeholder_label", "Full access (placeholder; does not grant access)");
+  placeholder.append(checkboxInset, placeholderText);
+  const overview = document.createElement("div");
+  overview.className = "permission-overview";
+  content.appendChild(overview);
+
+  const draftNotice = document.createElement("p");
+  draftNotice.className = "permission-draft-notice";
+  draftNotice.textContent = T("permissions_draft_notice", "This draft starts with the stored permissions. Changes stay in this window, cannot be saved, and do not affect access.");
+  overview.append(draftNotice, placeholder);
+
+  if (draft.dirty && draft.sourceSignature !== sourceSignature) {
+    const changed = document.createElement("p");
+    changed.className = "permission-draft-notice";
+    changed.setAttribute("role", "status");
+    changed.textContent = T("permissions_draft_outdated", "Stored permissions have changed. Your draft is unchanged; reset it to see the latest stored values.");
+    content.appendChild(changed);
+  }
+
+  const editor = document.createElement("fieldset");
+  editor.className = "permission-editor";
+  editor.disabled = permissionPlaceholderChecked;
+  checkbox.addEventListener("change", () => {
+    permissionPlaceholderChecked = checkbox.checked;
+    editor.disabled = checkbox.checked;
+  });
+  content.appendChild(editor);
+
+  const actions = document.createElement("div");
+  actions.className = "permission-draft-actions permission-form";
+  const saveChanges = document.createElement("button");
+  saveChanges.type = "button";
+  saveChanges.disabled = true;
+  saveChanges.textContent = T("permissions_save_changes_unavailable", "Save changes (not yet available)");
+  const reset = document.createElement("button");
+  reset.type = "button";
+  reset.id = "permissionResetDraft";
+  reset.textContent = T("permissions_reset_draft", "Reset draft");
+  reset.addEventListener("click", () => {
+    permissionDrafts.delete(pluginKey);
+    renderedPermissionsSignature = null;
+    RenderPermissions(pluginsById.get(pluginKey));
+    document.getElementById("permissionResetDraft")?.focus();
+  });
+  actions.append(saveChanges, reset);
+  editor.appendChild(actions);
+
+  const installed = IsPluginInstalled(plugin) && !!pluginKey;
+  if (!installed) {
+    const notice = document.createElement("p");
+    notice.className = "permission-notice";
+    notice.textContent = T("permissions_install_to_edit", "Install this plugin to edit its permissions.");
+    editor.appendChild(notice);
+  }
+
+  const rows = document.createElement("div");
+  rows.className = "permission-rows";
+  editor.appendChild(rows);
+  for (const [key, translation, fallback] of categories) {
+    const section = document.createElement("section");
+    section.className = "permission-section";
+    const description = document.createElement("div");
+    description.className = "permission-description";
+    const controls = document.createElement("div");
+    controls.className = "permission-controls";
+    section.append(description, controls);
+    const heading = document.createElement("h3");
+    heading.className = "permission-heading";
+    heading.textContent = T(translation, fallback);
+    description.appendChild(heading);
+    const guidance = document.createElement("p");
+    guidance.className = "permission-guidance";
+    guidance.id = `permission-guidance-${key}`;
+    guidance.textContent = categoryGuidance[key][0];
+    description.appendChild(guidance);
+    const entries = draft.values[key];
+    if (!entries) {
+      const unavailable = document.createElement("p");
+      unavailable.className = "permission-notice";
+      unavailable.textContent = T("permissions_unavailable", "Permissions are unavailable.");
+      controls.appendChild(unavailable);
+      rows.appendChild(section);
+      continue;
+    }
+
+    const categoryEnabled = installed && Array.isArray(plugin.permissions?.[key]);
+    if (key === "threading") {
+      const threadLabel = document.createElement("label");
+      threadLabel.className = "permission-thread-toggle";
+      const threadCheckbox = document.createElement("input");
+      threadCheckbox.type = "checkbox";
+      threadCheckbox.id = "permission-thread-toggle";
+      threadCheckbox.checked = entries.includes("thread");
+      threadCheckbox.disabled = !categoryEnabled;
+      threadCheckbox.setAttribute("aria-describedby", guidance.id);
+      const threadInset = document.createElement("span");
+      threadInset.className = "permission-checkbox-inset";
+      threadInset.appendChild(threadCheckbox);
+      const threadText = document.createElement("span");
+      threadText.textContent = T("permissions_threading_toggle", "Include thread in draft");
+      threadLabel.append(threadInset, threadText);
+      controls.appendChild(threadLabel);
+      threadCheckbox.addEventListener("change", () => {
+        if (threadCheckbox.checked) {
+          draft.values[key].push("thread");
+          draft.pending[key].push("thread");
+        } else {
+          for (let i = draft.values[key].length - 1; i >= 0; i--) {
+            if (draft.values[key][i] === "thread") {
+              draft.values[key].splice(i, 1);
+              draft.pending[key].splice(i, 1);
+            }
+          }
+        }
+        draft.dirty = true;
+        renderedPermissionsSignature = null;
+        RenderPermissions(pluginsById.get(pluginKey));
+        document.getElementById("permission-thread-toggle")?.focus();
+      });
+    }
+
+    const list = document.createElement("ul");
+    list.className = "permission-list";
+    if (key === "threading" && entries.some((entry) => entry !== "thread")) {
+      const unexpected = document.createElement("p");
+      unexpected.className = "permission-notice";
+      unexpected.textContent = T("permissions_threading_other_values", "Other values are shown below and remain in the draft unless you change or remove them.");
+      controls.appendChild(unexpected);
+    }
+    if (entries.length === 0 && key !== "threading") {
+      const empty = document.createElement("p");
+      empty.className = "permission-notice";
+      empty.textContent = T("permissions_draft_empty", "No values in this draft.");
+      controls.appendChild(empty);
+    }
+    for (let index = 0; index < entries.length; index++) {
+      if (key === "threading" && entries[index] === "thread")
+        continue;
+      const item = document.createElement("li");
+      item.appendChild(PermissionForm(pluginKey, key, heading.textContent, index, categoryEnabled, categoryGuidance[key][1], guidance.id, draft));
+      list.appendChild(item);
+    }
+    controls.appendChild(list);
+    if (key !== "threading")
+      controls.appendChild(PermissionForm(pluginKey, key, heading.textContent, null, categoryEnabled, categoryGuidance[key][1], guidance.id, draft));
+    rows.appendChild(section);
+  }
+}
+
+function PermissionForm(pluginKey, category, categoryName, index, enabled, placeholder, guidanceId, draft) {
+  const isAdd = index === null;
+  const oldValue = isAdd ? null : draft.values[category][index];
+  const form = document.createElement("form");
+  form.className = "permission-form";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.id = `permission-input-${category}-${isAdd ? "add" : index}`;
+  input.value = isAdd ? (draft.additions[category] ?? (category === "threading" ? "thread" : "")) : draft.pending[category][index];
+  input.required = true;
+  input.readOnly = isAdd && category === "threading";
+  input.disabled = !enabled;
+  input.setAttribute("aria-describedby", guidanceId);
+  input.setAttribute("aria-label", isAdd
+    ? T("permissions_add_value_label", "New value for %s", categoryName)
+    : T("permissions_edit_value_label", "Edit value for %s", categoryName));
+  input.placeholder = isAdd ? placeholder : "";
+  // common.js handles document keydown globally; keep text editing native.
+  input.addEventListener("keydown", (event) => event.stopPropagation());
+  input.addEventListener("input", () => {
+    if (isAdd)
+      draft.additions[category] = input.value;
+    else
+      draft.pending[category][index] = input.value;
+    draft.dirty = true;
+  });
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.disabled = !enabled;
+  submit.textContent = isAdd ? T("permissions_add", "Add") : T("permissions_apply_draft", "Apply to draft");
+  submit.setAttribute("aria-label", isAdd
+    ? T("permissions_add_label", "Add value to %s", categoryName)
+    : T("permissions_apply_draft_label", "Apply value to draft for %s", categoryName));
+  form.append(input, submit);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!input.value.trim() || (!isAdd && input.value === oldValue))
+      return;
+    if (isAdd) {
+      draft.values[category].push(input.value);
+      draft.pending[category].push(input.value);
+      delete draft.additions[category];
+    } else {
+      draft.values[category][index] = input.value;
+      draft.pending[category][index] = input.value;
+    }
+    draft.dirty = true;
+    renderedPermissionsSignature = null;
+    RenderPermissions(pluginsById.get(pluginKey));
+    const target = document.getElementById(`permission-input-${category}-${isAdd ? "add" : index}`);
+    (target || document.getElementById("permission-thread-toggle"))?.focus();
+  });
+  if (!isAdd) {
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.disabled = !enabled;
+    remove.textContent = T("permissions_remove", "Remove");
+    remove.setAttribute("aria-label", T("permissions_remove_label", "Remove %s", oldValue));
+    remove.addEventListener("click", () => {
+      draft.values[category].splice(index, 1);
+      draft.pending[category].splice(index, 1);
+      draft.dirty = true;
+      renderedPermissionsSignature = null;
+      RenderPermissions(pluginsById.get(pluginKey));
+      const target = document.getElementById(`permission-input-${category}-add`);
+      (target || document.getElementById("permission-thread-toggle"))?.focus();
+    });
+    form.appendChild(remove);
+  }
+  return form;
 }
 
 // Config tab: the sidebar lists the selected plugin's configurable capabilities; the view shows the

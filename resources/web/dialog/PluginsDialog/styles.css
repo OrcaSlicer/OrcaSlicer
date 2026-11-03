@@ -1047,11 +1047,12 @@ body.pane-resizing {
 .detail-tabs {
   display: flex;
   min-width: 0;
+  overflow-x: auto;
   border-bottom: 1px solid var(--border-strong);
 }
 
 .detail-tab {
-  flex: 1 1 0;
+  flex: 1 0 auto;
   min-width: 0;
   padding: 7px 10px;
   border: 0;
@@ -1151,6 +1152,186 @@ body.pane-resizing {
 .detail-empty[hidden],
 .detail-table[hidden] {
   display: none;
+}
+
+.permissions-content {
+  max-width: 1320px;
+  container-type: inline-size;
+  padding-bottom: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.permission-overview {
+  margin-bottom: 10px;
+}
+
+.permission-placeholder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 0;
+  margin: 0;
+  color: var(--text);
+}
+
+.permission-checkbox-inset {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.permission-checkbox-inset input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--main-color);
+}
+
+.permission-editor {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.permission-editor:disabled {
+  opacity: 0.5;
+}
+
+.permission-section {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.85fr) minmax(0, 2fr);
+  gap: 20px;
+  align-items: start;
+  min-width: 0;
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.permission-rows {
+  border-top: 1px solid var(--border-soft);
+}
+
+.permission-description,
+.permission-controls {
+  min-width: 0;
+}
+
+.permission-heading {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.permission-list {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.permission-notice {
+  margin: 3px 0 8px;
+  color: var(--muted);
+}
+
+.permission-draft-notice {
+  margin: 0;
+  color: var(--text);
+}
+
+.permission-draft-notice[role="status"] {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--main-color);
+  background: var(--row-hover);
+}
+
+.permission-draft-actions {
+  margin-bottom: 10px;
+}
+
+.permission-guidance {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.permission-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.permission-thread-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 4px 4px;
+  margin: 0 0 6px;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  background: var(--row-hover);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.permission-form input {
+  flex: 1 1 180px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 5px 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.permission-form button {
+  padding: 5px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--row-hover);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.permission-form button:hover:not(:disabled) {
+  border-color: var(--main-color);
+}
+
+.permission-form :focus-visible,
+.permission-placeholder input:focus-visible,
+.permission-thread-toggle input:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+.permission-form button:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+@container (max-width: 700px) {
+  .permission-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
 }
 
 /* Config tab: fixed-width capability sidebar + the capability's configuration view. */

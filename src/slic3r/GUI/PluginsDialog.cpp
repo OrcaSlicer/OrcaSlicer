@@ -128,6 +128,11 @@ struct PluginDialogItem
     // Runtime capabilities in registration order, or descriptor-only type rows when unloaded.
     std::vector<PluginCapabilityView> capabilities;
 
+    // Grants stored in the plugin's install sidecar. False when the sidecar is missing or unreadable
+    // (e.g. an uninstalled cloud plugin), so the payload reports null instead of empty permissions.
+    PluginPermissions permissions;
+    bool has_permissions = false;
+
     PluginAvailableActions available_actions;
 };
 
@@ -158,6 +163,19 @@ PluginDescriptor as_cloud_only_descriptor(PluginDescriptor descriptor)
 
 std::string to_string(PluginUpdateStatus status);
 nlohmann::json build_context_actions_payload(const PluginAvailableActions& available_actions);
+
+nlohmann::json build_permissions_payload(const PluginPermissions& permissions)
+{
+    nlohmann::json payload;
+    payload["fs_read"]        = permissions.fs_read;
+    payload["fs_readwrite"]   = permissions.fs_readwrite;
+    payload["network_http"]   = permissions.network_http;
+    payload["network_socket"] = permissions.network_socket;
+    payload["process"]        = permissions.process;
+    payload["threading"]      = permissions.threading;
+    payload["events"]         = permissions.events;
+    return payload;
+}
 
 nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
 {
@@ -223,6 +241,12 @@ nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
     payload_item["orphaned"]              = dialog_item.orphaned;
     payload_item["installed_version"]     = dialog_item.installed_version;
     payload_item["latest_version"]        = dialog_item.latest_version;
+    // Null when the sidecar could not be read: an uninstalled/unreadable plugin has unknown grants,
+    // not no grants.
+    if (dialog_item.has_permissions)
+        payload_item["permissions"] = build_permissions_payload(dialog_item.permissions);
+    else
+        payload_item["permissions"] = nullptr;
     return payload_item;
 }
 
@@ -344,6 +368,12 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.unauthorized          = descriptor.is_unauthorized();
     item.is_loaded             = manager.is_plugin_loaded(descriptor.plugin_key);
     item.loading               = manager.is_plugin_load_in_progress(descriptor.plugin_key);
+
+    PluginInstallState install_state;
+    item.has_permissions = manager.get_install_state(descriptor.plugin_key, install_state);
+    if (item.has_permissions)
+        item.permissions = std::move(install_state.permissions);
+
     item.has_script_capability = false;
     for (const auto& capability : capabilities) {
         item.capabilities.push_back({capability->identity(), capability->is_enabled(), true, false, capability->config_ui_available()});
@@ -651,6 +681,46 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"open_in_browser", _u8L("Open this plugin in your browser")},
         {"capability_count", _u8L("Capabilities: %s")},
         {"capabilities", _u8L_CONTEXT("Capabilities", "Plugin")},
+        {"permissions_tab", _u8L("Permissions")},
+        {"permissions_granted", _u8L("Granted permissions")},
+        {"permissions_unavailable", _u8L("Permissions are unavailable.")},
+        {"permissions_empty", _u8L("No permissions granted.")},
+        {"permissions_fs_read", _u8L("File system read")},
+        {"permissions_fs_readwrite", _u8L("File system read and write")},
+        {"permissions_network_http", _u8L("HTTP network")},
+        {"permissions_network_socket", _u8L("Network sockets")},
+        {"permissions_process", _u8L("Processes")},
+        {"permissions_threading", _u8L("Threading")},
+        {"permissions_events", _u8L("Events")},
+        {"permissions_filesystem_help", _u8L("Enter an absolute path. Add /* at the end to include its subtree.")},
+        {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
+        {"permissions_network_help", _u8L("Enter an HTTP or HTTPS URL. Only the scheme and host are saved; the path, port, and query are discarded. The grant covers the whole host for the chosen HTTP scheme and for socket access.")},
+        {"permissions_network_placeholder", _u8L("https://example.com")},
+        {"permissions_process_help", _u8L("Enter the exact value recorded by the audit. It may be a Python representation of the command.")},
+        {"permissions_process_placeholder", _u8L("Exact audited value")},
+        {"permissions_threading_help", _u8L("The only valid value is the literal thread.")},
+        {"permissions_threading_toggle", _u8L("Include thread in draft")},
+        {"permissions_threading_other_values", _u8L("Other values are shown below and remain in the draft unless you change or remove them.")},
+        {"permissions_events_help", _u8L("Enter a category and event separated by a colon, such as Socket:socket.__new__.")},
+        {"permissions_events_placeholder", _u8L("Socket:socket.__new__")},
+        {"permissions_full_access_placeholder_label", _u8L("Full access (placeholder; does not grant access)")},
+        {"permissions_draft_title", _u8L("Permission draft")},
+        {"permissions_draft_notice", _u8L("This draft starts with the stored permissions. Changes stay in this window, cannot be saved, and do not affect access.")},
+        {"permissions_draft_outdated", _u8L("Stored permissions have changed. Your draft is unchanged; reset it to see the latest stored values.")},
+        {"permissions_save_changes_unavailable", _u8L("Save changes (not yet available)")},
+        {"permissions_reset_draft", _u8L("Reset draft")},
+        {"permissions_draft_empty", _u8L("No values in this draft.")},
+        {"permissions_apply_draft", _u8L("Apply to draft")},
+        {"permissions_apply_draft_label", _u8L("Apply value to draft for %s")},
+        {"permissions_install_to_edit", _u8L("Install this plugin to edit its permissions.")},
+        {"permissions_add_value_label", _u8L("New value for %s")},
+        {"permissions_edit_value_label", _u8L("Edit value for %s")},
+        {"permissions_add", _u8L("Add")},
+        {"permissions_save", _u8L("Save")},
+        {"permissions_add_label", _u8L("Add value to %s")},
+        {"permissions_save_label", _u8L("Save value for %s")},
+        {"permissions_remove", _u8L("Remove")},
+        {"permissions_remove_label", _u8L("Remove %s")},
         {"run_named", _u8L("Run \"%s\"")},
         {"enable_named", _u8L("Enable %s")},
         {"not_available", _u8L("N/A")},
