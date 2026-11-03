@@ -5194,7 +5194,8 @@ void GCode::process_layers(
             const std::pair<coordf_t, std::vector<LayerToPrint>>& layer = layers_to_print[precomputed.index];
             const LayerTools& layer_tools = tool_ordering.tools_for_layer(layer.first);
             print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(precomputed.index + 1)));
-            if (m_wipe_tower && layer_tools.has_wipe_tower)
+            // A layer that joined the tower layer below continues it.
+            if (m_wipe_tower && layer_tools.has_wipe_tower && layer_tools.wipe_tower_print_z == layer_tools.print_z)
                 m_wipe_tower->next_layer();
             //BBS
             check_placeholder_parser_failed();
@@ -7527,7 +7528,8 @@ LayerResult GCode::process_layer(
 
         std::string gcode_toolchange;
         if (has_wipe_tower) {
-            if (!m_wipe_tower->is_empty_wipe_tower_gcode(*this, extruder_id, extruder_id == layer_tools.extruders.back())) {
+            const bool finish_tower_layer = extruder_id == layer_tools.extruders.back() && layer_tools.wipe_tower_layer_ends;
+            if (!m_wipe_tower->is_empty_wipe_tower_gcode(*this, extruder_id, finish_tower_layer)) {
                 if (need_insert_timelapse_gcode_for_traditional && !has_insert_timelapse_gcode
                     && !(m_farthest_point_timelapse.enabled && m_farthest_point_timelapse.farthest_is_photo_head)) {
                     bool should_insert = true;
@@ -7555,7 +7557,7 @@ LayerResult GCode::process_layer(
                     gcode += insert_wrapping_detection_gcode();
                     has_insert_wrapping_detection_gcode = true;
                 }
-                gcode_toolchange = m_wipe_tower->tool_change(*this, extruder_id, extruder_id == layer_tools.extruders.back());
+                gcode_toolchange = m_wipe_tower->tool_change(*this, extruder_id, finish_tower_layer);
             }
         } else {
             // Same case-A/case-B split for the non-wipe-tower path. With the subsystem off,

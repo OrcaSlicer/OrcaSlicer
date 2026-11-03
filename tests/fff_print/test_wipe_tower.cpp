@@ -25,6 +25,7 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/GCode/ToolOrdering.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -672,4 +673,38 @@ TEST_CASE("Without sparse layers the filament change starts at the tallest print
         INFO("tower extrusion at Z " << tower_z << ", printed up to Z " << printed_z);
         CHECK(tower_z < printed_z - EPSILON);
     }
+}
+
+TEST_CASE("A layer a few microns above another prints its tool changes on the tower layer below", "[WipeTower]")
+{
+    // Precise Z height ends the 10.004 mm cube at its exact top by thickening its last five 0.2 mm
+    // layers by 0.0008 mm each, so they sit 0.0008 to 0.004 mm above the 20 mm cube's layers. Both
+    // filaments print on every layer, so those slivers carry tool changes. A purge sized for a
+    // 0.0008 mm layer is 100 / (0.0008 * 50) = 2500 mm deep; on the 0.2 mm layer below it is 10 mm.
+    const char *tower_type = GENERATE("type1", "type2");
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    // The default position puts the 50 mm tower plus its 3 mm brim past the 200 mm test bed.
+    config.set_deserialize_strict({ { "precise_z_height", "1" }, { "wipe_tower_type", tower_type },
+                                    { "wipe_tower_x", "130" }, { "wipe_tower_y", "140" } });
+
+    Print print;
+    Model model;
+    init_print({ cube(20), make_cube(20, 20, 10.004) }, print, model, config);
+    print.apply(model, config); // see slice_with_prime_tower
+    REQUIRE(print.has_wipe_tower());
+
+    std::string out;
+    REQUIRE_NOTHROW(out = gcode(print));
+    CHECK_FALSE(out.empty());
+
+    // The slivers did reach the tower, and each joined the tower layer below it.
+    size_t joined = 0;
+    for (const LayerTools &lt : print.wipe_tower_data().tool_ordering.layer_tools())
+        if (lt.has_wipe_tower && lt.wipe_tower_print_z != lt.print_z) {
+            ++joined;
+            CHECK(lt.print_z - lt.wipe_tower_print_z < 0.005);
+        }
+    CHECK(joined > 0);
+    // A joined tower layer holds both cubes' purges, 2 x 10 mm.
+    CHECK(print.wipe_tower_data().depth < 30.f);
 }

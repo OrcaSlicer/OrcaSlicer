@@ -29,7 +29,18 @@ the tower is continuous from the bed to its last purge. `wipe_tower_layer_height
 is the distance from the previous tower layer, which is the object's layer height
 whenever the tower prints on every layer.
 
-`Print::_make_wipe_tower` plans one tower layer per such object layer. A layer
+A tower layer thinner than half the printer's minimum layer height (never less
+than the towers' own 1e-3 mm merge) is not printed on its own: it joins the tower
+layer below. Precise Z height leaves such slivers, a few microns above another
+object's layers, when it ends each object at its exact top; a purge sized for one
+would run hundreds of mm. A joined layer takes `wipe_tower_print_z` and
+`wipe_tower_layer_height` from the tower layer below, and that layer's
+`wipe_tower_layer_ends` turns false, so the joined layer is the one that finishes
+it.
+
+`Print::_make_wipe_tower` plans every such object layer at its
+`wipe_tower_print_z`: one tower layer per object layer, except that a joined
+layer's toolchanges land in the tower layer below. A layer
 whose only call keeps the current filament leaves no toolchange in the plan, and
 the layer it generates is a single result whose initial and new tool are equal.
 That is what `wipe_tower_layer_is_sparse` recognises, and it is the unit both
@@ -37,8 +48,8 @@ settings work on.
 
 The plan stays one entry per tower layer in every case. The G-code emitter walks
 `WipeTowerData::tool_changes` by layer index, advancing once per object layer
-that carries a tower, so a planner that removed entries would silently shift
-every later layer onto the wrong tower geometry. Layers that print nothing are
+that carries a tower and does not join the one below, so a planner that removed
+entries would silently shift every later layer onto the wrong tower geometry. Layers that print nothing are
 therefore still planned and still generated; they are marked, and the emitter
 drops them.
 

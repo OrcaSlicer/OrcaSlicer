@@ -192,6 +192,14 @@ static double calc_max_layer_height(const PrintConfig &config, double max_object
     return std::max(max_layer_height, max_object_layer_height);
 }
 
+static double calc_min_layer_height(const PrintConfig &config)
+{
+    double min_layer_height = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < config.nozzle_diameter.values.size(); ++ i)
+        min_layer_height = std::min(min_layer_height, config.min_layer_height.get_at(i));
+    return config.nozzle_diameter.values.empty() ? 0. : min_layer_height;
+}
+
 //calculate the flush weight (first value) and filament change count(second value)
 // Nozzle-aware flush-stat calculator. Resolves each
 // filament in the print sequence to its physical nozzle via the grouping result and tracks a
@@ -1233,13 +1241,30 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
             }
     }
 
-    // Calculate the wipe_tower_layer_height values.
-    coordf_t wipe_tower_print_z_last = 0.;
-    for (LayerTools &lt : m_layer_tools)
-        if (lt.has_wipe_tower) {
+    // Calculate the wipe_tower_layer_height values. Precise Z height ends each object at its exact
+    // top, so another object's layers can sit a few microns above these. A tower layer that thin
+    // cannot be printed, and a purge sized for it runs hundreds of mm long, so it joins the tower
+    // layer below. The floor matches the towers' own WT_EPSILON merge, which would otherwise size
+    // the joined tool changes with the sliver's height.
+    const double min_tower_layer_height = std::max(0.5 * calc_min_layer_height(config), 1e-3);
+    coordf_t     wipe_tower_print_z_last = 0.;
+    LayerTools  *tower_layer_last        = nullptr;
+    for (LayerTools &lt : m_layer_tools) {
+        lt.wipe_tower_layer_ends = true;
+        if (! lt.has_wipe_tower)
+            continue;
+        // Only a layer that prints finishes the tower layer it joins.
+        if (tower_layer_last != nullptr && ! lt.extruders.empty() && lt.print_z - wipe_tower_print_z_last < min_tower_layer_height) {
+            lt.wipe_tower_print_z                   = tower_layer_last->wipe_tower_print_z;
+            lt.wipe_tower_layer_height              = tower_layer_last->wipe_tower_layer_height;
+            tower_layer_last->wipe_tower_layer_ends = false;
+        } else {
+            lt.wipe_tower_print_z      = lt.print_z;
             lt.wipe_tower_layer_height = lt.print_z - wipe_tower_print_z_last;
-            wipe_tower_print_z_last = lt.print_z;
+            wipe_tower_print_z_last    = lt.print_z;
         }
+        tower_layer_last = &lt;
+    }
 }
 
 void ToolOrdering::collect_extruder_statistics(bool prime_multi_material)
