@@ -43,14 +43,20 @@ only when none is within reach, as on a print with none, the nearest layer with 
 The realistic view's shadow-caster pass draws whichever set is bound, so the key of the static
 shadow map includes whether the reduced set is: a map built during a drag is rebuilt on release.
 In the solid model mode the shells, cut at the solid's heights, cast into the same map through
-`GCodeViewer::render_solid_model_casters()`, and the solid samples the map back under the light
+`GCodeViewer::render_solid_model_casters()`, with their cut faces: without them an open body lets
+the light through, onto the bed through a band cut at both ends or onto its own far wall past the
+end band's lines. The cut faces are counted and drawn as the visible pass draws them (below), which
+takes a stencil the map has not got, so they go into a depth and stencil target of the viewer's,
+the map's size, and are copied into the map by the `depth_copy` shader where nearer than what it
+holds. The solid samples the map back under the light
 the canvas passed on, so a body shades the plate, its neighbours and the end-band toolpaths as the
 toolpaths it stands in for would, and takes their shadows in turn.
 With the mode off the reduced flag is never raised, and a drag changes nothing in the preview.
 
 ### Modes
 
-- `EndLayersOnly` (`solid` in the preference) keeps only the end bands and the supports.
+- `EndLayersOnly` (`solid` in the preference) keeps only the end bands, the supports and the
+  travels.
   `GCodeViewer` then draws the sliced objects and the prime tower as opaque solids, see below.
 - `ShellOnly` (`shell`) keeps every role but the sparse infill, internal solid infill, internal
   bridge infill and gap fill, which lie under the skins or between the walls. Walls, top and
@@ -85,7 +91,8 @@ mesh, positioned as the print placed it. It is added or removed on its own when 
 without reloading the objects, keeps its opaque color so that it never appears among the
 translucent shells, and stays out of their bounding box. Supports have no mesh, so the reduced set
 keeps their toolpaths whole on every layer, as the shell mode does, and the objects stand on them
-as they do at rest. `load_shells()` drops every non-model-part volume, so a negative volume is not
+as they do at rest; the travels, which the solid does not stand for either, are kept with them when
+the legend shows them. `libvgcode::keep_in_reduced_set()` holds the rule for both modes. `load_shells()` drops every non-model-part volume, so a negative volume is not
 cut out.
 
 The solid stands in for the toolpaths, so it wears their colours. In the views that colour by
@@ -103,8 +110,14 @@ colours are resolved when a drag starts and when the view type or the bands chan
 A plate whose shells are not loaded keeps drawing toolpaths, since the solid model would leave
 only the end bands. So does a print whose layers do not rise in height from one to the next, as
 when it is printed object by object: the cut is a single height range for the whole plate, which
-the ends of the layer range then do not bound. And so does a preview with a section view active:
-the section cuts the toolpaths open to show their inside, which a solid would cover.
+the ends of the layer range then do not bound. And so does a belt printer's: its layers are planes
+tilted at the belt angle, with heights in the G-code's frame, which no horizontal cut follows.
+
+A section view cuts the solid by its plane as it cuts the toolpaths, and the section face is one
+more cap, counted on the body cut by that plane alone and drawn between the two heights.
+
+The solid is drawn opaque whatever the filaments' alpha: a translucent filament shows its toolpaths
+inside through the walls at rest, and the solid has no inside to show.
 
 ## Deciding that the user is dragging
 
