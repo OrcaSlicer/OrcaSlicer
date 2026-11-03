@@ -144,6 +144,44 @@ TEST_CASE("Tool change prime is skipped below the skip time", "[ToolchangePrime]
     }
 }
 
+TEST_CASE("Tool change prime is never skipped for a park of at least the idle time", "[ToolchangePrime]")
+{
+    DynamicPrintConfig config = two_tool_config();
+    // The skip time is longer than the idle time: the idle rule wins, as in the printer's macro.
+    config.set_deserialize_strict({{ "toolchange_prime_idle_time", 0.001 }, { "toolchange_prime_skip_time", 36000 }});
+    std::vector<PrimeBlock> blocks = prime_blocks(slice({TestMesh::cube_20x20x20}, config));
+
+    REQUIRE(blocks.size() > 2);
+    for (const PrimeBlock& block : blocks) {
+        REQUIRE_FALSE(block.skipped);
+        REQUIRE_THAT(block.e, Catch::Matchers::WithinAbs(10., 1e-3));
+    }
+}
+
+TEST_CASE("Tool change prime puts an absolute extrusion print back in absolute mode", "[ToolchangePrime]")
+{
+    DynamicPrintConfig config = two_tool_config();
+    config.set_deserialize_strict({
+        { "use_relative_e_distances", false },
+        { "toolchange_prime_gcode",   "M83\nG1 E{retract_restore_length} F300 ; restore retraction\nG1 E{prime_length} F300 ; prime\n" },
+    });
+    std::string gcode = slice({TestMesh::cube_20x20x20}, config);
+    REQUIRE(prime_blocks(gcode).size() > 2);
+
+    // Every block is followed by M82 before the next extrusion.
+    std::istringstream in(gcode);
+    std::string        line;
+    bool               after_block = false;
+    while (std::getline(in, line)) {
+        if (line.rfind(";" + GCodeProcessor::Toolchange_Prime_End_Tag, 0) == 0)
+            after_block = true;
+        else if (after_block && line.rfind("M82", 0) == 0)
+            after_block = false;
+        else if (after_block && line.rfind("G1 X", 0) == 0 && line.find(" E") != std::string::npos)
+            FAIL("extrusion after a prime block before M82: " << line);
+    }
+}
+
 TEST_CASE("Tool change prime is not emitted for a single extruder multi material printer", "[ToolchangePrime]")
 {
     DynamicPrintConfig config = two_tool_config();

@@ -1470,15 +1470,18 @@ void GCodeProcessor::run_post_process()
             const float min_length = std::clamp(m_toolchange_prime_length_min, 0.0f, max_length);
             const float length     = idle >= m_toolchange_prime_idle_time ? max_length : min_length;
             in_toolchange_prime    = true;
-            skip_toolchange_prime  = !first_use && idle < m_toolchange_prime_skip_time;
+            // The idle rule wins over the skip rule, as in the printer's macro: a park long enough for the full prime is never skipped.
+            skip_toolchange_prime  = !first_use && idle < m_toolchange_prime_idle_time && idle < m_toolchange_prime_skip_time;
             toolchange_prime_scale = max_length > 0.0f ? length / max_length : 1.0f;
             char buf[96];
             if (skip_toolchange_prime)
                 std::snprintf(buf, sizeof(buf), " (idle %.0fs, prime skipped)", idle);
             else if (after_pause)
                 std::snprintf(buf, sizeof(buf), " (after pause, %.2fmm)", length);
-            else if (idle == std::numeric_limits<float>::max())
+            else if (first_use)
                 std::snprintf(buf, sizeof(buf), " (first use, %.2fmm)", length);
+            else if (idle == std::numeric_limits<float>::max())
+                std::snprintf(buf, sizeof(buf), " (park time unknown, %.2fmm)", length);
             else
                 std::snprintf(buf, sizeof(buf), " (idle %.0fs, %.2fmm)", idle, length);
             gcode_line.insert(gcode_line.find_last_not_of("\r\n") + 1, buf);
@@ -1925,6 +1928,7 @@ void GCodeProcessor::run_post_process()
                     // executes nothing; pure data construction, so the output is untouched regardless.
                     if (m_enable_pre_heating)
                         build_usage_blocks(gcode_line, line_id);
+                    // The time and filament estimates were taken in the first pass, so they count every prime at its full length.
                     const bool skipped_prime_move = process_toolchange_prime(gcode_line);
                     // replace placeholder lines
                     bool processed = process_placeholders(gcode_line);

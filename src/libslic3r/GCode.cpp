@@ -11332,12 +11332,12 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         prime_config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
         prime_config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
         prime_config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
-        prime_config.set_key_value("next_extruder", new ConfigOptionInt((int) new_filament_id));
+        prime_config.set_key_value("next_extruder", new ConfigOptionInt(static_cast<int>(new_filament_id)));
         prime_config.set_key_value("new_filament_temp", new ConfigOptionInt(new_filament_temp));
         prime_config.set_key_value("prime_length", new ConfigOptionFloat(prime_length));
         prime_config.set_key_value("prime_speed", new ConfigOptionFloat(float(new_filament_e_feedrate)));
         prime_config.set_key_value("prime_first_use", new ConfigOptionBool(first_use));
-        prime_config.set_key_value("retract_restore_length", new ConfigOptionFloat(m_writer.extruder() ? m_writer.extruder()->retracted() : 0.));
+        prime_config.set_key_value("retract_restore_length", new ConfigOptionFloat(m_writer.filament() ? m_writer.filament()->retracted() : 0.));
         std::string prime_gcode = placeholder_parser_process("toolchange_prime_gcode", toolchange_prime_gcode, new_filament_id, &prime_config);
         check_add_eol(prime_gcode);
 
@@ -11351,10 +11351,14 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             gcode += prime_gcode;
             gcode += ";" + GCodeProcessor::Toolchange_Prime_End_Tag + "\n";
         }
-        // A block that restores the tool\'s retraction in the purge chute (a line marked "restore retraction") leaves the
+        // A block that restores the tool's retraction in the purge chute (a line marked "restore retraction") leaves the
         // nozzle full, so the writer must not unretract it again on the part.
-        if (m_writer.extruder() && prime_gcode.find("restore retraction") != std::string::npos)
-            m_writer.extruder()->set_retracted(0., 0.);
+        if (m_writer.filament() && prime_gcode.find("restore retraction") != std::string::npos)
+            m_writer.filament()->set_retracted(0., 0.);
+        // The prime G-code may switch to relative extrusion (M83), so put an absolute-E print back in its mode.
+        if (!m_config.use_relative_e_distances && m_config.gcode_flavor != gcfMach3 && m_config.gcode_flavor != gcfMakerWare &&
+            m_config.gcode_flavor != gcfSailfish)
+            gcode += "M82 ; use absolute distances for extrusion\n";
         // The prime G-code moves the extruder and the nozzle behind the writer's back.
         gcode += m_writer.reset_e(true);
         m_writer.set_current_position_clear(false);

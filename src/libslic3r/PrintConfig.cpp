@@ -7023,7 +7023,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Skip prime below idle time");
     def->category = L("Tool change priming");
     def->tooltip = L("Leave out the prime extrusion when the new tool was parked for less than this estimated time. "
-                     "The rest of the tool change prime G-code still runs, so the retraction is still restored. Set to zero to always prime.");
+                     "The rest of the tool change prime G-code still runs, so the retraction is still restored. A park at least as long as the "
+                     "idle time always gets the full prime, whatever this is set to. Set to zero to always prime.");
     def->sidetext = "s"; // seconds, don't need translation
     def->min = 0;
     def->mode = comAdvanced;
