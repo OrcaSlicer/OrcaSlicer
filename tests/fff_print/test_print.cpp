@@ -1372,9 +1372,14 @@ TEST_CASE("Belt printers refuse an object taller than the gantry clearance", "[P
 // On a belt every tilted layer starts on the belt, so "the first layers" the fan stays off
 // for are a band along the belt, not the first slicing layers. The generator marks where
 // each extrusion segment enters and leaves that band and the cooling buffer keeps the fan
-// off inside it, on every layer.
+// off inside it, on every layer. The lowest wall of each tilted layer rests on the belt with
+// its nozzle half a layer plus half its width up (0.1 + 0.21 mm here), so a band of one
+// first layer has to be judged from the bead, not the nozzle, to hold it.
 TEST_CASE("Belt printers keep the part fan off within the band above the belt", "[Print][belt][Cooling]")
 {
+    // Fan-off layers, and the gantry Y below which an extrusion is well inside that band.
+    const auto [fan_off_layers, band_y] = GENERATE(table<int, double>({ { 1, 0.35 }, { 3, 0.45 } }));
+    CAPTURE(fan_off_layers);
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
         { "belt_printer",                 1 },
@@ -1387,9 +1392,8 @@ TEST_CASE("Belt printers keep the part fan off within the band above the belt", 
         { "initial_layer_print_height",   0.2 },
         { "skirt_loops",                  0 },
         { "z_hop",                        0 },
-        // Three layers, 0.6 mm: the lowest wall of each tilted layer is centred about 0.3 mm
-        // above the belt (half a line width in from the contact edge).
-        { "close_fan_the_first_x_layers", 3 },
+        { "outer_wall_line_width",        0.42 },
+        { "close_fan_the_first_x_layers", fan_off_layers },
         { "full_fan_speed_layer",         0 },
         { "fan_min_speed",                100 },
         { "fan_max_speed",                100 },
@@ -1406,9 +1410,9 @@ TEST_CASE("Belt printers keep the part fan off within the band above the belt", 
     CHECK(gcode.find(";_BELT_BAND") == std::string::npos);
 
     // With this axis mapping machine Y is the height above the belt along the gantry. Walk
-    // the moves with the fan state: extrusions that stay within 0.45 mm of the belt are well
-    // inside the band and must print with the fan off; extrusions that stay 5 mm clear of it
-    // must print with it on. The first three slicing layers have the fan off altogether.
+    // the moves with the fan state: extrusions that stay below band_y are well inside the band
+    // and must print with the fan off; extrusions that stay 5 mm clear of it must print with
+    // it on. The first fan_off_layers slicing layers have the fan off altogether.
     size_t in_band = 0, in_band_fan_on = 0, clear = 0, clear_fan_off = 0;
     int    layer   = -1;
     bool   fan_on  = false;
@@ -1430,8 +1434,8 @@ TEST_CASE("Belt printers keep the part fan off within the band above the belt", 
                 continue;
             const double y_new     = std::atof(cmd.c_str() + ypos + 2);
             const bool   extruding = epos != std::string::npos && std::atof(cmd.c_str() + epos + 2) > 0.;
-            if (extruding && layer >= 3) {
-                if (std::max(y, y_new) < 0.45) {
+            if (extruding && layer >= fan_off_layers) {
+                if (std::max(y, y_new) < band_y) {
                     ++ in_band;
                     in_band_fan_on += fan_on;
                 } else if (std::min(y, y_new) > 5.) {
@@ -1446,6 +1450,144 @@ TEST_CASE("Belt printers keep the part fan off within the band above the belt", 
     CHECK(in_band_fan_on == 0);
     CHECK(clear > 20);
     CHECK(clear_fan_off == 0);
+}
+
+// On a belt one wall loop runs from the belt up the part, and whether a path is on the first
+// layer, and its step of the slow_down_layers ramp, set its speed, flow and acceleration as a
+// whole.  Each part of the loop must take the settings of its own height above the belt,
+// wherever the seam starts the loop.
+TEST_CASE("Belt printers use first-layer settings only where a wall rests on the belt", "[Print][belt][Regression]")
+{
+    const std::string seam             = GENERATE("back", "random");
+    const int         slow_down_layers = GENERATE(0, 4);
+    CAPTURE(seam, slow_down_layers);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "belt_printer",                   1 },
+        { "belt_slice_rotation",            "x" },
+        { "belt_slice_rotation_angle",      45 },
+        { "gcode_remap_x",                  "rev_x" },
+        { "gcode_remap_y",                  "pos_z" },
+        { "gcode_remap_z",                  "pos_y" },
+        { "layer_height",                   0.2 },
+        { "initial_layer_print_height",     0.2 },
+        { "skirt_loops",                    0 },
+        { "brim_type",                      "no_brim" },
+        { "z_hop",                          0 },
+        { "wall_generator",                 "classic" },
+        { "outer_wall_line_width",          0.42 },
+        { "seam_position",                  seam },
+        // One path per wall loop, so nothing but the edges of the bands cut it.
+        { "detect_overhang_wall",           0 },
+        { "enable_overhang_speed",          0 },
+        { "initial_layer_speed",            10 },
+        { "outer_wall_speed",               40 },
+        { "slow_down_layers",               slow_down_layers },
+        { "filament_max_volumetric_speed",  20 },
+        { "slow_down_for_layer_cooling",    0 },
+        { "set_other_flow_ratios",          1 },
+        { "first_layer_flow_ratio",         0.8 },
+        { "machine_start_gcode",            "T[initial_tool]\n" },
+        { "layer_change_gcode",             "G92 E0\n" },
+    });
+    const std::string gcode = slice({ cube(20) }, config);
+
+    // As above, machine Y is the height above the belt.  The outer wall's nozzle is half its
+    // width, 0.21 mm, higher than the belt under its edge, so the first layer, up to 0.2 mm,
+    // ends at Y = 0.41 and step k of the ramp spans Y = 0.21 + [0.2 k, 0.2 (k + 1)).  Its wall
+    // resting on the belt is at Y = 0.31.
+    const double ramp_step_2 = 10. + (40. - 10.) * 2. / 4.;
+    std::vector<double> in_band_e, clear_e;   // E per mm
+    size_t              in_band = 0, in_band_fast = 0, step_2 = 0, step_2_off = 0, clear = 0, clear_slow = 0;
+    std::string         type;
+    GCodeReader         reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (boost::starts_with(line.raw(), ";TYPE:")) {
+            type = line.raw().substr(6);
+            return;
+        }
+        if (type != "Outer wall" || ! line.extruding(self) || line.dist_XY(self) <= EPSILON)
+            return;
+        const double y_lo = std::min(self.y(), line.new_Y(self));
+        const double y_hi = std::max(self.y(), line.new_Y(self));
+        const double f    = line.new_F(self);
+        // Long moves only for the flow, so that the rounding of E does not blur it.
+        const bool   long_move = line.dist_XY(self) >= 0.5;
+        if (y_hi < 0.35) {
+            ++ in_band;
+            in_band_fast += std::abs(f - 10. * 60.) > 1.;
+            if (long_move)
+                in_band_e.push_back(line.dist_E(self) / line.dist_XY(self));
+        } else if (slow_down_layers == 4 && y_lo > 0.61 - 1e-3 && y_hi < 0.81 + 1e-3) {
+            ++ step_2;
+            step_2_off += std::abs(f - ramp_step_2 * 60.) > 1.;
+        } else if (y_lo > 1.5) {
+            ++ clear;
+            clear_slow += std::abs(f - 40. * 60.) > 1.;
+            if (long_move)
+                clear_e.push_back(line.dist_E(self) / line.dist_XY(self));
+        }
+    });
+    REQUIRE(in_band > 20);
+    REQUIRE(clear > 20);
+    CHECK(in_band_fast == 0);
+    CHECK(clear_slow == 0);
+    if (slow_down_layers == 4) {
+        REQUIRE(step_2 > 10);
+        CHECK(step_2_off == 0);
+    }
+    // first_layer_flow_ratio on the belt and nowhere else.
+    auto median = [](std::vector<double> v) {
+        std::nth_element(v.begin(), v.begin() + v.size() / 2, v.end());
+        return v[v.size() / 2];
+    };
+    CHECK_THAT(median(in_band_e) / median(clear_e), Catch::Matchers::WithinRel(0.8, 0.02));
+}
+
+// Small-area flow compensation scales a line's flow by the line's length.  The cuts a belt path
+// gets at the edges of the bands above the belt must not make it see the pieces as short lines.
+TEST_CASE("Belt band cuts leave small-area flow compensation unchanged", "[Print][belt][Regression]")
+{
+    // Plastic per role.  The slow_down_layers ramp adds band edges every 0.2 mm above the belt,
+    // here up to well past the top of the part, and with them cuts through the solid infill
+    // under its top face, but changes nothing else about how much plastic is laid.
+    auto plastic = [](int slow_down_layers) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            { "belt_printer",                        1 },
+            { "belt_slice_rotation",                 "x" },
+            { "belt_slice_rotation_angle",           45 },
+            { "gcode_remap_x",                       "rev_x" },
+            { "gcode_remap_y",                       "pos_z" },
+            { "gcode_remap_z",                       "pos_y" },
+            { "layer_height",                        0.2 },
+            { "initial_layer_print_height",          0.2 },
+            { "skirt_loops",                         0 },
+            { "brim_type",                           "no_brim" },
+            { "z_hop",                               0 },
+            { "bottom_shell_layers",                 4 },
+            { "internal_solid_infill_pattern",       "monotonic" },
+            { "small_area_infill_flow_compensation", 1 },
+            { "slow_down_layers",                    slow_down_layers },
+            { "machine_start_gcode",                 "T[initial_tool]\n" },
+            { "layer_change_gcode",                  "G92 E0\n" },
+        });
+        std::map<std::string, double> e;
+        std::string                   type;
+        GCodeReader                   reader;
+        reader.parse_buffer(slice({ cube(20) }, config), [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+            if (boost::starts_with(line.raw(), ";TYPE:"))
+                type = line.raw().substr(6);
+            else if (line.extruding(self) && line.dist_XY(self) > EPSILON)
+                e[type] += line.dist_E(self);
+        });
+        return e;
+    };
+    const std::map<std::string, double> uncut = plastic(0);
+    const std::map<std::string, double> cut   = plastic(200);
+    REQUIRE(uncut.count("Internal solid infill") == 1);
+    REQUIRE(cut.count("Internal solid infill") == 1);
+    CHECK_THAT(cut.at("Internal solid infill"), Catch::Matchers::WithinRel(uncut.at("Internal solid infill"), 1e-4));
 }
 
 // Organic supports under an overhang on a belt printer reach below the object's first layer,
@@ -2311,4 +2453,155 @@ TEST_CASE("Objects on extruders with different layer height limits can share a p
     const StringObjectException error = print.validate();
     INFO(error.string);
     CHECK(error.string.empty());
+}
+
+TEST_CASE("Belt printers apply the Z shrinkage compensation to the slicing height once", "[Print][belt][Regression]")
+{
+    // A 20 mm cube printed with a filament that shrinks to xy % / z % is sliced like an uncompensated box
+    // 20 * 100 / xy wide and 20 * 100 / z tall. The span of the layers is compared, as the belt Z offset
+    // depends on where the object is centred.
+    const auto [xy, z, angle] = GENERATE(table<double, double, double>({ { 100., 95., 45. }, { 100., 105., 45. }, { 90., 95., 45. }, { 100., 105., 0. } }));
+    const auto sliced_height = [](const TriangleMesh &mesh, double xy, double z, double angle) {
+        DynamicPrintConfig config = belt_test_config();
+        config.set_deserialize_strict({ { "filament_shrink", xy }, { "filament_shrinkage_compensation_z", z }, { "belt_slice_rotation_angle", angle } });
+        Print print;
+        init_and_process_print({ mesh }, print, config);
+        const PrintObject &object = *print.objects().front();
+        return std::make_pair(object.slicing_parameters().object_print_z_max,
+                              object.layers().back()->print_z - object.layers().front()->print_z);
+    };
+
+    const auto [compensated_max_z, compensated_span] = sliced_height(cube(20.), xy, z, angle);
+    const auto [expected_max_z, expected_span]       = sliced_height(make_cube(20. * 100. / xy, 20. * 100. / xy, 20. * 100. / z), 100., 100., angle);
+    CHECK_THAT(compensated_max_z, Catch::Matchers::WithinAbs(expected_max_z, EPSILON));
+    CHECK_THAT(compensated_span, Catch::Matchers::WithinAbs(expected_span, 0.2 * 100. / z));
+}
+
+TEST_CASE("The belt build height check uses the compensated height", "[Print][belt][validate][Regression]")
+{
+    // printable_height is 100 mm. Z shrinkage 105 % prints 101 mm at about 96.2 mm, which fits, and 106 mm at
+    // about 101 mm, which does not; with 95 % a 97 mm object only becomes too tall through the compensation.
+    const auto [z, height, expected] = GENERATE(table<double, double, std::string>({
+        { 105., 101., "" },
+        { 105., 106., "exceeds the maximum build volume height." },
+        { 95., 92., "" },
+        { 95., 97., "because of material shrinkage compensation" },
+    }));
+    DynamicPrintConfig config = belt_test_config();
+    config.set_deserialize_strict({ { "printable_height", 100. }, { "filament_shrinkage_compensation_z", z } });
+
+    Print print;
+    Model model;
+    init_print({ make_cube(20., 20., height) }, print, model, config);
+    const std::string error = print.validate().string;
+    INFO(error);
+    if (expected.empty())
+        CHECK(error.empty());
+    else
+        CHECK(error.find(expected) != std::string::npos);
+}
+
+// A 20 mm cube on the bed with a height range override.
+static ModelObject* cube_with_height_range(Model &model, const t_layer_height_range &range, DynamicPrintConfig &&range_config)
+{
+    ModelObject *object = model.add_object();
+    object->add_volume(cube(20.));
+    // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
+    object->layer_config_ranges[range].assign_config(std::move(range_config));
+    object->add_instance()->set_offset(Vec3d(90., 90., 0.));
+    object->ensure_on_bed();
+    return object;
+}
+
+static DynamicPrintConfig height_range_test_config(double shrinkage_z)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "filament_shrinkage_compensation_z", shrinkage_z },
+        { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "precise_z_height", false },
+        { "sparse_infill_density", "15%" },
+    });
+    return config;
+}
+
+// The 0.1 mm / 50 % height range [10, 15] has to print both its layer height and its infill from 10 * 100 / z
+// up to 15 * 100 / z of the object.
+static void check_thin_dense_height_range(const PrintObject &print_object, double shrinkage_z)
+{
+    size_t mismatched = 0;
+    double first_dense_z = -1.;
+    for (const Layer *layer : print_object.layers()) {
+        const bool thin  = layer->height < 0.15;
+        const bool dense = std::any_of(layer->regions().begin(), layer->regions().end(), [](const LayerRegion *region) {
+            return ! region->slices.empty() && region->region().config().sparse_infill_density.value > 40.;
+        });
+        if (thin != dense)
+            ++ mismatched;
+        if (dense && first_dense_z < 0.)
+            first_dense_z = layer->slice_z;
+    }
+    CHECK(mismatched == 0);
+    CHECK_THAT(first_dense_z, Catch::Matchers::WithinAbs(10. * 100. / shrinkage_z, 0.2));
+}
+
+static DynamicPrintConfig thin_dense_height_range()
+{
+    DynamicPrintConfig range;
+    range.set_key_value("layer_height", new ConfigOptionFloat(0.1));
+    range.set_key_value("sparse_infill_density", new ConfigOptionPercent(50));
+    return range;
+}
+
+TEST_CASE("A height range above the object keeps its layer height up to the compensated top", "[Print][Regression]")
+{
+    // The range [10, 100] covers the top of the 20 mm cube, which the Z shrinkage compensation moves to 20 * 100 / z.
+    const double z = GENERATE(95., 105.);
+    DynamicPrintConfig range;
+    range.set_key_value("layer_height", new ConfigOptionFloat(0.1));
+    Model model;
+    cube_with_height_range(model, { 10., 100. }, std::move(range));
+    Print print;
+    print.apply(model, height_range_test_config(z));
+    print.process();
+
+    const PrintObject &print_object = *print.objects().front();
+    CHECK_THAT(print_object.layers().back()->print_z, Catch::Matchers::WithinAbs(20. * 100. / z, 0.1));
+    const size_t thick_layers_in_range = std::count_if(print_object.layers().begin(), print_object.layers().end(),
+        [z](const Layer *layer) { return layer->slice_z > 11. * 100. / z && layer->height > 0.15; });
+    CHECK(thick_layers_in_range == 0);
+}
+
+TEST_CASE("Height range settings apply where the height range prints", "[Print][Regression]")
+{
+    // The range [10, 15] prints with 0.1 mm layers and 50 % infill. The Z shrinkage compensation moves both
+    // to 10 * 100 / z ... 15 * 100 / z.
+    const double z = GENERATE(100., 95., 105.);
+    Model model;
+    cube_with_height_range(model, { 10., 15. }, thin_dense_height_range());
+    Print print;
+    print.apply(model, height_range_test_config(z));
+    print.process();
+
+    check_thin_dense_height_range(*print.objects().front(), z);
+}
+
+TEST_CASE("Height range settings follow a Z shrinkage change that comes with a modifier change", "[Print][Regression]")
+{
+    // Adding a modifier lets Print::apply() reuse the cached regions; the cached height ranges were
+    // compensated for the old Z shrinkage.
+    Model model;
+    ModelObject *object = cube_with_height_range(model, { 10., 15. }, thin_dense_height_range());
+    Print print;
+    print.apply(model, height_range_test_config(100.));
+    print.process();
+
+    DynamicPrintConfig modifier_config;
+    modifier_config.set_key_value("wall_loops", new ConfigOptionInt(3));
+    object->add_volume(cube(5.), ModelVolumeType::PARAMETER_MODIFIER, false)->config.apply(modifier_config);
+    print.apply(model, height_range_test_config(95.));
+    print.process();
+
+    check_thin_dense_height_range(*print.objects().front(), 95.);
 }
