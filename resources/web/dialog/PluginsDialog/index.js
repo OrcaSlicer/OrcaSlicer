@@ -104,6 +104,14 @@ function OnInit() {
     }
   });
 
+  let fitColumnsTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(fitColumnsTimer);
+    fitColumnsTimer = setTimeout(() => {
+      SyncPluginListHeaderGutter();
+    }, 150);
+  });
+
   ActivateDetailTab(activeDetailTab);
   SetSelectedInstallAction(selectedInstallAction, false);
   RequestPlugins();
