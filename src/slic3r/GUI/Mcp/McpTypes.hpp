@@ -123,11 +123,21 @@ struct ToolDef
     nlohmann::json input_schema = {{"type", "object"}, {"properties", nlohmann::json::object()}};
     // ToolRegistry::add sets it from tool_lane().
     ToolLane       lane        = ToolLane::Api;
-    // The tool's access label: it reads and writes nothing. Tools that only observe but write a
-    // file (screenshot, export_script) are not read-only.
+    // The tool's access label, sent as MCP's annotations. Clients act on them: Codex asks a person before every call
+    // of a destructive tool, and Claude Code runs read-only calls in parallel and retries idempotent ones. read_only:
+    // it changes nothing in the app or the project; screenshot is, since its PNG replaces no file without overwrite,
+    // and export_script, which can clear the journal, is not. destructive: every call deletes what a person made, with
+    // no undo: delete_preset. A tool that can lose work only when an argument asks for it is not: new_project,
+    // calibrate and open_files drop unsaved changes only with discard_changes, an output replaces a file only with
+    // overwrite, and encode_recording deletes its source only with delete_source. Nor is a tool that runs what its
+    // arguments name (the ui_* tools, run_action, api_call, run_script, run_python), though what it runs may be. The
+    // client sees both in the arguments, and the label would ask on every call. open_world: it can reach outside
+    // OrcaSlicer (a printer, the cloud account, the network, or anything the computer allows), including through what
+    // it runs.
     bool           read_only   = false;
     bool           destructive = false;
     bool           idempotent  = false;
+    bool           open_world  = false;
     GuardClass     guard       = GuardClass::Mutate;
     // Pure observation: runs on the request thread and is never a job. Everything that can activate
     // UI runs as a job instead, because activating UI can open a modal that blocks the call.

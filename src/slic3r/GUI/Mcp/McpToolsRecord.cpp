@@ -403,7 +403,6 @@ void register_record_tools(McpService& service)
                 out["source_deleted"] = !fs::exists(source, ec);
             return ToolResult::ok(out);
         });
-    encode.destructive = true; // delete_source
     encode.cancellable = true;
     reg.add(encode);
 }

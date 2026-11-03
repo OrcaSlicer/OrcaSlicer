@@ -63,8 +63,10 @@ struct Fixture
         registry.add(echo);
 
         ToolDef fail;
-        fail.name    = "fail";
-        fail.handler = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("it broke", {{"why", "test"}}); };
+        fail.name        = "fail";
+        fail.destructive = true;
+        fail.open_world  = true;
+        fail.handler     = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("it broke", {{"why", "test"}}); };
         registry.add(fail);
     }
 
@@ -122,7 +124,11 @@ TEST_CASE("tools/list keeps registration order and maps annotations", "[Mcp]")
     CHECK(tools[1]["name"] == "fail");
     CHECK(tools[0]["annotations"]["readOnlyHint"] == true);
     CHECK(tools[0]["annotations"]["idempotentHint"] == true);
-    CHECK(tools[1]["annotations"]["destructiveHint"] == false);
+    CHECK(tools[0]["annotations"]["destructiveHint"] == false);
+    CHECK(tools[0]["annotations"]["openWorldHint"] == false);
+    CHECK(tools[1]["annotations"]["readOnlyHint"] == false);
+    CHECK(tools[1]["annotations"]["destructiveHint"] == true);
+    CHECK(tools[1]["annotations"]["openWorldHint"] == true);
     CHECK(tools[0]["inputSchema"]["required"][0] == "text");
 }
 

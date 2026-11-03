@@ -169,6 +169,8 @@ void register_script_tools(McpService& service)
             json result = run_script_job(service, ctx, *script, sctx, ScriptRunOptions{});
             return ToolResult::ok(std::move(result));
         });
+    // Its steps call any tool, run_python included.
+    run.open_world = true;
     reg.add(run);
 
     ToolDef exp = inspect_tool(
@@ -204,6 +206,8 @@ void register_script_tools(McpService& service)
             return ToolResult::ok(std::move(out));
         });
     exp.read_only = false;
+    // clear empties the recording, so a second call exports less.
+    exp.idempotent = false;
     reg.add(exp);
 }
 

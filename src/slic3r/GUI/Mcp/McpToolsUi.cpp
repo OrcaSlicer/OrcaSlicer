@@ -1703,7 +1703,7 @@ void register_ui_tools(McpService& service)
         reg.add(def);
     }
 
-    reg.add(recover_input_tool(
+    ToolDef eval = recover_input_tool(
         "webview_eval", L("Run JavaScript in a web view"),
         "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, dialogs, plugin windows) and return the "
         "value of its last expression (JSON values come back parsed). Prefer ui_snapshot and the ui_* tools, which see and "
@@ -1780,7 +1780,10 @@ void register_ui_tools(McpService& service)
             // What followed, the page's new url with navigated, overrides the one from before.
             out.update(observe_page(service, ctx, page, before, r.value));
             return ToolResult::ok(out);
-        }));
+        });
+    // Its script runs with the page's own reach: the device page and Home talk to printers and the cloud.
+    eval.open_world = true;
+    reg.add(eval);
 }
 
 }}} // namespace Slic3r::GUI::Mcp

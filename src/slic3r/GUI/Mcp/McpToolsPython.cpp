@@ -276,6 +276,8 @@ void register_python_tools(McpService& service)
         });
     // cancel {job} stops a run: its code is interrupted at its next bytecode.
     run.cancellable = true;
+    // Python has the app's full access to the computer.
+    run.open_world = true;
     reg.add(run);
 
     reg.add(inspect_tool(

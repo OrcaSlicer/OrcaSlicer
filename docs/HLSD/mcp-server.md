@@ -409,7 +409,29 @@ Each tool has a lane, the way it acts, set by `ToolRegistry::add()` from `tool_l
 session, recovery and Python), API (project data by index and name, JSON in and out) and UI (the GUI
 itself). Every caller reaches every tool; the lane is a hint for the agent choosing one. It starts each
 description (`[core]`, `[api]`, `[ui]`), orders `tools/list` (core, then API, then UI) and orders the
-server instructions. The access label is `read_only`: the tool reads and writes nothing.
+server instructions.
+
+Each tool also has an access label, which `tools/list` sends as MCP's annotations. Clients act on it
+differently: Codex asks a person before every call of a destructive tool (unless it is also read-only),
+and its `writes` mode before every call of a tool that is not read-only; Claude Code asks by its own
+permission rules whatever the label says, runs read-only calls in parallel and retries idempotent ones.
+So the label marks what a call does by its nature, not everything a call could reach, which would put
+a confirmation on calls an agent makes all the time.
+
+`read_only`: the tool changes nothing in the app or the project. `screenshot` is read-only, since its
+PNG replaces no file without `overwrite`; `export_script`, which can clear the journal, is not.
+`destructive`: every call deletes what a person made, with no undo: `delete_preset`, which takes the
+preset's file and its cloud copy. A tool that can lose work only when an argument asks for it is not:
+`new_project`, `calibrate` and `open_files` drop unsaved changes only with `discard_changes`, an output
+replaces a file only with `overwrite: true`, and `encode_recording` deletes its source only with
+`delete_source`. Nor is a tool that runs what its arguments name: the `ui_*` tools, which press
+whatever is on screen, a Delete button included, `run_action`, `api_call`, `run_script` and
+`run_python`. What they run may be destructive, but the client sees both in the arguments, and the
+label would ask on every call. `open_world` (`openWorldHint`): the tool can reach outside OrcaSlicer, to a
+printer, the cloud account or the network: `save_preset` (user presets sync), `delete_preset` (the cloud
+copy), `webview_eval` (the page's own reach), and through what they run `run_action` (`send_gcode`,
+`sync_presets`), `api_call`, `run_script` and `run_python`, which has the app's access to the computer.
+No client is known to ask on it. `idempotent`: the same call again changes nothing more.
 
 The tools that take an object index (`set_settings` object and volume scopes, `transform`, `add_part`,
 `set_layer_ranges`, `set_layer_height_profile`) also take an optional `object_id`, and where they take a
@@ -1357,7 +1379,8 @@ The command then appears in the palette, in `list_actions` and `run_action`, and
 When an agent needs structured arguments or results, or has to wait for the effect, add a typed
 tool to the matching `McpTools*.cpp`. Use `inspect_tool()` for pure observation, which runs inline,
 read-only and unjournaled. Use `mutate_tool()` for anything that changes the app; it runs as a
-journaled job under the mutate guard and may be marked `destructive`. Build the schema with
+journaled job under the mutate guard and may be marked `destructive`, and a tool that reaches outside
+the app sets `open_world` (see Tool catalog). Build the schema with
 `object_schema()`, `prop()`, `enum_prop()` and `array_prop()`. It is validated before the handler
 runs, so `arg_string()` and its siblings can read the arguments. Do all wx work in `ctx.run_ui()`,
 and get the plater with `ui_plater()`, which fails until the main window is up. Throw `ToolFailure`

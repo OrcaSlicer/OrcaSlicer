@@ -242,14 +242,17 @@ void register_api_tools(McpService& service)
 
     // Dispatched before it runs (resolve_api_call): the call runs as the target's own, with its guard,
     // mode, budget and journal flag, and is journaled as the target's call. This handler is never reached.
-    reg.add(mutate_tool(
+    ToolDef call = mutate_tool(
         "api_call", L("Call a tool or plugin operation"),
         "Call any registered tool, or an operation a plugin offers (see api_describe), by name with its arguments. It "
         "runs and is recorded as that tool's own call, with its guards and reply budget.",
         object_schema({{"tool", prop("string", "The tool or operation to call.")},
                        {"args", {{"type", "object"}, {"description", "Its arguments."}}}},
                       {"tool"}),
-        [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("api_call is dispatched to its tool before it runs"); }));
+        [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("api_call is dispatched to its tool before it runs"); });
+    // It calls any tool, run_python included, and plugin code.
+    call.open_world = true;
+    reg.add(call);
 }
 
 }}} // namespace Slic3r::GUI::Mcp

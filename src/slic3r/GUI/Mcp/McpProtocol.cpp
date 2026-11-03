@@ -370,7 +370,7 @@ json McpProtocol::tool_to_json(const ToolDef& def)
     t["annotations"] = {{"readOnlyHint", def.read_only},
                         {"destructiveHint", def.destructive},
                         {"idempotentHint", def.idempotent},
-                        {"openWorldHint", false}};
+                        {"openWorldHint", def.open_world}};
     if (!def.title.empty())
         t["annotations"]["title"] = def.title;
     return t;

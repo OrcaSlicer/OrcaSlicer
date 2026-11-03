@@ -1923,7 +1923,7 @@ void register_config_tools(McpService& service)
             return ToolResult::ok(result);
         }));
 
-    reg.add(mutate_tool(
+    ToolDef save = mutate_tool(
         "save_preset", L("Save a preset"),
         "Save the printer, process or filament preset being edited, unsaved changes included, under name, as the tab's Save "
         "and the Save preset dialog's OK do; it is then selected. A filament is filament_slot's (default 1), and every slot "
@@ -1977,9 +1977,12 @@ void register_config_tools(McpService& service)
             });
             settle(ctx);
             return ToolResult::ok(result);
-        }));
+        });
+    // A user preset syncs to the cloud account when preset sync is on.
+    save.open_world = true;
+    reg.add(save);
 
-    reg.add(mutate_tool(
+    ToolDef remove = mutate_tool(
         "delete_preset", L("Delete a preset"),
         "Delete a user preset or one inside the project, its file and its cloud copy, as the tab's Delete does, without "
         "asking. A selected preset is replaced as the tab does (its parent or the next preset). Another filament is deleted "
@@ -2049,7 +2052,10 @@ void register_config_tools(McpService& service)
             settle(ctx);
             return ToolResult::ok(result);
         },
-        true));
+        true);
+    // It deletes the preset's cloud copy too.
+    remove.open_world = true;
+    reg.add(remove);
 
     reg.add(inspect_tool(
         "get_settings", L("Read settings"),

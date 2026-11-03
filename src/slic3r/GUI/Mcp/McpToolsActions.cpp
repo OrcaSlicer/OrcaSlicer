@@ -159,7 +159,7 @@ void register_action_tools(McpService& service)
             return ToolResult::ok(ctx.run_ui([q] { return registry_or_fail().describe(q); }));
         }));
 
-    reg.add(mutate_tool(
+    ToolDef run = mutate_tool(
         "run_action", L("Run a Speed Dial action"),
         "Run one action by the id list_actions returned (orca_command:view_front:orca, or the name inside it, view_front), "
         "with its param when it takes one (a percent, tab id, plate index, "
@@ -219,7 +219,10 @@ void register_action_tools(McpService& service)
             if (started.contains("reply") && started["reply"].is_object())
                 out.update(started["reply"]);
             return ToolResult::ok(out);
-        }));
+        });
+    // Its commands upload G-code to a print host (send_gcode) and sync presets with the cloud account (sync_presets).
+    run.open_world = true;
+    reg.add(run);
 }
 
 }}} // namespace Slic3r::GUI::Mcp

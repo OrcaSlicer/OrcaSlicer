@@ -460,8 +460,7 @@ void register_project_tools(McpService& service)
             });
             settle(ctx);
             return ToolResult::ok(out);
-        },
-        true));
+        }));
 
     reg.add(mutate_tool(
         "calibrate", L("Generate a calibration test"),
@@ -609,8 +608,7 @@ void register_project_tools(McpService& service)
             ctx.set_journal_args(std::move(recorded));
             settle(ctx);
             return ToolResult::ok(out);
-        },
-        true));
+        }));
 
     reg.add(mutate_tool(
         "save_project", L("Save the project"),
