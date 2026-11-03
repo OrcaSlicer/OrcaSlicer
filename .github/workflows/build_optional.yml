@@ -13,10 +13,12 @@
 # workflows, and a list of those places would go stale, so the safe places are
 # listed instead. The macOS build never starts on its own.
 #
-# Each build keeps its own concurrency group, so adding one label does not
-# cancel the build another started, and a push cancels the builds of the
-# commit it replaces. cancel_closed_pr_builds.yml joins the groups by name, so
-# update that file with any change here.
+# Each label added starts a run of its own, and the pull request's checks show
+# the newest run only, so every run builds everything the labels and the
+# changed files ask for. Each build keeps its own concurrency group: the newest
+# run's build cancels the one an earlier run of the commit started, and a push
+# cancels the builds of the commit it replaces. cancel_closed_pr_builds.yml
+# joins the groups by name, so update that file with any change here.
 name: Optional builds
 
 on:
@@ -24,15 +26,12 @@ on:
     branches:
      - main
      - release/*
-    # labeled, so adding a label starts the build it asks for. The run it starts
-    # lists the other builds as skipped; the Actions tab keeps their earlier runs.
+    # labeled, so adding a label starts the build it asks for.
     types: [opened, reopened, synchronize, labeled]
 
 jobs:
   select:
     name: Select builds
-    # A label that asks for no build starts a run that does nothing.
-    if: ${{ github.event.action != 'labeled' || startsWith(github.event.label.name, 'build-') }}
     runs-on: ubuntu-24.04
     outputs:
       flatpak: ${{ steps.select.outputs.flatpak }}
@@ -49,32 +48,28 @@ jobs:
       - name: Select the builds the labels and the changed files ask for
         id: select
         env:
-          # The label just added, or every label the pull request has.
-          ASKED: ${{ github.event.action == 'labeled' && github.event.label.name || join(github.event.pull_request.labels.*.name, ' ') }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
         run: |
-          asks() { [[ " $ASKED " == *" $1 "* ]]; }
-          # A labeled run builds what its label asks for and nothing else.
+          has_label() { [[ " $LABELS " == *" $1 "* ]]; }
           infra=false
-          if [ "${{ github.event.action }}" != labeled ]; then
-            changed=$(git diff --name-only HEAD^1 HEAD \
-              | grep -vE '^(src|tests|resources|localization|docs)/' | grep -vE '\.md$' || true)
-            if [ -n "$changed" ]; then
-              echo "This pull request changes files outside the sources, tests, profiles, translations and docs:"
-              echo "$changed" | head -20
-              infra=true
-            fi
+          changed=$(git diff --name-only HEAD^1 HEAD \
+            | grep -vE '^(src|tests|resources|localization|docs)/' | grep -vE '\.md$' || true)
+          if [ -n "$changed" ]; then
+            echo "This pull request changes files outside the sources, tests, profiles, translations and docs:"
+            echo "$changed" | head -20
+            infra=true
           fi
           pick() {
-            local build=$1 label=$2 on=false
-            if asks "$label" || { [ "$build" != macos-x86_64 ] && [ "$infra" = true ]; }; then
+            local build=$1 label=$2 auto=$3 on=false
+            if has_label "$label" || { [ "$auto" = true ] && [ "$infra" = true ]; }; then
               on=true
             fi
             echo "$build=$on" >> "$GITHUB_OUTPUT"
             echo "$build: $on"
           }
-          pick flatpak build-flatpak
-          pick macos-x86_64 build-macos-x86_64
-          pick windows-arm64 build-windows-arm64
+          pick flatpak build-flatpak true
+          pick macos-x86_64 build-macos-x86_64 false
+          pick windows-arm64 build-windows-arm64 true
 
   flatpak:
     name: Flatpak
