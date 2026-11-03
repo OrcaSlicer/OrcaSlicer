@@ -1031,6 +1031,13 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         for (size_t i = 0; i < n; ++i) fallback_order[i] = i;
         std::stable_sort(fallback_order.begin(), fallback_order.end(), by_object_index);
 
+        // Every instance of an object shares its object_index, so order by place in the list instead,
+        // which tells instances apart and keeps copies of one object in their list order.
+        std::vector<size_t> list_position(n);
+        for (size_t k = 0; k < n; ++k)
+            list_position[fallback_order[k]] = k;
+        auto by_list_position = [&list_position](size_t l, size_t r) { return list_position[l] < list_position[r]; };
+
         // Mirrors the inflation the vertical-clearance check below applies: only the
         // potentially-too-tall instance's footprint is shrunk before testing Y overlap.
         // A structured binding can't be captured by a lambda before C++20, so copy it first.
@@ -1078,13 +1085,13 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             }
 
             if (!infeasible) {
-                // Kahn's algorithm; ties are broken by original object_index so the result is
+                // Kahn's algorithm; ties are broken by place in the list so the result is
                 // the minimal perturbation of the incoming order, not an arbitrary one.
                 std::vector<size_t> ready;
                 for (size_t i = 0; i < n; ++i)
                     if (i != last_idx && indegree[i] == 0)
                         ready.push_back(i);
-                std::sort(ready.begin(), ready.end(), by_object_index);
+                std::sort(ready.begin(), ready.end(), by_list_position);
 
                 std::vector<size_t> order;
                 order.reserve(n);
@@ -1094,7 +1101,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     order.push_back(cur);
                     for (size_t nxt : adj[cur]) {
                         if (--indegree[nxt] == 0) {
-                            auto pos = std::upper_bound(ready.begin(), ready.end(), nxt, by_object_index);
+                            auto pos = std::upper_bound(ready.begin(), ready.end(), nxt, by_list_position);
                             ready.insert(pos, nxt);
                         }
                     }
@@ -1117,9 +1124,6 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         // differs from it, naming the instances held back to clear the rod: those printed later than
         // their place in the list. The first of them is the jump target.
         if (warning != nullptr && solved && solved_order != fallback_order) {
-            std::vector<size_t> list_position(n);
-            for (size_t k = 0; k < n; ++k)
-                list_position[fallback_order[k]] = k;
             for (size_t k = 0; k < n; ++k) {
                 if (k <= list_position[solved_order[k]])
                     continue;
