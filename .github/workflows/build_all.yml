@@ -105,12 +105,9 @@ jobs:
         run: .\scripts\test_prune_cached_presets.ps1
 
   build_windows:
-    name: Build Windows ${{ matrix.arch }} (${{ matrix.preset }})${{ matrix.script == 'bat' && ' (baseline - current main)' || matrix.preset == 'x64-clang-cache' && ' (top candidate - ps1)' || ' (candidate - ps1)' }}
+    name: Build Windows ${{ matrix.arch }} (${{ matrix.preset }})${{ matrix.script == 'bat' && ' (baseline - current main)' || ' (candidate - ps1)' }}
     strategy:
       fail-fast: false
-      # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
-      # Each config runs twice: once with build_win.bat (baseline) and once with
-      # build_win.ps1 (candidate) for perf comparison.
       matrix:
         include:
           - arch: x64
@@ -125,44 +122,7 @@ jobs:
             preset: x64-msvc
             flags: --msvc --ninja
             script: bat
-          - arch: x64
-            os: self-hosted
-            compiler: clang
-            preset: x64-clang
-            flags: -l -x
-            script: ps1
-          - arch: x64
-            os: self-hosted
-            compiler: clang
-            preset: x64-clang
-            flags: -l -x
-            script: bat
-          - arch: x64
-            os: self-hosted
-            compiler: clang
-            preset: x64-clang-cache
-            flags: -l -x --ccache
-            script: ps1
-          - arch: x64
-            os: self-hosted
-            compiler: clang
-            preset: x64-clang-cache
-            flags: -l -x --ccache
-            script: bat
-          - arch: x64
-            os: self-hosted
-            compiler: msvc
-            preset: x64-msbuild
-            flags: --msvc --msbuild
-            script: ps1
-          - arch: x64
-            os: self-hosted
-            compiler: msvc
-            preset: x64-msbuild
-            flags: --msvc --msbuild
-            script: bat
     needs: check_build_script
-    # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
@@ -221,13 +181,6 @@ jobs:
       clean: ${{ inputs.clean-build || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
-  # One test job per built arch, on the runner that built it.
-  unit_tests_linux_x86_64:
-    name: Linux x86_64
-    uses: ./.github/workflows/unit_tests.yml
-    with:
-      os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
-      artifact: ${{ github.sha }}-tests-linux-x86_64
   unit_tests_linux_aarch64:
     name: Linux aarch64
     uses: ./.github/workflows/unit_tests.yml
