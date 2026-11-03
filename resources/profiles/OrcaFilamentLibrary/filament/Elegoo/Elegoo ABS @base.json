@@ -3,7 +3,7 @@
 	"name": "Elegoo ABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "OEABSB00",
+	"filament_id": "OFxOHhZw",
 	"instantiation": "false",
 	"eng_plate_temp": [
 		"90"

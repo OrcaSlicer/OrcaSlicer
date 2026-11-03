@@ -2,11 +2,16 @@
 #include "PrinterAgentPluginCapabilityTrampoline.hpp"
 
 #include "IPrinterAgent.hpp"
+#include <pybind11/cast.h>
+#include "slic3r/Utils/bambu_networking.hpp"
 
+#include <memory>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <string>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <utility>
 
 namespace py = pybind11;
@@ -21,6 +26,14 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .value("None_", FilamentSyncMode::none)
         .value("Subscription", FilamentSyncMode::subscription)
         .value("Pull", FilamentSyncMode::pull)
+        .export_values();
+
+    py::enum_<CameraStreamMode>(printer_agent_module, "CameraStreamMode")
+        .value("None_", CameraStreamMode::none)
+        .value("HTTP", CameraStreamMode::http)
+        .value("HTTPS", CameraStreamMode::https)
+        .value("HTTP_SNAPSHOT", CameraStreamMode::http_snapshot)
+        .value("RTSP", CameraStreamMode::rtsp)
         .export_values();
 
     py::class_<AgentInfo>(printer_agent_module, "AgentInfo")
@@ -89,6 +102,16 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .def_readwrite("task_ext_change_assist", &PrintParams::task_ext_change_assist)
         .def_readwrite("try_emmc_print", &PrintParams::try_emmc_print);
 
+    py::class_<PrinterConnectionParams>(printer_agent_module, "PrinterConnectionParams")
+        .def(py::init<>())
+        .def_readwrite("dev_id", &PrinterConnectionParams::dev_id)
+        .def_readwrite("host", &PrinterConnectionParams::host)
+        .def_readwrite("port", &PrinterConnectionParams::port)
+        .def_readwrite("username", &PrinterConnectionParams::username)
+        .def_readwrite("password", &PrinterConnectionParams::password)
+        .def_readwrite("use_ssl", &PrinterConnectionParams::use_ssl)
+        .def_readwrite("ca_file", &PrinterConnectionParams::ca_file);
+
     py::class_<PrinterAgentPluginCapability, PluginCapabilityInterface, PyPrinterAgentPluginCapabilityTrampoline, std::shared_ptr<PrinterAgentPluginCapability>>(
         printer_agent_module, "PrinterAgentBase")
         .def(py::init<>())
@@ -98,6 +121,16 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .def("disconnect_printer", &PrinterAgentPluginCapability::disconnect_printer)
         .def("send_message", &PrinterAgentPluginCapability::send_message)
         .def("send_message_to_printer", &PrinterAgentPluginCapability::send_message_to_printer)
+        .def("command_ams_refresh_rfid", &PrinterAgentPluginCapability::command_ams_refresh_rfid)
+        .def("command_ams_calibrate", &PrinterAgentPluginCapability::command_ams_calibrate)
+        .def("command_ams_select_tray", &PrinterAgentPluginCapability::command_ams_select_tray)
+        .def("command_start_camera", &PrinterAgentPluginCapability::command_start_camera)
+        .def("command_xyz_abs", &PrinterAgentPluginCapability::command_xyz_abs)
+        .def("command_auto_leveling", &PrinterAgentPluginCapability::command_auto_leveling)
+        .def("command_go_home", &PrinterAgentPluginCapability::command_go_home)
+        .def("command_set_bed", &PrinterAgentPluginCapability::command_set_bed)
+        .def("command_set_nozzle", &PrinterAgentPluginCapability::command_set_nozzle)
+        .def("command_axis_control", &PrinterAgentPluginCapability::command_axis_control)
         .def("start_discovery", &PrinterAgentPluginCapability::start_discovery)
         .def("bind_detect", &PrinterAgentPluginCapability::bind_detect)
         .def("get_user_selected_machine", &PrinterAgentPluginCapability::get_user_selected_machine)
@@ -105,7 +138,9 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .def("start_send_gcode_to_sdcard", &PrinterAgentPluginCapability::start_send_gcode_to_sdcard)
         .def("start_local_print", &PrinterAgentPluginCapability::start_local_print)
         .def("get_filament_sync_mode", &PrinterAgentPluginCapability::get_filament_sync_mode)
+        .def("get_camera_stream_mode", &PrinterAgentPluginCapability::get_camera_stream_mode)
         .def("fetch_filament_info", &PrinterAgentPluginCapability::fetch_filament_info)
+        .def("get_camera_url", &PrinterAgentPluginCapability::get_camera_url)
         .def("check_cert", &PrinterAgentPluginCapability::check_cert)
         .def("install_device_cert", &PrinterAgentPluginCapability::install_device_cert)
         .def("ping_bind", &PrinterAgentPluginCapability::ping_bind)

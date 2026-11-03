@@ -1,12 +1,28 @@
 #include "../GCode.hpp"
+#include "../LocalesUtils.hpp"
+#include "libslic3r/Extruder.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Circle.hpp"
 #include "CoolingBuffer.hpp"
+#include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/log/trivial.hpp>
+#include <cstddef>
+#include <cstdlib>
+#include <cmath>
+#include <charconv>
+#include <cstring>
+#include <cstdio>
 #include <iostream>
 #include <float.h>
+#include <string>
+#include <string_view>
 #include <system_error>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 
 #if 0
     #define DEBUG
@@ -15,10 +31,13 @@
 #endif
 
 #include <assert.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/GCodeWriter.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 
-CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_toolchange_prefix(gcodegen.writer().toolchange_prefix()), m_current_extruder(0), m_current_nozzle(0)
+CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_gcodegen(gcodegen), m_toolchange_prefix(gcodegen.writer().toolchange_prefix()), m_current_extruder(0), m_current_nozzle(0)
 {
     this->reset(gcodegen.writer().get_position());
 
@@ -28,10 +47,12 @@ CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_t
         m_num_extruders = std::max(ex.id() + 1, m_num_extruders);
         m_extruder_ids.emplace_back(ex.id());
     }
+
 }
 
 void CoolingBuffer::reset(const Vec3d &position)
 {
+    m_belt_band_active = false;
     // BBS: add I and J axis to store center of arc
     m_current_pos.assign(7, 0.f);
     m_current_pos[0] = float(position.x());
@@ -71,6 +92,9 @@ struct CoolingLine
         // ORCA: Add support for ironing fan speed control
         TYPE_IRONING_FAN_START         = 1 << 19,
         TYPE_IRONING_FAN_END           = 1 << 20,
+        // Belt printers: extrusions within the first-layer band above the belt.
+        TYPE_BELT_BAND_START           = 1 << 21,
+        TYPE_BELT_BAND_END             = 1 << 22,
     };
 
     CoolingLine(unsigned int type, size_t  line_start, size_t  line_end) :
@@ -394,13 +418,13 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
                 if (*c == 0 || *c == ';')
                     break;
 
-                assert(is_decimal_separator_point()); // for atof
                 //BBS: Parse the axis.
                 size_t axis = (*c >= 'X' && *c <= 'Z') ? (*c - 'X') :
                               (*c == 'E') ? 3 : (*c == 'F') ? 4 :
                               (*c == 'I') ? 5 : (*c == 'J') ? 6 : size_t(-1);
                 if (axis != size_t(-1)) {
-                    new_pos[axis] = float(atof(++c));
+                    ++ c;
+                    new_pos[axis] = float(atof_decimal_point(std::string_view(c, sline.data() + sline.size() - c)));
                     if (axis == 4) {
                         // Convert mm/min to mm/sec.
                         new_pos[4] /= 60.f;
@@ -531,15 +555,18 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             line.type = CoolingLine::TYPE_IRONING_FAN_START;
         } else if (boost::starts_with(sline, ";_IRONING_FAN_END")) { // ORCA: Add support for ironing fan speed control
             line.type = CoolingLine::TYPE_IRONING_FAN_END;
+        } else if (boost::starts_with(sline, ";_BELT_BAND_START")) {
+            line.type = CoolingLine::TYPE_BELT_BAND_START;
+        } else if (boost::starts_with(sline, ";_BELT_BAND_END")) {
+            line.type = CoolingLine::TYPE_BELT_BAND_END;
         } else if (boost::starts_with(sline, "G4 ")) {
             // Parse the wait time.
             line.type = CoolingLine::TYPE_G4;
             size_t pos_S = sline.find('S', 3);
             size_t pos_P = sline.find('P', 3);
-            assert(is_decimal_separator_point()); // for atof
             line.time = line.time_max = float(
-                (pos_S > 0) ? atof(sline.c_str() + pos_S + 1) :
-                (pos_P > 0) ? atof(sline.c_str() + pos_P + 1) * 0.001 : 0.);
+                (pos_S > 0) ? atof_decimal_point(sline.c_str() + pos_S + 1) :
+                (pos_P > 0) ? atof_decimal_point(sline.c_str() + pos_P + 1) * 0.001 : 0.);
         } else if (boost::starts_with(sline, ";_FORCE_RESUME_FAN_SPEED")) {
             line.type = CoolingLine::TYPE_FORCE_RESUME_FAN;
         }
@@ -737,10 +764,12 @@ std::string CoolingBuffer::apply_layer_cooldown(
         &ironing_fan_control, &ironing_fan_speed
     ](bool immediately_apply) {
 #define EXTRUDER_CONFIG(OPT) m_config.OPT.get_at(m_current_extruder)
-        float fan_min_speed = EXTRUDER_CONFIG(fan_min_speed);
+        // The per-variant options take the extruder variant the filament prints with on this layer
+        const size_t config_index = m_gcodegen.get_filament_config_index(m_current_extruder, layer_id);
+        float fan_min_speed = m_config.fan_min_speed.get_at(config_index);
         float fan_speed_new = EXTRUDER_CONFIG(reduce_fan_stop_start_freq) ? fan_min_speed : 0;
         //BBS
-        int additional_fan_speed_new = EXTRUDER_CONFIG(additional_cooling_fan_speed);
+        int additional_fan_speed_new = m_config.additional_cooling_fan_speed.get_at(config_index);
         int close_fan_the_first_x_layers = EXTRUDER_CONFIG(close_fan_the_first_x_layers);
         // Is the fan speed ramp enabled?
         int full_fan_speed_layer = EXTRUDER_CONFIG(full_fan_speed_layer);
@@ -776,7 +805,7 @@ std::string CoolingBuffer::apply_layer_cooldown(
             // additional_fan_speed_new is left at its configured value (auxiliary fan is independent of the
             // part-cooling override).
         } else if (int(layer_id) >= close_fan_the_first_x_layers) {
-            float   fan_max_speed             = EXTRUDER_CONFIG(fan_max_speed);
+            float   fan_max_speed             = m_config.fan_max_speed.get_at(config_index);
             float slow_down_layer_time = float(EXTRUDER_CONFIG(slow_down_layer_time));
             float fan_cooling_layer_time      = float(EXTRUDER_CONFIG(fan_cooling_layer_time));
             //BBS: always enable the fan speed interpolation according to layer time
@@ -872,7 +901,9 @@ std::string CoolingBuffer::apply_layer_cooldown(
                                                                {CoolingLine::TYPE_SUPPORT_INTERFACE_FAN_START, false},
                                                                {CoolingLine::TYPE_IRONING_FAN_START, false}, // ORCA: Add support for ironing fan speed control
                                                                {CoolingLine::TYPE_FORCE_RESUME_FAN, false}};
-    bool need_set_fan = false;
+    // Belt printers: a band still open from the previous layer has to take the fan back from
+    // the layer-level speed issued just above.
+    bool need_set_fan = m_belt_band_active;
 
     for (const CoolingLine *line : lines) {
         const char *line_start  = gcode.c_str() + line->line_start;
@@ -886,6 +917,8 @@ std::string CoolingBuffer::apply_layer_cooldown(
                 if (new_extruder != m_current_extruder) {
                     m_current_extruder = new_extruder;
                     change_extruder_set_fan(true);
+                    if (m_belt_band_active)
+                        need_set_fan = true;
                 }
             }
             new_gcode.append(line_start, line_end - line_start);
@@ -937,6 +970,13 @@ std::string CoolingBuffer::apply_layer_cooldown(
             }
             if (m_additional_fan_speed != -1 && m_config.auxiliary_fan.value)
                 new_gcode += GCodeWriter::set_additional_fan(m_additional_fan_speed);
+        }
+        else if (line->type & CoolingLine::TYPE_BELT_BAND_START) {
+            m_belt_band_active = true;
+            need_set_fan       = true;
+        } else if (line->type & CoolingLine::TYPE_BELT_BAND_END) {
+            m_belt_band_active = false;
+            need_set_fan       = true;
         }
         else if (line->type & CoolingLine::TYPE_EXTRUDE_END) {
             // Just remove this comment.
@@ -1030,7 +1070,15 @@ std::string CoolingBuffer::apply_layer_cooldown(
                     m_current_fan_speed = speed;
                 }
             };
-            if (fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START]){
+            if (m_belt_band_active) {
+                // Belt printers: a tilted layer runs from the belt to the top of the part, so
+                // "the first layers" are a band along the belt rather than the first slicing
+                // layers. Extrusions GCode::_extrude() marks as inside that band print with the
+                // fan off, whatever overhang, bridge or resume request is pending, as the first
+                // layers of a flat bed do. Leaving the band falls through to the branches below.
+                set_fan(0);
+                fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] = false;
+            } else if (fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START]){
                 set_fan(overhang_fan_speed);
             } else if (fan_speed_change_requests[CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START]){ // ORCA: Add support for separate internal bridge fan speed control
                 set_fan(internal_bridge_fan_speed);

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo PA-CF @System",
+	"inherits": "Goofoo PA-CF @base",
+	"from": "system",
+	"setting_id": "US4zznMNti8tLUHG",
+	"instantiation": "true",
+	"compatible_printers": []
+}

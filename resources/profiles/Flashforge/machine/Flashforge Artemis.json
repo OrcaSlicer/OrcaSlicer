@@ -2,6 +2,7 @@
 	"type": "machine_model",
 	"name": "Flashforge Artemis",
 	"model_id": "Flashforge-Artemis",
+	"default_materials": "Generic PETG @Flashforge Artemis",
 	"nozzle_diameter": "0.4",
 	"machine_tech": "FFF",
 	"family": "Flashforge",
@@ -9,5 +10,5 @@
 	"bed_model": "flashforge_artemis_buildplate_model.stl",
 	"bed_texture": "flashforge_artemis_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_filament_profile": "Flashforge Generic PETG; Flashforge Generic PLA"
+	"default_filament_profile": "Generic PETG @Flashforge; Generic PLA @Flashforge"
 }

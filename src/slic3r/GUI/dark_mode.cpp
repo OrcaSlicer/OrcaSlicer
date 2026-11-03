@@ -12,6 +12,9 @@
 #include <Shlwapi.h>
 #include "windowsx.h"
 #include "stdlib.h"
+#include <algorithm>
+#include <cassert>
+#include <cwchar>
 
 #ifdef __GNUC__
 #include <cmath>

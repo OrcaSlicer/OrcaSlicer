@@ -11,5 +11,13 @@
 	"supertack_plate_temp_initial_layer": [
 		"35"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"filament_max_volumetric_speed": [
+		"7.5",
+		"7.5",
+		"7.5",
+		"7.5",
+		"7.5",
+		"7.5"
+	]
 }

@@ -1,23 +1,78 @@
 #include "GLGizmoCut.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
+#include <cmath>
+#include <cstddef>
+#include <Standard_Real.hxx>
+#include <cereal/archives/binary.hpp>
+#include <cassert>
+#include <cstdlib>
+#include <functional>
+#include <Eigen/Geometry>
+#include <boost/log/trivial.hpp>
 #include <glad/gl.h>
 
 #include <algorithm>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/libslic3r.h"
+#include <string>
+#include "slic3r/GUI/GLModel.hpp"
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <wx/intl.h>
+#include <imgui.h>
+#include <vector>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <memory>
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Line.hpp"
+#include <wx/string.h>
+#include <wx/utils.h>
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/AABBMesh.hpp"
+#include <wx/busycursor.h>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include "libslic3r/ObjectID.hpp"
+#include <wx/debug.h>
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/enum_bitmask.hpp"
+#include "slic3r/GUI/Widgets/ProgressDialog.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/progdlg.h>
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "libslic3r/TriangleMeshSlicer.hpp"
 #include "GLGizmoUtils.hpp"
 
 #include "imgui/imgui_internal.h"
-#include "slic3r/GUI/Field.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "FixModelByCgal.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLSelectionRectangle.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include <wx/defs.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -226,7 +281,6 @@ GLGizmoCut3D::GLGizmoCut3D(GLCanvas3D& parent, const std::string& icon_filename,
         {"Flap Angle"   , _u8L("Flap Angle")},
         {"Groove Angle" , _u8L("Groove Angle")},
         {"Cut position" , _u8L("Cut position")}, // ORCA
-        {"Build Volume" , _u8L("Build Volume")}, // ORCA
         {"Multiple"     , _u8L("Multiple")}, // ORCA
         {"Count"        , _u8L("Count")}, // ORCA
         {"Gap"          , _u8L("Gap")}, // ORCA
@@ -780,7 +834,7 @@ indexed_triangle_set GLGizmoCut3D::its_make_groove_plane()
 
     float slot_mouth_outer_x = slot_neck_half_width + flap_taper_offset; // upper_x extension
     float slot_neck_outer_x = slot_mouth_half_width + flap_taper_offset; // lower_x extension
-    float slot_outer_x_max   = Max(slot_neck_outer_x, slot_mouth_outer_x);  // max x extension
+    float slot_outer_x_max   = std::max(slot_neck_outer_x, slot_mouth_outer_x);  // max x extension
 
     float slot_neck_inner_x = slot_neck_half_width - flap_taper_offset; // upper_x narrowing
     float slot_mouth_inner_x = slot_mouth_half_width - flap_taper_offset; // lower_x narrowing
@@ -1310,7 +1364,7 @@ void GLGizmoCut3D::render_cut_line()
 bool GLGizmoCut3D::on_init()
 {
     m_grabbers.emplace_back();
-    m_shortcut_key = WXK_CONTROL_C;
+    m_shortcut = Shortcut::GizmoCut;
 
     // initiate info shortcuts
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
@@ -2476,7 +2530,7 @@ void GLGizmoCut3D::render_build_size()
     Vec3d    tbb_sz   = m_transformed_bounding_box.size() * koef; // ORCA 
 
     ImGui::AlignTextToFramePadding();
-    m_imgui->text(_L("Build Volume"));
+    m_imgui->text(_L("Size"));
     ImGui::SameLine(m_label_width);
     ImGui::Text("%.2f x %.2f x %.2f %s", tbb_sz.x(), tbb_sz.y(), tbb_sz.z(), unit_str.ToUTF8().data()); // ORCA use regular text color and simplify format
 }
@@ -2708,11 +2762,16 @@ void GLGizmoCut3D::render_groove_int_input(const std::string& label, int& in_val
     ImGui::AlignTextToFramePadding();
     ImGui::SameLine(m_label_width);
     ImGui::PushItemWidth(m_control_width);
-    if (ImGui::InputInt("##int_input", &in_val, 1, 5)) {
-        in_val = std::clamp(in_val, min_val, max_val);
-
-        is_changed = true;
+    int val = in_val;
+    if (ImGui::InputInt("##int_input", &val, 1, 5)) {
+        val = std::clamp(val, min_val, max_val);
+        // ORCA Holding +/- at the limit clamps back to the same value, don't rebuild for that.
+        if (val != in_val) {
+            in_val     = val;
+            is_changed = true;
+        }
     }
+    m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
     
     ImGui::SameLine();
     m_imgui->disabled_begin(in_val == init_val);
@@ -3500,10 +3559,14 @@ static void check_objects_after_cut(const ModelObjectPtrs& objects)
     wxString names = from_u8(err_objects_names[0]);
     for (size_t i = 1; i < err_objects_names.size(); i++)
         names += ", " + from_u8(err_objects_names[i]);
-    WarningDialog(wxGetApp().plater(), format_wxstr(_L("Objects(%1%) have duplicated connectors. "
+    WarningDialog(wxGetApp().plater(), format_wxstr(_L_PLURAL("Object (%1%) has duplicated connectors. "
                                 "Some connectors may be missing in slicing result.\n"
                                 "Please report to the OrcaSlicer team in which scenario this issue happened.\n"
-                                "Thank you."), names)).ShowModal();
+                                "Thank you.",
+                                "Objects (%1%) have duplicated connectors. "
+                                "Some connectors may be missing in slicing result.\n"
+                                "Please report to the OrcaSlicer team in which scenario this issue happened.\n"
+                                "Thank you.", unsigned(err_objects_names.size())), names)).ShowModal();
 }
 
 void synchronize_model_after_cut(Model& model, const CutObjectBase& cut_id)
@@ -3596,7 +3659,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                         // model_name     failing reason
                         std::vector<std::pair<std::string, std::string>> failed_models;
                         auto                                             plater = wxGetApp().plater();
-                        auto fix_and_update_progress = [keep_painting](ModelObject *model_object, const int vol_idx, const string &model_name, ProgressDialog &progress_dlg,
+                        auto fix_and_update_progress = [keep_painting](ModelObject *model_object, const int vol_idx, const std::string &model_name, ProgressDialog &progress_dlg,
                                                                       std::vector<std::string> &succes_models, std::vector<std::pair<std::string, std::string>> &failed_models) {
                             wxString msg = _L("Repairing model object");
                             msg += ": " + from_u8(model_name) + "\n";
@@ -4042,8 +4105,6 @@ void GLGizmoCut3D::apply_cut_connectors(ModelObject* mo, const std::string& conn
 {
     if (mo->cut_connectors.empty())
         return;
-
-    using namespace Geometry;
 
     size_t connector_id = mo->cut_id.connectors_cnt();
     for (const CutConnector& connector : mo->cut_connectors) {

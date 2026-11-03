@@ -4,8 +4,11 @@
 	"inherits": "Prusament ASA @CORE One",
 	"from": "system",
 	"setting_id": "35H9TLr1p2Jy767g",
-	"filament_id": "Prusament ASA @CORE One HF 0.6",
+	"filament_id": "OFmFwUWM",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pet_hf"
+	],
 	"compatible_printers": [
 		"Prusa CORE One HF 0.6 nozzle"
 	],

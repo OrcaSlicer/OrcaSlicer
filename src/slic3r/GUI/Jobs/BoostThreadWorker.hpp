@@ -1,12 +1,22 @@
 #ifndef BOOSTTHREADWORKER_HPP
 #define BOOSTTHREADWORKER_HPP
 
+#include <atomic>
 #include <boost/variant.hpp>
 
 #include "Worker.hpp"
 
+#include <exception>
+#include <functional>
+#include <future>
+#include <boost/variant/variant.hpp>
 #include <libslic3r/Thread.hpp>
 #include <boost/log/trivial.hpp>
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include <memory>
+#include <string>
+#include <utility>
+#include "slic3r/GUI/Jobs/ProgressIndicator.hpp"
 
 #include "ThreadSafeQueue.hpp"
 #include "slic3r/GUI/GUI.hpp"

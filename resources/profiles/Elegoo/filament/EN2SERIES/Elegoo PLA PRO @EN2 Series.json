@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA PRO @EN2 Series",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA PRO @base",
 	"from": "system",
 	"setting_id": "AP6zWYwNv7aXdT4e",
 	"instantiation": "true",

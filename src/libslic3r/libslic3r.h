@@ -2,6 +2,12 @@
 #define _libslic3r_h_
 
 #include "libslic3r_version.h"
+#include <deque>
+#include <iterator>
+#include <functional>
+#include <initializer_list>
+#include <limits>
+#include <utility>
 #define SLIC3R_APP_FULL_NAME "Orca Slicer"
 #define GCODEVIEWER_APP_NAME "OrcaSlicer G-code Viewer"
 #define GCODEVIEWER_APP_KEY  "OrcaSlicerGcodeViewer"
@@ -32,7 +38,6 @@
 #include <boost/container/deque.hpp>
 #endif // _WIN32
 
-#include "Technologies.hpp"
 #include "Semver.hpp"
 
 #if 0
@@ -93,6 +98,9 @@ static constexpr double INSET_OVERLAP_TOLERANCE = 0.4;
 static constexpr double EXTERNAL_INFILL_MARGIN = 3;
 static constexpr double BRIDGE_INFILL_MARGIN = 1;
 static constexpr double WIPE_TOWER_MARGIN = 1.;
+// Margin for system placement of the wipe tower (defaults, re-placement, CLI). Positions
+// within WIPE_TOWER_MARGIN stay valid: a user drag down to that limit is respected.
+static constexpr double WIPE_TOWER_AUTO_MARGIN = 15.;
 //FIXME Better to use an inline function with an explicit return type.
 //inline coord_t scale_(coordf_t v) { return coord_t(floor(v / SCALING_FACTOR + 0.5f)); }
 #define scale_(val) ((val) / SCALING_FACTOR)
@@ -159,10 +167,10 @@ inline void append(std::vector<T, Alloc> &dest, std::vector<T, Alloc> &&src)
 {
     if (dest.empty())
         dest = std::move(src);
-    else {
-        dest.reserve(dest.size() + src.size());
-        std::move(std::begin(src), std::end(src), std::back_inserter(dest));
-    }
+    else
+        // insert() grows the capacity geometrically; reserving exactly the new size reallocated on every call, which
+        // made appending piece by piece quadratic.
+        dest.insert(dest.end(), std::make_move_iterator(src.begin()), std::make_move_iterator(src.end()));
     src.clear();
     src.shrink_to_fit();
 }
@@ -423,8 +431,6 @@ inline IntegerOnly<I, I> fast_round_up(double a)
     // https://stackoverflow.com/questions/9902968/why-does-math-round0-49999999999999994-return-1
     return a == 0.49999999999999994 ? I(0) : I(floor(a + 0.5));
 }
-
-template<class T> using SamePair = std::pair<T, T>;
 
 } // namespace Slic3r
 

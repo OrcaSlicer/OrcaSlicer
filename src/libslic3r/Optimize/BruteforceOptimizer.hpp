@@ -1,7 +1,12 @@
 #ifndef BRUTEFORCEOPTIMIZER_HPP
 #define BRUTEFORCEOPTIMIZER_HPP
 
+#include <cstddef>
+#include <array>
+#include <cmath>
+#include <functional>
 #include <libslic3r/Optimize/Optimizer.hpp>
+#include <limits>
 
 namespace Slic3r { namespace opt {
 

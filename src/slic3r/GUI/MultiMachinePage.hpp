@@ -7,8 +7,22 @@
 #include "MultiTaskManagerPage.hpp"
 #include "MultiMachineManagerPage.hpp"
 #include "Tabbook.hpp"
+#include "Lazy.hpp"
 
 #include "wx/button.h"
+#include <wx/panel.h>
+#include <wx/timer.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/MultiMachine.hpp"
+#include <wx/dc.h>
+#include <wx/event.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/scrolwin.h>
+#include <map>
+#include <string>
 
 namespace Slic3r { 
 namespace GUI {
@@ -19,7 +33,7 @@ namespace GUI {
 #define PICK_LEFT_DEV_STATUS 250
 #define PICK_DEVICE_MAX 6
     
-class MultiMachinePage : public wxPanel
+class MultiMachinePage : public wxPanel, public LazyInstance<MultiMachinePage>
 {
 private:
     wxTimer*                    m_refresh_timer      = nullptr;
@@ -81,7 +95,6 @@ private:
     AppConfig*          app_config;
     Label*              m_label{ nullptr };
     wxScrolledWindow*     scroll_macine_list{ nullptr };
-    wxBoxSizer*         m_sizer_body{ nullptr };
     wxBoxSizer*                         sizer_machine_list{ nullptr };
     std::map<std::string, DevicePickItem*>  m_device_items;
     int                 m_selected_count{0};

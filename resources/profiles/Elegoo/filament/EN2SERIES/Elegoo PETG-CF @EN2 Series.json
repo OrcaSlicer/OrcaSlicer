@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PETG-CF @EN2 Series",
-	"inherits": "Elegoo PETG @base",
+	"inherits": "Elegoo PETG-CF @base",
 	"from": "system",
 	"setting_id": "xVvTmdiPx4DqsoSt",
 	"instantiation": "true",

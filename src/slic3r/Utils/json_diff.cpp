@@ -16,7 +16,6 @@
 #include <boost/nowide/iostream.hpp>
 #include <boost/nowide/fstream.hpp>
 
-using namespace std;
 using json = nlohmann::json;
 
 int json_diff::diff_objects(json const &in, json &out, json const &base)

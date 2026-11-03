@@ -1,6 +1,7 @@
 #ifndef slic3r_TextConfiguration_hpp_
 #define slic3r_TextConfiguration_hpp_
 
+#include <utility>
 #include <vector>
 #include <string>
 #include <optional>
@@ -9,6 +10,7 @@
 #include <cereal/types/string.hpp>
 #include <cereal/archives/binary.hpp>
 #include "Point.hpp" // Transform3d
+#include "libslic3r.h"
 
 namespace Slic3r {
 

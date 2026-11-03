@@ -1,10 +1,10 @@
 {
 	"type": "machine",
-	"setting_id": "rdKmVhTTrup3yqgA",
 	"name": "Elegoo Neptune 3 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Elegoo Neptune 2 0.4 nozzle",
+	"from": "system",
+	"setting_id": "rdKmVhTTrup3yqgA",
+	"instantiation": "true",
 	"host_type": "elegoolink",
 	"printer_model": "Elegoo Neptune 3",
 	"default_print_profile": "0.20mm Standard @Elegoo Neptune 0.4 nozzle",

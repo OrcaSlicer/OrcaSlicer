@@ -21,13 +21,13 @@ REQUIRED_DEV_PACKAGES=(
     libspnav-devel
     libtool
     m4
-    glu-devel
-    ninja-build
+    Mesa-libGL-devel
+    ninja
     openssl-devel
     perl-FindBin-Real
     texinfo
     wayland-protocols-devel
-    webkit2gtk4-devel
+    webkitgtk3-devel
     wget
     libcurl-devel
     pkgconf

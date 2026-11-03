@@ -1,0 +1,17 @@
+{
+	"type": "process",
+	"name": "0.12mm Fine @Wanhao D9 MK1",
+	"inherits": "fdm_process_wanhao_d9_mk1_common",
+	"from": "system",
+	"setting_id": "EClNN5UDWbLACTuz",
+	"instantiation": "true",
+	"layer_height": "0.12",
+	"initial_layer_print_height": "0.14",
+	"top_shell_layers": "4",
+	"bottom_shell_layers": "4",
+	"compatible_printers": [
+		"Wanhao D9-300 MK1 0.4 nozzle",
+		"Wanhao D9-400 MK1 0.4 nozzle",
+		"Wanhao D9-500 MK1 0.4 nozzle"
+	]
+}

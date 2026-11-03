@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PET @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "1009481135",
+	"filament_id": "OF8Jl6NT",
 	"instantiation": "false",
 	"overhang_fan_speed": [
 		"40"

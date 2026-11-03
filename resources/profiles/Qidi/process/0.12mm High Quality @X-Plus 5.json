@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "xWoxLO8XiKAOEvPO",
 	"name": "0.12mm High Quality @X-Plus 5",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "xWoxLO8XiKAOEvPO",
+	"instantiation": "true",
 	"bottom_color_penetration_layers": "5",
 	"bottom_shell_layers": "5",
 	"bridge_flow": "1",
@@ -57,7 +57,7 @@
 	"support_bottom_z_distance": "0.12",
 	"support_threshold_angle": "20",
 	"support_top_z_distance": "0.12",
-	"top_color_penetration_layers": "7",
+	"top_color_penetration_layers": "5",
 	"top_shell_layers": "5",
 	"top_shell_thickness": "0.6",
 	"top_surface_speed": [

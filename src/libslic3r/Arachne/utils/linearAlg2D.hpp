@@ -5,6 +5,9 @@
 #define UTILS_LINEAR_ALG_2D_H
 
 #include "../../Point.hpp"
+#include <cstdint>
+#include <math.h>
+#include <cmath>
 
 namespace Slic3r::Arachne::LinearAlg2D
 {

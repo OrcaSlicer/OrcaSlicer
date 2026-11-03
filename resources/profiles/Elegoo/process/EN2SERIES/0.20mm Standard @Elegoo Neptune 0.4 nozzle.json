@@ -1,9 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "ivuelLxit3DxpCQf",
 	"name": "0.20mm Standard @Elegoo Neptune 0.4 nozzle",
-	"from": "system",
+	"renamed_from": "0.20mm Standard @Elegoo Neptune;0.20mm Standard @Elegoo Neptune2;0.20mm Standard @Elegoo Neptune2D;0.20mm Standard @Elegoo Neptune2S;0.20mm Standard @Elegoo NeptuneX",
 	"inherits": "fdm_process_elegoo_04020",
+	"from": "system",
+	"setting_id": "ivuelLxit3DxpCQf",
 	"instantiation": "true",
 	"filename_format": "{nozzle_diameter[0]}{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"default_acceleration": "1000",
@@ -34,6 +35,5 @@
 		"Elegoo Neptune 2S 0.4 nozzle",
 		"Elegoo Neptune 2D 0.4 nozzle",
 		"Elegoo Neptune 0.4 nozzle"
-	],
-	"renamed_from": "0.20mm Standard @Elegoo Neptune;0.20mm Standard @Elegoo Neptune2;0.20mm Standard @Elegoo Neptune2D;0.20mm Standard @Elegoo Neptune2S;0.20mm Standard @Elegoo NeptuneX"
+	]
 }

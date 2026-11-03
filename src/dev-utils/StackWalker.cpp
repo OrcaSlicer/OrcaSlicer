@@ -2,6 +2,9 @@
 #include <strsafe.h>
 //#include <atlconv.h>
 #include <dbghelp.h>
+#include <cstdarg>
+#include <cstddef>
+#include <cstring>
 #pragma comment(lib, "version.lib")
 #pragma comment( lib, "dbghelp.lib" )
 
@@ -364,7 +367,7 @@ void CStackWalker::GetModuleInformation(LPMODULE_INFO pmi)
 
 	if (dwInfoSize > 0)
 	{
-		LPVOID lpData = new byte[dwInfoSize];
+		byte *lpData = new byte[dwInfoSize];
 		ZeroMemory(lpData, dwInfoSize * sizeof(byte));
 
 		if (GetFileVersionInfo(pmi->szModulePath, dwHandle, dwInfoSize, lpData) > 0 )
@@ -425,7 +428,7 @@ LPSTACKINFO CStackWalker::StackWalker(HANDLE hThread, const CONTEXT* context)
 	else
 		c = *context;
 
-	STACKFRAME64 sf = {0};
+	STACKFRAME64 sf = {};
 	DWORD imageType;
 
 //intel X86

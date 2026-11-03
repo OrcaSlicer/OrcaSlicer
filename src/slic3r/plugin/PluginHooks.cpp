@@ -7,14 +7,22 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Exception.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r_version.h"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
 
 #include <boost/log/trivial.hpp>
 
+#include <exception>
+#include <cstddef>
 #include <memory>
+#include "slic3r/plugin/PluginDescriptor.hpp"
 #include <string>
 #include <stdexcept>
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r::plugin_hooks {
 namespace {
@@ -43,6 +51,16 @@ void install_capability_resolver()
         // first field, with an empty UUID), so emit the plugin_key to keep them resolvable.
         const std::string identity = descriptor.is_cloud_plugin() ? descriptor.name : descriptor.plugin_key;
         return identity + ';' + descriptor.cloud_uuid() + ';' + cap_name;
+    });
+}
+
+// Global libslic3r-side seam (Slic3r::fire_lifecycle_event, in libslic3r/LifecycleEvents.hpp):
+// broadcasts to every loaded, enabled capability regardless of type, unlike the SlicingPipeline
+// hook below which only targets picker-selected SlicingPipeline capabilities.
+void install_lifecycle_event_hook()
+{
+    set_lifecycle_hook_fn([](LifecycleEvent event, const LifecycleEventContext& ctx) {
+        PluginManager::instance().dispatch_lifecycle_event(event, ctx);
     });
 }
 
@@ -84,18 +102,24 @@ void install_slicing_pipeline_hook()
                         ctx.step   = step;
                         ctx.print  = &print;
                         ctx.object = object;
+                        // Slicing hooks are synchronous by design and never await: the context
+                        // borrows Print/PrintObject that are only valid during this call, and the
+                        // UI thread may itself be blocked waiting on this slicing worker. An async
+                        // override is rejected here rather than scheduled -- cap->execute() casts
+                        // its Python result to ExecutionResult and a coroutine object cannot be
+                        // cast, so it surfaces as the SlicingError below.
                         r = cap->execute(ctx);
                     } catch (const CanceledException&) {
                         throw; // cancellation must reach process(), never become a slicing error
                     } catch (const std::exception& ex) {
                         // A Python raise reaches here as pybind11::error_already_set; surface it as a
                         // (non-critical) slicing error instead of a crash.
-                        throw SlicingError(std::string("Slicing pipeline plugin '") +
-                                           ref.capability_name + "' error: " + ex.what());
+                        throw SlicingError(GUI::format(_u8L("Slicing pipeline plugin '%1%' error: %2%"),
+                                                       ref.capability_name, ex.what()));
                     }
                     if (r.status == PluginResult::FatalError)
-                        throw SlicingError(std::string("Slicing pipeline plugin '") +
-                                           ref.capability_name + "' error: " + r.message);
+                        throw SlicingError(GUI::format(_u8L("Slicing pipeline plugin '%1%' error: %2%"),
+                                                       ref.capability_name, r.message));
                     // log a non-empty success/skipped message instead of dropping it. This is
                     // log-only by design: every pipeline hook fires AFTER set_done() (see Print.cpp),
                     // so the Print-level m_step_active is -1 here. Calling active_step_add_warning()
@@ -122,12 +146,14 @@ void install()
 {
     install_capability_resolver();
     install_slicing_pipeline_hook();
+    install_lifecycle_event_hook();
 }
 
 void uninstall()
 {
     ConfigBase::set_resolve_capability_fn(nullptr);
     Print::set_slicing_pipeline_hook_fn(nullptr);
+    set_lifecycle_hook_fn(nullptr);
 }
 
 } // namespace Slic3r::plugin_hooks

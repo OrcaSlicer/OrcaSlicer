@@ -1,6 +1,10 @@
 #ifndef slic3r_CreateFontNameImageJob_hpp_
 #define slic3r_CreateFontNameImageJob_hpp_
 
+#include <cstddef>
+#include <memory>
+#include <atomic>
+#include <exception>
 #include <vector>
 #include <string>
 #include <glad/gl.h>

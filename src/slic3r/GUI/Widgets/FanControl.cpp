@@ -1,12 +1,34 @@
 #include "FanControl.hpp"
 #include "Label.hpp"
-#include "../BitmapCache.hpp"
 #include "../I18N.hpp"
 #include "../GUI_App.hpp"
 #include "../MsgDialog.hpp"
+#include <nlohmann/json.hpp>
 
+#include <wx/anybutton.h>
+#include <wx/event.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/chartype.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/DeviceCore/DevFan.h"
+#include <boost/log/trivial.hpp>
+#include <cmath>
+#include <algorithm>
+#include <wx/panel.h>
+#include "slic3r/GUI/SelectMachine.hpp"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <map>
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
+#include <wx/string.h>
+#include <wx/stattext.h>
+#include <wx/sizer.h>
+
+using json = nlohmann::json;
 
 namespace Slic3r { namespace GUI {
 
@@ -780,7 +802,7 @@ void FanControlPopupNew::UpdatePartSubMode()
     // Submode for cooling filter
     if (AIR_DUCT(m_data.curren_mode) == AIR_DUCT::AIR_DUCT_COOLING_FILT && m_data.IsSupportCoolingFilter()) {
         if (!m_cooling_filter_switch_panel) {
-            m_cooling_filter_switch_panel = new FanControlNewSwitchPanel(m_sub_mode_panel, _L("Filter"), _L("Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."));
+            m_cooling_filter_switch_panel = new FanControlNewSwitchPanel(m_sub_mode_panel, _L_CONTEXT("Filter", "air_duct"), _L("Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."));
             m_cooling_filter_switch_panel->Bind(EVT_FANCTRL_SWITCH, [this] (wxCommandEvent& evt) 
                 {
                   if (m_obj && m_obj->is_in_printing()) {
@@ -995,7 +1017,7 @@ void FanControlPopupNew::init_names(MachineObject* obj) {
     radio_btn_name[AIR_DUCT::AIR_DUCT_HEATING_INTERNAL_FILT] = _L("Heating");
     radio_btn_name[AIR_DUCT::AIR_DUCT_EXHAUST] = _L("Exhaust");
     radio_btn_name[AIR_DUCT::AIR_DUCT_FULL_COOLING] = _L("Full Cooling");
-    radio_btn_name[AIR_DUCT::AIR_DUCT_INIT] = L("Init");
+    radio_btn_name[AIR_DUCT::AIR_DUCT_INIT] = _L("Init");
 
     air_door_func_name[AIR_DOOR::AIR_DOOR_FUNC_CHAMBER] = _L("Chamber");
     air_door_func_name[AIR_DOOR::AIR_DOOR_FUNC_INNERLOOP] = _L("Innerloop");

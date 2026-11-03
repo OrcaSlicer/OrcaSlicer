@@ -1,13 +1,25 @@
 #ifndef SLARASTER_CPP
 #define SLARASTER_CPP
 
+#include <cstddef>
+#include <cstdint>
+#include <algorithm>
+#include <cstdlib>
+#include <agg/agg_gamma_functions.h>
 #include <functional>
 
+#include <iterator>
+#include <ios>
 #include <libslic3r/SLA/RasterBase.hpp>
 #include <libslic3r/SLA/AGGRaster.hpp>
 
 // minz image write:
+#include <memory>
 #include <miniz.h>
+#include <vector>
+#include <utility>
+#include <ostream>
+#include <string>
 
 namespace Slic3r { namespace sla {
 

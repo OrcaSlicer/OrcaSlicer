@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Goofoo PETG-CF @base",
+	"inherits": "Generic PETG-CF @System",
+	"from": "system",
+	"filament_id": "OFo6Ff38",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"filament_type": [
+		"PETG-CF"
+	]
+}

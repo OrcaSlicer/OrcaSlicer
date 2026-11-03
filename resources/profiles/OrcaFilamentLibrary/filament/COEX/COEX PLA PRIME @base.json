@@ -3,7 +3,7 @@
 	"name": "COEX PLA PRIME @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "CXPLAB08",
+	"filament_id": "OFd2vX0G",
 	"instantiation": "false",
 	"filament_vendor": [
 		"COEX 3D"
@@ -23,12 +23,6 @@
 	],
 	"nozzle_temperature_initial_layer": [
 		"240"
-	],
-	"bed_temperature": [
-		"60"
-	],
-	"bed_temperature_initial_layer": [
-		"60"
 	],
 	"temperature_vitrification": [
 		"60"

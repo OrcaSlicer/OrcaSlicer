@@ -3,7 +3,7 @@
 	"name": "QIDI TPU-GF@X-Max 4-Series",
 	"inherits": "fdm_filament_x4_common",
 	"from": "system",
-	"filament_id": "QD_3_1_15",
+	"filament_id": "OF9EHUKK",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"100"

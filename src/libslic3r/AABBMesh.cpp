@@ -1,10 +1,19 @@
 #include "AABBMesh.hpp"
+#include "Point.hpp"
+#include <Eigen/Core>
 #include <Execution/ExecutionTBB.hpp>
 
+#include <igl/Hit.h>
+#include <cstddef>
+#include <cassert>
+#include <cmath>
+#include <algorithm>
 #include <libslic3r/AABBTreeIndirect.hpp>
 #include <libslic3r/TriangleMesh.hpp>
 
+#include <limits>
 #include <numeric>
+#include <vector>
 
 #ifdef SLIC3R_HOLE_RAYCASTER
 #include <libslic3r/SLA/Hollowing.hpp>

@@ -1,6 +1,5 @@
 #pragma once
 #include <nlohmann/json.hpp>
-#include "slic3r/Utils/json_diff.hpp"
 #include <wx/string.h>
 
 namespace Slic3r {
@@ -34,7 +33,7 @@ private:
     //std::string m_connect_type;
     //std::string m_bind_state;
 
-    MachineObject* m_owner = nullptr;
+    [[maybe_unused]] MachineObject* m_owner = nullptr;
 };
 
 } // namespace Slic3r

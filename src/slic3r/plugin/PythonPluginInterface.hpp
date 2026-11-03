@@ -8,11 +8,12 @@
 #include <utility>
 
 #include <nlohmann/json.hpp>
-#include <pybind11/embed.h>
+
+#include <libslic3r/LifecycleEvents.hpp>
 
 namespace Slic3r {
 
-enum class PluginCapabilityType { PrinterConnection = 0, Pages, Analysis, Importer, Exporter, Visualization, Script, SlicingPipeline, Unknown };
+enum class PluginCapabilityType { PrinterConnection = 0, Pages, Analysis, Importer, Exporter, Visualization, Script, SlicingPipeline, ResourceTexture, Unknown };
 
 struct PluginCapabilityId
 {
@@ -46,6 +47,7 @@ inline std::string plugin_capability_type_to_string(PluginCapabilityType type)
     case PluginCapabilityType::Visualization: return "visualization";
     case PluginCapabilityType::Script: return "script";
     case PluginCapabilityType::SlicingPipeline: return "slicing-pipeline";
+    case PluginCapabilityType::ResourceTexture: return "resource-texture";
     default: return "unknown";
     }
 }
@@ -61,6 +63,7 @@ inline std::string plugin_capability_type_display_name(PluginCapabilityType type
     case PluginCapabilityType::Visualization: return "Visualization";
     case PluginCapabilityType::Script: return "Script";
     case PluginCapabilityType::SlicingPipeline: return "Slicing Pipeline";
+    case PluginCapabilityType::ResourceTexture: return "Resource Texture";
     default: return "Unknown";
     }
 }
@@ -90,6 +93,8 @@ inline PluginCapabilityType plugin_capability_type_from_string(std::string_view 
         return PluginCapabilityType::Script;
     if (lowered == "slicing-pipeline")
         return PluginCapabilityType::SlicingPipeline;
+    if (lowered == "resource-texture")
+        return PluginCapabilityType::ResourceTexture;
     return PluginCapabilityType::Unknown;
 }
 
@@ -166,6 +171,8 @@ public:
     virtual void on_load() {}
     virtual void on_unload() {}
     virtual void on_cancelled() {}
+
+    virtual void on_lifecycle_event(LifecycleEvent event, const LifecycleEventContext& ctx) { (void) event; (void) ctx; }
 
     // ── C++-only host state, never exposed to Python. Set by the loader at materialization. ──
     //

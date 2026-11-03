@@ -1,6 +1,13 @@
 #ifndef slic3r_GUI_TextInput_hpp_
 #define slic3r_GUI_TextInput_hpp_
 
+#include <wx/containr.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/dc.h>
 #include <wx/textctrl.h>
 #include "StaticBox.hpp"
 

@@ -26,5 +26,14 @@
 		"0.6",
 		"0.6"
 	],
-	"nozzle_type": "stainless_steel"
+	"nozzle_type": [
+		"stainless_steel",
+		"stainless_steel",
+		"stainless_steel",
+		"stainless_steel",
+		"stainless_steel",
+		"stainless_steel",
+		"stainless_steel",
+		"stainless_steel"
+	]
 }

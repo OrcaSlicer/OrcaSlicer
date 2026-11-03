@@ -3,7 +3,7 @@
 	"name": "Fiberon PA612-ESD @Snapmaker U1 base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "GFL72",
+	"filament_id": "OFFZ458u",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

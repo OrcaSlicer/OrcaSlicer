@@ -4,7 +4,14 @@
 	"inherits": "Generic HIPS @System",
 	"from": "system",
 	"setting_id": "AEQYrT7e4Q5J2G6C",
+	"filament_id": "OFvaLVML",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"compatible_printers": [
 		"Flashforge Creator 5 Pro 0.4 nozzle",
 		"Flashforge Creator 5 Pro 0.6 nozzle",

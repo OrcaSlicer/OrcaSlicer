@@ -2,11 +2,37 @@
 #define _SyncAmsInfo_DIALOG_H_
 
 #include <future>
+#include <string>
+#include "slic3r/GUI/PrePrintChecker.hpp"
+#include <memory>
+#include <map>
+#include "libslic3r/ProjectTask.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/AmsMappingPopup.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "libslic3r/CommonDefs.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <thread>
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 
+#include <vector>
 #include <wx/animate.h>
+#include <wx/string.h>
+#include <wx/colour.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/scrolwin.h>
+#include <wx/timer.h>
+#include <wx/arrstr.h>
+#include <wx/simplebook.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include "SelectMachine.hpp"
 #include "DeviceManager.hpp"
 #include "BaseTransparentDPIFrame.hpp"
@@ -21,15 +47,11 @@ class SyncAmsInfoDialog : public DPIDialog
     bool              m_only_exist_ext_spool_flag{false};
     int               m_current_filament_id{0};
     int               m_print_plate_idx{0};
-    int               m_print_plate_total{0};
     int               m_timeout_count{0};
     int               m_print_error_code{0};
     bool              m_is_in_sending_mode{false};
     bool              m_ams_mapping_res{false};
     bool              m_ams_mapping_valid{false};
-    bool              m_export_3mf_cancel{false};
-    bool              m_is_canceled{false};
-    bool              m_is_rename_mode{false};
     bool              m_check_flag{false};
     PrintPageMode     m_print_page_mode{PrintPageMode::PrintPageModePrepare};
     std::string       m_print_error_msg;

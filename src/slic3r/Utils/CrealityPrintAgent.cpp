@@ -1,20 +1,37 @@
 #include "CrealityPrintAgent.hpp"
 #include "CrealityPrint.hpp"
+#include "MoonrakerPrinterAgent.hpp"
+#include "IPrinterAgent.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include <boost/log/trivial.hpp>
+#include "libslic3r/Config.hpp"
+#include <exception>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <cctype>
 #include <map>
+#include <set>
+#include <string>
+#include <vector>
+#include <utility>
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 
 namespace {
 
 constexpr const char* CrealityPrintAgent_VERSION = "0.1.0";
+
+std::string to_lower(std::string s)
+{
+    for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return s;
+}
 
 bool has_visible_base_preset(const PresetCollection& filaments, const std::string& filament_id)
 {
@@ -27,35 +44,67 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
     return false;
 }
 
+// Lower-case words of a preset name with the "@scope" suffix dropped:
+// "Generic PLA Matte @Creality K2-all" -> {"generic", "pla", "matte"}.
+std::vector<std::string> name_words(const std::string& name)
+{
+    std::vector<std::string> words;
+    std::string              word;
+    for (char c : name.substr(0, name.find('@'))) {
+        if (std::isalnum(static_cast<unsigned char>(c))) {
+            word += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        } else if (!word.empty()) {
+            words.push_back(word);
+            word.clear();
+        }
+    }
+    if (!word.empty())
+        words.push_back(word);
+    return words;
+}
+
 } // namespace
 
 // Score visible compatible filament presets against the CFS spool metadata and
 // return the best-matching filament_id. Scoring:
 //   +20  preset name contains brand_name as a substring
 //        (e.g. "Hyper PLA" in "Hyper PLA @Creality K2 0.4 nozzle")
-//   +10  preset name contains the vendor substring (e.g. "Creality")
-//   Tiebreak: prefer the SYSTEM (shipped) preset over user copies. Brand-
-//   specific system presets carry their own filament_id; user copies of
-//   generic presets inherit a generic filament_id from their parent, so
-//   preferring the user copy can collapse a brand-specific match back to
-//   "Generic PLA" via the inherited id. Plus: this code targets upstream
-//   OrcaSlicer where shipping the user's local tuning would be wrong.
+//   +10  the preset belongs to the spool's vendor - by its owning VendorProfile OR by
+//        its name. The profile test is what finds the vendor's own generics, which are
+//        named "Generic <material> @<scope>" and do not repeat the vendor; the name test
+//        still finds a third party filament shipped inside that vendor's bundle, which
+//        carries the bundle owner's profile but names its real brand.
+//    -5  per word of the preset name the spool never mentioned ("generic" excepted -
+//        it marks the unbranded base product rather than a qualifier), so the least
+//        specific preset that still explains the spool wins. Without it a spool
+//        reporting only "PLA" scores "Generic PLA High Speed" and "Generic PLA Matte"
+//        exactly as high as "Generic PLA"; those are three products with three
+//        filament_ids, so whichever sorted first won and the printer got the wrong
+//        one. Applied after the score gate, so it only reorders genuine matches.
+//   Tiebreak: prefer the SYSTEM (shipped) preset over user copies, then by name so the
+//   winner never depends on how std::sort leaves equal elements. User copies of generic
+//   presets inherit a generic filament_id from their parent, so preferring the user copy
+//   can collapse a brand-specific match back to "Generic PLA" via the inherited id.
 // Requires the preset's declared filament_type to equal the spool's base type
 // (PLA/PETG/ABS/...) so we never auto-pick a PETG preset for a PLA spool.
-// Falls back to filaments.filament_id_by_type(base_type) when nothing scores.
+// Falls back to a visible system base of the same type when nothing scores.
 std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& filaments,
                                                       const std::string&      vendor,
                                                       const std::string&      brand_name,
                                                       const std::string&      base_type)
 {
-    auto to_lower = [](std::string s) {
-        for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-        return s;
-    };
+    if (base_type.empty()) return {}; // a spool the printer could not name has no preset
 
     const std::string vendor_lower = to_lower(vendor);
     const std::string brand_lower  = to_lower(brand_name);
     const std::string type_lower   = to_lower(base_type);
+
+    // Everything the spool told us about itself, as words. A word in a preset's name
+    // that is not in here is a qualifier the spool never claimed.
+    std::set<std::string> spool_words{"generic"};
+    for (const std::string& src : {brand_lower, vendor_lower, type_lower})
+        for (auto& w : name_words(src))
+            spool_words.insert(std::move(w));
 
     struct Match {
         const Preset* preset;
@@ -83,21 +132,34 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
         int score = 0;
         if (!brand_lower.empty() && name_lower.find(brand_lower) != std::string::npos)
             score += 20;
-        if (!vendor_lower.empty() && name_lower.find(vendor_lower) != std::string::npos)
+        // Profile OR name - neither alone covers both the vendor's own generics and the
+        // third party filaments shipped inside its bundle. See the header comment.
+        if (!vendor_lower.empty()
+            && ((p.vendor != nullptr && to_lower(p.vendor->name) == vendor_lower)
+                || name_lower.find(vendor_lower) != std::string::npos))
             score += 10;
 
-        if (score > 0)
-            matches.push_back({&p, score, !p.is_system && !p.is_default});
+        if (score == 0) continue;
+
+        for (const auto& w : name_words(p.name))
+            if (spool_words.count(w) == 0)
+                score -= 5;
+
+        matches.push_back({&p, score, !p.is_system && !p.is_default});
     }
 
     if (matches.empty()) {
-        const std::string fallback = filaments.filament_id_by_type(base_type);
-        const bool        fallback_ok = has_visible_base_preset(filaments, fallback);
+        // first_visible_idx_by_type() returns any visible preset when no base of this
+        // type exists. Never sync an unrelated material to the CFS.
+        const auto&       fallback_preset = filaments.preset(filaments.first_visible_idx_by_type(base_type));
+        const std::string fallback        = fallback_preset.filament_id;
+        const bool        fallback_ok     = fallback_preset.config.opt_string("filament_type", 0u) == base_type &&
+                                    has_visible_base_preset(filaments, fallback);
         BOOST_LOG_TRIVIAL(info)
             << "CrealityPrintAgent: no preset scored for spool {" << vendor << " "
             << brand_name << " (" << base_type << ")} after considering " << considered
             << " presets; falling back to generic preset id \"" << fallback << "\""
-            << (fallback_ok ? "" : " (NOT visible — returning empty)");
+            << (fallback_ok ? "" : " (no visible base of this type; returning empty)");
         return fallback_ok ? fallback : std::string();
     }
 
@@ -105,7 +167,7 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
               [](const Match& a, const Match& b) {
                   if (a.score   != b.score)   return a.score > b.score;
                   if (a.is_user != b.is_user) return !a.is_user; // prefer system over user
-                  return false;
+                  return a.preset->name < b.preset->name;        // keep the winner deterministic
               });
 
     BOOST_LOG_TRIVIAL(info)
@@ -149,8 +211,8 @@ std::string CrealityPrintAgent::normalize_filament_type(const std::string& filam
 //     { "id": int, "state": int, "type": int,    // type 0 = CFS, 1 = single-spool external
 //       "materials": [
 //         { "id": int, "state": int,             // state 1 = loaded
-//           "vendor": str, "type": str, "name": str,
-//           "color": "#0RRGGBB" }, ...
+//           "vendor": str, "type": str, "name": str, // all "" for an unknown RFID tag
+//           "color": "#dRRGGBB" }, ...
 //       ]}, ...
 //   ]}}
 bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
@@ -158,7 +220,6 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
                                             int&                  box_count,
                                             std::string&          error)
 {
-    using nlohmann::json;
 
     slots.clear();
     box_count = 0;
@@ -186,8 +247,8 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
     // would publish phantom slots for the gap. Renumber accepted boxes 0,1,2,...
     int cfs_count = 0;
     for (const auto& box : resp["boxsInfo"]["materialBoxs"]) {
-        const int box_st   = box.value("state", 0);
-        const int box_type = box.value("type",  0);
+        const int box_st   = safe_json_int(box, "state");
+        const int box_type = safe_json_int(box, "type");
         if (box_st != 1)   continue; // inactive boxes
         if (box_type != 0) continue; // non-CFS (external spool holder, handled separately by upload dialog)
 
@@ -204,24 +265,25 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
             //                                              selected as the active
             //                                              spool for printing,
             //                                          2 = loaded but not selected.
-            // We treat anything non-zero as loaded. Belt-and-braces: also skip
-            // entries that look blank (no vendor and no type) regardless of state.
-            const int s_state = mat.value("state", 0);
-            const std::string s_vendor = mat.value("vendor", std::string());
-            const std::string s_type   = mat.value("type",   std::string());
-            if (s_state == 0)                       continue; // explicitly empty
-            if (s_vendor.empty() && s_type.empty()) continue; // blank entry — likely empty under a different state encoding
+            // We treat anything non-zero as loaded. A loaded spool with an unknown RFID
+            // tag reports only its colour, so only an entry with no colour either is blank.
+            const int s_state = safe_json_int(mat, "state");
+            const std::string s_vendor = safe_json_string(mat, "vendor");
+            const std::string s_type   = safe_json_string(mat, "type");
+            const std::string s_color  = safe_json_string(mat, "color");
+            if (s_state == 0)                                          continue; // explicitly empty
+            if (s_vendor.empty() && s_type.empty() && s_color.empty()) continue; // blank entry
 
             CFSSlot s;
             s.box_id        = cfs_index;
-            s.slot_id       = mat.value("id",     0);
+            s.slot_id       = safe_json_int(mat, "id");
             s.vendor        = s_vendor;
-            s.brand_name    = mat.value("name",   "");
+            s.brand_name    = safe_json_string(mat, "name");
             s.filament_type = s_type;
-            s.color_hex     = mat.value("color",  "#FFFFFF");
+            s.color_hex     = s_color.empty() ? "#FFFFFF" : s_color;
 
-            // Creality reports colour as "#0RRGGBB" (8 chars with a leading zero
-            // after '#'). Normalise to standard "#RRGGBB".
+            // Creality reports colour as "#" + a digit + "RRGGBB". Drop the digit,
+            // as Creality Print does, to get a standard "#RRGGBB".
             if (s.color_hex.size() == 8 && s.color_hex[0] == '#')
                 s.color_hex = "#" + s.color_hex.substr(2);
 
@@ -233,7 +295,7 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
     return true;
 }
 
-bool CrealityPrintAgent::fetch_filament_info(std::string dev_id)
+bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     if (device_info.dev_ip.empty()) {
         BOOST_LOG_TRIVIAL(warning)

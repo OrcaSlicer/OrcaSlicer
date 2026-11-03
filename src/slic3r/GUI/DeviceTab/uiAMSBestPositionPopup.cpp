@@ -13,8 +13,35 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/colour.h>
+#include <wx/dcclient.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <vector>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <algorithm>
+#include <cstdlib>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <map>
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
+#include <cstddef>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include <tuple>
+#include <utility>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/font.h>
 #include <wx/grid.h>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/peninfobase.h>
+#include <wx/types.h>
+#include <wx/sizer.h>
+#include <wx/toplevel.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -705,7 +732,7 @@ ReselectMachineDialog::ReselectMachineDialog(wxWindow* parent)
     Centre();
 }
 
-void ReselectMachineDialog::Update(MachineObject* obj, const std::map<int, int>&  best_pos_map, const std::vector<FilamentInfo>& ams_mapping, wxString save_time)
+void ReselectMachineDialog::UpdateInfo(MachineObject* obj, const std::map<int, int>&  best_pos_map, const std::vector<FilamentInfo>& ams_mapping, wxString save_time)
 {
 
     if (suggestText)
@@ -954,7 +981,7 @@ int ReselectMachineDialog::CaculateSwitcherDistribution(MachineObject* obj, cons
                 }
                 if (can.material_state == AMSCanType::AMS_CAN_TYPE_EMPTY)
                 {
-                    material = "Empty";
+                    material = L("Empty");
                 }
 
                 auto itOK = std::find_if(posOK.begin(), posOK.end(), [&](const trayHelper& tray){

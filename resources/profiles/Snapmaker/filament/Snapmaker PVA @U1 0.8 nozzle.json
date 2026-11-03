@@ -9,39 +9,49 @@
 		"Snapmaker U1 (0.8 nozzle)"
 	],
 	"enable_pressure_advance": [
+		"0",
 		"0"
 	],
 	"additional_cooling_fan_speed": [
+		"70",
 		"70"
 	],
 	"close_fan_the_first_x_layers": [
 		"1"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"fan_min_speed": [
+		"100",
 		"100"
 	],
 	"filament_cost": [
 		"79.98"
 	],
 	"filament_deretraction_speed": [
+		"nil",
 		"nil"
 	],
 	"filament_flow_ratio": [
-		"0.96"
+		"0.96",
+		"0.9312"
 	],
 	"filament_retract_length_toolchange": [
+		"10",
 		"10"
 	],
 	"filament_retraction_length": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_speed": [
+		"nil",
 		"nil"
 	],
 	"filament_soluble": [
@@ -51,15 +61,19 @@
 		"65"
 	],
 	"nozzle_temperature": [
+		"225",
 		"225"
 	],
 	"nozzle_temperature_initial_layer": [
+		"225",
 		"225"
 	],
 	"nozzle_temperature_range_low": [
+		"205",
 		"205"
 	],
 	"pressure_advance": [
+		"0.03",
 		"0.03"
 	],
 	"slow_down_layer_time": [
@@ -87,21 +101,33 @@
 		"3"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"15",
 		"15"
 	],
 	"filament_multitool_ramming": [
+		"1",
 		"1"
 	],
 	"filament_multitool_ramming_flow": [
+		"20",
 		"20"
 	],
 	"filament_multitool_ramming_volume": [
+		"5",
 		"5"
 	],
 	"filament_unloading_speed": [
 		"90"
 	],
 	"filament_unloading_speed_start": [
+		"100"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"fan_max_speed": [
+		"100",
 		"100"
 	]
 }

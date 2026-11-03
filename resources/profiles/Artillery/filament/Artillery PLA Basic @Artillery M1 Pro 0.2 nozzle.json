@@ -4,6 +4,7 @@
 	"inherits": "Artillery PLA @Artillery M1 Pro 0.2 nozzle",
 	"from": "system",
 	"setting_id": "N3iYnDshA5ruihVE",
+	"filament_id": "OFXk1emJ",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Artillery PLA Basic @Artillery M1 Pro 0.2 nozzle"

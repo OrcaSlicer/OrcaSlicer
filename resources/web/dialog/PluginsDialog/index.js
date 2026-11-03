@@ -1,11 +1,11 @@
 const pluginsById = new Map();
 const pluginInstallActions = {
   "explore": {
-    label: "Install plugin",
+    label: T("install_plugin", "Install plugin"),
     command: "open_plugin_hub"
   },
   "install-local": {
-    label: "Install local plugin",
+    label: T("install_local_plugin", "Install local plugin"),
     command: "install_local_plugin"
   }
 };
@@ -47,8 +47,7 @@ function OnInit() {
   exploreMenu = document.getElementById("exploreMenu");
   exploreMenuButton = document.getElementById("explore_menu_btn");
 
-  if (typeof TranslatePage === "function")
-    TranslatePage();
+  TranslatePage();
 
   document.getElementById("refresh_btn")?.addEventListener("click", () => SendMessage("refresh_plugins"));
   document.getElementById("explore_btn")?.addEventListener("click", () => {
@@ -449,7 +448,7 @@ function RenderPlugins() {
   if (pluginsById.size === 0) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "No plugins found";
+    empty.textContent = T("no_plugins", "No plugins found");
     pluginList.appendChild(empty);
     SyncPluginListHeaderGutter();
     return;
@@ -504,11 +503,9 @@ function RenderPlugins() {
   if (searching && shown === 0) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.appendChild(document.createTextNode('No plugins match "'));
     const term = document.createElement("b");
     term.textContent = pluginSearch.query;
-    empty.appendChild(term);
-    empty.appendChild(document.createTextNode('"'));
+    AppendTemplate(empty, T("no_match", 'No plugins match "%s"'), term);
     pluginList.appendChild(empty);
   }
 
@@ -575,7 +572,7 @@ function CapabilityCanRun(plugin, capability) {
 }
 
 function IsPluginChecked(plugin) {
-  return GetStatus(plugin) === "Activated";
+  return plugin.is_loaded;
 }
 
 function HasMixedCapabilityState(plugin) {
@@ -599,13 +596,13 @@ function IsPluginLoading(plugin) {
 function SourceLabel(source) {
   switch (String(source || "").toLowerCase()) {
     case "mine":
-      return "Mine";
+      return T("source_mine", "Mine");
     case "subscribed":
-      return "Subscribed";
+      return T("source_subscribed", "Subscribed");
     case "orphaned":
-      return "Orphaned";
+      return T("source_orphaned", "Orphaned");
     default:
-      return "Local";
+      return T("source_local", "Local");
   }
 }
 
@@ -641,7 +638,7 @@ function CheckCell(row, plugin) {
   checkbox.dataset.pluginKey = row.dataset.pluginKey;
   if (checkbox.indeterminate) {
     checkbox.setAttribute("aria-checked", "mixed");
-    checkbox.setAttribute("aria-label", "Some plugin capabilities are enabled");
+    checkbox.setAttribute("aria-label", T("mixed_capabilities", "Some plugin capabilities are enabled"));
   }
   const checkboxMark = document.createElement("span");
   checkboxMark.className = "plugin-checkbox-mark";
@@ -664,9 +661,14 @@ function LabelCell(plugin, isExpanded = false, capabilityCount = 0, nameRanges =
     const expandButton = document.createElement("button");
     expandButton.type = "button";
     expandButton.className = "plugin-expand-btn";
-    expandButton.setAttribute("aria-label", `${isExpanded ? "Collapse" : "Expand"} ${pluginLabelText || "plugin"} capabilities`);
+    const labelName = pluginLabelText || "plugin";
+    expandButton.setAttribute("aria-label", isExpanded
+      ? T("collapse_named", "Collapse %s capabilities", labelName)
+      : T("expand_named", "Expand %s capabilities", labelName));
     expandButton.setAttribute("aria-expanded", isExpanded ? "true" : "false");
-    expandButton.title = isExpanded ? "Collapse capabilities" : "Expand capabilities";
+    expandButton.title = isExpanded
+      ? T("collapse", "Collapse capabilities")
+      : T("expand", "Expand capabilities");
     const icon = document.createElement("span");
     icon.className = "plugin-expand-icon";
     expandButton.appendChild(icon);
@@ -688,7 +690,7 @@ function LabelCell(plugin, isExpanded = false, capabilityCount = 0, nameRanges =
   if (hasCloudLink) {
     labelElement.href = "#";
     labelElement.classList.add("plugin-cloud-link");
-    labelElement.title = "Open this plugin in your browser";
+    labelElement.title = T("open_in_browser", "Open this plugin in your browser");
   }
 
   nameWrap.appendChild(labelElement);
@@ -696,7 +698,7 @@ function LabelCell(plugin, isExpanded = false, capabilityCount = 0, nameRanges =
     const countBadge = document.createElement("span");
     countBadge.className = "plugin-capability-count";
     countBadge.textContent = String(capabilityCount);
-    countBadge.title = `${capabilityCount} capabilities`;
+    countBadge.title = T("capability_count", "Capabilities: %s", capabilityCount);
     nameWrap.appendChild(countBadge);
   }
   labelCell.appendChild(nameWrap);
@@ -722,7 +724,7 @@ function RenderCapabilityTree(plugin, capabilities, capRanges = null) {
   const tree = document.createElement("div");
   tree.className = "capabilities-tree";
   tree.setAttribute("role", "group");
-  tree.setAttribute("aria-label", "Capabilities");
+  tree.setAttribute("aria-label", T("capabilities", "Capabilities"));
 
   capabilities.forEach((capability, index) => {
     tree.appendChild(RenderCapabilityRow(plugin, capability, index === capabilities.length - 1, capRanges));
@@ -769,7 +771,7 @@ function RenderCapabilityRow(plugin, capability, isLast, capRanges = null) {
     const runButton = document.createElement("button");
     runButton.type = "button";
     runButton.className = "capability-run-btn script-run-btn";
-    runButton.title = `Run "${capabilityName}"`;
+    runButton.title = T("run_named", 'Run "%s"', capabilityName);
     runButton.setAttribute("aria-label", runButton.title);
     const runIcon = document.createElement("span");
     runIcon.className = "icon16 plugin-run-icon";
@@ -804,7 +806,7 @@ function CapabilityCheckCell(plugin, capability) {
   checkbox.dataset.capabilityToggle = "true";
   checkbox.dataset.capabilityName = capabilityName;
   checkbox.dataset.capabilityType = capabilityType;
-  checkbox.setAttribute("aria-label", `Enable ${capabilityName || "capability"}`);
+  checkbox.setAttribute("aria-label", T("enable_named", "Enable %s", capabilityName));
   const checkboxMark = document.createElement("span");
   checkboxMark.className = "plugin-checkbox-mark";
   checkboxLabel.appendChild(checkbox);
@@ -826,7 +828,7 @@ function VersionCell(plugin) {
 
   const versionLabel = document.createElement("span");
   versionLabel.className = "version-value";
-  versionLabel.textContent = GetDisplayVersion(plugin) || "N/A";
+  versionLabel.textContent = GetDisplayVersion(plugin) || T("not_available", "N/A");
   cell.appendChild(versionLabel);
 
   const updateBadge = UpdateStatusBadge(plugin);
@@ -845,11 +847,11 @@ function UpdateStatusBadge(plugin) {
   badge.className = "version-update-badge";
   if (updateStatus === "unauthorized") {
     badge.classList.add("is-warning");
-    badge.title = "Unauthorized for updates";
-    badge.setAttribute("aria-label", "Unauthorized for updates");
+    badge.title = T("unauthorized", "Unauthorized for updates");
+    badge.setAttribute("aria-label", badge.title);
   } else {
-    badge.title = "Update available";
-    badge.setAttribute("aria-label", "Update available");
+    badge.title = T("update_available", "Update available");
+    badge.setAttribute("aria-label", badge.title);
   }
 
   return badge;
@@ -862,7 +864,7 @@ function StatusCell(plugin) {
 
   const statusLabel = document.createElement("span");
   statusLabel.className = "status-label";
-  statusLabel.textContent = GetStatus(plugin);
+  statusLabel.textContent = StatusLabel(plugin);
   cell.appendChild(statusLabel);
 
   return cell;
@@ -875,7 +877,7 @@ function RenderDetails() {
   const detailStatusBody = document.getElementById("detailStatusBody");
 
   SetText("detailInstalledVersion",
-    plugin ? (IsPluginInstalled(plugin) ? (GetInstalledVersion(plugin) || "-") : "Not installed") : "-");
+    plugin ? (IsPluginInstalled(plugin) ? (GetInstalledVersion(plugin) || "-") : T("not_installed", "Not installed")) : "-");
   SetText("detailLatestVersion", plugin ? (GetLatestVersion(plugin) || "-") : "-");
   const detailSource = document.getElementById("detailSource");
   if (detailSource) {
@@ -933,12 +935,12 @@ function RenderConfig(plugin) {
     // Capabilities only exist once the plugin is activated: say that, rather than claiming it has
     // none to configure.
     empty.textContent = !plugin
-      ? "Select a plugin to configure its capabilities"
+      ? T("config_select_plugin", "Select a plugin to configure its capabilities")
       : (IsPluginLoading(plugin)
-        ? "Loading the plugin…"
+        ? T("config_loading", "Loading the plugin…")
         : (GetStatus(plugin) === "Activated"
-          ? "This plugin exposes no capabilities"
-          : "Activate this plugin to configure its capabilities"));
+          ? T("config_no_capabilities", "This plugin exposes no capabilities")
+          : T("config_activate", "Activate this plugin to configure its capabilities")));
     empty.hidden = false;
     layout.hidden = true;
     sidebar.replaceChildren();
@@ -1121,7 +1123,7 @@ function ValidateConfigText() {
     SetConfigValidation("");
     return true;
   } catch (err) {
-    SetConfigValidation(String(err?.message || "Invalid JSON"));
+    SetConfigValidation(String(err?.message || T("invalid_json", "Invalid JSON")));
     return false;
   }
 }
@@ -1237,21 +1239,19 @@ function RenderDescription(plugin) {
 
   const isCloud = plugin && (plugin.source === "mine" || plugin.source === "subscribed" || plugin.source === "orphaned");
   if (isCloud && String(plugin?.sharing_token || "")) {
-    node.appendChild(document.createTextNode("View on OrcaCloud "));
     const link = document.createElement("a");
     link.href = "#";
     link.className = "plugin-cloud-link";
-    link.textContent = "here";
-    link.title = "Open this plugin in your browser";
+    link.title = T("open_in_browser", "Open this plugin in your browser");
     link.addEventListener("click", (event) => {
       event.preventDefault();
       sendOpenPluginOnCloud(String(plugin.plugin_key || ""));
     });
-    node.appendChild(link);
+    AppendTemplate(node, T("view_on_cloud", "View on OrcaCloud <a>here</a>"), link);
     return;
   }
 
-  node.textContent = "No description available";
+  node.textContent = T("no_description", "No description available");
 }
 
 function RenderChangelog(plugin) {
@@ -1305,8 +1305,8 @@ function ApplyDetailUpdateBadge(node, plugin) {
   if (updateStatus === "unauthorized") {
     node.hidden = false;
     node.classList.add("is-warning");
-    node.title = "Unauthorized for updates";
-    node.setAttribute("aria-label", "Unauthorized for updates");
+    node.title = T("unauthorized", "Unauthorized for updates");
+    node.setAttribute("aria-label", node.title);
     return;
   }
 
@@ -1339,17 +1339,37 @@ function UpdateSelectedPlugin() {
   });
 }
 
+// The status arrives as an identifier, which also names the status-* CSS classes.
+function StatusLabel(plugin) {
+  switch (GetStatus(plugin)) {
+    case "Activated":
+      return T("status_activated", "Activated");
+    case "Loading":
+      return T("status_loading", "Loading");
+    case "Error":
+      return T("status_error", "Error");
+    case "RuntimeError":
+      return T("status_runtime_error", "Runtime error");
+    case "Inactive":
+      return T("status_inactive", "Inactive");
+    default:
+      return GetStatus(plugin);
+  }
+}
+
 function StatusDescription(plugin) {
   switch (GetStatus(plugin)) {
     case "Activated":
-      return "This plugin is active and ready to be used.";
+      return T("status_activated_desc", "This plugin is active and ready to be used.");
     case "Loading":
-      return "This plugin is still loading.";
+      return T("status_loading_desc", "This plugin is still loading.");
     case "Error":
-      return "This plugin is blocked until its error is fixed.";
+      return T("status_error_desc", "This plugin is blocked until its error is fixed.");
+    case "RuntimeError":
+      return T("status_runtime_error_desc", "This plugin is loaded but a capability reported an error.");
     case "Inactive":
     default:
-      return "This plugin is inactive. Activate it to install or load it.";
+      return T("status_inactive_desc", "This plugin is inactive. Activate it to install or load it.");
   }
 }
 
@@ -1357,13 +1377,13 @@ function RenderDetailSummary(container, plugin) {
   container.replaceChildren();
 
   if (!plugin) {
-    container.textContent = "Select a plugin to view its status and details.";
+    container.textContent = T("select_plugin", "Select a plugin to view its status and details.");
     return;
   }
 
   const statusChip = document.createElement("span");
   statusChip.className = `detail-status-chip status-${GetStatus(plugin).toLowerCase()}`;
-  statusChip.textContent = GetStatus(plugin);
+  statusChip.textContent = StatusLabel(plugin);
   container.appendChild(statusChip);
 
   const message = document.createElement("div");
@@ -1375,7 +1395,7 @@ function RenderDetailSummary(container, plugin) {
   if (plugin.orphaned === true) {
     const warning = document.createElement("div");
     warning.className = "detail-description detail-warning-text";
-    warning.textContent = "Orphaned: This plugin is no longer subscribed or available in OrcaCloud. The local copy remains installed and can still be used.";
+    warning.textContent = T("orphaned_note", "Orphaned: This plugin is no longer subscribed or available in OrcaCloud. The local copy remains installed and can still be used.");
     container.appendChild(warning);
   }
 
@@ -1383,14 +1403,14 @@ function RenderDetailSummary(container, plugin) {
   if (updateStatus === "update_available") {
     const note = document.createElement("div");
     note.className = "detail-description detail-note-text";
-    note.textContent = "A newer plugin version is available.";
+    note.textContent = T("newer_version_note", "A newer plugin version is available.");
     container.appendChild(note);
   }
 
   if (updateStatus === "unauthorized") {
     const note = document.createElement("div");
     note.className = "detail-description detail-note-text is-warning";
-    note.textContent = "Cloud updates are unavailable because this plugin is unauthorized for updates.";
+    note.textContent = T("unauthorized_note", "Cloud updates are unavailable because this plugin is unauthorized for updates.");
     container.appendChild(note);
   }
 }

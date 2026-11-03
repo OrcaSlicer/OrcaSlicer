@@ -1,6 +1,9 @@
 #ifndef FILAMENT_GROUP_UTILS_HPP
 #define FILAMENT_GROUP_UTILS_HPP
 
+#include <set>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 #include <map>
 #include <string>
@@ -41,6 +44,11 @@ namespace Slic3r
         struct MachineFilamentInfo: public FilamentInfo {
             int extruder_id;
             bool is_extended;
+            // The slot's filament preset id (tray_info_idx), which tells apart sub-types of one
+            // filament_type, e.g. GFA17 (PLA Translucent) and GFL99 (Generic PLA).
+            std::string filament_id;
+            // Ignores filament_id, so slots of the same type and colour but different sub-types are
+            // interchangeable candidates for one filament.
             bool operator<(const MachineFilamentInfo& other) const;
         };
 

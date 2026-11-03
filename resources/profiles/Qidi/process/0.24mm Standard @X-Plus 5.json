@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "fiMTwk6ObF3WNpi5",
 	"name": "0.24mm Standard @X-Plus 5",
-	"from": "system",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "fiMTwk6ObF3WNpi5",
 	"instantiation": "true",
 	"bridge_flow": "1",
 	"default_acceleration": [

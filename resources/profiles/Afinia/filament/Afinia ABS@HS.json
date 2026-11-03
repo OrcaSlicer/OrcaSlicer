@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFB00_01",
-	"setting_id": "qCDnb2iBaz4hd4vX",
 	"name": "Afinia ABS@HS",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"setting_id": "qCDnb2iBaz4hd4vX",
+	"filament_id": "OFV5wEMe",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.95"
 	],

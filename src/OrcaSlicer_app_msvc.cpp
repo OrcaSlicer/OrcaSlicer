@@ -35,6 +35,7 @@ extern "C"
 #include <boost/algorithm/string/classification.hpp>
 
 #include <stdio.h>
+#include <boost/algorithm/string/constants.hpp>
 
 #ifdef SLIC3R_GUI
 class OpenGLVersionCheck
@@ -297,7 +298,7 @@ int wmain(int argc, wchar_t **argv)
 //	printf("Loading Slic3r library: %S\n", path_to_slic3r);
     HINSTANCE hInstance_Slic3r = LoadLibraryExW(path_to_slic3r, nullptr, 0);
     if (hInstance_Slic3r == nullptr) {
-        printf("OrcaSlicer.dll was not loaded, error=%d\n", GetLastError());
+        printf("OrcaSlicer.dll was not loaded, error=%lu\n", GetLastError());
         return -1;
     }
 

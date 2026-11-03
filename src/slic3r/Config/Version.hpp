@@ -1,12 +1,12 @@
 #ifndef slic3r_GUI_ConfigIndex_
 #define slic3r_GUI_ConfigIndex_
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
 #include <boost/filesystem/path.hpp>
 
-#include "libslic3r/FileParserError.hpp"
 #include "libslic3r/Semver.hpp"
 
 namespace Slic3r { 

@@ -11,6 +11,10 @@
 
 #include "Widgets/ProgressDialog.hpp"
 
+class wxTimer;
+class wxTimerEvent;
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 // A host-owned progress dialog for Python plugins. This class is deliberately

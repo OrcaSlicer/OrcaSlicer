@@ -13,7 +13,11 @@
 #include "Widgets/RadioGroup.hpp"
 #include "GUI_App.hpp"
 #include "wx/hyperlink.h"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/event.h>
 #include <wx/radiobox.h>
+#include <wx/sizer.h>
 #include "libslic3r/calib.hpp"
 
 namespace Slic3r { namespace GUI {
@@ -59,9 +63,12 @@ protected:
     
     virtual void on_start(wxCommandEvent& event);
     virtual void on_filament_type_changed(wxCommandEvent& event);
+    void on_show(wxShowEvent& event);
     Calib_Params m_params;
 
     RadioGroup* m_rbFilamentType;
+    RadioGroup* m_rbModel = nullptr;
+    wxStaticBoxSizer* m_model_box = nullptr;
     TextInput* m_tiStart;
     TextInput* m_tiEnd;
     TextInput* m_tiStep;

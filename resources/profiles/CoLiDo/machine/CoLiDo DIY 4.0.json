@@ -8,5 +8,5 @@
 	"bed_model": "",
 	"bed_texture": "",
 	"hotend_model": "",
-	"default_materials": "CoLiDo Generic PLA @CoLiDo DIY 4.0;CoLiDo Generic ABS @CoLiDo DIY 4.0;CoLiDo Generic PETG @CoLiDo DIY 4.0;CoLiDo Generic TPU @CoLiDo DIY 4.0"
+	"default_materials": "Generic PLA @CoLiDo DIY 4.0;Generic ABS @CoLiDo DIY 4.0;Generic PETG @CoLiDo DIY 4.0;Generic TPU @CoLiDo DIY 4.0"
 }

@@ -6,7 +6,12 @@
 
 #include "../../EdgeGrid.hpp"
 #include "../../Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polyline.hpp"
 
+#include <functional>
 #include <memory>
 #include <vector>
 #include <list>

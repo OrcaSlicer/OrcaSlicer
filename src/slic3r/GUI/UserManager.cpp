@@ -1,13 +1,16 @@
-#include "libslic3r/libslic3r.h"
+#include <nlohmann/json.hpp>
 #include "UserManager.hpp"
-#include "DeviceManager.hpp"
-#include "NetworkAgent.hpp"
-#include "GUI.hpp"
+#include "BindDialog.hpp"
 #include "GUI_App.hpp"
+#include "I18N.hpp"
 #include "MsgDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include <string>
+#include <wx/string.h>
 
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 
@@ -29,14 +32,15 @@ int UserManager::parse_json(std::string payload)
 {
     bool restored_json = false;
     json j;
-    json j_pre = json::parse(payload);
-    if (j_pre.empty()) {
-        return -1;
-    }
 
     //bind/unbind
 
     try {
+        json j_pre = json::parse(payload);
+        if (j_pre.empty()) {
+            return -1;
+        }
+
         if (j_pre.contains("bind")) {
             if (j_pre["bind"].contains("command")) {
 

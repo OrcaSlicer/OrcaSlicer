@@ -3,7 +3,7 @@
 	"name": "Elegoo ASA @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "OEASAB00",
+	"filament_id": "OFobDOW5",
 	"instantiation": "false",
 	"eng_plate_temp": [
 		"90"

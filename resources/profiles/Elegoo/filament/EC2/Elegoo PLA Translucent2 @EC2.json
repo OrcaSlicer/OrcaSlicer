@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Translucent2 @EC2",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Translucent2 @base",
 	"from": "system",
 	"setting_id": "RKBHiiO580ou2vr1",
 	"instantiation": "true",

@@ -1,16 +1,26 @@
 #ifndef SLIC3R_TEST_UTILS
 #define SLIC3R_TEST_UTILS
 
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include "libslic3r/BoundingBox.hpp"
 #include <libslic3r/TriangleMesh.hpp>
 #include <libslic3r/Format/OBJ.hpp>
 #include <libslic3r/SVG.hpp>
 #include <libslic3r/Utils.hpp>
 
 #include <boost/filesystem.hpp>
+#include <boost/nowide/cstdlib.hpp>
 
+#include <clocale>
 #include <cstdio>
 #include <fstream>
+#include <initializer_list>
+#include <optional>
 #include <string>
+#include <utility>
+
+#include <locale.h>
 
 #if defined(WIN32) || defined(_WIN32)
 #define PATH_SEPARATOR R"(\)"
@@ -175,5 +185,78 @@ inline void write_debug_stream([[maybe_unused]] const std::string &name, [[maybe
     out << produce();
 #endif
 }
+
+// Changes the working directory and restores the previous one on scope exit, including when an
+// assertion throws. It is process wide state shared with every other test.
+class ScopedWorkingDirectory
+{
+public:
+    explicit ScopedWorkingDirectory(const boost::filesystem::path &dir)
+        : m_previous(boost::filesystem::current_path())
+    {
+        boost::filesystem::current_path(dir);
+    }
+    ~ScopedWorkingDirectory() { boost::system::error_code ec; boost::filesystem::current_path(m_previous, ec); }
+    ScopedWorkingDirectory(const ScopedWorkingDirectory &) = delete;
+    ScopedWorkingDirectory &operator=(const ScopedWorkingDirectory &) = delete;
+
+private:
+    boost::filesystem::path m_previous;
+};
+
+// Sets an environment variable for the lifetime of the guard and restores the previous value.
+class ScopedEnvVar
+{
+public:
+    ScopedEnvVar(std::string name, const std::string& value) : m_name(std::move(name))
+    {
+        if (const char* old = boost::nowide::getenv(m_name.c_str()))
+            m_previous = old;
+        boost::nowide::setenv(m_name.c_str(), value.c_str(), 1);
+    }
+    ~ScopedEnvVar()
+    {
+        if (m_previous)
+            boost::nowide::setenv(m_name.c_str(), m_previous->c_str(), 1);
+        else
+            boost::nowide::unsetenv(m_name.c_str());
+    }
+
+private:
+    std::string                m_name;
+    std::optional<std::string> m_previous;
+};
+
+// Switches this thread's numeric locale to one whose decimal separator is a comma,
+// when the system has one installed.
+struct CommaNumericLocale
+{
+#ifdef _WIN32
+    bool apply()
+    {
+        for (const char* name : { "de-DE", "German_Germany.1252" })
+            if (std::setlocale(LC_NUMERIC, name) != nullptr)
+                return true;
+        return false;
+    }
+#else
+    locale_t locale { (locale_t) 0 };
+    bool apply()
+    {
+        for (const char* name : { "de_DE.UTF-8", "de_DE.utf8", "de_DE" })
+            if ((locale = newlocale(LC_NUMERIC_MASK, name, (locale_t) 0)) != (locale_t) 0) {
+                uselocale(locale);
+                return true;
+            }
+        return false;
+    }
+    // Freed once the setters around apply() have put the thread's own locale back.
+    ~CommaNumericLocale()
+    {
+        if (locale != (locale_t) 0)
+            freelocale(locale);
+    }
+#endif
+};
 
 #endif // SLIC3R_TEST_UTILS

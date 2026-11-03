@@ -1,10 +1,10 @@
 {
 	"type": "machine",
-	"setting_id": "uSgdeLwfwMCIF8jJ",
 	"name": "EXO42 Performance (0.4 nozzle)",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_volumic_common",
+	"from": "system",
+	"setting_id": "uSgdeLwfwMCIF8jJ",
+	"instantiation": "true",
 	"printer_model": "EXO42 Performance",
 	"default_print_profile": "Performance 150 - 0.15mm",
 	"host_type": "octoprint",
@@ -42,12 +42,15 @@
 		"30"
 	],
 	"machine_max_acceleration_x": [
+		"4500",
 		"4500"
 	],
 	"machine_max_acceleration_y": [
+		"4500",
 		"4500"
 	],
 	"machine_max_acceleration_z": [
+		"50",
 		"50"
 	],
 	"machine_start_gcode": "START_PRINT BED=[first_layer_bed_temperature] EXTRUDER=[first_layer_temperature]",
