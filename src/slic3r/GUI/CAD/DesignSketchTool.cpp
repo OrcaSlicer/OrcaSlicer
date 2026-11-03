@@ -2945,7 +2945,7 @@ void DesignSketchTool::keep_segment_as_drawn()
         push_line(m_points[0], m_points[1]);  // accrues into the session's entities
         infer_auto_constraints(base);         // auto Coincident at snapped ends + H/V
         // A free line goes on from where it ended (Esc or a right-click ends the chain), so a polyline is drawn in one run.
-        chain = m_mode == Mode::Line && !m_typed_line && wxGetApp().app_config->get("design_sketch_autodim_line") != "1";
+        chain = m_mode == Mode::Line && !m_typed_line && wxGetApp().app_config->get("design_sketch_autodim_line") == "0";
         chain_from = m_points[1];
     }
     m_points.clear();
@@ -10891,8 +10891,8 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // Draw-then-edit: a creation tool that just committed a new entity/feature (gesture now
     // idle) gets its result auto-selected — so render_live_quotes below computes its quotes —
     // and the primary value editor armed (opened after those quotes exist, see service block).
-    // Lines are drawn freely (no prompt after each segment; dimension them afterwards) unless design_sketch_autodim_line is "1".
-    const bool free_line = m_mode == Mode::Line && wxGetApp().app_config->get("design_sketch_autodim_line") != "1";
+    // Each line segment opens its Length then Angle fields (like the rectangle); set design_sketch_autodim_line to "0" to draw lines freely instead.
+    const bool free_line = m_mode == Mode::Line && wxGetApp().app_config->get("design_sketch_autodim_line") == "0";
     if (m_active && is_creation_autoedit_mode() && (!free_line || m_typed_line) && m_points.empty() &&
         m_open_feature < 0 && !m_awaiting_length) {
         const int n = int(m_entities.size());
