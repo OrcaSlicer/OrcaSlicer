@@ -49,6 +49,16 @@ jobs:
           cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
           useLocalCache: true
           useCloudCache: true
+      # Skips self-hosted runners, where this machine-wide setting would stay after the job ends.
+      - name: Enable Crash Dumps
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        shell: pwsh
+        run: |
+          $key = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps'
+          New-Item -Path $key -Force | Out-Null
+          New-ItemProperty -Path $key -Name DumpFolder -PropertyType ExpandString -Value "$env:RUNNER_TEMP\crash-dumps" -Force | Out-Null
+          New-ItemProperty -Path $key -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
+          New-ItemProperty -Path $key -Name DumpCount -PropertyType DWord -Value 5 -Force | Out-Null
       - name: Unpackage and Run Unit Tests
         timeout-minutes: 20
         shell: bash
@@ -64,6 +74,14 @@ jobs:
         with:
           name: unit-test-logs-${{ inputs.artifact }}
           path: ${{ inputs.test-dir }}/**/*.log
+      - name: Upload Crash Dumps
+        if: ${{ failure() && runner.os == 'Windows' && !vars.SELF_HOSTED }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: crash-dumps-${{ inputs.artifact }}
+          path: ${{ runner.temp }}/crash-dumps
+          retention-days: 5
+          if-no-files-found: ignore
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v7

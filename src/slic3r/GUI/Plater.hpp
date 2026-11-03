@@ -193,7 +193,7 @@ public:
     void create_printer_preset();
     void init_filament_combo(PlaterPresetComboBox **combo, const int filament_idx);
     void remove_unused_filament_combos(const size_t current_extruder_count);
-    void update_all_preset_comboboxes();
+    void update_all_preset_comboboxes(bool update_filament_combos = true);
     //void update_partplate(PartPlateList& list);
     void update_presets(Slic3r::Preset::Type preset_type);
     //BBS
@@ -695,7 +695,8 @@ public:
         NOT_CONNECTED,
         INCONSISTENT,
         UNINSTALL_FILAMENT,
-        EMPTY_FILAMENT
+        EMPTY_FILAMENT,
+        NO_FILAMENT_SYSTEM
     };
     void pop_warning_and_go_to_device_page(wxString printer_name, PrinterWarningType type, const wxString &title);
     bool check_printer_initialized(MachineObject *obj, bool only_warning = false,bool popup_warning = true);
