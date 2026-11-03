@@ -4,6 +4,8 @@
 #include "I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "Plater.hpp"
 #include "libslic3r_version.h"
 
 #include <boost/filesystem/path.hpp>
@@ -37,6 +39,7 @@
 #include <wx/toplevel.h>
 #include <wx/url.h>
 #include <wx/uri.h>
+#include <wx/button.h>
 
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <slic3r/GUI/Widgets/WebViewHostDialog.hpp>
