@@ -7036,7 +7036,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Allow different nozzles");
     def->tooltip = L("Enable nozzle flow type selection for each extruder. Disable to use the printer profile's default nozzle flow types.");
     def->mode = comSimple;
-    def->set_default_value(new ConfigOptionBool(false));
+    def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("single_extruder_multi_material", coBool);
     def->label = L("Single Extruder Multi Material");

@@ -10,7 +10,6 @@
 	"default_filament_profile": "Generic PLA @Prusa XL",
 	"default_print_profile": "0.20mm Speed @Prusa XL 5T 0.4",
 	"printer_variant": "0.4",
-	"allow_different_nozzles": "1",
 	"nozzle_diameter": [
 		"0.4",
 		"0.4",

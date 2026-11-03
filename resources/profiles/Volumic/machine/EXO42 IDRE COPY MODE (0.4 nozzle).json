@@ -9,7 +9,6 @@
 	"default_print_profile": "Performance 150 - 0.15mm",
 	"host_type": "octoprint",
 	"print_host": "192.168.0.60",
-	"allow_different_nozzles": "1",
 	"nozzle_diameter": [
 		"0.4",
 		"0.4"

@@ -9,7 +9,6 @@
 	"extruders_count": "2",
 	"printer_model": "Lulzbot Taz Pro Dual",
 	"default_print_profile": "0.25mm Standard @Lulzbot Taz Pro Dual",
-	"allow_different_nozzles": "1",
 	"nozzle_diameter": [
 		"0.5",
 		"0.5"

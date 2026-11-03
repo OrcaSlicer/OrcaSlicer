@@ -16,7 +16,6 @@
 		"0x600"
 	],
 	"printable_height": "600",
-	"allow_different_nozzles": "1",
 	"nozzle_diameter": [
 		"0.8",
 		"0.8"

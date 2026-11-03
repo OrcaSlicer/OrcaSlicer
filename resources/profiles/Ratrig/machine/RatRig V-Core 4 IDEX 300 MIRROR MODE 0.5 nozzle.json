@@ -7,7 +7,6 @@
 	"instantiation": "true",
 	"printer_model": "RatRig V-Core 4 IDEX 300 MIRROR MODE",
 	"printer_variant": "0.5",
-	"allow_different_nozzles": "1",
 	"nozzle_diameter": [
 		"0.5",
 		"0.5"

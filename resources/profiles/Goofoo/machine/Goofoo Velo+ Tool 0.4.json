@@ -5,7 +5,6 @@
   "from": "system",
   "setting_id": "ww39WeaF5nYks1em",
   "instantiation": "true",
-  "allow_different_nozzles": "1",
   "nozzle_diameter": [
     "0.4",
     "0.4"
