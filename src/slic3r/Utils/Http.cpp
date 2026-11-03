@@ -521,7 +521,8 @@ void Http::priv::http_perform()
 		::curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_status);
 
 		//BBS check success http status code
-		if (http_status >= 200 && http_status < 300) {
+		// A 304 answers a conditional request (If-None-Match): the caller's copy is still current.
+		if ((http_status >= 200 && http_status < 300) || http_status == 304) {
 			if (completefn) { completefn(std::move(buffer), http_status); }
 			if (ipresolvefn) {
 				char* ct;

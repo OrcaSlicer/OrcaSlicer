@@ -5,6 +5,7 @@
 	"from": "system",
 	"instantiation": "false",
 	"gcode_flavor": "klipper",
+	"printer_structure": "corexy",
 	"single_extruder_multi_material": "0",
 	"bed_model": "Snapmaker U1_bed.stl",
 	"bed_texture": "Snapmaker U1_bed.svg",

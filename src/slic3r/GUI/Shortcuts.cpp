@@ -31,10 +31,15 @@ constexpr int SHIFT      = wxMOD_SHIFT;
 constexpr int CTRL_SHIFT = wxMOD_CONTROL | wxMOD_SHIFT;
 
 #ifdef __APPLE__
+// Cmd+Tab is the system application switcher, so cycling tabs uses the physical Control key.
+constexpr KeyChord TAB_NEXT_CHORD{ WXK_TAB, wxMOD_RAW_CONTROL };
+constexpr KeyChord TAB_PREVIOUS_CHORD{ WXK_TAB, wxMOD_RAW_CONTROL | wxMOD_SHIFT };
 constexpr KeyChord PREFERENCES_CHORD{ ',', CTRL };
 constexpr KeyChord DELETE_CHORD{ WXK_BACK };
 constexpr KeyChord MOUSE3D_CHORD{ 'M', CTRL_SHIFT };
 #else
+constexpr KeyChord TAB_NEXT_CHORD{ WXK_TAB, CTRL };
+constexpr KeyChord TAB_PREVIOUS_CHORD{ WXK_TAB, CTRL_SHIFT };
 constexpr KeyChord PREFERENCES_CHORD{ 'P', CTRL };
 constexpr KeyChord DELETE_CHORD{ WXK_DELETE };
 constexpr KeyChord MOUSE3D_CHORD{ 'M', CTRL };
@@ -158,6 +163,19 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(Search,            "search",             L("Search"),                                               GLOBAL, { 'F', CTRL }),
     SHORTCUT(SwitchView,        "switch_view",        L("Switch between Prepare/Preview"),                       CANVAS, { WXK_TAB }),
     SHORTCUT(CollapseSidebar,   "collapse_sidebar",   L("Collapse/Expand the sidebar"),                          CANVAS, { WXK_TAB, SHIFT }),
+    // The jump-to-tab shortcuts have no default key, so users can bind the ones they want.
+    SHORTCUT(GoToHome,          "go_to_home",         L("Go to the Home tab"),                                   GLOBAL, {}),
+#ifdef SLIC3R_CAD
+    SHORTCUT(GoToDesign,        "go_to_design",       L("Go to the Design tab"),                                 GLOBAL, {}),
+#endif
+    SHORTCUT(GoToPrepare,       "go_to_prepare",      L("Go to the Prepare tab"),                                GLOBAL, {}),
+    SHORTCUT(GoToPreview,       "go_to_preview",      L("Go to the Preview tab"),                                GLOBAL, {}),
+    SHORTCUT(GoToDevice,        "go_to_device",       L("Go to the Device tab"),                                 GLOBAL, {}),
+    SHORTCUT(GoToMultiDevice,   "go_to_multi_device", L("Go to the Multi-device tab"),                           GLOBAL, {}),
+    SHORTCUT(GoToProject,       "go_to_project",      L("Go to the Project tab"),                                GLOBAL, {}),
+    SHORTCUT(GoToCalibration,   "go_to_calibration",  L("Go to the Calibration tab"),                            GLOBAL, {}),
+    SHORTCUT(TabNext,           "tab_next",           L("Switch to the next tab"),                               GLOBAL, TAB_NEXT_CHORD),
+    SHORTCUT(TabPrevious,       "tab_previous",       L("Switch to the previous tab"),                           GLOBAL, TAB_PREVIOUS_CHORD),
     SHORTCUT(ReloadDevicePage,  "reload_device_page", L("Reload the device page"),                               CANVAS, { WXK_F5 }),
     SHORTCUT(KeyboardShortcuts, "keyboard_shortcuts", L("Show keyboard shortcuts list"),                         CANVAS, { '?' }),
     SHORTCUT(Quit,              "quit",               L("Quit"),                                                 GLOBAL, { 'Q', CTRL }),

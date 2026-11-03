@@ -130,6 +130,8 @@ set(ORCA_BUNDLED_UV_EXECUTABLE "" CACHE FILEPATH "Path to a uv executable to bun
 # be reproducible and the download verified. To upgrade, bump ORCA_UV_VERSION
 # and refresh every hash below from the release's .sha256 assets, e.g.:
 #   curl -sL https://github.com/astral-sh/uv/releases/download/<ver>/uv-<triple>.tar.gz.sha256
+# The Flatpak copy in scripts/flatpak/com.orcaslicer.OrcaSlicer.yml pins the
+# same version and hashes and must be bumped with them.
 set(ORCA_UV_VERSION "0.11.21")
 set(ORCA_UV_SHA256_aarch64-apple-darwin      "1f921d491ba5ffeea774eb04d6681ecee379101341cbb1500394993b541bf3f4")
 set(ORCA_UV_SHA256_x86_64-apple-darwin       "f3c8e5708a84b920c18b691214d54d2b0da6b984789caae95d47c95120cb7765")
@@ -150,6 +152,15 @@ endif()
 # (user-provided paths never live under .uv/).
 if(ORCA_BUNDLED_UV_EXECUTABLE MATCHES "/\\.uv/")
     set(ORCA_BUNDLED_UV_EXECUTABLE "" CACHE FILEPATH "Path to the auto-downloaded uv executable" FORCE)
+endif()
+
+# A Flatpak build has no network and cannot download below: the orca_deps module
+# in scripts/flatpak/com.orcaslicer.OrcaSlicer.yml fetches the same pinned uv and
+# installs it into the app resources, where the runtime looks for it.
+set(ORCA_UV_FLATPAK_BINARY "${CMAKE_INSTALL_FULL_DATAROOTDIR}/OrcaSlicer/tools/uv/uv")
+if(FLATPAK AND NOT ORCA_BUNDLED_UV_EXECUTABLE AND EXISTS "${ORCA_UV_FLATPAK_BINARY}")
+    message(STATUS "Using Flatpak-provided uv: ${ORCA_UV_FLATPAK_BINARY}")
+    set(ORCA_BUNDLED_UV_EXECUTABLE "${ORCA_UV_FLATPAK_BINARY}")
 endif()
 
 if(NOT ORCA_BUNDLED_UV_EXECUTABLE)
@@ -195,10 +206,8 @@ if(NOT ORCA_BUNDLED_UV_EXECUTABLE)
             list(GET ORCA_UV_DL_STATUS 0 ORCA_UV_DL_CODE)
             list(GET ORCA_UV_DL_STATUS 1 ORCA_UV_DL_MSG)
             if(NOT ORCA_UV_DL_CODE EQUAL 0)
-                # Network failure keeps the historical graceful degradation (uv is
-                # optional at build time) -- but a hash mismatch below is fatal.
-                message(WARNING "Failed to download uv: ${ORCA_UV_DL_MSG}")
                 file(REMOVE "${ORCA_UV_ARCHIVE}")
+                message(FATAL_ERROR "Failed to download uv: ${ORCA_UV_DL_MSG}")
             else()
                 file(SHA256 "${ORCA_UV_ARCHIVE}" _orca_uv_actual_sha256)
                 if(NOT _orca_uv_actual_sha256 STREQUAL "${ORCA_UV_SHA256_${ORCA_UV_ARCH}}")
@@ -1301,7 +1310,13 @@ elseif (SLIC3R_FHS)
         PATTERN "*/udev" EXCLUDE
     )
     if(ORCA_BUNDLED_UV_EXECUTABLE)
-        install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${SLIC3R_FHS_RESOURCES}/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
+        # A Flatpak build finds uv at this exact path, installed by the orca_deps
+        # module before this one configures (see ORCA_UV_FLATPAK_BINARY above).
+        # Installing it there again would copy the file onto itself.
+        set(_orca_uv_fhs_binary "${SLIC3R_FHS_RESOURCES}/tools/uv/${ORCA_BUNDLED_UV_FILENAME}")
+        if(NOT ORCA_BUNDLED_UV_EXECUTABLE_CONFIG STREQUAL _orca_uv_fhs_binary)
+            install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${SLIC3R_FHS_RESOURCES}/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
+        endif()
     endif()
     install(FILES src/dev-utils/platform/unix/com.orcaslicer.OrcaSlicer.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
     foreach(SIZE 32 128 192)
