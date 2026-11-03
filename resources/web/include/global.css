@@ -88,8 +88,8 @@ TabCtrl tabs changes its positions because of font width change
   --button-bg-alert       : #E14747;
 
   /* Complement colors for main color */
-  --tone-green            : #137333;
-  --tone-green-12         : #1373331F; /*12% opacity*/
+  --tone-green            : #078d34;
+  --tone-green-12         : #078d341F; /*12% opacity*/
   --tone-orange           : #CC8B3B;
   --tone-orange-12        : #CC8B3B1F; /*12% opacity*/
   --tone-red              : #b42318;
@@ -105,7 +105,7 @@ TabCtrl tabs changes its positions because of font width change
 
   /*WIP gold, purple */
 
-  --gradient-green        : linear-gradient(180deg, #45ba53 0%, #2fa744 100%);
+  --gradient-green        : linear-gradient(180deg, #13a744 0%, #078d34 100%);
   --gradient-orange       : linear-gradient(180deg, #e3a13d 0%, #c77a16 100%);
 
   --shadow-opacity        : rgba(0,0,0, 0.12);
@@ -159,10 +159,10 @@ TabCtrl tabs changes its positions because of font width change
   --tone-green-12         : #72C1661F; /*12% opacity*/
   --tone-orange           : #D49E5C;
   --tone-orange-12        : #D49E5C1F; /*12% opacity*/
-  --tone-red              : #CD3C4A;
-  --tone-red-12           : #CD3C4A1F; /*12% opacity*/
-  --tone-blue             : #6590CC;
-  --tone-blue-12          : #6590CC1F; /*12% opacity*/
+  --tone-red              : #DD3C4A;
+  --tone-red-12           : #DD3C4A1F; /*12% opacity*/
+  --tone-blue             : #6590DD;
+  --tone-blue-12          : #6590DD1F; /*12% opacity*/
   --tone-teal             : #009688;
   --tone-teal-12          : #0096881F; /*12% opacity*/
   --tone-neutral          : #97a7b8;
@@ -172,7 +172,7 @@ TabCtrl tabs changes its positions because of font width change
 
   /*WIP gold, purple */
 
-  --gradient-green        : linear-gradient(180deg, #45ba53 0%, #2fa744 100%);
+  --gradient-green        : linear-gradient(180deg, #72C166 0%, #60a556 100%);
   --gradient-orange       : linear-gradient(180deg, #e3a13d 0%, #c77a16 100%);
 
   --shadow-opacity        : rgba(0,0,0, 0.24); /*dark mode requires more opaque shadow*/
