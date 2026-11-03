@@ -143,6 +143,12 @@ modules:
       - cmake --build $BUILD_DIR --parallel
       - rm -rf /run/build/orca_deps/external-packages
 
+      # uv runs from the app resources at runtime and CMake finds it there
+      # instead of downloading it (no network in the build sandbox). It has to
+      # be in place before the OrcaSlicer module configures, which this module
+      # always precedes.
+      - install -Dm755 uv/uv /app/share/OrcaSlicer/tools/uv/uv
+
     cleanup:
       - /include
       - "*.a"
@@ -341,6 +347,27 @@ modules:
         url: https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.2.0.zip
         sha256: 1b4c2cb6cba1ca5e53b9e85eeeab02154cab4b70894c96e97a9c747a26d19d63
         dest: external-packages/JPEG
+
+      # ---------------------------------------------------------------
+      # uv 0.11.21, pinned per arch (only the matching one is fetched).
+      # Keep the version and hashes in sync with ORCA_UV_VERSION and
+      # ORCA_UV_SHA256_* in CMakeLists.txt. Installed by the build commands
+      # above; CMake uses that copy instead of downloading its own, because
+      # the build sandbox has no network.
+      # ---------------------------------------------------------------
+      - type: archive
+        url: https://github.com/astral-sh/uv/releases/download/0.11.21/uv-x86_64-unknown-linux-gnu.tar.gz
+        sha256: 8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050
+        only-arches:
+          - x86_64
+        dest: uv
+
+      - type: archive
+        url: https://github.com/astral-sh/uv/releases/download/0.11.21/uv-aarch64-unknown-linux-gnu.tar.gz
+        sha256: 88e800834007cc5efd4675f166eb2a51e7e3ad19876d85fa8805a6fb5c922397
+        only-arches:
+          - aarch64
+        dest: uv
 
   - name: OrcaSlicer
     buildsystem: simple

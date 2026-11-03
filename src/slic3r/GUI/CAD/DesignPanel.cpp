@@ -6714,6 +6714,10 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     auto tr = [](const char* s) {
         return wxGetTranslation(wxString::FromUTF8(s), SLIC3R_APP_KEY);
     };
+    // Row and family names share words with other menus ("Modify", "Line"), hence the context.
+    auto tr_design = [](const char* s) {
+        return wxGetTranslation(wxString::FromUTF8(s), SLIC3R_APP_KEY, "Design");
+    };
     auto label = [&](const OfferVerb& v) {
         wxString s = I18N::translate(v.name, "Design");
         if (v.key && *v.key) s += "\t" + wxString::FromUTF8(v.key);
@@ -6781,7 +6785,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             menu.AppendSeparator();                     // between the flat items and the families
             flat_items = false;
         }
-        const wxString fam = tr(kOfferRowNames[row]);
+        const wxString fam = tr_design(kOfferRowNames[row]);
 
         if (live.empty()) {
             // DISABLED IN PLACE, with the reason. This is the row that makes the list worth
@@ -6835,7 +6839,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
                     if (it == groups.end()) {
                         auto* g = new wxMenu();
                         groups.emplace_back(v->family, g);
-                        sub->AppendSubMenu(g, tr(v->family));
+                        sub->AppendSubMenu(g, tr_design(v->family));
                         target = g;
                     } else {
                         target = it->second;
